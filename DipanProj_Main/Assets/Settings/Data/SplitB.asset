@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf845a8ffbd64998862be13dd4c70d5, type: 3}
+  m_Name: SplitB
+  m_EditorClassIdentifier: 
+  Speed: 10
+  LifeTime: 3
+  HasBounce: 1
+  MaxBounces: 3
+  HasSplit: 1
+  Timing: 1
+  SplitCount: 3
+  SpreadAngle: 60
+  SubProjectileData: {fileID: 11400000, guid: 61bedddf8bcde4d17a2e8f0034e80d0b, type: 2}
