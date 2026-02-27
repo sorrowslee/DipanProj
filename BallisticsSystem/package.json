@@ -1,0 +1,7 @@
+{
+  "name": "com.sorrows.ballisticssystem",
+  "version": "0.1.0",
+  "displayName": "Core Ballistics System",
+  "description": "獨立的彈道核心系統",
+  "unity": "2022.3"
+}

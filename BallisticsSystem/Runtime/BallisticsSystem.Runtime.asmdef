@@ -1,0 +1,14 @@
+{
+    "name": "BallisticsSystem.Runtime",
+    "rootNamespace": "Sorrows.Ballistics",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
