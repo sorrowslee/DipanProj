@@ -8,16 +8,34 @@ public class PlayerController : MonoBehaviour
     public LayerMask EnvLayer; 
     public ProjectileDefinition MyProjectileData; 
 
+    private Rigidbody2D _rb;
+    private Vector2 _moveInput;
+
+    void Start()
+    {
+        // 取得身上掛的 Rigidbody 2D
+        _rb = GetComponent<Rigidbody2D>();
+    }
+
     void Update()
     {
+        // 1. 取得輸入 (不要在這裡移動)
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
-        transform.position += new Vector3(h, v, 0).normalized * MoveSpeed * Time.deltaTime;
+        _moveInput = new Vector2(h, v).normalized;
 
+        // 2. 發射邏輯
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
         {
             Shoot();
         }
+    }
+
+    void FixedUpdate()
+    {
+        // 3. 物理移動建議放在 FixedUpdate，這會讓碰撞最精準
+        // 透過控制速度，Unity 會自動幫你處理牆壁碰撞
+        _rb.velocity = _moveInput * MoveSpeed;
     }
 
     void Shoot()
