@@ -8,6 +8,7 @@ public class MonsterController : MonoBehaviour
 
     public string MonsterName;
     public float MaxHealth = 50f;
+    public float HitboxPadding = 0.2f; // 🟢 受擊判定補償：讓 Hitbox 比圖片稍微大一點
     private float _currentHealth;
     private bool _isDead = false;
 
@@ -33,6 +34,48 @@ public class MonsterController : MonoBehaviour
                 _brain = new ChaseBrain(); // 預設追擊
                 break;
         }
+
+        // 自動調整碰撞箱以符合圖片大小並增加慷慨判定
+        AutoAdjustCollider();
+    }
+
+    private void AutoAdjustCollider()
+    {
+        SpriteRenderer sr = GetComponentInChildren<SpriteRenderer>();
+        if (sr == null || sr.sprite == null) return;
+
+        Collider2D col = GetComponent<Collider2D>();
+        if (col == null) col = gameObject.AddComponent<BoxCollider2D>();
+
+        if (col is BoxCollider2D box)
+        {
+            // 🟢 安全保護：確保 size 不會小於等於 0
+            float sizeX = Mathf.Max(0.01f, sr.sprite.bounds.size.x + HitboxPadding);
+            float sizeY = Mathf.Max(0.01f, sr.sprite.bounds.size.y + HitboxPadding);
+            box.size = new Vector2(sizeX, sizeY);
+            box.offset = sr.sprite.bounds.center;
+        }
+        else if (col is CircleCollider2D circle)
+        {
+            float maxDim = Mathf.Max(sr.sprite.bounds.size.x, sr.sprite.bounds.size.y);
+            // 🟢 安全保護：確保 radius 不會小於等於 0
+            circle.radius = Mathf.Max(0.005f, (maxDim / 2f) + (HitboxPadding / 2f));
+            circle.offset = sr.sprite.bounds.center;
+        }
+    }
+
+    // 🟢 在編輯器中顯示紅色受擊範圍，方便即時調整
+    private void OnDrawGizmosSelected()
+    {
+        Collider2D col = GetComponent<Collider2D>();
+        if (col != null)
+        {
+            Gizmos.color = Color.red;
+            if (col is BoxCollider2D box)
+                Gizmos.DrawWireCube(transform.TransformPoint(box.offset), box.size);
+            else if (col is CircleCollider2D circle)
+                Gizmos.DrawWireSphere(transform.TransformPoint(circle.offset), circle.radius);
+        }
     }
 
     void Start()
@@ -45,6 +88,9 @@ public class MonsterController : MonoBehaviour
             _actuator = gameObject.AddComponent<MonsterActuator>();
             _brain = new ChaseBrain();
         }
+
+        // 確保手動放置的怪物也會自動調整判定範圍
+        AutoAdjustCollider();
     }
 
     void Update()

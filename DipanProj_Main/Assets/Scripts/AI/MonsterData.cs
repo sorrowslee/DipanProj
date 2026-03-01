@@ -8,4 +8,6 @@ public class MonsterData
     public float HP;
     public string BrainType;
     public string Weapon;
+    public float Scale;
+    public string PrefabPath;
 }

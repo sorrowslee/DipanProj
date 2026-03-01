@@ -2,22 +2,61 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
 
+[System.Serializable]
+public struct PrefabMapping
+{
+    public string Path;
+    public GameObject Prefab;
+}
+
 public class MonsterSpawner : MonoBehaviour
 {
     public TextAsset MonsterCSV;
-    public GameObject MonsterPrefab; // 暫時先用一個 Prefab 代表雜魚
+    public List<PrefabMapping> PrefabMappings = new List<PrefabMapping>();
     
     private List<MonsterData> _monsterDatabase = new List<MonsterData>();
+    private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
 
     void Awake()
     {
+        InitializePrefabCache();
         LoadMonsterData();
     }
 
-    void Start()
+    private void InitializePrefabCache()
     {
-        // 測試：生出一隻 ID 為 1 的怪物
-        SpawnMonster(1, transform.position);
+        foreach (var mapping in PrefabMappings)
+        {
+            if (!string.IsNullOrEmpty(mapping.Path) && mapping.Prefab != null)
+            {
+                _prefabCache[mapping.Path] = mapping.Prefab;
+            }
+        }
+    }
+
+    [Header("自動生成設定")]
+    public int MonsterIDToSpawn = 1;      // 要生成的怪物 ID
+    public float SpawnInterval = 1.0f;    // 生成間隔 (秒)
+    public float SpawnRadius = 5.0f;      // 隨機生成範圍
+    private float _spawnTimer = 0f;
+
+    void Update()
+    {
+        _spawnTimer += Time.deltaTime;
+        if (_spawnTimer >= SpawnInterval)
+        {
+            _spawnTimer = 0f;
+            SpawnRandomMonster();
+        }
+    }
+
+    private void SpawnRandomMonster()
+    {
+        // 在半徑內隨機取得位置 (以 Spawner 座標為中心)
+        Vector2 randomOffset = Random.insideUnitCircle * SpawnRadius;
+        Vector2 spawnPos = (Vector2)transform.position + randomOffset;
+        
+        SpawnMonster(MonsterIDToSpawn, spawnPos);
     }
 
     private void LoadMonsterData()
@@ -29,13 +68,13 @@ public class MonsterSpawner : MonoBehaviour
         }
 
         string[] lines = MonsterCSV.text.Split('\n');
-        // 跳過標題列 (ID,Name,HP,BrainType,Weapon)
+        // 跳過標題列 (ID,Name,HP,BrainType,Weapon,Scale,PrefabPath)
         for (int i = 1; i < lines.Length; i++)
         {
             if (string.IsNullOrWhiteSpace(lines[i])) continue;
             
             string[] values = lines[i].Split(',');
-            if (values.Length < 5) continue;
+            if (values.Length < 7) continue;
 
             MonsterData data = new MonsterData();
             data.ID = int.Parse(values[0]);
@@ -43,6 +82,8 @@ public class MonsterSpawner : MonoBehaviour
             data.HP = float.Parse(values[2]);
             data.BrainType = values[3];
             data.Weapon = values[4];
+            data.Scale = float.Parse(values[5]);
+            data.PrefabPath = values[6].Trim();
 
             _monsterDatabase.Add(data);
         }
@@ -59,13 +100,20 @@ public class MonsterSpawner : MonoBehaviour
             return;
         }
 
-        if (MonsterPrefab == null)
+        if (!_prefabCache.TryGetValue(data.PrefabPath, out GameObject prefab))
         {
-            Debug.LogError("Monster Prefab is not assigned!");
+            Debug.LogError($"Prefab for path '{data.PrefabPath}' not found in mappings!");
             return;
         }
 
-        GameObject go = Instantiate(MonsterPrefab, position, Quaternion.identity);
+        GameObject go = Instantiate(prefab, position, Quaternion.identity);
+        
+        // 強制設定為 Enemy Layer (Layer 7)，確保子彈能打到
+        go.layer = 7; 
+
+        // 設定縮放
+        go.transform.localScale = Vector3.one * data.Scale;
+
         MonsterController controller = go.GetComponent<MonsterController>();
         if (controller == null)
         {
@@ -73,5 +121,32 @@ public class MonsterSpawner : MonoBehaviour
         }
         
         controller.Initialize(data);
+
+        // 🟢 初始面向設定：根據主角位置決定面向
+        SetInitialOrientation(go);
+    }
+
+    private void SetInitialOrientation(GameObject monsterGo)
+    {
+        // 尋找主角 (假設場景中有 PlayerController)
+        PlayerController player = FindFirstObjectByType<PlayerController>();
+        if (player == null) return;
+
+        SpriteRenderer sr = monsterGo.GetComponentInChildren<SpriteRenderer>();
+        if (sr == null) return;
+
+        // 計算主角相對於怪物的方向
+        float diffX = player.transform.position.x - monsterGo.transform.position.x;
+        
+        // 如果主角在右邊，則 flipX = true (圖片原始面朝左)
+        // 如果主角在左邊，則 flipX = false
+        sr.flipX = diffX > 0;
+    }
+
+    // 🟢 繪製生成區域，方便在編輯器中確認範圍是否有超出圍牆
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, SpawnRadius);
     }
 }

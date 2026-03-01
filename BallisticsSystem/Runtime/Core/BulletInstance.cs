@@ -8,6 +8,7 @@ namespace Sorrows.Ballistics
     {
         public Vector2 Velocity;
         public float LifeTime = 3f;
+        public float Radius = 0.1f; // 🟢 子彈判定半徑
         public LayerMask CollisionMask;
         public int PierceCount = 0; // 🟢 剩餘穿透次數
 
@@ -27,7 +28,8 @@ namespace Sorrows.Ballistics
             if (frameDist > 0)
             {
                 Vector2 dir = Velocity.normalized;
-                RaycastHit2D hit = Physics2D.Raycast(currentPos, dir, frameDist, CollisionMask);
+                // 🟢 使用 CircleCast 代替 Raycast，增加判定面積
+                RaycastHit2D hit = Physics2D.CircleCast(currentPos, Radius, dir, frameDist, CollisionMask);
 
                 if (hit.collider != null)
                 {

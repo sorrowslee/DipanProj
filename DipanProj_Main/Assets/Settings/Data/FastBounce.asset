@@ -13,7 +13,9 @@ MonoBehaviour:
   m_Name: FastBounce
   m_EditorClassIdentifier: 
   Speed: 20
+  Radius: 0.1
   LifeTime: 3
+  RotationSpeed: 720
   PierceCount: 0
   HasBounce: 0
   MaxBounces: 3

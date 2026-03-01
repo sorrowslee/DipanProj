@@ -26,6 +26,7 @@ namespace Sorrows.Ballistics
                 if (onHit != null) instance.OnBulletHitObject += onHit;
 
                 instance.Velocity = direction.normalized * def.Speed;
+                instance.Radius = def.Radius;
                 instance.LifeTime = def.LifeTime;
                 instance.CollisionMask = mask;
                 instance.PierceCount = def.PierceCount; // 🟢 傳遞穿透次數

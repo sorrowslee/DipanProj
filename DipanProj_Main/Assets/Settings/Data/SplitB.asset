@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: SplitB
   m_EditorClassIdentifier: 
   Speed: 10
+  Radius: 0.1
   LifeTime: 3
+  RotationSpeed: 720
+  PierceCount: 0
   HasBounce: 1
   MaxBounces: 3
   HasSplit: 1
