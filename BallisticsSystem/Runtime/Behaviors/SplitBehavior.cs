@@ -49,10 +49,10 @@ namespace Sorrows.Ballistics
             for (int i = 0; i < _count; i++)
             {
                 float currentAngle = startAngle + (angleStep * i);
-                // 使用目前的速度方向來分裂
                 Vector2 dir = Quaternion.Euler(0, 0, currentAngle) * instance.Velocity.normalized;
 
-                BallisticsEngine.Internal_SpawnSplit(_subDef, instance.gameObject, instance.transform.position, dir, instance.CollisionMask);
+                // 🟢 修改：傳入 instance.OnBulletHitObject，讓分裂彈繼承傷害邏輯
+                BallisticsEngine.Internal_SpawnSplit(_subDef, instance.gameObject, instance.transform.position, dir, instance.CollisionMask, instance.OnBulletHitObject);
             }
         }
     }

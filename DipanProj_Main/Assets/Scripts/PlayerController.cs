@@ -6,6 +6,8 @@ public class PlayerController : MonoBehaviour
     public float MoveSpeed = 5f;
     public GameObject BulletPrefab; 
     public LayerMask EnvLayer; 
+    // 新增：讓子彈知道哪些是敵人
+    public LayerMask EnemyLayer; 
     public ProjectileDefinition MyProjectileData; 
 
     private Rigidbody2D _rb;
@@ -13,18 +15,15 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
-        // 取得身上掛的 Rigidbody 2D
         _rb = GetComponent<Rigidbody2D>();
     }
 
     void Update()
     {
-        // 1. 取得輸入 (不要在這裡移動)
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
         _moveInput = new Vector2(h, v).normalized;
 
-        // 2. 發射邏輯
         if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
         {
             Shoot();
@@ -33,8 +32,6 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        // 3. 物理移動建議放在 FixedUpdate，這會讓碰撞最精準
-        // 透過控制速度，Unity 會自動幫你處理牆壁碰撞
         _rb.velocity = _moveInput * MoveSpeed;
     }
 
@@ -46,6 +43,20 @@ public class PlayerController : MonoBehaviour
         mousePos.z = 0;
         Vector2 fireDirection = (mousePos - transform.position).normalized;
 
-        BallisticsEngine.Spawn(MyProjectileData, BulletPrefab, transform.position, fireDirection, EnvLayer);
+        // 🟢 直接傳入 HandleBulletHit，確保第一幀就能收到通知
+        BallisticsEngine.Spawn(MyProjectileData, BulletPrefab, transform.position, fireDirection, EnvLayer | EnemyLayer, HandleBulletHit);
+    }
+
+    // 主遊戲的傷害處理器
+    void HandleBulletHit(BulletInstance bullet, GameObject target, RaycastHit2D hit)
+    {
+        // 嘗試取得怪物組件
+        MonsterController monster = target.GetComponent<MonsterController>();
+        if (monster != null)
+        {
+            // 威力目前寫死，之後可以根據 MyProjectileData 的 ID 來查表
+            float damage = 10f; 
+            monster.TakeDamage(damage);
+        }
     }
 }

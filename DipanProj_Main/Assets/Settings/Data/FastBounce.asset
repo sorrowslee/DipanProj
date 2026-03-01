@@ -14,9 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Speed: 20
   LifeTime: 3
-  HasBounce: 1
+  PierceCount: 0
+  HasBounce: 0
   MaxBounces: 3
   HasSplit: 0
+  Timing: 0
   SplitCount: 3
   SpreadAngle: 60
   SubProjectileData: {fileID: 11400000, guid: bc67a4362d3014c108938029aa13dae9, type: 2}

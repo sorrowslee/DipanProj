@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,8 +9,12 @@ namespace Sorrows.Ballistics
         public Vector2 Velocity;
         public float LifeTime = 3f;
         public LayerMask CollisionMask;
+        public int PierceCount = 0; // 🟢 剩餘穿透次數
+
+        public Action<BulletInstance, GameObject, RaycastHit2D> OnBulletHitObject;
 
         private List<IBulletBehavior> _behaviors = new List<IBulletBehavior>();
+        private HashSet<int> _hitObjects = new HashSet<int>(); // 🟢 防止一幀多次傷害同一個對象
 
         public void AddBehavior(IBulletBehavior behavior) => _behaviors.Add(behavior);
         public List<IBulletBehavior> GetBehaviors() => _behaviors;
@@ -26,12 +31,27 @@ namespace Sorrows.Ballistics
 
                 if (hit.collider != null)
                 {
-                    bool shouldDestroy = true; // 預設撞擊後銷毀
+                    int id = hit.collider.gameObject.GetInstanceID();
 
-                    // 遍歷所有行為，讓它們各自處理碰撞
+                    // 🟢 如果還沒撞過這個東西，才觸發回報
+                    if (!_hitObjects.Contains(id))
+                    {
+                        OnBulletHitObject?.Invoke(this, hit.collider.gameObject, hit);
+                        _hitObjects.Add(id);
+                    }
+
+                    bool shouldDestroy = true;
+
+                    // 🟢 穿透邏輯：如果是敵人 (Layer 7) 且還有穿透次數
+                    if (hit.collider.gameObject.layer == 7 && PierceCount > 0)
+                    {
+                        PierceCount--;
+                        shouldDestroy = false; // 穿透時不銷毀
+                    }
+
+                    // 遍歷行為 (反彈等)
                     foreach (var behavior in _behaviors)
                     {
-                        // 如果有任何一個行為（如反彈）回傳 true，代表子彈不該被銷毀
                         if (behavior.OnHit(this, hit, ref Velocity))
                         {
                             shouldDestroy = false;
@@ -41,8 +61,8 @@ namespace Sorrows.Ballistics
                     if (shouldDestroy) 
                     {
                         Destroy(gameObject);
+                        return;
                     }
-                    return; // 撞擊幀不執行最後的位移，避免穿牆
                 }
             }
 
