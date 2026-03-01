@@ -6,23 +6,50 @@ public class MonsterController : MonoBehaviour
     private MonsterActuator _actuator;
     private IMonsterBrain _brain;
 
+    public string MonsterName;
     public float MaxHealth = 50f;
     private float _currentHealth;
     private bool _isDead = false;
 
+    public void Initialize(MonsterData data)
+    {
+        MonsterName = data.Name;
+        MaxHealth = data.HP;
+        _currentHealth = MaxHealth;
+
+        _sensor = gameObject.GetComponent<MonsterSensor>();
+        if (_sensor == null) _sensor = gameObject.AddComponent<MonsterSensor>();
+        
+        _actuator = gameObject.GetComponent<MonsterActuator>();
+        if (_actuator == null) _actuator = gameObject.AddComponent<MonsterActuator>();
+
+        // 根據 BrainType 決定 AI 邏輯
+        switch (data.BrainType)
+        {
+            case "Chase":
+                _brain = new ChaseBrain();
+                break;
+            default:
+                _brain = new ChaseBrain(); // 預設追擊
+                break;
+        }
+    }
+
     void Start()
     {
-        _sensor = gameObject.AddComponent<MonsterSensor>();
-        _actuator = gameObject.AddComponent<MonsterActuator>();
-        
-        // 目前先寫死是追擊大腦，以後可以從外部傳入
-        _brain = new ChaseBrain(); 
-
-        _currentHealth = MaxHealth;
+        // 如果沒有外部初始化，則給予預設值
+        if (_brain == null)
+        {
+            _currentHealth = MaxHealth;
+            _sensor = gameObject.AddComponent<MonsterSensor>();
+            _actuator = gameObject.AddComponent<MonsterActuator>();
+            _brain = new ChaseBrain();
+        }
     }
 
     void Update()
     {
+        if (_isDead) return;
         Transform player = _sensor.GetTargetPlayer();
         _brain.Think(_actuator, player);
     }
@@ -33,6 +60,7 @@ public class MonsterController : MonoBehaviour
         if (_isDead) return;
 
         _currentHealth -= amount;
+        Debug.Log($"{MonsterName} took {amount} damage. HP: {_currentHealth}/{MaxHealth}");
 
         if (_currentHealth <= 0)
         {
