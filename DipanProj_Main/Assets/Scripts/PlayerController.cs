@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour
     public LayerMask EnemyLayer; 
     public ProjectileDefinition MyProjectileData; 
 
+    private Animator _animator;
     private Rigidbody2D _rb;
     private Vector2 _moveInput;
     private SpriteRenderer _spriteRenderer;
@@ -18,8 +19,10 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
+        _animator = GetComponent<Animator>();
         _rb = GetComponent<Rigidbody2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
+
         if (_spriteRenderer == null)
         {
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
@@ -71,6 +74,19 @@ public class PlayerController : MonoBehaviour
             // 重置間隔時鐘
             if (MyProjectileData != null) _fireTimer = MyProjectileData.FireInterval;
         }
+
+        HandleVisuals();
+    }
+
+    // 🟢 新增：視覺與動畫控制邏輯
+    private void HandleVisuals()
+    {
+        if (_animator == null || _spriteRenderer == null) return;
+
+        // 1. 動畫切換：根據 Rigidbody2D 的速度決定是否播放 Walk
+        // 這裡對應你在 Animator 設定的 bool 參數 "isMoving"
+        float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
+        _animator.SetBool("isMoving", currentSpeed > 0.1f);
     }
 
     void FixedUpdate()

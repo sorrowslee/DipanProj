@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 2580380093727483804}
   - component: {fileID: 6965538851055152708}
   - component: {fileID: 5734588528701023947}
+  - component: {fileID: 4080863413834806954}
   m_Layer: 7
   m_Name: ZhaYu
   m_TagString: Untagged
@@ -76,13 +77,13 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_Sprite: {fileID: 21300000, guid: 74b4fe1c03c124828acac7d14e02fa0e, type: 3}
+  m_SortingOrder: 10
+  m_Sprite: {fileID: 21300000, guid: f13bf6e67997a40698303a668d37b38b, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 1, y: 1}
+  m_Size: {x: 12.6, y: 12.6}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -179,3 +180,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   MoveSpeed: 3
   isFacingRightByDefault: 0
+--- !u!95 &4080863413834806954
+Animator:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8390195051216793677}
+  m_Enabled: 1
+  m_Avatar: {fileID: 0}
+  m_Controller: {fileID: 9100000, guid: 6480adb4e1ced458ca65b1668df0a82b, type: 2}
+  m_CullingMode: 0
+  m_UpdateMode: 0
+  m_ApplyRootMotion: 0
+  m_LinearVelocityBlending: 0
+  m_StabilizeFeet: 0
+  m_WarningMessage: 
+  m_HasTransformHierarchy: 1
+  m_AllowConstantClipSamplingOptimization: 1
+  m_KeepAnimatorStateOnDisable: 0
+  m_WriteDefaultValuesOnDisable: 0

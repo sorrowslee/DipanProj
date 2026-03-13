@@ -47,11 +47,12 @@ public class BuildScript
             string error = process.StandardError.ReadToEnd();
             process.WaitForExit();
 
+            // 🟢 修復：Git 進度通常輸出為 stderr，不應直接報錯
             if (!string.IsNullOrEmpty(output)) UnityEngine.Debug.Log($"📦 Script Output: {output}");
-            if (!string.IsNullOrEmpty(error)) UnityEngine.Debug.LogError($"⚠️ Script Error: {error}");
+            if (!string.IsNullOrEmpty(error)) UnityEngine.Debug.Log($"ℹ️ Script Info (stderr): {error}");
             
             if (process.ExitCode == 0)
-                UnityEngine.Debug.Log("🎉 部署成功！現在可以去 PC pull 了。");
+                UnityEngine.Debug.Log("🎉 部署成功！");
             else
                 UnityEngine.Debug.LogError("❌ 部署腳本執行失敗，請查看錯誤 Log。");
         }
