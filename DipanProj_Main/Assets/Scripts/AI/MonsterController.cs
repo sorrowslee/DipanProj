@@ -13,28 +13,27 @@ public class MonsterController : MonoBehaviour
 
     public string MonsterName;
     public float MaxHealth = 50f;
-    public float HitboxPadding = 0.2f; // 🟢 受擊判定補償：讓 Hitbox 比圖片稍微大一點
+    public float HitboxPadding = 0.2f;
+    public bool IsFacingRightByDefault = true; // 圖片原始朝向：true = 原始朝左（需 flipX 才朝右）
     private float _currentHealth;
     private bool _isDead = false;
 
     void Start()
     {
-        // 🟢 初始化視覺組件
         _animator = GetComponent<Animator>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
         _rb = GetComponent<Rigidbody2D>();
         
-        // 如果沒有外部初始化，則給予預設值
+        // 若沒有經過 Initialize()（手動放置的怪物），在此給予預設值並調整碰撞箱
         if (_brain == null)
         {
             _currentHealth = MaxHealth;
             _sensor = gameObject.AddComponent<MonsterSensor>();
             _actuator = gameObject.AddComponent<MonsterActuator>();
             _brain = new ChaseBrain();
+            AutoAdjustCollider();
         }
-
-        // 確保手動放置的怪物也會自動調整判定範圍
-        AutoAdjustCollider();
+        // 已經過 Initialize() 的怪物，AutoAdjustCollider 已在其中呼叫，不重複執行
     }
 
     public void Initialize(MonsterData data)
@@ -123,11 +122,12 @@ public class MonsterController : MonoBehaviour
         float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
         _animator.SetBool("isMoving", currentSpeed > 0.1f);
 
-        // 2. 左右翻轉 (Flip)：根據玩家位置自動轉向
+        // 2. 左右翻轉 (Flip)：根據玩家位置與圖片原始朝向決定
         if (player != null)
         {
-            // 玩家在左邊就翻轉圖片，玩家在右邊就保持原樣
-            _spriteRenderer.flipX = player.position.x < transform.position.x;
+            bool playerIsOnRight = player.position.x > transform.position.x;
+            // IsFacingRightByDefault = true 代表圖片原始朝左，需要 flipX 才能朝右
+            _spriteRenderer.flipX = IsFacingRightByDefault ? playerIsOnRight : !playerIsOnRight;
         }
     }
 

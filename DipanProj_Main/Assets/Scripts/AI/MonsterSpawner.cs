@@ -13,6 +13,7 @@ public class MonsterSpawner : MonoBehaviour
 {
     public TextAsset MonsterCSV;
     public List<PrefabMapping> PrefabMappings = new List<PrefabMapping>();
+    public LayerMask EnemyLayer;
     
     private List<MonsterData> _monsterDatabase = new List<MonsterData>();
     private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
@@ -107,9 +108,13 @@ public class MonsterSpawner : MonoBehaviour
         }
 
         GameObject go = Instantiate(prefab, position, Quaternion.identity);
-        
-        // 強制設定為 Enemy Layer (Layer 7)，確保子彈能打到
-        go.layer = 7; 
+
+        // 將 Layer 設為 Inspector 指定的 EnemyLayer，不寫死編號
+        if (EnemyLayer != 0)
+        {
+            int layerIndex = Mathf.RoundToInt(Mathf.Log(EnemyLayer.value, 2));
+            go.layer = layerIndex;
+        }
 
         // 設定縮放
         go.transform.localScale = Vector3.one * data.Scale;
@@ -128,18 +133,14 @@ public class MonsterSpawner : MonoBehaviour
 
     private void SetInitialOrientation(GameObject monsterGo)
     {
-        // 尋找主角 (假設場景中有 PlayerController)
-        PlayerController player = FindFirstObjectByType<PlayerController>();
-        if (player == null) return;
+        // 透過 Tag 尋找玩家，不依賴任何具體玩家類別
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj == null) return;
 
         SpriteRenderer sr = monsterGo.GetComponentInChildren<SpriteRenderer>();
         if (sr == null) return;
 
-        // 計算主角相對於怪物的方向
-        float diffX = player.transform.position.x - monsterGo.transform.position.x;
-        
-        // 如果主角在右邊，則 flipX = true (圖片原始面朝左)
-        // 如果主角在左邊，則 flipX = false
+        float diffX = playerObj.transform.position.x - monsterGo.transform.position.x;
         sr.flipX = diffX > 0;
     }
 
