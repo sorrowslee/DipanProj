@@ -42,6 +42,9 @@ namespace Sorrows.Ballistics
                 {
                     b.OnSpawn(instance);
                 }
+
+                // 生成時做一次近距離檢查，處理 CircleCast 起點在 Collider 內部時偵測不到的情況
+                instance.CheckSpawnOverlap();
             }
             return instance;
         }

@@ -100,8 +100,7 @@ public class PlayerController : MonoBehaviour
         mousePos.z = 0;
         Vector2 fireDirection = (mousePos - transform.position).normalized;
 
-        // 🟢 修復：子彈從角色稍微前方一點的地方產出，避免出生即自撞物理判定
-        Vector2 spawnPos = (Vector2)transform.position + fireDirection * 0.5f;
+        Vector2 spawnPos = (Vector2)transform.position;
 
         // 直接傳入 HandleBulletHit，確保第一幀就能收到通知
         // EnemyLayer 同時作為「可穿透層」與「不反彈層」，讓彈道系統不需要知道 Layer 編號
