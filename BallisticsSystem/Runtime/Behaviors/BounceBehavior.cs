@@ -14,8 +14,9 @@ namespace Sorrows.Ballistics
 
         public bool OnHit(BulletInstance instance, RaycastHit2D hit, ref Vector2 velocity)
         {
-            // 🟢 如果撞擊的是敵人 (Layer 7)，則不反彈 (讓子彈直接執行銷毀流程)
-            if (hit.collider.gameObject.layer == 7)
+            // 命中目標在 NonBounceLayers 內則不反彈，交由銷毀流程處理
+            int hitLayer = hit.collider.gameObject.layer;
+            if (((1 << hitLayer) & instance.NonBounceLayers) != 0)
             {
                 return false;
             }

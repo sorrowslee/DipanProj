@@ -51,8 +51,8 @@ namespace Sorrows.Ballistics
                 float currentAngle = startAngle + (angleStep * i);
                 Vector2 dir = Quaternion.Euler(0, 0, currentAngle) * instance.Velocity.normalized;
 
-                // 🟢 修改：傳入 instance.OnBulletHitObject，讓分裂彈繼承傷害邏輯
-                BallisticsEngine.Internal_SpawnSplit(_subDef, instance.gameObject, instance.transform.position, dir, instance.CollisionMask, instance.OnBulletHitObject);
+                // 分裂彈繼承父彈的所有 LayerMask 設定與傷害回報事件
+                BallisticsEngine.Internal_SpawnSplit(_subDef, instance.gameObject, instance.transform.position, dir, instance.CollisionMask, instance.PierceableLayers, instance.NonBounceLayers, instance.OnBulletHitObject);
             }
         }
     }

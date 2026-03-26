@@ -105,8 +105,9 @@ public class PlayerController : MonoBehaviour
         // 🟢 修復：子彈從角色稍微前方一點的地方產出，避免出生即自撞物理判定
         Vector2 spawnPos = (Vector2)transform.position + fireDirection * 0.5f;
 
-        // 🟢 直接傳入 HandleBulletHit，確保第一幀就能收到通知
-        BallisticsEngine.Spawn(MyProjectileData, BulletPrefab, spawnPos, fireDirection, EnvLayer | EnemyLayer, HandleBulletHit);
+        // 直接傳入 HandleBulletHit，確保第一幀就能收到通知
+        // EnemyLayer 同時作為「可穿透層」與「不反彈層」，讓彈道系統不需要知道 Layer 編號
+        BallisticsEngine.Spawn(MyProjectileData, BulletPrefab, spawnPos, fireDirection, EnvLayer | EnemyLayer, EnemyLayer, EnemyLayer, HandleBulletHit);
     }
 
     // 主遊戲的傷害處理器

@@ -8,9 +8,11 @@ namespace Sorrows.Ballistics
     {
         public Vector2 Velocity;
         public float LifeTime = 3f;
-        public float Radius = 0.1f; // 🟢 子彈判定半徑
+        public float Radius = 0.1f;
         public LayerMask CollisionMask;
-        public int PierceCount = 0; // 🟢 剩餘穿透次數
+        public LayerMask PierceableLayers;  // 可穿透的圖層，由主遊戲傳入
+        public LayerMask NonBounceLayers;   // 不反彈的圖層，由主遊戲傳入
+        public int PierceCount = 0;
 
         public Action<BulletInstance, GameObject, RaycastHit2D> OnBulletHitObject;
 
@@ -44,8 +46,9 @@ namespace Sorrows.Ballistics
 
                     bool shouldDestroy = true;
 
-                    // 🟢 穿透邏輯：如果是敵人 (Layer 7) 且還有穿透次數
-                    if (hit.collider.gameObject.layer == 7 && PierceCount > 0)
+                    // 穿透邏輯：命中目標在 PierceableLayers 內且還有穿透次數
+                    int hitLayer = hit.collider.gameObject.layer;
+                    if (((1 << hitLayer) & PierceableLayers) != 0 && PierceCount > 0)
                     {
                         PierceCount--;
                         shouldDestroy = false; // 穿透時不銷毀
