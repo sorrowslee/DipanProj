@@ -117,10 +117,8 @@ public class MonsterController : MonoBehaviour
     {
         if (_animator == null || _spriteRenderer == null) return;
 
-        // 1. 動畫切換：根據 Rigidbody2D 的速度決定是否播放 Walk
-        // 這裡對應你在 Animator 設定的 bool 參數 "isMoving"
-        float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
-        _animator.SetBool("isMoving", currentSpeed > 0.1f);
+        // Kinematic 模式下 velocity 永遠為 0，改由 Actuator 的狀態旗標判斷
+        _animator.SetBool("isMoving", _actuator != null && _actuator.IsMoving);
 
         // 2. 左右翻轉 (Flip)：根據玩家位置與圖片原始朝向決定
         if (player != null)

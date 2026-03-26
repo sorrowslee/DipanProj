@@ -2740,6 +2740,9 @@ MonoBehaviour:
   PrefabMappings:
   - Path: ZhaYu
     Prefab: {fileID: 8390195051216793677, guid: ea16bb11cecb043ebae89de1a37e22aa, type: 3}
+  EnemyLayer:
+    serializedVersion: 2
+    m_Bits: 128
   MonsterIDToSpawn: 1
   SpawnInterval: 1
   SpawnRadius: 5

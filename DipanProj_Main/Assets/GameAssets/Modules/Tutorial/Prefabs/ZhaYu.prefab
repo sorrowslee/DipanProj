@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 5087826590808449752}
   - component: {fileID: 7216766283711944803}
   - component: {fileID: 8471741260277820866}
-  - component: {fileID: 2580380093727483804}
   - component: {fileID: 6965538851055152708}
+  - component: {fileID: 2580380093727483804}
   - component: {fileID: 5734588528701023947}
   - component: {fileID: 4080863413834806954}
   m_Layer: 7
@@ -99,7 +99,7 @@ Rigidbody2D:
   m_GameObject: {fileID: 8390195051216793677}
   m_BodyType: 0
   m_Simulated: 1
-  m_UseFullKinematicContacts: 0
+  m_UseFullKinematicContacts: 1
   m_UseAutoMass: 0
   m_Mass: 1
   m_LinearDrag: 0
@@ -116,21 +116,6 @@ Rigidbody2D:
   m_SleepingMode: 1
   m_CollisionDetection: 1
   m_Constraints: 4
---- !u!114 &2580380093727483804
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8390195051216793677}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 4618ff71d3fc84b0ba6be720bab58aba, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  MonsterName: ZhaYu
-  MaxHealth: 50
-  HitboxPadding: 0
 --- !u!58 &6965538851055152708
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -166,6 +151,22 @@ CircleCollider2D:
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
   m_Radius: 0.5
+--- !u!114 &2580380093727483804
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8390195051216793677}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4618ff71d3fc84b0ba6be720bab58aba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MonsterName: ZhaYu
+  MaxHealth: 50
+  HitboxPadding: 0
+  IsFacingRightByDefault: 1
 --- !u!114 &5734588528701023947
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -179,7 +180,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MoveSpeed: 3
-  isFacingRightByDefault: 0
 --- !u!95 &4080863413834806954
 Animator:
   serializedVersion: 5

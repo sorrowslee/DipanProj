@@ -83,15 +83,13 @@ public class PlayerController : MonoBehaviour
     {
         if (_animator == null || _spriteRenderer == null) return;
 
-        // 1. 動畫切換：根據 Rigidbody2D 的速度決定是否播放 Walk
-        // 這裡對應你在 Animator 設定的 bool 參數 "isMoving"
-        float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
-        _animator.SetBool("isMoving", currentSpeed > 0.1f);
+        // Kinematic 模式下 velocity 永遠為 0，改用 moveInput 判斷是否在移動
+        _animator.SetBool("isMoving", _moveInput.magnitude > 0.01f);
     }
 
     void FixedUpdate()
     {
-        _rb.velocity = _moveInput * MoveSpeed;
+        _rb.MovePosition(_rb.position + _moveInput * MoveSpeed * Time.fixedDeltaTime);
     }
 
     void Shoot()
