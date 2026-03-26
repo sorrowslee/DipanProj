@@ -117,8 +117,8 @@ public class MonsterController : MonoBehaviour
     {
         if (_animator == null || _spriteRenderer == null) return;
 
-        // Kinematic 模式下 velocity 永遠為 0，改由 Actuator 的狀態旗標判斷
-        _animator.SetBool("isMoving", _actuator != null && _actuator.IsMoving);
+        float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
+        _animator.SetBool("isMoving", currentSpeed > 0.1f);
 
         // 2. 左右翻轉 (Flip)：根據玩家位置與圖片原始朝向決定
         if (player != null)

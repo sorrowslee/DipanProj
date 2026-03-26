@@ -10,19 +10,27 @@ public interface IMonsterBrain
 public class MonsterSensor : MonoBehaviour
 {
     public float DetectionRange = 10f;
-    public Transform GetTargetPlayer()
+
+    private Transform _playerTransform;
+
+    void Start()
     {
         GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        
-        if (playerObj == null) {
-            return null;
+        if (playerObj != null)
+            _playerTransform = playerObj.transform;
+    }
+
+    public Transform GetTargetPlayer()
+    {
+        // 若快取遺失（玩家死亡/重生），嘗試重新尋找一次
+        if (_playerTransform == null)
+        {
+            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+            if (playerObj == null) return null;
+            _playerTransform = playerObj.transform;
         }
 
-        float dist = Vector2.Distance(transform.position, playerObj.transform.position);
-        if (dist <= DetectionRange) {
-            return playerObj.transform;
-        } else {
-            return null;
-        }
+        float dist = Vector2.Distance(transform.position, _playerTransform.position);
+        return dist <= DetectionRange ? _playerTransform : null;
     }
 }

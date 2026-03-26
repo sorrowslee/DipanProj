@@ -83,13 +83,13 @@ public class PlayerController : MonoBehaviour
     {
         if (_animator == null || _spriteRenderer == null) return;
 
-        // Kinematic 模式下 velocity 永遠為 0，改用 moveInput 判斷是否在移動
-        _animator.SetBool("isMoving", _moveInput.magnitude > 0.01f);
+        float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
+        _animator.SetBool("isMoving", currentSpeed > 0.1f);
     }
 
     void FixedUpdate()
     {
-        _rb.MovePosition(_rb.position + _moveInput * MoveSpeed * Time.fixedDeltaTime);
+        _rb.velocity = _moveInput * MoveSpeed;
     }
 
     void Shoot()
