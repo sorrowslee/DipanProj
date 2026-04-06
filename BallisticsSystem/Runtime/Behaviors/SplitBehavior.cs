@@ -4,13 +4,13 @@ namespace Sorrows.Ballistics
 {
     public class SplitBehavior : IBulletBehavior
     {
-        private ProjectileDefinition _subDef;
+        private ProjectileData _subDef;
         private int _count;
         private float _angle;
         private SplitTiming _timing;
-        private bool _hasSplitInThisFrame = false; // 防止同一幀重複觸發
+        private bool _hasSplitInThisFrame = false;
 
-        public SplitBehavior(ProjectileDefinition def, int count, float angle, SplitTiming timing)
+        public SplitBehavior(ProjectileData def, int count, float angle, SplitTiming timing)
         {
             _subDef = def; _count = count; _angle = angle; _timing = timing;
         }
@@ -26,7 +26,7 @@ namespace Sorrows.Ballistics
 
         public void OnProcessMovement(BulletInstance instance, ref Vector2 velocity, ref Vector2 position, float deltaTime) 
         {
-            _hasSplitInThisFrame = false; // 重置狀態
+            _hasSplitInThisFrame = false;
         }
 
         public bool OnHit(BulletInstance instance, RaycastHit2D hit, ref Vector2 velocity)
@@ -36,7 +36,7 @@ namespace Sorrows.Ballistics
                 ExecuteSplit(instance);
                 _hasSplitInThisFrame = true;
             }
-            return false; // 分裂行為不攔截銷毀，交由其他行為（如反彈）決定
+            return false;
         }
 
         private void ExecuteSplit(BulletInstance instance)
@@ -51,7 +51,6 @@ namespace Sorrows.Ballistics
                 float currentAngle = startAngle + (angleStep * i);
                 Vector2 dir = Quaternion.Euler(0, 0, currentAngle) * instance.Velocity.normalized;
 
-                // 分裂彈繼承父彈的所有 LayerMask 設定與傷害回報事件
                 BallisticsEngine.Internal_SpawnSplit(_subDef, instance.gameObject, instance.transform.position, dir, instance.CollisionMask, instance.PierceableLayers, instance.NonBounceLayers, instance.OnBulletHitObject);
             }
         }

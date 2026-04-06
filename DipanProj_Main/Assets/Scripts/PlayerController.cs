@@ -4,16 +4,17 @@ using Sorrows.Ballistics;
 public class PlayerController : MonoBehaviour
 {
     public float MoveSpeed = 5f;
-    public GameObject BulletPrefab; 
     public LayerMask EnvLayer; 
-    // 新增：讓子彈知道哪些是敵人
     public LayerMask EnemyLayer; 
-    public ProjectileDefinition MyProjectileData; 
+    public int CurrentWeaponID = 1;
 
     private Animator _animator;
     private Rigidbody2D _rb;
     private Vector2 _moveInput;
     private SpriteRenderer _spriteRenderer;
+    private WeaponManager _weaponManager;
+    private WeaponData _currentWeapon;
+    private float _fireTimer = 0f;
 
     public bool isFacingRightByDefault = true;
 
@@ -28,14 +29,33 @@ public class PlayerController : MonoBehaviour
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
 
-        // 初始化面向 (原始圖片朝左，若預設右則 flipX = true)
         if (_spriteRenderer != null)
         {
             _spriteRenderer.flipX = isFacingRightByDefault;
         }
+
+        _weaponManager = FindObjectOfType<WeaponManager>();
+        if (_weaponManager == null)
+        {
+            Debug.LogError("WeaponManager not found in scene!");
+        }
+
+        RefreshWeapon();
     }
-    
-    private float _fireTimer = 0f;
+
+    public void SwitchWeapon(int weaponID)
+    {
+        CurrentWeaponID = weaponID;
+        RefreshWeapon();
+    }
+
+    private void RefreshWeapon()
+    {
+        if (_weaponManager != null)
+        {
+            _currentWeapon = _weaponManager.GetWeapon(CurrentWeaponID);
+        }
+    }
 
     void Update()
     {
@@ -43,10 +63,8 @@ public class PlayerController : MonoBehaviour
         float v = Input.GetAxisRaw("Vertical");
         _moveInput = new Vector2(h, v).normalized;
 
-        // 自動鏡像翻轉邏輯
         if (_spriteRenderer != null)
         {
-            // 🟢 優先權 1：攻擊中，根據滑鼠位置翻轉
             bool isAttacking = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
             if (isAttacking)
             {
@@ -56,7 +74,6 @@ public class PlayerController : MonoBehaviour
                 if (mouseDiffX < 0) _spriteRenderer.flipX = false;
                 else if (mouseDiffX > 0) _spriteRenderer.flipX = true;
             }
-            // 🟢 優先權 2：沒攻擊且有移動，根據移動方向翻轉
             else if (Mathf.Abs(h) > 0.01f)
             {
                 if (h < 0) _spriteRenderer.flipX = false;
@@ -64,21 +81,18 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // 🟢 更新發射冷卻計時器
         if (_fireTimer > 0) _fireTimer -= Time.deltaTime;
 
-        // 🟢 改為 GetKey 支援長按連發
         if ((Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)) && _fireTimer <= 0)
         {
             Shoot();
-            // 重置間隔時鐘
-            if (MyProjectileData != null) _fireTimer = MyProjectileData.FireInterval;
+            if (_currentWeapon?.Recipe?.Data != null)
+                _fireTimer = _currentWeapon.Recipe.Data.FireInterval;
         }
 
         HandleVisuals();
     }
 
-    // 🟢 新增：視覺與動畫控制邏輯
     private void HandleVisuals()
     {
         if (_animator == null || _spriteRenderer == null) return;
@@ -94,29 +108,38 @@ public class PlayerController : MonoBehaviour
 
     void Shoot()
     {
-        if (BulletPrefab == null || MyProjectileData == null) return;
+        if (_currentWeapon == null || _currentWeapon.BulletPrefab == null || _currentWeapon.Recipe == null) return;
 
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePos.z = 0;
         Vector2 fireDirection = (mousePos - transform.position).normalized;
-
         Vector2 spawnPos = (Vector2)transform.position;
 
-        // 直接傳入 HandleBulletHit，確保第一幀就能收到通知
-        // EnemyLayer 同時作為「可穿透層」與「不反彈層」，讓彈道系統不需要知道 Layer 編號
-        BallisticsEngine.Spawn(MyProjectileData, BulletPrefab, spawnPos, fireDirection, EnvLayer | EnemyLayer, EnemyLayer, EnemyLayer, HandleBulletHit);
+        ProjectileData recipe = _currentWeapon.Recipe.Data;
+        LayerMask collisionMask = EnvLayer | EnemyLayer;
+        LayerMask pierceableLayers = EnemyLayer;
+        LayerMask nonBounceLayers = ResolveNonBounceLayers(_currentWeapon.Recipe.BounceTarget);
+
+        BallisticsEngine.Spawn(recipe, _currentWeapon.BulletPrefab, spawnPos, fireDirection,
+            collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit);
     }
 
-    // 主遊戲的傷害處理器
+    private LayerMask ResolveNonBounceLayers(BounceTarget bounceTarget)
+    {
+        return bounceTarget switch
+        {
+            BounceTarget.Environment => EnemyLayer,
+            BounceTarget.Enemy => EnvLayer,
+            _ => EnvLayer | EnemyLayer
+        };
+    }
+
     void HandleBulletHit(BulletInstance bullet, GameObject target, RaycastHit2D hit)
     {
-        // 嘗試取得怪物組件
         MonsterController monster = target.GetComponent<MonsterController>();
-        if (monster != null)
+        if (monster != null && _currentWeapon != null)
         {
-            // 威力目前寫死，之後可以根據 MyProjectileData 的 ID 來查表
-            float damage = 10f; 
-            monster.TakeDamage(damage);
+            monster.TakeDamage(_currentWeapon.Damage);
         }
     }
 }
