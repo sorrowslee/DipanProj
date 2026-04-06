@@ -1,2 +1,2 @@
-ID,Name,HP,BrainType,Weapon,Scale,PrefabPath
-1,ZhaYu,10,Chase,Contact,2.0,ZhaYu
+ID,Name,HP,BrainType,Weapon,Scale,PrefabPath,InvincibleTimeMs,KnockbackThreshold,KnockbackPercent
+1,ZhaYu,10,Chase,Contact,2.0,ZhaYu,0,3,20

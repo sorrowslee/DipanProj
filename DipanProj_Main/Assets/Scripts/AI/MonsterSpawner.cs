@@ -86,6 +86,10 @@ public class MonsterSpawner : MonoBehaviour
             data.Scale = float.Parse(values[5]);
             data.PrefabPath = values[6].Trim();
 
+            data.InvincibleTimeMs = values.Length > 7 ? float.Parse(values[7]) : 0;
+            data.KnockbackThreshold = values.Length > 8 ? float.Parse(values[8]) : 0;
+            data.KnockbackPercent = values.Length > 9 ? float.Parse(values[9]) : 0;
+
             _monsterDatabase.Add(data);
         }
         

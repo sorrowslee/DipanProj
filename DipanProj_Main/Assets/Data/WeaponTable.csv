@@ -1,5 +1,5 @@
 ID, Name     , Damage, RecipeID, WeaponSpritePath      , SpriteAngleOffset
- 1, 單一飛劍 ,     20,        1, Weapon/weapon_sword   ,               135
- 2, 單一彎刀 ,     20,        2, Weapon/weapon_scimitar,                 0
- 3, 3分裂飛劍,     20,        3, Weapon/weapon_sword   ,               135
- 4, 5分裂彎刀,     20,        5, Weapon/weapon_scimitar,                 0
+ 1, 單一飛劍 ,     1,        1, Weapon/weapon_sword   ,               135
+ 2, 單一彎刀 ,     2,        2, Weapon/weapon_scimitar,                 0
+ 3, 3分裂飛劍,     1,        3, Weapon/weapon_sword   ,               135
+ 4, 5分裂彎刀,     2,        5, Weapon/weapon_scimitar,                 0

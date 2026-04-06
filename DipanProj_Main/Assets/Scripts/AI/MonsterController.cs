@@ -5,8 +5,8 @@ public class MonsterController : MonoBehaviour
     private MonsterSensor _sensor;
     private MonsterActuator _actuator;
     private IMonsterBrain _brain;
+    private HitReactionHandler _hitReaction;
 
-    // 🟢 新增視覺組件參照
     private Animator _animator;
     private SpriteRenderer _spriteRenderer;
     private Rigidbody2D _rb;
@@ -14,9 +14,14 @@ public class MonsterController : MonoBehaviour
     public string MonsterName;
     public float MaxHealth = 50f;
     public float HitboxPadding = 0.2f;
-    public bool IsFacingRightByDefault = true; // 圖片原始朝向：true = 原始朝左（需 flipX 才朝右）
+    public bool IsFacingRightByDefault = true;
     private float _currentHealth;
     private bool _isDead = false;
+
+    [Header("Hit Reaction")]
+    public float InvincibleTimeMs = 0f;
+    public float KnockbackThreshold = 0f;
+    public float KnockbackPercent = 0f;
 
     void Start()
     {
@@ -24,7 +29,6 @@ public class MonsterController : MonoBehaviour
         _spriteRenderer = GetComponent<SpriteRenderer>();
         _rb = GetComponent<Rigidbody2D>();
         
-        // 若沒有經過 Initialize()（手動放置的怪物），在此給予預設值並調整碰撞箱
         if (_brain == null)
         {
             _currentHealth = MaxHealth;
@@ -33,7 +37,10 @@ public class MonsterController : MonoBehaviour
             _brain = new ChaseBrain();
             AutoAdjustCollider();
         }
-        // 已經過 Initialize() 的怪物，AutoAdjustCollider 已在其中呼叫，不重複執行
+
+        _hitReaction = gameObject.AddComponent<HitReactionHandler>();
+        _hitReaction.Configure(_spriteRenderer, _rb,
+            InvincibleTimeMs, KnockbackThreshold, KnockbackPercent);
     }
 
     public void Initialize(MonsterData data)
@@ -42,24 +49,26 @@ public class MonsterController : MonoBehaviour
         MaxHealth = data.HP;
         _currentHealth = MaxHealth;
 
+        InvincibleTimeMs = data.InvincibleTimeMs;
+        KnockbackThreshold = data.KnockbackThreshold;
+        KnockbackPercent = data.KnockbackPercent;
+
         _sensor = gameObject.GetComponent<MonsterSensor>();
         if (_sensor == null) _sensor = gameObject.AddComponent<MonsterSensor>();
         
         _actuator = gameObject.GetComponent<MonsterActuator>();
         if (_actuator == null) _actuator = gameObject.AddComponent<MonsterActuator>();
 
-        // 根據 BrainType 決定 AI 邏輯
         switch (data.BrainType)
         {
             case "Chase":
                 _brain = new ChaseBrain();
                 break;
             default:
-                _brain = new ChaseBrain(); // 預設追擊
+                _brain = new ChaseBrain();
                 break;
         }
 
-        // 自動調整碰撞箱以符合圖片大小並增加慷慨判定
         AutoAdjustCollider();
     }
 
@@ -105,14 +114,17 @@ public class MonsterController : MonoBehaviour
     void Update()
     {
         if (_isDead) return;
-        Transform player = _sensor.GetTargetPlayer();
-        _brain.Think(_actuator, player);
 
-        // 🟢 每一幀處理動畫與轉向
+        Transform player = _sensor.GetTargetPlayer();
+
+        if (_hitReaction == null || !_hitReaction.IsKnockedBack)
+        {
+            _brain.Think(_actuator, player);
+        }
+
         HandleVisuals(player);
     }
 
-    // 🟢 新增：視覺與動畫控制邏輯
     private void HandleVisuals(Transform player)
     {
         if (_animator == null || _spriteRenderer == null) return;
@@ -129,10 +141,12 @@ public class MonsterController : MonoBehaviour
         }
     }
 
-    // 預留給彈道系統的傷害介面
-    public void TakeDamage(float amount)
+    public void TakeDamage(float amount, Vector2 hitDirection)
     {
         if (_isDead) return;
+
+        if (_hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
+            return;
 
         _currentHealth -= amount;
         Debug.Log($"{MonsterName} took {amount} damage. HP: {_currentHealth}/{MaxHealth}");
@@ -141,6 +155,11 @@ public class MonsterController : MonoBehaviour
         {
             Die();
         }
+    }
+
+    public void TakeDamage(float amount)
+    {
+        TakeDamage(amount, Vector2.zero);
     }
 
     void Die()

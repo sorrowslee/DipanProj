@@ -10,4 +10,8 @@ public class MonsterData
     public string Weapon;
     public float Scale;
     public string PrefabPath;
+
+    public float InvincibleTimeMs;
+    public float KnockbackThreshold;
+    public float KnockbackPercent;
 }

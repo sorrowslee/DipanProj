@@ -202,9 +202,46 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * `IsFacingRightByDefault`：控制圖片原始朝向，翻轉邏輯根據此值正確決定面向玩家的方向。
 
 #### MonsterSpawner
-* 從 CSV 讀取怪物資料（`ID, Name, HP, BrainType, Weapon, Scale, PrefabPath`）。
+* 從 CSV 讀取怪物資料（`ID, Name, HP, BrainType, Weapon, Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent`）。
 * `EnemyLayer`（Inspector 設定）：動態設定生成怪物的 Layer，不寫死 Layer 編號。
 * 初始面向透過 `FindGameObjectWithTag("Player")` 決定，不依賴 `PlayerController` 具體類別。
+
+### 3.5 受擊反應系統 (Hit Reaction System)
+
+通用的受擊反應元件 `HitReactionHandler`，可掛載在任何有 `SpriteRenderer` + `Rigidbody2D` 的角色或怪物上。
+
+#### 視覺效果
+* **白光閃爍**：受擊瞬間使用自訂 `Custom/SpriteFlash` Shader，透過 `MaterialPropertyBlock` 控制 `_FlashAmount` 參數，讓角色快速閃爍白光（3 次，每次 0.06 秒）。所有角色效果一致。
+* **半透明無敵**：無敵時間內，角色 Alpha 降低至 0.4，視覺上呈現半透明狀態，表示不可被傷害。
+
+#### 可配置參數（怪物由 CSV 驅動，玩家暫時寫死）
+
+| 參數 | 說明 |
+|------|------|
+| `InvincibleTimeMs` | 受擊後無敵時間（毫秒），0 表示無無敵時間 |
+| `KnockbackThreshold` | 觸發擊退的最低傷害值，單次傷害 ≥ 此值才會擊退 |
+| `KnockbackPercent` | 擊退距離，以角色圖片世界寬度的百分比計算（例如 50 = 圖寬的 50%） |
+
+#### MonsterData.csv 新增欄位
+
+| CSV 欄位 | 說明 |
+|----------|------|
+| `InvincibleTimeMs` | 怪物受擊後的無敵時間（毫秒） |
+| `KnockbackThreshold` | 觸發怪物擊退的最低傷害值 |
+| `KnockbackPercent` | 擊退距離（圖片世界寬度的 %） |
+
+#### 運作流程
+1. `TakeDamage(damage, hitDirection)` 被呼叫。
+2. `HitReactionHandler.TryHitReaction()` 檢查是否在無敵中：若無敵則回傳 `false`，傷害被完全忽略。
+3. 若非無敵，同時啟動三個效果（各自獨立計時）：
+   * **白光閃爍**（固定 3 次閃爍）
+   * **擊退位移**（若 `damage ≥ KnockbackThreshold` 且 `KnockbackPercent > 0`，沿受擊方向位移）
+   * **無敵時間**（若 `InvincibleTimeMs > 0`，進入半透明無敵狀態）
+4. 擊退期間，怪物 AI 暫停移動決策，玩家輸入移動被忽略。
+
+#### 擊退方向
+* 怪物被子彈擊中時：方向為子彈位置 → 怪物位置（推離子彈）。
+* 玩家被怪物接觸時：方向由未來的接觸傷害系統提供（預留介面）。
 
 ---
 
@@ -225,6 +262,9 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * [x] 實作 RecipeManager（配方載入、SubRecipeID 二次解析、BounceTarget 語意化）。
 * [x] 實作 WeaponManager（武器載入、RecipeID 關聯、PrefabMapping 子彈 Prefab 管理）。
 * [x] 重構 PlayerController 串接武器系統，傷害數值改由武器表驅動。
+* [x] 實作通用受擊反應系統（HitReactionHandler）：白光閃爍、擊退位移、無敵時間。
+* [x] MonsterData.csv 新增受擊反應欄位（InvincibleTimeMs, KnockbackThreshold, KnockbackPercent）。
+* [x] PlayerController 新增 TakeDamage 介面與寫死的受擊反應參數，預留未來接觸傷害使用。
 
 ---
 
@@ -239,9 +279,10 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
    * 根據 CSV 傳入的 `BrainType`，動態賦予怪物不同行為模式（巡邏 Patrol、逃跑 RunAway、遠程攻擊）。
    * 將 BrainType 字串比對改為更安全的列舉或工廠模式。
 
-3. **玩家損血與無敵時間**：
-   * 怪物接觸玩家時觸發損血。
-   * 損血後進入短暫無敵時間，防止連續扣血。
+3. **玩家接觸傷害系統**：
+   * 怪物接觸玩家時觸發 `PlayerController.TakeDamage()`（介面已就緒）。
+   * 受擊反應（閃爍、擊退、無敵）由 `HitReactionHandler` 自動處理。
+   * 玩家受擊參數待建立 CSV 表格驅動。
 
 4. **場景與關卡機制**：
    * 實作佛像與隧道入口的場景互動與邪惡能量的視覺/機制表現。

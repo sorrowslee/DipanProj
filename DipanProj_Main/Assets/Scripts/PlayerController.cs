@@ -7,12 +7,22 @@ public class PlayerController : MonoBehaviour
     public LayerMask EnvLayer; 
     public LayerMask EnemyLayer; 
 
+    [Header("Player Stats")]
+    public float PlayerMaxHealth = 100f;
+
+    [Header("Hit Reaction (hardcoded for now)")]
+    public float PlayerInvincibleTimeMs = 1000f;
+    public float PlayerKnockbackThreshold = 0f;
+    public float PlayerKnockbackPercent = 10f;
+
     private Animator _animator;
     private Rigidbody2D _rb;
     private Vector2 _moveInput;
     private SpriteRenderer _spriteRenderer;
     private WeaponManager _weaponManager;
+    private HitReactionHandler _hitReaction;
     private float _fireTimer = 0f;
+    private float _currentHealth;
 
     public bool isFacingRightByDefault = true;
 
@@ -31,6 +41,12 @@ public class PlayerController : MonoBehaviour
         {
             _spriteRenderer.flipX = isFacingRightByDefault;
         }
+
+        _currentHealth = PlayerMaxHealth;
+
+        _hitReaction = gameObject.AddComponent<HitReactionHandler>();
+        _hitReaction.Configure(_spriteRenderer, _rb,
+            PlayerInvincibleTimeMs, PlayerKnockbackThreshold, PlayerKnockbackPercent);
 
         _weaponManager = FindObjectOfType<WeaponManager>();
         if (_weaponManager == null)
@@ -88,6 +104,9 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
+        if (_hitReaction != null && _hitReaction.IsKnockedBack)
+            return;
+
         _rb.velocity = _moveInput * MoveSpeed;
     }
 
@@ -132,7 +151,27 @@ public class PlayerController : MonoBehaviour
         MonsterController monster = target.GetComponent<MonsterController>();
         if (monster != null && weapon != null)
         {
-            monster.TakeDamage(weapon.Damage);
+            Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
+            monster.TakeDamage(weapon.Damage, hitDir);
         }
+    }
+
+    public void TakeDamage(float amount, Vector2 hitDirection)
+    {
+        if (_hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
+            return;
+
+        _currentHealth -= amount;
+        Debug.Log($"Player took {amount} damage. HP: {_currentHealth}/{PlayerMaxHealth}");
+
+        if (_currentHealth <= 0)
+        {
+            Die();
+        }
+    }
+
+    private void Die()
+    {
+        Debug.Log("Player died!");
     }
 }
