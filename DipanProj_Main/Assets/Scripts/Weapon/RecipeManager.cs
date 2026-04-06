@@ -23,6 +23,7 @@ public class RecipeManager : MonoBehaviour
     {
         LoadRecipes();
         ResolveSubRecipes();
+        AutoFillMissingSubRecipes();
     }
 
     public RecipeEntry GetRecipe(int id)
@@ -107,6 +108,26 @@ public class RecipeManager : MonoBehaviour
             {
                 entry.Data.SubProjectileData = subEntry.Data;
             }
+        }
+    }
+
+    private void AutoFillMissingSubRecipes()
+    {
+        foreach (var kvp in _recipes)
+        {
+            var data = kvp.Value.Data;
+            if (!data.HasSplit || data.SubProjectileData != null) continue;
+
+            var sub = new ProjectileData();
+            sub.Speed = data.Speed;
+            sub.Radius = data.Radius;
+            sub.LifeTime = data.LifeTime;
+            sub.FireInterval = data.FireInterval;
+            sub.RotationSpeed = data.RotationSpeed;
+            sub.PierceCount = data.PierceCount;
+            sub.HasBounce = data.HasBounce;
+            sub.MaxBounces = data.MaxBounces;
+            data.SubProjectileData = sub;
         }
     }
 

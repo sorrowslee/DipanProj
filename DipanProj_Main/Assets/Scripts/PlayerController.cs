@@ -6,14 +6,12 @@ public class PlayerController : MonoBehaviour
     public float MoveSpeed = 5f;
     public LayerMask EnvLayer; 
     public LayerMask EnemyLayer; 
-    public int CurrentWeaponID = 1;
 
     private Animator _animator;
     private Rigidbody2D _rb;
     private Vector2 _moveInput;
     private SpriteRenderer _spriteRenderer;
     private WeaponManager _weaponManager;
-    private WeaponData _currentWeapon;
     private float _fireTimer = 0f;
 
     public bool isFacingRightByDefault = true;
@@ -38,22 +36,6 @@ public class PlayerController : MonoBehaviour
         if (_weaponManager == null)
         {
             Debug.LogError("WeaponManager not found in scene!");
-        }
-
-        RefreshWeapon();
-    }
-
-    public void SwitchWeapon(int weaponID)
-    {
-        CurrentWeaponID = weaponID;
-        RefreshWeapon();
-    }
-
-    private void RefreshWeapon()
-    {
-        if (_weaponManager != null)
-        {
-            _currentWeapon = _weaponManager.GetWeapon(CurrentWeaponID);
         }
     }
 
@@ -86,8 +68,6 @@ public class PlayerController : MonoBehaviour
         if ((Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)) && _fireTimer <= 0)
         {
             Shoot();
-            if (_currentWeapon?.Recipe?.Data != null)
-                _fireTimer = _currentWeapon.Recipe.Data.FireInterval;
         }
 
         HandleVisuals();
@@ -108,20 +88,25 @@ public class PlayerController : MonoBehaviour
 
     void Shoot()
     {
-        if (_currentWeapon == null || _currentWeapon.BulletPrefab == null || _currentWeapon.Recipe == null) return;
+        if (_weaponManager == null) return;
+
+        WeaponData weapon = _weaponManager.GetCurrentWeapon();
+        if (weapon == null || weapon.BulletPrefab == null || weapon.Recipe == null) return;
 
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePos.z = 0;
         Vector2 fireDirection = (mousePos - transform.position).normalized;
         Vector2 spawnPos = (Vector2)transform.position;
 
-        ProjectileData recipe = _currentWeapon.Recipe.Data;
+        ProjectileData recipe = weapon.Recipe.Data;
         LayerMask collisionMask = EnvLayer | EnemyLayer;
         LayerMask pierceableLayers = EnemyLayer;
-        LayerMask nonBounceLayers = ResolveNonBounceLayers(_currentWeapon.Recipe.BounceTarget);
+        LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
 
-        BallisticsEngine.Spawn(recipe, _currentWeapon.BulletPrefab, spawnPos, fireDirection,
+        BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
             collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit);
+
+        _fireTimer = recipe.FireInterval;
     }
 
     private LayerMask ResolveNonBounceLayers(BounceTarget bounceTarget)
@@ -136,10 +121,13 @@ public class PlayerController : MonoBehaviour
 
     void HandleBulletHit(BulletInstance bullet, GameObject target, RaycastHit2D hit)
     {
+        if (_weaponManager == null) return;
+
+        WeaponData weapon = _weaponManager.GetCurrentWeapon();
         MonsterController monster = target.GetComponent<MonsterController>();
-        if (monster != null && _currentWeapon != null)
+        if (monster != null && weapon != null)
         {
-            monster.TakeDamage(_currentWeapon.Damage);
+            monster.TakeDamage(weapon.Damage);
         }
     }
 }

@@ -110,6 +110,8 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 定義子彈的飛行行為配方，存放於 `Assets/Data/RecipeTable.csv`。
 彈道系統的 `ProjectileData` 欄位決定了此表的欄位結構。
 
+> 如需查詢每個欄位的詳細用法、填寫規則與組合範例，請參閱 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)。
+
 | CSV 欄位 | 對應 ProjectileData | 說明 |
 |----------|-------------------|------|
 | `ID` | — | 配方唯一識別碼 |

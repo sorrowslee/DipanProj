@@ -5,12 +5,26 @@ public class WeaponManager : MonoBehaviour
 {
     public TextAsset WeaponCSV;
     public RecipeManager RecipeManager;
+    public int CurrentWeaponID = 1;
 
     private Dictionary<int, WeaponData> _weapons = new Dictionary<int, WeaponData>();
+    private WeaponData _currentWeapon;
 
     void Start()
     {
         LoadWeapons();
+        RefreshCurrentWeapon();
+    }
+
+    public WeaponData GetCurrentWeapon()
+    {
+        return _currentWeapon;
+    }
+
+    public void SwitchWeapon(int weaponID)
+    {
+        CurrentWeaponID = weaponID;
+        RefreshCurrentWeapon();
     }
 
     public WeaponData GetWeapon(int id)
@@ -20,6 +34,11 @@ public class WeaponManager : MonoBehaviour
 
         Debug.LogError($"Weapon ID {id} not found!");
         return null;
+    }
+
+    private void RefreshCurrentWeapon()
+    {
+        _currentWeapon = GetWeapon(CurrentWeaponID);
     }
 
     private void LoadWeapons()

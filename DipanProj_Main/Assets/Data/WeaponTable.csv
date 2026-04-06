@@ -1,4 +1,4 @@
-ID,Name,Damage,RecipeID,BulletPrefabPath,WeaponSpritePath
-1,FireBlade,20,1,Prefabs/Bullet/Bullet,Weapon/weapon_knife
-2,Shotgun,5,2,Prefabs/Bullet/Bullet,Weapon/weapon_knife
-3,ReflectGun,15,3,Prefabs/Bullet/Bullet,Weapon/weapon_knife
+ID, Name      , Damage, RecipeID, BulletPrefabPath     , WeaponSpritePath
+ 1, FireBlade ,     20,        1, Prefabs/Bullet/Bullet, Weapon/weapon_knife
+ 2, Shotgun   ,      5,        2, Prefabs/Bullet/Bullet, Weapon/weapon_knife
+ 3, ReflectGun,     15,        3, Prefabs/Bullet/Bullet, Weapon/weapon_knife
