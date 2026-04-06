@@ -6,13 +6,13 @@ namespace Sorrows.Ballistics
 {
     public class BulletInstance : MonoBehaviour
     {
-        public Vector2 Velocity;
-        public float LifeTime = 3f;
-        public float Radius = 0.1f;
-        public LayerMask CollisionMask;
-        public LayerMask PierceableLayers;  // 可穿透的圖層，由主遊戲傳入
-        public LayerMask NonBounceLayers;   // 不反彈的圖層，由主遊戲傳入
-        public int PierceCount = 0;
+    [HideInInspector] public Vector2 Velocity;
+    [HideInInspector] public float LifeTime = 3f;
+    [HideInInspector] public float Radius = 0.1f;
+    [HideInInspector] public LayerMask CollisionMask;
+    [HideInInspector] public LayerMask PierceableLayers;
+    [HideInInspector] public LayerMask NonBounceLayers;
+    [HideInInspector] public int PierceCount = 0;
 
         public Action<BulletInstance, GameObject, RaycastHit2D> OnBulletHitObject;
 

@@ -5,6 +5,7 @@ public class WeaponManager : MonoBehaviour
 {
     public TextAsset WeaponCSV;
     public RecipeManager RecipeManager;
+    public GameObject BulletPrefab;
     public int CurrentWeaponID = 1;
 
     private Dictionary<int, WeaponData> _weapons = new Dictionary<int, WeaponData>();
@@ -49,6 +50,12 @@ public class WeaponManager : MonoBehaviour
             return;
         }
 
+        if (BulletPrefab == null)
+        {
+            Debug.LogError("BulletPrefab is not assigned on WeaponManager!");
+            return;
+        }
+
         string[] lines = WeaponCSV.text.Split('\n');
 
         for (int i = 1; i < lines.Length; i++)
@@ -56,26 +63,26 @@ public class WeaponManager : MonoBehaviour
             if (string.IsNullOrWhiteSpace(lines[i])) continue;
 
             string[] v = lines[i].Split(',');
-            if (v.Length < 6) continue;
+            if (v.Length < 5) continue;
 
             var weapon = new WeaponData();
             weapon.ID = int.Parse(v[0]);
             weapon.Name = v[1].Trim();
             weapon.Damage = float.Parse(v[2]);
             weapon.RecipeID = int.Parse(v[3]);
-            weapon.BulletPrefabPath = v[4].Trim();
-            weapon.WeaponSpritePath = v[5].Trim();
+            weapon.WeaponSpritePath = v[4].Trim();
 
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
+            weapon.BulletPrefab = BulletPrefab;
 
-            GameObject prefab = Resources.Load<GameObject>(weapon.BulletPrefabPath);
-            if (prefab != null)
+            Sprite sprite = Resources.Load<Sprite>(weapon.WeaponSpritePath);
+            if (sprite != null)
             {
-                weapon.BulletPrefab = prefab;
+                weapon.WeaponSprite = sprite;
             }
             else
             {
-                Debug.LogError($"Bullet prefab not found at Resources path '{weapon.BulletPrefabPath}' for weapon '{weapon.Name}'. Make sure the prefab is under Assets/Resources/.");
+                Debug.LogWarning($"Weapon sprite not found at Resources path '{weapon.WeaponSpritePath}' for weapon '{weapon.Name}'.");
             }
 
             _weapons[weapon.ID] = weapon;
