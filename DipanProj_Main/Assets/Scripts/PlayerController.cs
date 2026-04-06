@@ -7,6 +7,9 @@ public class PlayerController : MonoBehaviour
     public LayerMask EnvLayer; 
     public LayerMask EnemyLayer; 
 
+    [Header("Player Size")]
+    public float PlayerScale = 1f;
+
     [Header("Player Stats")]
     public float PlayerMaxHealth = 100f;
 
@@ -28,6 +31,8 @@ public class PlayerController : MonoBehaviour
 
     void Start()
     {
+        transform.localScale = Vector3.one * PlayerScale;
+
         _animator = GetComponent<Animator>();
         _rb = GetComponent<Rigidbody2D>();
         _spriteRenderer = GetComponent<SpriteRenderer>();
@@ -127,8 +132,9 @@ public class PlayerController : MonoBehaviour
         LayerMask pierceableLayers = EnemyLayer;
         LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
 
+        Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale;
         BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
-            collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset);
+            collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale);
 
         _fireTimer = recipe.FireInterval;
     }

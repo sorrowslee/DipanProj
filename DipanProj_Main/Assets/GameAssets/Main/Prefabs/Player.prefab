@@ -101,14 +101,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MoveSpeed: 5
-  BulletPrefab: {fileID: 4779254322593184360, guid: fc83fb3e78a6645dca22c211421ba1f1, type: 3}
   EnvLayer:
     serializedVersion: 2
     m_Bits: 8
   EnemyLayer:
     serializedVersion: 2
     m_Bits: 128
-  MyProjectileData: {fileID: 11400000, guid: 92549d0f113b24f35b15c814a8d18014, type: 2}
+  PlayerScale: 0.7
+  BulletScale: 1
+  PlayerMaxHealth: 100
+  PlayerInvincibleTimeMs: 1000
+  PlayerKnockbackThreshold: 0
+  PlayerKnockbackPercent: 10
   isFacingRightByDefault: 1
 --- !u!50 &8595261710023261584
 Rigidbody2D:

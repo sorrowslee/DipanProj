@@ -51,7 +51,7 @@ namespace Sorrows.Ballistics
                 float currentAngle = startAngle + (angleStep * i);
                 Vector2 dir = Quaternion.Euler(0, 0, currentAngle) * instance.Velocity.normalized;
 
-                BallisticsEngine.Internal_SpawnSplit(_subDef, instance.gameObject, instance.transform.position, dir, instance.CollisionMask, instance.PierceableLayers, instance.NonBounceLayers, instance.OnBulletHitObject);
+                BallisticsEngine.Internal_SpawnSplit(_subDef, instance.gameObject, instance.transform.position, dir, instance.CollisionMask, instance.PierceableLayers, instance.NonBounceLayers, instance.OnBulletHitObject, instance.transform.localScale);
             }
         }
     }
