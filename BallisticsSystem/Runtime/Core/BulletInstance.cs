@@ -23,6 +23,7 @@ namespace Sorrows.Ballistics
 
         public void AddBehavior(IBulletBehavior behavior) => _behaviors.Add(behavior);
         public List<IBulletBehavior> GetBehaviors() => _behaviors;
+        public bool HasHit(int instanceId) => _hitObjects.Contains(instanceId);
 
         // 生成時檢查起點周圍是否已有目標（處理 CircleCast 起點在 Collider 內部偵測不到的問題）
         public void CheckSpawnOverlap()

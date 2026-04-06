@@ -14,6 +14,9 @@ namespace Sorrows.Ballistics
         public bool HasBounce;
         public int MaxBounces = 3;
 
+        public bool HasHoming;
+        public float HomingTurnSpeed = 180f;
+
         public bool HasSplit;
         public SplitTiming Timing;
         public int SplitCount = 3;
@@ -26,6 +29,7 @@ namespace Sorrows.Ballistics
             if (HasBounce) list.Add(new BounceBehavior(MaxBounces));
             if (HasSplit) list.Add(new SplitBehavior(SubProjectileData, SplitCount, SpreadAngle, Timing));
             if (RotationSpeed != 0) list.Add(new RotationBehavior(RotationSpeed));
+            if (HasHoming) list.Add(new HomingBehavior(HomingTurnSpeed));
             return list;
         }
     }

@@ -50,7 +50,7 @@ public class RecipeManager : MonoBehaviour
             if (string.IsNullOrWhiteSpace(lines[i])) continue;
 
             string[] v = lines[i].Split(',');
-            if (v.Length < 14) continue;
+            if (v.Length < 14) continue; // column 14 (HomingTurnSpeed) 為選填，向下相容
 
             var entry = new RecipeEntry();
             entry.ID = int.Parse(v[0]);
@@ -92,6 +92,16 @@ public class RecipeManager : MonoBehaviour
                 data.MaxBounces = maxBounces;
             }
 
+            if (v.Length >= 15)
+            {
+                float homingTurnSpeed = float.Parse(v[14].Trim());
+                if (homingTurnSpeed > 0f)
+                {
+                    data.HasHoming = true;
+                    data.HomingTurnSpeed = homingTurnSpeed;
+                }
+            }
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }
@@ -127,6 +137,8 @@ public class RecipeManager : MonoBehaviour
             sub.PierceCount = data.PierceCount;
             sub.HasBounce = data.HasBounce;
             sub.MaxBounces = data.MaxBounces;
+            sub.HasHoming = data.HasHoming;
+            sub.HomingTurnSpeed = data.HomingTurnSpeed;
             data.SubProjectileData = sub;
         }
     }
