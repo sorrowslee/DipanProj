@@ -1,4 +1,4 @@
-ID,Name,Damage,RecipeID,WeaponSpritePath
-1,FireBlade,20,1,Weapon/weapon_knife
-2,Shotgun,5,2,Weapon/weapon_knife
-3,ReflectGun,15,3,Weapon/weapon_knife
+ID, Name      , Damage, RecipeID, WeaponSpritePath
+ 1, FireSword ,     20,        1, Weapon/weapon_sword
+ 2, Shotgun   ,      5,        2, Weapon/weapon_knife
+ 3, ReflectGun,     15,        3, Weapon/weapon_knife
