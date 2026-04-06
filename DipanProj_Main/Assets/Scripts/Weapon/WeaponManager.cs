@@ -5,15 +5,8 @@ public class WeaponManager : MonoBehaviour
 {
     public TextAsset WeaponCSV;
     public RecipeManager RecipeManager;
-    public List<PrefabMapping> BulletPrefabMappings = new List<PrefabMapping>();
 
     private Dictionary<int, WeaponData> _weapons = new Dictionary<int, WeaponData>();
-    private Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
-
-    void Awake()
-    {
-        InitializePrefabCache();
-    }
 
     void Start()
     {
@@ -27,17 +20,6 @@ public class WeaponManager : MonoBehaviour
 
         Debug.LogError($"Weapon ID {id} not found!");
         return null;
-    }
-
-    private void InitializePrefabCache()
-    {
-        foreach (var mapping in BulletPrefabMappings)
-        {
-            if (!string.IsNullOrEmpty(mapping.Path) && mapping.Prefab != null)
-            {
-                _prefabCache[mapping.Path] = mapping.Prefab;
-            }
-        }
     }
 
     private void LoadWeapons()
@@ -67,13 +49,14 @@ public class WeaponManager : MonoBehaviour
 
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
 
-            if (_prefabCache.TryGetValue(weapon.BulletPrefabPath, out GameObject prefab))
+            GameObject prefab = Resources.Load<GameObject>(weapon.BulletPrefabPath);
+            if (prefab != null)
             {
                 weapon.BulletPrefab = prefab;
             }
             else
             {
-                Debug.LogWarning($"Bullet prefab for path '{weapon.BulletPrefabPath}' not found in mappings for weapon '{weapon.Name}'.");
+                Debug.LogError($"Bullet prefab not found at Resources path '{weapon.BulletPrefabPath}' for weapon '{weapon.Name}'. Make sure the prefab is under Assets/Resources/.");
             }
 
             _weapons[weapon.ID] = weapon;
