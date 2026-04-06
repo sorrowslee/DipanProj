@@ -104,7 +104,7 @@ public class PlayerController : MonoBehaviour
         LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
 
         BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
-            collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite);
+            collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset);
 
         _fireTimer = recipe.FireInterval;
     }

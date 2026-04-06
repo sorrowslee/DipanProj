@@ -63,7 +63,7 @@ public class WeaponManager : MonoBehaviour
             if (string.IsNullOrWhiteSpace(lines[i])) continue;
 
             string[] v = lines[i].Split(',');
-            if (v.Length < 5) continue;
+            if (v.Length < 6) continue;
 
             var weapon = new WeaponData();
             weapon.ID = int.Parse(v[0]);
@@ -71,6 +71,7 @@ public class WeaponManager : MonoBehaviour
             weapon.Damage = float.Parse(v[2]);
             weapon.RecipeID = int.Parse(v[3]);
             weapon.WeaponSpritePath = v[4].Trim();
+            weapon.SpriteAngleOffset = float.Parse(v[5]);
 
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;

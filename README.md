@@ -138,8 +138,29 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `Name` | 武器名稱 |
 | `Damage` | 傷害數值 |
 | `RecipeID` | 對應配方表的 ID |
-| `BulletPrefabPath` | 子彈 Prefab 路徑（PrefabMapping 模式） |
-| `WeaponSpritePath` | 武器圖檔路徑 |
+| `WeaponSpritePath` | 武器圖檔路徑（相對於 `Assets/Resources/`，不含副檔名） |
+| `SpriteAngleOffset` | 圖片角度偏移（度），見下方說明 |
+
+#### SpriteAngleOffset 設定說明
+
+武器圖片在飛行時需要朝向正確的方向。`SpriteAngleOffset` 用來補償圖片原始角度與飛行方向之間的差異。
+
+**設定方式**：
+1. 想像這張圖片從畫面**正左方射向正右方**（→ 方向）
+2. 此時圖片的「攻擊端」（例如劍尖）需要朝右
+3. 如果原始圖片的攻擊端不是朝右，就需要旋轉一個角度讓它朝右
+4. 這個旋轉角度就是 `SpriteAngleOffset`
+
+**角度方向**（Unity 2D 標準）：
+* 正值 = 逆時針旋轉
+* 負值 = 順時針旋轉
+
+**範例**：
+* 圖片的劍尖原本朝右上 45° → `SpriteAngleOffset = -45`（順時針轉 45° 讓劍尖朝右）
+* 圖片的劍尖原本朝上 → `SpriteAngleOffset = -90`
+* 圖片本身就朝右（如水平飛彈）→ `SpriteAngleOffset = 0`
+
+設定完成後，無論玩家往哪個方向射擊，武器圖片都會自動旋轉到正確角度，攻擊端永遠指向飛行方向。分裂子彈也會自動繼承此設定。
 
 #### RecipeManager
 * 在 `Awake()` 時從 CSV 載入所有配方，建立 `Dictionary<int, RecipeEntry>` 索引。

@@ -5,17 +5,17 @@ namespace Sorrows.Ballistics
 {
     public static class BallisticsEngine
     {
-        public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null)
+        public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f)
         {
-            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite);
+            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset);
         }
 
         internal static void Internal_SpawnSplit(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null)
         {
-            Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, null);
+            Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, null, 0f);
         }
 
-        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite)
+        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset)
         {
             GameObject go = UnityEngine.Object.Instantiate(prefab, position, Quaternion.identity);
             BulletInstance instance = go.GetComponent<BulletInstance>();
@@ -29,6 +29,9 @@ namespace Sorrows.Ballistics
                     if (sr != null) sr.sprite = bulletSprite;
                 }
 
+                if (spriteAngleOffset != 0f)
+                    instance.SpriteAngleOffset = spriteAngleOffset;
+
                 instance.Velocity = direction.normalized * def.Speed;
                 instance.Radius = def.Radius;
                 instance.LifeTime = def.LifeTime;
@@ -36,6 +39,12 @@ namespace Sorrows.Ballistics
                 instance.PierceableLayers = pierceableLayers;
                 instance.NonBounceLayers = nonBounceLayers;
                 instance.PierceCount = def.PierceCount;
+
+                if (instance.SpriteAngleOffset != 0f)
+                {
+                    float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+                    go.transform.rotation = Quaternion.Euler(0, 0, angle + instance.SpriteAngleOffset);
+                }
                 
                 foreach (var b in def.CreateBehaviors())
                 {

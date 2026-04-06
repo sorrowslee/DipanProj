@@ -7,6 +7,7 @@ public class WeaponData
     public float Damage;
     public int RecipeID;
     public string WeaponSpritePath;
+    public float SpriteAngleOffset;
 
     public RecipeEntry Recipe;
     public GameObject BulletPrefab;

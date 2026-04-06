@@ -13,6 +13,7 @@ namespace Sorrows.Ballistics
     [HideInInspector] public LayerMask PierceableLayers;
     [HideInInspector] public LayerMask NonBounceLayers;
     [HideInInspector] public int PierceCount = 0;
+    [HideInInspector] public float SpriteAngleOffset = 0f;
 
         public Action<BulletInstance, GameObject, RaycastHit2D> OnBulletHitObject;
 
@@ -103,6 +104,12 @@ namespace Sorrows.Ballistics
             foreach (var behavior in _behaviors)
             {
                 behavior.OnProcessMovement(this, ref Velocity, ref currentPos, Time.deltaTime);
+            }
+
+            if (SpriteAngleOffset != 0f)
+            {
+                float angle = Mathf.Atan2(Velocity.y, Velocity.x) * Mathf.Rad2Deg;
+                transform.rotation = Quaternion.Euler(0, 0, angle + SpriteAngleOffset);
             }
 
             transform.position += (Vector3)(Velocity * Time.deltaTime);
