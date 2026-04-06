@@ -9,6 +9,7 @@ public class WeaponManager : MonoBehaviour
     public int CurrentWeaponID = 1;
 
     private Dictionary<int, WeaponData> _weapons = new Dictionary<int, WeaponData>();
+    private List<int> _weaponIDs = new List<int>();
     private WeaponData _currentWeapon;
 
     void Start()
@@ -26,6 +27,15 @@ public class WeaponManager : MonoBehaviour
     {
         CurrentWeaponID = weaponID;
         RefreshCurrentWeapon();
+    }
+
+    public void SwitchToNextWeapon()
+    {
+        if (_weaponIDs.Count == 0) return;
+
+        int currentIndex = _weaponIDs.IndexOf(CurrentWeaponID);
+        int nextIndex = (currentIndex + 1) % _weaponIDs.Count;
+        SwitchWeapon(_weaponIDs[nextIndex]);
     }
 
     public WeaponData GetWeapon(int id)
@@ -87,8 +97,10 @@ public class WeaponManager : MonoBehaviour
             }
 
             _weapons[weapon.ID] = weapon;
+            _weaponIDs.Add(weapon.ID);
         }
 
+        _weaponIDs.Sort();
         Debug.Log($"Loaded {_weapons.Count} weapons from CSV.");
     }
 }

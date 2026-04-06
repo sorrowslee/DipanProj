@@ -63,6 +63,11 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+        if (Input.GetKeyDown(KeyCode.E) && _weaponManager != null)
+        {
+            _weaponManager.SwitchToNextWeapon();
+        }
+
         if (_fireTimer > 0) _fireTimer -= Time.deltaTime;
 
         if ((Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)) && _fireTimer <= 0)
