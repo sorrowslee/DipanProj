@@ -73,10 +73,10 @@
 |------|------|
 | `Speed` | 飛行速度 |
 | `Radius` | 子彈判定半徑（用於 CircleCast） |
-| `LifeTime` | 存活時間 |
+| `LifeTime` | 存活時間（秒）；**-1** = 不因時間銷毀 |
 | `FireInterval` | 發射間隔（秒） |
 | `RotationSpeed` | 飛行時自轉速度（度/秒） |
-| `PierceCount` | 穿透次數，0 為不穿透 |
+| `PierceCount` | 穿透次數，0 為不穿透；設為 **-1** 表示無限穿透（不遞減） |
 | `HasBounce` / `MaxBounces` | 是否反彈 / 最大反彈次數 |
 | `HasSplit` / `SplitCount` / `SpreadAngle` / `Timing` | 是否分裂 / 數量 / 角度 / 時機 |
 | `SubProjectileData` | 分裂產生的子彈配方（透過 SubRecipeID 查表解析） |
@@ -94,7 +94,8 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * `CheckSpawnOverlap()`：生成時做一次 `OverlapCircle` 近距離檢查，處理子彈起點已在 Collider 內部時偵測不到的問題。
 * `HashSet<int> _hitObjects`：防止同一幀對同一目標重複觸發命中。
 * `_isDestroyed` 旗標：`Destroy` 呼叫後立即阻止同幀繼續執行命中邏輯。
-* 穿透邏輯：命中目標在 `PierceableLayers` 內且 `PierceCount > 0` 時不銷毀，消耗一次穿透次數。
+* 穿透邏輯：命中目標在 `PierceableLayers` 內時，若 `PierceCount > 0` 則不銷毀並遞減；若 `PierceCount < 0`（例如 -1）則不銷毀且不遞減（無限穿透）。
+* 存活時間：`LifeTime < 0`（例如 -1）時不因時間銷毀；否則每幀倒數，歸零時銷毀。
 
 #### IBulletBehavior（行為介面）
 | 行為 | 說明 |
@@ -120,10 +121,10 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `Name` | — | 配方名稱 |
 | `Speed` | `Speed` | 飛行速度 |
 | `Radius` | `Radius` | 子彈判定半徑 |
-| `LifeTime` | `LifeTime` | 存活時間 |
+| `LifeTime` | `LifeTime` | 存活時間（秒）；**-1** = 不因時間銷毀 |
 | `FireInterval` | `FireInterval` | 發射間隔（秒） |
 | `RotationSpeed` | `RotationSpeed` | 自轉速度（度/秒） |
-| `PierceCount` | `PierceCount` | 穿透次數 |
+| `PierceCount` | `PierceCount` | 穿透次數；**-1** = 無限穿透 |
 | `SpreadCount` | `SplitCount` | 散射/分裂數量 |
 | `SpreadAngle` | `SpreadAngle` | 散射/分裂角度 |
 | `SplitTiming` | `Timing` | 分裂時機（OnSpawn / OnHit / OnDeath） |
@@ -133,7 +134,7 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `HomingTurnSpeed` | `HomingTurnSpeed` | 追蹤轉向速度（度/秒），0 為不追蹤 |
 | `IsOrbital` | `IsOrbital` | 是否為環繞型彈道（1 = 是，留空 = 否） |
 | `OrbitalRadius` | `OrbitalRadius` | 環繞半徑，以玩家為圓心的軌道半徑 |
-| `OrbitalCount` | `OrbitalCount` | 環繞數量，每次發射生成幾顆環繞子彈 |
+| `OrbitalCount` | `OrbitalCount` | 環繞數量，每次發射生成幾顆環繞子彈（每次發射會先清除上一輪同玩家的環繞子彈） |
 
 #### 武器表 (WeaponTable.csv)
 定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。
@@ -208,6 +209,7 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * `Rigidbody2D (Dynamic)`，透過 `FixedUpdate` 設定 `_rb.velocity` 移動。
 * 持有 `WeaponManager` 引用與 `CurrentWeaponID`，透過 `SwitchWeapon(id)` 切換武器。
 * 發射時從 `WeaponManager` 取得 `WeaponData` → `RecipeEntry` → `ProjectileData`，並將 `BounceTarget` 映射為 `NonBounceLayers`。
+* **環繞彈**：`ProjectileData.IsOrbital` 為真時走 `ShootOrbital`；每次發射前會先銷毀本玩家上一輪尚未消失的環繞子彈，再依 `OrbitalCount` 重新生成（`OnDestroy` 時亦會清掉，避免引用已銷毀的玩家 Transform）。
 * **傷害串接**：`HandleBulletHit` 方法接收命中事件，使用 `WeaponData.Damage` 計算傷害（不再寫死數值）。
 * **翻轉邏輯**：攻擊時依滑鼠方向翻轉，移動時依移動方向翻轉，`isFacingRightByDefault` 控制圖片原始朝向。
 

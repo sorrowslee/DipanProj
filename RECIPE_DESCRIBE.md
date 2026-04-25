@@ -12,10 +12,10 @@
 | Name | 字串 | 是 | 配方名稱，供人閱讀辨識用，程式不使用 |
 | Speed | 小數 | 是 | 子彈飛行速度（單位/秒） |
 | Radius | 小數 | 是 | 子彈碰撞判定半徑，用於 `Physics2D.CircleCast` |
-| LifeTime | 小數 | 是 | 子彈存活時間（秒），超過即自動銷毀 |
+| LifeTime | 小數 | 是 | 子彈存活時間（秒），超過即自動銷毀；**-1** 表示不因時間銷毀 |
 | FireInterval | 小數 | 是 | 發射間隔（秒），控制射速 |
 | RotationSpeed | 小數 | 是 | 子彈飛行時的自轉速度（度/秒），0 為不旋轉 |
-| PierceCount | 整數 | 是 | 穿透次數，0 為不穿透 |
+| PierceCount | 整數 | 是 | 穿透次數，0 為不穿透；**-1** 表示無限穿透（不遞減） |
 | SpreadCount | 整數 | 是 | 散射/分裂數量，1 為不分裂 |
 | SpreadAngle | 小數 | 是 | 散射總角度（度），子彈在此角度範圍內均勻展開 |
 | SplitTiming | 字串 | 否 | 分裂觸發時機，僅在 SpreadCount > 1 時有效 |
@@ -54,7 +54,8 @@
 ### LifeTime（存活時間）
 - 子彈在場上存活的最大秒數
 - 超過時間後自動銷毀，避免子彈飛出地圖外永遠不消失
-- 建議範圍：1 ~ 10
+- 設為 **-1**：不因時間銷毀（可與碰撞、分裂等機制搭配）
+- 建議範圍：1 ~ 10（一般子彈）
 - 參考值：3 = 一般用途
 
 ### FireInterval（發射間隔）
@@ -73,6 +74,7 @@
 - 子彈可以穿過多少個目標（怪物）而不被銷毀
 - 設為 0：碰到任何目標就銷毀
 - 設為 1：穿過第一個目標，碰到第二個才銷毀
+- 設為 **-1**：無限穿透，每次命中可穿透層目標時都不銷毀且不遞減計數
 - 穿透只作用於 `EnemyLayer`（怪物層），碰到牆壁仍會停下（除非有反彈）
 
 ### SpreadCount（散射數量）
@@ -130,6 +132,7 @@
 ### IsOrbital（是否為環繞型彈道）
 - 設為 1：子彈以玩家為圓心環繞飛行
 - 留空或設為 0：一般直線飛行（預設）
+- 每次觸發發射（含依 `FireInterval` 的連射）時，會先清除該玩家上一輪仍在場上的環繞子彈，再重新生成一組
 - 環繞型子彈使用 `Speed` 欄位作為切線速度（繞圈移動速度），半徑越小、Speed 越大，轉得越快
 
 ### OrbitalRadius（環繞半徑）
@@ -214,10 +217,10 @@ ID, Name,      Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount
 
 ```
 ID, Name,        Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
-90, OrbitalShield,    5,    0.1,     9999,          2.0,             0,           0,           1,           0,            ,            , None,                  0,               0,         1,             2,            3
+90, OrbitalShield,    5,    0.1,        -1,          2.0,             0,           0,           1,           0,            ,            , None,                  0,               0,         1,             2,            3
 ```
 
-- Speed=5 控制繞圈速度，LifeTime=9999 讓子彈幾乎不會自然消失
+- Speed=5 控制繞圈速度，LifeTime=-1 讓子彈不因時間消失
 - IsOrbital=1，OrbitalRadius=2，OrbitalCount=3：3 顆等距環繞
 - 碰到怪物造成傷害後消失，按一次攻擊重新召喚 3 顆
 
@@ -226,17 +229,17 @@ ID, Name,        Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCou
 
 ```
 ID, Name,             Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
-91, OrbitalPierceShield, 5,    0.1,     9999,          2.0,             0,           99,           1,           0,            ,            , None,                  0,               0,         1,             2,            3
+91, OrbitalPierceShield, 5,    0.1,        -1,          2.0,             0,           -1,           1,           0,            ,            , None,                  0,               0,         1,             2,            3
 ```
 
-- PierceCount=99 讓子彈可穿透大量目標而不消失，持續環繞
+- PierceCount=-1 無限穿透；LifeTime=-1 不因時間消失，持續環繞
 
 ### 環繞反彈彈
 環繞時碰到怪物會脫軌反彈飛出，以反彈角度飛走。
 
 ```
 ID, Name,          Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
-92, OrbitalBounce,     8,    0.1,     9999,          2.0,             0,           0,           1,           0,            ,            , Enemy,                 3,               0,         1,             2,            3
+92, OrbitalBounce,     8,    0.1,        -1,          2.0,             0,           0,           1,           0,            ,            , Enemy,                 3,               0,         1,             2,            3
 ```
 
 - BounceTarget=Enemy + MaxBounces=3：碰到怪物後脫軌反彈飛出，最多彈 3 次
@@ -252,7 +255,7 @@ ID, Name,          Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceC
 **A:** 不會。如果 `SubRecipeID` 留空，分裂出的子彈會繼承父彈屬性但不帶分裂行為。如果 `SubRecipeID` 指向另一個有分裂的配方，才會再次分裂（可以用來做多層分裂效果）。
 
 ### Q: BounceTarget 設為 Environment，子彈碰到怪物會怎樣？
-**A:** 子彈碰到怪物時會正常觸發命中事件（造成傷害），但不會反彈。如果沒有穿透（PierceCount=0），子彈會在命中後銷毀。
+**A:** 子彈碰到怪物時會正常觸發命中事件（造成傷害），但不會反彈。如果沒有穿透（PierceCount=0），子彈會在命中後銷毀。若 PierceCount=-1，則可無限穿透怪物。
 
 ### Q: 想做散彈 + 反彈的組合效果？
 **A:** 在散彈配方的 `SubRecipeID` 填入一個有反彈的配方 ID。例如：
@@ -274,4 +277,4 @@ ID, Name,          Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceC
 **A:** 子彈會脫離軌道，以反彈角度飛出去，之後就像普通子彈一樣直線飛行。如果同時有追蹤（HomingTurnSpeed > 0），脫軌後會自動追蹤下一個目標。
 
 ### Q: 環繞彈的 LifeTime 怎麼設定？
-**A:** LifeTime 照常生效。如果想讓環繞彈持續存在直到碰到敵人，設一個很大的值（如 9999）。如果想做限時環繞，設正常的存活時間即可。
+**A:** 設為正數則每幀倒數，歸零時銷毀。設為 **-1** 表示不因時間銷毀（可一直環繞直到被其他機制銷毀）。也可用很大的正數（如 9999）近似長時間存在。

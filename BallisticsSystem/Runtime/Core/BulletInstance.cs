@@ -47,11 +47,12 @@ namespace Sorrows.Ballistics
             OnBulletHitObject?.Invoke(this, col.gameObject, new RaycastHit2D());
             _hitObjects.Add(id);
 
-            // 穿透邏輯：有穿透次數則不銷毀
+            // 穿透邏輯：PierceCount > 0 可穿透並遞減；PierceCount < 0 為無限穿透（不遞減）
             int hitLayer = col.gameObject.layer;
-            if (((1 << hitLayer) & PierceableLayers) != 0 && PierceCount > 0)
+            if (((1 << hitLayer) & PierceableLayers) != 0 && (PierceCount > 0 || PierceCount < 0))
             {
-                PierceCount--;
+                if (PierceCount > 0)
+                    PierceCount--;
                 return;
             }
 
@@ -86,11 +87,12 @@ namespace Sorrows.Ballistics
 
                     bool shouldDestroy = true;
 
-                    // 穿透邏輯：命中目標在 PierceableLayers 內且還有穿透次數
+                    // 穿透邏輯：PierceCount > 0 可穿透並遞減；PierceCount < 0 為無限穿透（不遞減）
                     int hitLayer = hit.collider.gameObject.layer;
-                    if (((1 << hitLayer) & PierceableLayers) != 0 && PierceCount > 0)
+                    if (((1 << hitLayer) & PierceableLayers) != 0 && (PierceCount > 0 || PierceCount < 0))
                     {
-                        PierceCount--;
+                        if (PierceCount > 0)
+                            PierceCount--;
                         shouldDestroy = false; // 穿透時不銷毀
                     }
 
@@ -137,8 +139,12 @@ namespace Sorrows.Ballistics
                 }
             }
 
-            LifeTime -= Time.deltaTime;
-            if (LifeTime <= 0) { _isDestroyed = true; Destroy(gameObject); }
+            // LifeTime < 0（例如 -1）表示不因時間銷毀；否則正常倒數
+            if (LifeTime >= 0f)
+            {
+                LifeTime -= Time.deltaTime;
+                if (LifeTime <= 0f) { _isDestroyed = true; Destroy(gameObject); }
+            }
         }
     }
 }

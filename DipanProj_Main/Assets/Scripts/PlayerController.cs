@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Sorrows.Ballistics;
 
@@ -26,6 +27,7 @@ public class PlayerController : MonoBehaviour
     private HitReactionHandler _hitReaction;
     private float _fireTimer = 0f;
     private float _currentHealth;
+    private readonly List<BulletInstance> _activeOrbitalBullets = new List<BulletInstance>();
 
     public bool isFacingRightByDefault = true;
 
@@ -107,6 +109,11 @@ public class PlayerController : MonoBehaviour
         _animator.SetBool("isMoving", currentSpeed > 0.1f);
     }
 
+    private void OnDestroy()
+    {
+        ClearActiveOrbitalBullets();
+    }
+
     void FixedUpdate()
     {
         if (_hitReaction != null && _hitReaction.IsKnockedBack)
@@ -152,8 +159,21 @@ public class PlayerController : MonoBehaviour
             collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
     }
 
+    private void ClearActiveOrbitalBullets()
+    {
+        for (int i = 0; i < _activeOrbitalBullets.Count; i++)
+        {
+            BulletInstance b = _activeOrbitalBullets[i];
+            if (b != null)
+                Destroy(b.gameObject);
+        }
+        _activeOrbitalBullets.Clear();
+    }
+
     private void ShootOrbital(WeaponData weapon, ProjectileData recipe)
     {
+        ClearActiveOrbitalBullets();
+
         int count = recipe.OrbitalCount;
         float radius = recipe.OrbitalRadius;
 
@@ -174,6 +194,7 @@ public class PlayerController : MonoBehaviour
 
             if (bullet != null)
             {
+                _activeOrbitalBullets.Add(bullet);
                 foreach (var b in bullet.GetBehaviors())
                 {
                     if (b is OrbitalBehavior orbital)

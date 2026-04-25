@@ -6,9 +6,11 @@ namespace Sorrows.Ballistics
     {
         public float Speed = 10f;
         public float Radius = 0.1f;
+        /// <summary>存活秒數；&lt; 0（例如 -1）表示不因時間銷毀。</summary>
         public float LifeTime = 3f;
         public float RotationSpeed = 0f;
         public float FireInterval = 0.2f;
+        /// <summary>穿透次數；&lt; 0（例如 -1）表示無限穿透。</summary>
         public int PierceCount = 0;
 
         public bool HasBounce;
