@@ -50,11 +50,11 @@ public class HitReactionHandler : MonoBehaviour
     {
         if (_sharedFlashMaterial == null)
         {
-            Shader flashShader = Shader.Find("Custom/SpriteFlash");
+            Shader flashShader = Resources.Load<Shader>("Shaders/SpriteFlash");
             if (flashShader != null)
                 _sharedFlashMaterial = new Material(flashShader);
             else
-                Debug.LogWarning("SpriteFlash shader not found. White flash effect disabled.");
+                Debug.LogWarning("SpriteFlash shader not found at Resources/Shaders/SpriteFlash. White flash effect disabled.");
         }
 
         if (_sharedFlashMaterial != null)
