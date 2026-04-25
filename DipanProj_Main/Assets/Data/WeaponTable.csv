@@ -3,4 +3,4 @@ ID, Name         , Damage, RecipeID, WeaponSpritePath      , SpriteAngleOffset, 
  2, 單一彎刀     ,      2,        2, Weapon/weapon_scimitar,                 0,              ,                ,        , 
  3, 3分裂追蹤飛劍,      1,        8, Weapon/weapon_sword   ,               135,              ,                ,        , 
  4, 5分裂彎刀    ,      2,        5, Weapon/weapon_scimitar,                 0,              ,                ,        , 
- 5, 火焰         ,      2,        9,                       ,                 0, Weapon/fire  ,               6,      12, 8
+ 5, 火焰         ,      2,        9,                       ,                 0, Weapon/fire  ,               6,      12, 5
