@@ -22,6 +22,10 @@
 | SubRecipeID | 整數 | 否 | 分裂後子彈使用的配方 ID，空白表示繼承自身屬性 |
 | BounceTarget | 字串 | 是 | 反彈對象，決定子彈碰到什麼會反彈 |
 | MaxBounces | 整數 | 是 | 最大反彈次數，僅在 BounceTarget 非 None 時有效 |
+| HomingTurnSpeed | 小數 | 否 | 追蹤轉向速度（度/秒），0 或留空為不追蹤 |
+| IsOrbital | 整數 | 否 | 是否為環繞型彈道（1 = 是，留空或 0 = 否） |
+| OrbitalRadius | 小數 | 否 | 環繞半徑，僅在 IsOrbital = 1 時有效 |
+| OrbitalCount | 整數 | 否 | 環繞數量，每次發射生成幾顆環繞子彈 |
 
 ---
 
@@ -117,6 +121,38 @@
 - 僅在 BounceTarget 不是 None 時有效
 - 超過次數後，子彈碰到反彈對象會直接銷毀
 
+### HomingTurnSpeed（追蹤轉向速度）
+- 子彈自動追蹤最近目標的轉向速度（度/秒）
+- 設為 0 或留空表示不追蹤
+- 數值越大，轉向越靈敏
+- 參考值：90 = 慢速追蹤、180 = 一般追蹤、360 = 高速追蹤
+
+### IsOrbital（是否為環繞型彈道）
+- 設為 1：子彈以玩家為圓心環繞飛行
+- 留空或設為 0：一般直線飛行（預設）
+- 環繞型子彈使用 `Speed` 欄位作為切線速度（繞圈移動速度），半徑越小、Speed 越大，轉得越快
+
+### OrbitalRadius（環繞半徑）
+- 子彈繞玩家飛行的軌道半徑
+- 僅在 IsOrbital = 1 時有效
+- 數值越大，軌道越寬
+- 參考值：1 = 緊貼玩家、2 = 一般距離、5 = 遠距離
+
+### OrbitalCount（環繞數量）
+- 每次發射生成幾顆環繞子彈
+- 子彈會等距排列在軌道上（例如 3 顆 = 每隔 120° 一顆）
+- 僅在 IsOrbital = 1 時有效
+
+### 環繞型彈道與其他行為的交互
+
+| 組合 | 效果 |
+|------|------|
+| 環繞 + 穿透 | 碰到怪物不消失，繼續環繞 |
+| 環繞 + 反彈(Enemy) | 碰到怪物後脫軌，以反彈角度飛出 |
+| 環繞 + 反彈 + 追蹤 | 碰到怪物脫軌反彈後，自動追蹤下一個目標 |
+| 環繞 + 分裂(OnHit) | 碰到怪物時分裂出多顆子彈 |
+| 環繞 + 自轉 | 環繞時武器自身旋轉（純視覺效果） |
+
 ---
 
 ## 範例配方
@@ -173,6 +209,38 @@ ID, Name,      Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount
 60, ChainShot,    30,    0.1,        5,          0.4,             0,           1,           1,           0,            ,            , Enemy,                 3
 ```
 
+### 環繞護盾
+3 顆子彈以半徑 2 繞玩家旋轉，碰到怪物即消失。
+
+```
+ID, Name,        Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
+90, OrbitalShield,    5,    0.1,     9999,          2.0,             0,           0,           1,           0,            ,            , None,                  0,               0,         1,             2,            3
+```
+
+- Speed=5 控制繞圈速度，LifeTime=9999 讓子彈幾乎不會自然消失
+- IsOrbital=1，OrbitalRadius=2，OrbitalCount=3：3 顆等距環繞
+- 碰到怪物造成傷害後消失，按一次攻擊重新召喚 3 顆
+
+### 環繞穿透護盾
+同上，但碰到怪物不消失，持續環繞造成多次傷害。
+
+```
+ID, Name,             Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
+91, OrbitalPierceShield, 5,    0.1,     9999,          2.0,             0,           99,           1,           0,            ,            , None,                  0,               0,         1,             2,            3
+```
+
+- PierceCount=99 讓子彈可穿透大量目標而不消失，持續環繞
+
+### 環繞反彈彈
+環繞時碰到怪物會脫軌反彈飛出，以反彈角度飛走。
+
+```
+ID, Name,          Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
+92, OrbitalBounce,     8,    0.1,     9999,          2.0,             0,           0,           1,           0,            ,            , Enemy,                 3,               0,         1,             2,            3
+```
+
+- BounceTarget=Enemy + MaxBounces=3：碰到怪物後脫軌反彈飛出，最多彈 3 次
+
 ---
 
 ## 常見問題
@@ -198,3 +266,12 @@ ID, Name,          Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceC
 - 武器使用配方 ID=80（BounceShot）
 - 發射時分裂成 3 顆，每顆使用配方 ID=70（BouncePellet）
 - 每顆散彈都能碰牆反彈 3 次
+
+### Q: 環繞彈的 Speed 代表什麼？
+**A:** Speed 在環繞型彈道中代表切線速度（繞圈的移動速度）。角速度 = Speed / OrbitalRadius。例如 Speed=5、OrbitalRadius=2，角速度 = 2.5 rad/s，大約每 2.5 秒轉一圈。
+
+### Q: 環繞彈碰到怪物後，設定反彈會怎樣？
+**A:** 子彈會脫離軌道，以反彈角度飛出去，之後就像普通子彈一樣直線飛行。如果同時有追蹤（HomingTurnSpeed > 0），脫軌後會自動追蹤下一個目標。
+
+### Q: 環繞彈的 LifeTime 怎麼設定？
+**A:** LifeTime 照常生效。如果想讓環繞彈持續存在直到碰到敵人，設一個很大的值（如 9999）。如果想做限時環繞，設正常的存活時間即可。

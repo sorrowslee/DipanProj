@@ -23,6 +23,10 @@ namespace Sorrows.Ballistics
         public float SpreadAngle = 60f;
         public ProjectileData SubProjectileData;
 
+        public bool IsOrbital;
+        public float OrbitalRadius = 2f;
+        public int OrbitalCount = 3;
+
         public List<IBulletBehavior> CreateBehaviors()
         {
             var list = new List<IBulletBehavior>();
@@ -30,6 +34,7 @@ namespace Sorrows.Ballistics
             if (HasSplit) list.Add(new SplitBehavior(SubProjectileData, SplitCount, SpreadAngle, Timing));
             if (RotationSpeed != 0) list.Add(new RotationBehavior(RotationSpeed));
             if (HasHoming) list.Add(new HomingBehavior(HomingTurnSpeed));
+            if (IsOrbital) list.Add(new OrbitalBehavior(OrbitalRadius, Speed));
             return list;
         }
     }

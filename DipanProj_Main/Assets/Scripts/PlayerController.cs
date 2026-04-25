@@ -122,12 +122,27 @@ public class PlayerController : MonoBehaviour
         WeaponData weapon = _weaponManager.GetCurrentWeapon();
         if (weapon == null || weapon.BulletPrefab == null || weapon.Recipe == null) return;
 
+        ProjectileData recipe = weapon.Recipe.Data;
+
+        if (recipe.IsOrbital)
+        {
+            ShootOrbital(weapon, recipe);
+        }
+        else
+        {
+            ShootNormal(weapon, recipe);
+        }
+
+        _fireTimer = recipe.FireInterval;
+    }
+
+    private void ShootNormal(WeaponData weapon, ProjectileData recipe)
+    {
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePos.z = 0;
         Vector2 fireDirection = (mousePos - transform.position).normalized;
         Vector2 spawnPos = (Vector2)transform.position;
 
-        ProjectileData recipe = weapon.Recipe.Data;
         LayerMask collisionMask = EnvLayer | EnemyLayer;
         LayerMask pierceableLayers = EnemyLayer;
         LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
@@ -135,8 +150,40 @@ public class PlayerController : MonoBehaviour
         Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
         BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
             collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+    }
 
-        _fireTimer = recipe.FireInterval;
+    private void ShootOrbital(WeaponData weapon, ProjectileData recipe)
+    {
+        int count = recipe.OrbitalCount;
+        float radius = recipe.OrbitalRadius;
+
+        LayerMask collisionMask = EnvLayer | EnemyLayer;
+        LayerMask pierceableLayers = EnemyLayer;
+        LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
+        Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
+
+        for (int i = 0; i < count; i++)
+        {
+            float angle = i * (2f * Mathf.PI / count);
+            Vector2 offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
+            Vector2 spawnPos = (Vector2)transform.position + offset;
+            Vector2 tangent = new Vector2(-Mathf.Sin(angle), Mathf.Cos(angle));
+
+            BulletInstance bullet = BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, tangent,
+                collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+
+            if (bullet != null)
+            {
+                foreach (var b in bullet.GetBehaviors())
+                {
+                    if (b is OrbitalBehavior orbital)
+                    {
+                        orbital.Initialize(transform, angle);
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     private LayerMask ResolveNonBounceLayers(BounceTarget bounceTarget)

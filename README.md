@@ -80,6 +80,7 @@
 | `HasBounce` / `MaxBounces` | 是否反彈 / 最大反彈次數 |
 | `HasSplit` / `SplitCount` / `SpreadAngle` / `Timing` | 是否分裂 / 數量 / 角度 / 時機 |
 | `SubProjectileData` | 分裂產生的子彈配方（透過 SubRecipeID 查表解析） |
+| `IsOrbital` / `OrbitalRadius` / `OrbitalCount` | 是否環繞 / 環繞半徑 / 環繞數量 |
 
 #### BallisticsEngine（靜態引擎）
 ```
@@ -101,6 +102,7 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `BounceBehavior` | 牆壁反彈（`Vector2.Reflect`），命中 `NonBounceLayers` 內的目標時不反彈 |
 | `SplitBehavior` | 扇形分裂，支援 OnSpawn / OnHit / OnDeath 三種觸發時機 |
 | `RotationBehavior` | 飛行中持續自轉 |
+| `OrbitalBehavior` | 以指定 Transform 為圓心環繞飛行，穿透時繼續環繞，反彈時脫軌飛出 |
 
 ### 3.2 配方與武器系統 (Recipe & Weapon System)
 
@@ -128,6 +130,10 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `SubRecipeID` | `SubProjectileData` | 分裂子彈配方 ID（二次解析） |
 | `BounceTarget` | — | 反彈對象（None / Environment / Enemy），由遊戲端映射為 LayerMask |
 | `MaxBounces` | `MaxBounces` | 最大反彈次數 |
+| `HomingTurnSpeed` | `HomingTurnSpeed` | 追蹤轉向速度（度/秒），0 為不追蹤 |
+| `IsOrbital` | `IsOrbital` | 是否為環繞型彈道（1 = 是，留空 = 否） |
+| `OrbitalRadius` | `OrbitalRadius` | 環繞半徑，以玩家為圓心的軌道半徑 |
+| `OrbitalCount` | `OrbitalCount` | 環繞數量，每次發射生成幾顆環繞子彈 |
 
 #### 武器表 (WeaponTable.csv)
 定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。
@@ -287,6 +293,8 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * [x] PlayerController 新增 TakeDamage 介面與寫死的受擊反應參數，預留未來接觸傷害使用。
 * [x] 實作武器序列圖動畫系統：WeaponTable.csv 新增 WeaponAniPath / WeaponAniNumber / AnimFPS 欄位，支援多張 PNG 序列圖自動載入與循環播放。
 * [x] 擴充 BallisticsEngine.Spawn API 支援 Sprite[] 動畫參數，BulletInstance 內建動畫播放邏輯，分裂彈自動繼承動畫。
+* [x] 實作環繞型彈道系統（OrbitalBehavior）：RecipeTable.csv 新增 IsOrbital / OrbitalRadius / OrbitalCount 欄位，子彈以玩家為圓心環繞飛行。
+* [x] 環繞彈與穿透（繼續環繞）、反彈（脫軌飛出）、分裂、追蹤等行為完全相容。
 
 ---
 

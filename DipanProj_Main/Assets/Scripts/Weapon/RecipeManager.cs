@@ -102,6 +102,17 @@ public class RecipeManager : MonoBehaviour
                 }
             }
 
+            if (v.Length >= 16 && !string.IsNullOrWhiteSpace(v[15]))
+            {
+                int isOrbital = int.Parse(v[15].Trim());
+                if (isOrbital > 0)
+                {
+                    data.IsOrbital = true;
+                    data.OrbitalRadius = (v.Length >= 17 && !string.IsNullOrWhiteSpace(v[16])) ? float.Parse(v[16].Trim()) : 2f;
+                    data.OrbitalCount = (v.Length >= 18 && !string.IsNullOrWhiteSpace(v[17])) ? int.Parse(v[17].Trim()) : 3;
+                }
+            }
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }
@@ -139,6 +150,9 @@ public class RecipeManager : MonoBehaviour
             sub.MaxBounces = data.MaxBounces;
             sub.HasHoming = data.HasHoming;
             sub.HomingTurnSpeed = data.HomingTurnSpeed;
+            sub.IsOrbital = data.IsOrbital;
+            sub.OrbitalRadius = data.OrbitalRadius;
+            sub.OrbitalCount = data.OrbitalCount;
             data.SubProjectileData = sub;
         }
     }
