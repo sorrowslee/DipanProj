@@ -83,17 +83,42 @@ public class WeaponManager : MonoBehaviour
             weapon.WeaponSpritePath = v[4].Trim();
             weapon.SpriteAngleOffset = float.Parse(v[5]);
 
+            weapon.WeaponAniPath = (v.Length > 6) ? v[6].Trim() : "";
+            weapon.WeaponAniNumber = (v.Length > 7 && !string.IsNullOrWhiteSpace(v[7])) ? int.Parse(v[7].Trim()) : 0;
+            weapon.AnimFPS = (v.Length > 8 && !string.IsNullOrWhiteSpace(v[8])) ? float.Parse(v[8].Trim()) : 0f;
+            weapon.BulletScale = (v.Length > 9 && !string.IsNullOrWhiteSpace(v[9])) ? float.Parse(v[9].Trim()) : 1f;
+
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
 
-            Sprite sprite = Resources.Load<Sprite>(weapon.WeaponSpritePath);
-            if (sprite != null)
+            if (!string.IsNullOrEmpty(weapon.WeaponAniPath) && weapon.WeaponAniNumber > 0)
             {
-                weapon.WeaponSprite = sprite;
+                var sprites = new Sprite[weapon.WeaponAniNumber];
+                bool allLoaded = true;
+                for (int f = 0; f < weapon.WeaponAniNumber; f++)
+                {
+                    string framePath = $"{weapon.WeaponAniPath}_{(f + 1):D2}";
+                    sprites[f] = Resources.Load<Sprite>(framePath);
+                    if (sprites[f] == null)
+                    {
+                        Debug.LogWarning($"Animation sprite not found at '{framePath}' for weapon '{weapon.Name}'.");
+                        allLoaded = false;
+                    }
+                }
+                weapon.WeaponSprites = sprites;
+                weapon.WeaponSprite = (allLoaded && sprites.Length > 0) ? sprites[0] : null;
             }
             else
             {
-                Debug.LogWarning($"Weapon sprite not found at Resources path '{weapon.WeaponSpritePath}' for weapon '{weapon.Name}'.");
+                Sprite sprite = Resources.Load<Sprite>(weapon.WeaponSpritePath);
+                if (sprite != null)
+                {
+                    weapon.WeaponSprite = sprite;
+                }
+                else
+                {
+                    Debug.LogWarning($"Weapon sprite not found at Resources path '{weapon.WeaponSpritePath}' for weapon '{weapon.Name}'.");
+                }
             }
 
             _weapons[weapon.ID] = weapon;

@@ -132,9 +132,9 @@ public class PlayerController : MonoBehaviour
         LayerMask pierceableLayers = EnemyLayer;
         LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
 
-        Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale;
+        Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
         BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
-            collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale);
+            collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
 
         _fireTimer = recipe.FireInterval;
     }

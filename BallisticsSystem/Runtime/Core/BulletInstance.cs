@@ -14,16 +14,26 @@ namespace Sorrows.Ballistics
     [HideInInspector] public LayerMask NonBounceLayers;
     [HideInInspector] public int PierceCount = 0;
     [HideInInspector] public float SpriteAngleOffset = 0f;
+    [HideInInspector] public Sprite[] AnimationSprites;
+    [HideInInspector] public float AnimFPS;
 
         public Action<BulletInstance, GameObject, RaycastHit2D> OnBulletHitObject;
 
         private List<IBulletBehavior> _behaviors = new List<IBulletBehavior>();
         private HashSet<int> _hitObjects = new HashSet<int>();
         private bool _isDestroyed = false;
+        private SpriteRenderer _sr;
+        private float _animTimer;
+        private int _animFrame;
 
         public void AddBehavior(IBulletBehavior behavior) => _behaviors.Add(behavior);
         public List<IBulletBehavior> GetBehaviors() => _behaviors;
         public bool HasHit(int instanceId) => _hitObjects.Contains(instanceId);
+
+        private void Awake()
+        {
+            _sr = GetComponent<SpriteRenderer>();
+        }
 
         // 生成時檢查起點周圍是否已有目標（處理 CircleCast 起點在 Collider 內部偵測不到的問題）
         public void CheckSpawnOverlap()
@@ -114,6 +124,18 @@ namespace Sorrows.Ballistics
             }
 
             transform.position += (Vector3)(Velocity * Time.deltaTime);
+
+            if (AnimationSprites != null && AnimationSprites.Length > 1 && AnimFPS > 0 && _sr != null)
+            {
+                _animTimer += Time.deltaTime;
+                float frameDuration = 1f / AnimFPS;
+                if (_animTimer >= frameDuration)
+                {
+                    _animTimer -= frameDuration;
+                    _animFrame = (_animFrame + 1) % AnimationSprites.Length;
+                    _sr.sprite = AnimationSprites[_animFrame];
+                }
+            }
 
             LifeTime -= Time.deltaTime;
             if (LifeTime <= 0) { _isDestroyed = true; Destroy(gameObject); }

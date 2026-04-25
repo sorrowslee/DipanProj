@@ -1,5 +1,6 @@
-ID, Name     , Damage, RecipeID, WeaponSpritePath      , SpriteAngleOffset
- 1, 單一飛劍 ,     1,        7, Weapon/weapon_sword   ,               135
- 2, 單一彎刀 ,     2,        2, Weapon/weapon_scimitar,                 0
- 3, 3分裂追蹤飛劍,     1,        8, Weapon/weapon_sword   ,               135
- 4, 5分裂彎刀,     2,        5, Weapon/weapon_scimitar,                 0
+ID, Name         , Damage, RecipeID, WeaponSpritePath      , SpriteAngleOffset, WeaponAniPath, WeaponAniNumber, AnimFPS, BulletScale
+ 1, 單一飛劍     ,      1,        7, Weapon/weapon_sword   ,               135,              ,                ,        , 
+ 2, 單一彎刀     ,      2,        2, Weapon/weapon_scimitar,                 0,              ,                ,        , 
+ 3, 3分裂追蹤飛劍,      1,        8, Weapon/weapon_sword   ,               135,              ,                ,        , 
+ 4, 5分裂彎刀    ,      2,        5, Weapon/weapon_scimitar,                 0,              ,                ,        , 
+ 5, 火焰         ,      2,        9,                       ,                 0, Weapon/fire  ,               6,      12, 8

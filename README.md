@@ -138,8 +138,28 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `Name` | 武器名稱 |
 | `Damage` | 傷害數值 |
 | `RecipeID` | 對應配方表的 ID |
-| `WeaponSpritePath` | 武器圖檔路徑（相對於 `Assets/Resources/`，不含副檔名） |
+| `WeaponSpritePath` | 武器圖檔路徑（相對於 `Assets/Resources/`，不含副檔名），與 `WeaponAniPath` 二擇一 |
 | `SpriteAngleOffset` | 圖片角度偏移（度），見下方說明 |
+| `WeaponAniPath` | 序列圖路徑前綴（相對於 `Assets/Resources/`，不含編號與副檔名），有值時忽略 `WeaponSpritePath` |
+| `WeaponAniNumber` | 序列圖張數，系統自動載入 `{WeaponAniPath}_01` ~ `{WeaponAniPath}_NN` |
+| `AnimFPS` | 序列圖播放速度（幀/秒），例如 12 = 每秒 12 幀 |
+| `BulletScale` | 子彈縮放倍率，預設為 1（留空等同 1），例如 2 = 放大兩倍 |
+
+#### 序列圖動畫設定說明
+
+武器可以使用多張 PNG 序列圖讓飛行外觀產生動畫效果。
+
+**使用方式**：
+1. 將序列圖片放入 `Assets/Resources/` 下的對應目錄，檔名依序為 `{前綴}_01.png`、`{前綴}_02.png`、...
+2. 在 CSV 中填寫 `WeaponAniPath`（路徑前綴，不含 `_01` 編號與副檔名）、`WeaponAniNumber`（張數）、`AnimFPS`（播放速度）
+3. 此時 `WeaponSpritePath` 可留空，系統會使用序列圖的第一幀作為初始顯示
+
+**範例**：
+* `WeaponAniPath = Weapon/weapon_fire`、`WeaponAniNumber = 6`、`AnimFPS = 12`
+* 系統載入：`Weapon/weapon_fire_01` ~ `Weapon/weapon_fire_06`，以每秒 12 幀循環播放
+* 分裂子彈自動繼承動畫設定
+
+**二擇一規則**：有 `WeaponAniPath` 就用動畫，沒有就用 `WeaponSpritePath` 靜態圖片。
 
 #### SpriteAngleOffset 設定說明
 
@@ -265,6 +285,8 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * [x] 實作通用受擊反應系統（HitReactionHandler）：白光閃爍、擊退位移、無敵時間。
 * [x] MonsterData.csv 新增受擊反應欄位（InvincibleTimeMs, KnockbackThreshold, KnockbackPercent）。
 * [x] PlayerController 新增 TakeDamage 介面與寫死的受擊反應參數，預留未來接觸傷害使用。
+* [x] 實作武器序列圖動畫系統：WeaponTable.csv 新增 WeaponAniPath / WeaponAniNumber / AnimFPS 欄位，支援多張 PNG 序列圖自動載入與循環播放。
+* [x] 擴充 BallisticsEngine.Spawn API 支援 Sprite[] 動畫參數，BulletInstance 內建動畫播放邏輯，分裂彈自動繼承動畫。
 
 ---
 
