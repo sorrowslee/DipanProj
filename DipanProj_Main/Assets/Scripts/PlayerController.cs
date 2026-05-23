@@ -28,6 +28,7 @@ public class PlayerController : MonoBehaviour
     private float _fireTimer = 0f;
     private float _currentHealth;
     private readonly List<BulletInstance> _activeOrbitalBullets = new List<BulletInstance>();
+    private float _orbitalGroupExpireTime = -1f;
 
     public bool isFacingRightByDefault = true;
 
@@ -98,6 +99,9 @@ public class PlayerController : MonoBehaviour
             Shoot();
         }
 
+        if (_orbitalGroupExpireTime > 0f && Time.time >= _orbitalGroupExpireTime)
+            ClearActiveOrbitalBullets();
+
         HandleVisuals();
     }
 
@@ -151,7 +155,7 @@ public class PlayerController : MonoBehaviour
         Vector2 spawnPos = (Vector2)transform.position;
 
         LayerMask collisionMask = EnvLayer | EnemyLayer;
-        LayerMask pierceableLayers = EnemyLayer;
+        LayerMask pierceableLayers = ResolvePierceableLayers(weapon.Recipe);
         LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
 
         Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
@@ -168,6 +172,7 @@ public class PlayerController : MonoBehaviour
                 Destroy(b.gameObject);
         }
         _activeOrbitalBullets.Clear();
+        _orbitalGroupExpireTime = -1f;
     }
 
     private void ShootOrbital(WeaponData weapon, ProjectileData recipe)
@@ -178,7 +183,7 @@ public class PlayerController : MonoBehaviour
         float radius = recipe.OrbitalRadius;
 
         LayerMask collisionMask = EnvLayer | EnemyLayer;
-        LayerMask pierceableLayers = EnemyLayer;
+        LayerMask pierceableLayers = ResolvePierceableLayers(weapon.Recipe);
         LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
         Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
 
@@ -194,6 +199,8 @@ public class PlayerController : MonoBehaviour
 
             if (bullet != null)
             {
+                // 個別子彈不依 LifeTime 自動銷毀，改由 PlayerController 群組到期統一銷毀
+                bullet.LifeTime = -1f;
                 _activeOrbitalBullets.Add(bullet);
                 foreach (var b in bullet.GetBehaviors())
                 {
@@ -205,6 +212,19 @@ public class PlayerController : MonoBehaviour
                 }
             }
         }
+
+        if (recipe.LifeTime >= 0f && _activeOrbitalBullets.Count > 0)
+            _orbitalGroupExpireTime = Time.time + recipe.LifeTime;
+        else
+            _orbitalGroupExpireTime = -1f;
+    }
+
+    private LayerMask ResolvePierceableLayers(RecipeEntry recipe)
+    {
+        LayerMask layers = EnemyLayer;
+        if (recipe != null && !recipe.BlockedByEnvironment)
+            layers |= EnvLayer;
+        return layers;
     }
 
     private LayerMask ResolveNonBounceLayers(BounceTarget bounceTarget)

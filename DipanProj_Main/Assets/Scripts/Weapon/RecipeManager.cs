@@ -11,6 +11,7 @@ public class RecipeEntry
     public ProjectileData Data;
     public BounceTarget BounceTarget;
     public int SubRecipeID = -1;
+    public bool BlockedByEnvironment = true;
 }
 
 public class RecipeManager : MonoBehaviour
@@ -111,6 +112,13 @@ public class RecipeManager : MonoBehaviour
                     data.OrbitalRadius = (v.Length >= 17 && !string.IsNullOrWhiteSpace(v[16])) ? float.Parse(v[16].Trim()) : 2f;
                     data.OrbitalCount = (v.Length >= 18 && !string.IsNullOrWhiteSpace(v[17])) ? int.Parse(v[17].Trim()) : 3;
                 }
+            }
+
+            // 留空或 1 = 會被地形擋下（向下相容預設）；0 = 子彈穿透地形不被銷毀。
+            entry.BlockedByEnvironment = true;
+            if (v.Length >= 19 && !string.IsNullOrWhiteSpace(v[18]))
+            {
+                entry.BlockedByEnvironment = int.Parse(v[18].Trim()) != 0;
             }
 
             entry.Data = data;
