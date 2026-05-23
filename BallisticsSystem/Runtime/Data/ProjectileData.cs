@@ -31,6 +31,8 @@ namespace Sorrows.Ballistics
 
         public bool IsParabolic;
         public float ArcHeight = 2f;
+        /// <summary>拋物線專用：落點隨機半徑（世界單位）。實際落點 = 目標點 + Random.insideUnitCircle * 此半徑。</summary>
+        public float LandingScatterRadius = 0f;
 
         public List<IBulletBehavior> CreateBehaviors()
         {
@@ -40,6 +42,7 @@ namespace Sorrows.Ballistics
             if (RotationSpeed != 0) list.Add(new RotationBehavior(RotationSpeed));
             if (HasHoming) list.Add(new HomingBehavior(HomingTurnSpeed));
             if (IsOrbital) list.Add(new OrbitalBehavior(OrbitalRadius, Speed));
+            // 拋物線：Speed 欄位重新解讀為「飛行時間（秒）」，Speed=1 表示無論遠近都飛 1 秒抵達
             if (IsParabolic) list.Add(new ParabolicBehavior(ArcHeight, Speed));
             return list;
         }

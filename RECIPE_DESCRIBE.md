@@ -33,6 +33,7 @@
 | IsParabolic | 整數 | 否 | 是否為拋物線型彈道（1 = 是，留空或 0 = 否；與 IsOrbital 互斥） |
 | ArcHeight | 小數 | 否 | 拋物線弧頂的視覺高度（世界單位，假高度），僅在 IsParabolic = 1 時有效 |
 | LaunchSource | 字串 | 否 | 發射來源（`Player` / `Offscreen`），`Offscreen` 從攝影機視野外隨機方向飛入；留空 = `Player` |
+| LandingScatterRadius | 小數 | 否 | 拋物線專用：落點隨機半徑（世界單位）。每顆炸彈的最終落點 = 扇形目標 + `Random.insideUnitCircle * 半徑`；留空或 0 = 不隨機 |
 
 ---
 
@@ -198,36 +199,41 @@
 - 傷害結算與此欄位**無關**：傷害仍只發生在怪物上（牆沒有 HP），`Environment` / `Any` 設定下打到牆只會放出地面特效、不會結算傷害
 - 仍受 `BulletInstance` 的「同目標只觸發一次」機制限制，因此一顆子彈撞同一面牆只會放一次地面特效
 
-### IsParabolic / ArcHeight / LaunchSource（拋物線型彈道）
+### IsParabolic / ArcHeight / LaunchSource / LandingScatterRadius（拋物線型彈道）
 - 啟用條件：`IsParabolic = 1`，與 `IsOrbital` **互斥**（兩個欄位都填 1 時，`ProjectileData.CreateBehaviors` 會把兩個 behavior 都加進去，行為衝突，請避免）
 - 主要設計目的：**作為地面特效的觸發載體**，例如丟炸彈、丟油罐——飛行中不對任何目標造成傷害，只在抵達目標落地時觸發 `GroundEffectHitTarget = Ground` 的地面特效
 
 #### 行為流程
 1. **發射**：依 `LaunchSource` 決定起點，目標永遠是滑鼠所在的世界座標
    - `Player`（預設）：從玩家當前位置發射
-   - `Offscreen`：從攝影機 viewport 邊緣外 1 單位的「隨機方向」位置發射飛入
+   - `Offscreen`：從攝影機 viewport 邊緣外 1 單位的「隨機方向」位置發射飛入；多顆炸彈時每顆都會**獨立重抽**一個視野外起點
 2. **飛行**：`ParabolicBehavior` 在 `OnSpawn` 把 `BulletInstance.CollisionMask` 清成 `0`，整段飛行**不會撞到任何 layer**（也不會觸發 `OnBulletHitObject`）；地面位置由起點線性插值到目標，視覺上額外加 `4 * ArcHeight * t * (1 - t)` 的 Y 偏移製造弧線
 3. **落地**：抵達目標時呼叫 `BulletInstance.RaiseGroundLanded(landPos)`，主遊戲收到後依 `GroundEffectHitTarget` 決定是否生成地面特效，並把 `LifeTime` 設為 0 讓 `BulletInstance` 下一幀清掉
 4. **生命週期**：`LifeTime` 由本行為控制，CSV 的 `LifeTime` 欄位實質上不影響拋物線
 
-#### 欄位對照
-- `Speed`：**沿地面前進的速度**（單位/秒），決定弧的飛行時間 = 距離 / 速度
+#### 欄位對照（與一般彈不同）
+- `Speed`：**飛行時間（秒）**，**不是**速度。`Speed = 1` 代表不論遠近、扇形哪一支，都用 1 秒抵達落點 → 同一發射出去的多顆炸彈會**同時落地**；遠的飛快、近的飛慢，這是預期行為
 - `ArcHeight`：弧頂的「假高度」Y 偏移絕對值（世界單位）。直接寫 `2.5` 就是弧頂上抬 2.5 單位
 - `LaunchSource`：發射來源；`Offscreen` 取攝影機 `orthographicSize` × `aspect` 算 viewport 邊界，從攝影機中心射隨機方向找到出視野的距離 + 1 單位緩衝
+- `LandingScatterRadius`：**落點誤差半徑**（世界單位）。最終落點 = 扇形目標 + `Random.insideUnitCircle * 半徑`（圓盤內均勻分布），多顆炸彈時各自獨立隨機，避免堆疊在同一點。`0` 或留空 = 不隨機
+- `SpreadCount`：**一發射出幾顆炸彈**。**重要**：拋物線版的分裂不需要 `SplitTiming`，留空也會生效（一般彈仍需要 `SplitTiming` 才會走 SplitBehavior）
+- `SpreadAngle`：扇形總角度（度）。以「玩家 → 滑鼠」為基準軸，N 顆炸彈在 ±SpreadAngle/2 範圍內等角度分布；扇形目標到玩家的距離 = 玩家到滑鼠距離（看起來像一片弧形落點）
+  - `SpreadCount = 3, SpreadAngle = 60`：三個目標分別在 -30° / 0° / +30° 方向、與滑鼠等距的扇形上
+  - `SpreadCount = 1`：單顆，仍會吃 `LandingScatterRadius` 的隨機誤差
 
 #### 與其他欄位的互動
 - `PierceCount` / `BounceTarget` / `MaxBounces`：飛行中不參與 layer 命中，這些欄位**無意義**（即使有 BounceBehavior 也不會被觸發）
 - `RotationSpeed`：仍會旋轉 sprite，做「翻滾炸彈」效果還滿合適
 - `SpriteAngleOffset`：會跟著 velocity 方向轉；但拋物線 velocity 含 Y 高度分量，會在升弧時往上仰、降弧時往下指，看美術風格決定要不要設
 - `IsOrbital`：互斥
-- `HasSplit`（SpreadCount > 1 + SplitTiming）：飛行中不會觸發 `OnHit` 分裂；`OnSpawn` 分裂可能還會跑但語意不明確，不建議搭配
+- `SplitTiming` / `SubRecipeID`：拋物線**直接讀 `SpreadCount` / `SpreadAngle`** 自行展扇形，不走 SplitBehavior，因此 `SplitTiming` 留空即可；填了也會被 SplitBehavior 嘗試解析，但因為 OnHit 不會被觸發、OnSpawn 又會額外再炸一輪，**不建議混搭**
 - `GroundEffectHitTarget = Ground`：**標準搭配**，落地放地面特效
 
 #### 範例配方
 ```
-12, 火焰拋物線彈, 8, 0.1, 10, 0.5, 0, 0, 1, 0, , , None, 0, 0, , , , , 1, OnHit, Ground, 1, 2.5, Player
+12, 玩家丟出火焰拋物線彈, 1, 0.1, 10, 0.5, 0, 0, 5, 60, , , None, 0, 0, , , , , 1, OnHit, Ground, 1, 2.5, Player, 1.5
 ```
-速度 8 單位/秒，弧高 2.5 單位，抵達滑鼠位置即落地，並生成地面特效 ID 1（火焰燃燒）。
+固定飛行時間 1 秒，弧高 2.5 單位；一次丟 5 顆，分布在玩家 → 滑鼠方向 ±30° 的扇形上、與滑鼠等距，並在每個扇形目標 1.5 單位半徑內隨機落點。落地後生成地面特效 ID 1（火焰燃燒）。
 
 ### GroundEffectTable.csv 欄位（簡述，獨立於本文件）
 - `ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize`

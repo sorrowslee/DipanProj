@@ -6,24 +6,26 @@ namespace Sorrows.Ballistics
     /// 拋物線行為：接管子彈移動，地面位置從 startPos 線性插值到 targetPos，
     /// 視覺上加上「假高度」Y 偏移，模擬丟炸彈的弧線。抵達目標即觸發 OnGroundLanded 事件並結束。
     /// 飛行期間 CollisionMask = 0，不參與任何 layer 命中。
+    ///
+    /// 飛行時間採「固定秒數」模式（與距離無關）：建構子的 flightDuration = N 秒，
+    /// 不論起點到目標多遠，都用這個時間抵達——遠的飛快、近的飛慢，便於同一發配方多顆炸彈同時抵達。
     /// 透過 Initialize() 由主遊戲端提供發射起點與目標點。
     /// </summary>
     public class ParabolicBehavior : IBulletBehavior
     {
         private readonly float _arcHeight;
-        private readonly float _groundSpeed;
+        private readonly float _flightDuration;
 
         private Vector2 _arcStart;
         private Vector2 _arcEnd;
-        private float _flightDuration;
         private float _elapsed;
         private bool _isInitialized;
         private bool _hasFinished;
 
-        public ParabolicBehavior(float arcHeight, float groundSpeed)
+        public ParabolicBehavior(float arcHeight, float flightDuration)
         {
             _arcHeight = arcHeight;
-            _groundSpeed = Mathf.Max(0.001f, groundSpeed);
+            _flightDuration = Mathf.Max(0.0001f, flightDuration);
         }
 
         /// <summary>由主遊戲端在 Spawn 後呼叫，提供發射起點與目標點。</summary>
@@ -32,8 +34,6 @@ namespace Sorrows.Ballistics
             _arcStart = startPos;
             _arcEnd = targetPos;
             _elapsed = 0f;
-            float distance = (targetPos - startPos).magnitude;
-            _flightDuration = Mathf.Max(0.0001f, distance / _groundSpeed);
             _isInitialized = true;
             _hasFinished = false;
         }

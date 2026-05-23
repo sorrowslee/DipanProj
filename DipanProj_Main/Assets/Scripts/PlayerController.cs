@@ -193,40 +193,78 @@ public class PlayerController : MonoBehaviour
     {
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePos.z = 0;
-        Vector2 targetPos = (Vector2)mousePos;
-        Vector2 startPos = ResolveParabolicStartPos(weapon.Recipe.LaunchSource, targetPos);
+        Vector2 mouseTarget = (Vector2)mousePos;
 
-        Vector2 fireDirection = (targetPos - startPos);
-        if (fireDirection.sqrMagnitude < 0.0001f)
-            fireDirection = Vector2.right;
+        int count = Mathf.Max(1, recipe.SplitCount);
+        float totalSpreadDeg = recipe.SpreadAngle;
+        float scatterRadius = Mathf.Max(0f, recipe.LandingScatterRadius);
+
+        LaunchSource launchSrc = weapon.Recipe.LaunchSource;
+
+        // 扇形目標永遠以「玩家 → 滑鼠」為基準，即使 LaunchSource = Offscreen 也以玩家視角來分扇形
+        Vector2 fanReference = (Vector2)transform.position;
+        Vector2 baseDir = mouseTarget - fanReference;
+        float distance = baseDir.magnitude;
+        if (distance < 0.0001f)
+        {
+            baseDir = Vector2.right;
+            distance = 1f;
+        }
         else
-            fireDirection = fireDirection.normalized;
+        {
+            baseDir = baseDir.normalized;
+        }
+        float baseAngleDeg = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
 
-        // 拋物線飛行不參與 layer 命中（ParabolicBehavior.OnSpawn 會把 CollisionMask 清成 0）
         LayerMask collisionMask = EnvLayer | EnemyLayer;
         LayerMask pierceableLayers = 0;
         LayerMask nonBounceLayers = 0;
-
         Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
         WeaponData firedWeapon = weapon;
 
-        BulletInstance bullet = BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, startPos, fireDirection,
-            collisionMask, pierceableLayers, nonBounceLayers,
-            null, // 拋物線不走 OnHit 流程
-            weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
-
-        if (bullet == null) return;
-
-        foreach (var b in bullet.GetBehaviors())
+        for (int i = 0; i < count; i++)
         {
-            if (b is ParabolicBehavior parabolic)
+            // 計算扇形角度
+            float angleDeg = baseAngleDeg;
+            if (count > 1)
             {
-                parabolic.Initialize(startPos, targetPos);
-                break;
+                float t = (float)i / (count - 1);
+                angleDeg = baseAngleDeg - totalSpreadDeg * 0.5f + totalSpreadDeg * t;
             }
-        }
+            float rad = angleDeg * Mathf.Deg2Rad;
+            Vector2 spreadDir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
+            Vector2 spreadTarget = fanReference + spreadDir * distance;
 
-        bullet.OnGroundLanded += (b, landPos) => HandleParabolicLanded(firedWeapon, b, landPos);
+            // 落點隨機誤差（圓盤內均勻分布）
+            Vector2 scatter = scatterRadius > 0f ? (Vector2)Random.insideUnitCircle * scatterRadius : Vector2.zero;
+            Vector2 finalTarget = spreadTarget + scatter;
+
+            // 起點：Player 共用玩家位置；Offscreen 每顆都重抽一個視野外的隨機點
+            Vector2 startPos = (launchSrc == LaunchSource.Offscreen)
+                ? ResolveParabolicStartPos(LaunchSource.Offscreen, finalTarget)
+                : fanReference;
+
+            Vector2 fireDir = finalTarget - startPos;
+            fireDir = (fireDir.sqrMagnitude < 0.0001f) ? Vector2.right : fireDir.normalized;
+
+            BulletInstance bullet = BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, startPos, fireDir,
+                collisionMask, pierceableLayers, nonBounceLayers,
+                null, // 拋物線不走 OnHit 流程
+                weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+
+            if (bullet == null) continue;
+
+            foreach (var b in bullet.GetBehaviors())
+            {
+                if (b is ParabolicBehavior parabolic)
+                {
+                    parabolic.Initialize(startPos, finalTarget);
+                    break;
+                }
+            }
+
+            bullet.OnGroundLanded += (b, landPos) => HandleParabolicLanded(firedWeapon, b, landPos);
+        }
     }
 
     private Vector2 ResolveParabolicStartPos(LaunchSource source, Vector2 targetPos)

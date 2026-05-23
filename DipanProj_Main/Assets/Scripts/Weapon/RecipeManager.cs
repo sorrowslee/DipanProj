@@ -77,11 +77,14 @@ public class RecipeManager : MonoBehaviour
             string splitTimingStr = v[10].Trim();
             string subRecipeStr = v[11].Trim();
 
+            // SplitCount / SpreadAngle 始終記錄到 ProjectileData，方便拋物線等其他發射模式直接讀取；
+            // HasSplit 仍只控制是否組裝 SplitBehavior（需 SpreadCount > 1 + 有 SplitTiming）
+            data.SplitCount = Mathf.Max(1, spreadCount);
+            data.SpreadAngle = spreadAngle;
+
             if (spreadCount > 1 && !string.IsNullOrEmpty(splitTimingStr))
             {
                 data.HasSplit = true;
-                data.SplitCount = spreadCount;
-                data.SpreadAngle = spreadAngle;
                 data.Timing = ParseSplitTiming(splitTimingStr);
             }
 
@@ -164,6 +167,12 @@ public class RecipeManager : MonoBehaviour
             if (v.Length >= 25 && !string.IsNullOrWhiteSpace(v[24]))
             {
                 entry.LaunchSource = ParseLaunchSource(v[24].Trim());
+            }
+
+            // 拋物線專用：落點隨機半徑（世界單位），實際落點 = 目標 + Random.insideUnitCircle * 半徑
+            if (v.Length >= 26 && !string.IsNullOrWhiteSpace(v[25]))
+            {
+                data.LandingScatterRadius = float.Parse(v[25].Trim());
             }
 
             entry.Data = data;

@@ -1,9 +1,7 @@
 ID, Name                  , Damage, RecipeID, WeaponSpritePath      , SpriteAngleOffset, WeaponAniPath, WeaponAniNumber, AnimFPS, BulletScale
- 1, 單一飛劍              ,      1,        7, Weapon/weapon_sword   ,               135,              ,                ,        ,            
- 2, 單一彎刀              ,      2,        2, Weapon/weapon_scimitar,                 0,              ,                ,        ,            
- 3, 3分裂追蹤飛劍         ,      1,        8, Weapon/weapon_sword   ,               135,              ,                ,        ,            
- 4, 5分裂彎刀             ,      2,        5, Weapon/weapon_scimitar,                 0,              ,                ,        ,            
- 5, 火焰環繞彈            ,      2,        9,                       ,                 0, Weapon/fire  ,               6,      12,           5
- 6, 火焰燃燒彈            ,      2,       11, Weapon/weapon_sword   ,               135,              ,                ,        ,            
- 7, 火焰拋擲彈(玩家丟出)  ,      0,       12, Weapon/weapon_bomb    ,                 0,              ,                ,        ,           2
- 8, 火焰拋擲彈(螢幕外丟出),      0,       13, Weapon/weapon_bomb    ,                 0,              ,                ,        ,           2
+ 1, 單一彎刀              ,      2,        2, Weapon/weapon_scimitar,                 0,              ,                ,        ,            
+ 2, 3分裂追蹤飛劍         ,      1,        8, Weapon/weapon_sword   ,               135,              ,                ,        ,            
+ 3, 5分裂反彈彎刀         ,      2,        5, Weapon/weapon_scimitar,                 0,              ,                ,        ,            
+ 4, 火焰環繞彈            ,      2,        9,                       ,                 0, Weapon/fire  ,               6,      12,           5
+ 5, 火焰拋擲彈(玩家丟出)  ,      0,       12, Weapon/weapon_bomb    ,                 0,              ,                ,        ,           2
+ 6, 火焰拋擲彈(螢幕外丟出),      0,       13, Weapon/weapon_bomb    ,                 0,              ,                ,        ,           2
