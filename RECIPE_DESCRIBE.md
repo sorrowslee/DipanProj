@@ -29,7 +29,10 @@
 | BlockedByEnvironment | 整數 | 否 | 子彈是否會被地形障礙物阻擋（1 或留空 = 會被擋，0 = 穿透地形不被銷毀） |
 | GroundEffectID | 整數 | 否 | 命中時鏈式觸發的地面特效 ID，引用 `GroundEffectTable.csv` 對應列；留空或 0 = 不觸發 |
 | GroundEffectTrigger | 字串 | 否 | 地面特效觸發時機（`OnSpawn` / `OnHit` / `OnDeath`），目前僅實作 `OnHit`；留空 = `OnHit` |
-| GroundEffectHitTarget | 字串 | 否 | 地面特效命中過濾（`Enemy` / `Environment` / `Any`），決定打到哪類 layer 才生成；留空 = `Enemy`，與 BounceTarget 獨立 |
+| GroundEffectHitTarget | 字串 | 否 | 地面特效命中過濾（`Enemy` / `Environment` / `Any` / `Ground`），決定打到哪類 layer 才生成；留空 = `Enemy`，與 BounceTarget 獨立 |
+| IsParabolic | 整數 | 否 | 是否為拋物線型彈道（1 = 是，留空或 0 = 否；與 IsOrbital 互斥） |
+| ArcHeight | 小數 | 否 | 拋物線弧頂的視覺高度（世界單位，假高度），僅在 IsParabolic = 1 時有效 |
+| LaunchSource | 字串 | 否 | 發射來源（`Player` / `Offscreen`），`Offscreen` 從攝影機視野外隨機方向飛入；留空 = `Player` |
 
 ---
 
@@ -189,10 +192,42 @@
 | `Enemy`（預設） | 只有打到怪物（`EnemyLayer`）才觸發地面特效；打到牆不會放火 |
 | `Environment` | 只有打到障礙物（`EnvLayer`）才觸發；可做「火油彈封路」之類玩法 |
 | `Any` | 怪物或障礙物都會觸發 |
+| `Ground` | **拋物線專用**：拋物線最終落地（所有彈跳結束）時觸發；非拋物線武器設此值會 no-op |
 
-- 過濾邏輯：`PlayerController.HandleBulletHit` 取得命中目標的 `GameObject.layer`，與 `EnemyLayer` / `EnvLayer` 做位元 AND 比對，再依本欄位決定是否呼叫 `GroundEffectManager.Spawn`
+- 過濾邏輯：`PlayerController.HandleBulletHit` 取得命中目標的 `GameObject.layer`，與 `EnemyLayer` / `EnvLayer` 做位元 AND 比對；拋物線則是 `HandleParabolicLanded` 帶 `hitGround = true` 進來；再依本欄位決定是否呼叫 `GroundEffectManager.Spawn`
 - 傷害結算與此欄位**無關**：傷害仍只發生在怪物上（牆沒有 HP），`Environment` / `Any` 設定下打到牆只會放出地面特效、不會結算傷害
 - 仍受 `BulletInstance` 的「同目標只觸發一次」機制限制，因此一顆子彈撞同一面牆只會放一次地面特效
+
+### IsParabolic / ArcHeight / LaunchSource（拋物線型彈道）
+- 啟用條件：`IsParabolic = 1`，與 `IsOrbital` **互斥**（兩個欄位都填 1 時，`ProjectileData.CreateBehaviors` 會把兩個 behavior 都加進去，行為衝突，請避免）
+- 主要設計目的：**作為地面特效的觸發載體**，例如丟炸彈、丟油罐——飛行中不對任何目標造成傷害，只在抵達目標落地時觸發 `GroundEffectHitTarget = Ground` 的地面特效
+
+#### 行為流程
+1. **發射**：依 `LaunchSource` 決定起點，目標永遠是滑鼠所在的世界座標
+   - `Player`（預設）：從玩家當前位置發射
+   - `Offscreen`：從攝影機 viewport 邊緣外 1 單位的「隨機方向」位置發射飛入
+2. **飛行**：`ParabolicBehavior` 在 `OnSpawn` 把 `BulletInstance.CollisionMask` 清成 `0`，整段飛行**不會撞到任何 layer**（也不會觸發 `OnBulletHitObject`）；地面位置由起點線性插值到目標，視覺上額外加 `4 * ArcHeight * t * (1 - t)` 的 Y 偏移製造弧線
+3. **落地**：抵達目標時呼叫 `BulletInstance.RaiseGroundLanded(landPos)`，主遊戲收到後依 `GroundEffectHitTarget` 決定是否生成地面特效，並把 `LifeTime` 設為 0 讓 `BulletInstance` 下一幀清掉
+4. **生命週期**：`LifeTime` 由本行為控制，CSV 的 `LifeTime` 欄位實質上不影響拋物線
+
+#### 欄位對照
+- `Speed`：**沿地面前進的速度**（單位/秒），決定弧的飛行時間 = 距離 / 速度
+- `ArcHeight`：弧頂的「假高度」Y 偏移絕對值（世界單位）。直接寫 `2.5` 就是弧頂上抬 2.5 單位
+- `LaunchSource`：發射來源；`Offscreen` 取攝影機 `orthographicSize` × `aspect` 算 viewport 邊界，從攝影機中心射隨機方向找到出視野的距離 + 1 單位緩衝
+
+#### 與其他欄位的互動
+- `PierceCount` / `BounceTarget` / `MaxBounces`：飛行中不參與 layer 命中，這些欄位**無意義**（即使有 BounceBehavior 也不會被觸發）
+- `RotationSpeed`：仍會旋轉 sprite，做「翻滾炸彈」效果還滿合適
+- `SpriteAngleOffset`：會跟著 velocity 方向轉；但拋物線 velocity 含 Y 高度分量，會在升弧時往上仰、降弧時往下指，看美術風格決定要不要設
+- `IsOrbital`：互斥
+- `HasSplit`（SpreadCount > 1 + SplitTiming）：飛行中不會觸發 `OnHit` 分裂；`OnSpawn` 分裂可能還會跑但語意不明確，不建議搭配
+- `GroundEffectHitTarget = Ground`：**標準搭配**，落地放地面特效
+
+#### 範例配方
+```
+12, 火焰拋物線彈, 8, 0.1, 10, 0.5, 0, 0, 1, 0, , , None, 0, 0, , , , , 1, OnHit, Ground, 1, 2.5, Player
+```
+速度 8 單位/秒，弧高 2.5 單位，抵達滑鼠位置即落地，並生成地面特效 ID 1（火焰燃燒）。
 
 ### GroundEffectTable.csv 欄位（簡述，獨立於本文件）
 - `ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize`

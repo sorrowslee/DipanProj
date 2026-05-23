@@ -146,6 +146,10 @@ public class PlayerController : MonoBehaviour
         {
             ShootOrbital(weapon, recipe);
         }
+        else if (recipe.IsParabolic)
+        {
+            ShootParabolic(weapon, recipe);
+        }
         else
         {
             ShootNormal(weapon, recipe);
@@ -183,6 +187,71 @@ public class PlayerController : MonoBehaviour
         }
         _activeOrbitalBullets.Clear();
         _orbitalGroupExpireTime = -1f;
+    }
+
+    private void ShootParabolic(WeaponData weapon, ProjectileData recipe)
+    {
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePos.z = 0;
+        Vector2 targetPos = (Vector2)mousePos;
+        Vector2 startPos = ResolveParabolicStartPos(weapon.Recipe.LaunchSource, targetPos);
+
+        Vector2 fireDirection = (targetPos - startPos);
+        if (fireDirection.sqrMagnitude < 0.0001f)
+            fireDirection = Vector2.right;
+        else
+            fireDirection = fireDirection.normalized;
+
+        // 拋物線飛行不參與 layer 命中（ParabolicBehavior.OnSpawn 會把 CollisionMask 清成 0）
+        LayerMask collisionMask = EnvLayer | EnemyLayer;
+        LayerMask pierceableLayers = 0;
+        LayerMask nonBounceLayers = 0;
+
+        Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
+        WeaponData firedWeapon = weapon;
+
+        BulletInstance bullet = BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, startPos, fireDirection,
+            collisionMask, pierceableLayers, nonBounceLayers,
+            null, // 拋物線不走 OnHit 流程
+            weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+
+        if (bullet == null) return;
+
+        foreach (var b in bullet.GetBehaviors())
+        {
+            if (b is ParabolicBehavior parabolic)
+            {
+                parabolic.Initialize(startPos, targetPos);
+                break;
+            }
+        }
+
+        bullet.OnGroundLanded += (b, landPos) => HandleParabolicLanded(firedWeapon, b, landPos);
+    }
+
+    private Vector2 ResolveParabolicStartPos(LaunchSource source, Vector2 targetPos)
+    {
+        if (source != LaunchSource.Offscreen)
+            return (Vector2)transform.position;
+
+        Camera cam = Camera.main;
+        if (cam == null) return (Vector2)transform.position;
+
+        // 攝影機視野邊界（orthographic）
+        float halfH = cam.orthographicSize;
+        float halfW = halfH * cam.aspect;
+        Vector2 camCenter = (Vector2)cam.transform.position;
+
+        // 隨機方向，從攝影機中心射出，找出射線出視野的距離 + 1 單位緩衝
+        float angle = Random.Range(0f, Mathf.PI * 2f);
+        Vector2 dir = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+
+        const float kEpsilon = 1e-4f;
+        float tX = halfW / Mathf.Max(kEpsilon, Mathf.Abs(dir.x));
+        float tY = halfH / Mathf.Max(kEpsilon, Mathf.Abs(dir.y));
+        float t = Mathf.Min(tX, tY) + 1f; // +1 單位讓起點明確在視野外
+
+        return camCenter + dir * t;
     }
 
     private void ShootOrbital(WeaponData weapon, ProjectileData recipe)
@@ -269,10 +338,18 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, bullet, hit, hitEnemy, hitEnv);
+        Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
+        TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, spawnPos, hitEnemy, hitEnv, false);
     }
 
-    private void TryTriggerGroundEffect(RecipeEntry recipe, GroundEffectTrigger trigger, BulletInstance bullet, RaycastHit2D hit, bool hitEnemy, bool hitEnv)
+    private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)
+    {
+        if (firedWeapon == null) return;
+        // 拋物線最終落地：不結算傷害（飛行中不撞怪），只觸發地面特效
+        TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, landPos, false, false, true);
+    }
+
+    private void TryTriggerGroundEffect(RecipeEntry recipe, GroundEffectTrigger trigger, Vector2 spawnPos, bool hitEnemy, bool hitEnv, bool hitGround)
     {
         if (recipe == null || _groundEffectManager == null) return;
         if (recipe.GroundEffectID <= 0) return;
@@ -290,11 +367,11 @@ public class PlayerController : MonoBehaviour
         {
             GroundEffectHitTarget.Any => hitEnemy || hitEnv,
             GroundEffectHitTarget.Environment => hitEnv,
+            GroundEffectHitTarget.Ground => hitGround,
             _ => hitEnemy // Enemy / 預設
         };
         if (!allowed) return;
 
-        Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
         _groundEffectManager.Spawn(recipe.GroundEffectID, spawnPos);
     }
 

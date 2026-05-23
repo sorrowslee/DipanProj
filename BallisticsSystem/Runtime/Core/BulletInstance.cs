@@ -18,6 +18,13 @@ namespace Sorrows.Ballistics
     [HideInInspector] public float AnimFPS;
 
         public Action<BulletInstance, GameObject, RaycastHit2D> OnBulletHitObject;
+        // 拋物線最終落地通知（不走 layer 命中流程）；非拋物線彈不會觸發
+        public Action<BulletInstance, Vector2> OnGroundLanded;
+
+        public void RaiseGroundLanded(Vector2 landPos)
+        {
+            OnGroundLanded?.Invoke(this, landPos);
+        }
 
         private List<IBulletBehavior> _behaviors = new List<IBulletBehavior>();
         private HashSet<int> _hitObjects = new HashSet<int>();

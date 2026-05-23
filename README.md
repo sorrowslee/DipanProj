@@ -289,10 +289,20 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 #### 鏈式觸發
 * `RecipeTable.csv` 新增三欄：`GroundEffectID`、`GroundEffectTrigger`、`GroundEffectHitTarget`
 * `RecipeManager` 解析後存到 `RecipeEntry.GroundEffectID` / `RecipeEntry.GroundEffectTrigger` / `RecipeEntry.GroundEffectHitTarget`
-* `PlayerController.HandleBulletHit`：先用命中目標的 `GameObject.layer` 對 `EnemyLayer` / `EnvLayer` 做位元 AND 判斷，傷害仍只在怪物上結算；接著呼叫 `TryTriggerGroundEffect` 依 `GroundEffectHitTarget`（`Enemy` / `Environment` / `Any`）過濾，符合條件才呼叫 `GroundEffectManager.Spawn(id, hit.point)`
+* `PlayerController.HandleBulletHit`：先用命中目標的 `GameObject.layer` 對 `EnemyLayer` / `EnvLayer` 做位元 AND 判斷，傷害仍只在怪物上結算；接著呼叫 `TryTriggerGroundEffect` 依 `GroundEffectHitTarget`（`Enemy` / `Environment` / `Any` / `Ground`）過濾，符合條件才呼叫 `GroundEffectManager.Spawn(id, hit.point)`
+* 拋物線武器走另一條路：`HandleParabolicLanded` 帶 `hitGround = true` 進 `TryTriggerGroundEffect`，搭配 `GroundEffectHitTarget = Ground` 才會觸發
 * 首版只實作 `OnHit`，`OnSpawn` / `OnDeath` 會在 Console 印出 Warning（待事件鉤子補完）
 * `GroundEffectHitTarget` 與 `BounceTarget` 是**獨立**兩個概念（前者控觸發位置、後者控反彈表面），可自由組合：例如 `BounceTarget=Environment` + `GroundEffectHitTarget=Enemy` 表示「子彈在牆上反彈、打到怪物才放火」
-* **發射時的武器是「快照」**：`PlayerController.ShootNormal` / `ShootOrbital` 把當下武器以 lambda closure 鎖在 `OnBulletHitObject` callback 內，子彈命中時用的是「發射時的武器」，**不是當下武器**；玩家中途切武器不會讓舊子彈誤觸新武器的傷害值或地面特效。分裂彈 / 環繞彈都繼承同一份快照
+* **發射時的武器是「快照」**：`PlayerController.ShootNormal` / `ShootOrbital` / `ShootParabolic` 把當下武器以 lambda closure 鎖在 `OnBulletHitObject` 或 `OnGroundLanded` callback 內，子彈命中／落地時用的是「發射時的武器」，**不是當下武器**；玩家中途切武器不會讓舊子彈誤觸新武器的傷害值或地面特效。分裂彈 / 環繞彈 / 拋物線彈都繼承同一份快照
+
+#### 拋物線型武器（IsParabolic）
+* `RecipeTable.csv` 新增 3 欄：`IsParabolic`、`ArcHeight`、`LaunchSource`
+* `ProjectileData.cs` 新增對應字段，`CreateBehaviors` 在 `IsParabolic = 1` 時組裝 `ParabolicBehavior`
+* `ParabolicBehavior`（彈道系統）：完全接管移動，`OnSpawn` 把 `CollisionMask = 0` / `LifeTime = -1` / `Velocity = 0`，飛行中不撞任何 layer。地面位置線性插值，視覺加 `4 * ArcHeight * t * (1 - t)` 的 Y 偏移製造弧線；抵達目標時呼叫 `instance.RaiseGroundLanded(landPos)` 並把 `LifeTime` 設為 0 讓 `BulletInstance` 自動清理
+* `BulletInstance.cs` 新增 `Action<BulletInstance, Vector2> OnGroundLanded` 事件，`PlayerController.ShootParabolic` 在 Spawn 後訂閱
+* `PlayerController.ResolveParabolicStartPos`：`LaunchSource = Player` 從玩家位置出發；`Offscreen` 用攝影機 `orthographicSize × aspect` 算 viewport 邊界，從攝影機中心射隨機方向找出視野邊界距離 + 1 單位緩衝
+* 設計重點：拋物線武器**不對怪物造成傷害**，是「地面特效觸發載體」。要做傷害請靠 `GroundEffectTable` 的 `Damage` / `DamageInterval` 設定地面 AOE
+* 互斥：與 `IsOrbital` 互斥（同時填 1 行為衝突）；`PierceCount` / `BounceTarget` / `MaxBounces` 在拋物線下無意義（飛行中不參與命中）
 
 #### 執行單元
 * `GroundEffectManager`（場景單例，掛在主物件上）：CSV 載入、序列圖預載、`Spawn(id, position)` API
@@ -332,6 +342,7 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * [x] 地面特效鋪面演進：先試「金字塔（菱形）」演算法但實機呈現過於菱角分明，最終改回「真實圓形掃描」——`(i*TileSize)² + (j*TileSize)² ≤ Radius²` 才保留 tile，圓滑度由 `R / TileSize` 解析度決定（建議 ≥ 4），實際 tile 數 > 500 時印 LogWarning 但仍照生成。
 * [x] 修正子彈命中時用「當下武器」造成的跨武器污染：PlayerController 改用 lambda closure 把發射當下的 WeaponData 鎖在 callback，舊子彈不會誤用新武器的 Damage / GroundEffectID。
 * [x] 地面特效新增 `GroundEffectHitTarget` 欄位（`Enemy` / `Environment` / `Any`）：與 `BounceTarget` 獨立，可分別設定子彈打到怪物 / 障礙物 / 任一目標時才釋放地面特效，預設 `Enemy` 沿用首版行為。
+* [x] 實作拋物線型彈道（`IsParabolic`）：新增 `ParabolicBehavior`（接管移動、CollisionMask=0、視覺假高度），`RecipeTable` 新增 3 欄（IsParabolic / ArcHeight / LaunchSource），`GroundEffectHitTarget` 加上 `Ground` 列舉值；抵達目標落地時透過 `BulletInstance.OnGroundLanded` 事件觸發 `Ground` 過濾的地面特效；支援「玩家位置」與「攝影機視野外隨機方向」兩種發射來源。
 
 ---
 

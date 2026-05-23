@@ -29,6 +29,9 @@ namespace Sorrows.Ballistics
         public float OrbitalRadius = 2f;
         public int OrbitalCount = 3;
 
+        public bool IsParabolic;
+        public float ArcHeight = 2f;
+
         public List<IBulletBehavior> CreateBehaviors()
         {
             var list = new List<IBulletBehavior>();
@@ -37,6 +40,7 @@ namespace Sorrows.Ballistics
             if (RotationSpeed != 0) list.Add(new RotationBehavior(RotationSpeed));
             if (HasHoming) list.Add(new HomingBehavior(HomingTurnSpeed));
             if (IsOrbital) list.Add(new OrbitalBehavior(OrbitalRadius, Speed));
+            if (IsParabolic) list.Add(new ParabolicBehavior(ArcHeight, Speed));
             return list;
         }
     }

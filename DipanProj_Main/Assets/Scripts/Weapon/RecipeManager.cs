@@ -4,7 +4,8 @@ using Sorrows.Ballistics;
 
 public enum BounceTarget { None, Environment, Enemy }
 public enum GroundEffectTrigger { OnSpawn, OnHit, OnDeath }
-public enum GroundEffectHitTarget { Enemy, Environment, Any }
+public enum GroundEffectHitTarget { Enemy, Environment, Any, Ground }
+public enum LaunchSource { Player, Offscreen }
 
 public class RecipeEntry
 {
@@ -17,6 +18,7 @@ public class RecipeEntry
     public int GroundEffectID = 0;
     public GroundEffectTrigger GroundEffectTrigger = GroundEffectTrigger.OnHit;
     public GroundEffectHitTarget GroundEffectHitTarget = GroundEffectHitTarget.Enemy;
+    public LaunchSource LaunchSource = LaunchSource.Player;
 }
 
 public class RecipeManager : MonoBehaviour
@@ -139,11 +141,29 @@ public class RecipeManager : MonoBehaviour
                 entry.GroundEffectTrigger = ParseGroundEffectTrigger(v[20].Trim());
             }
 
-            // 地面特效命中過濾：留空 / Enemy = 只有打到怪物才觸發；Environment = 只有打到障礙物才觸發；Any = 兩者都觸發。
+            // 地面特效命中過濾：留空 / Enemy = 只有打到怪物才觸發；Environment = 只有打到障礙物才觸發；Any = 兩者都觸發；Ground = 拋物線最終落地時觸發。
             entry.GroundEffectHitTarget = GroundEffectHitTarget.Enemy;
             if (v.Length >= 22 && !string.IsNullOrWhiteSpace(v[21]))
             {
                 entry.GroundEffectHitTarget = ParseGroundEffectHitTarget(v[21].Trim());
+            }
+
+            // 拋物線武器：留空或 0 = 一般彈道；1 = 啟用拋物線（與 IsOrbital 互斥）
+            if (v.Length >= 23 && !string.IsNullOrWhiteSpace(v[22]))
+            {
+                int isParabolic = int.Parse(v[22].Trim());
+                if (isParabolic > 0)
+                {
+                    data.IsParabolic = true;
+                    data.ArcHeight = (v.Length >= 24 && !string.IsNullOrWhiteSpace(v[23])) ? float.Parse(v[23].Trim()) : 2f;
+                }
+            }
+
+            // 發射來源：留空或 Player = 從玩家位置發射；Offscreen = 從攝影機視野外隨機方向飛入
+            entry.LaunchSource = LaunchSource.Player;
+            if (v.Length >= 25 && !string.IsNullOrWhiteSpace(v[24]))
+            {
+                entry.LaunchSource = ParseLaunchSource(v[24].Trim());
             }
 
             entry.Data = data;
@@ -228,8 +248,19 @@ public class RecipeManager : MonoBehaviour
         {
             "Environment" => GroundEffectHitTarget.Environment,
             "Any" => GroundEffectHitTarget.Any,
+            "Ground" => GroundEffectHitTarget.Ground,
             "Enemy" => GroundEffectHitTarget.Enemy,
             _ => GroundEffectHitTarget.Enemy
+        };
+    }
+
+    private static LaunchSource ParseLaunchSource(string value)
+    {
+        return value switch
+        {
+            "Offscreen" => LaunchSource.Offscreen,
+            "Player" => LaunchSource.Player,
+            _ => LaunchSource.Player
         };
     }
 }
