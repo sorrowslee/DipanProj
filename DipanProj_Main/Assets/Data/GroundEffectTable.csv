@@ -1,0 +1,2 @@
+ID, Name    , Radius, Duration, DamageInterval, Damage, AniPath                    , AniNumber, AnimFPS, TileSize
+ 1, 火焰燃燒,    1.5,        3,            0.5,      1, GroundEffect/fireGround/fire,        6,      12,        0.5

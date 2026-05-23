@@ -274,6 +274,31 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * 怪物被子彈擊中時：方向為子彈位置 → 怪物位置（推離子彈）。
 * 玩家被怪物接觸時：方向由未來的接觸傷害系統提供（預留介面）。
 
+### 3.6 地面特效系統 (Ground Effect System)
+
+純主遊戲端的「鏈式觸發」AOE 系統，與彈道系統完全分離。子彈命中怪物時可額外在命中點生成「停留型」地面特效（火焰燃燒、毒霧、冰結等），擁有自己的範圍、存活時間、傷害節拍與循環動畫。
+
+#### 配置檔案
+* `Assets/Data/GroundEffectTable.csv`：定義每個地面特效的範圍、存活、傷害、動畫、tile 尺寸
+  * 欄位：`ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize`
+  * `DamageInterval = 0`：生成瞬間單次爆裂；`> 0`：每 N 秒週期 DOT
+  * `Duration = -1`：永久存在直到外部銷毀
+  * `TileSize`：單個 tile 的世界尺寸（同時是格子間距），預設 1
+* `Assets/Resources/Prefabs/GroundEffect/GroundEffect.prefab`：渲染容器（純 SpriteRenderer + GroundEffectInstance）。Prefab 上的 SpriteRenderer 只當 `sortingLayer / sortingOrder / material` 範本，自身不顯示任何 sprite
+
+#### 鏈式觸發
+* `RecipeTable.csv` 新增三欄：`GroundEffectID`、`GroundEffectTrigger`、`GroundEffectHitTarget`
+* `RecipeManager` 解析後存到 `RecipeEntry.GroundEffectID` / `RecipeEntry.GroundEffectTrigger` / `RecipeEntry.GroundEffectHitTarget`
+* `PlayerController.HandleBulletHit`：先用命中目標的 `GameObject.layer` 對 `EnemyLayer` / `EnvLayer` 做位元 AND 判斷，傷害仍只在怪物上結算；接著呼叫 `TryTriggerGroundEffect` 依 `GroundEffectHitTarget`（`Enemy` / `Environment` / `Any`）過濾，符合條件才呼叫 `GroundEffectManager.Spawn(id, hit.point)`
+* 首版只實作 `OnHit`，`OnSpawn` / `OnDeath` 會在 Console 印出 Warning（待事件鉤子補完）
+* `GroundEffectHitTarget` 與 `BounceTarget` 是**獨立**兩個概念（前者控觸發位置、後者控反彈表面），可自由組合：例如 `BounceTarget=Environment` + `GroundEffectHitTarget=Enemy` 表示「子彈在牆上反彈、打到怪物才放火」
+* **發射時的武器是「快照」**：`PlayerController.ShootNormal` / `ShootOrbital` 把當下武器以 lambda closure 鎖在 `OnBulletHitObject` callback 內，子彈命中時用的是「發射時的武器」，**不是當下武器**；玩家中途切武器不會讓舊子彈誤觸新武器的傷害值或地面特效。分裂彈 / 環繞彈都繼承同一份快照
+
+#### 執行單元
+* `GroundEffectManager`（場景單例，掛在主物件上）：CSV 載入、序列圖預載、`Spawn(id, position)` API
+* `GroundEffectInstance`（掛在 Prefab 上）：採 **真實圓形掃描（aligned scanline）**渲染——以原點為中心掃整數網格 `(i, j)`，當 `(i*TileSize)² + (j*TileSize)² ≤ Radius²` 就放一個 tile，嚴格對齊網格、上下左右對稱。每個 tile 動態 `AddComponent<SpriteRenderer>` 並繼承 prefab 範本的排序設定，動畫由父物件統一切幀同步顯示。**鋪面範圍嚴格貼齊 Radius**（與 `OverlapCircleAll` 傷害判定一致）。圓滑度取決於解析度：`R / TileSize ≥ 4` 才看得出明顯圓形，例如 `R=1.5、TileSize=0.3` ≈ 81 顆呈圓形；`R=1.5、TileSize=1` 只有 3×3 = 9 顆是 resolution 限制。實際 tile 數 > 500 時會在 Console 印一次 LogWarning，但仍照生成
+* 同一目標的 DOT 限流靠 `HitReactionHandler.IsInvincible`，地面特效本身不維護命中表
+
 ---
 
 ## 4. 目前進度 (Current Progress)
@@ -302,6 +327,11 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * [x] 環繞彈與穿透（繼續環繞）、反彈（脫軌飛出）、分裂、追蹤等行為完全相容。
 * [x] RecipeTable.csv 新增 BlockedByEnvironment 欄位，可讓配方（特別是環繞彈）穿過地形障礙物不被銷毀；PlayerController 抽出 ResolvePierceableLayers 對所有武器路徑通用。
 * [x] 環繞彈引入「群組生命週期」：個別子彈 LifeTime 覆寫為 -1，由 PlayerController 統一在 recipe.LifeTime 秒後一次銷毀整組，確保同生同死。
+* [x] 實作地面特效鏈式觸發系統：新增 GroundEffectTable.csv、GroundEffectManager / GroundEffectInstance，RecipeTable 新增 GroundEffectID + GroundEffectTrigger 欄位，子彈命中怪物時可在命中點生成停留型 AOE（單次爆裂或週期 DOT，循環動畫）。
+* [x] 地面特效改為 tile 鋪面渲染：GroundEffectTable 新增 TileSize 欄位，圓形範圍內每格放一張同步動畫的 sprite；傷害仍以整圓 OverlapCircle 一次計算。
+* [x] 地面特效鋪面演進：先試「金字塔（菱形）」演算法但實機呈現過於菱角分明，最終改回「真實圓形掃描」——`(i*TileSize)² + (j*TileSize)² ≤ Radius²` 才保留 tile，圓滑度由 `R / TileSize` 解析度決定（建議 ≥ 4），實際 tile 數 > 500 時印 LogWarning 但仍照生成。
+* [x] 修正子彈命中時用「當下武器」造成的跨武器污染：PlayerController 改用 lambda closure 把發射當下的 WeaponData 鎖在 callback，舊子彈不會誤用新武器的 Damage / GroundEffectID。
+* [x] 地面特效新增 `GroundEffectHitTarget` 欄位（`Enemy` / `Environment` / `Any`）：與 `BounceTarget` 獨立，可分別設定子彈打到怪物 / 障礙物 / 任一目標時才釋放地面特效，預設 `Enemy` 沿用首版行為。
 
 ---
 
@@ -326,3 +356,8 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 
 5. **更多彈道行為擴充**：
    * 透過 `IBulletBehavior` 實作追蹤彈、蛇行彈、延遲爆炸等軌跡。
+
+6. **地面特效擴充**：
+   * 補完 `OnSpawn` / `OnDeath` 觸發時機（需要在 `BulletInstance` 增設生成事件與銷毀事件鉤子）。
+   * 視需求加入「武器表直接引用地面特效」的純地面型武器（不發射彈直接放置 AOE）。
+   * 地面特效可疊加 / 不可疊加策略（例如同一格只能有一團火）。

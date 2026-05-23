@@ -27,6 +27,9 @@
 | OrbitalRadius | 小數 | 否 | 環繞半徑，僅在 IsOrbital = 1 時有效 |
 | OrbitalCount | 整數 | 否 | 環繞數量，每次發射生成幾顆環繞子彈 |
 | BlockedByEnvironment | 整數 | 否 | 子彈是否會被地形障礙物阻擋（1 或留空 = 會被擋，0 = 穿透地形不被銷毀） |
+| GroundEffectID | 整數 | 否 | 命中時鏈式觸發的地面特效 ID，引用 `GroundEffectTable.csv` 對應列；留空或 0 = 不觸發 |
+| GroundEffectTrigger | 字串 | 否 | 地面特效觸發時機（`OnSpawn` / `OnHit` / `OnDeath`），目前僅實作 `OnHit`；留空 = `OnHit` |
+| GroundEffectHitTarget | 字串 | 否 | 地面特效命中過濾（`Enemy` / `Environment` / `Any`），決定打到哪類 layer 才生成；留空 = `Enemy`，與 BounceTarget 獨立 |
 
 ---
 
@@ -156,6 +159,61 @@
 - **注意**：此設定「不會被銷毀」的判斷會走穿透邏輯，因此需要 `PierceCount` 為 `-1`（無限穿透）或 `> 0` 才能持續穿過地形；若 `PierceCount = 0`，仍會在第一次命中地形時被銷毀
 - 子彈穿過地形時仍會觸發一次 `OnBulletHitObject` 事件（之後對同一片地形不會再觸發），預留地形擊中特效擴充用
 - 此欄位適用於所有配方，不只環繞彈；最常用於 `IsOrbital = 1` 搭配 `PierceCount = -1` 的環繞武器，讓護盾型彈道不會卡在牆邊
+
+### GroundEffectID（地面特效鏈式觸發）
+- 設為 `0` 或留空：不觸發地面特效（預設）
+- 設為 `> 0` 的整數：對應到 `Assets/Data/GroundEffectTable.csv` 內的同 ID 地面特效，當該配方的子彈命中**符合 `GroundEffectHitTarget` 過濾條件**的目標時，會在命中位置生成該地面特效
+- 地面特效是「主遊戲端」的獨立系統，跟彈道系統分離；位置 = 命中點，傷害、範圍、動畫由 `GroundEffectTable` 自行定義
+- 觸發後子彈本身的傷害、穿透、反彈、分裂等行為**完全不受影響**（地面特效是額外附加效果）
+
+### GroundEffectTrigger（地面特效觸發時機）
+- 與 `GroundEffectID` 搭配使用，留空時預設為 `OnHit`
+- 可用值：
+
+| 值 | 說明 |
+|------|------|
+| `OnHit` | 子彈命中時觸發（首版唯一支援的時機；命中目標還會經 `GroundEffectHitTarget` 過濾） |
+| `OnSpawn` | 子彈生成時觸發（**目前未實作**，填寫會在 Console 印出 Warning） |
+| `OnDeath` | 子彈存活結束時觸發（**目前未實作**，填寫會在 Console 印出 Warning） |
+
+- 注意：`OnHit` 依賴 `BulletInstance` 的「同目標只觸發一次 `OnBulletHitObject`」機制，因此一顆子彈撞同一個物件只會生成一次地面特效；穿透時若打到不同目標會分別觸發。
+
+### GroundEffectHitTarget（地面特效命中過濾）
+- 與 `GroundEffectID` / `GroundEffectTrigger=OnHit` 搭配使用，控制**命中哪一類 layer 的目標**才會觸發地面特效
+- 與 `BounceTarget` 是**獨立**的兩個概念（反彈 vs 觸發地面特效），可自由組合
+- 留空時預設為 `Enemy`（沿用首版只認怪物的行為，向下相容）
+- 可用值：
+
+| 值 | 說明 |
+|------|------|
+| `Enemy`（預設） | 只有打到怪物（`EnemyLayer`）才觸發地面特效；打到牆不會放火 |
+| `Environment` | 只有打到障礙物（`EnvLayer`）才觸發；可做「火油彈封路」之類玩法 |
+| `Any` | 怪物或障礙物都會觸發 |
+
+- 過濾邏輯：`PlayerController.HandleBulletHit` 取得命中目標的 `GameObject.layer`，與 `EnemyLayer` / `EnvLayer` 做位元 AND 比對，再依本欄位決定是否呼叫 `GroundEffectManager.Spawn`
+- 傷害結算與此欄位**無關**：傷害仍只發生在怪物上（牆沒有 HP），`Environment` / `Any` 設定下打到牆只會放出地面特效、不會結算傷害
+- 仍受 `BulletInstance` 的「同目標只觸發一次」機制限制，因此一顆子彈撞同一面牆只會放一次地面特效
+
+### GroundEffectTable.csv 欄位（簡述，獨立於本文件）
+- `ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize`
+- `Radius`：AOE 偵測半徑（`Physics2D.OverlapCircle` 用此值），**同時嚴格決定 tile 鋪面範圍**——tile 中心點落在 `Radius` 內才會保留
+- `Duration`：地面特效存活秒數，`-1` = 永久（待外部銷毀）
+- `DamageInterval`：`0` = 生成瞬間單次爆裂、之後不再傷害；`> 0` = 每 N 秒週期 DOT
+- `Damage`：每次傷害的絕對值（不串接武器表 Damage，方便獨立調整）
+- `AniPath / AniNumber / AnimFPS`：序列圖路徑前綴 / 張數 / 播放速度，與 `WeaponTable.csv` 同套規則，存活期間循環播放
+- `TileSize`：單個 tile 的世界尺寸（同時是格子間距），留空或 `<= 0` 預設為 `1`
+- **渲染採真實圓形掃描（aligned scanline）**：
+  - 以原點為中心掃整數網格 `(i, j)`，當 `(i*TileSize)² + (j*TileSize)² ≤ Radius²` 就放一個 tile
+  - 所有 tile 嚴格對齊網格（**無半步偏移**），上下左右對稱
+  - 鋪面範圍與傷害判定都嚴格依 `Radius`，視覺上的圓形邊界 = 傷害的圓形邊界
+  - **解析度決定圓滑度**：建議 `TileSize ≤ Radius / 4`，否則低解析度會看起來偏方塊
+    - 範例 `Radius=1.5, TileSize=1` → 直徑跨 3 顆 → **3×3 = 9 顆**（看起來像方塊，正常現象）
+    - 範例 `Radius=1.5, TileSize=0.5` → 直徑跨 6 顆 → **29 顆**（八邊形，勉強圓）
+    - 範例 `Radius=1.5, TileSize=0.3` → 直徑跨 10 顆 → **~81 顆**（明顯圓形）
+    - 範例 `Radius=1.5, TileSize=0.1` → 直徑跨 30 顆 → **~700 顆**（平滑圓形，會跳 Warning）
+  - **效能保險**：當實際生成的 tile 數 > 500 時，`GroundEffectInstance` 會在 Console 印一次 `LogWarning`，但仍會照數量生成（不自動降級）
+- **準備美術**：建議讓單張 sprite 的世界尺寸 ≈ `TileSize`（例如 `TileSize = 1` 時，PNG 100×100 px、PPU 100，native = 1×1），不然 tiles 會出現重疊或縫隙
+- 同一目標的 DOT 限流靠 `MonsterController` 的 `HitReactionHandler.IsInvincible`（怪物無敵中刷不到傷害）
 
 ### 環繞型彈道與其他行為的交互
 

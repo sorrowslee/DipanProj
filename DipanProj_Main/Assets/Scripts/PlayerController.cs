@@ -24,6 +24,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 _moveInput;
     private SpriteRenderer _spriteRenderer;
     private WeaponManager _weaponManager;
+    private GroundEffectManager _groundEffectManager;
     private HitReactionHandler _hitReaction;
     private float _fireTimer = 0f;
     private float _currentHealth;
@@ -60,6 +61,12 @@ public class PlayerController : MonoBehaviour
         if (_weaponManager == null)
         {
             Debug.LogError("WeaponManager not found in scene!");
+        }
+
+        _groundEffectManager = FindObjectOfType<GroundEffectManager>();
+        if (_groundEffectManager == null)
+        {
+            Debug.LogWarning("GroundEffectManager not found in scene; recipes with GroundEffectID will be ignored.");
         }
     }
 
@@ -159,8 +166,11 @@ public class PlayerController : MonoBehaviour
         LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
 
         Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
+        WeaponData firedWeapon = weapon;
         BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
-            collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+            collisionMask, pierceableLayers, nonBounceLayers,
+            (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
+            weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
     }
 
     private void ClearActiveOrbitalBullets()
@@ -186,6 +196,7 @@ public class PlayerController : MonoBehaviour
         LayerMask pierceableLayers = ResolvePierceableLayers(weapon.Recipe);
         LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
         Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
+        WeaponData firedWeapon = weapon;
 
         for (int i = 0; i < count; i++)
         {
@@ -195,7 +206,9 @@ public class PlayerController : MonoBehaviour
             Vector2 tangent = new Vector2(-Mathf.Sin(angle), Mathf.Cos(angle));
 
             BulletInstance bullet = BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, tangent,
-                collisionMask, pierceableLayers, nonBounceLayers, HandleBulletHit, weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+                collisionMask, pierceableLayers, nonBounceLayers,
+                (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
+                weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
 
             if (bullet != null)
             {
@@ -237,17 +250,52 @@ public class PlayerController : MonoBehaviour
         };
     }
 
-    void HandleBulletHit(BulletInstance bullet, GameObject target, RaycastHit2D hit)
+    void HandleBulletHit(WeaponData firedWeapon, BulletInstance bullet, GameObject target, RaycastHit2D hit)
     {
-        if (_weaponManager == null) return;
+        if (firedWeapon == null) return;
 
-        WeaponData weapon = _weaponManager.GetCurrentWeapon();
-        MonsterController monster = target.GetComponent<MonsterController>();
-        if (monster != null && weapon != null)
+        int hitLayerBit = 1 << target.layer;
+        bool hitEnemy = (hitLayerBit & EnemyLayer.value) != 0;
+        bool hitEnv = (hitLayerBit & EnvLayer.value) != 0;
+
+        // 傷害結算只發生在怪物上（牆沒有 HP）
+        if (hitEnemy)
         {
-            Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
-            monster.TakeDamage(weapon.Damage, hitDir);
+            MonsterController monster = target.GetComponent<MonsterController>();
+            if (monster != null)
+            {
+                Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
+                monster.TakeDamage(firedWeapon.Damage, hitDir);
+            }
         }
+
+        TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, bullet, hit, hitEnemy, hitEnv);
+    }
+
+    private void TryTriggerGroundEffect(RecipeEntry recipe, GroundEffectTrigger trigger, BulletInstance bullet, RaycastHit2D hit, bool hitEnemy, bool hitEnv)
+    {
+        if (recipe == null || _groundEffectManager == null) return;
+        if (recipe.GroundEffectID <= 0) return;
+        if (recipe.GroundEffectTrigger != trigger) return;
+
+        // 首版只支援 OnHit；OnSpawn / OnDeath 待事件鉤子補完。
+        if (trigger != GroundEffectTrigger.OnHit)
+        {
+            Debug.LogWarning($"GroundEffectTrigger '{trigger}' is not yet implemented; only 'OnHit' is supported in this version.");
+            return;
+        }
+
+        // 命中目標 layer 必須符合 GroundEffectHitTarget 設定才觸發
+        bool allowed = recipe.GroundEffectHitTarget switch
+        {
+            GroundEffectHitTarget.Any => hitEnemy || hitEnv,
+            GroundEffectHitTarget.Environment => hitEnv,
+            _ => hitEnemy // Enemy / 預設
+        };
+        if (!allowed) return;
+
+        Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
+        _groundEffectManager.Spawn(recipe.GroundEffectID, spawnPos);
     }
 
     public void TakeDamage(float amount, Vector2 hitDirection)

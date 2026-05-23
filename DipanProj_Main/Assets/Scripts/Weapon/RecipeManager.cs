@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Sorrows.Ballistics;
 
 public enum BounceTarget { None, Environment, Enemy }
+public enum GroundEffectTrigger { OnSpawn, OnHit, OnDeath }
+public enum GroundEffectHitTarget { Enemy, Environment, Any }
 
 public class RecipeEntry
 {
@@ -12,6 +14,9 @@ public class RecipeEntry
     public BounceTarget BounceTarget;
     public int SubRecipeID = -1;
     public bool BlockedByEnvironment = true;
+    public int GroundEffectID = 0;
+    public GroundEffectTrigger GroundEffectTrigger = GroundEffectTrigger.OnHit;
+    public GroundEffectHitTarget GroundEffectHitTarget = GroundEffectHitTarget.Enemy;
 }
 
 public class RecipeManager : MonoBehaviour
@@ -121,6 +126,26 @@ public class RecipeManager : MonoBehaviour
                 entry.BlockedByEnvironment = int.Parse(v[18].Trim()) != 0;
             }
 
+            // 地面特效鏈式觸發：留空 / 0 = 不觸發；> 0 = 引用 GroundEffectTable 對應 ID。
+            entry.GroundEffectID = 0;
+            if (v.Length >= 20 && !string.IsNullOrWhiteSpace(v[19]))
+            {
+                entry.GroundEffectID = int.Parse(v[19].Trim());
+            }
+
+            entry.GroundEffectTrigger = GroundEffectTrigger.OnHit;
+            if (v.Length >= 21 && !string.IsNullOrWhiteSpace(v[20]))
+            {
+                entry.GroundEffectTrigger = ParseGroundEffectTrigger(v[20].Trim());
+            }
+
+            // 地面特效命中過濾：留空 / Enemy = 只有打到怪物才觸發；Environment = 只有打到障礙物才觸發；Any = 兩者都觸發。
+            entry.GroundEffectHitTarget = GroundEffectHitTarget.Enemy;
+            if (v.Length >= 22 && !string.IsNullOrWhiteSpace(v[21]))
+            {
+                entry.GroundEffectHitTarget = ParseGroundEffectHitTarget(v[21].Trim());
+            }
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }
@@ -183,6 +208,28 @@ public class RecipeManager : MonoBehaviour
             "OnHit" => SplitTiming.OnHit,
             "OnDeath" => SplitTiming.OnDeath,
             _ => SplitTiming.OnSpawn
+        };
+    }
+
+    private static GroundEffectTrigger ParseGroundEffectTrigger(string value)
+    {
+        return value switch
+        {
+            "OnSpawn" => GroundEffectTrigger.OnSpawn,
+            "OnHit" => GroundEffectTrigger.OnHit,
+            "OnDeath" => GroundEffectTrigger.OnDeath,
+            _ => GroundEffectTrigger.OnHit
+        };
+    }
+
+    private static GroundEffectHitTarget ParseGroundEffectHitTarget(string value)
+    {
+        return value switch
+        {
+            "Environment" => GroundEffectHitTarget.Environment,
+            "Any" => GroundEffectHitTarget.Any,
+            "Enemy" => GroundEffectHitTarget.Enemy,
+            _ => GroundEffectHitTarget.Enemy
         };
     }
 }
