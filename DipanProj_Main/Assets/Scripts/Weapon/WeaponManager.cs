@@ -88,8 +88,17 @@ public class WeaponManager : MonoBehaviour
             weapon.AnimFPS = (v.Length > 8 && !string.IsNullOrWhiteSpace(v[8])) ? float.Parse(v[8].Trim()) : 0f;
             weapon.BulletScale = (v.Length > 9 && !string.IsNullOrWhiteSpace(v[9])) ? float.Parse(v[9].Trim()) : 1f;
 
+            // 雷射外觀欄位（選填，向下相容）
+            weapon.BeamTexturePath = (v.Length > 10) ? v[10].Trim() : "";
+            weapon.BeamColor = ParseColor((v.Length > 11) ? v[11].Trim() : "");
+            weapon.BeamWidth = (v.Length > 12 && !string.IsNullOrWhiteSpace(v[12])) ? float.Parse(v[12].Trim()) : 0.5f;
+            weapon.ScrollSpeed = (v.Length > 13 && !string.IsNullOrWhiteSpace(v[13])) ? float.Parse(v[13].Trim()) : 0f;
+
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
+
+            if (weapon.Recipe != null && weapon.Recipe.Data != null && weapon.Recipe.Data.IsLaser)
+                LoadBeamAssets(weapon);
 
             if (!string.IsNullOrEmpty(weapon.WeaponAniPath) && weapon.WeaponAniNumber > 0)
             {
@@ -107,6 +116,10 @@ public class WeaponManager : MonoBehaviour
                 }
                 weapon.WeaponSprites = sprites;
                 weapon.WeaponSprite = (allLoaded && sprites.Length > 0) ? sprites[0] : null;
+            }
+            else if (weapon.Recipe != null && weapon.Recipe.Data != null && weapon.Recipe.Data.IsLaser)
+            {
+                // 雷射武器使用光束自身視覺（beam_core / 光暈），不需要 WeaponSprite
             }
             else
             {
@@ -127,5 +140,28 @@ public class WeaponManager : MonoBehaviour
 
         _weaponIDs.Sort();
         Debug.Log($"Loaded {_weapons.Count} weapons from CSV.");
+    }
+
+    // 雷射共用素材路徑（相對 Resources/，不含副檔名）
+    private const string DefaultBeamTexture = "Laser/beam_core";
+    private const string BeamMuzzlePath = "Laser/laser_glow";
+    private const string BeamImpactPath = "Laser/laser_impact";
+
+    private void LoadBeamAssets(WeaponData weapon)
+    {
+        string texPath = string.IsNullOrEmpty(weapon.BeamTexturePath) ? DefaultBeamTexture : weapon.BeamTexturePath;
+        weapon.BeamTexture = Resources.Load<Texture2D>(texPath);
+        if (weapon.BeamTexture == null)
+            Debug.LogWarning($"Beam texture not found at Resources path '{texPath}' for weapon '{weapon.Name}'.");
+
+        weapon.BeamMuzzleSprite = Resources.Load<Sprite>(BeamMuzzlePath);
+        weapon.BeamImpactSprite = Resources.Load<Sprite>(BeamImpactPath);
+    }
+
+    private static Color ParseColor(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return Color.white;
+        if (!hex.StartsWith("#")) hex = "#" + hex;
+        return ColorUtility.TryParseHtmlString(hex, out Color c) ? c : Color.white;
     }
 }

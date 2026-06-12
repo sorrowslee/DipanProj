@@ -1,7 +1,9 @@
-ID, Name                  , Damage, RecipeID, WeaponSpritePath      , SpriteAngleOffset, WeaponAniPath, WeaponAniNumber, AnimFPS, BulletScale
- 1, 單一彎刀              ,      2,        2, Weapon/weapon_scimitar,                 0,              ,                ,        ,            
- 2, 3分裂追蹤飛劍         ,      1,        8, Weapon/weapon_sword   ,               135,              ,                ,        ,            
- 3, 5分裂反彈彎刀         ,      2,        5, Weapon/weapon_scimitar,                 0,              ,                ,        ,            
- 4, 火焰環繞彈            ,      2,        9,                       ,                 0, Weapon/fire  ,               6,      12,           5
- 5, 火焰拋擲彈(玩家丟出)  ,      0,       12, Weapon/weapon_bomb    ,                 0,              ,                ,        ,           2
- 6, 火焰拋擲彈(螢幕外丟出),      0,       13, Weapon/weapon_bomb    ,                 0,              ,                ,        ,           2
+ID(武器唯一識別碼), Name(武器名稱/僅供辨識), Damage(傷害數值/雷射時為每次DOT傷害), RecipeID(對應配方表的ID), WeaponSpritePath(武器圖路徑/相對Resources不含副檔名/與WeaponAniPath二擇一), SpriteAngleOffset(圖片角度偏移度/補正攻擊端朝向), WeaponAniPath(序列圖路徑前綴/有值時忽略WeaponSpritePath), WeaponAniNumber(序列圖張數), AnimFPS(序列圖播放幀率), BulletScale(子彈縮放倍率/空為1), BeamTexturePath(雷射光束貼圖/相對Resources/空為Laser/beam_core), BeamColor(雷射顏色十六進位如00FFFF/空為白色), BeamWidth(雷射粗細/視覺與命中判定共用此欄/空為0.5), ScrollSpeed(雷射貼圖捲動速度/能量流動感/空為0)
+ 1, 單一彎刀              ,      2,        2, Weapon/weapon_scimitar,                 0,              ,                ,        ,            ,,,,
+ 2, 3分裂追蹤飛劍         ,      1,        8, Weapon/weapon_sword   ,               135,              ,                ,        ,            ,,,,
+ 3, 5分裂反彈彎刀         ,      2,        5, Weapon/weapon_scimitar,                 0,              ,                ,        ,            ,,,,
+ 4, 火焰環繞彈            ,      2,        9,                       ,                 0, Weapon/fire  ,               6,      12,           5,,,,
+ 5, 火焰拋擲彈(玩家丟出)  ,      0,       12, Weapon/weapon_bomb    ,                 0,              ,                ,        ,           2,,,,
+ 6, 火焰拋擲彈(螢幕外丟出),      0,       13, Weapon/weapon_bomb    ,                 0,              ,                ,        ,           2,,,,
+ 7, 雷射追蹤光束          ,      1,       14,                       ,                 0,              ,                ,        ,            , Laser/beam_core, 00FFFF   ,2,           2
+ 8, 雷射反彈光束          ,      1,       15,                       ,                 0,              ,                ,        ,            , Laser/beam_core, FF3030   ,2,           2

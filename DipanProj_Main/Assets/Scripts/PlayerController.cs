@@ -31,6 +31,11 @@ public class PlayerController : MonoBehaviour
     private readonly List<BulletInstance> _activeOrbitalBullets = new List<BulletInstance>();
     private float _orbitalGroupExpireTime = -1f;
 
+    // 持續型雷射光束（按住維持、放開銷毀）
+    private readonly List<LaserBeam> _activeBeams = new List<LaserBeam>();
+    private readonly List<float> _beamAngleOffsets = new List<float>();
+    private WeaponData _activeBeamWeapon;
+
     public bool isFacingRightByDefault = true;
 
     void Start()
@@ -101,10 +106,7 @@ public class PlayerController : MonoBehaviour
 
         if (_fireTimer > 0) _fireTimer -= Time.deltaTime;
 
-        if ((Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)) && _fireTimer <= 0)
-        {
-            Shoot();
-        }
+        HandleFiring();
 
         if (_orbitalGroupExpireTime > 0f && Time.time >= _orbitalGroupExpireTime)
             ClearActiveOrbitalBullets();
@@ -123,6 +125,30 @@ public class PlayerController : MonoBehaviour
     private void OnDestroy()
     {
         ClearActiveOrbitalBullets();
+        ClearActiveBeams();
+    }
+
+    // ── 發射總入口：雷射走持續光束路徑，其餘走離散發射 ──
+    private void HandleFiring()
+    {
+        WeaponData weapon = (_weaponManager != null) ? _weaponManager.GetCurrentWeapon() : null;
+        bool firing = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+
+        bool isLaser = weapon != null && weapon.Recipe != null
+                       && weapon.Recipe.Data != null && weapon.Recipe.Data.IsLaser;
+
+        // 切到非雷射武器、或換了不同雷射武器 → 先清掉舊光束
+        if (_activeBeams.Count > 0 && (!isLaser || weapon != _activeBeamWeapon))
+            ClearActiveBeams();
+
+        if (isLaser)
+        {
+            UpdateLaser(weapon, firing);
+            return;
+        }
+
+        if (firing && _fireTimer <= 0)
+            Shoot();
     }
 
     void FixedUpdate()
@@ -141,6 +167,12 @@ public class PlayerController : MonoBehaviour
         if (weapon == null || weapon.BulletPrefab == null || weapon.Recipe == null) return;
 
         ProjectileData recipe = weapon.Recipe.Data;
+
+        if (recipe.IsLaser)
+        {
+            // 雷射由 HandleFiring → UpdateLaser 持續路徑處理，不走離散發射
+            return;
+        }
 
         if (recipe.IsOrbital)
         {
@@ -187,6 +219,154 @@ public class PlayerController : MonoBehaviour
         }
         _activeOrbitalBullets.Clear();
         _orbitalGroupExpireTime = -1f;
+    }
+
+    // ── 雷射光束：按住維持一組（依 SpreadCount 扇形）光束，每幀更新砲口與瞄準 ──
+    private void UpdateLaser(WeaponData weapon, bool firing)
+    {
+        if (!firing)
+        {
+            if (_activeBeams.Count > 0) ClearActiveBeams();
+            return;
+        }
+
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePos.z = 0f;
+        Vector2 origin = (Vector2)transform.position;
+        Vector2 baseDir = (Vector2)mousePos - origin;
+        baseDir = baseDir.sqrMagnitude > 0.0001f ? baseDir.normalized : Vector2.right;
+        float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
+
+        if (_activeBeams.Count == 0)
+            SpawnLaserBeams(weapon);
+
+        for (int i = 0; i < _activeBeams.Count; i++)
+        {
+            LaserBeam beam = _activeBeams[i];
+            if (beam == null) continue;
+            float ang = (baseAngle + _beamAngleOffsets[i]) * Mathf.Deg2Rad;
+            beam.Origin = origin;
+            beam.AimDirection = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang));
+        }
+    }
+
+    private void SpawnLaserBeams(WeaponData weapon)
+    {
+        ProjectileData recipe = weapon.Recipe.Data;
+        int count = Mathf.Max(1, recipe.SplitCount);
+        float totalSpread = recipe.SpreadAngle;
+
+        LayerMask collisionMask = EnvLayer | EnemyLayer;
+        LayerMask pierceableLayers = ResolvePierceableLayers(weapon.Recipe);
+        LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
+
+        float width = weapon.BeamWidth * PlayerScale;
+        WeaponData firedWeapon = weapon;
+
+        _activeBeamWeapon = weapon;
+        _beamAngleOffsets.Clear();
+
+        Vector2 origin = (Vector2)transform.position;
+        for (int i = 0; i < count; i++)
+        {
+            float offset = 0f;
+            if (count > 1)
+            {
+                float t = (float)i / (count - 1);
+                offset = -totalSpread * 0.5f + totalSpread * t;
+            }
+            _beamAngleOffsets.Add(offset);
+
+            LaserBeam beam = BallisticsEngine.SpawnBeam(
+                recipe, origin, Vector2.right,
+                collisionMask, pierceableLayers, nonBounceLayers,
+                weapon.BeamTexture, weapon.BeamColor, width, weapon.ScrollSpeed,
+                weapon.BeamMuzzleSprite, weapon.BeamImpactSprite,
+                (b, hits) => HandleBeamTick(firedWeapon, b, hits));
+            _activeBeams.Add(beam);
+        }
+    }
+
+    private void ClearActiveBeams()
+    {
+        for (int i = 0; i < _activeBeams.Count; i++)
+            if (_activeBeams[i] != null) Destroy(_activeBeams[i].gameObject);
+        _activeBeams.Clear();
+        _beamAngleOffsets.Clear();
+        _activeBeamWeapon = null;
+    }
+
+    // 光束每 DotInterval 秒回報一次當下命中清單 → 在此結算傷害 / 地面特效 / OnHit 分裂
+    private void HandleBeamTick(WeaponData firedWeapon, LaserBeam beam, List<LaserBeam.BeamHit> hits)
+    {
+        if (firedWeapon == null) return;
+
+        for (int i = 0; i < hits.Count; i++)
+        {
+            GameObject target = hits[i].Target;
+            if (target == null) continue;
+            Vector2 point = hits[i].Point;
+
+            int hitLayerBit = 1 << target.layer;
+            bool hitEnemy = (hitLayerBit & EnemyLayer.value) != 0;
+            bool hitEnv = (hitLayerBit & EnvLayer.value) != 0;
+
+            // 傷害只結算在怪物上；無敵時間由 MonsterController.TakeDamage 內部的 HitReaction 自動處理
+            if (hitEnemy)
+            {
+                MonsterController monster = target.GetComponent<MonsterController>();
+                if (monster != null)
+                {
+                    Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
+                    monster.TakeDamage(firedWeapon.Damage, hitDir);
+                }
+            }
+
+            TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, point, hitEnemy, hitEnv, false);
+            TrySpawnBeamSplit(firedWeapon, point);
+        }
+    }
+
+    // OnHit 分裂：在命中點依 SpreadCount/SpreadAngle 射出 SubRecipeID 子彈（節流已綁在 DotInterval tick）
+    private void TrySpawnBeamSplit(WeaponData firedWeapon, Vector2 point)
+    {
+        RecipeEntry recipe = firedWeapon.Recipe;
+        if (recipe == null) return;
+        ProjectileData data = recipe.Data;
+        if (data == null || !data.HasSplit || data.Timing != SplitTiming.OnHit || data.SubProjectileData == null)
+            return;
+        if (firedWeapon.BulletPrefab == null) return;
+
+        int count = Mathf.Max(1, data.SplitCount);
+        float totalSpread = data.SpreadAngle;
+        Vector2 baseDir = point - (Vector2)transform.position;
+        baseDir = baseDir.sqrMagnitude > 0.0001f ? baseDir.normalized : Vector2.right;
+        float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
+
+        ProjectileData sub = data.SubProjectileData;
+        GameObject prefab = firedWeapon.BulletPrefab;
+        LayerMask collisionMask = EnvLayer | EnemyLayer;
+        LayerMask pierceableLayers = EnemyLayer;
+        LayerMask nonBounceLayers = EnvLayer | EnemyLayer;
+        Vector3 scale = prefab.transform.localScale * PlayerScale * firedWeapon.BulletScale;
+        WeaponData fw = firedWeapon;
+
+        for (int i = 0; i < count; i++)
+        {
+            float ang = baseAngle;
+            if (count > 1)
+            {
+                float t = (float)i / (count - 1);
+                ang = baseAngle - totalSpread * 0.5f + totalSpread * t;
+            }
+            float r = ang * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(r), Mathf.Sin(r));
+
+            BallisticsEngine.Spawn(sub, prefab, point, dir,
+                collisionMask, pierceableLayers, nonBounceLayers,
+                (b, t2, h) => HandleBulletHit(fw, b, t2, h),
+                fw.WeaponSprite, fw.SpriteAngleOffset, scale, fw.WeaponSprites, fw.AnimFPS);
+        }
     }
 
     private void ShootParabolic(WeaponData weapon, ProjectileData recipe)

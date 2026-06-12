@@ -175,6 +175,18 @@ public class RecipeManager : MonoBehaviour
                 data.LandingScatterRadius = float.Parse(v[25].Trim());
             }
 
+            // 雷射光束：留空或 0 = 一般彈道；1 = 啟用持續型雷射（與 IsOrbital / IsParabolic 互斥）
+            if (v.Length >= 27 && !string.IsNullOrWhiteSpace(v[26]))
+            {
+                int isLaser = int.Parse(v[26].Trim());
+                if (isLaser > 0)
+                {
+                    data.IsLaser = true;
+                    data.DotInterval = (v.Length >= 28 && !string.IsNullOrWhiteSpace(v[27])) ? float.Parse(v[27].Trim()) : 0.5f;
+                    data.BeamRange = (v.Length >= 29 && !string.IsNullOrWhiteSpace(v[28])) ? float.Parse(v[28].Trim()) : 20f;
+                }
+            }
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }

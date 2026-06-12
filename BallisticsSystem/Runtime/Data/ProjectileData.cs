@@ -34,6 +34,13 @@ namespace Sorrows.Ballistics
         /// <summary>拋物線專用：落點隨機半徑（世界單位）。實際落點 = 目標點 + Random.insideUnitCircle * 此半徑。</summary>
         public float LandingScatterRadius = 0f;
 
+        // ── 雷射光束（持續掃射型）。與 IsOrbital / IsParabolic 互斥。 ──
+        public bool IsLaser;
+        /// <summary>傷害節拍（秒）：光束每 N 秒對當下掃到的所有目標各結算一次傷害。&lt;= 0 視為每幀結算。</summary>
+        public float DotInterval = 0.5f;
+        /// <summary>光束最大射程（世界單位）。Speed / LifeTime 對光束無意義，改用此欄位限制長度。</summary>
+        public float BeamRange = 20f;
+
         public List<IBulletBehavior> CreateBehaviors()
         {
             var list = new List<IBulletBehavior>();

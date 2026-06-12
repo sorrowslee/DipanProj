@@ -34,6 +34,9 @@
 | ArcHeight | 小數 | 否 | 拋物線弧頂的視覺高度（世界單位，假高度），僅在 IsParabolic = 1 時有效 |
 | LaunchSource | 字串 | 否 | 發射來源（`Player` / `Offscreen`），`Offscreen` 從攝影機視野外隨機方向飛入；留空 = `Player` |
 | LandingScatterRadius | 小數 | 否 | 拋物線專用：落點隨機半徑（世界單位）。每顆炸彈的最終落點 = 扇形目標 + `Random.insideUnitCircle * 半徑`；留空或 0 = 不隨機 |
+| IsLaser | 整數 | 否 | 是否為持續型雷射光束（1 = 是，留空或 0 = 否；與 IsOrbital / IsParabolic 互斥） |
+| dotInterval | 小數 | 否 | 雷射專用：傷害節拍（秒）。光束每 N 秒對當下掃到的所有目標各結算一次傷害（傷害值取武器表 Damage）；留空 = 0.5 |
+| BeamRange | 小數 | 否 | 雷射專用：光束最大射程（世界單位）。Speed / LifeTime 對光束無意義，改用此欄位限制長度；留空 = 20 |
 
 ---
 
@@ -388,3 +391,54 @@ ID, Name,          Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceC
 
 ### Q: 環繞彈的 LifeTime 怎麼設定？
 **A:** 設為正數則每幀倒數，歸零時銷毀。設為 **-1** 表示不因時間銷毀（可一直環繞直到被其他機制銷毀）。也可用很大的正數（如 9999）近似長時間存在。
+
+---
+
+## 雷射光束型武器（IsLaser）詳解
+
+雷射是**持續掃射型**武器：按住攻擊鍵時維持一條（或多條）光束，砲口跟著玩家、瞄準跟著滑鼠。它和「會飛的子彈」本質不同（一條當下就存在的線），底層由獨立的 `LaserBeam` 元件用 **line-march（逐段行進）** 每幀重算路徑，但**讀的是 RecipeTable 上同名的既有欄位**，所以對填表者透明。
+
+### 啟用方式
+- `IsLaser = 1`（與 `IsOrbital` / `IsParabolic` 互斥，三者只能擇一）
+- 傷害走武器表 `Damage`，每 `dotInterval` 秒結算一次（會被怪物無敵時間擋掉，屬正常）
+- `BeamRange` 控制最大長度；**光束粗細（視覺 + 命中判定）統一由 WeaponTable 的 `BeamWidth` 控制**（所見即所得），配方 `Radius` 對雷射不生效
+- 外觀（貼圖 / 顏色 / 寬度 / 流動速度）在 **WeaponTable** 設定，不在這裡
+
+### 吃得下的既有欄位（行為複用）
+
+| 欄位 | 對雷射的意義 |
+|------|------|
+| `PierceCount` | 光束穿過幾個敵人才被擋住。`-1` = 穿到底 / 到牆；`0` = 打到第一個就停 |
+| `Radius` | 雷射**不使用**此欄（粗細改由 WeaponTable 的 `BeamWidth` 一欄控制，視覺=命中） |
+| `HomingTurnSpeed` | **追蹤**：光束起始朝滑鼠，中段自然彎曲咬住最近的敵人（賣點）。數值意義與追蹤彈一致 |
+| `BounceTarget` + `MaxBounces` | **反彈**：光束打到可反彈表面會折射，變成多段折線 |
+| `BlockedByEnvironment` | 牆壁擋不擋光束（同既有語意） |
+| `SpreadCount` + `SpreadAngle` | **一發多道**：扇形射出 N 道光束（每道獨立追蹤 / 反彈 / 穿透） |
+| `SplitTiming=OnHit` + `SubRecipeID` | **命中分裂**：光束掃到敵人時在命中點生成 SubRecipeID 子彈，**節流綁在 dotInterval tick**（避免每幀爆量） |
+
+### 不生效 / 互斥的欄位
+- `Speed`、`LifeTime`、`FireInterval`：對持續光束無意義（按住就在），填了會被忽略
+- `RotationSpeed`、`SplitTiming=OnSpawn/OnDeath`：對雷射無意義，填了不報錯但不生效
+- `IsOrbital` / `IsParabolic`：與 `IsLaser` 互斥
+
+### 範例
+
+```
+ID, Name,         ..., PierceCount, ..., BounceTarget, MaxBounces, HomingTurnSpeed, ..., IsLaser, dotInterval, BeamRange
+14, 雷射追蹤光束, ...,          -1, ..., None,                  0,             180, ...,       1,         0.3,        18
+15, 雷射反彈光束, ...,          -1, ..., Environment,           3,               0, ...,       1,         0.3,        15
+```
+
+- **ID 14**：無限穿透 + 追蹤（180°/s 彎曲）的死光，掃過一排敵人並咬向最近目標，每 0.3 秒一跳傷害
+- **ID 15**：無限穿透 + 牆壁反彈 3 次的光束，可繞角打到掩體後的敵人
+
+### 常見問題
+
+**Q: 追蹤光束會彎，那它怎麼判定打到誰？**
+A: 光束沿彎曲路徑逐段做 `CircleCast`，路徑上每個敵人都會被記錄，由主遊戲在 tick 時結算傷害。
+
+**Q: 我想做「掃到敵人就放火」的雷射？**
+A: 填 `GroundEffectID` + `GroundEffectTrigger=OnHit` + `GroundEffectHitTarget=Enemy`，光束命中點每跳會釋放地面特效（同樣綁 dotInterval 節流）。
+
+**Q: 想換不同風格的雷射（藍光 / 紅光 / 像素風）？**
+A: 行為配方不動，只改 **WeaponTable** 的 `BeamTexturePath` / `BeamColor` / `BeamWidth` / `ScrollSpeed`。同一份程式 + 同一份配方可換無限種外觀。
