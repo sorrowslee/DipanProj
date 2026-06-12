@@ -88,11 +88,12 @@ public class WeaponManager : MonoBehaviour
             weapon.AnimFPS = (v.Length > 8 && !string.IsNullOrWhiteSpace(v[8])) ? float.Parse(v[8].Trim()) : 0f;
             weapon.BulletScale = (v.Length > 9 && !string.IsNullOrWhiteSpace(v[9])) ? float.Parse(v[9].Trim()) : 1f;
 
-            // 雷射外觀欄位（選填，向下相容）
-            weapon.BeamTexturePath = (v.Length > 10) ? v[10].Trim() : "";
-            weapon.BeamColor = ParseColor((v.Length > 11) ? v[11].Trim() : "");
+            // 雷射外觀欄位（只填編號；數字定義在 BeamStyleLibrary）
+            int styleId = (v.Length > 10 && !string.IsNullOrWhiteSpace(v[10])) ? int.Parse(v[10].Trim()) : 2;   // 預設 2=標準雷射
+            int colorId = (v.Length > 11 && !string.IsNullOrWhiteSpace(v[11])) ? int.Parse(v[11].Trim()) : 9;   // 預設 9=白
+            weapon.BeamStyle = BeamStyleLibrary.Get(styleId);
+            weapon.BeamColor = BeamStyleLibrary.GetColor(colorId);
             weapon.BeamWidth = (v.Length > 12 && !string.IsNullOrWhiteSpace(v[12])) ? float.Parse(v[12].Trim()) : 0.5f;
-            weapon.ScrollSpeed = (v.Length > 13 && !string.IsNullOrWhiteSpace(v[13])) ? float.Parse(v[13].Trim()) : 0f;
 
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
@@ -142,26 +143,13 @@ public class WeaponManager : MonoBehaviour
         Debug.Log($"Loaded {_weapons.Count} weapons from CSV.");
     }
 
-    // 雷射共用素材路徑（相對 Resources/，不含副檔名）
-    private const string DefaultBeamTexture = "Laser/beam_core";
+    // 雷射光暈素材路徑（相對 Resources/，不含副檔名）。光束本體已全參數化，不再需要 beam 貼圖。
     private const string BeamMuzzlePath = "Laser/laser_glow";
     private const string BeamImpactPath = "Laser/laser_impact";
 
     private void LoadBeamAssets(WeaponData weapon)
     {
-        string texPath = string.IsNullOrEmpty(weapon.BeamTexturePath) ? DefaultBeamTexture : weapon.BeamTexturePath;
-        weapon.BeamTexture = Resources.Load<Texture2D>(texPath);
-        if (weapon.BeamTexture == null)
-            Debug.LogWarning($"Beam texture not found at Resources path '{texPath}' for weapon '{weapon.Name}'.");
-
         weapon.BeamMuzzleSprite = Resources.Load<Sprite>(BeamMuzzlePath);
         weapon.BeamImpactSprite = Resources.Load<Sprite>(BeamImpactPath);
-    }
-
-    private static Color ParseColor(string hex)
-    {
-        if (string.IsNullOrWhiteSpace(hex)) return Color.white;
-        if (!hex.StartsWith("#")) hex = "#" + hex;
-        return ColorUtility.TryParseHtmlString(hex, out Color c) ? c : Color.white;
     }
 }

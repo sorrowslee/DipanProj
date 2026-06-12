@@ -163,10 +163,9 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `WeaponAniNumber` | 序列圖張數，系統自動載入 `{WeaponAniPath}_01` ~ `{WeaponAniPath}_NN` |
 | `AnimFPS` | 序列圖播放速度（幀/秒），例如 12 = 每秒 12 幀 |
 | `BulletScale` | 子彈縮放倍率，預設為 1（留空等同 1），例如 2 = 放大兩倍 |
-| `BeamTexturePath` | 雷射光束貼圖路徑（相對 `Resources/`，不含副檔名）；留空 = `Laser/beam_core` |
-| `BeamColor` | 雷射顏色（十六進位，如 `00FFFF`）；留空 = 白色。光束用白色 beam_core + 此色染色 |
+| `BeamStyle` | 雷射**種類編號** 1~10（外型一包預設，見 §3.8）：1鏡光 2標準 3脈衝 4離子 5電漿 6虛線 7閃電 8針狀 9洪流 10微光；留空 = 2 |
+| `BeamColor` | 雷射**顏色編號** 1~10：1紅 2橙 3黃 4綠 5青 6藍 7紫 8洋紅 9白 10琥珀金；留空 = 9（白） |
 | `BeamWidth` | 雷射粗細（**視覺與命中判定共用此欄**，所見即所得）；留空 = 0.5 |
-| `ScrollSpeed` | 雷射貼圖 UV 捲動速度（能量流動感）；留空 = 0（不捲動） |
 
 #### 序列圖動畫設定說明
 
@@ -347,9 +346,9 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
   * **反彈貼牆 + 全程等寬**：轉角頂點放在精準的牆面命中點，相鄰段再**依轉角大小**沿各自方向延伸重疊（直段/追蹤緩彎幾乎不延伸、不會過度重疊變亮；尖反彈才補滿半寬、且延伸量落在畫面外）。每段都是等寬矩形 → 不會再有變細段；亮核確實補到牆面 → 緊貼牆反彈。
   * **頭尾**：端點不延伸（平頭），由砲口 / 命中光暈（SpriteRenderer，`laser_glow` / `laser_impact`）收尾，避免亮核凸出端點節點。
   * mesh 頂點用世界座標，故 `LaserBeam` 物件 transform 歸零（光暈為子物件，每幀用世界 `position` 更新）。
-* **雷射質感（`Custom/AdditiveBeam` shader + `beam_core` 貼圖）**：純黑底 `Blend One One` 自動去背發光。
-  * **能量波流動**：`beam_core.png` 沿長度方向帶能量波節點，配 `ScrollSpeed` 捲動 UV → 一波一波往前流（貼圖長度方向若均勻，捲動等於白捲、只會像死板鏡光）。
-  * **白熱核心 + 微脈動**：shader 依橫向位置 `uv.y` 讓中心趨白、邊緣由 `BeamColor` 染色（**顏色與亮度分離**，所以波動在亮核也看得到），再加一個與 UV 無關的整體微脈動呼吸。圓形光暈材質把 `_CoreWhiteness` / `_FlickerStrength` 設 0 停用（否則會在圓暈上畫出橫向白條）。
+* **雷射質感＝全參數化 shader（`Custom/AdditiveBeam`，不需貼圖）**：純黑底 `Blend One One` 自動去背發光。外型由一組數字（= 一種 `BeamStyle`）驅動，10 種定義見 §3.8。
+  * **縱向能量波**：shader 依 `uv.x`（沿光束世界長度）生成波帶、依 `_Time` 流動 → 一波一波往前（`BandFreq=0` 即均勻無波 = 鏡光）。電漿/閃電再疊 1D 程序雜訊。
+  * **白熱核心 + 微脈動**：依橫向 `uv.y` 讓中心趨白、邊緣由 `BeamColor` 染色（**顏色與亮度分離**，波動在亮核也看得到），再加整體微脈動。圓形光暈改用另一支簡單加色 shader `Custom/AdditiveGlow`（避免光束的波帶/截面/白核套到圓暈上）。
 * **傷害回報**：自帶 `DotInterval` 計時器，每隔 N 秒透過 `Action<LaserBeam, List<BeamHit>> OnBeamDamageTick` 把「當下掃到的目標」回報給主遊戲，傷害完全由主遊戲結算。
 * `BallisticsEngine.SpawnBeam(...)`：純程式生成光束物件的工廠（`RequireComponent` 在 `AddComponent<LaserBeam>` 時自動補上 `MeshFilter` / `MeshRenderer`），傳入 mask + 外觀素材 + onTick callback。**全程純程式建構，不需要 prefab、不需要 Inspector 接線**。
 
@@ -357,11 +356,51 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * **持續光束生命週期**：偵測到雷射武器時走 `UpdateLaser`——按住維持一組（依 `SpreadCount` 扇形）光束、每幀更新砲口位置與瞄準方向；放開 / 切武器時 `ClearActiveBeams` 銷毀整組（仿環繞彈的群組管理）。
 * **`HandleBeamTick`**：接收光束每 `DotInterval` 的命中回報，對怪物用 `WeaponData.Damage` 結算傷害（無敵時間由 `MonsterController.TakeDamage` 內部的 `HitReactionHandler` 自動處理），並觸發地面特效。
 * **OnHit 分裂**：`SplitTiming=OnHit` + `SubRecipeID` 時，在命中點生成子彈，**節流綁在 DotInterval tick**（避免每幀爆量）。
-* **外觀資料驅動**：行為在 `RecipeTable`、外觀（`BeamTexturePath` / `BeamColor` / `BeamWidth` / `ScrollSpeed`）在 `WeaponTable`。換風格只改外觀欄位 + 換素材，程式與配方都不動。
+* **外觀資料驅動**：行為在 `RecipeTable`、外觀在 `WeaponTable`——使用者只填 `BeamStyle`（種類編號）/ `BeamColor`（顏色編號）/ `BeamWidth`（粗細）三個簡單值，其餘外型細節由 `BeamStyle` 編號展開（見 §3.8）。換風格只改編號，程式與配方都不動。
 
 #### 互斥與不生效欄位
 * `IsLaser` 與 `IsOrbital` / `IsParabolic` 三者互斥。
 * `Speed` / `LifeTime` / `FireInterval`（持續光束無發射節奏）、`RotationSpeed`、`SplitTiming=OnSpawn/OnDeath` 對雷射不生效（填了不報錯）。
+
+### 3.8 雷射外型系統 (Laser Appearance / BeamStyle)
+
+雷射外型**完全參數化**——一種「雷射種類」= 一組數字（送進 `Custom/AdditiveBeam` shader），**不需要任何貼圖**。所以加新種類 = 多一組數字，秒做、零產圖。使用者端只填三個簡單值：`BeamStyle`（種類編號）/ `BeamColor`（顏色編號）/ `BeamWidth`（粗細）。
+
+#### 外型的四層拆解
+| 層 | 控制 | 來源 |
+|---|---|---|
+| 顏色 | `BeamColor` 編號 → 調色盤 | WeaponTable（使用者填） |
+| 粗細 | `BeamWidth`（視覺＝命中） | WeaponTable（使用者填） |
+| 縱向圖樣 + 流動 + 質感 | `BeamStyle` 編號 → 一組 shader 參數 | WeaponTable 填編號，數字定義在 `BeamStyleLibrary` |
+| 長度（行為） | `BeamRange` | RecipeTable |
+
+#### BeamStyle 參數（`Sorrows.Ballistics.BeamStyle`，對應 shader 欄位）
+| 參數 | 視覺意義 |
+|---|---|
+| `Intensity` | 整體亮度 |
+| `EdgeStart` | 截面實心比例（大=實心粗光、小=核心集中邊緣柔） |
+| `CoreWidth` / `CoreWhiteness` | 白熱核心寬度 / 趨白程度（白核 0 → 純色不發白，像鏡光） |
+| `FlowSpeed` | 波帶流動速度（0=靜止） |
+| `BandFreq` | 波帶密度（每世界單位幾個波；**0=均勻無波=鏡光**） |
+| `BandDepth` | 波帶明暗深度（0=均勻、1=明暗到底） |
+| `BandSharp` | 波帶銳利度（1=平滑波、高=能量包、更高≈虛線） |
+| `NoiseAmt` / `NoiseSpeed` | 1D 程序雜訊量 / 翻騰速度（電漿、閃電才開） |
+| `FlickerStrength` / `FlickerSpeed` | 整體脈動（呼吸）幅度 / 速度 |
+
+#### 內建 10 種種類（定義在 `Assets/Scripts/Weapon/BeamStyleLibrary.cs` 的 `Get()`）
+1 鏡光（古鏡，平滑均勻無波）｜2 標準｜3 脈衝｜4 離子/實心｜5 電漿｜6 虛線/節段｜7 閃電/不穩｜8 針狀/狙擊｜9 能量洪流｜10 微光/柔。
+
+#### 內建 10 色（`BeamStyleLibrary.Palette`）
+1 紅｜2 橙｜3 黃｜4 綠｜5 青｜6 藍｜7 紫｜8 洋紅｜9 白｜10 琥珀金。`BeamStyle` 與 `BeamColor` **正交**（任何種類可配任何顏色 → 10×10 組合）。
+
+#### 接手 AI 必讀：如何新增第 11、12… 種雷射
+1. 打開 `BeamStyleLibrary.cs`，在 `Get()` 的 switch 多一個 `case 11:`（複製最接近的那組、改數字；參數意義見上表）。
+2. 在 `WeaponTable.csv` 表頭說明列的 `BeamStyle(...)` 補上「11xxx」名稱（純文件、給人看）。
+3. 顏色同理：在 `BeamStyleLibrary.Palette` 末端加一筆 hex。
+4. **不需要**產圖、**不需要**動 shader（除非要全新視覺機制）、**不需要**動彈道系統。
+5. 只有當需要「很有機/不規則」的質感（程序雜訊也做不出來）時，才考慮替該種類掛一張選用貼圖——但目前架構刻意全程序化以免產圖。
+
+> 渲染管線：Built-in RP，shader 以 `_Time` 做流動/脈動。光束本體走 `Custom/AdditiveBeam`（全參數化），圓形光暈走 `Custom/AdditiveGlow`（單純加色染色）。
 
 ---
 
@@ -406,6 +445,7 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
   * **修貼身怪打不到**：本專案 `queriesStartInColliders=false` 會讓砲口 cast 忽略起點重疊的怪，砲口加一次 `OverlapCircle` 補抓（不動全域設定）。
   * **渲染改自繪 mesh**：徹底解決 `LineRenderer` 轉角的兩難（圓角→反彈離牆遠／不圓角→某段被擠扁變細），每段獨立四邊形、轉角依夾角延伸重疊 → 緊貼牆反彈又全程等寬；端帽平頭交給光暈收尾，亮核不凸出頭尾。
   * **雷射質感**：`beam_core` 貼圖加沿長度的能量波帶（配 `ScrollSpeed` 做出一波一波流動）、shader 加白熱核心 + 微脈動（顏色與亮度分離，波動在核心也看得到）。
+* [x] 雷射外型「種類化」與全參數化（§3.8）：外觀改由 `BeamStyle`（種類編號 1~10）+ `BeamColor`（顏色編號 1~10）+ `BeamWidth` 三欄驅動，使用者只填編號；外型細節（截面/波帶/流動/白核/脈動/雜訊）全部參數化進 `Custom/AdditiveBeam` shader（**不再需要貼圖**），10 種風格集中定義於 `BeamStyleLibrary`，光暈分離出 `Custom/AdditiveGlow`。含「鏡光（古鏡）」種類；`BeamStyle × BeamColor` 正交 = 100 種組合。**加第 11 種 = `BeamStyleLibrary` 多一組數字，零產圖**。
 
 ---
 

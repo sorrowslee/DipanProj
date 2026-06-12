@@ -12,7 +12,7 @@ namespace Sorrows.Ballistics
         /// </summary>
         public static LaserBeam SpawnBeam(ProjectileData def, Vector2 origin, Vector2 aimDir,
             LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers,
-            Texture2D beamTex, Color beamColor, float beamWidth, float scrollSpeed,
+            BeamStyle style, Color beamColor, float beamWidth,
             Sprite muzzleSprite, Sprite impactSprite,
             Action<LaserBeam, List<LaserBeam.BeamHit>> onTick)
         {
@@ -23,8 +23,7 @@ namespace Sorrows.Ballistics
 
             beam.Origin = origin;
             beam.AimDirection = aimDir;
-            // 所見即所得：命中判定寬度直接由視覺寬度 BeamWidth 決定
-            //（LineRenderer 寬度 = beamWidth = 直徑，CircleCast 半徑 = beamWidth / 2，掃出的命中帶寬剛好 = 視覺寬度）。
+            // 所見即所得：命中判定半徑 = 視覺半寬 = beamWidth / 2（mesh 半寬與 CircleCast 半徑共用同一值）。
             // 不再使用配方 Radius，避免「視覺寬度」「命中寬度」兩個欄位互相打架。
             beam.Radius = Mathf.Max(0.01f, beamWidth * 0.5f);
             beam.BeamRange = def.BeamRange;
@@ -39,7 +38,7 @@ namespace Sorrows.Ballistics
             beam.NonBounceLayers = nonBounceLayers;
             beam.OnBeamDamageTick = onTick;
 
-            beam.Setup(beamTex, beamColor, beamWidth, scrollSpeed, muzzleSprite, impactSprite);
+            beam.Setup(style, beamColor, beamWidth, muzzleSprite, impactSprite);
             return beam;
         }
 

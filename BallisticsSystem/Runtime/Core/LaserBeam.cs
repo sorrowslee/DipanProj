@@ -5,12 +5,31 @@ using UnityEngine;
 namespace Sorrows.Ballistics
 {
     /// <summary>
+    /// 雷射「外型」的一組參數 = 一種雷射種類(BeamStyle)。全部是數字，對應 Custom/AdditiveBeam shader 的參數。
+    /// 換種類 = 換一組數字（不需要貼圖）；新增第 N 種 = 多定義一組。實際 10 種定義在主遊戲的 BeamStyleLibrary。
+    /// </summary>
+    public struct BeamStyle
+    {
+        public float Intensity;        // 整體亮度
+        public float EdgeStart;        // 截面實心比例（越大越像實心粗光；越小核心越集中、邊緣越柔）
+        public float CoreWidth;        // 白熱核心寬度
+        public float CoreWhiteness;    // 核心趨白程度（0=純色不發白）
+        public float FlowSpeed;        // 波帶流動速度（0=靜止）
+        public float BandFreq;         // 波帶密度（每世界單位幾個波；0=均勻無波，像鏡光）
+        public float BandDepth;        // 波帶明暗深度（0=均勻，1=明暗到底）
+        public float BandSharp;        // 波帶銳利度（1=平滑波，高=能量包，更高≈虛線）
+        public float NoiseAmt;         // 雜訊量（電漿/閃電；0=乾淨）
+        public float NoiseSpeed;       // 雜訊翻騰速度
+        public float FlickerStrength;  // 整體脈動幅度
+        public float FlickerSpeed;     // 整體脈動速度
+    }
+
+    /// <summary>
     /// 持續掃射型雷射光束。與 BulletInstance（會移動的點）不同，光束是「當下就存在的一條線」，
     /// 由 line-march（逐段行進）每幀重算路徑，讓追蹤(彎曲)、反彈(折線)、穿透、射程從同一個迴圈長出來。
     ///
-    /// 渲染採「自繪 mesh」：每段一個四邊形，轉角依夾角延伸讓相鄰段重疊補滿凸角。
-    /// 這是刻意不用 LineRenderer —— 它的轉角接縫對「厚光束＋尖反彈」無解（圓角→接縫內縮離牆遠；
-    /// 不圓角→尖角把某段寬度擠扁）。自繪 mesh 由我們指定每個頂點，亮核與寬度完全可控。
+    /// 渲染採「自繪 mesh」：每段一個四邊形，轉角依夾角延伸讓相鄰段重疊補滿凸角（刻意不用 LineRenderer，
+    /// 它的轉角接縫對厚光束+尖反彈無解）。外型 100% 由 BeamStyle 參數驅動的 Custom/AdditiveBeam shader 決定。
     ///
     /// 邊界規範：本元件只負責幾何 + 渲染 + 回報命中，<b>絕不結算傷害</b>。
     /// 每隔 DotInterval 秒透過 OnBeamDamageTick 把「當下掃到的目標」回報給主遊戲，由主遊戲算傷害。
@@ -35,7 +54,6 @@ namespace Sorrows.Ballistics
         public bool HasHoming;
         public float HomingTurnSpeed = 180f;
         public float DotInterval = 0.5f;
-        public float ScrollSpeed = 0f;
 
         public LayerMask CollisionMask;
         public LayerMask PierceableLayers;
@@ -51,12 +69,12 @@ namespace Sorrows.Ballistics
         private const int MaxMarchSteps = 2048;
 
         private Shader _shader;
+        private Shader _glowShader;
         private Material _beamMat;
         private MeshFilter _mf;
         private MeshRenderer _mr;
         private Mesh _mesh;
         private Color _beamColor = Color.white;
-        private float _tileLen = 1f;       // 一個貼圖循環對應的世界長度（保持貼圖不被拉伸）
         private Transform _muzzle, _impact;
         private readonly List<Material> _ownedMaterials = new List<Material>();
 
@@ -64,7 +82,6 @@ namespace Sorrows.Ballistics
         private readonly List<BeamHit> _hits = new List<BeamHit>(16);
         private readonly HashSet<int> _hitSet = new HashSet<int>();
         private float _dotTimer;
-        private float _scroll;
 
         // mesh 重建用緩衝（避免每幀配置）
         private readonly List<Vector3> _verts = new List<Vector3>(256);
@@ -74,30 +91,23 @@ namespace Sorrows.Ballistics
         private readonly List<float> _ext = new List<float>(64);
 
         /// <summary>建立視覺（自繪 mesh 材質 + 砲口/命中光暈）。在設定完所有欄位後呼叫一次。</summary>
-        public void Setup(Texture2D beamTex, Color beamColor, float beamWidth, float scrollSpeed,
-                          Sprite muzzleSprite, Sprite impactSprite)
+        public void Setup(BeamStyle style, Color beamColor, float beamWidth, Sprite muzzleSprite, Sprite impactSprite)
         {
             // mesh 頂點直接用世界座標 → 把本物件 transform 歸零，避免被 transform 再次位移。
-            // （砲口/命中光暈是子物件，仍用世界 position 每幀更新，不受影響。）
             transform.position = Vector3.zero;
             transform.rotation = Quaternion.identity;
             transform.localScale = Vector3.one;
 
-            ScrollSpeed = scrollSpeed;
             _beamColor = beamColor;
-            // 貼圖 1024x256（長:寬 = 4:1）；一個循環 = 4×光束寬，能量波帶才不會被拉長/壓扁
-            _tileLen = Mathf.Max(0.01f, beamWidth * 4f);
 
             _shader = Shader.Find("Custom/AdditiveBeam");
             if (_shader == null) _shader = Shader.Find("Sprites/Default"); // 後備，至少能顯示
+            _glowShader = Shader.Find("Custom/AdditiveGlow");
+            if (_glowShader == null) _glowShader = _shader;
 
             _beamMat = new Material(_shader);
             _ownedMaterials.Add(_beamMat);
-            if (beamTex != null)
-            {
-                beamTex.wrapMode = TextureWrapMode.Repeat;
-                _beamMat.mainTexture = beamTex;
-            }
+            ApplyStyle(_beamMat, style);
 
             _mf = GetComponent<MeshFilter>();
             _mr = GetComponent<MeshRenderer>();
@@ -107,12 +117,29 @@ namespace Sorrows.Ballistics
             _mr.sharedMaterial = _beamMat;
             _mr.sortingOrder = 50;
 
-            // 光暈倍率刻意調小（原本 3.5 / 4.5 會讓頭尾比本體放大快 3~4 倍）。
-            // 改成略大於光束寬度即可，讓「變粗」表現在光束本體上、頭尾保持收斂。
+            // 砲口 / 命中圓形光暈（用 glow shader，與光束本體分開）。倍率略大於光束寬度即可，讓「變粗」表現在本體上。
             if (muzzleSprite != null) _muzzle = CreateGlow("MuzzleGlow", muzzleSprite, beamColor, beamWidth * 1.3f, 55);
             if (impactSprite != null) _impact = CreateGlow("ImpactGlow", impactSprite, beamColor, beamWidth * 1.8f, 60);
 
             _dotTimer = DotInterval; // 讓第一幀即可結算一次傷害
+        }
+
+        // 把一種雷射種類的參數套到光束材質（對應 AdditiveBeam shader 的欄位）
+        private static void ApplyStyle(Material m, BeamStyle s)
+        {
+            m.SetColor("_TintColor", Color.white);   // 顏色走頂點色(BeamColor)，Tint 保持白
+            m.SetFloat("_Intensity", s.Intensity);
+            m.SetFloat("_EdgeStart", s.EdgeStart);
+            m.SetFloat("_CoreWidth", s.CoreWidth);
+            m.SetFloat("_CoreWhiteness", s.CoreWhiteness);
+            m.SetFloat("_FlowSpeed", s.FlowSpeed);
+            m.SetFloat("_BandFreq", s.BandFreq);
+            m.SetFloat("_BandDepth", s.BandDepth);
+            m.SetFloat("_BandSharp", s.BandSharp);
+            m.SetFloat("_NoiseAmt", s.NoiseAmt);
+            m.SetFloat("_NoiseSpeed", s.NoiseSpeed);
+            m.SetFloat("_FlickerStrength", s.FlickerStrength);
+            m.SetFloat("_FlickerSpeed", s.FlickerSpeed);
         }
 
         private Transform CreateGlow(string glowName, Sprite sprite, Color color, float desiredDiameter, int sortingOrder)
@@ -122,10 +149,7 @@ namespace Sorrows.Ballistics
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = sprite;
             sr.color = color;
-            var mat = new Material(_shader);
-            // 圓形光暈不需要「白熱核心」(會變成一條橫向白條) 也不需要脈動，關掉這兩個雷射本體專用效果
-            if (mat.HasProperty("_CoreWhiteness")) mat.SetFloat("_CoreWhiteness", 0f);
-            if (mat.HasProperty("_FlickerStrength")) mat.SetFloat("_FlickerStrength", 0f);
+            var mat = new Material(_glowShader);
             _ownedMaterials.Add(mat);
             sr.material = mat;
             sr.sortingOrder = sortingOrder;
@@ -310,7 +334,7 @@ namespace Sorrows.Ballistics
                 _ext.Add(half * Mathf.Min(t, 1f));
             }
 
-            // 2) 逐段建四邊形
+            // 2) 逐段建四邊形。uv.x = 沿光束的世界長度（給 shader 算波帶密度/流動），uv.y = 橫向 0~1
             _verts.Clear(); _uvs.Clear(); _cols.Clear(); _tris.Clear();
             float cumLen = 0f;
             int segCount = n - 1;
@@ -329,8 +353,8 @@ namespace Sorrows.Ballistics
                 Vector2 a = p0 - d * extStart;
                 Vector2 b = p1 + d * extEnd;
 
-                float uA = (cumLen - extStart) / _tileLen;
-                float uB = (cumLen + segLen + extEnd) / _tileLen;
+                float uA = cumLen - extStart;
+                float uB = cumLen + segLen + extEnd;
 
                 int baseIdx = _verts.Count;
                 _verts.Add(a - perp); _uvs.Add(new Vector2(uA, 0f)); _cols.Add(_beamColor);
@@ -351,13 +375,6 @@ namespace Sorrows.Ballistics
                 _mesh.SetUVs(0, _uvs);
                 _mesh.SetColors(_cols);
                 _mesh.SetTriangles(_tris, 0, true);
-            }
-
-            // 能量流動：捲動貼圖 UV（shader 的 TRANSFORM_TEX 會套用此 offset）
-            if (_beamMat != null && Mathf.Abs(ScrollSpeed) > 0.0001f)
-            {
-                _scroll -= ScrollSpeed * Time.deltaTime;
-                _beamMat.SetTextureOffset("_MainTex", new Vector2(_scroll, 0f));
             }
 
             if (_muzzle != null) _muzzle.position = _points[0];

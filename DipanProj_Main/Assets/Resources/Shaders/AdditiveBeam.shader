@@ -1,32 +1,37 @@
-// 雷射光束 / 光暈用的加色（Additive）Unlit Shader。
-// 純黑背景的素材在此 Blend One One 下黑色自動變透明、亮處發光；
-// 顏色由頂點色（LineRenderer / SpriteRenderer 的 color）與 _TintColor 相乘染色。
+// 雷射「光束本體」用的全參數化加色（Additive）Unlit Shader。
+// 外型 100% 由參數控制（不需要貼圖）：截面、縱向能量波帶、雜訊、白熱核心、脈動、流動全來自數字 + uv + _Time。
+// 一個「雷射種類(BeamStyle)」= 一組這裡的參數值；換種類只是換數字 → 不用產圖、加第 11 種只要再給一組數字。
 //
-// 雷射感的來源（兩層）：
-//   1) 貼圖沿長度方向的能量波帶 + LineRenderer 的 ScrollSpeed 捲動 → 「一波一波」流動。
-//   2) 本 shader 的「白熱核心」(中心趨白、邊緣染色) + 微脈動呼吸 → 從平光變雷射。
-//   顏色(hue)與亮度(brightness)分離，所以波動在核心也看得到、不會被白核蓋掉。
-//
-// 光暈(muzzle/impact)共用本 shader，但會把 _CoreWhiteness 設 0 停用白核（圓形光暈不需要橫向白條）。
+// 約定：mesh 的 uv.x = 沿光束的世界長度（單位：世界單位）、uv.y = 橫向 0~1（0/1=邊緣、0.5=中心）。
+// 顏色由頂點色（mesh vertex color = BeamColor）帶入，_TintColor 維持白色不另外染。
+// 純黑底在 Blend One One 下自動去背發光。
 Shader "Custom/AdditiveBeam"
 {
     Properties
     {
-        [PerRendererData] _MainTex ("Texture (R=亮度包絡)", 2D) = "white" {}
         _TintColor ("Tint", Color) = (1,1,1,1)
         _Intensity ("Intensity 整體亮度", Float) = 1.3
+        _EdgeStart ("EdgeStart 截面實心比例(越大越像實心粗光)", Range(0,1)) = 0.5
 
-        _CoreWidth ("Core Width 白熱核心寬度(0~1)", Range(0,1)) = 0.4
-        _CoreWhiteness ("Core Whiteness 核心趨白程度", Range(0,1)) = 0.7
+        _CoreWidth ("CoreWidth 白熱核心寬度", Range(0,1)) = 0.4
+        _CoreWhiteness ("CoreWhiteness 核心趨白程度", Range(0,1)) = 0.7
 
-        _FlickerStrength ("Flicker Strength 脈動幅度", Range(0,0.5)) = 0.07
-        _FlickerSpeed ("Flicker Speed 脈動速度", Float) = 11
+        _FlowSpeed ("FlowSpeed 波帶流動速度", Float) = 1.5
+        _BandFreq ("BandFreq 波帶密度(每世界單位)", Float) = 0.8
+        _BandDepth ("BandDepth 波帶明暗深度(0=均勻無波)", Range(0,1)) = 0.45
+        _BandSharp ("BandSharp 波帶銳利度(1平滑/高=能量包/更高=虛線)", Float) = 2.5
+
+        _NoiseAmt ("NoiseAmt 雜訊量(電漿/閃電)", Range(0,1)) = 0
+        _NoiseSpeed ("NoiseSpeed 雜訊翻騰速度", Float) = 0
+
+        _FlickerStrength ("FlickerStrength 脈動幅度", Range(0,0.5)) = 0.07
+        _FlickerSpeed ("FlickerSpeed 脈動速度", Float) = 11
     }
 
     SubShader
     {
         Tags { "Queue"="Transparent" "RenderType"="Transparent" "IgnoreProjector"="True" "PreviewType"="Plane" }
-        Blend One One           // 加色混合：黑=透明、亮=發光
+        Blend One One
         Cull Off
         ZWrite Off
         Lighting Off
@@ -52,41 +57,58 @@ Shader "Custom/AdditiveBeam"
                 fixed4 color : COLOR;
             };
 
-            sampler2D _MainTex;
-            float4 _MainTex_ST;
             fixed4 _TintColor;
-            float _Intensity;
-            float _CoreWidth;
-            float _CoreWhiteness;
-            float _FlickerStrength;
-            float _FlickerSpeed;
+            float _Intensity, _EdgeStart, _CoreWidth, _CoreWhiteness;
+            float _FlowSpeed, _BandFreq, _BandDepth, _BandSharp;
+            float _NoiseAmt, _NoiseSpeed, _FlickerStrength, _FlickerSpeed;
+
+            float hash11(float p) { return frac(sin(p * 12.9898) * 43758.5453123); }
+            float vnoise(float x)
+            {
+                float i = floor(x); float f = frac(x);
+                float u = f * f * (3.0 - 2.0 * f);
+                return lerp(hash11(i), hash11(i + 1.0), u);
+            }
 
             v2f vert (appdata v)
             {
                 v2f o;
                 o.pos = UnityObjectToClipPos(v.vertex);
-                o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+                o.uv = v.uv;
                 o.color = v.color;
                 return o;
             }
 
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed4 tex = tex2D(_MainTex, i.uv);
-                float env = tex.r;                          // 亮度包絡：截面×能量波帶（含捲動 → 流動）
+                float u = i.uv.x;                       // 沿光束世界長度
+                float vc = abs(i.uv.y - 0.5) * 2.0;     // 0 中心 → 1 邊緣
 
-                // 橫向位置（0=中心 1=邊緣）→ 白熱核心。光暈材質把 _CoreWhiteness 設 0 即停用。
-                float vc = abs(i.uv.y - 0.5) * 2.0;
+                // 截面：到 _EdgeStart 都全亮、之後淡出到邊緣（視覺寬度≈命中寬度，所見即所得）
+                float cross = 1.0 - smoothstep(_EdgeStart, 1.0, vc);
+
+                // 縱向能量波帶（依 _Time 流動）
+                float phase = u * _BandFreq - _Time.y * _FlowSpeed;
+                float w = 0.5 + 0.5 * sin(phase * 6.2831853);
+                w = pow(saturate(w), max(0.01, _BandSharp));         // 1=平滑波；高=能量包；更高≈虛線
+                float bands = 1.0 - _BandDepth * (1.0 - w);          // depth 0 → 恆為 1（均勻）
+
+                // 雜訊（電漿/閃電才開）
+                if (_NoiseAmt > 0.001)
+                {
+                    float ns = vnoise(u * 3.0 + _Time.y * _NoiseSpeed);
+                    bands *= (1.0 - _NoiseAmt * ns);
+                }
+
+                float env = cross * bands;                           // 亮度包絡（波動在這層 → 核心也看得到）
+
+                // 白熱核心：中心趨白、邊緣由頂點色(BeamColor)染色
                 float core = saturate(1.0 - smoothstep(0.0, _CoreWidth, vc)) * _CoreWhiteness;
+                fixed3 hue = lerp(i.color.rgb * _TintColor.rgb, fixed3(1, 1, 1), core);
 
-                // 顏色：邊緣用頂點色×Tint 染色，核心往白熱推（顏色與亮度分離）
-                fixed3 tint = i.color.rgb * _TintColor.rgb;
-                fixed3 hue  = lerp(tint, fixed3(1, 1, 1), core);
-
-                // 微脈動：整體呼吸感，與 UV 無關（不和捲動耦合，避免打架）
+                // 整體微脈動（呼吸感，與位置無關）
                 float flicker = 1.0 + _FlickerStrength * sin(_Time.y * _FlickerSpeed);
 
-                // 亮度：波動(env)保留在這裡 → 核心也看得到一波一波
                 float bright = env * i.color.a * _Intensity * flicker;
                 return fixed4(hue * bright, 1);
             }

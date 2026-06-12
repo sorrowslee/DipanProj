@@ -280,7 +280,7 @@ public class PlayerController : MonoBehaviour
             LaserBeam beam = BallisticsEngine.SpawnBeam(
                 recipe, origin, Vector2.right,
                 collisionMask, pierceableLayers, nonBounceLayers,
-                weapon.BeamTexture, weapon.BeamColor, width, weapon.ScrollSpeed,
+                weapon.BeamStyle, weapon.BeamColor, width,
                 weapon.BeamMuzzleSprite, weapon.BeamImpactSprite,
                 (b, hits) => HandleBeamTick(firedWeapon, b, hits));
             _activeBeams.Add(beam);
