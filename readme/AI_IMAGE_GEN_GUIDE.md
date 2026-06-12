@@ -94,7 +94,7 @@
 
 ## 6. 風格基準（對齊現有素材）
 
-- 風格：**像素藝術（pixel art）**，搭配熔岩/餘燼般的橘紅發光點綴（參考 `DipanProj_Main/Assets/Resources/Weapon/weapon_sword.png` 等）。
+- 風格：**像素藝術（pixel art）**，搭配熔岩/餘燼般的橘紅發光點綴（參考 `../DipanProj_Main/Assets/Resources/Weapon/weapon_sword.png` 等，路徑相對本檔所在的 `readme/`）。
 - 世界觀：佛教 × 恐怖（燃燈古佛、隧道邪能、《無限恐怖》風），俯視角 2D。
 - 規格：單體置中、透明背景、約正方形。現有 sprite 多為 RGBA，尺寸 500–1260px。
 - 通用提示詞骨架（可依主題調整）：
