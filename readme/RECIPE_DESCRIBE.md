@@ -37,6 +37,7 @@
 | IsLaser | 整數 | 否 | 是否為持續型雷射光束（1 = 是，留空或 0 = 否；與 IsOrbital / IsParabolic 互斥） |
 | dotInterval | 小數 | 否 | 雷射專用：傷害節拍（秒）。光束每 N 秒對當下掃到的所有目標各結算一次傷害（傷害值取武器表 Damage）；留空 = 0.5 |
 | BeamRange | 小數 | 否 | 雷射專用：光束最大射程（世界單位）。Speed / LifeTime 對光束無意義，改用此欄位限制長度；留空 = 20 |
+| BlastRadius | 小數 | 否 | 拋物線專用：落地殺傷半徑（世界單位）。留空 / 0 = 落地不傷害；> 0 = 落地瞬間以武器表 Damage 對半徑內怪物炸一次。與地面特效獨立、可並存 |
 
 ---
 
@@ -202,9 +203,10 @@
 - 傷害結算與此欄位**無關**：傷害仍只發生在怪物上（牆沒有 HP），`Environment` / `Any` 設定下打到牆只會放出地面特效、不會結算傷害
 - 仍受 `BulletInstance` 的「同目標只觸發一次」機制限制，因此一顆子彈撞同一面牆只會放一次地面特效
 
-### IsParabolic / ArcHeight / LaunchSource / LandingScatterRadius（拋物線型彈道）
+### IsParabolic / ArcHeight / LaunchSource / LandingScatterRadius / BlastRadius（拋物線型彈道）
 - 啟用條件：`IsParabolic = 1`，與 `IsOrbital` **互斥**（兩個欄位都填 1 時，`ProjectileData.CreateBehaviors` 會把兩個 behavior 都加進去，行為衝突，請避免）
-- 主要設計目的：**作為地面特效的觸發載體**，例如丟炸彈、丟油罐——飛行中不對任何目標造成傷害，只在抵達目標落地時觸發 `GroundEffectHitTarget = Ground` 的地面特效
+- 主要設計目的：**作為地面特效的觸發載體**，例如丟炸彈、丟油罐——飛行中不對任何目標造成傷害，落地時觸發 `GroundEffectHitTarget = Ground` 的地面特效
+- **落地殺傷（`BlastRadius`）**：若要讓炸彈「落地當下就炸傷一圈怪」，填 `BlastRadius > 0`，落地瞬間以**武器表 `Damage`** 對半徑內怪物做一次性 AOE（吃怪物無敵時間、擊退由爆心朝外）。與地面特效**獨立**：可只炸傷、可只留火、也可兩者並存。留空 / 0 = 維持「落地不傷害」原行為
 
 #### 行為流程
 1. **發射**：依 `LaunchSource` 決定起點，目標永遠是滑鼠所在的世界座標
@@ -219,6 +221,7 @@
 - `ArcHeight`：弧頂的「假高度」Y 偏移絕對值（世界單位）。直接寫 `2.5` 就是弧頂上抬 2.5 單位
 - `LaunchSource`：發射來源；`Offscreen` 取攝影機 `orthographicSize` × `aspect` 算 viewport 邊界，從攝影機中心射隨機方向找到出視野的距離 + 1 單位緩衝
 - `LandingScatterRadius`：**落點誤差半徑**（世界單位）。最終落點 = 扇形目標 + `Random.insideUnitCircle * 半徑`（圓盤內均勻分布），多顆炸彈時各自獨立隨機，避免堆疊在同一點。`0` 或留空 = 不隨機
+- `BlastRadius`：**落地殺傷半徑**（世界單位）。`> 0` 時落地瞬間以**武器表 `Damage`** 對半徑內怪物炸一次（多顆炸彈各自在自己落點各炸一圈）。`0` 或留空 = 落地不傷害。Damage = 0 的炸彈即使填了 `BlastRadius` 也不會造成傷害（記得在武器表給 `Damage`）
 - `SpreadCount`：**一發射出幾顆炸彈**。**重要**：拋物線版的分裂不需要 `SplitTiming`，留空也會生效（一般彈仍需要 `SplitTiming` 才會走 SplitBehavior）
 - `SpreadAngle`：扇形總角度（度）。以「玩家 → 滑鼠」為基準軸，N 顆炸彈在 ±SpreadAngle/2 範圍內等角度分布；扇形目標到玩家的距離 = 玩家到滑鼠距離（看起來像一片弧形落點）
   - `SpreadCount = 3, SpreadAngle = 60`：三個目標分別在 -30° / 0° / +30° 方向、與滑鼠等距的扇形上

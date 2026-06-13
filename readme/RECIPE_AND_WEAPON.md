@@ -35,7 +35,7 @@
 | `dotInterval` | `DotInterval` | 雷射傷害節拍（秒）：每 N 秒對當下掃到的目標各結算一次傷害；留空 = 0.5 |
 | `BeamRange` | `BeamRange` | 雷射最大射程（世界單位）；Speed / LifeTime 對光束無意義，改用此欄限制長度；留空 = 20 |
 
-> 地面特效相關欄位（`GroundEffectID` / `GroundEffectTrigger` / `GroundEffectHitTarget`）與拋物線欄位（`IsParabolic` / `ArcHeight` / `LaunchSource` / `LandingScatterRadius`）也在 RecipeTable，記在 [GROUND_EFFECT.md](GROUND_EFFECT.md)。
+> 地面特效相關欄位（`GroundEffectID` / `GroundEffectTrigger` / `GroundEffectHitTarget`）與拋物線欄位（`IsParabolic` / `ArcHeight` / `LaunchSource` / `LandingScatterRadius` / `BlastRadius` 落地殺傷半徑）也在 RecipeTable，記在 [GROUND_EFFECT.md](GROUND_EFFECT.md)。
 
 ## 武器表 (WeaponTable.csv)
 定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。

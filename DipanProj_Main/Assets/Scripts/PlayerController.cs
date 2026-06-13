@@ -579,9 +579,31 @@ public class PlayerController : MonoBehaviour
     private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)
     {
         if (firedWeapon == null) return;
-        // 拋物線最終落地：不結算傷害（飛行中不撞怪），只觸發地面特效與擊中特效
+        // 拋物線最終落地：飛行中不撞怪，落地才以 BlastRadius 做一次性 AOE 殺傷（可選），再觸發地面特效與擊中特效
+        TryApplyParabolicBlast(firedWeapon, landPos);
         TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, landPos, false, false, true);
         TrySpawnHitEffect(firedWeapon, landPos);
+    }
+
+    // 拋物線落地殺傷：BlastRadius > 0 時，對落點半徑內怪物以武器 Damage 炸一次。
+    // 與地面火堆（GroundEffect）獨立——可同時「炸傷一次 ＋ 留一灘火延燒」。傷害只結算在怪物上、吃怪物無敵時間、擊退方向由爆心朝外。
+    private void TryApplyParabolicBlast(WeaponData firedWeapon, Vector2 landPos)
+    {
+        if (firedWeapon == null || firedWeapon.Recipe == null) return;
+        float radius = firedWeapon.Recipe.BlastRadius;
+        if (radius <= 0f || firedWeapon.Damage <= 0f) return;
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(landPos, radius, EnemyLayer);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider2D col = hits[i];
+            if (col == null) continue;
+            MonsterController monster = col.GetComponent<MonsterController>();
+            if (monster == null) continue;
+
+            Vector2 hitDir = ((Vector2)monster.transform.position - landPos).normalized;
+            monster.TakeDamage(firedWeapon.Damage, hitDir);
+        }
     }
 
     private void TryTriggerGroundEffect(RecipeEntry recipe, GroundEffectTrigger trigger, Vector2 spawnPos, bool hitEnemy, bool hitEnv, bool hitGround)

@@ -22,7 +22,7 @@
 * **發射時的武器是「快照」**：`PlayerController.ShootNormal` / `ShootOrbital` / `ShootParabolic` 把當下武器以 lambda closure 鎖在 `OnBulletHitObject` 或 `OnGroundLanded` callback 內，子彈命中／落地時用的是「發射時的武器」，**不是當下武器**；玩家中途切武器不會讓舊子彈誤觸新武器的傷害值或地面特效。分裂彈 / 環繞彈 / 拋物線彈都繼承同一份快照
 
 ## 拋物線型武器（IsParabolic）
-* `RecipeTable.csv` 新增 4 欄：`IsParabolic`、`ArcHeight`、`LaunchSource`、`LandingScatterRadius`
+* `RecipeTable.csv` 新增 5 欄：`IsParabolic`、`ArcHeight`、`LaunchSource`、`LandingScatterRadius`、`BlastRadius`
 * `ProjectileData.cs` 新增對應字段，`CreateBehaviors` 在 `IsParabolic = 1` 時組裝 `ParabolicBehavior`
 * **`Speed` 欄位語意改變**：拋物線下 `Speed` 解讀為**飛行時間（秒）**，**不是**速度。`Speed = 1` → 不論起點到落點多遠，都飛 1 秒抵達；遠的飛快、近的飛慢。`ParabolicBehavior` 把這個值直接當 `flightDuration` 用，已不再做 `distance / speed` 計算
 * `ParabolicBehavior`（彈道系統）：完全接管移動，`OnSpawn` 把 `CollisionMask = 0` / `LifeTime = -1` / `Velocity = 0`，飛行中不撞任何 layer。地面位置線性插值，視覺加 `4 * ArcHeight * t * (1 - t)` 的 Y 偏移製造弧線；抵達目標時呼叫 `instance.RaiseGroundLanded(landPos)` 並把 `LifeTime` 設為 0 讓 `BulletInstance` 自動清理
@@ -32,7 +32,8 @@
   - **吃 `LandingScatterRadius`**：每顆炸彈在自己的扇形目標 + `Random.insideUnitCircle * 半徑` 內找一個落點（圓盤內均勻分布），多顆獨立隨機，避免堆疊在同一點
   - 為了讓 `SpreadCount` / `SpreadAngle` 在拋物線下生效，`RecipeManager.LoadRecipes` 改為**始終**把 SpreadCount / SpreadAngle 寫入 `ProjectileData`（不再只在 HasSplit 路徑下記錄）
 * `PlayerController.ResolveParabolicStartPos`：`LaunchSource = Player` 從玩家位置出發；`Offscreen` 用攝影機 `orthographicSize × aspect` 算 viewport 邊界，從攝影機中心射隨機方向找出視野邊界距離 + 1 單位緩衝；多顆炸彈時 `Offscreen` 每顆都**獨立重抽**起點
-* 設計重點：拋物線武器**不對怪物造成傷害**，是「地面特效觸發載體」。要做傷害請靠 `GroundEffectTable` 的 `Damage` / `DamageInterval` 設定地面 AOE
+* **落地殺傷 `BlastRadius`（新增）**：留空 / 0 時拋物線飛行中與落地都**不對怪物造成傷害**（純地面特效觸發載體，原行為）；填 > 0 時，**落地瞬間**以**武器表 `Damage`** 對落點 `BlastRadius` 半徑內怪物做一次性 AOE 殺傷（`Physics2D.OverlapCircleAll` 打 `EnemyLayer`，吃怪物無敵時間、擊退方向由爆心朝外）。在 `PlayerController.HandleParabolicLanded` 結算，**不碰彈道系統**（維持「彈道絕不算傷害」邊界，`BlastRadius` 存在主遊戲側的 `RecipeEntry`）。
+* **`BlastRadius` 與地面特效獨立、可並存**：一顆炸彈可以「落地炸一次（BlastRadius，瞬間）＋ 再留一灘火延燒（GroundEffect 的 `Damage` / `DamageInterval`，持續）」；也可只要其中一個。兩者傷害分別計算（互不串接）
 * 互斥：與 `IsOrbital` 互斥（同時填 1 行為衝突）；`PierceCount` / `BounceTarget` / `MaxBounces` 在拋物線下無意義（飛行中不參與命中）；`SplitTiming` / `SubRecipeID` 不建議混搭（拋物線自己處理 SpreadCount，SplitBehavior 的 OnHit 不會觸發、OnSpawn 又會再炸一輪）
 
 ## 執行單元

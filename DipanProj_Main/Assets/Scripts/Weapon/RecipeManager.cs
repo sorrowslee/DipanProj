@@ -19,6 +19,7 @@ public class RecipeEntry
     public GroundEffectTrigger GroundEffectTrigger = GroundEffectTrigger.OnHit;
     public GroundEffectHitTarget GroundEffectHitTarget = GroundEffectHitTarget.Enemy;
     public LaunchSource LaunchSource = LaunchSource.Player;
+    public float BlastRadius = 0f;  // 拋物線落地殺傷半徑；> 0 時落地對半徑內怪物以武器 Damage 炸一次（與地面火堆獨立）
 }
 
 public class RecipeManager : MonoBehaviour
@@ -185,6 +186,12 @@ public class RecipeManager : MonoBehaviour
                     data.DotInterval = (v.Length >= 28 && !string.IsNullOrWhiteSpace(v[27])) ? float.Parse(v[27].Trim()) : 0.5f;
                     data.BeamRange = (v.Length >= 29 && !string.IsNullOrWhiteSpace(v[28])) ? float.Parse(v[28].Trim()) : 20f;
                 }
+            }
+
+            // 拋物線落地殺傷半徑：> 0 時，拋物線彈落地瞬間以武器 Damage 對半徑內怪物炸一次（在 PlayerController.HandleParabolicLanded 結算）
+            if (v.Length >= 30 && !string.IsNullOrWhiteSpace(v[29]))
+            {
+                entry.BlastRadius = float.Parse(v[29].Trim());
             }
 
             entry.Data = data;
