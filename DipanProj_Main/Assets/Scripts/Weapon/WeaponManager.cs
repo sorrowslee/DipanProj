@@ -95,6 +95,10 @@ public class WeaponManager : MonoBehaviour
             weapon.BeamColor = BeamStyleLibrary.GetColor(colorId);
             weapon.BeamWidth = (v.Length > 12 && !string.IsNullOrWhiteSpace(v[12])) ? float.Parse(v[12].Trim()) : 0.5f;
 
+            // 一次性特效 ID（引用 VfxTable）；留空 / 0 = 不觸發
+            weapon.FireEffectID = (v.Length > 13 && !string.IsNullOrWhiteSpace(v[13])) ? int.Parse(v[13].Trim()) : 0;
+            weapon.HitEffectID = (v.Length > 14 && !string.IsNullOrWhiteSpace(v[14])) ? int.Parse(v[14].Trim()) : 0;
+
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
 

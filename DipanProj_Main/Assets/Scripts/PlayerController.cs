@@ -25,6 +25,7 @@ public class PlayerController : MonoBehaviour
     private SpriteRenderer _spriteRenderer;
     private WeaponManager _weaponManager;
     private GroundEffectManager _groundEffectManager;
+    private VfxManager _vfxManager;
     private HitReactionHandler _hitReaction;
     private float _fireTimer = 0f;
     private float _currentHealth;
@@ -72,6 +73,12 @@ public class PlayerController : MonoBehaviour
         if (_groundEffectManager == null)
         {
             Debug.LogWarning("GroundEffectManager not found in scene; recipes with GroundEffectID will be ignored.");
+        }
+
+        _vfxManager = FindObjectOfType<VfxManager>();
+        if (_vfxManager == null)
+        {
+            Debug.LogWarning("VfxManager not found in scene; weapons with FireEffectID / HitEffectID will be ignored.");
         }
     }
 
@@ -174,6 +181,9 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        // 發射特效：每次離散發射在玩家身上播一次，朝瞄準方向
+        TrySpawnFireEffect(weapon, AimDirectionToMouse());
+
         if (recipe.IsOrbital)
         {
             ShootOrbital(weapon, recipe);
@@ -238,7 +248,11 @@ public class PlayerController : MonoBehaviour
         float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
 
         if (_activeBeams.Count == 0)
+        {
             SpawnLaserBeams(weapon);
+            // 發射特效：雷射在按下瞬間播一次砲口特效（持續光束不每幀重播）
+            TrySpawnFireEffect(weapon, baseDir);
+        }
 
         for (int i = 0; i < _activeBeams.Count; i++)
         {
@@ -323,6 +337,7 @@ public class PlayerController : MonoBehaviour
             }
 
             TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, point, hitEnemy, hitEnv, false);
+            TrySpawnHitEffect(firedWeapon, point);
             TrySpawnBeamSplit(firedWeapon, point);
         }
     }
@@ -558,13 +573,15 @@ public class PlayerController : MonoBehaviour
 
         Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
         TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, spawnPos, hitEnemy, hitEnv, false);
+        TrySpawnHitEffect(firedWeapon, spawnPos);
     }
 
     private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)
     {
         if (firedWeapon == null) return;
-        // 拋物線最終落地：不結算傷害（飛行中不撞怪），只觸發地面特效
+        // 拋物線最終落地：不結算傷害（飛行中不撞怪），只觸發地面特效與擊中特效
         TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, landPos, false, false, true);
+        TrySpawnHitEffect(firedWeapon, landPos);
     }
 
     private void TryTriggerGroundEffect(RecipeEntry recipe, GroundEffectTrigger trigger, Vector2 spawnPos, bool hitEnemy, bool hitEnv, bool hitGround)
@@ -591,6 +608,28 @@ public class PlayerController : MonoBehaviour
         if (!allowed) return;
 
         _groundEffectManager.Spawn(recipe.GroundEffectID, spawnPos);
+    }
+
+    // ── 一次性特效（VFX）：發射特效生在玩家身上、擊中特效生在命中點，皆讀發射快照武器 ──
+    private Vector2 AimDirectionToMouse()
+    {
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePos.z = 0f;
+        Vector2 dir = (Vector2)mousePos - (Vector2)transform.position;
+        return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.right;
+    }
+
+    private void TrySpawnFireEffect(WeaponData weapon, Vector2 aimDir)
+    {
+        if (_vfxManager == null || weapon == null || weapon.FireEffectID <= 0) return;
+        float angle = Mathf.Atan2(aimDir.y, aimDir.x) * Mathf.Rad2Deg;
+        _vfxManager.Spawn(weapon.FireEffectID, transform.position, angle);
+    }
+
+    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos)
+    {
+        if (_vfxManager == null || firedWeapon == null || firedWeapon.HitEffectID <= 0) return;
+        _vfxManager.Spawn(firedWeapon.HitEffectID, pos, 0f);
     }
 
     public void TakeDamage(float amount, Vector2 hitDirection)

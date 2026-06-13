@@ -20,6 +20,10 @@ public class WeaponData
     public Color BeamColor = Color.white;  // 由 BeamColor 編號(1~10)解析的顏色
     public float BeamWidth = 0.5f;         // 雷射粗細（視覺與命中共用）
 
+    // ── 一次性特效（VFX）ID，引用 VfxTable；0 / 留空 = 不觸發 ──
+    public int FireEffectID;   // 發射時在玩家身上播放（朝瞄準方向）
+    public int HitEffectID;    // 子彈／光束命中怪物、障礙物、拋物線落地時，在命中點播放
+
     public RecipeEntry Recipe;
     public GameObject BulletPrefab;
     public Sprite WeaponSprite;
