@@ -1,3 +1,5 @@
-ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編號與副檔名), AniNumber(序列圖張數), AnimFPS(播放幀率), Scale(縮放倍率/空為1), Loop(是否循環/0播一輪自毀1循環/空為0), Duration(僅Loop=1時的存活秒數)
-1, 爆炸, VfxEffects/Explosive/Explosive,8, 20,1, 0,
-2,冰凍, VfxEffects/Frozen/Frozen,5,10,0.5, 0,
+ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編號與副檔名), AniNumber(序列圖張數), AnimFPS(播放幀率), Scale(縮放倍率/空為1), Loop(是否循環/0播一輪自毀1循環/空為0), Duration(僅Loop=1時的存活秒數), SortingOrder(排序層級/留空用VfxManager全域預設/角色為10故地刺類填<10畫在腳下)
+1, 爆炸, VfxEffects/Explosive/Explosive,8, 20,1, 0,,
+2,冰凍, VfxEffects/Frozen/Frozen,5,10,0.5, 0,,
+3,地刺, VfxEffects/EarthSpik/EarthSpik,7,10,0.5,0,,5
+4,火球, VfxEffects/FireBall/FireBall,4,10,0.5,0,,5

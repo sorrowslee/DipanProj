@@ -36,6 +36,8 @@
 * **`BlastRadius` 與地面特效獨立、可並存**：一顆炸彈可以「落地炸一次（BlastRadius，瞬間）＋ 再留一灘火延燒（GroundEffect 的 `Damage` / `DamageInterval`，持續）」；也可只要其中一個。兩者傷害分別計算（互不串接）
 * 互斥：與 `IsOrbital` 互斥（同時填 1 行為衝突）；`PierceCount` / `BounceTarget` / `MaxBounces` 在拋物線下無意義（飛行中不參與命中）；`SplitTiming` / `SubRecipeID` 不建議混搭（拋物線自己處理 SpreadCount，SplitBehavior 的 OnHit 不會觸發、OnSpawn 又會再炸一輪）
 
+> **地刺類武器不在這裡**：早期曾用「沿線連續生成 GroundEffect」做地刺（IsGroundWave），但地表特效不會飛、吃不到反彈/分裂等行為，已移除。地刺改用「軌跡特效」——一顆隱形子彈沿路種尖刺 Vfx，自動繼承所有彈道行為。見 [BALLISTICS.md](BALLISTICS.md) 的 `OnTrailPoint` 與 [VFX.md](VFX.md) 的 `TrailEffectID`。
+
 ## 執行單元
 * `GroundEffectManager`（場景單例，掛在主物件上）：CSV 載入、序列圖預載、`Spawn(id, position)` API
 * `GroundEffectInstance`（掛在 Prefab 上）：採 **真實圓形掃描（aligned scanline）**渲染——以原點為中心掃整數網格 `(i, j)`，當 `(i*TileSize)² + (j*TileSize)² ≤ Radius²` 就放一個 tile，嚴格對齊網格、上下左右對稱。每個 tile 動態 `AddComponent<SpriteRenderer>` 並繼承 prefab 範本的排序設定，動畫由父物件統一切幀同步顯示。**鋪面範圍嚴格貼齊 Radius**（與 `OverlapCircleAll` 傷害判定一致）。圓滑度取決於解析度：`R / TileSize ≥ 4` 才看得出明顯圓形，例如 `R=1.5、TileSize=0.3` ≈ 81 顆呈圓形；`R=1.5、TileSize=1` 只有 3×3 = 9 顆是 resolution 限制。實際 tile 數 > 500 時會在 Console 印一次 LogWarning，但仍照生成

@@ -35,7 +35,8 @@
 | `dotInterval` | `DotInterval` | 雷射傷害節拍（秒）：每 N 秒對當下掃到的目標各結算一次傷害；留空 = 0.5 |
 | `BeamRange` | `BeamRange` | 雷射最大射程（世界單位）；Speed / LifeTime 對光束無意義，改用此欄限制長度；留空 = 20 |
 
-> 地面特效相關欄位（`GroundEffectID` / `GroundEffectTrigger` / `GroundEffectHitTarget`）與拋物線欄位（`IsParabolic` / `ArcHeight` / `LaunchSource` / `LandingScatterRadius` / `BlastRadius` 落地殺傷半徑）也在 RecipeTable，記在 [GROUND_EFFECT.md](GROUND_EFFECT.md)。
+> 地面特效相關欄位（`GroundEffectID` / `GroundEffectTrigger` / `GroundEffectHitTarget`）、拋物線欄位（`IsParabolic` / `ArcHeight` / `LaunchSource` / `LandingScatterRadius` / `BlastRadius` 落地殺傷半徑）也在 RecipeTable，記在 [GROUND_EFFECT.md](GROUND_EFFECT.md)。
+> 軌跡欄位 `TrailStep`（沿路種特效，做地刺類武器）見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 與 [BALLISTICS.md](BALLISTICS.md) 的 `OnTrailPoint`。
 
 ## 武器表 (WeaponTable.csv)
 定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。
@@ -57,6 +58,7 @@
 | `BeamWidth` | 雷射粗細（**視覺與命中判定共用此欄**，所見即所得）；留空 = 0.5 |
 | `FireEffectID` | 發射特效 ID（引用 `VfxTable`）：發射時在玩家身上播一次、朝瞄準方向；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `HitEffectID` | 擊中特效 ID（引用 `VfxTable`）：子彈／光束命中怪物、障礙物、拋物線落地時在命中點播一次；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
+| `TrailEffectID` | 軌跡特效 ID（引用 `VfxTable`）：沿子彈飛行路徑每隔配方的 `TrailStep` 距離種一個（**地刺類武器**靠這個沿路長出尖刺）；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 
 ## 序列圖動畫設定說明
 

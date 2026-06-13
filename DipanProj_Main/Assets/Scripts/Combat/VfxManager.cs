@@ -48,7 +48,8 @@ public class VfxManager : MonoBehaviour
 
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sortingLayerName = SortingLayerName;
-        sr.sortingOrder = SortingOrder;
+        // 每個特效可在 VfxTable 自填 SortingOrder（例如地刺設低於角色讓它在腳下）；留空才用本 Manager 的全域預設。
+        sr.sortingOrder = data.HasSortingOrder ? data.SortingOrder : SortingOrder;
         if (VfxMaterial != null) sr.sharedMaterial = VfxMaterial;
 
         var instance = go.AddComponent<VfxInstance>();
@@ -83,6 +84,12 @@ public class VfxManager : MonoBehaviour
             if (data.Scale <= 0f) data.Scale = 1f;
             data.Loop = (v.Length > 6 && !string.IsNullOrWhiteSpace(v[6])) && int.Parse(v[6].Trim()) != 0;
             data.Duration = (v.Length > 7 && !string.IsNullOrWhiteSpace(v[7])) ? float.Parse(v[7].Trim()) : 0f;
+            // 留空 = 用 VfxManager 全域 SortingOrder；填了 = 本特效專屬排序（地刺填低於角色的值 → 畫在腳下）
+            if (v.Length > 8 && !string.IsNullOrWhiteSpace(v[8]))
+            {
+                data.HasSortingOrder = true;
+                data.SortingOrder = int.Parse(v[8].Trim());
+            }
 
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)
             {

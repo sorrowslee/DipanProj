@@ -21,6 +21,7 @@
 | `HasSplit` / `SplitCount` / `SpreadAngle` / `Timing` | 是否分裂 / 數量 / 角度 / 時機 |
 | `SubProjectileData` | 分裂產生的子彈配方（透過 SubRecipeID 查表解析） |
 | `IsOrbital` / `OrbitalRadius` / `OrbitalCount` | 是否環繞 / 環繞半徑 / 環繞數量 |
+| `TrailStep` | 軌跡點間距（世界單位）；**>0** 時每飛這麼遠觸發一次 `OnTrailPoint`，0 = 無軌跡 |
 
 ## BallisticsEngine（靜態引擎）
 ```
@@ -38,6 +39,7 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * 穿透邏輯：命中目標在 `PierceableLayers` 內時，若 `PierceCount > 0` 則不銷毀並遞減；若 `PierceCount < 0`（例如 -1）則不銷毀且不遞減（無限穿透）。
 * 存活時間：`LifeTime < 0`（例如 -1）時不因時間銷毀；否則每幀倒數，歸零時銷毀。
 * `OnGroundLanded` 事件：拋物線彈抵達落點時觸發（見 [GROUND_EFFECT.md](GROUND_EFFECT.md) 的拋物線章節）。
+* `OnTrailPoint` 事件（**沿路種特效的鉤子**）：`TrailStep > 0` 時，子彈每飛 `TrailStep` 世界距離就回報一次「經過此點」（用實際位移累計，故反彈/追蹤/分裂後的彎折路徑都能正確跟著種）。**彈道系統不知道種的是什麼**（尖刺／火痕…），由主遊戲在 callback 內決定（例如 `VfxManager.Spawn`），維持解耦。分裂出的子彈會繼承父彈的 `OnTrailPoint` 與 `TrailStep`。**地刺類武器**＝隱形子彈（無飛行圖自動隱形）＋沿路種尖刺 Vfx，因此自動吃滿反彈/分裂/穿透/追蹤等所有彈道行為。`Spawn(...)` 末尾參數 `onTrailPoint` 接此事件。
 
 ## IBulletBehavior（行為介面）
 | 行為 | 說明 |

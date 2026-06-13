@@ -98,6 +98,7 @@ public class WeaponManager : MonoBehaviour
             // 一次性特效 ID（引用 VfxTable）；留空 / 0 = 不觸發
             weapon.FireEffectID = (v.Length > 13 && !string.IsNullOrWhiteSpace(v[13])) ? int.Parse(v[13].Trim()) : 0;
             weapon.HitEffectID = (v.Length > 14 && !string.IsNullOrWhiteSpace(v[14])) ? int.Parse(v[14].Trim()) : 0;
+            weapon.TrailEffectID = (v.Length > 15 && !string.IsNullOrWhiteSpace(v[15])) ? int.Parse(v[15].Trim()) : 0;
 
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
@@ -126,7 +127,7 @@ public class WeaponManager : MonoBehaviour
             {
                 // 雷射武器使用光束自身視覺（beam_core / 光暈），不需要 WeaponSprite
             }
-            else
+            else if (!string.IsNullOrWhiteSpace(weapon.WeaponSpritePath))
             {
                 Sprite sprite = Resources.Load<Sprite>(weapon.WeaponSpritePath);
                 if (sprite != null)
@@ -138,6 +139,7 @@ public class WeaponManager : MonoBehaviour
                     Debug.LogWarning($"Weapon sprite not found at Resources path '{weapon.WeaponSpritePath}' for weapon '{weapon.Name}'.");
                 }
             }
+            // WeaponSpritePath 留空且非動畫 = 隱形子彈（例如地刺，只靠 TrailEffectID 沿路種刺），不需飛行圖
 
             _weapons[weapon.ID] = weapon;
             _weaponIDs.Add(weapon.ID);

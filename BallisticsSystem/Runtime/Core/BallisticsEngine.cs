@@ -42,23 +42,24 @@ namespace Sorrows.Ballistics
             return beam;
         }
 
-        public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f)
+        public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null)
         {
-            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset, scale, animationSprites, animFPS);
+            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset, scale, animationSprites, animFPS, onTrailPoint);
         }
 
-        internal static BulletInstance Internal_SpawnSplit(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Vector3 scale = default)
+        internal static BulletInstance Internal_SpawnSplit(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Vector3 scale = default, Action<BulletInstance, Vector2> onTrailPoint = null)
         {
-            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, null, 0f, scale);
+            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, null, 0f, scale, null, 0f, onTrailPoint);
         }
 
-        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f)
+        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null)
         {
             GameObject go = UnityEngine.Object.Instantiate(prefab, position, Quaternion.identity);
             BulletInstance instance = go.GetComponent<BulletInstance>();
             if (instance != null)
             {
                 if (onHit != null) instance.OnBulletHitObject += onHit;
+                if (onTrailPoint != null) instance.OnTrailPoint += onTrailPoint;
 
                 SpriteRenderer sr = go.GetComponent<SpriteRenderer>();
 
@@ -71,6 +72,11 @@ namespace Sorrows.Ballistics
                 else if (bulletSprite != null)
                 {
                     if (sr != null) sr.sprite = bulletSprite;
+                }
+                else if (sr != null)
+                {
+                    // 沒給任何圖 = 隱形子彈（例如地刺：載體不顯示，只靠沿路種出的特效呈現）
+                    sr.sprite = null;
                 }
 
                 if (spriteAngleOffset != 0f)
@@ -87,6 +93,7 @@ namespace Sorrows.Ballistics
                 instance.PierceableLayers = pierceableLayers;
                 instance.NonBounceLayers = nonBounceLayers;
                 instance.PierceCount = def.PierceCount;
+                instance.TrailStep = def.TrailStep;
 
                 if (instance.SpriteAngleOffset != 0f)
                 {

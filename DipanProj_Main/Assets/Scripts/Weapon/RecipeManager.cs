@@ -104,7 +104,7 @@ public class RecipeManager : MonoBehaviour
                 data.MaxBounces = maxBounces;
             }
 
-            if (v.Length >= 15)
+            if (v.Length >= 15 && !string.IsNullOrWhiteSpace(v[14]))
             {
                 float homingTurnSpeed = float.Parse(v[14].Trim());
                 if (homingTurnSpeed > 0f)
@@ -194,6 +194,12 @@ public class RecipeManager : MonoBehaviour
                 entry.BlastRadius = float.Parse(v[29].Trim());
             }
 
+            // 軌跡點間距：> 0 時，子彈每飛這麼遠就觸發 OnTrailPoint，主遊戲沿路種特效（地刺武器靠這個沿路長出尖刺）
+            if (v.Length >= 31 && !string.IsNullOrWhiteSpace(v[30]))
+            {
+                data.TrailStep = float.Parse(v[30].Trim());
+            }
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }
@@ -234,6 +240,7 @@ public class RecipeManager : MonoBehaviour
             sub.IsOrbital = data.IsOrbital;
             sub.OrbitalRadius = data.OrbitalRadius;
             sub.OrbitalCount = data.OrbitalCount;
+            sub.TrailStep = data.TrailStep;
             data.SubProjectileData = sub;
         }
     }

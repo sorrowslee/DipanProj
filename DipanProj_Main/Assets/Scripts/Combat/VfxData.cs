@@ -23,5 +23,10 @@ public class VfxData
     /// <summary>僅 Loop = true 時有意義：循環存活秒數。Loop = false 時忽略（壽命 = 一輪動畫長度）。</summary>
     public float Duration;
 
+    /// <summary>是否覆寫排序：true 時用本特效自己的 SortingOrder，false 時用 VfxManager 的全域預設。</summary>
+    public bool HasSortingOrder;
+    /// <summary>本特效的 SortingOrder（僅 HasSortingOrder = true 時生效）。例如地刺設成低於角色(10)的值讓它畫在腳下。</summary>
+    public int SortingOrder;
+
     public Sprite[] AnimationSprites;
 }

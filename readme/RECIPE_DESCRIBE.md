@@ -38,6 +38,7 @@
 | dotInterval | 小數 | 否 | 雷射專用：傷害節拍（秒）。光束每 N 秒對當下掃到的所有目標各結算一次傷害（傷害值取武器表 Damage）；留空 = 0.5 |
 | BeamRange | 小數 | 否 | 雷射專用：光束最大射程（世界單位）。Speed / LifeTime 對光束無意義，改用此欄位限制長度；留空 = 20 |
 | BlastRadius | 小數 | 否 | 拋物線專用：落地殺傷半徑（世界單位）。留空 / 0 = 落地不傷害；> 0 = 落地瞬間以武器表 Damage 對半徑內怪物炸一次。與地面特效獨立、可並存 |
+| TrailStep | 小數 | 否 | 軌跡點間距（世界單位）：> 0 時子彈每飛這麼遠就沿路種一個特效（搭配武器表 `TrailEffectID`）。子彈反彈/分裂/追蹤後的彎折路徑都會跟著種。地刺武器靠這個沿路長出尖刺。0 或留空 = 無軌跡 |
 
 ---
 
@@ -240,6 +241,14 @@
 12, 玩家丟出火焰拋物線彈, 1, 0.1, 10, 0.5, 0, 0, 5, 60, , , None, 0, 0, , , , , 1, OnHit, Ground, 1, 2.5, Player, 1.5
 ```
 固定飛行時間 1 秒，弧高 2.5 單位；一次丟 5 顆，分布在玩家 → 滑鼠方向 ±30° 的扇形上、與滑鼠等距，並在每個扇形目標 1.5 單位半徑內隨機落點。落地後生成地面特效 ID 1（火焰燃燒）。
+
+### TrailStep（軌跡特效 / 地刺類武器）
+- 概念：`TrailStep > 0` 時，子彈每飛這麼遠就沿路「種」一個特效（由武器表 `TrailEffectID` 指定要種什麼）。**這是把「移動的載體」和「視覺」拆開**——載體是一顆正常子彈（吃滿 RecipeTable 行為），視覺是沿路種出的 Vfx。
+- **地刺武器就是這樣做的**：一顆**隱形**（武器表不填飛行圖）的正常子彈，沿路每隔 `TrailStep` 種一根尖刺 Vfx。因為它是正常子彈，所以**自動繼承全部行為**：反彈 → 尖刺軌跡跟著折、分裂 → 尖刺分岔成多條、追蹤 → 尖刺蛇行咬向敵人、散射 → 一次多條尖刺線。
+- 傷害：走**武器表 `Damage`**（子彈正常命中結算，建議 `PierceCount = -1` 讓整條線穿透所有敵人），**不是地表 DOT**。
+- 分裂繼承：分裂出的子彈會繼承父彈的 `OnTrailPoint`（同一個尖刺 Vfx）與 `TrailStep`，所以分岔的每條線都會種刺。
+- 與其他欄位：`Speed`（線推進速度）、`LifeTime`（線多長/多遠 = Speed×LifeTime）、`Radius`（命中寬度）、`BounceTarget`/`MaxBounces`、`HomingTurnSpeed`、`SpreadCount`/`SpreadAngle` 全部適用。`RotationSpeed`（自轉）對「種在地上的刺」沒意義，屬不相干欄位。
+- 範例組合：武器「地裂刺」`RecipeID=19, Damage=3, TrailEffectID=3`（隱形、不填飛行圖）；配方 19 `Speed=16, Radius=0.3, LifeTime=0.6, PierceCount=-1, TrailStep=1.5`；VfxTable ID 3「地刺」= earthSpik 序列圖（`Scale=0.35, Loop=0`）。要加反彈就把配方 19 的 `BounceTarget` 填 `Environment`，尖刺線就會撞牆折射。
 
 ### GroundEffectTable.csv 欄位（簡述，獨立於本文件）
 - `ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize`

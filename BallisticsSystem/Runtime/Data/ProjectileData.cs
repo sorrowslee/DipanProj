@@ -41,6 +41,9 @@ namespace Sorrows.Ballistics
         /// <summary>光束最大射程（世界單位）。Speed / LifeTime 對光束無意義，改用此欄位限制長度。</summary>
         public float BeamRange = 20f;
 
+        /// <summary>軌跡點間距（世界單位）：&gt; 0 時，子彈每飛 TrailStep 距離就觸發一次 OnTrailPoint（主遊戲沿路種特效，如地刺）。0 = 無軌跡。</summary>
+        public float TrailStep = 0f;
+
         public List<IBulletBehavior> CreateBehaviors()
         {
             var list = new List<IBulletBehavior>();

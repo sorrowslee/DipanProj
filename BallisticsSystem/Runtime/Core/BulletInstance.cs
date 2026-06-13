@@ -16,10 +16,14 @@ namespace Sorrows.Ballistics
     [HideInInspector] public float SpriteAngleOffset = 0f;
     [HideInInspector] public Sprite[] AnimationSprites;
     [HideInInspector] public float AnimFPS;
+    // 軌跡點間距（世界單位）：> 0 時每飛這麼遠就觸發一次 OnTrailPoint。0 = 不產生軌跡。
+    [HideInInspector] public float TrailStep = 0f;
 
         public Action<BulletInstance, GameObject, RaycastHit2D> OnBulletHitObject;
         // 拋物線最終落地通知（不走 layer 命中流程）；非拋物線彈不會觸發
         public Action<BulletInstance, Vector2> OnGroundLanded;
+        // 沿飛行路徑每隔 TrailStep 距離回報一次「經過此點」。彈道系統不知道種的是什麼（尖刺/火痕…），由主遊戲決定。
+        public Action<BulletInstance, Vector2> OnTrailPoint;
 
         public void RaiseGroundLanded(Vector2 landPos)
         {
@@ -32,6 +36,8 @@ namespace Sorrows.Ballistics
         private SpriteRenderer _sr;
         private float _animTimer;
         private int _animFrame;
+        private float _trailAccum;
+        private Vector2 _trailLastPos;
 
         public void AddBehavior(IBulletBehavior behavior) => _behaviors.Add(behavior);
         public List<IBulletBehavior> GetBehaviors() => _behaviors;
@@ -40,6 +46,7 @@ namespace Sorrows.Ballistics
         private void Awake()
         {
             _sr = GetComponent<SpriteRenderer>();
+            _trailLastPos = transform.position;
         }
 
         // 生成時檢查起點周圍是否已有目標（處理 CircleCast 起點在 Collider 內部偵測不到的問題）
@@ -143,6 +150,20 @@ namespace Sorrows.Ballistics
                     _animTimer -= frameDuration;
                     _animFrame = (_animFrame + 1) % AnimationSprites.Length;
                     _sr.sprite = AnimationSprites[_animFrame];
+                }
+            }
+
+            // 軌跡點：每飛 TrailStep 距離回報一次「經過此點」（主遊戲沿路種特效）。
+            // 用實際位移累計，故反彈/追蹤/分裂後的彎折路徑都能正確跟著種。
+            if (TrailStep > 0f && OnTrailPoint != null)
+            {
+                Vector2 nowPos = transform.position;
+                _trailAccum += Vector2.Distance(nowPos, _trailLastPos);
+                _trailLastPos = nowPos;
+                while (_trailAccum >= TrailStep)
+                {
+                    _trailAccum -= TrailStep;
+                    OnTrailPoint.Invoke(this, transform.position);
                 }
             }
 

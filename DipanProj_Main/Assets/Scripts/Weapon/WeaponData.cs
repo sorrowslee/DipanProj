@@ -23,6 +23,7 @@ public class WeaponData
     // ── 一次性特效（VFX）ID，引用 VfxTable；0 / 留空 = 不觸發 ──
     public int FireEffectID;   // 發射時在玩家身上播放（朝瞄準方向）
     public int HitEffectID;    // 子彈／光束命中怪物、障礙物、拋物線落地時，在命中點播放
+    public int TrailEffectID;  // 沿子彈飛行路徑每隔 TrailStep 距離種一個（地刺武器靠這個沿路長出尖刺）
 
     public RecipeEntry Recipe;
     public GameObject BulletPrefab;

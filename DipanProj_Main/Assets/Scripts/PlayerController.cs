@@ -216,7 +216,8 @@ public class PlayerController : MonoBehaviour
         BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
             collisionMask, pierceableLayers, nonBounceLayers,
             (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
-            weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+            weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
+            (b, pos) => TrySpawnTrailEffect(firedWeapon, pos));
     }
 
     private void ClearActiveOrbitalBullets()
@@ -445,7 +446,8 @@ public class PlayerController : MonoBehaviour
             BulletInstance bullet = BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, startPos, fireDir,
                 collisionMask, pierceableLayers, nonBounceLayers,
                 null, // 拋物線不走 OnHit 流程
-                weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+                weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
+                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos));
 
             if (bullet == null) continue;
 
@@ -510,7 +512,8 @@ public class PlayerController : MonoBehaviour
             BulletInstance bullet = BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, tangent,
                 collisionMask, pierceableLayers, nonBounceLayers,
                 (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
-                weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS);
+                weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
+                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos));
 
             if (bullet != null)
             {
@@ -652,6 +655,14 @@ public class PlayerController : MonoBehaviour
     {
         if (_vfxManager == null || firedWeapon == null || firedWeapon.HitEffectID <= 0) return;
         _vfxManager.Spawn(firedWeapon.HitEffectID, pos, 0f);
+    }
+
+    // 沿子彈飛行路徑每隔 TrailStep 距離種一個特效（地刺武器：載體隱形、靠這個沿路長出尖刺）。
+    // 由 BulletInstance.OnTrailPoint 觸發；子彈反彈/分裂/追蹤後的彎折路徑都會跟著種。
+    private void TrySpawnTrailEffect(WeaponData firedWeapon, Vector2 pos)
+    {
+        if (_vfxManager == null || firedWeapon == null || firedWeapon.TrailEffectID <= 0) return;
+        _vfxManager.Spawn(firedWeapon.TrailEffectID, pos, 0f);
     }
 
     public void TakeDamage(float amount, Vector2 hitDirection)
