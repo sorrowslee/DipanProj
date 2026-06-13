@@ -59,6 +59,12 @@ namespace Sorrows.Ballistics
         public LayerMask PierceableLayers;
         public LayerMask NonBounceLayers;
 
+        /// <summary>是否畫出光束 mesh + 砲口/命中光暈。false = 只算幾何/命中（路徑交給主遊戲沿路鋪火焰 Vfx 等），不畫光束本體。</summary>
+        public bool DrawBeam = true;
+
+        /// <summary>當前光束折線路徑（世界座標、唯讀）。主遊戲可沿此鋪設特效（如火焰噴射器沿路鋪 FireBall）。每幀重算。</summary>
+        public IReadOnlyList<Vector2> Points => _points;
+
         /// <summary>每隔 DotInterval 秒回報一次當下命中清單（主遊戲據此結算傷害 / 地面特效 / OnHit 分裂）。</summary>
         public Action<LaserBeam, List<BeamHit>> OnBeamDamageTick;
 
@@ -116,10 +122,14 @@ namespace Sorrows.Ballistics
             _mf.sharedMesh = _mesh;
             _mr.sharedMaterial = _beamMat;
             _mr.sortingOrder = 50;
+            _mr.enabled = DrawBeam;   // 火焰模式不畫光束本體（改由主遊戲沿 Points 鋪火焰）
 
-            // 砲口 / 命中圓形光暈（用 glow shader，與光束本體分開）。倍率略大於光束寬度即可，讓「變粗」表現在本體上。
-            if (muzzleSprite != null) _muzzle = CreateGlow("MuzzleGlow", muzzleSprite, beamColor, beamWidth * 1.3f, 55);
-            if (impactSprite != null) _impact = CreateGlow("ImpactGlow", impactSprite, beamColor, beamWidth * 1.8f, 60);
+            // 砲口 / 命中圓形光暈（用 glow shader，與光束本體分開）。火焰模式不需要光暈。
+            if (DrawBeam)
+            {
+                if (muzzleSprite != null) _muzzle = CreateGlow("MuzzleGlow", muzzleSprite, beamColor, beamWidth * 1.3f, 55);
+                if (impactSprite != null) _impact = CreateGlow("ImpactGlow", impactSprite, beamColor, beamWidth * 1.8f, 60);
+            }
 
             _dotTimer = DotInterval; // 讓第一幀即可結算一次傷害
         }
@@ -165,8 +175,8 @@ namespace Sorrows.Ballistics
 
         private void Update()
         {
-            MarchBeam();
-            RenderBeam();
+            MarchBeam();               // 永遠重算路徑與命中（火焰模式也要靠 Points 鋪火焰、靠命中算傷害）
+            if (DrawBeam) RenderBeam(); // 火焰模式不畫光束 mesh / 不更新光暈
             TickDamage();
         }
 

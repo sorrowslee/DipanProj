@@ -7,7 +7,7 @@
 ## 玩家控制器 (PlayerController)
 
 * `Rigidbody2D (Dynamic)`，透過 `FixedUpdate` 設定 `_rb.velocity` 移動。
-* 持有 `WeaponManager` 引用與 `CurrentWeaponID`，透過 `SwitchWeapon(id)` 切換武器。
+* 持有 `WeaponManager` 引用與 `CurrentWeaponID`，透過 `SwitchWeapon(id)` 切換武器。**初始武器為武器表最後一號（最高 ID）**；按 `E` 呼叫 `WeaponManager.SwitchToPreviousWeapon()` 往前切（往較小 ID、繞回最高）。
 * 發射時從 `WeaponManager` 取得 `WeaponData` → `RecipeEntry` → `ProjectileData`，並將 `BounceTarget` 映射為 `NonBounceLayers`。
 * `ResolvePierceableLayers(RecipeEntry)`：依 `BlockedByEnvironment` 決定是否把 `EnvLayer` 加入 `PierceableLayers`，所有 `Shoot*` 路徑共用此方法，讓 CSV 欄位對所有武器（環繞、直射、分裂…）都能生效。
 * **環繞彈**：`ProjectileData.IsOrbital` 為真時走 `ShootOrbital`；每次發射前會先銷毀本玩家上一輪尚未消失的環繞子彈，再依 `OrbitalCount` 重新生成（`OnDestroy` 時亦會清掉，避免引用已銷毀的玩家 Transform）。

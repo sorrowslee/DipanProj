@@ -1,13 +1,10 @@
 ID(武器唯一識別碼), Name(武器名稱/僅供辨識), Damage(傷害數值/雷射時為每次DOT傷害), RecipeID(對應配方表的ID), WeaponSpritePath(武器圖路徑/相對Resources不含副檔名/與WeaponAniPath二擇一), SpriteAngleOffset(圖片角度偏移度/補正攻擊端朝向), WeaponAniPath(序列圖路徑前綴/有值時忽略WeaponSpritePath), WeaponAniNumber(序列圖張數), AnimFPS(序列圖播放幀率), BulletScale(子彈縮放倍率/空為1), BeamStyle(雷射種類編號/1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光/空為2), BeamColor(雷射顏色編號/1紅2橙3黃4綠5青6藍7紫8洋紅9白10琥珀金/空為9), BeamWidth(雷射粗細/視覺與命中共用/空為0.5), FireEffectID(發射特效ID/引用VfxTable/空或0不觸發), HitEffectID(擊中特效ID/引用VfxTable/空或0不觸發), TrailEffectID(軌跡特效ID/引用VfxTable/沿子彈路徑每隔配方TrailStep種一個/空或0不觸發)
- 1, 單一彎刀              ,      2,        2, Weapon/single/weapon_scimitar,                 0,              ,                ,        ,            ,,,,,
- 2, 3分裂追蹤飛劍         ,      1,        8, Weapon/single/weapon_sword   ,               135,              ,                ,        ,            ,,,,,2
- 3, 5分裂反彈彎刀         ,      2,        5, Weapon/single/weapon_scimitar,                 0,              ,                ,        ,            ,,,,,
- 4, 火焰環繞彈            ,      2,        9,                       ,                 0, Weapon/animation/fire/fire  ,               6,      12,           5,,,,,
- 5, 火焰拋擲彈(玩家丟出)  ,      5,       12, Weapon/single/weapon_bomb    ,                 0,              ,                ,        ,           2,,,,,1
- 6, 火焰拋擲彈(螢幕外丟出),      5,       13, Weapon/single/weapon_bomb    ,                 0,              ,                ,        ,           2,,,,,1
- 7, 雷射追蹤光束          ,      1,       14,                       ,                 0,              ,                ,        ,            ,1,5,1,,
-8, 雷射追蹤光束          ,      1,15,                       ,                 0,              ,                ,        ,            ,4,10,0.8,,
-9, 雷射追蹤光束          ,      1,16,                       ,                 0,              ,                ,        ,            ,6,5,1,,
-10, 雷射追蹤光束          ,      1,17,                       ,                 0,              ,                ,        ,            ,8,5,1,,
-11, 雷射追蹤光束          ,      1,18,                       ,                 0,              ,                ,        ,            ,10,5,1,,
-12,地裂刺,3,19,,0,,,,,,,,,,3
+ 1, 單一彎刀              ,      2,        2, Weapon/single/weapon_scimitar,                 0,              ,                ,        ,            ,,,,,,
+ 2, 3分裂追蹤飛劍         ,      1,        8, Weapon/single/weapon_sword   ,               135,              ,                ,        ,            ,,,,,2,
+ 3, 5分裂反彈彎刀         ,      2,        5, Weapon/single/weapon_scimitar,                 0,              ,                ,        ,            ,,,,,,
+ 4, 火焰環繞彈            ,      2,        9,                       ,                 0, Weapon/animation/fire/fire  ,               6,      12,           5,,,,,,
+ 5, 火焰拋擲彈(玩家丟出)  ,      5,       12, Weapon/single/weapon_bomb    ,                 0,              ,                ,        ,           2,,,,,1,
+ 6, 火焰拋擲彈(螢幕外丟出),      5,       13, Weapon/single/weapon_bomb    ,                 0,              ,                ,        ,           2,,,,,1,
+7, 雷射追蹤光束          ,      1,17,                       ,                 0,              ,                ,        ,            ,8,5,1,,,
+8,地裂刺,3,19,,0,,,,,,,,,,3
+9,火焰噴射器,2,20,,0,,,,,,,1.2,,,4

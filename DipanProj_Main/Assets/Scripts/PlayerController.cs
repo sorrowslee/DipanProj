@@ -36,6 +36,9 @@ public class PlayerController : MonoBehaviour
     private readonly List<LaserBeam> _activeBeams = new List<LaserBeam>();
     private readonly List<float> _beamAngleOffsets = new List<float>();
     private WeaponData _activeBeamWeapon;
+    // 火焰噴射器：雷射的 TrailEffectID > 0 時，沿光束路徑維護一排循環火焰 Vfx（不畫光束本體）
+    private readonly List<GameObject> _flameVfx = new List<GameObject>();
+    private static readonly List<Vector2> _flamePosBuffer = new List<Vector2>(64);
 
     public bool isFacingRightByDefault = true;
 
@@ -108,7 +111,7 @@ public class PlayerController : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.E) && _weaponManager != null)
         {
-            _weaponManager.SwitchToNextWeapon();
+            _weaponManager.SwitchToPreviousWeapon();
         }
 
         if (_fireTimer > 0) _fireTimer -= Time.deltaTime;
@@ -263,6 +266,85 @@ public class PlayerController : MonoBehaviour
             beam.Origin = origin;
             beam.AimDirection = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang));
         }
+
+        // 火焰噴射器：沿光束路徑維護一排循環火焰 Vfx（跟著光束掃）
+        if (weapon.TrailEffectID > 0)
+            UpdateFlameColumn(weapon);
+    }
+
+    // ── 火焰噴射器：把火焰 Vfx 沿所有光束路徑、每隔 TrailStep 鋪一根，每幀重新定位（跟著掃）──
+    // 火焰 Vfx 用 Loop=1 + Duration=-1（無限循環），生死由本方法/ClearActiveBeams 管理。
+    private void UpdateFlameColumn(WeaponData weapon)
+    {
+        if (_vfxManager == null || weapon.TrailEffectID <= 0) return;
+
+        float step = (weapon.Recipe != null && weapon.Recipe.Data != null && weapon.Recipe.Data.TrailStep > 0f)
+            ? weapon.Recipe.Data.TrailStep : 0.5f;
+
+        // 1) 收集所有光束路徑上、每隔 step 的火焰位置
+        _flamePosBuffer.Clear();
+        for (int b = 0; b < _activeBeams.Count; b++)
+        {
+            if (_activeBeams[b] != null)
+                SampleAlongPath(_activeBeams[b].Points, step, _flamePosBuffer);
+        }
+
+        int need = _flamePosBuffer.Count;
+
+        // 2) 移除多餘的火焰
+        while (_flameVfx.Count > need)
+        {
+            int last = _flameVfx.Count - 1;
+            if (_flameVfx[last] != null) Destroy(_flameVfx[last]);
+            _flameVfx.RemoveAt(last);
+        }
+
+        // 3) 重用現有火焰（重新定位）、不足則補生
+        for (int i = 0; i < need; i++)
+        {
+            if (i < _flameVfx.Count && _flameVfx[i] != null)
+            {
+                _flameVfx[i].transform.position = _flamePosBuffer[i];
+            }
+            else
+            {
+                VfxInstance inst = _vfxManager.Spawn(weapon.TrailEffectID, _flamePosBuffer[i], 0f);
+                GameObject go = (inst != null) ? inst.gameObject : null;
+                if (i < _flameVfx.Count) _flameVfx[i] = go;
+                else _flameVfx.Add(go);
+            }
+        }
+    }
+
+    // 沿折線路徑每隔 step 取樣一個點。供火焰柱沿光束鋪設用。
+    // 第一根從砲口前方 step 處開始（不放在砲口/角色身上，避免第一顆火焰被壓在角色身下）。
+    // 註：這只影響火焰「視覺」位置；命中判定由 LaserBeam 的 CircleCast + 砲口 OverlapCircle 處理，貼身怪照樣打得到。
+    private static void SampleAlongPath(System.Collections.Generic.IReadOnlyList<Vector2> points, float step, List<Vector2> outPositions)
+    {
+        if (points == null || points.Count < 2 || step <= 0f) return;
+        float nextAt = step;   // 跳過起點(角色位置)，第一根火焰在前方 step 處
+        float cum = 0f;
+        for (int s = 0; s < points.Count - 1; s++)
+        {
+            Vector2 a = points[s], b = points[s + 1];
+            float segLen = Vector2.Distance(a, b);
+            if (segLen < 1e-5f) continue;
+            Vector2 dir = (b - a) / segLen;
+            float segEnd = cum + segLen;
+            while (nextAt <= segEnd)
+            {
+                outPositions.Add(a + dir * (nextAt - cum));
+                nextAt += step;
+            }
+            cum = segEnd;
+        }
+    }
+
+    private void ClearActiveFlames()
+    {
+        for (int i = 0; i < _flameVfx.Count; i++)
+            if (_flameVfx[i] != null) Destroy(_flameVfx[i]);
+        _flameVfx.Clear();
     }
 
     private void SpawnLaserBeams(WeaponData weapon)
@@ -292,12 +374,15 @@ public class PlayerController : MonoBehaviour
             }
             _beamAngleOffsets.Add(offset);
 
+            // TrailEffectID > 0 = 火焰噴射器模式：不畫光束 mesh，改沿路徑鋪火焰 Vfx
+            bool drawBeam = weapon.TrailEffectID <= 0;
             LaserBeam beam = BallisticsEngine.SpawnBeam(
                 recipe, origin, Vector2.right,
                 collisionMask, pierceableLayers, nonBounceLayers,
                 weapon.BeamStyle, weapon.BeamColor, width,
                 weapon.BeamMuzzleSprite, weapon.BeamImpactSprite,
-                (b, hits) => HandleBeamTick(firedWeapon, b, hits));
+                (b, hits) => HandleBeamTick(firedWeapon, b, hits),
+                drawBeam);
             _activeBeams.Add(beam);
         }
     }
@@ -309,6 +394,7 @@ public class PlayerController : MonoBehaviour
         _activeBeams.Clear();
         _beamAngleOffsets.Clear();
         _activeBeamWeapon = null;
+        ClearActiveFlames();   // 火焰噴射器：放開/切武器時一併清掉火焰柱
     }
 
     // 光束每 DotInterval 秒回報一次當下命中清單 → 在此結算傷害 / 地面特效 / OnHit 分裂

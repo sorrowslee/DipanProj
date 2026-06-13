@@ -14,7 +14,8 @@ namespace Sorrows.Ballistics
             LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers,
             BeamStyle style, Color beamColor, float beamWidth,
             Sprite muzzleSprite, Sprite impactSprite,
-            Action<LaserBeam, List<LaserBeam.BeamHit>> onTick)
+            Action<LaserBeam, List<LaserBeam.BeamHit>> onTick,
+            bool drawBeam = true)
         {
             var go = new GameObject("LaserBeam");
             // 渲染改為自繪 mesh：RequireComponent 會在 AddComponent<LaserBeam> 時自動補上 MeshFilter/MeshRenderer。
@@ -37,6 +38,7 @@ namespace Sorrows.Ballistics
             beam.PierceableLayers = pierceableLayers;
             beam.NonBounceLayers = nonBounceLayers;
             beam.OnBeamDamageTick = onTick;
+            beam.DrawBeam = drawBeam;   // false = 火焰模式：不畫光束 mesh，路徑交給主遊戲沿路鋪火焰
 
             beam.Setup(style, beamColor, beamWidth, muzzleSprite, impactSprite);
             return beam;
@@ -44,7 +46,9 @@ namespace Sorrows.Ballistics
 
         public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null)
         {
-            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset, scale, animationSprites, animFPS, onTrailPoint);
+            // hideIfNoSprite=true：初始發射時若沒給圖 = 隱形子彈（地刺/火焰噴射器的隱形載體）。
+            // 分裂子彈走 Internal_SpawnSplit（hideIfNoSprite=false），保留從母彈複製來的圖、不被清空。
+            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset, scale, animationSprites, animFPS, onTrailPoint, true);
         }
 
         internal static BulletInstance Internal_SpawnSplit(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Vector3 scale = default, Action<BulletInstance, Vector2> onTrailPoint = null)
@@ -52,7 +56,7 @@ namespace Sorrows.Ballistics
             return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, null, 0f, scale, null, 0f, onTrailPoint);
         }
 
-        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null)
+        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null, bool hideIfNoSprite = false)
         {
             GameObject go = UnityEngine.Object.Instantiate(prefab, position, Quaternion.identity);
             BulletInstance instance = go.GetComponent<BulletInstance>();
@@ -73,9 +77,10 @@ namespace Sorrows.Ballistics
                 {
                     if (sr != null) sr.sprite = bulletSprite;
                 }
-                else if (sr != null)
+                else if (hideIfNoSprite && sr != null)
                 {
-                    // 沒給任何圖 = 隱形子彈（例如地刺：載體不顯示，只靠沿路種出的特效呈現）
+                    // 初始發射且沒給任何圖 = 隱形子彈（地刺/火焰：載體不顯示，靠沿路特效呈現）。
+                    // 分裂子彈不走這裡（hideIfNoSprite=false），保留從母彈複製來的圖，避免整排分裂彈消失。
                     sr.sprite = null;
                 }
 

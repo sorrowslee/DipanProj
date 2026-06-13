@@ -15,6 +15,9 @@ public class WeaponManager : MonoBehaviour
     void Start()
     {
         LoadWeapons();
+        // 初始武器 = 武器表裡的最後一號（_weaponIDs 已排序，最後一個 = 最高 ID）
+        if (_weaponIDs.Count > 0)
+            CurrentWeaponID = _weaponIDs[_weaponIDs.Count - 1];
         RefreshCurrentWeapon();
     }
 
@@ -29,13 +32,14 @@ public class WeaponManager : MonoBehaviour
         RefreshCurrentWeapon();
     }
 
-    public void SwitchToNextWeapon()
+    // 往前切換武器：往較小 ID 方向移動；到第一個再繞回最後一個
+    public void SwitchToPreviousWeapon()
     {
         if (_weaponIDs.Count == 0) return;
 
         int currentIndex = _weaponIDs.IndexOf(CurrentWeaponID);
-        int nextIndex = (currentIndex + 1) % _weaponIDs.Count;
-        SwitchWeapon(_weaponIDs[nextIndex]);
+        int prevIndex = (currentIndex - 1 + _weaponIDs.Count) % _weaponIDs.Count;
+        SwitchWeapon(_weaponIDs[prevIndex]);
     }
 
     public WeaponData GetWeapon(int id)

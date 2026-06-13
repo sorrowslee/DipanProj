@@ -38,6 +38,18 @@
 * `IsLaser` 與 `IsOrbital` / `IsParabolic` 三者互斥。
 * `Speed` / `LifeTime` / `FireInterval`（持續光束無發射節奏）、`RotationSpeed`、`SplitTiming=OnSpawn/OnDeath` 對雷射不生效（填了不報錯）。
 
+### 火焰噴射器（火焰外觀模式：雷射的 TrailEffectID > 0）
+火焰噴射器 = **一把雷射，但外觀換成火焰 sprite**。因為「按住噴、跟滑鼠掃、持續傷害」本質就是雷射（`Origin`/`AimDirection` 每幀更新 → 完美掃射；`OnBeamDamageTick` → 持續 DOT），只差視覺。
+
+* **啟用**：雷射武器（`IsLaser=1`）的 `WeaponTable.TrailEffectID > 0` → 進入火焰模式。
+  * `LaserBeam.DrawBeam` 設為 `false`：**不畫光束 mesh、不畫砲口/命中光暈**，但照常算路徑(`Points`)、命中、DOT、射程、撞牆停。
+  * 主遊戲（`PlayerController.UpdateFlameColumn`）沿 `beam.Points` 每隔配方 `TrailStep` 鋪一根 **TrailEffectID 指向的火焰 Vfx**，每幀重新定位 → 火焰柱跟著光束掃。
+* **火焰 Vfx 必須是「持續循環」**：VfxTable 該特效設 `Loop=1` + **`Duration=-1`（無限循環，由 PlayerController 持有、放開/切武器時清除）**。不能用一次性（會自毀、無法被重新定位）。
+* **復用既有欄位**：`TrailEffectID`（火焰外觀，同地刺）/ `TrailStep`（火焰間距）/ `BeamWidth`（命中寬度）/ `dotInterval`（DOT 節拍）/ `BeamRange`（火焰射程，建議短，例如 5）/ `PierceCount`（穿幾個敵人）。傷害走武器表 `Damage`，每 `dotInterval` 結算。
+* **掃射 / 反彈 / 追蹤全部免費**：因為它就是雷射——`BounceTarget` 讓火焰撞牆折射、`HomingTurnSpeed` 讓火焰彎曲咬敵。
+* 範例：武器「火焰噴射器」`IsLaser=1, TrailEffectID=4(火球), BeamWidth=1.2, Damage=2`；配方 `dotInterval=0.2, BeamRange=5, TrailStep=0.5, PierceCount=-1`；Vfx 4「火球」`FireBall, Loop=1, Duration=-1, Scale=0.5`。
+* 邊界：火焰 Vfx 的生成/管理全在主遊戲（VfxManager），彈道只多開放 `LaserBeam.Points`（唯讀路徑）+ `DrawBeam` 旗標，不碰 Vfx。
+
 ---
 
 ## 二、雷射外型系統 (Appearance / BeamStyle)

@@ -106,6 +106,8 @@
 * 在 `Start()` 時從 CSV 載入所有武器，透過 `RecipeManager` 解析 `RecipeID` 為 `RecipeEntry` 引用。
 * 使用 `PrefabMapping` 序列化列表模式（與 `MonsterSpawner` 一致），在 Inspector 中拖入子彈 Prefab。
 * 雷射武器額外把 `BeamStyle` / `BeamColor` 編號透過 `BeamStyleLibrary` 解析為外型參數與顏色（見 [LASER.md](LASER.md)）。
+* **初始武器 = 武器表最後一號**：`Start()` 載入後把 `CurrentWeaponID` 設為 `_weaponIDs`（已排序）的最後一個（= 最高 ID），覆寫 Inspector 的預設值。
+* **切換方向：`SwitchToPreviousWeapon()`（往較小 ID）**：玩家按 `E` 往前切（最高 ID → … → 最低 → 繞回最高）。`WeaponData` 的欄位另含 `FireEffectID` / `HitEffectID` / `TrailEffectID`（引用 VfxTable，見 [VFX.md](VFX.md)）。
 
 ## BounceTarget 映射邏輯
 `PlayerController` 在發射時將 `BounceTarget` 語意值轉為 `NonBounceLayers`：

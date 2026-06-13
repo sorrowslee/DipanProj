@@ -2,4 +2,4 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 1, 爆炸, VfxEffects/Explosive/Explosive,8, 20,1, 0,,
 2,冰凍, VfxEffects/Frozen/Frozen,5,10,0.5, 0,,
 3,地刺, VfxEffects/EarthSpik/EarthSpik,7,10,0.5,0,,5
-4,火球, VfxEffects/FireBall/FireBall,4,10,0.5,0,,5
+4,火球, VfxEffects/FireBall/FireBall,4,10,0.2,1,-1,8
