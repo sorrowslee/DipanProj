@@ -49,6 +49,7 @@ namespace DipanMapEditor.Core
         /// </summary>
         public static Sprite GetWholeSprite(CatalogItem item, float tileSize)
         {
+            if (item == null) return null;
             string key = $"{item.id}|whole|{tileSize}";
             if (_sprites.TryGetValue(key, out var sp) && sp != null) return sp;
             var tex = GetTexture(item);
@@ -66,6 +67,7 @@ namespace DipanMapEditor.Core
         /// </summary>
         public static Sprite GetTileSprite(CatalogItem item, int index, float tileSize)
         {
+            if (item == null) return null;
             string key = $"{item.id}|tile|{index}|{tileSize}";
             if (_sprites.TryGetValue(key, out var sp) && sp != null) return sp;
 

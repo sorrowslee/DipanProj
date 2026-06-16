@@ -80,11 +80,12 @@ copy_tree() {
   done < <(find "$src_root" -type f -iname '*.png' -print0)
 }
 
-# 只搬每個來源底下的 Environment（地上物）與 Tiles（地磚）兩個資料夾
+# 只搬每個來源底下的 Environment（地上物）/ Tiles（地磚）/ Background（背景圖）
 copy_module() {
   local base="$1" prefix="$2" module="$3"
   copy_tree "$base/Environment" "$prefix/Environment" "$module"
   copy_tree "$base/Tiles"       "$prefix/Tiles"       "$module"
+  copy_tree "$base/Background"   "$prefix/Background"   "$module"
 }
 
 copy_module "$MAIN_ASSETS/Main" "Main" "Main"

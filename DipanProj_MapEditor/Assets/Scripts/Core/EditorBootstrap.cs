@@ -53,6 +53,14 @@ namespace DipanMapEditor.Core
                 tvGO.AddComponent<TilemapView>();
             }
 
+            // 3a. 背景圖渲染（最底層）
+            if (FindObjectOfType<BackgroundView>() == null)
+            {
+                var bgGO = new GameObject("BackgroundView");
+                bgGO.transform.SetParent(transform, false);
+                bgGO.AddComponent<BackgroundView>();
+            }
+
             // 3b. 地上物渲染
             if (FindObjectOfType<ObjectView>() == null)
             {

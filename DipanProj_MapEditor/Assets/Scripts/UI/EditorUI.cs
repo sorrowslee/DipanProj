@@ -36,10 +36,10 @@ namespace DipanMapEditor.UI
         string _triggerType;
         Vector2 _trigScroll;
 
-        // 存/讀檔
-        bool _showSave, _showLoad;
+        // 存/讀檔/背景
+        bool _showSave, _showLoad, _showBg;
         string _saveName = "";
-        Vector2 _loadScroll;
+        Vector2 _loadScroll, _bgScroll;
         string _statusMsg = "";
 
         static string MapsDir => Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Maps");
@@ -56,6 +56,7 @@ namespace DipanMapEditor.UI
         bool _showNew;
         string _name = "RedBridalGown_01";
         string _module = "";
+        string _bgId = "";
         string _tileSize = "1";
         string _width = "18";
         string _height = "10";
@@ -86,9 +87,10 @@ namespace DipanMapEditor.UI
             float ty = Screen.height - mousePos.y;          // 轉成左上原點 Y
             if (ty <= TopBarH) return true;                 // 頂部列
             if (mousePos.x >= Screen.width - PaletteW) return true; // 右側調色盤
-            if (_showNew && CenteredRect(380, 300).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (_showNew && CenteredRect(420, 380).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showSave && CenteredRect(420, 170).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showLoad && CenteredRect(420, 320).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (_showBg && CenteredRect(420, 280).Contains(new Vector2(mousePos.x, ty))) return true;
             if (CurrentTool == EditTool.Object && ObjCtl()?.Selected != null
                 && mousePos.x <= InspectorW && ty >= Screen.height - InspectorH)
                 return true;                                // 物件選取面板
@@ -118,6 +120,7 @@ namespace DipanMapEditor.UI
             if (_showNew) DrawNewDialog();
             if (_showSave) DrawSaveDialog();
             if (_showLoad) DrawLoadDialog();
+            if (_showBg) DrawBgDialog();
         }
 
         void DrawTopBar()
@@ -144,6 +147,7 @@ namespace DipanMapEditor.UI
                 SpriteCache.Clear();
                 _objects = null;
             }
+            if (GUILayout.Button("背景", GUILayout.Width(50)) && MapSession.Instance?.Map != null) OpenDialog(bgDlg: true);
 
             GUILayout.Space(12);
             // 工具切換
@@ -175,12 +179,57 @@ namespace DipanMapEditor.UI
 
         // ---- 存檔 / 讀檔 ----
 
-        /// <summary>對話框互斥：開其中一個就關掉其他兩個。</summary>
-        void OpenDialog(bool newDlg = false, bool saveDlg = false, bool loadDlg = false)
+        /// <summary>對話框互斥：開其中一個就關掉其他。</summary>
+        void OpenDialog(bool newDlg = false, bool saveDlg = false, bool loadDlg = false, bool bgDlg = false)
         {
             _showNew = newDlg;
             _showSave = saveDlg;
             _showLoad = loadDlg;
+            _showBg = bgDlg;
+        }
+
+        void DrawBgDialog()
+        {
+            var map = MapSession.Instance?.Map;
+            if (map == null) { _showBg = false; return; }
+            const int w = 420, h = 280;
+            GUILayout.BeginArea(CenteredRect(w, h), GUI.skin.box);
+            GUILayout.Label("選擇背景圖");
+            GUILayout.Space(4);
+
+            GUI.color = string.IsNullOrEmpty(map.backgroundId) ? Color.cyan : Color.white;
+            if (GUILayout.Button("無（純黑底，用 tile 鋪）"))
+            { UndoManager.Push(); map.backgroundId = ""; _statusMsg = "背景：無"; _showBg = false; }
+            GUI.color = Color.white;
+
+            var bgs = BackgroundService.BuildBackgrounds(MapSession.Instance.Catalog, map.module);
+            _bgScroll = GUILayout.BeginScrollView(_bgScroll, GUILayout.Height(170));
+            if (bgs.Count == 0)
+                GUILayout.Label("（此 module 沒有 Background 素材。\n請把背景圖放進 Background/ 再「同步素材」。）");
+            foreach (var b in bgs)
+            {
+                GUI.color = (map.backgroundId == b.id) ? Color.cyan : Color.white;
+                if (GUILayout.Button(Short(b.id)))
+                { UndoManager.Push(); map.backgroundId = b.id; _statusMsg = $"背景：{Short(b.id)}"; _showBg = false; }
+            }
+            GUI.color = Color.white;
+            GUILayout.EndScrollView();
+
+            if (GUILayout.Button("取消")) _showBg = false;
+            GUILayout.EndArea();
+        }
+
+        /// <summary>把畫布寬設成「高 × 背景長寬比」，減少背景被拉伸變形。</summary>
+        void ApplyBgAspect(string id)
+        {
+            var item = MapSession.Instance?.Catalog?.Find(id);
+            var tex = item != null ? SpriteCache.GetTexture(item) : null;
+            if (tex == null || tex.height == 0) return;
+            if (int.TryParse(_height, out int h) && h > 0)
+            {
+                float aspect = (float)tex.width / tex.height;
+                _width = Mathf.RoundToInt(h * aspect).ToString();
+            }
         }
 
         void DrawSaveDialog()
@@ -628,7 +677,7 @@ namespace DipanMapEditor.UI
 
         void DrawNewDialog()
         {
-            const int w = 380, h = 300;
+            const int w = 420, h = 380;
             var rect = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
             GUILayout.BeginArea(rect, GUI.skin.box);
 
@@ -644,7 +693,7 @@ namespace DipanMapEditor.UI
             GUILayout.Label("Module（資源目錄）");
             if (modules.Count == 0)
             {
-                GUILayout.Label("　找不到任何 module。請先跑 sync_assets.sh\n　再按頂部「刷新素材」。");
+                GUILayout.Label("　找不到任何 module。請先同步素材。");
             }
             else
             {
@@ -657,6 +706,23 @@ namespace DipanMapEditor.UI
                 GUI.color = Color.white;
                 GUILayout.EndHorizontal();
             }
+
+            // 背景圖選擇（選用）
+            var bgs = BackgroundService.BuildBackgrounds(MapSession.Instance?.Catalog, _module);
+            if (!string.IsNullOrEmpty(_bgId) && bgs.FindIndex(b => b.id == _bgId) < 0) _bgId = "";
+            GUILayout.Label("背景圖（選用，留「無」＝純黑底用 tile）");
+            GUILayout.BeginHorizontal();
+            GUI.color = string.IsNullOrEmpty(_bgId) ? Color.cyan : Color.white;
+            if (GUILayout.Button("無")) _bgId = "";
+            foreach (var b in bgs)
+            {
+                GUI.color = (_bgId == b.id) ? Color.cyan : Color.white;
+                if (GUILayout.Button(Short(b.id))) _bgId = b.id;
+            }
+            GUI.color = Color.white;
+            GUILayout.EndHorizontal();
+            if (!string.IsNullOrEmpty(_bgId) && GUILayout.Button("套用背景長寬比到畫布（依高算寬）"))
+                ApplyBgAspect(_bgId);
 
             Field("Tile 尺寸（世界單位）", ref _tileSize);
             Field("寬（格）", ref _width);
@@ -673,7 +739,7 @@ namespace DipanMapEditor.UI
             GUI.enabled = canCreate;
             if (GUILayout.Button("建立") && canCreate && TryParse(out float t, out int width, out int height))
             {
-                MapSession.Instance.NewMap(_name, _module, t, width, height);
+                MapSession.Instance.NewMap(_name, _module, t, width, height, _bgId);
                 _showNew = false;
             }
             GUI.enabled = true;

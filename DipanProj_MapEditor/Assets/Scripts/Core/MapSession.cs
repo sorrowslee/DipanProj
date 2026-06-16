@@ -47,9 +47,9 @@ namespace DipanMapEditor.Core
 
         // ---- 地圖生命週期 ----
 
-        public void NewMap(string name, string module, float tileSize, int width, int height)
+        public void NewMap(string name, string module, float tileSize, int width, int height, string backgroundId = "")
         {
-            Map = MapData.CreateBlank(name, module, tileSize, Mathf.Max(1, width), Mathf.Max(1, height));
+            Map = MapData.CreateBlank(name, module, tileSize, Mathf.Max(1, width), Mathf.Max(1, height), backgroundId);
             CurrentPath = null;
             UndoManager.Clear();
             OnMapChanged?.Invoke(Map);

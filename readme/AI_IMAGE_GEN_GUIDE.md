@@ -115,4 +115,36 @@
 
 ---
 
-*最後更新：2026-06-11（首次跑通 Scenario → 下載 → 去背 → TempImage 全流程後撰寫）*
+---
+
+## 8. 燃燈地上物素材——已確認風格基準（紅嫁衣／冥婚恐怖，2026-06-16）
+
+> 此風格已實測通過（八仙方桌樣圖經使用者確認）。**日後本專案所有地上物素材一律走此風格**，不要再另起爐灶。
+
+- **必含提示詞字串（固定，照抄）**：`Pixel art 2D top-down RPG, intricate detailed crisp pixel art, dark fantasy horror`
+- **共用尾綴（純底＋單體，便於本地去背）**：`plain flat grey background, single object centered, top-down view, no glow, no motion effects, isolated game asset`
+- **主題基調**：中式冥婚／紅嫁衣恐怖——紅金囍字、做舊斑駁、暗沉壓抑、3/4 俯視角、單體置中、灰色純底。
+- **產圖設定**：Scenario × Seedream 4.5、Aspect Ratio 1:1、Resolution Medium (2K)（產出 2048×2048）。
+- **完整物件清單與每件提示詞**：見 [PROPS_IMAGEGEN_LIST.md](PROPS_IMAGEGEN_LIST.md)。
+
+### 標準流程（每一件都這樣跑，產一張就去背一張）
+1. 在提示詞框 `cmd+a` 全選 → `Delete` 清空 → 貼上該物件提示詞。
+2. 點 **Generate**（花 6 credits），等 15–25 秒出圖。
+3. 點 Session 網格**左上第一格**（最新圖）開細節頁 → 等圖完全載入。
+4. 右上**下載圖示** → 選 **PNG** → 圖落到使用者「下載」資料夾。
+5. 用 bash 確認檔案落地，搬進 `~/Downloads/燃燈props/原圖/` 並改成有意義檔名（例如 `A9_八仙方桌.png`）。
+6. **本地去背**（見下）→ 透明 PNG 存到 `~/Downloads/燃燈props/去背/`。
+7. 確認去背成功後，**再產下一張**（不要一次全產完才去背）。
+
+### 本地去背
+- 腳本邏輯：以四角平均色為背景基準，對「與背景色歐氏距離 < 容差 且 低飽和度」的像素做連通域標記，**只清掉與邊界相連的背景連通塊**（保留物件內部的灰色，例如石材），把該區 alpha 設 0。
+- 預設參數：容差 `60`、飽和度門檻 `60`；遇到殘留或挖過頭再微調。
+- 灰色純底（提示詞已指定 `plain flat grey background`）配此法最穩。
+
+### 下載資料夾結構
+- `~/Downloads/燃燈props/原圖/`：Scenario 下載的灰底原圖。
+- `~/Downloads/燃燈props/去背/`：去背後的透明 PNG（給遊戲用）。
+
+---
+
+*最後更新：2026-06-16（新增第 8 節：燃燈地上物已確認風格基準 ＋ 產一張去背一張流程）。原 2026-06-11：首次跑通 Scenario → 下載 → 去背 → TempImage 全流程。*

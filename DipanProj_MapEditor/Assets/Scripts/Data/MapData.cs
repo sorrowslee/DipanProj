@@ -17,6 +17,9 @@ namespace DipanMapEditor.Data
         /// <summary>此地圖所屬的 module（關卡）；決定可用素材 = Main + 此 module。</summary>
         public string module = "";
 
+        /// <summary>背景圖素材 ID（catalog 的 Background 分類）；空＝不用背景圖、用純黑底+tile。</summary>
+        public string backgroundId = "";
+
         /// <summary>單一 tile 的世界尺寸（單位）。預設 1（= 256px，依主專案推導）。</summary>
         public float tileSize = 1f;
 
@@ -41,12 +44,13 @@ namespace DipanMapEditor.Data
         public LayerData TriggerLayer => layers.Find(l => l.type == LayerType.Trigger);
 
         /// <summary>建立一張空白地圖（固定三層；可走層初始全部不可走）。</summary>
-        public static MapData CreateBlank(string name, string module, float tileSize, int width, int height)
+        public static MapData CreateBlank(string name, string module, float tileSize, int width, int height, string backgroundId = "")
         {
             var map = new MapData
             {
                 name = name,
                 module = module,
+                backgroundId = backgroundId,
                 tileSize = tileSize,
                 width = width,
                 height = height,

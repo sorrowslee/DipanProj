@@ -50,6 +50,8 @@ DipanProj_MapEditor/
 │  │  │   ├─ EditorCamera.cs         平移/縮放/聚焦
 │  │  │   ├─ GridRenderer.cs         GL 格線 + 畫布外框
 │  │  │   ├─ TilemapView.cs          runtime Grid+Tilemap；畫格/清格/重建
+│  │  │   ├─ BackgroundService.cs     Background 分類 → 可選背景清單
+│  │  │   ├─ BackgroundView.cs        背景圖渲染在最底層、拉伸貼齊畫布
 │  │  │   ├─ SpriteCache.cs          載 PNG → Texture2D（Point）、切格、整張 sprite，快取
 │  │  │   ├─ TilesetService.cs       Tiles 分類 → 可畫 tile 清單；tileId 解析
 │  │  │   ├─ ObjectService.cs        Environment 分類 → 可放置物件清單
@@ -96,7 +98,7 @@ DipanProj_MapEditor/
 
 ### 動作
 
-1. 從每個來源（`Main` + **所有** `Modules/<關卡>`）底下，只拿 **`Environment/` 與 `Tiles/`** 兩個資料夾的 **PNG**。
+1. 從每個來源（`Main` + **所有** `Modules/<關卡>`）底下，只拿 **`Environment/`、`Tiles/`、`Background/`** 三個資料夾的 **PNG**。
 2. 依**原相對路徑**拷貝進 `Assets/StreamingAssets/MapAssets/`，**無條件覆蓋**（一律以主專案為準）。
 3. 生成 `catalog.json`：每筆 `{ id, path, category, module, pixelSize, ppu }`。
    - `id` = 相對路徑去副檔名（例：`Modules/RedBridalGown/Tiles/tile1`），與主專案/未來 loader 共用同一字串 ID。
@@ -117,6 +119,7 @@ DipanProj_MapEditor/
 | 資料夾 / category | 用途 | 在編輯器 |
 |---|---|---|
 | `Tiles/` | Scenario 產出的**地磚 texture**（單張或拼接圖） | 依 256px 切格，地磚調色盤、**筆刷鋪地板/牆壁** |
+| `Background/` | 整幅**背景圖**（牆＋地板的關卡底圖，黑邊＝邊界） | 鋪在最底層、拉伸貼齊畫布（見 §4.6 背景層） |
 | `Environment/` | **地上物** png（桌椅屏風、燈籠、橫梁、酒缸…） | 自由變換物件擺放 |
 | `Prefabs/` | Unity prefab（非 PNG，不同步） | 不進編輯器；未來 loader 用 |
 | `Monsters/` | 怪物圖（目前不同步） | 怪物出生點只給 id、不需圖 |
@@ -137,6 +140,7 @@ DipanProj_MapEditor/
   "format": "dipanmap", "version": 1,
   "name": "RedBridalGown_01",
   "module": "RedBridalGown",          // 此地圖可用素材 = Main + 此 module
+  "backgroundId": "Modules/RedBridalGown/Background/State_Woodshed",  // 空＝不用背景圖
   "tileSize": 1.0,
   "width": 18, "height": 10,          // tile 格數
   "origin": { "x": 0, "y": 0 },       // 左上角錨點；resize 由右/下邊增減
@@ -248,6 +252,19 @@ DipanProj_MapEditor/
 - 區域以**類型顏色**半透明疊加，當前選取區域加亮（只在 Trigger 工具下顯示）。
 - 區域清單：點選編輯、「刪」刪除；當前區域可改**名稱**、選**加格/減格**筆刷塗形狀、依類型 schema 填**參數**。
 - 允許重疊、同型多塊。塗刷一筆 = 一 Undo 步；新增/刪除區域 = 一 Undo 步。
+
+### 4.6 背景層（手繪底圖工作流）
+
+把整幅「牆＋地板」背景圖鋪在最底，再用物件/可走/Trigger 三層疊上去，做出示意圖等級的關卡。
+
+- **資料**：地圖 `backgroundId` 指向 catalog 的 Background 素材（空＝不用背景、走純黑底+tile）。
+- **渲染**（`BackgroundView`）：背景圖在 sortingOrder `-1000`（Tilemap、物件之下），**拉伸貼齊整個畫布範圍**（origin→width×height），故可走格與物件座標都和畫面對齊。每幀同步，換背景/改尺寸/Undo 即時反映。
+- **選背景**：
+  - *新建對話框* 列出該 module 的 Background，點選即用；「**套用背景長寬比到畫布**」會依高算寬、減少拉伸變形。
+  - *頂部「背景」鈕* 在「無 + 各背景」之間循環，可隨時替當前地圖換/清背景。
+- **為何乾淨**：俯視外牆是邊界（塗不可走即可、玩家走不進去，**不需遮擋**），需要遮擋玩家的內部道具本來就當地上物擺；黑邊＝不可走，與黑底設計一致。
+- **art 對齊提醒**：拆出來的地上物最好以它在原圖中的大小輸出，放上去 scale=1 才對得準；否則用縮放/磁吸/座標微調。
+- **混合**：背景層與 tile 層並存，可逐關決定用背景圖或用 tile 鋪地。
 
 ---
 

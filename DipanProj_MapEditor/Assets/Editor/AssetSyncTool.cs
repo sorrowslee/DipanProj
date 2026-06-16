@@ -67,11 +67,12 @@ namespace DipanMapEditor.EditorTools
                 $"已同步 {catalog.items.Count} 張 PNG。\nmodule：{list}\n\n進 Play 時新建地圖即可選 module。", "OK");
         }
 
-        // 只拿來源底下的 Environment 與 Tiles
+        // 只拿來源底下的 Environment / Tiles / Background
         static void CopySource(string baseDir, string prefix, string module, Catalog catalog, string target)
         {
             CopyFolder(Path.Combine(baseDir, "Environment"), prefix + "/Environment", module, catalog, target);
             CopyFolder(Path.Combine(baseDir, "Tiles"), prefix + "/Tiles", module, catalog, target);
+            CopyFolder(Path.Combine(baseDir, "Background"), prefix + "/Background", module, catalog, target);
         }
 
         static void CopyFolder(string src, string prefixRel, string module, Catalog catalog, string target)

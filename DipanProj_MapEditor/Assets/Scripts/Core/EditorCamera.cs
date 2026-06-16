@@ -1,5 +1,6 @@
 using UnityEngine;
 using DipanMapEditor.Data;
+using DipanMapEditor.UI;
 
 namespace DipanMapEditor.Core
 {
@@ -43,10 +44,15 @@ namespace DipanMapEditor.Core
             }
         }
 
+        EditorUI _ui;
+
         void Update()
         {
-            HandleZoom();
-            HandlePan();
+            if (_ui == null) _ui = FindObjectOfType<EditorUI>();
+            bool overUI = _ui != null && _ui.IsPointerOverUI(Input.mousePosition);
+
+            if (!overUI) HandleZoom();   // 滑鼠在面板上時不縮放（避免捲動調色盤連帶縮放場景）
+            HandlePan(overUI);
         }
 
         void HandleZoom()
@@ -62,10 +68,10 @@ namespace DipanMapEditor.Core
             transform.position += mouseWorldBefore - mouseWorldAfter;
         }
 
-        void HandlePan()
+        void HandlePan(bool overUI)
         {
-            // 中鍵或右鍵拖曳平移
-            if (Input.GetMouseButtonDown(2) || Input.GetMouseButtonDown(1))
+            // 中鍵或右鍵拖曳平移（在面板上時不「開始」平移；已在拖曳中則繼續）
+            if ((Input.GetMouseButtonDown(2) || Input.GetMouseButtonDown(1)) && !overUI)
             {
                 _dragOrigin = _cam.ScreenToWorldPoint(Input.mousePosition);
                 _dragging = true;
