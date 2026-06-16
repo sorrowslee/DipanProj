@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "com.sorrows.ballisticssystem": {
-      "version": "file:/Users/sorrowslee/Documents/workingspace/DipanProj/BallisticsSystem",
+      "version": "file:../../BallisticsSystem",
       "depth": 0,
       "source": "local",
       "dependencies": {}
