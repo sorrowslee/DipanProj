@@ -1,0 +1,51 @@
+{
+  "types": [
+    {
+      "typeId": "teleport",
+      "displayName": "傳送點",
+      "color": "#33AAFF",
+      "params": [
+        {
+          "key": "targetMap",
+          "type": "String"
+        },
+        {
+          "key": "targetX",
+          "type": "Float"
+        },
+        {
+          "key": "targetY",
+          "type": "Float"
+        }
+      ]
+    },
+    {
+      "typeId": "pickup",
+      "displayName": "道具拾取點",
+      "color": "#FFCC33",
+      "params": [
+        {
+          "key": "itemId",
+          "type": "String"
+        }
+      ]
+    },
+    {
+      "typeId": "playerSpawn",
+      "displayName": "玩家出生點",
+      "color": "#33FF88",
+      "params": []
+    },
+    {
+      "typeId": "monsterSpawn",
+      "displayName": "怪物出生點",
+      "color": "#FF5555",
+      "params": [
+        {
+          "key": "monsterId",
+          "type": "String"
+        }
+      ]
+    }
+  ]
+}

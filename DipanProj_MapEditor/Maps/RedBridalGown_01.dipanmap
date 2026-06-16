@@ -1,0 +1,1244 @@
+{
+  "format": "dipanmap",
+  "version": 1,
+  "name": "RedBridalGown_01",
+  "module": "RedBridalGown",
+  "tileSize": 1.0,
+  "width": 18,
+  "height": 10,
+  "origin": {
+    "x": 0.0,
+    "y": 0.0
+  },
+  "layers": [
+    {
+      "id": "game-1",
+      "name": "遊戲圖層",
+      "type": "Game",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "tiles": [
+        {
+          "x": 0,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#0"
+        },
+        {
+          "x": 1,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#1"
+        },
+        {
+          "x": 2,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#2"
+        },
+        {
+          "x": 3,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#3"
+        },
+        {
+          "x": 0,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#4"
+        },
+        {
+          "x": 1,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#5"
+        },
+        {
+          "x": 2,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#6"
+        },
+        {
+          "x": 3,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#7"
+        },
+        {
+          "x": 0,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#8"
+        },
+        {
+          "x": 1,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#9"
+        },
+        {
+          "x": 2,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#10"
+        },
+        {
+          "x": 3,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#11"
+        },
+        {
+          "x": 0,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#12"
+        },
+        {
+          "x": 1,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#13"
+        },
+        {
+          "x": 2,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#14"
+        },
+        {
+          "x": 3,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#15"
+        },
+        {
+          "x": 0,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 1,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 2,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#2"
+        },
+        {
+          "x": 3,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#3"
+        },
+        {
+          "x": 0,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 1,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 2,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#6"
+        },
+        {
+          "x": 3,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#7"
+        },
+        {
+          "x": 4,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#0"
+        },
+        {
+          "x": 5,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#1"
+        },
+        {
+          "x": 6,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#2"
+        },
+        {
+          "x": 7,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#3"
+        },
+        {
+          "x": 4,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#4"
+        },
+        {
+          "x": 5,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#5"
+        },
+        {
+          "x": 6,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#6"
+        },
+        {
+          "x": 7,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#7"
+        },
+        {
+          "x": 4,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#8"
+        },
+        {
+          "x": 5,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#9"
+        },
+        {
+          "x": 6,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#10"
+        },
+        {
+          "x": 7,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#11"
+        },
+        {
+          "x": 4,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#12"
+        },
+        {
+          "x": 5,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#13"
+        },
+        {
+          "x": 6,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#14"
+        },
+        {
+          "x": 7,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#15"
+        },
+        {
+          "x": 4,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 5,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 6,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#2"
+        },
+        {
+          "x": 7,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#3"
+        },
+        {
+          "x": 4,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 5,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 6,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#6"
+        },
+        {
+          "x": 7,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#7"
+        },
+        {
+          "x": 0,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#8"
+        },
+        {
+          "x": 1,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#9"
+        },
+        {
+          "x": 2,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#10"
+        },
+        {
+          "x": 3,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#11"
+        },
+        {
+          "x": 0,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#12"
+        },
+        {
+          "x": 1,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#13"
+        },
+        {
+          "x": 2,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#14"
+        },
+        {
+          "x": 3,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#15"
+        },
+        {
+          "x": 0,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 1,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 2,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#2"
+        },
+        {
+          "x": 3,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#3"
+        },
+        {
+          "x": 4,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#8"
+        },
+        {
+          "x": 5,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#9"
+        },
+        {
+          "x": 6,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#10"
+        },
+        {
+          "x": 7,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#11"
+        },
+        {
+          "x": 4,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#12"
+        },
+        {
+          "x": 5,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#13"
+        },
+        {
+          "x": 6,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#14"
+        },
+        {
+          "x": 7,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#15"
+        },
+        {
+          "x": 4,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 5,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 6,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#2"
+        },
+        {
+          "x": 7,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#3"
+        },
+        {
+          "x": 0,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 1,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 2,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#6"
+        },
+        {
+          "x": 3,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#7"
+        },
+        {
+          "x": 4,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 5,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 6,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#6"
+        },
+        {
+          "x": 7,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#7"
+        },
+        {
+          "x": 8,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#0"
+        },
+        {
+          "x": 9,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#1"
+        },
+        {
+          "x": 10,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#2"
+        },
+        {
+          "x": 11,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#3"
+        },
+        {
+          "x": 8,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#4"
+        },
+        {
+          "x": 9,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#5"
+        },
+        {
+          "x": 10,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#6"
+        },
+        {
+          "x": 11,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#7"
+        },
+        {
+          "x": 8,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#8"
+        },
+        {
+          "x": 9,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#9"
+        },
+        {
+          "x": 10,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#10"
+        },
+        {
+          "x": 11,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#11"
+        },
+        {
+          "x": 8,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#12"
+        },
+        {
+          "x": 9,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#13"
+        },
+        {
+          "x": 10,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#14"
+        },
+        {
+          "x": 11,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#15"
+        },
+        {
+          "x": 8,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 9,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 10,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#6"
+        },
+        {
+          "x": 11,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#7"
+        },
+        {
+          "x": 8,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#8"
+        },
+        {
+          "x": 9,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#9"
+        },
+        {
+          "x": 10,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#10"
+        },
+        {
+          "x": 11,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#11"
+        },
+        {
+          "x": 8,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 9,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 10,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#2"
+        },
+        {
+          "x": 11,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#3"
+        },
+        {
+          "x": 8,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 9,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 10,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#6"
+        },
+        {
+          "x": 11,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#7"
+        },
+        {
+          "x": 8,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#8"
+        },
+        {
+          "x": 9,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#9"
+        },
+        {
+          "x": 10,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#10"
+        },
+        {
+          "x": 11,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#11"
+        },
+        {
+          "x": 8,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 9,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 10,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#2"
+        },
+        {
+          "x": 11,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#3"
+        },
+        {
+          "x": 12,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#0"
+        },
+        {
+          "x": 13,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#1"
+        },
+        {
+          "x": 14,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#2"
+        },
+        {
+          "x": 15,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#3"
+        },
+        {
+          "x": 12,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#4"
+        },
+        {
+          "x": 13,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#5"
+        },
+        {
+          "x": 14,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#6"
+        },
+        {
+          "x": 15,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#7"
+        },
+        {
+          "x": 12,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#8"
+        },
+        {
+          "x": 13,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#9"
+        },
+        {
+          "x": 14,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#10"
+        },
+        {
+          "x": 15,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#11"
+        },
+        {
+          "x": 12,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#12"
+        },
+        {
+          "x": 13,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#13"
+        },
+        {
+          "x": 14,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#14"
+        },
+        {
+          "x": 15,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#15"
+        },
+        {
+          "x": 12,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 13,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 14,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#6"
+        },
+        {
+          "x": 15,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#7"
+        },
+        {
+          "x": 12,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#8"
+        },
+        {
+          "x": 13,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#9"
+        },
+        {
+          "x": 14,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#10"
+        },
+        {
+          "x": 15,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#11"
+        },
+        {
+          "x": 12,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 13,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 14,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#2"
+        },
+        {
+          "x": 15,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#3"
+        },
+        {
+          "x": 12,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 13,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 14,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#6"
+        },
+        {
+          "x": 15,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#7"
+        },
+        {
+          "x": 12,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#8"
+        },
+        {
+          "x": 13,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#9"
+        },
+        {
+          "x": 14,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#10"
+        },
+        {
+          "x": 15,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#11"
+        },
+        {
+          "x": 12,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 13,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 14,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#2"
+        },
+        {
+          "x": 15,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#3"
+        },
+        {
+          "x": 16,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#0"
+        },
+        {
+          "x": 17,
+          "y": 0,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#1"
+        },
+        {
+          "x": 16,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#4"
+        },
+        {
+          "x": 17,
+          "y": 1,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#5"
+        },
+        {
+          "x": 16,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#8"
+        },
+        {
+          "x": 17,
+          "y": 2,
+          "tileId": "Modules/RedBridalGown/Tiles/tile1#9"
+        },
+        {
+          "x": 16,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 17,
+          "y": 3,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 16,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 17,
+          "y": 4,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 16,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#8"
+        },
+        {
+          "x": 17,
+          "y": 5,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#9"
+        },
+        {
+          "x": 16,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 17,
+          "y": 6,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        },
+        {
+          "x": 16,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#4"
+        },
+        {
+          "x": 17,
+          "y": 7,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#5"
+        },
+        {
+          "x": 16,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#8"
+        },
+        {
+          "x": 17,
+          "y": 8,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#9"
+        },
+        {
+          "x": 16,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#0"
+        },
+        {
+          "x": 17,
+          "y": 9,
+          "tileId": "Modules/RedBridalGown/Tiles/tile2#1"
+        }
+      ],
+      "objects": [
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 16.0334511,
+          "y": -0.487717152,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -0.487717152,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 12.2669048,
+          "y": -0.487716675,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -0.487716675,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 8.474733,
+          "y": -0.462077618,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -0.462077618,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 4.631317,
+          "y": -0.436439037,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -0.436439037,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall3",
+          "x": 1.40489864,
+          "y": -1.42751479,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.61051011,
+          "scaleY": 1.61051011,
+          "sortKey": -1.42751479,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 0.261564016,
+          "y": -4.228146,
+          "rot": 90.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 0.9,
+          "scaleY": 0.9,
+          "sortKey": -4.228146,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 0.258858442,
+          "y": -7.602456,
+          "rot": 90.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 0.9,
+          "scaleY": 0.9,
+          "sortKey": -7.602456,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall3",
+          "x": 1.396067,
+          "y": -8.711395,
+          "rot": 180.0,
+          "flipX": true,
+          "flipY": false,
+          "scaleX": 1.61051011,
+          "scaleY": 1.61051011,
+          "sortKey": -8.711395,
+          "zOrder": -1
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 4.36528873,
+          "y": -9.846802,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -9.846802,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 8.120909,
+          "y": -9.86775,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -9.86775,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 11.9244051,
+          "y": -9.912651,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -9.912651,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 15.6867743,
+          "y": -9.908884,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -9.908884,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall3",
+          "x": 16.4428444,
+          "y": -1.4752183,
+          "rot": 0.0,
+          "flipX": true,
+          "flipY": false,
+          "scaleX": 1.61051011,
+          "scaleY": 1.61051011,
+          "sortKey": -1.4752183,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 17.7043648,
+          "y": -4.13282061,
+          "rot": 90.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 0.809999943,
+          "scaleY": 0.809999943,
+          "sortKey": -4.13282061,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall2",
+          "x": 17.6997566,
+          "y": -7.245213,
+          "rot": 90.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 0.809999943,
+          "scaleY": 0.809999943,
+          "sortKey": -7.245213,
+          "zOrder": 1
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wall3",
+          "x": 16.6747589,
+          "y": -8.845314,
+          "rot": 270.0,
+          "flipX": true,
+          "flipY": false,
+          "scaleX": 1.4494592,
+          "scaleY": 1.4494592,
+          "sortKey": -8.845314,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/lantern2",
+          "x": 1.63966656,
+          "y": -1.871042,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -1.871042,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/lantern2",
+          "x": 4.364242,
+          "y": -1.8763988,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -1.8763988,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/lantern2",
+          "x": 7.0888176,
+          "y": -1.857024,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -1.857024,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/lantern2",
+          "x": 9.763958,
+          "y": -1.88711214,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -1.88711214,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/lantern2",
+          "x": 12.9334488,
+          "y": -1.941932,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -1.941932,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/lantern2",
+          "x": 16.3253975,
+          "y": -1.99675322,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -1.99675322,
+          "zOrder": 0
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wineVat",
+          "x": 16.7420616,
+          "y": -3.10764885,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.07811,
+          "scaleY": 1.07811,
+          "sortKey": -3.10764885,
+          "zOrder": -1
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wineVat",
+          "x": 15.6373415,
+          "y": -3.13198423,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.07811,
+          "scaleY": 1.07811,
+          "sortKey": -3.13198423,
+          "zOrder": -1
+        }
+      ]
+    },
+    {
+      "id": "walk",
+      "name": "可走/不可走",
+      "type": "Walkable",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "blocked": [
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111"
+      ]
+    },
+    {
+      "id": "trig",
+      "name": "Trigger",
+      "type": "Trigger",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "regions": []
+    }
+  ]
+}

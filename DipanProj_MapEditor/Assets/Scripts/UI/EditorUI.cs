@@ -1,0 +1,711 @@
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
+using DipanMapEditor.Core;
+using DipanMapEditor.Data;
+using DipanMapEditor.IO;
+using DipanMapEditor.Tools;
+
+namespace DipanMapEditor.UI
+{
+    /// <summary>
+    /// IMGUI 介面（M2）：頂部工具列 + 右側地磚調色盤 + 新建對話框。
+    /// 對外提供當前工具、選取 tile、以及「指標是否在 UI 上」（供筆刷避開面板）。
+    /// </summary>
+    public class EditorUI : MonoBehaviour
+    {
+        const int TileNativePx = 256;
+        const float TopBarH = 30f;
+        const float PaletteW = 240f;
+        const float Thumb = 48f;
+        const float InspectorW = 300f;
+        const float InspectorH = 184f;
+
+        public EditTool CurrentTool { get; private set; } = EditTool.TilePaint;
+        public string SelectedObjectAssetId { get; private set; }
+        public bool WalkPaintWalkable { get; private set; } = true;  // true=塗可走、false=塗不可走
+
+        public void ClearObjectBrush() => SelectedObjectAssetId = null;
+
+        // 座標輸入框暫存（依焦點決定要不要從物件同步回來）
+        string _objXBuf = "", _objYBuf = "";
+
+        // Trigger
+        public TriggerRegion CurrentRegion { get; private set; }
+        public bool TriggerAddCells { get; private set; } = true;     // true=加格、false=減格
+        string _triggerType;
+        Vector2 _trigScroll;
+
+        // 存/讀檔
+        bool _showSave, _showLoad;
+        string _saveName = "";
+        Vector2 _loadScroll;
+        string _statusMsg = "";
+
+        static string MapsDir => Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Maps");
+
+        EditorCamera _cam;
+        Tools.ObjectController _objCtl;
+
+        // 物件調色盤
+        List<PlaceableObject> _objects;
+        string _objectsModule;
+        Vector2 _objScroll;
+
+        // 新建對話框
+        bool _showNew;
+        string _name = "RedBridalGown_01";
+        string _module = "";
+        string _tileSize = "1";
+        string _width = "18";
+        string _height = "10";
+
+        // 地磚多選（block stamp）：選取範圍以 tileset 的格座標表示
+        string _blockId;       // 來源 tileset catalog id
+        int _blockCols;        // 該 tileset 的欄數
+        int _blockC0, _blockR0, _blockC1, _blockR1;
+        bool _blockDragging;
+
+        void Start()
+        {
+            _cam = FindObjectOfType<EditorCamera>();
+            _objCtl = FindObjectOfType<Tools.ObjectController>();
+            if (MapSession.Instance != null && MapSession.Instance.Map == null)
+                _showNew = true;
+        }
+
+        Tools.ObjectController ObjCtl()
+        {
+            if (_objCtl == null) _objCtl = FindObjectOfType<Tools.ObjectController>();
+            return _objCtl;
+        }
+
+        // ---- 供 PaintController 查詢：指標是否壓在 UI 面板上 ----
+        public bool IsPointerOverUI(Vector3 mousePos)
+        {
+            float ty = Screen.height - mousePos.y;          // 轉成左上原點 Y
+            if (ty <= TopBarH) return true;                 // 頂部列
+            if (mousePos.x >= Screen.width - PaletteW) return true; // 右側調色盤
+            if (_showNew && CenteredRect(380, 300).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (_showSave && CenteredRect(420, 170).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (_showLoad && CenteredRect(420, 320).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (CurrentTool == EditTool.Object && ObjCtl()?.Selected != null
+                && mousePos.x <= InspectorW && ty >= Screen.height - InspectorH)
+                return true;                                // 物件選取面板
+            return false;
+        }
+
+        void OnGUI()
+        {
+            DrawTopBar();
+            if (CurrentTool == EditTool.Object)
+            {
+                DrawObjectPalette();
+                DrawObjectInspector();
+            }
+            else if (CurrentTool == EditTool.Walkable)
+            {
+                DrawWalkablePanel();
+            }
+            else if (CurrentTool == EditTool.Trigger)
+            {
+                DrawTriggerPanel();
+            }
+            else
+            {
+                DrawPalette();
+            }
+            if (_showNew) DrawNewDialog();
+            if (_showSave) DrawSaveDialog();
+            if (_showLoad) DrawLoadDialog();
+        }
+
+        void DrawTopBar()
+        {
+            GUILayout.BeginArea(new Rect(0, 0, Screen.width, TopBarH), GUI.skin.box);
+            GUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("新建地圖", GUILayout.Width(80))) OpenDialog(newDlg: true);
+            if (GUILayout.Button("存檔", GUILayout.Width(50)))
+            {
+                var m = MapSession.Instance?.Map;
+                if (m != null)
+                {
+                    _saveName = string.IsNullOrEmpty(MapSession.Instance.CurrentPath) ? m.name : Path.GetFileNameWithoutExtension(MapSession.Instance.CurrentPath);
+                    OpenDialog(saveDlg: true);
+                }
+            }
+            if (GUILayout.Button("讀檔", GUILayout.Width(50))) OpenDialog(loadDlg: true);
+            if (GUILayout.Button("聚焦", GUILayout.Width(50)))
+                _cam?.FrameMap(MapSession.Instance?.Map);
+            if (GUILayout.Button("刷新素材", GUILayout.Width(70)))
+            {
+                MapSession.Instance?.ReloadCatalog();
+                SpriteCache.Clear();
+                _objects = null;
+            }
+
+            GUILayout.Space(12);
+            // 工具切換
+            GUI.color = CurrentTool == EditTool.TilePaint ? Color.cyan : Color.white;
+            if (GUILayout.Button("畫", GUILayout.Width(40))) CurrentTool = EditTool.TilePaint;
+            GUI.color = CurrentTool == EditTool.Erase ? Color.cyan : Color.white;
+            if (GUILayout.Button("擦", GUILayout.Width(40))) CurrentTool = EditTool.Erase;
+            GUI.color = CurrentTool == EditTool.Object ? Color.cyan : Color.white;
+            if (GUILayout.Button("物件", GUILayout.Width(50))) CurrentTool = EditTool.Object;
+            GUI.color = CurrentTool == EditTool.Walkable ? Color.cyan : Color.white;
+            if (GUILayout.Button("可走", GUILayout.Width(50))) CurrentTool = EditTool.Walkable;
+            GUI.color = CurrentTool == EditTool.Trigger ? Color.cyan : Color.white;
+            if (GUILayout.Button("Trigger", GUILayout.Width(70))) CurrentTool = EditTool.Trigger;
+            GUI.color = Color.white;
+
+            GUILayout.Space(12);
+            var map = MapSession.Instance?.Map;
+            if (map != null)
+                GUILayout.Label($"地圖：{map.name}　|　module：{map.module}　|　{map.width}×{map.height} 格　|　tile {map.tileSize}");
+            else
+                GUILayout.Label("尚無地圖，請按「新建地圖」");
+
+            GUILayout.FlexibleSpace();
+            if (!string.IsNullOrEmpty(_statusMsg)) GUILayout.Label(_statusMsg);
+            GUILayout.Label("左鍵畫/擦　中鍵·右鍵平移　滾輪縮放");
+            GUILayout.EndHorizontal();
+            GUILayout.EndArea();
+        }
+
+        // ---- 存檔 / 讀檔 ----
+
+        /// <summary>對話框互斥：開其中一個就關掉其他兩個。</summary>
+        void OpenDialog(bool newDlg = false, bool saveDlg = false, bool loadDlg = false)
+        {
+            _showNew = newDlg;
+            _showSave = saveDlg;
+            _showLoad = loadDlg;
+        }
+
+        void DrawSaveDialog()
+        {
+            const int w = 420, h = 170;
+            GUILayout.BeginArea(new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h), GUI.skin.box);
+            GUILayout.Label("存檔");
+            Field("檔名", ref _saveName);
+            GUILayout.Label($"存到：{MapsDir}/<檔名>.dipanmap");
+            GUILayout.Space(8);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("存檔") && !string.IsNullOrWhiteSpace(_saveName))
+            {
+                Directory.CreateDirectory(MapsDir);
+                string path = Path.Combine(MapsDir, _saveName.Trim() + MapSerializer.Extension);
+                MapSession.Instance.SaveMap(path);
+                _statusMsg = $"已存檔：{_saveName.Trim()}{MapSerializer.Extension}";
+                _showSave = false;
+            }
+            if (GUILayout.Button("取消")) _showSave = false;
+            GUILayout.EndHorizontal();
+            GUILayout.EndArea();
+        }
+
+        void DrawLoadDialog()
+        {
+            const int w = 420, h = 320;
+            GUILayout.BeginArea(new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h), GUI.skin.box);
+            GUILayout.Label($"讀檔（{MapsDir}）");
+            GUILayout.Space(4);
+
+            string toLoad = null;
+            if (Directory.Exists(MapsDir))
+            {
+                var files = Directory.GetFiles(MapsDir, "*" + MapSerializer.Extension);
+                _loadScroll = GUILayout.BeginScrollView(_loadScroll, GUILayout.Height(220));
+                if (files.Length == 0) GUILayout.Label("（沒有 .dipanmap 檔）");
+                foreach (var f in files)
+                    if (GUILayout.Button(Path.GetFileName(f))) toLoad = f;
+                GUILayout.EndScrollView();
+            }
+            else GUILayout.Label("（Maps 資料夾尚未建立）");
+
+            if (GUILayout.Button("取消")) _showLoad = false;
+            GUILayout.EndArea();
+
+            if (toLoad != null) LoadMapFile(toLoad);
+        }
+
+        void LoadMapFile(string path)
+        {
+            if (MapSession.Instance.LoadMap(path))
+            {
+                // 清掉跟舊地圖綁定的選取與快取
+                ObjCtl()?.Deselect();
+                CurrentRegion = null;
+                _triggerType = null;
+                _blockId = null; _objects = null;
+                _statusMsg = $"已讀入：{Path.GetFileName(path)}";
+            }
+            else _statusMsg = $"讀檔失敗：{Path.GetFileName(path)}";
+            OpenDialog();   // 關掉所有對話框（含開機殘留的新建對話框）
+        }
+
+        // ---- 地磚調色盤（依拼接圖原始格狀排列，可拖曳框選整塊） ----
+
+        public bool HasTileBrush => !string.IsNullOrEmpty(_blockId) && _blockCols > 0;
+        public int TileBrushW => Mathf.Abs(_blockC1 - _blockC0) + 1;
+        public int TileBrushH => Mathf.Abs(_blockR1 - _blockR0) + 1;
+        public string TileBrushAt(int dx, int dy)
+        {
+            int cmin = Mathf.Min(_blockC0, _blockC1), rmin = Mathf.Min(_blockR0, _blockR1);
+            int idx = (rmin + dy) * _blockCols + (cmin + dx);
+            return $"{_blockId}#{idx}";
+        }
+
+        List<CatalogItem> TilesetItems()
+        {
+            var list = new List<CatalogItem>();
+            var cat = MapSession.Instance?.Catalog;
+            string module = MapSession.Instance?.Map?.module ?? "";
+            if (cat == null) return list;
+            foreach (var it in cat.items)
+                if (TilesetService.IsTilesetCategory(it.category) && (it.module == "Main" || it.module == module))
+                    list.Add(it);
+            return list;
+        }
+
+        bool InTileSelection(int c, int r)
+        {
+            int cmin = Mathf.Min(_blockC0, _blockC1), cmax = Mathf.Max(_blockC0, _blockC1);
+            int rmin = Mathf.Min(_blockR0, _blockR1), rmax = Mathf.Max(_blockR0, _blockR1);
+            return c >= cmin && c <= cmax && r >= rmin && r <= rmax;
+        }
+
+        void DrawPalette()
+        {
+            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+
+            GUILayout.Label("地磚調色盤");
+            GUILayout.Label(HasTileBrush ? $"選取：{Short(_blockId)} {TileBrushW}×{TileBrushH}" : "未選取");
+            GUILayout.Label("在地磚上左鍵拖曳框選多格，\n再到地圖上點/拖一次貼整塊。");
+            GUILayout.Space(4);
+
+            var tilesets = TilesetItems();
+            if (tilesets.Count == 0)
+            {
+                GUILayout.Label("沒有可畫的地磚。\n請把地磚 texture 放進關卡的\nTiles 資料夾，再同步素材。");
+                GUILayout.EndArea();
+                return;
+            }
+
+            // 預設選取（或選取的 tileset 不在當前清單時重設）
+            if (string.IsNullOrEmpty(_blockId) || tilesets.FindIndex(it => it.id == _blockId) < 0)
+                SelectTileBlockDefault(tilesets[0]);
+
+            var e = Event.current;
+
+            foreach (var item in tilesets)
+            {
+                var tex = SpriteCache.GetTexture(item);
+                if (tex == null) continue;
+                int cols = Mathf.Max(1, tex.width / TileNativePx);
+                int rows = Mathf.Max(1, tex.height / TileNativePx);
+                float cell = Thumb;
+
+                GUILayout.Label(Short(item.id));
+                Rect area = GUILayoutUtility.GetRect(cols * cell, rows * cell,
+                    GUILayout.Width(cols * cell), GUILayout.Height(rows * cell));
+
+                for (int r = 0; r < rows; r++)
+                    for (int c = 0; c < cols; c++)
+                    {
+                        Rect cr = new Rect(area.x + c * cell, area.y + r * cell, cell - 1, cell - 1);
+                        var tc = new Rect((float)c / cols, 1f - (float)(r + 1) / rows, 1f / cols, 1f / rows);
+                        if (e.type == EventType.Repaint) GUI.DrawTextureWithTexCoords(cr, tex, tc);
+                        if (item.id == _blockId && InTileSelection(c, r)) DrawBorder(cr, Color.cyan);
+                    }
+
+                // 拖曳框選（限本 tileset 範圍）
+                if (e.button == 0 && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag)
+                    && area.Contains(e.mousePosition))
+                {
+                    int c = Mathf.Clamp((int)((e.mousePosition.x - area.x) / cell), 0, cols - 1);
+                    int r = Mathf.Clamp((int)((e.mousePosition.y - area.y) / cell), 0, rows - 1);
+                    if (e.type == EventType.MouseDown)
+                    {
+                        _blockId = item.id; _blockCols = cols;
+                        _blockC0 = _blockC1 = c; _blockR0 = _blockR1 = r;
+                        _blockDragging = true; e.Use();
+                    }
+                    else if (_blockDragging && _blockId == item.id)
+                    {
+                        _blockC1 = c; _blockR1 = r; e.Use();
+                    }
+                }
+            }
+
+            if (e.type == EventType.MouseUp && e.button == 0) _blockDragging = false;
+
+            GUILayout.EndArea();
+        }
+
+        void SelectTileBlockDefault(CatalogItem item)
+        {
+            var tex = SpriteCache.GetTexture(item);
+            _blockId = item.id;
+            _blockCols = tex != null ? Mathf.Max(1, tex.width / TileNativePx) : 1;
+            _blockC0 = _blockR0 = _blockC1 = _blockR1 = 0;
+        }
+
+        static void DrawBorder(Rect r, Color color)
+        {
+            var old = GUI.color;
+            GUI.color = color;
+            float t = 2f;
+            GUI.DrawTexture(new Rect(r.x, r.y, r.width, t), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.x, r.yMax - t, r.width, t), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.x, r.y, t, r.height), Texture2D.whiteTexture);
+            GUI.DrawTexture(new Rect(r.xMax - t, r.y, t, r.height), Texture2D.whiteTexture);
+            GUI.color = old;
+        }
+
+        // ---- 物件（地上物）調色盤 ----
+
+        void EnsureObjects()
+        {
+            string module = MapSession.Instance?.Map?.module ?? "";
+            if (_objects != null && _objectsModule == module) return;
+            _objects = ObjectService.BuildObjects(MapSession.Instance?.Catalog, module);
+            _objectsModule = module;
+            bool selValid = !string.IsNullOrEmpty(SelectedObjectAssetId)
+                            && _objects.FindIndex(o => o.assetId == SelectedObjectAssetId) >= 0;
+            if (!selValid)
+                SelectedObjectAssetId = _objects.Count > 0 ? _objects[0].assetId : null;
+        }
+
+        void DrawObjectPalette()
+        {
+            EnsureObjects();
+            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+
+            GUILayout.Label($"地上物（{_objects.Count}）");
+            GUILayout.Label(string.IsNullOrEmpty(SelectedObjectAssetId) ? "未選取" : $"選取：{Short(SelectedObjectAssetId)}");
+            GUILayout.Label("放置：選素材→左鍵點畫布\n選取：左鍵點物件\n移動：Ctrl+左鍵拖曳");
+            GUILayout.Space(4);
+
+            if (_objects.Count == 0)
+            {
+                GUILayout.Label("沒有可放置的地上物。\n請把物件 png 放進關卡的\nEnvironment 資料夾，\n再同步素材。");
+                GUILayout.EndArea();
+                return;
+            }
+
+            _objScroll = GUILayout.BeginScrollView(_objScroll);
+            int perRow = Mathf.Max(1, (int)((PaletteW - 24) / (Thumb + 4)));
+            int col = 0;
+            bool rowOpen = false;
+            foreach (var o in _objects)
+            {
+                if (col == 0) { GUILayout.BeginHorizontal(); rowOpen = true; }
+                bool clicked = GUILayout.Button(GUIContent.none, GUILayout.Width(Thumb), GUILayout.Height(Thumb));
+                Rect r = GUILayoutUtility.GetLastRect();
+                var tex = SpriteCache.GetTexture(o.source);
+                if (tex != null) GUI.DrawTexture(r, tex, ScaleMode.ScaleToFit);
+                if (o.assetId == SelectedObjectAssetId) DrawBorder(r, Color.cyan);
+                if (clicked) SelectedObjectAssetId = o.assetId;
+                col++;
+                if (col >= perRow) { GUILayout.EndHorizontal(); rowOpen = false; col = 0; }
+            }
+            if (rowOpen) GUILayout.EndHorizontal();
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
+
+        void DrawObjectInspector()
+        {
+            var ctl = ObjCtl();
+            var sel = ctl?.Selected;
+            if (sel == null) return;   // 沒選取就不畫面板（避免擋住點擊）
+
+            var rect = new Rect(0, Screen.height - InspectorH, InspectorW, InspectorH);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+            GUILayout.Label($"選取：{Short(sel.assetId)}　縮放 {sel.scaleX:0.00}　角度 {sel.rot:0}°　層 {sel.zOrder}");
+
+            // 座標：未編輯時顯示物件當前座標；改數值或按 ± 就移動（每次 ±0.1）
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("X", GUILayout.Width(12));
+            if (GUILayout.Button("－", GUILayout.Width(22))) { UndoManager.Push(); ctl.SetPosition(sel.x - 0.1f, sel.y); }
+            GUI.SetNextControlName("objX");
+            string sx = GUILayout.TextField(_objXBuf, GUILayout.Width(42));
+            if (GUILayout.Button("＋", GUILayout.Width(22))) { UndoManager.Push(); ctl.SetPosition(sel.x + 0.1f, sel.y); }
+            GUILayout.Space(6);
+            GUILayout.Label("Y", GUILayout.Width(12));
+            if (GUILayout.Button("－", GUILayout.Width(22))) { UndoManager.Push(); ctl.SetPosition(sel.x, sel.y - 0.1f); }
+            GUI.SetNextControlName("objY");
+            string sy = GUILayout.TextField(_objYBuf, GUILayout.Width(42));
+            if (GUILayout.Button("＋", GUILayout.Width(22))) { UndoManager.Push(); ctl.SetPosition(sel.x, sel.y + 0.1f); }
+            GUILayout.EndHorizontal();
+            bool editingX = GUI.GetNameOfFocusedControl() == "objX";
+            bool editingY = GUI.GetNameOfFocusedControl() == "objY";
+            if (sx != _objXBuf) { _objXBuf = sx; if (float.TryParse(sx, out var vx)) ctl.SetPosition(vx, sel.y); }
+            if (sy != _objYBuf) { _objYBuf = sy; if (float.TryParse(sy, out var vy)) ctl.SetPosition(sel.x, vy); }
+            if (!editingX) _objXBuf = sel.x.ToString("0.###");
+            if (!editingY) _objYBuf = sel.y.ToString("0.###");
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("翻轉H")) { UndoManager.Push(); ctl.FlipH(); }
+            if (GUILayout.Button("翻轉V")) { UndoManager.Push(); ctl.FlipV(); }
+            if (GUILayout.Button("複製")) { UndoManager.Push(); ctl.DuplicateSelected(); }
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("縮小")) { UndoManager.Push(); ctl.ScaleBy(0.9f); }
+            if (GUILayout.Button("放大")) { UndoManager.Push(); ctl.ScaleBy(1.1f); }
+            if (GUILayout.Button("旋轉 15°")) { UndoManager.Push(); ctl.Rotate(15f); }
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("上移層")) { UndoManager.Push(); ctl.RaiseZ(); }
+            if (GUILayout.Button("下移層")) { UndoManager.Push(); ctl.LowerZ(); }
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("取消選取")) ctl.Deselect();
+            if (GUILayout.Button("刪除")) { UndoManager.Push(); ctl.DeleteSelected(); }
+            GUILayout.EndHorizontal();
+            GUILayout.EndArea();
+        }
+
+        // ---- 可走/不可走筆刷面板 ----
+
+        void DrawWalkablePanel()
+        {
+            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+
+            GUILayout.Label("可走 / 不可走");
+            GUILayout.Space(4);
+            GUILayout.Label("筆刷");
+            GUILayout.BeginHorizontal();
+            GUI.color = WalkPaintWalkable ? Color.cyan : Color.white;
+            if (GUILayout.Button("可走（綠）")) WalkPaintWalkable = true;
+            GUI.color = !WalkPaintWalkable ? Color.cyan : Color.white;
+            if (GUILayout.Button("不可走（紅）")) WalkPaintWalkable = false;
+            GUI.color = Color.white;
+            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+            GUILayout.Label("左鍵拖曳塗格。\n綠 = 可走，紅 = 不可走。\n新地圖初始全部不可走。\n只有此工具下才顯示疊加色。");
+            GUILayout.EndArea();
+        }
+
+        // ---- Trigger 圖層面板 ----
+
+        void DrawTriggerPanel()
+        {
+            var map = MapSession.Instance?.Map;
+            var types = MapSession.Instance?.TriggerTypes;
+            if (map == null || types == null) return;
+            var regions = map.TriggerLayer.regions;
+
+            // 當前區域若已被刪除/換地圖則清空
+            if (CurrentRegion != null && !regions.Contains(CurrentRegion)) CurrentRegion = null;
+            if (string.IsNullOrEmpty(_triggerType) && types.types.Count > 0) _triggerType = types.types[0].typeId;
+
+            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+            _trigScroll = GUILayout.BeginScrollView(_trigScroll);
+
+            // 新區域的類型選擇
+            GUILayout.Label("新區域類型");
+            foreach (var t in types.types)
+            {
+                GUI.color = (t.typeId == _triggerType) ? Color.cyan : Color.white;
+                // 選類型 = 準備畫一塊「新」的此類型區域（取消當前選取，畫下去就自動建）
+                if (GUILayout.Button(t.displayName)) { _triggerType = t.typeId; CurrentRegion = null; }
+            }
+            GUI.color = Color.white;
+            GUILayout.Label("選類型後直接在畫布左鍵拖曳即可\n（會自動建立區域）。下方清單可\n點選編輯既有區域。");
+            if (GUILayout.Button("＋ 手動新增空區域")) { UndoManager.Push(); CreateRegion(_triggerType, regions, types); }
+
+            GUILayout.Space(6);
+            GUILayout.Label($"區域清單（{regions.Count}）");
+            TriggerRegion toDelete = null;
+            foreach (var r in regions)
+            {
+                GUILayout.BeginHorizontal();
+                GUI.color = (r == CurrentRegion) ? Color.cyan : Color.white;
+                if (GUILayout.Button($"{r.name}（{r.cells.Count}格）", GUILayout.Width(160))) CurrentRegion = r;
+                GUI.color = Color.white;
+                if (GUILayout.Button("刪", GUILayout.Width(36))) toDelete = r;
+                GUILayout.EndHorizontal();
+            }
+            if (toDelete != null)
+            {
+                UndoManager.Push();
+                regions.Remove(toDelete);
+                if (CurrentRegion == toDelete) CurrentRegion = null;
+            }
+
+            // 當前區域編輯
+            if (CurrentRegion != null)
+            {
+                GUILayout.Space(8);
+                GUILayout.Label("── 編輯區域 ──");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("名稱", GUILayout.Width(60));
+                CurrentRegion.name = GUILayout.TextField(CurrentRegion.name);
+                GUILayout.EndHorizontal();
+
+                GUILayout.BeginHorizontal();
+                GUI.color = TriggerAddCells ? Color.cyan : Color.white;
+                if (GUILayout.Button("加格")) TriggerAddCells = true;
+                GUI.color = !TriggerAddCells ? Color.cyan : Color.white;
+                if (GUILayout.Button("減格")) TriggerAddCells = false;
+                GUI.color = Color.white;
+                GUILayout.EndHorizontal();
+
+                var def = types.Find(CurrentRegion.typeId);
+                if (def != null && def.paramSchema.Count > 0)
+                {
+                    GUILayout.Label("參數");
+                    foreach (var p in def.paramSchema) DrawParamField(CurrentRegion, p);
+                }
+                GUILayout.Label("左鍵拖曳加/減格。");
+            }
+            else
+            {
+                GUILayout.Space(8);
+                GUILayout.Label("選一個區域，或按上方\n「新增此類型區域」開始塗。");
+            }
+
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
+
+        /// <summary>供 TriggerController 在開始畫時呼叫：沒有當前區域就依選取的類型自動建一個。</summary>
+        public TriggerRegion EnsureCurrentRegion()
+        {
+            if (CurrentRegion != null) return CurrentRegion;
+            var map = MapSession.Instance?.Map;
+            var types = MapSession.Instance?.TriggerTypes;
+            if (map == null || types == null || string.IsNullOrEmpty(_triggerType)) return null;
+            CreateRegion(_triggerType, map.TriggerLayer.regions, types);
+            return CurrentRegion;
+        }
+
+        void CreateRegion(string typeId, List<TriggerRegion> regions, TriggerTypeSet types)
+        {
+            if (string.IsNullOrEmpty(typeId)) return;
+            var def = types.Find(typeId);
+            int count = regions.FindAll(r => r.typeId == typeId).Count + 1;
+            var region = new TriggerRegion
+            {
+                id = System.Guid.NewGuid().ToString("N").Substring(0, 8),
+                typeId = typeId,
+                name = (def != null ? def.displayName : typeId) + count,
+            };
+            if (def != null)
+                foreach (var p in def.paramSchema)
+                    region.Params[p.key] = (p.type == ParamType.Bool) ? (object)false : "";
+            regions.Add(region);
+            CurrentRegion = region;
+            TriggerAddCells = true;
+        }
+
+        static void DrawParamField(TriggerRegion r, TriggerParam p)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(p.key, GUILayout.Width(90));
+            if (p.type == ParamType.Bool)
+            {
+                bool cur = r.Params.TryGetValue(p.key, out var v) && v is bool b && b;
+                bool next = GUILayout.Toggle(cur, cur ? "true" : "false");
+                if (next != cur) r.Params[p.key] = next;
+            }
+            else
+            {
+                string cur = (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString() : "";
+                string next = GUILayout.TextField(cur);
+                if (next != cur) r.Params[p.key] = next;
+            }
+            GUILayout.EndHorizontal();
+        }
+
+        void DrawNewDialog()
+        {
+            const int w = 380, h = 300;
+            var rect = new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+
+            GUILayout.Label("新建地圖");
+            GUILayout.Space(6);
+            Field("名稱", ref _name);
+
+            // Module 選擇（= 此地圖可用的資源範圍 Main + 此 module）
+            var modules = MapSession.Instance?.Catalog?.EditableModules() ?? new List<string>();
+            if (modules.Count > 0 && (string.IsNullOrEmpty(_module) || !modules.Contains(_module)))
+                _module = modules[0];
+
+            GUILayout.Label("Module（資源目錄）");
+            if (modules.Count == 0)
+            {
+                GUILayout.Label("　找不到任何 module。請先跑 sync_assets.sh\n　再按頂部「刷新素材」。");
+            }
+            else
+            {
+                GUILayout.BeginHorizontal();
+                foreach (var m in modules)
+                {
+                    GUI.color = (m == _module) ? Color.cyan : Color.white;
+                    if (GUILayout.Button(m)) _module = m;
+                }
+                GUI.color = Color.white;
+                GUILayout.EndHorizontal();
+            }
+
+            Field("Tile 尺寸（世界單位）", ref _tileSize);
+            Field("寬（格）", ref _width);
+            Field("高（格）", ref _height);
+
+            if (TryParse(out float ts, out int cw, out int ch))
+                GUILayout.Label($"≈ {Mathf.RoundToInt(cw * ts * TileNativePx)} × {Mathf.RoundToInt(ch * ts * TileNativePx)} px　（一個螢幕約 18×10 格）");
+            else
+                GUILayout.Label("<請輸入有效數值>");
+
+            GUILayout.Space(8);
+            GUILayout.BeginHorizontal();
+            bool canCreate = modules.Count > 0 && !string.IsNullOrEmpty(_module);
+            GUI.enabled = canCreate;
+            if (GUILayout.Button("建立") && canCreate && TryParse(out float t, out int width, out int height))
+            {
+                MapSession.Instance.NewMap(_name, _module, t, width, height);
+                _showNew = false;
+            }
+            GUI.enabled = true;
+            if (GUILayout.Button("取消") && MapSession.Instance?.Map != null)
+                _showNew = false;
+            GUILayout.EndHorizontal();
+            GUILayout.EndArea();
+        }
+
+        static void Field(string label, ref string value)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(170));
+            value = GUILayout.TextField(value);
+            GUILayout.EndHorizontal();
+        }
+
+        bool TryParse(out float tileSize, out int width, out int height)
+        {
+            tileSize = 1; width = 0; height = 0;
+            return float.TryParse(_tileSize, out tileSize) && tileSize > 0
+                && int.TryParse(_width, out width) && width > 0
+                && int.TryParse(_height, out height) && height > 0;
+        }
+
+        static string Short(string id)
+        {
+            int slash = id.LastIndexOf('/');
+            return slash >= 0 ? id.Substring(slash + 1) : id;
+        }
+
+        static Rect CenteredRect(int w, int h)
+            => new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h);
+    }
+}
