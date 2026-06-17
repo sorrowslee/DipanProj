@@ -40,6 +40,10 @@ public class PlayerController : MonoBehaviour
     private readonly List<GameObject> _flameVfx = new List<GameObject>();
     private static readonly List<Vector2> _flamePosBuffer = new List<Vector2>(64);
 
+    // 佛光：按住維持一個「跟著玩家移動」的 GroundEffect（圓形 AOE），放開/切武器銷毀
+    private GroundEffectInstance _activeAura;
+    private WeaponData _activeAuraWeapon;
+
     public bool isFacingRightByDefault = true;
 
     void Start()
@@ -136,6 +140,7 @@ public class PlayerController : MonoBehaviour
     {
         ClearActiveOrbitalBullets();
         ClearActiveBeams();
+        ClearActiveAura();
     }
 
     // ── 發射總入口：雷射走持續光束路徑，其餘走離散發射 ──
@@ -146,10 +151,14 @@ public class PlayerController : MonoBehaviour
 
         bool isLaser = weapon != null && weapon.Recipe != null
                        && weapon.Recipe.Data != null && weapon.Recipe.Data.IsLaser;
+        bool isAura = weapon != null && weapon.Recipe != null && weapon.Recipe.IsAura;
 
         // 切到非雷射武器、或換了不同雷射武器 → 先清掉舊光束
         if (_activeBeams.Count > 0 && (!isLaser || weapon != _activeBeamWeapon))
             ClearActiveBeams();
+        // 切到非佛光武器、或換了不同佛光武器 → 先清掉舊佛光
+        if (_activeAura != null && (!isAura || weapon != _activeAuraWeapon))
+            ClearActiveAura();
 
         if (isLaser)
         {
@@ -157,8 +166,59 @@ public class PlayerController : MonoBehaviour
             return;
         }
 
+        if (isAura)
+        {
+            UpdateAura(weapon, firing);
+            return;
+        }
+
         if (firing && _fireTimer <= 0)
             Shoot();
+    }
+
+    // ── 佛光：按住攻擊時，在玩家身上維持一個「跟著玩家移動」的 GroundEffect 圓形 AOE ──
+    // 圓的半徑/節拍/外觀走配方 GroundEffectID 指向的 GroundEffectTable；傷害走武器表 Damage。
+    // 放開攻擊鍵 / 切武器時銷毀整個佛光（仿雷射的群組生命週期）。不發射任何子彈、不碰彈道系統。
+    private void UpdateAura(WeaponData weapon, bool firing)
+    {
+        if (!firing)
+        {
+            if (_activeAura != null) ClearActiveAura();
+            return;
+        }
+
+        if (_groundEffectManager == null)
+        {
+            Debug.LogWarning("GroundEffectManager 不存在，佛光武器無法生效。");
+            return;
+        }
+
+        if (_activeAura == null)
+        {
+            int auraId = (weapon.Recipe != null) ? weapon.Recipe.GroundEffectID : 0;
+            if (auraId <= 0)
+            {
+                Debug.LogWarning($"佛光武器 '{weapon.Name}' 的配方沒有設定 GroundEffectID（要指向 GroundEffectTable 的佛光圓）。");
+                return;
+            }
+            // 傷害走武器表 Damage（餵進 GroundEffectInstance 的 damageOverride）。佛光圓用 Duration=-1（永久，由本控制器管理生死）。
+            _activeAura = _groundEffectManager.Spawn(auraId, transform.position, weapon.Damage);
+            _activeAuraWeapon = weapon;
+            // 發射特效（可選）：佛光在按下瞬間播一次（持續存在期間不每幀重播）
+            TrySpawnFireEffect(weapon, AimDirectionToMouse());
+        }
+
+        // 每幀把佛光移到玩家身上：GroundEffectInstance 的 tile／單圖是子物件、傷害每拍即時讀 transform.position，
+        // 所以只要移動 transform，「視覺圈」與「傷害圈」就會一起跟著玩家（GroundEffect 本身零改動）。
+        if (_activeAura != null)
+            _activeAura.transform.position = transform.position;
+    }
+
+    private void ClearActiveAura()
+    {
+        if (_activeAura != null) Destroy(_activeAura.gameObject);
+        _activeAura = null;
+        _activeAuraWeapon = null;
     }
 
     void FixedUpdate()

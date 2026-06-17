@@ -38,7 +38,21 @@
 
 > **地刺類武器不在這裡**：早期曾用「沿線連續生成 GroundEffect」做地刺（IsGroundWave），但地表特效不會飛、吃不到反彈/分裂等行為，已移除。地刺改用「軌跡特效」——一顆隱形子彈沿路種尖刺 Vfx，自動繼承所有彈道行為。見 [BALLISTICS.md](BALLISTICS.md) 的 `OnTrailPoint` 與 [VFX.md](VFX.md) 的 `TrailEffectID`。
 
+## 佛光型武器（IsAura：跟隨玩家的圓形 AOE）
+
+「手持佛光、籠罩一圈、圓內怪物持續受傷」的近身光環武器。**本質＝一個會跟著玩家移動的 GroundEffect**——所以不另起一套系統，直接複用本檔的圓形 AOE 傷害與渲染。
+
+* **為什麼能直接複用**：`GroundEffectInstance` 的視覺（tile / 單圖）是掛在自己 transform 底下的子物件，傷害每一拍即時讀 `transform.position` 做 `OverlapCircleAll`。所以**只要每幀把 instance 的 transform 設成玩家位置，視覺圈與傷害圈就一起跟著玩家移動**，GroundEffect 本體一行都不用改。
+* **發射路徑**（`PlayerController.UpdateAura`，與 `UpdateLaser` 同級）：偵測到 `IsAura` 武器且按住攻擊 → 若場上沒有佛光就 `GroundEffectManager.Spawn(GroundEffectID, 玩家位置, 武器Damage)` 生一個、記住引用；之後每幀把它移到玩家身上。放開攻擊鍵 / 切武器 → `ClearActiveAura` 銷毀整個佛光（仿雷射的群組生命週期）。**不發射任何子彈、完全不碰彈道系統**。
+* **旗標放主遊戲側**：`RecipeEntry.IsAura`（不是 `ProjectileData`）——因為佛光不經過彈道系統，正好守住「彈道系統絕不涉入」的邊界，跟 `BlastRadius` 一樣存在主遊戲側。`RecipeTable.csv` 新增 `IsAura` 欄（第 32 欄）；與 `IsOrbital` / `IsParabolic` / `IsLaser` 互斥。
+* **圓的定義走 `GroundEffectID`**：佛光的半徑、傷害節拍（`DamageInterval`）、外觀、`Duration` 都寫在 `GroundEffectTable` 對應列。**佛光圓必須 `Duration = -1`**（永久；生死由 `PlayerController` 管理，按住維持、放開銷毀）。
+* **傷害走武器表 `Damage`**：透過新增的 `GroundEffectManager.Spawn(id, pos, damageOverride)` / `GroundEffectInstance.Initialize(..., damageOverride)`——`damageOverride >= 0` 時改用此值取代 `GroundEffectTable.Damage`。所以同一張佛光圓，換武器調 `Damage` 就能改強度。`DamageInterval` 仍由 GroundEffectTable 控制（佛光建議 0.2~0.4 秒一拍）。
+* **單圖外觀（`RenderMode = Single`）**：佛光圓用「一張縮放到直徑 `2*Radius` 的發光圓暈」呈現（而非 tile 鋪滿）。`GroundEffectTable` 新增 `RenderMode` 欄：留空 / `Tile` = 既有 tile 鋪面（火堆/毒霧）；`Single` = 單圖模式。`GroundEffectInstance.BuildSingleSprite` 依 sprite 實際世界尺寸動態縮放（與 PPU 無關），仍掛進 `_tileRenderers` 所以多幀圖照樣會播。佛光圖：`Resources/GroundEffect/buddhaLight/buddhaLight_01.png`（金色放射狀、半透明 RGBA、單幀；刻意壓低不透明度避免遮住下方怪物）。
+* **範圍含可破壞地上物**：傷害層沿用 `EnemyLayer | EnvironmentLayer`，所以佛光也會慢慢燒掉範圍內的可破壞家具（多半是想要的）。不會傷到玩家（玩家在 Player 層、不在傷害遮罩）。
+* **範例**：武器 10「佛光」`Damage=1, RecipeID=21`；配方 21「佛光」`IsAura=1, GroundEffectID=2`（其餘彈道欄位填 0 / None，不發射子彈）；GroundEffect 2「佛光」`Radius=1.2, Duration=-1, DamageInterval=0.3, RenderMode=Single, AniPath=GroundEffect/buddhaLight/buddhaLight`。
+* **調整方向**：圈變大（讓快怪更難貼到玩家）→ GroundEffect 2 的 `Radius`（初始 1.2，約籠罩玩家全身）；傷害變高 → 武器 10 的 `Damage`；傷害更密 → GroundEffect 2 的 `DamageInterval` 調小；圈更亮/更淡 → 換 `buddhaLight_01.png` 或調它的 alpha。
+
 ## 執行單元
-* `GroundEffectManager`（場景單例，掛在主物件上）：CSV 載入、序列圖預載、`Spawn(id, position)` API
+* `GroundEffectManager`（場景單例，掛在主物件上）：CSV 載入、序列圖預載、`Spawn(id, position)` / `Spawn(id, position, damageOverride)` API
 * `GroundEffectInstance`（掛在 Prefab 上）：採 **真實圓形掃描（aligned scanline）**渲染——以原點為中心掃整數網格 `(i, j)`，當 `(i*TileSize)² + (j*TileSize)² ≤ Radius²` 就放一個 tile，嚴格對齊網格、上下左右對稱。每個 tile 動態 `AddComponent<SpriteRenderer>` 並繼承 prefab 範本的排序設定，動畫由父物件統一切幀同步顯示。**鋪面範圍嚴格貼齊 Radius**（與 `OverlapCircleAll` 傷害判定一致）。圓滑度取決於解析度：`R / TileSize ≥ 4` 才看得出明顯圓形，例如 `R=1.5、TileSize=0.3` ≈ 81 顆呈圓形；`R=1.5、TileSize=1` 只有 3×3 = 9 顆是 resolution 限制。實際 tile 數 > 500 時會在 Console 印一次 LogWarning，但仍照生成
 * 同一目標的 DOT 限流靠 `HitReactionHandler.IsInvincible`，地面特效本身不維護命中表

@@ -39,6 +39,7 @@
 | BeamRange | 小數 | 否 | 雷射專用：光束最大射程（世界單位）。Speed / LifeTime 對光束無意義，改用此欄位限制長度；留空 = 20 |
 | BlastRadius | 小數 | 否 | 拋物線專用：落地殺傷半徑（世界單位）。留空 / 0 = 落地不傷害；> 0 = 落地瞬間以武器表 Damage 對半徑內怪物炸一次。與地面特效獨立、可並存 |
 | TrailStep | 小數 | 否 | 軌跡點間距（世界單位）：> 0 時子彈每飛這麼遠就沿路種一個特效（搭配武器表 `TrailEffectID`）。子彈反彈/分裂/追蹤後的彎折路徑都會跟著種。地刺武器靠這個沿路長出尖刺。0 或留空 = 無軌跡 |
+| IsAura | 整數 | 否 | 佛光型武器（1 = 是，留空或 0 = 否；與 IsOrbital / IsParabolic / IsLaser 互斥）。不發射子彈，改在玩家身上維持一個「跟著玩家移動」的圓形 AOE（圓的定義走本列 `GroundEffectID`、傷害走武器表 `Damage`）。見 [GROUND_EFFECT.md](GROUND_EFFECT.md) 的佛光章節 |
 
 ---
 
@@ -250,8 +251,17 @@
 - 與其他欄位：`Speed`（線推進速度）、`LifeTime`（線多長/多遠 = Speed×LifeTime）、`Radius`（命中寬度）、`BounceTarget`/`MaxBounces`、`HomingTurnSpeed`、`SpreadCount`/`SpreadAngle` 全部適用。`RotationSpeed`（自轉）對「種在地上的刺」沒意義，屬不相干欄位。
 - 範例組合：武器「地裂刺」`RecipeID=19, Damage=3, TrailEffectID=3`（隱形、不填飛行圖）；配方 19 `Speed=16, Radius=0.3, LifeTime=0.6, PierceCount=-1, TrailStep=1.5`；VfxTable ID 3「地刺」= earthSpik 序列圖（`Scale=0.35, Loop=0`）。要加反彈就把配方 19 的 `BounceTarget` 填 `Environment`，尖刺線就會撞牆折射。
 
+### IsAura（佛光型武器）
+- 啟用條件：`IsAura = 1`，與 `IsOrbital` / `IsParabolic` / `IsLaser` 互斥
+- 行為：**不發射任何子彈**，改在玩家身上維持一個「以玩家為圓心、跟著玩家移動」的圓形 AOE 光環（手持佛光、籠罩一圈、圈內怪物持續受傷）
+- 圓的定義（半徑 / 傷害節拍 / 外觀 / 存活）走本列 `GroundEffectID` 指向的 `GroundEffectTable` 列；**該 GroundEffect 必須 `Duration = -1`**（永久，由 `PlayerController` 在按住期間管理、放開/切武器銷毀）
+- 傷害走**武器表 `Damage`**（每 `DamageInterval` 結算一次，吃怪物無敵時間），不是 GroundEffectTable 的 Damage
+- 其餘彈道欄位（Speed / Radius / PierceCount / Bounce / Split…）對佛光無意義，填 0 / None 即可
+- 範例：配方 21「佛光」`IsAura=1, GroundEffectID=2`；武器 10「佛光」`Damage=1`；GroundEffect 2「佛光」`Radius=1.2, Duration=-1, DamageInterval=0.3, RenderMode=Single`。詳見 [GROUND_EFFECT.md](GROUND_EFFECT.md)
+
 ### GroundEffectTable.csv 欄位（簡述，獨立於本文件）
-- `ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize`
+- `ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize, RenderMode`
+- `RenderMode`：留空 / `Tile` = tile 鋪滿整個圓（火堆/毒霧，預設）；`Single` = 只放一張縮放到直徑 `2*Radius` 的 sprite（佛光那種柔和發光圓暈，不受 TileSize 影響）
 - `Radius`：AOE 偵測半徑（`Physics2D.OverlapCircle` 用此值），**同時嚴格決定 tile 鋪面範圍**——tile 中心點落在 `Radius` 內才會保留
 - `Duration`：地面特效存活秒數，`-1` = 永久（待外部銷毀）
 - `DamageInterval`：`0` = 生成瞬間單次爆裂、之後不再傷害；`> 0` = 每 N 秒週期 DOT

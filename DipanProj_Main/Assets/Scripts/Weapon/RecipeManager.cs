@@ -20,6 +20,9 @@ public class RecipeEntry
     public GroundEffectHitTarget GroundEffectHitTarget = GroundEffectHitTarget.Enemy;
     public LaunchSource LaunchSource = LaunchSource.Player;
     public float BlastRadius = 0f;  // 拋物線落地殺傷半徑；> 0 時落地對半徑內怪物以武器 Damage 炸一次（與地面火堆獨立）
+    // 佛光型武器：1 時不發射任何子彈，改在玩家身上維持一個「跟著玩家移動」的 GroundEffect（圓形 AOE）。
+    // 純主遊戲側（不碰彈道系統，因為它不發射子彈）。圓的半徑/節拍/外觀走 GroundEffectID 指向的 GroundEffectTable，傷害走武器表 Damage。
+    public bool IsAura = false;
 }
 
 public class RecipeManager : MonoBehaviour
@@ -198,6 +201,14 @@ public class RecipeManager : MonoBehaviour
             if (v.Length >= 31 && !string.IsNullOrWhiteSpace(v[30]))
             {
                 data.TrailStep = float.Parse(v[30].Trim());
+            }
+
+            // 佛光型武器：留空 / 0 = 一般武器；1 = 佛光（不發射子彈，改維持跟隨玩家的 GroundEffect 圓形 AOE）。
+            // 與 IsOrbital / IsParabolic / IsLaser 互斥；圓的定義由本列 GroundEffectID 指向 GroundEffectTable，傷害走武器表 Damage。
+            entry.IsAura = false;
+            if (v.Length >= 32 && !string.IsNullOrWhiteSpace(v[31]))
+            {
+                entry.IsAura = int.Parse(v[31].Trim()) != 0;
             }
 
             entry.Data = data;

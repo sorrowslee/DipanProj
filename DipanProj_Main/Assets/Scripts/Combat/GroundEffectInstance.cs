@@ -14,11 +14,17 @@ public class GroundEffectInstance : MonoBehaviour
     private int _animFrame;
     private float _damageTimer;
     private bool _initialized;
+    private float _damageOverride = -1f;  // >= 0 時改用此值（例如佛光以武器表 Damage 結算），< 0 = 用 GroundEffectTable 的 Damage
 
-    public void Initialize(GroundEffectData data, LayerMask damageMask)
+    /// <param name="damageOverride">
+    /// &lt; 0（預設）= 用 GroundEffectTable 的 Damage；&ge; 0 = 改用此值結算傷害
+    /// （佛光等「載體型」特效把武器表 Damage 餵進來，讓同一張圓的傷害可隨武器調整）。
+    /// </param>
+    public void Initialize(GroundEffectData data, LayerMask damageMask, float damageOverride = -1f)
     {
         _data = data;
         _damageMask = damageMask;
+        _damageOverride = damageOverride;
 
         // Prefab 上的 SpriteRenderer 只當 sortingLayer / order / material 的範本，
         // 自身不顯示任何圖（由動態產生的 tile 子物件負責繪製）。
@@ -54,6 +60,13 @@ public class GroundEffectInstance : MonoBehaviour
         if (_data == null) return;
         if (_data.AnimationSprites == null || _data.AnimationSprites.Length == 0) return;
         if (_data.Radius <= 0f) return;
+
+        // 單圖模式：只放一張 sprite，整張縮放到直徑 = 2*Radius（佛光等柔和發光圓暈）。
+        if (_data.SingleSprite)
+        {
+            BuildSingleSprite();
+            return;
+        }
 
         float tileSize = _data.TileSize > 0f ? _data.TileSize : 1f;
         float radius = _data.Radius;
@@ -93,6 +106,36 @@ public class GroundEffectInstance : MonoBehaviour
         {
             Debug.LogWarning($"GroundEffect '{_data.Name}' spawned {_tileRenderers.Count} tiles (Radius={radius}, TileSize={tileSize}); consider increasing TileSize for performance.");
         }
+    }
+
+    /// <summary>
+    /// 單圖模式：放一張 sprite，整張縮放到「直徑 = 2*Radius」。
+    /// 縮放依 sprite 實際世界尺寸（bounds）動態算出，與 PPU 無關。
+    /// 沿用同一條動畫路徑（把這唯一的 renderer 放進 _tileRenderers），所以多幀圖也能播。
+    /// </summary>
+    private void BuildSingleSprite()
+    {
+        Sprite firstFrame = _data.AnimationSprites[0];
+        if (firstFrame == null) return;
+
+        var go = new GameObject("AuraSprite");
+        go.transform.SetParent(transform, false);
+        go.transform.localPosition = Vector3.zero;
+
+        // sprite 在 localScale=1 時的世界寬度；縮放到直徑 = 2*Radius
+        float spriteWorld = firstFrame.bounds.size.x;
+        float scale = spriteWorld > 1e-5f ? (2f * _data.Radius) / spriteWorld : 1f;
+        go.transform.localScale = new Vector3(scale, scale, 1f);
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = firstFrame;
+        if (_templateRenderer != null)
+        {
+            sr.sortingLayerID = _templateRenderer.sortingLayerID;
+            sr.sortingOrder = _templateRenderer.sortingOrder;
+            sr.sharedMaterial = _templateRenderer.sharedMaterial;
+        }
+        _tileRenderers.Add(sr);
     }
 
     private void Update()
@@ -150,7 +193,9 @@ public class GroundEffectInstance : MonoBehaviour
 
     private void ApplyAreaDamage()
     {
-        if (_data.Damage <= 0f || _data.Radius <= 0f) return;
+        // 傷害值：damageOverride >= 0 時改用它（佛光以武器表 Damage 結算），否則用表格 Damage。
+        float damage = _damageOverride >= 0f ? _damageOverride : _data.Damage;
+        if (damage <= 0f || _data.Radius <= 0f) return;
 
         Vector2 center = transform.position;
         Collider2D[] hits = Physics2D.OverlapCircleAll(center, _data.Radius, _damageMask);
@@ -164,7 +209,7 @@ public class GroundEffectInstance : MonoBehaviour
             if (d == null) continue;
 
             Vector2 hitDir = ((Vector2)col.transform.position - center).normalized;
-            d.TakeDamage(_data.Damage, hitDir);
+            d.TakeDamage(damage, hitDir);
         }
     }
 

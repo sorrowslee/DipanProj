@@ -26,7 +26,11 @@ public class GroundEffectManager : MonoBehaviour
         return null;
     }
 
-    public GroundEffectInstance Spawn(int id, Vector2 position)
+    /// <param name="damageOverride">
+    /// &lt; 0（預設）= 用 GroundEffectTable 的 Damage；&ge; 0 = 改用此值
+    /// （佛光等「載體型」特效把武器表 Damage 餵進來）。
+    /// </param>
+    public GroundEffectInstance Spawn(int id, Vector2 position, float damageOverride = -1f)
     {
         if (GroundEffectPrefab == null)
         {
@@ -46,7 +50,7 @@ public class GroundEffectManager : MonoBehaviour
             return null;
         }
 
-        instance.Initialize(data, EnemyLayer | EnvironmentLayer);
+        instance.Initialize(data, EnemyLayer | EnvironmentLayer, damageOverride);
         return instance;
     }
 
@@ -79,6 +83,14 @@ public class GroundEffectManager : MonoBehaviour
             data.AnimFPS = !string.IsNullOrWhiteSpace(v[8]) ? float.Parse(v[8].Trim()) : 0f;
             data.TileSize = (v.Length >= 10 && !string.IsNullOrWhiteSpace(v[9])) ? float.Parse(v[9].Trim()) : 1f;
             if (data.TileSize <= 0f) data.TileSize = 1f;
+
+            // 渲染模式：留空 / Tile = tile 鋪滿（預設）；Single = 單張縮放到直徑的發光圓暈（佛光用）。
+            data.SingleSprite = false;
+            if (v.Length >= 11 && !string.IsNullOrWhiteSpace(v[10]))
+            {
+                string mode = v[10].Trim();
+                data.SingleSprite = mode.Equals("Single", System.StringComparison.OrdinalIgnoreCase);
+            }
 
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)
             {
