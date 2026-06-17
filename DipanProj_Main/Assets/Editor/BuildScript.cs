@@ -5,7 +5,8 @@ using System.IO;
 
 public class BuildScript
 {
-    [MenuItem("Project Tools/Build and Deploy")]
+    // priority 0 = 最上、最優先；與下方檔案處理類(priority >= 20)差距 > 10 → 自動分隔線。
+    [MenuItem("Project Tools/Build and Deploy", false, 0)]
     public static void BuildAndDeploy()
     {
         BuildPlayerOptions options = new BuildPlayerOptions();

@@ -19,7 +19,7 @@ namespace DipanMapEditor.UI
         const float PaletteW = 240f;
         const float Thumb = 48f;
         const float InspectorW = 300f;
-        const float InspectorH = 184f;
+        const float InspectorH = 238f;
 
         public EditTool CurrentTool { get; private set; } = EditTool.TilePaint;
         public string SelectedObjectAssetId { get; private set; }
@@ -27,14 +27,38 @@ namespace DipanMapEditor.UI
 
         public void ClearObjectBrush() => SelectedObjectAssetId = null;
 
-        // 座標輸入框暫存（依焦點決定要不要從物件同步回來）
-        string _objXBuf = "", _objYBuf = "";
+        // 座標/血量輸入框暫存（依焦點決定要不要從物件同步回來）
+        string _objXBuf = "", _objYBuf = "", _objHpBuf = "";
 
         // Trigger
         public TriggerRegion CurrentRegion { get; private set; }
         public bool TriggerAddCells { get; private set; } = true;     // true=加格、false=減格
+        public bool TriggerPaintMode { get; private set; } = true;    // true=筆刷、false=檢視（點區域檢查參數）
+        // true=選了類型、每畫一筆建一個「新」區域；false=正在編輯某個既有區域（加進它）
+        public bool TriggerNewRegionPerStroke { get; private set; } = true;
         string _triggerType;
         Vector2 _trigScroll;
+
+        /// <summary>ESC 進檢視模式：停止筆刷、清掉選取，改成點畫布上的區域來檢查。</summary>
+        public void EnterTriggerInspect()
+        {
+            TriggerPaintMode = false;
+            CurrentRegion = null;
+            _statusMsg = "Trigger 檢視模式：點區域檢查參數；點右側類型回到筆刷";
+        }
+
+        /// <summary>檢視模式下由 TriggerController 呼叫，選取點到的區域（null = 點空白取消）。</summary>
+        public void SelectRegion(TriggerRegion r) => CurrentRegion = r;
+
+        /// <summary>新一筆畫的開始：依當前類型建一個新區域並設為 current（TriggerController 呼叫）。</summary>
+        public TriggerRegion BeginNewRegion()
+        {
+            var map = MapSession.Instance?.Map;
+            var types = MapSession.Instance?.TriggerTypes;
+            if (map == null || types == null || string.IsNullOrEmpty(_triggerType)) return null;
+            CreateRegion(_triggerType, map.TriggerLayer.regions, types);
+            return CurrentRegion;
+        }
 
         // 存/讀檔/背景
         bool _showSave, _showLoad, _showBg;
@@ -42,7 +66,9 @@ namespace DipanMapEditor.UI
         Vector2 _loadScroll, _bgScroll;
         string _statusMsg = "";
 
-        static string MapsDir => Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Maps");
+        const string MapsDirPrefKey = "MapEditor.MapsDir";
+        static string DefaultMapsDir => Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Maps");
+        string _mapsDir;   // 當前存讀檔資料夾（可自選，PlayerPrefs 記住）
 
         EditorCamera _cam;
         Tools.ObjectController _objCtl;
@@ -67,13 +93,47 @@ namespace DipanMapEditor.UI
         int _blockCols;        // 該 tileset 的欄數
         int _blockC0, _blockR0, _blockC1, _blockR1;
         bool _blockDragging;
+        bool _tileBrushCleared;   // ESC 清掉地磚筆刷後，不再自動選回第一塊
+
+        /// <summary>ESC 退出地磚筆刷：清掉選取、且不自動選回（直到使用者再點一塊）。</summary>
+        public void ClearTileBrush() { _blockId = null; _tileBrushCleared = true; }
 
         void Start()
         {
             _cam = FindObjectOfType<EditorCamera>();
             _objCtl = FindObjectOfType<Tools.ObjectController>();
+            _mapsDir = PlayerPrefs.GetString(MapsDirPrefKey, DefaultMapsDir);
             if (MapSession.Instance != null && MapSession.Instance.Map == null)
                 _showNew = true;
+        }
+
+        // 存讀檔資料夾：可編輯路徑 + （Editor 內）原生選資料夾
+        void DrawFolderRow()
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("資料夾", GUILayout.Width(48));
+            if (GUILayout.Button("選資料夾…", GUILayout.Width(90))) PickFolder();
+            GUILayout.EndHorizontal();
+            // 路徑另起一行，避免長路徑把按鈕擠出畫面
+            _mapsDir = GUILayout.TextField(_mapsDir ?? "");
+        }
+
+        void PickFolder()
+        {
+#if UNITY_EDITOR
+            string start = Directory.Exists(_mapsDir) ? _mapsDir : DefaultMapsDir;
+            string picked = UnityEditor.EditorUtility.OpenFolderPanel("選擇存讀檔資料夾", start, "");
+            if (!string.IsNullOrEmpty(picked)) RememberMapsDir(picked);
+#else
+            _statusMsg = "打包版請直接在欄位輸入/貼上資料夾路徑";
+#endif
+        }
+
+        void RememberMapsDir(string dir)
+        {
+            _mapsDir = dir;
+            PlayerPrefs.SetString(MapsDirPrefKey, dir);
+            PlayerPrefs.Save();
         }
 
         Tools.ObjectController ObjCtl()
@@ -89,8 +149,8 @@ namespace DipanMapEditor.UI
             if (ty <= TopBarH) return true;                 // 頂部列
             if (mousePos.x >= Screen.width - PaletteW) return true; // 右側調色盤
             if (_showNew && CenteredRect(420, 380).Contains(new Vector2(mousePos.x, ty))) return true;
-            if (_showSave && CenteredRect(420, 170).Contains(new Vector2(mousePos.x, ty))) return true;
-            if (_showLoad && CenteredRect(420, 320).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (_showSave && CenteredRect(460, 210).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (_showLoad && CenteredRect(460, 340).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showBg && CenteredRect(420, 280).Contains(new Vector2(mousePos.x, ty))) return true;
             if (CurrentTool == EditTool.Object && ObjCtl()?.Selected != null
                 && mousePos.x <= InspectorW && ty >= Screen.height - InspectorH)
@@ -161,7 +221,7 @@ namespace DipanMapEditor.UI
             GUI.color = CurrentTool == EditTool.Walkable ? Color.cyan : Color.white;
             if (GUILayout.Button("可走", GUILayout.Width(50))) CurrentTool = EditTool.Walkable;
             GUI.color = CurrentTool == EditTool.Trigger ? Color.cyan : Color.white;
-            if (GUILayout.Button("Trigger", GUILayout.Width(70))) CurrentTool = EditTool.Trigger;
+            if (GUILayout.Button("Trigger", GUILayout.Width(70))) { CurrentTool = EditTool.Trigger; TriggerPaintMode = true; }
             GUI.color = Color.white;
 
             GUILayout.Space(12);
@@ -235,18 +295,20 @@ namespace DipanMapEditor.UI
 
         void DrawSaveDialog()
         {
-            const int w = 420, h = 170;
+            const int w = 460, h = 210;
             GUILayout.BeginArea(new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h), GUI.skin.box);
             GUILayout.Label("存檔");
             Field("檔名", ref _saveName);
-            GUILayout.Label($"存到：{MapsDir}/<檔名>.dipanmap");
+            DrawFolderRow();
+            GUILayout.Label($"→ 存成 <檔名>{MapSerializer.Extension}");
             GUILayout.Space(8);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("存檔") && !string.IsNullOrWhiteSpace(_saveName))
+            if (GUILayout.Button("存檔") && !string.IsNullOrWhiteSpace(_saveName) && !string.IsNullOrWhiteSpace(_mapsDir))
             {
-                Directory.CreateDirectory(MapsDir);
-                string path = Path.Combine(MapsDir, _saveName.Trim() + MapSerializer.Extension);
+                Directory.CreateDirectory(_mapsDir);
+                string path = Path.Combine(_mapsDir, _saveName.Trim() + MapSerializer.Extension);
                 MapSession.Instance.SaveMap(path);
+                RememberMapsDir(_mapsDir);
                 _statusMsg = $"已存檔：{_saveName.Trim()}{MapSerializer.Extension}";
                 _showSave = false;
             }
@@ -257,27 +319,28 @@ namespace DipanMapEditor.UI
 
         void DrawLoadDialog()
         {
-            const int w = 420, h = 320;
+            const int w = 460, h = 340;
             GUILayout.BeginArea(new Rect((Screen.width - w) / 2f, (Screen.height - h) / 2f, w, h), GUI.skin.box);
-            GUILayout.Label($"讀檔（{MapsDir}）");
+            GUILayout.Label("讀檔");
+            DrawFolderRow();
             GUILayout.Space(4);
 
             string toLoad = null;
-            if (Directory.Exists(MapsDir))
+            if (!string.IsNullOrEmpty(_mapsDir) && Directory.Exists(_mapsDir))
             {
-                var files = Directory.GetFiles(MapsDir, "*" + MapSerializer.Extension);
-                _loadScroll = GUILayout.BeginScrollView(_loadScroll, GUILayout.Height(220));
-                if (files.Length == 0) GUILayout.Label("（沒有 .dipanmap 檔）");
+                var files = Directory.GetFiles(_mapsDir, "*" + MapSerializer.Extension);
+                _loadScroll = GUILayout.BeginScrollView(_loadScroll, GUILayout.Height(210));
+                if (files.Length == 0) GUILayout.Label("（此資料夾沒有 .dipanmap 檔）");
                 foreach (var f in files)
                     if (GUILayout.Button(Path.GetFileName(f))) toLoad = f;
                 GUILayout.EndScrollView();
             }
-            else GUILayout.Label("（Maps 資料夾尚未建立）");
+            else GUILayout.Label("（資料夾不存在，請改路徑或按「選…」）");
 
             if (GUILayout.Button("取消")) _showLoad = false;
             GUILayout.EndArea();
 
-            if (toLoad != null) LoadMapFile(toLoad);
+            if (toLoad != null) { RememberMapsDir(_mapsDir); LoadMapFile(toLoad); }
         }
 
         void LoadMapFile(string path)
@@ -344,8 +407,8 @@ namespace DipanMapEditor.UI
                 return;
             }
 
-            // 預設選取（或選取的 tileset 不在當前清單時重設）
-            if (string.IsNullOrEmpty(_blockId) || tilesets.FindIndex(it => it.id == _blockId) < 0)
+            // 預設選取（或選取的 tileset 不在當前清單時重設）；ESC 清過就不自動選回
+            if (!_tileBrushCleared && (string.IsNullOrEmpty(_blockId) || tilesets.FindIndex(it => it.id == _blockId) < 0))
                 SelectTileBlockDefault(tilesets[0]);
 
             var e = Event.current;
@@ -381,7 +444,7 @@ namespace DipanMapEditor.UI
                     {
                         _blockId = item.id; _blockCols = cols;
                         _blockC0 = _blockC1 = c; _blockR0 = _blockR1 = r;
-                        _blockDragging = true; e.Use();
+                        _blockDragging = true; _tileBrushCleared = false; e.Use();
                     }
                     else if (_blockDragging && _blockId == item.id)
                     {
@@ -542,6 +605,26 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("上移層")) { UndoManager.Push(); ctl.RaiseZ(); }
             if (GUILayout.Button("下移層")) { UndoManager.Push(); ctl.LowerZ(); }
             GUILayout.EndHorizontal();
+
+            // 不可被摧毀（勾選＝血量 -1）；未勾選才顯示可調的數值血量
+            bool indes = sel.hp == -1;
+            bool nextIndes = GUILayout.Toggle(indes, " 不可被摧毀（血量 -1）");
+            if (nextIndes != indes) { UndoManager.Push(); sel.hp = nextIndes ? -1 : 1; _objHpBuf = sel.hp.ToString(); }
+
+            if (sel.hp != -1)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("血量", GUILayout.Width(40));
+                if (GUILayout.Button("－", GUILayout.Width(24))) { UndoManager.Push(); sel.hp = Mathf.Max(0, sel.hp - 1); _objHpBuf = sel.hp.ToString(); }
+                GUI.SetNextControlName("objHp");
+                string sh = GUILayout.TextField(_objHpBuf, GUILayout.Width(56));
+                if (GUILayout.Button("＋", GUILayout.Width(24))) { UndoManager.Push(); sel.hp += 1; _objHpBuf = sel.hp.ToString(); }
+                GUILayout.EndHorizontal();
+                bool editingHp = GUI.GetNameOfFocusedControl() == "objHp";
+                if (sh != _objHpBuf) { _objHpBuf = sh; if (int.TryParse(sh, out var vh) && vh >= 0) sel.hp = vh; }
+                if (!editingHp) _objHpBuf = sel.hp.ToString();
+            }
+
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("取消選取")) ctl.Deselect();
             if (GUILayout.Button("刪除")) { UndoManager.Push(); ctl.DeleteSelected(); }
@@ -589,17 +672,20 @@ namespace DipanMapEditor.UI
             GUILayout.BeginArea(rect, GUI.skin.box);
             _trigScroll = GUILayout.BeginScrollView(_trigScroll);
 
-            // 新區域的類型選擇
+            // 模式提示
+            GUILayout.Label(TriggerPaintMode ? "模式：筆刷（ESC 切檢視）" : "模式：檢視（點區域檢查；點下方類型回筆刷）");
+            GUILayout.Space(2);
+
+            // 新區域的類型選擇（點任一類型 = 回到筆刷模式、準備畫新區域）
             GUILayout.Label("新區域類型");
             foreach (var t in types.types)
             {
-                GUI.color = (t.typeId == _triggerType) ? Color.cyan : Color.white;
-                // 選類型 = 準備畫一塊「新」的此類型區域（取消當前選取，畫下去就自動建）
-                if (GUILayout.Button(t.displayName)) { _triggerType = t.typeId; CurrentRegion = null; }
+                GUI.color = (TriggerPaintMode && TriggerNewRegionPerStroke && t.typeId == _triggerType) ? Color.cyan : Color.white;
+                if (GUILayout.Button(t.displayName)) { _triggerType = t.typeId; CurrentRegion = null; TriggerPaintMode = true; TriggerNewRegionPerStroke = true; }
             }
             GUI.color = Color.white;
-            GUILayout.Label("選類型後直接在畫布左鍵拖曳即可\n（會自動建立區域）。下方清單可\n點選編輯既有區域。");
-            if (GUILayout.Button("＋ 手動新增空區域")) { UndoManager.Push(); CreateRegion(_triggerType, regions, types); }
+            GUILayout.Label("選類型→畫布左鍵拖曳。\n每畫一筆 = 一個獨立區域\n（各自參數）。ESC 進檢視模式\n點畫布上的區域檢查/改參數。");
+            if (GUILayout.Button("＋ 手動新增空區域")) { UndoManager.Push(); CreateRegion(_triggerType, regions, types); TriggerPaintMode = true; TriggerNewRegionPerStroke = false; }
 
             GUILayout.Space(6);
             GUILayout.Label($"區域清單（{regions.Count}）");
@@ -608,7 +694,7 @@ namespace DipanMapEditor.UI
             {
                 GUILayout.BeginHorizontal();
                 GUI.color = (r == CurrentRegion) ? Color.cyan : Color.white;
-                if (GUILayout.Button($"{r.name}（{r.cells.Count}格）", GUILayout.Width(160))) CurrentRegion = r;
+                if (GUILayout.Button($"{r.name}（{r.cells.Count}格）", GUILayout.Width(160))) { CurrentRegion = r; TriggerPaintMode = true; TriggerNewRegionPerStroke = false; }
                 GUI.color = Color.white;
                 if (GUILayout.Button("刪", GUILayout.Width(36))) toDelete = r;
                 GUILayout.EndHorizontal();
@@ -631,10 +717,10 @@ namespace DipanMapEditor.UI
                 GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
-                GUI.color = TriggerAddCells ? Color.cyan : Color.white;
-                if (GUILayout.Button("加格")) TriggerAddCells = true;
-                GUI.color = !TriggerAddCells ? Color.cyan : Color.white;
-                if (GUILayout.Button("減格")) TriggerAddCells = false;
+                GUI.color = (TriggerPaintMode && TriggerAddCells) ? Color.cyan : Color.white;
+                if (GUILayout.Button("加格")) { TriggerAddCells = true; TriggerPaintMode = true; TriggerNewRegionPerStroke = false; }
+                GUI.color = (TriggerPaintMode && !TriggerAddCells) ? Color.cyan : Color.white;
+                if (GUILayout.Button("減格")) { TriggerAddCells = false; TriggerPaintMode = true; TriggerNewRegionPerStroke = false; }
                 GUI.color = Color.white;
                 GUILayout.EndHorizontal();
 

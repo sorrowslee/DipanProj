@@ -68,6 +68,13 @@ namespace Sorrows.Ballistics
         /// <summary>每隔 DotInterval 秒回報一次當下命中清單（主遊戲據此結算傷害 / 地面特效 / OnHit 分裂）。</summary>
         public Action<LaserBeam, List<BeamHit>> OnBeamDamageTick;
 
+        /// <summary>
+        /// 每隔 DotInterval 秒回報一次撞到的「環境」碰撞清單（牆 / 可破壞地上物等阻擋層）。
+        /// 與 <see cref="OnBeamDamageTick"/> 分開：環境不是「敵人命中」，主遊戲可只用它扣可破壞物的血，
+        /// 而不會在每面牆上噴擊中特效或觸發 OnHit 分裂。
+        /// </summary>
+        public Action<LaserBeam, List<BeamHit>> OnBeamEnvironmentTick;
+
         // homing 把 HomingTurnSpeed(度/秒) 換算成曲率時假定的名目光速；與既有追蹤彈手感對齊
         private const float NominalBeamSpeed = 20f;
         private const float HomingStep = 0.3f;        // 追蹤時的行進步長（越小曲線越平滑、越耗）
@@ -87,6 +94,8 @@ namespace Sorrows.Ballistics
         private readonly List<Vector2> _points = new List<Vector2>(64);
         private readonly List<BeamHit> _hits = new List<BeamHit>(16);
         private readonly HashSet<int> _hitSet = new HashSet<int>();
+        private readonly List<BeamHit> _envHits = new List<BeamHit>(8);
+        private readonly HashSet<int> _envHitSet = new HashSet<int>();
         private float _dotTimer;
 
         // mesh 重建用緩衝（避免每幀配置）
@@ -186,6 +195,8 @@ namespace Sorrows.Ballistics
             _points.Clear();
             _hits.Clear();
             _hitSet.Clear();
+            _envHits.Clear();
+            _envHitSet.Clear();
 
             Vector2 pos = Origin;
             Vector2 dir = AimDirection.sqrMagnitude > 0.0001f ? AimDirection.normalized : Vector2.right;
@@ -262,6 +273,11 @@ namespace Sorrows.Ballistics
                     // 轉角頂點放「精準的牆面命中點」即可。貼牆的視覺由 RenderBeam 的轉角延伸負責
                     //（相鄰段沿各自方向往牆內延伸半寬、重疊 → 亮核確實補到牆面，且延伸落在畫面外）。
                     _points.Add(wall.point);
+
+                    // 回報環境命中（牆／可破壞地上物），主遊戲據此扣可破壞物的血。每段去重一次。
+                    int wid = wall.collider.gameObject.GetInstanceID();
+                    if (_envHitSet.Add(wid))
+                        _envHits.Add(new BeamHit { Target = wall.collider.gameObject, Point = wall.point });
 
                     if (canBounce)
                     {
@@ -393,21 +409,27 @@ namespace Sorrows.Ballistics
 
         private void TickDamage()
         {
-            if (OnBeamDamageTick == null) return;
+            if (OnBeamDamageTick == null && OnBeamEnvironmentTick == null) return;
 
             _dotTimer += Time.deltaTime;
 
             if (DotInterval <= 0f)
             {
-                if (_hits.Count > 0) OnBeamDamageTick(this, _hits);
+                FireTick();
                 return;
             }
 
             if (_dotTimer >= DotInterval)
             {
                 _dotTimer -= DotInterval;
-                if (_hits.Count > 0) OnBeamDamageTick(this, _hits);
+                FireTick();
             }
+        }
+
+        private void FireTick()
+        {
+            if (OnBeamDamageTick != null && _hits.Count > 0) OnBeamDamageTick(this, _hits);
+            if (OnBeamEnvironmentTick != null && _envHits.Count > 0) OnBeamEnvironmentTick(this, _envHits);
         }
 
         private void OnDestroy()

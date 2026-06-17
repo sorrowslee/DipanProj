@@ -32,6 +32,10 @@ namespace DipanMapEditor.Tools
             if (_ui == null) _ui = FindObjectOfType<EditorUI>();
             if (_view == null) _view = FindObjectOfType<TilemapView>();
 
+            // ESC：在地磚「畫」工具下退出筆刷（清掉選取的地磚塊，不再有預覽/誤畫）
+            if (_ui != null && _ui.CurrentTool == EditTool.TilePaint && Input.GetKeyDown(KeyCode.Escape))
+                _ui.ClearTileBrush();
+
             if (!Input.GetMouseButton(0)) { _lastCell = new Vector2Int(int.MinValue, int.MinValue); _strokePushed = false; return; }
             if (_ui != null && _ui.IsPointerOverUI(Input.mousePosition)) return;
 

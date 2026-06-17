@@ -1,0 +1,136 @@
+using System.IO;
+using UnityEngine;
+using Newtonsoft.Json;
+
+namespace Dipan.MapRuntime
+{
+    /// <summary>Newtonsoft 共用設定（與編輯器一致：略過 null、列舉轉字串）。</summary>
+    public static class MapJsonConfig
+    {
+        public static readonly JsonSerializerSettings Settings = new JsonSerializerSettings
+        {
+            NullValueHandling = NullValueHandling.Ignore,
+            DefaultValueHandling = DefaultValueHandling.Include,
+        };
+
+        public static T Deserialize<T>(string json) => JsonConvert.DeserializeObject<T>(json, Settings);
+    }
+
+    /// <summary>.dipanmap 讀檔（runtime，主遊戲端不寫檔）。</summary>
+    public static class MapSerializer
+    {
+        public const string Extension = ".dipanmap";
+
+        public static MapData Load(string absolutePath)
+        {
+            if (!File.Exists(absolutePath))
+                throw new FileNotFoundException($"找不到地圖檔：{absolutePath}");
+            var map = MapJsonConfig.Deserialize<MapData>(File.ReadAllText(absolutePath));
+            if (map == null || map.format != "dipanmap")
+                throw new InvalidDataException($"不是有效的 .dipanmap：{absolutePath}");
+            return map;
+        }
+    }
+
+    /// <summary>
+    /// 載入 catalog.json，並把 catalog 的相對 path 解析成磁碟絕對路徑。
+    /// 預設來源：StreamingAssets/MapAssets/（同步腳本產出，可打包）。
+    /// </summary>
+    public static class CatalogLoader
+    {
+        public const string SubDir = "MapAssets";
+        public const string FileName = "catalog.json";
+
+        public static string StreamingDir => Path.Combine(Application.streamingAssetsPath, SubDir);
+
+        /// <summary>編輯器內的後備來源：直接讀 Assets/GameAssets（散檔仍在；打包後不存在）。</summary>
+        public static string GameAssetsDir => Path.Combine(Application.dataPath, "GameAssets");
+
+        /// <summary>
+        /// 載入 catalog。先找 StreamingAssets/MapAssets/catalog.json；
+        /// 找不到且在編輯器內時，後備掃描 GameAssets 即時生成一份 catalog（免同步測試用）。
+        /// </summary>
+        public static Catalog Load(out string assetRoot)
+        {
+            string streamingPath = Path.Combine(StreamingDir, FileName);
+            if (File.Exists(streamingPath))
+            {
+                assetRoot = StreamingDir;
+                var cat = MapJsonConfig.Deserialize<Catalog>(File.ReadAllText(streamingPath)) ?? new Catalog();
+                Debug.Log($"[CatalogLoader] 載入 {cat.items.Count} 筆素材（StreamingAssets）");
+                return cat;
+            }
+
+#if UNITY_EDITOR
+            if (Directory.Exists(GameAssetsDir))
+            {
+                assetRoot = GameAssetsDir;
+                var cat = BuildFromGameAssets(GameAssetsDir);
+                Debug.LogWarning($"[CatalogLoader] 找不到 StreamingAssets/MapAssets/catalog.json，" +
+                                 $"後備從 GameAssets 即時生成 {cat.items.Count} 筆（僅編輯器；打包前請執行 Tools/sync_map_assets.sh）");
+                return cat;
+            }
+#endif
+            assetRoot = StreamingDir;
+            Debug.LogError("[CatalogLoader] 找不到 catalog（請先執行 Tools/sync_map_assets.sh）");
+            return new Catalog();
+        }
+
+        /// <summary>取得某素材 PNG 的磁碟絕對路徑。</summary>
+        public static string ResolveAssetPath(string assetRoot, CatalogItem item)
+            => Path.Combine(assetRoot, item.path.Replace('/', Path.DirectorySeparatorChar));
+
+#if UNITY_EDITOR
+        static readonly string[] Cats = { "Environment", "Tiles", "Background" };
+
+        static Catalog BuildFromGameAssets(string root)
+        {
+            var cat = new Catalog();
+            void Scan(string moduleName, string baseDir)
+            {
+                foreach (var c in Cats)
+                {
+                    string cdir = Path.Combine(baseDir, c);
+                    if (!Directory.Exists(cdir)) continue;
+                    foreach (var png in Directory.GetFiles(cdir, "*.png"))
+                    {
+                        string rel = MakeRelative(root, png).Replace('\\', '/');
+                        cat.items.Add(new CatalogItem
+                        {
+                            id = rel.Substring(0, rel.Length - 4),
+                            path = rel,
+                            category = c,
+                            module = moduleName,
+                            pixelSize = ReadPngWidth(png),
+                            ppu = 256,
+                        });
+                    }
+                }
+            }
+
+            string mainDir = Path.Combine(root, "Main");
+            if (Directory.Exists(mainDir)) Scan("Main", mainDir);
+            string modsDir = Path.Combine(root, "Modules");
+            if (Directory.Exists(modsDir))
+                foreach (var m in Directory.GetDirectories(modsDir))
+                    Scan(Path.GetFileName(m), m);
+            return cat;
+        }
+
+        static string MakeRelative(string root, string full)
+            => full.Substring(root.Length).TrimStart(Path.DirectorySeparatorChar, '/');
+
+        static int ReadPngWidth(string path)
+        {
+            try
+            {
+                using var fs = File.OpenRead(path);
+                var b = new byte[24];
+                if (fs.Read(b, 0, 24) < 24) return 0;
+                return (b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19];
+            }
+            catch { return 0; }
+        }
+#endif
+    }
+}

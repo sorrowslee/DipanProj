@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+# 同步地圖素材到主遊戲的 StreamingAssets，供 runtime MapLoader 載入。
+#
+# 從 Assets/GameAssets/{Main,Modules/<關卡>} 底下，只拿 Environment/ Tiles/ Background/
+# 三個資料夾的 PNG，依原相對路徑複製進 Assets/StreamingAssets/MapAssets/（無條件覆蓋），
+# 並生成 catalog.json（id / path / category / module / pixelSize / ppu）。
+#
+# 用法：
+#   ./sync_map_assets.sh            # 同步全部 module
+#   ./sync_map_assets.sh <關卡>     # 只同步單一 module（例：RedBridalGown）
+#
+# id 慣例 = 相對 GameAssets 的路徑去副檔名，與 .dipanmap 內的 assetId / backgroundId 完全一致。
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJ_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SRC_ROOT="$PROJ_DIR/Assets/GameAssets"
+DST_ROOT="$PROJ_DIR/Assets/StreamingAssets/MapAssets"
+ONLY_MODULE="${1:-}"
+PPU=256
+CATS=(Environment Tiles Background)
+
+python3 - "$SRC_ROOT" "$DST_ROOT" "$ONLY_MODULE" "$PPU" "${CATS[@]}" <<'PY'
+import os, sys, json, shutil, struct
+
+src_root, dst_root, only_module, ppu = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
+cats = set(sys.argv[5:])
+
+def png_width(path):
+    with open(path, 'rb') as f:
+        head = f.read(24)
+    if len(head) < 24 or head[:8] != b'\x89PNG\r\n\x1a\n':
+        return 0
+    return struct.unpack('>I', head[16:20])[0]
+
+def source_dirs():
+    # Main（共用）+ Modules/<關卡>
+    main = os.path.join(src_root, 'Main')
+    if os.path.isdir(main):
+        yield 'Main', main
+    mods = os.path.join(src_root, 'Modules')
+    if os.path.isdir(mods):
+        for name in sorted(os.listdir(mods)):
+            p = os.path.join(mods, name)
+            if os.path.isdir(p) and (not only_module or name == only_module):
+                yield name, p
+
+# 無條件覆蓋既有檔案（copy2 會覆蓋）。不整個刪資料夾，避免某些檔案系統的刪除權限問題；
+# 若來源已刪除的素材想清乾淨，手動刪 MapAssets 後再跑即可。
+os.makedirs(dst_root, exist_ok=True)
+
+# 0) 先從地圖編輯器 Maps/<模組>/*.dipanmap 拉進 GameAssets/Modules/<模組>/Maps/。
+# src_root = .../DipanProj_Main/Assets/GameAssets → 上三層到 DipanProj，再進 DipanProj_MapEditor/Maps
+editor_maps = os.path.normpath(os.path.join(src_root, '..', '..', '..', 'DipanProj_MapEditor', 'Maps'))
+pulled = 0
+if os.path.isdir(editor_maps):
+    for module in sorted(os.listdir(editor_maps)):
+        mod_dir = os.path.join(editor_maps, module)
+        if not os.path.isdir(mod_dir):
+            continue
+        if only_module and module != only_module:
+            continue
+        target_module = os.path.join(src_root, 'Modules', module)
+        if not os.path.isdir(target_module):
+            print(f"   [警告] 編輯器有「{module}」的地圖，但 GameAssets/Modules 無對應模組，略過")
+            continue
+        target_maps = os.path.join(target_module, 'Maps')
+        os.makedirs(target_maps, exist_ok=True)
+        for root, _dirs, files in os.walk(mod_dir):
+            for fn in files:
+                if fn.lower().endswith('.dipanmap'):
+                    shutil.copy2(os.path.join(root, fn), os.path.join(target_maps, fn))
+                    pulled += 1
+else:
+    print(f"   [警告] 找不到編輯器 Maps 資料夾，略過拉地圖：{editor_maps}")
+
+items = []
+for module, base in source_dirs():
+    for cat in cats:
+        cdir = os.path.join(base, cat)
+        if not os.path.isdir(cdir):
+            continue
+        for fn in sorted(os.listdir(cdir)):
+            if not fn.lower().endswith('.png'):
+                continue
+            abs_src = os.path.join(cdir, fn)
+            rel = os.path.relpath(abs_src, src_root)          # e.g. Modules/RedBridalGown/Environment/x.png
+            abs_dst = os.path.join(dst_root, rel)
+            os.makedirs(os.path.dirname(abs_dst), exist_ok=True)
+            shutil.copy2(abs_src, abs_dst)
+            items.append({
+                "id": os.path.splitext(rel)[0].replace(os.sep, '/'),
+                "path": rel.replace(os.sep, '/'),
+                "category": cat,
+                "module": module,
+                "pixelSize": png_width(abs_src),
+                "ppu": ppu,
+            })
+
+with open(os.path.join(dst_root, 'catalog.json'), 'w', encoding='utf-8') as f:
+    json.dump({"items": items}, f, ensure_ascii=False, indent=2)
+
+# 另外把每個 module 的 Maps/*.dipanmap 也複製進來（runtime 直接讀，可打包），保留相對路徑。
+map_count = 0
+for module, base in source_dirs():
+    mdir = os.path.join(base, 'Maps')
+    if not os.path.isdir(mdir):
+        continue
+    for fn in sorted(os.listdir(mdir)):
+        if not fn.lower().endswith('.dipanmap'):
+            continue
+        abs_src = os.path.join(mdir, fn)
+        rel = os.path.relpath(abs_src, src_root)
+        abs_dst = os.path.join(dst_root, rel)
+        os.makedirs(os.path.dirname(abs_dst), exist_ok=True)
+        shutil.copy2(abs_src, abs_dst)
+        map_count += 1
+
+print(f"[sync_map_assets] 從編輯器拉入 {pulled} 張地圖；推送 {len(items)} 筆素材、{map_count} 張地圖 → {dst_root}")
+for it in items:
+    print("   ", it["module"], it["category"], it["id"])
+PY

@@ -1,0 +1,532 @@
+{
+  "items": [
+    {
+      "id": "Modules/RedBridalGown/Environment/container_bamboo_basket",
+      "path": "Modules/RedBridalGown/Environment/container_bamboo_basket.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/container_clay_pot",
+      "path": "Modules/RedBridalGown/Environment/container_clay_pot.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/container_wine_vat_1",
+      "path": "Modules/RedBridalGown/Environment/container_wine_vat_1.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/container_wine_vat_2",
+      "path": "Modules/RedBridalGown/Environment/container_wine_vat_2.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/container_wood_barrel",
+      "path": "Modules/RedBridalGown/Environment/container_wood_barrel.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/container_wood_crate",
+      "path": "Modules/RedBridalGown/Environment/container_wood_crate.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/decor_fan",
+      "path": "Modules/RedBridalGown/Environment/decor_fan.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/decor_potted_plant",
+      "path": "Modules/RedBridalGown/Environment/decor_potted_plant.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/decor_vase",
+      "path": "Modules/RedBridalGown/Environment/decor_vase.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/decor_wedding_carpet",
+      "path": "Modules/RedBridalGown/Environment/decor_wedding_carpet.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_altar_table",
+      "path": "Modules/RedBridalGown/Environment/furniture_altar_table.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_armchair",
+      "path": "Modules/RedBridalGown/Environment/furniture_armchair.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_bamboo_screen",
+      "path": "Modules/RedBridalGown/Environment/furniture_bamboo_screen.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_bronze_mirror",
+      "path": "Modules/RedBridalGown/Environment/furniture_bronze_mirror.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_desk",
+      "path": "Modules/RedBridalGown/Environment/furniture_desk.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_dressing_table",
+      "path": "Modules/RedBridalGown/Environment/furniture_dressing_table.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_long_bench",
+      "path": "Modules/RedBridalGown/Environment/furniture_long_bench.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_round_stool",
+      "path": "Modules/RedBridalGown/Environment/furniture_round_stool.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_square_table",
+      "path": "Modules/RedBridalGown/Environment/furniture_square_table.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_storage_rack",
+      "path": "Modules/RedBridalGown/Environment/furniture_storage_rack.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/furniture_wood_cabinet",
+      "path": "Modules/RedBridalGown/Environment/furniture_wood_cabinet.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/kitchen_broom",
+      "path": "Modules/RedBridalGown/Environment/kitchen_broom.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/kitchen_dried_goods",
+      "path": "Modules/RedBridalGown/Environment/kitchen_dried_goods.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/kitchen_rice_sack",
+      "path": "Modules/RedBridalGown/Environment/kitchen_rice_sack.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/kitchen_steamer",
+      "path": "Modules/RedBridalGown/Environment/kitchen_steamer.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/kitchen_stove_1",
+      "path": "Modules/RedBridalGown/Environment/kitchen_stove_1.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/kitchen_vegetable_basket",
+      "path": "Modules/RedBridalGown/Environment/kitchen_vegetable_basket.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/kitchen_water_bucket",
+      "path": "Modules/RedBridalGown/Environment/kitchen_water_bucket.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/light_candlestick",
+      "path": "Modules/RedBridalGown/Environment/light_candlestick.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/light_oil_lamp",
+      "path": "Modules/RedBridalGown/Environment/light_oil_lamp.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/light_red_lantern_1",
+      "path": "Modules/RedBridalGown/Environment/light_red_lantern_1.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/light_red_lantern_2",
+      "path": "Modules/RedBridalGown/Environment/light_red_lantern_2.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/light_red_lantern_3",
+      "path": "Modules/RedBridalGown/Environment/light_red_lantern_3.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/nature_banyan_tree",
+      "path": "Modules/RedBridalGown/Environment/nature_banyan_tree.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/nature_bonfire",
+      "path": "Modules/RedBridalGown/Environment/nature_bonfire.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/prop_cloth_stack",
+      "path": "Modules/RedBridalGown/Environment/prop_cloth_stack.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/prop_rope",
+      "path": "Modules/RedBridalGown/Environment/prop_rope.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/ritual_funerary_urn",
+      "path": "Modules/RedBridalGown/Environment/ritual_funerary_urn.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/ritual_incense_burner",
+      "path": "Modules/RedBridalGown/Environment/ritual_incense_burner.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/ritual_offering_plate",
+      "path": "Modules/RedBridalGown/Environment/ritual_offering_plate.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/ritual_prayer_cushion",
+      "path": "Modules/RedBridalGown/Environment/ritual_prayer_cushion.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/ritual_wedding_cake_box",
+      "path": "Modules/RedBridalGown/Environment/ritual_wedding_cake_box.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/structure_well",
+      "path": "Modules/RedBridalGown/Environment/structure_well.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/toy_embroidered_ball",
+      "path": "Modules/RedBridalGown/Environment/toy_embroidered_ball.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/toy_rattle_drum",
+      "path": "Modules/RedBridalGown/Environment/toy_rattle_drum.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/toy_rocking_horse",
+      "path": "Modules/RedBridalGown/Environment/toy_rocking_horse.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/wood_axe_block",
+      "path": "Modules/RedBridalGown/Environment/wood_axe_block.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/wood_firewood_bundle",
+      "path": "Modules/RedBridalGown/Environment/wood_firewood_bundle.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/wood_log_1",
+      "path": "Modules/RedBridalGown/Environment/wood_log_1.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 509,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/wood_log_2",
+      "path": "Modules/RedBridalGown/Environment/wood_log_2.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/wood_log_3",
+      "path": "Modules/RedBridalGown/Environment/wood_log_3.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 459,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/wood_log_pile",
+      "path": "Modules/RedBridalGown/Environment/wood_log_pile.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 500,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Tiles/tile1",
+      "path": "Modules/RedBridalGown/Tiles/tile1.png",
+      "category": "Tiles",
+      "module": "RedBridalGown",
+      "pixelSize": 1104,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Tiles/tile2",
+      "path": "Modules/RedBridalGown/Tiles/tile2.png",
+      "category": "Tiles",
+      "module": "RedBridalGown",
+      "pixelSize": 1024,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Tiles/tile3",
+      "path": "Modules/RedBridalGown/Tiles/tile3.png",
+      "category": "Tiles",
+      "module": "RedBridalGown",
+      "pixelSize": 1024,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_BanyanTree",
+      "path": "Modules/RedBridalGown/Background/Stage_BanyanTree.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_BridalRoom",
+      "path": "Modules/RedBridalGown/Background/Stage_BridalRoom.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_CourtyardSquare",
+      "path": "Modules/RedBridalGown/Background/Stage_CourtyardSquare.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_Kitchen",
+      "path": "Modules/RedBridalGown/Background/Stage_Kitchen.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_LivingRoom1",
+      "path": "Modules/RedBridalGown/Background/Stage_LivingRoom1.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_LivingRoom2",
+      "path": "Modules/RedBridalGown/Background/Stage_LivingRoom2.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 941,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_ShrineRoom",
+      "path": "Modules/RedBridalGown/Background/Stage_ShrineRoom.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_StorageRoom",
+      "path": "Modules/RedBridalGown/Background/Stage_StorageRoom.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/Stage_StudyRoom",
+      "path": "Modules/RedBridalGown/Background/Stage_StudyRoom.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/RedBridalGown/Background/State_Woodshed",
+      "path": "Modules/RedBridalGown/Background/State_Woodshed.png",
+      "category": "Background",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256
+    },
+    {
+      "id": "Modules/Tutorial/Environment/GroundStone",
+      "path": "Modules/Tutorial/Environment/GroundStone.png",
+      "category": "Environment",
+      "module": "Tutorial",
+      "pixelSize": 1024,
+      "ppu": 256
+    }
+  ]
+}

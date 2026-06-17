@@ -63,6 +63,7 @@ namespace DipanMapEditor.Core
                     break;
 
                 case EditTool.Trigger:
+                    if (!_ui.TriggerPaintMode) return;   // 檢視模式不顯示筆刷預覽
                     if (!MapCoords.InBounds(cell.x, cell.y, map)) return;
                     line = new Color(0.2f, 0.9f, 1f, 0.9f); fill = new Color(0.2f, 0.9f, 1f, 0.15f);
                     break;

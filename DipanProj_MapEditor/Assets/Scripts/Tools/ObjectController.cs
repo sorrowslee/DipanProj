@@ -57,8 +57,8 @@ namespace DipanMapEditor.Tools
 
             if (_ui.CurrentTool != EditTool.Object) { _dragging = false; return; }
 
-            // ESC：取消選取（移除藍框，方便看擺放結果）
-            if (Input.GetKeyDown(KeyCode.Escape)) { Deselect(); return; }
+            // ESC：退出筆刷——取消放置筆刷（不再有幻影/誤放）＋取消選取，回到可點選既有物件
+            if (Input.GetKeyDown(KeyCode.Escape)) { Deselect(); _ui.ClearObjectBrush(); return; }
 
             var map = session.Map;
 
@@ -218,6 +218,7 @@ namespace DipanMapEditor.Tools
                 scaleX = Selected.scaleX,
                 scaleY = Selected.scaleY,
                 zOrder = Selected.zOrder,
+                hp = Selected.hp,
             };
             copy.sortKey = copy.y;
             map.GameLayer.objects.Add(copy);

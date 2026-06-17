@@ -16,15 +16,35 @@ mkdir -p "$DEPLOY_PATH"
 
 # 關鍵修正：確保來源路徑正確指向主專案內的 Builds
 rsync -av --delete --exclude ".git" "$MAIN_PROJECT_PATH/Builds/Windows_Test/" "$DEPLOY_PATH/"
+if [ $? -ne 0 ]; then
+    echo "❌ 同步失敗，請確認 $MAIN_PROJECT_PATH/Builds/Windows_Test/ 是否存在（Windows 是否真的建置成功）。"
+    exit 1
+fi
 
-if [ $? -eq 0 ]; then
-    # 2. 推送到 GitHub
-    cd "$DEPLOY_PATH"
-    git add .
-    git commit -m "Auto Deploy: $(date +'%Y-%m-%d %H:%M:%S')"
-    git push
-    echo "🎉 部署完成！"
+# 2. 推送到 GitHub（逐步檢查，誠實回報，不再假性成功）
+cd "$DEPLOY_PATH" || { echo "❌ 進不去部署資料夾：$DEPLOY_PATH"; exit 1; }
+
+if [ ! -d ".git" ]; then
+    echo "❌ 部署資料夾不是 git repo：$DEPLOY_PATH"
+    echo "   請先一次性設定（在終端機）："
+    echo "   cd \"$DEPLOY_PATH\" && git init && git branch -M main && git remote add origin <你的GitHub URL> && git add . && git commit -m init && git push -u origin main"
+    exit 1
+fi
+
+git add .
+
+# 沒有變更就不算失敗，直接結束
+if git diff --cached --quiet; then
+    echo "ℹ️ 沒有變更可提交，略過 commit / push（成品已同步到本機 $DEPLOY_PATH）。"
+    exit 0
+fi
+
+git commit -m "Auto Deploy: $(date +'%Y-%m-%d %H:%M:%S')" || { echo "❌ git commit 失敗"; exit 1; }
+
+if git push; then
+    echo "🎉 部署完成！已推送到遠端。"
 else
-    echo "❌ 同步失敗，請確認 $MAIN_PROJECT_PATH/Builds/Windows_Test/ 是否存在。"
+    echo "❌ git push 失敗。常見原因：未設遠端 / 沒有上游分支 / 從 Unity 啟動的程序拿不到 git 憑證或 SSH key。"
+    echo "   先在終端機手動測試： cd \"$DEPLOY_PATH\" && git push"
     exit 1
 fi

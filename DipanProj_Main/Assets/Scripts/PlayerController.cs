@@ -383,6 +383,9 @@ public class PlayerController : MonoBehaviour
                 weapon.BeamMuzzleSprite, weapon.BeamImpactSprite,
                 (b, hits) => HandleBeamTick(firedWeapon, b, hits),
                 drawBeam);
+            // 環境命中(牆/可破壞地上物)走獨立回呼：只用來扣可破壞物的血，不在牆上噴擊中特效/分裂
+            if (beam != null)
+                beam.OnBeamEnvironmentTick = (b, envHits) => HandleBeamEnvironment(firedWeapon, envHits);
             _activeBeams.Add(beam);
         }
     }
@@ -412,21 +415,35 @@ public class PlayerController : MonoBehaviour
             bool hitEnemy = (hitLayerBit & EnemyLayer.value) != 0;
             bool hitEnv = (hitLayerBit & EnvLayer.value) != 0;
 
-            // 傷害只結算在怪物上；無敵時間由 MonsterController.TakeDamage 內部的 HitReaction 自動處理
-            if (hitEnemy)
-            {
-                MonsterController monster = target.GetComponent<MonsterController>();
-                if (monster != null)
-                {
-                    Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
-                    monster.TakeDamage(firedWeapon.Damage, hitDir);
-                }
-            }
+            // 統一傷害（怪物 + 可破壞地上物若混在 _hits 中）；無敵時間由各自 TakeDamage 內部處理
+            Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
+            ApplyDamage(target, firedWeapon.Damage, hitDir);
 
             TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, point, hitEnemy, hitEnv, false);
             TrySpawnHitEffect(firedWeapon, point);
             TrySpawnBeamSplit(firedWeapon, point);
         }
+    }
+
+    // 雷射的環境命中回呼：對可破壞地上物扣血（每 DotInterval tick 一次），不噴擊中特效/不分裂
+    private void HandleBeamEnvironment(WeaponData firedWeapon, List<LaserBeam.BeamHit> envHits)
+    {
+        if (firedWeapon == null || envHits == null) return;
+        for (int i = 0; i < envHits.Count; i++)
+        {
+            GameObject target = envHits[i].Target;
+            if (target == null) continue;
+            Vector2 dir = (envHits[i].Point - (Vector2)transform.position).normalized;
+            ApplyDamage(target, firedWeapon.Damage, dir);
+        }
+    }
+
+    // 統一傷害入口：對任何實作 IDamageable 的目標(怪物 / 可破壞地上物)結算傷害;牆等無此元件者略過。
+    private static void ApplyDamage(GameObject target, float damage, Vector2 hitDir)
+    {
+        if (target == null || damage <= 0f) return;
+        IDamageable d = target.GetComponent<IDamageable>();
+        if (d != null) d.TakeDamage(damage, hitDir);
     }
 
     // OnHit 分裂：在命中點依 SpreadCount/SpreadAngle 射出 SubRecipeID 子彈（節流已綁在 DotInterval tick）
@@ -649,16 +666,9 @@ public class PlayerController : MonoBehaviour
         bool hitEnemy = (hitLayerBit & EnemyLayer.value) != 0;
         bool hitEnv = (hitLayerBit & EnvLayer.value) != 0;
 
-        // 傷害結算只發生在怪物上（牆沒有 HP）
-        if (hitEnemy)
-        {
-            MonsterController monster = target.GetComponent<MonsterController>();
-            if (monster != null)
-            {
-                Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
-                monster.TakeDamage(firedWeapon.Damage, hitDir);
-            }
-        }
+        // 統一傷害：怪物與可破壞地上物都實作 IDamageable;牆等無此元件者自動略過
+        Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
+        ApplyDamage(target, firedWeapon.Damage, hitDir);
 
         Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
         TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, spawnPos, hitEnemy, hitEnv, false);
@@ -682,16 +692,17 @@ public class PlayerController : MonoBehaviour
         float radius = firedWeapon.Recipe.BlastRadius;
         if (radius <= 0f || firedWeapon.Damage <= 0f) return;
 
-        Collider2D[] hits = Physics2D.OverlapCircleAll(landPos, radius, EnemyLayer);
+        // 範圍含怪物與地上物(Environment),兩者都實作 IDamageable
+        Collider2D[] hits = Physics2D.OverlapCircleAll(landPos, radius, EnemyLayer | EnvLayer);
         for (int i = 0; i < hits.Length; i++)
         {
             Collider2D col = hits[i];
             if (col == null) continue;
-            MonsterController monster = col.GetComponent<MonsterController>();
-            if (monster == null) continue;
+            IDamageable d = col.GetComponent<IDamageable>();
+            if (d == null) continue;
 
-            Vector2 hitDir = ((Vector2)monster.transform.position - landPos).normalized;
-            monster.TakeDamage(firedWeapon.Damage, hitDir);
+            Vector2 hitDir = ((Vector2)col.transform.position - landPos).normalized;
+            d.TakeDamage(firedWeapon.Damage, hitDir);
         }
     }
 

@@ -139,7 +139,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &133346430
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -269,7 +269,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &467861080
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -399,7 +399,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &510109298
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -730,7 +730,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!156049354 &1108360854
 Grid:
   m_ObjectHideFlags: 0
@@ -851,6 +851,66 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -1.1411362, y: 1.0176893, z: -0.06716733}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1751355721
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1751355723}
+  - component: {fileID: 1751355722}
+  m_Layer: 0
+  m_Name: MapLoader
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1751355722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1751355721}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fad95ec98abcb4539823da1f8c809e57, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mapPath: Modules/RedBridalGown/Maps/RedBridalGown_01.dipanmap
+  environmentLayerName: Environment
+  blockerLayerName: Water
+  bulletPassTriggerTypeId: bulletPass
+  playerSpawnTypeId: playerSpawn
+  monsterSpawnTypeId: monsterSpawn
+  buildBackground: 1
+  buildTiles: 1
+  buildObjects: 1
+  addObjectColliders: 1
+  buildWalls: 1
+  buildBlockers: 1
+  repositionPlayerSpawn: 1
+  spawnMonsters: 1
+  fitCameraToMap: 1
+  objectColliderScale: 1
+--- !u!4 &1751355723
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1751355721}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -2902,9 +2962,10 @@ MonoBehaviour:
   EnemyLayer:
     serializedVersion: 2
     m_Bits: 128
+  AutoSpawn: 0
   MonsterIDToSpawn: 1
   SpawnInterval: 1
-  SpawnRadius: 5
+  SpawnRadius: 3
 --- !u!4 &2027240465
 Transform:
   m_ObjectHideFlags: 0
@@ -2913,13 +2974,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2027240463}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 3.56, y: 0.06, z: 0.03746497}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: 0.0032755232, y: 0.000004524096, z: -0.001381174, w: 0.9999937}
+  m_LocalPosition: {x: 4.4, y: -0.47, z: 0.04}
+  m_LocalScale: {x: 0.26875, y: 0.8125, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0.375, y: 0, z: -0.158}
 --- !u!1 &2070959917
 GameObject:
   m_ObjectHideFlags: 0
@@ -2937,7 +2998,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!212 &2070959918
 SpriteRenderer:
   m_ObjectHideFlags: 0
@@ -3065,3 +3126,4 @@ SceneRoots:
   - {fileID: 537006690}
   - {fileID: 1428001749}
   - {fileID: 1735090436}
+  - {fileID: 1751355723}

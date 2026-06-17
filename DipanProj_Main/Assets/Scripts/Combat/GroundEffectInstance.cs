@@ -4,7 +4,7 @@ using UnityEngine;
 public class GroundEffectInstance : MonoBehaviour
 {
     private GroundEffectData _data;
-    private LayerMask _enemyLayer;
+    private LayerMask _damageMask;   // 怪物 + 環境(可破壞地上物)
     private SpriteRenderer _templateRenderer;
     private readonly List<SpriteRenderer> _tileRenderers = new List<SpriteRenderer>();
 
@@ -15,10 +15,10 @@ public class GroundEffectInstance : MonoBehaviour
     private float _damageTimer;
     private bool _initialized;
 
-    public void Initialize(GroundEffectData data, LayerMask enemyLayer)
+    public void Initialize(GroundEffectData data, LayerMask damageMask)
     {
         _data = data;
-        _enemyLayer = enemyLayer;
+        _damageMask = damageMask;
 
         // Prefab 上的 SpriteRenderer 只當 sortingLayer / order / material 的範本，
         // 自身不顯示任何圖（由動態產生的 tile 子物件負責繪製）。
@@ -153,17 +153,18 @@ public class GroundEffectInstance : MonoBehaviour
         if (_data.Damage <= 0f || _data.Radius <= 0f) return;
 
         Vector2 center = transform.position;
-        Collider2D[] hits = Physics2D.OverlapCircleAll(center, _data.Radius, _enemyLayer);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(center, _data.Radius, _damageMask);
         for (int i = 0; i < hits.Length; i++)
         {
             Collider2D col = hits[i];
             if (col == null) continue;
 
-            MonsterController monster = col.GetComponent<MonsterController>();
-            if (monster == null) continue;
+            // 怪物與可破壞地上物都實作 IDamageable;牆等無此元件者略過
+            IDamageable d = col.GetComponent<IDamageable>();
+            if (d == null) continue;
 
-            Vector2 hitDir = ((Vector2)monster.transform.position - center).normalized;
-            monster.TakeDamage(_data.Damage, hitDir);
+            Vector2 hitDir = ((Vector2)col.transform.position - center).normalized;
+            d.TakeDamage(_data.Damage, hitDir);
         }
     }
 

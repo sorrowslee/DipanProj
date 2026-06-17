@@ -1,0 +1,580 @@
+{
+  "format": "dipanmap",
+  "version": 1,
+  "name": "RedBridalGown_01",
+  "module": "RedBridalGown",
+  "backgroundId": "Modules/RedBridalGown/Background/Stage_LivingRoom1",
+  "tileSize": 1.0,
+  "width": 18,
+  "height": 10,
+  "origin": {
+    "x": 0.0,
+    "y": 0.0
+  },
+  "layers": [
+    {
+      "id": "game-1",
+      "name": "遊戲圖層",
+      "type": "Game",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "tiles": [],
+      "objects": [
+        {
+          "assetId": "Modules/RedBridalGown/Environment/furniture_square_table",
+          "x": 5.943082,
+          "y": -4.399561,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -4.399561,
+          "zOrder": 0,
+          "hp": 1
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/furniture_round_stool",
+          "x": 5.36268854,
+          "y": -5.2359333,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 0.5314409,
+          "scaleY": 0.5314409,
+          "sortKey": -5.2359333,
+          "zOrder": 0,
+          "hp": 1
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/furniture_round_stool",
+          "x": 6.400659,
+          "y": -5.2359333,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 0.5314409,
+          "scaleY": 0.5314409,
+          "sortKey": -5.2359333,
+          "zOrder": 0,
+          "hp": 1
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/kitchen_stove_1",
+          "x": 13.6267853,
+          "y": -2.986908,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.77156115,
+          "scaleY": 1.77156115,
+          "sortKey": -2.986908,
+          "zOrder": 0,
+          "hp": 1
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/kitchen_water_bucket",
+          "x": 14.461997,
+          "y": -8.212624,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 0.478296816,
+          "scaleY": 0.478296816,
+          "sortKey": -8.212624,
+          "zOrder": 0,
+          "hp": 1
+        }
+      ]
+    },
+    {
+      "id": "walk",
+      "name": "可走/不可走",
+      "type": "Walkable",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "blocked": [
+        "111111111111111111",
+        "111111111111111111",
+        "110000000000000111",
+        "110000000000000111",
+        "110000000000000111",
+        "110000000000000001",
+        "110000000000000001",
+        "110000000000000111",
+        "111111100011111111",
+        "111111111111111111"
+      ]
+    },
+    {
+      "id": "trig",
+      "name": "Trigger",
+      "type": "Trigger",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "regions": [
+        {
+          "id": "74795a3c",
+          "name": "傳送點1",
+          "typeId": "teleport",
+          "cells": [
+            [
+              15,
+              5
+            ],
+            [
+              16,
+              5
+            ],
+            [
+              16,
+              6
+            ],
+            [
+              15,
+              6
+            ],
+            [
+              17,
+              5
+            ],
+            [
+              17,
+              6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              7,
+              8
+            ],
+            [
+              7,
+              9
+            ],
+            [
+              8,
+              9
+            ],
+            [
+              9,
+              8
+            ],
+            [
+              9,
+              9
+            ]
+          ],
+          "params": {
+            "targetMap": "",
+            "targetX": "",
+            "targetY": ""
+          }
+        },
+        {
+          "id": "f88fd191",
+          "name": "玩家出生點1",
+          "typeId": "playerSpawn",
+          "cells": [
+            [
+              2,
+              7
+            ],
+            [
+              3,
+              7
+            ],
+            [
+              3,
+              8
+            ],
+            [
+              2,
+              8
+            ]
+          ],
+          "params": {}
+        },
+        {
+          "id": "557f35c4",
+          "name": "環境/牆1",
+          "typeId": "environment",
+          "cells": [
+            [
+              15,
+              2
+            ],
+            [
+              15,
+              3
+            ],
+            [
+              15,
+              4
+            ],
+            [
+              15,
+              7
+            ],
+            [
+              15,
+              8
+            ],
+            [
+              15,
+              9
+            ],
+            [
+              14,
+              9
+            ],
+            [
+              13,
+              9
+            ],
+            [
+              12,
+              9
+            ],
+            [
+              11,
+              9
+            ],
+            [
+              10,
+              9
+            ],
+            [
+              9,
+              9
+            ],
+            [
+              8,
+              9
+            ],
+            [
+              7,
+              9
+            ],
+            [
+              6,
+              9
+            ],
+            [
+              5,
+              9
+            ],
+            [
+              4,
+              9
+            ],
+            [
+              3,
+              9
+            ],
+            [
+              2,
+              9
+            ],
+            [
+              1,
+              9
+            ],
+            [
+              1,
+              8
+            ],
+            [
+              1,
+              7
+            ],
+            [
+              1,
+              6
+            ],
+            [
+              1,
+              5
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              17,
+              5
+            ],
+            [
+              17,
+              6
+            ],
+            [
+              16,
+              4
+            ],
+            [
+              17,
+              4
+            ],
+            [
+              16,
+              7
+            ],
+            [
+              17,
+              7
+            ],
+            [
+              0,
+              9
+            ],
+            [
+              0,
+              8
+            ],
+            [
+              0,
+              7
+            ],
+            [
+              0,
+              6
+            ],
+            [
+              0,
+              5
+            ],
+            [
+              0,
+              4
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              5,
+              0
+            ],
+            [
+              6,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              11,
+              0
+            ],
+            [
+              12,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              17,
+              0
+            ],
+            [
+              17,
+              1
+            ],
+            [
+              17,
+              2
+            ],
+            [
+              17,
+              3
+            ],
+            [
+              16,
+              3
+            ],
+            [
+              16,
+              2
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              15,
+              1
+            ],
+            [
+              14,
+              1
+            ],
+            [
+              13,
+              1
+            ],
+            [
+              12,
+              1
+            ],
+            [
+              11,
+              1
+            ],
+            [
+              10,
+              1
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              8,
+              1
+            ],
+            [
+              7,
+              1
+            ],
+            [
+              6,
+              1
+            ],
+            [
+              5,
+              1
+            ],
+            [
+              4,
+              1
+            ],
+            [
+              3,
+              1
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              16,
+              8
+            ],
+            [
+              16,
+              9
+            ],
+            [
+              17,
+              9
+            ],
+            [
+              17,
+              8
+            ]
+          ],
+          "params": {}
+        },
+        {
+          "id": "99036fff",
+          "name": "怪物出生點1",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              11,
+              4
+            ],
+            [
+              13,
+              6
+            ],
+            [
+              3,
+              3
+            ],
+            [
+              11,
+              7
+            ]
+          ],
+          "params": {
+            "monsterId": "1"
+          }
+        }
+      ]
+    }
+  ]
+}

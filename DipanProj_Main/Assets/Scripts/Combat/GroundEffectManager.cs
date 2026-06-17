@@ -6,11 +6,14 @@ public class GroundEffectManager : MonoBehaviour
     public TextAsset GroundEffectCSV;
     public GameObject GroundEffectPrefab;
     public LayerMask EnemyLayer;
+    [Tooltip("可破壞地上物所在層;留空(0)時自動以名稱 \"Environment\" 解析")]
+    public LayerMask EnvironmentLayer;
 
     private readonly Dictionary<int, GroundEffectData> _effects = new Dictionary<int, GroundEffectData>();
 
     void Awake()
     {
+        if (EnvironmentLayer == 0) EnvironmentLayer = LayerMask.GetMask("Environment");
         LoadEffects();
     }
 
@@ -43,7 +46,7 @@ public class GroundEffectManager : MonoBehaviour
             return null;
         }
 
-        instance.Initialize(data, EnemyLayer);
+        instance.Initialize(data, EnemyLayer | EnvironmentLayer);
         return instance;
     }
 

@@ -1,0 +1,115 @@
+using System.Collections.Generic;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+
+namespace Dipan.MapRuntime
+{
+    /// <summary>
+    /// .dipanmap（編輯器輸出）的 runtime 資料模型。欄位與 DipanProj_MapEditor 的 MapData 一致，
+    /// 主遊戲端只需要「讀」，故省略編輯期專用的便利方法。
+    /// 座標慣例：以 tile 格為單位，(0,0) 在左上角，x 往右、y 往下。
+    /// </summary>
+    public class MapData
+    {
+        public string format = "dipanmap";
+        public int version = 1;
+        public string name = "Untitled";
+        public string module = "";
+        public string backgroundId = "";
+        public float tileSize = 1f;
+        public int width = 18;
+        public int height = 10;
+        public Vec2 origin = new Vec2(0, 0);
+        public List<LayerData> layers = new List<LayerData>();
+
+        [JsonIgnore] public LayerData GameLayer => layers.Find(l => l.type == LayerType.Game);
+        [JsonIgnore] public LayerData WalkableLayer => layers.Find(l => l.type == LayerType.Walkable);
+        [JsonIgnore] public LayerData TriggerLayer => layers.Find(l => l.type == LayerType.Trigger);
+    }
+
+    public class Vec2
+    {
+        public float x;
+        public float y;
+        public Vec2() { }
+        public Vec2(float x, float y) { this.x = x; this.y = y; }
+    }
+
+    [JsonConverter(typeof(StringEnumConverter))]
+    public enum LayerType { Game, Walkable, Trigger }
+
+    public class LayerData
+    {
+        public string id;
+        public string name;
+        public LayerType type;
+        public bool visible = true;
+        public float opacity = 1f;
+        public bool locked = false;
+
+        // Game payload
+        public List<TilePlacement> tiles;
+        public List<ObjectInstance> objects;
+
+        // Walkable payload：每列一字串，'1' = 不可走、'0' = 可走。
+        public List<string> blocked;
+
+        // Trigger payload
+        public List<TriggerRegion> regions;
+    }
+
+    public class TilePlacement
+    {
+        public int x;
+        public int y;
+        public string tileId;   // "catalogId#index"
+    }
+
+    public class ObjectInstance
+    {
+        public string assetId;
+        public float x;
+        public float y;
+        public float rot = 0f;
+        public bool flipX = false;
+        public bool flipY = false;
+        public float scaleX = 1f;
+        public float scaleY = 1f;
+        public float sortKey;
+        public int zOrder = 0;
+        public int hp = 1;       // 可破壞血量;編輯器寫入,缺省 = 1（打一下就壞）
+    }
+
+    public class TriggerRegion
+    {
+        public string id;
+        public string name;
+        public string typeId;
+        public List<int[]> cells = new List<int[]>();
+
+        [JsonProperty("params")]
+        public Dictionary<string, object> Params = new Dictionary<string, object>();
+
+        /// <summary>取字串參數，找不到回 fallback。</summary>
+        public string GetString(string key, string fallback = "")
+            => (Params != null && Params.TryGetValue(key, out var v) && v != null) ? v.ToString() : fallback;
+    }
+
+    // ---- 素材目錄（catalog.json，由 sync_map_assets.sh 生成）----
+
+    public class Catalog
+    {
+        public List<CatalogItem> items = new List<CatalogItem>();
+        public CatalogItem Find(string id) => items.Find(i => i.id == id);
+    }
+
+    public class CatalogItem
+    {
+        public string id;        // = 相對路徑去副檔名（與 .dipanmap 的 assetId 一致）
+        public string path;      // StreamingAssets/MapAssets 內的相對路徑（含副檔名）
+        public string category;  // Tiles / Environment / Background
+        public string module = "Main";
+        public int pixelSize;
+        public int ppu = 256;
+    }
+}

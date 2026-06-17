@@ -1,5 +1,6 @@
 using UnityEngine;
 using DipanMapEditor.Core;
+using DipanMapEditor.Data;
 using DipanMapEditor.UI;
 
 namespace DipanMapEditor.Tools
@@ -29,10 +30,36 @@ namespace DipanMapEditor.Tools
             if (_ui == null) _ui = FindObjectOfType<EditorUI>();
             if (_ui == null || _ui.CurrentTool != EditTool.Trigger) return;
 
+            var map = session.Map;
+
+            // ESC：進入檢視模式（停止筆刷，改成點區域檢查）
+            if (Input.GetKeyDown(KeyCode.Escape)) { _ui.EnterTriggerInspect(); return; }
+
+            // 檢視模式：左鍵點畫布 → 選取該格所屬的 trigger 區域（不塗）
+            if (!_ui.TriggerPaintMode)
+            {
+                if (Input.GetMouseButtonDown(0) && !_ui.IsPointerOverUI(Input.mousePosition))
+                {
+                    Vector3 w = _cam.ScreenToWorldPoint(Input.mousePosition);
+                    Vector2Int c = MapCoords.WorldToCell(w, map.tileSize, MapCoords.Origin(map));
+                    _ui.SelectRegion(FindRegionAt(map, c.x, c.y));
+                }
+                return;
+            }
+
+            // 筆刷模式
+            // 一筆的開始（按下左鍵）：拍快照；若「每筆一個新區域」就先建一個新區域
+            if (Input.GetMouseButtonDown(0) && !_ui.IsPointerOverUI(Input.mousePosition))
+            {
+                UndoManager.Push();
+                _strokePushed = true;
+                _lastCell = new Vector2Int(int.MinValue, int.MinValue);
+                if (_ui.TriggerNewRegionPerStroke && _ui.TriggerAddCells) _ui.BeginNewRegion();
+            }
+
             if (!Input.GetMouseButton(0)) { _lastCell = new Vector2Int(int.MinValue, int.MinValue); _strokePushed = false; return; }
             if (_ui.IsPointerOverUI(Input.mousePosition)) return;
 
-            var map = session.Map;
             Vector3 world = _cam.ScreenToWorldPoint(Input.mousePosition);
             Vector2Int cell = MapCoords.WorldToCell(world, map.tileSize, MapCoords.Origin(map));
             if (!MapCoords.InBounds(cell.x, cell.y, map)) return;
@@ -52,6 +79,17 @@ namespace DipanMapEditor.Tools
 
             if (_ui.TriggerAddCells) TriggerOps.AddCell(region, cell.x, cell.y);
             else TriggerOps.RemoveCell(region, cell.x, cell.y);
+        }
+
+        /// <summary>找出覆蓋 (x,y) 的 trigger 區域；重疊時回傳畫在最上層的（清單中最後一個）。</summary>
+        static TriggerRegion FindRegionAt(MapData map, int x, int y)
+        {
+            var regions = map.TriggerLayer?.regions;
+            if (regions == null) return null;
+            TriggerRegion found = null;
+            foreach (var r in regions)
+                if (TriggerOps.HasCell(r, x, y)) found = r;
+            return found;
         }
     }
 }

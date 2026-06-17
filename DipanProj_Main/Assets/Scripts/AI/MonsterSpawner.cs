@@ -36,6 +36,7 @@ public class MonsterSpawner : MonoBehaviour
     }
 
     [Header("自動生成設定")]
+    public bool AutoSpawn = true;         // 關掉 = 純由地圖 monsterSpawn 出生點生怪（推薦給用 MapLoader 的場景）
     public int MonsterIDToSpawn = 1;      // 要生成的怪物 ID
     public float SpawnInterval = 1.0f;    // 生成間隔 (秒)
     public float SpawnRadius = 5.0f;      // 隨機生成範圍
@@ -43,6 +44,7 @@ public class MonsterSpawner : MonoBehaviour
 
     void Update()
     {
+        if (!AutoSpawn) return;           // 地圖驅動模式：不自動亂生，改由 MapLoader 在出生點生怪
         _spawnTimer += Time.deltaTime;
         if (_spawnTimer >= SpawnInterval)
         {
