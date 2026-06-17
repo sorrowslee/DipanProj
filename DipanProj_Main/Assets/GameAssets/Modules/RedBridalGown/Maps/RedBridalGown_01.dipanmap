@@ -85,6 +85,19 @@
           "sortKey": -8.212624,
           "zOrder": 0,
           "hp": 1
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/container_bamboo_basket",
+          "x": 3.31848335,
+          "y": -3.15774035,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -3.15774035,
+          "zOrder": 0,
+          "hp": 1
         }
       ]
     },

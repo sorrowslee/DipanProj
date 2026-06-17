@@ -25,17 +25,8 @@ public class BuildScript
             return;
         }
 
-        BuildPlayerOptions options = new BuildPlayerOptions();
-        options.scenes = new[] { "Assets/Scenes/SampleScene.unity" };
-        options.locationPathName = "Builds/Windows_Test/DipanProject.exe";
-        options.target = BuildTarget.StandaloneWindows64;
-        options.options = BuildOptions.None;
-
         UnityEngine.Debug.Log("🚀 [1/2] 正在 Unity 內部執行建置...");
-        BuildReport report = BuildPipeline.BuildPlayer(options);
-
-        DumpBuildReport(report);                       // 把每個步驟的錯誤/例外/警告全印出來
-        bool dataOk = VerifyDataFolder("Builds/Windows_Test/DipanProject_Data");
+        BuildReport report = BuildWindowsWithAutoCleanRetry(out bool dataOk);
 
         // 必須「成功 + 零錯誤 + _Data 真的含核心資料」三者皆滿足才部署，杜絕半成品。
         if (report.summary.result == BuildResult.Succeeded && report.summary.totalErrors == 0 && dataOk)
@@ -144,6 +135,60 @@ public class BuildScript
 
             return process.ExitCode == 0;
         }
+    }
+
+    // 只建 Windows、不部署。供「批次模式 + 指定 logFile」抓乾淨的打包紀錄用,也可日常只打包不推。
+    [MenuItem("Project Tools/Build Windows (不部署)", false, 22)]
+    public static void BuildWindowsOnly()
+    {
+        if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64))
+        {
+            UnityEngine.Debug.LogError("❌ 沒有可用的 Windows Build Support 模組。");
+            return;
+        }
+
+        UnityEngine.Debug.Log("🚀 只建 Windows（不部署）...");
+        BuildReport report = BuildWindowsWithAutoCleanRetry(out bool dataOk);
+        UnityEngine.Debug.Log($"📦 完成：result={report.summary.result}, errors={report.summary.totalErrors}, dataOk={dataOk}");
+    }
+
+    const string WinExe = "Builds/Windows_Test/DipanProject.exe";
+    const string WinDataDir = "Builds/Windows_Test/DipanProject_Data";
+    const string WinOutDir = "Builds/Windows_Test";
+
+    // 先做正常(增量)打包；若偵測到 _Data 缺核心資料(常見於增量快取沿用了舊的不完整資料)，
+    // 自動「清掉輸出 + CleanBuildCache」重建一次。回傳最後一次的 report，dataOk 表示資料是否完整。
+    private static BuildReport BuildWindowsWithAutoCleanRetry(out bool dataOk)
+    {
+        BuildReport report = BuildWindows(false);
+        DumpBuildReport(report);
+        dataOk = VerifyDataFolder(WinDataDir);
+
+        if (report.summary.result == BuildResult.Succeeded && !dataOk)
+        {
+            UnityEngine.Debug.LogWarning("⚠ 偵測到 _Data 不完整（多半是增量快取沿用了舊的壞資料）。自動改用 clean build 重建一次...");
+            report = BuildWindows(true);
+            DumpBuildReport(report);
+            dataOk = VerifyDataFolder(WinDataDir);
+            if (dataOk) UnityEngine.Debug.Log("✅ clean build 後資料已完整。");
+        }
+        return report;
+    }
+
+    private static BuildReport BuildWindows(bool clean)
+    {
+        if (clean)
+        {
+            try { if (Directory.Exists(WinOutDir)) Directory.Delete(WinOutDir, true); }
+            catch (System.Exception e) { UnityEngine.Debug.LogWarning($"清除舊輸出失敗（不影響後續）：{e.Message}"); }
+        }
+
+        BuildPlayerOptions options = new BuildPlayerOptions();
+        options.scenes = new[] { "Assets/Scenes/SampleScene.unity" };
+        options.locationPathName = WinExe;
+        options.target = BuildTarget.StandaloneWindows64;
+        options.options = clean ? BuildOptions.CleanBuildCache : BuildOptions.None;
+        return BuildPipeline.BuildPlayer(options);
     }
 
     private static void ExecuteDeployScript()

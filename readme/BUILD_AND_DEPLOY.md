@@ -59,9 +59,13 @@ git push -u origin main
 ## 疑難排解(踩過的雷)
 
 - **`Build target 'StandaloneWindows64' not supported`**:Mac 沒裝(或裝不完整)Windows Build Support 模組。Unity Hub → Installs → 對 `2022.3.62f3` Add/Remove Modules → 重裝 **Windows Build Support (Mono)** → **完全重啟 Unity**。
-- **Windows 開遊戲跳 `Data folder not found` / `_Data` 缺 `globalgamemanagers` 等核心資料**:成品不完整。兩種來源:
-  1. **打包本身失敗**(Windows 模組/Postprocess 問題)→ 看 BuildReport 紅字;可先用 `Build (Mac, 本機測試)` 確認專案沒問題(Mac 版能跑 = 專案 OK)。
-  2. **git 沒同步**(本次真正原因):部署資料夾沒先 pull/對齊遠端就 push,推送失敗、遠端是舊/半成品,Windows pull 下來自然缺檔。已由步驟 2 的打包前對齊解決。
+- **Windows 開遊戲跳 `Data folder not found` / `_Data` 缺 `globalgamemanagers` 等核心資料**:成品不完整。三種來源:
+  1. **增量打包沿用了舊的不完整資料(實測踩過的主因)**:某台第一次打包失敗(例如當時 Windows 模組還沒裝好)→ 留下一份壞的 `Builds/Windows_Test/_Data` 與被汙染的增量快取(`Library/Bee`)。之後即使模組裝好了,Unity 判定「只有 script 變」→ 做 **script-only / 增量打包**,**不重建 player data**,一直沿用那份壞資料。log 特徵:`player data was not rebuilt` / `Do a clean build` / `Run script only build` / `2 items updated`。
+     - **修法**:做一次 **clean build**。手動:關 Unity → 刪 `DipanProj_Main/Builds/Windows_Test` 與 `DipanProj_Main/Library/Bee` → 重 build。
+     - **已自動防呆**:`BuildScript` 現在會在正常打包後檢查 `_Data`,**缺核心資料就自動清輸出 + `BuildOptions.CleanBuildCache` 重建一次**,所以一般不會再卡這個。
+  2. **打包本身失敗**(Windows 模組/Postprocess 問題)→ 看 BuildReport 紅字;可先用 `Build (Mac, 本機測試)` 確認專案沒問題(Mac 版能跑 = 專案 OK)。
+  3. **git 沒同步**:部署資料夾沒先 pull/對齊遠端就 push,推送失敗、遠端是舊/半成品,Windows pull 下來自然缺檔。已由步驟 2 的打包前對齊解決。
+  > 抓真正原因的利器:`Project Tools → Build Windows (不部署)`,或批次模式 `update_deploy.sh` 旁的 `build_win_debug.sh`(用 `-logFile` 輸出乾淨完整的打包 log 到桌面)。
 - **`git push` 失敗**:常見「本地落後遠端」(已由打包前對齊解決),或「從 Unity GUI 啟動的程序拿不到 git 憑證/SSH key」→ 先在終端機手動 `git fetch` / `git push` 一次把憑證帶起來。
 - **不要用 git 傳超過 100MB 的單檔**:GitHub 會擋。Unity build 若有超大檔,考慮改用 zip release(目前專案的 build 沒有超標檔)。
 
