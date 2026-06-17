@@ -44,6 +44,18 @@ public class PlayerController : MonoBehaviour
     private GroundEffectInstance _activeAura;
     private WeaponData _activeAuraWeapon;
 
+    // 連鎖閃電：折線緩衝（避免每次發射配置）+ 閃光存活秒數
+    private static readonly List<Vector2> _chainPathBuffer = new List<Vector2>(16);
+    private const float ChainFlashDuration = 0.16f;
+
+    // 天降雷擊：從畫面上緣再往上多少單位開始劈、BlastRadius 留空時的預設 AOE 半徑
+    private const float SkyStrikeTopMargin = 2f;
+    private const float SkyStrikeDefaultBlast = 1.2f;
+    private static readonly HashSet<int> _emptyHitSet = new HashSet<int>(); // 追蹤吸附用的空排除集（FindNearestDamageable 只讀不寫）
+
+    // 命中迸發子武器：生成點沿命中面法線往外推的最小距離（避免生在牆/家具表面內被自己的 CheckSpawnOverlap 瞬殺）
+    private const float SubWeaponSpawnOffset = 0.35f;
+
     public bool isFacingRightByDefault = true;
 
     void Start()
@@ -247,7 +259,15 @@ public class PlayerController : MonoBehaviour
         // 發射特效：每次離散發射在玩家身上播一次，朝瞄準方向
         TrySpawnFireEffect(weapon, AimDirectionToMouse());
 
-        if (recipe.IsOrbital)
+        if (weapon.Recipe.IsSkyStrike)
+        {
+            ShootSkyStrike(weapon, recipe);
+        }
+        else if (weapon.Recipe.IsChain)
+        {
+            ShootChain(weapon, recipe);
+        }
+        else if (recipe.IsOrbital)
         {
             ShootOrbital(weapon, recipe);
         }
@@ -700,6 +720,294 @@ public class PlayerController : MonoBehaviour
             _orbitalGroupExpireTime = -1f;
     }
 
+    // ── 連鎖閃電：吃配方的散射（SpreadCount/SpreadAngle）→ 一發射出多道扇形分布的連鎖，每道各自獨立連鎖 ──
+    // 目標搜尋與傷害全在主遊戲側（守住「彈道系統不算傷害」邊界）；LaserBeam 只當折線視覺（SpawnChainVisual）。
+    private void ShootChain(WeaponData weapon, ProjectileData recipe)
+    {
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePos.z = 0f;
+        Vector2 origin = (Vector2)transform.position;
+        Vector2 baseDir = (Vector2)mousePos - origin;
+        baseDir = baseDir.sqrMagnitude > 0.0001f ? baseDir.normalized : Vector2.right;
+        float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
+
+        int count = Mathf.Max(1, recipe.SplitCount);   // 散射道數（= SpreadCount 欄）
+        float totalSpread = recipe.SpreadAngle;        // 扇形總角度（= SpreadAngle 欄）
+
+        for (int i = 0; i < count; i++)
+        {
+            float ang = baseAngle;
+            if (count > 1)
+            {
+                float t = (float)i / (count - 1);
+                ang = baseAngle - totalSpread * 0.5f + totalSpread * t;
+            }
+            float rad = ang * Mathf.Deg2Rad;
+            Vector2 dir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
+            CastOneChain(weapon, recipe, origin, dir);
+        }
+    }
+
+    // 放一道連鎖閃電：朝 dir 找首節點（HasHoming 時用扇形錐 aim-assist）→ 逐跳 → 結算傷害 → 畫鋸齒折線。
+    private void CastOneChain(WeaponData weapon, ProjectileData recipe, Vector2 origin, Vector2 dir)
+    {
+        float reach = recipe.BeamRange;                       // 第一段射程（BeamRange 欄）
+        float aimR = Mathf.Max(0.1f, weapon.BeamWidth * 0.5f); // 第一段瞄準容差半徑
+        int envMask = EnvLayer.value;        // 環境：牆（不可破壞、擋路）+ 可破壞地上物（有 IDamageable）
+        int enemyMask = EnemyLayer.value;
+        int damageableMask = enemyMask | envMask; // 連鎖搜尋對象：怪 + 可破壞地上物（牆會被 IDamageable 過濾掉）
+
+        var hitSet = new HashSet<int>();   // 首目標搜尋的排除集（此處為空）
+        Transform firstTarget = null;
+
+        // 追蹤(aim-assist)：閃電瞬發、不會飛行轉彎，所以「追蹤」對它＝首目標自動鎖定。
+        // HasHoming 時首段不必正好瞄到，改鎖定「以 dir 為軸、半角 = HomingTurnSpeed(上限180) 的扇形錐內、reach 內、最近」的目標。
+        // 180 = 錐張滿一圈 = 鎖最近任意方向的目標。（目前不檢查中間有沒有牆遮擋，之後可加。）
+        if (recipe.HasHoming)
+        {
+            float coneHalf = Mathf.Min(180f, recipe.HomingTurnSpeed);
+            firstTarget = FindNearestInCone(origin, reach, dir, coneHalf, hitSet, damageableMask);
+        }
+
+        // 非追蹤（或追蹤沒鎖到）：朝 dir 直線找第一個目標，環境(牆/家具)會擋住前進；純牆則無首節點。
+        if (firstTarget == null)
+        {
+            RaycastHit2D env = Physics2D.Raycast(origin, dir, reach, envMask);
+            float maxDist = (env.collider != null) ? env.distance : reach;
+            RaycastHit2D enemyHit = Physics2D.CircleCast(origin, aimR, dir, maxDist, enemyMask);
+
+            if (enemyHit.collider != null && (env.collider == null || enemyHit.distance <= env.distance))
+                firstTarget = enemyHit.collider.transform;
+            else if (env.collider != null && env.collider.GetComponent<IDamageable>() != null)
+                firstTarget = env.collider.transform;   // 擋路的可破壞家具（牆沒有 IDamageable，不會進來）
+
+            // 貼身目標補抓：queriesStartInColliders=false 會略過重疊在起點的目標（同雷射的陷阱）
+            if (firstTarget == null)
+                firstTarget = FindNearestDamageable(origin, aimR, hitSet, damageableMask);
+        }
+
+        if (firstTarget != null)
+        {
+            // 連鎖行為參數用本武器自己的配方（ChainCount/ChainRadius）
+            RunChain(weapon, origin, firstTarget, weapon.Recipe.ChainCount, weapon.Recipe.ChainRadius);
+        }
+        else
+        {
+            // 沒命中任何目標：畫一道到牆/射程末端的閃電（純視覺，讓玩家看到有發射出去）
+            RaycastHit2D w = Physics2D.Raycast(origin, dir, reach, envMask);
+            float md = (w.collider != null) ? w.distance : reach;
+            _chainPathBuffer.Clear();
+            _chainPathBuffer.Add(origin);
+            _chainPathBuffer.Add(origin + dir * md);
+            List<Vector2> jagged = BuildJaggedPath(_chainPathBuffer);
+            BallisticsEngine.SpawnChainVisual(jagged, weapon.BeamStyle, weapon.BeamColor,
+                weapon.BeamWidth * PlayerScale, weapon.BeamMuzzleSprite, weapon.BeamImpactSprite, ChainFlashDuration);
+        }
+    }
+
+    // 從 firstTarget 起連鎖：逐跳找最近可傷害目標、結算傷害、畫鋸齒折線。
+    // startPoint = 折線起點（玩家位置 or 天降雷擊落點）；用本武器 Damage + 外觀，連鎖次數/半徑由呼叫者傳入。
+    // 連鎖閃電武器走自己的配方；天降雷擊接 SubRecipeID 時，由雷擊在落點呼叫此方法、傳入 sub-recipe 的次數/半徑。
+    private void RunChain(WeaponData weapon, Vector2 startPoint, Transform firstTarget, int chainCount, float chainRadius)
+    {
+        int dmgMask = EnemyLayer.value | EnvLayer.value;
+        var targets = new List<Transform>();
+        var hitSet = new HashSet<int>();
+        targets.Add(firstTarget);
+        hitSet.Add(firstTarget.gameObject.GetInstanceID());
+
+        Vector2 from = firstTarget.position;
+        for (int j = 0; j < Mathf.Max(0, chainCount); j++)
+        {
+            Transform next = FindNearestDamageable(from, chainRadius, hitSet, dmgMask);
+            if (next == null) break;
+            targets.Add(next);
+            hitSet.Add(next.gameObject.GetInstanceID());
+            from = next.position;
+        }
+
+        Vector2 prev = startPoint;
+        for (int i = 0; i < targets.Count; i++)
+        {
+            Vector2 tp = targets[i].position;
+            Vector2 hd = (tp - prev).sqrMagnitude > 0.0001f ? (tp - prev).normalized : Vector2.up;
+            ApplyDamage(targets[i].gameObject, weapon.Damage, hd);
+            TrySpawnHitEffect(weapon, tp);
+            prev = tp;
+        }
+
+        _chainPathBuffer.Clear();
+        _chainPathBuffer.Add(startPoint);
+        for (int i = 0; i < targets.Count; i++) _chainPathBuffer.Add(targets[i].position);
+        List<Vector2> jagged = BuildJaggedPath(_chainPathBuffer);
+        BallisticsEngine.SpawnChainVisual(jagged, weapon.BeamStyle, weapon.BeamColor,
+            weapon.BeamWidth * PlayerScale, weapon.BeamMuzzleSprite, weapon.BeamImpactSprite, ChainFlashDuration);
+    }
+
+    // 從一點找「半徑內、不在排除清單、有 IDamageable、最近」的目標（連鎖閃電每一跳的搜尋）。
+    // 用 IDamageable 過濾 → 怪物與可破壞地上物都算，純牆（無 IDamageable）被排除、不會浪費跳躍。
+    private static Transform FindNearestDamageable(Vector2 from, float radius, HashSet<int> exclude, int mask)
+    {
+        Collider2D[] cols = Physics2D.OverlapCircleAll(from, radius, mask);
+        float best = float.MaxValue;
+        Transform bestT = null;
+        for (int i = 0; i < cols.Length; i++)
+        {
+            if (exclude.Contains(cols[i].gameObject.GetInstanceID())) continue;
+            if (cols[i].GetComponent<IDamageable>() == null) continue;   // 牆等無 IDamageable 者排除
+            float d = ((Vector2)cols[i].transform.position - from).sqrMagnitude;
+            if (d < best) { best = d; bestT = cols[i].transform; }
+        }
+        return bestT;
+    }
+
+    // 連鎖閃電的追蹤(aim-assist)：找「以 axisDir 為軸、半角 halfAngleDeg 的扇形錐內、radius 內、有 IDamageable、最近」的目標。
+    // halfAngleDeg = 180 → 錐張滿一圈（等於 FindNearestDamageable，鎖最近任意方向）。
+    private static Transform FindNearestInCone(Vector2 from, float radius, Vector2 axisDir, float halfAngleDeg, HashSet<int> exclude, int mask)
+    {
+        Vector2 axis = axisDir.sqrMagnitude > 1e-4f ? axisDir.normalized : Vector2.right;
+        float cosHalf = Mathf.Cos(Mathf.Clamp(halfAngleDeg, 0f, 180f) * Mathf.Deg2Rad);
+        Collider2D[] cols = Physics2D.OverlapCircleAll(from, radius, mask);
+        float best = float.MaxValue;
+        Transform bestT = null;
+        for (int i = 0; i < cols.Length; i++)
+        {
+            if (exclude.Contains(cols[i].gameObject.GetInstanceID())) continue;
+            if (cols[i].GetComponent<IDamageable>() == null) continue;
+            Vector2 to = (Vector2)cols[i].transform.position - from;
+            float sqr = to.sqrMagnitude;
+            if (sqr < 1e-6f) return cols[i].transform;          // 重疊在原點，直接取
+            if (Vector2.Dot(to / Mathf.Sqrt(sqr), axis) < cosHalf) continue; // 不在扇形錐內
+            if (sqr < best) { best = sqr; bestT = cols[i].transform; }
+        }
+        return bestT;
+    }
+
+    // 在每段之間插入橫向抖動中點 → 閃電鋸齒外觀（純視覺，不影響命中）。
+    // 細分數依「段長」決定（每約 segPerJag 單位一個鋸齒點），所以短段不過密、長段（如天降雷擊的長垂直閃電）也夠鋸齒。
+    private static List<Vector2> BuildJaggedPath(List<Vector2> pts)
+    {
+        var outp = new List<Vector2>(pts.Count * 6);
+        const float jitter = 0.22f;     // 橫向抖動幅度（世界單位）
+        const float segPerJag = 0.6f;   // 每約 0.6 單位一個鋸齒點
+        for (int s = 0; s < pts.Count - 1; s++)
+        {
+            Vector2 a = pts[s], b = pts[s + 1];
+            outp.Add(a);
+            Vector2 d = b - a;
+            float len = d.magnitude;
+            if (len > 1e-3f)
+            {
+                int subdiv = Mathf.Clamp(Mathf.RoundToInt(len / segPerJag), 2, 32);
+                Vector2 perp = new Vector2(-d.y, d.x) / len;
+                for (int k = 1; k < subdiv; k++)
+                {
+                    float t = (float)k / subdiv;
+                    float off = (Random.value * 2f - 1f) * jitter;
+                    outp.Add(a + d * t + perp * off);
+                }
+            }
+        }
+        outp.Add(pts[pts.Count - 1]);
+        return outp;
+    }
+
+    // ── 天降雷擊：從畫面上緣外劈下到滑鼠所在點，落地以 BlastRadius 做圓形 AOE ──
+    // 吃 SpreadCount/SpreadAngle（多道落點，仿拋物線扇形分佈）與 HomingTurnSpeed（落點吸附最近怪，當搜尋半徑）。
+    // 目標搜尋與傷害全在主遊戲側；視覺複用 LaserBeam 折線（垂直鋸齒閃電）。
+    private void ShootSkyStrike(WeaponData weapon, ProjectileData recipe)
+    {
+        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        mousePos.z = 0f;
+        Vector2 player = (Vector2)transform.position;
+        Vector2 mouse = (Vector2)mousePos;
+
+        int count = Mathf.Max(1, recipe.SplitCount);   // 落點道數（= SpreadCount 欄）
+        float totalSpread = recipe.SpreadAngle;        // 扇形總角度（= SpreadAngle 欄）
+
+        // 落點分佈：以「玩家→滑鼠」為基準軸，N 個落點在 ±SpreadAngle/2 的扇形上、與滑鼠等距（同拋物線）
+        Vector2 axis = mouse - player;
+        float dist = axis.magnitude;
+        float baseAngle;
+        if (dist < 0.0001f) { dist = 1f; baseAngle = 90f; }
+        else baseAngle = Mathf.Atan2(axis.y, axis.x) * Mathf.Rad2Deg;
+
+        int dmgMask = EnemyLayer.value | EnvLayer.value;
+
+        for (int i = 0; i < count; i++)
+        {
+            float ang = baseAngle;
+            if (count > 1)
+            {
+                float t = (float)i / (count - 1);
+                ang = baseAngle - totalSpread * 0.5f + totalSpread * t;
+            }
+            float rad = ang * Mathf.Deg2Rad;
+            Vector2 target = player + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * dist;
+
+            // 追蹤(aim-assist)：HasHoming 時把落點吸附到附近最近的可傷害目標（HomingTurnSpeed 當搜尋半徑，世界單位）
+            if (recipe.HasHoming)
+            {
+                Transform near = FindNearestDamageable(target, recipe.HomingTurnSpeed, _emptyHitSet, dmgMask);
+                if (near != null) target = near.position;
+            }
+
+            StrikeAt(weapon, target, dmgMask);
+        }
+    }
+
+    // 在 impact 點劈一道雷：垂直鋸齒閃電視覺 + 圓形 AOE 傷害（武器 Damage，含怪與可破壞家具）+ 可選地面特效。
+    private void StrikeAt(WeaponData weapon, Vector2 impact, int dmgMask)
+    {
+        // 1) 視覺：從畫面上緣外往下劈到 impact 的鋸齒閃電（複用靜態折線渲染）
+        Camera cam = Camera.main;
+        float topY = (cam != null) ? cam.transform.position.y + cam.orthographicSize + SkyStrikeTopMargin : impact.y + 12f;
+        _chainPathBuffer.Clear();
+        _chainPathBuffer.Add(new Vector2(impact.x, topY));
+        _chainPathBuffer.Add(impact);
+        List<Vector2> jagged = BuildJaggedPath(_chainPathBuffer);
+        BallisticsEngine.SpawnChainVisual(jagged, weapon.BeamStyle, weapon.BeamColor,
+            weapon.BeamWidth * PlayerScale, weapon.BeamMuzzleSprite, weapon.BeamImpactSprite, ChainFlashDuration);
+
+        // 2) 擊中特效（落點）
+        TrySpawnHitEffect(weapon, impact);
+
+        // 3) 圓形 AOE：以 BlastRadius（留空用預設）對範圍內 IDamageable（怪 + 可破壞家具）以武器 Damage 結算一次
+        float radius = (weapon.Recipe != null && weapon.Recipe.BlastRadius > 0f) ? weapon.Recipe.BlastRadius : SkyStrikeDefaultBlast;
+        if (weapon.Damage > 0f)
+        {
+            Collider2D[] hits = Physics2D.OverlapCircleAll(impact, radius, dmgMask);
+            for (int i = 0; i < hits.Length; i++)
+            {
+                if (hits[i] == null) continue;
+                IDamageable d = hits[i].GetComponent<IDamageable>();
+                if (d == null) continue;
+                Vector2 hd = ((Vector2)hits[i].transform.position - impact).normalized;
+                d.TakeDamage(weapon.Damage, hd);
+            }
+        }
+
+        // 4) 可選：落點留一團地面特效（GroundEffectID > 0 時），例如焦痕/殘電
+        if (_groundEffectManager != null && weapon.Recipe != null && weapon.Recipe.GroundEffectID > 0)
+            _groundEffectManager.Spawn(weapon.Recipe.GroundEffectID, impact);
+
+        // 5) SubRecipeID → 連鎖：落點接一條連鎖閃電轟擊旁邊的怪（用本武器 Damage/外觀，sub-recipe 的 ChainCount/ChainRadius）。
+        //    首目標 = 落點 ChainRadius 內最近的可傷害目標；找到才連，之後逐跳。
+        RecipeEntry sub = (weapon.Recipe != null) ? weapon.Recipe.SubRecipe : null;
+        if (sub != null && sub.IsChain)
+        {
+            Transform first = FindNearestDamageable(impact, sub.ChainRadius, _emptyHitSet, dmgMask);
+            if (first != null)
+            {
+                // 連鎖的外觀＋傷害＝「定義該連鎖配方的那把武器」（例如連鎖閃電武器，藍/白），找不到才退回本武器（雷擊）。
+                // → 雷擊本身與接出來的連鎖可各有顏色/粗細/傷害。
+                WeaponData chainWeapon = (_weaponManager != null) ? _weaponManager.GetWeaponByRecipeID(sub.ID) : null;
+                if (chainWeapon == null) chainWeapon = weapon;
+                RunChain(chainWeapon, impact, first, sub.ChainCount, sub.ChainRadius);
+            }
+        }
+    }
+
     private LayerMask ResolvePierceableLayers(RecipeEntry recipe)
     {
         LayerMask layers = EnemyLayer;
@@ -733,6 +1041,72 @@ public class PlayerController : MonoBehaviour
         Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
         TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, spawnPos, hitEnemy, hitEnv, false);
         TrySpawnHitEffect(firedWeapon, spawnPos);
+        TryTriggerSubWeapon(firedWeapon, bullet, hit, spawnPos, hitEnemy, hitEnv);
+    }
+
+    // ── 命中迸發子武器：子彈命中（依 SubWeaponHitTarget 過濾）時，在命中點生成「另一把武器」的子彈 ──
+    // 與 SubRecipeID 不同：子武器是「武器表上的武器」，自帶外型/傷害/追蹤（蜂巢→自己的蜜蜂圖）。
+    private void TryTriggerSubWeapon(WeaponData firedWeapon, BulletInstance bullet, RaycastHit2D hit, Vector2 spawnPos, bool hitEnemy, bool hitEnv)
+    {
+        RecipeEntry recipe = firedWeapon.Recipe;
+        if (recipe == null || recipe.SubWeaponOnHit <= 0 || _weaponManager == null) return;
+
+        bool allowed = recipe.SubWeaponHitTarget switch
+        {
+            SubWeaponHitTarget.All => hitEnemy || hitEnv,
+            SubWeaponHitTarget.Environment => hitEnv,
+            _ => hitEnemy   // Enemy / 預設
+        };
+        if (!allowed) return;
+
+        WeaponData subWeapon = _weaponManager.GetWeapon(recipe.SubWeaponOnHit);
+        if (subWeapon == null) return;
+
+        // 迸發基準方向：從命中面法線往外噴（家具/牆會給法線）；沒有法線就用母彈反向速度，再不行就朝上。
+        Vector2 baseDir = hit.normal;
+        if (baseDir.sqrMagnitude < 0.0001f)
+        {
+            Vector2 vel = (bullet != null) ? bullet.Velocity : Vector2.zero;
+            baseDir = vel.sqrMagnitude > 0.0001f ? -vel.normalized : Vector2.up;
+        }
+        else baseDir = baseDir.normalized;
+
+        // 把生成點沿法線往外推離命中面：否則子武器生在牆/家具表面內，一生成就被 CheckSpawnOverlap 判定撞到該面而瞬間銷毀
+        //（牆是實心永遠在，所以打牆時子武器一生就死＝看起來沒生出來）。推出去的距離至少要蓋過子武器自己的判定半徑。
+        float subRadius = (subWeapon.Recipe != null && subWeapon.Recipe.Data != null) ? subWeapon.Recipe.Data.Radius : 0.1f;
+        float offset = Mathf.Max(SubWeaponSpawnOffset, subRadius + 0.2f);
+        Vector2 spawnAt = spawnPos + baseDir * offset;
+
+        SpawnSubWeaponAt(subWeapon, spawnAt, baseDir);
+    }
+
+    // 在 pos 以 baseDir 為基準發射「子武器」一發（吃子武器自己的配方行為：散射/追蹤/反彈…與外型/傷害）。
+    // 子武器若是 3 分裂(OnSpawn) 追蹤 → 自動迸成 3 隻會追蹤的「蜜蜂」（用子武器自己的圖）。
+    private void SpawnSubWeaponAt(WeaponData subWeapon, Vector2 pos, Vector2 baseDir)
+    {
+        if (subWeapon == null || subWeapon.BulletPrefab == null || subWeapon.Recipe == null) return;
+        ProjectileData subRecipe = subWeapon.Recipe.Data;
+        if (subRecipe == null) return;
+
+        // 子武器只支援「會飛的一般子彈」；特殊型(雷射/環繞/拋物線/連鎖/雷擊)不適合當 OnHit 迸發，先擋掉並提示。
+        if (subRecipe.IsLaser || subRecipe.IsOrbital || subRecipe.IsParabolic
+            || subWeapon.Recipe.IsChain || subWeapon.Recipe.IsSkyStrike)
+        {
+            Debug.LogWarning($"SubWeaponOnHit 指向的武器 '{subWeapon.Name}' 是特殊型(雷射/環繞/拋物線/連鎖/雷擊)，命中迸發目前只支援一般飛行子彈。");
+            return;
+        }
+
+        LayerMask collisionMask = EnvLayer | EnemyLayer;
+        LayerMask pierceableLayers = ResolvePierceableLayers(subWeapon.Recipe);
+        LayerMask nonBounceLayers = ResolveNonBounceLayers(subWeapon.Recipe.BounceTarget);
+        Vector3 scale = subWeapon.BulletPrefab.transform.localScale * PlayerScale * subWeapon.BulletScale;
+        WeaponData fired = subWeapon;
+
+        BallisticsEngine.Spawn(subRecipe, subWeapon.BulletPrefab, pos, baseDir,
+            collisionMask, pierceableLayers, nonBounceLayers,
+            (b, t, h) => HandleBulletHit(fired, b, t, h),
+            subWeapon.WeaponSprite, subWeapon.SpriteAngleOffset, scale, subWeapon.WeaponSprites, subWeapon.AnimFPS,
+            (b, p) => TrySpawnTrailEffect(fired, p));
     }
 
     private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)

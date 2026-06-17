@@ -40,6 +40,11 @@
 | BlastRadius | 小數 | 否 | 拋物線專用：落地殺傷半徑（世界單位）。留空 / 0 = 落地不傷害；> 0 = 落地瞬間以武器表 Damage 對半徑內怪物炸一次。與地面特效獨立、可並存 |
 | TrailStep | 小數 | 否 | 軌跡點間距（世界單位）：> 0 時子彈每飛這麼遠就沿路種一個特效（搭配武器表 `TrailEffectID`）。子彈反彈/分裂/追蹤後的彎折路徑都會跟著種。地刺武器靠這個沿路長出尖刺。0 或留空 = 無軌跡 |
 | IsAura | 整數 | 否 | 佛光型武器（1 = 是，留空或 0 = 否；與 IsOrbital / IsParabolic / IsLaser 互斥）。不發射子彈，改在玩家身上維持一個「跟著玩家移動」的圓形 AOE（圓的定義走本列 `GroundEffectID`、傷害走武器表 `Damage`）。見 [GROUND_EFFECT.md](GROUND_EFFECT.md) 的佛光章節 |
+| IsChain | 整數 | 否 | 連鎖閃電（1 = 是，留空或 0 = 否；與其他模式互斥）。朝滑鼠射出命中首怪後逐跳。**跳躍次數沿用 `MaxBounces` 欄、第一段射程沿用 `BeamRange` 欄**。見 [LASER.md](LASER.md) 的連鎖閃電章節 |
+| ChainRadius | 小數 | 否 | 連鎖閃電每一跳的搜尋半徑（世界單位）；留空 = 4 |
+| IsSkyStrike | 整數 | 否 | 天降雷擊（1 = 是，留空或 0 = 否；與其他模式互斥）。從畫面上緣劈下到滑鼠點，落地以 `BlastRadius` 做圓形 AOE。吃 `SpreadCount`/`SpreadAngle`（多道）與 `HomingTurnSpeed`（落點吸附，當搜尋半徑）。見 [LASER.md](LASER.md) 的天降雷擊章節 |
+| SubWeaponOnHit | 整數 | 否 | 命中迸發子武器：子彈命中時在命中點生成「**武器表上指定 ID** 的武器」一發（子武器**自帶外型/傷害/追蹤**）。留空 / 0 = 不觸發。**與 `SubRecipeID` 不同**（見下方說明） |
+| SubWeaponHitTarget | 字串 | 否 | 迸發過濾：`Enemy`（預設）/ `Environment`（牆＋可破壞家具）/ `All`（任一都迸）|
 
 ---
 
@@ -258,6 +263,41 @@
 - 傷害走**武器表 `Damage`**（每 `DamageInterval` 結算一次，吃怪物無敵時間），不是 GroundEffectTable 的 Damage
 - 其餘彈道欄位（Speed / Radius / PierceCount / Bounce / Split…）對佛光無意義，填 0 / None 即可
 - 範例：配方 21「佛光」`IsAura=1, GroundEffectID=2`；武器 10「佛光」`Damage=1`；GroundEffect 2「佛光」`Radius=1.2, Duration=-1, DamageInterval=0.3, RenderMode=Single`。詳見 [GROUND_EFFECT.md](GROUND_EFFECT.md)
+
+### IsChain / ChainRadius（連鎖閃電）
+- 啟用條件：`IsChain = 1`，與 `IsOrbital` / `IsParabolic` / `IsLaser` / `IsAura` 互斥
+- 行為：點一下（吃 `FireInterval`）朝**滑鼠方向**射出，命中第一隻怪後，在 `ChainRadius` 半徑內逐跳到「還沒打過的最近怪」，跳 `MaxBounces` 次（**總命中數 = 1 + MaxBounces**）；撞牆就停（閃電不穿牆）
+- **欄位複用**：跳躍次數 = `MaxBounces` 欄、第一段射程 = `BeamRange` 欄、外觀（風格/顏色/粗細）= 武器表 `BeamStyle`/`BeamColor`/`BeamWidth`
+- 傷害走**武器表 `Damage`**，每跳一樣（吃怪物無敵時間、也能打可破壞地上物）
+- 目標搜尋與傷害都在主遊戲側結算，`LaserBeam` 只當折線視覺（短命淡出的電弧）
+- 範例：配方 22「連鎖閃電」`IsChain=1, MaxBounces=4, BeamRange=15, ChainRadius=4, FireInterval=0.5`；武器 11「連鎖閃電」`Damage=3, BeamStyle=7(閃電), BeamColor=6(藍), BeamWidth=0.25`。詳見 [LASER.md](LASER.md)
+
+### IsSkyStrike（天降雷擊）
+- 啟用條件：`IsSkyStrike = 1`，與其他特殊模式互斥
+- 行為：點一下（吃 `FireInterval`）從**畫面上緣外往下劈**到滑鼠所在點，落地以 `BlastRadius`（留空＝1.2）半徑做**圓形 AOE**，對範圍內 `IDamageable`（怪 + 可破壞家具）以**武器 `Damage`** 結算一次
+- **欄位複用**：AOE 半徑 = `BlastRadius`；散射（多道落點）= `SpreadCount`/`SpreadAngle`；追蹤（落點吸附最近怪）= `HomingTurnSpeed`（此處當**搜尋半徑**世界單位用）；可選落點殘留 = `GroundEffectID`；外觀 = 武器表 `BeamStyle`/`BeamColor`/`BeamWidth`
+- 範例：配方 23「天降雷擊」`IsSkyStrike=1, BlastRadius=1.5, FireInterval=0.6`；武器 12「天降雷擊」`Damage=8, BeamStyle=7(閃電), BeamColor=3(黃), BeamWidth=0.35`。想試分裂把 `SpreadCount`=3/`SpreadAngle`=60；想試追蹤把 `HomingTurnSpeed`=3。詳見 [LASER.md](LASER.md)
+
+### SubWeaponOnHit / SubWeaponHitTarget（命中迸發子武器）vs SubRecipeID
+兩個都叫「Sub」，但本質不同，別搞混：
+
+| | `SubRecipeID` | `SubWeaponOnHit` |
+|---|---|---|
+| 指向 | **配方**（RecipeTable，只有行為） | **武器**（WeaponTable，自帶外型/傷害） |
+| 外型 | 沒有自己的圖 → **仿母武器外型**（彈道層複製母彈） | **子武器自己的圖/傷害/追蹤** |
+| 觸發 | 配合 `SplitTiming`（OnSpawn/OnHit/OnDeath）由彈道系統分裂 | 子彈命中時，由主遊戲在命中點生成（`SubWeaponHitTarget` 過濾） |
+| 用途 | 「先散射再反彈」這種純行為組合 | 「打到東西迸出一窩**長相不同**的新武器」（蜂巢→蜜蜂） |
+
+- `SubWeaponOnHit`：命中時在命中點「發射一發那把子武器」，**吃子武器自己的整套配方**（散射/追蹤/反彈…）。所以子武器若是「3 分裂(OnSpawn)＋追蹤」，就會迸成 3 隻會追蹤、且用**子武器自己的圖**的彈（＝蜜蜂）。
+- `SubWeaponHitTarget`：`Enemy`（只打到敵人才迸，預設）/ `Environment`（打到牆或可破壞家具才迸）/ `All`（任一都迸）。
+- 迸發方向：以命中面**法線**往外噴（沒有法線就用母彈反向），子武器的 `SpreadAngle` 決定散開幅度。
+- 子武器目前只支援「會飛的一般子彈」；指向雷射/環繞/拋物線/連鎖/雷擊會被擋下並印 Warning。
+- 注意別接成循環（A 迸 B、B 又迸 A）。母彈是否被消耗看它自己的 `PierceCount`（0 = 命中即毀，蜂巢就用這個）。
+- **範例（蜂巢 → 蜜蜂）**：
+  - 武器 13「蜂巢」`Damage=2, RecipeID=24`，圖 = `Weapon/single/weapon_honeyComb`，`BulletScale=2`；配方 24「蜂巢彈」`Speed=12, RotationSpeed=30(緩慢自轉), PierceCount=0, SubWeaponOnHit=14, SubWeaponHitTarget=All`。
+  - 武器 14「蜜蜂」`Damage=1, RecipeID=25`，圖 = `Weapon/single/weapon_bee`，`SpriteAngleOffset=-47`（蜜蜂頭朝右上約 47°，順時針轉正讓頭對齊飛行方向），`BulletScale=0.6`；配方 25「蜜蜂彈」`Speed=10(飛劍一半), SpreadCount=3, SpreadAngle=60, SplitTiming=OnSpawn, HomingTurnSpeed=180`。
+  - 效果：丟出緩慢自轉的蜂窩 → 打到牆/怪/家具 → 命中點迸出 3 隻會追蹤的蜜蜂（蜜蜂自己的圖、頭朝飛行方向、速度較慢）。
+  - 想微調：蜜蜂頭朝向不準 → 改武器 14 `SpriteAngleOffset`；蜜蜂太大/太小 → `BulletScale`；蜂窩轉太快/太慢 → 配方 24 `RotationSpeed`；蜜蜂飛太快/慢 → 配方 25 `Speed`。
 
 ### GroundEffectTable.csv 欄位（簡述，獨立於本文件）
 - `ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize, RenderMode`

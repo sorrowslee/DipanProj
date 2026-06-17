@@ -44,6 +44,26 @@ namespace Sorrows.Ballistics
             return beam;
         }
 
+        /// <summary>
+        /// 連鎖閃電視覺：生成一個「只渲染一條已算好折線、短命淡出後自毀」的 LaserBeam。
+        /// 目標搜尋與傷害由主遊戲負責（本工廠不回報命中、不結算傷害），這裡只把雷射的折線 mesh 渲染當電弧視覺複用。
+        /// </summary>
+        /// <param name="points">世界座標折線：玩家→怪A→怪B…（可含鋸齒抖動點）。</param>
+        /// <param name="life">閃一下的存活秒數（在這段時間內漸暗淡出）。</param>
+        public static LaserBeam SpawnChainVisual(List<Vector2> points,
+            BeamStyle style, Color beamColor, float beamWidth,
+            Sprite muzzleSprite, Sprite impactSprite, float life)
+        {
+            var go = new GameObject("ChainLightning");
+            var beam = go.AddComponent<LaserBeam>();
+            // 所見即所得的半寬；不 march、不回報傷害（OnBeamDamageTick 保持 null）。
+            beam.Radius = Mathf.Max(0.01f, beamWidth * 0.5f);
+            beam.DrawBeam = true;
+            beam.Setup(style, beamColor, beamWidth, muzzleSprite, impactSprite);
+            beam.SetStaticPath(points, life);
+            return beam;
+        }
+
         public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null)
         {
             // hideIfNoSprite=true：初始發射時若沒給圖 = 隱形子彈（地刺/火焰噴射器的隱形載體）。

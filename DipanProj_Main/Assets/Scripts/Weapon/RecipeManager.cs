@@ -6,6 +6,8 @@ public enum BounceTarget { None, Environment, Enemy }
 public enum GroundEffectTrigger { OnSpawn, OnHit, OnDeath }
 public enum GroundEffectHitTarget { Enemy, Environment, Any, Ground }
 public enum LaunchSource { Player, Offscreen }
+// 命中迸發子武器的觸發過濾：打到敵人 / 環境(牆壁+可破壞地上物) / All(任一都觸發)
+public enum SubWeaponHitTarget { Enemy, Environment, All }
 
 public class RecipeEntry
 {
@@ -14,6 +16,7 @@ public class RecipeEntry
     public ProjectileData Data;
     public BounceTarget BounceTarget;
     public int SubRecipeID = -1;
+    public RecipeEntry SubRecipe;   // SubRecipeID 解析後的子配方參考（取子配方的 IsChain/ChainCount/ChainRadius 等主遊戲側欄位用）
     public bool BlockedByEnvironment = true;
     public int GroundEffectID = 0;
     public GroundEffectTrigger GroundEffectTrigger = GroundEffectTrigger.OnHit;
@@ -23,6 +26,21 @@ public class RecipeEntry
     // 佛光型武器：1 時不發射任何子彈，改在玩家身上維持一個「跟著玩家移動」的 GroundEffect（圓形 AOE）。
     // 純主遊戲側（不碰彈道系統，因為它不發射子彈）。圓的半徑/節拍/外觀走 GroundEffectID 指向的 GroundEffectTable，傷害走武器表 Damage。
     public bool IsAura = false;
+
+    // 連鎖閃電：1 時朝滑鼠射出，命中首怪後在 ChainRadius 內逐跳到最近的怪，跳 ChainCount 次。
+    // 目標搜尋與傷害都在主遊戲側結算（LaserBeam 只當折線視覺）。與其他模式互斥。
+    public bool IsChain = false;
+    public float ChainRadius = 4f;  // 每跳的搜尋半徑（世界單位）
+    public int ChainCount = 0;       // 跳躍次數（= MaxBounces 欄；總命中數 = 1 + ChainCount）
+
+    // 天降雷擊：1 時從畫面上緣劈下到滑鼠所在點，落地以 BlastRadius 做圓形 AOE（武器 Damage）。
+    // 吃 SpreadCount/SpreadAngle（多道落點）與 HomingTurnSpeed（落點吸附最近怪，當搜尋半徑用）。與其他模式互斥。
+    public bool IsSkyStrike = false;
+
+    // 命中迸發子武器：子彈命中時，在命中點生成「武器表上指定武器」的子彈（子武器有自己的外型/傷害/追蹤）。
+    // 與 SubRecipeID 不同：SubRecipeID 是配方(無外型，仿母武器)；SubWeaponOnHit 是武器(自帶外型)。0/留空 = 不觸發。
+    public int SubWeaponOnHit = 0;
+    public SubWeaponHitTarget SubWeaponHitTarget = SubWeaponHitTarget.Enemy; // 打到哪類目標才迸發（Enemy/Environment/All）
 }
 
 public class RecipeManager : MonoBehaviour
@@ -211,6 +229,40 @@ public class RecipeManager : MonoBehaviour
                 entry.IsAura = int.Parse(v[31].Trim()) != 0;
             }
 
+            // 連鎖閃電：留空 / 0 = 否；1 = 連鎖閃電。跳躍次數 = 上面的 MaxBounces 欄（v[13]），第一段射程 = BeamRange 欄。
+            entry.IsChain = false;
+            if (v.Length >= 33 && !string.IsNullOrWhiteSpace(v[32]))
+            {
+                entry.IsChain = int.Parse(v[32].Trim()) != 0;
+            }
+            if (entry.IsChain)
+            {
+                entry.ChainCount = maxBounces;  // 跳躍次數沿用 MaxBounces 欄
+                entry.ChainRadius = (v.Length >= 34 && !string.IsNullOrWhiteSpace(v[33])) ? float.Parse(v[33].Trim()) : 4f;
+                // 第一段射程：沿用 BeamRange 欄（與雷射同欄）；留空預設 20
+                data.BeamRange = (v.Length >= 29 && !string.IsNullOrWhiteSpace(v[28])) ? float.Parse(v[28].Trim()) : 20f;
+            }
+
+            // 天降雷擊：留空 / 0 = 否；1 = 從畫面上緣劈下到滑鼠點。AOE 半徑沿用 BlastRadius 欄、散射用 SpreadCount/SpreadAngle、追蹤用 HomingTurnSpeed（當搜尋半徑）。
+            entry.IsSkyStrike = false;
+            if (v.Length >= 35 && !string.IsNullOrWhiteSpace(v[34]))
+            {
+                entry.IsSkyStrike = int.Parse(v[34].Trim()) != 0;
+            }
+
+            // 命中迸發子武器：留空 / 0 = 不觸發；> 0 = 命中時在命中點生成此「武器表 ID」的子武器（自帶外型/傷害）。
+            entry.SubWeaponOnHit = 0;
+            if (v.Length >= 36 && !string.IsNullOrWhiteSpace(v[35]))
+            {
+                entry.SubWeaponOnHit = int.Parse(v[35].Trim());
+            }
+            // 迸發過濾：留空 / Enemy = 打到敵人才迸；Environment = 打到牆/家具才迸；All = 任一都迸。
+            entry.SubWeaponHitTarget = SubWeaponHitTarget.Enemy;
+            if (v.Length >= 37 && !string.IsNullOrWhiteSpace(v[36]))
+            {
+                entry.SubWeaponHitTarget = ParseSubWeaponHitTarget(v[36].Trim());
+            }
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }
@@ -226,6 +278,7 @@ public class RecipeManager : MonoBehaviour
             if (entry.SubRecipeID > 0 && _recipes.TryGetValue(entry.SubRecipeID, out RecipeEntry subEntry))
             {
                 entry.Data.SubProjectileData = subEntry.Data;
+                entry.SubRecipe = subEntry;   // 保留子配方參考（天降雷擊接連鎖時要讀 sub 的 IsChain/ChainCount/ChainRadius）
             }
         }
     }
@@ -307,6 +360,18 @@ public class RecipeManager : MonoBehaviour
             "Offscreen" => LaunchSource.Offscreen,
             "Player" => LaunchSource.Player,
             _ => LaunchSource.Player
+        };
+    }
+
+    private static SubWeaponHitTarget ParseSubWeaponHitTarget(string value)
+    {
+        return value switch
+        {
+            "Environment" => SubWeaponHitTarget.Environment,
+            "All" => SubWeaponHitTarget.All,
+            "Any" => SubWeaponHitTarget.All,   // 容錯：Any 視同 All
+            "Enemy" => SubWeaponHitTarget.Enemy,
+            _ => SubWeaponHitTarget.Enemy
         };
     }
 }

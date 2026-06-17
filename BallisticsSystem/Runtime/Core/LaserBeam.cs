@@ -88,8 +88,15 @@ namespace Sorrows.Ballistics
         private MeshRenderer _mr;
         private Mesh _mesh;
         private Color _beamColor = Color.white;
+        private Color _renderColor = Color.white;   // 實際畫進 mesh 的顏色；淡出時由 TickFade 漸暗（連鎖閃電用）
         private Transform _muzzle, _impact;
+        private SpriteRenderer _muzzleSr, _impactSr; // 光暈 SpriteRenderer 參考（淡出時一併漸暗）
         private readonly List<Material> _ownedMaterials = new List<Material>();
+
+        // ── 靜態折線模式（連鎖閃電）：餵入一條固定折線、跳過 march/damage，短命淡出後自毀 ──
+        private bool _staticPath;
+        private float _life = -1f;       // 剩餘壽命；< 0 = 不自毀
+        private float _lifeTotal = -1f;  // 總壽命（算淡出比例用）
 
         private readonly List<Vector2> _points = new List<Vector2>(64);
         private readonly List<BeamHit> _hits = new List<BeamHit>(16);
@@ -114,6 +121,7 @@ namespace Sorrows.Ballistics
             transform.localScale = Vector3.one;
 
             _beamColor = beamColor;
+            _renderColor = beamColor;
 
             _shader = Shader.Find("Custom/AdditiveBeam");
             if (_shader == null) _shader = Shader.Find("Sprites/Default"); // 後備，至少能顯示
@@ -136,8 +144,8 @@ namespace Sorrows.Ballistics
             // 砲口 / 命中圓形光暈（用 glow shader，與光束本體分開）。火焰模式不需要光暈。
             if (DrawBeam)
             {
-                if (muzzleSprite != null) _muzzle = CreateGlow("MuzzleGlow", muzzleSprite, beamColor, beamWidth * 1.3f, 55);
-                if (impactSprite != null) _impact = CreateGlow("ImpactGlow", impactSprite, beamColor, beamWidth * 1.8f, 60);
+                if (muzzleSprite != null) { _muzzle = CreateGlow("MuzzleGlow", muzzleSprite, beamColor, beamWidth * 1.3f, 55); _muzzleSr = _muzzle.GetComponent<SpriteRenderer>(); }
+                if (impactSprite != null) { _impact = CreateGlow("ImpactGlow", impactSprite, beamColor, beamWidth * 1.8f, 60); _impactSr = _impact.GetComponent<SpriteRenderer>(); }
             }
 
             _dotTimer = DotInterval; // 讓第一幀即可結算一次傷害
@@ -184,9 +192,45 @@ namespace Sorrows.Ballistics
 
         private void Update()
         {
+            // 靜態折線模式（連鎖閃電）：折線固定、不 march、不結算傷害（傷害已由主遊戲在施放時算完），只渲染 + 淡出。
+            if (_staticPath)
+            {
+                TickFade();
+                RenderBeam();
+                return;
+            }
+
             MarchBeam();               // 永遠重算路徑與命中（火焰模式也要靠 Points 鋪火焰、靠命中算傷害）
             if (DrawBeam) RenderBeam(); // 火焰模式不畫光束 mesh / 不更新光暈
             TickDamage();
+        }
+
+        /// <summary>
+        /// 連鎖閃電用：餵入一條「已算好的世界座標折線」（玩家→怪A→怪B…，可含鋸齒抖動點），
+        /// 之後不再 march、不回報傷害，只渲染 + 在 life 秒內淡出後自毀。傷害由主遊戲在施放時自行結算。
+        /// </summary>
+        public void SetStaticPath(List<Vector2> pts, float life)
+        {
+            _points.Clear();
+            if (pts != null) _points.AddRange(pts);
+            if (_points.Count < 2) _points.Add((_points.Count > 0 ? _points[0] : Origin) + Vector2.right * 0.1f);
+            _staticPath = true;
+            _lifeTotal = life;
+            _life = life;
+            _renderColor = _beamColor;
+            RenderBeam();
+        }
+
+        // 短命淡出：剩餘壽命比例越低、加色顏色越暗（additive 往黑色收）；歸零自毀。
+        private void TickFade()
+        {
+            if (_lifeTotal <= 0f) return;
+            _life -= Time.deltaTime;
+            float k = Mathf.Clamp01(_life / _lifeTotal);
+            _renderColor = _beamColor * k;
+            if (_muzzleSr != null) _muzzleSr.color = _beamColor * k;
+            if (_impactSr != null) _impactSr.color = _beamColor * k;
+            if (_life <= 0f) Destroy(gameObject);
         }
 
         // ── 逐段行進：把追蹤/反彈/穿透/射程收斂進同一迴圈，產出折線頂點與命中清單 ──
@@ -383,10 +427,10 @@ namespace Sorrows.Ballistics
                 float uB = cumLen + segLen + extEnd;
 
                 int baseIdx = _verts.Count;
-                _verts.Add(a - perp); _uvs.Add(new Vector2(uA, 0f)); _cols.Add(_beamColor);
-                _verts.Add(a + perp); _uvs.Add(new Vector2(uA, 1f)); _cols.Add(_beamColor);
-                _verts.Add(b + perp); _uvs.Add(new Vector2(uB, 1f)); _cols.Add(_beamColor);
-                _verts.Add(b - perp); _uvs.Add(new Vector2(uB, 0f)); _cols.Add(_beamColor);
+                _verts.Add(a - perp); _uvs.Add(new Vector2(uA, 0f)); _cols.Add(_renderColor);
+                _verts.Add(a + perp); _uvs.Add(new Vector2(uA, 1f)); _cols.Add(_renderColor);
+                _verts.Add(b + perp); _uvs.Add(new Vector2(uB, 1f)); _cols.Add(_renderColor);
+                _verts.Add(b - perp); _uvs.Add(new Vector2(uB, 0f)); _cols.Add(_renderColor);
 
                 _tris.Add(baseIdx + 0); _tris.Add(baseIdx + 1); _tris.Add(baseIdx + 2);
                 _tris.Add(baseIdx + 0); _tris.Add(baseIdx + 2); _tris.Add(baseIdx + 3);

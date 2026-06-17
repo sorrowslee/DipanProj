@@ -91,3 +91,80 @@
 5. 只有當需要「很有機/不規則」的質感（程序雜訊也做不出來）時，才考慮替該種類掛一張選用貼圖——但目前架構刻意全程序化以免產圖。
 
 > 渲染管線：Built-in RP，shader 以 `_Time` 做流動/脈動。光束本體走 `Custom/AdditiveBeam`（全參數化），圓形光暈走 `Custom/AdditiveGlow`（單純加色染色）。
+
+---
+
+## 三、連鎖閃電（IsChain，複用光束渲染當電弧）
+
+連鎖閃電與雷射「外觀同源、機制不同」：雷射是「按住維持、往前 march＋撞牆反彈」的持續光束；連鎖閃電是「**點一下放一發**（吃 `FireInterval`）、命中首怪後在敵人之間逐跳」的離散攻擊。兩者都長成「一條折線」，所以**視覺完全複用 `LaserBeam` 的折線 mesh 渲染**（含 `BeamStyle`／`BeamColor`／光暈），只是折線的點來源不同。
+
+### 機制（全在主遊戲側 `PlayerController.ShootChain`）
+* **第一段**：朝**滑鼠方向** `CircleCast`（容差半徑＝`BeamWidth/2`）找沿線第一個目標；先用 `Raycast(EnvLayer)` 抓環境，**撞到純牆就停**（閃電不穿牆）。射程＝配方 `BeamRange` 欄。
+* **逐跳**：從上一個目標用 `OverlapCircleAll(ChainRadius)` 找「還沒打過的最近**可造成傷害目標**」，連過去；重複到 `ChainCount`（=配方 `MaxBounces` 欄）次用完或附近沒目標。**總命中數 = 1 + ChainCount**。
+* **目標 = 怪 + 可破壞地上物**：搜尋遮罩用 `EnemyLayer | EnvLayer`，再用 **`IDamageable` 過濾**——怪物與可破壞地上物（都實作 `IDamageable`）都算合法目標，**純牆（無 `IDamageable`）被排除**，不會被當成跳躍目標、也不浪費跳躍。所以連鎖閃電能打壞家具（符合「任何能造成傷害的武器都能破壞地上物」）。撞到擋路的可破壞家具時也會把它當首節點打。
+* **傷害**：每個連到的目標都吃**武器表 `Damage`**（每跳一樣；之後要做「每跳遞減」就在這裡乘衰減係數）。透過 `ApplyDamage` → `IDamageable`，自動吃怪物無敵時間。
+* **目標搜尋與傷害都不碰彈道系統**（守住邊界）；`LaserBeam` 在這裡只是個「畫給定折線」的渲染器。
+
+### 視覺（複用 `LaserBeam`）
+* `LaserBeam.SetStaticPath(pts, life)`（新增）：餵入主遊戲算好的世界座標折線（玩家→怪A→怪B…），之後**不 march、不回報傷害**，只渲染並在 `life` 秒內**漸暗淡出後自毀**（加色顏色往黑收）。
+* `BallisticsEngine.SpawnChainVisual(points, style, color, width, muzzle, impact, life)`（新增）：純程式生成上述靜態折線光束的工廠。
+* **鋸齒電弧**：主遊戲在每兩個目標之間插入橫向抖動中點（`BuildJaggedPath`），讓直線變成閃電鋸齒。閃電風格建議 `BeamStyle=7`（閃電/不穩，高雜訊強閃）。
+
+### 吃得下的配方欄位（行為複用）
+連鎖閃電除了自己的 `ChainRadius`，也複用既有欄位：
+
+| 欄位 | 對連鎖閃電的意義 |
+|---|---|
+| `MaxBounces` | **跳躍次數**（總命中數 = 1 + MaxBounces） |
+| `BeamRange` | **第一段射程**（朝滑鼠找首目標的最遠距離） |
+| `SpreadCount` / `SpreadAngle` | **散射**：一發射出 N 道扇形分布的連鎖（每道獨立連鎖），與雷射的一發多道同理。例如 3 / 60 = 3 道，分布在滑鼠方向 ±30° |
+| `HomingTurnSpeed` | **追蹤＝首目標自動鎖定**（aim-assist）。閃電瞬發、不會飛行轉彎，所以追蹤對它的意義是：首段不必精準瞄到，改鎖定「以瞄準方向為軸、**半角 = HomingTurnSpeed（上限 180）** 的扇形錐內、射程內、最近」的目標。`180` = 錐張滿一圈 = 鎖最近任意方向的目標；`0` / 留空 = 不鎖定（要精準瞄準線上才打得到首目標）。逐跳本來就會找最近，所以追蹤只作用在「首目標」 |
+| `BeamStyle`/`BeamColor`/`BeamWidth`（武器表） | 外觀（與雷射同欄；連鎖武器也會載入砲口/命中光暈素材） |
+| `Damage`（武器表） | 每個連到的目標的傷害（每跳一樣） |
+
+> ⚠️ **散射 + 追蹤的交互**：追蹤是「每道在自己的扇形方向附近鎖最近目標」。若 `HomingTurnSpeed` 很大（如 180），每道的錐都張滿一圈 → N 道會鎖到同一隻最近的怪、扇形就收攏在一起。想保留散開的扇形，把 `HomingTurnSpeed` 調小（例如 30~45，只在各自方向附近鎖定）。
+
+* **範例**（目前設定）：武器 11「連鎖閃電」`Damage=3, RecipeID=22, BeamStyle=7, BeamColor=6(藍), BeamWidth=0.25`；配方 22「連鎖閃電」`IsChain=1, MaxBounces=4（跳4次）, BeamRange=15, ChainRadius=4, FireInterval=0.5, SpreadCount=3, SpreadAngle=60, SplitTiming=OnSpawn, HomingTurnSpeed=180`。
+* **調整方向**：跳更多 → `MaxBounces`；跳更遠 → `ChainRadius`；首段射更遠 → `BeamRange`；幾道 → `SpreadCount`/`SpreadAngle`；首目標鎖定範圍 → `HomingTurnSpeed`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`。
+
+> 未做（之後可加）：跳躍/鎖定的視線遮擋（目前純比距離，不檢查兩點之間有沒有牆）、每跳傷害遞減、命中音效。
+
+---
+
+## 四、天降雷擊（IsSkyStrike：從畫面上緣劈下 + 圓形 AOE）
+
+從**畫面上緣外往下劈**到滑鼠所在點，落地造成**圓形範圍傷害**。和連鎖閃電同源（共用折線渲染當垂直鋸齒閃電），AOE 用拋物線的 `BlastRadius` 那套圓形範圍傷害。
+
+### 機制（全在主遊戲側 `PlayerController.ShootSkyStrike` / `StrikeAt`）
+* **落點**：滑鼠所在世界座標。`SpreadCount > 1` 時以「玩家→滑鼠」為基準軸、在 `±SpreadAngle/2` 扇形上、與滑鼠等距分佈出 N 個落點（同拋物線的扇形落點）。
+* **視覺**：每個落點從「畫面上緣 + 邊距」垂直往下劈一道鋸齒閃電（複用 `BallisticsEngine.SpawnChainVisual` 的靜態折線 + 短命淡出）。
+* **圓形 AOE**：落點以 `BlastRadius`（留空＝預設 1.2）半徑 `OverlapCircleAll(Enemy|Env)`，對範圍內 `IDamageable`（**怪與可破壞家具都吃**）以**武器 `Damage`** 結算一次。
+* **可選殘留**：`GroundEffectID > 0` 時在落點生成一團地面特效（焦痕/殘電/燃燒…）。
+* 目標搜尋與傷害都不碰彈道系統（守住邊界）。
+
+### 吃得下的配方欄位
+| 欄位 | 對天降雷擊的意義 |
+|---|---|
+| `BlastRadius` | 落地圓形 AOE 半徑（留空＝1.2） |
+| `SpreadCount` / `SpreadAngle` | **散射**：一次劈 N 道、落點分佈在滑鼠方向 ±SpreadAngle/2 的扇形上 |
+| `HomingTurnSpeed` | **追蹤＝落點吸附**：>0 時把每個落點吸附到「該落點 `HomingTurnSpeed` 半徑（世界單位）內最近的可傷害目標」。留空/0＝精準劈在滑鼠點。**注意此處 HomingTurnSpeed 當「搜尋半徑」用**（與連鎖閃電當「扇形錐半角」不同；各武器按自己合理的方式解讀） |
+| `GroundEffectID` | 落點殘留地面特效（可選） |
+| `Damage`（武器表） | AOE 傷害 |
+| `BeamStyle`/`BeamColor`/`BeamWidth`（武器表） | 閃電外觀（建議 BeamStyle=7 閃電、BeamColor 黃/白） |
+
+* **範例**（目前設定）：武器 12「天降雷擊」`Damage=8, RecipeID=23, BeamStyle=7, BeamColor=3(黃), BeamWidth=0.35`；配方 23「天降雷擊」`IsSkyStrike=1, BlastRadius=1.5, FireInterval=0.6`（預設單道、不追蹤）。
+* **想試分裂**：把配方 23 的 `SpreadCount` 改 3、`SpreadAngle` 改 60（一次劈 3 道）。**想試追蹤**：把 `HomingTurnSpeed` 設成搜尋半徑（例如 3）→ 落點會吸附附近的怪。
+* **調整方向**：AOE 大小 → `BlastRadius`；幾道 → `SpreadCount`/`SpreadAngle`；吸附範圍 → `HomingTurnSpeed`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`；落點殘留 → `GroundEffectID`。
+
+### 接 SubRecipeID = 落點接連鎖閃電（已實作）
+天降雷擊配方填 `SubRecipeID` 指向一個 `IsChain` 配方時，**落地後會從落點接一條連鎖閃電**轟擊旁邊的怪：首目標 = 落點 sub 配方 `ChainRadius` 內最近的可傷害目標，之後逐跳 sub 配方的次數（`MaxBounces`）。
+
+* **連鎖的外觀＋傷害＝「定義該連鎖配方的那把武器」**（`WeaponManager.GetWeaponByRecipeID(sub.ID)` 查出，例如連鎖閃電武器 11）。所以雷擊（黃）與接出來的連鎖（白/該武器的顏色）**可各有顏色、粗細、傷害**——雷擊 AOE 走武器 12 `Damage`、連鎖每跳走武器 11 `Damage`。查不到對應武器才退回發射武器（雷擊）本身。
+  * 跳躍次數/半徑用**子配方**的（`ChainCount`/`ChainRadius`）。
+* 實作：`RecipeEntry.SubRecipe` 保留子配方參考（`ResolveSubRecipes` 設定）；`WeaponManager` 建 `RecipeID → 武器` 對照；`StrikeAt` 落點查出連鎖武器後呼叫共用的 `PlayerController.RunChain`（與連鎖閃電武器同一套）。
+* 目前設定：配方 23 `SubRecipeID=22`（連鎖閃電 4 跳 / 半徑 4）；連鎖外觀由**武器 11**（連鎖閃電，`BeamColor=9` 白）決定。**想換連鎖顏色就改武器 11 的 `BeamColor`**（會同時影響你直接拿連鎖閃電武器與雷擊接出來的連鎖，因為共用同一把）。
+* 想關掉就把配方 23 的 `SubRecipeID` 清空。
+
+> 註：若同一條連鎖配方被多把武器引用，`GetWeaponByRecipeID` 取**最低 ID** 那把的外觀/傷害。要讓「雷擊的連鎖」和「直接拿的連鎖武器」長不一樣，得各自用不同配方（複製一份連鎖配方給雷擊指）。
+
+> 未做（之後可加）：落雷前的「預警圈」(telegraph) 再劈下、連鎖的視線遮擋、命中音效。

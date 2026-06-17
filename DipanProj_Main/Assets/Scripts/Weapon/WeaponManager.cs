@@ -9,6 +9,7 @@ public class WeaponManager : MonoBehaviour
     public int CurrentWeaponID = 1;
 
     private Dictionary<int, WeaponData> _weapons = new Dictionary<int, WeaponData>();
+    private readonly Dictionary<int, WeaponData> _recipeToWeapon = new Dictionary<int, WeaponData>(); // RecipeID → 使用該配方的武器（取最低 ID 那把）
     private List<int> _weaponIDs = new List<int>();
     private WeaponData _currentWeapon;
 
@@ -49,6 +50,12 @@ public class WeaponManager : MonoBehaviour
 
         Debug.LogError($"Weapon ID {id} not found!");
         return null;
+    }
+
+    // 取「使用指定配方的武器」（天降雷擊接 SubRecipeID 連鎖時，用連鎖配方對應的武器外觀/傷害）。找不到回 null。
+    public WeaponData GetWeaponByRecipeID(int recipeID)
+    {
+        return _recipeToWeapon.TryGetValue(recipeID, out WeaponData w) ? w : null;
     }
 
     private void RefreshCurrentWeapon()
@@ -107,7 +114,8 @@ public class WeaponManager : MonoBehaviour
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
 
-            if (weapon.Recipe != null && weapon.Recipe.Data != null && weapon.Recipe.Data.IsLaser)
+            // 雷射 / 連鎖閃電 / 天降雷擊都複用光束渲染（含砲口/命中光暈素材）
+            if (weapon.Recipe != null && weapon.Recipe.Data != null && (weapon.Recipe.Data.IsLaser || weapon.Recipe.IsChain || weapon.Recipe.IsSkyStrike))
                 LoadBeamAssets(weapon);
 
             if (!string.IsNullOrEmpty(weapon.WeaponAniPath) && weapon.WeaponAniNumber > 0)
@@ -147,6 +155,8 @@ public class WeaponManager : MonoBehaviour
 
             _weapons[weapon.ID] = weapon;
             _weaponIDs.Add(weapon.ID);
+            if (!_recipeToWeapon.ContainsKey(weapon.RecipeID))
+                _recipeToWeapon[weapon.RecipeID] = weapon;   // 同配方多把武器時，取先載入（最低 ID）那把
         }
 
         _weaponIDs.Sort();
