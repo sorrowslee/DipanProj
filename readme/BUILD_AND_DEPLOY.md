@@ -40,6 +40,22 @@ git push -u origin main
 - `deploy_only.sh`(打包後)— rsync 成品 + commit + push。
 - `DipanProj_Main/Assets/Editor/BuildScript.cs` — 串起上面整個流程的 Unity 選單。
 
+## 看懂部署結果(Console)
+
+部署完 Console 會明確印出其中一句,不必再去點開長日誌猜:
+
+- `🎉 部署成功：已推送新版本到遠端 GitHub` — 有新成品,已 push,測試機 `git pull` 就能拿到。
+- `✅ 部署完成：這次成品與遠端相同，無需推送` — 遊戲成品跟遠端一樣(只改了打包腳本/文件之類、沒動到會進 player 的內容),所以 `git diff` 無差異、不會 push。**這是正常的**,不是出錯。
+
+判定方式:`deploy_only.sh` rsync 後 `git add` →
+- `git diff --cached` 有差異 → commit + push → 印 `DEPLOY_RESULT=PUSHED`;
+- 無差異 → 略過 → 印 `DEPLOY_RESULT=NOCHANGE`。
+`BuildScript` 讀這個標記決定上面那句。
+
+> 提示:rsync 的 `sent N bytes ... speedup` 只反映「檔案層級」搬了多少,**不等於 git 會推**;git 是看「內容」有沒有變。所以常見「rsync 顯示搬了很多、但 git 判定無變更而不推」,屬正常。
+
+> 註:`BuildScript` 讀取腳本輸出時已指定 **UTF-8**(`StandardOutputEncoding`),所以 Console 的中文不會再變成 `??????`。
+
 ## 疑難排解(踩過的雷)
 
 - **`Build target 'StandaloneWindows64' not supported`**:Mac 沒裝(或裝不完整)Windows Build Support 模組。Unity Hub → Installs → 對 `2022.3.62f3` Add/Remove Modules → 重裝 **Windows Build Support (Mono)** → **完全重啟 Unity**。

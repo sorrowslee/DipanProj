@@ -35,14 +35,16 @@ git add .
 
 # 沒有變更就不算失敗，直接結束
 if git diff --cached --quiet; then
-    echo "ℹ️ 沒有變更可提交，略過 commit / push（成品已同步到本機 $DEPLOY_PATH）。"
+    echo "ℹ️ 這次成品與遠端相同，無需推送（測試機已是最新）。"
+    echo "DEPLOY_RESULT=NOCHANGE"
     exit 0
 fi
 
 git commit -m "Auto Deploy: $(date +'%Y-%m-%d %H:%M:%S')" || { echo "❌ git commit 失敗"; exit 1; }
 
 if git push; then
-    echo "🎉 部署完成！已推送到遠端。"
+    echo "🎉 已推送新版本到遠端。"
+    echo "DEPLOY_RESULT=PUSHED"
 else
     echo "❌ git push 失敗。常見原因：未設遠端 / 沒有上游分支 / 從 Unity 啟動的程序拿不到 git 憑證或 SSH key。"
     echo "   先在終端機手動測試： cd \"$DEPLOY_PATH\" && git push"

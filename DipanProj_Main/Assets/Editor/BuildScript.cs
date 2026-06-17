@@ -130,6 +130,8 @@ public class BuildScript
         startInfo.RedirectStandardOutput = true;
         startInfo.RedirectStandardError = true;
         startInfo.CreateNoWindow = true;
+        startInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;   // 修正中文輸出變 ??? 的問題
+        startInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
 
         using (Process process = Process.Start(startInfo))
         {
@@ -155,6 +157,8 @@ public class BuildScript
         startInfo.RedirectStandardOutput = true;  // 攔截標準輸出
         startInfo.RedirectStandardError = true;   // 攔截錯誤輸出
         startInfo.CreateNoWindow = true;
+        startInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;   // 修正中文輸出變 ??? 的問題
+        startInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
 
         using (Process process = Process.Start(startInfo))
         {
@@ -168,9 +172,16 @@ public class BuildScript
             if (!string.IsNullOrEmpty(error)) UnityEngine.Debug.Log($"ℹ️ Script Info (stderr): {error}");
 
             if (process.ExitCode == 0)
-                UnityEngine.Debug.Log("🎉 部署成功！");
+            {
+                if (output.Contains("DEPLOY_RESULT=PUSHED"))
+                    UnityEngine.Debug.Log("🎉 部署成功：已推送新版本到遠端 GitHub（測試機 git pull 即可取得）。");
+                else if (output.Contains("DEPLOY_RESULT=NOCHANGE"))
+                    UnityEngine.Debug.Log("✅ 部署完成：這次成品與遠端相同，無需推送（測試機已是最新，沒有新東西要拉）。");
+                else
+                    UnityEngine.Debug.Log("🎉 部署流程結束（exit 0）。");
+            }
             else
-                UnityEngine.Debug.LogError("❌ 部署腳本執行失敗，請查看錯誤 Log。");
+                UnityEngine.Debug.LogError("❌ 部署腳本執行失敗，請查看上方訊息。");
         }
     }
 }
