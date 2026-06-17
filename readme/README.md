@@ -22,6 +22,7 @@
 | [MapEditor_DESIGN.md](MapEditor_DESIGN.md) | 地圖編輯器設計與 `.dipanmap` 格式 | 改編輯器、看地圖格式 |
 | [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md) | 主遊戲端地圖載入器(MapLoader)、素材同步、Unity 接線 | 動地圖載入、牆/可走/出生點、素材同步 |
 | [DESTRUCTIBLE_OBJECTS.md](DESTRUCTIBLE_OBJECTS.md) | 可破壞地上物 + 破壞特效(VfxTable ID 5) | 改地上物破壞、換破壞特效 |
+| [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md) | 打包/部署流程(Project Tools 選單、打包前對齊遠端 main、疑難排解) | 打包、部署、build/git 出錯時 |
 
 ## 給接手 AI 的提示
 - 這些文件是把原本單一大 README 拆開的；**依當前任務挑相關的讀**即可，不必全讀。

@@ -9,6 +9,22 @@ public class BuildScript
     [MenuItem("Project Tools/Build and Deploy", false, 0)]
     public static void BuildAndDeploy()
     {
+        // 防呆：沒裝 Windows 模組就會建出「有 Managed、沒核心資料」的半成品 _Data，直接擋下並說清楚。
+        if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64))
+        {
+            UnityEngine.Debug.LogError(
+                $"❌ 這台 Unity（{UnityEngine.Application.unityVersion}）沒有可用的 Windows Build Support 模組，無法產生完整的 Windows 版。\n" +
+                $"請到 Unity Hub → Installs → 對「{UnityEngine.Application.unityVersion}」Add Modules → 勾「Windows Build Support (Mono)」，裝完【完全關閉再重開】Unity 再試。");
+            return;
+        }
+
+        // 打包前先把部署資料夾對齊遠端 main（無條件以遠端為準），確保之後 push 不會因落後而失敗。
+        if (!UpdateDeployRepo())
+        {
+            UnityEngine.Debug.LogError("❌ 部署資料夾同步失敗，已中止打包（先把 DipanProj_Deploy 的 git 弄好再試）。");
+            return;
+        }
+
         BuildPlayerOptions options = new BuildPlayerOptions();
         options.scenes = new[] { "Assets/Scenes/SampleScene.unity" };
         options.locationPathName = "Builds/Windows_Test/DipanProject.exe";
@@ -18,14 +34,113 @@ public class BuildScript
         UnityEngine.Debug.Log("🚀 [1/2] 正在 Unity 內部執行建置...");
         BuildReport report = BuildPipeline.BuildPlayer(options);
 
-        if (report.summary.result == BuildResult.Succeeded)
+        DumpBuildReport(report);                       // 把每個步驟的錯誤/例外/警告全印出來
+        bool dataOk = VerifyDataFolder("Builds/Windows_Test/DipanProject_Data");
+
+        // 必須「成功 + 零錯誤 + _Data 真的含核心資料」三者皆滿足才部署，杜絕半成品。
+        if (report.summary.result == BuildResult.Succeeded && report.summary.totalErrors == 0 && dataOk)
         {
-            UnityEngine.Debug.Log("✅ 建置成功！正在呼叫後台同步與推送...");
+            UnityEngine.Debug.Log($"✅ 建置成功（輸出 {report.summary.totalSize} bytes）！正在呼叫後台同步與推送...");
             ExecuteDeployScript();
         }
         else
         {
-            UnityEngine.Debug.LogError("❌ 建置失敗，請檢查 Console 報錯。");
+            UnityEngine.Debug.LogError(
+                $"❌ 建置未完整完成（result={report.summary.result}, errors={report.summary.totalErrors}, dataOk={dataOk}）。" +
+                "請看上方各 BuildStep 的紅字找真正原因。已中止部署，不會推出半成品。");
+        }
+    }
+
+    // 印出整個 BuildReport：每個步驟的錯誤/例外/警告 + 總結。找「為什麼資料沒寫進去」就靠這個。
+    private static void DumpBuildReport(BuildReport report)
+    {
+        var s = report.summary;
+        UnityEngine.Debug.Log(
+            $"📋 Build 總結: result={s.result}, errors={s.totalErrors}, warnings={s.totalWarnings}, " +
+            $"size={s.totalSize} bytes, time={s.totalTime}, output={s.outputPath}");
+
+        int shown = 0;
+        foreach (var step in report.steps)
+        {
+            if (step.messages == null) continue;
+            foreach (var m in step.messages)
+            {
+                if (m.type == UnityEngine.LogType.Error || m.type == UnityEngine.LogType.Exception || m.type == UnityEngine.LogType.Assert)
+                {
+                    UnityEngine.Debug.LogError($"  ❗[BuildStep: {step.name}] {m.type}: {m.content}");
+                    shown++;
+                }
+                else if (m.type == UnityEngine.LogType.Warning)
+                {
+                    UnityEngine.Debug.LogWarning($"  ⚠[BuildStep: {step.name}] {m.content}");
+                    shown++;
+                }
+            }
+        }
+        if (shown == 0)
+            UnityEngine.Debug.Log("📋 BuildReport 各步驟沒有 error/warning 訊息（若資料仍不完整，請看 ~/Library/Logs/Unity/Editor.log 的這次 build 區段）。");
+    }
+
+    // 直接檢查 _Data 是否含核心資料檔（globalgamemanagers 或 data.unity3d）。沒有 = 資料沒打進去 = 半成品。
+    private static bool VerifyDataFolder(string dataDir)
+    {
+        bool hasCore = File.Exists(Path.Combine(dataDir, "globalgamemanagers"))
+                       || File.Exists(Path.Combine(dataDir, "data.unity3d"));
+        if (hasCore)
+            UnityEngine.Debug.Log($"🔎 _Data 核心資料檔存在 ✅（{dataDir}）");
+        else
+            UnityEngine.Debug.LogError(
+                $"🔎 _Data 缺核心資料檔 ❌（{dataDir} 沒有 globalgamemanagers / data.unity3d）。" +
+                "代表 build 在『寫入資料』階段失敗——往上看 BuildStep 紅字。");
+        return hasCore;
+    }
+
+    // 本機測試用：建 Mac 版直接在這台跑，驗證「專案與資料是否完整」(排除 Windows 模組變數)。
+    [MenuItem("Project Tools/Build (Mac, 本機測試)", false, 21)]
+    public static void BuildMacLocal()
+    {
+        if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneOSX))
+        {
+            UnityEngine.Debug.LogError("❌ 沒有 Mac Build Support 模組，無法建 Mac 版。");
+            return;
+        }
+
+        BuildPlayerOptions options = new BuildPlayerOptions();
+        options.scenes = new[] { "Assets/Scenes/SampleScene.unity" };
+        options.locationPathName = "Builds/Mac_Test/DipanProject.app";
+        options.target = BuildTarget.StandaloneOSX;
+        options.options = BuildOptions.None;
+
+        UnityEngine.Debug.Log("🚀 建 Mac 版（本機測試）...");
+        BuildReport report = BuildPipeline.BuildPlayer(options);
+        if (report.summary.result == BuildResult.Succeeded && report.summary.totalErrors == 0)
+            UnityEngine.Debug.Log("✅ Mac 版建好：Builds/Mac_Test/DipanProject.app —— 直接雙擊跑跑看。能跑就代表專案/資料完整，問題只出在 Windows 模組。");
+        else
+            UnityEngine.Debug.LogError($"❌ Mac 版也建置失敗（result={report.summary.result}, errors={report.summary.totalErrors}）。代表問題不只在 Windows 模組，需再往專案挖。");
+    }
+
+    // 打包前：跑 update_deploy.sh 把 DipanProj_Deploy 無條件對齊遠端 main。成功回 true。
+    private static bool UpdateDeployRepo()
+    {
+        string scriptPath = Path.Combine(UnityEngine.Application.dataPath, "../../update_deploy.sh");
+
+        ProcessStartInfo startInfo = new ProcessStartInfo("/bin/bash");
+        startInfo.Arguments = scriptPath;
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        startInfo.CreateNoWindow = true;
+
+        using (Process process = Process.Start(startInfo))
+        {
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+            process.WaitForExit();
+
+            if (!string.IsNullOrEmpty(output)) UnityEngine.Debug.Log($"🔄 Deploy 同步: {output}");
+            if (!string.IsNullOrEmpty(error)) UnityEngine.Debug.Log($"ℹ️ Deploy 同步 (stderr): {error}");
+
+            return process.ExitCode == 0;
         }
     }
 
@@ -33,14 +148,14 @@ public class BuildScript
     {
         // 取得腳本所在的絕對路徑
         string scriptPath = Path.Combine(UnityEngine.Application.dataPath, "../../deploy_only.sh");
-        
+
         ProcessStartInfo startInfo = new ProcessStartInfo("/bin/bash");
         startInfo.Arguments = scriptPath;
         startInfo.UseShellExecute = false;
         startInfo.RedirectStandardOutput = true;  // 攔截標準輸出
         startInfo.RedirectStandardError = true;   // 攔截錯誤輸出
         startInfo.CreateNoWindow = true;
-        
+
         using (Process process = Process.Start(startInfo))
         {
             // 讀取腳本回傳的文字
@@ -51,7 +166,7 @@ public class BuildScript
             // 🟢 修復：Git 進度通常輸出為 stderr，不應直接報錯
             if (!string.IsNullOrEmpty(output)) UnityEngine.Debug.Log($"📦 Script Output: {output}");
             if (!string.IsNullOrEmpty(error)) UnityEngine.Debug.Log($"ℹ️ Script Info (stderr): {error}");
-            
+
             if (process.ExitCode == 0)
                 UnityEngine.Debug.Log("🎉 部署成功！");
             else
