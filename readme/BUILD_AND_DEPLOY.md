@@ -9,7 +9,7 @@
 | 選單 | 作用 |
 |---|---|
 | `Project Tools → Build and Deploy` | 建 Windows 版 → 同步成品到 `DipanProj_Deploy` → 推上 GitHub |
-| `Project Tools → Build (Mac, 本機測試)` | 建 Mac 版到 `Builds/Mac_Test/`,可本機直接跑,用來驗證「專案/資料是否完整」(排除 Windows 模組變數) |
+| `Project Tools → Build Mac Local` | 建 Mac 版到 `Builds/Mac_Test/`,可本機直接跑,用來驗證「專案/資料是否完整」(排除 Windows 模組變數) |
 | `Project Tools → Sync Map Assets` | 地圖素材同步(見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)) |
 
 ## Build and Deploy 的完整流程
@@ -65,7 +65,7 @@ git push -u origin main
      - **已自動防呆**:`BuildScript` 現在會在正常打包後檢查 `_Data`,**缺核心資料就自動清輸出 + `BuildOptions.CleanBuildCache` 重建一次**,所以一般不會再卡這個。
   2. **打包本身失敗**(Windows 模組/Postprocess 問題)→ 看 BuildReport 紅字;可先用 `Build (Mac, 本機測試)` 確認專案沒問題(Mac 版能跑 = 專案 OK)。
   3. **git 沒同步**:部署資料夾沒先 pull/對齊遠端就 push,推送失敗、遠端是舊/半成品,Windows pull 下來自然缺檔。已由步驟 2 的打包前對齊解決。
-  > 抓真正原因的利器:`Project Tools → Build Windows (不部署)`,或批次模式 `update_deploy.sh` 旁的 `build_win_debug.sh`(用 `-logFile` 輸出乾淨完整的打包 log 到桌面)。
+  > 抓真正原因:在「正確那個 Unity 視窗」用 Console `⋮ → Open Editor Log` 看這次打包的紀錄;或用 `Build (Mac, 本機測試)` 確認專案本身沒問題。
 - **`git push` 失敗**:常見「本地落後遠端」(已由打包前對齊解決),或「從 Unity GUI 啟動的程序拿不到 git 憑證/SSH key」→ 先在終端機手動 `git fetch` / `git push` 一次把憑證帶起來。
 - **不要用 git 傳超過 100MB 的單檔**:GitHub 會擋。Unity build 若有超大檔,考慮改用 zip release(目前專案的 build 沒有超標檔)。
 

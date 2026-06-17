@@ -87,7 +87,8 @@ public class BuildScript
     }
 
     // 本機測試用：建 Mac 版直接在這台跑，驗證「專案與資料是否完整」(排除 Windows 模組變數)。
-    [MenuItem("Project Tools/Build (Mac, 本機測試)", false, 21)]
+    // priority 1：緊接在 Build and Deploy(0) 下方，與分隔線下的檔案處理類(>=20)分開。
+    [MenuItem("Project Tools/Build Mac Local", false, 1)]
     public static void BuildMacLocal()
     {
         if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneOSX))
@@ -135,21 +136,6 @@ public class BuildScript
 
             return process.ExitCode == 0;
         }
-    }
-
-    // 只建 Windows、不部署。供「批次模式 + 指定 logFile」抓乾淨的打包紀錄用,也可日常只打包不推。
-    [MenuItem("Project Tools/Build Windows (不部署)", false, 22)]
-    public static void BuildWindowsOnly()
-    {
-        if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows64))
-        {
-            UnityEngine.Debug.LogError("❌ 沒有可用的 Windows Build Support 模組。");
-            return;
-        }
-
-        UnityEngine.Debug.Log("🚀 只建 Windows（不部署）...");
-        BuildReport report = BuildWindowsWithAutoCleanRetry(out bool dataOk);
-        UnityEngine.Debug.Log($"📦 完成：result={report.summary.result}, errors={report.summary.totalErrors}, dataOk={dataOk}");
     }
 
     const string WinExe = "Builds/Windows_Test/DipanProject.exe";

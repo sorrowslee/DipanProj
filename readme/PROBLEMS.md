@@ -43,7 +43,7 @@
 ### A6. 抓不到「這次打包」的 Editor.log
 - **症狀**:`grep ~/Library/Logs/Unity/Editor.log` 找不到 build 內容,或內容是別的專案(例如 `DipanProj_MapEditor`)。
 - **原因**:`Editor.log` 只留**最近一個 Unity 視窗**的紀錄,會被其他專案/關閉動作覆蓋。
-- **解法**:用乾淨的專屬 log——批次模式 `build_win_debug.sh`(`-logFile` 指定輸出檔),或 `Project Tools → Build Windows (不部署)`,或在「正確那個 Unity 視窗」用 Console `⋮ → Open Editor Log`。
+- **解法**:在「正確那個 Unity 視窗」用 Console `⋮ → Open Editor Log` 看這次打包紀錄;若要乾淨完整的 log,可暫時用批次模式 `Unity -batchmode -quit -projectPath <主專案> -executeMethod BuildScript.BuildAndDeploy -logFile <輸出檔>`(注意這會跑完整部署)。
 
 ### A7. 終端機貼上多行指令報 `no such file or directory`(路徑明明存在)
 - **症狀**:貼上含 `\` 換行或從聊天複製的指令,zsh 把「路徑+參數」當成一個檔名。
@@ -51,7 +51,7 @@
 - **解法**:用**單行指令**,或寫成 `.sh` 檔執行;最保險是「`bash ` 後把檔案**拖進終端機**」讓系統補正確路徑。
 
 ### A8. 批次模式 log 出現 licensing 紅字(`Access token is unavailable` / `Pro License: NO`)
-- **症狀**:`build_win_debug.sh` 的 log 開頭有授權相關訊息。
+- **症狀**:批次模式(`-batchmode`)打包的 log 開頭有授權相關訊息。
 - **原因**:批次模式 + Personal 授權的**正常現象**,與打包成敗無關。
 - **解法**:忽略。真正的失敗看 BuildStep 與 `_Data` 是否完整。
 
