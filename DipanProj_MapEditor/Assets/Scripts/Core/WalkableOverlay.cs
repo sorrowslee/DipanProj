@@ -11,8 +11,8 @@ namespace DipanMapEditor.Core
     [RequireComponent(typeof(Camera))]
     public class WalkableOverlay : MonoBehaviour
     {
-        public Color blockedColor = new Color(0.85f, 0.2f, 0.2f, 0.32f);
-        public Color walkableColor = new Color(0.2f, 0.85f, 0.35f, 0.22f);
+        public Color blockedColor = new Color(0.85f, 0.2f, 0.2f, 0.08f);   // 再淡一半（原始的 1/4）
+        public Color walkableColor = new Color(0.2f, 0.85f, 0.35f, 0.055f);
 
         Material _mat;
         EditorUI _ui;

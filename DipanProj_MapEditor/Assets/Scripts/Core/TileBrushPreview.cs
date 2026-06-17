@@ -1,20 +1,18 @@
 using UnityEngine;
+using DipanMapEditor.Data;
 using DipanMapEditor.Tools;
 using DipanMapEditor.UI;
 
 namespace DipanMapEditor.Core
 {
     /// <summary>
-    /// 畫地磚工具下，於滑鼠所在格顯示「筆刷footprint」方框（含內部格線），
-    /// 大小 = 當前選取的 tile 區塊（例如 3×4），以游標格為左上角往右下展開——
-    /// 與實際貼上的範圍一致，讓使用者下手前就知道會鋪到哪。掛在相機上。
+    /// 所有筆刷工具的「落點預覽」：在滑鼠所在格畫出會塗到的範圍框（含格線）。
+    /// 地磚 = 多格 block（依選取大小）；擦/可走/Trigger = 單格；物件用自己的幻影預覽。
+    /// 顏色依工具區分（可走綠/不可走紅、擦紅、其餘青）。掛在相機上。
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class TileBrushPreview : MonoBehaviour
     {
-        public Color fillColor = new Color(0.2f, 0.9f, 1f, 0.15f);
-        public Color lineColor = new Color(0.2f, 0.9f, 1f, 0.9f);
-
         Material _mat;
         Camera _cam;
         EditorUI _ui;
@@ -36,14 +34,48 @@ namespace DipanMapEditor.Core
             if (_cam == null) _cam = GetComponent<Camera>();
             if (_ui == null) _ui = FindObjectOfType<EditorUI>();
             if (_ui == null) return;
-            if (_ui.CurrentTool != EditTool.TilePaint || !_ui.HasTileBrush) return;
             if (_ui.IsPointerOverUI(Input.mousePosition)) return;
 
             var map = session.Map;
             Vector3 wp = _cam.ScreenToWorldPoint(Input.mousePosition);
             Vector2Int cell = MapCoords.WorldToCell(wp, map.tileSize, MapCoords.Origin(map));
 
-            int bw = _ui.TileBrushW, bh = _ui.TileBrushH;
+            int bw = 1, bh = 1;
+            Color line, fill;
+
+            switch (_ui.CurrentTool)
+            {
+                case EditTool.TilePaint:
+                    if (!_ui.HasTileBrush) return;
+                    bw = _ui.TileBrushW; bh = _ui.TileBrushH;
+                    line = new Color(0.2f, 0.9f, 1f, 0.9f); fill = new Color(0.2f, 0.9f, 1f, 0.15f);
+                    break;
+
+                case EditTool.Erase:
+                    if (!MapCoords.InBounds(cell.x, cell.y, map)) return;
+                    line = new Color(1f, 0.45f, 0.45f, 0.9f); fill = new Color(1f, 0.35f, 0.35f, 0.15f);
+                    break;
+
+                case EditTool.Walkable:
+                    if (!MapCoords.InBounds(cell.x, cell.y, map)) return;
+                    if (_ui.WalkPaintWalkable) { line = new Color(0.3f, 1f, 0.45f, 0.95f); fill = new Color(0.3f, 1f, 0.45f, 0.2f); }
+                    else { line = new Color(1f, 0.4f, 0.4f, 0.95f); fill = new Color(1f, 0.4f, 0.4f, 0.2f); }
+                    break;
+
+                case EditTool.Trigger:
+                    if (!MapCoords.InBounds(cell.x, cell.y, map)) return;
+                    line = new Color(0.2f, 0.9f, 1f, 0.9f); fill = new Color(0.2f, 0.9f, 1f, 0.15f);
+                    break;
+
+                default:
+                    return;   // 物件工具用自己的幻影預覽
+            }
+
+            DrawFootprint(map, cell, bw, bh, fill, line);
+        }
+
+        void DrawFootprint(MapData map, Vector2Int cell, int bw, int bh, Color fill, Color line)
+        {
             float ts = map.tileSize;
             float x0 = map.origin.x + cell.x * ts;
             float y0 = map.origin.y - cell.y * ts;
@@ -54,26 +86,16 @@ namespace DipanMapEditor.Core
             _mat.SetPass(0);
             GL.PushMatrix();
 
-            // 半透明填滿
             GL.Begin(GL.QUADS);
-            GL.Color(fillColor);
+            GL.Color(fill);
             GL.Vertex3(x0, y0, 0); GL.Vertex3(x1, y0, 0);
             GL.Vertex3(x1, y1, 0); GL.Vertex3(x0, y1, 0);
             GL.End();
 
-            // 外框 + 內部格線
             GL.Begin(GL.LINES);
-            GL.Color(lineColor);
-            for (int i = 0; i <= bw; i++)
-            {
-                float x = x0 + i * ts;
-                GL.Vertex3(x, y0, 0); GL.Vertex3(x, y1, 0);
-            }
-            for (int j = 0; j <= bh; j++)
-            {
-                float y = y0 - j * ts;
-                GL.Vertex3(x0, y, 0); GL.Vertex3(x1, y, 0);
-            }
+            GL.Color(line);
+            for (int i = 0; i <= bw; i++) { float x = x0 + i * ts; GL.Vertex3(x, y0, 0); GL.Vertex3(x, y1, 0); }
+            for (int j = 0; j <= bh; j++) { float y = y0 - j * ts; GL.Vertex3(x0, y, 0); GL.Vertex3(x1, y, 0); }
             GL.End();
 
             GL.PopMatrix();

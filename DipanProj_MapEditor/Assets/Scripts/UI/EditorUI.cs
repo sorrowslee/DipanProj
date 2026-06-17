@@ -51,6 +51,7 @@ namespace DipanMapEditor.UI
         List<PlaceableObject> _objects;
         string _objectsModule;
         Vector2 _objScroll;
+        CatalogItem _hoverObj;     // 滑鼠懸停的物件（用於放大預覽）
 
         // 新建對話框
         bool _showNew;
@@ -431,6 +432,9 @@ namespace DipanMapEditor.UI
         void DrawObjectPalette()
         {
             EnsureObjects();
+            bool repaint = Event.current.type == EventType.Repaint;
+            if (repaint) _hoverObj = null;
+
             var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
             GUILayout.BeginArea(rect, GUI.skin.box);
 
@@ -459,12 +463,38 @@ namespace DipanMapEditor.UI
                 if (tex != null) GUI.DrawTexture(r, tex, ScaleMode.ScaleToFit);
                 if (o.assetId == SelectedObjectAssetId) DrawBorder(r, Color.cyan);
                 if (clicked) SelectedObjectAssetId = o.assetId;
+                if (repaint && r.Contains(Event.current.mousePosition)) _hoverObj = o.source;
                 col++;
                 if (col >= perRow) { GUILayout.EndHorizontal(); rowOpen = false; col = 0; }
             }
             if (rowOpen) GUILayout.EndHorizontal();
             GUILayout.EndScrollView();
             GUILayout.EndArea();
+
+            // 懸浮放大預覽（畫在面板外、螢幕座標）
+            if (_hoverObj != null) DrawHoverPreview(_hoverObj);
+        }
+
+        void DrawHoverPreview(CatalogItem item)
+        {
+            var tex = SpriteCache.GetTexture(item);
+            if (tex == null) return;
+
+            const float boxW = 200f, boxH = 232f, pad = 14f;
+            Vector2 m = Event.current.mousePosition;       // 此處為螢幕座標
+            float x = m.x - boxW - 16f; if (x < 4f) x = m.x + 16f;
+            float y = Mathf.Clamp(m.y - boxH / 2f, 4f, Screen.height - boxH - 4f);
+            var box = new Rect(x, y, boxW, boxH);
+
+            var old = GUI.color;
+            GUI.color = new Color(0f, 0f, 0f, 0.88f);       // 深色底，蓋住後面場景才看得清
+            GUI.DrawTexture(box, Texture2D.whiteTexture);
+            GUI.color = old;
+            GUI.Box(box, GUIContent.none);
+
+            float img = boxW - pad * 2;
+            GUI.DrawTexture(new Rect(x + pad, y + pad, img, img), tex, ScaleMode.ScaleToFit);
+            GUI.Label(new Rect(x + 8f, y + boxH - 26f, boxW - 16f, 22f), Short(item.id));
         }
 
         void DrawObjectInspector()
