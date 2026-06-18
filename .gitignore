@@ -38,3 +38,5 @@ TempImage/
 # DipanProj_MapEditor — 同步腳本產出的素材副本（由 sync_assets.sh 從主專案拷貝，不進版控）
 /DipanProj_MapEditor/Assets/StreamingAssets/MapAssets/
 /DipanProj_MapEditor/Assets/StreamingAssets/MapAssets.meta
+# Claude/Cowork 本機設定
+.claude/

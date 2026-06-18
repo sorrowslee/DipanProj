@@ -4,4 +4,4 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 3,地刺, VfxEffects/EarthSpik/EarthSpik,7,10,0.5,0,,5
 4,火球, VfxEffects/FireBall/FireBall,4,10,0.2,1,-1,8
 5,地上物破壞(暫借爆炸), VfxEffects/Destroyed/Destroyed,4,5,1,0,,
-6,傳送點(暫借爆炸), VfxEffects/Teleport/Teleport,8,10,0.8,1,-1,5
+6,傳送點(實心光盤+淡光), VfxEffects/Teleport/Teleport,48,24,0.4,1,-1,5
