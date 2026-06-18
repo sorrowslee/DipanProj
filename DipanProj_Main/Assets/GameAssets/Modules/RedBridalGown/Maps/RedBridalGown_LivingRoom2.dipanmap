@@ -1,0 +1,63 @@
+{
+  "format": "dipanmap",
+  "version": 1,
+  "name": "RedBridalGown_LivingRoom2",
+  "module": "RedBridalGown",
+  "backgroundId": "Modules/RedBridalGown/Background/Stage_LivingRoom2",
+  "tileSize": 1.0,
+  "width": 10,
+  "height": 18,
+  "origin": {
+    "x": 0.0,
+    "y": 0.0
+  },
+  "layers": [
+    {
+      "id": "game-1",
+      "name": "遊戲圖層",
+      "type": "Game",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "tiles": [],
+      "objects": []
+    },
+    {
+      "id": "walk",
+      "name": "可走/不可走",
+      "type": "Walkable",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "blocked": [
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111",
+        "1111111111"
+      ]
+    },
+    {
+      "id": "trig",
+      "name": "Trigger",
+      "type": "Trigger",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "regions": []
+    }
+  ]
+}

@@ -35,5 +35,13 @@ namespace Dipan.MapRuntime
         /// <summary>地圖格 (gx,gy)（左上原點、y 往下）→ Unity Tilemap cell（左下原點、y 往上）。</summary>
         public static Vector3Int ToTilemapCell(int gx, int gy, int height)
             => new Vector3Int(gx, height - 1 - gy, 0);
+
+        /// <summary>世界座標 → 地圖格 (gx,gy)（左上原點、y 往下）。超出地圖範圍可能回負或過界值，呼叫端自行判斷。</summary>
+        public static Vector2Int WorldToCell(Vector2 world, MapData map)
+        {
+            int gx = Mathf.FloorToInt((world.x - map.origin.x) / map.tileSize);
+            int gy = Mathf.FloorToInt((map.origin.y - world.y) / map.tileSize);
+            return new Vector2Int(gx, gy);
+        }
     }
 }

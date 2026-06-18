@@ -1,0 +1,154 @@
+using UnityEngine;
+using Dipan.MapRuntime;
+
+/// <summary>
+/// 地圖系統的大腦（場景持久單例）：負責「進入關卡」與「換地圖」，跨換圖不被拆掉。
+///
+/// 流程：
+/// - StartLevel(module)：查 MapsTable 該 module 的首張地圖 → 載入 → 生一次玩家於 playerSpawn。
+/// - GoToMap(targetMapId, targetEntrance)：給傳送點呼叫 → 清場 → 載新圖 → 把既有玩家移到落點。
+///
+/// 設計：玩家「保留同一物件、只移動」（HP/武器/狀態跨圖延續）；換圖前清掉上一張的怪/彈/特效。
+/// Phase 2（地圖狀態持久化：怪清掉不復生、道具/事件/掉落物保留）之後掛在本元件上。
+/// 見 readme/MAP_SYSTEM.md。
+/// </summary>
+public class MapManager : MonoBehaviour
+{
+    public static MapManager Instance { get; private set; }
+
+    [Header("參照（留空會自動 FindObjectOfType）")]
+    public MapLoader mapLoader;
+    public MapTable mapTable;
+    public MainSpawner playerSpawner;
+
+    [Header("起始關卡")]
+    public string startModule = "RedBridalGown";
+    public bool autoStartLevel = true;
+
+    GameObject _player;
+    TeleportWatcher _watcher;
+    int _currentMapId = -1;
+
+    public int CurrentMapId => _currentMapId;
+
+    void Awake()
+    {
+        Instance = this;
+        if (mapLoader == null) mapLoader = FindObjectOfType<MapLoader>();
+        if (mapTable == null) mapTable = FindObjectOfType<MapTable>();
+        if (playerSpawner == null) playerSpawner = FindObjectOfType<MainSpawner>();
+
+        // 由本元件接管生玩家，避免 MainSpawner 自己又在 Start 生一個。
+        if (playerSpawner != null) playerSpawner.SpawnOnStart = false;
+    }
+
+    void Start()
+    {
+        if (autoStartLevel) StartLevel(startModule);
+    }
+
+    // ================= 對外 API =================
+
+    /// <summary>進入一個關卡：載入該 module 的首張地圖，玩家生在 playerSpawn。</summary>
+    public void StartLevel(string module)
+    {
+        if (mapTable == null) { Debug.LogError("[MapManager] 沒有 MapTable。"); return; }
+        var row = mapTable.FindLevelStart(module);
+        if (row == null) return;
+        startModule = module;
+        LoadMapInternal(row, entrance: null);
+    }
+
+    /// <summary>換到指定地圖，玩家落在 targetEntrance（留空 = 目標圖 playerSpawn）。給 TeleportWatcher 呼叫。</summary>
+    public void GoToMap(int targetMapId, string targetEntrance)
+    {
+        if (mapTable == null) { Debug.LogError("[MapManager] 沒有 MapTable。"); return; }
+        var row = mapTable.Get(targetMapId);
+        if (row == null) { Debug.LogError($"[MapManager] MapsTable 找不到地圖 ID {targetMapId}。"); return; }
+        LoadMapInternal(row, targetEntrance);
+    }
+
+    // ================= 內部流程 =================
+
+    void LoadMapInternal(MapTableRow row, string entrance)
+    {
+        if (mapLoader == null) { Debug.LogError("[MapManager] 沒有 MapLoader。"); return; }
+
+        ClearTransientGameplay();
+
+        if (!mapLoader.LoadMap(row.path))
+        {
+            Debug.LogError($"[MapManager] 載入地圖失敗：{row.path}");
+            return;
+        }
+        _currentMapId = row.id;
+
+        Vector2 pos = ResolveSpawnPos(entrance);
+        PlacePlayer(pos);
+
+        mapLoader.SpawnMonsters();
+        SetupWatcher();
+
+        Debug.Log($"[MapManager] 進入地圖 #{row.id}「{row.name}」(module={row.module})，落點={pos}。");
+    }
+
+    /// <summary>落點解析：具名落點 → playerSpawn → 地圖中心。</summary>
+    Vector2 ResolveSpawnPos(string entrance)
+    {
+        if (!string.IsNullOrEmpty(entrance) && mapLoader.TryGetEntrance(entrance, out var p)) return p;
+        if (mapLoader.TryGetPlayerSpawn(out var sp)) return sp;
+        Debug.LogWarning("[MapManager] 找不到傳送落點與玩家出生點，玩家放在地圖中心。");
+        return MapCoords.WorldCenter(mapLoader.Map);
+    }
+
+    /// <summary>玩家保留並移動：沒有就生一次（透過 MainSpawner），有就移到落點。</summary>
+    void PlacePlayer(Vector2 pos)
+    {
+        if (_player == null) _player = GameObject.FindGameObjectWithTag("Player");
+
+        if (_player == null)
+        {
+            if (playerSpawner == null) playerSpawner = FindObjectOfType<MainSpawner>();
+            if (playerSpawner != null)
+            {
+                playerSpawner.transform.position = pos;   // SpawnPlayer 以 spawner 位置生成
+                _player = playerSpawner.SpawnPlayer(playerSpawner.DefaultPlayerID);
+            }
+        }
+
+        if (_player != null) _player.transform.position = pos;
+        else Debug.LogError("[MapManager] 無法生成/找到玩家（檢查 MainSpawner 的 PlayerMappings 與 Player tag）。");
+    }
+
+    /// <summary>清掉屬於上一張地圖的暫態物件：怪物、飛行子彈、雷射、地面特效、一次性 VFX，以及玩家身上持續型武器。</summary>
+    void ClearTransientGameplay()
+    {
+        if (_player == null) _player = GameObject.FindGameObjectWithTag("Player");
+        if (_player != null)
+        {
+            var pc = _player.GetComponent<PlayerController>();
+            if (pc != null) pc.ClearPersistentWeaponsForMapChange();
+        }
+
+        DestroyAllOfType<MonsterController>();
+        DestroyAllOfType<Sorrows.Ballistics.BulletInstance>();
+        DestroyAllOfType<Sorrows.Ballistics.LaserBeam>();
+        DestroyAllOfType<GroundEffectInstance>();
+        DestroyAllOfType<VfxInstance>();
+    }
+
+    static void DestroyAllOfType<T>() where T : Component
+    {
+        var arr = FindObjectsOfType<T>();
+        for (int i = 0; i < arr.Length; i++)
+            if (arr[i] != null) Destroy(arr[i].gameObject);
+    }
+
+    void SetupWatcher()
+    {
+        if (_watcher == null)
+            _watcher = GetComponent<TeleportWatcher>() ?? gameObject.AddComponent<TeleportWatcher>();
+        _watcher.Setup(mapLoader.Map, mapLoader.teleportTypeId,
+                       _player != null ? _player.transform : null, this);
+    }
+}

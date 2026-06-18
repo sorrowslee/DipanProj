@@ -6,16 +6,16 @@
       "color": "#33AAFF",
       "params": [
         {
-          "key": "targetMap",
+          "key": "entranceId",
           "type": "String"
         },
         {
-          "key": "targetX",
-          "type": "Float"
+          "key": "targetMapId",
+          "type": "Int"
         },
         {
-          "key": "targetY",
-          "type": "Float"
+          "key": "targetEntrance",
+          "type": "String"
         }
       ]
     },
@@ -51,12 +51,6 @@
       "typeId": "environment",
       "displayName": "環境/牆",
       "color": "#B5651D",
-      "params": []
-    },
-    {
-      "typeId": "teleportDest",
-      "displayName": "傳送落點",
-      "color": "#9B59FF",
       "params": []
     }
   ]

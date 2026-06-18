@@ -5,15 +5,17 @@ using UnityEngine.Tilemaps;
 using Dipan.MapRuntime;
 
 /// <summary>
-/// 主遊戲端的 .dipanmap 載入器：Play 時讀地圖，重建背景／地磚／地上物／牆碰撞／出生點。
+/// 主遊戲端的 .dipanmap 載入器：把一張地圖建成背景／地磚／地上物／牆碰撞。
 ///
-/// 設計重點（與使用者討論定案）：
-/// - 牆 = trigger 層 typeId=="environment" 的格子 → Environment layer 實心碰撞（擋玩家＋怪物、子彈反彈/穿透）。
-/// - 「不可走但非 environment」的格子（水塘/深坑）→ 子彈忽略、只擋腳的 layer（預設 Water）。
-/// - 地上物 = 各自一個 GameObject + Environment layer + 依不透明像素貼合的 BoxCollider2D；
-///   之後要可破壞，直接 Destroy 該物件即可自動開路（碰撞消失）。
-/// - 素材以 PPU 256 載入（對齊編輯器尺寸），來源 StreamingAssets/MapAssets（可打包），
-///   編輯器內找不到時後備讀 GameAssets。
+/// 設計重點：
+/// - 本元件是「純建圖器」，由 <see cref="MapManager"/> 驅動（StartLevel / GoToMap）。
+///   `LoadMap(path)` 可重入：先拆掉舊圖再建新圖，因此可用於多圖串接的換圖。
+/// - **不再自己生玩家**：玩家的生成與落點由 MapManager 統籌（生一次、之後只移動）。
+///   本元件只提供 `TryGetPlayerSpawn` / `TryGetEntrance` 查詢落點座標。
+/// - 牆 = walkable 不可走格（預設）→ Environment layer 實心碰撞（擋＋反彈子彈）；
+///   不可走 ∩ bulletPass trigger（水塘/深坑）→ blocker layer（只擋腳、子彈飛過）。
+/// - 素材以 PPU 256 載入，來源 StreamingAssets/MapAssets（可打包），編輯器內後備讀 GameAssets。
+/// 見 readme/MAP_SYSTEM.md、readme/MAP_LOADER_SETUP.md。
 /// </summary>
 public class MapLoader : MonoBehaviour
 {
@@ -29,6 +31,7 @@ public class MapLoader : MonoBehaviour
     public string bulletPassTriggerTypeId = "bulletPass";
     public string playerSpawnTypeId = "playerSpawn";
     public string monsterSpawnTypeId = "monsterSpawn";
+    public string teleportTypeId = "teleport";
 
     [Header("開關")]
     public bool buildBackground = true;
@@ -37,9 +40,11 @@ public class MapLoader : MonoBehaviour
     public bool addObjectColliders = true;
     public bool buildWalls = true;
     public bool buildBlockers = true;
-    public bool repositionPlayerSpawn = true;
     public bool spawnMonsters = true;
+    public bool buildTeleportMarkers = true;
     public bool fitCameraToMap = true;
+    // 預設關閉：由 MapManager 驅動。打開 = 不靠 MapManager，Awake 直接建 mapPath（建圖測試用，不生玩家）。
+    public bool loadOnAwake = false;
 
     [Header("地上物碰撞框微調（1=貼合不透明像素）")]
     [Range(0.1f, 1f)] public float objectColliderScale = 1f;
@@ -49,10 +54,15 @@ public class MapLoader : MonoBehaviour
     public float objectMaxHP = 20f;
     public int objectDestroyVfxId = 5;   // 對應 VfxTable.csv;檔名/張數/FPS 在那一列設定
 
+    [Header("傳送點特效（VfxTable ID，須為 Loop=1/Duration=-1 的循環特效；0 = 不放）")]
+    public int teleportVfxId = 6;
+
     // ---- runtime ----
     MapData _map;
     Catalog _catalog;
     MapSpriteLoader _sprites;
+    VfxManager _vfx;
+    string _assetRoot;
     Transform _root;
     int _envLayer;
     int _blockerLayer;
@@ -64,31 +74,69 @@ public class MapLoader : MonoBehaviour
         _envLayer = ResolveLayer(environmentLayerName, fallback: 3);
         _blockerLayer = LayerMask.NameToLayer(blockerLayerName); // 可能 -1，沒水塘就不會用到
 
-        if (!LoadData()) return;
+        // catalog/sprites 只載一次（之後每次換圖只重讀 .dipanmap）。
+        _catalog = CatalogLoader.Load(out _assetRoot);
+        _sprites = new MapSpriteLoader(_assetRoot);
+
+        if (loadOnAwake)
+        {
+            LoadMap(mapPath);
+            if (spawnMonsters) SpawnMonsters();
+        }
+    }
+
+    // ================= 對外 API（MapManager 使用）=================
+
+    /// <summary>載入並建出一張地圖（先拆掉舊圖）。成功回 true。不生玩家、不生怪（怪另呼叫 SpawnMonsters）。</summary>
+    public bool LoadMap(string path)
+    {
+        Teardown();
+
+        if (!LoadMapData(path)) return false;
 
         BuildRoot();
         if (buildBackground) BuildBackground();
         if (buildTiles) BuildTiles();
         if (buildObjects) BuildObjects();
         if (buildWalls || buildBlockers) BuildCellColliders();
-        if (repositionPlayerSpawn) RepositionPlayerSpawn();
+        if (buildTeleportMarkers) BuildTeleportMarkers();
         if (fitCameraToMap) FitCamera();
 
         Debug.Log($"[MapLoader] 載入完成：{_map.name}（{_map.width}×{_map.height}, module={_map.module}）");
+        return true;
     }
 
-    // 怪物在 Start 生成：確保 MonsterSpawner.Awake 已先把 CSV 怪物資料載好。
-    void Start()
+    /// <summary>依當前地圖的 monsterSpawn 出生點生怪。需在 MonsterSpawner.Awake 之後呼叫（MapManager 在 Start 驅動）。</summary>
+    public void SpawnMonsters()
     {
         if (spawnMonsters) SpawnMonstersFromMap();
     }
 
-    bool LoadData()
-    {
-        _catalog = CatalogLoader.Load(out string assetRoot);
-        _sprites = new MapSpriteLoader(assetRoot);
+    /// <summary>玩家出生點（playerSpawn）中心，供 MapManager 放置玩家（關卡開場、或落點找不到時的後備）。</summary>
+    public bool TryGetPlayerSpawn(out Vector2 center) => TryGetRegionCenter(playerSpawnTypeId, out center);
 
-        string mapAbs = ResolveMapPath(assetRoot);
+    /// <summary>找 entranceId 相符的傳送點中心，供 MapManager 決定傳送落點。</summary>
+    public bool TryGetEntrance(string entranceId, out Vector2 center)
+    {
+        center = Vector2.zero;
+        if (string.IsNullOrEmpty(entranceId)) return false;
+        var trig = _map?.TriggerLayer;
+        if (trig?.regions == null) return false;
+        foreach (var r in trig.regions)
+        {
+            if (r.typeId != teleportTypeId) continue;
+            if (r.GetString("entranceId") != entranceId) continue;
+            return RegionCenter(r, out center);
+        }
+        return false;
+    }
+
+    // ================= 載入 / 拆除 =================
+
+    bool LoadMapData(string path)
+    {
+        mapPath = path;
+        string mapAbs = ResolveMapPath(_assetRoot);
         if (mapAbs == null)
         {
             Debug.LogError($"[MapLoader] 找不到地圖檔：{mapPath}");
@@ -99,14 +147,22 @@ public class MapLoader : MonoBehaviour
         return _map != null;
     }
 
+    /// <summary>拆掉上一張地圖建出的所有物件（背景/地磚/地上物/牆碰撞）。玩家與場上怪/彈不在這裡清（見 MapManager）。</summary>
+    void Teardown()
+    {
+        if (_root != null)
+        {
+            Destroy(_root.gameObject);
+            _root = null;
+        }
+    }
+
     /// <summary>地圖檔路徑解析：先 StreamingAssets/MapAssets，再（編輯器）GameAssets。</summary>
     string ResolveMapPath(string assetRoot)
     {
-        // assetRoot 已是 StreamingAssets/MapAssets 或 GameAssets，地圖以同樣相對結構存放。
         string p = Path.Combine(assetRoot, mapPath.Replace('/', Path.DirectorySeparatorChar));
         if (File.Exists(p)) return p;
 
-        // 後備：另一個來源
         string alt = Path.Combine(CatalogLoader.StreamingDir, mapPath.Replace('/', Path.DirectorySeparatorChar));
         if (File.Exists(alt)) return alt;
 #if UNITY_EDITOR
@@ -248,7 +304,6 @@ public class MapLoader : MonoBehaviour
     // 核心原則：玩家/怪物「能不能走」一律以 walkable 層為準（= 編輯器可走疊加所見）。
     //   牆   = 不可走格(預設)            → Environment layer（擋腳＋反彈子彈）
     //   水塘 = 不可走格 ∩ bulletPass     → blocker layer（只擋腳，子彈飛過）
-    // 不可走格預設就是牆，不會因為忘了標記而「漏」；只有少數水塘/深坑需要額外塗 bulletPass。
     void BuildCellColliders()
     {
         // bulletPass(水塘/深坑) 標記格
@@ -323,42 +378,65 @@ public class MapLoader : MonoBehaviour
         composite.GenerateGeometry();
     }
 
-    // ---- 玩家出生點：把 MainSpawner 移到 playerSpawn 中心 ----
-    void RepositionPlayerSpawn()
+    // ---- 傳送點特效（在每個 teleport 區域中心放一個持續循環的標記特效）----
+    // 複用 VFX 系統的「Loop=1 / Duration=-1」（無限循環、外部管理生死）；掛進 MapRoot，換圖拆除時一併清掉。
+    void BuildTeleportMarkers()
     {
-        if (!TryGetRegionCenter(playerSpawnTypeId, out Vector2 center)) return;
+        if (teleportVfxId <= 0) return;
+        var trig = _map?.TriggerLayer;
+        if (trig?.regions == null) return;
 
-        var spawner = FindObjectOfType<MainSpawner>();
-        if (spawner != null)
+        if (_vfx == null) _vfx = FindObjectOfType<VfxManager>();
+        if (_vfx == null)
         {
-            spawner.transform.position = new Vector3(center.x, center.y, spawner.transform.position.z);
-            Debug.Log($"[MapLoader] 玩家出生點 → {center}");
+            Debug.LogWarning("[MapLoader] 有傳送點但場景找不到 VfxManager，傳送點特效略過。");
+            return;
         }
-        else
+
+        int n = 0;
+        foreach (var r in trig.regions)
         {
-            Debug.LogWarning("[MapLoader] 場景找不到 MainSpawner，無法套用玩家出生點。");
+            if (r.typeId != teleportTypeId) continue;
+            if (!RegionCenter(r, out Vector2 center)) continue;
+            var inst = _vfx.Spawn(teleportVfxId, center, 0f);
+            if (inst != null)
+            {
+                inst.transform.SetParent(_root, true);   // 掛進 MapRoot，換圖拆除時一併清掉
+                n++;
+            }
         }
+        if (n > 0) Debug.Log($"[MapLoader] 放置 {n} 個傳送點特效（VfxID {teleportVfxId}）。");
     }
 
+    // ---- 落點查詢 ----
     bool TryGetRegionCenter(string typeId, out Vector2 center)
     {
         center = Vector2.zero;
-        var trig = _map.TriggerLayer;
+        var trig = _map?.TriggerLayer;
         if (trig?.regions == null) return false;
         foreach (var r in trig.regions)
         {
-            if (r.typeId != typeId || r.cells == null || r.cells.Count == 0) continue;
-            Vector2 sum = Vector2.zero;
-            int n = 0;
-            foreach (var c in r.cells)
-            {
-                if (c == null || c.Length < 2) continue;
-                sum += MapCoords.CellCenter(c[0], c[1], _map);
-                n++;
-            }
-            if (n > 0) { center = sum / n; return true; }
+            if (r.typeId != typeId) continue;
+            if (RegionCenter(r, out center)) return true;
         }
         return false;
+    }
+
+    bool RegionCenter(TriggerRegion r, out Vector2 center)
+    {
+        center = Vector2.zero;
+        if (r.cells == null || r.cells.Count == 0) return false;
+        Vector2 sum = Vector2.zero;
+        int n = 0;
+        foreach (var c in r.cells)
+        {
+            if (c == null || c.Length < 2) continue;
+            sum += MapCoords.CellCenter(c[0], c[1], _map);
+            n++;
+        }
+        if (n == 0) return false;
+        center = sum / n;
+        return true;
     }
 
     // ---- 怪物出生點：讀 monsterSpawn trigger,在每一格用 MonsterSpawner 生一隻怪 ----

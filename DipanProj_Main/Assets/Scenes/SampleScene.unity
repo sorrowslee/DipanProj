@@ -637,6 +637,7 @@ MonoBehaviour:
   - PlayerID: Player
     Prefab: {fileID: 8422196795898081895, guid: 6dc2b22d5d7c14c87b30260c2860e361, type: 3}
   DefaultPlayerID: Player
+  SpawnOnStart: 1
 --- !u!4 &522639623
 Transform:
   m_ObjectHideFlags: 0
@@ -663,6 +664,8 @@ GameObject:
   - component: {fileID: 537006690}
   - component: {fileID: 537006689}
   - component: {fileID: 537006688}
+  - component: {fileID: 537006691}
+  - component: {fileID: 537006692}
   m_Layer: 0
   m_Name: GameManagers
   m_TagString: Untagged
@@ -714,6 +717,36 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &537006691
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 537006687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c1d32c7bbc70e4059b0c03a28e319738, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  MapsCSV: {fileID: 4900000, guid: 2ee94e766fe7345a6afa9d4afca7b902, type: 3}
+--- !u!114 &537006692
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 537006687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 985fac8cb23784c9ea01c5cdc96872e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mapLoader: {fileID: 0}
+  mapTable: {fileID: 0}
+  playerSpawner: {fileID: 0}
+  startModule: RedBridalGown
+  autoStartLevel: 1
 --- !u!1 &1108360853
 GameObject:
   m_ObjectHideFlags: 0
@@ -793,6 +826,9 @@ MonoBehaviour:
   EnemyLayer:
     serializedVersion: 2
     m_Bits: 128
+  EnvironmentLayer:
+    serializedVersion: 2
+    m_Bits: 0
 --- !u!4 &1428001749
 Transform:
   m_ObjectHideFlags: 0
@@ -891,16 +927,20 @@ MonoBehaviour:
   bulletPassTriggerTypeId: bulletPass
   playerSpawnTypeId: playerSpawn
   monsterSpawnTypeId: monsterSpawn
+  teleportTypeId: teleport
   buildBackground: 1
   buildTiles: 1
   buildObjects: 1
   addObjectColliders: 1
   buildWalls: 1
   buildBlockers: 1
-  repositionPlayerSpawn: 1
   spawnMonsters: 1
   fitCameraToMap: 1
+  loadOnAwake: 0
   objectColliderScale: 1
+  objectsDestructible: 1
+  objectMaxHP: 20
+  objectDestroyVfxId: 5
 --- !u!4 &1751355723
 Transform:
   m_ObjectHideFlags: 0

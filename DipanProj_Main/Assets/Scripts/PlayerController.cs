@@ -155,6 +155,14 @@ public class PlayerController : MonoBehaviour
         ClearActiveAura();
     }
 
+    /// <summary>換地圖時清掉跨幀維持的武器實例（環繞彈／雷射／火焰柱／佛光），避免殘留到新圖。由 MapManager 在換圖前呼叫。</summary>
+    public void ClearPersistentWeaponsForMapChange()
+    {
+        ClearActiveOrbitalBullets();
+        ClearActiveBeams();
+        ClearActiveAura();
+    }
+
     // ── 發射總入口：雷射走持續光束路徑，其餘走離散發射 ──
     private void HandleFiring()
     {

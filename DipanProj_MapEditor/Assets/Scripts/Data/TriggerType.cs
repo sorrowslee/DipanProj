@@ -24,9 +24,9 @@ namespace DipanMapEditor.Data
                 typeId = "teleport", displayName = "傳送點", color = "#33AAFF",
                 paramSchema = new List<TriggerParam>
                 {
-                    new TriggerParam { key = "targetMap", type = ParamType.String },
-                    new TriggerParam { key = "targetX",   type = ParamType.Float },
-                    new TriggerParam { key = "targetY",   type = ParamType.Float },
+                    new TriggerParam { key = "entranceId",     type = ParamType.String },
+                    new TriggerParam { key = "targetMapId",    type = ParamType.Int },
+                    new TriggerParam { key = "targetEntrance", type = ParamType.String },
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -53,11 +53,6 @@ namespace DipanMapEditor.Data
             set.types.Add(new TriggerTypeDef
             {
                 typeId = "environment", displayName = "環境/牆", color = "#B5651D",
-                paramSchema = new List<TriggerParam>()
-            });
-            set.types.Add(new TriggerTypeDef
-            {
-                typeId = "teleportDest", displayName = "傳送落點", color = "#9B59FF",
                 paramSchema = new List<TriggerParam>()
             });
             return set;

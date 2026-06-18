@@ -1,0 +1,55 @@
+{
+  "format": "dipanmap",
+  "version": 1,
+  "name": "RedBridalGown_ShrineHall",
+  "module": "RedBridalGown",
+  "backgroundId": "Modules/RedBridalGown/Background/Stage_ShrineRoom",
+  "tileSize": 1.0,
+  "width": 18,
+  "height": 10,
+  "origin": {
+    "x": 0.0,
+    "y": 0.0
+  },
+  "layers": [
+    {
+      "id": "game-1",
+      "name": "遊戲圖層",
+      "type": "Game",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "tiles": [],
+      "objects": []
+    },
+    {
+      "id": "walk",
+      "name": "可走/不可走",
+      "type": "Walkable",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "blocked": [
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111",
+        "111111111111111111"
+      ]
+    },
+    {
+      "id": "trig",
+      "name": "Trigger",
+      "type": "Trigger",
+      "visible": true,
+      "opacity": 1.0,
+      "locked": false,
+      "regions": []
+    }
+  ]
+}
