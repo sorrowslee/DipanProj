@@ -747,6 +747,52 @@ MonoBehaviour:
   playerSpawner: {fileID: 0}
   startModule: RedBridalGown
   autoStartLevel: 1
+--- !u!1 &929488579
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 929488581}
+  - component: {fileID: 929488582}
+  m_Layer: 0
+  m_Name: InventoryLauncher
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &929488581
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 929488579}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.3535287, y: -0.15508607, z: -9.971284}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &929488582
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 929488579}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ac1d5ef771d44e80b263f2b7d0065d4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  toggleKey: 98
+  seedTestItems: 1
 --- !u!1 &1108360853
 GameObject:
   m_ObjectHideFlags: 0
@@ -924,6 +970,7 @@ MonoBehaviour:
   mapPath: Modules/RedBridalGown/Maps/RedBridalGown_01.dipanmap
   environmentLayerName: Environment
   blockerLayerName: Water
+  environmentTriggerTypeId: environment
   bulletPassTriggerTypeId: bulletPass
   playerSpawnTypeId: playerSpawn
   monsterSpawnTypeId: monsterSpawn
@@ -935,12 +982,14 @@ MonoBehaviour:
   buildWalls: 1
   buildBlockers: 1
   spawnMonsters: 1
+  buildTeleportMarkers: 1
   fitCameraToMap: 1
   loadOnAwake: 0
   objectColliderScale: 1
   objectsDestructible: 1
   objectMaxHP: 20
   objectDestroyVfxId: 5
+  teleportVfxId: 6
 --- !u!4 &1751355723
 Transform:
   m_ObjectHideFlags: 0
@@ -3167,3 +3216,4 @@ SceneRoots:
   - {fileID: 1428001749}
   - {fileID: 1735090436}
   - {fileID: 1751355723}
+  - {fileID: 929488581}

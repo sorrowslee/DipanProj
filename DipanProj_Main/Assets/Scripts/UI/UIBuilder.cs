@@ -43,6 +43,9 @@ namespace Dipan.UI
         /// <summary>取 RectTransform（UI 物件的 transform 一定是 RectTransform）。</summary>
         public static RectTransform Rect(Component c) => (RectTransform)c.transform;
 
+        /// <summary>取 RectTransform（GameObject 版）。</summary>
+        public static RectTransform Rect(GameObject go) => (RectTransform)go.transform;
+
         // ───────────────────────── RectTransform 錨點助手 ─────────────────────────
 
         /// <summary>四邊拉伸貼齊父物件（可給內縮邊距）。常用於整頁背景、遮罩。</summary>

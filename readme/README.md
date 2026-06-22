@@ -26,6 +26,7 @@
 | [MAP_SYSTEM.md](MAP_SYSTEM.md) | 多圖串接（MapsTable／傳送點／MapManager）＋地圖狀態持久化概念 | 串接關卡多張地圖、傳送點、規劃狀態持久化 |
 | [DESTRUCTIBLE_OBJECTS.md](DESTRUCTIBLE_OBJECTS.md) | 可破壞地上物 + 破壞特效(VfxTable ID 5) | 改地上物破壞、換破壞特效 |
 | [UI_SYSTEM.md](UI_SYSTEM.md) | UI 底層框架（uGUI + 全程式建構、多場景常駐、UIManager/UIPanel/UIBuilder、暫停與輸入閘門） | 做任何 UI（背包/設定/HUD…）、加新面板前 |
+| [INVENTORY.md](INVENTORY.md) | 背包系統（InventorySystem 資料層 + InventoryPanel、ItemTable.csv、icon 規格、格子座標） | 改背包、物品、裝備欄、加 icon |
 | [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md) | 打包/部署流程(Project Tools 選單、打包前對齊遠端 main、疑難排解) | 打包、部署、build/git 出錯時 |
 | [PROBLEMS.md](PROBLEMS.md) | **踩坑記錄與解法**(症狀→原因→解法) | **第一次看文件時必看**；遇到怪問題、或要把新坑記下來時 |
 

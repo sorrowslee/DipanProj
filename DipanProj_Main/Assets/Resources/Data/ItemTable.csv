@@ -1,0 +1,9 @@
+ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore
+1,飛劍,Weapon,Weapon,UI/Icons/Equipment/weapon_sword,1,普通的飛劍,"傷害 5　射速 普通　直線飛行","相傳為一位無名劍客所遺，入手微涼，彷彿仍記得最後一戰。"
+2,彎刀,Weapon,Weapon,UI/Icons/Equipment/weapon_scimitar,1,弧形的飛刀,"傷害 4　射速 快　弧形飛行","刀身泛著暗紅，磨不去的並非鏽，而是血。"
+3,炸彈,Weapon,Weapon,UI/Icons/Equipment/weapon_bomb,1,拋擲的炸彈,"傷害 12　落地範圍傷害　拋物線","點燃引線的那一刻，連佛也別過了臉。"
+4,蜂巢,Weapon,Weapon,UI/Icons/Equipment/weapon_honeyComb,1,迸出蜜蜂的蜂巢,"傷害 2　命中後迸出蜜蜂","搖一搖，裡頭似乎還有什麼活著。"
+5,蜜蜂,Weapon,Weapon,UI/Icons/Equipment/weapon_bee,1,會追蹤的蜜蜂,"傷害 1　自動追蹤敵人","嗡鳴在耳邊久久不散，像一句沒說完的詛咒。"
+6,銅錢,Currency,None,UI/Icons/Items/item_copperCoins,999,可交易的銅錢,"通用貨幣　可於商店交易","串錢的紅繩早已褪色，銅錢卻被摩挲得發亮。"
+7,卷軸,Material,None,UI/Icons/Items/item_reel,99,神秘的卷軸,"合成材料","紙頁泛黃，字跡模糊，唯一能辨認的是一個「歸」字。"
+8,符紙,Consumable,None,UI/Icons/Items/item_talismanPaper,99,驅邪的符紙,"消耗品　使用後短暫驅邪","貼上門楣的第七夜，符紙無火自燃。"
