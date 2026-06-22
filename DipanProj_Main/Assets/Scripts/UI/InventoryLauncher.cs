@@ -18,14 +18,12 @@ namespace Dipan.UI
             var inv = InventorySystem.Instance;
             if (inv.HasAnyItem()) return;   // 已有東西就不重複塞（換場景/換圖也不會重塞）
 
-            inv.AddItem(1);        // 飛劍
-            inv.AddItem(2);        // 彎刀
-            inv.AddItem(3);        // 炸彈
-            inv.AddItem(4);        // 蜂巢
-            inv.AddItem(5);        // 蜜蜂
-            inv.AddItem(6, 250);   // 銅錢 x250
-            inv.AddItem(7, 5);     // 卷軸 x5
-            inv.AddItem(8, 12);    // 符紙 x12
+            // 12 把武器（ItemTable ID 1~12，對應 WeaponTable 1~12）
+            for (int id = 1; id <= 12; id++) inv.AddItem(id);
+            // 雜物
+            inv.AddItem(101, 250); // 銅錢 x250
+            inv.AddItem(102, 5);   // 卷軸 x5
+            inv.AddItem(103, 12);  // 符紙 x12
         }
 
         void Update()

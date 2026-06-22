@@ -24,6 +24,8 @@ public class PlayerController : MonoBehaviour
     private Vector2 _moveInput;
     private SpriteRenderer _spriteRenderer;
     private WeaponManager _weaponManager;
+    private Dipan.Inventory.InventorySystem _inventory;
+    private int _lastEquippedWeaponItemId = -1;
     private GroundEffectManager _groundEffectManager;
     private VfxManager _vfxManager;
     private HitReactionHandler _hitReaction;
@@ -87,6 +89,11 @@ public class PlayerController : MonoBehaviour
         {
             Debug.LogError("WeaponManager not found in scene!");
         }
+
+        // 背包橋接：裝備武器欄的武器 → 切到該武器（E 鍵切換仍保留，兩者並存）。
+        _inventory = Dipan.Inventory.InventorySystem.Instance;
+        _inventory.OnChanged += OnInventoryChanged;
+        OnInventoryChanged();   // 初始同步（若一開始就有裝備）
 
         _groundEffectManager = FindObjectOfType<GroundEffectManager>();
         if (_groundEffectManager == null)
@@ -161,6 +168,21 @@ public class PlayerController : MonoBehaviour
         ClearActiveOrbitalBullets();
         ClearActiveBeams();
         ClearActiveAura();
+        if (_inventory != null) _inventory.OnChanged -= OnInventoryChanged;
+    }
+
+    // 背包武器欄變動時呼叫：裝備哪把武器就切到哪把（用該物品的 WeaponID 對應 WeaponTable）。
+    // 卸下（武器欄清空）時保留當前武器、不切換。E 鍵的循環切換不受影響。
+    private void OnInventoryChanged()
+    {
+        if (_weaponManager == null || _inventory == null) return;
+        int itemId = _inventory.GetEquipped(Dipan.Inventory.EquipSlot.Weapon);
+        if (itemId == _lastEquippedWeaponItemId) return;   // 武器欄沒變（只是別處變動）就略過
+        _lastEquippedWeaponItemId = itemId;
+        if (itemId <= 0) return;                            // 卸下：保留當前武器
+        var data = _inventory.GetData(itemId);
+        if (data != null && data.WeaponID > 0)
+            _weaponManager.SwitchWeapon(data.WeaponID);
     }
 
     /// <summary>換地圖時清掉跨幀維持的武器實例（環繞彈／雷射／火焰柱／佛光），避免殘留到新圖。由 MapManager 在換圖前呼叫。</summary>

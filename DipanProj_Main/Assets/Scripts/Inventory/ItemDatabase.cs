@@ -52,6 +52,8 @@ namespace Dipan.Inventory
                 d.Description = Unescape(Field(v, 6));
                 d.TipStats = Unescape(Field(v, 7));
                 d.TipLore = Unescape(Field(v, 8));
+                string weaponStr = Field(v, 9);
+                d.WeaponID = !string.IsNullOrWhiteSpace(weaponStr) ? int.Parse(weaponStr) : 0;
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

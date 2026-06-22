@@ -46,8 +46,9 @@
 | `Description` | 簡短說明（目前未顯示,保留欄位） |
 | `TipStats` | **tooltip 上半（正楷）**：功能/屬性。之後可能改由裝備屬性組字,現階段純讀此欄 |
 | `TipLore` | **tooltip 下半（斜體）**：劇情描述 |
+| `WeaponID` | **對應 `WeaponTable` 的武器 ID**。裝備此武器到武器欄 → 玩家切到該武器能力（見下方「裝備→使用武器」）。非武器留空 |
 
-目前 8 筆：5 把武器（飛劍/彎刀/炸彈/蜂巢/蜜蜂,皆 `EquipSlot=Weapon`）+ 3 個道具（銅錢/卷軸/符紙）。
+目前 15 筆：**12 把武器**（ItemTable ID `1~12`，`WeaponID` 同號對應 `WeaponTable` 1~12，`EquipSlot=Weapon`）+ 3 個雜物（ID `101~103`：銅錢/卷軸/符紙）。武器 icon 在 `UI/Icons/Equipment/`，雜物在 `UI/Icons/Items/`。
 
 > **CSV 寫法**：欄位內含逗號的長文字請用雙引號包覆,例如 `"傷害 5，直線飛行"`;引號內要放一個雙引號就寫 `""`。需要換行就在文字裡寫 `\n`(會被轉成換行)。`ItemDatabase` 用支援引號的解析器讀取。
 
@@ -68,6 +69,15 @@
 - `OnOpen` 訂閱 `OnChanged` 並 `Redraw()`；`OnClose` 退訂。`Redraw` 從 `InventorySystem` 讀資料設每格 icon/數量。
 - **v1 互動**：左鍵點道具格中的可裝備物品 → 裝備（原裝的換回該格）；左鍵點裝備欄 → 卸回第一個空格；移入 → 高亮該格 + 底部顯示名稱。
 - **tooltip**：移到物品上跳出浮動說明（掛在 panel root、不受 frame 縮放、跟著游標、近右邊自動翻到左側、不擋 hover）。三段：**名稱（粗體金）**＋ **`TipStats`（正楷）**＋ **`TipLore`（斜體）**;高度由 `VerticalLayoutGroup + ContentSizeFitter` 自動撐開,空欄自動隱藏該段。
+
+### 裝備 → 使用武器（與戰鬥連動）
+
+裝備武器欄的武器後,玩家就改用那把武器的能力:
+
+- 連結靠 `ItemTable.WeaponID` → `WeaponTable.ID`。
+- 橋接在 `PlayerController`:`Start` 訂閱 `InventorySystem.OnChanged`,武器欄內容變動時取該物品的 `WeaponID`,呼叫 `WeaponManager.SwitchWeapon(weaponID)`。卸下武器（欄位清空）時保留當前武器、不切換。`OnDestroy` 退訂。
+- **E 鍵循環切換保留不動**,與裝備並存:不按 E 時「裝備哪把就用哪把」;按 E 仍可在所有武器間循環（此時當前武器可能與裝備欄不同,屬暫時測試行為）。
+- 邊界:`InventorySystem` 仍是純資料層、不認識戰鬥;由 `PlayerController`（既有戰鬥整合點,本就持有 `WeaponManager`）做連結。
 
 ### 相關檔案
 
