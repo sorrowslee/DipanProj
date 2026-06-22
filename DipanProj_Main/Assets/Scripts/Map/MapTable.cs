@@ -3,11 +3,13 @@ using UnityEngine;
 
 /// <summary>
 /// 地圖總表 MapsTable.csv 的 runtime 載入器（仿 WeaponManager 讀 CSV）。
-/// 欄位：ID, Name, Module, Path, IsLevelStart
+/// 欄位：ID, Name, Module, Path, IsLevelStart, MapMode
 /// - ID 全域唯一整數，傳送點用它指向目標地圖。
 /// - Module = 關卡（對得上 .dipanmap 的 module 欄）。
 /// - Path = 相對路徑，格式同 MapLoader.mapPath（例：Modules/RedBridalGown/Maps/RedBridalGown_01.dipanmap）。
 /// - IsLevelStart = 該 Module 的首張地圖（進入關卡時載入這張），每個 Module 應恰好一張。
+/// - MapMode = 相機模式：1 = 整張地圖（縮放塞滿畫面，角色變小）；2 = 鏡頭跟隨（角色正常大小，鏡頭跟著走）。
+///   留空 / 缺欄 / 無法解析 = 預設 2。實際是否跟隨還要看地圖夠不夠大（見 MapCameraController 門檻）。
 /// 見 readme/MAP_SYSTEM.md。
 /// </summary>
 public class MapTableRow
@@ -17,6 +19,7 @@ public class MapTableRow
     public string module;
     public string path;
     public bool isLevelStart;
+    public int mode = 2;   // 1 = 整張地圖；2 = 鏡頭跟隨（預設）
 }
 
 public class MapTable : MonoBehaviour
@@ -80,6 +83,10 @@ public class MapTable : MonoBehaviour
             if (v.Length < 5) continue;
             if (!int.TryParse(v[0].Trim(), out int id)) continue;
 
+            // MapMode 第 6 欄為新增、向下相容：缺欄 / 留空 / 無法解析都退回預設 2（鏡頭跟隨）。
+            int mode = 2;
+            if (v.Length >= 6 && int.TryParse(v[5].Trim(), out int m)) mode = m;
+
             var row = new MapTableRow
             {
                 id = id,
@@ -87,6 +94,7 @@ public class MapTable : MonoBehaviour
                 module = v[2].Trim(),
                 path = v[3].Trim(),
                 isLevelStart = v[4].Trim() == "1",
+                mode = mode,
             };
 
             if (_byId.ContainsKey(id))

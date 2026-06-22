@@ -27,8 +27,8 @@ namespace DipanMapEditor.UI
 
         public void ClearObjectBrush() => SelectedObjectAssetId = null;
 
-        // 座標/血量輸入框暫存（依焦點決定要不要從物件同步回來）
-        string _objXBuf = "", _objYBuf = "", _objHpBuf = "";
+        // 座標/血量/FPS 輸入框暫存（依焦點決定要不要從物件同步回來）
+        string _objXBuf = "", _objYBuf = "", _objHpBuf = "", _objFpsBuf = "";
 
         // Trigger
         public TriggerRegion CurrentRegion { get; private set; }
@@ -525,6 +525,14 @@ namespace DipanMapEditor.UI
                 var tex = SpriteCache.GetTexture(o.source);
                 if (tex != null) GUI.DrawTexture(r, tex, ScaleMode.ScaleToFit);
                 if (o.assetId == SelectedObjectAssetId) DrawBorder(r, Color.cyan);
+                // 動畫物件加標記，讓設計師一眼分辨（▶ + 幀數）。
+                if (o.source != null && o.source.IsAnimated)
+                {
+                    var badge = new Rect(r.x + 2, r.y + 2, 24, 16);
+                    var oldc = GUI.color; GUI.color = new Color(0f, 0f, 0f, 0.6f);
+                    GUI.DrawTexture(badge, Texture2D.whiteTexture); GUI.color = oldc;
+                    GUI.Label(badge, $" ▶{o.source.frameCount}");
+                }
                 if (clicked) SelectedObjectAssetId = o.assetId;
                 if (repaint && r.Contains(Event.current.mousePosition)) _hoverObj = o.source;
                 col++;
@@ -613,6 +621,10 @@ namespace DipanMapEditor.UI
 
             if (sel.hp != -1)
             {
+                // 同 FPS：沒在打字時 buffer 跟著物件值（在文字框之前同步），±按鈕才不會被回寫誤判而回退。
+                bool editingHp = GUI.GetNameOfFocusedControl() == "objHp";
+                if (!editingHp) _objHpBuf = sel.hp.ToString();
+
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("血量", GUILayout.Width(40));
                 if (GUILayout.Button("－", GUILayout.Width(24))) { UndoManager.Push(); sel.hp = Mathf.Max(0, sel.hp - 1); _objHpBuf = sel.hp.ToString(); }
@@ -620,9 +632,38 @@ namespace DipanMapEditor.UI
                 string sh = GUILayout.TextField(_objHpBuf, GUILayout.Width(56));
                 if (GUILayout.Button("＋", GUILayout.Width(24))) { UndoManager.Push(); sel.hp += 1; _objHpBuf = sel.hp.ToString(); }
                 GUILayout.EndHorizontal();
-                bool editingHp = GUI.GetNameOfFocusedControl() == "objHp";
-                if (sh != _objHpBuf) { _objHpBuf = sh; if (int.TryParse(sh, out var vh) && vh >= 0) sel.hp = vh; }
-                if (!editingHp) _objHpBuf = sel.hp.ToString();
+
+                if (editingHp && sh != _objHpBuf)
+                {
+                    _objHpBuf = sh;
+                    if (int.TryParse(sh, out var vh) && vh >= 0) sel.hp = vh;
+                }
+            }
+
+            // 動畫地上物：每實例可調播放 FPS（靜態物件不顯示此列）。改了下一幀即生效（ObjectView.Update 讀 animFps）。
+            var animItem = MapSession.Instance?.Catalog?.Find(sel.assetId);
+            if (animItem != null && animItem.IsAnimated)
+            {
+                const float MinFps = 0.5f, MaxFps = 60f;
+                // 沒在編輯文字框時，buffer 永遠跟著物件值（含按鈕剛改完的值）。在文字框「之前」同步，
+                // 兩顆 ±按鈕才不會被後面的「回寫」誤判成打字而回退（這是先前 ＋ 失效的根因）。
+                bool editingFps = GUI.GetNameOfFocusedControl() == "objFps";
+                if (!editingFps) _objFpsBuf = sel.animFps.ToString("0.#");
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"動畫 {animItem.frameCount} 幀  FPS", GUILayout.Width(96));
+                if (GUILayout.Button("－", GUILayout.Width(24))) { UndoManager.Push(); sel.animFps = Mathf.Clamp(sel.animFps - 1f, MinFps, MaxFps); _objFpsBuf = sel.animFps.ToString("0.#"); }
+                GUI.SetNextControlName("objFps");
+                string sf = GUILayout.TextField(_objFpsBuf, GUILayout.Width(48));
+                if (GUILayout.Button("＋", GUILayout.Width(24))) { UndoManager.Push(); sel.animFps = Mathf.Clamp(sel.animFps + 1f, MinFps, MaxFps); _objFpsBuf = sel.animFps.ToString("0.#"); }
+                GUILayout.EndHorizontal();
+
+                // 只有在「真的聚焦文字框打字」時才把輸入回寫到物件，避免把按鈕的改動誤判成打字而回退。
+                if (editingFps && sf != _objFpsBuf)
+                {
+                    _objFpsBuf = sf;
+                    if (float.TryParse(sf, out var vf) && vf > 0f) sel.animFps = Mathf.Clamp(vf, MinFps, MaxFps);
+                }
             }
 
             GUILayout.BeginHorizontal();
@@ -652,7 +693,53 @@ namespace DipanMapEditor.UI
 
             GUILayout.Space(10);
             GUILayout.Label("左鍵拖曳塗格。\n綠 = 可走，紅 = 不可走。\n新地圖初始全部不可走。\n只有此工具下才顯示疊加色。");
+
+            GUILayout.Space(12);
+            GUILayout.Label("── 便利功能 ──");
+            if (GUILayout.Button("依不可走格建立牆 trigger"))
+                BuildWallTriggerFromBlocked();
+            GUILayout.Label("把目前所有「不可走」格刷成一個\n「環境/牆」trigger 區域。建立後自動\n切到 Trigger 工具、預設「減格」模式，\n方便把水池/深坑那幾格挖掉\n（牆 ＝ 環境/牆 trigger；不可走但非牆\n＝ 水池/深坑，子彈穿過）。");
             GUILayout.EndArea();
+        }
+
+        // 牆壁 trigger 的類型 id（對應 triggerTypes.json 的「環境/牆」）。
+        const string EnvWallTypeId = "environment";
+
+        /// <summary>便利功能：把目前所有「不可走」格刷成一個「環境/牆」trigger 區域，方便之後微調（挖水池）。</summary>
+        public void BuildWallTriggerFromBlocked()
+        {
+            var map = MapSession.Instance?.Map;
+            var types = MapSession.Instance?.TriggerTypes;
+            if (map == null || types == null) return;
+            if (types.Find(EnvWallTypeId) == null)
+            {
+                _statusMsg = "找不到「環境/牆」(environment) trigger 類型，無法建立牆。";
+                return;
+            }
+
+            UndoManager.Push();
+            var regions = map.TriggerLayer.regions;
+
+            // 建一個新的 environment 區域（沿用 CreateRegion 的命名/id 規則），再填入所有不可走格。
+            string prevType = _triggerType;
+            _triggerType = EnvWallTypeId;
+            CreateRegion(EnvWallTypeId, regions, types);   // 設定 CurrentRegion
+            _triggerType = prevType;
+
+            var region = CurrentRegion;
+            region.name = "牆(依不可走)";
+
+            int n = 0;
+            for (int y = 0; y < map.height; y++)
+                for (int x = 0; x < map.width; x++)
+                    if (WalkableOps.IsBlocked(map, x, y)) { TriggerOps.AddCell(region, x, y); n++; }
+
+            // 切到 Trigger 工具、選取此區域、預設減格，方便直接把水池/深坑格挖掉。
+            CurrentTool = EditTool.Trigger;
+            TriggerPaintMode = true;
+            TriggerNewRegionPerStroke = false;
+            TriggerAddCells = false;
+            _statusMsg = $"已依不可走格建立牆 trigger（{n} 格）。已切到 Trigger 工具、減格模式：直接在水池/深坑格上左鍵拖曳即可挖掉。";
         }
 
         // ---- Trigger 圖層面板 ----

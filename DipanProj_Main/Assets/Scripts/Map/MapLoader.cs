@@ -12,8 +12,9 @@ using Dipan.MapRuntime;
 ///   `LoadMap(path)` 可重入：先拆掉舊圖再建新圖，因此可用於多圖串接的換圖。
 /// - **不再自己生玩家**：玩家的生成與落點由 MapManager 統籌（生一次、之後只移動）。
 ///   本元件只提供 `TryGetPlayerSpawn` / `TryGetEntrance` 查詢落點座標。
-/// - 牆 = walkable 不可走格（預設）→ Environment layer 實心碰撞（擋＋反彈子彈）；
-///   不可走 ∩ bulletPass trigger（水塘/深坑）→ blocker layer（只擋腳、子彈飛過）。
+/// - 牆 = 「環境/牆」(environment) trigger 標記格 → Environment layer 實心碰撞（擋＋反彈子彈）；
+///   不可走但非牆（水塘/深坑）→ blocker layer（只擋腳、子彈飛過）。舊地圖（沒有 environment 區域）
+///   自動退回舊模型：不可走=牆、bulletPass=水塘。詳見 BuildCellColliders。
 /// - 素材以 PPU 256 載入，來源 StreamingAssets/MapAssets（可打包），編輯器內後備讀 GameAssets。
 /// 見 readme/MAP_SYSTEM.md、readme/MAP_LOADER_SETUP.md。
 /// </summary>
@@ -27,7 +28,10 @@ public class MapLoader : MonoBehaviour
     public string blockerLayerName = "Water";             // 水塘/深坑：只擋腳、子彈飛過
 
     [Header("Trigger typeId")]
-    // 不可走格預設 = 牆(擋＋反彈)。只有被此 trigger 標記的不可走格才變「水塘/深坑」(擋腳、子彈飛過)。
+    // 牆模型（見下方 BuildCellColliders）：
+    //   有「環境/牆」(environment) trigger 區域時 → 牆 = environment 格;不可走但非 environment = 水塘/深坑。
+    //   沒有 environment 區域時（舊地圖）→ 退回舊模型:不可走 = 牆;bulletPass 標的不可走格 = 水塘/深坑。
+    public string environmentTriggerTypeId = "environment";
     public string bulletPassTriggerTypeId = "bulletPass";
     public string playerSpawnTypeId = "playerSpawn";
     public string monsterSpawnTypeId = "monsterSpawn";
@@ -265,8 +269,19 @@ public class MapLoader : MonoBehaviour
             go.layer = _envLayer;
 
             var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite;
+            sr.sprite = sprite;   // = 第一幀（GetWholeSprite 用 item.path = 第一幀）
             sr.sortingOrder = SortBase + inst.zOrder * BandStep + Mathf.RoundToInt(-inst.sortKey * SortScale);
+
+            // 動畫地上物：載入幀序列、掛上原地循環播放元件（速度 = 該實例 animFps）。
+            // 碰撞框/血量/可破壞仍以第一幀建立（下方），動畫只換顯示用 sprite。
+            if (item != null && item.IsAnimated)
+            {
+                var frames = _sprites.GetAnimationFrames(item, _map.tileSize);
+                if (frames != null && frames.Length >= 2)
+                    go.AddComponent<AnimatedMapObject>().Initialize(sr, frames, inst.animFps);
+                else
+                    Debug.LogWarning($"[MapLoader] 動畫地上物「{inst.assetId}」幀載入失敗，退回靜態第一幀。");
+            }
 
             go.transform.position = new Vector3(inst.x, inst.y, 0f);
             go.transform.localScale = new Vector3(
@@ -301,40 +316,61 @@ public class MapLoader : MonoBehaviour
     }
 
     // ---- 牆 / 擋腳碰撞 ----
-    // 核心原則：玩家/怪物「能不能走」一律以 walkable 層為準（= 編輯器可走疊加所見）。
-    //   牆   = 不可走格(預設)            → Environment layer（擋腳＋反彈子彈）
-    //   水塘 = 不可走格 ∩ bulletPass     → blocker layer（只擋腳，子彈飛過）
+    // 玩家/怪物「能不能走」一律以 walkable 層為準（= 編輯器可走疊加所見）；
+    // 「會不會反彈子彈」則看是不是牆。牆與可走刻意分開（深坑/水池 = 不可走但子彈穿過）。
+    //
+    // 牆模型（依地圖有無「環境/牆」trigger 自動選用，向下相容舊地圖）：
+    //   ● 有 environment(環境/牆) trigger 區域 → 新模型：
+    //       牆   = environment 標記格              → Environment layer（擋腳＋反彈子彈）
+    //       水塘 = 不可走格 \ environment           → blocker layer（只擋腳，子彈飛過）
+    //   ● 沒有 environment 區域（舊地圖）→ 舊模型：
+    //       牆   = 不可走格(預設)                   → Environment layer
+    //       水塘 = 不可走格 ∩ bulletPass            → blocker layer
     void BuildCellColliders()
     {
-        // bulletPass(水塘/深坑) 標記格
-        var passCells = new HashSet<long>();
-        var trigLayer = _map.TriggerLayer;
-        if (trigLayer?.regions != null)
+        var envCells = CollectTriggerCells(environmentTriggerTypeId);   // 「環境/牆」標記格
+        bool useEnvModel = envCells.Count > 0;
+
+        var wallCells = new HashSet<long>();      // 擋腳＋反彈
+        var blockerCells = new HashSet<long>();   // 只擋腳（水塘/深坑）
+        var walk = _map.WalkableLayer;
+
+        if (useEnvModel)
         {
-            foreach (var r in trigLayer.regions)
+            // 新模型：牆 = environment 格；不可走但非 environment = 水塘/深坑。
+            wallCells = envCells;
+            if (walk?.blocked != null)
             {
-                if (r.typeId != bulletPassTriggerTypeId || r.cells == null) continue;
-                foreach (var c in r.cells)
-                    if (c != null && c.Length >= 2) passCells.Add(Key(c[0], c[1]));
+                for (int y = 0; y < walk.blocked.Count && y < _map.height; y++)
+                {
+                    string row = walk.blocked[y];
+                    if (string.IsNullOrEmpty(row)) continue;
+                    for (int x = 0; x < row.Length && x < _map.width; x++)
+                    {
+                        if (row[x] != '1') continue;             // '1' = 不可走
+                        long k = Key(x, y);
+                        if (!wallCells.Contains(k)) blockerCells.Add(k);
+                    }
+                }
             }
         }
-
-        // walkable 不可走格子 → 預設牆；被 bulletPass 標記者改為水塘
-        var wallCells = new HashSet<long>();      // 擋腳＋反彈
-        var blockerCells = new HashSet<long>();   // 只擋腳
-        var walk = _map.WalkableLayer;
-        if (walk?.blocked != null)
+        else
         {
-            for (int y = 0; y < walk.blocked.Count && y < _map.height; y++)
+            // 舊模型（向下相容）：不可走 = 牆；bulletPass 標的不可走格 = 水塘。
+            var passCells = CollectTriggerCells(bulletPassTriggerTypeId);
+            if (walk?.blocked != null)
             {
-                string row = walk.blocked[y];
-                if (string.IsNullOrEmpty(row)) continue;
-                for (int x = 0; x < row.Length && x < _map.width; x++)
+                for (int y = 0; y < walk.blocked.Count && y < _map.height; y++)
                 {
-                    if (row[x] != '1') continue;             // '1' = 不可走
-                    long k = Key(x, y);
-                    if (passCells.Contains(k)) blockerCells.Add(k);
-                    else wallCells.Add(k);
+                    string row = walk.blocked[y];
+                    if (string.IsNullOrEmpty(row)) continue;
+                    for (int x = 0; x < row.Length && x < _map.width; x++)
+                    {
+                        if (row[x] != '1') continue;             // '1' = 不可走
+                        long k = Key(x, y);
+                        if (passCells.Contains(k)) blockerCells.Add(k);
+                        else wallCells.Add(k);
+                    }
                 }
             }
         }
@@ -502,6 +538,21 @@ public class MapLoader : MonoBehaviour
             return fallback;
         }
         return idx;
+    }
+
+    /// <summary>收集某 trigger 類型所有區域涵蓋的格（以 Key 編碼）。</summary>
+    HashSet<long> CollectTriggerCells(string typeId)
+    {
+        var set = new HashSet<long>();
+        var trig = _map?.TriggerLayer;
+        if (string.IsNullOrEmpty(typeId) || trig?.regions == null) return set;
+        foreach (var r in trig.regions)
+        {
+            if (r.typeId != typeId || r.cells == null) continue;
+            foreach (var c in r.cells)
+                if (c != null && c.Length >= 2) set.Add(Key(c[0], c[1]));
+        }
+        return set;
     }
 
     static long Key(int x, int y) => ((long)(uint)x << 32) | (uint)y;

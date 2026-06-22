@@ -11,8 +11,12 @@ namespace DipanMapEditor.EditorTools
     /// <summary>
     /// 選單 DipanMapEditor → 同步素材。
     /// 用 C# 重做 sync_assets.sh 的事：從主專案每個來源（Main + 所有 Modules）底下
-    /// 只拿 Environment / Tiles 的 PNG，無條件覆蓋進 StreamingAssets/MapAssets，
+    /// 只拿 Environment / Tiles / Background 的 PNG，無條件覆蓋進 StreamingAssets/MapAssets，
     /// 並生成帶 module 標記的 catalog.json。按一下即可，不需開終端機。
+    ///
+    /// 動畫地上物：Environment/ 底下的「子資料夾」= 一個動畫物件，多幀收成一筆 catalog item
+    /// （category 仍是 Environment、id = 資料夾相對路徑，含 frameCount / frames，依檔名排序＝播放順序）。
+    /// 與 Tools/sync_assets.sh 行為一致。
     /// </summary>
     public static class AssetSyncTool
     {
@@ -70,32 +74,97 @@ namespace DipanMapEditor.EditorTools
         // 只拿來源底下的 Environment / Tiles / Background
         static void CopySource(string baseDir, string prefix, string module, Catalog catalog, string target)
         {
-            CopyFolder(Path.Combine(baseDir, "Environment"), prefix + "/Environment", module, catalog, target);
-            CopyFolder(Path.Combine(baseDir, "Tiles"), prefix + "/Tiles", module, catalog, target);
-            CopyFolder(Path.Combine(baseDir, "Background"), prefix + "/Background", module, catalog, target);
+            CopyEnvironment(Path.Combine(baseDir, "Environment"), prefix + "/Environment", module, catalog, target);
+            CopyFlat(Path.Combine(baseDir, "Tiles"), prefix + "/Tiles", module, "Tiles", catalog, target);
+            CopyFlat(Path.Combine(baseDir, "Background"), prefix + "/Background", module, "Background", catalog, target);
         }
 
-        static void CopyFolder(string src, string prefixRel, string module, Catalog catalog, string target)
+        /// <summary>拷貝「直接位於 src 底下」的 PNG（不遞迴），每張登記成靜態素材。</summary>
+        static void CopyFlat(string src, string prefixRel, string module, string category, Catalog catalog, string target)
         {
             if (!Directory.Exists(src)) return;
-            foreach (var f in Directory.GetFiles(src, "*.png", SearchOption.AllDirectories))
+            foreach (var f in Directory.GetFiles(src, "*.png", SearchOption.TopDirectoryOnly))
             {
-                string rel = f.Substring(src.Length).TrimStart('/', '\\').Replace('\\', '/');
-                string destRel = prefixRel + "/" + rel;
-                string dest = Path.Combine(target, destRel);
-                Directory.CreateDirectory(Path.GetDirectoryName(dest));
-                File.Copy(f, dest, true);
-
+                string fileName = Path.GetFileName(f);
+                string destRel = prefixRel + "/" + fileName;
+                CopyFile(f, destRel, target);
                 catalog.items.Add(new CatalogItem
                 {
                     id = destRel.Substring(0, destRel.Length - 4), // 去 ".png"
                     path = destRel,
-                    category = Path.GetFileName(Path.GetDirectoryName(f)),
+                    category = category,
                     module = module,
                     pixelSize = ReadPngWidth(f),
                     ppu = Ppu,
                 });
             }
+        }
+
+        /// <summary>
+        /// Environment：直接擺的單張 = 靜態物件；每個子資料夾 = 一個動畫地上物（多幀收成一筆，
+        /// 依檔名排序＝播放順序）。與 Tools/sync_assets.sh 行為一致。
+        /// </summary>
+        static void CopyEnvironment(string env, string prefixRel, string module, Catalog catalog, string target)
+        {
+            if (!Directory.Exists(env)) return;
+
+            // 1) 直接位於 Environment/ 的單張 PNG → 靜態物件。
+            CopyFlat(env, prefixRel, module, "Environment", catalog, target);
+
+            // 2) Environment/ 底下的每個子資料夾 → 一個動畫物件。
+            var subDirs = new List<string>(Directory.GetDirectories(env));
+            subDirs.Sort(System.StringComparer.Ordinal);
+            foreach (var d in subDirs)
+            {
+                string name = Path.GetFileName(d);
+
+                var frameFiles = new List<string>(Directory.GetFiles(d, "*.png", SearchOption.TopDirectoryOnly));
+                // 依檔名（非完整路徑）排序＝播放順序，建議補零命名（_01.._NN）。
+                frameFiles.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));
+                if (frameFiles.Count == 0) continue;
+
+                var framesRel = new List<string>(frameFiles.Count);
+                foreach (var fr in frameFiles)
+                {
+                    string frel = prefixRel + "/" + name + "/" + Path.GetFileName(fr);
+                    CopyFile(fr, frel, target);
+                    framesRel.Add(frel);
+                }
+
+                if (framesRel.Count < 2)
+                {
+                    // 只有一張 → 當靜態（避免「單張資料夾」變成意義不大的動畫）。
+                    catalog.items.Add(new CatalogItem
+                    {
+                        id = prefixRel + "/" + name,
+                        path = framesRel[0],
+                        category = "Environment",
+                        module = module,
+                        pixelSize = ReadPngWidth(frameFiles[0]),
+                        ppu = Ppu,
+                    });
+                    continue;
+                }
+
+                catalog.items.Add(new CatalogItem
+                {
+                    id = prefixRel + "/" + name,        // 動畫物件 id = 資料夾相對路徑
+                    path = framesRel[0],                 // 第一幀 = 預覽/whole sprite/碰撞框來源
+                    category = "Environment",
+                    module = module,
+                    pixelSize = ReadPngWidth(frameFiles[0]),
+                    ppu = Ppu,
+                    frameCount = framesRel.Count,
+                    frames = framesRel,
+                });
+            }
+        }
+
+        static void CopyFile(string src, string destRel, string target)
+        {
+            string dest = Path.Combine(target, destRel.Replace('/', Path.DirectorySeparatorChar));
+            Directory.CreateDirectory(Path.GetDirectoryName(dest));
+            File.Copy(src, dest, true);
         }
 
         static int ReadPngWidth(string path)

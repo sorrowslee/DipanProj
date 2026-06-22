@@ -61,6 +61,56 @@ namespace DipanMapEditor.Core
             return sp;
         }
 
+        // ---- 動畫地上物：依「幀的相對路徑」載入（一筆 catalog item 對多張幀圖）----
+
+        /// <summary>載入（並快取）某幀 PNG 的整張貼圖，key = 相對路徑。失敗回 null。</summary>
+        public static Texture2D GetFrameTexture(string framePath)
+        {
+            if (string.IsNullOrEmpty(framePath)) return null;
+            string key = $"frame|{framePath}";
+            if (_textures.TryGetValue(key, out var tex) && tex != null) return tex;
+
+            string abs = CatalogLoader.ResolveRelative(framePath);
+            if (!File.Exists(abs))
+            {
+                Debug.LogWarning($"[SpriteCache] 找不到動畫幀：{abs}");
+                return null;
+            }
+            tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.LoadImage(File.ReadAllBytes(abs));
+            tex.filterMode = FilterMode.Point;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            _textures[key] = tex;
+            return tex;
+        }
+
+        /// <summary>取得某幀的整張 sprite（PPU 同 GetWholeSprite），key = 相對路徑 + tileSize。</summary>
+        public static Sprite GetFrameSprite(string framePath, float tileSize)
+        {
+            if (string.IsNullOrEmpty(framePath)) return null;
+            string key = $"frame|{framePath}|{tileSize}";
+            if (_sprites.TryGetValue(key, out var sp) && sp != null) return sp;
+            var tex = GetFrameTexture(framePath);
+            if (tex == null) return null;
+            float ppu = TileNativePx / Mathf.Max(0.0001f, tileSize);
+            sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), ppu);
+            _sprites[key] = sp;
+            return sp;
+        }
+
+        /// <summary>把某動畫物件的所有幀載成 Sprite[]（依 frames 順序）。非動畫或失敗回 null。</summary>
+        public static Sprite[] GetAnimationFrames(CatalogItem item, float tileSize)
+        {
+            if (item == null || !item.IsAnimated) return null;
+            var arr = new Sprite[item.frames.Count];
+            for (int i = 0; i < arr.Length; i++)
+            {
+                arr[i] = GetFrameSprite(item.frames[i], tileSize);
+                if (arr[i] == null) return null;
+            }
+            return arr;
+        }
+
         /// <summary>
         /// 取得地磚表中第 index 格的 sprite（256px 切格、top-left row-major）。
         /// PPU = 256 / tileSize → 每格世界尺寸恰好 = tileSize（貼合 Tilemap cell）。

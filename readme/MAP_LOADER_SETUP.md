@@ -56,8 +56,11 @@
 
 - **家具永遠畫在玩家之上**:家具用編輯器的高 sortingOrder,玩家還沒納入 Y-sort,所以站在家具前也會被蓋住。動態角色的 Y-sort 是下一步。
 - **可破壞家具**:目前家具是實心 Environment(擋路＋反彈),還不會被打爆。每個家具已是獨立 GameObject,之後加 `Destructible`(HP)元件 + 在 `PlayerController.HandleBulletHit` 對 Environment 上有 Destructible 的目標扣血即可,Destroy 後路自動開。
-- **牆 = 不可走格(預設)**:玩家能不能走**一律以可走層為準**(= 編輯器可走疊加所見)。**所有不可走格自動變成牆**(擋玩家/怪物＋反彈子彈),掛 Environment layer。不需要再額外塗 environment trigger 來標牆——你之前畫的 environment trigger 現在用不到了(留著無害,也可在編輯器移除那個類型)。
-- **水塘/深坑(未來)**:這是**例外**,程式以 `bulletPass` trigger 標記:不可走 ∩ `bulletPass` → 只擋腳、子彈飛過(掛 `Blocker Layer Name` 指定的 layer,預設 `Water`)。等你真的要做時:① 在編輯器加一個 `bulletPass` 類型並塗在水塘格;② 到 `Project Settings → Physics 2D` 把 `Player↔Water`、`Enemy↔Water` 的碰撞矩陣打勾。本圖沒有,用不到。
+- **牆 = 「環境/牆」(environment) trigger**(2026-06-22 起):玩家能不能走仍**一律以可走層為準**,但「會不會反彈子彈」改看是不是牆。`MapLoader.BuildCellColliders` 依地圖有無 `environment` 區域自動選模型:
+  - **有 environment 區域(新模型)**:**牆 = environment 標記格**(擋＋反彈,Environment layer);**不可走但非 environment = 水塘/深坑**(只擋腳、子彈飛過,Blocker/`Water` layer)。牆與可走刻意分開——深坑/水池就是「不可走但不是牆」。
+  - **沒有 environment 區域(舊地圖,向下相容)**:退回舊模型——不可走=牆;`bulletPass` 標的不可走格=水塘。既有 RedBridalGown 地圖不受影響。
+  - **編輯器便利功能**:在「可走」工具面板按「依不可走格建立牆 trigger」=把目前所有不可走格一鍵刷成一個 environment 區域,再切到 Trigger 工具(預設減格)把水池/深坑那幾格挖掉即可。見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)。
+- **水塘/深坑**:用 `Blocker Layer Name` 指定的 layer(預設 `Water`)。新模型下「不可走但非 environment」自動就是它;要讓它生效,需到 `Project Settings → Physics 2D` 把 `Player↔Water`、`Enemy↔Water` 的碰撞矩陣打勾(沒設 layer 會略過並警告)。
 
 ## 故障排除
 

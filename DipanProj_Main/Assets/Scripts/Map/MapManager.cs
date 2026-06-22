@@ -27,6 +27,7 @@ public class MapManager : MonoBehaviour
 
     GameObject _player;
     TeleportWatcher _watcher;
+    MapCameraController _camera;
     int _currentMapId = -1;
 
     public int CurrentMapId => _currentMapId;
@@ -40,6 +41,9 @@ public class MapManager : MonoBehaviour
 
         // 由本元件接管生玩家，避免 MainSpawner 自己又在 Start 生一個。
         if (playerSpawner != null) playerSpawner.SpawnOnStart = false;
+
+        // 相機由本元件依 MapMode 接管（整張地圖 / 鏡頭跟隨），關掉 MapLoader 的自動 FitCamera。
+        if (mapLoader != null) mapLoader.fitCameraToMap = false;
     }
 
     void Start()
@@ -86,6 +90,7 @@ public class MapManager : MonoBehaviour
         Vector2 pos = ResolveSpawnPos(entrance);
         PlacePlayer(pos);
 
+        SetupCamera(row.mode);
         mapLoader.SpawnMonsters();
         SetupWatcher();
 
@@ -142,6 +147,14 @@ public class MapManager : MonoBehaviour
         var arr = FindObjectsOfType<T>();
         for (int i = 0; i < arr.Length; i++)
             if (arr[i] != null) Destroy(arr[i].gameObject);
+    }
+
+    /// <summary>依 MapsTable 的 MapMode 套用相機模式（整張地圖 / 鏡頭跟隨）。元件仿 TeleportWatcher 自掛。</summary>
+    void SetupCamera(int mode)
+    {
+        if (_camera == null)
+            _camera = GetComponent<MapCameraController>() ?? gameObject.AddComponent<MapCameraController>();
+        _camera.Apply(mapLoader.Map, mode, _player != null ? _player.transform : null);
     }
 
     void SetupWatcher()

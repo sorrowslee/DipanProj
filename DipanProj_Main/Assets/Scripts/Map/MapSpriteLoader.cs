@@ -57,6 +57,56 @@ namespace Dipan.MapRuntime
             return sp;
         }
 
+        // ---- 動畫地上物：依「幀的相對路徑」載入（一筆 catalog item 對多張幀圖）----
+
+        /// <summary>載入（並快取）某幀 PNG 的貼圖，key = 相對路徑。失敗回 null。</summary>
+        public Texture2D GetFrameTexture(string framePath)
+        {
+            if (string.IsNullOrEmpty(framePath)) return null;
+            string key = $"frame|{framePath}";
+            if (_textures.TryGetValue(key, out var tex) && tex != null) return tex;
+
+            string path = Path.Combine(_assetRoot, framePath.Replace('/', Path.DirectorySeparatorChar));
+            if (!File.Exists(path))
+            {
+                Debug.LogWarning($"[MapSpriteLoader] 找不到動畫幀：{path}");
+                return null;
+            }
+            tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex.LoadImage(File.ReadAllBytes(path));
+            tex.filterMode = FilterMode.Point;
+            tex.wrapMode = TextureWrapMode.Clamp;
+            _textures[key] = tex;
+            return tex;
+        }
+
+        /// <summary>某幀的整張 sprite（PPU 同 GetWholeSprite），key = 相對路徑 + tileSize。</summary>
+        public Sprite GetFrameSprite(string framePath, float tileSize)
+        {
+            if (string.IsNullOrEmpty(framePath)) return null;
+            string key = $"frame|{framePath}|{tileSize}";
+            if (_sprites.TryGetValue(key, out var sp) && sp != null) return sp;
+            var tex = GetFrameTexture(framePath);
+            if (tex == null) return null;
+            float ppu = TileNativePx / Mathf.Max(0.0001f, tileSize);
+            sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), ppu);
+            _sprites[key] = sp;
+            return sp;
+        }
+
+        /// <summary>把某動畫物件的所有幀載成 Sprite[]（依 frames 順序）。非動畫或任一幀失敗回 null。</summary>
+        public Sprite[] GetAnimationFrames(CatalogItem item, float tileSize)
+        {
+            if (item == null || !item.IsAnimated) return null;
+            var arr = new Sprite[item.frames.Count];
+            for (int i = 0; i < arr.Length; i++)
+            {
+                arr[i] = GetFrameSprite(item.frames[i], tileSize);
+                if (arr[i] == null) return null;
+            }
+            return arr;
+        }
+
         /// <summary>地磚表第 index 格 sprite（256px 切格、top-left row-major）。</summary>
         public Sprite GetTileSprite(CatalogItem item, int index, float tileSize)
         {

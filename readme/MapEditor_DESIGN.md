@@ -120,8 +120,18 @@ DipanProj_MapEditor/
 |---|---|---|
 | `Tiles/` | Scenario 產出的**地磚 texture**（單張或拼接圖） | 依 256px 切格，地磚調色盤、**筆刷鋪地板/牆壁** |
 | `Background/` | 整幅**背景圖**（牆＋地板的關卡底圖，黑邊＝邊界） | 鋪在最底層、拉伸貼齊畫布（見 §4.6 背景層） |
-| `Environment/` | **地上物** png（桌椅屏風、燈籠、橫梁、酒缸…） | 自由變換物件擺放 |
+| `Environment/` | **地上物** png（桌椅屏風、燈籠、橫梁、酒缸…）。**子資料夾 = 動畫地上物**（見下） | 自由變換物件擺放 |
 | `Prefabs/` | Unity prefab（非 PNG，不同步） | 不進編輯器；未來 loader 用 |
+
+#### 動畫地上物（多張圖做成一個物件）
+
+把一個物件的多張幀圖放進 `Environment/` 底下的**一個子資料夾**，就會被當成「一個會動的地上物」：
+
+- 例：`Environment/nature_bonfire_anim/frame_01.png … frame_08.png`。**依檔名排序 = 播放順序**，建議補零命名（`_01`、`_02`…）。
+- 同步（**兩種方式都支援**：Unity 選單 `DipanMapEditor → 同步素材`，或 CLI `Tools/sync_assets.sh`）會把整個資料夾收成**一筆** catalog item：`category` 仍是 `Environment`（編輯器照樣列出）、`id` = 資料夾相對路徑、`path` = 第一幀，並附 `frameCount` 與 `frames`（各幀相對路徑）。
+- 直接放在 `Environment/` 的**單張 PNG 仍是靜態物件**（與舊行為相同）；只有一張圖的子資料夾也會被當靜態。
+- **播放速度（FPS）是「每個放置實例」各自設定**，存在 `.dipanmap` 的 `objects[].animFps`（預設 8），在編輯器選取面板調整 → 所以同一個動畫物件，不同實例可有不同速度。
+- 碰撞框 / 血量 / 可破壞沿用第一幀的 footprint 與既有系統，動畫物件與靜態物件在這些面向沒有差別。
 | `Monsters/` | 怪物圖（目前不同步） | 怪物出生點只給 id、不需圖 |
 
 > 主專案舊關卡 `Tutorial` 的擺法相反（Environment 放 texture、Tiles 放 .asset），那是 Unity 主專案的舊習慣；**編輯器管線一律照上表新約定**。
@@ -154,7 +164,9 @@ DipanProj_MapEditor/
                      "flipX": true, "flipY": false,
                      "scaleX": 1.5, "scaleY": 1.5,
                      "sortKey": 6.0,  // 通常 = y，做 top-down Y-sort
-                     "zOrder": 0 } ]  // 手動圖層：>0 往前、<0 往後；同層內再 Y-sort
+                     "zOrder": 0,     // 手動圖層：>0 往前、<0 往後；同層內再 Y-sort
+                     "hp": 1,         // 可破壞血量；-1 = 不可摧毀
+                     "animFps": 8 } ] // 動畫地上物的每實例播放幀率（靜態物件忽略）
     },
     {
       "id": "walk", "name": "可走/不可走", "type": "Walkable",
@@ -201,7 +213,15 @@ DipanProj_MapEditor/
   { "id": "Modules/RedBridalGown/Tiles/tile1", "path": "Modules/RedBridalGown/Tiles/tile1.png",
     "category": "Tiles", "module": "RedBridalGown", "pixelSize": 1104, "ppu": 256 },
   { "id": "Modules/RedBridalGown/Environment/lantern1", "path": "Modules/RedBridalGown/Environment/lantern1.png",
-    "category": "Environment", "module": "RedBridalGown", "pixelSize": 500, "ppu": 256 }
+    "category": "Environment", "module": "RedBridalGown", "pixelSize": 500, "ppu": 256 },
+  // 動畫地上物：一筆指向資料夾，多帶 frameCount + frames（依序）。path = 第一幀。
+  { "id": "Modules/RedBridalGown/Environment/nature_bonfire_anim",
+    "path": "Modules/RedBridalGown/Environment/nature_bonfire_anim/frame_01.png",
+    "category": "Environment", "module": "RedBridalGown", "pixelSize": 500, "ppu": 256,
+    "frameCount": 3, "frames": [
+      "Modules/RedBridalGown/Environment/nature_bonfire_anim/frame_01.png",
+      "Modules/RedBridalGown/Environment/nature_bonfire_anim/frame_02.png",
+      "Modules/RedBridalGown/Environment/nature_bonfire_anim/frame_03.png" ] }
 ] }
 ```
 
@@ -236,7 +256,9 @@ DipanProj_MapEditor/
   - **翻轉H / 翻轉V / 複製**（複製＝在旁邊生一個同樣大小角度的複本並選取它）。
   - **縮小 / 放大 / 旋轉 15°**。
   - **上移層 / 下移層**（zOrder；標題列顯示「層 N」）：手動壓在最上或最下，覆蓋預設 Y-sort。
+  - **動畫 FPS**（僅動畫地上物顯示，標題列顯示「動畫 N 幀」）：－/＋ 或直接輸入，調整**這個實例**的播放速度（寫入 `animFps`，預設 8）。
   - **刪除**。
+- **動畫地上物**：調色盤縮圖左上角有 `▶幀數` 標記；放到地圖上後會**即時循環播放**（編輯器內所見即遊戲內所得），各實例依自己的 `animFps` 速度播。放置/選取/移動/翻轉/縮放/血量等操作與靜態物件完全相同。
 - 每個放置/移動/變換動作 = 一個 Undo 步（座標輸入框逐字打字除外，用 ± 按鈕則有 Undo）。
 
 ### 4.4 可走 / 不可走
@@ -244,6 +266,7 @@ DipanProj_MapEditor/
 - 切「可走」工具 → 整張畫布顯示**紅（不可走）/綠（可走）半透明疊加**（只在此工具下顯示）。
 - 右側選**可走（綠）/不可走（紅）**筆刷，左鍵拖曳塗格。新地圖初始全紅。
 - 一筆拖曳 = 一個 Undo 步。
+- **便利功能「依不可走格建立牆 trigger」**（面板下方按鈕）：把目前所有「不可走」格一鍵刷成一個「環境/牆」(`environment`) trigger 區域，省去重畫一遍牆。建立後自動切到 Trigger 工具、預設「減格」模式，直接在水池/深坑那幾格左鍵拖曳即可挖掉（牆與可走刻意分開：**牆 = environment trigger；不可走但非牆 = 水池/深坑，子彈穿過**）。遊戲端 `MapLoader` 即以 `environment` 區域為牆（見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)）。一次按鈕 = 一個 Undo 步。
 
 ### 4.5 Trigger
 
@@ -328,7 +351,8 @@ DipanProj_MapEditor/
 
 ## 10. 已知限制與未來可能項目
 
-- **主遊戲載入器**：尚未做。需在 `DipanProj_Main` 依 .dipanmap 重建 Tilemap、生成物件 prefab（用字串 ID 對應）、可走層轉成碰撞/導航、trigger 區域接上實際行為（傳送/拾取/生怪）。
+- **主遊戲載入器**：基本載入器已完成（見 readme/MAP_LOADER_SETUP.md）。
+- **動畫地上物：編輯器端 + 遊戲端皆已完成**（2026-06-22）：編輯器（資料夾→一筆 catalog item、`frameCount`/`frames`、每實例 `animFps`、即時預覽、兩條同步路徑）＋ 遊戲端（`MapModel.ObjectInstance.animFps`、`CatalogItem.frameCount`/`frames`、`MapLoader.BuildObjects` 載入幀序列並原地循環播放 `AnimatedMapObject`，碰撞框/血量沿用第一幀；`MapAssetSyncTool.cs` 與 `MapIO.BuildFromGameAssets` 同步收動畫子資料夾）。
 - **地磚切格**：256px 硬切，非倍數會裁邊；未支援每張自訂格數。
 - **Undo**：無 redo；輸入框打字不逐字記錄。
 - **調色盤捲動**：地磚調色盤目前不捲動，同 module 地磚表很多時可能超出面板。

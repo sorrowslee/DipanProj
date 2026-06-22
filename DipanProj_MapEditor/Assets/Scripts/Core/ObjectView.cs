@@ -17,6 +17,10 @@ namespace DipanMapEditor.Core
         readonly Dictionary<ObjectInstance, SpriteRenderer> _renderers = new Dictionary<ObjectInstance, SpriteRenderer>();
         Transform _root;
 
+        // 動畫地上物的播放狀態（僅多幀物件有）；每幀依 inst.animFps 推進。
+        class AnimState { public Sprite[] frames; public int idx; public float timer; }
+        readonly Dictionary<ObjectInstance, AnimState> _anims = new Dictionary<ObjectInstance, AnimState>();
+
         void OnEnable()
         {
             if (MapSession.Instance != null)
@@ -50,10 +54,35 @@ namespace DipanMapEditor.Core
             foreach (var sr in _renderers.Values)
                 if (sr != null) Destroy(sr.gameObject);
             _renderers.Clear();
+            _anims.Clear();
             if (map?.GameLayer?.objects == null) return;
             EnsureRoot();
             foreach (var inst in map.GameLayer.objects)
                 Apply(inst, map);
+        }
+
+        // 動畫地上物即時循環播放：每幀依該實例的 animFps 推進（編輯器內所見即遊戲內所得）。
+        void Update()
+        {
+            if (_anims.Count == 0) return;
+            float dt = Time.deltaTime;
+            foreach (var kv in _anims)
+            {
+                var inst = kv.Key;
+                var a = kv.Value;
+                if (a.frames == null || a.frames.Length < 2) continue;
+                if (!_renderers.TryGetValue(inst, out var sr) || sr == null) continue;
+
+                float fps = inst.animFps > 0f ? inst.animFps : 8f;
+                float frameDur = 1f / fps;
+                a.timer += dt;
+                while (a.timer >= frameDur)
+                {
+                    a.timer -= frameDur;
+                    a.idx = (a.idx + 1) % a.frames.Length;
+                    sr.sprite = a.frames[a.idx];
+                }
+            }
         }
 
         /// <summary>建立（若無）並套用某物件實例的外觀／變換。</summary>
@@ -71,7 +100,23 @@ namespace DipanMapEditor.Core
             }
 
             var item = MapSession.Instance.Catalog.Find(inst.assetId);
-            sr.sprite = SpriteCache.GetWholeSprite(item, map.tileSize);
+            if (item != null && item.IsAnimated)
+            {
+                // 動畫物件：載入幀序列，由 Update 依 animFps 推進；先顯示目前幀（重建時從第 0 幀）。
+                if (!_anims.TryGetValue(inst, out var a) || a.frames == null)
+                {
+                    a = new AnimState { frames = SpriteCache.GetAnimationFrames(item, map.tileSize), idx = 0, timer = 0f };
+                    _anims[inst] = a;
+                }
+                sr.sprite = (a.frames != null && a.frames.Length > 0)
+                    ? a.frames[Mathf.Clamp(a.idx, 0, a.frames.Length - 1)]
+                    : SpriteCache.GetWholeSprite(item, map.tileSize);
+            }
+            else
+            {
+                _anims.Remove(inst);
+                sr.sprite = SpriteCache.GetWholeSprite(item, map.tileSize);
+            }
 
             sr.transform.position = new Vector3(inst.x, inst.y, 0f);
             sr.transform.localScale = new Vector3(
@@ -89,6 +134,7 @@ namespace DipanMapEditor.Core
                 if (sr != null) Destroy(sr.gameObject);
                 _renderers.Remove(inst);
             }
+            if (inst != null) _anims.Remove(inst);
         }
 
         /// <summary>取得某物件實例目前渲染後的世界包圍盒（含縮放），供點選命中測試。</summary>

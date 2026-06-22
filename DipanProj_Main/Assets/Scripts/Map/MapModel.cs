@@ -78,6 +78,7 @@ namespace Dipan.MapRuntime
         public float sortKey;
         public int zOrder = 0;
         public int hp = 1;       // 可破壞血量;編輯器寫入,缺省 = 1（打一下就壞）
+        public float animFps = 8f; // 動畫地上物的每實例播放幀率（僅動畫物件有意義;靜態物件忽略）
     }
 
     public class TriggerRegion
@@ -109,11 +110,17 @@ namespace Dipan.MapRuntime
 
     public class CatalogItem
     {
-        public string id;        // = 相對路徑去副檔名（與 .dipanmap 的 assetId 一致）
-        public string path;      // StreamingAssets/MapAssets 內的相對路徑（含副檔名）
+        public string id;        // = 相對路徑去副檔名（與 .dipanmap 的 assetId 一致）。動畫物件 = 資料夾相對路徑。
+        public string path;      // StreamingAssets/MapAssets 內的相對路徑（含副檔名）。動畫物件 = 第一幀。
         public string category;  // Tiles / Environment / Background
         public string module = "Main";
         public int pixelSize;
         public int ppu = 256;
+
+        // ---- 動畫地上物（多張圖做成一個物件）----
+        public int frameCount = 1;          // 1（或缺欄）= 靜態單張；>1 = 動畫物件。
+        public List<string> frames;         // 各幀相對路徑（依序，含第一幀）；靜態 = null。
+
+        [JsonIgnore] public bool IsAnimated => frameCount > 1 && frames != null && frames.Count > 1;
     }
 }

@@ -48,7 +48,9 @@ public static class MapAssetSyncTool
             {
                 string cdir = Path.Combine(baseDir, cat);
                 if (!Directory.Exists(cdir)) continue;
-                foreach (var png in Directory.GetFiles(cdir, "*.png"))
+
+                // 直接位於該分類資料夾下的單張 PNG → 靜態素材（不遞迴）。
+                foreach (var png in Directory.GetFiles(cdir, "*.png", SearchOption.TopDirectoryOnly))
                 {
                     string rel = Rel(srcRoot, png);
                     CopyOverwrite(png, Path.Combine(dstRoot, rel));
@@ -62,6 +64,10 @@ public static class MapAssetSyncTool
                         ppu = PPU,
                     });
                 }
+
+                // Environment 子資料夾 = 一個動畫地上物（多幀收成一筆，與編輯器同步邏輯一致）。
+                if (cat == "Environment")
+                    AddAnimatedObjects(cdir, srcRoot, dstRoot, module, catalog);
             }
 
             // 2) 地圖檔
@@ -75,7 +81,11 @@ public static class MapAssetSyncTool
         }
 
         File.WriteAllText(Path.Combine(dstRoot, "catalog.json"),
-            JsonConvert.SerializeObject(catalog, Formatting.Indented));
+            JsonConvert.SerializeObject(catalog, new JsonSerializerSettings
+            {
+                Formatting = Formatting.Indented,
+                NullValueHandling = NullValueHandling.Ignore,   // 靜態物件的 frames=null 不寫出
+            }));
 
         AssetDatabase.Refresh();
         Debug.Log($"✅ [SyncMapAssets] 從編輯器拉入 {pulled} 張地圖;" +
@@ -116,6 +126,48 @@ public static class MapAssetSyncTool
             }
         }
         return count;
+    }
+
+    /// <summary>
+    /// Environment 底下的每個子資料夾 = 一個動畫地上物：複製各幀、收成「一筆」catalog item
+    /// （category 仍是 Environment、id = 資料夾相對路徑，含 frameCount/frames，依檔名排序＝播放順序）。
+    /// 只有一張的子資料夾退回靜態。與 DipanProj_MapEditor 的 sync_assets.sh / AssetSyncTool.cs 一致。
+    /// </summary>
+    static void AddAnimatedObjects(string envDir, string srcRoot, string dstRoot, string module, Catalog catalog)
+    {
+        var subDirs = new List<string>(Directory.GetDirectories(envDir));
+        subDirs.Sort(System.StringComparer.Ordinal);
+        foreach (var d in subDirs)
+        {
+            var frameFiles = new List<string>(Directory.GetFiles(d, "*.png", SearchOption.TopDirectoryOnly));
+            frameFiles.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));
+            if (frameFiles.Count == 0) continue;
+
+            var framesRel = new List<string>(frameFiles.Count);
+            foreach (var fr in frameFiles)
+            {
+                string frel = Rel(srcRoot, fr);
+                CopyOverwrite(fr, Path.Combine(dstRoot, frel));
+                framesRel.Add(frel);
+            }
+
+            string id = Rel(srcRoot, d);   // 資料夾相對路徑（無副檔名）
+            var item = new CatalogItem
+            {
+                id = id,
+                path = framesRel[0],        // 第一幀 = 預覽/whole sprite/碰撞框來源
+                category = "Environment",
+                module = module,
+                pixelSize = ReadPngWidth(frameFiles[0]),
+                ppu = PPU,
+            };
+            if (framesRel.Count >= 2)
+            {
+                item.frameCount = framesRel.Count;
+                item.frames = framesRel;
+            }
+            catalog.items.Add(item);
+        }
     }
 
     // Main(共用)+ Modules/<關卡>

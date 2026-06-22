@@ -33,5 +33,9 @@ namespace DipanMapEditor.IO
         /// <summary>取得某素材 PNG 在磁碟上的絕對路徑（StreamingAssets/MapAssets/ + item.path）。</summary>
         public static string ResolveAssetPath(CatalogItem item)
             => Path.Combine(DefaultDir, item.path);
+
+        /// <summary>取得 catalog 內某相對路徑（如動畫物件的某一幀 frames[i]）在磁碟上的絕對路徑。</summary>
+        public static string ResolveRelative(string relPath)
+            => Path.Combine(DefaultDir, relPath.Replace('/', Path.DirectorySeparatorChar));
     }
 }

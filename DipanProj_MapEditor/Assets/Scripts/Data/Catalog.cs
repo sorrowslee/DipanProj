@@ -33,9 +33,18 @@ namespace DipanMapEditor.Data
         public string category;
         /// <summary>所屬 module：「Main」= 共用，其餘 = 關卡名。用於依當前 module 過濾。</summary>
         public string module = "Main";
-        /// <summary>原圖邊長（px），供顯示與世界尺寸換算。</summary>
+        /// <summary>原圖邊長（px），供顯示與世界尺寸換算。動畫物件 = 第一幀寬。</summary>
         public int pixelSize;
         /// <summary>Pixels Per Unit，預設 256（= 1 格）。</summary>
         public int ppu = 256;
+
+        // ---- 動畫地上物（多張圖做成一個物件）----
+        /// <summary>幀數；1（或缺欄）= 靜態單張。&gt;1 = 動畫物件。</summary>
+        public int frameCount = 1;
+        /// <summary>動畫各幀的相對路徑（依序，含第一幀）；靜態物件 = null。</summary>
+        public List<string> frames;
+
+        /// <summary>是否為動畫物件（多幀）。</summary>
+        public bool IsAnimated => frameCount > 1 && frames != null && frames.Count > 1;
     }
 }

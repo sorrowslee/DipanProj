@@ -7,6 +7,9 @@
 ## 運作方式
 
 - `MapLoader` 生成每個地上物時,除了 SpriteRenderer + 貼合碰撞框,還掛上 `DestructibleObject`(在 `DipanProj_Main/Assets/Scripts/Map/DestructibleObject.cs`)並設定血量與破壞特效 ID。
+
+> **動畫地上物**(多張圖做成一個物件,見 readme/MapEditor_DESIGN.md):`MapLoader.BuildObjects` 對 `catalog` 標記為動畫的物件,載入幀序列並掛 `AnimatedMapObject`(原地循環播放,速度 = `.dipanmap` 的 `objects[].animFps`,每實例可不同)。**碰撞框 / 血量 / 可破壞一律以「第一幀」建立**,動畫只換顯示用的 sprite——所以動畫物件同樣可破壞、被打爆時碰撞與動畫一起消失,與靜態物件無異。
+
 ### 血量
 
 - 每個地上物的血量由**地圖編輯器**寫入 `.dipanmap` 的 `objects[].hp`(預設 **1**,打一下就壞)。`MapLoader` 讀 `inst.hp` 設給 `DestructibleObject`;`hp == 0` 退回 `MapLoader.objectMaxHP`(全域後備)。

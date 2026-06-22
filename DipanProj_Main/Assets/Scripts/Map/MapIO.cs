@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using Newtonsoft.Json;
@@ -92,7 +93,9 @@ namespace Dipan.MapRuntime
                 {
                     string cdir = Path.Combine(baseDir, c);
                     if (!Directory.Exists(cdir)) continue;
-                    foreach (var png in Directory.GetFiles(cdir, "*.png"))
+
+                    // 直接位於分類資料夾下的單張 PNG → 靜態素材（不遞迴）。
+                    foreach (var png in Directory.GetFiles(cdir, "*.png", SearchOption.TopDirectoryOnly))
                     {
                         string rel = MakeRelative(root, png).Replace('\\', '/');
                         cat.items.Add(new CatalogItem
@@ -105,6 +108,37 @@ namespace Dipan.MapRuntime
                             ppu = 256,
                         });
                     }
+
+                    // Environment 子資料夾 = 一個動畫地上物（多幀收成一筆，依檔名排序＝播放順序）。
+                    if (c == "Environment") ScanAnimated(cdir, moduleName);
+                }
+            }
+
+            // Environment 底下每個子資料夾收成一筆動畫 catalog item（與同步工具一致；幀就地讀 GameAssets）。
+            void ScanAnimated(string envDir, string moduleName)
+            {
+                var subDirs = new List<string>(Directory.GetDirectories(envDir));
+                subDirs.Sort(System.StringComparer.Ordinal);
+                foreach (var d in subDirs)
+                {
+                    var frameFiles = new List<string>(Directory.GetFiles(d, "*.png", SearchOption.TopDirectoryOnly));
+                    frameFiles.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));
+                    if (frameFiles.Count == 0) continue;
+
+                    var framesRel = new List<string>(frameFiles.Count);
+                    foreach (var fr in frameFiles) framesRel.Add(MakeRelative(root, fr).Replace('\\', '/'));
+
+                    var item = new CatalogItem
+                    {
+                        id = MakeRelative(root, d).Replace('\\', '/'),
+                        path = framesRel[0],
+                        category = "Environment",
+                        module = moduleName,
+                        pixelSize = ReadPngWidth(frameFiles[0]),
+                        ppu = 256,
+                    };
+                    if (framesRel.Count >= 2) { item.frameCount = framesRel.Count; item.frames = framesRel; }
+                    cat.items.Add(item);
                 }
             }
 

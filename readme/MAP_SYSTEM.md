@@ -44,6 +44,7 @@
 | `Module` | 字串 | 所屬關卡，須對得上該 `.dipanmap` 的 `module` 欄（可互相驗證）。 |
 | `Path` | 字串 | 地圖檔相對路徑，格式同 `MapLoader.mapPath`（例：`Modules/RedBridalGown/Maps/RedBridalGown_01.dipanmap`）。`Sync Map Assets` 會把 `.dipanmap` 同步進 `StreamingAssets/MapAssets/`，路徑一致。 |
 | `IsLevelStart` | 0/1 | 是否為該 Module 的首張地圖。玩家一進入該關卡就載入這張、在它的 playerSpawn 出生。**每個 Module 必須恰好一張 = 1。** |
+| `MapMode` | 1/2 | **相機模式**。`1` = 整張地圖（縮放塞滿畫面、角色變小）；`2` = 鏡頭跟隨（角色維持正常大小、鏡頭跟著玩家走）。**留空 / 缺欄 = 預設 2。** 詳見下方「2.1 相機模式」。 |
 
 **規則**
 - `ID` 全域唯一整數（不要每個關卡各自從 1 編號），傳送點只存一個 int 最單純。
@@ -52,9 +53,29 @@
 
 **範例（目前只填 RedBridalGown 的第一張，之後逐張補上）**
 ```
-ID, Name,   Module,        Path,                                                   IsLevelStart
-1,  柴房,   RedBridalGown, Modules/RedBridalGown/Maps/RedBridalGown_01.dipanmap,   1
+ID, Name,   Module,        Path,                                                   IsLevelStart, MapMode
+1,  柴房,   RedBridalGown, Modules/RedBridalGown/Maps/RedBridalGown_01.dipanmap,   1,            2
 ```
+
+---
+
+### 2.1 相機模式（MapMode）
+
+由 `MapManager` 在每次載圖後，依該地圖列的 `MapMode` 套用相機行為（實作於 `MapCameraController`，仿 `TeleportWatcher` 由 MapManager 自掛、不必手動接線）。
+
+| 模式 | 行為 |
+|---|---|
+| **1 整張地圖** | 相機置中地圖、`orthographicSize = 地圖高 × tileSize ÷ 2`，把整張地圖塞進畫面（地圖越大角色越小）。＝原本 `MapLoader.FitCamera`。 |
+| **2 鏡頭跟隨（預設）** | `orthographicSize` 固定成「標準房間」大小（角色維持正常大小），鏡頭每幀跟著玩家移動，並**夾在地圖邊界內**（不露出地圖外黑邊）。 |
+
+**「夠大才跟隨」門檻（重要）**：`MapMode=2` 不代表一定跟隨——只有地圖**寬或高任一超過門檻**才跟隨；不夠大的地圖即使填 2 也走整張地圖模式。這讓現有的小／適中地圖完全不受預設值 2 影響。
+
+`MapCameraController` 的可調欄位（Inspector）：
+- `followViewHeightTiles`（預設 **10**）：跟隨模式畫面顯示的高度（格），決定角色大小（＝標準房間高度，`orthographicSize = 此值 × tileSize ÷ 2`）。
+- `maxWholeWidthTiles`（預設 **18**）／`maxWholeHeightTiles`（預設 **10**）：寬或高（格）**超過**此值才算「夠大」。預設值刻意設成現有適中房間的尺寸（18×10），因此所有 18×10 房間維持整張地圖模式，只有更大的地圖（如 `LivingRoom2`，10×18）會跟隨。
+- `followSmoothTime`（預設 0.12）：鏡頭追上玩家的平滑時間（秒），0 = 立即對齊。
+
+> 設計理由：現行縮小效果只由「地圖高度」造成（FitCamera 用高度撐滿），門檻用寬/高任一超過判定可同時涵蓋未來的寬地圖。預設門檻保證**不改變任何現有地圖的觀感**。
 
 ---
 
@@ -219,13 +240,15 @@ ID, Name,   Module,        Path,                                                
 4. **`MainSpawner`**：`SpawnOnStart` 會被 MapManager 在 Awake 自動關閉（不必手動，但手動取消也行）。確認 `PlayerMappings` 有 Player prefab、玩家 prefab 的 tag = `Player`。
 5. **`MonsterSpawner`（EnemySpawner）**：`AutoSpawn` 取消勾選（純由地圖出生點生怪）。
 6. **`TeleportWatcher`**：不必手動掛，`MapManager` 會自己 `AddComponent`。
+   **`MapCameraController`**：同樣不必手動掛，`MapManager` 會自己 `AddComponent` 並依 `MapMode` 驅動；`MapManager.Awake` 會自動把 `MapLoader.fitCameraToMap` 關掉（改由相機控制器接管，整張地圖模式行為一致）。要微調跟隨縮放或門檻，可在執行後於 `MapManager` 物件上的 `MapCameraController` 改參數。
 7. **地圖端**：在編輯器替每張地圖畫 `teleport` 區域、填 `entranceId`/`targetMapId`/`targetEntrance`，並在 `MapsTable.csv` 補上對應地圖列（含 `IsLevelStart`）。跑 `Project Tools → Sync Map Assets` 把 `.dipanmap` 同步進 StreamingAssets。
 
 > 行為驗證：進 Play → 玩家出生在首張圖的 playerSpawn → 走到 teleport 格 → 換到目標圖、落在同名 `entranceId` 的傳送點 → 走開再踩才會跳回（落地防抖）。
 
 ### 新增 / 改動的程式檔
-- 新增：`Assets/Data/MapsTable.csv`、`Assets/Scripts/Map/MapTable.cs`、`MapManager.cs`、`TeleportWatcher.cs`。
+- 新增：`Assets/Data/MapsTable.csv`、`Assets/Scripts/Map/MapTable.cs`、`MapManager.cs`、`TeleportWatcher.cs`、`MapCameraController.cs`（相機模式：整張地圖 / 鏡頭跟隨）。
 - 改動：`Map/MapLoader.cs`（重構可重入）、`Map/MapModel.cs`（`TriggerRegion.GetInt`）、`Map/MapCoords.cs`（`WorldToCell`）、`MainSpawner.cs`（回傳 GameObject + `SpawnOnStart`）、`PlayerController.cs`（`ClearPersistentWeaponsForMapChange`）。
+- 相機模式新增（2026-06-22）：`MapsTable.csv` 加 `MapMode` 欄、`MapTable.cs` 解析 `mode`、`MapManager.cs` 接管相機（`SetupCamera` + 關閉 `MapLoader` 自動 FitCamera）、新增 `MapCameraController.cs`。
 
 ---
 
