@@ -103,6 +103,14 @@ public class PlayerController : MonoBehaviour
 
     void Update()
     {
+        // UI 輸入閘門：開啟背包等視窗時，停止移動/攻擊/切武器（最小侵入；旗標由 UIManager 統合）。
+        if (Dipan.UI.UIManager.IsGameplayInputBlocked)
+        {
+            _moveInput = Vector2.zero;
+            HandleVisuals();
+            return;
+        }
+
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
         _moveInput = new Vector2(h, v).normalized;
