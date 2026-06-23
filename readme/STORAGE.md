@@ -86,7 +86,12 @@
 
 ## 5. 座標校準（若實機有偏移）
 
-UI 已接真素材；座標依底圖量測填好。若實機看頁籤/按鈕/格網有幾 px 偏移，調 `StoragePanel.cs` 上方常數：`GridX0/GridY0/CellW/CellH`（格網）、`TabCx/TabCy/TabW/TabH`（頁籤）、`RefreshCx/RefreshCy/RefreshSize`（倉庫重整鈕，已放底部花紋徽章處 794,1252）、`FrameScale/SoloX/PairLeftX`（縮放與擺位）；背包右移位置在 `InventoryPanel.PairRightX`。**背包重整鈕**（整理道具格，沿用倉庫那組 Refresh 素材）座標在 `InventoryPanel.RefreshCx/RefreshCy/RefreshSize`（名稱列右側 905,1283）。每頁格數改 `StorageSystem.DefaultCols/DefaultRows`。icon 規格沿用背包（256×256 透明 PNG）。
+UI 已接真素材；座標依底圖量測填好。若實機看頁籤/按鈕/格網有偏移，調對應常數（皆為**底圖原生像素、左上原點、填中心點**；往上＝調小 Y、往右＝調大 X）：
+
+- 倉庫（`StoragePanel.cs` 上方）：`GridX0/GridY0/CellW/CellH`（格網）、`TabCx/TabCy/TabW/TabH`（頁籤）、`RefreshCx/RefreshCy/RefreshSize`（重整鈕）、`FrameScale/SoloX/PairLeftX`（縮放與擺位）。
+- 背包（`InventoryPanel.cs`）：`RefreshCx/RefreshCy/RefreshSize`（重整鈕，沿用倉庫那組 Refresh 素材）、`PairRightX`（與倉庫並排時右移量）。
+
+> 重整鈕的精準對位：用看圖工具開該面板底圖 PNG，把游標移到目標徽章中心讀出像素 (x,y)，直接填進 `RefreshCx/RefreshCy`（程式用同一套座標，所見即所得）。每頁格數改 `StorageSystem.DefaultCols/DefaultRows`。icon 規格沿用背包（256×256 透明 PNG）。
 
 > 排序鈕行為：倉庫鈕排序**當前分頁**（`ItemGridData.Sort`）；背包鈕排序**道具格**（`InventorySystem.SortGrid`，不動裝備欄）。規則皆為「合併同物品＋依物品 ID」。
 

@@ -15,9 +15,21 @@
 | `UIManager.cs` | **大腦**：跨場景常駐單例（`DontDestroyOnLoad`）。開關任何 UI 的唯一入口；管分層 Canvas、視窗堆疊、暫停、輸入閘門、遮罩。 |
 | `UIPanel.cs` | **所有面板的抽象基底**：生命週期 + 面板特性旗標 + 淡入淡出。 |
 | `UILayer.cs` | 分層列舉：`HUD / Window / Popup / Overlay`（各一個 Canvas，sortingOrder 遞增）。 |
-| `UIBuilder.cs` | **程式建構助手**：`Image / Text / Button / SolidPanel` + RectTransform 錨點/拉伸 + Resources 載圖 + 內建字型。 |
+| `UIBuilder.cs` | **程式建構助手**：`Image / Text / Button / SolidPanel / InputField`（2026-06-23 加 InputField）+ RectTransform 錨點/拉伸 + Resources 載圖 + 內建字型。 |
 | `UIBootstrap.cs` | `RuntimeInitializeOnLoadMethod` 在開場前自動生出 UIManager，零手動接線。 |
 | `Panels/UIDemoPanel.cs` ＋ `UIDemoLauncher.cs` | 測試/範例面板（按 `U` 開關），驗證底層用，背包做好後可刪。 |
+
+### 共用 slot 拖放/搬運系統（2026-06-23）
+
+讓「背包」與「倉庫」用同一套格子互動程式（跨面板拖放互通）。見 [STORAGE.md](STORAGE.md)、[INVENTORY.md](INVENTORY.md)。
+
+| 檔案（`Assets/Scripts/UI/`） | 角色 |
+|---|---|
+| `ISlotView.cs` | 所有可拖放格子的共同抽象（背包道具格/裝備欄、倉庫格都實作）：`Grid/GridIndex/IsEquip/Equip/DragIcon()/Rt`。 |
+| `SlotDragController.cs` | 全域拖曳＋懸浮 ghost；放開時讀 `eventData.pointerDrag` 上的 `ISlotView` → **跨面板（背包↔倉庫）拖放天生互通**。 |
+| `InventoryActions.cs` | 純搬運規則（與 UI 無關）：格↔格 放入/合併/交換、格↔裝備欄 裝備/卸下/交換、點擊快速搬。 |
+| `ItemSlotWidget.cs` | 通用格子（倉庫頁與任何 `IItemGrid` 用），實作 `ISlotView`＋點擊/拖放/hover。 |
+| `StorageBagCoordinator.cs` | 開場自動生成：K 開倉庫、B 開背包；只開一個置中、兩個都開並排（呼叫各面板 `SetPairedLayout`）。 |
 
 ---
 
@@ -82,6 +94,8 @@ public class InventoryPanel : UIPanel
 - **多場景**：UIManager + 分層 Canvas 由 bootstrap 建一次、`DontDestroyOnLoad` 跨場景存活；切場景時自動關掉非常駐面板（實例仍快取重用）。現在是單場景、未來加場景，底層不用改。
 - **解耦邊界（沿用專案紀律）**：UI 是**純呈現層**，不直接抓遊戲邏輯。資料層與呈現層分開——背包應有 `InventorySystem`（純資料：有什麼、加減、發 `OnChanged` 事件）；`InventoryPanel` 只訂閱事件重繪、操作時回呼 `InventorySystem`。這跟「彈道不算傷害」「GroundEffect 資料 vs 視覺」是同一套設計哲學。
 - **美術走 Resources**：拆分小圖放 `Assets/Resources/...`，用 `UIBuilder.LoadSprite("相對路徑")` 載入（與 `WeaponSpritePath` 等同套慣例）。
+- **共用遮罩（2026-06-23 改）**：只有一張 `_backdrop`。`UpdateBackdrop` 改成「只要有任一 Window 層面板要遮罩就鋪一張，並 `SetAsFirstSibling()` 放在所有視窗最底層」。因此**不論同時開幾個 Window 視窗（如倉庫＋背包並排），都只有一層遮罩、永遠在全部視窗後面**——不會卡在兩個視窗之間蓋住下面那個、也不會疊加。（早期「鋪在最上層視窗正下方」的寫法在並排時會蓋黑下面那個，見 [PROBLEMS.md](PROBLEMS.md) D5。）
+- **程式建 Button 要手動指 `targetGraphic`**：`UIBuilder.Button` 在執行期建立時 Unity 不會自動指定 `targetGraphic`，需 SpriteSwap/讀 `btn.image` 時要補 `btn.targetGraphic = btn.GetComponent<Image>();`（見 [PROBLEMS.md](PROBLEMS.md) D4）。
 
 ---
 
@@ -97,8 +111,10 @@ public class InventoryPanel : UIPanel
 
 - `ItemTable.csv` + `InventorySystem`（純資料層，CSV 驅動，仿 WeaponTable）。
 - `InventoryPanel`（繼承 `UIPanel`，依使用者提供的設計圖 + 拆分小圖以 UIBuilder 建構）。
-- 視需要補：拖放、格子堆疊、tooltip（tooltip 走 `Popup` 層）、HUD（血條/武器/金錢，走 `HUD` 層、不暫停不擋輸入）。
+- ✅ 拖放（共用 `SlotDragController`）、✅ tooltip（背包/倉庫各建一份，浮動跟游標）——已完成。
+- 待補：格子堆疊分割、HUD（血條/武器/金錢，走 `HUD` 層、不暫停不擋輸入）、（可選）把 tooltip 抽成共用元件。
 
 ---
 
 *建立於 2026-06-22：UI 底層框架（uGUI + code-driven，多場景常駐，視面板而定的暫停/輸入閘門）。背包為下一階段，建在本框架上。*
+*2026-06-23 更新：加 `UIBuilder.InputField`；新增「共用 slot 拖放/搬運系統」(ISlotView/SlotDragController/InventoryActions/StorageBagCoordinator) 供背包與倉庫互拖；共用遮罩改為鋪在所有視窗最底層（支援並排視窗、不疊加）。見 [STORAGE.md](STORAGE.md)、[INVENTORY.md](INVENTORY.md)。*
