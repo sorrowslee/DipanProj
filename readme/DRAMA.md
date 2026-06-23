@@ -23,12 +23,22 @@
 | 欄位 | 說明 |
 |---|---|
 | `ID` | 劇情唯一編號（編輯器 `dramaId` 指這個） |
-| `ImagePath` | 圖路徑（相對 `Resources/`、不含副檔名，例 `UI/Drama/drama_sample`）。留空 = 只有文字 |
+| `ImagePath` | **catalog id**：相對 `GameAssets/` 的路徑、不含副檔名（例 `Modules/RedBridalGown/Drama/drama_sample`）。留空 = 只有文字 |
 | `Text` | 內文。欄位內含逗號請用 `"..."` 包覆；要換行就寫 `\n`（會轉成真換行） |
 
 > 之後要加標題、多頁、語音等欄位，在表尾加欄即可（解析器忽略未知欄、缺欄給預設）。
->
-> **圖放哪**：`Assets/Resources/UI/Drama/`，`ImagePath` 填 `UI/Drama/<檔名>`（同 icon 慣例，走 Resources）。
+
+### 圖放哪（重要）：每關專屬、走地圖素材管線，不放共用 Resources
+
+劇情圖是**單一關卡才用的圖、不是共用資源**，所以放在該關卡的素材包，比照地圖素材（牆/地磚/家具）的方式載入，而不是放共用的 `Resources/`：
+
+- **放這裡**：`Assets/GameAssets/Modules/<module>/Drama/<檔名>.png`（例 `…/Modules/RedBridalGown/Drama/drama_sample.png`）。
+- **同步**：跑 `Project Tools → Sync Map Assets`（或 `Tools/sync_map_assets.sh`）會把 `Drama/` 的 PNG 收進 `catalog.json` ＋ 複製進 `StreamingAssets/MapAssets/`（可打包）。`Drama` 是新加進同步分類的（與 `Environment/Tiles/Background` 並列）。
+- **runtime 載入**：`DramaDatabase` 不再用 `Resources.Load`，改用地圖素材管線——`CatalogLoader.Load` 取 catalog、`MapSpriteLoader.GetWholeSprite` 依 `ImagePath`（= catalog id）載圖（PPU 256、Point 濾鏡，像素風一致；UI Image 靠 preserveAspect 縮放，PPU 不影響觀感）。
+- **為什麼不放 Resources**：`Resources/` 會被 Unity **無條件打包進每個 build**（共用、永遠載入），與「每關專屬、之後可隨關卡動態下載」的設計相反（見 [ARCHITECTURE.md](ARCHITECTURE.md) 的美術資源架構）。GameAssets/Modules 才是「場景專屬包」。
+- **三處同步產生器**（加 `Drama` 分類時要一起改，否則只改一處會像 [PROBLEMS.md](PROBLEMS.md) C1 那樣踩雷）：`Assets/Editor/MapAssetSyncTool.cs`、`Tools/sync_map_assets.sh`、`Assets/Scripts/Map/MapIO.cs`(`BuildFromGameAssets` 的編輯器後備)。
+
+> icon（背包道具）仍走 `Resources/UI/Icons`——那是真正的共用資源，不變。只有「每關專屬的劇情圖」走 GameAssets。
 
 ---
 
@@ -64,9 +74,11 @@
 
 ## 怎麼用（一條龍）
 
-1. **編輯器**：放「劇情觸發點」trigger、填 `dramaId`。存檔 → `Project Tools → Sync Map Assets`。
-2. **Unity 一次性**：GameManagers 上 Add Component → `DramaTableProvider`，把 `Assets/Data/DramaTable.csv` 拖進 `Drama CSV` 欄。劇情圖放 `Assets/Resources/UI/Drama/`，在 `DramaTable.csv` 填 `ImagePath`。
-3. **Play**：走近劇情點看到紫星＋「按 F 鍵」→ 按 F → 跳出劇情（暫停＋遮罩、大圖＋文字）→ ESC 或點畫面關閉。
+1. **放劇情圖**：把 PNG 放進 `Assets/GameAssets/Modules/<module>/Drama/`，在 `DramaTable.csv` 的 `ImagePath` 填 catalog id（例 `Modules/RedBridalGown/Drama/<檔名>`）。
+2. **編輯器**：放「劇情觸發點」trigger、填 `dramaId`。
+3. **同步**：`Project Tools → Sync Map Assets`（把劇情圖收進 catalog/StreamingAssets，順便拉地圖）。
+4. **Unity 一次性**：GameManagers 上 Add Component → `DramaTableProvider`，把 `Assets/Data/DramaTable.csv` 拖進 `Drama CSV` 欄。
+5. **Play**：走近劇情點看到紫星＋「按 F 鍵」→ 按 F → 跳出劇情（暫停＋遮罩、大圖＋文字）→ ESC 或點畫面關閉。
 
 ---
 

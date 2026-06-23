@@ -56,7 +56,7 @@ namespace Dipan.UI
 
             var vlg = box.AddComponent<VerticalLayoutGroup>();
             vlg.childAlignment = TextAnchor.UpperCenter;
-            vlg.spacing = 28f;
+            vlg.spacing = 38f;   // 圖↔文字間距（28→38：文字描述往下移 10 單位）
             vlg.padding = new RectOffset(40, 40, 30, 30);
             vlg.childControlWidth = true;
             vlg.childControlHeight = true;    // 讓子物件的 LayoutElement.preferredHeight 生效

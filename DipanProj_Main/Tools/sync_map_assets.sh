@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # 同步地圖素材到主遊戲的 StreamingAssets，供 runtime MapLoader 載入。
 #
-# 從 Assets/GameAssets/{Main,Modules/<關卡>} 底下，只拿 Environment/ Tiles/ Background/
-# 三個資料夾的 PNG，依原相對路徑複製進 Assets/StreamingAssets/MapAssets/（無條件覆蓋），
+# 從 Assets/GameAssets/{Main,Modules/<關卡>} 底下，只拿 Environment/ Tiles/ Background/ Drama/
+# 這幾個資料夾的 PNG，依原相對路徑複製進 Assets/StreamingAssets/MapAssets/（無條件覆蓋），
 # 並生成 catalog.json（id / path / category / module / pixelSize / ppu）。
 #
 # 用法：
@@ -18,7 +18,7 @@ SRC_ROOT="$PROJ_DIR/Assets/GameAssets"
 DST_ROOT="$PROJ_DIR/Assets/StreamingAssets/MapAssets"
 ONLY_MODULE="${1:-}"
 PPU=256
-CATS=(Environment Tiles Background)
+CATS=(Environment Tiles Background Drama)
 
 python3 - "$SRC_ROOT" "$DST_ROOT" "$ONLY_MODULE" "$PPU" "${CATS[@]}" <<'PY'
 import os, sys, json, shutil, struct

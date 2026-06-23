@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
+using Dipan.MapRuntime;   // 劇情圖走地圖素材管線（catalog + StreamingAssets），與共用 Resources 分開
 
 namespace Dipan.Drama
 {
@@ -68,15 +69,35 @@ namespace Dipan.Drama
                     ImagePath = Field(v, 1),
                     Text = Unescape(Field(v, 2)),
                 };
-                if (!string.IsNullOrEmpty(d.ImagePath))
-                {
-                    d.Image = Resources.Load<Sprite>(d.ImagePath);
-                    if (d.Image == null)
-                        Debug.LogWarning($"[DramaDatabase] 圖找不到：Resources/{d.ImagePath}（drama {d.ID}）");
-                }
                 _items[d.ID] = d;
             }
+            ResolveImages();
             Debug.Log($"[DramaDatabase] 載入 {_items.Count} 段劇情。");
+        }
+
+        /// <summary>
+        /// 劇情圖走「地圖素材管線」（每關專屬、與共用 Resources 分開）：圖放在
+        /// GameAssets/Modules/&lt;module&gt;/Drama/，由 Sync Map Assets 收進 catalog ＋ StreamingAssets。
+        /// ImagePath = catalog id（相對 GameAssets 的路徑、不含副檔名，例 Modules/RedBridalGown/Drama/x）。
+        /// 用 MapSpriteLoader 以 PPU 256 載入（與地圖素材一致；UI Image 靠 preserveAspect 縮放，PPU 不影響觀感）。
+        /// </summary>
+        void ResolveImages()
+        {
+            bool any = false;
+            foreach (var d in _items.Values) if (!string.IsNullOrEmpty(d.ImagePath)) { any = true; break; }
+            if (!any) return;
+
+            var catalog = CatalogLoader.Load(out string assetRoot);
+            var loader = new MapSpriteLoader(assetRoot);
+            foreach (var d in _items.Values)
+            {
+                if (string.IsNullOrEmpty(d.ImagePath)) continue;
+                var item = catalog.Find(d.ImagePath);
+                d.Image = item != null ? loader.GetWholeSprite(item, 1f) : null;
+                if (d.Image == null)
+                    Debug.LogWarning($"[DramaDatabase] 找不到劇情圖（catalog id：{d.ImagePath}，drama {d.ID}）。" +
+                        "確認圖放在 GameAssets/Modules/<module>/Drama/ 下，且已執行 Project Tools → Sync Map Assets。");
+            }
         }
 
         static string Field(string[] v, int i) => (i < v.Length && v[i] != null) ? v[i].Trim() : "";

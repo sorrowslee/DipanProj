@@ -645,6 +645,15 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/RedBridalGown/Drama/drama_groupPhoto",
+      "path": "Modules/RedBridalGown/Drama/drama_groupPhoto.png",
+      "category": "Drama",
+      "module": "RedBridalGown",
+      "pixelSize": 1448,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/Tutorial/Environment/GroundStone",
       "path": "Modules/Tutorial/Environment/GroundStone.png",
       "category": "Environment",

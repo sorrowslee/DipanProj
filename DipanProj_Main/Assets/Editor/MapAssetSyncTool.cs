@@ -9,14 +9,14 @@ using Dipan.MapRuntime;
 /// 把地圖素材同步進 StreamingAssets,供 runtime MapLoader 載入(可打包)。
 /// 等同 Tools/sync_map_assets.sh,但純 C#、跨平台、免終端機,跑完自動 Refresh。
 ///
-/// 動作:從 Assets/GameAssets/{Main, Modules/*} 底下,只拿 Environment/ Tiles/ Background/
+/// 動作:從 Assets/GameAssets/{Main, Modules/*} 底下,只拿 Environment/ Tiles/ Background/ Drama/
 /// 的 PNG,依原相對路徑複製進 Assets/StreamingAssets/MapAssets/(覆蓋),生成 catalog.json,
 /// 並複製各 module 的 Maps/*.dipanmap。id = 相對 GameAssets 的路徑去副檔名,與 .dipanmap 一致。
 /// </summary>
 public static class MapAssetSyncTool
 {
     const int PPU = 256;
-    static readonly string[] Cats = { "Environment", "Tiles", "Background" };
+    static readonly string[] Cats = { "Environment", "Tiles", "Background", "Drama" };
 
     // 編輯器 Maps 資料夾(相對 DipanProj_Main/Assets):結構為 Maps/<模組名>/*.dipanmap。
     const string EditorMapsRelative = "../../DipanProj_MapEditor/Maps";
