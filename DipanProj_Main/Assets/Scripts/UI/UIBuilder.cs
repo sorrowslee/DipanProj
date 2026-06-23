@@ -144,6 +144,40 @@ namespace Dipan.UI
             return btn;
         }
 
+        // ───────────────────────── 輸入框 ─────────────────────────
+
+        /// <summary>
+        /// 建一個 legacy uGUI InputField（含背景、文字、placeholder），不依賴 TMP。
+        /// 單行；characterLimit &gt; 0 時限制字數。回傳 InputField（讀取用 .text）。
+        /// </summary>
+        public static UnityEngine.UI.InputField InputField(Transform parent, string name, string placeholder,
+                                            int fontSize = 22, int characterLimit = 16, Color? bgColor = null)
+        {
+            var go = Create(name, parent);
+            var img = go.AddComponent<Image>();
+            img.color = bgColor ?? new Color(1f, 1f, 1f, 0.10f);
+
+            // 注意：本方法名與型別 InputField 同名，方法內存取型別成員必須用完整命名空間，否則簡單名會被當成「方法」(CS0119)。
+            var input = go.AddComponent<UnityEngine.UI.InputField>();
+            input.lineType = UnityEngine.UI.InputField.LineType.SingleLine;
+            input.characterLimit = Mathf.Max(0, characterLimit);
+
+            var text = Text(go.transform, "Text", "", fontSize, Color.white, TextAnchor.MiddleLeft);
+            Stretch(text.rectTransform, 12, 12, 4, 4);
+            text.raycastTarget = true;
+            text.supportRichText = false;
+
+            var ph = Text(go.transform, "Placeholder", placeholder, fontSize,
+                          new Color(1f, 1f, 1f, 0.4f), TextAnchor.MiddleLeft);
+            Stretch(ph.rectTransform, 12, 12, 4, 4);
+            ph.fontStyle = FontStyle.Italic;
+
+            input.textComponent = text;
+            input.placeholder = ph;
+            input.text = "";
+            return input;
+        }
+
         // ───────────────────────── 雜項 ─────────────────────────
 
         /// <summary>從 Resources 載一張 Sprite（路徑不含副檔名）。找不到會印 Warning。</summary>

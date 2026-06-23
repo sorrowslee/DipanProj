@@ -97,3 +97,33 @@
 - **症狀**:物件選取面板裡「－/＋ + 文字框」這種數值控制(動畫 FPS、血量),`－` 正常但 `＋` 按了沒反應;尤其值被 `－` 減到下限後,`＋`/`－` 看起來都失效。
 - **原因**:IMGUI 一次 `OnGUI` 由上往下執行。文字框把「當下 buffer」鎖進回傳變數 `sf`,而 `＋` 按鈕排在文字框**之後**且會在按下時同時改 `sel.值` 與 `buffer`;到了結尾那行「`if (sf != buffer) → 視為使用者打字、回寫 sel`」就會用**舊的 `sf`** 把剛剛 `＋` 的改動**回退**掉。`－` 因為排在文字框**之前**,文字框讀到的是新值,所以不受影響——於是只有 `＋`(或所有「在文字框之後又寫 buffer 的按鈕」)壞掉。
 - **解法**:① 把「未編輯時 `buffer = sel.值.ToString()`」的同步移到**繪製文字框之前**;② 文字框的回寫**只在真的聚焦該欄位打字時**才做(`editing && sf != buffer`)。這樣 ±按鈕直接讀寫 `sel.值`、不會被回退。已修(`EditorUI.cs` 的 FPS 與血量兩處;X/Y 座標本來就沒在按鈕內動 buffer,故不受影響)。**之後在 IMGUI 加「±＋文字框」控制都照這個寫法。**
+
+---
+
+## D. 存檔 / 常駐單例 (Save & Persistent Singletons)
+
+### D1. 退出 Play 跳「Some objects were not cleaned up when closing the scene. (Did you spawn new GameObjects from OnDestroy?) → [InventorySystem]」
+- **症狀**:停止 Play 時 Console 出現上述警告,列出的物件是某個**懶漢常駐單例**(例如 `[InventorySystem]`)。不影響執行,但每次停 Play 都跳。
+- **原因**:懶漢單例的 `Instance` getter「找不到就 `new` 一個」。`SaveManager.OnDestroy` 為了退訂事件而呼叫 `InventorySystem.Instance` ——但關場景時 `InventorySystem` 可能**已經先被銷毀**,於是那個 getter 在 **OnDestroy 期間又生出一個新的 `[InventorySystem]`**,正好就是警告問的「Did you spawn new GameObjects from OnDestroy?」。**任何在 `OnDestroy`/`OnDisable`/`OnApplicationQuit` 裡呼叫其他懶漢單例 `Instance` getter 的程式都會中這個雷**。
+- **解法**:**在物件生命週期早期(Awake/Start)就把要互動的單例參照快取起來,teardown 時只用快取欄位、絕不呼叫會「找不到就建立」的 getter**。Unity 的 `==` 對已銷毀物件會視為 `null`,所以 `if (_cached != null) _cached.OnChanged -= ...;` 在對方已被銷毀時自動跳過、不會重生。已修(`SaveManager` 加 `_inv` 快取欄位 + `Inv` getter 只在正常流程用;`OnDestroy` 改用 `_inv`)。
+
+### D2. 靜態助手「方法名與型別同名」→ 方法內用 `型別.靜態成員` 報 CS0119
+- **症狀**:在 `UIBuilder` 加了 `public static InputField InputField(...)` 後,方法內寫 `InputField.LineType.SingleLine` 編譯報 `CS0119: 'UIBuilder.InputField(...)' is a method, which is not valid in the given context`。但 `AddComponent<InputField>()` 那種「泛型參數位置」卻沒事。
+- **原因**:方法名 `InputField` 與型別 `UnityEngine.UI.InputField` **同名**。在「**用簡單名做成員存取**」的位置(`InputField.LineType`),C# 把 `InputField` 解析成**方法群組**而非型別 → 對方法做 `.LineType` 不合法。泛型參數/回傳型別位置因為文法只接受型別,反而能正確解析成型別(所以既有的 `Button`/`Text`/`Image` 助手沒事——它們從不寫 `型別.靜態成員`)。
+- **解法**:在這種「方法名 == 型別名」的助手裡,**對型別的靜態成員存取一律用完整命名空間**:`UnityEngine.UI.InputField.LineType.SingleLine`(`AddComponent` 也順手 `<UnityEngine.UI.InputField>` 保險)。已修。**之後在 UIBuilder 加同名助手都照此。**
+
+### D3. DTO 換命名空間後,另一個命名空間的檔案找不到它 (CS0246 / CS0029)
+- **症狀**:把 `StorageDTO` 從 `Dipan.Save` 搬到 `Dipan.Inventory`(為守「資料層不依賴存檔」邊界)後,`SaveSystem.cs` 報 `CS0246 找不到 StorageDTO` + `CS0029 List<StorageDTO> 無法轉成 List<Dipan.Inventory.StorageDTO>`。
+- **原因**:`SaveSystem.cs` 沒 `using Dipan.Inventory`,裸寫的 `StorageDTO` 解析不到搬走後的型別。
+- **解法**:跨命名空間引用 DTO 時,**要嘛在檔案頂端 `using`、要嘛寫完整命名空間**。本專案存檔層刻意「依賴資料層、不反向」,故存檔層碰資料層 DTO 時用 `Dipan.Inventory.XxxDTO` 完整名(`SaveSystem`/`SaveManager` 已照此;`CharacterSave` 因有 `using Dipan.Inventory` 可裸寫)。
+
+### D4. 程式建立的 uGUI `Button` 不會自動指定 `targetGraphic`(SpriteSwap / `btn.image` 失效)
+- **症狀**:用程式 `AddComponent<Image>()` + `AddComponent<Button>()` 建按鈕後,設 `transition = SpriteSwap` 沒效果、或讀 `btn.image` 是 null;按下不換圖、也拿不到背景 Image。
+- **原因**:Unity 的 `targetGraphic` 只在 **Editor 的 `Reset()`** 時自動指到同物件第一個 `Graphic`。**執行期 `AddComponent<Button>()` 不會自動指**,所以 `targetGraphic`(以及 `btn.image`)是 null,ColorTint/SpriteSwap transition 與 image 存取都失效。點擊本身仍可用(靠 GraphicRaycaster 命中 Image,與 targetGraphic 無關),所以容易以為「按鈕正常」卻只是 transition 壞掉。
+- **解法**:程式建按鈕後**手動 `btn.targetGraphic = btn.GetComponent<Image>();`** 再設 transition/spriteState。已在倉庫頁籤與重整鈕照此(`StoragePanel`)。**之後用 `UIBuilder.Button` 又要換圖/讀 image 時都要補這行。**
+
+### D5. 兩個同層視窗並排時,共用遮罩把下面那個蓋黑、且擋住它的 hover/點擊
+- **症狀**:倉庫＋背包並排(同 `UILayer.Window`、都 `ShowBackdrop=true`)時,**下面那個面板變黑、滑過去沒有高亮也沒 tooltip**;單獨開其中一個卻正常。
+- **原因**:`UIManager` 只有**一張共用半透明黑遮罩**,設計假設「一次一個 modal」——`UpdateBackdrop` 把它鋪在**堆疊最上層那個 backdrop 視窗的正下方**。兩個同層視窗都開時,遮罩就卡在兩者之間,**蓋住下面那個**;遮罩 `raycastTarget=true` 又半透明 → 下面面板變黑 + 滑鼠事件被吃掉(hover/tooltip/點擊全失效)。
+- **解法（最終）**:把 `UpdateBackdrop` 改成「只要有任一 Window 層面板要遮罩就鋪一張,並 **`SetAsFirstSibling()` 放在所有視窗最底層**」,而不是「鋪在最上層視窗的正下方」。如此**不論開幾個同層視窗,都只有一張遮罩、永遠在全部視窗後面**——不蓋任何面板、不擋 hover、也不可能疊加(全程只有一張 `_backdrop`)。`ShowBackdrop` 維持單純 `true` 即可。
+  - 〔早期權宜做法(已淘汰):並排時把 `ShowBackdrop` 動態關掉 → 雖然不蓋面板,但並排時就完全沒有壓黑遮罩,觀感不佳。最終改用上面 UIManager 的做法,並排時仍有一層在後面。〕

@@ -195,23 +195,20 @@ namespace Dipan.UI
             Time.timeScale = pause ? 0f : 1f;
         }
 
-        /// <summary>共用遮罩：鋪在「最上層、要求遮罩的 Window 面板」正下方；沒有就收起來。</summary>
+        /// <summary>
+        /// 共用遮罩：只要有任一「Window 層且要求遮罩」的面板開著就鋪一層，**放在所有視窗的最底層**。
+        /// 因此不論同時開幾個視窗都只有「一層、在全部視窗後面」——不會卡在兩個並排視窗之間蓋住下面那個，
+        /// 也不會疊加（全程只有這一張 _backdrop）。
+        /// </summary>
         void UpdateBackdrop()
         {
             if (_backdrop == null) return;
 
-            UIPanel top = null;
-            for (int i = _stack.Count - 1; i >= 0; i--)
-            {
-                var p = _stack[i];
-                if (p != null && p.IsOpen && p.ShowBackdrop && p.Layer == UILayer.Window)
-                {
-                    top = p;
-                    break;
-                }
-            }
+            bool any = false;
+            foreach (var p in _panels.Values)
+                if (p != null && p.IsOpen && p.ShowBackdrop && p.Layer == UILayer.Window) { any = true; break; }
 
-            if (top == null)
+            if (!any)
             {
                 _backdrop.gameObject.SetActive(false);
                 return;
@@ -219,8 +216,7 @@ namespace Dipan.UI
 
             _backdrop.transform.SetParent(_layerCanvas[(int)UILayer.Window].transform, false);
             _backdrop.gameObject.SetActive(true);
-            _backdrop.transform.SetAsLastSibling();   // 先把遮罩拉到最上
-            top.transform.SetAsLastSibling();         // 再把目標面板拉到遮罩之上 → 遮罩剛好在它下面
+            _backdrop.transform.SetAsFirstSibling();   // 永遠在所有視窗最底層 → 一層、不蓋任何視窗
         }
 
         UIPanel TopStackPanel()

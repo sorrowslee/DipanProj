@@ -20,7 +20,7 @@ namespace Dipan.Inventory
     /// 持有：7x9=63 個道具格 + 6 個裝備欄。玩家換地圖時物品延續（DontDestroyOnLoad）。
     /// 懶漢單例：第一次存取 Instance 就自動建立，零手動接線。
     /// </summary>
-    public class InventorySystem : MonoBehaviour
+    public class InventorySystem : MonoBehaviour, IItemGrid
     {
         public const int Columns = 7;
         public const int Rows = 9;
@@ -75,6 +75,57 @@ namespace Dipan.Inventory
         public ItemData GetData(int itemId) => Db != null ? Db.Get(itemId) : null;
         public ItemStack GetGrid(int index) => (index >= 0 && index < GridCount) ? _grid[index] : ItemStack.Empty;
         public int GetEquipped(EquipSlot slot) => (_equip != null && _equip.TryGetValue(slot, out var id)) ? id : 0;
+
+        /// <summary>直接設定某裝備欄的物品 ID（0 = 清空）。拖放/跨容器裝備用；會觸發 OnChanged（裝備↔武器連動靠它）。</summary>
+        public void SetEquipped(EquipSlot slot, int itemId)
+        {
+            if (slot == EquipSlot.None) return;
+            _equip[slot] = Mathf.Max(0, itemId);
+            Raise();
+        }
+
+        // ───────────── IItemGrid（讓背包與倉庫共用搬運/UI 程式）─────────────
+        public string DisplayName => "背包";
+        public int Capacity => GridCount;
+        public ItemStack GetAt(int index) => GetGrid(index);
+        public void SetAt(int index, ItemStack stack)
+        {
+            if (index < 0 || index >= GridCount) return;
+            _grid[index] = stack;
+            Raise();
+        }
+        public bool MoveWithin(int from, int to) => MoveGrid(from, to);
+
+        /// <summary>整理道具格（重整鈕用）：合併同物品堆、依物品 ID 排序、往前壓實（不動裝備欄）。</summary>
+        public void SortGrid()
+        {
+            var totals = new Dictionary<int, int>();
+            var order = new List<int>();
+            for (int i = 0; i < GridCount; i++)
+            {
+                if (_grid[i].IsEmpty) continue;
+                int id = _grid[i].ItemId;
+                if (!totals.ContainsKey(id)) { totals[id] = 0; order.Add(id); }
+                totals[id] += _grid[i].Count;
+            }
+            order.Sort();
+
+            for (int i = 0; i < GridCount; i++) _grid[i] = ItemStack.Empty;
+            int slot = 0;
+            foreach (int id in order)
+            {
+                var d = GetData(id);
+                int max = Mathf.Max(1, d != null ? d.MaxStack : 1);
+                int remain = totals[id];
+                while (remain > 0 && slot < GridCount)
+                {
+                    int put = Mathf.Min(max, remain);
+                    _grid[slot++] = new ItemStack { ItemId = id, Count = put };
+                    remain -= put;
+                }
+            }
+            Raise();
+        }
 
         public bool HasAnyItem()
         {
@@ -177,6 +228,63 @@ namespace Dipan.Inventory
                 }
             }
             return false;   // 沒有空格
+        }
+
+        // ───────────── 存檔快照（純資料、不碰檔案）─────────────
+        // SaveManager 在存檔時呼叫 CaptureState、載入角色時呼叫 RestoreState。
+        // 本類別完全不知道有「檔案」，維持資料層與持久化層的解耦（見 readme/SAVE_SYSTEM.md §6.1）。
+
+        /// <summary>把目前背包/裝備打包成可序列化 DTO（稀疏：只收非空格與有裝備的欄）。</summary>
+        public InventoryDTO CaptureState()
+        {
+            var dto = new InventoryDTO();
+            if (_grid != null)
+                for (int i = 0; i < GridCount; i++)
+                {
+                    if (_grid[i].IsEmpty) continue;
+                    dto.grid.Add(new GridSlotDTO { slot = i, itemId = _grid[i].ItemId, count = _grid[i].Count });
+                }
+            if (_equip != null)
+                foreach (var kv in _equip)
+                    if (kv.Value > 0) dto.equipment[kv.Key.ToString()] = kv.Value;
+            return dto;
+        }
+
+        /// <summary>
+        /// 用 DTO 還原背包/裝備。對找不到的物品 ID 跳過、count 夾到 MaxStack，最後 Raise 一次讓 UI 重繪。
+        /// 跨改版安全：物品表移除某 ID 時，舊存檔的該格會被略過而不是整份炸掉。
+        /// </summary>
+        public void RestoreState(InventoryDTO dto)
+        {
+            for (int i = 0; i < GridCount; i++) _grid[i] = ItemStack.Empty;
+            _equip.Clear();
+
+            if (dto != null)
+            {
+                if (dto.grid != null)
+                    foreach (var s in dto.grid)
+                    {
+                        if (s == null || s.itemId <= 0 || s.count <= 0) continue;
+                        var d = GetData(s.itemId);
+                        if (d == null) { Debug.LogWarning($"[InventorySystem] 還原跳過未知物品 ID {s.itemId}"); continue; }
+                        int count = Mathf.Min(s.count, Mathf.Max(1, d.MaxStack));
+                        if (s.slot >= 0 && s.slot < GridCount && _grid[s.slot].IsEmpty)
+                            _grid[s.slot] = new ItemStack { ItemId = s.itemId, Count = count };
+                        else
+                            AddItem(s.itemId, count);   // 格子越界/被占（例如改過背包尺寸）→ 找空位塞回
+                    }
+
+                if (dto.equipment != null)
+                    foreach (var kv in dto.equipment)
+                    {
+                        if (kv.Value <= 0) continue;
+                        if (!System.Enum.TryParse(kv.Key, true, out EquipSlot slot) || slot == EquipSlot.None) continue;
+                        if (GetData(kv.Value) == null) { Debug.LogWarning($"[InventorySystem] 還原跳過未知裝備 ID {kv.Value}"); continue; }
+                        _equip[slot] = kv.Value;
+                    }
+            }
+
+            Raise();
         }
     }
 }

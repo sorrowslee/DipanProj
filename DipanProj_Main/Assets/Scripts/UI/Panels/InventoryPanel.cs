@@ -16,7 +16,7 @@ namespace Dipan.UI
         public override UILayer Layer => UILayer.Window;
         public override bool PausesGame => true;
         public override bool BlocksGameplayInput => true;
-        public override bool ShowBackdrop => true;
+        public override bool ShowBackdrop => true;   // 遮罩由 UIManager 統一鋪在所有視窗最底層（一層、不蓋面板）
         public override bool CloseOnEscape => true;
 
         // ── 背景原圖尺寸 ──
@@ -37,9 +37,10 @@ namespace Dipan.UI
         [Tooltip("面板顯示高度（CanvasScaler 參考單位，1080 為滿版）。")]
         public float displayHeight = 1040f;
 
+        const float PairRightX = 420f;   // 與倉庫並排時，背包置於右側（與 StoragePanel.PairLeftX 對稱）
+
         RectTransform _frame;
         Image _highlight;
-        Text _nameLabel;
         InventorySlotWidget[] _gridSlots;
         InventorySlotWidget[] _equipSlots;
 
@@ -105,12 +106,31 @@ namespace Dipan.UI
             _highlight.raycastTarget = false;
             _highlight.gameObject.SetActive(false);
 
-            // 底部名稱列
-            _nameLabel = UIBuilder.Text(frameGO.transform, "NameLabel", "", 28,
-                                        new Color(0.95f, 0.9f, 0.78f), TextAnchor.MiddleCenter);
-            Place(_nameLabel.rectTransform, NameBarX, NameBarY, NameBarW, NameBarH);
-
+            BuildRefreshButton();
             BuildTooltip();
+        }
+
+        // ── 重整（整理道具格）按鈕：中心位置（底圖原生像素，左上為原點，X→右、Y→下）。往上調小 RefreshCy、往右調大 RefreshCx。
+        const float RefreshCx = 870f, RefreshCy = 1240f, RefreshSize = 120f;
+        const string RefreshResDir = "UI/StoragePanel/";   // 沿用倉庫那組按鈕素材
+
+        void BuildRefreshButton()
+        {
+            Sprite R(string n) => Resources.Load<Sprite>(RefreshResDir + n);
+            var rb = UIBuilder.Button(_frame, "Refresh", "",
+                                      () => InventorySystem.Instance.SortGrid(), Color.white, R("RefreshBG_normal"));
+            rb.targetGraphic = rb.GetComponent<Image>();
+            rb.transition = Selectable.Transition.SpriteSwap;
+            var ss = rb.spriteState;
+            ss.pressedSprite = R("RefreshBG_pressed");
+            ss.highlightedSprite = R("RefreshBG_normal");
+            ss.selectedSprite = R("RefreshBG_normal");
+            rb.spriteState = ss;
+            Place((RectTransform)rb.transform, RefreshCx, RefreshCy, RefreshSize, RefreshSize);
+
+            var ic = UIBuilder.Image(rb.transform, "Icon", R("RefreshIcon"));
+            ic.preserveAspect = true; ic.raycastTarget = false;
+            UIBuilder.Stretch(ic.rectTransform, 26, 26, 26, 26);
         }
 
         /// <summary>建浮動 tooltip：掛在 panel root（不受 frame 縮放），上半正楷功能、下半斜體劇情，高度自動。</summary>
@@ -243,9 +263,23 @@ namespace Dipan.UI
         {
             var inv = InventorySystem.Instance;
             if (w.kind == InventorySlotWidget.Kind.Grid)
-                inv.EquipFromGrid(w.index);    // 可裝備才會生效，否則 no-op
+            {
+                var store = StoragePanel.ActivePageIfOpen();
+                if (store != null)
+                    InventoryActions.QuickMoveGrid(w, store);   // 倉庫開著：點一下送進倉庫當前分頁
+                else
+                    inv.EquipFromGrid(w.index);                  // 否則維持原本：點可裝備物品 → 裝備
+            }
             else
+            {
                 inv.Unequip(w.equipSlot);
+            }
+        }
+
+        /// <summary>並排（右移）或單獨（置中）。由 StorageBagCoordinator 呼叫。</summary>
+        public void SetPairedLayout(bool paired)
+        {
+            if (_frame != null) _frame.anchoredPosition = new Vector2(paired ? PairRightX : 0f, 0f);
         }
 
         void OnSlotEnter(InventorySlotWidget w)
@@ -260,9 +294,6 @@ namespace Dipan.UI
             int id = (w.kind == InventorySlotWidget.Kind.Grid)
                 ? inv.GetGrid(w.index).ItemId
                 : inv.GetEquipped(w.equipSlot);
-            var d = (id > 0) ? inv.GetData(id) : null;
-            _nameLabel.text = (d != null) ? d.Name : "";
-
             ShowTooltip(id);
         }
 
@@ -277,7 +308,6 @@ namespace Dipan.UI
             if (_highlight == null) return;
             _highlight.gameObject.SetActive(false);
             _highlight.transform.SetParent(_frame, false);
-            if (_nameLabel != null) _nameLabel.text = "";
         }
 
         // ── tooltip ──
