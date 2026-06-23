@@ -5,26 +5,24 @@ using Dipan.MapRuntime;
 using Dipan.UI;
 
 /// <summary>
-/// 拾取互動的大腦：常駐單例（仿 InventorySystem）。統一管理兩種「靠近按 F 撿取」的目標：
-///   1. **拾取點 trigger**（地圖編輯器放置；星星特效標示）——撿取時把 itemId×count 放進背包。
-///   2. **地上掉落物**（背包滿了溢出、未來怪物掉落）——用道具 icon 縮小放地上。
+/// 「靠近按 F 互動」的大腦：常駐單例（仿 InventorySystem）。統一管理所有互動目標：
+///   1. **拾取點 trigger**（地圖編輯器 pickup；星星標示）——撿取 itemId×count 進背包。
+///   2. **劇情觸發點 trigger**（地圖編輯器 drama；星星標示）——開啟 DramaPanel(dramaId)。
+///   3. **地上掉落物**（背包滿了溢出、未來怪物掉落）——道具 icon 縮小放地上。
 ///
-/// 兩者共用同一套互動：每幀找「最近且在 PickupRadius 內」的目標 → 在它上方顯示「按 F 鍵拾取 XXX」
-/// （PickupTipPanel）→ 玩家按 F 撿取最近那一個。背包滿了，溢出的部分掉成地上掉落物
-/// （拾取點按 F 也走同一條路：吃得下的進背包、剩的掉腳下，清完背包再按 F 撿地上那份）。
-/// 開背包等視窗時（UIManager.IsGameplayInputBlocked）不觸發。
+/// 共用同一套互動：每幀找「最近且在 PickupRadius 內」的目標 → 在它上方顯示提示（PickupTipPanel）
+/// → 玩家按 F 互動最近那一個。提示文字：拾取＝「按 F 鍵拾取 XXX」、劇情＝「按 F 鍵」。
+/// 開背包/劇情等視窗時（UIManager.IsGameplayInputBlocked）不觸發。
 ///
-/// 生命週期：拾取點與掉落物都屬「當前地圖」，換地圖時 MapManager 呼叫 <see cref="ClearAll"/> 清掉、
-/// 再 <see cref="SetupPickupPoints"/> 重建（= 當次停留記憶；永久化屬 readme/MAP_SYSTEM.md 的 Phase 2）。
-///
-/// 拾取點的星星標示特效由本類別管理（而非 MapLoader），因為「撿掉後要即時移除該特效」，
-/// 由知道何時撿掉的這裡負責最自然（teleport 標記不會中途消失才放在 MapLoader）。
+/// 生命週期：互動點與掉落物都屬「當前地圖」，換地圖時 MapManager 呼叫 <see cref="ClearAll"/> 清掉、
+/// 再 <see cref="SetupInteractPoints"/> 重建（= 當次停留記憶；永久化屬 readme/MAP_SYSTEM.md 的 Phase 2）。
+/// 星星標示由本類別管理（撿掉 / 看完劇情要即時移除）。
 /// </summary>
-public class LootManager : MonoBehaviour
+public class InteractionManager : MonoBehaviour
 {
-    [Header("撿取")]
-    public KeyCode pickupKey = KeyCode.F;
-    public float pickupRadius = 1.2f;     // 玩家進入此半徑才顯示提示、可撿
+    [Header("互動")]
+    public KeyCode interactKey = KeyCode.F;
+    public float pickupRadius = 1.2f;     // 玩家進入此半徑才顯示提示、可互動
 
     [Header("掉落物外觀")]
     public float lootWorldSize = 0.6f;    // 地上 icon 的世界大小（稍小於 1 格）
@@ -32,44 +30,52 @@ public class LootManager : MonoBehaviour
     public int sortingOrder = 5;          // 低於角色（角色在 10），畫在地上
     public float tipHeight = 0.6f;        // 提示框相對目標的上方偏移（世界單位）
 
-    [Header("拾取點星星特效")]
+    [Header("互動點星星特效")]
     public int markerStarCount = 5;
-    public Color markerColor = new Color(1f, 0.92f, 0.45f, 1f);   // 金黃星
+    public Color pickupMarkerColor = new Color(1f, 0.92f, 0.45f, 1f);   // 拾取點：金黃星
+    public Color dramaMarkerColor = new Color(0.72f, 0.5f, 1f, 1f);     // 劇情點：紫星
     public int markerSortingOrder = 20;   // 高於角色，星星浮在空中
 
-    static LootManager _instance;
+    static InteractionManager _instance;
     public static bool Exists => _instance != null;
-    public static LootManager Instance
+    public static InteractionManager Instance
     {
         get
         {
             if (_instance == null)
             {
-                _instance = FindObjectOfType<LootManager>();
+                _instance = FindObjectOfType<InteractionManager>();
                 if (_instance == null)
                 {
-                    var go = new GameObject("[LootManager]");
-                    _instance = go.AddComponent<LootManager>();
+                    var go = new GameObject("[InteractionManager]");
+                    _instance = go.AddComponent<InteractionManager>();
                 }
             }
             return _instance;
         }
     }
 
-    /// <summary>一個地圖編輯器放置的拾取點。</summary>
-    class PickupPoint
+    enum PointKind { Pickup, Drama }
+
+    /// <summary>一個地圖編輯器放置的互動點（拾取點或劇情點）。</summary>
+    class InteractPoint
     {
         public string id;
+        public PointKind kind;
+        // pickup
         public int itemId;
         public int count;
         public string name;
+        // drama
+        public int dramaId;
+        // 共用
         public Vector2[] cellCenters;   // 區域各格中心（世界座標）
         public Vector2 center;          // 區域中心（提示與星星位置）
         public GameObject marker;       // 星星特效物件
     }
 
     readonly List<GroundLoot> _loot = new List<GroundLoot>();
-    readonly List<PickupPoint> _points = new List<PickupPoint>();
+    readonly List<InteractPoint> _points = new List<InteractPoint>();
     Transform _player;
     PickupTipPanel _tip;
 
@@ -82,24 +88,21 @@ public class LootManager : MonoBehaviour
 
     // ───────────────────────── 對外 API ─────────────────────────
 
-    /// <summary>讀當前地圖的 pickup trigger，建立拾取點 + 星星標示。每次換圖由 MapManager 呼叫（會先清舊的）。</summary>
-    public void SetupPickupPoints(MapData map, string pickupTypeId)
+    /// <summary>讀當前地圖的 pickup / drama trigger，建立互動點 + 星星標示。每次換圖由 MapManager 呼叫（會先清舊的）。</summary>
+    public void SetupInteractPoints(MapData map, string pickupTypeId, string dramaTypeId)
     {
-        ClearPickupPoints();
+        ClearPoints();
         if (map?.TriggerLayer?.regions == null) return;
-        string typeId = string.IsNullOrEmpty(pickupTypeId) ? "pickup" : pickupTypeId;
+        string pickupT = string.IsNullOrEmpty(pickupTypeId) ? "pickup" : pickupTypeId;
+        string dramaT = string.IsNullOrEmpty(dramaTypeId) ? "drama" : dramaTypeId;
         var inv = InventorySystem.Instance;
 
         foreach (var r in map.TriggerLayer.regions)
         {
-            if (r.typeId != typeId || r.cells == null || r.cells.Count == 0) continue;
-
-            if (!int.TryParse(r.GetString("itemId"), out int itemId) || itemId <= 0)
-            {
-                Debug.LogWarning($"[LootManager] 拾取點「{r.name}」itemId 無效（{r.GetString("itemId")}），略過。");
-                continue;
-            }
-            int count = Mathf.Max(1, r.GetInt("count", 1));
+            if (r.cells == null || r.cells.Count == 0) continue;
+            bool isPickup = r.typeId == pickupT;
+            bool isDrama = r.typeId == dramaT;
+            if (!isPickup && !isDrama) continue;
 
             // 各格中心 + 區域中心。
             var centers = new List<Vector2>(r.cells.Count);
@@ -114,17 +117,39 @@ public class LootManager : MonoBehaviour
             if (centers.Count == 0) continue;
             Vector2 center = sum / centers.Count;
 
-            var data = inv != null ? inv.GetData(itemId) : null;
-            var pt = new PickupPoint
+            var pt = new InteractPoint
             {
                 id = r.id,
-                itemId = itemId,
-                count = count,
-                name = data != null ? data.Name : $"#{itemId}",
                 cellCenters = centers.ToArray(),
                 center = center,
-                marker = CreateMarker(center),
             };
+
+            if (isPickup)
+            {
+                if (!int.TryParse(r.GetString("itemId"), out int itemId) || itemId <= 0)
+                {
+                    Debug.LogWarning($"[InteractionManager] 拾取點「{r.name}」itemId 無效（{r.GetString("itemId")}），略過。");
+                    continue;
+                }
+                var data = inv != null ? inv.GetData(itemId) : null;
+                pt.kind = PointKind.Pickup;
+                pt.itemId = itemId;
+                pt.count = Mathf.Max(1, r.GetInt("count", 1));
+                pt.name = data != null ? data.Name : $"#{itemId}";
+                pt.marker = CreateMarker(center, pickupMarkerColor);
+            }
+            else // drama
+            {
+                int dramaId = r.GetInt("dramaId", 0);
+                if (dramaId <= 0)
+                {
+                    Debug.LogWarning($"[InteractionManager] 劇情點「{r.name}」dramaId 無效（{r.GetString("dramaId")}），略過。");
+                    continue;
+                }
+                pt.kind = PointKind.Drama;
+                pt.dramaId = dramaId;
+                pt.marker = CreateMarker(center, dramaMarkerColor);
+            }
             _points.Add(pt);
         }
     }
@@ -137,7 +162,7 @@ public class LootManager : MonoBehaviour
         var data = inv != null ? inv.GetData(itemId) : null;
         if (data == null)
         {
-            Debug.LogWarning($"[LootManager] 掉落物 itemId={itemId} 在 ItemTable 找不到，略過。");
+            Debug.LogWarning($"[InteractionManager] 掉落物 itemId={itemId} 在 ItemTable 找不到，略過。");
             return null;
         }
 
@@ -150,24 +175,24 @@ public class LootManager : MonoBehaviour
         return loot;
     }
 
-    /// <summary>清掉所有地上掉落物與拾取點（換地圖時呼叫）。</summary>
+    /// <summary>清掉所有地上掉落物與互動點（換地圖時呼叫）。</summary>
     public void ClearAll()
     {
         for (int i = 0; i < _loot.Count; i++)
             if (_loot[i] != null) Destroy(_loot[i].gameObject);
         _loot.Clear();
-        ClearPickupPoints();
+        ClearPoints();
         if (_tip != null) _tip.HideTip();
     }
 
-    void ClearPickupPoints()
+    void ClearPoints()
     {
         for (int i = 0; i < _points.Count; i++)
             if (_points[i]?.marker != null) Destroy(_points[i].marker);
         _points.Clear();
     }
 
-    // ───────────────────────── 每幀：提示 + 撿取 ─────────────────────────
+    // ───────────────────────── 每幀：提示 + 互動 ─────────────────────────
 
     void Update()
     {
@@ -176,20 +201,19 @@ public class LootManager : MonoBehaviour
 
         if (_loot.Count == 0 && _points.Count == 0) { HideTip(); return; }
 
-        // 開 UI（背包等）時不撿、不顯示提示。
+        // 開 UI（背包/劇情等）時不互動、不顯示提示。
         if (UIManager.IsGameplayInputBlocked) { HideTip(); return; }
 
         if (_player == null) _player = GameObject.FindGameObjectWithTag("Player")?.transform;
         if (_player == null) { HideTip(); return; }
         Vector2 p = _player.position;
-        float r2 = pickupRadius * pickupRadius;
 
-        // 找最近的可撿目標（掉落物 + 拾取點一起比）。
-        float best = r2;
+        // 找最近的可互動目標（掉落物 + 互動點一起比）。
+        float best = pickupRadius * pickupRadius;
         GroundLoot bestLoot = null;
-        PickupPoint bestPoint = null;
+        InteractPoint bestPoint = null;
         Vector3 tipPos = default;
-        string tipName = null;
+        string tipText = null;
 
         for (int i = 0; i < _loot.Count; i++)
         {
@@ -197,7 +221,8 @@ public class LootManager : MonoBehaviour
             if (d <= best)
             {
                 best = d; bestLoot = _loot[i]; bestPoint = null;
-                tipPos = _loot[i].transform.position; tipName = _loot[i].DisplayName;
+                tipPos = _loot[i].transform.position;
+                tipText = $"按 {interactKey} 鍵拾取 {_loot[i].DisplayName}";
             }
         }
         for (int i = 0; i < _points.Count; i++)
@@ -206,20 +231,23 @@ public class LootManager : MonoBehaviour
             if (d <= best)
             {
                 best = d; bestPoint = _points[i]; bestLoot = null;
-                tipPos = _points[i].center; tipName = _points[i].name;
+                tipPos = _points[i].center;
+                tipText = _points[i].kind == PointKind.Pickup
+                    ? $"按 {interactKey} 鍵拾取 {_points[i].name}"
+                    : $"按 {interactKey} 鍵";   // 劇情點：只提示按鍵
             }
         }
 
         if (bestLoot == null && bestPoint == null) { HideTip(); return; }
 
         if (_tip == null) _tip = PickupTipPanel.Ensure();
-        if (_tip != null)
-            _tip.ShowAt(tipPos + Vector3.up * tipHeight, $"按 {pickupKey} 鍵拾取 {tipName}");
+        if (_tip != null) _tip.ShowAt(tipPos + Vector3.up * tipHeight, tipText);
 
-        if (Input.GetKeyDown(pickupKey))
+        if (Input.GetKeyDown(interactKey))
         {
             if (bestLoot != null) TryPickUpLoot(bestLoot);
-            else CollectPoint(bestPoint);
+            else if (bestPoint.kind == PointKind.Pickup) CollectPickup(bestPoint);
+            else TriggerDrama(bestPoint);
         }
     }
 
@@ -241,7 +269,7 @@ public class LootManager : MonoBehaviour
     }
 
     // 撿拾取點（一律消耗該點：吃得下的進背包、剩的掉腳下變成地上掉落物）。
-    void CollectPoint(PickupPoint pt)
+    void CollectPickup(InteractPoint pt)
     {
         var inv = InventorySystem.Instance;
         if (inv == null || pt == null) return;
@@ -259,12 +287,25 @@ public class LootManager : MonoBehaviour
                                           : $"背包已滿，{pt.name} 掉落地上");
         }
 
+        ConsumePoint(pt);
+    }
+
+    // 觸發劇情點（開 DramaPanel，並消耗該點 = 當次停留不再觸發；離開地圖會重建）。
+    void TriggerDrama(InteractPoint pt)
+    {
+        if (pt == null) return;
+        DramaPanel.Show(pt.dramaId);
+        ConsumePoint(pt);
+    }
+
+    void ConsumePoint(InteractPoint pt)
+    {
         if (pt.marker != null) Destroy(pt.marker);
         _points.Remove(pt);
         HideTip();
     }
 
-    static float NearestCellSqr(PickupPoint pt, Vector2 p)
+    static float NearestCellSqr(InteractPoint pt, Vector2 p)
     {
         float best = float.MaxValue;
         for (int i = 0; i < pt.cellCenters.Length; i++)
@@ -275,12 +316,12 @@ public class LootManager : MonoBehaviour
         return best;
     }
 
-    GameObject CreateMarker(Vector2 pos)
+    GameObject CreateMarker(Vector2 pos, Color color)
     {
-        var go = new GameObject("PickupMarker");
+        var go = new GameObject("InteractMarker");
         go.transform.position = new Vector3(pos.x, pos.y, 0f);
-        var m = go.AddComponent<PickupMarker>();
-        m.Configure(markerStarCount, markerColor, sortingLayerName, markerSortingOrder);
+        var m = go.AddComponent<InteractMarker>();
+        m.Configure(markerStarCount, color, sortingLayerName, markerSortingOrder);
         return go;
     }
 

@@ -544,6 +544,20 @@
             "itemId": "101",
             "count": "500"
           }
+        },
+        {
+          "id": "760abd45",
+          "name": "劇情觸發點1",
+          "typeId": "drama",
+          "cells": [
+            [
+              3,
+              6
+            ]
+          ],
+          "params": {
+            "dramaId": "1"
+          }
         }
       ]
     }

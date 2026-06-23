@@ -747,6 +747,51 @@ MonoBehaviour:
   playerSpawner: {fileID: 0}
   startModule: RedBridalGown
   autoStartLevel: 1
+--- !u!1 &652067900
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 652067902}
+  - component: {fileID: 652067901}
+  m_Layer: 0
+  m_Name: DramaTableProvider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &652067901
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 652067900}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1dbf38a5e7d6a41ee80f1c94285f9ef6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dramaCSV: {fileID: 4900000, guid: ed7771a6a378746bbab9ac5bafabef74, type: 3}
+--- !u!4 &652067902
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 652067900}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.3535287, y: -0.15508607, z: -9.971284}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &823910661
 GameObject:
   m_ObjectHideFlags: 0
@@ -1065,6 +1110,7 @@ MonoBehaviour:
   monsterSpawnTypeId: monsterSpawn
   teleportTypeId: teleport
   pickupTypeId: pickup
+  dramaTypeId: drama
   buildBackground: 1
   buildTiles: 1
   buildObjects: 1
@@ -3309,3 +3355,4 @@ SceneRoots:
   - {fileID: 929488581}
   - {fileID: 823910663}
   - {fileID: 1712054716}
+  - {fileID: 652067902}

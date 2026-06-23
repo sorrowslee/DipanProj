@@ -37,6 +37,7 @@ public class MapLoader : MonoBehaviour
     public string monsterSpawnTypeId = "monsterSpawn";
     public string teleportTypeId = "teleport";
     public string pickupTypeId = "pickup";
+    public string dramaTypeId = "drama";
 
     [Header("開關")]
     public bool buildBackground = true;

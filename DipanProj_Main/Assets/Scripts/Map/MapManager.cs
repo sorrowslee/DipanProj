@@ -141,8 +141,8 @@ public class MapManager : MonoBehaviour
         DestroyAllOfType<GroundEffectInstance>();
         DestroyAllOfType<VfxInstance>();
 
-        // 地上掉落物屬「當前地圖」的暫態物件，換圖一併清掉（永久化屬 Phase 2）。
-        if (LootManager.Exists) LootManager.Instance.ClearAll();
+        // 地上掉落物與互動點（拾取/劇情）屬「當前地圖」的暫態物件，換圖一併清掉（永久化屬 Phase 2）。
+        if (InteractionManager.Exists) InteractionManager.Instance.ClearAll();
     }
 
     static void DestroyAllOfType<T>() where T : Component
@@ -167,8 +167,8 @@ public class MapManager : MonoBehaviour
         _watcher.Setup(mapLoader.Map, mapLoader.teleportTypeId,
                        _player != null ? _player.transform : null, this);
 
-        // 拾取點：建立「靠近按 F 撿取」的目標 + 星星標示特效（由 LootManager 統一管理，
+        // 互動點：建立「靠近按 F」的拾取點 / 劇情點 + 星星標示特效（由 InteractionManager 統一管理，
         // 與地上掉落物共用同一套互動）。Setup 會清舊的、重建新的（= 當次停留記憶）。
-        LootManager.Instance.SetupPickupPoints(mapLoader.Map, mapLoader.pickupTypeId);
+        InteractionManager.Instance.SetupInteractPoints(mapLoader.Map, mapLoader.pickupTypeId, mapLoader.dramaTypeId);
     }
 }

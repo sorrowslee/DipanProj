@@ -2,13 +2,13 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 道具拾取點的標示特效：數顆星星在空中閃爍（純程式生成，無需任何貼圖）。
+/// 互動點（道具拾取點 / 劇情觸發點）的標示特效：數顆星星在空中閃爍（純程式生成，無需任何貼圖）。
 ///
 /// 星星 sprite 由程式畫出（五角星，反鋸齒），同一張共用快取；每顆星各有獨立相位，
-/// 做「亮度閃爍 + 大小脈動 + 上下浮動 + 緩慢自轉」。由 <see cref="LootManager"/> 在每個拾取點生成，
-/// 撿掉時連同本物件一起銷毀。風格對齊專案：全程式建構、零素材、零 Inspector 接線。
+/// 做「亮度閃爍 + 大小脈動 + 上下浮動 + 緩慢自轉」。由 <see cref="InteractionManager"/> 在每個互動點生成，
+/// 觸發掉（撿取 / 看完劇情）時連同本物件一起銷毀。風格對齊專案：全程式建構、零素材、零接線。
 /// </summary>
-public class PickupMarker : MonoBehaviour
+public class InteractMarker : MonoBehaviour
 {
     [Header("外觀")]
     public int starCount = 5;
@@ -16,7 +16,7 @@ public class PickupMarker : MonoBehaviour
     public string sortingLayerName = "Default";
     public int sortingOrder = 20;
 
-    [Header("分布（相對拾取點中心，世界單位）")]
+    [Header("分布（相對互動點中心，世界單位）")]
     public float spreadRadius = 0.5f;     // 星星散布的水平半徑
     public float floatHeight = 0.45f;     // 星群整體浮在中心上方多高
     public float starWorldSize = 0.22f;   // 單顆星的世界大小
@@ -45,7 +45,7 @@ public class PickupMarker : MonoBehaviour
 
     static Sprite _starSprite;
 
-    /// <summary>由 LootManager 在 AddComponent 後立即呼叫，設定顆數/顏色/排序。</summary>
+    /// <summary>由 InteractionManager 在 AddComponent 後立即呼叫，設定顆數/顏色/排序。</summary>
     public void Configure(int count, Color c, string sortLayer, int sortOrder)
     {
         starCount = Mathf.Max(1, count);

@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 一個躺在地上的掉落物：用該道具的背包 icon 縮小顯示（之後要換成專屬地上圖再說）。
-/// 由 <see cref="LootManager"/> 生成與管理，本元件只持資料與外觀。
+/// 由 <see cref="InteractionManager"/> 生成與管理，本元件只持資料與外觀。
 /// </summary>
 public class GroundLoot : MonoBehaviour
 {

@@ -4,7 +4,7 @@ using UnityEngine.UI;
 namespace Dipan.UI
 {
     /// <summary>
-    /// 跟隨地上掉落物的拾取提示（「按 F 鍵拾取 XXX」）。由 LootManager 每幀驅動：
+    /// 跟隨地上掉落物的拾取提示（「按 F 鍵拾取 XXX」）。由 InteractionManager 每幀驅動：
     /// 有最近且在範圍內的掉落物就 <see cref="ShowAt"/>（指定世界座標 + 文字），否則 <see cref="HideTip"/>。
     ///
     /// 特性：HUD 層、不暫停/不擋輸入/不遮罩/不入堆疊。面板本體常開（透明無內容時等於隱形），

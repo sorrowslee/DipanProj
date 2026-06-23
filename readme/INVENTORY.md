@@ -124,7 +124,7 @@
 - ✅ **拖放重排 / 跨格搬移**（已做，透過共用 `SlotDragController`）。
 - ✅ **存檔串接**（已做，`CaptureState/RestoreState` → 角色存檔，見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md)）。
 - tooltip 上半改由**裝備實際屬性組字**(取代目前純讀 `TipStats`);右鍵快速使用/卸下、堆疊分割（按住搬一半）、稀有度底色、排序規則細化、搜尋。
-- 撿道具/掉落物系統接 `AddItem`。
+- ✅ **撿道具/掉落物系統接 `AddItem`**（已做，見 [INTERACTION.md](INTERACTION.md)：拾取點 + 地上掉落物，靠近按 F）。
 - （可選）背包浮動 tooltip 目前各面板各建一份（背包、倉庫各有），日後可抽成共用元件。
 
 ---
