@@ -27,6 +27,10 @@
         {
           "key": "itemId",
           "type": "String"
+        },
+        {
+          "key": "count",
+          "type": "Int"
         }
       ]
     },

@@ -5,7 +5,10 @@ using UnityEngine;
 namespace Dipan.Inventory
 {
     /// <summary>
-    /// 物品定義表：從 Resources/Data/ItemTable.csv 載入所有 ItemData，並預載各自的 icon sprite。
+    /// 物品定義表：載入所有 ItemData，並預載各自的 icon sprite。
+    /// 表來源 = 一個 TextAsset（CSV 放在 Assets/Data/ItemTable.csv，與其他表同位置，由場景上的
+    /// <see cref="ItemTableProvider"/> 把它拖進 Inspector 提供；見 readme/INVENTORY.md）。
+    /// （icon 仍走 Resources/UI/Icons，與表的位置無關。）
     /// CSV 支援**雙引號包覆**的欄位（內含逗號的長文字請用 "..." 包起來，引號內的 "" 表示一個雙引號），
     /// 因此 tooltip 文字可自由使用逗號。欄位中的 \n 會被轉成換行。
     /// </summary>
@@ -21,16 +24,30 @@ namespace Dipan.Inventory
             return d;
         }
 
+        /// <summary>從指定 TextAsset 載入（主要路徑：由 ItemTableProvider 提供、CSV 在 Assets/Data）。</summary>
+        public void LoadFromTextAsset(TextAsset csv)
+        {
+            if (csv == null) { Debug.LogError("[ItemDatabase] 傳入的 ItemTable TextAsset 為 null。"); return; }
+            LoadFromText(csv.text);
+        }
+
+        /// <summary>後備路徑：若 CSV 仍放在 Resources（舊位置）才用得到；已搬到 Assets/Data 後一般走 TextAsset。</summary>
         public void LoadFromResources(string path = "Data/ItemTable")
         {
             var csv = Resources.Load<TextAsset>(path);
             if (csv == null)
             {
-                Debug.LogError($"[ItemDatabase] 找不到 CSV：Resources/{path}");
+                Debug.LogError($"[ItemDatabase] 找不到 ItemTable。請把 Assets/Data/ItemTable.csv 拖進場景上 " +
+                               $"ItemTableProvider 元件的 Item CSV 欄（見 readme/INVENTORY.md）。");
                 return;
             }
+            LoadFromText(csv.text);
+        }
 
-            string[] lines = csv.text.Split('\n');
+        void LoadFromText(string text)
+        {
+            _items.Clear();
+            string[] lines = (text ?? "").Split('\n');
             for (int i = 1; i < lines.Length; i++)   // 第 0 行是表頭
             {
                 string line = lines[i].TrimEnd('\r');

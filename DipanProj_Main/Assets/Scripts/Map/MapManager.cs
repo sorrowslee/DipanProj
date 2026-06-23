@@ -125,7 +125,7 @@ public class MapManager : MonoBehaviour
         else Debug.LogError("[MapManager] 無法生成/找到玩家（檢查 MainSpawner 的 PlayerMappings 與 Player tag）。");
     }
 
-    /// <summary>清掉屬於上一張地圖的暫態物件：怪物、飛行子彈、雷射、地面特效、一次性 VFX，以及玩家身上持續型武器。</summary>
+    /// <summary>清掉屬於上一張地圖的暫態物件：怪物、飛行子彈、雷射、地面特效、一次性 VFX、地上掉落物，以及玩家身上持續型武器。</summary>
     void ClearTransientGameplay()
     {
         if (_player == null) _player = GameObject.FindGameObjectWithTag("Player");
@@ -140,6 +140,9 @@ public class MapManager : MonoBehaviour
         DestroyAllOfType<Sorrows.Ballistics.LaserBeam>();
         DestroyAllOfType<GroundEffectInstance>();
         DestroyAllOfType<VfxInstance>();
+
+        // 地上掉落物屬「當前地圖」的暫態物件，換圖一併清掉（永久化屬 Phase 2）。
+        if (LootManager.Exists) LootManager.Instance.ClearAll();
     }
 
     static void DestroyAllOfType<T>() where T : Component
@@ -163,5 +166,9 @@ public class MapManager : MonoBehaviour
             _watcher = GetComponent<TeleportWatcher>() ?? gameObject.AddComponent<TeleportWatcher>();
         _watcher.Setup(mapLoader.Map, mapLoader.teleportTypeId,
                        _player != null ? _player.transform : null, this);
+
+        // 拾取點：建立「靠近按 F 撿取」的目標 + 星星標示特效（由 LootManager 統一管理，
+        // 與地上掉落物共用同一套互動）。Setup 會清舊的、重建新的（= 當次停留記憶）。
+        LootManager.Instance.SetupPickupPoints(mapLoader.Map, mapLoader.pickupTypeId);
     }
 }

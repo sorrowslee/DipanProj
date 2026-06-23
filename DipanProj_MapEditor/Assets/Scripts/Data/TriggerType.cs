@@ -35,6 +35,7 @@ namespace DipanMapEditor.Data
                 paramSchema = new List<TriggerParam>
                 {
                     new TriggerParam { key = "itemId", type = ParamType.String },
+                    new TriggerParam { key = "count",  type = ParamType.Int },   // 一次給幾個（留空 = 1）
                 }
             });
             set.types.Add(new TriggerTypeDef

@@ -63,7 +63,11 @@ namespace Dipan.Inventory
         void Init()
         {
             Db = new ItemDatabase();
-            Db.LoadFromResources();
+            // 主要來源：場景上 ItemTableProvider 提供的 TextAsset（CSV 在 Assets/Data，與其他表同位置）。
+            // 找不到 provider / 未指定時退回 Resources（舊位置）——一般會印錯誤指引使用者去拖 CSV。
+            var provider = FindObjectOfType<ItemTableProvider>();
+            if (provider != null && provider.itemCSV != null) Db.LoadFromTextAsset(provider.itemCSV);
+            else Db.LoadFromResources();
             _grid = new ItemStack[GridCount];
             _equip = new Dictionary<EquipSlot, int>();
         }

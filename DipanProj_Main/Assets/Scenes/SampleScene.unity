@@ -776,7 +776,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0db3a9beb39194c1592363f4efc6d12f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  toggleKey: 107
   seedTestItems: 1
 --- !u!4 &823910663
 Transform:
@@ -837,7 +836,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0ac1d5ef771d44e80b263f2b7d0065d4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  toggleKey: 98
   seedTestItems: 1
 --- !u!1 &1108360853
 GameObject:
@@ -936,6 +934,51 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1712054714
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1712054716}
+  - component: {fileID: 1712054715}
+  m_Layer: 0
+  m_Name: ItemTableProvider
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1712054715
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1712054714}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4104983107617433a847094b31622dd5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  itemCSV: {fileID: 4900000, guid: 33ce31e76567a47eca7cc8e85cfb1ba2, type: 3}
+--- !u!4 &1712054716
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1712054714}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.3535287, y: -0.15508607, z: -9.971284}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1735090434
 GameObject:
   m_ObjectHideFlags: 0
@@ -1021,6 +1064,7 @@ MonoBehaviour:
   playerSpawnTypeId: playerSpawn
   monsterSpawnTypeId: monsterSpawn
   teleportTypeId: teleport
+  pickupTypeId: pickup
   buildBackground: 1
   buildTiles: 1
   buildObjects: 1
@@ -3264,3 +3308,4 @@ SceneRoots:
   - {fileID: 1751355723}
   - {fileID: 929488581}
   - {fileID: 823910663}
+  - {fileID: 1712054716}

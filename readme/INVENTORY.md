@@ -36,7 +36,9 @@
 
 ## 資料表 `ItemTable.csv`
 
-位置 `Resources/Data/ItemTable.csv`（走 Resources、零手動接線,由 `ItemDatabase` 載入）。
+位置 `Assets/Data/ItemTable.csv`（與 WeaponTable / RecipeTable / MapsTable 等所有資料表同位置）。載入方式比照其他表：**把 CSV 拖進場景上 `ItemTableProvider` 元件的 `Item CSV` 欄**（建議掛在 GameManagers）。`InventorySystem` 載入時 `FindObjectOfType<ItemTableProvider>()` 取用、交給 `ItemDatabase` 解析。
+
+> 為什麼需要 `ItemTableProvider`：`InventorySystem` 是自動生成的常駐單例、場景上沒有可拖檔的物件，所以由這個被動 provider 持有 CSV 參照（其他表的 Manager 本身就在場景，直接拖在 Manager 上）。沒掛 / 沒拖時會退回讀 `Resources`（舊位置）並印錯誤指引。**icon 仍走 `Resources/UI/Icons`，與表的位置無關。**
 
 | 欄位 | 說明 |
 |---|---|
@@ -95,13 +97,14 @@
 ### 相關檔案
 
 - `Assets/Scripts/Inventory/ItemData.cs`（ItemData + EquipSlot 列舉）
-- `Assets/Scripts/Inventory/ItemDatabase.cs`（CSV + icon 載入）
+- `Assets/Scripts/Inventory/ItemDatabase.cs`（CSV + icon 載入；`LoadFromTextAsset` 主、`LoadFromResources` 後備）
+- `Assets/Scripts/Inventory/ItemTableProvider.cs`（場景元件，持有 `Assets/Data/ItemTable.csv` 的 TextAsset 參照）
 - `Assets/Scripts/Inventory/InventorySystem.cs`（資料層 + 事件 + 單例）
 - `Assets/Scripts/UI/Panels/InventoryPanel.cs`（面板）
 - `Assets/Scripts/UI/Panels/InventorySlotWidget.cs`（格子互動元件，已實作 `ISlotView` + 拖放）
 - `Assets/Scripts/UI/InventoryLauncher.cs`（測試：只負責種子物品；開關鍵 B 已移到 `StorageBagCoordinator`）
 - 共用搬運（與倉庫同套，見 [STORAGE.md](STORAGE.md)）：`UI/ISlotView.cs`、`UI/SlotDragController.cs`、`UI/InventoryActions.cs`、`UI/StorageBagCoordinator.cs`
-- `Assets/Resources/Data/ItemTable.csv`、`Assets/Resources/UI/InventoryPanel/inventoryPanelBG.png`、`Assets/Resources/UI/Icons/...`
+- `Assets/Data/ItemTable.csv`（與其他資料表同位置）、`Assets/Resources/UI/InventoryPanel/inventoryPanelBG.png`、`Assets/Resources/UI/Icons/...`
 
 ---
 
