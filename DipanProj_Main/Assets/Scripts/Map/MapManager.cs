@@ -91,6 +91,9 @@ public class MapManager : MonoBehaviour
         PlacePlayer(pos);
 
         SetupCamera(row.mode);
+        // 依 MapsTable 的 Atmosphere 欄套用氛圍後處理（1=正常/2=幽暗+打光/3=噩夢+打光）。
+        // 換地圖即時切換，所以可「室外白天 → 傳送 → 古墓」自動變氛圍。見 AtmosphereController / readme/ATMOSPHERE.md。
+        AtmosphereController.ApplyMapAtmosphere(row.atmosphere);
         mapLoader.SpawnMonsters();
         SetupWatcher();
 

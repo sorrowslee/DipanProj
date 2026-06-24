@@ -10,6 +10,9 @@ using UnityEngine;
 /// - IsLevelStart = 該 Module 的首張地圖（進入關卡時載入這張），每個 Module 應恰好一張。
 /// - MapMode = 相機模式：1 = 整張地圖（縮放塞滿畫面，角色變小）；2 = 鏡頭跟隨（角色正常大小，鏡頭跟著走）。
 ///   留空 / 缺欄 / 無法解析 = 預設 2。實際是否跟隨還要看地圖夠不夠大（見 MapCameraController 門檻）。
+/// - Atmosphere = 地圖氛圍後處理（見 AtmosphereController / readme/ATMOSPHERE.md）：
+///   1 = 正常（不做處理，室外白天等）；2 = 幽暗場景+打光（看得到美術）；3 = 噩夢場景+打光（最壓迫）。
+///   留空 / 缺欄 / 無法解析 = 預設 1（正常）。換地圖時自動切換，所以可「室外→傳送→古墓」變氛圍。
 /// 見 readme/MAP_SYSTEM.md。
 /// </summary>
 public class MapTableRow
@@ -19,7 +22,8 @@ public class MapTableRow
     public string module;
     public string path;
     public bool isLevelStart;
-    public int mode = 2;   // 1 = 整張地圖；2 = 鏡頭跟隨（預設）
+    public int mode = 2;        // 1 = 整張地圖；2 = 鏡頭跟隨（預設）
+    public int atmosphere = 1;  // 1 = 正常；2 = 幽暗+打光；3 = 噩夢+打光（預設 1）
 }
 
 public class MapTable : MonoBehaviour
@@ -87,6 +91,10 @@ public class MapTable : MonoBehaviour
             int mode = 2;
             if (v.Length >= 6 && int.TryParse(v[5].Trim(), out int m)) mode = m;
 
+            // Atmosphere 第 7 欄為新增、向下相容：缺欄 / 留空 / 無法解析都退回預設 1（正常，不做處理）。
+            int atmosphere = 1;
+            if (v.Length >= 7 && int.TryParse(v[6].Trim(), out int a)) atmosphere = a;
+
             var row = new MapTableRow
             {
                 id = id,
@@ -95,6 +103,7 @@ public class MapTable : MonoBehaviour
                 path = v[3].Trim(),
                 isLevelStart = v[4].Trim() == "1",
                 mode = mode,
+                atmosphere = atmosphere,
             };
 
             if (_byId.ContainsKey(id))
