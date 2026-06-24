@@ -132,3 +132,16 @@
 - **症狀**:程式建 `Button` 後寫 `btn.rectTransform` 取它的 RectTransform 編譯報錯(找不到成員)。
 - **原因**:`rectTransform` 是 **`Graphic`** 的屬性(`Image`/`Text` 有);`Button`/`Selectable` 並非 `Graphic`,沒有這個屬性。容易誤以為所有 uGUI 元件都有 `rectTransform`。
 - **解法**:用 **`(RectTransform)btn.transform`** 或 `UIBuilder.Rect(btn)`(專案助手)取得。既有 `StoragePanel` 就是用 `(RectTransform)b.transform`。已在 `DramaPanel` 的整片透明關閉鈕照此。**之後對 `Button` 取 RectTransform 一律這樣寫,別用 `.rectTransform`。**
+
+---
+
+## E. 效能 / 顯示 (Performance & Display)
+
+### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順
+- **症狀**:Windows build 在 PC 上跑覺得幀數低、不流暢;Mac build 與編輯器都很順。**從專案最初(只有四道牆+幾隻怪+主角)就這樣**,內容很少不該卡。
+- **原因**:**不是效能問題,是顯示線路 + VSync。** 用效能面板(`PerfHud`,見 [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md))實測:GPU 一幀只畫 **~1.5ms**(RTX 3060)、CPU 主緒 **~0.3ms**,引擎能力遠超數百 fps;但 FPS 鎖在 **59.9**、每幀 **16.68ms** 且**最差一幀也是 16.7ms(零掉幀)** → 那 16ms 幾乎全是 **VSync 在等垂直同步**。該遠端 PC 透過 **ATEN 4K HDMI 裝置(KVM/延長器/擷取)**出畫面,其 EDID 只提供 **~59.9Hz**(進階顯示設定只有 59.885/59.940/59.950 可選);而開發用的 Mac 是 **120Hz**,兩邊一比才覺得 Windows「卡」。本質是**顯示線路 60Hz vs Mac 120Hz 的落差**,不是遊戲跑不動。
+- **解法**:
+  - **先用面板自證**:`PerfHud`(按 **P** 開)→ 看「瓶頸」會顯示「受 VSync 限制」;點 **VSync(V)** 切到「關」→ FPS 立刻飆到數百(伴隨畫面撕裂),證明引擎沒問題、限制在螢幕刷新率。
+  - **要高刷體驗**:把支援高刷的螢幕**直接插進顯卡**(繞過 ATEN/KVM 那顆裝置),VSync 維持開著,遊戲會自動跑到螢幕刷新率。
+  - **不需要為效能優化任何東西**。一般玩家用自己的螢幕直連顯卡,順暢度=自己螢幕的刷新率,不會碰到這個。上架前要做的是「玩家畫面設定選單」(VSync/幀率上限/視窗模式),見 [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md)。
+  - **通則**:看到「某平台幀數低」先別急著怪 code——先用 `PerfHud` 看 **GPU ms / CPU ms / 是否被 VSync 鎖在刷新率**,區分「真的算不動」與「只是被顯示同步/線路擋住」。KVM、HDMI 延長器、擷取盒、遠端桌面串流都常把刷新率鎖在 60Hz(甚至 30Hz)。

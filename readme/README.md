@@ -32,7 +32,9 @@
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
 | [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留） | 做存檔/讀檔、角色建立/轉生、物品持久化前 |
 | [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md) | 打包/部署流程(Project Tools 選單、打包前對齊遠端 main、疑難排解) | 打包、部署、build/git 出錯時 |
+| [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md) | 效能診斷面板(PerfHud：FPS/CPU·GPU ms/瓶頸/顯卡，按 P) ＋ 上架前玩家畫面設定(VSync/幀率上限/視窗模式)規劃 | 排查幀數/卡頓、做畫面設定選單 |
 | [PROBLEMS.md](PROBLEMS.md) | **踩坑記錄與解法**(症狀→原因→解法) | **第一次看文件時必看**；遇到怪問題、或要把新坑記下來時 |
+| [TODO.md](TODO.md) | **待補清單**：目前先做到能動但還缺一塊、或暫時做不到之後再補的項目 | 想知道哪些是半成品/暫缺；做到一半得擱置時把缺口記這裡 |
 
 ## 給接手 AI 的提示
 - 這些文件是把原本單一大 README 拆開的；**依當前任務挑相關的讀**即可，不必全讀。
@@ -40,3 +42,4 @@
 - **遇到新的坑、或解掉一個非顯而易見的問題後，務必到 [PROBLEMS.md](PROBLEMS.md) 新增一則**（格式：症狀 → 原因 → 解法），讓後面的人/AI 不必重踩。
 - 跨模組／邊界相關的改動，先讀 [ARCHITECTURE.md](ARCHITECTURE.md) 的「解耦原則與邊界規範」。
 - 大多數玩法擴充是「在 CSV 加一列 ＋ 既有系統參數」就能做到；動程式前先確認不能用資料驅動解決。
+- **做到一半得擱置、或某功能暫時缺一塊**時，記到 [TODO.md](TODO.md)（缺口清單），別讓半成品的暫缺資訊散落。

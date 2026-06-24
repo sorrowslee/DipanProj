@@ -36,6 +36,13 @@ namespace Dipan.UI
         /// <summary>遊戲輸入是否該被 UI 擋住（給 PlayerController 等查詢）。無 UIManager 時恆為 false。</summary>
         public static bool IsGameplayInputBlocked => Instance != null && Instance._inputBlocked;
 
+        // 「沒有任何視窗開著時，按 ESC 要開的根面板」（例如設定）。由該面板的 launcher 註冊。
+        Type _escapeRootPanel;
+
+        /// <summary>設定「沒有視窗開著時按 ESC 要開哪個面板」（例如設定面板）。在同一個 ESC 分支裡處理，不會與「ESC 關閉最上層」打架。</summary>
+        public void SetEscapeRootPanel<T>() where T : UIPanel => _escapeRootPanel = typeof(T);
+        public void ClearEscapeRootPanel() => _escapeRootPanel = null;
+
         // ───────────────────────── 生命週期 ─────────────────────────
 
         void Awake()
@@ -68,7 +75,16 @@ namespace Dipan.UI
             if (Input.GetKeyDown(KeyCode.Escape))
             {
                 var top = TopStackPanel();
-                if (top != null && top.CloseOnEscape) Close(top);
+                if (top != null)
+                {
+                    // 有視窗開著 → 關閉最上層（若該面板允許 ESC 關閉）。
+                    if (top.CloseOnEscape) Close(top);
+                }
+                else if (_escapeRootPanel != null)
+                {
+                    // 沒有任何視窗 → 開啟根面板（例如設定）。同一分支，不會關掉又重開。
+                    Open(_escapeRootPanel);
+                }
             }
         }
 
