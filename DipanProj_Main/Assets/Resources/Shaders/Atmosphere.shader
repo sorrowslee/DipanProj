@@ -5,8 +5,11 @@
 //   4 = 烈日曝曬（過曝暖白 + 高對比 + 頂部刺眼天光 + 克制熱浪）
 //   5 = 焦土餘燼（暗橙紅 + 煙塵壓暗 + 餘燼暖光底 + 克制熱浪）
 //   6 = 沙塵暴（橙褐沙塵霧罩頂、降能見度與對比 + 克制熱浪）
-// 提燈光圈（type 2/3）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
-// 炎熱型別（4/5/6）會啟用「熱浪扭曲」：用滾動正弦輕微位移取樣 UV（_Time 驅動，無需貼圖）。
+//   7 = 淺海（青綠水色 + 頂部陽光 + 焦散光斑 + 水下折射晃動）
+//   8 = 深海（深藍壓暗、低能見度、冷色去飽和 + 水下折射晃動）
+//   9 = 深海 + 恐怖（深海再套潛水燈光圈：玩家周圍一圈可見、其餘近全黑）
+// 提燈光圈（type 2/3/9）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
+// 炎熱型別（4/5/6）啟用「熱浪扭曲」、海洋型別（7/8/9）啟用「水下折射晃動」：皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
 Shader "Custom/Atmosphere"
 {
     Properties
@@ -16,7 +19,7 @@ Shader "Custom/Atmosphere"
         _Aspect ("Aspect (w/h)", Float) = 1.777
         _InnerR ("Inner Radius", Float) = 0.13
         _OuterR ("Outer Radius", Float) = 0.28
-        _Mode ("Mode (2=dim,3=nightmare,4=noon,5=ember,6=dust)", Float) = 2
+        _Mode ("Mode (2=dim,3=nightmare,4=noon,5=ember,6=dust,7=shallow,8=deep,9=deepHorror)", Float) = 2
     }
     SubShader
     {
@@ -40,10 +43,19 @@ Shader "Custom/Atmosphere"
 
             fixed4 frag (v2f_img i) : SV_Target
             {
-                // 熱浪扭曲（僅炎熱型別 4/5/6）：滾動正弦輕微位移取樣 UV，克制幅度。
+                // UV 位移：炎熱型別=熱浪（快、幅度小）；海洋型別=水下折射（慢、幅度略大）。
                 float2 uv = i.uv;
-                if (_Mode > 3.5)
+                if (_Mode > 6.5)
                 {
+                    // 海洋折射晃動（7/8/9）
+                    float t = _Time.y;
+                    float wob = sin(uv.y * 22.0 + t * 1.6) + sin(uv.x * 18.0 - t * 1.2);
+                    uv.x += wob * 0.0022;
+                    uv.y += sin(uv.x * 16.0 + t * 1.3) * 0.0018;
+                }
+                else if (_Mode > 3.5)
+                {
+                    // 熱浪扭曲（4/5/6）
                     float t = _Time.y;
                     float wob = sin(uv.y * 38.0 + t * 3.0) + sin(uv.y * 21.0 - t * 2.1);
                     uv.x += wob * 0.0014;
@@ -61,7 +73,44 @@ Shader "Custom/Atmosphere"
                 vc.x *= _Aspect;
                 float vig = saturate(1.0 - smoothstep(VigStart, VigEnd, length(vc)) * VigDark);
 
-                if (_Mode > 5.5)
+                if (_Mode > 8.5)
+                {
+                    // ── type 9：深海 + 恐怖（潛水燈光圈）──
+                    col.rgb *= lerp(0.04, 1.0, v);                    // 周邊近全黑、只剩玩家一圈
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.50);           // 去飽和
+                    col.rgb *= float3(0.32, 0.52, 0.80);             // 冷深藍
+                    col.rgb *= 0.78;                                  // 壓暗
+                    col.rgb = lerp(col.rgb, float3(0.02, 0.06, 0.14), 0.30); // 深藍水霧
+                    col.rgb *= vig;
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 7.5)
+                {
+                    // ── type 8：深海 ──
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.45);           // 較去飽和
+                    col.rgb *= float3(0.30, 0.50, 0.85);             // 深藍
+                    col.rgb *= 0.70;                                  // 壓暗
+                    col.rgb += smoothstep(0.7, 1.0, i.uv.y) * float3(0.02, 0.05, 0.08); // 殘餘頂部天光
+                    col.rgb = lerp(col.rgb, float3(0.04, 0.10, 0.20), 0.25); // 深藍水霧
+                    col.rgb *= lerp(0.50, 1.0, vig);                  // 重暈影
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 6.5)
+                {
+                    // ── type 7：淺海 ──
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.15);           // 微去飽和
+                    col.rgb *= float3(0.62, 0.92, 1.02);             // 青綠水色
+                    col.rgb += smoothstep(0.5, 1.0, i.uv.y) * float3(0.05, 0.10, 0.10); // 頂部陽光透下
+                    // 焦散光斑：兩道滾動正弦相乘成水波光網，上方較強
+                    float caust = saturate(sin(i.uv.x * 30.0 + _Time.y * 1.3) * sin(i.uv.y * 26.0 - _Time.y * 1.1));
+                    col.rgb += caust * float3(0.06, 0.10, 0.10) * smoothstep(0.3, 1.0, i.uv.y);
+                    col.rgb *= lerp(0.90, 1.0, vig);                  // 輕暈影
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 5.5)
                 {
                     // ── type 6：沙塵暴 ──
                     float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
