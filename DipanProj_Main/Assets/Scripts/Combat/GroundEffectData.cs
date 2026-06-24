@@ -25,5 +25,13 @@ public class GroundEffectData
     /// </summary>
     public bool SingleSprite = false;
 
+    /// <summary>
+    /// 燈火明滅：true 時（RenderMode=Glow）單圖護罩改用 Custom/AuraGlow 加色發光材質，
+    /// 並每幀以不規則明滅調整亮度 ＋ 微幅呼吸縮放（佛光那種忽強忽弱的燈光感）。
+    /// 只影響視覺，傷害判定仍嚴格按 Radius 走 OverlapCircle，不受縮放影響。
+    /// 蘊含 SingleSprite = true。
+    /// </summary>
+    public bool GlowFlicker = false;
+
     public Sprite[] AnimationSprites;
 }

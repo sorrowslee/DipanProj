@@ -16,6 +16,17 @@ public class GroundEffectInstance : MonoBehaviour
     private bool _initialized;
     private float _damageOverride = -1f;  // >= 0 時改用此值（例如佛光以武器表 Damage 結算），< 0 = 用 GroundEffectTable 的 Damage
 
+    // ── 燈火明滅（RenderMode=Glow，佛光用）──
+    private SpriteRenderer _glowRenderer;   // 單圖護罩的 renderer（明滅 / 縮放對象）
+    private Material _glowMat;              // 本實例專屬的 AuraGlow 材質（用完隨物件銷毀）
+    private Vector3 _glowBaseScale;        // 護罩基準縮放（呼吸以此為中心 ±ScalePulse）
+    private float _flickerSeed;            // 每個護罩隨機相位，避免多個同步閃
+
+    private const float AuraIntensity   = 1.4f;   // AuraGlow 底亮度（>1 讓亮處更溢光）
+    private const float FlickerMinAlpha = 0.45f;  // 最暗時的亮度倍率
+    private const float FlickerMaxAlpha = 1.0f;   // 最亮時的亮度倍率
+    private const float ScalePulse      = 0.03f;  // 呼吸縮放幅度（±3%）
+
     /// <param name="damageOverride">
     /// &lt; 0（預設）= 用 GroundEffectTable 的 Damage；&ge; 0 = 改用此值結算傷害
     /// （佛光等「載體型」特效把武器表 Damage 餵進來，讓同一張圓的傷害可隨武器調整）。
@@ -136,6 +147,25 @@ public class GroundEffectInstance : MonoBehaviour
             sr.sharedMaterial = _templateRenderer.sharedMaterial;
         }
         _tileRenderers.Add(sr);
+
+        // 燈火明滅：改用 Custom/AuraGlow 加色發光材質，並登記每幀明滅 / 呼吸縮放對象。
+        if (_data.GlowFlicker)
+        {
+            Shader glowShader = Resources.Load<Shader>("Shaders/AuraGlow");
+            if (glowShader != null)
+            {
+                _glowMat = new Material(glowShader);
+                _glowMat.SetFloat("_Intensity", AuraIntensity);
+                sr.sharedMaterial = _glowMat;  // 覆寫範本材質，改成加色發光
+            }
+            else
+            {
+                Debug.LogWarning("找不到 Shaders/AuraGlow，佛光改用範本材質（無發光明滅）。");
+            }
+            _glowRenderer = sr;
+            _glowBaseScale = go.transform.localScale;
+            _flickerSeed = Random.value * 1000f;
+        }
     }
 
     private void Update()
@@ -143,8 +173,36 @@ public class GroundEffectInstance : MonoBehaviour
         if (!_initialized) return;
 
         TickAnimation();
+        TickFlicker();
         TickDamage();
         TickLifetime();
+    }
+
+    /// <summary>
+    /// 燈火忽強忽弱：用 Perlin noise（慢速不規則漂移）＋ 一條快速正弦（細微抖動）混出
+    /// 有機的明滅，調 SpriteRenderer 的 color.a 餵進 AuraGlow 當亮度倍率；
+    /// 另以一條較慢、獨立相位的正弦做 ±3% 呼吸縮放。皆為純視覺，不動傷害半徑。
+    /// </summary>
+    private void TickFlicker()
+    {
+        if (!_data.GlowFlicker || _glowRenderer == null) return;
+
+        float t = Time.time;
+
+        // 不規則明滅：Perlin 慢漂（主）＋ 一點點慢速正弦（次）。
+        // 油燈是緩慢搖曳，所以兩條都放慢、快閃權重壓低，避免高頻抖動。
+        float slow = Mathf.PerlinNoise(_flickerSeed, t * 0.55f);         // 0..1 平滑慢漂
+        float fast = Mathf.Sin(t * 3.2f + _flickerSeed) * 0.5f + 0.5f;   // 0..1 緩慢搖曳
+        float mix  = Mathf.Clamp01(0.85f * slow + 0.15f * fast);
+        float bright = Mathf.Lerp(FlickerMinAlpha, FlickerMaxAlpha, mix);
+
+        Color c = _glowRenderer.color;   // 保持 rgb=白，只調 a 當亮度
+        c.a = bright;
+        _glowRenderer.color = c;
+
+        // 呼吸縮放 ±3%（更慢、與明滅不同相位，較自然；只縮視覺，不影響傷害圈）
+        float breathe = Mathf.Sin(t * 1.1f + _flickerSeed * 0.5f);       // -1..1
+        _glowRenderer.transform.localScale = _glowBaseScale * (1f + ScalePulse * breathe);
     }
 
     private void TickAnimation()
@@ -210,6 +268,16 @@ public class GroundEffectInstance : MonoBehaviour
 
             Vector2 hitDir = ((Vector2)col.transform.position - center).normalized;
             d.TakeDamage(damage, hitDir);
+        }
+    }
+
+    private void OnDestroy()
+    {
+        // 釋放本實例執行期建立的 AuraGlow 材質（每個護罩各一份），避免材質洩漏。
+        if (_glowMat != null)
+        {
+            Destroy(_glowMat);
+            _glowMat = null;
         }
     }
 

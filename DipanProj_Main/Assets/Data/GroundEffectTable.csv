@@ -1,3 +1,3 @@
-ID, Name    , Radius, Duration, DamageInterval, Damage, AniPath                    , AniNumber, AnimFPS, TileSize, RenderMode(Tile或Single/空為Tile/Single為單張發光圓暈)
+ID, Name    , Radius, Duration, DamageInterval, Damage, AniPath                    , AniNumber, AnimFPS, TileSize, RenderMode(Tile或Single或Glow/空為Tile/Single為單張靜態圓暈/Glow為加色發光且燈火忽強忽弱明滅)
  1, 火焰燃燒,    1.5,        3,            0.5,      1, GroundEffect/fireGround/fire,        6,      12,        0.5
-2, 佛光, 1.2, -1, 0.3, 1, GroundEffect/buddhaLight/buddhaLight, 1, 0, 1, Single
+2, 佛光, 1.2, -1, 0.3, 1, GroundEffect/buddhaLight/buddhaLight, 1, 0, 1, Glow

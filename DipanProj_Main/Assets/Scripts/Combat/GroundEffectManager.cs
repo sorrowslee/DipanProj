@@ -84,12 +84,18 @@ public class GroundEffectManager : MonoBehaviour
             data.TileSize = (v.Length >= 10 && !string.IsNullOrWhiteSpace(v[9])) ? float.Parse(v[9].Trim()) : 1f;
             if (data.TileSize <= 0f) data.TileSize = 1f;
 
-            // 渲染模式：留空 / Tile = tile 鋪滿（預設）；Single = 單張縮放到直徑的發光圓暈（佛光用）。
+            // 渲染模式：留空 / Tile = tile 鋪滿（預設）；
+            // Single = 單張縮放到直徑的圓暈（靜態）；
+            // Glow = 單張 + Custom/AuraGlow 加色發光 + 燈火忽強忽弱明滅 + 微幅呼吸縮放（佛光用）。
             data.SingleSprite = false;
+            data.GlowFlicker = false;
             if (v.Length >= 11 && !string.IsNullOrWhiteSpace(v[10]))
             {
                 string mode = v[10].Trim();
-                data.SingleSprite = mode.Equals("Single", System.StringComparison.OrdinalIgnoreCase);
+                bool isGlow = mode.Equals("Glow", System.StringComparison.OrdinalIgnoreCase);
+                data.GlowFlicker = isGlow;
+                // Glow 蘊含單圖模式
+                data.SingleSprite = isGlow || mode.Equals("Single", System.StringComparison.OrdinalIgnoreCase);
             }
 
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)
