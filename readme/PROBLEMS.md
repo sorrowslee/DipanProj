@@ -98,6 +98,15 @@
 - **原因**:IMGUI 一次 `OnGUI` 由上往下執行。文字框把「當下 buffer」鎖進回傳變數 `sf`,而 `＋` 按鈕排在文字框**之後**且會在按下時同時改 `sel.值` 與 `buffer`;到了結尾那行「`if (sf != buffer) → 視為使用者打字、回寫 sel`」就會用**舊的 `sf`** 把剛剛 `＋` 的改動**回退**掉。`－` 因為排在文字框**之前**,文字框讀到的是新值,所以不受影響——於是只有 `＋`(或所有「在文字框之後又寫 buffer 的按鈕」)壞掉。
 - **解法**:① 把「未編輯時 `buffer = sel.值.ToString()`」的同步移到**繪製文字框之前**;② 文字框的回寫**只在真的聚焦該欄位打字時**才做(`editing && sf != buffer`)。這樣 ±按鈕直接讀寫 `sel.值`、不會被回退。已修(`EditorUI.cs` 的 FPS 與血量兩處;X/Y 座標本來就沒在按鈕內動 buffer,故不受影響)。**之後在 IMGUI 加「±＋文字框」控制都照這個寫法。**
 
+### C3. 在 GameAssets 新增一種素材子資料夾(例 `Talk/` 頭像),放了圖、跑了 Sync Map Assets,遊戲卻載不到
+- **症狀**:把新素材(例如頭像立繪)放進 `GameAssets/Modules/<module>/Talk/`、跑了 `Project Tools → Sync Map Assets`,但遊戲端載入時找不到(catalog 裡沒有該項目、`catalog.Find(id)` 回 null)。
+- **原因**:**素材同步只收「分類白名單」內的資料夾**。三個同步產生器各有一份 `Cats` 白名單(原本 `{ Environment, Tiles, Background, Drama }`),新資料夾名稱不在裡面就**整個被忽略**,根本不會進 catalog / StreamingAssets。同 [C1](#c1-動畫地上物同步後在地上物清單看不到category-變成資料夾名) 的根因家族:**同步有多條路徑、且靠白名單過濾**。
+- **解法**:把新分類名稱**同時**加進三處的 `Cats`/`CATS`(漏一個就會「用某條路徑同步時又不見」):
+  - `Assets/Editor/MapAssetSyncTool.cs`(Project Tools 選單用)
+  - `Assets/Scripts/Map/MapIO.cs`(`BuildFromGameAssets`,編輯器後備)
+  - `Tools/sync_map_assets.sh`(CLI)
+  加完**重跑 Sync Map Assets**。catalog 用 `category = 上層資料夾名`,但 runtime 是用 **id(= 相對路徑)** `catalog.Find` 取圖,所以 category 叫什麼不影響載入(頭像不進編輯器清單,不必像 Drama 那樣考慮 category 過濾)。已修:`Talk` 已加入三處白名單(頭像對話立繪)。
+
 ---
 
 ## D. 存檔 / 常駐單例 (Save & Persistent Singletons)

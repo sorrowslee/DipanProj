@@ -1,2 +1,3 @@
-ID,ImagePath,Text
-1,Modules/RedBridalGown/Drama/drama_groupPhoto,一張和樂融融的全家福相片
+ID,ImagePath,Text,Type,TalkGroup
+1,Modules/RedBridalGown/Drama/drama_groupPhoto,一張和樂融融的全家福相片,1,
+2,,,2,1

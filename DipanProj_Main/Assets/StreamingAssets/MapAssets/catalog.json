@@ -654,6 +654,42 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/RedBridalGown/Talk/redBridalGown",
+      "path": "Modules/RedBridalGown/Talk/redBridalGown.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Talk/redBridalGown_angry",
+      "path": "Modules/RedBridalGown/Talk/redBridalGown_angry.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Talk/redBridalGown_cry",
+      "path": "Modules/RedBridalGown/Talk/redBridalGown_cry.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1122,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Talk/redBridalGown_fear",
+      "path": "Modules/RedBridalGown/Talk/redBridalGown_fear.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/Tutorial/Environment/GroundStone",
       "path": "Modules/Tutorial/Environment/GroundStone.png",
       "category": "Environment",

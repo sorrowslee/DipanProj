@@ -3,6 +3,7 @@ using UnityEngine;
 using Dipan.Inventory;
 using Dipan.MapRuntime;
 using Dipan.UI;
+using Dipan.Drama;
 
 /// <summary>
 /// 「靠近按 F 互動」的大腦：常駐單例（仿 InventorySystem）。統一管理所有互動目標：
@@ -23,6 +24,7 @@ public class InteractionManager : MonoBehaviour
     [Header("互動")]
     public KeyCode interactKey = KeyCode.F;
     public float pickupRadius = 1.2f;     // 玩家進入此半徑才顯示提示、可互動
+    public float dramaTouchRadius = 0.6f; // Type 2 劇情點：玩家進入此半徑就「碰到自動觸發」（不需按鍵）
 
     [Header("掉落物外觀")]
     public float lootWorldSize = 0.6f;    // 地上 icon 的世界大小（稍小於 1 格）
@@ -68,6 +70,7 @@ public class InteractionManager : MonoBehaviour
         public string name;
         // drama
         public int dramaId;
+        public bool autoTrigger;        // Type 2（頭像對話）：碰到自動觸發、不顯示「按 F」提示
         // 共用
         public Vector2[] cellCenters;   // 區域各格中心（世界座標）
         public Vector2 center;          // 區域中心（提示與星星位置）
@@ -148,7 +151,10 @@ public class InteractionManager : MonoBehaviour
                 }
                 pt.kind = PointKind.Drama;
                 pt.dramaId = dramaId;
-                pt.marker = CreateMarker(center, dramaMarkerColor);
+                var dd = DramaDatabase.Instance.Get(dramaId);
+                pt.autoTrigger = dd != null && dd.Type == 2;   // Type 2＝碰到自動觸發；Type 1＝按 F
+                // Type 1 才放紫色星星提示；Type 2（碰到自動觸發）不顯示星星（純隱形觸發點）。
+                if (!pt.autoTrigger) pt.marker = CreateMarker(center, dramaMarkerColor);
             }
             _points.Add(pt);
         }
@@ -208,6 +214,20 @@ public class InteractionManager : MonoBehaviour
         if (_player == null) { HideTip(); return; }
         Vector2 p = _player.position;
 
+        // 先處理「碰到自動觸發」的劇情點（Type 2）：踏進區域就觸發，不需按鍵、不顯示提示。
+        float touchSqr = dramaTouchRadius * dramaTouchRadius;
+        for (int i = 0; i < _points.Count; i++)
+        {
+            var ap = _points[i];
+            if (!ap.autoTrigger) continue;
+            if (NearestCellSqr(ap, p) <= touchSqr)
+            {
+                HideTip();
+                TriggerDrama(ap);   // 內含 ConsumePoint（移除星星、當次不再觸發）
+                return;             // 觸發後本幀就不再處理其他互動（開了對話會擋輸入）
+            }
+        }
+
         // 找最近的可互動目標（掉落物 + 互動點一起比）。
         float best = pickupRadius * pickupRadius;
         GroundLoot bestLoot = null;
@@ -227,6 +247,7 @@ public class InteractionManager : MonoBehaviour
         }
         for (int i = 0; i < _points.Count; i++)
         {
+            if (_points[i].autoTrigger) continue;   // 自動觸發點不參與「按 F」提示/選取
             float d = NearestCellSqr(_points[i], p);
             if (d <= best)
             {
@@ -290,11 +311,17 @@ public class InteractionManager : MonoBehaviour
         ConsumePoint(pt);
     }
 
-    // 觸發劇情點（開 DramaPanel，並消耗該點 = 當次停留不再觸發；離開地圖會重建）。
+    // 觸發劇情點（依 DramaTable 的 Type 分支，並消耗該點 = 當次停留不再觸發；離開地圖會重建）。
     void TriggerDrama(InteractPoint pt)
     {
         if (pt == null) return;
-        DramaPanel.Show(pt.dramaId);
+
+        var data = DramaDatabase.Instance.Get(pt.dramaId);
+        if (data != null && data.Type == 2)
+            DramaTalkController.Play(data.TalkGroup);   // Type 2：頭像對話（開 TalkPanel）
+        else
+            DramaPanel.Show(pt.dramaId);                // Type 1（或找不到資料）：大圖 + 文字（現有）
+
         ConsumePoint(pt);
     }
 

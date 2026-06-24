@@ -461,6 +461,28 @@
             "targetMapId": "8",
             "targetEntrance": "LivingRoom2_north"
           }
+        },
+        {
+          "id": "b404f3c8",
+          "name": "劇情觸發點1",
+          "typeId": "drama",
+          "cells": [
+            [
+              9,
+              8
+            ],
+            [
+              1,
+              5
+            ],
+            [
+              1,
+              6
+            ]
+          ],
+          "params": {
+            "dramaId": "2"
+          }
         }
       ]
     }

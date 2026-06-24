@@ -82,7 +82,7 @@ namespace Dipan.MapRuntime
             => Path.Combine(assetRoot, item.path.Replace('/', Path.DirectorySeparatorChar));
 
 #if UNITY_EDITOR
-        static readonly string[] Cats = { "Environment", "Tiles", "Background", "Drama" };
+        static readonly string[] Cats = { "Environment", "Tiles", "Background", "Drama", "Talk" };
 
         static Catalog BuildFromGameAssets(string root)
         {

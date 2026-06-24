@@ -68,6 +68,8 @@ namespace Dipan.Drama
                     ID = id,
                     ImagePath = Field(v, 1),
                     Text = Unescape(Field(v, 2)),
+                    Type = ParseTypeOr1(Field(v, 3)),     // 留空 / 無效 → 1（向下相容舊表）
+                    TalkGroup = ParseIntOr0(Field(v, 4)),  // Type=2 時用
                 };
                 _items[d.ID] = d;
             }
@@ -102,6 +104,8 @@ namespace Dipan.Drama
 
         static string Field(string[] v, int i) => (i < v.Length && v[i] != null) ? v[i].Trim() : "";
         static string Unescape(string s) => string.IsNullOrEmpty(s) ? s : s.Replace("\\n", "\n");
+        static int ParseTypeOr1(string s) => (!string.IsNullOrEmpty(s) && int.TryParse(s, out int t) && t > 0) ? t : 1;
+        static int ParseIntOr0(string s) { int.TryParse(s, out int n); return n; }
 
         static string[] ParseCsvLine(string line)
         {
