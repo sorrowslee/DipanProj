@@ -103,10 +103,16 @@ Shader "Custom/Atmosphere"
                     float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
                     col.rgb = lerp(col.rgb, lum.xxx, 0.15);           // 微去飽和
                     col.rgb *= float3(0.62, 0.92, 1.02);             // 青綠水色
-                    col.rgb += smoothstep(0.5, 1.0, i.uv.y) * float3(0.05, 0.10, 0.10); // 頂部陽光透下
-                    // 焦散光斑：兩道滾動正弦相乘成水波光網，上方較強
-                    float caust = saturate(sin(i.uv.x * 30.0 + _Time.y * 1.3) * sin(i.uv.y * 26.0 - _Time.y * 1.1));
-                    col.rgb += caust * float3(0.06, 0.10, 0.10) * smoothstep(0.3, 1.0, i.uv.y);
+                    col.rgb += smoothstep(0.6, 1.0, i.uv.y) * float3(0.03, 0.06, 0.06); // 頂部陽光（淡）
+                    // 焦散光網：三道不同斜向正弦干涉，再銳化成細光絲（避免格狀方塊），整體很淡、緩慢飄動。
+                    float2 p = i.uv * float2(_Aspect, 1.0);
+                    float t = _Time.y * 0.5;
+                    float c = sin(p.x * 14.0 + p.y *  8.0 + t * 1.3)
+                            + sin(p.x * -9.0 + p.y * 16.0 - t * 1.1)
+                            + sin(p.x * 11.0 - p.y * 13.0 + t * 0.9);
+                    c = saturate(c * 0.3333);
+                    c = pow(c, 3.0);                                  // 銳化成細光絲
+                    col.rgb += c * float3(0.05, 0.09, 0.10);         // 淡青色焦散
                     col.rgb *= lerp(0.90, 1.0, vig);                  // 輕暈影
                     col.rgb = saturate(col.rgb);
                 }
