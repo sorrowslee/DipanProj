@@ -49,6 +49,11 @@ public class MapCameraController : MonoBehaviour
         if (_cam == null) _cam = Camera.main;
         if (_cam == null) { Debug.LogWarning("[MapCameraController] 找不到 Camera.main，略過相機設定。"); return; }
 
+        // 場景外（地圖未覆蓋到、露出相機底色處）一律純黑：強制相機 Solid Color 黑底。
+        // 之所以放這裡而非只改場景：保證每張地圖、每種相機模式都黑，不依賴場景相機設定。
+        _cam.clearFlags = CameraClearFlags.SolidColor;
+        _cam.backgroundColor = Color.black;
+
         _target = player;
         _tileSize = map.tileSize;
         _bounds = MapCoords.WorldBounds(map);
