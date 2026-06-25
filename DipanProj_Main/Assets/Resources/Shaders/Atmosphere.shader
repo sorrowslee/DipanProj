@@ -11,7 +11,8 @@
 //  10 = 風雪（陰冷暴風：冷灰調 + 翻騰白霧 + 不規則橫向風絲 + 陣風時強時弱）
 //  11 = 強風（去白霧、幾乎不調色，只留單一斜向的風絲 + 陣風）
 //  12 = 綿綿細雨（陰天微冷 + 稀疏細雨絲，近垂直落下）
-//  13 = 大雨（陰暗濕冷 + 灰霧降能見 + 密集快速雨絲）
+//  13 = 大雨（細密雨點往下落）
+//  14 = 陰森森林鬼霧（畫面偏暗、陰綠冷調 + 漂移黑霧雲塊、偶爾飄來一陣濃霧）
 // 提燈光圈（type 2/3/9）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
 // UV 位移：熱浪（4/5/6）、水下折射（7/8/9）、山頂風吹拂（10/11）——皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
 // 風絲/雨絲共用 windStreak（雜湊打散的不規則短截線）：風絲斜向（rot2）、雨絲近垂直（rot2 約 1.4 rad）。
@@ -24,7 +25,7 @@ Shader "Custom/Atmosphere"
         _Aspect ("Aspect (w/h)", Float) = 1.777
         _InnerR ("Inner Radius", Float) = 0.13
         _OuterR ("Outer Radius", Float) = 0.28
-        _Mode ("Mode (2=dim..6=dust,7..9=ocean,10=snow,11=gale,12=drizzle,13=heavyRain)", Float) = 2
+        _Mode ("Mode (2..6 horror/hot,7..9 ocean,10 snow,11 gale,12 drizzle,13 rain,14 ghostFog)", Float) = 2
     }
     SubShader
     {
@@ -82,7 +83,7 @@ Shader "Custom/Atmosphere"
                     uv.x += sin(uv.y * 9.0 + t * 5.0) * 0.0016 * gust;
                     uv.y += sin(uv.x * 7.0 + t * 3.0) * 0.0006;
                 }
-                else if (_Mode > 6.5)
+                else if (_Mode > 6.5 && _Mode < 9.5)
                 {
                     // 海洋折射晃動（7/8/9）
                     float t = _Time.y;
@@ -110,7 +111,28 @@ Shader "Custom/Atmosphere"
                 vc.x *= _Aspect;
                 float vig = saturate(1.0 - smoothstep(VigStart, VigEnd, length(vc)) * VigDark);
 
-                if (_Mode > 12.5)
+                if (_Mode > 13.5)
+                {
+                    // ── type 14：陰森森林鬼霧（畫面偏暗 + 偶爾飄來一陣黑霧）──
+                    float t = _Time.y;
+                    // 森林陰冷調：去飽和 + 陰綠 + 壓暗 + 加深暈影
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.40);
+                    col.rgb *= float3(0.62, 0.78, 0.66);          // 陰綠冷調
+                    col.rgb *= 0.70;                               // 壓暗
+                    col.rgb *= lerp(0.40, 1.0, vig);               // 加深暈影
+                    // 漂移黑霧：多層正弦疊柔軟雲塊 + 慢慢飄 + 陣霧包絡（偶爾一陣濃）
+                    float2 p = i.uv * float2(_Aspect, 1.0) + float2(t * 0.02, t * 0.015);
+                    float fog = sin(p.x * 3.0 + p.y * 2.0 + t * 0.3)
+                              + sin(p.x * -2.0 + p.y * 3.5 - t * 0.2) * 0.8
+                              + sin(p.x * 5.0 - p.y * 4.0 + t * 0.5) * 0.5;
+                    fog = smoothstep(0.40, 0.95, saturate(fog / 2.3 * 0.5 + 0.5));  // 濃淡雲塊
+                    float wave = saturate(0.15 + 0.85 * (0.5 + 0.5 * sin(t * 0.25)) * (0.5 + 0.5 * sin(t * 0.11 + 1.7))); // 陣霧起伏
+                    fog *= wave;
+                    col.rgb = lerp(col.rgb, float3(0.01, 0.02, 0.015), fog * 0.85); // 黑霧壓黑
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 12.5)
                 {
                     // ── type 13：大雨（細密雨點、往下落）──
                     float tr = _Time.y;
