@@ -113,7 +113,7 @@ Shader "Custom/Atmosphere"
                     float tw = _Time.y;
                     float gust = saturate(0.40 + 0.60 * (0.5 + 0.5 * sin(tw * 0.8)) * (0.5 + 0.5 * sin(tw * 0.37 + 1.5)));
                     // 兩層同一斜向角度（只差密度/速度做變化，不交叉）→ 風往同一方向猛吹。
-                    float a = 0.38;   // 統一斜向角度（改這個值換風向；正=斜向一邊、負=另一邊）
+                    float a = -0.38;  // 統一斜向角度：負值=右上吹往左下（正值則右下往左上；數字越大越斜、0=水平）
                     float w = windStreak(rot2(i.uv, a), tw, 60.0, 1.8, 0.0)
                             + windStreak(rot2(i.uv, a), tw, 82.0, 2.5, 21.3) * 0.7;
                     col.rgb += w * (0.5 + 0.5 * gust) * 0.08 * float3(0.95, 0.97, 1.0);
