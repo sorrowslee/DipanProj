@@ -38,6 +38,8 @@ Shader "Custom/Atmosphere"
             CGPROGRAM
             #pragma vertex vert_img
             #pragma fragment frag
+            // 15 種型別分支攤平在同一個 pixel shader，指令數大；提高編譯目標避免超過預設上限（洋紅錯誤）。
+            #pragma target 3.5
             #include "UnityCG.cginc"
 
             sampler2D _MainTex;
