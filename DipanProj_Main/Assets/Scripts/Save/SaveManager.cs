@@ -30,7 +30,6 @@ namespace Dipan.Save
         CharacterSave _current;
         InventorySystem _inv;        // 快取參照：避免在 OnDestroy/退出期間用懶漢 Instance getter 又 new 出新物件
         StorageSystem _storage;
-        static CombatStats _playerStats;   // 玩家 HP/MP（玩家在 Start 時 Bind；玩家是每場景生成、非常駐單例，故用靜態欄位橋接）
         bool _dirty;
         float _autoTimer;
         DateTime _sessionStartUtc;
@@ -238,14 +237,7 @@ namespace Dipan.Save
         {
             _current.inventory = Inv.CaptureState();
             _current.storages = Storage.CaptureState();   // 倉庫 5 分頁 → 一頁一筆 StorageDTO
-            // 玩家 HP/MP（玩家已生成並 Bind 時才寫；未 Bind 則保留上次值/預設）
-            if (_playerStats != null && _current.stats != null)
-            {
-                _current.stats.maxHealth = _playerStats.MaxHealth;
-                _current.stats.health = _playerStats.Health;
-                _current.stats.maxMana = _playerStats.MaxMana;
-                _current.stats.mana = _playerStats.Mana;
-            }
+            // 註：HP/MP 刻意不存檔——每次進遊戲都滿血滿魔（方便測試）。見 readme/COMBAT.md §7。
             // 未來：_current.progress / mapStates …
         }
 
@@ -253,30 +245,7 @@ namespace Dipan.Save
         {
             Inv.RestoreState(save != null ? save.inventory : null);
             Storage.RestoreState(save != null ? save.storages : null);   // 沒有就各頁還原成空
-            ApplyStatsTo(_playerStats, save != null ? save.stats : null);  // 玩家已 Bind 才作用；否則等 Bind 時再還原
-        }
-
-        // 把存檔的 HP/MP 還原到玩家。maxHealth==0 = 沒存過（新角色）→ 不覆蓋玩家初始的滿血滿魔。
-        static void ApplyStatsTo(CombatStats stats, StatsDTO dto)
-        {
-            if (stats == null || dto == null || dto.maxHealth <= 0f) return;
-            stats.Restore(dto.maxHealth, dto.health, dto.maxMana, dto.mana);
-        }
-
-        // ───────────── 玩家 HP/MP 橋接（PlayerController 在 Start/OnDestroy 呼叫；null-safe）─────────────
-
-        /// <summary>玩家生成時註冊其 CombatStats；若已有載入的存檔狀態，立即還原到玩家。</summary>
-        public static void BindPlayerStats(CombatStats stats)
-        {
-            _playerStats = stats;
-            if (Instance != null && Instance._current != null)
-                ApplyStatsTo(stats, Instance._current.stats);
-        }
-
-        /// <summary>玩家銷毀時解除註冊（避免持有已銷毀的參照）。</summary>
-        public static void UnbindPlayerStats(CombatStats stats)
-        {
-            if (_playerStats == stats) _playerStats = null;
+            // HP/MP 不還原：由 PlayerController 在 Start 以 CombatStats.Init 設成滿血滿魔。
         }
 
         static CharacterProfile ToProfile(CharacterSave s) => new CharacterProfile

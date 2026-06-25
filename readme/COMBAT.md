@@ -4,7 +4,7 @@
 >
 > 受擊反應（閃爍/擊退/無敵）見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)；武器傷害欄位見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)；可破壞地上物見 [DESTRUCTIBLE_OBJECTS.md](DESTRUCTIBLE_OBJECTS.md)；存檔見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md)；HUD 框架見 [UI_SYSTEM.md](UI_SYSTEM.md)。
 >
-> **狀態：✅ 地基 + 掛勾完成（2026-06-25）、待 Unity 實機驗證。** 玩家 HP/MP、中央傷害結算、武器耗魔、怪物接觸傷害、血/魔 HUD、存檔皆已接。傷害加成／減傷／DOT 為「掛勾就位、數值之後接 CSV/buff」。
+> **狀態：✅ 地基 + 掛勾完成（2026-06-25）、待 Unity 實機驗證。** 玩家 HP/MP、中央傷害結算、武器耗魔、怪物接觸傷害、血/魔 HUD、頭上傷害數字皆已接（HP/MP 不存檔、每次進遊戲滿，見 §7）。傷害加成／減傷／DOT 為「掛勾就位、數值之後接 CSV/buff」。
 
 把「武器傷害 → 玩家加成 → 怪物減傷 → 無敵判定 → DOT/debuff」統一收進**一個地方**結算，並給玩家加上 **HP（血量）** 與 **MP（魔力）**。設計沿用專案紀律：傷害「數值修正」集中在 `CombatSystem`，**目標不自己算加成、彈道系統更不算傷害**（同「彈道不算傷害」「UI 純呈現」哲學）。
 
@@ -115,10 +115,9 @@
 
 ## 7. 存檔
 
-* `StatsDTO`（`CharacterSave.stats`）新增 `maxHealth / health / maxMana / mana` 欄。
-* `SaveManager`：玩家在 Start 時 `BindPlayerStats(_stats)` 註冊、OnDestroy 時 `UnbindPlayerStats`。存檔時把玩家 HP/MP 寫進 `stats`；載入角色時還原回玩家。
-* **`maxHealth == 0` 視為「沒存過」**（新角色）→ 還原時不覆蓋玩家初始的滿血滿魔。所以新角色照 Inspector 滿血滿魔，舊存檔則沿用上次數值。
-* 玩家不是常駐單例（每場景生成），故用 `SaveManager` 的**靜態欄位**橋接（同檔案 IO 邊界：資料層不認識檔案）。
+* **HP/MP 刻意不存檔**（2026-06-25 決定）：玩家**每次進遊戲都滿血滿魔**——由 `PlayerController.Start` 以 `CombatStats.Init(PlayerMaxHealth, PlayerMaxMana, …)` 設定。理由：開發測試時若把 MP 用完，重開遊戲還是沒 MP 就無法繼續測。
+* 所以 `SaveManager` **不 capture、也不 restore** HP/MP；`StatsDTO` 也不含 HP/MP 欄位（只留 `currency` 佔位）。背包/倉庫照常存檔，不受影響。
+* 之後若要做「半血進度存檔」（例如關卡中存點），再把 HP/MP 加回 `StatsDTO` + 在 `CaptureFromSystems`/`ApplyToSystems` 接上即可；管線其餘部分不受影響。
 
 ---
 
@@ -146,7 +145,7 @@
 * `Assets/Scripts/AI/MonsterData.cs` / `MonsterSpawner.cs` — `ContactDamage` / `DamageReduction` 欄
 * `Assets/Scripts/Weapon/WeaponData.cs` / `WeaponManager.cs` — `ManaCost` 欄
 * `Assets/Scripts/Combat/GroundEffectInstance.cs` — DOT 改走 CombatSystem
-* `Assets/Scripts/Save/CharacterSave.cs` / `SaveManager.cs` — `StatsDTO` HP/MP + 存讀
+* `Assets/Scripts/Save/CharacterSave.cs` / `SaveManager.cs` — 背包/倉庫存檔（HP/MP 刻意不存，見 §7）
 * 資料表：`Assets/Data/WeaponTable.csv`（`ManaCost`）、`Assets/Data/MonsterData.csv`（`ContactDamage` / `DamageReduction`）
 
 ---

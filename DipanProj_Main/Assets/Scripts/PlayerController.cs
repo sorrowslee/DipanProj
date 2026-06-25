@@ -83,11 +83,10 @@ public class PlayerController : MonoBehaviour, IDamageable
             _spriteRenderer.flipX = isFacingRightByDefault;
         }
 
-        // HP/MP 數值層：先以 Inspector 值滿血滿魔初始化，再交給 SaveManager（若有載入存檔則覆蓋還原）。
+        // HP/MP 數值層：每次進遊戲都以 Inspector 值滿血滿魔初始化（HP/MP 刻意不存檔，方便測試）。見 readme/COMBAT.md §7。
         _stats = gameObject.GetComponent<CombatStats>();
         if (_stats == null) _stats = gameObject.AddComponent<CombatStats>();
         _stats.Init(PlayerMaxHealth, PlayerMaxMana, HealthRegenPerSec, ManaRegenPerSec);
-        Dipan.Save.SaveManager.BindPlayerStats(_stats);   // 註冊給存檔；有存檔狀態就還原（null-safe）
         _stats.OnDeath += Die;
 
         _hitReaction = gameObject.AddComponent<HitReactionHandler>();
@@ -184,7 +183,6 @@ public class PlayerController : MonoBehaviour, IDamageable
         ClearActiveAura();
         if (_inventory != null) _inventory.OnChanged -= OnInventoryChanged;
         if (_stats != null) _stats.OnDeath -= Die;
-        Dipan.Save.SaveManager.UnbindPlayerStats(_stats);
     }
 
     // 背包武器欄變動時呼叫：裝備哪把武器就切到哪把（用該物品的 WeaponID 對應 WeaponTable）。
