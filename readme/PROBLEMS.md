@@ -62,7 +62,7 @@
 ### B1. 編輯器顯示可走、遊戲卻走不過去
 - **症狀**:編輯器可走疊加是綠的,遊戲裡角色卻被擋。
 - **原因**:早期版本用 environment trigger 當「玩家阻擋」來源,與可走層不同步就會打架。
-- **解法**:已改為**玩家能不能走一律以可走層為準**。**牆/水的判定**(2026-06-22 更新):有「環境/牆」(environment) trigger 區域時,牆=environment 格、不可走但非 environment=水塘;沒有 environment 區域的舊地圖則退回舊模型(不可走=牆、`bulletPass`=水塘)。見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)。
+- **解法**:已改為**玩家能不能走一律以可走層為準**。**牆/水的判定**(2026-06-25 更新):可走層改成**三態子格**——`'0'` 可走 / `'1'` 牆(擋＋反彈子彈) / `'2'` 水/坑(擋腳、子彈穿過),直接在編輯器「可走」工具塗。舊的 environment 牆 trigger 已徹底移除(不再有 bitmap＋trigger 兩層不同步的問題)。見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)、[MapEditor_DESIGN.md](MapEditor_DESIGN.md)。
 
 ### B2. 雷射 / 火焰噴射器打不爆地上物
 - **症狀**:子彈能破壞家具,雷射類不行。

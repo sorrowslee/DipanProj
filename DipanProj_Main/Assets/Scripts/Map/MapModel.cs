@@ -19,8 +19,14 @@ namespace Dipan.MapRuntime
         public float tileSize = 1f;
         public int width = 18;
         public int height = 10;
+        // 可走層細分倍率：可走/牆/水位元圖 = 每個 tile 切 walkSubdiv×walkSubdiv 子格。1 = 舊地圖（tile 解析度）。
+        public int walkSubdiv = 1;
         public Vec2 origin = new Vec2(0, 0);
         public List<LayerData> layers = new List<LayerData>();
+
+        [JsonIgnore] public int Subdiv => walkSubdiv < 1 ? 1 : walkSubdiv;
+        [JsonIgnore] public int FineWidth => width * Subdiv;
+        [JsonIgnore] public int FineHeight => height * Subdiv;
 
         [JsonIgnore] public LayerData GameLayer => layers.Find(l => l.type == LayerType.Game);
         [JsonIgnore] public LayerData WalkableLayer => layers.Find(l => l.type == LayerType.Walkable);

@@ -57,10 +57,17 @@ namespace DipanMapEditor.Core
                     break;
 
                 case EditTool.Walkable:
-                    if (!MapCoords.InBounds(cell.x, cell.y, map)) return;
-                    if (_ui.WalkPaintWalkable) { line = new Color(0.3f, 1f, 0.45f, 0.95f); fill = new Color(0.3f, 1f, 0.45f, 0.2f); }
-                    else { line = new Color(1f, 0.4f, 0.4f, 0.95f); fill = new Color(1f, 0.4f, 0.4f, 0.2f); }
-                    break;
+                {
+                    // 可走工具以「子格」解析度預覽（綠可走 / 紅牆 / 藍水）。
+                    Vector2Int fcell = MapCoords.WorldToFineCell(wp, map);
+                    if (!MapCoords.InBoundsFine(fcell.x, fcell.y, map)) return;
+                    Color fl, fi;
+                    if (_ui.WalkBrushState == WalkableOps.Wall) { fl = new Color(1f, 0.4f, 0.4f, 0.95f); fi = new Color(1f, 0.4f, 0.4f, 0.2f); }
+                    else if (_ui.WalkBrushState == WalkableOps.Water) { fl = new Color(0.4f, 0.6f, 1f, 0.95f); fi = new Color(0.4f, 0.6f, 1f, 0.2f); }
+                    else { fl = new Color(0.3f, 1f, 0.45f, 0.95f); fi = new Color(0.3f, 1f, 0.45f, 0.2f); }
+                    DrawFineFootprint(map, fcell, _ui.WalkBrushSize, fi, fl);
+                    return;
+                }
 
                 case EditTool.Trigger:
                     if (!_ui.TriggerPaintMode) return;   // 檢視模式不顯示筆刷預覽
@@ -97,6 +104,46 @@ namespace DipanMapEditor.Core
             GL.Color(line);
             for (int i = 0; i <= bw; i++) { float x = x0 + i * ts; GL.Vertex3(x, y0, 0); GL.Vertex3(x, y1, 0); }
             for (int j = 0; j <= bh; j++) { float y = y0 - j * ts; GL.Vertex3(x0, y, 0); GL.Vertex3(x1, y, 0); }
+            GL.End();
+
+            GL.PopMatrix();
+        }
+
+        /// <summary>畫 size×size 子格的筆刷落點框（可走工具用，解析度 = tileSize / walkSubdiv，以游標子格為中心）。</summary>
+        void DrawFineFootprint(MapData map, Vector2Int fcell, int size, Color fill, Color line)
+        {
+            if (size < 1) size = 1;
+            float fs = MapCoords.FineSize(map);
+            int cx0 = fcell.x - size / 2;
+            int cy0 = fcell.y - size / 2;
+            float x0 = map.origin.x + cx0 * fs;
+            float y0 = map.origin.y - cy0 * fs;
+            float x1 = x0 + size * fs;
+            float y1 = y0 - size * fs;
+
+            EnsureMaterial();
+            _mat.SetPass(0);
+            GL.PushMatrix();
+
+            GL.Begin(GL.QUADS);
+            GL.Color(fill);
+            GL.Vertex3(x0, y0, 0); GL.Vertex3(x1, y0, 0);
+            GL.Vertex3(x1, y1, 0); GL.Vertex3(x0, y1, 0);
+            GL.End();
+
+            GL.Begin(GL.LINES);
+            GL.Color(line);
+            // 外框
+            GL.Vertex3(x0, y0, 0); GL.Vertex3(x1, y0, 0);
+            GL.Vertex3(x0, y1, 0); GL.Vertex3(x1, y1, 0);
+            GL.Vertex3(x0, y0, 0); GL.Vertex3(x0, y1, 0);
+            GL.Vertex3(x1, y0, 0); GL.Vertex3(x1, y1, 0);
+            // 內部子格線
+            for (int i = 1; i < size; i++)
+            {
+                float x = x0 + i * fs; GL.Vertex3(x, y0, 0); GL.Vertex3(x, y1, 0);
+                float y = y0 - i * fs; GL.Vertex3(x0, y, 0); GL.Vertex3(x1, y, 0);
+            }
             GL.End();
 
             GL.PopMatrix();

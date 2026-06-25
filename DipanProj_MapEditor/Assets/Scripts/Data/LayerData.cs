@@ -33,7 +33,10 @@ namespace DipanMapEditor.Data
         public List<ObjectInstance> objects;
 
         // ---- Walkable payload ----
-        /// <summary>每列一字串的位元圖，'1' = 不可走、'0' = 可走。長度 = height，每列長度 = width。</summary>
+        /// <summary>
+        /// 可走層三態位元圖，每列一字串：'0' = 可走、'1' = 牆（擋＋反彈子彈）、'2' = 水/坑（擋腳、子彈穿過）。
+        /// 解析度為子格：列數 = height × walkSubdiv，每列長度 = width × walkSubdiv。
+        /// </summary>
         public List<string> blocked;
 
         // ---- Trigger payload ----

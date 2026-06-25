@@ -53,11 +53,6 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
-                typeId = "environment", displayName = "環境/牆", color = "#B5651D",
-                paramSchema = new List<TriggerParam>()
-            });
-            set.types.Add(new TriggerTypeDef
-            {
                 typeId = "drama", displayName = "劇情觸發點", color = "#AA66FF",
                 paramSchema = new List<TriggerParam>
                 {

@@ -100,19 +100,22 @@ namespace DipanMapEditor.Core
             newWidth = Mathf.Max(1, newWidth);
             newHeight = Mathf.Max(1, newHeight);
 
-            // 可走層位元圖：逐列裁切/補 '1'
+            // 可走層位元圖（子格解析度）：逐列裁切/補 '1'（牆）。新尺寸 = 新格數 × 細分倍率。
+            int n = Map.Subdiv;
+            int fineW = newWidth * n;
+            int fineH = newHeight * n;
             var walk = Map.WalkableLayer;
             if (walk != null && walk.blocked != null)
             {
                 var rows = walk.blocked;
-                for (int y = 0; y < newHeight; y++)
+                for (int y = 0; y < fineH; y++)
                 {
                     string row = y < rows.Count ? rows[y] : "";
-                    if (row.Length < newWidth) row = row.PadRight(newWidth, '1');
-                    else if (row.Length > newWidth) row = row.Substring(0, newWidth);
+                    if (row.Length < fineW) row = row.PadRight(fineW, '1');
+                    else if (row.Length > fineW) row = row.Substring(0, fineW);
                     if (y < rows.Count) rows[y] = row; else rows.Add(row);
                 }
-                if (rows.Count > newHeight) rows.RemoveRange(newHeight, rows.Count - newHeight);
+                if (rows.Count > fineH) rows.RemoveRange(fineH, rows.Count - fineH);
             }
 
             // 遊戲層 tile：移除超出新範圍者

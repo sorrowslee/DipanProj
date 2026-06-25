@@ -23,7 +23,13 @@ namespace DipanMapEditor.UI
 
         public EditTool CurrentTool { get; private set; } = EditTool.TilePaint;
         public string SelectedObjectAssetId { get; private set; }
-        public bool WalkPaintWalkable { get; private set; } = true;  // true=塗可走、false=塗不可走
+
+        /// <summary>可走工具的當前筆刷狀態字元（'0' 可走 / '1' 牆 / '2' 水）。</summary>
+        public char WalkBrushState { get; private set; } = WalkableOps.Walk;
+
+        /// <summary>可走工具的筆刷邊長（以子格計）：1 / 2 / 4 / 8。一筆塗 N×N 個子格。</summary>
+        public int WalkBrushSize { get; private set; } = 1;
+        static readonly int[] WalkBrushSizes = { 1, 2, 4, 8 };
 
         public void ClearObjectBrush() => SelectedObjectAssetId = null;
 
@@ -677,69 +683,38 @@ namespace DipanMapEditor.UI
 
         void DrawWalkablePanel()
         {
+            var map = MapSession.Instance?.Map;
             var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
             GUILayout.BeginArea(rect, GUI.skin.box);
 
-            GUILayout.Label("可走 / 不可走");
+            GUILayout.Label("可走 / 牆 / 水");
+            if (map != null)
+                GUILayout.Label($"細分 {map.Subdiv}×（每格切 {map.Subdiv}×{map.Subdiv} 子格）");
             GUILayout.Space(4);
             GUILayout.Label("筆刷");
+
+            GUI.color = WalkBrushState == WalkableOps.Walk ? Color.cyan : Color.white;
+            if (GUILayout.Button("可走（綠）")) WalkBrushState = WalkableOps.Walk;
+            GUI.color = WalkBrushState == WalkableOps.Wall ? Color.cyan : Color.white;
+            if (GUILayout.Button("牆（紅）擋＋反彈子彈")) WalkBrushState = WalkableOps.Wall;
+            GUI.color = WalkBrushState == WalkableOps.Water ? Color.cyan : Color.white;
+            if (GUILayout.Button("水/坑（藍）擋腳·子彈穿過")) WalkBrushState = WalkableOps.Water;
+            GUI.color = Color.white;
+
+            GUILayout.Space(8);
+            GUILayout.Label("筆刷大小（子格）");
             GUILayout.BeginHorizontal();
-            GUI.color = WalkPaintWalkable ? Color.cyan : Color.white;
-            if (GUILayout.Button("可走（綠）")) WalkPaintWalkable = true;
-            GUI.color = !WalkPaintWalkable ? Color.cyan : Color.white;
-            if (GUILayout.Button("不可走（紅）")) WalkPaintWalkable = false;
+            foreach (int s in WalkBrushSizes)
+            {
+                GUI.color = WalkBrushSize == s ? Color.cyan : Color.white;
+                if (GUILayout.Button($"{s}×{s}")) WalkBrushSize = s;
+            }
             GUI.color = Color.white;
             GUILayout.EndHorizontal();
 
             GUILayout.Space(10);
-            GUILayout.Label("左鍵拖曳塗格。\n綠 = 可走，紅 = 不可走。\n新地圖初始全部不可走。\n只有此工具下才顯示疊加色。");
-
-            GUILayout.Space(12);
-            GUILayout.Label("── 便利功能 ──");
-            if (GUILayout.Button("依不可走格建立牆 trigger"))
-                BuildWallTriggerFromBlocked();
-            GUILayout.Label("把目前所有「不可走」格刷成一個\n「環境/牆」trigger 區域。建立後自動\n切到 Trigger 工具、預設「減格」模式，\n方便把水池/深坑那幾格挖掉\n（牆 ＝ 環境/牆 trigger；不可走但非牆\n＝ 水池/深坑，子彈穿過）。");
+            GUILayout.Label("左鍵拖曳塗子格。\n綠 = 可走\n紅 = 牆（擋玩家＋反彈子彈）\n藍 = 水/坑（擋玩家、子彈穿過）\n新地圖初始全部為牆。\n只有此工具下才顯示疊加色。");
             GUILayout.EndArea();
-        }
-
-        // 牆壁 trigger 的類型 id（對應 triggerTypes.json 的「環境/牆」）。
-        const string EnvWallTypeId = "environment";
-
-        /// <summary>便利功能：把目前所有「不可走」格刷成一個「環境/牆」trigger 區域，方便之後微調（挖水池）。</summary>
-        public void BuildWallTriggerFromBlocked()
-        {
-            var map = MapSession.Instance?.Map;
-            var types = MapSession.Instance?.TriggerTypes;
-            if (map == null || types == null) return;
-            if (types.Find(EnvWallTypeId) == null)
-            {
-                _statusMsg = "找不到「環境/牆」(environment) trigger 類型，無法建立牆。";
-                return;
-            }
-
-            UndoManager.Push();
-            var regions = map.TriggerLayer.regions;
-
-            // 建一個新的 environment 區域（沿用 CreateRegion 的命名/id 規則），再填入所有不可走格。
-            string prevType = _triggerType;
-            _triggerType = EnvWallTypeId;
-            CreateRegion(EnvWallTypeId, regions, types);   // 設定 CurrentRegion
-            _triggerType = prevType;
-
-            var region = CurrentRegion;
-            region.name = "牆(依不可走)";
-
-            int n = 0;
-            for (int y = 0; y < map.height; y++)
-                for (int x = 0; x < map.width; x++)
-                    if (WalkableOps.IsBlocked(map, x, y)) { TriggerOps.AddCell(region, x, y); n++; }
-
-            // 切到 Trigger 工具、選取此區域、預設減格，方便直接把水池/深坑格挖掉。
-            CurrentTool = EditTool.Trigger;
-            TriggerPaintMode = true;
-            TriggerNewRegionPerStroke = false;
-            TriggerAddCells = false;
-            _statusMsg = $"已依不可走格建立牆 trigger（{n} 格）。已切到 Trigger 工具、減格模式：直接在水池/深坑格上左鍵拖曳即可挖掉。";
         }
 
         // ---- Trigger 圖層面板 ----

@@ -59,8 +59,8 @@ DipanProj_MapEditor/
 │  │  │   ├─ ObjectSelectionOverlay  選取物件的原圖邊界藍框
 │  │  │   ├─ ObjectGhostPreview.cs   物件放置半透明幻影預覽
 │  │  │   ├─ TileBrushPreview.cs     地磚筆刷 footprint 預覽框
-│  │  │   ├─ WalkableOps.cs          可走位元圖讀寫
-│  │  │   ├─ WalkableOverlay.cs      可走工具的紅/綠疊加
+│  │  │   ├─ WalkableOps.cs          可走三態子格位元圖讀寫（可走/牆/水）
+│  │  │   ├─ WalkableOverlay.cs      可走工具的綠(可走)/紅(牆)/藍(水)子格疊加
 │  │  │   ├─ TriggerOps.cs           區域加/減格、hex 顏色
 │  │  │   ├─ TriggerOverlay.cs       trigger 區域依類型色疊加
 │  │  │   ├─ UndoManager.cs          快照式 Undo
@@ -70,7 +70,7 @@ DipanProj_MapEditor/
 │  │  │   ├─ EditTool.cs       工具列舉（TilePaint / Erase / Object / Walkable / Trigger）
 │  │  │   ├─ PaintController.cs    地磚畫/擦（含多格 block stamp）
 │  │  │   ├─ ObjectController.cs   物件放置/選取/Ctrl 移動/磁吸/翻轉/縮放/旋轉/層/複製/座標/刪除
-│  │  │   ├─ WalkableController.cs 可走/不可走塗刷
+│  │  │   ├─ WalkableController.cs 可走/牆/水塗刷（三態、可選筆刷大小）
 │  │  │   └─ TriggerController.cs  trigger 區域塗刷（加/減格、自動建區域）
 │  │  ├─ UI/
 │  │  │   └─ EditorUI.cs       所有 IMGUI 面板（工具列、調色盤、各工具面板、對話框、選取面板）
@@ -153,6 +153,7 @@ DipanProj_MapEditor/
   "backgroundId": "Modules/RedBridalGown/Background/State_Woodshed",  // 空＝不用背景圖
   "tileSize": 1.0,
   "width": 18, "height": 10,          // tile 格數
+  "walkSubdiv": 4,                    // 可走層細分倍率：每 tile 切 4×4 子格（新地圖預設 4；舊地圖無此欄＝1）
   "origin": { "x": 0, "y": 0 },       // 左上角錨點；resize 由右/下邊增減
   "layers": [                         // 固定三層、有序
     {
@@ -169,8 +170,10 @@ DipanProj_MapEditor/
                      "animFps": 8 } ] // 動畫地上物的每實例播放幀率（靜態物件忽略）
     },
     {
-      "id": "walk", "name": "可走/不可走", "type": "Walkable",
-      "blocked": [ "111111111111111111", "100000000000000001", ... ]  // 每列一字串，'1'=不可走（預設全 1）
+      "id": "walk", "name": "可走/牆/水", "type": "Walkable",
+      // 三態子格位元圖，每列一字串：'0'=可走、'1'=牆(擋+反彈子彈)、'2'=水/坑(擋腳、子彈穿過)。
+      // 解析度 = 子格：列數 = height×walkSubdiv，每列長度 = width×walkSubdiv（預設全 1=牆）。
+      "blocked": [ "111111111111...(72 字)", "100000000000...", ... ]
     },
     {
       "id": "trig", "name": "Trigger", "type": "Trigger",
@@ -184,7 +187,7 @@ DipanProj_MapEditor/
 
 - **tileId 格式**：`<catalogId>#<index>`，index = 拼接圖切格後的序號（左上往右、再往下，row-major）。
 - **objects**：自由變換；渲染 sortingOrder = `1000000 + zOrder*10000 + round(-sortKey*100)`（zOrder 為主、Y-sort 為輔；恆在地磚之上）。
-- **walkable**：`blocked` 每列一字串、長度 = width，'1'=不可走、'0'=可走；初始全 1。範圍外視為不可走。
+- **walkable**：`blocked` 三態子格位元圖，每列一字串。解析度 = 子格（列數 = height×walkSubdiv、每列長度 = width×walkSubdiv）；`'0'`=可走、`'1'`=牆(擋＋反彈子彈)、`'2'`=水/坑(擋腳、子彈穿過)；初始全 1(牆)。範圍外視為牆。牆/水都直接畫在此層，**不再用 environment trigger**。
 - **trigger regions**：每塊 = `cells`（[x,y] 集合）+ `name` + `typeId` + `params`（**值目前以字串存**，未來 loader 依 schema 轉型）。允許重疊、同型多塊。
 
 ### 3.2 Trigger 類型定義 `triggerTypes.json`（資料驅動）
@@ -235,7 +238,7 @@ DipanProj_MapEditor/
 ### 4.1 新建地圖
 
 對話框：**名稱**、**Module 下拉**（決定可用素材）、**tile 尺寸**（預設 1）、**寬×高（格）**（預設 18×10，旁標 px）。
-新建後畫面**純黑**（藍框＝可編輯範圍、淡格線＝編輯輔助），可走層初始全部不可走。
+新建後畫面**純黑**（藍框＝可編輯範圍、淡格線＝編輯輔助），可走層初始全部為牆。
 
 ### 4.2 地磚（畫 / 擦）
 
@@ -261,12 +264,17 @@ DipanProj_MapEditor/
 - **動畫地上物**：調色盤縮圖左上角有 `▶幀數` 標記；放到地圖上後會**即時循環播放**（編輯器內所見即遊戲內所得），各實例依自己的 `animFps` 速度播。放置/選取/移動/翻轉/縮放/血量等操作與靜態物件完全相同。
 - 每個放置/移動/變換動作 = 一個 Undo 步（座標輸入框逐字打字除外，用 ± 按鈕則有 Undo）。
 
-### 4.4 可走 / 不可走
+### 4.4 可走 / 牆 / 水（三態子格）
 
-- 切「可走」工具 → 整張畫布顯示**紅（不可走）/綠（可走）半透明疊加**（只在此工具下顯示）。
-- 右側選**可走（綠）/不可走（紅）**筆刷，左鍵拖曳塗格。新地圖初始全紅。
-- 一筆拖曳 = 一個 Undo 步。
-- **便利功能「依不可走格建立牆 trigger」**（面板下方按鈕）：把目前所有「不可走」格一鍵刷成一個「環境/牆」(`environment`) trigger 區域，省去重畫一遍牆。建立後自動切到 Trigger 工具、預設「減格」模式，直接在水池/深坑那幾格左鍵拖曳即可挖掉（牆與可走刻意分開：**牆 = environment trigger；不可走但非牆 = 水池/深坑，子彈穿過**）。遊戲端 `MapLoader` 即以 `environment` 區域為牆（見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)）。一次按鈕 = 一個 Undo 步。
+- 切「可走」工具 → 整張畫布顯示**綠（可走）/紅（牆）/藍（水/坑）半透明子格疊加**（只在此工具下顯示）。
+- 解析度 = **子格**：每個 tile 切 `walkSubdiv`×`walkSubdiv`（新地圖預設 4×4），可細膩描邊。
+- 右側三個筆刷：
+  - **可走（綠）** `'0'`：玩家可走、子彈飛過。
+  - **牆（紅）** `'1'`：擋玩家 ＋ **反彈子彈**（Environment layer）。
+  - **水/坑（藍）** `'2'`：擋玩家、但**子彈穿過**（blocker / `Water` layer）。
+- **筆刷大小**：1×1 / 2×2 / 4×4 / 8×8 子格（以游標為中心塗一個方塊；游標預覽框會顯示範圍與內部子格線）。
+- 一筆拖曳 = 一個 Undo 步。新地圖初始全部為牆（紅）。
+- **牆/水直接在此工具塗，不再有 environment trigger**（舊的「環境/牆」trigger 類型與「依不可走格建立牆」按鈕已徹底移除）。遊戲端 `MapLoader` 直接讀此三態位元圖生碰撞（見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)）。
 
 ### 4.5 Trigger
 
@@ -285,7 +293,7 @@ DipanProj_MapEditor/
 - **選背景**：
   - *新建對話框* 列出該 module 的 Background，點選即用；「**套用背景長寬比到畫布**」會依高算寬、減少拉伸變形。
   - *頂部「背景」鈕* 在「無 + 各背景」之間循環，可隨時替當前地圖換/清背景。
-- **為何乾淨**：俯視外牆是邊界（塗不可走即可、玩家走不進去，**不需遮擋**），需要遮擋玩家的內部道具本來就當地上物擺；黑邊＝不可走，與黑底設計一致。
+- **為何乾淨**：俯視外牆是邊界（塗牆即可、玩家走不進去，**不需遮擋**），需要遮擋玩家的內部道具本來就當地上物擺；黑邊＝牆，與黑底設計一致。
 - **art 對齊提醒**：拆出來的地上物最好以它在原圖中的大小輸出，放上去 scale=1 才對得準；否則用縮放/磁吸/座標微調。
 - **混合**：背景層與 tile 層並存，可逐關決定用背景圖或用 tile 鋪地。
 

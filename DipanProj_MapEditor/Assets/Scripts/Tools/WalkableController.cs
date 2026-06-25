@@ -5,8 +5,8 @@ using DipanMapEditor.UI;
 namespace DipanMapEditor.Tools
 {
     /// <summary>
-    /// 可走/不可走筆刷：在 Walkable 工具下左鍵拖曳塗格。
-    /// 塗「可走」或「不可走」由 EditorUI.WalkPaintWalkable 決定。
+    /// 可走/牆/水筆刷：在 Walkable 工具下左鍵拖曳塗子格。
+    /// 塗哪一種（可走/牆/水）由 EditorUI.WalkBrushState 決定。
     /// </summary>
     public class WalkableController : MonoBehaviour
     {
@@ -34,15 +34,21 @@ namespace DipanMapEditor.Tools
 
             var map = session.Map;
             Vector3 world = _cam.ScreenToWorldPoint(Input.mousePosition);
-            Vector2Int cell = MapCoords.WorldToCell(world, map.tileSize, MapCoords.Origin(map));
-            if (!MapCoords.InBounds(cell.x, cell.y, map)) return;
+            Vector2Int cell = MapCoords.WorldToFineCell(world, map);
+            if (!MapCoords.InBoundsFine(cell.x, cell.y, map)) return;
             if (cell == _lastCell) return;
             _lastCell = cell;
 
             if (!_strokePushed) { UndoManager.Push(); _strokePushed = true; }
 
-            // 筆刷塗「可走」→ blocked=false；塗「不可走」→ blocked=true
-            WalkableOps.SetBlocked(map, cell.x, cell.y, !_ui.WalkPaintWalkable);
+            // 依當前筆刷大小塗 N×N 子格方塊（以游標子格為中心）。狀態：可走 '0' / 牆 '1' / 水 '2'。
+            int size = _ui.WalkBrushSize;
+            int x0 = cell.x - size / 2;
+            int y0 = cell.y - size / 2;
+            char state = _ui.WalkBrushState;
+            for (int dy = 0; dy < size; dy++)
+                for (int dx = 0; dx < size; dx++)
+                    WalkableOps.SetState(map, x0 + dx, y0 + dy, state);
         }
     }
 }

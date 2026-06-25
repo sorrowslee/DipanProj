@@ -41,6 +41,38 @@ namespace DipanMapEditor.Core
 
         public static Vector2 Origin(MapData map) => new Vector2(map.origin.x, map.origin.y);
 
+        // ---- 可走層「子格」座標（解析度 = tileSize / walkSubdiv）----
+
+        /// <summary>單一子格的世界尺寸。</summary>
+        public static float FineSize(MapData map) => map.tileSize / map.Subdiv;
+
+        /// <summary>子格 (fx,fy) 左上角的世界座標。</summary>
+        public static Vector2 FineCellTopLeft(int fx, int fy, MapData map)
+        {
+            float fs = FineSize(map);
+            return new Vector2(map.origin.x + fx * fs, map.origin.y - fy * fs);
+        }
+
+        /// <summary>子格 (fx,fy) 中心的世界座標。</summary>
+        public static Vector2 FineCellCenter(int fx, int fy, MapData map)
+        {
+            float fs = FineSize(map);
+            return new Vector2(map.origin.x + (fx + 0.5f) * fs, map.origin.y - (fy + 0.5f) * fs);
+        }
+
+        /// <summary>世界座標 → 子格座標（floor）。</summary>
+        public static Vector2Int WorldToFineCell(Vector2 world, MapData map)
+        {
+            float fs = FineSize(map);
+            int fx = Mathf.FloorToInt((world.x - map.origin.x) / fs);
+            int fy = Mathf.FloorToInt((map.origin.y - world.y) / fs);
+            return new Vector2Int(fx, fy);
+        }
+
+        /// <summary>子格座標是否在地圖範圍內。</summary>
+        public static bool InBoundsFine(int fx, int fy, MapData map)
+            => fx >= 0 && fy >= 0 && fx < map.FineWidth && fy < map.FineHeight;
+
         /// <summary>
         /// 地圖格 (gx,gy)（左上原點、y 往下）→ Unity Tilemap cell（左下原點、y 往上）。
         /// 搭配 TilemapView 把 Grid 物件擺在地圖左下角。

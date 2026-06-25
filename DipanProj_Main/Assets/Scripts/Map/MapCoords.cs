@@ -17,6 +17,18 @@ namespace Dipan.MapRuntime
         public static Vector2 CellCenter(int gx, int gy, MapData map)
             => new Vector2(map.origin.x + (gx + 0.5f) * map.tileSize, map.origin.y - (gy + 0.5f) * map.tileSize);
 
+        // ---- 可走層「子格」座標（解析度 = tileSize / walkSubdiv）----
+
+        /// <summary>單一子格的世界尺寸。</summary>
+        public static float FineSize(MapData map) => map.tileSize / map.Subdiv;
+
+        /// <summary>子格 (fx,fy) 中心的世界座標。</summary>
+        public static Vector2 FineCellCenter(int fx, int fy, MapData map)
+        {
+            float fs = FineSize(map);
+            return new Vector2(map.origin.x + (fx + 0.5f) * fs, map.origin.y - (fy + 0.5f) * fs);
+        }
+
         /// <summary>地圖在世界空間的包圍盒（左上 origin、往右下展開）。</summary>
         public static Rect WorldBounds(MapData map)
         {

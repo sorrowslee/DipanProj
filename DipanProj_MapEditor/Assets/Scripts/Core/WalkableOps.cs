@@ -3,29 +3,40 @@ using DipanMapEditor.Data;
 namespace DipanMapEditor.Core
 {
     /// <summary>
-    /// 可走/不可走位元圖的讀寫。blocked 為每列一字串，'1' = 不可走、'0' = 可走。
-    /// 範圍外一律視為不可走。
+    /// 可走層三態位元圖的讀寫（子格解析度）。每列一字串：
+    /// '0' = 可走、'1' = 牆（擋＋反彈子彈）、'2' = 水/坑（擋腳、子彈穿過）。
+    /// 座標為子格 (fx,fy)，範圍 [0, FineWidth) × [0, FineHeight)。範圍外一律視為牆。
     /// </summary>
     public static class WalkableOps
     {
-        public static bool IsBlocked(MapData map, int x, int y)
+        public const char Walk = '0';
+        public const char Wall = '1';
+        public const char Water = '2';
+
+        /// <summary>讀某子格的狀態字元；範圍外回 '1'（牆）。</summary>
+        public static char GetState(MapData map, int fx, int fy)
         {
             var rows = map?.WalkableLayer?.blocked;
-            if (rows == null || y < 0 || y >= rows.Count) return true;
-            string row = rows[y];
-            if (x < 0 || x >= row.Length) return true;
-            return row[x] == '1';
+            if (rows == null || fy < 0 || fy >= rows.Count) return Wall;
+            string row = rows[fy];
+            if (fx < 0 || fx >= row.Length) return Wall;
+            char c = row[fx];
+            return (c == Walk || c == Wall || c == Water) ? c : Wall;
         }
 
-        public static void SetBlocked(MapData map, int x, int y, bool blocked)
+        /// <summary>設某子格的狀態字元。</summary>
+        public static void SetState(MapData map, int fx, int fy, char state)
         {
             var rows = map?.WalkableLayer?.blocked;
-            if (rows == null || y < 0 || y >= rows.Count) return;
-            string row = rows[y];
-            if (x < 0 || x >= row.Length) return;
+            if (rows == null || fy < 0 || fy >= rows.Count) return;
+            string row = rows[fy];
+            if (fx < 0 || fx >= row.Length) return;
             var arr = row.ToCharArray();
-            arr[x] = blocked ? '1' : '0';
-            rows[y] = new string(arr);
+            arr[fx] = state;
+            rows[fy] = new string(arr);
         }
+
+        /// <summary>是否會擋腳（牆或水都擋）。</summary>
+        public static bool IsBlocked(MapData map, int fx, int fy) => GetState(map, fx, fy) != Walk;
     }
 }

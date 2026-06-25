@@ -28,6 +28,20 @@ namespace DipanMapEditor.Data
         /// <summary>畫布高（tile 格數）。預設 10 ≈ 一個螢幕高。</summary>
         public int height = 10;
 
+        /// <summary>
+        /// 可走層細分倍率：可走/牆/水的位元圖解析度 = 每個 tile 切成 walkSubdiv×walkSubdiv 子格。
+        /// 1 = 與 tile 同解析度（舊地圖）；4 = 每格切 4×4（細膩描邊）。
+        /// 注意：只影響「可走層」，地磚/物件/trigger 仍維持 tile 解析度。
+        /// </summary>
+        public int walkSubdiv = 1;
+
+        /// <summary>有效細分倍率（至少 1）。</summary>
+        [JsonIgnore] public int Subdiv => walkSubdiv < 1 ? 1 : walkSubdiv;
+        /// <summary>可走層位元圖的寬（子格數）= width × Subdiv。</summary>
+        [JsonIgnore] public int FineWidth => width * Subdiv;
+        /// <summary>可走層位元圖的高（子格數）= height × Subdiv。</summary>
+        [JsonIgnore] public int FineHeight => height * Subdiv;
+
         /// <summary>世界原點（左上角錨點）；resize 由右/下邊增減。</summary>
         public Vec2 origin = new Vec2(0, 0);
 
@@ -43,9 +57,13 @@ namespace DipanMapEditor.Data
         [JsonIgnore]
         public LayerData TriggerLayer => layers.Find(l => l.type == LayerType.Trigger);
 
-        /// <summary>建立一張空白地圖（固定三層；可走層初始全部不可走）。</summary>
-        public static MapData CreateBlank(string name, string module, float tileSize, int width, int height, string backgroundId = "")
+        /// <summary>新地圖預設細分倍率（4×4 子格，最細膩）。</summary>
+        public const int DefaultSubdiv = 4;
+
+        /// <summary>建立一張空白地圖（固定三層；可走層初始全部為牆）。</summary>
+        public static MapData CreateBlank(string name, string module, float tileSize, int width, int height, string backgroundId = "", int subdiv = DefaultSubdiv)
         {
+            if (subdiv < 1) subdiv = 1;
             var map = new MapData
             {
                 name = name,
@@ -54,6 +72,7 @@ namespace DipanMapEditor.Data
                 tileSize = tileSize,
                 width = width,
                 height = height,
+                walkSubdiv = subdiv,
             };
 
             map.layers.Add(new LayerData
@@ -65,8 +84,8 @@ namespace DipanMapEditor.Data
 
             map.layers.Add(new LayerData
             {
-                id = "walk", name = "可走/不可走", type = LayerType.Walkable,
-                blocked = MakeAllBlocked(width, height),
+                id = "walk", name = "可走/牆/水", type = LayerType.Walkable,
+                blocked = MakeAllBlocked(width * subdiv, height * subdiv),
             });
 
             map.layers.Add(new LayerData
@@ -78,7 +97,7 @@ namespace DipanMapEditor.Data
             return map;
         }
 
-        /// <summary>產生「全部不可走」的位元圖（每列一字串，'1' = 不可走）。</summary>
+        /// <summary>產生「全部為牆」的位元圖（每列一字串，'1' = 牆）。參數為子格數（已乘上 subdiv）。</summary>
         public static List<string> MakeAllBlocked(int width, int height)
         {
             var rows = new List<string>(height);
