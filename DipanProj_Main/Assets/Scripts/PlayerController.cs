@@ -97,6 +97,9 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (Dipan.UI.UIManager.Instance != null)
             Dipan.UI.UIManager.Instance.Open<Dipan.UI.HudPanel>();
 
+        // 腳下影子（見 readme/SHADOW.md）
+        if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
+
         _weaponManager = FindObjectOfType<WeaponManager>();
         if (_weaponManager == null)
         {
@@ -123,6 +126,9 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     void Update()
     {
+        // 死亡後鎖住一切操作（移動/攻擊/切武器）；死亡動畫已在 Die() 觸發、Death 狀態定住。
+        if (_isDead) { _moveInput = Vector2.zero; return; }
+
         // UI 輸入閘門：開啟背包等視窗時，停止移動/攻擊/切武器（最小侵入；旗標由 UIManager 統合）。
         if (Dipan.UI.UIManager.IsGameplayInputBlocked)
         {
@@ -295,6 +301,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     void FixedUpdate()
     {
+        if (_isDead) return;   // 死亡後不再被輸入推動
+
         if (_hitReaction != null && _hitReaction.IsKnockedBack)
             return;
 
@@ -1299,8 +1307,21 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         if (_isDead) return;
         _isDead = true;
+
+        // 停止移動
+        _moveInput = Vector2.zero;
+        if (_rb != null) _rb.velocity = Vector2.zero;
+
+        // 收掉持續型武器（雷射/佛光/環繞彈），免得人死了還在放招
+        ClearActiveOrbitalBullets();
+        ClearActiveBeams();
+        ClearActiveAura();
+
+        // 播死亡動畫（對應 Animator 的 Bool 參數 "isDead"）
+        if (_animator != null) _animator.SetBool("isDead", true);
+
         Debug.Log("Player died!");
-        // TODO: 死亡流程（重生 / 讀檔 / 結束畫面）。目前僅標記死亡 — 之後接存檔系統與 UI。
+        // TODO: 死亡流程（重生 / 讀檔 / 結束畫面）。目前到「播動畫 + 停止操作」，之後接存檔與 UI。
     }
 
     // 給其他系統取用玩家數值（HUD / 回血道具 / debuff…）。

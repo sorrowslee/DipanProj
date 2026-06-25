@@ -1149,8 +1149,6 @@ MonoBehaviour:
   mapPath: Modules/RedBridalGown/Maps/RedBridalGown_01.dipanmap
   environmentLayerName: Environment
   blockerLayerName: Water
-  environmentTriggerTypeId: environment
-  bulletPassTriggerTypeId: bulletPass
   playerSpawnTypeId: playerSpawn
   monsterSpawnTypeId: monsterSpawn
   teleportTypeId: teleport

@@ -50,6 +50,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 手動放置的怪用預設值。Initialize 在 Start 之前由 MonsterSpawner 呼叫，故此時值已就緒。
         var contact = gameObject.AddComponent<EnemyContactDamage>();
         contact.Configure(ContactDamage);
+
+        // 腳下影子（見 readme/SHADOW.md）
+        if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
     }
 
     public void Initialize(MonsterData data)

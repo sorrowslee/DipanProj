@@ -183,3 +183,14 @@
 - **症狀**:在元件上標 `[RequireComponent(typeof(Collider2D))]`,執行期 `AddComponent` 該元件時、若物件還沒有任何 collider,Unity 嘗試自動補一個 `Collider2D` 卻失敗(`Collider2D` 是抽象類別,不能實例化)。
 - **原因**:`RequireComponent` 會在缺件時嘗試 `AddComponent(該型別)`,但 **`Collider2D` 是抽象基底**(具體的是 `BoxCollider2D` / `CircleCollider2D`…),無法被實例化。
 - **解法**:別對抽象基底用 `RequireComponent`。本專案 `EnemyContactDamage` 改成**不標 RequireComponent**,程式內 `GetComponent<Collider2D>()` 取用 + null 檢查即可(怪物的 collider 由 `MonsterController.AutoAdjustCollider` 保證存在)。要強制需求就指定**具體**型別(如 `BoxCollider2D`)。
+
+---
+
+## G. 角色 / 美術顯示 (Character & Sprite Rendering)
+
+> 角色立繪／走路動畫的完整設定流程見 [CHARACTER_SETUP.md](CHARACTER_SETUP.md)。
+
+### G1. 角色進遊戲變一團黑／剪影，但在 prefab 預覽裡看得到
+- **症狀**：主角（或任何角色）放進遊戲後變成全黑剪影、只剩輪廓；但在 Prefab 編輯／預覽視窗裡卻正常（只是偏暗）。換不同角色圖都一樣黑——「從第一個角色就這樣」。
+- **原因**：`Player.prefab` 的 **SpriteRenderer 的 `Color`（色調 Tint）被設成很暗的顏色**（實際值 RGB ≈ 0.12 / 0.07 / 0.07，約 10% 亮度的暗褐色）。SpriteRenderer 會把圖片**乘上**這個顏色，等於把整張圖壓暗；再進到本來就昏暗的氛圍地圖（提燈光圈，見 [ATMOSPHERE.md](ATMOSPHERE.md)）就直接變純黑剪影。因為 Tint 綁在 prefab 上、與圖片無關，所以**換哪張角色圖都一樣黑**。材質是 `Sprites-Default`（無光照）本身沒問題，純粹是 Tint。
+- **解法**：把該 SpriteRenderer 的 **Color 設回純白**（RGBA 全 255，尤其 **A=255** 別半透明）。Inspector：選 Player → Sprite Renderer → Color 色塊 → 設白。白色 = 不染色 = 顯示圖片原色。改完氛圍地圖裡仍會偏暗有氣氛，但不再是純黑。**通則：角色「整張均勻變暗／變色」先檢查 SpriteRenderer 的 Color，不是圖、不是材質、也不是光。**

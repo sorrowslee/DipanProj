@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 2422ccdfad1b64066998252aa13c576c
+guid: 832d0f7debde940adaa398601f5a1b24
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -45,7 +45,7 @@ TextureImporter:
   compressionQuality: 50
   spriteMode: 2
   spriteExtrude: 1
-  spriteMeshType: 0
+  spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
   spritePixelsToUnits: 250
@@ -97,13 +97,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: sequenceImage_Actor1_0
+      name: sequenceImage_Actor1Dead_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 309.66666
-        height: 500
+        width: 393
+        height: 635
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -111,20 +111,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 5cadb40a521274b85ace6d1fbd969b47
-      internalID: -1862659994
+      spriteID: 93c351c8ca02d4bcba6740adbeea213f
+      internalID: 244664685
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: sequenceImage_Actor1_1
+      name: sequenceImage_Actor1Dead_1
       rect:
         serializedVersion: 2
-        x: 309
+        x: 393
         y: 0
-        width: 309.66666
-        height: 500
+        width: 393
+        height: 635
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -132,20 +132,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 892b8025b9fd4407398923f59eb460a7
-      internalID: 1994146605
+      spriteID: 9c0e3dfd1bdd94c398554ac40f605c83
+      internalID: 122788073
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: sequenceImage_Actor1_2
+      name: sequenceImage_Actor1Dead_2
       rect:
         serializedVersion: 2
-        x: 618
+        x: 786
         y: 0
-        width: 309.66666
-        height: 500
+        width: 393
+        height: 635
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -153,20 +153,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 178536baab8df4d428f78af31620bd22
-      internalID: 1631374820
+      spriteID: 008e96734a4854beda4e297b76008dc5
+      internalID: -1290885054
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: sequenceImage_Actor1_3
+      name: sequenceImage_Actor1Dead_3
       rect:
         serializedVersion: 2
-        x: 927
+        x: 1179
         y: 0
-        width: 309.66666
-        height: 500
+        width: 393
+        height: 635
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -174,20 +174,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 87dc2f7fbf43c462ab8d55942f640962
-      internalID: 1746115307
+      spriteID: 2693575a983f14eec97dd6496be27c0f
+      internalID: -1202136455
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: sequenceImage_Actor1_4
+      name: sequenceImage_Actor1Dead_4
       rect:
         serializedVersion: 2
-        x: 1236
+        x: 1572
         y: 0
-        width: 309.66666
-        height: 500
+        width: 393
+        height: 635
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -195,20 +195,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 8ae42edda355640f3b738e3a162159c1
-      internalID: 1449938052
+      spriteID: 7664074ff7a46435cbc07928263dd32c
+      internalID: -179253558
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: sequenceImage_Actor1_5
+      name: sequenceImage_Actor1Dead_5
       rect:
         serializedVersion: 2
-        x: 1545
+        x: 1965
         y: 0
-        width: 309.66666
-        height: 500
+        width: 393
+        height: 635
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -216,20 +216,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 6a12fb8ef16d348a880cc5bc80ed04f3
-      internalID: 2139598265
+      spriteID: 3e09c1bd7125644c5a11d45bfbfc0705
+      internalID: -345762866
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: sequenceImage_Actor1_6
+      name: sequenceImage_Actor1Dead_6
       rect:
         serializedVersion: 2
-        x: 1854
+        x: 2358
         y: 0
-        width: 309.66666
-        height: 500
+        width: 393
+        height: 635
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -237,20 +237,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 67f307364b9d34c8da3ce8bbc7e0b7a0
-      internalID: 551638879
+      spriteID: 65fbbec7cf51a483abd6065fb0876fd6
+      internalID: -1286069365
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: sequenceImage_Actor1_7
+      name: sequenceImage_Actor1Dead_7
       rect:
         serializedVersion: 2
-        x: 2163
+        x: 2751
         y: 0
-        width: 309.66666
-        height: 500
+        width: 393
+        height: 635
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -258,29 +258,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: b8d8c47f8d5744801be856feef75f711
-      internalID: 1145038700
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: sequenceImage_Actor1_8
-      rect:
-        serializedVersion: 2
-        x: 2472
-        y: 0
-        width: 309.66666
-        height: 500
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 91564391860eb4ebdbad0842e9418e51
-      internalID: 1074112506
+      spriteID: b17175d43e0234f67b7122d651a5b645
+      internalID: 250783210
       vertices: []
       indices: 
       edges: []
@@ -296,15 +275,14 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      sequenceImage_Actor1_0: -1862659994
-      sequenceImage_Actor1_1: 1994146605
-      sequenceImage_Actor1_2: 1631374820
-      sequenceImage_Actor1_3: 1746115307
-      sequenceImage_Actor1_4: 1449938052
-      sequenceImage_Actor1_5: 2139598265
-      sequenceImage_Actor1_6: 551638879
-      sequenceImage_Actor1_7: 1145038700
-      sequenceImage_Actor1_8: 1074112506
+      sequenceImage_Actor1Dead_0: 244664685
+      sequenceImage_Actor1Dead_1: 122788073
+      sequenceImage_Actor1Dead_2: -1290885054
+      sequenceImage_Actor1Dead_3: -1202136455
+      sequenceImage_Actor1Dead_4: -179253558
+      sequenceImage_Actor1Dead_5: -345762866
+      sequenceImage_Actor1Dead_6: -1286069365
+      sequenceImage_Actor1Dead_7: 250783210
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

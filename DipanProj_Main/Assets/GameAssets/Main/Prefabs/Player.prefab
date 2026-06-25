@@ -78,7 +78,7 @@ SpriteRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 10
   m_Sprite: {fileID: -1862659994, guid: 2422ccdfad1b64066998252aa13c576c, type: 3}
-  m_Color: {r: 0.122641504, g: 0.06884122, b: 0.06884122, a: 1}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
@@ -107,9 +107,11 @@ MonoBehaviour:
   EnemyLayer:
     serializedVersion: 2
     m_Bits: 128
-  PlayerScale: 0.7
-  BulletScale: 1
+  PlayerScale: 0.8
   PlayerMaxHealth: 100
+  PlayerMaxMana: 50
+  HealthRegenPerSec: 0
+  ManaRegenPerSec: 5
   PlayerInvincibleTimeMs: 1000
   PlayerKnockbackThreshold: 0
   PlayerKnockbackPercent: 10
