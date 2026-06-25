@@ -98,6 +98,19 @@
 * 調整：大小/壽命/上升速度/顏色/排序常數在 `DamageNumberManager.cs` 上方（`CharacterSize/FontSize/Lifetime/RiseSpeed/SortingOrder/PlayerHurtColor/EnemyHurtColor`）。
 * 泛用入口：`DamageNumberManager.ShowAt(worldPos, amount, color)`——之後要對家具/其他來源跳數字、或做「治療綠字」「暴擊大字」都複用這個。
 
+### 表演風格用分支比較（2026-06-25）
+
+`develop` 是**基準版**（簡單上飄 pop + **描邊**〔深色陰影複本〕+ **份量分級**〔傷害越大字越大：×1 / ×1.3 / ×1.7〕）。描邊與份量分級四種風格都共用；差別只在 `DamageNumberInstance.cs` 的動態。四個實驗分支各一種「帥氣」表演，`git checkout` 切換比較：
+
+| 分支 | 風格 | 動態 |
+|---|---|---|
+| `feat/dmgnum-juicy` | 噴飛彈跳 | 斜上噴飛 + 重力下墜 + 落地小彈跳（拋體物理） |
+| `feat/dmgnum-punchy` | 銳利重擊 | 原地爆裂超大彈出(overshoot) + 命中抖動 + 俐落上飄 |
+| `feat/dmgnum-spin` | 旋轉甩飛 | 帶旋轉往隨機側邊甩出 + 緩縮淡出 |
+| `feat/dmgnum-streak` | 拉長拖曳殘影 | 高速上竄 + 縱向拉伸殘影 + 急減速定格 |
+
+> 切到某分支跑跑看：`git checkout feat/dmgnum-juicy`（→ Unity 會重編譯）。喜歡哪個就把那支 merge 回 `develop`、或把它的 `DamageNumberInstance.cs` 內容當定案。每支只差這一個檔，`Manager` 與其餘戰鬥程式完全相同。
+
 ---
 
 ## 7. 存檔
