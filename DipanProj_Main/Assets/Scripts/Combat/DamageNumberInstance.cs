@@ -1,75 +1,70 @@
 using UnityEngine;
 
 /// <summary>
-/// 單一浮動傷害數字的「動態表演」：往上飄 + 前段彈出(pop) + 後段淡出，壽命到自毀。
-/// 主數字與描邊陰影（子物件 "Shadow"）一起縮放/位移，淡出時兩者 alpha 同步。
-///
-/// **換表演風格主要改本檔的 <see cref="Animate"/>**（噴飛彈跳 / 銳利重擊 / 旋轉甩飛 / 拖曳殘影…）。
-/// `SetScale` / `SetAlpha` 已幫你同步好主數字與陰影，動畫只要呼叫它們即可。見 readme/COMBAT.md。
+/// 浮動傷害數字 — 表演風格【銳利重擊 (punchy)】。
+/// 原地「砰」地爆裂式超大彈出(overshoot)、命中瞬間輕微抖動，回彈定格後俐落上飄淡出。乾淨有力、不花俏。
+/// 主數字與描邊陰影（子物件 "Shadow"）一起動，淡出時兩者 alpha 同步。見 readme/COMBAT.md。
+/// （分支 feat/dmgnum-punchy；換風格只改本檔，Manager 共用。）
 /// </summary>
 [RequireComponent(typeof(TextMesh))]
 public class DamageNumberInstance : MonoBehaviour
 {
-    protected float _life;
-    protected float _maxLife;
-    protected float _riseSpeed;
-    protected float _driftX;
+    const float Overshoot = 1.5f;    // 彈出最大倍率
+    const float ShakeTime = 0.16f;   // 命中抖動持續比例
+    const float ShakeAmp = 0.10f;    // 抖動幅度（世界單位）
+    const float LateRise = 1.1f;     // 後段上飄速度
 
-    TextMesh _tm;        // 主數字
-    TextMesh _shadow;    // 描邊陰影（子物件）
-    Color _baseColor;
-    Color _shadowBase;
+    float _life, _maxLife;
+    Vector3 _spawn;
+    float _seed;
+
+    TextMesh _tm, _shadow;
+    Color _baseColor, _shadowBase;
 
     public void Init(float lifetime, float riseSpeed)
     {
         _maxLife = _life = Mathf.Max(0.05f, lifetime);
-        _riseSpeed = riseSpeed;
-        _driftX = Random.Range(-0.4f, 0.4f);
+        _spawn = transform.position;
+        _seed = Random.value * 10f;
 
         _tm = GetComponent<TextMesh>();
         _baseColor = (_tm != null) ? _tm.color : Color.white;
         var sh = transform.Find("Shadow");
-        if (sh != null)
-        {
-            _shadow = sh.GetComponent<TextMesh>();
-            if (_shadow != null) _shadowBase = _shadow.color;
-        }
+        if (sh != null) { _shadow = sh.GetComponent<TextMesh>(); if (_shadow != null) _shadowBase = _shadow.color; }
 
-        SetScale(0.6f);   // 從小彈出
-        OnInit();
+        transform.localScale = Vector3.one * 0.2f;
     }
-
-    /// <summary>各表演風格可在此做初始化（隨機初速、角速度…）。</summary>
-    protected virtual void OnInit() { }
 
     void Update()
     {
-        _life -= Time.deltaTime;
+        float dt = Time.deltaTime;
+        _life -= dt;
         if (_life <= 0f) { Destroy(gameObject); return; }
-        Animate(Time.deltaTime, 1f - _life / _maxLife);   // t: 0→1
-    }
+        float t = 1f - _life / _maxLife;
 
-    /// <summary>動態表演本體。t = 已過比例(0→1)。換風格改這裡。</summary>
-    protected virtual void Animate(float dt, float t)
-    {
-        // 上升 + 輕微水平漂移
-        transform.position += new Vector3(_driftX * dt, _riseSpeed * dt, 0f);
-
-        // pop：前 15% 0.6→1.05，接著回落到 1
-        float s = (t < 0.15f)
-            ? Mathf.Lerp(0.6f, 1.05f, t / 0.15f)
-            : Mathf.Lerp(1.05f, 1f, Mathf.InverseLerp(0.15f, 0.35f, t));
+        // 爆裂彈出：0.2→Overshoot（前 12%，急煞）→ 回落到 1（28% 定格）
+        float s;
+        if (t < 0.12f) s = Mathf.Lerp(0.2f, Overshoot, EaseOut(t / 0.12f));
+        else if (t < 0.28f) s = Mathf.Lerp(Overshoot, 1f, (t - 0.12f) / 0.16f);
+        else s = 1f;
         SetScale(s);
 
-        // 後 30% 淡出
-        SetAlpha(t < 0.7f ? 1f : Mathf.InverseLerp(1f, 0.7f, t));
+        // 命中抖動（前段）+ 後段俐落上飄
+        float shake = (t < ShakeTime) ? (1f - t / ShakeTime) * ShakeAmp : 0f;
+        Vector3 jitter = new Vector3(
+            (Mathf.PerlinNoise(_seed, Time.time * 45f) - 0.5f) * shake,
+            (Mathf.PerlinNoise(_seed + 5f, Time.time * 45f) - 0.5f) * shake, 0f);
+        float rise = (t > 0.45f) ? (t - 0.45f) * LateRise : 0f;
+        transform.position = _spawn + jitter + Vector3.up * rise;
+
+        SetAlpha(t < 0.65f ? 1f : Mathf.InverseLerp(1f, 0.65f, t));
     }
 
-    // ── 共用 helper：同步主數字 + 陰影 ──
+    static float EaseOut(float x) => 1f - (1f - x) * (1f - x);
 
-    protected void SetScale(float s) => transform.localScale = Vector3.one * s;
+    void SetScale(float s) => transform.localScale = Vector3.one * s;
 
-    protected void SetAlpha(float a)
+    void SetAlpha(float a)
     {
         if (_tm != null) { var c = _baseColor; c.a = _baseColor.a * a; _tm.color = c; }
         if (_shadow != null) { var c = _shadowBase; c.a = _shadowBase.a * a; _shadow.color = c; }
