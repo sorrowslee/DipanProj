@@ -243,27 +243,6 @@ TextureImporter:
       indices: 
       edges: []
       weights: []
-    - serializedVersion: 2
-      name: sequenceImage_Actor1Dead_7
-      rect:
-        serializedVersion: 2
-        x: 2751
-        y: 0
-        width: 393
-        height: 635
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: b17175d43e0234f67b7122d651a5b645
-      internalID: 250783210
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
     outline: []
     physicsShape: []
     bones: []
@@ -282,7 +261,6 @@ TextureImporter:
       sequenceImage_Actor1Dead_4: -179253558
       sequenceImage_Actor1Dead_5: -345762866
       sequenceImage_Actor1Dead_6: -1286069365
-      sequenceImage_Actor1Dead_7: 250783210
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
