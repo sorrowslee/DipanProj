@@ -8,9 +8,10 @@
 //   7 = 淺海（青綠水色 + 頂部陽光 + 焦散光斑 + 水下折射晃動）
 //   8 = 深海（深藍壓暗、低能見度、冷色去飽和 + 水下折射晃動）
 //   9 = 深海 + 恐怖（深海再套潛水燈光圈：玩家周圍一圈可見、其餘近全黑）
-//  10 = 山頂狂風（陰冷暴風：冷灰調 + 翻騰白霧 + 不規則橫向風絲 + 陣風時強時弱）
+//  10 = 風雪（陰冷暴風：冷灰調 + 翻騰白霧 + 不規則橫向風絲 + 陣風時強時弱）
+//  11 = 強風（去白霧、幾乎不調色，只留斜上/斜下交叉的風絲 + 陣風）
 // 提燈光圈（type 2/3/9）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
-// UV 位移：熱浪（4/5/6）、水下折射（7/8/9）、山頂狂風吹拂（10）——皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
+// UV 位移：熱浪（4/5/6）、水下折射（7/8/9）、山頂風吹拂（10/11）——皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
 Shader "Custom/Atmosphere"
 {
     Properties
@@ -20,7 +21,7 @@ Shader "Custom/Atmosphere"
         _Aspect ("Aspect (w/h)", Float) = 1.777
         _InnerR ("Inner Radius", Float) = 0.13
         _OuterR ("Outer Radius", Float) = 0.28
-        _Mode ("Mode (2=dim,3=nightmare,4=noon,5=ember,6=dust,7=shallow,8=deep,9=deepHorror,10=wind)", Float) = 2
+        _Mode ("Mode (2=dim,3=nightmare,4=noon,5=ember,6=dust,7=shallow,8=deep,9=deepHorror,10=snow,11=gale)", Float) = 2
     }
     SubShader
     {
@@ -43,6 +44,9 @@ Shader "Custom/Atmosphere"
             static const float VigDark  = 0.85;
 
             float hash11(float n) { return frac(sin(n) * 43758.5453); }
+
+            // 繞原點旋轉（type 11 強風用：把風絲轉成斜向）。
+            float2 rot2(float2 p, float a) { float s = sin(a), c = cos(a); return float2(c * p.x - s * p.y, s * p.x + c * p.y); }
 
             // 不規則橫向風絲（type 10 山頂狂風用）：把畫面壓成許多細橫帶，每帶隨機相位/速度，
             // 沿 x 切段、用雜湊隨機決定哪些段有風絲（並非整條線），段內做頭亮尾淡的 dash。
@@ -103,9 +107,20 @@ Shader "Custom/Atmosphere"
                 vc.x *= _Aspect;
                 float vig = saturate(1.0 - smoothstep(VigStart, VigEnd, length(vc)) * VigDark);
 
-                if (_Mode > 9.5)
+                if (_Mode > 10.5)
                 {
-                    // ── type 10：山頂狂風（陰冷暴風）──
+                    // ── type 11：強風（只留斜向風絲、無白霧、幾乎不調色）──
+                    float tw = _Time.y;
+                    float gust = saturate(0.40 + 0.60 * (0.5 + 0.5 * sin(tw * 0.8)) * (0.5 + 0.5 * sin(tw * 0.37 + 1.5)));
+                    // 斜上 + 斜下兩層交叉 → 強風亂流；旋轉後 windStreak 的捲動方向也跟著變斜。
+                    float w = windStreak(rot2(i.uv, 0.38), tw, 60.0, 1.8, 0.0)
+                            + windStreak(rot2(i.uv, -0.42), tw, 75.0, 2.4, 21.3) * 0.85;
+                    col.rgb += w * (0.5 + 0.5 * gust) * 0.08 * float3(0.95, 0.97, 1.0);
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 9.5)
+                {
+                    // ── type 10：風雪（陰冷暴風）──
                     float tw = _Time.y;
                     // 陣風包絡：兩個不同步的慢波相乘 → 風一陣一陣、有強有弱（0.35~1）
                     float gust = saturate(0.35 + 0.65 * (0.5 + 0.5 * sin(tw * 0.7)) * (0.5 + 0.5 * sin(tw * 0.31 + 2.0)));
