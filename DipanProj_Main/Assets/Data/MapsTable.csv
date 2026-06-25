@@ -1,4 +1,4 @@
-ID,Name,Module,Path,IsLevelStart,MapMode,Atmosphere(1正常/2幽暗+打光/3噩夢+打光/4烈日曝曬/5焦土餘燼/6沙塵暴/7淺海/8深海/9深海+恐怖/空=1)
+ID,Name,Module,Path,IsLevelStart,MapMode,Atmosphere(1正常/2幽暗+打光/3噩夢+打光/4烈日曝曬/5焦土餘燼/6沙塵暴/7淺海/8深海/9深海+恐怖/10山頂狂風/空=1)
 1,RedBridalGown_Woodshed,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Woodshed.dipanmap,0,2,2
 2,RedBridalGown_Storeroom,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Storeroom.dipanmap,0,2,2
 3,RedBridalGown_Kitchen,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Kitchen.dipanmap,0,2,2

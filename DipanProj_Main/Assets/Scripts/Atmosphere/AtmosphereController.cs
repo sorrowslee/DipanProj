@@ -11,7 +11,8 @@ using UnityEngine.SceneManagement;
 ///   3 = 噩夢場景 + 打光（周邊近全黑、統一冷色，最壓迫）。
 ///   4 = 烈日曝曬、5 = 焦土餘燼、6 = 沙塵暴（末日炎熱系，帶克制的熱浪扭曲）。
 ///   7 = 淺海、8 = 深海、9 = 深海+恐怖（海洋系，帶水下折射晃動；9 再套潛水燈光圈）。
-/// 視覺差異全在 <c>Resources/Shaders/Atmosphere.shader</c>（用 _Mode 切 2~9）。
+///   10 = 山頂狂風（高空冷光 + 橫掃風絲 + 陣風時強時弱）。
+/// 視覺差異全在 <c>Resources/Shaders/Atmosphere.shader</c>（用 _Mode 切 2~10）。
 ///
 /// 提燈光圈（type 2/3 共用）的玩家螢幕位置、半徑每幀餵給 shader，半徑以油燈式 Perlin 明滅輕微呼吸。
 /// 後處理只作用在主相機算繪出的畫面；Screen Space Overlay 的 UI（HUD／面板）在其後合成，不會被壓暗。

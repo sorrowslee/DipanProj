@@ -8,7 +8,7 @@
 
 ## 型別（MapsTable.csv 的 `Atmosphere` 欄）
 
-分三系：**陰森系（2/3）**用提燈光圈把玩家身邊壓出一小圈可見區；**末日炎熱系（4/5/6）**不壓暗、改暖色調並帶「熱浪扭曲」；**海洋系（7/8/9）**藍綠水色 + 「水下折射晃動」，深海+恐怖再套潛水燈光圈。
+分系：**陰森系（2/3）**用提燈光圈把玩家身邊壓出一小圈可見區；**末日炎熱系（4/5/6）**不壓暗、改暖色調並帶「熱浪扭曲」；**海洋系（7/8/9）**藍綠水色 + 「水下折射晃動」，深海+恐怖再套潛水燈光圈；**山頂狂風（10）**高空冷光 + 橫掃風絲 + 陣風時強時弱。
 
 | 值 | 名稱 | 效果 | 適用 |
 |---|---|---|---|
@@ -21,36 +21,38 @@
 | `7` | 淺海 | 青綠水色 + 頂部陽光透下 + 焦散光斑 + 水下折射晃動 | 陽光照得到的淺水、珊瑚礁 |
 | `8` | 深海 | 深藍壓暗、低能見度、冷色去飽和、深藍水霧 + 折射晃動 | 沉船、海溝、深水區 |
 | `9` | 深海 + 恐怖 | 深海再套潛水燈光圈：玩家周圍一圈可見、其餘近全黑 | 深海恐怖、未知生物出沒處 |
+| `10` | 山頂狂風 | 高空稀薄冷白光 + 亮霧邊（遠處發白）+ 橫掃冷白風絲 + 陣風時強時弱 + 水平吹拂 | 山頂、雪峰、高地、暴風稜線 |
 
 > **留空 / 缺欄 / 無法解析 = 預設 1（正常）**，所以舊地圖、未填的地圖都不受影響。
 > 用提燈光圈的是 type 2/3/9（半徑相同，由控制器餵入並呼吸），只差在周邊壓多暗與色調。
-> type 4/5/6 帶**熱浪扭曲**、type 7/8/9 帶**水下折射晃動**——兩者都是以滾動正弦輕微位移取樣 UV（`_Time` 驅動、無需貼圖），海洋版較慢、幅度略大。
+> type 4/5/6 帶**熱浪扭曲**、type 7/8/9 帶**水下折射晃動**、type 10 帶**狂風吹拂**——都是以滾動正弦輕微位移取樣 UV（`_Time` 驅動、無需貼圖）。
 
 ## 運作方式
 
 - **自動生成、零接線**：`AtmosphereController` 用 `[RuntimeInitializeOnLoadMethod]` 自生成、跨地圖常駐（同 PerfHud 模式），每場景把後處理元件 `AtmosphereBlit` 掛到 `Camera.main`。
 - **地圖驅動**：`MapManager.LoadMapInternal` 載圖時呼叫 `AtmosphereController.ApplyMapAtmosphere(row.atmosphere)` 切換當前模式；換圖即時生效。
 - **type 1**：控制器把 Blit 材質設 `null` → 直接 passthrough，等於關閉，零開銷。
-- **type 2~9**：用同一個 shader `Custom/Atmosphere`，靠 `_Mode`（2~9）切換外觀。用提燈光圈的（2/3/9）由控制器每幀餵入玩家螢幕位置與光圈半徑，半徑以**油燈式 Perlin 明滅**呼吸；炎熱系（4/5/6）與海洋系（7/8/9）在 shader 內以 `_Time` 做扭曲，不需控制器額外參數。
+- **type 2~10**：用同一個 shader `Custom/Atmosphere`，靠 `_Mode`（2~10）切換外觀。用提燈光圈的（2/3/9）由控制器每幀餵入玩家螢幕位置與光圈半徑，半徑以**油燈式 Perlin 明滅**呼吸；炎熱（4/5/6）、海洋（7/8/9）、狂風（10）在 shader 內以 `_Time` 做扭曲/風絲，不需控制器額外參數。
 - **UI 不受影響**：後處理只作用在主相機算繪的畫面；Screen Space Overlay 的 HUD／面板在其後合成，不會被壓暗。
 
 ## 檔案
 
 - `Assets/Scripts/Atmosphere/AtmosphereController.cs` — 單例、地圖驅動、餵 shader 參數。
 - `Assets/Scripts/Atmosphere/AtmosphereBlit.cs` — 掛在主相機上的 Blit 進入點。
-- `Assets/Resources/Shaders/Atmosphere.shader` — `Custom/Atmosphere`，`_Mode` 切 2~9。
+- `Assets/Resources/Shaders/Atmosphere.shader` — `Custom/Atmosphere`，`_Mode` 切 2~10。
 - 接線：`Map/MapTable.cs`（解析 `atmosphere` 欄）、`Map/MapManager.cs`（載圖時套用）、`Data/MapsTable.csv`（`Atmosphere` 欄）。
 
 ## 怎麼調
 
-- **每張地圖選型別**：改 `MapsTable.csv` 該列的 `Atmosphere`（1~9）。想讓某房間更恐怖改 3；末日炎熱改 4／5／6；海洋改 7／8／9。
+- **每張地圖選型別**：改 `MapsTable.csv` 該列的 `Atmosphere`（1~10）。想讓某房間更恐怖改 3；末日炎熱改 4／5／6；海洋改 7／8／9；山頂狂風改 10。
 - **光圈大小**（type 2/3/9）：`AtmosphereController.cs` 上方的 `InnerRadius` / `OuterRadius`（兩者等比例改，越小圈越小；目前 0.13 / 0.28）。
 - **各型別的調色／壓暗／冷暖／去飽和**：`Atmosphere.shader` 的 `frag` 內，type 2~9 各自一段的常數（如 type2 周邊亮度 `lerp(0.35,…)`、type5 橙紅 tint、type7 青綠 `float3(0.62,0.92,1.02)`+焦散、type8 深藍 `float3(0.30,0.50,0.85)`+水霧、type9 潛水燈 `lerp(0.04,1.0,v)` 等）。
-- **扭曲強度/快慢**：熱浪（4/5/6）與水下折射（7/8/9）各一段在 frag 頂部，調位移幅度（熱浪 `0.0014`/`0.0011`、海洋 `0.0022`/`0.0018`）與頻率/時間係數。
+- **扭曲強度/快慢**：熱浪（4/5/6）、水下折射（7/8/9）、狂風吹拂（10）各一段在 frag 頂部，調位移幅度（熱浪 `0.0014`、海洋 `0.0022`、風 `0.0016`）與頻率/時間係數。
+- **狂風風絲/陣風**（type 10）：風絲密度改 `yLane * 120.0`、捲動速度改 `i.uv.x * 8.0 - tw * 6.0`、明顯度改 `* 0.06`、銳利度改 `pow(…, 8.0)`；陣風時強時弱的節奏改 `gust` 的 `sin(tw*0.6)`/`sin(tw*0.23…)`。
 - **呼吸快慢/幅度**（type 2/3/9）：`AtmosphereController.cs` 的 `BreatheMin`/`BreatheMax` 與 `LateUpdate` 內 Perlin/sin 的係數。
 
 ## 備註
 
 - 這是 Built-in 管線的覆蓋層方案，刻意不走 URP。若日後要「火把實際打光、牆會投影」那種逐光源互動，才需評估遷移 URP（會牽動既有自訂 shader）。
-- 設計沿革見 [PROGRESS.md](PROGRESS.md)。陰森系先前用 git 分支比較過 spotlight／full／colorgrade 三種雛形，整併成 type 2（= full-soft）與 type 3（= full）；末日炎熱系同樣分支比較 noon／ember／dust，整併成 type 4／5／6；海洋系（7/8/9）直接加在 develop。
+- 設計沿革見 [PROGRESS.md](PROGRESS.md)。陰森系先前用 git 分支比較過 spotlight／full／colorgrade 三種雛形，整併成 type 2（= full-soft）與 type 3（= full）；末日炎熱系同樣分支比較 noon／ember／dust，整併成 type 4／5／6；海洋系（7/8/9）與山頂狂風（10）直接加在 develop。
 - 熱浪扭曲是全螢幕均勻的克制版微晃；若日後要更真實（只在地面/火源附近、或更強的地平線蜃景），可改成漸層遮罩或局部套用。

@@ -8,8 +8,9 @@
 //   7 = 淺海（青綠水色 + 頂部陽光 + 焦散光斑 + 水下折射晃動）
 //   8 = 深海（深藍壓暗、低能見度、冷色去飽和 + 水下折射晃動）
 //   9 = 深海 + 恐怖（深海再套潛水燈光圈：玩家周圍一圈可見、其餘近全黑）
+//  10 = 山頂狂風（高空稀薄冷光 + 亮霧邊 + 橫掃冷白風絲 + 陣風時強時弱）
 // 提燈光圈（type 2/3/9）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
-// 炎熱型別（4/5/6）啟用「熱浪扭曲」、海洋型別（7/8/9）啟用「水下折射晃動」：皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
+// UV 位移：熱浪（4/5/6）、水下折射（7/8/9）、山頂狂風吹拂（10）——皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
 Shader "Custom/Atmosphere"
 {
     Properties
@@ -19,7 +20,7 @@ Shader "Custom/Atmosphere"
         _Aspect ("Aspect (w/h)", Float) = 1.777
         _InnerR ("Inner Radius", Float) = 0.13
         _OuterR ("Outer Radius", Float) = 0.28
-        _Mode ("Mode (2=dim,3=nightmare,4=noon,5=ember,6=dust,7=shallow,8=deep,9=deepHorror)", Float) = 2
+        _Mode ("Mode (2=dim,3=nightmare,4=noon,5=ember,6=dust,7=shallow,8=deep,9=deepHorror,10=wind)", Float) = 2
     }
     SubShader
     {
@@ -43,9 +44,17 @@ Shader "Custom/Atmosphere"
 
             fixed4 frag (v2f_img i) : SV_Target
             {
-                // UV 位移：炎熱型別=熱浪（快、幅度小）；海洋型別=水下折射（慢、幅度略大）。
+                // UV 位移：山頂狂風=隨陣風的水平吹拂；炎熱=熱浪（快、幅度小）；海洋=水下折射（慢、幅度略大）。
                 float2 uv = i.uv;
-                if (_Mode > 6.5)
+                if (_Mode > 9.5)
+                {
+                    // 山頂狂風吹拂（10）：主要水平、隨陣風時強時弱
+                    float t = _Time.y;
+                    float gust = 0.6 + 0.4 * sin(t * 0.6) * sin(t * 0.23 + 1.3);
+                    uv.x += sin(uv.y * 9.0 + t * 5.0) * 0.0016 * gust;
+                    uv.y += sin(uv.x * 7.0 + t * 3.0) * 0.0006;
+                }
+                else if (_Mode > 6.5)
                 {
                     // 海洋折射晃動（7/8/9）
                     float t = _Time.y;
@@ -73,7 +82,28 @@ Shader "Custom/Atmosphere"
                 vc.x *= _Aspect;
                 float vig = saturate(1.0 - smoothstep(VigStart, VigEnd, length(vc)) * VigDark);
 
-                if (_Mode > 8.5)
+                if (_Mode > 9.5)
+                {
+                    // ── type 10：山頂狂風 ──
+                    // 高空稀薄冷光：拉亮 + 微去飽和 + 冷白偏藍
+                    col.rgb = col.rgb * 1.10 + 0.03;
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.20);
+                    col.rgb *= float3(0.92, 0.97, 1.06);
+                    // 高空亮霧暈邊（遠處發白，不是暗角）
+                    float2 hc = i.uv - 0.5; hc.x *= _Aspect;
+                    float haze = smoothstep(0.35, 0.95, length(hc));
+                    col.rgb = lerp(col.rgb, float3(0.82, 0.88, 0.96), haze * 0.35);
+                    // 狂風橫掃：細長冷白風絲往一側捲動 + 陣風包絡（時強時弱、一陣一陣）
+                    float tw = _Time.y;
+                    float gust = 0.55 + 0.45 * sin(tw * 0.6) * sin(tw * 0.23 + 1.3);
+                    float yLane = i.uv.y + i.uv.x * 0.12;             // 微傾斜
+                    float streak = sin(yLane * 120.0) * sin(i.uv.x * 8.0 - tw * 6.0);
+                    streak = pow(saturate(streak), 8.0);             // 銳化成細風絲
+                    col.rgb += streak * gust * 0.06 * float3(0.90, 0.95, 1.0);
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 8.5)
                 {
                     // ── type 9：深海 + 恐怖（潛水燈光圈）──
                     col.rgb *= lerp(0.04, 1.0, v);                    // 周邊近全黑、只剩玩家一圈
