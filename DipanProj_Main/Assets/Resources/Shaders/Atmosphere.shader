@@ -113,23 +113,34 @@ Shader "Custom/Atmosphere"
 
                 if (_Mode > 13.5)
                 {
-                    // ── type 14：陰森森林鬼霧（畫面偏暗 + 偶爾飄來一陣黑霧）──
+                    // ── type 14：陰森森林鬼霧（畫面偏暗 + 偶爾一團黑霧緩慢橫越畫面）──
                     float t = _Time.y;
-                    // 森林陰冷調：去飽和 + 陰綠 + 壓暗 + 加深暈影
+                    // 森林陰冷底調：去飽和 + 陰綠 + 壓暗 + 加深暈影
                     float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
                     col.rgb = lerp(col.rgb, lum.xxx, 0.40);
                     col.rgb *= float3(0.62, 0.78, 0.66);          // 陰綠冷調
                     col.rgb *= 0.70;                               // 壓暗
                     col.rgb *= lerp(0.40, 1.0, vig);               // 加深暈影
-                    // 漂移黑霧：多層正弦疊柔軟雲塊 + 慢慢飄 + 陣霧包絡（偶爾一陣濃）
-                    float2 p = i.uv * float2(_Aspect, 1.0) + float2(t * 0.02, t * 0.015);
-                    float fog = sin(p.x * 3.0 + p.y * 2.0 + t * 0.3)
-                              + sin(p.x * -2.0 + p.y * 3.5 - t * 0.2) * 0.8
-                              + sin(p.x * 5.0 - p.y * 4.0 + t * 0.5) * 0.5;
-                    fog = smoothstep(0.40, 0.95, saturate(fog / 2.3 * 0.5 + 0.5));  // 濃淡雲塊
-                    float wave = saturate(0.15 + 0.85 * (0.5 + 0.5 * sin(t * 0.25)) * (0.5 + 0.5 * sin(t * 0.11 + 1.7))); // 陣霧起伏
-                    fog *= wave;
-                    col.rgb = lerp(col.rgb, float3(0.01, 0.02, 0.015), fog * 0.85); // 黑霧壓黑
+
+                    // 一團黑霧：每個週期生一團，從畫面外一側緩慢飄到另一側離場（方向/高度/大小隨機），團間有空檔。
+                    float period = 14.0;                          // 每團週期（秒）；越大越「偶爾」
+                    float ci = floor(t / period);                 // 第幾團
+                    float ph = frac(t / period);                  // 此團進度 0..1
+                    float h1 = hash11(ci * 1.37);
+                    float h2 = hash11(ci * 2.51 + 7.3);
+                    float h3 = hash11(ci * 3.77 + 1.9);
+                    float dir = (h1 < 0.5) ? 1.0 : -1.0;          // 左→右 / 右→左
+                    float yc = 0.20 + 0.60 * h2;                  // 隨機高度
+                    float cross = saturate(ph / 0.72);            // 前 72% 橫越、其餘為空檔（霧在畫面外）
+                    float xc = lerp((dir > 0 ? -0.6 : 1.6), (dir > 0 ? 1.6 : -0.6), cross);
+                    yc += sin(ph * 3.1416) * 0.05;                // 橫越時輕微起伏
+                    float rad = 0.28 + 0.12 * h3;                 // 隨機大小
+                    float2 q = i.uv - float2(xc, yc);
+                    float blob = 1.0 - smoothstep(rad * 0.35, rad, length(float2(q.x * 0.6, q.y * 1.3))); // 橫向橢圓霧團
+                    float n = sin(i.uv.x * 7.0 + t * 0.6) * sin(i.uv.y * 6.0 - t * 0.5);                  // 邊緣翻騰
+                    blob *= 0.65 + 0.35 * (0.5 + 0.5 * n);
+                    blob = saturate(blob);
+                    col.rgb = lerp(col.rgb, float3(0.01, 0.02, 0.015), blob * 0.85);                      // 黑霧壓黑
                     col.rgb = saturate(col.rgb);
                 }
                 else if (_Mode > 12.5)
