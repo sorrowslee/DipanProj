@@ -159,3 +159,11 @@
 - **症狀**:某些地圖(例 `RedBridalGown_LivingRoom2`)左右兩側、地圖沒覆蓋到的地方是**藍色**,不是純黑;其他地圖看起來卻是黑的。誤以為是「這張地圖的問題」。
 - **原因**:那片顏色是 **Main Camera 的背景(Solid Color clear)色**,不是地圖。場景相機底色原本是藍 `RGB(0.192,0.302,0.475)`(Unity 預設藍)。會不會看到只取決於**地圖有沒有填滿畫面**:整張地圖模式 / 夠大的圖填滿畫面 → 看不到底色;**鏡頭跟隨且地圖比畫面窄**(如關卡起始圖 LivingRoom2)→ 左右露出相機底色 → 看到藍。所以是相機底色問題,與單張地圖無關。
 - **解法**:讓相機底色一律純黑。在 `MapCameraController.Apply()` 取得 `_cam` 後**強制** `clearFlags = SolidColor`、`backgroundColor = Color.black`(每次載圖、每種相機模式都套,不依賴場景設定);並把場景 `SampleScene.unity` 的 `m_BackGroundColor` 也改成黑(避免載圖前閃藍 / 編輯器預覽一致)。**通則:畫面上「地圖以外」的顏色 = 相機 clear 色,要改去相機,不是去找地圖。**
+
+### E3. 套了某後處理/氛圍(shader)後,整個畫面變成一片洋紅/粉紫
+- **症狀**:改了 `Atmosphere.shader`(氛圍後處理)後,Game 視窗整片**洋紅色**(亮粉紫 ≈ `RGB(230,46,243)`)。而且**不管 `Atmosphere` 填哪個 type 都一樣**洋紅,連原本正常的型別也是。
+- **原因**:洋紅是 **Unity 的「shader 編譯失敗」錯誤色**(error/magenta shader),不是某個 type 的調色。因為整個效果是**同一個 shader**(`Custom/Atmosphere`,用 `_Mode` 切型別),**只要任何一處編譯錯誤,整支 shader 就掛掉 → 所有 type 全變洋紅**。實際撞到的雷:在 type 15 電視雜訊裡用了 `float line = ...`,而 **`line` 是 HLSL 保留字**(幾何著色器圖元),整支編不過。容易誤判成「指令數太多 / 某個 type 的數值問題」而亂調。
+- **解法**:
+  - **先看 Console 的紅字**:shader 編譯錯誤會明確寫「哪一行、什麼錯」(例:`undeclared identifier` / `syntax error` / `reserved keyword`)——那是最快的線索,別瞎猜。
+  - 本次解法:變數別用保留字,`line` 改名 `ln`。其他易撞的保留字/內建名:`line`、`point`、`triangle`、`vector`、`matrix`、`sample`、`texture`、`sampler`、`in`/`out`/`inout`,以及內建函式名 `cross`/`mul`/`dot`(當區域變數雖可 shadow,但若同段又要呼叫該函式就會出事)。
+  - **通則:全螢幕單一純色(尤其洋紅)≈ shader 沒編過**,先去 Console 找編譯錯誤,而不是調該效果的參數。順帶:多型別共用一支 shader 時,所有 `_Mode` 分支會被攤平進同一個 pixel shader,指令量偏大,必要時加 `#pragma target 3.5` 提高上限(但那是「指令過多」的解,與本則的語法錯誤是兩回事)。
