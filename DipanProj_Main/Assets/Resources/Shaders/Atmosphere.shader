@@ -123,7 +123,7 @@ Shader "Custom/Atmosphere"
                     col.rgb *= lerp(0.40, 1.0, vig);               // 加深暈影
 
                     // 一團黑霧：每個週期生一團，從畫面外一側緩慢飄到另一側離場（方向/高度/大小隨機），團間有空檔。
-                    float period = 14.0;                          // 每團週期（秒）；越大越「偶爾」
+                    float period = 24.0;                          // 每團週期（秒）；越大越「偶爾」、飄越慢
                     float ci = floor(t / period);                 // 第幾團
                     float ph = frac(t / period);                  // 此團進度 0..1
                     float h1 = hash11(ci * 1.37);
@@ -131,7 +131,7 @@ Shader "Custom/Atmosphere"
                     float h3 = hash11(ci * 3.77 + 1.9);
                     float dir = (h1 < 0.5) ? 1.0 : -1.0;          // 左→右 / 右→左
                     float yc = 0.20 + 0.60 * h2;                  // 隨機高度
-                    float cross = saturate(ph / 0.72);            // 前 72% 橫越、其餘為空檔（霧在畫面外）
+                    float cross = saturate(ph / 0.83);            // 前 83% 橫越（約 20 秒、原本的一半速度）、其餘為空檔
                     float xc = lerp((dir > 0 ? -0.6 : 1.6), (dir > 0 ? 1.6 : -0.6), cross);
                     yc += sin(ph * 3.1416) * 0.05;                // 橫越時輕微起伏
                     float rad = 0.28 + 0.12 * h3;                 // 隨機大小
