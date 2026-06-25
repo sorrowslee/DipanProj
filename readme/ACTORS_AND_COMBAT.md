@@ -4,6 +4,8 @@
 
 主遊戲端的「玩家控制 → 怪物 AI → 受擊反應」一條龍。武器發射的細節在 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)；地面特效與拋物線在 [GROUND_EFFECT.md](GROUND_EFFECT.md)；雷射在 [LASER.md](LASER.md)。
 
+> **傷害「數值」怎麼算（玩家 HP/MP、傷害加成、減傷、玩家受傷、武器耗魔、怪物接觸傷害）見 [COMBAT.md](COMBAT.md)。** 本檔的受擊反應（白光閃爍/擊退/無敵）是「表現層」；COMBAT.md 是「數值層」——傷害先過中央 `CombatSystem` 算完修正，才呼叫這裡的 `TakeDamage` 觸發反應。玩家的「受擊參數寫死、預留接觸傷害」現已由 COMBAT.md 接上（`PlayerController` 已實作 `IDamageable` + `CombatStats`）。
+
 ## 玩家控制器 (PlayerController)
 
 * `Rigidbody2D (Dynamic)`，透過 `FixedUpdate` 設定 `_rb.velocity` 移動。

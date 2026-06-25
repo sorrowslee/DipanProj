@@ -262,12 +262,10 @@ public class GroundEffectInstance : MonoBehaviour
             Collider2D col = hits[i];
             if (col == null) continue;
 
-            // 怪物與可破壞地上物都實作 IDamageable;牆等無此元件者略過
-            IDamageable d = col.GetComponent<IDamageable>();
-            if (d == null) continue;
-
+            // 走中央 CombatSystem（isDot=true）：套用目標減傷/抗性後結算；牆等無 IDamageable 者由 CombatSystem 自動略過。
+            // 來源未知（地面特效是脫離武器的獨立物件）→ source = null（攻擊加成已在生成時透過 damageOverride 帶入）。見 readme/COMBAT.md
             Vector2 hitDir = ((Vector2)col.transform.position - center).normalized;
-            d.TakeDamage(damage, hitDir);
+            CombatSystem.Apply(null, col.gameObject, damage, hitDir, DamageType.Physical, isDot: true);
         }
     }
 

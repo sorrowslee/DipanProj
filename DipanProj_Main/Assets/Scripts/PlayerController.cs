@@ -2,17 +2,20 @@ using System.Collections.Generic;
 using UnityEngine;
 using Sorrows.Ballistics;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : MonoBehaviour, IDamageable
 {
     public float MoveSpeed = 5f;
-    public LayerMask EnvLayer; 
-    public LayerMask EnemyLayer; 
+    public LayerMask EnvLayer;
+    public LayerMask EnemyLayer;
 
     [Header("Player Size")]
     public float PlayerScale = 1f;
 
     [Header("Player Stats")]
     public float PlayerMaxHealth = 100f;
+    public float PlayerMaxMana = 50f;
+    public float HealthRegenPerSec = 0f;
+    public float ManaRegenPerSec = 5f;
 
     [Header("Hit Reaction (hardcoded for now)")]
     public float PlayerInvincibleTimeMs = 1000f;
@@ -29,8 +32,10 @@ public class PlayerController : MonoBehaviour
     private GroundEffectManager _groundEffectManager;
     private VfxManager _vfxManager;
     private HitReactionHandler _hitReaction;
+    private CombatStats _stats;            // HP/MP 數值層（血/魔條訂閱它的事件）；見 readme/COMBAT.md
     private float _fireTimer = 0f;
-    private float _currentHealth;
+    private float _contManaTimer = 0f;     // 持續型武器（雷射/佛光）的每秒耗魔計時器
+    private bool _isDead = false;
     private readonly List<BulletInstance> _activeOrbitalBullets = new List<BulletInstance>();
     private float _orbitalGroupExpireTime = -1f;
 
@@ -78,11 +83,20 @@ public class PlayerController : MonoBehaviour
             _spriteRenderer.flipX = isFacingRightByDefault;
         }
 
-        _currentHealth = PlayerMaxHealth;
+        // HP/MP 數值層：先以 Inspector 值滿血滿魔初始化，再交給 SaveManager（若有載入存檔則覆蓋還原）。
+        _stats = gameObject.GetComponent<CombatStats>();
+        if (_stats == null) _stats = gameObject.AddComponent<CombatStats>();
+        _stats.Init(PlayerMaxHealth, PlayerMaxMana, HealthRegenPerSec, ManaRegenPerSec);
+        Dipan.Save.SaveManager.BindPlayerStats(_stats);   // 註冊給存檔；有存檔狀態就還原（null-safe）
+        _stats.OnDeath += Die;
 
         _hitReaction = gameObject.AddComponent<HitReactionHandler>();
         _hitReaction.Configure(_spriteRenderer, _rb,
             PlayerInvincibleTimeMs, PlayerKnockbackThreshold, PlayerKnockbackPercent);
+
+        // 開啟血/魔 HUD（HUD 層、不暫停、不擋輸入）。UIManager 由 UIBootstrap 保證已存在。
+        if (Dipan.UI.UIManager.Instance != null)
+            Dipan.UI.UIManager.Instance.Open<Dipan.UI.HudPanel>();
 
         _weaponManager = FindObjectOfType<WeaponManager>();
         if (_weaponManager == null)
@@ -169,6 +183,8 @@ public class PlayerController : MonoBehaviour
         ClearActiveBeams();
         ClearActiveAura();
         if (_inventory != null) _inventory.OnChanged -= OnInventoryChanged;
+        if (_stats != null) _stats.OnDeath -= Die;
+        Dipan.Save.SaveManager.UnbindPlayerStats(_stats);
     }
 
     // 背包武器欄變動時呼叫：裝備哪把武器就切到哪把（用該物品的 WeaponID 對應 WeaponTable）。
@@ -251,11 +267,19 @@ public class PlayerController : MonoBehaviour
                 Debug.LogWarning($"佛光武器 '{weapon.Name}' 的配方沒有設定 GroundEffectID（要指向 GroundEffectTable 的佛光圓）。");
                 return;
             }
+            // 魔力：啟動佛光先扣一次；不夠就不生成
+            if (!DrainContinuousMana(weapon, true)) return;
             // 傷害走武器表 Damage（餵進 GroundEffectInstance 的 damageOverride）。佛光圓用 Duration=-1（永久，由本控制器管理生死）。
             _activeAura = _groundEffectManager.Spawn(auraId, transform.position, weapon.Damage);
             _activeAuraWeapon = weapon;
             // 發射特效（可選）：佛光在按下瞬間播一次（持續存在期間不每幀重播）
             TrySpawnFireEffect(weapon, AimDirectionToMouse());
+        }
+        else if (!DrainContinuousMana(weapon, false))
+        {
+            // 魔力耗盡：銷毀佛光
+            ClearActiveAura();
+            return;
         }
 
         // 每幀把佛光移到玩家身上：GroundEffectInstance 的 tile／單圖是子物件、傷害每拍即時讀 transform.position，
@@ -293,6 +317,10 @@ public class PlayerController : MonoBehaviour
             // 雷射由 HandleFiring → UpdateLaser 持續路徑處理，不走離散發射
             return;
         }
+
+        // 魔力：不夠就不發射（不重置 _fireTimer、不播發射特效）。離散武器每發扣一次 ManaCost。
+        if (_stats != null && !_stats.TrySpendMana(weapon.ManaCost))
+            return;
 
         // 發射特效：每次離散發射在玩家身上播一次，朝瞄準方向
         TrySpawnFireEffect(weapon, AimDirectionToMouse());
@@ -354,6 +382,24 @@ public class PlayerController : MonoBehaviour
     }
 
     // ── 雷射光束：按住維持一組（依 SpreadCount 扇形）光束，每幀更新砲口與瞄準 ──
+    // 持續型武器（雷射/佛光）的耗魔：啟動瞬間扣一次、之後每秒扣一次。回傳 false = 魔力耗盡（呼叫端應停止/銷毀）。
+    private bool DrainContinuousMana(WeaponData weapon, bool justStarted)
+    {
+        if (_stats == null || weapon == null) return true;
+        if (justStarted)
+        {
+            _contManaTimer = 0f;
+            return _stats.TrySpendMana(weapon.ManaCost);
+        }
+        _contManaTimer += Time.deltaTime;
+        while (_contManaTimer >= 1f)
+        {
+            _contManaTimer -= 1f;
+            if (!_stats.TrySpendMana(weapon.ManaCost)) return false;
+        }
+        return true;
+    }
+
     private void UpdateLaser(WeaponData weapon, bool firing)
     {
         if (!firing)
@@ -371,9 +417,17 @@ public class PlayerController : MonoBehaviour
 
         if (_activeBeams.Count == 0)
         {
+            // 魔力：啟動雷射先扣一次；不夠就不開光束
+            if (!DrainContinuousMana(weapon, true)) return;
             SpawnLaserBeams(weapon);
             // 發射特效：雷射在按下瞬間播一次砲口特效（持續光束不每幀重播）
             TrySpawnFireEffect(weapon, baseDir);
+        }
+        else if (!DrainContinuousMana(weapon, false))
+        {
+            // 魔力耗盡：關閉光束
+            ClearActiveBeams();
+            return;
         }
 
         for (int i = 0; i < _activeBeams.Count; i++)
@@ -556,12 +610,11 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    // 統一傷害入口：對任何實作 IDamageable 的目標(怪物 / 可破壞地上物)結算傷害;牆等無此元件者略過。
-    private static void ApplyDamage(GameObject target, float damage, Vector2 hitDir)
+    // 統一傷害入口：所有武器命中都走中央 CombatSystem（玩家加成 → 目標減傷 → 結算）。
+    // 來源 = 玩家本身（讓玩家的傷害加成生效）；牆等無 IDamageable 者由 CombatSystem 自動略過。見 readme/COMBAT.md
+    private void ApplyDamage(GameObject target, float damage, Vector2 hitDir)
     {
-        if (target == null || damage <= 0f) return;
-        IDamageable d = target.GetComponent<IDamageable>();
-        if (d != null) d.TakeDamage(damage, hitDir);
+        CombatSystem.Apply(gameObject, target, damage, hitDir);
     }
 
     // OnHit 分裂：在命中點依 SpreadCount/SpreadAngle 射出 SubRecipeID 子彈（節流已綁在 DotInterval tick）
@@ -1018,10 +1071,8 @@ public class PlayerController : MonoBehaviour
             for (int i = 0; i < hits.Length; i++)
             {
                 if (hits[i] == null) continue;
-                IDamageable d = hits[i].GetComponent<IDamageable>();
-                if (d == null) continue;
                 Vector2 hd = ((Vector2)hits[i].transform.position - impact).normalized;
-                d.TakeDamage(weapon.Damage, hd);
+                CombatSystem.Apply(gameObject, hits[i].gameObject, weapon.Damage, hd, DamageType.Lightning);
             }
         }
 
@@ -1170,11 +1221,8 @@ public class PlayerController : MonoBehaviour
         {
             Collider2D col = hits[i];
             if (col == null) continue;
-            IDamageable d = col.GetComponent<IDamageable>();
-            if (d == null) continue;
-
             Vector2 hitDir = ((Vector2)col.transform.position - landPos).normalized;
-            d.TakeDamage(firedWeapon.Damage, hitDir);
+            CombatSystem.Apply(gameObject, col.gameObject, firedWeapon.Damage, hitDir);
         }
     }
 
@@ -1234,22 +1282,29 @@ public class PlayerController : MonoBehaviour
         _vfxManager.Spawn(firedWeapon.TrailEffectID, pos, 0f);
     }
 
+    // IDamageable：玩家受傷統一入口（怪物接觸傷害、未來陷阱/DOT 都走這）。傷害修正已由 CombatSystem 算好，這裡只結算。
     public void TakeDamage(float amount, Vector2 hitDirection)
     {
+        if (_isDead) return;
+
+        // 無敵時間 / 白光閃爍 / 擊退由 HitReactionHandler 處理；無敵中回 false → 完全忽略本次傷害
         if (_hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
             return;
 
-        _currentHealth -= amount;
-        Debug.Log($"Player took {amount} damage. HP: {_currentHealth}/{PlayerMaxHealth}");
+        DamageNumberManager.Show(gameObject, amount);   // 頭上跳傷害數字（已過無敵判定 = 確實吃到傷害）
 
-        if (_currentHealth <= 0)
-        {
-            Die();
-        }
+        // 扣血走 CombatStats（血條訂閱其事件重繪）；死亡由 CombatStats.OnDeath → Die() 處理
+        if (_stats != null) _stats.ApplyHealthDelta(-amount);
     }
 
     private void Die()
     {
+        if (_isDead) return;
+        _isDead = true;
         Debug.Log("Player died!");
+        // TODO: 死亡流程（重生 / 讀檔 / 結束畫面）。目前僅標記死亡 — 之後接存檔系統與 UI。
     }
+
+    // 給其他系統取用玩家數值（HUD / 回血道具 / debuff…）。
+    public CombatStats Stats => _stats;
 }

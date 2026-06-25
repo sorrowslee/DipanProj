@@ -167,3 +167,19 @@
   - **先看 Console 的紅字**:shader 編譯錯誤會明確寫「哪一行、什麼錯」(例:`undeclared identifier` / `syntax error` / `reserved keyword`)——那是最快的線索,別瞎猜。
   - 本次解法:變數別用保留字,`line` 改名 `ln`。其他易撞的保留字/內建名:`line`、`point`、`triangle`、`vector`、`matrix`、`sample`、`texture`、`sampler`、`in`/`out`/`inout`,以及內建函式名 `cross`/`mul`/`dot`(當區域變數雖可 shadow,但若同段又要呼叫該函式就會出事)。
   - **通則:全螢幕單一純色(尤其洋紅)≈ shader 沒編過**,先去 Console 找編譯錯誤,而不是調該效果的參數。順帶:多型別共用一支 shader 時,所有 `_Mode` 分支會被攤平進同一個 pixel shader,指令量偏大,必要時加 `#pragma target 3.5` 提高上限(但那是「指令過多」的解,與本則的語法錯誤是兩回事)。
+
+---
+
+## F. 戰鬥 / 傷害 (Combat)
+
+> 系統說明見 [COMBAT.md](COMBAT.md)。
+
+### F1. 怪物碰到玩家不扣血(用 OnCollision / IsTouching 偵測接觸完全沒反應)
+- **症狀**:做「怪物接觸玩家就扣血」,用 `OnCollisionEnter2D` / `OnTriggerEnter2D` / `Collider2D.IsTouching` 偵測,但怪物明明貼在玩家身上卻**從不觸發**。
+- **原因**:專案的 **Layer Collision Matrix 把 `Enemy×Player` 關閉**(設計上怪物穿過玩家、不互推,見 [ARCHITECTURE.md](ARCHITECTURE.md))。而 `OnCollision*`、`OnTrigger*`、`IsTouching` **全部依賴物理系統的碰撞配對**——該層對被關掉,就不會產生任何接觸事件/配對,自然偵測不到。**任何「靠物理事件偵測 Enemy↔Player 接觸」的機制都會中這個雷**。
+- **解法**:用 **`Physics2D.Distance(colliderA, colliderB)`**(回傳 `ColliderDistance2D`,讀 `isOverlapped` / `distance`)做**幾何重疊判定**——它直接算兩個 collider 的幾何距離,**不經過碰撞矩陣**,所以層對關閉也照算。`EnemyContactDamage` 就是每幀對玩家 collider 做這個判定;反覆接觸由玩家自己的無敵時間(`HitReactionHandler`)節流。同理:任何需要「忽略碰撞矩陣的純幾何查詢」都可用 `Physics2D.Distance` / `OverlapCircle` 這類 query API(它們吃的是 LayerMask 參數,不看矩陣)。
+
+### F2. `[RequireComponent(typeof(Collider2D))]` 用抽象基底類別會出問題
+- **症狀**:在元件上標 `[RequireComponent(typeof(Collider2D))]`,執行期 `AddComponent` 該元件時、若物件還沒有任何 collider,Unity 嘗試自動補一個 `Collider2D` 卻失敗(`Collider2D` 是抽象類別,不能實例化)。
+- **原因**:`RequireComponent` 會在缺件時嘗試 `AddComponent(該型別)`,但 **`Collider2D` 是抽象基底**(具體的是 `BoxCollider2D` / `CircleCollider2D`…),無法被實例化。
+- **解法**:別對抽象基底用 `RequireComponent`。本專案 `EnemyContactDamage` 改成**不標 RequireComponent**,程式內 `GetComponent<Collider2D>()` 取用 + null 檢查即可(怪物的 collider 由 `MonsterController.AutoAdjustCollider` 保證存在)。要強制需求就指定**具體**型別(如 `BoxCollider2D`)。

@@ -111,6 +111,9 @@ public class WeaponManager : MonoBehaviour
             weapon.HitEffectID = (v.Length > 14 && !string.IsNullOrWhiteSpace(v[14])) ? int.Parse(v[14].Trim()) : 0;
             weapon.TrailEffectID = (v.Length > 15 && !string.IsNullOrWhiteSpace(v[15])) ? int.Parse(v[15].Trim()) : 0;
 
+            // 魔力消耗（第 16 欄）；留空 / 缺欄 = 1（見 readme/COMBAT.md）
+            weapon.ManaCost = (v.Length > 16 && !string.IsNullOrWhiteSpace(v[16])) ? float.Parse(v[16].Trim()) : 1f;
+
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
 

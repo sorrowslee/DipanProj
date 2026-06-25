@@ -32,6 +32,12 @@ namespace Dipan.Save
     public class StatsDTO
     {
         public int currency = 0;
+
+        // 血量 / 魔力（maxHealth == 0 視為「沒存過」→ 還原時不覆蓋玩家初始的滿血滿魔）。見 readme/COMBAT.md
+        public float maxHealth = 0f;
+        public float health = 0f;
+        public float maxMana = 0f;
+        public float mana = 0f;
     }
 
     /// <summary>進度與轉生紀錄（待進度系統，先佔位）。</summary>

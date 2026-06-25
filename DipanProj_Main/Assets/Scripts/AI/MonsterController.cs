@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class MonsterController : MonoBehaviour, IDamageable
+public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 {
     private MonsterSensor _sensor;
     private MonsterActuator _actuator;
@@ -23,6 +23,10 @@ public class MonsterController : MonoBehaviour, IDamageable
     public float KnockbackThreshold = 0f;
     public float KnockbackPercent = 0f;
 
+    [Header("Combat")]
+    public float ContactDamage = 10f;            // 碰到玩家造成的傷害（CSV: MonsterData.ContactDamage）
+    public float DamageReductionPercent = 0f;    // 受擊減傷 %（掛勾；目前 CSV 預設 0，之後接減傷/抗性）
+
     void Start()
     {
         _animator = GetComponent<Animator>();
@@ -41,6 +45,11 @@ public class MonsterController : MonoBehaviour, IDamageable
         _hitReaction = gameObject.AddComponent<HitReactionHandler>();
         _hitReaction.Configure(_spriteRenderer, _rb,
             InvincibleTimeMs, KnockbackThreshold, KnockbackPercent);
+
+        // 接觸傷害：碰到玩家就扣血（幾何重疊判定，見 EnemyContactDamage）。ContactDamage 由 Initialize 從 CSV 設定，
+        // 手動放置的怪用預設值。Initialize 在 Start 之前由 MonsterSpawner 呼叫，故此時值已就緒。
+        var contact = gameObject.AddComponent<EnemyContactDamage>();
+        contact.Configure(ContactDamage);
     }
 
     public void Initialize(MonsterData data)
@@ -52,6 +61,9 @@ public class MonsterController : MonoBehaviour, IDamageable
         InvincibleTimeMs = data.InvincibleTimeMs;
         KnockbackThreshold = data.KnockbackThreshold;
         KnockbackPercent = data.KnockbackPercent;
+
+        ContactDamage = data.ContactDamage;
+        DamageReductionPercent = data.DamageReduction;
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
         if (_sensor == null) _sensor = gameObject.AddComponent<MonsterSensor>();
@@ -149,6 +161,7 @@ public class MonsterController : MonoBehaviour, IDamageable
             return;
 
         _currentHealth -= amount;
+        DamageNumberManager.Show(gameObject, amount);   // 頭上跳傷害數字（已過無敵判定 = 確實吃到傷害）
         Debug.Log($"{MonsterName} took {amount} damage. HP: {_currentHealth}/{MaxHealth}");
 
         if (_currentHealth <= 0)
@@ -160,6 +173,15 @@ public class MonsterController : MonoBehaviour, IDamageable
     public void TakeDamage(float amount)
     {
         TakeDamage(amount, Vector2.zero);
+    }
+
+    // ── ICombatModifiers：怪物作為攻擊方無加成（1）；作為受擊方套用減傷掛勾（目前 CSV 預設 0 = 不減傷）──
+    public float OutgoingDamageMultiplier(in DamageInfo info) => 1f;
+
+    public float IncomingDamageMultiplier(in DamageInfo info)
+    {
+        float r = Mathf.Clamp(DamageReductionPercent, 0f, 90f);
+        return 1f - r / 100f;
     }
 
     void Die()

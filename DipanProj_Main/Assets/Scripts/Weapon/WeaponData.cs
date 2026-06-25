@@ -6,6 +6,7 @@ public class WeaponData
     public int ID;
     public string Name;
     public float Damage;
+    public float ManaCost = 1f;   // 發射消耗的魔力（離散武器每發；雷射/佛光每秒）。留空 = 1。見 readme/COMBAT.md
     public int RecipeID;
     public string WeaponSpritePath;
     public float SpriteAngleOffset;

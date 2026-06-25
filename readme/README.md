@@ -14,6 +14,7 @@
 | [BALLISTICS.md](BALLISTICS.md) | 彈道系統 `Sorrows.Ballistics`：ProjectileData／BallisticsEngine／BulletInstance／行為介面 | 改子彈生成、飛行、碰撞、彈道行為 |
 | [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md) | CSV 雙表（RecipeTable／WeaponTable）、Recipe／WeaponManager、BounceTarget、序列圖、SpriteAngleOffset | 加／改武器、配方、CSV 欄位 |
 | [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md) | 玩家控制器、怪物 AI、受擊反應系統（閃爍／擊退／無敵） | 改玩家或怪物行為、受擊反應 |
+| [COMBAT.md](COMBAT.md) | 戰鬥傷害系統：玩家 HP/MP（CombatStats）、中央傷害結算（DamageInfo/CombatSystem）、武器耗魔（ManaCost）、怪物接觸傷害＋減傷、血/魔 HUD、頭上浮動傷害數字、加成/減傷/DOT 掛勾 | 改傷害結算、加 HP/MP/魔耗、傷害加成/減傷、接觸傷害、血魔條、傷害數字 |
 | [GROUND_EFFECT.md](GROUND_EFFECT.md) | 地面特效鏈式觸發 AOE ＋ 拋物線型武器 | 改地面特效、拋物線、AOE |
 | [LASER.md](LASER.md) | 雷射光束系統 ＋ 雷射外型（BeamStyle 種類／調色盤） | 改雷射、加雷射種類或顏色 |
 | [VFX.md](VFX.md) | 一次性特效：發射特效（玩家身上）＋ 擊中特效（命中點），VfxTable 原語 | 加／改發射或擊中特效 |
