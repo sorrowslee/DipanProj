@@ -13,6 +13,7 @@
 //  12 = 綿綿細雨（陰天微冷 + 稀疏細雨絲，近垂直落下）
 //  13 = 大雨（細密雨點往下落）
 //  14 = 陰森森林鬼霧（畫面偏暗、陰綠冷調 + 漂移黑霧雲塊、偶爾飄來一陣濃霧）
+//  15 = 電視雜訊（雪花噪點 + 掃描線 + 滾動同步條 + 偶發水平撕裂 + 灰調閃爍）
 // 提燈光圈（type 2/3/9）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
 // UV 位移：熱浪（4/5/6）、水下折射（7/8/9）、山頂風吹拂（10/11）——皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
 // 風絲/雨絲共用 windStreak（雜湊打散的不規則短截線）：風絲斜向（rot2）、雨絲近垂直（rot2 約 1.4 rad）。
@@ -25,7 +26,7 @@ Shader "Custom/Atmosphere"
         _Aspect ("Aspect (w/h)", Float) = 1.777
         _InnerR ("Inner Radius", Float) = 0.13
         _OuterR ("Outer Radius", Float) = 0.28
-        _Mode ("Mode (2..6 horror/hot,7..9 ocean,10 snow,11 gale,12 drizzle,13 rain,14 ghostFog)", Float) = 2
+        _Mode ("Mode (2..6,7..9 ocean,10 snow,11 gale,12 drizzle,13 rain,14 ghostFog,15 tvNoise)", Float) = 2
     }
     SubShader
     {
@@ -51,6 +52,9 @@ Shader "Custom/Atmosphere"
 
             // 繞原點旋轉（type 11 強風用：把風絲轉成斜向）。
             float2 rot2(float2 p, float a) { float s = sin(a), c = cos(a); return float2(c * p.x - s * p.y, s * p.x + c * p.y); }
+
+            // 2D 白噪雜湊（type 15 電視雜訊用：雪花、撕裂）。
+            float rand2(float2 p) { return frac(sin(dot(p, float2(12.9898, 78.233))) * 43758.5453); }
 
             // 不規則風絲（type 10 風雪橫向 / type 11 強風斜向用）：把畫面壓成許多細橫帶，每帶隨機相位/速度，
             // 沿 x 切段、用雜湊隨機決定哪些段有風絲（並非整條線），段內做頭亮尾淡的 dash。
@@ -91,7 +95,15 @@ Shader "Custom/Atmosphere"
                     uv.x += wob * 0.0022;
                     uv.y += sin(uv.x * 16.0 + t * 1.3) * 0.0018;
                 }
-                else if (_Mode > 3.5)
+                else if (_Mode > 14.5)
+                {
+                    // 電視雜訊（15）：偶發整列水平撕裂位移（取樣前做）
+                    float line = floor(uv.y * 90.0);
+                    float fr = floor(_Time.y * 14.0);
+                    float g = rand2(float2(line, fr));
+                    uv.x += step(0.93, g) * (rand2(float2(line, fr + 1.0)) - 0.5) * 0.05;
+                }
+                else if (_Mode > 3.5 && _Mode < 6.5)
                 {
                     // 熱浪扭曲（4/5/6）
                     float t = _Time.y;
@@ -111,7 +123,28 @@ Shader "Custom/Atmosphere"
                 vc.x *= _Aspect;
                 float vig = saturate(1.0 - smoothstep(VigStart, VigEnd, length(vc)) * VigDark);
 
-                if (_Mode > 13.5)
+                if (_Mode > 14.5)
+                {
+                    // ── type 15：電視雜訊（雪花 + 掃描線 + 滾動同步條 + 灰調閃爍；撕裂在取樣前）──
+                    float t = _Time.y;
+                    // 老電視灰調 + 輕微壓暗
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.35);
+                    col.rgb *= 0.95;
+                    // 掃描線（固定線數，與解析度無關以免閃爍）
+                    col.rgb *= 0.90 + 0.10 * sin(i.uv.y * 540.0);
+                    // 雪花雜訊：每幀變化的白噪混入
+                    float fr = floor(t * 24.0);
+                    float snow = rand2(i.uv * _ScreenParams.xy * 0.5 + fr);
+                    col.rgb = lerp(col.rgb, snow.xxx, 0.18);
+                    // 滾動同步條（一條亮帶緩慢上捲）
+                    float bar = frac(i.uv.y - t * 0.25);
+                    col.rgb += smoothstep(0.0, 0.06, bar) * (1.0 - smoothstep(0.08, 0.22, bar)) * 0.06;
+                    // 整體輕微閃爍
+                    col.rgb *= 0.97 + 0.03 * sin(t * 30.0);
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 13.5)
                 {
                     // ── type 14：陰森森林鬼霧（畫面偏暗 + 偶爾一團黑霧緩慢橫越畫面）──
                     float t = _Time.y;
