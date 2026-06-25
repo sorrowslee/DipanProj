@@ -48,7 +48,7 @@ Shader "Custom/Atmosphere"
             // 繞原點旋轉（type 11 強風用：把風絲轉成斜向）。
             float2 rot2(float2 p, float a) { float s = sin(a), c = cos(a); return float2(c * p.x - s * p.y, s * p.x + c * p.y); }
 
-            // 不規則橫向風絲（type 10 山頂狂風用）：把畫面壓成許多細橫帶，每帶隨機相位/速度，
+            // 不規則風絲（type 10 風雪橫向 / type 11 強風斜向用）：把畫面壓成許多細橫帶，每帶隨機相位/速度，
             // 沿 x 切段、用雜湊隨機決定哪些段有風絲（並非整條線），段內做頭亮尾淡的 dash。
             // 多呼叫幾層不同 scale/speed 疊起來 → 散亂、不規律、有快有慢的暴風感。
             float windStreak(float2 uv, float t, float scale, float speed, float seed)
@@ -69,11 +69,11 @@ Shader "Custom/Atmosphere"
 
             fixed4 frag (v2f_img i) : SV_Target
             {
-                // UV 位移：山頂狂風=隨陣風的水平吹拂；炎熱=熱浪（快、幅度小）；海洋=水下折射（慢、幅度略大）。
+                // UV 位移：山頂風(10/11)=隨陣風的水平吹拂；炎熱=熱浪（快、幅度小）；海洋=水下折射（慢、幅度略大）。
                 float2 uv = i.uv;
                 if (_Mode > 9.5)
                 {
-                    // 山頂狂風吹拂（10）：主要水平、隨陣風時強時弱
+                    // 山頂風吹拂（10/11）：主要水平、隨陣風時強時弱
                     float t = _Time.y;
                     float gust = 0.6 + 0.4 * sin(t * 0.6) * sin(t * 0.23 + 1.3);
                     uv.x += sin(uv.y * 9.0 + t * 5.0) * 0.0016 * gust;

@@ -6,6 +6,6 @@ ID,Name,Module,Path,IsLevelStart,MapMode,Atmosphere(1正常/2幽暗+打光/3噩�
 5,RedBridalGown_ShrineHall,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_ShrineHall.dipanmap,0,2,2
 6,RedBridalGown_BridalRoom,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_BridalRoom.dipanmap,0,2,2
 7,RedBridalGown_Courtyard,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Courtyard.dipanmap,0,2,2
-8,RedBridalGown_LivingRoom2,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_LivingRoom2.dipanmap,1,2,10
+8,RedBridalGown_LivingRoom2,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_LivingRoom2.dipanmap,1,2,11
 9,RedBridalGown_Study,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Study.dipanmap,0,2,2
 10,RedBridalGown_TreeDemon,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_TreeDemon.dipanmap,0,2,2
