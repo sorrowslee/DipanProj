@@ -139,7 +139,7 @@ Shader "Custom/Atmosphere"
                     // 雪花雜訊：每幀變化的白噪混入
                     float fr = floor(t * 24.0);
                     float snow = rand2(i.uv * _ScreenParams.xy * 0.5 + fr);
-                    col.rgb = lerp(col.rgb, snow.xxx, 0.18);
+                    col.rgb = lerp(col.rgb, snow.xxx, 0.09);
                     // 滾動同步條（一條亮帶緩慢上捲）
                     float bar = frac(i.uv.y - t * 0.25);
                     col.rgb += smoothstep(0.0, 0.06, bar) * (1.0 - smoothstep(0.08, 0.22, bar)) * 0.06;
