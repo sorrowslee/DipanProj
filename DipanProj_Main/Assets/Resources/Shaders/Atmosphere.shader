@@ -100,10 +100,11 @@ Shader "Custom/Atmosphere"
                 else if (_Mode > 14.5)
                 {
                     // 電視雜訊（15）：偶發整列水平撕裂位移（取樣前做）
-                    float line = floor(uv.y * 90.0);
+                    // 注意：'line' 是 HLSL 保留字，變數名用 ln。
+                    float ln = floor(uv.y * 90.0);
                     float fr = floor(_Time.y * 14.0);
-                    float g = rand2(float2(line, fr));
-                    uv.x += step(0.93, g) * (rand2(float2(line, fr + 1.0)) - 0.5) * 0.05;
+                    float g = rand2(float2(ln, fr));
+                    uv.x += step(0.93, g) * (rand2(float2(ln, fr + 1.0)) - 0.5) * 0.05;
                 }
                 else if (_Mode > 3.5 && _Mode < 6.5)
                 {
