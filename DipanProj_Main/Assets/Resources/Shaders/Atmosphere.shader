@@ -8,7 +8,7 @@
 //   7 = 淺海（青綠水色 + 頂部陽光 + 焦散光斑 + 水下折射晃動）
 //   8 = 深海（深藍壓暗、低能見度、冷色去飽和 + 水下折射晃動）
 //   9 = 深海 + 恐怖（深海再套潛水燈光圈：玩家周圍一圈可見、其餘近全黑）
-//  10 = 山頂狂風（高空稀薄冷光 + 亮霧邊 + 橫掃冷白風絲 + 陣風時強時弱）
+//  10 = 山頂狂風（陰冷暴風：冷灰調 + 翻騰白霧 + 不規則橫向風絲 + 陣風時強時弱）
 // 提燈光圈（type 2/3/9）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
 // UV 位移：熱浪（4/5/6）、水下折射（7/8/9）、山頂狂風吹拂（10）——皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
 Shader "Custom/Atmosphere"
@@ -41,6 +41,27 @@ Shader "Custom/Atmosphere"
             static const float VigStart = 0.45;
             static const float VigEnd   = 0.95;
             static const float VigDark  = 0.85;
+
+            float hash11(float n) { return frac(sin(n) * 43758.5453); }
+
+            // 不規則橫向風絲（type 10 山頂狂風用）：把畫面壓成許多細橫帶，每帶隨機相位/速度，
+            // 沿 x 切段、用雜湊隨機決定哪些段有風絲（並非整條線），段內做頭亮尾淡的 dash。
+            // 多呼叫幾層不同 scale/speed 疊起來 → 散亂、不規律、有快有慢的暴風感。
+            float windStreak(float2 uv, float t, float scale, float speed, float seed)
+            {
+                float y = uv.y * scale + seed;
+                float lane = floor(y);
+                float fy = frac(y);
+                float lr = hash11(lane * 1.7 + seed);              // 每帶亂數
+                float x = uv.x + t * speed * (0.7 + lr * 0.7);     // 捲動，速度逐帶不同
+                float seg = x * (2.0 + lr * 3.0);                  // 沿 x 切段，段長逐帶不同
+                float segId = floor(seg);
+                float fx = frac(seg);
+                float on = step(0.55, hash11(segId * 3.1 + lane * 7.3 + seed)); // 約 45% 段有風絲
+                float dash = on * smoothstep(0.0, 0.08, fx) * (1.0 - smoothstep(0.15, 0.9, fx));
+                float laneMask = 1.0 - smoothstep(0.0, 0.5, abs(fy - 0.5)); // 只在帶中央亮
+                return dash * laneMask * (0.4 + lr * 0.6);
+            }
 
             fixed4 frag (v2f_img i) : SV_Target
             {
@@ -84,23 +105,29 @@ Shader "Custom/Atmosphere"
 
                 if (_Mode > 9.5)
                 {
-                    // ── type 10：山頂狂風 ──
-                    // 高空稀薄冷光：拉亮 + 微去飽和 + 冷白偏藍
-                    col.rgb = col.rgb * 1.10 + 0.03;
-                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
-                    col.rgb = lerp(col.rgb, lum.xxx, 0.20);
-                    col.rgb *= float3(0.92, 0.97, 1.06);
-                    // 高空亮霧暈邊（遠處發白，不是暗角）
-                    float2 hc = i.uv - 0.5; hc.x *= _Aspect;
-                    float haze = smoothstep(0.35, 0.95, length(hc));
-                    col.rgb = lerp(col.rgb, float3(0.82, 0.88, 0.96), haze * 0.35);
-                    // 狂風橫掃：細長冷白風絲往一側捲動 + 陣風包絡（時強時弱、一陣一陣）
+                    // ── type 10：山頂狂風（陰冷暴風）──
                     float tw = _Time.y;
-                    float gust = 0.55 + 0.45 * sin(tw * 0.6) * sin(tw * 0.23 + 1.3);
-                    float yLane = i.uv.y + i.uv.x * 0.12;             // 微傾斜
-                    float streak = sin(yLane * 120.0) * sin(i.uv.x * 8.0 - tw * 6.0);
-                    streak = pow(saturate(streak), 8.0);             // 銳化成細風絲
-                    col.rgb += streak * gust * 0.06 * float3(0.90, 0.95, 1.0);
+                    // 陣風包絡：兩個不同步的慢波相乘 → 風一陣一陣、有強有弱（0.35~1）
+                    float gust = saturate(0.35 + 0.65 * (0.5 + 0.5 * sin(tw * 0.7)) * (0.5 + 0.5 * sin(tw * 0.31 + 2.0)));
+
+                    // 暴風冷灰調（不要太亮太乾淨，偏陰天/風雪）
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.30);          // 去飽和
+                    col.rgb *= float3(0.86, 0.90, 0.98);            // 冷灰藍
+                    col.rgb = col.rgb * 0.95 + 0.02;                 // 壓對比、輕微提亮
+
+                    // 翻騰白霧：兩側更濃、隨時間翻滾、隨陣風增強（暴風感主來源）
+                    float2 hc = i.uv - 0.5; hc.x *= _Aspect;
+                    float edge = smoothstep(0.28, 0.85, length(hc));
+                    float churn = 0.55 + 0.45 * sin(i.uv.y * 7.0 - tw * 2.2 + sin(i.uv.x * 4.0 + tw * 1.3) * 1.5);
+                    float fog = saturate(edge * churn) * (0.45 + 0.55 * gust);
+                    col.rgb = lerp(col.rgb, float3(0.82, 0.86, 0.93), fog * 0.7);
+
+                    // 不規則風絲：兩層 hash 打散的橫向短截線，速度不同，隨陣風增強
+                    float w = windStreak(i.uv, tw, 55.0, 1.4, 0.0)
+                            + windStreak(i.uv, tw, 90.0, 2.2, 13.7) * 0.7;
+                    col.rgb += w * (0.4 + 0.6 * gust) * 0.07 * float3(0.92, 0.95, 1.0);
+
                     col.rgb = saturate(col.rgb);
                 }
                 else if (_Mode > 8.5)
