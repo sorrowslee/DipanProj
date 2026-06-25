@@ -10,8 +10,11 @@
 //   9 = 深海 + 恐怖（深海再套潛水燈光圈：玩家周圍一圈可見、其餘近全黑）
 //  10 = 風雪（陰冷暴風：冷灰調 + 翻騰白霧 + 不規則橫向風絲 + 陣風時強時弱）
 //  11 = 強風（去白霧、幾乎不調色，只留單一斜向的風絲 + 陣風）
+//  12 = 綿綿細雨（陰天微冷 + 稀疏細雨絲，近垂直落下）
+//  13 = 大雨（陰暗濕冷 + 灰霧降能見 + 密集快速雨絲）
 // 提燈光圈（type 2/3/9）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
 // UV 位移：熱浪（4/5/6）、水下折射（7/8/9）、山頂風吹拂（10/11）——皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
+// 風絲/雨絲共用 windStreak（雜湊打散的不規則短截線）：風絲斜向（rot2）、雨絲近垂直（rot2 約 1.4 rad）。
 Shader "Custom/Atmosphere"
 {
     Properties
@@ -21,7 +24,7 @@ Shader "Custom/Atmosphere"
         _Aspect ("Aspect (w/h)", Float) = 1.777
         _InnerR ("Inner Radius", Float) = 0.13
         _OuterR ("Outer Radius", Float) = 0.28
-        _Mode ("Mode (2=dim,3=nightmare,4=noon,5=ember,6=dust,7=shallow,8=deep,9=deepHorror,10=snow,11=gale)", Float) = 2
+        _Mode ("Mode (2=dim..6=dust,7..9=ocean,10=snow,11=gale,12=drizzle,13=heavyRain)", Float) = 2
     }
     SubShader
     {
@@ -71,7 +74,7 @@ Shader "Custom/Atmosphere"
             {
                 // UV 位移：山頂風(10/11)=隨陣風的水平吹拂；炎熱=熱浪（快、幅度小）；海洋=水下折射（慢、幅度略大）。
                 float2 uv = i.uv;
-                if (_Mode > 9.5)
+                if (_Mode > 9.5 && _Mode < 11.5)
                 {
                     // 山頂風吹拂（10/11）：主要水平、隨陣風時強時弱
                     float t = _Time.y;
@@ -107,7 +110,35 @@ Shader "Custom/Atmosphere"
                 vc.x *= _Aspect;
                 float vig = saturate(1.0 - smoothstep(VigStart, VigEnd, length(vc)) * VigDark);
 
-                if (_Mode > 10.5)
+                if (_Mode > 12.5)
+                {
+                    // ── type 13：大雨（陰暗濕冷 + 灰霧降能見 + 密集快速雨絲）──
+                    float tr = _Time.y;
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.25);          // 去飽和
+                    col.rgb *= float3(0.80, 0.86, 0.95);            // 冷灰藍
+                    col.rgb *= 0.85;                                 // 烏雲壓暗
+                    col.rgb = lerp(col.rgb, float3(0.40, 0.45, 0.52), 0.12); // 灰霧降能見
+                    // 雨絲：近垂直（略斜）、密、快；兩層不同密度
+                    float r = windStreak(rot2(i.uv, 1.40), tr, 90.0, 5.0, 0.0)
+                            + windStreak(rot2(i.uv, 1.40), tr, 130.0, 6.5, 7.1) * 0.7;
+                    col.rgb += r * 0.09 * float3(0.88, 0.92, 0.98);
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 11.5)
+                {
+                    // ── type 12：綿綿細雨（陰天微冷 + 稀疏細雨）──
+                    float tr = _Time.y;
+                    float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.12);          // 微去飽和
+                    col.rgb *= float3(0.93, 0.96, 1.0);             // 輕冷調
+                    col.rgb *= 0.97;                                 // 陰天微壓暗
+                    // 雨絲：近垂直、稀疏、慢、淡
+                    float r = windStreak(rot2(i.uv, 1.47), tr, 70.0, 3.0, 0.0);
+                    col.rgb += r * 0.05 * float3(0.85, 0.90, 0.95);
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 10.5)
                 {
                     // ── type 11：強風（只留單一斜向風絲、無白霧、幾乎不調色）──
                     float tw = _Time.y;

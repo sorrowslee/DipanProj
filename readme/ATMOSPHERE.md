@@ -8,7 +8,7 @@
 
 ## 型別（MapsTable.csv 的 `Atmosphere` 欄）
 
-分系：**陰森系（2/3）**用提燈光圈把玩家身邊壓出一小圈可見區；**末日炎熱系（4/5/6）**不壓暗、改暖色調並帶「熱浪扭曲」；**海洋系（7/8/9）**藍綠水色 + 「水下折射晃動」，深海+恐怖再套潛水燈光圈；**山頂風系（10/11）**——10 風雪（陰冷暴風、翻騰白霧 + 橫向風絲）、11 強風（去白霧、只留斜向交叉風絲）。
+分系：**陰森系（2/3）**用提燈光圈把玩家身邊壓出一小圈可見區；**末日炎熱系（4/5/6）**不壓暗、改暖色調並帶「熱浪扭曲」；**海洋系（7/8/9）**藍綠水色 + 「水下折射晃動」，深海+恐怖再套潛水燈光圈；**山頂風系（10/11）**——10 風雪（陰冷暴風、翻騰白霧 + 橫向風絲）、11 強風（去白霧、只留單一斜向風絲）；**雨系（12/13）**——12 綿綿細雨、13 大雨（近垂直雨絲，大雨另加陰暗濕冷 + 灰霧）。
 
 | 值 | 名稱 | 效果 | 適用 |
 |---|---|---|---|
@@ -23,6 +23,8 @@
 | `9` | 深海 + 恐怖 | 深海再套潛水燈光圈：玩家周圍一圈可見、其餘近全黑 | 深海恐怖、未知生物出沒處 |
 | `10` | 風雪 | 陰冷暴風：冷灰調 + 兩側翻騰白霧（隨陣風增強）+ 不規則橫向風絲（雜湊打散、有快有慢）+ 水平吹拂 | 雪峰、暴風雪、寒地稜線 |
 | `11` | 強風 | 去白霧、幾乎不調色，只留**單一斜向的風絲**（同方向猛吹）+ 陣風 + 輕微吹拂 | 大風口、強風平原、看得清場景但風勢猛 |
+| `12` | 綿綿細雨 | 陰天微冷調 + 稀疏細雨絲（近垂直、慢、淡） | 小雨、陰天、潮濕街巷 |
+| `13` | 大雨 | 陰暗濕冷（冷灰、壓暗）+ 灰霧降能見 + 密集快速雨絲（兩層） | 暴雨、雷雨、傾盆大雨 |
 
 > **留空 / 缺欄 / 無法解析 = 預設 1（正常）**，所以舊地圖、未填的地圖都不受影響。
 > 用提燈光圈的是 type 2/3/9（半徑相同，由控制器餵入並呼吸），只差在周邊壓多暗與色調。
@@ -34,28 +36,29 @@
 - **自動生成、零接線**：`AtmosphereController` 用 `[RuntimeInitializeOnLoadMethod]` 自生成、跨地圖常駐（同 PerfHud 模式），每場景把後處理元件 `AtmosphereBlit` 掛到 `Camera.main`。
 - **地圖驅動**：`MapManager.LoadMapInternal` 載圖時呼叫 `AtmosphereController.ApplyMapAtmosphere(row.atmosphere)` 切換當前模式；換圖即時生效。
 - **type 1**：控制器把 Blit 材質設 `null` → 直接 passthrough，等於關閉，零開銷。
-- **type 2~11**：用同一個 shader `Custom/Atmosphere`，靠 `_Mode`（2~11）切換外觀。用提燈光圈的（2/3/9）由控制器每幀餵入玩家螢幕位置與光圈半徑，半徑以**油燈式 Perlin 明滅**呼吸；炎熱（4/5/6）、海洋（7/8/9）、風系（10/11）在 shader 內以 `_Time` 做扭曲/風絲，不需控制器額外參數。
+- **type 2~13**：用同一個 shader `Custom/Atmosphere`，靠 `_Mode`（2~13）切換外觀。用提燈光圈的（2/3/9）由控制器每幀餵入玩家螢幕位置與光圈半徑，半徑以**油燈式 Perlin 明滅**呼吸；炎熱（4/5/6）、海洋（7/8/9）、風系（10/11）、雨系（12/13）在 shader 內以 `_Time` 做扭曲/風絲/雨絲，不需控制器額外參數。
 - **UI 不受影響**：後處理只作用在主相機算繪的畫面；Screen Space Overlay 的 HUD／面板在其後合成，不會被壓暗。
 
 ## 檔案
 
 - `Assets/Scripts/Atmosphere/AtmosphereController.cs` — 單例、地圖驅動、餵 shader 參數。
 - `Assets/Scripts/Atmosphere/AtmosphereBlit.cs` — 掛在主相機上的 Blit 進入點。
-- `Assets/Resources/Shaders/Atmosphere.shader` — `Custom/Atmosphere`，`_Mode` 切 2~11。
+- `Assets/Resources/Shaders/Atmosphere.shader` — `Custom/Atmosphere`，`_Mode` 切 2~13。
 - 接線：`Map/MapTable.cs`（解析 `atmosphere` 欄）、`Map/MapManager.cs`（載圖時套用）、`Data/MapsTable.csv`（`Atmosphere` 欄）。
 
 ## 怎麼調
 
-- **每張地圖選型別**：改 `MapsTable.csv` 該列的 `Atmosphere`（1~11）。想讓某房間更恐怖改 3；末日炎熱改 4／5／6；海洋改 7／8／9；風雪改 10、強風改 11。
+- **每張地圖選型別**：改 `MapsTable.csv` 該列的 `Atmosphere`（1~13）。恐怖改 3；末日炎熱 4／5／6；海洋 7／8／9；風雪 10、強風 11；細雨 12、大雨 13。
 - **光圈大小**（type 2/3/9）：`AtmosphereController.cs` 上方的 `InnerRadius` / `OuterRadius`（兩者等比例改，越小圈越小；目前 0.13 / 0.28）。
 - **各型別的調色／壓暗／冷暖／去飽和**：`Atmosphere.shader` 的 `frag` 內，type 2~9 各自一段的常數（如 type2 周邊亮度 `lerp(0.35,…)`、type5 橙紅 tint、type7 青綠 `float3(0.62,0.92,1.02)`+焦散、type8 深藍 `float3(0.30,0.50,0.85)`+水霧、type9 潛水燈 `lerp(0.04,1.0,v)` 等）。
 - **扭曲強度/快慢**：熱浪（4/5/6）、水下折射（7/8/9）、風吹拂（10/11）各一段在 frag 頂部，調位移幅度（熱浪 `0.0014`、海洋 `0.0022`、風 `0.0016`）與頻率/時間係數。
 - **風雪風絲/霧/陣風**（type 10）：風絲用 `windStreak(...)` 兩層疊（改 `scale`=密度、`speed`=快慢、整體 `* 0.07`=明顯度，段落隨機度在函式內 `step(0.55,…)`）；翻騰白霧改 `edge`（範圍）、`churn`（翻滾）與 `fog * 0.7`（濃度）；陣風節奏改 `gust` 的兩個 sin。
 - **強風斜向風絲**（type 11）：兩層 `windStreak(rot2(i.uv, a), …)` 用**同一個角度 `a`**（只差密度/速度，不交叉）；改 `a`=風向傾角（正/負換邊）、`scale`/`speed`=密度/快慢、整體 `* 0.08`=明顯度；type 11 無白霧、幾乎不調色。
+- **雨絲**（type 12 細雨 / 13 大雨）：雨絲也用 `windStreak(rot2(i.uv, 約1.4), …)`（近垂直）；改旋轉角（越接近 1.57 越垂直）、`scale`=密度、`speed`=落速、整體 `* 0.05`(細)/`* 0.09`(大)=明顯度。大雨另有冷灰調 `* 0.85`、灰霧 `lerp(…,0.12)`，要調濕冷/能見度改這兩處。
 - **呼吸快慢/幅度**（type 2/3/9）：`AtmosphereController.cs` 的 `BreatheMin`/`BreatheMax` 與 `LateUpdate` 內 Perlin/sin 的係數。
 
 ## 備註
 
 - 這是 Built-in 管線的覆蓋層方案，刻意不走 URP。若日後要「火把實際打光、牆會投影」那種逐光源互動，才需評估遷移 URP（會牽動既有自訂 shader）。
-- 設計沿革見 [PROGRESS.md](PROGRESS.md)。陰森系先前用 git 分支比較過 spotlight／full／colorgrade 三種雛形，整併成 type 2（= full-soft）與 type 3（= full）；末日炎熱系同樣分支比較 noon／ember／dust，整併成 type 4／5／6；海洋系（7/8/9）與山頂風系（10 風雪 / 11 強風）直接加在 develop。
+- 設計沿革見 [PROGRESS.md](PROGRESS.md)。陰森系先前用 git 分支比較過 spotlight／full／colorgrade 三種雛形，整併成 type 2（= full-soft）與 type 3（= full）；末日炎熱系同樣分支比較 noon／ember／dust，整併成 type 4／5／6；海洋系（7/8/9）、山頂風系（10 風雪 / 11 強風）、雨系（12 細雨 / 13 大雨）直接加在 develop。
 - 熱浪扭曲是全螢幕均勻的克制版微晃；若日後要更真實（只在地面/火源附近、或更強的地平線蜃景），可改成漸層遮罩或局部套用。
