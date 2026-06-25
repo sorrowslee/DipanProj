@@ -119,23 +119,24 @@ Shader "Custom/Atmosphere"
                     col.rgb *= float3(0.80, 0.86, 0.95);            // 冷灰藍
                     col.rgb *= 0.85;                                 // 烏雲壓暗
                     col.rgb = lerp(col.rgb, float3(0.40, 0.45, 0.52), 0.12); // 灰霧降能見
-                    // 雨絲：近垂直（略斜）、密、快；兩層不同密度
-                    float r = windStreak(rot2(i.uv, 1.40), tr, 90.0, 5.0, 0.0)
-                            + windStreak(rot2(i.uv, 1.40), tr, 130.0, 6.5, 7.1) * 0.7;
+                    // 雨絲：近垂直（略斜）、密、快、往下落（speed 為負＝向下）；兩層不同密度
+                    float r = windStreak(rot2(i.uv, 1.40), tr, 90.0, -5.0, 0.0)
+                            + windStreak(rot2(i.uv, 1.40), tr, 130.0, -6.5, 7.1) * 0.7;
                     col.rgb += r * 0.09 * float3(0.88, 0.92, 0.98);
                     col.rgb = saturate(col.rgb);
                 }
                 else if (_Mode > 11.5)
                 {
-                    // ── type 12：綿綿細雨（陰天微冷 + 稀疏細雨）──
+                    // ── type 12：綿綿細雨／毛毛雨（陰天微冷 + 零星細小雨點，間歇）──
                     float tr = _Time.y;
                     float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
-                    col.rgb = lerp(col.rgb, lum.xxx, 0.12);          // 微去飽和
-                    col.rgb *= float3(0.93, 0.96, 1.0);             // 輕冷調
-                    col.rgb *= 0.97;                                 // 陰天微壓暗
-                    // 雨絲：近垂直、稀疏、慢、淡
-                    float r = windStreak(rot2(i.uv, 1.47), tr, 70.0, 3.0, 0.0);
-                    col.rgb += r * 0.05 * float3(0.85, 0.90, 0.95);
+                    col.rgb = lerp(col.rgb, lum.xxx, 0.10);          // 微去飽和
+                    col.rgb *= float3(0.94, 0.96, 1.0);             // 很輕的冷調
+                    col.rgb *= 0.98;                                 // 陰天微壓暗
+                    // 毛毛雨：高密度細帶（很短小）＋ 往下慢落（speed 負）；r*r 砍掉弱的 → 只留零星細點、間歇感。
+                    float r = windStreak(rot2(i.uv, 1.50), tr, 150.0, -2.2, 0.0);
+                    r = r * r;
+                    col.rgb += r * 0.06 * float3(0.85, 0.90, 0.95);
                     col.rgb = saturate(col.rgb);
                 }
                 else if (_Mode > 10.5)
