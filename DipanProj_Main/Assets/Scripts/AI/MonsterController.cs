@@ -30,6 +30,11 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public float ContactDamage = 10f;            // 碰到玩家造成的傷害（CSV: MonsterData.ContactDamage）
     public float DamageReductionPercent = 0f;    // 受擊減傷 %（掛勾；目前 CSV 預設 0，之後接減傷/抗性）
 
+    [Header("Death")]
+    [Tooltip("死亡時播的特效 = VfxTable 的 ID；0 = 不播。檔名/張數/FPS 都在 VfxTable 那一列設定。")]
+    public int DeathVfxId = 7;                    // VfxTable ID 7 = 怪物死亡（暫借爆炸圖）
+    static VfxManager _vfx;                       // 全場唯一，快取共用（仿 DestructibleObject）
+
     void Start()
     {
         _animator = GetComponent<Animator>();
@@ -262,6 +267,16 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     void Die()
     {
         _isDead = true;
+
+        // 死亡特效：在怪物自身位置播一次（VfxTable 的 DeathVfxId）。特效是獨立 GameObject，
+        // 不受怪物銷毀影響，會自己播完整輪後自毀（仿 DestructibleObject 的破壞特效）。
+        if (DeathVfxId > 0)
+        {
+            if (_vfx == null) _vfx = FindObjectOfType<VfxManager>();
+            if (_vfx != null) _vfx.Spawn(DeathVfxId, transform.position, 0f);
+            else Debug.LogWarning("[MonsterController] 場景找不到 VfxManager，死亡特效略過。");
+        }
+
         // 簡單處理：直接銷毀物件
         Destroy(gameObject);
     }

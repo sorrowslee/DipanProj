@@ -1,13 +1,13 @@
 ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent, ContactDamage, DamageReduction, Speed, AnimFPS
  1, ZhaYu, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-2, Ghost_Boy, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-3,Ghost_Dog, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-4,Ghost_FatBoy, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-5,Ghost_Father, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-6,Ghost_FatMan, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-7,Ghost_Girl, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-8,Ghost_GrandMa, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-9,Ghost_GrandPa, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-10,Ghost_Mother, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-11,Ghost_YoungBrother, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
-12,Ghost_YoungSister, 10, Chase    , Contact,   1.2,           ,                0,                  3,               20,            10,               0,     1,       8
+2, Ghost_Boy,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+3,Ghost_Dog,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+4,Ghost_FatBoy,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+5,Ghost_Father,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+6,Ghost_FatMan,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+7,Ghost_Girl,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+8,Ghost_GrandMa,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+9,Ghost_GrandPa,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+10,Ghost_Mother,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+11,Ghost_YoungBrother,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
+12,Ghost_YoungSister,3, Chase    , Contact,   1.2,           ,                0,1,120,            10,               0,     1,       8
