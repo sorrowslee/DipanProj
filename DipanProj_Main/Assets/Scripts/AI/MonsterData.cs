@@ -11,6 +11,8 @@ public class MonsterData
     public float Scale;
     public string PrefabPath;
 
+    public float Speed = 3f;            // 移動速度（CSV: Speed，留空 = 3）
+
     public float InvincibleTimeMs;
     public float KnockbackThreshold;
     public float KnockbackPercent;

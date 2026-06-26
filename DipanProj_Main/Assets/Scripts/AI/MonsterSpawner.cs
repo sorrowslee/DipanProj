@@ -94,6 +94,7 @@ public class MonsterSpawner : MonoBehaviour
 
             data.ContactDamage = (values.Length > 10 && !string.IsNullOrWhiteSpace(values[10])) ? float.Parse(values[10]) : 10f;
             data.DamageReduction = (values.Length > 11 && !string.IsNullOrWhiteSpace(values[11])) ? float.Parse(values[11]) : 0f;
+            data.Speed = (values.Length > 12 && !string.IsNullOrWhiteSpace(values[12])) ? float.Parse(values[12]) : 3f;
 
             _monsterDatabase.Add(data);
         }

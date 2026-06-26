@@ -318,7 +318,7 @@ if (_isDead) return;
 ### 測試時去哪調速度
 
 - **玩家移動速度**：選 `Player` → Inspector 的 **PlayerController → MoveSpeed**。這同時就是「正常速度」（ReferenceSpeed 會自動跟著它），所以**改了 MoveSpeed 正常走仍是 1×（滿幀、不會變卡）**——改的是「正常」的定義，不是把動畫打折。
-- **怪物移動速度**：改 **`Assets/Scripts/AI/MonsterActuator.cs` 的 `public float MoveSpeed = 3f;`**。怪物的 `MonsterActuator` 是執行期自動掛上的，Inspector 上改不到也不持久，所以測試時直接改這個預設值（目前怪物速度尚未進 CSV）。
+- **怪物移動速度**：改 **`Assets/Data/MonsterData.csv` 的 `Speed` 欄**（每種怪一列、各自設定，留空＝3），改完不必動程式。動畫的 ReferenceSpeed 會自動帶入這個值。（手動丟進場景、沒經 Spawner 的怪，才用 `MonsterActuator` 的預設 3。）
 
 > 想實際看到「動畫變慢」的效果，要讓**實際速度低於正常速度**（例如之後做減速 debuff，把 velocity 乘上 0.5）。鍵盤是「全速或停」，所以單純走路一律 1×；這正是我們要的——正常走最順，被放慢才慢。
 

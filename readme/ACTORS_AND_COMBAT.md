@@ -34,7 +34,8 @@
 * `IsFacingRightByDefault`：控制圖片原始朝向，翻轉邏輯根據此值正確決定面向玩家的方向。
 
 ### MonsterSpawner
-* 從 CSV 讀取怪物資料（`ID, Name, HP, BrainType, Weapon, Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent`）。
+* 從 CSV 讀取怪物資料（`ID, Name, HP, BrainType, Weapon, Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent, ContactDamage, DamageReduction, Speed`）。
+* `Speed`（移動速度，留空＝3）：由 `MonsterController.Initialize` 設給 `MonsterActuator.MoveSpeed`，每種怪可不同；走路動畫的播放速度（`AnimatorSpeedByVelocity`）也以此為參考。手動放置、未經 Spawner 的怪用 `MonsterActuator` 預設 3。
 * `EnemyLayer`（Inspector 設定）：動態設定生成怪物的 Layer，不寫死 Layer 編號。
 * 初始面向透過 `FindGameObjectWithTag("Player")` 決定，不依賴 `PlayerController` 具體類別。
 

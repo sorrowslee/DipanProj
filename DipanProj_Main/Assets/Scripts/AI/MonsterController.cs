@@ -82,6 +82,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         
         _actuator = gameObject.GetComponent<MonsterActuator>();
         if (_actuator == null) _actuator = gameObject.AddComponent<MonsterActuator>();
+        _actuator.MoveSpeed = data.Speed;   // 移動速度資料化（CSV: Speed）；走路動畫的 ReferenceSpeed 之後在 Start 自動讀這個值
 
         switch (data.BrainType)
         {
