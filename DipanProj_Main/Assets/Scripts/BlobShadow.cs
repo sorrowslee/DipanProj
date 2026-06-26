@@ -32,11 +32,25 @@ public class BlobShadow : MonoBehaviour
         _charSr = GetComponent<SpriteRenderer>();
         if (_charSr == null) _charSr = GetComponentInChildren<SpriteRenderer>();
 
-        // 依角色目前 sprite 的世界寬度決定影子大小；腳底相對 pivot 的偏移算一次
-        float charWidth = (_charSr != null && _charSr.sprite != null) ? _charSr.bounds.size.x : 1f;
+        // 依角色「可見（不透明）像素」的世界寬度與腳底決定影子大小/位置。
+        // ⚠ 不能用整張 sprite bounds：AutoSprite 等圖角色只佔畫布一小塊（四周透明），整張寬會讓影子過大、
+        // 腳底落在透明區下緣讓影子偏低。先抓不透明像素範圍；texture 不可讀（舊 Animator 圖）則退回整張 bounds。
+        float charWidth = 1f;
+        float footWorldY = transform.position.y - 0.5f;
+        if (_charSr != null && _charSr.sprite != null)
+        {
+            Bounds b = _charSr.bounds;   // 世界 AABB（已含 transform 縮放與翻轉，寬高不受 flip 影響）
+            charWidth = b.size.x;
+            footWorldY = b.min.y;
+            if (TryGetVisibleFraction(_charSr.sprite, out float widthFrac, out float bottomFrac))
+            {
+                charWidth = b.size.x * widthFrac;              // 只取不透明寬度
+                footWorldY = b.min.y + b.size.y * bottomFrac;  // 腳底 = 不透明區下緣（非畫布底）
+            }
+        }
         float width = charWidth * WidthFactor;
         float height = width * HeightRatio;
-        _footOffsetY = ((_charSr != null) ? (_charSr.bounds.min.y - transform.position.y) : -0.5f) - VerticalOffset;
+        _footOffsetY = (footWorldY - transform.position.y) - VerticalOffset;
 
         _shadowGo = new GameObject(gameObject.name + "_Shadow");
         var sr = _shadowGo.AddComponent<SpriteRenderer>();
@@ -72,6 +86,46 @@ public class BlobShadow : MonoBehaviour
     void OnDestroy()
     {
         if (_shadowGo != null) Destroy(_shadowGo);
+    }
+
+    // 回傳此 sprite 不透明像素的「寬度佔整張比例」與「下緣距底部比例」（0~1）。
+    // texture 不可讀（舊 Animator 匯入圖未開 Read/Write）或全透明則回 false，呼叫端退回整張 bounds。
+    static bool TryGetVisibleFraction(Sprite sprite, out float widthFrac, out float bottomFrac)
+    {
+        widthFrac = 1f; bottomFrac = 0f;
+        var tex = sprite.texture;
+        if (tex == null || !tex.isReadable) return false;
+
+        Rect r = sprite.rect;   // 此 sprite 在 texture 內的像素區域（整張或某格）
+        int rx = Mathf.RoundToInt(r.x), ry = Mathf.RoundToInt(r.y);
+        int rw = Mathf.RoundToInt(r.width), rh = Mathf.RoundToInt(r.height);
+        if (rw <= 0 || rh <= 0) return false;
+
+        Color32[] px;
+        try { px = tex.GetPixels32(); } catch { return false; }
+        int texW = tex.width;
+
+        const byte aThr = 10;
+        int minX = rw, maxX = -1, minY = rh, maxY = -1;
+        for (int y = 0; y < rh; y++)
+        {
+            int row = (ry + y) * texW + rx;
+            for (int x = 0; x < rw; x++)
+            {
+                if (px[row + x].a > aThr)
+                {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            }
+        }
+        if (maxX < 0) return false;   // 全透明
+
+        widthFrac = (maxX - minX + 1) / (float)rw;
+        bottomFrac = minY / (float)rh;   // texture 原點在左下 → minY = 不透明區最低列 = 腳底
+        return true;
     }
 
     // 程序生成一張「中心實、邊緣柔淡」的圓形 alpha 貼圖（白色，靠 SpriteRenderer.color 染成黑半透明）。
