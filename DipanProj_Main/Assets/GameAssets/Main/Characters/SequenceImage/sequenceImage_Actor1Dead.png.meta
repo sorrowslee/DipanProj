@@ -102,8 +102,8 @@ TextureImporter:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 393
-        height: 635
+        width: 309.42856
+        height: 500
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -121,10 +121,10 @@ TextureImporter:
       name: sequenceImage_Actor1Dead_1
       rect:
         serializedVersion: 2
-        x: 393
+        x: 309
         y: 0
-        width: 393
-        height: 635
+        width: 309.42856
+        height: 500
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -142,10 +142,10 @@ TextureImporter:
       name: sequenceImage_Actor1Dead_2
       rect:
         serializedVersion: 2
-        x: 786
+        x: 618
         y: 0
-        width: 393
-        height: 635
+        width: 309.42856
+        height: 500
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -163,10 +163,10 @@ TextureImporter:
       name: sequenceImage_Actor1Dead_3
       rect:
         serializedVersion: 2
-        x: 1179
+        x: 927
         y: 0
-        width: 393
-        height: 635
+        width: 309.42856
+        height: 500
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -184,10 +184,10 @@ TextureImporter:
       name: sequenceImage_Actor1Dead_4
       rect:
         serializedVersion: 2
-        x: 1572
+        x: 1236
         y: 0
-        width: 393
-        height: 635
+        width: 309.42856
+        height: 500
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -205,10 +205,10 @@ TextureImporter:
       name: sequenceImage_Actor1Dead_5
       rect:
         serializedVersion: 2
-        x: 1965
+        x: 1545
         y: 0
-        width: 393
-        height: 635
+        width: 309.42856
+        height: 500
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -226,10 +226,10 @@ TextureImporter:
       name: sequenceImage_Actor1Dead_6
       rect:
         serializedVersion: 2
-        x: 2358
+        x: 1854
         y: 0
-        width: 393
-        height: 635
+        width: 309.42856
+        height: 500
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
