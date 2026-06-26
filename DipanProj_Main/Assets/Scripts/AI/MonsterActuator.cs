@@ -1,7 +1,9 @@
 using UnityEngine;
 
-// 確保這行寫在 class 定義的正上方，且沒有拼字錯誤
-[RequireComponent(typeof(Rigidbody2D), typeof(CircleCollider2D))]
+// 只強制 Rigidbody2D；碰撞框由 MonsterController 依「圖的不透明像素」建一個貼合的 BoxCollider2D
+// （見 MonsterController.AutoAdjustCollider / FitVisibleBoxCollider）。不再強制 CircleCollider2D，
+// 否則瘦長的怪會被一個「以最大邊為半徑」的大圓撐爆碰撞範圍。
+[RequireComponent(typeof(Rigidbody2D))]
 public class MonsterActuator : MonoBehaviour
 {
     public float MoveSpeed = 3f;

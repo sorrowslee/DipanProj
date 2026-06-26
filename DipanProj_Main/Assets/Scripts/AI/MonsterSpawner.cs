@@ -95,6 +95,7 @@ public class MonsterSpawner : MonoBehaviour
             data.ContactDamage = (values.Length > 10 && !string.IsNullOrWhiteSpace(values[10])) ? float.Parse(values[10]) : 10f;
             data.DamageReduction = (values.Length > 11 && !string.IsNullOrWhiteSpace(values[11])) ? float.Parse(values[11]) : 0f;
             data.Speed = (values.Length > 12 && !string.IsNullOrWhiteSpace(values[12])) ? float.Parse(values[12]) : 3f;
+            data.AnimFPS = (values.Length > 13 && !string.IsNullOrWhiteSpace(values[13])) ? float.Parse(values[13]) : 8f;
 
             _monsterDatabase.Add(data);
         }
@@ -111,13 +112,18 @@ public class MonsterSpawner : MonoBehaviour
             return;
         }
 
-        if (!_prefabCache.TryGetValue(data.PrefabPath, out GameObject prefab))
+        GameObject go;
+        if (!string.IsNullOrEmpty(data.PrefabPath) && _prefabCache.TryGetValue(data.PrefabPath, out GameObject prefab))
         {
-            Debug.LogError($"Prefab for path '{data.PrefabPath}' not found in mappings!");
-            return;
+            // 舊路線（向下相容）：CSV 有填 PrefabPath 且有對應 prefab → 用該 prefab（含自帶 Animator 的舊怪）。
+            go = Instantiate(prefab, position, Quaternion.identity);
         }
-
-        GameObject go = Instantiate(prefab, position, Quaternion.identity);
+        else
+        {
+            // 路線 B（量產）：沒指定 prefab → 程式建一隻通用怪，外觀由 MonsterAnimator 依怪名載圖。
+            // 加新怪 = 丟圖到 Monsters/SequenceImage/<怪名>/ ＋ CSV 加一列，不必拉 prefab/Animation。
+            go = BuildMonsterGameObject(data.Name, position);
+        }
 
         // 將 Layer 設為 Inspector 指定的 EnemyLayer，不寫死編號
         if (EnemyLayer != 0)
@@ -139,6 +145,23 @@ public class MonsterSpawner : MonoBehaviour
 
         // 🟢 初始面向設定：根據主角位置決定面向
         SetInitialOrientation(go);
+    }
+
+    /// <summary>
+    /// 路線 B：程式建一隻通用怪的外殼（零 prefab）。只放最基本的 SpriteRenderer；
+    /// MonsterController.Initialize / Start 會自行補上 MonsterActuator(帶 Rigidbody2D+CircleCollider2D)、
+    /// MonsterAnimator(程式動畫)、HitReaction、接觸傷害、影子等。外觀由 MonsterAnimator 依怪名載圖。
+    /// </summary>
+    private GameObject BuildMonsterGameObject(string monsterName, Vector2 position)
+    {
+        var go = new GameObject(string.IsNullOrEmpty(monsterName) ? "Monster" : monsterName);
+        go.transform.position = position;
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sortingOrder = 10;   // 與角色同階（VFX 文件慣例：角色/怪物在 sortingOrder 10）
+
+        go.AddComponent<MonsterController>();
+        return go;
     }
 
     private void SetInitialOrientation(GameObject monsterGo)

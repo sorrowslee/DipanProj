@@ -7,7 +7,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     private IMonsterBrain _brain;
     private HitReactionHandler _hitReaction;
 
-    private Animator _animator;
+    private Animator _animator;          // 舊路線後備：若怪用自帶 Unity Animator 的 prefab 才有
+    private MonsterAnimator _monAnim;    // 路線 B：程式逐格動畫（量產怪用這個，零 prefab/Animator）
     private SpriteRenderer _spriteRenderer;
     private Rigidbody2D _rb;
 
@@ -15,6 +16,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public float MaxHealth = 50f;
     public float HitboxPadding = 0.2f;
     public bool IsFacingRightByDefault = true;
+    public float AnimFPS = 8f;           // 程式動畫播放幀率（CSV: AnimFPS，留空 = 8）
+    public float AttackRange = 1.3f;     // 進入此距離且有 attack 圖 → 播攻擊動畫（略大於 ChaseBrain.StopDistance）
     private float _currentHealth;
     private bool _isDead = false;
 
@@ -62,6 +65,46 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             var act = GetComponent<MonsterActuator>();
             if (act != null) asv.ReferenceSpeed = act.MoveSpeed;
         }
+
+        // 路線 B：程式逐格動畫——依怪名載 idle/walk/attack 並播放（見 MonsterAnimator / MonsterSpriteLibrary）。
+        // 只在「沒有 Unity Animator ＋ 有怪名」時啟用，避免和舊 prefab 的 Animator 同時搶著換 sprite：
+        //   ‧ 量產怪（程式建、無 Animator、Initialize 給了怪名）→ 走這條（route B）。
+        //   ‧ 舊 prefab 怪（自帶 Animator）→ 交給 Animator（下方 HandleVisuals 的 isMoving 後備）。
+        if (_animator == null && !string.IsNullOrEmpty(MonsterName))
+        {
+            _monAnim = GetComponent<MonsterAnimator>();
+            if (_monAnim == null) _monAnim = gameObject.AddComponent<MonsterAnimator>();
+            var actForFps = GetComponent<MonsterActuator>();
+            float refSpeed = actForFps != null ? actForFps.MoveSpeed : 3f;
+            _monAnim.Setup(MonsterName, AnimFPS, refSpeed);
+
+            // 碰撞框依「圖的不透明像素」貼合（瘦長的鬼魂不會被透明邊撐大）；取不到再退回整張 sprite。
+            Vector2 vSize, vOff;
+            if (MonsterSpriteLibrary.Instance.TryGetVisibleBox(MonsterName, "idle", out vSize, out vOff)
+                || MonsterSpriteLibrary.Instance.TryGetVisibleBox(MonsterName, "walk", out vSize, out vOff))
+                FitVisibleBoxCollider(vSize, vOff);
+            else
+                AutoAdjustCollider();   // 後備：用整張 sprite bounds（Setup 已指上第 0 幀）
+        }
+    }
+
+    /// <summary>
+    /// 把碰撞框設成貼合「圖的不透明像素」的 BoxCollider2D（size/offset 為 scale 1 的世界單位，
+    /// 會隨怪物 transform 的 Scale 一起縮放，與顯示的圖對齊）。整體大小用 MonsterData 的 Scale 調、
+    /// 鬆緊用 HitboxPadding 調。
+    /// </summary>
+    private void FitVisibleBoxCollider(Vector2 visSize, Vector2 visOffset)
+    {
+        var col = GetComponent<Collider2D>();
+        BoxCollider2D box = col as BoxCollider2D;
+        if (box == null)
+        {
+            if (col != null) Destroy(col);   // 萬一有別型 collider（如舊圓）→ 換成貼合的 Box
+            box = gameObject.AddComponent<BoxCollider2D>();
+        }
+        box.size = new Vector2(Mathf.Max(0.01f, visSize.x + HitboxPadding),
+                               Mathf.Max(0.01f, visSize.y + HitboxPadding));
+        box.offset = visOffset;
     }
 
     public void Initialize(MonsterData data)
@@ -76,6 +119,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 
         ContactDamage = data.ContactDamage;
         DamageReductionPercent = data.DamageReduction;
+        AnimFPS = data.AnimFPS;
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
         if (_sensor == null) _sensor = gameObject.AddComponent<MonsterSensor>();
@@ -152,12 +196,30 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 
     private void HandleVisuals(Transform player)
     {
-        if (_animator == null || _spriteRenderer == null) return;
+        if (_spriteRenderer == null) return;
 
         float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
-        _animator.SetBool("isMoving", currentSpeed > 0.1f);
+        bool moving = currentSpeed > 0.1f;
 
-        // 2. 左右翻轉 (Flip)：根據玩家位置與圖片原始朝向決定
+        // 1. 狀態決策（路線 B）：在攻擊範圍內且有 attack 圖 → 攻擊；否則 移動→走路 / 靜止→發呆。
+        //    沒有 attack 圖的怪不會被選到 Attack（Has 防呆），自然只演走路/發呆。
+        if (_monAnim != null)
+        {
+            MonsterAnimator.State st;
+            if (player != null
+                && _monAnim.Has(MonsterAnimator.State.Attack)
+                && Vector2.Distance(transform.position, player.position) <= AttackRange)
+                st = MonsterAnimator.State.Attack;
+            else if (moving) st = MonsterAnimator.State.Walk;
+            else st = MonsterAnimator.State.Idle;
+
+            _monAnim.SetState(st, currentSpeed);
+        }
+
+        // 舊路線後備：若這隻怪用的是自帶 Unity Animator 的 prefab，沿用 isMoving 驅動。
+        if (_animator != null) _animator.SetBool("isMoving", moving);
+
+        // 2. 左右翻轉 (Flip)：根據玩家位置與圖片原始朝向決定（與動畫系統無關）
         if (player != null)
         {
             bool playerIsOnRight = player.position.x > transform.position.x;

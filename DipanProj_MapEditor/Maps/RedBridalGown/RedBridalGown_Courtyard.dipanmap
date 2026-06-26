@@ -176,6 +176,52 @@
             "targetMapId": "9",
             "targetEntrance": "Study_west"
           }
+        },
+        {
+          "id": "d7d2381b",
+          "name": "怪物出生點1",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              5,
+              3
+            ]
+          ],
+          "params": {
+            "monsterId": "2"
+          }
+        },
+        {
+          "id": "9cb22c0f",
+          "name": "怪物出生點2",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              12,
+              3
+            ],
+            [
+              5,
+              7
+            ]
+          ],
+          "params": {
+            "monsterId": "3"
+          }
+        },
+        {
+          "id": "1289aa6e",
+          "name": "怪物出生點3",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              7,
+              3
+            ]
+          ],
+          "params": {
+            "monsterId": "7"
+          }
         }
       ]
     }

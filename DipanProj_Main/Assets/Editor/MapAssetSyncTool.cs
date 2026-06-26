@@ -70,6 +70,9 @@ public static class MapAssetSyncTool
                     AddAnimatedObjects(cdir, srcRoot, dstRoot, module, catalog);
             }
 
+            // 1.5) 怪物動作素材：Monsters/SequenceImage/<怪名>/<state>/ 每個動作葉資料夾收成一筆。
+            AddMonsterAnimations(baseDir, srcRoot, dstRoot, module, catalog);
+
             // 2) 地圖檔
             string mdir = Path.Combine(baseDir, "Maps");
             if (Directory.Exists(mdir))
@@ -157,6 +160,51 @@ public static class MapAssetSyncTool
                 id = id,
                 path = framesRel[0],        // 第一幀 = 預覽/whole sprite/碰撞框來源
                 category = "Environment",
+                module = module,
+                pixelSize = ReadPngWidth(frameFiles[0]),
+                ppu = PPU,
+            };
+            if (framesRel.Count >= 2)
+            {
+                item.frameCount = framesRel.Count;
+                item.frames = framesRel;
+            }
+            catalog.items.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// 怪物動作素材（路線 B）：掃 Monsters/SequenceImage/ 下「直接含 PNG」的葉資料夾
+    /// （= 一個動作，如 &lt;怪名&gt;/idle、&lt;怪名&gt;/walk、&lt;怪名&gt;/attack），各收成一筆 catalog item
+    /// （category = Monsters、id = 資料夾相對路徑，≥2 幀帶 frameCount/frames，依檔名排序＝播放順序）。
+    /// 由 MonsterSpriteLibrary 依「&lt;怪名&gt;/&lt;state&gt;」索引取用。
+    /// </summary>
+    static void AddMonsterAnimations(string baseDir, string srcRoot, string dstRoot, string module, Catalog catalog)
+    {
+        string seqRoot = Path.Combine(baseDir, "Monsters", "SequenceImage");
+        if (!Directory.Exists(seqRoot)) return;
+
+        var dirs = new List<string>(Directory.GetDirectories(seqRoot, "*", SearchOption.AllDirectories));
+        dirs.Sort(System.StringComparer.Ordinal);
+        foreach (var d in dirs)
+        {
+            var frameFiles = new List<string>(Directory.GetFiles(d, "*.png", SearchOption.TopDirectoryOnly));
+            if (frameFiles.Count == 0) continue;   // 非葉資料夾（只含子資料夾）→ 跳過
+            frameFiles.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));
+
+            var framesRel = new List<string>(frameFiles.Count);
+            foreach (var fr in frameFiles)
+            {
+                string frel = Rel(srcRoot, fr);
+                CopyOverwrite(fr, Path.Combine(dstRoot, frel));
+                framesRel.Add(frel);
+            }
+
+            var item = new CatalogItem
+            {
+                id = Rel(srcRoot, d),       // 例：Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk
+                path = framesRel[0],
+                category = "Monsters",
                 module = module,
                 pixelSize = ReadPngWidth(frameFiles[0]),
                 ppu = PPU,

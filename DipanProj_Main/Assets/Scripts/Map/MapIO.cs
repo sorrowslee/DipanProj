@@ -112,6 +112,39 @@ namespace Dipan.MapRuntime
                     // Environment 子資料夾 = 一個動畫地上物（多幀收成一筆，依檔名排序＝播放順序）。
                     if (c == "Environment") ScanAnimated(cdir, moduleName);
                 }
+
+                // 怪物動作素材（路線 B）：Monsters/SequenceImage/<怪名>/<state>/ 每個動作葉資料夾收成一筆。
+                ScanMonsters(baseDir, moduleName);
+            }
+
+            // Monsters/SequenceImage 下「直接含 PNG」的葉資料夾 = 一個動作（idle/walk/attack…）。
+            void ScanMonsters(string baseDir, string moduleName)
+            {
+                string seqRoot = Path.Combine(baseDir, "Monsters", "SequenceImage");
+                if (!Directory.Exists(seqRoot)) return;
+                var dirs = new List<string>(Directory.GetDirectories(seqRoot, "*", SearchOption.AllDirectories));
+                dirs.Sort(System.StringComparer.Ordinal);
+                foreach (var d in dirs)
+                {
+                    var frameFiles = new List<string>(Directory.GetFiles(d, "*.png", SearchOption.TopDirectoryOnly));
+                    if (frameFiles.Count == 0) continue;   // 非葉資料夾 → 跳過
+                    frameFiles.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));
+
+                    var framesRel = new List<string>(frameFiles.Count);
+                    foreach (var fr in frameFiles) framesRel.Add(MakeRelative(root, fr).Replace('\\', '/'));
+
+                    var item = new CatalogItem
+                    {
+                        id = MakeRelative(root, d).Replace('\\', '/'),
+                        path = framesRel[0],
+                        category = "Monsters",
+                        module = moduleName,
+                        pixelSize = ReadPngWidth(frameFiles[0]),
+                        ppu = 256,
+                    };
+                    if (framesRel.Count >= 2) { item.frameCount = framesRel.Count; item.frames = framesRel; }
+                    cat.items.Add(item);
+                }
             }
 
             // Environment 底下每個子資料夾收成一筆動畫 catalog item（與同步工具一致；幀就地讀 GameAssets）。

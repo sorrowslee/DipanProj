@@ -97,6 +97,39 @@ for module, base in source_dirs():
                 "ppu": ppu,
             })
 
+    # 怪物動作素材（路線 B）：Monsters/SequenceImage/<怪名>/<state>/ 每個「直接含 PNG」的葉資料夾
+    # 收成一筆 catalog item（category=Monsters、id=資料夾相對路徑、≥2 幀帶 frameCount/frames，依檔名排序）。
+    seq_root = os.path.join(base, 'Monsters', 'SequenceImage')
+    if os.path.isdir(seq_root):
+        for root_dir, _dirs, files in sorted(os.walk(seq_root)):
+            # 只收「子資料夾」裡的幀（= <怪名>/<state>/）；直接放在 SequenceImage/ 下的散圖（舊 sheet）略過。
+            if os.path.normpath(root_dir) == os.path.normpath(seq_root):
+                continue
+            frame_files = sorted(fn for fn in files if fn.lower().endswith('.png'))
+            if not frame_files:
+                continue
+            frames_rel = []
+            for fn in frame_files:
+                abs_src = os.path.join(root_dir, fn)
+                rel = os.path.relpath(abs_src, src_root)
+                abs_dst = os.path.join(dst_root, rel)
+                os.makedirs(os.path.dirname(abs_dst), exist_ok=True)
+                shutil.copy2(abs_src, abs_dst)
+                frames_rel.append(rel.replace(os.sep, '/'))
+            id_rel = os.path.relpath(root_dir, src_root).replace(os.sep, '/')
+            item = {
+                "id": id_rel,
+                "path": frames_rel[0],
+                "category": "Monsters",
+                "module": module,
+                "pixelSize": png_width(os.path.join(root_dir, frame_files[0])),
+                "ppu": ppu,
+            }
+            if len(frames_rel) >= 2:
+                item["frameCount"] = len(frames_rel)
+                item["frames"] = frames_rel
+            items.append(item)
+
 with open(os.path.join(dst_root, 'catalog.json'), 'w', encoding='utf-8') as f:
     json.dump({"items": items}, f, ensure_ascii=False, indent=2)
 

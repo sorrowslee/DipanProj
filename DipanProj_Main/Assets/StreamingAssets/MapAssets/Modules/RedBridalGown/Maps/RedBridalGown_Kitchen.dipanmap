@@ -93,7 +93,7 @@
           ],
           "params": {
             "entranceId": "Kitchen_south",
-            "targetMapId": "3",
+            "targetMapId": "2",
             "targetEntrance": "Storeroom_north"
           }
         },
@@ -131,6 +131,34 @@
             "entranceId": "Kitchen_north",
             "targetMapId": "4",
             "targetEntrance": "LivingRoom1_south"
+          }
+        },
+        {
+          "id": "1bff6bb4",
+          "name": "怪物出生點1",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              4,
+              3
+            ]
+          ],
+          "params": {
+            "monsterId": "8"
+          }
+        },
+        {
+          "id": "41428d0f",
+          "name": "怪物出生點2",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              7,
+              6
+            ]
+          ],
+          "params": {
+            "monsterId": "9"
           }
         }
       ]

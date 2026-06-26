@@ -13,6 +13,8 @@ public class MonsterData
 
     public float Speed = 3f;            // 移動速度（CSV: Speed，留空 = 3）
 
+    public float AnimFPS = 8f;          // 程式逐格動畫播放幀率（CSV: AnimFPS，留空 = 8；見 MonsterAnimator）
+
     public float InvincibleTimeMs;
     public float KnockbackThreshold;
     public float KnockbackPercent;

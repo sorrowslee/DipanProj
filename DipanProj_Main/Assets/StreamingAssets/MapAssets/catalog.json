@@ -1,6 +1,69 @@
 {
   "items": [
     {
+      "id": "Main/Talk/actor1",
+      "path": "Main/Talk/actor1.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1122,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Talk/actor1_angry",
+      "path": "Main/Talk/actor1_angry.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1024,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Talk/actor1_cry",
+      "path": "Main/Talk/actor1_cry.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1024,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Talk/actor1_fear",
+      "path": "Main/Talk/actor1_fear.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1122,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Talk/actor1_happy",
+      "path": "Main/Talk/actor1_happy.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1122,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Talk/actor1_proud",
+      "path": "Main/Talk/actor1_proud.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1122,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Talk/actor1_speechless",
+      "path": "Main/Talk/actor1_speechless.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/RedBridalGown/Environment/container_bamboo_basket",
       "path": "Modules/RedBridalGown/Environment/container_bamboo_basket.png",
       "category": "Environment",
@@ -690,6 +753,105 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Boy/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Boy/idle/ghost_boy.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 377,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Dog/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Dog/idle/ghost_dog.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 433,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_FatBoy/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_FatBoy/idle/ghost_fatBoy.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 408,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_FatMan/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_FatMan/idle/ghost_fatMan.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 408,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Father/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Father/idle/ghost_father.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 433,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Girl/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Girl/idle/ghost_girl.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 408,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_GrandMa/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_GrandMa/idle/ghost_grandMa.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 408,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_GrandPa/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_GrandPa/idle/ghost_grandPa.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 408,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Mother/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_Mother/idle/ghost_mother.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 433,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_YoungBrother/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_YoungBrother/idle/ghost_youngBrother.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 433,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_YoungSister/idle",
+      "path": "Modules/RedBridalGown/Monsters/SequenceImage/Ghost_YoungSister/idle/ghost_youngSister.png",
+      "category": "Monsters",
+      "module": "RedBridalGown",
+      "pixelSize": 433,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/Tutorial/Environment/GroundStone",
       "path": "Modules/Tutorial/Environment/GroundStone.png",
       "category": "Environment",
@@ -697,6 +859,34 @@
       "pixelSize": 1024,
       "ppu": 256,
       "frameCount": 1
+    },
+    {
+      "id": "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/idle",
+      "path": "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/idle/idle_01.png",
+      "category": "Monsters",
+      "module": "Tutorial",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk",
+      "path": "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_01.png",
+      "category": "Monsters",
+      "module": "Tutorial",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 8,
+      "frames": [
+        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_01.png",
+        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_02.png",
+        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_03.png",
+        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_04.png",
+        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_05.png",
+        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_06.png",
+        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_07.png",
+        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_08.png"
+      ]
     }
   ]
 }
