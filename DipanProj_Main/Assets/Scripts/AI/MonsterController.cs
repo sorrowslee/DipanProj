@@ -15,7 +15,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public string MonsterName;
     public float MaxHealth = 50f;
     public float HitboxPadding = 0.2f;
-    public bool IsFacingRightByDefault = true;
+    [Tooltip("來源序列圖角色面朝右 = true（AutoSprite 輸出，與 PlayerController 同）；面朝左 = false。決定 flipX 對應。")]
+    public bool SpriteSourceFacesRight = true;
     public float AnimFPS = 8f;           // 程式動畫播放幀率（CSV: AnimFPS，留空 = 8）
     public float AttackRange = 1.3f;     // 進入此距離且有 attack 圖 → 播攻擊動畫（略大於 ChaseBrain.StopDistance）
     private float _currentHealth;
@@ -224,12 +225,12 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 舊路線後備：若這隻怪用的是自帶 Unity Animator 的 prefab，沿用 isMoving 驅動。
         if (_animator != null) _animator.SetBool("isMoving", moving);
 
-        // 2. 左右翻轉 (Flip)：根據玩家位置與圖片原始朝向決定（與動畫系統無關）
+        // 2. 左右翻轉 (Flip)：依玩家位置與「來源圖朝向」決定（與動畫系統無關；同 PlayerController.SetFacing）。
+        //    來源朝右(SpriteSourceFacesRight=true)：面右=不翻(flipX=false)、面左=翻(true)；來源朝左：相反。
         if (player != null)
         {
-            bool playerIsOnRight = player.position.x > transform.position.x;
-            // IsFacingRightByDefault = true 代表圖片原始朝左，需要 flipX 才能朝右
-            _spriteRenderer.flipX = IsFacingRightByDefault ? playerIsOnRight : !playerIsOnRight;
+            bool faceRight = player.position.x > transform.position.x;
+            _spriteRenderer.flipX = (faceRight != SpriteSourceFacesRight);
         }
     }
 

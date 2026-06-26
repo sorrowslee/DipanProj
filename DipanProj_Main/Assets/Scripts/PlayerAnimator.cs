@@ -30,18 +30,34 @@ public class PlayerAnimator : MonoBehaviour
     float _currentSpeed;
     bool _oneShotDone;   // 一次性動作（dead/attack）是否已播到最後一幀定格
 
-    /// <summary>依血統載入各動作的幀。fps≤0 用 12、referenceSpeed≤0 用 5。</summary>
-    public void Setup(string bloodline, float fps, float referenceSpeed)
+    /// <summary>
+    /// 依血統載入各動作的幀。fps≤0 用 12、referenceSpeed≤0 用 5。
+    /// <paramref name="targetHeight"/> = 角色站立顯示高度（世界單位，≤0 用 1.95）：依 idle（取不到改 walk）
+    /// 的可見像素高度自動換算每張的縮放(tileSize)，與來源解析度/留白無關，所有動作同一縮放（比例一致，
+    /// dead 仍維持較矮的躺姿）。
+    /// </summary>
+    public void Setup(string bloodline, float fps, float referenceSpeed, float targetHeight = 1.95f)
     {
         _sr = GetComponent<SpriteRenderer>();
         BaseFps = fps > 0f ? fps : 12f;
         ReferenceSpeed = referenceSpeed > 0f ? referenceSpeed : 5f;
+        if (targetHeight <= 0f) targetHeight = 1.95f;
 
         var lib = PlayerSpriteLibrary.Instance;
-        _idle = lib.GetFrames(bloodline, "idle");
-        _walk = lib.GetFrames(bloodline, "walk");
-        _dead = lib.GetFrames(bloodline, "dead");
-        _attack = lib.GetFrames(bloodline, "attack");
+
+        // 自動換算顯示縮放：用 idle（取不到改 walk）的「可見高度」把幀放大到 targetHeight 世界高。
+        // box.size.y 是世界單位 @ tileSize 1（= 可見像素 / 256）；tileSize = targetHeight / box.size.y。
+        float tileSize = 1f;
+        if (lib.TryGetVisibleBox(bloodline, "idle", out var vbox, out _) && vbox.y > 0.0001f)
+            tileSize = targetHeight / vbox.y;
+        else if (lib.TryGetVisibleBox(bloodline, "walk", out var wbox, out _) && wbox.y > 0.0001f)
+            tileSize = targetHeight / wbox.y;
+        tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
+
+        _idle = lib.GetFrames(bloodline, "idle", tileSize);
+        _walk = lib.GetFrames(bloodline, "walk", tileSize);
+        _dead = lib.GetFrames(bloodline, "dead", tileSize);
+        _attack = lib.GetFrames(bloodline, "attack", tileSize);
 
         if (_idle == null && _walk != null) _idle = _walk;   // 沒給 idle 就用 walk 當待機後備
 

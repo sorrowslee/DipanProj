@@ -71,6 +71,11 @@ public class PlayerController : MonoBehaviour, IDamageable
     public string Bloodline = "Base";
     [Tooltip("idle/walk/dead 的逐格播放幀率（留空走預設 12）")]
     public float PlayerAnimFPS = 12f;
+    [Tooltip("角色站立顯示高度（世界單位）。預設 1.95 ≈ 舊 500px 尺寸；系統依 idle 可見高度自動換算縮放，" +
+             "換不同解析度的圖（如 256 序列圖）也維持同樣大小。<=0 用 1.95。想整體放大/縮小角色就調這個。")]
+    public float CharacterWorldHeight = 1.95f;
+    [Tooltip("來源序列圖角色面朝右 = true（AutoSprite 輸出）；面朝左 = false。決定移動/瞄準時的 flipX 對應。")]
+    public bool SpriteSourceFacesRight = true;
 
     void Start()
     {
@@ -85,17 +90,14 @@ public class PlayerController : MonoBehaviour, IDamageable
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
 
-        if (_spriteRenderer != null)
-        {
-            _spriteRenderer.flipX = isFacingRightByDefault;
-        }
+        SetFacing(isFacingRightByDefault);   // 初始面向（依來源圖朝向換算 flipX）
 
         // 路線 B：程式逐格動畫（血統換外型）。停用 Unity Animator，改由 PlayerAnimator 驅動 sprite，
         // 避免兩套同時換圖打架（同怪物 route B 的做法）。idle/walk 循環、dead 一次性定格。
         if (_animator != null) _animator.enabled = false;
         _playerAnim = GetComponent<PlayerAnimator>();
         if (_playerAnim == null) _playerAnim = gameObject.AddComponent<PlayerAnimator>();
-        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed);
+        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed, CharacterWorldHeight);
 
         // HP/MP 數值層：每次進遊戲都以 Inspector 值滿血滿魔初始化（HP/MP 刻意不存檔，方便測試）。見 readme/COMBAT.md §7。
         _stats = gameObject.GetComponent<CombatStats>();
@@ -171,14 +173,14 @@ public class PlayerController : MonoBehaviour, IDamageable
             {
                 Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
                 float mouseDiffX = mousePos.x - transform.position.x;
-                
-                if (mouseDiffX < 0) _spriteRenderer.flipX = false;
-                else if (mouseDiffX > 0) _spriteRenderer.flipX = true;
+
+                if (mouseDiffX < 0) SetFacing(false);
+                else if (mouseDiffX > 0) SetFacing(true);
             }
             else if (Mathf.Abs(h) > 0.01f)
             {
-                if (h < 0) _spriteRenderer.flipX = false;
-                else if (h > 0) _spriteRenderer.flipX = true;
+                if (h < 0) SetFacing(false);
+                else if (h > 0) SetFacing(true);
             }
         }
 
@@ -205,6 +207,15 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 路線 B：移動→走路、靜止→發呆（死亡時 Update 已提前 return，不會蓋掉 Dead 狀態）
         if (_playerAnim != null)
             _playerAnim.SetState(currentSpeed > 0.1f ? PlayerAnimator.State.Walk : PlayerAnimator.State.Idle, currentSpeed);
+    }
+
+    // 依「來源圖朝向」把欲面對方向換成 flipX：
+    //   來源朝右(SpriteSourceFacesRight=true)：面右=不翻(flipX=false)、面左=翻(true)。
+    //   來源朝左：相反。所以換了朝向不同的素材，只要改 SpriteSourceFacesRight 一個旗標。
+    private void SetFacing(bool faceRight)
+    {
+        if (_spriteRenderer != null)
+            _spriteRenderer.flipX = (faceRight != SpriteSourceFacesRight);
     }
 
     private void OnDestroy()
@@ -1361,6 +1372,6 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         Bloodline = bloodline;
         if (_playerAnim == null) _playerAnim = gameObject.AddComponent<PlayerAnimator>();
-        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed);
+        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed, CharacterWorldHeight);
     }
 }

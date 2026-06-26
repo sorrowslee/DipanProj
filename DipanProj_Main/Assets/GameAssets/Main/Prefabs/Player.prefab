@@ -85,7 +85,7 @@ SpriteRenderer:
   m_Size: {x: 2, y: 2}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
-  m_WasSpriteAssigned: 1
+  m_WasSpriteAssigned: 0
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
 --- !u!114 &1891476584168267780
@@ -116,6 +116,10 @@ MonoBehaviour:
   PlayerKnockbackThreshold: 0
   PlayerKnockbackPercent: 10
   isFacingRightByDefault: 1
+  Bloodline: Base
+  PlayerAnimFPS: 12
+  CharacterWorldHeight: 1.95
+  SpriteSourceFacesRight: 1
 --- !u!50 &8595261710023261584
 Rigidbody2D:
   serializedVersion: 4

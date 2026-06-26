@@ -61,26 +61,47 @@ public class PlayerSpriteLibrary
         return _byTail.ContainsKey(k);
     }
 
-    /// <summary>取某血統某動作的幀（依序）。單張資料夾 → 長度 1（靜態姿勢）；找不到回 null。結果快取。</summary>
-    public Sprite[] GetFrames(string bloodline, string state)
+    /// <summary>
+    /// 取某血統某動作的幀（依序）。單張資料夾 → 長度 1（靜態姿勢）；找不到回 null。結果快取。
+    /// <paramref name="tileSize"/> 決定顯示大小（PPU=256/tileSize）：256px 幀以 tileSize=1 → 1 世界單位，
+    /// 用較大值把低解析度的圖放大到想要的角色尺寸（見 PlayerAnimator 的自動換算）。
+    /// </summary>
+    public Sprite[] GetFrames(string bloodline, string state, float tileSize = 1f)
     {
-        string k = Key(bloodline, state);
-        if (_frameCache.TryGetValue(k, out var cached)) return cached;
+        string tail = Key(bloodline, state);
+        string cacheKey = $"{tail}|{tileSize}";
+        if (_frameCache.TryGetValue(cacheKey, out var cached)) return cached;
 
         Sprite[] frames = null;
-        if (_byTail.TryGetValue(k, out var item) && _loader != null)
+        if (_byTail.TryGetValue(tail, out var item) && _loader != null)
         {
             if (item.IsAnimated)
             {
-                frames = _loader.GetAnimationFrames(item, 1f);
+                frames = _loader.GetAnimationFrames(item, tileSize);
             }
             else
             {
-                var sp = _loader.GetWholeSprite(item, 1f);
+                var sp = _loader.GetWholeSprite(item, tileSize);
                 if (sp != null) frames = new[] { sp };
             }
         }
-        _frameCache[k] = frames;
+        _frameCache[cacheKey] = frames;
         return frames;
+    }
+
+    /// <summary>
+    /// 取某血統某動作（代表幀＝該動作第一幀）的「不透明像素貼合框」：size/offset 為世界單位 @ PPU 256
+    /// （tileSize 1）。用來把不同解析度/留白的圖換算成一致的角色顯示高度。沿用 MapSpriteLoader.GetAlphaLocalBox。
+    /// </summary>
+    public bool TryGetVisibleBox(string bloodline, string state, out Vector2 size, out Vector2 offset)
+    {
+        size = default; offset = default;
+        string tail = Key(bloodline, state);
+        if (_loader == null || !_byTail.TryGetValue(tail, out var item)) return false;
+        var box = _loader.GetAlphaLocalBox(item, 1f);
+        if (!box.ok) return false;
+        size = box.size;
+        offset = box.offset;
+        return true;
     }
 }

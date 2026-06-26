@@ -173,8 +173,14 @@ public class MonsterSpawner : MonoBehaviour
         SpriteRenderer sr = monsterGo.GetComponentInChildren<SpriteRenderer>();
         if (sr == null) return;
 
+        // 依「來源圖朝向」換算（同 MonsterController.HandleVisuals）：面右=玩家在右。
+        // 來源朝右 → 面右不翻；來源朝左 → 面右才翻。MonsterController 的 _spriteRenderer 此時可能還沒備好，
+        // 故直接讀其欄位、設這顆 sr（生成瞬間先擺對，之後每幀由 MonsterController 維持）。
+        var mc = monsterGo.GetComponent<MonsterController>();
+        bool srcFacesRight = (mc == null) || mc.SpriteSourceFacesRight;
         float diffX = playerObj.transform.position.x - monsterGo.transform.position.x;
-        sr.flipX = diffX > 0;
+        bool faceRight = diffX > 0;
+        sr.flipX = (faceRight != srcFacesRight);
     }
 
     // 🟢 繪製生成區域，方便在編輯器中確認範圍是否有超出圍牆
