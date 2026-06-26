@@ -120,6 +120,20 @@
             "targetMapId": "8",
             "targetEntrance": "LivingRoom2_south"
           }
+        },
+        {
+          "id": "b8ce148f",
+          "name": "怪物出生點1",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              4
+            ]
+          ],
+          "params": {
+            "monsterId": "1"
+          }
         }
       ]
     }
