@@ -64,6 +64,53 @@
       "frameCount": 1
     },
     {
+      "id": "Main/Characters/SequenceImage/Base/dead",
+      "path": "Main/Characters/SequenceImage/Base/dead/dead_01.png",
+      "category": "Characters",
+      "module": "Main",
+      "pixelSize": 309,
+      "ppu": 256,
+      "frameCount": 7,
+      "frames": [
+        "Main/Characters/SequenceImage/Base/dead/dead_01.png",
+        "Main/Characters/SequenceImage/Base/dead/dead_02.png",
+        "Main/Characters/SequenceImage/Base/dead/dead_03.png",
+        "Main/Characters/SequenceImage/Base/dead/dead_04.png",
+        "Main/Characters/SequenceImage/Base/dead/dead_05.png",
+        "Main/Characters/SequenceImage/Base/dead/dead_06.png",
+        "Main/Characters/SequenceImage/Base/dead/dead_07.png"
+      ]
+    },
+    {
+      "id": "Main/Characters/SequenceImage/Base/idle",
+      "path": "Main/Characters/SequenceImage/Base/idle/idle_01.png",
+      "category": "Characters",
+      "module": "Main",
+      "pixelSize": 310,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Characters/SequenceImage/Base/walk",
+      "path": "Main/Characters/SequenceImage/Base/walk/walk_01.png",
+      "category": "Characters",
+      "module": "Main",
+      "pixelSize": 309,
+      "ppu": 256,
+      "frameCount": 9,
+      "frames": [
+        "Main/Characters/SequenceImage/Base/walk/walk_01.png",
+        "Main/Characters/SequenceImage/Base/walk/walk_02.png",
+        "Main/Characters/SequenceImage/Base/walk/walk_03.png",
+        "Main/Characters/SequenceImage/Base/walk/walk_04.png",
+        "Main/Characters/SequenceImage/Base/walk/walk_05.png",
+        "Main/Characters/SequenceImage/Base/walk/walk_06.png",
+        "Main/Characters/SequenceImage/Base/walk/walk_07.png",
+        "Main/Characters/SequenceImage/Base/walk/walk_08.png",
+        "Main/Characters/SequenceImage/Base/walk/walk_09.png"
+      ]
+    },
+    {
       "id": "Modules/RedBridalGown/Environment/container_bamboo_basket",
       "path": "Modules/RedBridalGown/Environment/container_bamboo_basket.png",
       "category": "Environment",

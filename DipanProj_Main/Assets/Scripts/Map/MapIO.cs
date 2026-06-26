@@ -113,14 +113,16 @@ namespace Dipan.MapRuntime
                     if (c == "Environment") ScanAnimated(cdir, moduleName);
                 }
 
-                // 怪物動作素材（路線 B）：Monsters/SequenceImage/<怪名>/<state>/ 每個動作葉資料夾收成一筆。
-                ScanMonsters(baseDir, moduleName);
+                // 逐格動畫素材（路線 B）：怪物 Monsters/SequenceImage/、玩家 Characters/SequenceImage/，
+                // 每個動作葉資料夾（<名稱>/<state>/）收成一筆。
+                ScanSequence(baseDir, "Monsters", moduleName);
+                ScanSequence(baseDir, "Characters", moduleName);
             }
 
-            // Monsters/SequenceImage 下「直接含 PNG」的葉資料夾 = 一個動作（idle/walk/attack…）。
-            void ScanMonsters(string baseDir, string moduleName)
+            // <categoryDir>/SequenceImage 下「直接含 PNG」的葉資料夾 = 一個動作（idle/walk/dead…）。
+            void ScanSequence(string baseDir, string categoryDir, string moduleName)
             {
-                string seqRoot = Path.Combine(baseDir, "Monsters", "SequenceImage");
+                string seqRoot = Path.Combine(baseDir, categoryDir, "SequenceImage");
                 if (!Directory.Exists(seqRoot)) return;
                 var dirs = new List<string>(Directory.GetDirectories(seqRoot, "*", SearchOption.AllDirectories));
                 dirs.Sort(System.StringComparer.Ordinal);
@@ -137,7 +139,7 @@ namespace Dipan.MapRuntime
                     {
                         id = MakeRelative(root, d).Replace('\\', '/'),
                         path = framesRel[0],
-                        category = "Monsters",
+                        category = categoryDir,   // Monsters / Characters
                         module = moduleName,
                         pixelSize = ReadPngWidth(frameFiles[0]),
                         ppu = 256,

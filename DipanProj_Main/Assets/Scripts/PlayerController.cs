@@ -22,7 +22,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     public float PlayerKnockbackThreshold = 0f;
     public float PlayerKnockbackPercent = 10f;
 
-    private Animator _animator;
+    private Animator _animator;            // 舊路線：Unity Animator（route B 啟用後會被停用，避免搶著換 sprite）
+    private PlayerAnimator _playerAnim;    // 路線 B：程式逐格動畫（血統換外型，見 PlayerAnimator）
     private Rigidbody2D _rb;
     private Vector2 _moveInput;
     private SpriteRenderer _spriteRenderer;
@@ -65,6 +66,12 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     public bool isFacingRightByDefault = true;
 
+    [Header("外型 (路線 B：程式逐格動畫，血統換外型)")]
+    [Tooltip("對應 GameAssets/Main/Characters/SequenceImage/<Bloodline>/。Base = 預設初始外型；之後由血統/存檔系統呼叫 SetBloodline 切換")]
+    public string Bloodline = "Base";
+    [Tooltip("idle/walk/dead 的逐格播放幀率（留空走預設 12）")]
+    public float PlayerAnimFPS = 12f;
+
     void Start()
     {
         transform.localScale = Vector3.one * PlayerScale;
@@ -82,6 +89,13 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             _spriteRenderer.flipX = isFacingRightByDefault;
         }
+
+        // 路線 B：程式逐格動畫（血統換外型）。停用 Unity Animator，改由 PlayerAnimator 驅動 sprite，
+        // 避免兩套同時換圖打架（同怪物 route B 的做法）。idle/walk 循環、dead 一次性定格。
+        if (_animator != null) _animator.enabled = false;
+        _playerAnim = GetComponent<PlayerAnimator>();
+        if (_playerAnim == null) _playerAnim = gameObject.AddComponent<PlayerAnimator>();
+        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed);
 
         // HP/MP 數值層：每次進遊戲都以 Inspector 值滿血滿魔初始化（HP/MP 刻意不存檔，方便測試）。見 readme/COMBAT.md §7。
         _stats = gameObject.GetComponent<CombatStats>();
@@ -185,10 +199,12 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void HandleVisuals()
     {
-        if (_animator == null || _spriteRenderer == null) return;
+        if (_spriteRenderer == null) return;
 
         float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
-        _animator.SetBool("isMoving", currentSpeed > 0.1f);
+        // 路線 B：移動→走路、靜止→發呆（死亡時 Update 已提前 return，不會蓋掉 Dead 狀態）
+        if (_playerAnim != null)
+            _playerAnim.SetState(currentSpeed > 0.1f ? PlayerAnimator.State.Walk : PlayerAnimator.State.Idle, currentSpeed);
     }
 
     private void OnDestroy()
@@ -1326,8 +1342,9 @@ public class PlayerController : MonoBehaviour, IDamageable
         ClearActiveBeams();
         ClearActiveAura();
 
-        // 播死亡動畫（對應 Animator 的 Bool 參數 "isDead"）
-        if (_animator != null) _animator.SetBool("isDead", true);
+        // 播死亡動畫（路線 B：一次性，播完停在最後一幀）。Update 偵測到 _isDead 會提前 return，
+        // 所以 HandleVisuals 不會把狀態切回 idle/walk，死亡定格得以維持。
+        if (_playerAnim != null) _playerAnim.SetState(PlayerAnimator.State.Dead, 0f);
 
         Debug.Log("Player died!");
         // TODO: 死亡流程（重生 / 讀檔 / 結束畫面）。目前到「播動畫 + 停止操作」，之後接存檔與 UI。
@@ -1335,4 +1352,15 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // 給其他系統取用玩家數值（HUD / 回血道具 / debuff…）。
     public CombatStats Stats => _stats;
+
+    /// <summary>
+    /// 切換血統外型（路線 B）。傳入血統名（＝ GameAssets/Main/Characters/SequenceImage/&lt;名&gt; 資料夾名），
+    /// 重新載入 idle/walk/dead 並立即套用。之後接「血統／存檔系統」時呼叫此方法即可換外型，零改其他程式。
+    /// </summary>
+    public void SetBloodline(string bloodline)
+    {
+        Bloodline = bloodline;
+        if (_playerAnim == null) _playerAnim = gameObject.AddComponent<PlayerAnimator>();
+        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed);
+    }
 }

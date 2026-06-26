@@ -97,12 +97,15 @@ for module, base in source_dirs():
                 "ppu": ppu,
             })
 
-    # 怪物動作素材（路線 B）：Monsters/SequenceImage/<怪名>/<state>/ 每個「直接含 PNG」的葉資料夾
-    # 收成一筆 catalog item（category=Monsters、id=資料夾相對路徑、≥2 幀帶 frameCount/frames，依檔名排序）。
-    seq_root = os.path.join(base, 'Monsters', 'SequenceImage')
-    if os.path.isdir(seq_root):
+    # 逐格動畫素材（路線 B）：怪物 Monsters/SequenceImage/、玩家 Characters/SequenceImage/，
+    # 每個「直接含 PNG」的葉資料夾（<名稱>/<state>/）收成一筆 catalog item
+    # （category=Monsters/Characters、id=資料夾相對路徑、≥2 幀帶 frameCount/frames，依檔名排序）。
+    for category_dir in ('Monsters', 'Characters'):
+        seq_root = os.path.join(base, category_dir, 'SequenceImage')
+        if not os.path.isdir(seq_root):
+            continue
         for root_dir, _dirs, files in sorted(os.walk(seq_root)):
-            # 只收「子資料夾」裡的幀（= <怪名>/<state>/）；直接放在 SequenceImage/ 下的散圖（舊 sheet）略過。
+            # 只收「子資料夾」裡的幀；直接放在 SequenceImage/ 下的散圖（舊 sheet）略過。
             if os.path.normpath(root_dir) == os.path.normpath(seq_root):
                 continue
             frame_files = sorted(fn for fn in files if fn.lower().endswith('.png'))
@@ -120,7 +123,7 @@ for module, base in source_dirs():
             item = {
                 "id": id_rel,
                 "path": frames_rel[0],
-                "category": "Monsters",
+                "category": category_dir,
                 "module": module,
                 "pixelSize": png_width(os.path.join(root_dir, frame_files[0])),
                 "ppu": ppu,

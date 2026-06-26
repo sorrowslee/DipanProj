@@ -70,8 +70,10 @@ public static class MapAssetSyncTool
                     AddAnimatedObjects(cdir, srcRoot, dstRoot, module, catalog);
             }
 
-            // 1.5) 怪物動作素材：Monsters/SequenceImage/<怪名>/<state>/ 每個動作葉資料夾收成一筆。
-            AddMonsterAnimations(baseDir, srcRoot, dstRoot, module, catalog);
+            // 1.5) 角色逐格動畫素材（路線 B）：怪物 Monsters/SequenceImage/<怪名>/<state>/、
+            //      玩家 Characters/SequenceImage/<血統>/<state>/，每個動作葉資料夾收成一筆。
+            AddSequenceAnimations(baseDir, "Monsters", srcRoot, dstRoot, module, catalog);
+            AddSequenceAnimations(baseDir, "Characters", srcRoot, dstRoot, module, catalog);
 
             // 2) 地圖檔
             string mdir = Path.Combine(baseDir, "Maps");
@@ -174,14 +176,14 @@ public static class MapAssetSyncTool
     }
 
     /// <summary>
-    /// 怪物動作素材（路線 B）：掃 Monsters/SequenceImage/ 下「直接含 PNG」的葉資料夾
-    /// （= 一個動作，如 &lt;怪名&gt;/idle、&lt;怪名&gt;/walk、&lt;怪名&gt;/attack），各收成一筆 catalog item
-    /// （category = Monsters、id = 資料夾相對路徑，≥2 幀帶 frameCount/frames，依檔名排序＝播放順序）。
-    /// 由 MonsterSpriteLibrary 依「&lt;怪名&gt;/&lt;state&gt;」索引取用。
+    /// 逐格動畫素材（路線 B）：掃 &lt;categoryDir&gt;/SequenceImage/ 下「直接含 PNG」的葉資料夾
+    /// （= 一個動作，如 &lt;名稱&gt;/idle、&lt;名稱&gt;/walk…），各收成一筆 catalog item
+    /// （category = categoryDir、id = 資料夾相對路徑，≥2 幀帶 frameCount/frames，依檔名排序＝播放順序）。
+    /// categoryDir = "Monsters"（怪物，MonsterSpriteLibrary 用）或 "Characters"（玩家，PlayerSpriteLibrary 用）。
     /// </summary>
-    static void AddMonsterAnimations(string baseDir, string srcRoot, string dstRoot, string module, Catalog catalog)
+    static void AddSequenceAnimations(string baseDir, string categoryDir, string srcRoot, string dstRoot, string module, Catalog catalog)
     {
-        string seqRoot = Path.Combine(baseDir, "Monsters", "SequenceImage");
+        string seqRoot = Path.Combine(baseDir, categoryDir, "SequenceImage");
         if (!Directory.Exists(seqRoot)) return;
 
         var dirs = new List<string>(Directory.GetDirectories(seqRoot, "*", SearchOption.AllDirectories));
@@ -202,9 +204,9 @@ public static class MapAssetSyncTool
 
             var item = new CatalogItem
             {
-                id = Rel(srcRoot, d),       // 例：Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk
+                id = Rel(srcRoot, d),       // 例：Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk、Main/Characters/SequenceImage/Base/walk
                 path = framesRel[0],
-                category = "Monsters",
+                category = categoryDir,     // Monsters / Characters
                 module = module,
                 pixelSize = ReadPngWidth(frameFiles[0]),
                 ppu = PPU,

@@ -1,6 +1,28 @@
 # 主角立繪 / 走路動畫設定教學 (Character Sprite & Animation Setup)
 
-> 返回 [文件總覽](README.md)｜玩家控制器見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)
+> 返回 [文件總覽](README.md)｜玩家控制器見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)｜怪物量產見 [MONSTER_SETUP.md](MONSTER_SETUP.md)
+
+> ## ⚠️ 主角已改走「路線 B：程式逐格動畫（血統換外型）」（2026-06-26）
+>
+> 主角外型現在跟怪物**同一套**：程式逐格播放、圖走地圖素材管線、**不用 Unity Animator / clip**。換外型只要換資料夾名（血統），方便「血統」設計常常換外型。**本文以下舊的 Unity Animator 流程已被取代**（保留當參考；prefab 上的 Animator 進遊戲會被自動停用）。
+>
+> **資料夾慣例**（每個血統一個資料夾、每個動作一個子資料夾、單張 PNG 一幀）：
+>
+> ```
+> GameAssets/Main/Characters/SequenceImage/<血統>/
+> ├─ idle/   idle_01.png ...        ← 必備（單張也可＝靜態站姿）
+> ├─ walk/   walk_01.png ...        ← 必備
+> └─ dead/   dead_01.png ...        ← 可選；一次性，播完停在最後一幀
+> ```
+> `Base` = 預設初始外型。檔名數字**補零**、依檔名排序＝播放順序（超過 9 張用兩位數）。同一血統所有幀建議**相同像素尺寸**（不然切狀態會忽大忽小）。
+>
+> **換外型**：把新血統資料夾（例 `Vampire/idle`、`Vampire/walk`）放好 → 跑 `Project Tools → Sync Map Assets` →
+> 在 `Player` 的 `PlayerController` 把 **`Bloodline`** 設成 `Vampire`（或程式呼叫 `PlayerController.SetBloodline("Vampire")`）。沒有 `dead/` 就不會演死亡動畫（防呆）。
+>
+> **狀態**：idle/walk 循環、dead 一次性定格（死亡時觸發、不循環）。走路 fps 跟移動速度連動（防腳滑），同怪物。
+> 相關程式：`Assets/Scripts/PlayerAnimator.cs`、`PlayerSpriteLibrary.cs`、`PlayerController.cs`（`Bloodline` 欄 + `SetBloodline`）。機制細節同 [MONSTER_SETUP.md](MONSTER_SETUP.md)。
+>
+> **碰撞框**：玩家碰撞框維持原本 prefab 上的設定（不像怪物那樣自動依圖貼合）——換血統若大小差很多，自行在 `Player` 上微調 collider。
 
 把一張「站立圖」+ 一張「走路序列圖」設定成「站著會待機、移動會走路」的主角。
 本文件記錄完整流程，方便日後**換主角**時照做，不必重新摸索。
