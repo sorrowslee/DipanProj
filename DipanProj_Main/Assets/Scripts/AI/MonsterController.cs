@@ -19,6 +19,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public bool SpriteSourceFacesRight = true;
     public float AnimFPS = 8f;           // 程式動畫播放幀率（CSV: AnimFPS，留空 = 8）
     public float AttackRange = 1.3f;     // 進入此距離且有 attack 圖 → 播攻擊動畫（略大於 ChaseBrain.StopDistance）
+    [Tooltip("角色站立顯示高度（世界單位），與主角 PlayerController.CharacterWorldHeight 同一套邏輯：" +
+             "依 idle 可見高度自動換算，讓「同一張圖丟主角或怪物資料夾都一樣大」。要某隻怪特別大/小，再用 CSV 的 Scale 當倍率。" +
+             "<=0 = 關閉自動換算、沿用原生像素大小。")]
+    public float CharacterWorldHeight = 1.95f;
     private float _currentHealth;
     private bool _isDead = false;
 
@@ -82,12 +86,28 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             if (_monAnim == null) _monAnim = gameObject.AddComponent<MonsterAnimator>();
             var actForFps = GetComponent<MonsterActuator>();
             float refSpeed = actForFps != null ? actForFps.MoveSpeed : 3f;
-            _monAnim.Setup(MonsterName, AnimFPS, refSpeed);
 
-            // 碰撞框依「圖的不透明像素」貼合（瘦長的鬼魂不會被透明邊撐大）；取不到再退回整張 sprite。
+            var lib = MonsterSpriteLibrary.Instance;
+
+            // 顯示大小：與主角完全同一套邏輯——依 idle(取不到改 walk) 可見高度，把幀放大到 CharacterWorldHeight 世界高。
+            // 所以「同一張圖丟主角或怪物資料夾，顯示就一樣大」。每隻怪特別的大小差異再用 CSV Scale（transform.localScale）當倍率。
+            // CharacterWorldHeight <= 0 → 關閉自動換算（tileSize 1，沿用原生像素大小）。
+            float tileSize = 1f;
+            if (CharacterWorldHeight > 0f)
+            {
+                if (lib.TryGetVisibleBox(MonsterName, "idle", 1f, out var vb, out _) && vb.y > 0.0001f)
+                    tileSize = CharacterWorldHeight / vb.y;
+                else if (lib.TryGetVisibleBox(MonsterName, "walk", 1f, out var wb, out _) && wb.y > 0.0001f)
+                    tileSize = CharacterWorldHeight / wb.y;
+                tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
+            }
+
+            _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize);
+
+            // 碰撞框用同一個 tileSize 量 → 與放大後的 sprite 對齊（之後再 × transform.localScale = CSV Scale，一起縮放）。
             Vector2 vSize, vOff;
-            if (MonsterSpriteLibrary.Instance.TryGetVisibleBox(MonsterName, "idle", out vSize, out vOff)
-                || MonsterSpriteLibrary.Instance.TryGetVisibleBox(MonsterName, "walk", out vSize, out vOff))
+            if (lib.TryGetVisibleBox(MonsterName, "idle", tileSize, out vSize, out vOff)
+                || lib.TryGetVisibleBox(MonsterName, "walk", tileSize, out vSize, out vOff))
                 FitVisibleBoxCollider(vSize, vOff);
             else
                 AutoAdjustCollider();   // 後備：用整張 sprite bounds（Setup 已指上第 0 幀）

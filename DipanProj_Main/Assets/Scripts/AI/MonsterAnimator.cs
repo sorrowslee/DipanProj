@@ -36,17 +36,21 @@ public class MonsterAnimator : MonoBehaviour
     float _timer;
     float _currentSpeed;   // 由 MonsterController 每幀餵入，用於走路 fps 連動
 
-    /// <summary>依怪名載入各動作的幀。fps≤0 用 8、referenceSpeed≤0 用 3。</summary>
-    public void Setup(string monsterName, float fps, float referenceSpeed)
+    /// <summary>
+    /// 依怪名載入各動作的幀。fps≤0 用 8、referenceSpeed≤0 用 3。
+    /// <paramref name="tileSize"/> 決定顯示大小（PPU=256/tileSize），由 MonsterController 依 idle 可見高度自動換算後傳入
+    /// → 與主角同一套：同一張圖在主角/怪物資料夾顯示一樣大。
+    /// </summary>
+    public void Setup(string monsterName, float fps, float referenceSpeed, float tileSize = 1f)
     {
         _sr = GetComponent<SpriteRenderer>();
         BaseFps = fps > 0f ? fps : 8f;
         ReferenceSpeed = referenceSpeed > 0f ? referenceSpeed : 3f;
 
         var lib = MonsterSpriteLibrary.Instance;
-        _idle = lib.GetFrames(monsterName, "idle");
-        _walk = lib.GetFrames(monsterName, "walk");
-        _attack = lib.GetFrames(monsterName, "attack");
+        _idle = lib.GetFrames(monsterName, "idle", tileSize);
+        _walk = lib.GetFrames(monsterName, "walk", tileSize);
+        _attack = lib.GetFrames(monsterName, "attack", tileSize);
 
         // idle 是必備；萬一只給了 walk 沒給 idle，就用 walk 當待機後備（不至於沒圖）
         if (_idle == null && _walk != null) _idle = _walk;

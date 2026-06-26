@@ -69,25 +69,26 @@ public class MonsterSpriteLibrary
     /// 取某怪某動作的幀（依序）。單張資料夾 → 長度 1 的陣列（靜態姿勢）；找不到回 null。
     /// 結果快取，重覆呼叫同一隻同一動作不會重建。
     /// </summary>
-    public Sprite[] GetFrames(string monsterName, string state)
+    public Sprite[] GetFrames(string monsterName, string state, float tileSize = 1f)
     {
-        string k = Key(monsterName, state);
-        if (_frameCache.TryGetValue(k, out var cached)) return cached;
+        string tail = Key(monsterName, state);
+        string cacheKey = $"{tail}|{tileSize}";
+        if (_frameCache.TryGetValue(cacheKey, out var cached)) return cached;
 
         Sprite[] frames = null;
-        if (_byTail.TryGetValue(k, out var item) && _loader != null)
+        if (_byTail.TryGetValue(tail, out var item) && _loader != null)
         {
             if (item.IsAnimated)
             {
-                frames = _loader.GetAnimationFrames(item, 1f);   // PPU 256（tileSize 1），與地圖素材一致
+                frames = _loader.GetAnimationFrames(item, tileSize);   // PPU=256/tileSize（同 PlayerSpriteLibrary）
             }
             else
             {
-                var sp = _loader.GetWholeSprite(item, 1f);
+                var sp = _loader.GetWholeSprite(item, tileSize);
                 if (sp != null) frames = new[] { sp };
             }
         }
-        _frameCache[k] = frames;   // 連 null 也快取，避免每幀重查
+        _frameCache[cacheKey] = frames;   // 連 null 也快取，避免每幀重查
         return frames;
     }
 
@@ -96,12 +97,12 @@ public class MonsterSpriteLibrary
     /// size / offset 為世界單位 @ scale 1（PPU 256），offset 相對 sprite 中心。
     /// 透明邊不算進去，所以瘦長的鬼魂不會被空白邊撐大碰撞範圍。沿用家具用的 MapSpriteLoader.GetAlphaLocalBox。
     /// </summary>
-    public bool TryGetVisibleBox(string monsterName, string state, out Vector2 size, out Vector2 offset)
+    public bool TryGetVisibleBox(string monsterName, string state, float tileSize, out Vector2 size, out Vector2 offset)
     {
         size = default; offset = default;
         string k = Key(monsterName, state);
         if (_loader == null || !_byTail.TryGetValue(k, out var item)) return false;
-        var box = _loader.GetAlphaLocalBox(item, 1f);
+        var box = _loader.GetAlphaLocalBox(item, tileSize);
         if (!box.ok) return false;
         size = box.size;
         offset = box.offset;
