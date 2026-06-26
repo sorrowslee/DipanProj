@@ -100,6 +100,15 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 腳下影子（見 readme/SHADOW.md）
         if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
 
+        // 走路動畫速度跟著實際移動速度（避免腳滑；見 readme/CHARACTER_SETUP.md）。
+        // ReferenceSpeed = 正常移動速度(MoveSpeed) → 正常走就是 1×（動畫滿幀最順）；
+        // 只有實際速度低於正常時（之後的減速 debuff／類比半推）動畫才按比例變慢。
+        if (GetComponent<AnimatorSpeedByVelocity>() == null)
+        {
+            var asv = gameObject.AddComponent<AnimatorSpeedByVelocity>();
+            asv.ReferenceSpeed = MoveSpeed;
+        }
+
         _weaponManager = FindObjectOfType<WeaponManager>();
         if (_weaponManager == null)
         {

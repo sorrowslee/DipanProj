@@ -304,6 +304,27 @@ if (_isDead) return;
 
 ---
 
+## 12. 走路動畫速度跟移動速度連動（避免「腳滑」）
+
+讓走路播放速度跟著角色實際速度走：速度慢一半、走路動畫也慢一半，連續平滑、不卡。
+
+- **機制**：元件 `Assets/Scripts/AnimatorSpeedByVelocity.cs` 每幀設 `Animator.speed = 實際速度 ÷ ReferenceSpeed`；**靜止時設回 1**（所以 Idle／死亡不受影響、不會凍住）。**純程式、零 Animator 參數**。
+- **自動套用全角色**：`PlayerController.Start` 與 `MonsterController.Start` 已各自 `AddComponent<AnimatorSpeedByVelocity>()`（仿 BlobShadow）。**現有與未來的每隻角色都自動生效，不必逐隻在 Animator 加參數。**
+- **ReferenceSpeed（參考速度）= 角色的「正常移動速度」**：玩家在 `PlayerController.Start` 自動帶入 `MoveSpeed`、怪物帶入 `MonsterActuator.MoveSpeed`。所以**正常走就是 1×（動畫滿幀、最順）**；只有實際速度**低於正常**時（未來的減速 debuff、類比搖桿半推）動畫才按比例變慢。
+  - ⚠️ **常見誤區**：若把 ReferenceSpeed 設成固定大值（例如 5）而 MoveSpeed 只有 3，正常走就會一直用 3÷5＝0.6× 播放、永遠偏卡。**ReferenceSpeed 一定要等於該角色的正常速度。**
+- **`MinMul` 預設 0.6**：放慢時最低只到 0.6×，避免掉到太低 fps 變超卡（代價是很慢時有一點腳滑，划算）。`MinMul`／`MaxMul` 在 `AnimatorSpeedByVelocity.cs` 上方可調。
+- **限制**：像素序列圖格數少時，動畫放到很慢會看到「一格一格」（sprite 動畫的本質，不是 bug）。用 `MinMul` 夾住最慢倍率，或把走路圖畫更多格（12～16 格）即可更順。
+
+### 測試時去哪調速度
+
+- **玩家移動速度**：選 `Player` → Inspector 的 **PlayerController → MoveSpeed**。這同時就是「正常速度」（ReferenceSpeed 會自動跟著它），所以**改了 MoveSpeed 正常走仍是 1×（滿幀、不會變卡）**——改的是「正常」的定義，不是把動畫打折。
+- **怪物移動速度**：改 **`Assets/Scripts/AI/MonsterActuator.cs` 的 `public float MoveSpeed = 3f;`**。怪物的 `MonsterActuator` 是執行期自動掛上的，Inspector 上改不到也不持久，所以測試時直接改這個預設值（目前怪物速度尚未進 CSV）。
+
+> 想實際看到「動畫變慢」的效果，要讓**實際速度低於正常速度**（例如之後做減速 debuff，把 velocity 乘上 0.5）。鍵盤是「全速或停」，所以單純走路一律 1×；這正是我們要的——正常走最順，被放慢才慢。
+
+---
+
 *建立於 2026-06-25：主角站立+走路動畫設定流程。最常見兩個雷：①走路圖用「固定像素大小」切→換尺寸不同的新圖就切歪，改用「依格數」切即解；②站立圖與走路圖 PPU 不一致→站立／走路忽大忽小，把兩張 PPU 設成一樣即解。*
 *2026-06-25 更新：補上最上方「快速提醒 + 症狀對照表」，數字改為目前實際設定（站立 310×500、走路 2787×500 共 9 格、兩張 PPU 250）。*
 *2026-06-25 更新：新增 §10（進遊戲變黑剪影＝SpriteRenderer Color 被染暗）、§11（加死亡狀態：Any State→Death + Bool `isDead` + Die() 觸發動畫並停操作；觸發點 CombatStats.OnDeath→Die 已接好）。*
+*2026-06-25 更新：新增 §12（走路動畫速度跟移動速度連動＝`AnimatorSpeedByVelocity` 用 Animator.speed，玩家/怪物 Start 自動掛、零 Animator 參數）＋測試調速度的位置。*

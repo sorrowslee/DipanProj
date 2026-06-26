@@ -53,6 +53,15 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 
         // 腳下影子（見 readme/SHADOW.md）
         if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
+
+        // 走路動畫速度跟著實際移動速度（避免腳滑；見 readme/CHARACTER_SETUP.md）。
+        // ReferenceSpeed 設成這隻怪的正常移動速度 → 正常追擊時 1×，被放慢時動畫自動變慢。
+        if (GetComponent<AnimatorSpeedByVelocity>() == null)
+        {
+            var asv = gameObject.AddComponent<AnimatorSpeedByVelocity>();
+            var act = GetComponent<MonsterActuator>();
+            if (act != null) asv.ReferenceSpeed = act.MoveSpeed;
+        }
     }
 
     public void Initialize(MonsterData data)
