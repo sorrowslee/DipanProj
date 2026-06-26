@@ -17,9 +17,9 @@
 
 | 欄位 | 預設 | 說明 |
 |---|---|---|
-| `ShadowColor` | 黑 alpha 0.45 | 影子顏色與濃淡 |
-| `WidthFactor` | 0.85 | 影子寬 = 角色世界寬 × 此值 |
-| `HeightRatio` | 0.4 | 影子高 / 寬（越小越扁、俯視感越強） |
+| `ShadowColor` | 黑 alpha 0.9 | 影子顏色與濃淡 |
+| `WidthFactor` | 1.1 | 影子寬 = 角色世界寬 × 此值 |
+| `HeightRatio` | 0.5 | 影子高 / 寬（越小越扁、俯視感越強） |
 | `VerticalOffset` | 0 | 腳底再往下(正)/上(負)微調 |
 | `SortingOrderBelow` | 1 | 比角色 sortingOrder 低幾階 |
 

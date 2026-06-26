@@ -11,11 +11,15 @@ using UnityEngine;
 public class BlobShadow : MonoBehaviour
 {
     [Header("影子外觀（可調）")]
-    public Color ShadowColor = new Color(0f, 0f, 0f, 0.45f);   // 深色半透明
-    public float WidthFactor = 0.85f;   // 影子寬 = 角色 sprite 世界寬 × 此值
-    public float HeightRatio = 0.4f;    // 影子高 / 寬（越小越扁，俯視感越強）
+    public Color ShadowColor = new Color(0f, 0f, 0f, 0.3f);    // 深色半透明（加深 2 倍：0.45 → 0.9）
+    public float WidthFactor = 1.0f;    // 影子寬 = 角色 sprite 世界寬 × 此值（放大、貼合角色）
+    public float HeightRatio = 0.5f;    // 影子高 / 寬（越小越扁，俯視感越強）
     public float VerticalOffset = 0f;   // 腳底再往下(正)/上(負)微調（世界單位）
     public int SortingOrderBelow = 1;   // 比角色 sortingOrder 低幾階
+
+    // ── 除錯：true = 把影子強制畫在最上層（會蓋住角色）＋印 log，用來確認影子是否生成。平時 false ──
+    const bool DebugDrawOnTop = false;
+    const int DebugSortingOrder = 30000;
 
     static Sprite _sharedSprite;
 
@@ -41,7 +45,11 @@ public class BlobShadow : MonoBehaviour
         if (_charSr != null)
         {
             sr.sortingLayerID = _charSr.sortingLayerID;
-            sr.sortingOrder = _charSr.sortingOrder - SortingOrderBelow;
+            sr.sortingOrder = DebugDrawOnTop ? DebugSortingOrder : (_charSr.sortingOrder - SortingOrderBelow);
+        }
+        else
+        {
+            sr.sortingOrder = DebugDrawOnTop ? DebugSortingOrder : 0;
         }
         // 共用 sprite 的 native 尺寸 = 1 世界單位（PPU=邊長），故 localScale 直接 = 目標世界大小
         _shadowGo.transform.localScale = new Vector3(width, height, 1f);
@@ -88,8 +96,11 @@ public class BlobShadow : MonoBehaviour
                 float dx = (x + 0.5f - r) / r;
                 float dy = (y + 0.5f - r) / r;
                 float d = Mathf.Sqrt(dx * dx + dy * dy);   // 0=中心 → 1=邊緣
-                float a = Mathf.Clamp01(1f - d);
-                a *= a;                                     // 柔化：邊緣更快淡掉
+                // 中心大片實心(a=1)、只有外圈 0.72~1 羽化到 0。
+                // 注意：別直接寫 Mathf.SmoothStep(0.72f,1f,d)——那是「在 0.72 與 1 之間插值」，會把中心壓到 ~0.28、
+                // 害整個影子超淡（先前看不清就是這個雷）。要先用 InverseLerp 把 d 正規化成 0~1 再 SmoothStep。
+                float edge = Mathf.InverseLerp(0.72f, 1f, d);
+                float a = 1f - Mathf.SmoothStep(0f, 1f, edge);
                 px[y * size + x] = new Color32(255, 255, 255, (byte)(a * 255f));
             }
         }
