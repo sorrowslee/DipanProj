@@ -21,6 +21,9 @@ namespace Dipan.Drama
                 return;
             }
 
+            // 播放當下才解析立繪：Actor_<情緒> 需要「目前血統」才能定位主角情緒立繪。
+            DramaTalkDatabase.Instance.ResolveGroupAvatars(lines, CurrentBloodline());
+
             if (UIManager.Instance != null)
             {
                 TalkPanel.Show(lines);
@@ -33,10 +36,19 @@ namespace Dipan.Drama
             for (int i = 0; i < lines.Count; i++)
             {
                 var l = lines[i];
-                string side = l.Side == 2 ? "右" : "左";
-                sb.Append($"  {i + 1}. (#{l.Id}) [{l.Name}｜頭像{side}：{l.AvatarPath}] {l.Text}\n");
+                string spot = l.SpotlightSide == 2 ? "右" : "左";
+                sb.Append($"  {i + 1}. (#{l.Id}) [{l.Name}｜聚光{spot}｜左:{l.LeftAvatarPath} 右:{l.RightAvatarPath}] {l.Text}\n");
             }
             Debug.Log(sb.ToString());
+        }
+
+        /// <summary>取目前主角血統（給 Actor_ 情緒立繪定位）；找不到玩家 / 元件退回 "Base"。</summary>
+        static string CurrentBloodline()
+        {
+            var player = GameObject.FindGameObjectWithTag("Player");
+            var pc = player != null ? player.GetComponent<PlayerController>() : null;
+            string b = pc != null ? pc.Bloodline : null;
+            return string.IsNullOrEmpty(b) ? "Base" : b;
         }
     }
 }

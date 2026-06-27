@@ -117,6 +117,30 @@ namespace Dipan.MapRuntime
                 // 每個動作葉資料夾（<名稱>/<state>/）收成一筆。
                 ScanSequence(baseDir, "Monsters", moduleName);
                 ScanSequence(baseDir, "Characters", moduleName);
+
+                // 主角情緒立繪：Characters/Talk/<血統>/<情緒>.png，每張單圖收成一筆靜態素材（劇情頭像對話 Actor_<情緒> 用）。
+                ScanCharacterTalk(baseDir, moduleName);
+            }
+
+            // Characters/Talk/<血統>/*.png：每張單圖 = 一筆靜態 catalog item，id = 相對路徑去副檔名
+            // （例 Main/Characters/Talk/Base/angry）。供 DramaTalkDatabase 的 Actor_<情緒> 立繪解析。
+            void ScanCharacterTalk(string baseDir, string moduleName)
+            {
+                string talkRoot = Path.Combine(baseDir, "Characters", "Talk");
+                if (!Directory.Exists(talkRoot)) return;
+                foreach (var png in Directory.GetFiles(talkRoot, "*.png", SearchOption.AllDirectories))
+                {
+                    string rel = MakeRelative(root, png).Replace('\\', '/');
+                    cat.items.Add(new CatalogItem
+                    {
+                        id = rel.Substring(0, rel.Length - 4),
+                        path = rel,
+                        category = "Talk",
+                        module = moduleName,
+                        pixelSize = ReadPngWidth(png),
+                        ppu = 256,
+                    });
+                }
             }
 
             // <categoryDir>/SequenceImage 下「直接含 PNG」的葉資料夾 = 一個動作（idle/walk/dead…）。

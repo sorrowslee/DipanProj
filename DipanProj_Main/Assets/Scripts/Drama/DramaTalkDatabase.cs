@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using UnityEngine;
-using Dipan.MapRuntime;   // 頭像走地圖素材管線（catalog + StreamingAssets），與劇情大圖同套
+using Dipan.MapRuntime;   // 立繪走地圖素材管線（catalog + StreamingAssets），與劇情大圖同套
 
 namespace Dipan.Drama
 {
@@ -11,10 +11,16 @@ namespace Dipan.Drama
     ///
     /// 懶漢快取：第一次存取 <see cref="Instance"/> 自動建立並載入。<see cref="GetGroup"/>(group) 取一串對話。
     /// CSV 解析與 DramaDatabase / ItemDatabase 同套（支援雙引號包覆、欄位內 \n 轉換行）。
-    /// 頭像圖的「載入方式」留待對話介面 UI 決定，本資料層只保存路徑字串。
+    ///
+    /// 立繪載入：每句左右兩個立繪路徑（catalog id 或 Actor_&lt;情緒&gt;）。因為 Actor_ 要依「目前血統」決定圖，
+    /// 立繪在「播放當下」由 <see cref="ResolveGroupAvatars"/>(group, bloodline) 解析（讀目前血統），不在表載入時就定死。
     /// </summary>
     public class DramaTalkDatabase
     {
+        // 主角情緒立繪的前綴與資料夾慣例：Actor_<情緒> → Main/Characters/Talk/<血統>/<情緒>
+        public const string ActorPrefix = "Actor_";
+        const string CharacterTalkRoot = "Main/Characters/Talk";   // catalog id 前綴（與三處同步工具一致）
+
         static DramaTalkDatabase _instance;
         public static DramaTalkDatabase Instance
         {
@@ -27,6 +33,11 @@ namespace Dipan.Drama
 
         // 群組編號 → 該群組的對話（已依流水號由小到大排序）
         readonly Dictionary<int, List<DramaTalkData>> _groups = new Dictionary<int, List<DramaTalkData>>();
+
+        // 立繪載入（懶漢）：catalog + loader 只建一次，sprite 依「解析後的 catalog id」快取。
+        Catalog _catalog;
+        MapSpriteLoader _loader;
+        readonly Dictionary<string, Sprite> _spriteCache = new Dictionary<string, Sprite>();
 
         /// <summary>取某群組的整串對話（已排序）；該群組不存在回 null。</summary>
         public List<DramaTalkData> GetGroup(int group)
@@ -56,6 +67,7 @@ namespace Dipan.Drama
         {
             _groups.Clear();
 
+            // 表頭：ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
             var all = new List<DramaTalkData>();
             string[] lines = (text ?? "").Split('\n');
             for (int i = 1; i < lines.Length; i++)   // 第 0 行是表頭
@@ -72,9 +84,10 @@ namespace Dipan.Drama
                     Id = id,
                     Group = group,
                     Name = Field(v, 2),
-                    AvatarPath = Field(v, 3),
-                    Side = (Field(v, 4) == "2") ? 2 : 1,   // 2 = 置右；其餘（含留空）= 置左
-                    Text = Unescape(Field(v, 5)),
+                    LeftAvatarPath = Field(v, 3),
+                    RightAvatarPath = Field(v, 4),
+                    SpotlightSide = (Field(v, 5) == "2") ? 2 : 1,   // 2 = 聚光右；其餘（含留空）= 聚光左
+                    Text = Unescape(Field(v, 6)),
                 };
                 all.Add(d);
             }
@@ -91,45 +104,66 @@ namespace Dipan.Drama
                 list.Add(d);
             }
 
-            ResolveAvatars();
             Debug.Log($"[DramaTalkDatabase] 載入 {all.Count} 句對話、{_groups.Count} 個群組。");
         }
 
         /// <summary>
-        /// 頭像走「地圖素材管線」（每關專屬、與共用 Resources 分開），與劇情大圖一致：
-        /// 圖放 GameAssets/Modules/&lt;module&gt;/Talk/，由 Sync Map Assets 收進 catalog ＋ StreamingAssets。
-        /// AvatarPath = catalog id（相對 GameAssets 的路徑、不含副檔名，例 Modules/RedBridalGown/Talk/redBridalGown）。
-        /// 同一張頭像被多句共用時只載一次（path 快取）。
+        /// 播放前解析某群組所有句子的左右立繪 sprite（填進 <see cref="DramaTalkData.LeftAvatar"/> / <see cref="DramaTalkData.RightAvatar"/>）。
+        /// 這裡才解析（而非表載入時）是因為 <c>Actor_&lt;情緒&gt;</c> 要依「目前血統」決定圖；血統可能在遊戲過程中改變。
         /// </summary>
-        void ResolveAvatars()
+        public void ResolveGroupAvatars(List<DramaTalkData> lines, string bloodline)
         {
-            bool any = false;
-            foreach (var list in _groups.Values)
-                foreach (var d in list)
-                    if (!string.IsNullOrEmpty(d.AvatarPath)) { any = true; break; }
-            if (!any) return;
-
-            var catalog = CatalogLoader.Load(out string assetRoot);
-            var loader = new MapSpriteLoader(assetRoot);
-            var cache = new Dictionary<string, Sprite>();
-
-            foreach (var list in _groups.Values)
+            if (lines == null) return;
+            foreach (var d in lines)
             {
-                foreach (var d in list)
-                {
-                    if (string.IsNullOrEmpty(d.AvatarPath)) continue;
-                    if (!cache.TryGetValue(d.AvatarPath, out var sp))
-                    {
-                        var item = catalog.Find(d.AvatarPath);
-                        sp = item != null ? loader.GetWholeSprite(item, 1f) : null;
-                        cache[d.AvatarPath] = sp;
-                        if (sp == null)
-                            Debug.LogWarning($"[DramaTalkDatabase] 找不到頭像（catalog id：{d.AvatarPath}）。" +
-                                "確認圖放在 GameAssets/Modules/<module>/Talk/ 下，且已執行 Project Tools → Sync Map Assets。");
-                    }
-                    d.Avatar = sp;
-                }
+                d.LeftAvatar = ResolvePortrait(d.LeftAvatarPath, bloodline);
+                d.RightAvatar = ResolvePortrait(d.RightAvatarPath, bloodline);
             }
+        }
+
+        /// <summary>
+        /// 把一個立繪路徑字串解析成 Sprite：
+        ///   - 留空 → null（那一側不顯示）。
+        ///   - <c>Actor_&lt;情緒&gt;</c> → 主角情緒立繪：catalog id = Main/Characters/Talk/&lt;血統&gt;/&lt;情緒小寫&gt;。
+        ///   - 其餘 → 直接當 catalog id（沿用既有立繪管線）。
+        /// 找不到圖回 null（TalkPanel 自動隱藏，方便人工抓 bug）。依解析後的 catalog id 快取。
+        /// </summary>
+        public Sprite ResolvePortrait(string rawPath, string bloodline)
+        {
+            if (string.IsNullOrEmpty(rawPath)) return null;
+
+            string catalogId;
+            if (rawPath.StartsWith(ActorPrefix, System.StringComparison.OrdinalIgnoreCase))
+            {
+                string emotion = rawPath.Substring(ActorPrefix.Length).Trim().ToLowerInvariant();   // angry / cry / ...
+                if (string.IsNullOrEmpty(emotion)) return null;
+                string blood = string.IsNullOrEmpty(bloodline) ? "Base" : bloodline.Trim();
+                catalogId = $"{CharacterTalkRoot}/{blood}/{emotion}";
+            }
+            else
+            {
+                catalogId = rawPath;
+            }
+
+            if (_spriteCache.TryGetValue(catalogId, out var cached)) return cached;
+
+            EnsureLoader();
+            var item = _catalog?.Find(catalogId);
+            Sprite sp = item != null ? _loader.GetWholeSprite(item, 1f) : null;
+            if (sp == null)
+                Debug.LogWarning($"[DramaTalkDatabase] 找不到立繪（catalog id：{catalogId}）。" +
+                    (rawPath.StartsWith(ActorPrefix, System.StringComparison.OrdinalIgnoreCase)
+                        ? "確認 GameAssets/Main/Characters/Talk/<血統>/<情緒>.png 存在，且已執行 Project Tools → Sync Map Assets。"
+                        : "確認圖放在 GameAssets/Modules/<module>/Talk/ 下，且已執行 Project Tools → Sync Map Assets。"));
+            _spriteCache[catalogId] = sp;
+            return sp;
+        }
+
+        void EnsureLoader()
+        {
+            if (_catalog != null) return;
+            _catalog = CatalogLoader.Load(out string assetRoot);
+            _loader = new MapSpriteLoader(assetRoot);
         }
 
         static string Field(string[] v, int i) => (i < v.Length && v[i] != null) ? v[i].Trim() : "";

@@ -46,20 +46,30 @@
 |---|---|
 | `ID` | **流水號**（唯一）。同群組內依此**由小到大**依序播放 |
 | `Group` | **群組編號**：同一個群組 = 一串對話。DramaTable Type=2 的 `TalkGroup` 指向這裡 |
-| `Name` | **說話人姓名**：對話介面顯示在姓名底版上（資料層只保存字串） |
-| `AvatarPath` | 頭像檔案路徑（字串）。**載入方式留待對話介面 UI 決定**，資料層只保存字串 |
-| `Side` | 頭像位置：**1 = 置左、2 = 置右**（其餘 / 留空視為置左） |
+| `Name` | **說話人姓名**：顯示在「聚光側」姓名牌匾上（資料層只保存字串） |
+| `LeftAvatarPath` | **左側立繪**路徑（兩種寫法見下）。留空 = 左側不顯示立繪 |
+| `RightAvatarPath` | **右側立繪**路徑（兩種寫法見下）。留空 = 右側不顯示立繪 |
+| `SpotlightSide` | **聚光側＝現在誰在說話**：**1 = 左、2 = 右**（其餘 / 留空視為 1）。聚光側立繪正常亮、另一側**壓暗**（保留原色相），姓名牌匾也擺聚光側 |
 | `Text` | 對話內容。含逗號用 `"..."` 包覆；`\n` 轉換行 |
 
-範例（群組 1 = 兩句一串：先 #1 再 #2）：
+**立繪路徑兩種寫法**（`LeftAvatarPath` / `RightAvatarPath` 皆可）：
+
+1. **catalog id**：相對 `GameAssets/` 的路徑、不含副檔名（例 `Modules/RedBridalGown/Talk/redBridalGown`）——每關專屬立繪，走地圖素材管線（同劇情大圖）。
+2. **`Actor_<情緒>`**：主角情緒立繪（例 `Actor_Angry`）——依**目前血統**載 `GameAssets/Main/Characters/Talk/<血統>/<情緒>.png`（情緒大小寫不拘）。目前情緒有 `normal`/`happy`/`angry`/`cry`/`fear`/`proud`/`speechless`（未來可增）；血統目前只有 `Base`，將來如 `Vampire`/`Werewolf` 自動切該資料夾。找不到圖 = 那側不顯示（方便人工抓 bug）。
+
+範例（群組 1 = 單側立繪；群組 2 = 左右對話、聚光側交替）：
 
 ```
-ID,Group,Name,AvatarPath,Side,Text
-1,1,老者,Modules/RedBridalGown/Talk/avatar_elder,1,你終於來了
-2,1,惡鬼,Modules/RedBridalGown/Talk/avatar_demon,2,沒錯，納命來!!
-3,2,孩童,Modules/RedBridalGown/Talk/avatar_child,1,這個地方陰森森的，好可怕
-4,3,孩童,Modules/RedBridalGown/Talk/avatar_child,1,我想爹娘了...
+ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
+1,1,老者,Modules/RedBridalGown/Talk/avatar_elder,,1,你終於來了
+2,1,惡鬼,,Modules/RedBridalGown/Talk/avatar_demon,2,沒錯，納命來!!
+5,2,新娘,Modules/RedBridalGown/Talk/redBridalGown,Actor_Normal,1,你終於來了，大俠。
+6,2,大俠,Modules/RedBridalGown/Talk/redBridalGown,Actor_Angry,2,是誰在背後操控這一切?快說!
 ```
+
+> 群組 2：左固定新娘 NPC、右固定主角（`Actor_*` 依血統換情緒）；`SpotlightSide` 切換誰被打亮、誰被壓暗，營造左右對話。
+
+> **主角情緒立繪要進 catalog 才載得到**：`Main/Characters/Talk/<血統>/*.png` 已加進三處同步產生器的掃描（`MapIO.cs`、`MapAssetSyncTool.cs`、`Tools/sync_map_assets.sh`），放好圖後跑 `Project Tools → Sync Map Assets` 即收進 catalog ＋ StreamingAssets（打包後也讀得到）。
 
 ### 觸發分支與觸發方式（runtime）
 
@@ -75,14 +85,16 @@ ID,Group,Name,AvatarPath,Side,Text
 
 ### 對話介面 `TalkPanel`（✅ 已接上）
 
-`DramaTalkController.Play(group)` 撈出該群組對話（已排序）後開啟 `TalkPanel` 播放：底部一個**對話框**（`DramaPanelBG`）+ **姓名牌匾**（`DramaPanelNameBG`，依 `Side` 跟著立繪「同側」：立繪左→牌匾左、立繪右→牌匾右）+ 對話文字；**點畫面任意處 / 空白鍵 / Enter 換下一句**，最後一句後關閉。模態、暫停遊戲、ESC 可關、**半透明黑遮罩**（`ShowBackdrop=true`，UIManager 共用遮罩鋪在對話框+立繪後方把場景壓暗）。做法同 SettingsPanel（整張背板 + 量測座標，座標常數在 `TalkPanel.cs` 上方、實機可微調）。
+`DramaTalkController.Play(group)` 撈出該群組對話（已排序）→ **依目前血統解析左右立繪 sprite**（`DramaTalkDatabase.ResolveGroupAvatars`，把 `Actor_<情緒>` 換成主角當前血統的情緒圖）→ 開啟 `TalkPanel` 播放：底部一個**對話框**（`DramaPanelBG`）+ **姓名牌匾**（`DramaPanelNameBG`，擺在**聚光側**＝說話者那側）+ 對話文字；**左、右各可有一個立繪同時出現**，非聚光側的立繪**壓暗**（保留原色相、純調暗，背光感）；**點畫面任意處 / 空白鍵 / Enter 換下一句**，最後一句後關閉。模態、暫停遊戲、ESC 可關、**半透明黑遮罩**（`ShowBackdrop=true`，UIManager 共用遮罩鋪在對話框+立繪後方把場景壓暗）。做法同 SettingsPanel（整張背板 + 量測座標，座標常數在 `TalkPanel.cs` 上方、實機可微調）。
 
 - 檔案：`Assets/Scripts/UI/Panels/TalkPanel.cs`。對話框/牌匾素材：`Resources/UI/DramaPanel/DramaPanelBG.png`、`DramaPanelNameBG.png`。
-- **頭像（立繪）走地圖素材管線**（與劇情大圖同套，每關專屬、非共用 Resources）：
-  - 圖放 `GameAssets/Modules/<module>/Talk/`，`DramaTalkTable.csv` 的 `AvatarPath` 填 **catalog id**（相對 GameAssets、不含副檔名，例 `Modules/RedBridalGown/Talk/redBridalGown`）。
-  - 跑 `Project Tools → Sync Map Assets` 收進 catalog ＋ StreamingAssets。`DramaTalkDatabase.ResolveAvatars` 用 `CatalogLoader` + `MapSpriteLoader` 載成 Sprite（同 `DramaDatabase.ResolveImages`；同一張圖多句共用只載一次）。
-  - **`Talk` 是新加進同步分類白名單的**（與 `Environment/Tiles/Background/Drama` 並列）。**加新素材分類時三處同步產生器要一起改**（`MapAssetSyncTool.cs`、`MapIO.cs`、`Tools/sync_map_assets.sh`），否則會像 [PROBLEMS.md](PROBLEMS.md) C3 那樣「放了圖卻載不到」。
-  - TalkPanel 把立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、說話人那一側（依 `Side`）。位置/大小常數在 `TalkPanel.cs` 上方：`AvatarHeight`（大小）、`AvatarOverlap`（**越大越往下＝被對話框蓋住越多、露出越少**）、`AvatarSideMargin`（離左/右邊）。沒有頭像（載不到）時自動隱藏、其餘照常顯示。
+- 壓暗顏色常數 `DimmedColor`（預設灰 0.42，越小越暗）在 `TalkPanel.cs` 上方可調。
+- **立繪走地圖素材管線**（與劇情大圖同套，每關專屬、非共用 Resources）；`Actor_<情緒>` 則走 `Main/Characters/Talk/<血統>/`（共用、隨主角血統）：
+  - 每關專屬立繪放 `GameAssets/Modules/<module>/Talk/`，`LeftAvatarPath` / `RightAvatarPath` 填 **catalog id**（相對 GameAssets、不含副檔名，例 `Modules/RedBridalGown/Talk/redBridalGown`）。
+  - 跑 `Project Tools → Sync Map Assets` 收進 catalog ＋ StreamingAssets。`DramaTalkDatabase.ResolvePortrait` 用 `CatalogLoader` + `MapSpriteLoader` 把每個立繪路徑載成 Sprite（同 `DramaDatabase.ResolveImages`；依解析後 catalog id 快取，同一張圖多句共用只載一次）。
+  - **`Talk` 是同步分類白名單的一員**（與 `Environment/Tiles/Background/Drama` 並列）；**主角情緒立繪 `Characters/Talk/<血統>/*.png` 另由三處同步工具的 `Characters/Talk` 掃描收進 catalog**（id 例 `Main/Characters/Talk/Base/angry`，category=`Talk`）。**加新素材分類 / 掃描時三處同步產生器要一起改**（`MapAssetSyncTool.cs`、`MapIO.cs`、`Tools/sync_map_assets.sh`），否則會像 [PROBLEMS.md](PROBLEMS.md) C3 那樣「放了圖卻載不到」。
+  - TalkPanel 把左右立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、左立繪錨左下角、右立繪錨右下角。位置/大小常數在 `TalkPanel.cs` 上方：`AvatarHeight`（大小）、`AvatarOverlap`（**越大越往下＝被對話框蓋住越多、露出越少**）、`AvatarSideMargin`（離左/右邊）。某側沒立繪（載不到 / 留空）時那側自動隱藏。
+  - **右側立繪一律水平翻轉**（`localScale.x=-1`，原地鏡像不位移）：因為立繪原圖臉朝右，放右邊要翻成朝左才面向畫面中央、與左側對望。所以 `RightAvatarPath` 的圖**直接放正常朝右的原圖即可**，不必自己先翻好。
 
 ### 圖放哪（重要）：每關專屬、走地圖素材管線，不放共用 Resources
 
@@ -106,11 +118,11 @@ ID,Group,Name,AvatarPath,Side,Text
 | `Assets/Scripts/Drama/DramaDatabase.cs` | 表載入（`LoadFromText`，懶漢 `Instance`）+ `Get(id)`；圖從 Resources 預載 |
 | `Assets/Scripts/Drama/DramaTableProvider.cs` | 場景小元件，持有 `DramaTable.csv` 的 TextAsset 參照（同 `ItemTableProvider`） |
 | `Assets/Scripts/UI/Panels/DramaPanel.cs` | 劇情檢視介面（Type=1，見下） |
-| `Assets/Scripts/Drama/DramaTalkData.cs` | 一句頭像對話（Id / Group / AvatarPath / Side / Text） |
+| `Assets/Scripts/Drama/DramaTalkData.cs` | 一句頭像對話（Id / Group / Name / LeftAvatarPath / RightAvatarPath / SpotlightSide / Text + 載好的左右 Sprite） |
 | `Assets/Scripts/Drama/DramaTalkDatabase.cs` | 頭像對話表載入（懶漢 `Instance`）；依群組分組、組內依流水號排序；`GetGroup(group)` |
 | `Assets/Scripts/Drama/DramaTalkTableProvider.cs` | 場景小元件，持有 `DramaTalkTable.csv` 的 TextAsset 參照（同 `DramaTableProvider`） |
 | `Assets/Scripts/Drama/DramaTalkController.cs` | 頭像對話播放入口 `Play(group)`：開啟 TalkPanel（無 UI 環境才退回 Debug.Log） |
-| `Assets/Scripts/UI/Panels/TalkPanel.cs` | 頭像對話面板（對話框 + 姓名牌匾 + 文字 + 換頁；頭像待頭像圖到位） |
+| `Assets/Scripts/UI/Panels/TalkPanel.cs` | 頭像對話面板（對話框 + 姓名牌匾 + 左右雙立繪〔非聚光側壓暗〕 + 文字 + 換頁） |
 
 ---
 
@@ -139,10 +151,10 @@ ID,Group,Name,AvatarPath,Side,Text
 2. **編輯器**：放「劇情觸發點」trigger、填 `dramaId`。
 3. **同步**：`Project Tools → Sync Map Assets`（把劇情圖收進 catalog/StreamingAssets，順便拉地圖）。
 4. **Unity 一次性**：GameManagers 上 Add Component → `DramaTableProvider`，把 `Assets/Data/DramaTable.csv` 拖進 `Drama CSV` 欄。**若有用到 Type=2 頭像對話**：再 Add Component → `DramaTalkTableProvider`，把 `Assets/Data/DramaTalkTable.csv` 拖進 `Talk CSV` 欄。
-5. **Play**：走近劇情點看到紫星＋「按 F 鍵」→ 按 F。Type=1 跳大圖+文字面板；Type=2 跳底部對話框（姓名牌匾+文字，點畫面/空白鍵換頁，頭像待頭像圖到位）。
+5. **Play**：走近劇情點看到紫星＋「按 F 鍵」→ 按 F。Type=1 跳大圖+文字面板；Type=2 跳底部對話框（姓名牌匾+左右雙立繪〔非聚光側壓暗〕+文字，點畫面/空白鍵換頁）。
 
 ### 頭像對話（Type=2）一條龍
-1. **DramaTalkTable.csv**：填好群組（`Group`）、每句的 `ID`（流水號決定順序）、`Name`（說話人姓名）、`AvatarPath`、`Side`（1左/2右）、`Text`。
+1. **DramaTalkTable.csv**：填好群組（`Group`）、每句的 `ID`（流水號決定順序）、`Name`（說話人姓名）、`LeftAvatarPath` / `RightAvatarPath`（catalog id 或 `Actor_<情緒>`，留空＝那側不顯示）、`SpotlightSide`（1聚光左/2聚光右）、`Text`。
 2. **DramaTable.csv**：某列設 `Type=2`、`TalkGroup` 填要播的群組編號（`ImagePath`/`Text` 可留空）。
 3. **編輯器**：drama trigger 的 `dramaId` 指向上面那列（與 Type=1 完全一樣，編輯器不必改）。
 4. **Unity**：掛 `DramaTalkTableProvider` 並拖入 CSV（見上）。

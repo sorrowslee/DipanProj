@@ -133,6 +133,27 @@ for module, base in source_dirs():
                 item["frames"] = frames_rel
             items.append(item)
 
+    # 主角情緒立繪：Characters/Talk/<血統>/<情緒>.png（單張），複製進 StreamingAssets、各收成一筆靜態素材
+    # （category=Talk、id=相對路徑去副檔名，例 Main/Characters/Talk/Base/angry）。
+    # 供 DramaTalkDatabase 的 Actor_<情緒> 立繪解析（依目前血統定位）。
+    talk_root = os.path.join(base, 'Characters', 'Talk')
+    if os.path.isdir(talk_root):
+        for root_dir, _dirs, files in sorted(os.walk(talk_root)):
+            for fn in sorted(fn for fn in files if fn.lower().endswith('.png')):
+                abs_src = os.path.join(root_dir, fn)
+                rel = os.path.relpath(abs_src, src_root)
+                abs_dst = os.path.join(dst_root, rel)
+                os.makedirs(os.path.dirname(abs_dst), exist_ok=True)
+                shutil.copy2(abs_src, abs_dst)
+                items.append({
+                    "id": os.path.splitext(rel)[0].replace(os.sep, '/'),
+                    "path": rel.replace(os.sep, '/'),
+                    "category": "Talk",
+                    "module": module,
+                    "pixelSize": png_width(abs_src),
+                    "ppu": ppu,
+                })
+
 with open(os.path.join(dst_root, 'catalog.json'), 'w', encoding='utf-8') as f:
     json.dump({"items": items}, f, ensure_ascii=False, indent=2)
 

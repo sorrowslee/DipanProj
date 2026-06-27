@@ -6,15 +6,16 @@ using Dipan.Drama;
 namespace Dipan.UI
 {
     /// <summary>
-    /// 頭像對話面板（劇情 Type=2）。底部一個對話框 + 姓名牌匾（依說話人左右側擺放）+ 對話文字，
+    /// 頭像對話面板（劇情 Type=2）。底部一個對話框 + 姓名牌匾（擺在聚光側）+ 對話文字，
     /// 點畫面任意處 / 空白鍵 / Enter 換下一句，最後一句後關閉。模態、暫停遊戲。
     ///
     /// 由 <see cref="DramaTalkController"/> 在玩家觸發 Type=2 劇情點時 <see cref="Show"/>(lines) 開啟，
-    /// lines 已由 DramaTalkDatabase 依流水號排好序。外觀走真素材（DramaPanelBG / DramaPanelNameBG），
-    /// 做法與 SettingsPanel / ConfirmPopup 一致（整張背板 + 量測座標）。
+    /// lines 已由 DramaTalkDatabase 依流水號排好序、並解析好左右立繪 sprite。外觀走真素材
+    /// （DramaPanelBG / DramaPanelNameBG），做法與 SettingsPanel / ConfirmPopup 一致（整張背板 + 量測座標）。
     ///
-    /// 頭像：目前 <see cref="DramaTalkData.Avatar"/> 尚未載入（=null），頭像圖會自動隱藏；
-    /// 等頭像圖與載入路徑定案後，只要讓 data.Avatar 有值即可自動顯示（見 readme/TODO.md、DRAMA.md）。
+    /// 雙立繪：一句可同時擺左、右兩個立繪（<see cref="DramaTalkData.LeftAvatar"/> / <see cref="DramaTalkData.RightAvatar"/>）。
+    /// <see cref="DramaTalkData.SpotlightSide"/> = 說話者那一側：聚光側立繪正常亮、另一側壓暗（保留原色相、純調暗），
+    /// 姓名牌匾擺在聚光側、顯示說話者姓名。任一側 sprite=null（留空 / 載不到）那側自動隱藏。
     /// </summary>
     public class TalkPanel : UIPanel
     {
@@ -36,14 +37,18 @@ namespace Dipan.UI
         const float PlateW = 540f, PlateH = 216f, PlateY = 66f;
         const float PlateLeftCx = 872f, PlateRightCx = BgW - 872f;
 
-        // 立繪（站姿、排在對話框「後方」＝被對話框蓋住、依 Side 擺左/右；錨在畫面左/右下角）。原圖比例 1086:1448≈0.75。
+        // 立繪（站姿、排在對話框「後方」＝被對話框蓋住、左立繪錨左下/右立繪錨右下）。原圖比例 1086:1448≈0.75。
         const float AvatarHeight = 660f;                       // 立繪在畫面上的高度（越大越大隻；寬度自動 = 高×比例）
         const float AvatarAspect = 1086f / 1448f;              // 寬 = 高 × 此比例
         const float AvatarSideMargin = 220f;                    // 距畫面左/右邊（越大越往中間靠）
         const float AvatarOverlap = 100f;                      // 立繪底部沉入對話框多少（**越大越往下＝被對話框蓋住越多、露出越少**；負值＝往上露出更多）
 
+        // 非聚光側（沒在說話的人）壓暗：整體調暗、保留原色相（灰色 tint 乘上去＝背光感）。聚光側用純白＝原色。
+        static readonly Color SpotlightColor = Color.white;
+        static readonly Color DimmedColor = new Color(0.42f, 0.42f, 0.42f, 1f);
+
         RectTransform _frame;
-        Image _plate, _avatar;
+        Image _plate, _avatarLeft, _avatarRight;
         Text _name, _msg;
 
         List<DramaTalkData> _lines;
@@ -64,11 +69,9 @@ namespace Dipan.UI
             UIBuilder.Stretch((RectTransform)click.transform);
             click.targetGraphic = click.GetComponent<Image>();   // 程式建按鈕需手動指（見 PROBLEMS D4）
 
-            // 立繪：先建＝排在對話框「後方」（被對話框蓋住）。站在說話人那一側、無圖時隱藏。
-            _avatar = UIBuilder.Image(transform, "Avatar", null);
-            _avatar.preserveAspect = true;
-            _avatar.raycastTarget = false;
-            _avatar.enabled = false;
+            // 立繪：先建＝排在對話框「後方」（被對話框蓋住）。左、右各一，無圖時各自隱藏。位置固定（左立繪錨左下、右立繪錨右下）。
+            _avatarLeft = BuildAvatar("AvatarLeft", right: false);
+            _avatarRight = BuildAvatar("AvatarRight", right: true);
 
             // frame：對話框原圖尺寸、底部置中、等比縮放
             var frameGO = UIBuilder.Create("Frame", transform);
@@ -118,31 +121,59 @@ namespace Dipan.UI
             _msg.text = l.Text ?? "";
             _name.text = l.Name ?? "";
 
-            bool right = l.Side == 2;   // 立繪在右側
+            bool spotRight = l.SpotlightSide == 2;   // 聚光（說話者）在右側
 
-            // 姓名牌匾「跟著立繪同側」：立繪左→牌匾左、立繪右→牌匾右。
-            Place(_plate.rectTransform, right ? PlateRightCx : PlateLeftCx, PlateY, PlateW, PlateH);
+            // 姓名牌匾擺在聚光側、顯示說話者姓名。
+            Place(_plate.rectTransform, spotRight ? PlateRightCx : PlateLeftCx, PlateY, PlateW, PlateH);
 
-            // 立繪左 / 右（有圖才顯示）
-            _avatar.sprite = l.Avatar;
-            _avatar.enabled = l.Avatar != null;
-            SetAvatarSide(right);
+            // 左、右立繪各自顯示（有圖才顯示）；非聚光側壓暗（保留原色相）。
+            SetAvatar(_avatarLeft, l.LeftAvatar, dim: spotRight);    // 聚光在右 → 左立繪壓暗
+            SetAvatar(_avatarRight, l.RightAvatar, dim: !spotRight); // 聚光在左 → 右立繪壓暗
         }
 
-        // 立繪：站姿、貼畫面左/右邊；底部 = 對話框上緣 - AvatarOverlap。排在對話框後方，越往下＝越被對話框蓋住。
-        void SetAvatarSide(bool right)
+        // 設定單一立繪：套 sprite、亮/暗、有圖才啟用。
+        void SetAvatar(Image avatar, Sprite sprite, bool dim)
         {
-            var rt = _avatar.rectTransform;
-            rt.sizeDelta = new Vector2(AvatarHeight * AvatarAspect, AvatarHeight);
+            avatar.sprite = sprite;
+            avatar.enabled = sprite != null;
+            avatar.color = dim ? DimmedColor : SpotlightColor;
+        }
+
+        // 建一個立繪 Image：站姿、排在對話框「後方」（被對話框蓋住），貼畫面左下 / 右下角；底部 = 對話框上緣 - AvatarOverlap。
+        // 立繪原圖臉朝右，所以「右側立繪一律水平翻轉」(localScale.x=-1) 讓臉朝向畫面中央 → 與左側對望。
+        // 翻轉以立繪水平中軸為準（pivot.x=0.5）原地鏡像、不位移。
+        Image BuildAvatar(string name, bool right)
+        {
+            var avatar = UIBuilder.Image(transform, name, null);
+            avatar.preserveAspect = true;
+            avatar.raycastTarget = false;
+            avatar.enabled = false;
+
+            var rt = avatar.rectTransform;
+            float w = AvatarHeight * AvatarAspect;
+            rt.sizeDelta = new Vector2(w, AvatarHeight);
 
             // 對話框上緣（距畫面底）= 底邊距 + 對話框實際顯示高度；立繪底部沉入框內 AvatarOverlap。
             float boxTop = BottomMargin + BgH * (DisplayWidth / BgW);
             float bottomY = boxTop - AvatarOverlap;
 
-            Vector2 corner = right ? new Vector2(1f, 0f) : new Vector2(0f, 0f);   // 錨在右下 / 左下角
-            rt.anchorMin = rt.anchorMax = corner;
-            rt.pivot = corner;
-            rt.anchoredPosition = new Vector2(right ? -AvatarSideMargin : AvatarSideMargin, bottomY);
+            if (right)
+            {
+                // 右側：錨右下、pivot 水平置中 + 底部。距右邊 AvatarSideMargin（量到立繪外緣）。localScale.x=-1 原地水平翻轉。
+                rt.anchorMin = rt.anchorMax = new Vector2(1f, 0f);
+                rt.pivot = new Vector2(0.5f, 0f);
+                rt.anchoredPosition = new Vector2(-(AvatarSideMargin + w * 0.5f), bottomY);
+                rt.localScale = new Vector3(-1f, 1f, 1f);
+            }
+            else
+            {
+                // 左側：錨左下、pivot 左下，不翻轉（原圖臉朝右＝朝向畫面中央，正好）。
+                rt.anchorMin = rt.anchorMax = new Vector2(0f, 0f);
+                rt.pivot = new Vector2(0f, 0f);
+                rt.anchoredPosition = new Vector2(AvatarSideMargin, bottomY);
+                rt.localScale = Vector3.one;
+            }
+            return avatar;
         }
 
         void Next()

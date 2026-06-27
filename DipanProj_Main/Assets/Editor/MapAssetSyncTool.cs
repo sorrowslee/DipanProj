@@ -75,6 +75,9 @@ public static class MapAssetSyncTool
             AddSequenceAnimations(baseDir, "Monsters", srcRoot, dstRoot, module, catalog);
             AddSequenceAnimations(baseDir, "Characters", srcRoot, dstRoot, module, catalog);
 
+            // 1.6) 主角情緒立繪：Characters/Talk/<血統>/<情緒>.png，每張單圖收成一筆靜態素材（劇情頭像對話 Actor_<情緒> 用）。
+            AddCharacterTalk(baseDir, srcRoot, dstRoot, module, catalog);
+
             // 2) 地圖檔
             string mdir = Path.Combine(baseDir, "Maps");
             if (Directory.Exists(mdir))
@@ -172,6 +175,34 @@ public static class MapAssetSyncTool
                 item.frames = framesRel;
             }
             catalog.items.Add(item);
+        }
+    }
+
+    /// <summary>
+    /// 主角情緒立繪：Characters/Talk/&lt;血統&gt;/&lt;情緒&gt;.png（單張），複製進 StreamingAssets、各收成一筆靜態 catalog item
+    /// （category=Talk、id=相對路徑去副檔名，例 Main/Characters/Talk/Base/angry）。
+    /// 供 DramaTalkDatabase 的 Actor_&lt;情緒&gt; 立繪解析（依目前血統定位）。
+    /// </summary>
+    static void AddCharacterTalk(string baseDir, string srcRoot, string dstRoot, string module, Catalog catalog)
+    {
+        string talkRoot = Path.Combine(baseDir, "Characters", "Talk");
+        if (!Directory.Exists(talkRoot)) return;
+
+        var pngs = new List<string>(Directory.GetFiles(talkRoot, "*.png", SearchOption.AllDirectories));
+        pngs.Sort(System.StringComparer.Ordinal);
+        foreach (var png in pngs)
+        {
+            string rel = Rel(srcRoot, png);
+            CopyOverwrite(png, Path.Combine(dstRoot, rel));
+            catalog.items.Add(new CatalogItem
+            {
+                id = StripExt(rel),
+                path = rel,
+                category = "Talk",
+                module = module,
+                pixelSize = ReadPngWidth(png),
+                ppu = PPU,
+            });
         }
     }
 
