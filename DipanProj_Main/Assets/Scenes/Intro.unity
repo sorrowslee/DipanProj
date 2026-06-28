@@ -158,8 +158,8 @@ MonoBehaviour:
   FinaleSeconds: 2
   StartDelay: 0.2
   SpeedLineFlowScale: 2
-  SideSpeedDensity: 0.944
-  SideSpeedStrength: 0.173
+  SideSpeedDensity: 0.367
+  SideSpeedStrength: 0.099
   SideSpeedScroll: 2.5
   SpeedRampMax: 2.6
   ColorHoldSeconds: 2.2
@@ -169,7 +169,7 @@ MonoBehaviour:
   ShowVignette: 0
   ShowRockBackground: 1
   WallTexture: {fileID: 0}
-  ShowSideSpeedLines: 0
+  ShowSideSpeedLines: 1
   RockScale: 1
   WallScrollSpeed: 1
   NormalTone: {r: 0.07, g: 0.08, b: 0.11, a: 1}
