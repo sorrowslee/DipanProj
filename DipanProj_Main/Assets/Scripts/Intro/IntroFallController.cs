@@ -67,6 +67,19 @@ namespace Dipan.Intro
         [Tooltip("開啟正面放射速度線的漩渦/漣漪扭曲；若畫面變洋紅代表 shader 沒編過，先關掉")] public bool EnableWarp = true;
         [Range(0f, 2f)] [Tooltip("扭曲強度")] public float WarpStrength = 1f;
 
+        [Header("正面：旋轉卍字（神聖→墮落）")]
+        [Tooltip("正面墜落時，於角色後方加一個緩緩旋轉的佛教卍字（左旋），隨穿越由金色漸變紫色")]
+        public bool ShowManji = true;
+        [Tooltip("旋轉速度（度/秒，正＝逆時針）")] public float ManjiRotateSpeed = 32f;
+        [Tooltip("大小 = 螢幕高 × 此值")] [Range(0.2f, 1.4f)] public float ManjiSizeFraction = 0.98f;
+        [Tooltip("整體不透明度上限（半透明當背景光暈、不蓋住角色）")] [Range(0f, 1f)] public float ManjiAlpha = 0.55f;
+        [Tooltip("起始：金色（神聖）")] public Color ManjiGold = new Color(1f, 0.80f, 0.42f, 1f);
+        [Tooltip("結束：紫色（墮落／異界）")] public Color ManjiPurple = new Color(0.56f, 0.30f, 0.78f, 1f);
+        [Tooltip("自備卍字圖（毛筆草書）：拖一張進來就用它取代程式生成。建議白色/灰階＋去背 PNG，金→紫染色才會準。留空＝用程式畫的")]
+        public Sprite ManjiImage;
+        [Tooltip("用自備圖時是否仍套金→紫染色：開＝染色(圖須白色去背)；關＝保留圖原本顏色、只做淡入淡出")]
+        public bool ManjiTintImage = true;
+
         [Header("收尾轉場")]
         [Tooltip("墜落結束後自動載入下一個場景")] public bool AutoLoadNextScene = true;
         [Tooltip("下一個場景名（需加進 Build Settings）")] public string NextSceneName = "SampleScene";
@@ -104,6 +117,10 @@ namespace Dipan.Intro
         Image _vignette;
         Image _flash;             // 白色閃光（穿越打點）
         Image _fade;              // 黑色收尾淡出
+        Image _manji, _manjiGlow; // 旋轉卍字 + 後方光暈
+        Sprite _manjiSprite;
+        float _manjiAngle, _manjiA;   // 當前角度、當前不透明度（淡入用）
+        bool _manjiUsingImage;        // 是否用自備圖（決定要不要染色）
 
         // 速度線元件（依鏡頭重建）
         class SpeedElem
@@ -175,6 +192,7 @@ namespace Dipan.Intro
             _delayLeft = Mathf.Max(0f, StartDelay);
             _phase = Phase.Falling;
             _flashPulse = 0f;
+            _manjiA = 0f; _manjiAngle = 0f;
             _activeView = FallView.Side;   // 從第一段（側面）開始
             ConfigureView();
             // 立即套用第 0 幀狀態，避免閃一下預設值。
@@ -224,7 +242,37 @@ namespace Dipan.Intro
             UpdateFog(dt, speedFactor);
             UpdateSpeed(dt, speedFactor);
             UpdateCharacter(dt, p, finEase);
+            UpdateManji(dt, finEase);
             UpdateFlashAndFade(dt, p, fin, finEase);
+        }
+
+        void UpdateManji(float dt, float finEase)
+        {
+            if (_manji == null) return;
+
+            // 只在正面顯示；側面（尚未穿越）隱藏。收尾沒入時隨之淡出。
+            bool front = _activeView == FallView.Front;
+            float target = front ? ManjiAlpha * (1f - finEase) : 0f;
+            _manjiA = Mathf.MoveTowards(_manjiA, target, dt / 0.6f);
+
+            // 緩緩旋轉（左旋＝逆時針）。
+            _manjiAngle += ManjiRotateSpeed * dt;
+            _manji.transform.localEulerAngles = new Vector3(0f, 0f, _manjiAngle);
+
+            // 金 → 紫：跟著穿越進度 _weird。（自備圖且關閉染色時＝白，保留圖原色只做淡入淡出）
+            bool tint = !_manjiUsingImage || ManjiTintImage;
+            Color c = tint ? Color.Lerp(ManjiGold, ManjiPurple, _weird) : Color.white;
+
+            // 神聖呼吸：輕微脈動大小與亮度。
+            float pulse = 1f + 0.04f * Mathf.Sin(_t * 1.8f);
+            _manji.transform.localScale = Vector3.one * pulse;
+
+            var mc = c; mc.a = _manjiA; _manji.color = mc;
+            if (_manjiGlow)
+            {
+                var gc = c; gc.a = _manjiA * 0.5f; _manjiGlow.color = gc;
+                _manjiGlow.transform.localScale = Vector3.one * (1f + 0.06f * Mathf.Sin(_t * 1.8f + 1f));
+            }
         }
 
         void UpdateBackground(float dt)
@@ -434,6 +482,29 @@ namespace Dipan.Intro
             _charRt = (RectTransform)_character.transform;
             Center(_charRt, new Vector2(600, 800));
 
+            // 旋轉卍字（正面用）＋後方柔光暈。先建好、預設透明，UpdateManji 控制顯示/旋轉/變色。
+            if (ShowManji)
+            {
+                float ms = 1080f * ManjiSizeFraction;
+                _manjiGlow = NewImage("ManjiGlow", _softCircleSprite);
+                Center((RectTransform)_manjiGlow.transform, new Vector2(ms * 1.7f, ms * 1.7f));
+                _manjiGlow.color = new Color(1f, 1f, 1f, 0f);
+                // 有自備圖就用圖 → 退回 Resources/InitialStory/Manji → 再退回程式生成。
+                // 用 Texture2D 載入＋建 Sprite，免去 PNG 在 Resources 未被設成 Sprite 類型的雷。
+                Sprite manjiSp = ManjiImage;
+                if (manjiSp == null)
+                {
+                    var mtex = Resources.Load<Texture2D>("InitialStory/Manji");
+                    if (mtex != null) manjiSp = Sprite.Create(mtex, new Rect(0, 0, mtex.width, mtex.height), new Vector2(0.5f, 0.5f), 100f);
+                }
+                if (manjiSp == null) manjiSp = _manjiSprite;
+                _manjiUsingImage = manjiSp != _manjiSprite;
+                _manji = NewImage("Manji", manjiSp);
+                Center((RectTransform)_manji.transform, new Vector2(ms, ms));
+                _manji.preserveAspect = true;   // 自備圖不變形
+                _manji.color = new Color(1f, 1f, 1f, 0f);
+            }
+
             // 暗角（預設關閉；寬螢幕下方形貼圖會拉成橢圓暗框）。
             if (ShowVignette)
             {
@@ -554,6 +625,8 @@ namespace Dipan.Intro
             if (_bg) _bg.transform.SetAsLastSibling();
             if (_rockBG) _rockBG.transform.SetAsLastSibling();
             foreach (var f in _fog) f.transform.SetAsLastSibling();
+            if (_manjiGlow) _manjiGlow.transform.SetAsLastSibling();
+            if (_manji) _manji.transform.SetAsLastSibling();
             foreach (var e in _speed) if (!e.InFront) e.Img.transform.SetAsLastSibling();
             if (_character) _character.transform.SetAsLastSibling();
             foreach (var e in _speed) if (e.InFront) e.Img.transform.SetAsLastSibling();
@@ -629,6 +702,7 @@ namespace Dipan.Intro
         {
             _gradientSprite = SpriteOf(MakeGradient(8, 256));
             _softCircleSprite = SpriteOf(MakeSoftCircle(256));
+            _manjiSprite = SpriteOf(MakeManji(512));
             _vignetteSprite = SpriteOf(MakeVignette(512));
             _whiteSprite = SpriteOf(MakeSolid(4, 4, Color.white));
             _streakTex = MakeStreak(512, 512, seed: 7, density: SideSpeedDensity);
@@ -760,6 +834,65 @@ namespace Dipan.Intro
                     float a = Mathf.Clamp01(1f - r);
                     a = a * a;   // 柔邊
                     px[y * size + x] = new Color(1, 1, 1, a);
+                }
+            t.SetPixels(px); t.Apply();
+            return t;
+        }
+
+        // 佛教卍字（左旋＝逆時針，神聖法輪）；草書狂野風：粗筆、毛筆提按(寬度起伏)、邊緣毛躁、
+        // 腳尖收鋒(飛白)、略帶斜勢。純程式畫、白色 RGBA，顏色由 Image.color 染。
+        static Texture2D MakeManji(int n)
+        {
+            var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
+            var px = new Color[n * n];
+            float c = (n - 1) * 0.5f;
+            float L = n * 0.285f;          // 臂長
+            float F = n * 0.245f;          // 腳長（拉長＋收鋒）
+            float baseHalf = n * 0.062f;   // 粗筆
+            float shear = 0.07f;           // 斜勢（草書傾筆）
+
+            // 段：ax,ay,bx,by,taperB（b 端＝外側腳尖，收鋒成尖）
+            var seg = new float[][]
+            {
+                new[]{ -L, 0f,  L, 0f, 0f },
+                new[]{ 0f,-L,  0f, L, 0f },
+                new[]{ 0f, L, -F, L, 1f },   // 上臂 → 左
+                new[]{ -L, 0f,-L,-F, 1f },   // 左臂 → 下
+                new[]{ 0f,-L,  F,-L, 1f },   // 下臂 → 右
+                new[]{  L, 0f,  L, F, 1f },   // 右臂 → 上
+            };
+
+            for (int y = 0; y < n; y++)
+                for (int x = 0; x < n; x++)
+                {
+                    float qx = x - c, qy = y - c;
+                    qx += shear * qy;   // 斜勢
+
+                    float best = 0f;
+                    for (int i = 0; i < seg.Length; i++)
+                    {
+                        var s = seg[i];
+                        float vx = s[2] - s[0], vy = s[3] - s[1];
+                        float wx = qx - s[0], wy = qy - s[1];
+                        float len2 = vx * vx + vy * vy;
+                        float tt = len2 > 1e-4f ? Mathf.Clamp01((wx * vx + wy * vy) / len2) : 0f;
+                        float cx = s[0] + tt * vx, cy = s[1] + tt * vy;
+                        float d = Mathf.Sqrt((qx - cx) * (qx - cx) + (qy - cy) * (qy - cy));
+
+                        // 毛筆提按：沿筆寬度起伏。
+                        float w = baseHalf * (0.68f + 0.62f * Mathf.PerlinNoise(i * 5.3f + tt * 4.2f, 1.3f));
+                        // 腳尖收鋒成尖。
+                        if (s[4] > 0.5f) w *= Mathf.SmoothStep(0f, 0.34f, 1f - tt);
+                        // 邊緣毛躁。
+                        float en = (Mathf.PerlinNoise(qx * 0.05f + 9f, qy * 0.05f + 4f) - 0.5f) * baseHalf * 0.85f;
+                        float a = Mathf.Clamp01((w + en - d) / (baseHalf * 0.42f));
+                        // 飛白（乾筆）。
+                        float dry = Mathf.PerlinNoise(qx * 0.035f - 3f, qy * 0.035f + i * 2f);
+                        a *= Mathf.Clamp01(0.5f + 0.95f * dry);
+
+                        best = Mathf.Max(best, a);
+                    }
+                    px[y * n + x] = new Color(1f, 1f, 1f, Mathf.Clamp01(best));
                 }
             t.SetPixels(px); t.Apply();
             return t;

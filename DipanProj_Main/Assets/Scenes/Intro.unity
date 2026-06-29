@@ -176,6 +176,14 @@ MonoBehaviour:
   ColorShiftSeconds: 1.5
   EnableWarp: 1
   WarpStrength: 1
+  ShowManji: 1
+  ManjiRotateSpeed: 50
+  ManjiSizeFraction: 1.4
+  ManjiAlpha: 0.84
+  ManjiGold: {r: 1, g: 0.8, b: 0.42, a: 1}
+  ManjiPurple: {r: 0.56, g: 0.3, b: 0.78, a: 1}
+  ManjiImage: {fileID: 0}
+  ManjiTintImage: 1
   AutoLoadNextScene: 1
   NextSceneName: SampleScene
   SkipKey: 27
