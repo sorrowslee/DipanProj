@@ -82,7 +82,7 @@ namespace Dipan.Intro
 
         [Header("收尾轉場")]
         [Tooltip("墜落結束後自動載入下一個場景")] public bool AutoLoadNextScene = true;
-        [Tooltip("下一個場景名（需加進 Build Settings）")] public string NextSceneName = "SampleScene";
+        [Tooltip("下一個場景名（需加進 Build Settings）")] public string NextSceneName = "MainScene";
 
         [Header("測試（正式上線可關）")]
         public KeyCode SkipKey = KeyCode.Escape;      // 直接收尾

@@ -185,7 +185,7 @@ MonoBehaviour:
   ManjiImage: {fileID: 0}
   ManjiTintImage: 1
   AutoLoadNextScene: 1
-  NextSceneName: SampleScene
+  NextSceneName: MainScene
   SkipKey: 27
   ReplayKey: 114
   Palette: []
@@ -455,7 +455,7 @@ MonoBehaviour:
   SkipKey: 27
   FallToTrigger: {fileID: 677678038}
   AutoLoadNextScene: 0
-  NextSceneName: SampleScene
+  NextSceneName: MainScene
   ShowDebugHud: 1
 --- !u!4 &1748471241
 Transform:

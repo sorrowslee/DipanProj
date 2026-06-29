@@ -88,7 +88,7 @@ namespace Dipan.Intro
         [Tooltip("播完要接的墜落控制器；場景中先停用它的 GameObject、拖進來，播完自動啟用")]
         public IntroFallController FallToTrigger;
         public bool AutoLoadNextScene = false;
-        public string NextSceneName = "SampleScene";
+        public string NextSceneName = "MainScene";
 
         public event Action OnComplete;
 

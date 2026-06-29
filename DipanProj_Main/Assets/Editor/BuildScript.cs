@@ -98,7 +98,7 @@ public class BuildScript
         }
 
         BuildPlayerOptions options = new BuildPlayerOptions();
-        options.scenes = new[] { "Assets/Scenes/SampleScene.unity" };
+        options.scenes = new[] { "Assets/Scenes/MainScene.unity" };
         options.locationPathName = "Builds/Mac_Test/DipanProject.app";
         options.target = BuildTarget.StandaloneOSX;
         options.options = BuildOptions.None;
@@ -170,7 +170,7 @@ public class BuildScript
         }
 
         BuildPlayerOptions options = new BuildPlayerOptions();
-        options.scenes = new[] { "Assets/Scenes/SampleScene.unity" };
+        options.scenes = new[] { "Assets/Scenes/MainScene.unity" };
         options.locationPathName = WinExe;
         options.target = BuildTarget.StandaloneWindows64;
         options.options = clean ? BuildOptions.CleanBuildCache : BuildOptions.None;
