@@ -960,11 +960,20 @@
       "frameCount": 1
     },
     {
-      "id": "Modules/Tutorial/Environment/GroundStone",
-      "path": "Modules/Tutorial/Environment/GroundStone.png",
+      "id": "Modules/Tutorial/Environment/fireLight",
+      "path": "Modules/Tutorial/Environment/fireLight.png",
       "category": "Environment",
       "module": "Tutorial",
-      "pixelSize": 1024,
+      "pixelSize": 398,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/Tutorial/Background/Stage_Cave",
+      "path": "Modules/Tutorial/Background/Stage_Cave.png",
+      "category": "Background",
+      "module": "Tutorial",
+      "pixelSize": 1448,
       "ppu": 256,
       "frameCount": 1
     },

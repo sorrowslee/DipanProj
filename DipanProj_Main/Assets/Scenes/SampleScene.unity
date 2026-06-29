@@ -745,7 +745,7 @@ MonoBehaviour:
   mapLoader: {fileID: 0}
   mapTable: {fileID: 0}
   playerSpawner: {fileID: 0}
-  startModule: RedBridalGown
+  startModule: Tutorial
   autoStartLevel: 1
 --- !u!1 &652067900
 GameObject:

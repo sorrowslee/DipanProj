@@ -90,9 +90,6 @@ namespace Dipan.Intro
         public bool AutoLoadNextScene = false;
         public string NextSceneName = "SampleScene";
 
-        [Header("除錯（正式關閉）")]
-        public bool ShowDebugHud = false;
-
         public event Action OnComplete;
 
         // ───────────── 內部 ─────────────
@@ -105,8 +102,8 @@ namespace Dipan.Intro
         float _autoTimer = -1f;
         readonly Dictionary<string, Texture2D> _texCache = new();
         Sprite _whiteSprite, _vignetteSprite;
-        Image _vignette;
-        Text _hud;
+        Image _backdrop, _vignette;
+        Text _skip;
 
         class PageView
         {
@@ -141,9 +138,12 @@ namespace Dipan.Intro
         {
             float dt = Time.unscaledDeltaTime;
 
+            bool mouseDown = Input.GetMouseButtonDown(0);
+            bool overSkip = mouseDown && OverSkip();
+
             if (Input.GetKeyDown(ReplayKey)) { ResetAll(); return; }
-            if (Input.GetKeyDown(SkipKey)) { Complete(); return; }
-            bool advance = Input.GetKeyDown(AdvanceKey) || (ClickToAdvance && Input.GetMouseButtonDown(0));
+            if (Input.GetKeyDown(SkipKey) || overSkip) { DoSkip(); return; }
+            bool advance = Input.GetKeyDown(AdvanceKey) || (ClickToAdvance && mouseDown && !overSkip);
 
             if (!_began)
             {
@@ -162,12 +162,24 @@ namespace Dipan.Intro
             AnimateFading(dt);
 
             if (_vignette) _vignette.transform.SetAsLastSibling();
-            if (_hud != null)
+            if (_skip) _skip.transform.SetAsLastSibling();   // Skip 永遠在最上層
+        }
+
+        // Skip：漫畫中按＝跳到墜落動畫；墜落中再按＝結束墜落、進 trigger 場景。
+        void DoSkip()
+        {
+            if (!_done) { Complete(); }                       // 第一段：結束漫畫 → 接墜落動畫
+            else if (FallToTrigger != null)
             {
-                _hud.transform.SetAsLastSibling();
-                int focs = (_pageIdx >= 0 && _pageIdx < Pages.Count) ? Mathf.Max(1, Pages[_pageIdx].Focuses?.Length ?? 1) : 0;
-                _hud.text = $"IntroComic  began:{_began}  頁:{_pageIdx + 1}/{Pages.Count}  格:{_focusIdx + 1}/{focs}  done:{_done}\n(空白鍵/點畫面=下一格  R=重播  Esc=跳尾) — 沒反應請先點 Game 視窗給鍵盤焦點";
+                if (_skip) _skip.gameObject.SetActive(false);
+                FallToTrigger.Skip();                         // 第二段：結束墜落 → 載入 trigger 場景
             }
+        }
+
+        bool OverSkip()
+        {
+            return _skip != null && _skip.gameObject.activeInHierarchy
+                && RectTransformUtility.RectangleContainsScreenPoint(_skip.rectTransform, Input.mousePosition, null);
         }
 
         // ───────────── 流程 ─────────────
@@ -181,6 +193,11 @@ namespace Dipan.Intro
             _fading.Clear();
             _pageIdx = -1; _focusIdx = 0; _autoTimer = -1f; _done = false; _began = false;
             _delayLeft = Mathf.Max(0f, StartDelay);
+            // 還原舞台（重播時）
+            if (_skip) _skip.gameObject.SetActive(true);
+            if (_backdrop) _backdrop.enabled = true;
+            if (_vignette) _vignette.enabled = true;
+            if (_canvas) { _canvas.enabled = true; _canvas.sortingOrder = 1000; }
         }
 
         public void Advance()
@@ -232,8 +249,15 @@ namespace Dipan.Intro
 
             if (FallToTrigger != null)
             {
+                // 清掉漫畫畫面，只留右上角 Skip 浮在墜落動畫之上（不關整個 canvas）。
+                if (_cur != null && _cur.Go) Destroy(_cur.Go);
+                _cur = null;
+                for (int i = _fading.Count - 1; i >= 0; i--) if (_fading[i].Go) Destroy(_fading[i].Go);
+                _fading.Clear();
+                if (_backdrop) _backdrop.enabled = false;
+                if (_vignette) _vignette.enabled = false;
+                if (_canvas) _canvas.sortingOrder = 1100;   // 蓋在墜落 canvas(1000) 之上
                 FallToTrigger.gameObject.SetActive(true);
-                if (_canvas) _canvas.enabled = false;
                 return;
             }
             if (AutoLoadNextScene && !string.IsNullOrEmpty(NextSceneName))
@@ -407,28 +431,36 @@ namespace Dipan.Intro
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
             _root = canvasGo.GetComponent<RectTransform>();
 
-            if (ShowBackdrop) { var bd = NewImage(_root, "Backdrop", _whiteSprite, BackdropColor); Stretch((RectTransform)bd.transform); }
+            if (ShowBackdrop) { _backdrop = NewImage(_root, "Backdrop", _whiteSprite, BackdropColor); Stretch((RectTransform)_backdrop.transform); }
             if (ShowVignette) { _vignette = NewImage(_root, "Vignette", _vignetteSprite, new Color(0, 0, 0, 0.9f)); Stretch((RectTransform)_vignette.transform); }
 
             _built = true;
-            BuildDebugHud();
+            BuildSkip();
         }
 
-        void BuildDebugHud()
+        // 右上角「Skip」字樣：粗體、放大、無背景、帶外框讓任何底色都看得到。
+        void BuildSkip()
         {
-            if (!ShowDebugHud || _hud != null) return;
+            if (_skip != null) return;
             Font font = null;
             try { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); } catch { }
             if (font == null) { try { font = Resources.GetBuiltinResource<Font>("Arial.ttf"); } catch { } }
-            var go = new GameObject("DebugHud", typeof(RectTransform));
+
+            var go = new GameObject("Skip", typeof(RectTransform));
             go.transform.SetParent(_root, false);
             var rt = (RectTransform)go.transform;
-            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0f, 1f);
-            rt.anchoredPosition = new Vector2(24f, -24f);
-            rt.sizeDelta = new Vector2(1700f, 90f);
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);   // 右上角
+            rt.anchoredPosition = new Vector2(-52f, -40f);
+            rt.sizeDelta = new Vector2(380f, 130f);                         // 點擊範圍
             var t = go.AddComponent<Text>();
-            t.font = font; t.fontSize = 30; t.color = new Color(1f, 1f, 0.55f, 0.95f); t.raycastTarget = false;
-            _hud = t;
+            t.font = font; t.fontSize = 78; t.fontStyle = FontStyle.Bold;
+            t.alignment = TextAnchor.UpperRight;
+            t.color = new Color(1f, 1f, 1f, 0.92f);
+            t.text = "Skip";
+            var outline = go.AddComponent<Outline>();
+            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            outline.effectDistance = new Vector2(3f, -3f);
+            _skip = t;
         }
 
         Texture2D LoadTex(string image)
