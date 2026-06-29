@@ -7,445 +7,383 @@ using UnityEngine.SceneManagement;
 namespace Dipan.Intro
 {
     /// <summary>
-    /// 序章「韓漫式開場漫畫」播放器（全程式建構、零 prefab、零美術接線）。
+    /// 序章「整頁漫畫 + 導讀式鏡頭」播放器（全程式建構、零 prefab）。
     ///
-    /// 玩法：每按一次空白鍵（或點畫面），下一格分鏡從指定方向「滑入」畫面、累積成構圖；
-    /// 到情緒轉折（叢集 Cluster 改變）會先清空前面所有格、換下一組構圖；
-    /// 最後幾格（墜落）標成 Fullscreen，會清空全部、用整個畫面、依 HoldSeconds 自動計時換圖，
-    /// 播完接 IntroFallController（墜落程式動畫）或載入下一個場景。
+    /// 做法：每一「頁」是一張你自己排好版的完成圖。程式把整頁放大，鏡頭依序對焦每一「格」
+    /// （你在 Focuses 填每格在頁面上的矩形），平移＋縮放讓那一格填滿畫面、看得清楚；按空白鍵
+    /// 鏡頭移到下一格，整頁看完換下一頁。最後幾頁可設 Fullscreen（下墜：全篇幅、自動每 N 秒換），
+    /// 播完接 IntroFallController 或載入下一個場景。
     ///
-    /// 「只露出重要部分」＝白框是一個視窗，圖在 runtime 依每格的 Crop（正規化子矩形）裁切後填滿白框。
-    /// 所以「露出哪一塊」「擺哪裡」「從哪滑入」「轉幾度」全部是 Inspector 上的資料，改數字即可，不動程式。
+    /// 對齊與解析度由「你出的整頁高解析圖」決定（程式只負責鏡頭運動），所以對得準、夠清晰。
     ///
-    /// 設計同 IntroFallController：自己在 Awake 建一套 Screen-Space Overlay Canvas。
-    /// 圖走 Resources/InitialStory/Story_NN（用 Texture2D 載入＋Sprite.Create 裁切，不挑 import 類型）。
-    ///
-    /// 測試鍵：空白鍵/點畫面＝下一格；R＝重播；Esc＝直接跳到結尾。
+    /// 測試鍵：空白鍵/點畫面＝下一格/下一頁；R＝重播；Esc＝直接跳結尾。
     /// </summary>
     [DisallowMultipleComponent]
     public class IntroComicController : MonoBehaviour
     {
-        public enum SlideDir { Left, Right, Top, Bottom, FadeOnly }
-
-        /// <summary>一格分鏡的完整設定（全部 Inspector 可調，方便反覆微調）。</summary>
+        /// <summary>一個鏡頭（一格或一組）。</summary>
         [Serializable]
-        public class ComicPanel
+        public class Focus
         {
-            [Tooltip("圖名（對應 Resources/InitialStory/ 下的檔名，不含副檔名），例如 Story_01")]
-            public string Image = "Story_01";
+            [Tooltip("這格/這組在頁面上的矩形：x,y=左上角，w,h=寬高，皆為頁面比例 0~1，y 由上往下。要綁兩格就框住兩格（中心會落在兩格之間）")]
+            public Rect Area = new Rect(0f, 0f, 1f, 0.3f);
 
-            [Tooltip("叢集編號：相同編號的格會累積在同一畫面；編號一變＝先清空前面所有格再演下一組")]
-            public int Cluster = 0;
+            [Tooltip("縮放微調：1=這格剛好填滿；>1 更近(裁更多)、<1 拉遠(留邊)")]
+            public float Zoom = 1f;
 
-            [Tooltip("白框在畫面上的位置（0~1，左下=0,0 右上=1,1；x 0.5=水平置中）")]
-            public Vector2 Pos = new Vector2(0.5f, 0.5f);
+            [Tooltip("左右微調：正數=畫面內容往右移，負數往左。單位=螢幕寬比例(0.1≈10%)")]
+            public float XOffset = 0f;
 
-            [Tooltip("白框高度 = 參考螢幕高(1080) × 此值；寬度依裁切後的長寬比自動算")]
-            [Range(0.1f, 1.2f)] public float HeightFrac = 0.7f;
+            [Tooltip("上下微調：正數=畫面內容往上移(修正『這格太靠下』)，負數往下。單位=螢幕高比例(0.1≈10%)")]
+            public float YOffset = 0f;
+        }
 
-            [Tooltip("露出原圖的哪一塊（正規化：x,y 左下角；w,h 寬高；(0,0,1,1)=整張）。y 由下往上")]
-            public Rect Crop = new Rect(0f, 0f, 1f, 1f);
+        /// <summary>一頁的設定。</summary>
+        [Serializable]
+        public class ComicPage
+        {
+            [Tooltip("頁面圖名（Resources/InitialStory/ 下的檔名，不含副檔名），例如 Page_01")]
+            public string Image = "Page_01";
 
-            [Tooltip("白框旋轉角度（度，正=逆時針）")]
-            public float Rotation = 0f;
+            [Tooltip("依序對焦的鏡頭清單。鏡頭會一格一格移過去；留空＝整頁當一格")]
+            public Focus[] Focuses = new Focus[0];
 
-            [Tooltip("從哪個方向滑入畫面")]
-            public SlideDir From = SlideDir.Right;
-
-            [Tooltip("是否由程式套白框＋裁切。成品圖（已自帶框/對白）關掉＝原樣呈現；純插畫開著＝程式幫你框")]
-            public bool DrawFrame = true;
-
-            [Tooltip("滑入時間（秒）；0 或負＝用全域 DefaultSlideSeconds")]
-            public float SlideSeconds = 0f;
-
-            [Tooltip("彈入回彈感（overshoot）：給「重擊格」用，例如抓手腕那一格")]
-            public bool Punch = false;
-
-            [Tooltip("滑入後輕微抖動一下：給「斷裂格」那種衝擊用")]
-            public bool Shake = false;
-
-            [Tooltip("全篇幅特寫：清空所有格、填滿整個畫面（給墜落 09~11）")]
+            [Tooltip("全篇幅模式（給下墜 13~15）：不對焦、整張 cover 滿版、依 HoldSeconds 自動換")]
             public bool Fullscreen = false;
 
-            [Tooltip("全篇幅自動換圖的停留秒數；>0＝到時自動演下一格，<=0＝等玩家按鍵")]
+            [Tooltip("Fullscreen 自動換頁停留秒數；>0=到時自動下一頁，<=0=等按鍵")]
             public float HoldSeconds = 0f;
         }
 
-        // ───────────── Inspector 設定 ─────────────
+        // ───────────── Inspector ─────────────
 
-        [Header("分鏡清單（留空＝自動帶入 Story_01~11 的首版排版）")]
-        public List<ComicPanel> Panels = new List<ComicPanel>();
+        [Header("頁面清單（留空＝帶入 Page_01~03 + 下墜 Story_13~15 的預設）")]
+        public List<ComicPage> Pages = new List<ComicPage>();
 
         [Header("圖來源")]
-        [Tooltip("Resources 路徑前綴；圖放在 Resources/InitialStory/Story_NN")]
         public string ResourcePrefix = "InitialStory/";
 
-        [Header("舞台底（別讓漫畫浮在預設藍底上）")]
-        [Tooltip("鋪一塊深色氛圍底，蓋掉攝影機預設色")] public bool ShowBackdrop = true;
-        [Tooltip("底色（深、偏冷的暗色最有氛圍）")] public Color BackdropColor = new Color(0.05f, 0.055f, 0.07f, 1f);
-        [Tooltip("四角壓暗的暗角，增加聚焦與氛圍")] public bool ShowVignette = true;
+        [Header("鏡頭")]
+        [Tooltip("焦點格是否填滿整個畫面（cover，可能裁掉一點邊）；關閉＝完整顯示整格(fit，邊緣會看到鄰格)。每格的 Zoom 在此基礎上微調")]
+        public bool FillScreen = true;
+        [Tooltip("鏡頭平移/縮放到下一格的時間（秒）")] public float PanSeconds = 0.6f;
+        [Tooltip("進每一頁時，從『整頁』推進到第一格的時間（秒）")] public float EnterSeconds = 0.7f;
 
-        [Header("白框外觀")]
-        [Tooltip("框色（純白偏冷硬；暖白像舊照片更有質感）")] public Color FrameColor = new Color(0.96f, 0.95f, 0.92f, 1f);
-        [Tooltip("白框邊框厚度（參考解析度像素）")] public float FrameBorder = 14f;
-        [Tooltip("白框後方的柔和投影")] public bool ShowShadow = true;
-        [Tooltip("投影顏色/濃度")] public Color ShadowColor = new Color(0f, 0f, 0f, 0.45f);
-        [Tooltip("投影偏移")] public Vector2 ShadowOffset = new Vector2(14f, -20f);
-        [Tooltip("投影比白框外擴多少（參考像素），越大越柔越散")] public float ShadowSpread = 38f;
+        [Header("舞台底")]
+        public bool ShowBackdrop = true;
+        public Color BackdropColor = new Color(0.05f, 0.055f, 0.07f, 1f);
+        public bool ShowVignette = true;
 
-        [Header("滑入手感")]
-        [Tooltip("沒在該格指定 SlideSeconds 時用的預設滑入時間")] public float DefaultSlideSeconds = 0.45f;
-        [Tooltip("清空舊格時的淡出時間")] public float ClearFadeSeconds = 0.3f;
-        [Tooltip("起播前延遲（秒）")] public float StartDelay = 0.3f;
+        [Header("換頁手感")]
+        public float ClearFadeSeconds = 0.35f;
+        public float StartDelay = 0.3f;
 
         [Header("操作鍵")]
         public KeyCode AdvanceKey = KeyCode.Space;
-        [Tooltip("是否也能用滑鼠左鍵點畫面推進")] public bool ClickToAdvance = true;
+        public bool ClickToAdvance = true;
         public KeyCode ReplayKey = KeyCode.R;
         public KeyCode SkipKey = KeyCode.Escape;
 
-        [Header("收尾轉場（三選一優先序：Fall > 載場景 > 只發事件）")]
-        [Tooltip("漫畫播完要接的墜落控制器；場景中先把它的 GameObject 停用，這裡拖進來。播完會自動啟用它（自動開始墜落）")]
+        [Header("收尾轉場（優先序：Fall > 載場景 > 只發事件）")]
+        [Tooltip("播完要接的墜落控制器；場景中先停用它的 GameObject、拖進來，播完自動啟用")]
         public IntroFallController FallToTrigger;
-        [Tooltip("沒有指定墜落控制器時，是否自動載入下一個場景")] public bool AutoLoadNextScene = false;
-        [Tooltip("下一個場景名（需加進 Build Settings）")] public string NextSceneName = "SampleScene";
+        public bool AutoLoadNextScene = false;
+        public string NextSceneName = "SampleScene";
 
-        [Header("除錯（排查用，正式關閉）")]
-        [Tooltip("在畫面左上角顯示目前狀態（排查輸入/進度），並印 Console log")]
+        [Header("除錯（正式關閉）")]
         public bool ShowDebugHud = false;
 
-        /// <summary>漫畫播完時觸發；外部可接「開始墜落 / 載遊戲」。</summary>
         public event Action OnComplete;
 
-        // ───────────── 內部狀態 ─────────────
+        // ───────────── 內部 ─────────────
 
         Canvas _canvas;
         RectTransform _root;
-        bool _built;
-        bool _began;
-        bool _done;
+        bool _built, _began, _done;
         float _delayLeft;
-        int _index = -1;            // 目前播到第幾格
-        int _curCluster = int.MinValue;
-        float _autoTimer = -1f;     // 全篇幅自動換圖計時（<0＝不計時）
-
+        int _pageIdx = -1, _focusIdx = 0;
+        float _autoTimer = -1f;
         readonly Dictionary<string, Texture2D> _texCache = new();
+        Sprite _whiteSprite, _vignetteSprite;
+        Image _vignette;
+        Text _hud;
 
-        // 一個畫面上的活動格
-        class View
+        class PageView
         {
             public GameObject Go;
-            public RectTransform Rt;
             public CanvasGroup Cg;
-            public Vector2 FromPos, RestPos;
-            public float T, Dur, RotZ;
-            public bool Punch, Shake;
-            public enum St { In, Rest, Out }
-            public St State;
-            public float OutT;
+            public RectTransform PageRT;     // 整頁圖（縮放/平移做鏡頭）
+            public float PageW0, PageH0;     // scale=1 時的頁面像素大小（H0=1080=整頁滿高）
+            public bool Fullscreen;
+            // 鏡頭運動
+            public float ScaleCur, ScaleFrom, ScaleTo;
+            public Vector2 PosCur, PosFrom, PosTo;
+            public float AnimT, AnimDur;
+            public bool Animating;
+            // 進場/淡出
+            public bool FadingOut; public float FadeT;
         }
-        readonly List<View> _views = new();
-
-        Sprite _whiteSprite, _vignetteSprite, _softBlobSprite;
-        Text _hud;
+        PageView _cur;
+        readonly List<PageView> _fading = new();
 
         // ───────────── 生命週期 ─────────────
 
         void Awake()
         {
             BuildCanvas();
-            if (Panels == null || Panels.Count == 0) Panels = BuildDefaultPanels();
-            Debug.Log($"[IntroComic] Awake：Panels={Panels.Count} 筆、AdvanceKey={AdvanceKey}、ClickToAdvance={ClickToAdvance}");
+            if (Pages == null || Pages.Count == 0) Pages = BuildDefaultPages();
+            Debug.Log($"[IntroComic] Awake：Pages={Pages.Count}、AdvanceKey={AdvanceKey}");
         }
 
-        void OnEnable()
-        {
-            ResetAll();
-        }
+        void OnEnable() => ResetAll();
 
         void Update()
         {
             float dt = Time.unscaledDeltaTime;
 
-            // 操作鍵
             if (Input.GetKeyDown(ReplayKey)) { ResetAll(); return; }
-            if (Input.GetKeyDown(SkipKey)) { SkipToEnd(); return; }
+            if (Input.GetKeyDown(SkipKey)) { Complete(); return; }
             bool advance = Input.GetKeyDown(AdvanceKey) || (ClickToAdvance && Input.GetMouseButtonDown(0));
 
-            // 起播延遲後自動顯示第一格
             if (!_began)
             {
                 _delayLeft -= dt;
                 if (_delayLeft <= 0f) { _began = true; Advance(); }
             }
-            else if (advance)
-            {
-                Advance();
-            }
+            else if (advance) Advance();
 
-            // 全篇幅自動換圖
             if (_autoTimer > 0f)
             {
                 _autoTimer -= dt;
-                if (_autoTimer <= 0f)
-                {
-                    _autoTimer = -1f;
-                    if (_index >= Panels.Count - 1) Complete();
-                    else Advance();
-                }
+                if (_autoTimer <= 0f) { _autoTimer = -1f; Advance(); }
             }
 
-            AnimateViews(dt);
+            AnimateCamera(dt);
+            AnimateFading(dt);
 
+            if (_vignette) _vignette.transform.SetAsLastSibling();
             if (_hud != null)
             {
                 _hud.transform.SetAsLastSibling();
-                _hud.text = $"IntroComic  began:{_began}  進度:{_index + 1}/{(Panels?.Count ?? 0)}  delay:{Mathf.Max(0f, _delayLeft):0.00}  done:{_done}  views:{_views.Count}\n(空白鍵/點畫面=下一格  R=重播  Esc=跳尾) — 若沒反應請先點一下 Game 視窗給它鍵盤焦點";
+                int focs = (_pageIdx >= 0 && _pageIdx < Pages.Count) ? Mathf.Max(1, Pages[_pageIdx].Focuses?.Length ?? 1) : 0;
+                _hud.text = $"IntroComic  began:{_began}  頁:{_pageIdx + 1}/{Pages.Count}  格:{_focusIdx + 1}/{focs}  done:{_done}\n(空白鍵/點畫面=下一格  R=重播  Esc=跳尾) — 沒反應請先點 Game 視窗給鍵盤焦點";
             }
         }
 
-        // ───────────── 公開 API ─────────────
+        // ───────────── 流程 ─────────────
 
         public void ResetAll()
         {
             if (!_built) BuildCanvas();
-            for (int i = _views.Count - 1; i >= 0; i--) if (_views[i].Go) Destroy(_views[i].Go);
-            _views.Clear();
-            _index = -1;
-            _curCluster = int.MinValue;
-            _autoTimer = -1f;
-            _done = false;
-            _began = false;
+            if (_cur != null && _cur.Go) Destroy(_cur.Go);
+            _cur = null;
+            for (int i = _fading.Count - 1; i >= 0; i--) if (_fading[i].Go) Destroy(_fading[i].Go);
+            _fading.Clear();
+            _pageIdx = -1; _focusIdx = 0; _autoTimer = -1f; _done = false; _began = false;
             _delayLeft = Mathf.Max(0f, StartDelay);
         }
 
-        /// <summary>直接跳到最後一格的結尾（測試用）。</summary>
-        public void SkipToEnd()
-        {
-            if (_done) return;
-            Complete();
-        }
-
-        /// <summary>推進到下一格。</summary>
         public void Advance()
         {
             if (_done) return;
-            if (Panels == null || Panels.Count == 0) { Debug.LogError("[IntroComic] Panels 是空的，無法播放（檢查 Awake 是否有跑、或 Inspector 自行清空了清單）。"); return; }
+            if (Pages == null || Pages.Count == 0) { Debug.LogError("[IntroComic] Pages 是空的。"); return; }
 
-            // 推進前先把仍在滑入的格瞬間定位（避免按太快卡在半路）
-            foreach (var v in _views) if (v.State == View.St.In) { v.Rt.anchoredPosition = v.RestPos; v.Cg.alpha = 1f; v.State = View.St.Rest; }
+            if (_cur != null && _cur.Animating) { SnapCamera(); return; }   // 移動中按鍵＝立刻定位
 
-            if (_index >= Panels.Count - 1) { Complete(); return; }
-            _index++;
-            var p = Panels[_index];
-            Debug.Log($"[IntroComic] Advance → #{_index} {p.Image}（cluster {p.Cluster}, fullscreen {p.Fullscreen}）");
+            var page = (_pageIdx >= 0 && _pageIdx < Pages.Count) ? Pages[_pageIdx] : null;
+            int focusCount = (page != null && page.Focuses != null) ? page.Focuses.Length : 0;
 
-            // 叢集改變（或進入全篇幅）＝先清空前面所有格
-            if (p.Cluster != _curCluster || p.Fullscreen)
+            if (page != null && !page.Fullscreen && _focusIdx < focusCount - 1)
             {
-                ClearAll();
-                _curCluster = p.Cluster;
+                _focusIdx++;
+                StartPan(FocusOf(page, _focusIdx), PanSeconds);
             }
-
-            SpawnView(p);
-
-            // 全篇幅自動計時
-            _autoTimer = (p.Fullscreen && p.HoldSeconds > 0f) ? p.HoldSeconds : -1f;
-        }
-
-        // ───────────── 顯示一格 ─────────────
-
-        void SpawnView(ComicPanel p)
-        {
-            var tex = LoadTex(p.Image);
-            if (tex == null)
+            else
             {
-                Debug.LogWarning($"[IntroComic] 找不到圖 Resources/{ResourcePrefix}{p.Image}");
-                return;
-            }
-
-            if (p.Fullscreen) { SpawnFullscreen(p, tex); return; }
-
-            int tw = tex.width, th = tex.height;
-            Rect c = p.Crop;
-            var pr = new Rect(
-                Mathf.Clamp01(c.x) * tw,
-                Mathf.Clamp01(c.y) * th,
-                Mathf.Clamp01(c.width) * tw,
-                Mathf.Clamp01(c.height) * th);
-            if (pr.width < 2f || pr.height < 2f) { pr = new Rect(0, 0, tw, th); }
-            var sprite = Sprite.Create(tex, pr, new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
-
-            float frameH = p.HeightFrac * 1080f;
-            float cropAspect = pr.width / Mathf.Max(1f, pr.height);
-            float frameW = frameH * cropAspect;
-
-            // 根（定位＋旋轉＋淡入用 CanvasGroup）
-            var go = new GameObject("Panel_" + p.Image, typeof(RectTransform));
-            go.transform.SetParent(_root, false);
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = rt.anchorMax = p.Pos;
-            rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(frameW, frameH);
-            rt.localEulerAngles = new Vector3(0, 0, p.Rotation);
-            var cg = go.AddComponent<CanvasGroup>();
-
-            // 柔和投影（用羽化 blob，外擴 ShadowSpread）
-            if (ShowShadow)
-            {
-                var sh = NewImage(rt, "Shadow", _softBlobSprite, ShadowColor);
-                var srt = (RectTransform)sh.transform;
-                Stretch(srt);
-                srt.offsetMin = new Vector2(-ShadowSpread + ShadowOffset.x, -ShadowSpread + ShadowOffset.y);
-                srt.offsetMax = new Vector2(ShadowSpread + ShadowOffset.x, ShadowSpread + ShadowOffset.y);
-            }
-
-            // 白框（成品圖可關，DrawFrame=false 時原樣呈現）
-            if (p.DrawFrame)
-            {
-                var frame = NewImage(rt, "Frame", _whiteSprite, FrameColor);
-                Stretch((RectTransform)frame.transform);
-            }
-
-            // 內容（裁切後的圖；有框就內縮邊框厚度，無框則填滿）
-            float pad = p.DrawFrame ? FrameBorder : 0f;
-            var content = NewImage(rt, "Art", sprite, Color.white);
-            var crt = (RectTransform)content.transform;
-            Stretch(crt);
-            crt.offsetMin = new Vector2(pad, pad);
-            crt.offsetMax = new Vector2(-pad, -pad);
-            content.type = Image.Type.Simple;
-            content.preserveAspect = false;
-
-            RegisterView(go, rt, cg, Vector2.zero, SlideOffset(p.From), DurOf(p), p.Punch, p.Shake);
-        }
-
-        void SpawnFullscreen(ComicPanel p, Texture2D tex)
-        {
-            Rect c = p.Crop;
-            int tw = tex.width, th = tex.height;
-            var pr = new Rect(Mathf.Clamp01(c.x) * tw, Mathf.Clamp01(c.y) * th,
-                              Mathf.Clamp01(c.width) * tw, Mathf.Clamp01(c.height) * th);
-            if (pr.width < 2f || pr.height < 2f) pr = new Rect(0, 0, tw, th);
-            var sprite = Sprite.Create(tex, pr, new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
-
-            var go = new GameObject("Full_" + p.Image, typeof(RectTransform));
-            go.transform.SetParent(_root, false);
-            var rt = (RectTransform)go.transform;
-            Stretch(rt);
-            var cg = go.AddComponent<CanvasGroup>();
-
-            // 黑底
-            var bg = NewImage(rt, "BG", _whiteSprite, Color.black);
-            Stretch((RectTransform)bg.transform);
-
-            // 圖：等比放大到「覆蓋」整個畫面（cover），多餘裁掉
-            var art = NewImage(rt, "Art", sprite, Color.white);
-            var art_rt = (RectTransform)art.transform;
-            art_rt.anchorMin = art_rt.anchorMax = new Vector2(0.5f, 0.5f);
-            art_rt.pivot = new Vector2(0.5f, 0.5f);
-            float refW = 1920f, refH = 1080f;
-            float imgAspect = pr.width / Mathf.Max(1f, pr.height);
-            float scrAspect = refW / refH;
-            Vector2 size = imgAspect > scrAspect
-                ? new Vector2(refH * imgAspect, refH)   // 比螢幕寬：高貼齊
-                : new Vector2(refW, refW / imgAspect);  // 比螢幕高：寬貼齊
-            art_rt.sizeDelta = size;
-            art.preserveAspect = false;
-
-            // 全篇幅：純淡入（FadeOnly）
-            RegisterView(go, rt, cg, Vector2.zero, Vector2.zero, DurOf(p), false, false);
-        }
-
-        void RegisterView(GameObject go, RectTransform rt, CanvasGroup cg, Vector2 restPos, Vector2 fromOffset, float dur, bool punch, bool shake)
-        {
-            rt.anchoredPosition = restPos + fromOffset;
-            cg.alpha = (fromOffset == Vector2.zero) ? 0f : 0.001f;
-            var v = new View
-            {
-                Go = go, Rt = rt, Cg = cg,
-                FromPos = restPos + fromOffset, RestPos = restPos,
-                T = 0f, Dur = Mathf.Max(0.05f, dur), RotZ = rt.localEulerAngles.z,
-                Punch = punch, Shake = shake, State = View.St.In, OutT = 0f
-            };
-            _views.Add(v);
-        }
-
-        // ───────────── 動畫推進 ─────────────
-
-        void AnimateViews(float dt)
-        {
-            for (int i = _views.Count - 1; i >= 0; i--)
-            {
-                var v = _views[i];
-                if (v.Go == null) { _views.RemoveAt(i); continue; }
-
-                if (v.State == View.St.In)
-                {
-                    v.T += dt;
-                    float k = Mathf.Clamp01(v.T / v.Dur);
-                    float e = v.Punch ? EaseOutBack(k) : EaseOutCubic(k);
-                    v.Rt.anchoredPosition = Vector2.LerpUnclamped(v.FromPos, v.RestPos, e);
-                    v.Cg.alpha = Mathf.Clamp01(k * 2.5f);
-                    if (k >= 1f)
-                    {
-                        v.Rt.anchoredPosition = v.RestPos;
-                        v.Cg.alpha = 1f;
-                        v.State = View.St.Rest;
-                        if (v.Shake) v.T = 0f; // 借 T 當抖動計時
-                    }
-                }
-                else if (v.State == View.St.Rest && v.Shake)
-                {
-                    v.T += dt;
-                    float dur = 0.4f;
-                    if (v.T < dur)
-                    {
-                        float a = (1f - v.T / dur) * 6f;           // 衰減
-                        float wob = Mathf.Sin(v.T * 50f) * a;       // 度
-                        var ang = v.Rt.localEulerAngles; ang.z = v.RotZ + wob; v.Rt.localEulerAngles = ang;
-                    }
-                    else { var ang = v.Rt.localEulerAngles; ang.z = v.RotZ; v.Rt.localEulerAngles = ang; v.Shake = false; }
-                }
-                else if (v.State == View.St.Out)
-                {
-                    v.OutT += dt;
-                    float k = Mathf.Clamp01(v.OutT / Mathf.Max(0.05f, ClearFadeSeconds));
-                    v.Cg.alpha = 1f - k;
-                    if (k >= 1f) { Destroy(v.Go); _views.RemoveAt(i); }
-                }
+                NextPage();
             }
         }
 
-        void ClearAll()
+        void NextPage()
         {
-            foreach (var v in _views)
-                if (v.State != View.St.Out) { v.State = View.St.Out; v.OutT = 0f; }
-        }
+            _pageIdx++;
+            if (_pageIdx >= Pages.Count) { Complete(); return; }
 
-        // ───────────── 收尾 ─────────────
+            FadeOutCurrent();
+            BuildPage(Pages[_pageIdx]);
+            _focusIdx = 0;
+
+            var p = Pages[_pageIdx];
+            Debug.Log($"[IntroComic] Page → #{_pageIdx} {p.Image}（fullscreen {p.Fullscreen}）");
+            bool hasFocus = p.Focuses != null && p.Focuses.Length > 0;
+            if (p.Fullscreen)
+            {
+                _autoTimer = (p.HoldSeconds > 0f) ? p.HoldSeconds : -1f;
+                if (hasFocus) StartPan(FocusOf(p, 0), EnterSeconds);   // 有指定焦點＝用你框的鏡頭，否則維持 BuildPage 的填滿
+            }
+            else { _autoTimer = -1f; StartPan(FocusOf(p, 0), EnterSeconds); }   // 從整頁推進到第一格
+        }
 
         void Complete()
         {
             if (_done) return;
-            _done = true;
-            _autoTimer = -1f;
-
+            _done = true; _autoTimer = -1f;
             try { OnComplete?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
 
             if (FallToTrigger != null)
             {
-                // 啟用墜落控制器（它的 OnEnable 會自動開始墜落）；漫畫畫面收起來。
                 FallToTrigger.gameObject.SetActive(true);
                 if (_canvas) _canvas.enabled = false;
                 return;
             }
             if (AutoLoadNextScene && !string.IsNullOrEmpty(NextSceneName))
             {
-                if (Application.CanStreamedLevelBeLoaded(NextSceneName))
-                    SceneManager.LoadScene(NextSceneName);
-                else
-                    Debug.LogWarning($"[IntroComic] 下一個場景 '{NextSceneName}' 不在 Build Settings，未載入。");
+                if (Application.CanStreamedLevelBeLoaded(NextSceneName)) SceneManager.LoadScene(NextSceneName);
+                else Debug.LogWarning($"[IntroComic] 場景 '{NextSceneName}' 不在 Build Settings。");
+            }
+        }
+
+        static Focus FocusOf(ComicPage p, int i)
+        {
+            if (p.Focuses != null && i >= 0 && i < p.Focuses.Length) return p.Focuses[i];
+            return new Focus { Area = new Rect(0f, 0f, 1f, 1f), Zoom = 1f, YOffset = 0f };   // 沒填＝整頁
+        }
+
+        // ───────────── 建立一頁 ─────────────
+
+        void BuildPage(ComicPage page)
+        {
+            var tex = LoadTex(page.Image);
+            if (tex == null) { Debug.LogWarning($"[IntroComic] 找不到圖 Resources/{ResourcePrefix}{page.Image}"); return; }
+            float aspect = tex.width / Mathf.Max(1f, (float)tex.height);
+            var sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
+
+            var go = new GameObject("Page_" + page.Image, typeof(RectTransform));
+            go.transform.SetParent(_root, false);
+            var cg = go.AddComponent<CanvasGroup>();
+            var rt = (RectTransform)go.transform;
+            Stretch(rt);
+
+            // 統一用「整頁圖 + 鏡頭」呈現（下墜也走這條，才能用 Focuses 微調、且不被裁）。
+            float pageH0 = 1080f;
+            float pageW0 = pageH0 * aspect;
+            var pageGo = new GameObject("PageImg", typeof(RectTransform)).GetComponent<RectTransform>();
+            pageGo.SetParent(rt, false);
+            pageGo.anchorMin = pageGo.anchorMax = new Vector2(0.5f, 0.5f);
+            pageGo.pivot = new Vector2(0.5f, 0.5f);
+            pageGo.sizeDelta = new Vector2(pageW0, pageH0);
+            var art = pageGo.gameObject.AddComponent<Image>();
+            art.sprite = sprite; art.raycastTarget = false; art.preserveAspect = true;
+
+            var view = new PageView { Go = go, Cg = cg, Fullscreen = page.Fullscreen, PageRT = pageGo, PageW0 = pageW0, PageH0 = pageH0 };
+            cg.alpha = 0f;
+
+            bool hasFocus = page.Focuses != null && page.Focuses.Length > 0;
+            if (page.Fullscreen && !hasFocus)
+            {
+                // 全篇幅但沒指定焦點：填滿畫面(cover)、置中、靜止（消除黑邊）。會裁掉一點上下，
+                // 所以圖請把主角擺在中間一帶，別太靠下。
+                var (s, pos) = CamCover(view);
+                view.ScaleCur = s; view.PosCur = pos; ApplyCam(view, s, pos);
+            }
+            else
+            {
+                // 一般頁：先擺整頁(scale=1)，稍後 pan 到第一格。
+                view.ScaleCur = 1f; view.PosCur = Vector2.zero; ApplyCam(view, 1f, Vector2.zero);
+            }
+
+            _cur = view;
+        }
+
+        // 填滿畫面（cover）、置中。
+        (float scale, Vector2 pos) CamCover(PageView v)
+        {
+            float s = Mathf.Max(1920f / v.PageW0, 1080f / v.PageH0);
+            return (s, Vector2.zero);
+        }
+
+        // 算某個焦點框要的鏡頭 scale 與位移。
+        (float scale, Vector2 pos) CamFor(PageView v, Focus f)
+        {
+            Rect a = f.Area;
+            float fw = Mathf.Max(0.01f, a.width) * v.PageW0;
+            float fh = Mathf.Max(0.01f, a.height) * v.PageH0;
+            float sFit = Mathf.Min(1920f / fw, 1080f / fh);
+            float sFill = Mathf.Max(1920f / fw, 1080f / fh);
+            float s = (FillScreen ? sFill : sFit) * Mathf.Max(0.05f, f.Zoom);
+
+            float fcx = a.x + a.width * 0.5f;
+            float fcy = a.y + a.height * 0.5f;
+            float offX = (fcx - 0.5f) * v.PageW0;        // 焦點中心相對頁面中心（scale=1, px）
+            float offY = -(fcy - 0.5f) * v.PageH0;        // y 由上往下 → 反轉
+            // XOffset 正數=內容往右移（螢幕寬比例）、YOffset 正數=內容往上移（螢幕高比例）
+            return (s, new Vector2(-offX * s + f.XOffset * 1920f, -offY * s + f.YOffset * 1080f));
+        }
+
+        void StartPan(Focus focus, float dur)
+        {
+            if (_cur == null || _cur.PageRT == null) return;
+            var (s, pos) = CamFor(_cur, focus);
+            StartCam(s, pos, dur);
+        }
+
+        void StartCam(float scaleTo, Vector2 posTo, float dur)
+        {
+            if (_cur == null) return;
+            _cur.ScaleFrom = _cur.ScaleCur; _cur.PosFrom = _cur.PosCur;
+            _cur.ScaleTo = scaleTo; _cur.PosTo = posTo;
+            _cur.AnimT = 0f; _cur.AnimDur = Mathf.Max(0.05f, dur);
+            _cur.Animating = true;
+        }
+
+        void SnapCamera()
+        {
+            if (_cur == null) return;
+            _cur.ScaleCur = _cur.ScaleTo; _cur.PosCur = _cur.PosTo;
+            _cur.Animating = false;
+            ApplyCam(_cur, _cur.ScaleCur, _cur.PosCur);
+        }
+
+        void ApplyCam(PageView v, float scale, Vector2 pos)
+        {
+            if (v.PageRT == null) return;
+            v.PageRT.localScale = new Vector3(scale, scale, 1f);
+            v.PageRT.anchoredPosition = pos;
+        }
+
+        void AnimateCamera(float dt)
+        {
+            if (_cur == null) return;
+            if (_cur.Cg.alpha < 1f) _cur.Cg.alpha = Mathf.Min(1f, _cur.Cg.alpha + dt / Mathf.Max(0.05f, EnterSeconds));
+            if (!_cur.Animating) return;
+
+            _cur.AnimT += dt;
+            float k = Mathf.Clamp01(_cur.AnimT / _cur.AnimDur);
+            float e = k * k * (3f - 2f * k);   // smoothstep（緩入緩出）
+            _cur.ScaleCur = Mathf.Lerp(_cur.ScaleFrom, _cur.ScaleTo, e);
+            _cur.PosCur = Vector2.Lerp(_cur.PosFrom, _cur.PosTo, e);
+            ApplyCam(_cur, _cur.ScaleCur, _cur.PosCur);
+            if (k >= 1f) _cur.Animating = false;
+        }
+
+        void FadeOutCurrent()
+        {
+            if (_cur == null) return;
+            _cur.FadingOut = true; _cur.FadeT = 0f;
+            _fading.Add(_cur);
+            _cur = null;
+        }
+
+        void AnimateFading(float dt)
+        {
+            for (int i = _fading.Count - 1; i >= 0; i--)
+            {
+                var v = _fading[i];
+                if (v.Go == null) { _fading.RemoveAt(i); continue; }
+                v.FadeT += dt;
+                float k = Mathf.Clamp01(v.FadeT / Mathf.Max(0.05f, ClearFadeSeconds));
+                v.Cg.alpha = 1f - k;
+                if (k >= 1f) { Destroy(v.Go); _fading.RemoveAt(i); }
             }
         }
 
@@ -456,36 +394,21 @@ namespace Dipan.Intro
             if (_built) return;
             _whiteSprite = Sprite.Create(MakeWhite(), new Rect(0, 0, 4, 4), new Vector2(0.5f, 0.5f), 100f);
             _vignetteSprite = SpriteOf(MakeVignette(256));
-            _softBlobSprite = SpriteOf(MakeSoftBlob(128));
 
-            // 把 Canvas 放在「自己生成的子物件」上（保證乾淨、必含 RectTransform），
-            // 不去動控制器自身那顆空物件的 Transform，避免「無法在此 GameObject 加 Canvas」的問題。
             var canvasGo = new GameObject("ComicCanvas",
                 typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
             canvasGo.transform.SetParent(transform, false);
-
             _canvas = canvasGo.GetComponent<Canvas>();
             _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             _canvas.sortingOrder = 1000;
-
             var scaler = canvasGo.GetComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.Expand;
-
             _root = canvasGo.GetComponent<RectTransform>();
 
-            // 舞台底（最先建＝在所有分鏡後方）
-            if (ShowBackdrop)
-            {
-                var bd = NewImage(_root, "Backdrop", _whiteSprite, BackdropColor);
-                Stretch((RectTransform)bd.transform);
-            }
-            if (ShowVignette)
-            {
-                var vg = NewImage(_root, "Vignette", _vignetteSprite, new Color(0f, 0f, 0f, 0.9f));
-                Stretch((RectTransform)vg.transform);
-            }
+            if (ShowBackdrop) { var bd = NewImage(_root, "Backdrop", _whiteSprite, BackdropColor); Stretch((RectTransform)bd.transform); }
+            if (ShowVignette) { _vignette = NewImage(_root, "Vignette", _vignetteSprite, new Color(0, 0, 0, 0.9f)); Stretch((RectTransform)_vignette.transform); }
 
             _built = true;
             BuildDebugHud();
@@ -497,7 +420,6 @@ namespace Dipan.Intro
             Font font = null;
             try { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); } catch { }
             if (font == null) { try { font = Resources.GetBuiltinResource<Font>("Arial.ttf"); } catch { } }
-
             var go = new GameObject("DebugHud", typeof(RectTransform));
             go.transform.SetParent(_root, false);
             var rt = (RectTransform)go.transform;
@@ -505,11 +427,7 @@ namespace Dipan.Intro
             rt.anchoredPosition = new Vector2(24f, -24f);
             rt.sizeDelta = new Vector2(1700f, 90f);
             var t = go.AddComponent<Text>();
-            t.font = font;
-            t.fontSize = 30;
-            t.color = new Color(1f, 1f, 0.55f, 0.95f);
-            t.raycastTarget = false;
-            t.text = font == null ? "" : "IntroComic 啟動中…";
+            t.font = font; t.fontSize = 30; t.color = new Color(1f, 1f, 0.55f, 0.95f); t.raycastTarget = false;
             _hud = t;
         }
 
@@ -521,37 +439,12 @@ namespace Dipan.Intro
             return t;
         }
 
-        Vector2 SlideOffset(SlideDir d)
-        {
-            const float W = 2200f, H = 1400f;   // 大於參考解析度，保證滑出畫面外
-            switch (d)
-            {
-                case SlideDir.Left: return new Vector2(-W, 0);
-                case SlideDir.Right: return new Vector2(W, 0);
-                case SlideDir.Top: return new Vector2(0, H);
-                case SlideDir.Bottom: return new Vector2(0, -H);
-                default: return Vector2.zero;   // FadeOnly
-            }
-        }
-
-        float DurOf(ComicPanel p) => p.SlideSeconds > 0f ? p.SlideSeconds : DefaultSlideSeconds;
-
-        static float EaseOutCubic(float x) { float u = 1f - x; return 1f - u * u * u; }
-        static float EaseOutBack(float x)
-        {
-            const float c1 = 1.70158f, c3 = c1 + 1f;
-            float u = x - 1f;
-            return 1f + c3 * u * u * u + c1 * u * u;
-        }
-
         Image NewImage(Transform parent, string name, Sprite sprite, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform));
             go.transform.SetParent(parent, false);
             var img = go.AddComponent<Image>();
-            img.sprite = sprite;
-            img.color = color;
-            img.raycastTarget = false;
+            img.sprite = sprite; img.color = color; img.raycastTarget = false;
             return img;
         }
 
@@ -562,6 +455,8 @@ namespace Dipan.Intro
             rt.localScale = Vector3.one;
         }
 
+        static Sprite SpriteOf(Texture2D t) => Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f), 100f);
+
         static Texture2D MakeWhite()
         {
             var t = new Texture2D(4, 4, TextureFormat.RGBA32, false);
@@ -571,10 +466,6 @@ namespace Dipan.Intro
             return t;
         }
 
-        static Sprite SpriteOf(Texture2D t)
-            => Sprite.Create(t, new Rect(0, 0, t.width, t.height), new Vector2(0.5f, 0.5f), 100f);
-
-        // 暗角：中央透明、四周漸黑（白色，alpha 隨半徑上升）。
         static Texture2D MakeVignette(int n)
         {
             var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
@@ -584,60 +475,56 @@ namespace Dipan.Intro
                 for (int x = 0; x < n; x++)
                 {
                     float dx = (x - c) / c, dy = (y - c) / c;
-                    float r = Mathf.Sqrt(dx * dx + dy * dy) / 1.41421f;   // 0 中心 ~1 角落
-                    float a = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((r - 0.45f) / 0.55f));
+                    float r = Mathf.Sqrt(dx * dx + dy * dy) / 1.41421f;
+                    float a = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((r - 0.5f) / 0.5f));
                     px[y * n + x] = new Color(1f, 1f, 1f, a);
                 }
             t.SetPixels(px); t.Apply();
             return t;
         }
 
-        // 羽化方塊：中央實心、邊緣淡出（給柔和投影用）。
-        static Texture2D MakeSoftBlob(int n)
+        // 在 Inspector 右鍵元件標題 →「帶入預設頁面排版…」一鍵把預設寫進 Pages（之後才能逐格調 Focuses）。
+        [ContextMenu("帶入預設頁面排版（Page_01~03 + 下墜 13~15）")]
+        void FillDefaultPages()
         {
-            var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
-            var px = new Color[n * n];
-            float feather = n * 0.30f;
-            for (int y = 0; y < n; y++)
-                for (int x = 0; x < n; x++)
-                {
-                    float dx = Mathf.Min(x, n - 1 - x);
-                    float dy = Mathf.Min(y, n - 1 - y);
-                    float d = Mathf.Min(dx, dy);
-                    float a = Mathf.Clamp01(d / feather);
-                    a = a * a * (3f - 2f * a);   // smoothstep
-                    px[y * n + x] = new Color(1f, 1f, 1f, a);
-                }
-            t.SetPixels(px); t.Apply();
-            return t;
+            Pages = BuildDefaultPages();
+#if UNITY_EDITOR
+            UnityEditor.EditorUtility.SetDirty(this);
+#endif
+            Debug.Log($"[IntroComic] 已帶入預設 {Pages.Count} 頁，可在 Inspector 展開 Pages 逐格調 Focuses。");
         }
 
-        // ───────────── 首版排版（對應討論用的蒙太奇分鏡）─────────────
-        // 全部都能在 Inspector 直接改。Pos 是白框中心(0~1, 左下原點)；Crop 是露出的子矩形(y 由下往上)。
-        List<ComicPanel> BuildDefaultPanels()
+        // 元件首次加入 / 按 Reset 時自動帶入一份，方便直接編輯。
+        void Reset()
         {
-            return new List<ComicPanel>
+            if (Pages == null || Pages.Count == 0) Pages = BuildDefaultPages();
+        }
+
+        // 預設：三頁（你已放 Page_01~03）＋下墜 13~15。Focuses 是「每格在頁面上的矩形(0~1,y由上往下)」，依你版面微調。
+        List<ComicPage> BuildDefaultPages()
+        {
+            return new List<ComicPage>
             {
-                // 叢集 0：登場與相遇
-                new ComicPanel{ Image="Story_01", Cluster=0, Pos=new Vector2(0.34f,0.48f), HeightFrac=0.80f, Crop=new Rect(0f,0f,1f,1f),        Rotation=-2, From=SlideDir.Bottom },
-                new ComicPanel{ Image="Story_02", Cluster=0, Pos=new Vector2(0.70f,0.64f), HeightFrac=0.50f, Crop=new Rect(0f,0.20f,1f,0.55f),   Rotation=3,  From=SlideDir.Right },
+                new ComicPage{ Image="Page_01", Focuses=new[]{
+                    new Focus{ Area=new Rect(0f,0f,1f,0.30f) },     // 1 上寬
+                    new Focus{ Area=new Rect(0f,0.31f,1f,0.22f) },  // 2+3 綁一組（中心在兩格之間）
+                    new Focus{ Area=new Rect(0f,0.55f,1f,0.45f) },  // 4 下寬
+                }},
+                new ComicPage{ Image="Page_02", Focuses=new[]{
+                    new Focus{ Area=new Rect(0f,0f,0.52f,1f) },        // 5 直幅左
+                    new Focus{ Area=new Rect(0.52f,0f,0.48f,0.33f) }, // 6 右上
+                    new Focus{ Area=new Rect(0.52f,0.33f,0.48f,0.34f) },// 7 右中
+                    new Focus{ Area=new Rect(0.52f,0.67f,0.48f,0.33f) },// 8 右下
+                }},
+                new ComicPage{ Image="Page_03", Focuses=new[]{
+                    new Focus{ Area=new Rect(0f,0f,1f,0.30f) },     // 9 上
+                    new Focus{ Area=new Rect(0f,0.32f,1f,0.38f) },  // 10+11 綁一組（中心在兩格之間）
+                    new Focus{ Area=new Rect(0f,0.72f,1f,0.28f) },  // 12 下
+                }},
 
-                // 叢集 1：危機
-                new ComicPanel{ Image="Story_03", Cluster=1, Pos=new Vector2(0.31f,0.62f), HeightFrac=0.56f, Crop=new Rect(0f,0.42f,1f,0.58f),   Rotation=-3, From=SlideDir.Top },
-                new ComicPanel{ Image="Story_04", Cluster=1, Pos=new Vector2(0.70f,0.48f), HeightFrac=0.74f, Crop=new Rect(0f,0f,1f,1f),          Rotation=4,  From=SlideDir.Right },
-                new ComicPanel{ Image="Story_05", Cluster=1, Pos=new Vector2(0.49f,0.34f), HeightFrac=0.42f, Crop=new Rect(0.08f,0.12f,0.86f,0.72f), Rotation=-2, From=SlideDir.Bottom, Punch=true },
-
-                // 叢集 2：救命之恩・溫情
-                new ComicPanel{ Image="Story_06", Cluster=2, Pos=new Vector2(0.40f,0.52f), HeightFrac=0.74f, Crop=new Rect(0f,0f,1f,1f),          Rotation=-1, From=SlideDir.Top },
-                new ComicPanel{ Image="Story_07", Cluster=2, Pos=new Vector2(0.75f,0.48f), HeightFrac=0.66f, Crop=new Rect(0f,0f,1f,1f),          Rotation=3,  From=SlideDir.Right },
-
-                // 叢集 3：斷裂
-                new ComicPanel{ Image="Story_08", Cluster=3, Pos=new Vector2(0.50f,0.50f), HeightFrac=0.86f, Crop=new Rect(0f,0.10f,1f,0.90f),   Rotation=-3, From=SlideDir.Left, Shake=true },
-
-                // 叢集 4：墜入深淵（全篇幅、自動每 1.1 秒換一張）
-                new ComicPanel{ Image="Story_09", Cluster=4, Fullscreen=true, HoldSeconds=1.1f },
-                new ComicPanel{ Image="Story_10", Cluster=4, Fullscreen=true, HoldSeconds=1.1f },
-                new ComicPanel{ Image="Story_11", Cluster=4, Fullscreen=true, HoldSeconds=1.1f },
+                new ComicPage{ Image="Story_13", Fullscreen=true, HoldSeconds=1.0f },
+                new ComicPage{ Image="Story_14", Fullscreen=true, HoldSeconds=1.0f },
+                new ComicPage{ Image="Story_15", Fullscreen=true, HoldSeconds=1.0f },
             };
         }
     }

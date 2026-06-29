@@ -317,14 +317,128 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77872441d24384c479bdce4c67879413, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Panels: []
+  Pages:
+  - Image: Page_01
+    Focuses:
+    - Area:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 1
+        height: 0.3
+      Zoom: 0.9
+      XOffset: 0
+      YOffset: 0.05
+    - Area:
+        serializedVersion: 2
+        x: 0
+        y: 0.31
+        width: 1
+        height: 0.22
+      Zoom: 0.6
+      XOffset: 0
+      YOffset: 0
+    - Area:
+        serializedVersion: 2
+        x: 0
+        y: 0.55
+        width: 1
+        height: 0.45
+      Zoom: 1
+      XOffset: 0
+      YOffset: 0
+    Fullscreen: 0
+    HoldSeconds: 0
+  - Image: Page_02
+    Focuses:
+    - Area:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 0.52
+        height: 1
+      Zoom: 0.7
+      XOffset: 0.2
+      YOffset: -0.3
+    - Area:
+        serializedVersion: 2
+        x: 0.52
+        y: 0
+        width: 0.48
+        height: 0.33
+      Zoom: 0.6
+      XOffset: 0
+      YOffset: 0.2
+    - Area:
+        serializedVersion: 2
+        x: 0.52
+        y: 0.33
+        width: 0.48
+        height: 0.34
+      Zoom: 0.8
+      XOffset: 0.1
+      YOffset: 0.15
+    - Area:
+        serializedVersion: 2
+        x: 0.52
+        y: 0.67
+        width: 0.48
+        height: 0.33
+      Zoom: 0.6
+      XOffset: 0.08
+      YOffset: -0.17
+    Fullscreen: 0
+    HoldSeconds: 0
+  - Image: Page_03
+    Focuses:
+    - Area:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 1
+        height: 0.3
+      Zoom: 1
+      XOffset: 0
+      YOffset: 0.12
+    - Area:
+        serializedVersion: 2
+        x: 0
+        y: 0.32
+        width: 1
+        height: 0.38
+      Zoom: 1
+      XOffset: 0
+      YOffset: 0.1
+    - Area:
+        serializedVersion: 2
+        x: 0
+        y: 0.72
+        width: 1
+        height: 0.28
+      Zoom: 0.9
+      XOffset: 0
+      YOffset: 0
+    Fullscreen: 0
+    HoldSeconds: 0
+  - Image: Story_13
+    Focuses: []
+    Fullscreen: 1
+    HoldSeconds: 1.5
+  - Image: Story_14
+    Focuses: []
+    Fullscreen: 1
+    HoldSeconds: 1.5
+  - Image: Story_15
+    Focuses: []
+    Fullscreen: 1
+    HoldSeconds: 1.5
   ResourcePrefix: InitialStory/
-  FrameColor: {r: 1, g: 1, b: 1, a: 1}
-  FrameBorder: 16
-  ShowShadow: 1
-  ShadowColor: {r: 0, g: 0, b: 0, a: 0.55}
-  ShadowOffset: {x: 10, y: -14}
-  DefaultSlideSeconds: 0.45
+  FillScreen: 1
+  PanSeconds: 0.6
+  EnterSeconds: 0.7
+  ShowBackdrop: 1
+  BackdropColor: {r: 0.05, g: 0.055, b: 0.07, a: 1}
+  ShowVignette: 1
   ClearFadeSeconds: 0.3
   StartDelay: 0.3
   AdvanceKey: 32
@@ -334,6 +448,7 @@ MonoBehaviour:
   FallToTrigger: {fileID: 677678038}
   AutoLoadNextScene: 0
   NextSceneName: SampleScene
+  ShowDebugHud: 1
 --- !u!4 &1748471241
 Transform:
   m_ObjectHideFlags: 0
