@@ -74,6 +74,10 @@ namespace Dipan.Intro
         public Color BackdropColor = new Color(0.05f, 0.055f, 0.07f, 1f);
         public bool ShowVignette = true;
 
+        [Header("畫面範圍（整體等比縮小置中、四周留黑）")]
+        [Tooltip("漫畫整體縮放：1=滿版；0.5=縮成一半置中（左右各 1/4 黑邊、上下同比例）。等比縮放，所以你調好的每格構圖/位置完全保留，只是整體變小、變清晰")]
+        [Range(0.2f, 1f)] public float ContentScale = 0.5f;
+
         [Header("換頁手感")]
         public float ClearFadeSeconds = 0.35f;
         public float StartDelay = 0.3f;
@@ -103,6 +107,8 @@ namespace Dipan.Intro
         readonly Dictionary<string, Texture2D> _texCache = new();
         Sprite _whiteSprite, _vignetteSprite;
         Image _backdrop, _vignette;
+        RectTransform _stage;             // 中央舞台（左右/上下留黑）；漫畫只在這裡、外面被遮罩裁掉
+        float _stageW = 1920f, _stageH = 1080f;
         Text _skip;
 
         class PageView
@@ -194,6 +200,7 @@ namespace Dipan.Intro
             _pageIdx = -1; _focusIdx = 0; _autoTimer = -1f; _done = false; _began = false;
             _delayLeft = Mathf.Max(0f, StartDelay);
             // 還原舞台（重播時）
+            ApplyContentScale();   // 換了 ContentScale 後按 R 即生效
             if (_skip) _skip.gameObject.SetActive(true);
             if (_backdrop) _backdrop.enabled = true;
             if (_vignette) _vignette.enabled = true;
@@ -283,13 +290,13 @@ namespace Dipan.Intro
             var sprite = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect);
 
             var go = new GameObject("Page_" + page.Image, typeof(RectTransform));
-            go.transform.SetParent(_root, false);
+            go.transform.SetParent(_stage, false);   // 放進中央舞台（被遮罩裁到中央區域）
             var cg = go.AddComponent<CanvasGroup>();
             var rt = (RectTransform)go.transform;
             Stretch(rt);
 
             // 統一用「整頁圖 + 鏡頭」呈現（下墜也走這條，才能用 Focuses 微調、且不被裁）。
-            float pageH0 = 1080f;
+            float pageH0 = _stageH;                   // scale=1＝整頁剛好填滿舞台高
             float pageW0 = pageH0 * aspect;
             var pageGo = new GameObject("PageImg", typeof(RectTransform)).GetComponent<RectTransform>();
             pageGo.SetParent(rt, false);
@@ -319,10 +326,10 @@ namespace Dipan.Intro
             _cur = view;
         }
 
-        // 填滿畫面（cover）、置中。
+        // 填滿舞台（cover）、置中。
         (float scale, Vector2 pos) CamCover(PageView v)
         {
-            float s = Mathf.Max(1920f / v.PageW0, 1080f / v.PageH0);
+            float s = Mathf.Max(_stageW / v.PageW0, _stageH / v.PageH0);
             return (s, Vector2.zero);
         }
 
@@ -332,16 +339,16 @@ namespace Dipan.Intro
             Rect a = f.Area;
             float fw = Mathf.Max(0.01f, a.width) * v.PageW0;
             float fh = Mathf.Max(0.01f, a.height) * v.PageH0;
-            float sFit = Mathf.Min(1920f / fw, 1080f / fh);
-            float sFill = Mathf.Max(1920f / fw, 1080f / fh);
+            float sFit = Mathf.Min(_stageW / fw, _stageH / fh);
+            float sFill = Mathf.Max(_stageW / fw, _stageH / fh);
             float s = (FillScreen ? sFill : sFit) * Mathf.Max(0.05f, f.Zoom);
 
             float fcx = a.x + a.width * 0.5f;
             float fcy = a.y + a.height * 0.5f;
             float offX = (fcx - 0.5f) * v.PageW0;        // 焦點中心相對頁面中心（scale=1, px）
             float offY = -(fcy - 0.5f) * v.PageH0;        // y 由上往下 → 反轉
-            // XOffset 正數=內容往右移（螢幕寬比例）、YOffset 正數=內容往上移（螢幕高比例）
-            return (s, new Vector2(-offX * s + f.XOffset * 1920f, -offY * s + f.YOffset * 1080f));
+            // XOffset 正數=內容往右移（舞台寬比例）、YOffset 正數=內容往上移（舞台高比例）
+            return (s, new Vector2(-offX * s + f.XOffset * _stageW, -offY * s + f.YOffset * _stageH));
         }
 
         void StartPan(Focus focus, float dur)
@@ -434,8 +441,29 @@ namespace Dipan.Intro
             if (ShowBackdrop) { _backdrop = NewImage(_root, "Backdrop", _whiteSprite, BackdropColor); Stretch((RectTransform)_backdrop.transform); }
             if (ShowVignette) { _vignette = NewImage(_root, "Vignette", _vignetteSprite, new Color(0, 0, 0, 0.9f)); Stretch((RectTransform)_vignette.transform); }
 
+            // 中央舞台：漫畫只在這個帶狀區域內，外面被遮罩裁掉、露出底色（＝左右/上下留黑）。
+            var stageGo = new GameObject("Stage", typeof(RectTransform));
+            stageGo.transform.SetParent(_root, false);
+            _stage = (RectTransform)stageGo.transform;
+            _stage.anchorMin = _stage.anchorMax = new Vector2(0.5f, 0.5f);
+            _stage.pivot = new Vector2(0.5f, 0.5f);
+            stageGo.AddComponent<RectMask2D>();
+            ApplyContentScale();
+
             _built = true;
             BuildSkip();
+        }
+
+        // 鏡頭一律以「滿版 1920×1080」對焦（保留你調好的每格構圖），整體再用 localScale 等比縮小置中。
+        void ApplyContentScale()
+        {
+            _stageW = 1920f; _stageH = 1080f;
+            if (_stage)
+            {
+                _stage.sizeDelta = new Vector2(_stageW, _stageH);
+                float k = Mathf.Clamp(ContentScale, 0.2f, 1f);
+                _stage.localScale = new Vector3(k, k, 1f);   // 縮小＋置中 → 四周留黑、構圖不變
+            }
         }
 
         // 右上角「Skip」字樣：粗體、放大、無背景、帶外框讓任何底色都看得到。

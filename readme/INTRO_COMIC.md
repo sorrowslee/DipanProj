@@ -66,8 +66,9 @@
 * **填滿 vs 完整顯示** → 全域 `FillScreen`：開＝每格填滿畫面(cover，可能裁一點邊)；關＝完整顯示整格(fit，邊緣會看到鄰格)。每格 `Zoom` 在此基礎上微調。
 * **鏡頭快慢** → `PanSeconds`（移到下一格）、`EnterSeconds`（進每頁從整頁推進到第一格）。
 * **下墜節奏** → 13~15 設 `Fullscreen`、`HoldSeconds`（每張停留秒數）。下墜預設整張 **fit/cover 靜止**（早期試過「填滿＋往下飄」、已移除，因為主角在圖中位置不一容易裁到/太亂；改成出圖時把主角擺中間一帶即可）。
+* **漫畫整體縮小置中、四周留黑** → 全域 `ContentScale`（1＝滿版；0.5＝縮成一半置中，左右各 1/4 黑邊、上下同比例）。**重點：鏡頭一律以滿版 1920×1080 對焦（你調好的每格 `Focus` 構圖完全保留），只是整個漫畫用 `localScale` 等比縮小＋置中**——所以縮放比例改了，你之前對好的位置/縮放**不會跑掉**。縮小同時讓圖不被過度放大、更清晰（全螢幕會把 ~1000px 的圖拉到 1920 寬而糊）。改了比例**按 R 重播即生效**。
 
-> 全域參數（元件上方）：`FillScreen`、`PanSeconds`、`EnterSeconds`、`ClearFadeSeconds`、`StartDelay`、舞台底 `ShowBackdrop`/`BackdropColor`/`ShowVignette`。
+> 全域參數（元件上方）：`ContentScale`（整體縮放）、`FillScreen`、`PanSeconds`、`EnterSeconds`、`ClearFadeSeconds`、`StartDelay`、舞台底 `ShowBackdrop`/`BackdropColor`/`ShowVignette`。
 
 ---
 
