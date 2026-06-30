@@ -38,5 +38,21 @@ namespace DipanMapEditor.Core
 
         /// <summary>是否會擋腳（牆或水都擋）。</summary>
         public static bool IsBlocked(MapData map, int fx, int fy) => GetState(map, fx, fy) != Walk;
+
+        /// <summary>把整張可走層填成同一狀態（每列重建一條等長字串，比逐格設快）。回傳改動的格數。</summary>
+        public static int FillAll(MapData map, char state)
+        {
+            var rows = map?.WalkableLayer?.blocked;
+            if (rows == null) return 0;
+            int changed = 0;
+            for (int y = 0; y < rows.Count; y++)
+            {
+                int len = rows[y]?.Length ?? 0;
+                if (len == 0) continue;
+                foreach (char c in rows[y]) if (c != state) changed++;
+                rows[y] = new string(state, len);
+            }
+            return changed;
+        }
     }
 }

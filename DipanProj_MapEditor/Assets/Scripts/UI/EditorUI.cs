@@ -27,9 +27,9 @@ namespace DipanMapEditor.UI
         /// <summary>可走工具的當前筆刷狀態字元（'0' 可走 / '1' 牆 / '2' 水）。</summary>
         public char WalkBrushState { get; private set; } = WalkableOps.Walk;
 
-        /// <summary>可走工具的筆刷邊長（以子格計）：1 / 2 / 4 / 8。一筆塗 N×N 個子格。</summary>
+        /// <summary>可走工具的筆刷邊長（以子格計）：1~128。一筆塗 N×N 個子格。</summary>
         public int WalkBrushSize { get; private set; } = 1;
-        static readonly int[] WalkBrushSizes = { 1, 2, 4, 8 };
+        static readonly int[] WalkBrushSizes = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
         public void ClearObjectBrush() => SelectedObjectAssetId = null;
 
@@ -703,14 +703,34 @@ namespace DipanMapEditor.UI
 
             GUILayout.Space(8);
             GUILayout.Label("筆刷大小（子格）");
-            GUILayout.BeginHorizontal();
-            foreach (int s in WalkBrushSizes)
+            // 8 種尺寸太多、單列會擠爆窄面板，改成每列 4 顆。
+            for (int i = 0; i < WalkBrushSizes.Length; i++)
             {
+                if (i % 4 == 0) GUILayout.BeginHorizontal();
+                int s = WalkBrushSizes[i];
                 GUI.color = WalkBrushSize == s ? Color.cyan : Color.white;
                 if (GUILayout.Button($"{s}×{s}")) WalkBrushSize = s;
+                if (i % 4 == 3 || i == WalkBrushSizes.Length - 1) { GUI.color = Color.white; GUILayout.EndHorizontal(); }
             }
             GUI.color = Color.white;
-            GUILayout.EndHorizontal();
+
+            GUILayout.Space(10);
+            GUILayout.Label("整張地圖");
+            if (map != null)
+            {
+                if (GUILayout.Button("全部改可走（綠）"))
+                {
+                    UndoManager.Push();
+                    int n = WalkableOps.FillAll(map, WalkableOps.Walk);
+                    _statusMsg = $"已將整張地圖改為可走（{n} 子格）";
+                }
+                if (GUILayout.Button("全部改牆（紅）"))
+                {
+                    UndoManager.Push();
+                    int n = WalkableOps.FillAll(map, WalkableOps.Wall);
+                    _statusMsg = $"已將整張地圖改為牆（{n} 子格）";
+                }
+            }
 
             GUILayout.Space(10);
             GUILayout.Label("左鍵拖曳塗子格。\n綠 = 可走\n紅 = 牆（擋玩家＋反彈子彈）\n藍 = 水/坑（擋玩家、子彈穿過）\n新地圖初始全部為牆。\n只有此工具下才顯示疊加色。");

@@ -353,6 +353,9 @@ public class MapLoader : MonoBehaviour
     }
 
     // cells 為子格座標；碰撞盒大小 = tileSize / walkSubdiv。
+    // 效能：把「同一列連續的格」橫向合併成一條長 box 再餵給 CompositeCollider2D，
+    // collider 數量從「牆格數」降到「列段數」（大地圖差幾百倍）。CompositeCollider2D
+    // 本來就把相鄰 box 併成多邊形外框，故合併後的物理外形與 hit.normal 與逐格版完全一致。
     void BuildCompositeFromCells(string name, HashSet<long> cells, int layer)
     {
         float cellSize = MapCoords.FineSize(_map);
@@ -368,16 +371,45 @@ public class MapLoader : MonoBehaviour
         composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
         composite.generationType = CompositeCollider2D.GenerationType.Manual;
 
+        // 依列(gy)分組，每列把 gx 排序後找「連續區段」併成一條 box。
+        var rowsByY = new Dictionary<int, List<int>>();
         foreach (long k in cells)
         {
             Unkey(k, out int gx, out int gy);
-            var box = go.AddComponent<BoxCollider2D>();
-            box.usedByComposite = true;
-            box.size = new Vector2(cellSize, cellSize);
-            box.offset = MapCoords.FineCellCenter(gx, gy, _map);
+            if (!rowsByY.TryGetValue(gy, out var xs)) { xs = new List<int>(); rowsByY[gy] = xs; }
+            xs.Add(gx);
+        }
+
+        int boxCount = 0;
+        foreach (var kv in rowsByY)
+        {
+            int gy = kv.Key;
+            var xs = kv.Value;
+            xs.Sort();
+            int runStart = xs[0], prev = xs[0];
+            for (int i = 1; i <= xs.Count; i++)
+            {
+                if (i < xs.Count && xs[i] == prev + 1) { prev = xs[i]; continue; }
+                AddRunBox(go, runStart, prev, gy, cellSize);   // 收尾 [runStart..prev]
+                boxCount++;
+                if (i < xs.Count) { runStart = xs[i]; prev = xs[i]; }
+            }
         }
 
         composite.GenerateGeometry();
+        Debug.Log($"[MapLoader] {name}：{cells.Count} 子格 → {boxCount} 條合併 box。");
+    }
+
+    /// <summary>在 go 上加一條覆蓋同列 [x0..x1] 的 BoxCollider2D（usedByComposite）。</summary>
+    void AddRunBox(GameObject go, int x0, int x1, int gy, float cellSize)
+    {
+        int count = x1 - x0 + 1;
+        var box = go.AddComponent<BoxCollider2D>();
+        box.usedByComposite = true;
+        box.size = new Vector2(count * cellSize, cellSize);
+        Vector2 c0 = MapCoords.FineCellCenter(x0, gy, _map);
+        Vector2 c1 = MapCoords.FineCellCenter(x1, gy, _map);
+        box.offset = (c0 + c1) * 0.5f;   // 第一格與最後一格中心的中點 = 此段中心
     }
 
     // ---- 傳送點特效（在每個 teleport 區域中心放一個持續循環的標記特效）----
