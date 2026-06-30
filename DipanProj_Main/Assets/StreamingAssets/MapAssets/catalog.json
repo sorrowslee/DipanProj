@@ -10,6 +10,27 @@
       "frameCount": 1
     },
     {
+      "id": "Main/Environment/Cultist",
+      "path": "Main/Environment/Cultist/Cultist_01.png",
+      "category": "Environment",
+      "module": "Main",
+      "pixelSize": 432,
+      "ppu": 256,
+      "frameCount": 10,
+      "frames": [
+        "Main/Environment/Cultist/Cultist_01.png",
+        "Main/Environment/Cultist/Cultist_02.png",
+        "Main/Environment/Cultist/Cultist_03.png",
+        "Main/Environment/Cultist/Cultist_04.png",
+        "Main/Environment/Cultist/Cultist_05.png",
+        "Main/Environment/Cultist/Cultist_06.png",
+        "Main/Environment/Cultist/Cultist_07.png",
+        "Main/Environment/Cultist/Cultist_08.png",
+        "Main/Environment/Cultist/Cultist_09.png",
+        "Main/Environment/Cultist/Cultist_10.png"
+      ]
+    },
+    {
       "id": "Main/Environment/Teleport",
       "path": "Main/Environment/Teleport/Teleport_01.png",
       "category": "Environment",

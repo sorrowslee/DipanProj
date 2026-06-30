@@ -21,7 +21,22 @@
       "opacity": 1.0,
       "locked": false,
       "tiles": [],
-      "objects": []
+      "objects": [
+        {
+          "assetId": "Main/Environment/Cultist",
+          "x": 13.5824461,
+          "y": -11.3986235,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.46410012,
+          "scaleY": 1.46410012,
+          "sortKey": -11.3986235,
+          "zOrder": 0,
+          "hp": 1,
+          "animFps": 6.0
+        }
+      ]
     },
     {
       "id": "walk",

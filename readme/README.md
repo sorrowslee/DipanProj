@@ -41,6 +41,7 @@
 | [ATMOSPHERE.md](ATMOSPHERE.md) | 場景氛圍後處理（MapsTable 的 Atmosphere 欄 1~15：正常/幽暗/噩夢/烈日/焦土/沙塵/淺海/深海/深海+恐怖/風雪/強風/細雨/大雨/陰森森林鬼霧/電視雜訊；提燈光圈、熱浪、海洋折射、風絲、雨絲、漂移黑霧、雪花噪訊，地圖驅動、換圖即時切換） | 調某地圖陰森/炎熱/海洋/風雨/鬼霧/雜訊氛圍、做新地圖、改光圈/調色/扭曲 |
 | [INTRO_COMIC.md](INTRO_COMIC.md) | 序章開場漫畫播放器（獨立 Intro 場景、全程式、`IntroComicController`）：**整頁成品圖＋導讀式鏡頭**——鏡頭平移/縮放對焦每格(Focuses：Area/Zoom/X·YOffset、可綁格)、空白鍵下一格、下墜 13~15 全篇幅 cover、右上角兩段式 Skip、整頁圖放 `Resources/InitialStory`、右鍵帶入預設。播完接墜落、落 `MainScene` 的 Tutorial_Cave | 改開場漫畫、調每格鏡頭框/縮放/位移、Skip、下墜節奏 |
 | [INTRO_FALL.md](INTRO_FALL.md) | 序章「持續墜落深淵」程式動畫（獨立 Intro 場景、全程式建構、`IntroFallController`）：側面峽谷岩壁背景無限捲動＋散佈短碎條速度線 → 正面放射速度線＋時空扭曲 shader ＋色調穿越 → 收尾縮小沒入＋淡出載入下一場景 | 改開場墜落動畫、調速度線/山壁/色調/角色大小、接漫畫或進遊戲的串接 |
+| [CUTSCENE_TUNNEL.md](CUTSCENE_TUNNEL.md) | 過場鏈「穿隧道→播影片→換圖」（全程式、cutscene 觸發點啟動、一次性）：`CutsceneWatcher`(地圖端串接)＋`TunnelWalkController`(按鍵走出發光拱門、等比放大、白光收尾、Canvas 1200)＋`VideoPlayerOverlay`(StreamingAssets/Video 的 mp4、黑幕先蓋再準備、淡黑換圖、Canvas 1300)；影片放哪/觸發點參數(video/targetMapId)/Unity 接線 | 改穿隧道表演、接/換過場影片、調洞口/步數/晃動、cutscene 觸發點 |
 | [PROBLEMS.md](PROBLEMS.md) | **踩坑記錄與解法**(症狀→原因→解法) | **第一次看文件時必看**；遇到怪問題、或要把新坑記下來時 |
 | [TODO.md](TODO.md) | **待補清單**：目前先做到能動但還缺一塊、或暫時做不到之後再補的項目 | 想知道哪些是半成品/暫缺；做到一半得擱置時把缺口記這裡 |
 

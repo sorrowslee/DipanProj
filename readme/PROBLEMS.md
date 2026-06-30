@@ -155,6 +155,16 @@
 - **原因**:`rectTransform` 是 **`Graphic`** 的屬性(`Image`/`Text` 有);`Button`/`Selectable` 並非 `Graphic`,沒有這個屬性。容易誤以為所有 uGUI 元件都有 `rectTransform`。
 - **解法**:用 **`(RectTransform)btn.transform`** 或 `UIBuilder.Rect(btn)`(專案助手)取得。既有 `StoragePanel` 就是用 `(RectTransform)b.transform`。已在 `DramaPanel` 的整片透明關閉鈕照此。**之後對 `Button` 取 RectTransform 一律這樣寫,別用 `.rectTransform`。**
 
+### D7. 字串插值裡寫三元運算子,整串爆 `CS8076/CS8361/CS1003/CS1525`,**整個專案編不過、所有腳本掛不上(Add Component 搜不到新元件)**
+- **症狀**:加了一行 `Debug.LogError($"...（{vp != null ? vp.url : "?"}）...")` 後,Console 一次跳四個錯(`CS8076 Missing close delimiter '}'`、`CS8361 A conditional expression cannot be used directly in a string interpolation`、`CS1003`、`CS1525`)。更要命的是:**只要專案任何一個腳本編譯失敗,整個 Assembly-CSharp 就建不起來,於是「所有」腳本都無法掛上,Add Component 也搜不到新寫的元件**——很容易誤以為是「新腳本沒被 Unity 認得/沒匯入」,其實是別處(或本檔)有編譯錯誤擋住全部。
+- **原因**:C# 字串插值 `$"...{運算式}..."` 裡,`:` 是「格式分隔符」(如 `{x:F2}`)。直接寫三元 `a ? b : c`,編譯器把第一個 `:` 當成格式起點,後面整段就解析錯亂。
+- **解法**:把三元式**用括號包起來** `{(a ? b : c)}`,或**抽成一行變數**再插入(本專案採後者,最不易再踩):
+  ```csharp
+  string u = (vp != null) ? vp.url : "?";
+  Debug.LogError($"...（{u}）...");
+  ```
+- **連帶通則**:「Add Component 搜不到某腳本」**第一步永遠先看 Console 有沒有紅字**——任一編譯錯誤都會讓全部腳本掛不上,先清掉編譯錯誤,別急著 Reimport/找新腳本沒被認得的理由。
+
 ---
 
 ## E. 效能 / 顯示 (Performance & Display)
