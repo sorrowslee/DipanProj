@@ -1268,6 +1268,7 @@ MonoBehaviour:
   mapTable: {fileID: 0}
   playerSpawner: {fileID: 0}
   tunnelWalk: {fileID: 1122242422}
+  videoOverlay: {fileID: 1455334038}
   startModule: Main
   autoStartLevel: 1
 --- !u!114 &550503362
@@ -3166,6 +3167,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Steps: 5
   StartDelay: 0.2
+  ExitImage: {fileID: 0}
   ExitColor: {r: 1, g: 0.96, b: 0.85, a: 1}
   ExitStartFrac: 0.1
   ExitEndFrac: 2.2
@@ -3176,6 +3178,7 @@ MonoBehaviour:
   AdvanceKey: 32
   ClickToAdvance: 1
   PauseWhilePlaying: 1
+  FadeOutSeconds: 0.5
   PlayOnStart: 0
   TestPlayKey: 116
 --- !u!4 &1122242423
@@ -3733,6 +3736,56 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1455334036
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1455334037}
+  - component: {fileID: 1455334038}
+  m_Layer: 0
+  m_Name: VideoOverlay
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1455334037
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1455334036}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 3.3535287, y: -0.15508607, z: -9.971284}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1455334038
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1455334036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b4b023a46a324f1fbc96b196ab7df69, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  SubFolder: Video
+  AllowSkip: 1
+  SkipKey: 27
+  ClickToSkip: 1
+  PauseWhilePlaying: 1
+  FadeSeconds: 0.4
 --- !u!114 &1568630604
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -7391,3 +7444,4 @@ SceneRoots:
   - {fileID: 652067902}
   - {fileID: 726140661}
   - {fileID: 1122242423}
+  - {fileID: 1455334037}

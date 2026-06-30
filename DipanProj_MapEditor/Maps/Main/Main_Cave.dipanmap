@@ -124,7 +124,7 @@
           ],
           "params": {
             "cutsceneId": "1",
-            "video": "",
+            "video": "EvilBuddha.mp4",
             "targetMapId": "12",
             "targetEntrance": ""
           }

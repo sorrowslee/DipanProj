@@ -18,6 +18,7 @@ public class CutsceneWatcher : MonoBehaviour
     Transform _player;
     MapManager _manager;
     TunnelWalkController _tunnel;
+    VideoPlayerOverlay _video;
     string _typeId = "cutscene";
 
     readonly Dictionary<long, TriggerRegion> _cells = new Dictionary<long, TriggerRegion>();
@@ -27,15 +28,18 @@ public class CutsceneWatcher : MonoBehaviour
 
     int _pendingMapId = -1;
     string _pendingEntrance;
+    string _pendingVideo;
     Action _onTunnelDone;
 
-    public void Setup(MapData map, string cutsceneTypeId, Transform player, MapManager manager, TunnelWalkController tunnel)
+    public void Setup(MapData map, string cutsceneTypeId, Transform player, MapManager manager,
+                      TunnelWalkController tunnel, VideoPlayerOverlay video)
     {
         _map = map;
         _typeId = string.IsNullOrEmpty(cutsceneTypeId) ? "cutscene" : cutsceneTypeId;
         _player = player;
         _manager = manager;
         _tunnel = tunnel;
+        _video = video;
 
         _cells.Clear();
         if (map?.TriggerLayer?.regions != null)
@@ -76,6 +80,7 @@ public class CutsceneWatcher : MonoBehaviour
         _running = true;
         _pendingMapId = region.GetInt("targetMapId", -1);
         _pendingEntrance = region.GetString("targetEntrance");
+        _pendingVideo = region.GetString("video");
 
         var tunnel = _tunnel != null ? _tunnel : FindObjectOfType<TunnelWalkController>();
         if (tunnel == null)
@@ -102,7 +107,13 @@ public class CutsceneWatcher : MonoBehaviour
 
     void AfterPerformance()
     {
-        // TODO（下一步）：在這裡插入「播放邪佛影片」（VideoPlayer overlay），影片播完再 GoNext()。
+        // 穿隧道完 → 若有設 video 就播（邪佛動畫），播完/跳過再 GoNext；否則直接 GoNext。
+        if (!string.IsNullOrEmpty(_pendingVideo))
+        {
+            var v = _video != null ? _video : FindObjectOfType<VideoPlayerOverlay>();
+            if (v != null) { _video = v; v.Play(_pendingVideo, GoNext); return; }
+            Debug.LogWarning("[CutsceneWatcher] 有設 video 但場景沒有 VideoPlayerOverlay，略過影片。");
+        }
         GoNext();
     }
 

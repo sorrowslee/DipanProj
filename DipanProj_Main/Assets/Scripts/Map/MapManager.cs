@@ -22,6 +22,8 @@ public class MapManager : MonoBehaviour
     public MainSpawner playerSpawner;
     [Tooltip("穿隧道過場表演（場景上掛一個 TunnelWalkController，拖進來；給 cutscene 觸發點用）")]
     public Dipan.Cutscene.TunnelWalkController tunnelWalk;
+    [Tooltip("過場影片播放器（場景上掛一個 VideoPlayerOverlay，拖進來；cutscene 的 video 欄有值才會用）")]
+    public Dipan.Cutscene.VideoPlayerOverlay videoOverlay;
 
     [Header("起始關卡")]
     public string startModule = "RedBridalGown";
@@ -177,7 +179,7 @@ public class MapManager : MonoBehaviour
         if (_cutscene == null)
             _cutscene = GetComponent<CutsceneWatcher>() ?? gameObject.AddComponent<CutsceneWatcher>();
         _cutscene.Setup(mapLoader.Map, mapLoader.cutsceneTypeId,
-                        _player != null ? _player.transform : null, this, tunnelWalk);
+                        _player != null ? _player.transform : null, this, tunnelWalk, videoOverlay);
 
         // 互動點：建立「靠近按 F」的拾取點 / 劇情點 + 星星標示特效（由 InteractionManager 統一管理，
         // 與地上掉落物共用同一套互動）。Setup 會清舊的、重建新的（= 當次停留記憶）。
