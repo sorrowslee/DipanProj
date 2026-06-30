@@ -22,16 +22,18 @@ namespace Dipan.Cutscene
         [Tooltip("要按幾下才徹底走出隧道")] public int Steps = 5;
         [Tooltip("起播前延遲（秒）")] public float StartDelay = 0.2f;
 
-        [Header("洞口（遠方光亮出口）")]
+        [Header("洞口（隧道盡頭的光，拱門形）")]
+        [Tooltip("自備洞口圖（毛筆/插畫）：拖一張白色去背 PNG 進來就用它取代程式畫的拱門。留空＝程式畫")]
+        public Sprite ExitImage;
         [Tooltip("洞口光的顏色（暖白最像出口天光）")] public Color ExitColor = new Color(1f, 0.96f, 0.85f, 1f);
-        [Tooltip("最初（最遠）洞口大小 = 螢幕高 × 此值")] [Range(0.03f, 0.6f)] public float ExitStartFrac = 0.10f;
-        [Tooltip("走出時（最近）洞口大小 = 螢幕高 × 此值（>1 撐滿畫面）")] [Range(0.5f, 3f)] public float ExitEndFrac = 2.2f;
-        [Tooltip("每按一下洞口放大的動畫時間（秒）")] public float GrowSeconds = 0.35f;
+        [Tooltip("最初（最遠）洞口大小 = 螢幕高 × 此值")] [Range(0.05f, 1f)] public float ExitStartFrac = 0.30f;
+        [Tooltip("走出時（最近）洞口大小 = 螢幕高 × 此值（>1 撐滿畫面）")] [Range(0.5f, 3f)] public float ExitEndFrac = 1.7f;
+        [Tooltip("每按一下洞口放大的動畫時間（秒）")] public float GrowSeconds = 0.30f;
         [Tooltip("洞口在畫面上的垂直位置（0=中央；負=偏下、正=偏上，螢幕高比例）")] [Range(-0.3f, 0.3f)] public float ExitYOffset = 0f;
 
-        [Header("踏步晃動")]
-        [Tooltip("每按一下畫面晃動幅度（像素）")] public float ShakeAmount = 26f;
-        [Tooltip("晃動持續時間（秒）")] public float ShakeSeconds = 0.22f;
+        [Header("踏步晃動（左右交替衝一下）")]
+        [Tooltip("每按一下左右橫衝的幅度（像素）；左右交替模擬踏步")] public float ShakeAmount = 52f;
+        [Tooltip("晃動持續時間（秒）")] public float ShakeSeconds = 0.26f;
 
         [Header("操作 / 行為")]
         public KeyCode AdvanceKey = KeyCode.Space;
@@ -61,11 +63,12 @@ namespace Dipan.Cutscene
         float _delayLeft;
         float _exitFrom, _exitTo, _exitCur, _growT;
         float _shakeLeft;
+        int _shakeDir = 1;          // 左右交替（每按一步翻向）
         float _finishT;
         float _fadeT;
         float _prevTimeScale = 1f;
 
-        Sprite _whiteSprite, _caveSprite;
+        Sprite _whiteSprite;
         System.Random _rnd = new System.Random(20260629);
 
         void Awake() { Build(); }
@@ -148,12 +151,21 @@ namespace Dipan.Cutscene
         void StepForward()
         {
             _step++;
-            // 晃一下
+            // 踏一步：左右交替衝一下
             _shakeLeft = ShakeSeconds;
+            _shakeDir = -_shakeDir;
             if (_step >= Steps) { BeginFinish(); return; }
-            // 洞口放大一級（往 end 推進）
-            float target = Mathf.Lerp(ExitStartFrac, ExitEndFrac, (float)_step / Mathf.Max(1, Steps));
-            _exitFrom = _exitCur; _exitTo = target; _growT = 0f;
+            // 洞口放大一級（等比，每步視覺變化比例一致 → 第一下不突兀）
+            _exitFrom = _exitCur; _exitTo = ExitSizeAt(_step); _growT = 0f;
+        }
+
+        // 第 step 步的洞口大小：等比內插（start → end），每步乘上固定倍率。
+        float ExitSizeAt(int step)
+        {
+            float k = Mathf.Clamp01((float)step / Mathf.Max(1, Steps));
+            float a = Mathf.Max(0.01f, ExitStartFrac);
+            float b = Mathf.Max(0.01f, ExitEndFrac);
+            return a * Mathf.Pow(b / a, k);
         }
 
         void BeginFinish()
@@ -179,10 +191,12 @@ namespace Dipan.Cutscene
             if (_shakeLeft > 0f)
             {
                 _shakeLeft -= dt;
-                float amp = ShakeAmount * Mathf.Clamp01(_shakeLeft / Mathf.Max(0.01f, ShakeSeconds));
-                _root.anchoredPosition = new Vector2(
-                    (float)(_rnd.NextDouble() * 2 - 1) * amp,
-                    (float)(_rnd.NextDouble() * 2 - 1) * amp * 0.7f);
+                float k = Mathf.Clamp01(_shakeLeft / Mathf.Max(0.01f, ShakeSeconds));   // 1→0 衰減
+                float swing = Mathf.Sin((1f - k) * Mathf.PI);                            // 0→1→0 一次橫擺（衝出再回）
+                float x = _shakeDir * swing * ShakeAmount
+                          + (float)(_rnd.NextDouble() * 2 - 1) * ShakeAmount * k * 0.22f;   // 主橫衝 + 一點雜訊
+                float y = (float)(_rnd.NextDouble() * 2 - 1) * ShakeAmount * k * 0.20f;      // 輕微上下顛
+                _root.anchoredPosition = new Vector2(x, y);
             }
             else _root.anchoredPosition = Vector2.zero;
         }
@@ -211,7 +225,15 @@ namespace Dipan.Cutscene
         {
             if (_built) return;
             _whiteSprite = SpriteOf(MakeSolid(Color.white));
-            _caveSprite = SpriteOf(MakeCaveMouth(256));
+
+            // 洞口圖：自備圖(Inspector) → Resources/InitialStory/TunnelMouth → 程式畫的拱門。
+            Sprite exitSp = ExitImage;
+            if (exitSp == null)
+            {
+                var tex = Resources.Load<Texture2D>("InitialStory/TunnelMouth");
+                if (tex != null) exitSp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
+            }
+            if (exitSp == null) exitSp = SpriteOf(MakeTunnelMouth(256));
 
             var canvasGo = new GameObject("TunnelCanvas",
                 typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -234,7 +256,8 @@ namespace Dipan.Cutscene
             _backdrop = NewImage(_root, "Black", _whiteSprite, Color.black);
             Stretch((RectTransform)_backdrop.transform);
 
-            _exit = NewImage(_root, "Exit", _caveSprite, ExitColor);
+            _exit = NewImage(_root, "Exit", exitSp, ExitColor);
+            _exit.preserveAspect = true;   // 自備圖不變形
             _exitRt = (RectTransform)_exit.transform;
             _exitRt.anchorMin = _exitRt.anchorMax = new Vector2(0.5f, 0.5f);
             _exitRt.pivot = new Vector2(0.5f, 0.5f);
@@ -279,24 +302,25 @@ namespace Dipan.Cutscene
             return t;
         }
 
-        // 洞口：不規則的柔光形（中央亮、向邊緣淡出；邊緣用幾個諧波做出有機的洞口輪廓）。白色，顏色由 Image.color 染。
-        static Texture2D MakeCaveMouth(int n)
+        // 隧道口：拱門形（半圓頂＋直立兩側＋平底）＝卡通火車隧道口；柔邊＋外圈柔暈。白色，顏色由 Image.color 染。
+        static Texture2D MakeTunnelMouth(int n)
         {
             var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
             var px = new Color[n * n];
             float c = (n - 1) * 0.5f;
+            const float halfW = 0.42f, bottomY = -0.82f, archY = -0.05f, fe = 0.05f;
             for (int y = 0; y < n; y++)
                 for (int x = 0; x < n; x++)
                 {
-                    float dx = (x - c) / c, dy = (y - c) / c;
-                    float r = Mathf.Sqrt(dx * dx + dy * dy);
-                    float ang = Mathf.Atan2(dy, dx);
-                    // 圓潤有機的洞口邊緣（小幅諧波擾動）＋外圈柔暈。
-                    float edge = 0.50f + 0.045f * Mathf.Sin(3f * ang + 1.3f) + 0.028f * Mathf.Sin(5f * ang + 0.5f);
-                    float core = Mathf.Clamp01((edge - r) / 0.14f);
-                    core = core * core * (3f - 2f * core);             // 內亮（柔邊光盤）
-                    float halo = Mathf.Clamp01((edge + 0.42f - r) / 0.55f) * 0.42f;   // 外圈柔暈
-                    float a = Mathf.Clamp01(core + halo);
+                    float nx = (x - c) / c, ny = (y - c) / c;   // ny 由下往上
+                    // 拱門 = 直牆矩形(有上界) ∪ 頂端半圓盤。
+                    float dDisk = halfW - Mathf.Sqrt(nx * nx + (ny - archY) * (ny - archY));
+                    float dRect = Mathf.Min(Mathf.Min(halfW - Mathf.Abs(nx), ny - bottomY), archY - ny);
+                    float d = Mathf.Max(dRect, dDisk);          // 內部為正
+                    float core = Mathf.Clamp01((d + fe) / (2f * fe));
+                    core = core * core * (3f - 2f * core);      // 柔邊
+                    float halo = Mathf.Clamp01((d + 0.32f) / 0.32f) * 0.40f;   // 外圈柔暈
+                    float a = Mathf.Clamp01(core + halo * (1f - core));
                     px[y * n + x] = new Color(1f, 1f, 1f, a);
                 }
             t.SetPixels(px); t.Apply();
