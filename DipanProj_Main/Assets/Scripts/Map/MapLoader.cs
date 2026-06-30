@@ -33,6 +33,7 @@ public class MapLoader : MonoBehaviour
     public string teleportTypeId = "teleport";
     public string pickupTypeId = "pickup";
     public string dramaTypeId = "drama";
+    public string cutsceneTypeId = "cutscene";
 
     [Header("開關")]
     public bool buildBackground = true;

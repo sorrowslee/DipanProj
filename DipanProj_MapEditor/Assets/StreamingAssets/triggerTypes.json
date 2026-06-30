@@ -61,6 +61,29 @@
           "type": "Int"
         }
       ]
+    },
+    {
+      "typeId": "cutscene",
+      "displayName": "事件/過場觸發點",
+      "color": "#22CC99",
+      "params": [
+        {
+          "key": "cutsceneId",
+          "type": "String"
+        },
+        {
+          "key": "video",
+          "type": "String"
+        },
+        {
+          "key": "targetMapId",
+          "type": "Int"
+        },
+        {
+          "key": "targetEntrance",
+          "type": "String"
+        }
+      ]
     }
   ]
 }

@@ -37,6 +37,7 @@ namespace Dipan.Cutscene
         public KeyCode AdvanceKey = KeyCode.Space;
         public bool ClickToAdvance = true;
         [Tooltip("播放期間把 Time.timeScale 設 0（暫停遊戲、玩家不會在後面亂走）")] public bool PauseWhilePlaying = true;
+        [Tooltip("走出隧道後、白光淡出露出新地圖的時間（秒）。換圖在白幕後面發生")] public float FadeOutSeconds = 0.5f;
 
         [Header("測試")]
         public bool PlayOnStart = false;
@@ -46,7 +47,7 @@ namespace Dipan.Cutscene
         public event Action OnComplete;
 
         // ───────────── 內部 ─────────────
-        enum Phase { Idle, Delay, Walking, Finishing, Done }
+        enum Phase { Idle, Delay, Walking, Finishing, Fadeout, Done }
         Phase _phase = Phase.Idle;
         bool _built;
         Canvas _canvas;
@@ -61,6 +62,7 @@ namespace Dipan.Cutscene
         float _exitFrom, _exitTo, _exitCur, _growT;
         float _shakeLeft;
         float _finishT;
+        float _fadeT;
         float _prevTimeScale = 1f;
 
         Sprite _whiteSprite, _caveSprite;
@@ -82,6 +84,7 @@ namespace Dipan.Cutscene
             _growT = 1f;
             _shakeLeft = 0f;
             _finishT = 0f;
+            _fadeT = 0f;
             if (_canvas) _canvas.enabled = true;
             if (_flash) SetA(_flash, 0f);
             ApplyExit(_exitCur);
@@ -127,8 +130,18 @@ namespace Dipan.Cutscene
                 AnimateShake(dt);
                 _finishT += dt;
                 float k = Mathf.Clamp01(_finishT / 0.6f);
-                if (_flash) SetA(_flash, k);
-                if (k >= 1f) Finish();
+                if (_flash) SetA(_flash, k);                 // 白光罩滿
+                if (k >= 1f) DoComplete();
+                return;
+            }
+
+            if (_phase == Phase.Fadeout)
+            {
+                // 白光罩著時已觸發 OnComplete（換圖在白幕後面發生），現在把白光淡出、露出新地圖。
+                _fadeT += dt;
+                float k = Mathf.Clamp01(_fadeT / Mathf.Max(0.05f, FadeOutSeconds));
+                if (_flash) SetA(_flash, 1f - k);
+                if (k >= 1f) { if (_canvas) _canvas.enabled = false; _phase = Phase.Done; }
             }
         }
 
@@ -174,13 +187,14 @@ namespace Dipan.Cutscene
             else _root.anchoredPosition = Vector2.zero;
         }
 
-        void Finish()
+        void DoComplete()
         {
-            if (_phase == Phase.Done) return;
-            _phase = Phase.Done;
-            if (PauseWhilePlaying) Time.timeScale = _prevTimeScale;
+            if (_phase == Phase.Fadeout || _phase == Phase.Done) return;
+            if (PauseWhilePlaying) Time.timeScale = _prevTimeScale;   // 換圖前恢復時間
+            _fadeT = 0f;
+            _phase = Phase.Fadeout;                                   // 進入「白幕淡出」；OnComplete 在白幕下觸發換圖
             try { OnComplete?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
-            Debug.Log("[TunnelWalk] 走出隧道（OnComplete）。");
+            Debug.Log("[TunnelWalk] 走出隧道（OnComplete）→ 白幕後換圖、淡出露出新地圖。");
         }
 
         void ApplyExit(float frac)

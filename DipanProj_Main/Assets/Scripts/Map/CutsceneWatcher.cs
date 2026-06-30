@@ -1,0 +1,121 @@
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+using Dipan.MapRuntime;
+using Dipan.Cutscene;
+
+/// <summary>
+/// 每幀比對玩家所在格與當前地圖的 cutscene 觸發格；踩到就播一段過場表演，**一次性**。
+/// 仿 <see cref="TeleportWatcher"/>，但不是直接換圖，而是：
+///   觸發 → 穿隧道表演（TunnelWalkController）→ （之後：播邪佛影片）→ MapManager.GoToMap(目標圖)。
+///
+/// 由 MapManager 在每次換圖後 Setup（重建格表、重置）。目前 cutsceneId 任意值都跑「穿隧道」；
+/// 之後要支援多種過場，再依 cutsceneId 分派。
+/// </summary>
+public class CutsceneWatcher : MonoBehaviour
+{
+    MapData _map;
+    Transform _player;
+    MapManager _manager;
+    TunnelWalkController _tunnel;
+    string _typeId = "cutscene";
+
+    readonly Dictionary<long, TriggerRegion> _cells = new Dictionary<long, TriggerRegion>();
+    bool _armed;
+    bool _fired;                 // 一次性：觸發過就不再觸發（即使走回去）
+    bool _running;               // 表演進行中
+
+    int _pendingMapId = -1;
+    string _pendingEntrance;
+    Action _onTunnelDone;
+
+    public void Setup(MapData map, string cutsceneTypeId, Transform player, MapManager manager, TunnelWalkController tunnel)
+    {
+        _map = map;
+        _typeId = string.IsNullOrEmpty(cutsceneTypeId) ? "cutscene" : cutsceneTypeId;
+        _player = player;
+        _manager = manager;
+        _tunnel = tunnel;
+
+        _cells.Clear();
+        if (map?.TriggerLayer?.regions != null)
+        {
+            foreach (var r in map.TriggerLayer.regions)
+            {
+                if (r.typeId != _typeId || r.cells == null) continue;
+                foreach (var c in r.cells)
+                    if (c != null && c.Length >= 2) _cells[Key(c[0], c[1])] = r;
+            }
+        }
+
+        _armed = false;
+        _fired = false;
+        _running = false;
+    }
+
+    void Update()
+    {
+        if (_fired || _running || _map == null || _player == null || _manager == null || _cells.Count == 0) return;
+
+        Vector2Int cell = MapCoords.WorldToCell(_player.position, _map);
+        bool on = _cells.TryGetValue(Key(cell.x, cell.y), out var region);
+
+        if (!_armed)
+        {
+            if (!on) _armed = true;   // 著陸/出生時若剛好站在觸發點上，離開後才武裝
+            return;
+        }
+        if (!on) return;
+
+        Fire(region);
+    }
+
+    void Fire(TriggerRegion region)
+    {
+        _fired = true;
+        _running = true;
+        _pendingMapId = region.GetInt("targetMapId", -1);
+        _pendingEntrance = region.GetString("targetEntrance");
+
+        var tunnel = _tunnel != null ? _tunnel : FindObjectOfType<TunnelWalkController>();
+        if (tunnel == null)
+        {
+            Debug.LogError("[CutsceneWatcher] 找不到 TunnelWalkController（場景上掛一個、或拖進 MapManager.tunnelWalk）。直接換圖。");
+            AfterPerformance();
+            return;
+        }
+
+        _tunnel = tunnel;
+        // 穿隧道表演 → 完成 → AfterPerformance（之後在那裡插影片）→ GoToMap。
+        _onTunnelDone = OnTunnelDone;
+        tunnel.OnComplete += _onTunnelDone;
+        tunnel.Play();
+        Debug.Log($"[CutsceneWatcher] 觸發過場「{region.name}」→ 穿隧道；完成後 → 地圖 #{_pendingMapId}");
+    }
+
+    void OnTunnelDone()
+    {
+        if (_tunnel != null && _onTunnelDone != null) _tunnel.OnComplete -= _onTunnelDone;
+        _onTunnelDone = null;
+        AfterPerformance();
+    }
+
+    void AfterPerformance()
+    {
+        // TODO（下一步）：在這裡插入「播放邪佛影片」（VideoPlayer overlay），影片播完再 GoNext()。
+        GoNext();
+    }
+
+    void GoNext()
+    {
+        _running = false;
+        if (_pendingMapId < 0)
+        {
+            Debug.LogWarning("[CutsceneWatcher] cutscene 未設 targetMapId，表演完停在原地。");
+            return;
+        }
+        _manager.GoToMap(_pendingMapId, _pendingEntrance);
+    }
+
+    static long Key(int x, int y) => ((long)(uint)x << 32) | (uint)y;
+}

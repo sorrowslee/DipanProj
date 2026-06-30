@@ -59,6 +59,17 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "dramaId", type = ParamType.Int },   // 對應 DramaTable.csv 的 ID
                 }
             });
+            set.types.Add(new TriggerTypeDef
+            {
+                typeId = "cutscene", displayName = "事件/過場觸發點", color = "#22CC99",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "cutsceneId",     type = ParamType.String },   // 哪段過場（目前任意值＝穿隧道）
+                    new TriggerParam { key = "video",          type = ParamType.String },   // 過場後要播的影片（mp4，之後接）
+                    new TriggerParam { key = "targetMapId",    type = ParamType.Int },      // 過場完傳送到的地圖
+                    new TriggerParam { key = "targetEntrance", type = ParamType.String },   // 目標地圖的落點
+                }
+            });
             return set;
         }
     }

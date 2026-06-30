@@ -82,9 +82,21 @@
       "locked": false,
       "regions": [
         {
-          "id": "029f664a",
-          "name": "傳送點1",
-          "typeId": "teleport",
+          "id": "ddf3464f",
+          "name": "玩家出生點1",
+          "typeId": "playerSpawn",
+          "cells": [
+            [
+              8,
+              6
+            ]
+          ],
+          "params": {}
+        },
+        {
+          "id": "121d2bb6",
+          "name": "事件/過場觸發點1",
+          "typeId": "cutscene",
           "cells": [
             [
               8,
@@ -96,22 +108,11 @@
             ]
           ],
           "params": {
-            "entranceId": "cave_north",
-            "targetMapId": "",
+            "cutsceneId": "1",
+            "video": "",
+            "targetMapId": "12",
             "targetEntrance": ""
           }
-        },
-        {
-          "id": "ddf3464f",
-          "name": "玩家出生點1",
-          "typeId": "playerSpawn",
-          "cells": [
-            [
-              8,
-              6
-            ]
-          ],
-          "params": {}
         }
       ]
     }

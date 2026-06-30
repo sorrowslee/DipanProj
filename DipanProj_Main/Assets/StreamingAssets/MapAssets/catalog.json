@@ -754,33 +754,6 @@
       ]
     },
     {
-      "id": "Modules/RedBridalGown/Tiles/tile1",
-      "path": "Modules/RedBridalGown/Tiles/tile1.png",
-      "category": "Tiles",
-      "module": "RedBridalGown",
-      "pixelSize": 1104,
-      "ppu": 256,
-      "frameCount": 1
-    },
-    {
-      "id": "Modules/RedBridalGown/Tiles/tile2",
-      "path": "Modules/RedBridalGown/Tiles/tile2.png",
-      "category": "Tiles",
-      "module": "RedBridalGown",
-      "pixelSize": 1024,
-      "ppu": 256,
-      "frameCount": 1
-    },
-    {
-      "id": "Modules/RedBridalGown/Tiles/tile3",
-      "path": "Modules/RedBridalGown/Tiles/tile3.png",
-      "category": "Tiles",
-      "module": "RedBridalGown",
-      "pixelSize": 1024,
-      "ppu": 256,
-      "frameCount": 1
-    },
-    {
       "id": "Modules/RedBridalGown/Background/Stage_BanyanTree",
       "path": "Modules/RedBridalGown/Background/Stage_BanyanTree.png",
       "category": "Background",
@@ -1013,34 +986,6 @@
       "pixelSize": 433,
       "ppu": 256,
       "frameCount": 1
-    },
-    {
-      "id": "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/idle",
-      "path": "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/idle/idle_01.png",
-      "category": "Monsters",
-      "module": "Tutorial",
-      "pixelSize": 500,
-      "ppu": 256,
-      "frameCount": 1
-    },
-    {
-      "id": "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk",
-      "path": "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_01.png",
-      "category": "Monsters",
-      "module": "Tutorial",
-      "pixelSize": 500,
-      "ppu": 256,
-      "frameCount": 8,
-      "frames": [
-        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_01.png",
-        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_02.png",
-        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_03.png",
-        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_04.png",
-        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_05.png",
-        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_06.png",
-        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_07.png",
-        "Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk/walk_08.png"
-      ]
     }
   ]
 }
