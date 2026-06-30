@@ -231,7 +231,7 @@ ID, Name,   Module,        Path,                                                
 
 ## 9. Unity 接線（Phase 1，程式已就緒）
 
-程式已寫好，剩下在 Unity 場景（`SampleScene`）接線：
+程式已寫好，剩下在 Unity 場景（`MainScene`）接線：
 
 1. **匯入 `MapsTable.csv`**：放在 `Assets/Data/`（已建）。Unity 會自動 import 成 TextAsset。
 2. **掛兩個元件**（建議放在既有的 `GameManagers` 或任一持久空物件上）：

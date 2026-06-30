@@ -18,7 +18,7 @@
 
 1. **檢查 Windows 模組**:沒裝 Windows Build Support 就中止並提示(在 Mac 上建 Windows 版必須裝此模組)。
 2. **打包前對齊部署資料夾**(`update_deploy.sh`):把 `DipanProj_Deploy` 本地 `main` **無條件對齊遠端 `main`**(`git fetch` → `git checkout -B main origin/main` → `git reset --hard origin/main` → `git clean -fd`)。有任何衝突/本地改動一律以遠端為準。**同步失敗就中止打包**,避免之後因「本地落後遠端」而 push 失敗。
-3. **打包** Windows 版到 `DipanProj_Main/Builds/Windows_Test/`。
+3. **打包** Windows 版到 `DipanProj_Main/Builds/Windows_Test/`。**打包的場景清單由 `BuildScript.cs` 的 `options.scenes` 指定（不是 Build Settings 視窗），目前為 `{ "Assets/Scenes/Intro.unity", "Assets/Scenes/MainScene.unity" }`**——`Intro` 必須排第 0（開機＝開場漫畫＋墜落），`MainScene` 第二（墜落播完載入、落在 Tutorial_Cave）。加新場景要記得加進這個陣列。漏掉 Intro 的症狀見 [PROBLEMS.md](PROBLEMS.md) A10。
 4. **驗收**:印出整個 BuildReport(每個 BuildStep 的錯誤/例外/警告)+ 檢查 `_Data` 是否含核心資料檔(`globalgamemanagers` / `data.unity3d`)。**只有「成功 + 零錯誤 + 資料完整」才繼續部署**,杜絕半成品。
 5. **部署**(`deploy_only.sh`):`rsync` 成品到 `DipanProj_Deploy` → `git add/commit/push`,逐步檢查、誠實回報(不是 repo、無變更、push 失敗都會明講)。
 

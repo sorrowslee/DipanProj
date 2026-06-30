@@ -10,7 +10,7 @@
 
 ## 0. 放在獨立的 Intro 場景（不蓋在主場景上）
 
-墜落動畫放在**獨立的 `Intro` 場景**，播完 `SceneManager.LoadScene` 進主遊戲場景，而**不是**蓋在 `SampleScene` 上。原因：主場景一啟動，玩家生成／地圖載入／怪物 AI／HUD 全部會跑起來；蓋在上面得想辦法把這些全壓住再解開，容易留下殘留狀態。獨立場景天然乾淨，且 `UIManager`（`DontDestroyOnLoad`）本來就為多場景設計，這條路已鋪好。
+墜落動畫放在**獨立的 `Intro` 場景**，播完 `SceneManager.LoadScene` 進主遊戲場景 `MainScene`，而**不是**蓋在 `MainScene` 上。原因：主場景一啟動，玩家生成／地圖載入／怪物 AI／HUD 全部會跑起來；蓋在上面得想辦法把這些全壓住再解開，容易留下殘留狀態。獨立場景天然乾淨，且 `UIManager`（`DontDestroyOnLoad`）本來就為多場景設計，這條路已鋪好。
 
 Intro 場景之後也可長成「標題畫面 / 新遊戲 vs 繼續 / 選角」入口。
 
@@ -20,8 +20,8 @@ Intro 場景之後也可長成「標題畫面 / 新遊戲 vs 繼續 / 選角」�
 
 1. `File → New Scene`，存成 `Assets/Scenes/Intro.unity`。
 2. 場景保留預設的 Main Camera；新增一個空物件 `[IntroFall]`，掛上 **`IntroFallController`**（立繪欄位留空會自動從 Resources 載）。
-3. `File → Build Settings → Add Open Scenes`，把 **Intro 拖到第 0 個**（`SampleScene` 留在清單裡，控制器 `NextSceneName` 預設就是它）。
-4. 按 Play：一進場景自動播墜落 → 播完自動載 `SampleScene`。
+3. **Intro 與 `MainScene` 兩個場景都要在 build 裡，Intro 排第 0 個**（`BuildScript.cs` 的 `options.scenes` 已設好；只放 MainScene 會直接從遊戲場景開始、沒有開場）。
+4. 按 Play：一進場景自動播墜落 → 播完自動載 `MainScene`（落在 Tutorial_Cave，見 [MAP_SYSTEM.md](MAP_SYSTEM.md)；由 `MapManager.startModule = Tutorial` 決定）。
 
 > 不需要手動接 Canvas：控制器在 `Awake` 自己建一整套 Screen-Space Overlay Canvas 與所有圖層。
 
@@ -76,6 +76,27 @@ Intro 場景之後也可長成「標題畫面 / 新遊戲 vs 繼續 / 選角」�
 
 ---
 
+## 5.5 正面：旋轉卍字（神聖 → 墮落）
+
+正面墜落時，於角色**後方**加一個緩緩旋轉的**佛教卍字（左旋＝逆時針，象徵法輪/神聖）**＋柔光暈，隨「穿越進度」由**金色（神聖）漸變成紫色（墮落／入異界）**，半透明當背景光暈、不蓋住角色；側面段不出現，收尾沒入時跟著淡出，並帶輕微「呼吸」脈動。
+
+* 圖來源：優先用 **`Assets/Resources/InitialStory/Manji.png`**（毛筆草書、白字去背 PNG，染色才準），用 `Texture2D` 載入＋`Sprite.Create`（不挑 import 類型）；沒圖時退回**程式生成**的卍字（粗筆、毛筆提按、邊緣毛躁、腳尖收鋒，純程式 `MakeManji`）。也可直接拖圖到 `ManjiImage` 欄覆寫。
+* 顏色跟著 `_weird`（穿越進度）由 `ManjiGold` → `ManjiPurple` 線性內插，與既有色調穿越同步。
+
+| 欄位 | 預設 | 說明 |
+|---|---|---|
+| `ShowManji` | true | 開關 |
+| `ManjiRotateSpeed` | 32 | 旋轉速度（度/秒，正＝逆時針） |
+| `ManjiSizeFraction` | 0.98 | 大小 = 螢幕高 × 此值 |
+| `ManjiAlpha` | 0.55 | 不透明度上限（半透明光暈） |
+| `ManjiGold` / `ManjiPurple` | 金 / 紫 | 起始（神聖）／結束（墮落）色 |
+| `ManjiImage` | 空 | 自備卍字圖；留空＝自動抓 `Resources/InitialStory/Manji`，再退回程式生成 |
+| `ManjiTintImage` | true | 用自備圖時是否仍套金→紫染色（圖須白色去背）；關＝保留圖原色只淡入淡出 |
+
+> 卍字是**佛教左旋卍（逆時針）**，對應「神聖→墮落」寓意與燃燈古佛世界觀，與納粹符號（右旋、45°傾斜）方向/風格不同。
+
+---
+
 ## 6. 色調穿越
 
 * `NormalTone`：側面段的正常暗色（現實感）。
@@ -90,7 +111,7 @@ Intro 場景之後也可長成「標題畫面 / 新遊戲 vs 繼續 / 選角」�
 | 欄位 | 預設 | 說明 |
 |---|---|---|
 | `AutoLoadNextScene` | true | 墜落播完自動載下一個場景 |
-| `NextSceneName` | `SampleScene` | 下一個場景名（**需加進 Build Settings**） |
+| `NextSceneName` | `MainScene` | 下一個場景名（**需在 build 場景清單裡**） |
 | `OnComplete`（事件） | — | 播完（收尾結束）時觸發；想自己接「漫畫→墜落」「墜落→生玩家」就關掉 `AutoLoadNextScene`、訂閱此事件 |
 
 公開 API：`Play()`（重播）、`Skip()`（直接收尾）、`SetView(FallView)`。測試鍵：**R** 重播、**Esc** 直接收尾（`SkipKey` / `ReplayKey`，正式上線可改）。
@@ -127,11 +148,11 @@ Intro 場景之後也可長成「標題畫面 / 新遊戲 vs 繼續 / 選角」�
 
 ## 11. 相關檔案
 
-* `Assets/Scripts/Intro/IntroFallController.cs` — 控制器（全部邏輯：圖層建構、時間軸、山壁、速度線、色調、扭曲、收尾、程序貼圖生成）。
+* `Assets/Scripts/Intro/IntroFallController.cs` — 控制器（全部邏輯：圖層建構、時間軸、山壁、速度線、色調、扭曲、旋轉卍字、收尾、程序貼圖生成）。
 * `Assets/Resources/Shaders/IntroWarp.shader` — 正面時空扭曲 shader（`Custom/IntroWarp`）。
-* `Assets/GameAssets/Main/InitialStory/` — 序章漫畫分鏡 `Story_01~11`、墜落立繪 `Story_ActorFall_Front/Side`、岩壁 `Story_RockWall`。
-* `Assets/Resources/InitialStory/` — 上述墜落立繪與岩壁的 Resources 載入副本。
+* `Assets/Resources/InitialStory/` — 墜落立繪 `Story_ActorFall_Front/Side`、岩壁 `Story_RockWall`、卍字 `Manji.png`（控制器讀這份；原圖在 `GameAssets/Main/InitialStory/`）。
 
 ---
 
 *建立於 2026-06-28：序章墜落程式動畫（獨立 Intro 場景、三段時間軸、岩壁無限捲動背景、散佈短碎條側面速度線、正面放射速度線＋`Custom/IntroWarp` 扭曲、色調穿越、收尾縮小沒入＋載入下一場景）。*
+*2026-06-29 更新：正面加旋轉卍字（金→紫、自備圖 `Resources/InitialStory/Manji` 或程式生成）；下一場景改 `MainScene`（落 Tutorial_Cave）；Intro+MainScene 都需在 build 場景清單。*

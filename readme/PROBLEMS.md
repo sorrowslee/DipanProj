@@ -55,6 +55,19 @@
 - **原因**:批次模式 + Personal 授權的**正常現象**,與打包成敗無關。
 - **解法**:忽略。真正的失敗看 BuildStep 與 `_Data` 是否完整。
 
+### A9. `git push` 被拒：`File ...resources.assets.resS is 192 MB; exceeds GitHub's 100 MB limit`
+- **症狀**:Build and Deploy 後 push，GitHub 退回，說某個檔（通常 `*_Data/resources.assets.resS`）超過 100MB。
+- **原因**:`resources.assets.resS` 是 Unity 烘進 build 的「資源資料流」——**凡是放在 `Assets/Resources/` 的貼圖都會進這個檔，且在 build 內展開成大尺寸**（接近未壓縮）。本專案 `Resources/InitialStory`（開場漫畫＋墜落大圖）＋ `Resources/UI`（大張面板底圖）疊起來就破百 MB。
+- **解法（治本）**:把那批大圖的**匯入設定**壓小——選取 `Resources/InitialStory`（及 UI 大底圖）→ Inspector：`Max Size` 設 1024（或留 2048）＋勾 **Use Crunch Compression**（或 `Compression = Normal`）＋取消 **Generate Mip Maps** → Apply → 重新 Build。觀念：
+  - `Max Size`/壓縮改的是「**匯入後的版本**」（存在 Library，編輯器與 build 都用它），**不動原始 PNG**；build 裡裝的是這份處理版（原始 PNG 不會被打進遊戲），所以 build 變小，且**編輯器與 build 解析度一致**。
+  - 開場圖走 `Resources.Load` → **吃**匯入設定；地圖素材在 `StreamingAssets`、用 raw bytes 載 → **不吃**匯入設定（原樣複製進 build，要縮得改檔案本身）。
+- **解法（治標）**:Deploy repo 改用 Git LFS 追 `*.resS *.assets *.bundle`（遠端 pull 的機器也要裝 LFS）。
+
+### A10. 遠端執行檔「沒有開場漫畫/墜落」，直接從遊戲場景開始
+- **症狀**:編輯器按 Play 看得到開場，但遠端 build 一開機就是遊戲場景（洞穴）。
+- **原因**:`BuildScript.cs` 的 `options.scenes` 只放了 `MainScene`，**沒把 `Intro` 場景包進 build**；build 的第 0 個場景就是開機載入的場景。編輯器看得到只是因為按 Play 時剛好開著 Intro。
+- **解法**:`options.scenes` 要含兩個、且 **Intro 排第 0**：`{ "Assets/Scenes/Intro.unity", "Assets/Scenes/MainScene.unity" }`（兩個打包方法都要改）。`MainScene` 也要在清單裡，墜落播完才載得到。
+
 ---
 
 ## B. 地圖載入 (Map Loader)
@@ -158,7 +171,7 @@
 ### E2. 某張地圖左右兩側不是純黑、而是藍色(場景外露出底色)
 - **症狀**:某些地圖(例 `RedBridalGown_LivingRoom2`)左右兩側、地圖沒覆蓋到的地方是**藍色**,不是純黑;其他地圖看起來卻是黑的。誤以為是「這張地圖的問題」。
 - **原因**:那片顏色是 **Main Camera 的背景(Solid Color clear)色**,不是地圖。場景相機底色原本是藍 `RGB(0.192,0.302,0.475)`(Unity 預設藍)。會不會看到只取決於**地圖有沒有填滿畫面**:整張地圖模式 / 夠大的圖填滿畫面 → 看不到底色;**鏡頭跟隨且地圖比畫面窄**(如關卡起始圖 LivingRoom2)→ 左右露出相機底色 → 看到藍。所以是相機底色問題,與單張地圖無關。
-- **解法**:讓相機底色一律純黑。在 `MapCameraController.Apply()` 取得 `_cam` 後**強制** `clearFlags = SolidColor`、`backgroundColor = Color.black`(每次載圖、每種相機模式都套,不依賴場景設定);並把場景 `SampleScene.unity` 的 `m_BackGroundColor` 也改成黑(避免載圖前閃藍 / 編輯器預覽一致)。**通則:畫面上「地圖以外」的顏色 = 相機 clear 色,要改去相機,不是去找地圖。**
+- **解法**:讓相機底色一律純黑。在 `MapCameraController.Apply()` 取得 `_cam` 後**強制** `clearFlags = SolidColor`、`backgroundColor = Color.black`(每次載圖、每種相機模式都套,不依賴場景設定);並把場景 `MainScene.unity` 的 `m_BackGroundColor` 也改成黑(避免載圖前閃藍 / 編輯器預覽一致)。**通則:畫面上「地圖以外」的顏色 = 相機 clear 色,要改去相機,不是去找地圖。**
 
 ### E3. 套了某後處理/氛圍(shader)後,整個畫面變成一片洋紅/粉紫
 - **症狀**:改了 `Atmosphere.shader`(氛圍後處理)後,Game 視窗整片**洋紅色**(亮粉紫 ≈ `RGB(230,46,243)`)。而且**不管 `Atmosphere` 填哪個 type 都一樣**洋紅,連原本正常的型別也是。

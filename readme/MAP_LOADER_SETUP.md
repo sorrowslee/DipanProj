@@ -20,7 +20,7 @@
 
 開啟專案,Unity 會自動抓 Newtonsoft 套件並編譯。Console 沒紅錯誤再往下。
 
-## 2. 關掉舊測試場景物件(SampleScene)
+## 2. 關掉舊測試場景物件(MainScene)
 
 舊的測試牆與地板會跟新地圖衝突,先停用(不用刪):
 
@@ -42,7 +42,7 @@
 
 ## 4. 設為初始場景
 
-`File → Build Settings`,確認 `Scenes/SampleScene` 在清單最上(已經是了)。按 **Play**。
+`File → Build Settings`,確認 `Scenes/MainScene` 在清單最上(已經是了)。按 **Play**。
 
 ## 預期結果
 
