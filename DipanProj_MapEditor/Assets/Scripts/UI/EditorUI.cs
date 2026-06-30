@@ -670,6 +670,17 @@ namespace DipanMapEditor.UI
                     _objFpsBuf = sf;
                     if (float.TryParse(sf, out var vf) && vf > 0f) sel.animFps = Mathf.Clamp(vf, MinFps, MaxFps);
                 }
+
+                // 播放模式：循環 / 乒乓。乒乓 = 來回播，AI 產的圖首尾接不順時用它讓接縫消失（適合佛像等氛圍動畫；
+                // 有方向性的動畫會變「正放再倒放」）。改了預覽即時反映。
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("播放", GUILayout.Width(96));
+                GUI.color = !sel.pingPong ? Color.cyan : Color.white;
+                if (GUILayout.Button("循環")) { if (sel.pingPong) { UndoManager.Push(); sel.pingPong = false; } }
+                GUI.color = sel.pingPong ? Color.cyan : Color.white;
+                if (GUILayout.Button("乒乓(來回)")) { if (!sel.pingPong) { UndoManager.Push(); sel.pingPong = true; } }
+                GUI.color = Color.white;
+                GUILayout.EndHorizontal();
             }
 
             GUILayout.BeginHorizontal();

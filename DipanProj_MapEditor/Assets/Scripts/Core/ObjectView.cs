@@ -18,7 +18,7 @@ namespace DipanMapEditor.Core
         Transform _root;
 
         // 動畫地上物的播放狀態（僅多幀物件有）；每幀依 inst.animFps 推進。
-        class AnimState { public Sprite[] frames; public int idx; public float timer; }
+        class AnimState { public Sprite[] frames; public int idx; public float timer; public int dir = 1; }
         readonly Dictionary<ObjectInstance, AnimState> _anims = new Dictionary<ObjectInstance, AnimState>();
 
         void OnEnable()
@@ -79,7 +79,14 @@ namespace DipanMapEditor.Core
                 while (a.timer >= frameDur)
                 {
                     a.timer -= frameDur;
-                    a.idx = (a.idx + 1) % a.frames.Length;
+                    int n = a.frames.Length;
+                    if (inst.pingPong)   // 乒乓：0→N-1→0 來回（首尾接不順時接縫消失）
+                    {
+                        a.idx += a.dir;
+                        if (a.idx >= n - 1) { a.idx = n - 1; a.dir = -1; }
+                        else if (a.idx <= 0) { a.idx = 0; a.dir = 1; }
+                    }
+                    else a.idx = (a.idx + 1) % n;
                     sr.sprite = a.frames[a.idx];
                 }
             }

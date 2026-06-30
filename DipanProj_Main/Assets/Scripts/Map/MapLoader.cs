@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -71,6 +72,12 @@ public class MapLoader : MonoBehaviour
 
     public MapData Map => _map;
 
+    /// <summary>分幀載入的最近一次結果（給 MapManager 在 LoadMapRoutine 之後判斷成敗）。</summary>
+    public bool LastLoadOk { get; private set; }
+
+    /// <summary>地上物分幀建立：每幀建幾個（含逐張載圖＋alpha 掃描，是最重的一段）。</summary>
+    public int objectsPerFrame = 8;
+
     void Awake()
     {
         _envLayer = ResolveLayer(environmentLayerName, fallback: 3);
@@ -106,6 +113,48 @@ public class MapLoader : MonoBehaviour
 
         Debug.Log($"[MapLoader] 載入完成：{_map.name}（{_map.width}×{_map.height}, module={_map.module}）");
         return true;
+    }
+
+    /// <summary>
+    /// 分幀（非同步）版的 LoadMap：把建圖拆成多幀，避免一次塞爆主執行緒造成進場凍住。
+    /// 與 <see cref="LoadMap"/> 走同一批建構方法，只差「地上物分批建 + 階段間 yield + 回報進度」。
+    /// 結果寫進 <see cref="LastLoadOk"/>。不生玩家、不生怪（怪由 MapManager 在之後呼叫 SpawnMonsters）。
+    /// onProgress 回報 0~1。
+    /// </summary>
+    public IEnumerator LoadMapRoutine(string path, System.Action<float> onProgress)
+    {
+        LastLoadOk = false;
+        Teardown();
+        onProgress?.Invoke(0.02f);
+        yield return null;
+
+        if (!LoadMapData(path)) { onProgress?.Invoke(1f); yield break; }   // 失敗：呼叫端依 LastLoadOk 處理
+
+        BuildRoot();
+        if (buildBackground) BuildBackground();
+        onProgress?.Invoke(0.1f);
+        yield return null;
+
+        if (buildTiles) BuildTiles();
+        onProgress?.Invoke(0.2f);
+        yield return null;
+
+        // 地上物：最重的一段（逐張載 PNG + alpha 掃描），分批建、把進度映射到 0.2~0.85。
+        if (buildObjects)
+            yield return StartCoroutine(BuildObjectsRoutine(
+                Mathf.Max(1, objectsPerFrame),
+                t => onProgress?.Invoke(Mathf.Lerp(0.2f, 0.85f, t))));
+
+        if (buildWalls || buildBlockers) BuildCellColliders();
+        onProgress?.Invoke(0.92f);
+        yield return null;
+
+        if (buildTeleportMarkers) BuildTeleportMarkers();
+        if (fitCameraToMap) FitCamera();   // MapManager 會關掉此旗標；保留以相容 loadOnAwake
+
+        LastLoadOk = true;
+        onProgress?.Invoke(1f);
+        Debug.Log($"[MapLoader] 載入完成（分幀）：{_map.name}（{_map.width}×{_map.height}, module={_map.module}）");
     }
 
     /// <summary>依當前地圖的 monsterSpawn 出生點生怪。需在 MonsterSpawner.Awake 之後呼叫（MapManager 在 Start 驅動）。</summary>
@@ -241,6 +290,9 @@ public class MapLoader : MonoBehaviour
     }
 
     // ---- 地上物 ----
+    const int SortBase = 1000000, BandStep = 10000;
+    const float SortScale = 100f;
+
     void BuildObjects()
     {
         var layer = _map.GameLayer;
@@ -249,67 +301,90 @@ public class MapLoader : MonoBehaviour
         var objRoot = new GameObject("Objects");
         objRoot.transform.SetParent(_root, false);
 
-        const int SortBase = 1000000, BandStep = 10000;
-        const float SortScale = 100f;
+        foreach (var inst in layer.objects) BuildOneObject(inst, objRoot.transform);
+    }
 
+    /// <summary>分幀建地上物：每 perFrame 個 yield 一次並回報進度（0~1）。建構內容與 BuildObjects 完全相同。</summary>
+    IEnumerator BuildObjectsRoutine(int perFrame, System.Action<float> onProgress)
+    {
+        var layer = _map.GameLayer;
+        if (layer?.objects == null || layer.objects.Count == 0) { onProgress?.Invoke(1f); yield break; }
+
+        var objRoot = new GameObject("Objects");
+        objRoot.transform.SetParent(_root, false);
+
+        int total = layer.objects.Count, done = 0;
         foreach (var inst in layer.objects)
         {
-            var item = _catalog.Find(inst.assetId);
-            var sprite = _sprites.GetWholeSprite(item, _map.tileSize);
-            if (sprite == null) { Debug.LogWarning($"[MapLoader] 地上物找不到：{inst.assetId}"); continue; }
-
-            string leaf = inst.assetId;
-            int slash = leaf.LastIndexOf('/');
-            if (slash >= 0) leaf = leaf.Substring(slash + 1);
-
-            var go = new GameObject($"Obj_{leaf}");
-            go.transform.SetParent(objRoot.transform, false);
-            go.layer = _envLayer;
-
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite;   // = 第一幀（GetWholeSprite 用 item.path = 第一幀）
-            sr.sortingOrder = SortBase + inst.zOrder * BandStep + Mathf.RoundToInt(-inst.sortKey * SortScale);
-
-            // 動畫地上物：載入幀序列、掛上原地循環播放元件（速度 = 該實例 animFps）。
-            // 碰撞框/血量/可破壞仍以第一幀建立（下方），動畫只換顯示用 sprite。
-            if (item != null && item.IsAnimated)
+            BuildOneObject(inst, objRoot.transform);
+            done++;
+            if (done % perFrame == 0)
             {
-                var frames = _sprites.GetAnimationFrames(item, _map.tileSize);
-                if (frames != null && frames.Length >= 2)
-                    go.AddComponent<AnimatedMapObject>().Initialize(sr, frames, inst.animFps);
-                else
-                    Debug.LogWarning($"[MapLoader] 動畫地上物「{inst.assetId}」幀載入失敗，退回靜態第一幀。");
+                onProgress?.Invoke((float)done / total);
+                yield return null;
             }
+        }
+        onProgress?.Invoke(1f);
+    }
 
-            go.transform.position = new Vector3(inst.x, inst.y, 0f);
-            go.transform.localScale = new Vector3(
-                (inst.flipX ? -1f : 1f) * inst.scaleX,
-                (inst.flipY ? -1f : 1f) * inst.scaleY, 1f);
-            go.transform.rotation = Quaternion.Euler(0, 0, inst.rot);
+    /// <summary>建一個地上物（載圖、SpriteRenderer、動畫、碰撞框、可破壞）。sync 與分幀版共用。</summary>
+    void BuildOneObject(ObjectInstance inst, Transform objRoot)
+    {
+        var item = _catalog.Find(inst.assetId);
+        var sprite = _sprites.GetWholeSprite(item, _map.tileSize);
+        if (sprite == null) { Debug.LogWarning($"[MapLoader] 地上物找不到：{inst.assetId}"); return; }
 
-            if (addObjectColliders)
+        string leaf = inst.assetId;
+        int slash = leaf.LastIndexOf('/');
+        if (slash >= 0) leaf = leaf.Substring(slash + 1);
+
+        var go = new GameObject($"Obj_{leaf}");
+        go.transform.SetParent(objRoot, false);
+        go.layer = _envLayer;
+
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = sprite;   // = 第一幀（GetWholeSprite 用 item.path = 第一幀）
+        sr.sortingOrder = SortBase + inst.zOrder * BandStep + Mathf.RoundToInt(-inst.sortKey * SortScale);
+
+        // 動畫地上物：載入幀序列、掛上原地循環播放元件（速度 = 該實例 animFps）。
+        // 碰撞框/血量/可破壞仍以第一幀建立（下方），動畫只換顯示用 sprite。
+        if (item != null && item.IsAnimated)
+        {
+            var frames = _sprites.GetAnimationFrames(item, _map.tileSize);
+            if (frames != null && frames.Length >= 2)
+                go.AddComponent<AnimatedMapObject>().Initialize(sr, frames, inst.animFps, inst.pingPong);
+            else
+                Debug.LogWarning($"[MapLoader] 動畫地上物「{inst.assetId}」幀載入失敗，退回靜態第一幀。");
+        }
+
+        go.transform.position = new Vector3(inst.x, inst.y, 0f);
+        go.transform.localScale = new Vector3(
+            (inst.flipX ? -1f : 1f) * inst.scaleX,
+            (inst.flipY ? -1f : 1f) * inst.scaleY, 1f);
+        go.transform.rotation = Quaternion.Euler(0, 0, inst.rot);
+
+        if (addObjectColliders)
+        {
+            var box = _sprites.GetAlphaLocalBox(item, _map.tileSize);
+            var col = go.AddComponent<BoxCollider2D>();
+            if (box.ok)
             {
-                var box = _sprites.GetAlphaLocalBox(item, _map.tileSize);
-                var col = go.AddComponent<BoxCollider2D>();
-                if (box.ok)
-                {
-                    col.size = box.size * objectColliderScale;
-                    col.offset = box.offset;
-                }
-                else
-                {
-                    col.size = sprite.bounds.size;   // 後備：整張圖外框
-                    col.offset = Vector2.zero;
-                }
+                col.size = box.size * objectColliderScale;
+                col.offset = box.offset;
             }
-
-            // hp < 0（例如 -1）= 不可摧毀:不掛 DestructibleObject,但上面的碰撞框照常 → 等於一般牆壁(擋＋反彈)。
-            if (objectsDestructible && inst.hp >= 0)
+            else
             {
-                var d = go.AddComponent<DestructibleObject>();
-                float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值
-                d.Configure(hp, objectDestroyVfxId);
+                col.size = sprite.bounds.size;   // 後備：整張圖外框
+                col.offset = Vector2.zero;
             }
+        }
+
+        // hp < 0（例如 -1）= 不可摧毀:不掛 DestructibleObject,但上面的碰撞框照常 → 等於一般牆壁(擋＋反彈)。
+        if (objectsDestructible && inst.hp >= 0)
+        {
+            var d = go.AddComponent<DestructibleObject>();
+            float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值
+            d.Configure(hp, objectDestroyVfxId);
         }
     }
 

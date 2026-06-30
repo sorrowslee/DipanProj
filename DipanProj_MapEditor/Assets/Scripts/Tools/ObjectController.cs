@@ -220,6 +220,7 @@ namespace DipanMapEditor.Tools
                 zOrder = Selected.zOrder,
                 hp = Selected.hp,
                 animFps = Selected.animFps,
+                pingPong = Selected.pingPong,
             };
             copy.sortKey = copy.y;
             map.GameLayer.objects.Add(copy);

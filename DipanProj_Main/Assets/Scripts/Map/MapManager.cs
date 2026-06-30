@@ -1,5 +1,7 @@
+using System.Collections;
 using UnityEngine;
 using Dipan.MapRuntime;
+using Dipan.UI;
 
 /// <summary>
 /// 地圖系統的大腦（場景持久單例）：負責「進入關卡」與「換地圖」，跨換圖不被拆掉。
@@ -29,13 +31,19 @@ public class MapManager : MonoBehaviour
     public string startModule = "RedBridalGown";
     public bool autoStartLevel = true;
 
+    [Header("載入頁")]
+    [Tooltip("載入頁出現後、開始實際載入前的等待秒數（讓載入圖先停留一下，不會一閃而過）。")]
+    public float loadingScreenHoldSeconds = 2f;
+
     GameObject _player;
     TeleportWatcher _watcher;
     CutsceneWatcher _cutscene;
     MapCameraController _camera;
     int _currentMapId = -1;
+    bool _loading;   // 載入進行中：擋掉重入（例如傳送 watcher 在載入期間又觸發）
 
     public int CurrentMapId => _currentMapId;
+    public bool IsLoading => _loading;
 
     void Awake()
     {
@@ -82,27 +90,66 @@ public class MapManager : MonoBehaviour
     void LoadMapInternal(MapTableRow row, string entrance)
     {
         if (mapLoader == null) { Debug.LogError("[MapManager] 沒有 MapLoader。"); return; }
+        if (_loading)
+        {
+            Debug.LogWarning("[MapManager] 載入進行中，忽略這次換圖請求（避免重入）。");
+            return;
+        }
+        StartCoroutine(LoadMapRoutine(row, entrance));
+    }
 
+    /// <summary>非同步換圖：開載入頁 → 分幀載地圖 → 放玩家/相機/氛圍/怪 → 關載入頁。載入期間玩家輸入被載入頁鎖住。</summary>
+    IEnumerator LoadMapRoutine(MapTableRow row, string entrance)
+    {
+        _loading = true;
+
+        // 1) 開載入頁（依關卡 module 顯示對應載入圖）。先等一幀讓它建立／開始淡入，
+        //    再停留 loadingScreenHoldSeconds 秒（讓載入圖先看得到、不會一閃而過），才開始吃重活。
+        //    用真實時間等待（WaitForSecondsRealtime），不受暫停/timeScale 影響。
+        LoadingPanel lp = (UIManager.Instance != null) ? UIManager.Instance.Open<LoadingPanel>() : null;
+        if (lp != null) { lp.SetModule(row.module); lp.SetProgress(0f); }
+        yield return null;
+        if (loadingScreenHoldSeconds > 0f)
+            yield return new WaitForSecondsRealtime(loadingScreenHoldSeconds);
+
+        // 2) 清掉上一張地圖的暫態物件（怪/彈/特效/掉落物/持續武器）。
         ClearTransientGameplay();
 
-        if (!mapLoader.LoadMap(row.path))
+        // 3) 分幀載地圖（背景/地磚/地上物/牆碰撞）。進度映射到 0~0.9。
+        mapLoader.fitCameraToMap = false;   // 相機由本元件依 MapMode 接管（保險，Awake 已設）
+        yield return StartCoroutine(mapLoader.LoadMapRoutine(
+            row.path, p => { if (lp != null) lp.SetProgress(p * 0.9f); }));
+
+        if (!mapLoader.LastLoadOk)
         {
             Debug.LogError($"[MapManager] 載入地圖失敗：{row.path}");
-            return;
+            if (lp != null && UIManager.Instance != null) UIManager.Instance.Close<LoadingPanel>();
+            _loading = false;
+            yield break;
         }
         _currentMapId = row.id;
 
+        // 4) 玩家落點 / 相機 / 氛圍 / 怪 / 觸發點。
         Vector2 pos = ResolveSpawnPos(entrance);
         PlacePlayer(pos);
-
         SetupCamera(row.mode);
         // 依 MapsTable 的 Atmosphere 欄套用氛圍後處理（1=正常/2=幽暗+打光/3=噩夢+打光）。
         // 換地圖即時切換，所以可「室外白天 → 傳送 → 古墓」自動變氛圍。見 AtmosphereController / readme/ATMOSPHERE.md。
         AtmosphereController.ApplyMapAtmosphere(row.atmosphere);
+        // 場景特效（世界端環境表演，如火雨）：依 MapsTable 的 SceneEffect 欄，換圖即時切換、自動清殘留。
+        // 與 Atmosphere 獨立可並存（天空走後處理、火球走世界）。見 SceneEffectController / readme。
+        SceneEffectController.ApplyMapSceneEffect(row.sceneEffect, mapLoader.Map);
         mapLoader.SpawnMonsters();
         SetupWatcher();
+        if (lp != null) lp.SetProgress(1f);
 
         Debug.Log($"[MapManager] 進入地圖 #{row.id}「{row.name}」(module={row.module})，落點={pos}。");
+
+        // 5) 收尾：再等一幀讓畫面就緒，關掉載入頁（淡出）。
+        yield return null;
+        if (lp != null && UIManager.Instance != null) UIManager.Instance.Close<LoadingPanel>();
+
+        _loading = false;
     }
 
     /// <summary>落點解析：具名落點 → playerSpawn → 地圖中心。</summary>

@@ -1271,6 +1271,7 @@ MonoBehaviour:
   videoOverlay: {fileID: 1455334038}
   startModule: Main
   autoStartLevel: 1
+  loadingScreenHoldSeconds: 2
 --- !u!114 &550503362
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4454,6 +4455,7 @@ MonoBehaviour:
   objectMaxHP: 20
   objectDestroyVfxId: 5
   teleportVfxId: 6
+  objectsPerFrame: 8
 --- !u!4 &1751355723
 Transform:
   m_ObjectHideFlags: 0

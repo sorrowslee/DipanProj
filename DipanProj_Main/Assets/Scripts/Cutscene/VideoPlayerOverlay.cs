@@ -116,6 +116,10 @@ namespace Dipan.Cutscene
         // 黑幕全黑時：呼叫 onDone（換圖在黑幕後面發生），再轉淡出。
         void SwitchUnderBlack()
         {
+            // 影片已暫停；把影片畫面關掉，否則接下來「黑幕淡出」會把暫停的最後一幀再露出來一下
+            // （症狀：跳過後影片關掉→又閃一下→才真正關閉）。淡出時只剩黑底，乾淨過渡到載入頁/新地圖。
+            if (_video) _video.enabled = false;
+
             var cb = _onDone; _onDone = null;
             try { cb?.Invoke(); } catch (Exception e) { Debug.LogException(e); }
             _fadeT = 0f;

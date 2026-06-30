@@ -14,15 +14,19 @@ public class AnimatedMapObject : MonoBehaviour
     Sprite[] _frames;
     float _fps;
     int _idx;
+    int _dir = 1;        // 乒乓方向（+1 正放 / -1 倒放）
+    bool _pingPong;      // true = 乒乓（0→N-1→0 來回；AI 產的圖首尾接不順時用此模式，接縫消失）
     float _timer;
     bool _ready;
 
-    public void Initialize(SpriteRenderer sr, Sprite[] frames, float fps)
+    public void Initialize(SpriteRenderer sr, Sprite[] frames, float fps, bool pingPong = false)
     {
         _sr = sr;
         _frames = frames;
         _fps = fps > 0f ? fps : 8f;
+        _pingPong = pingPong;
         _idx = 0;
+        _dir = 1;
         _timer = 0f;
         _ready = _sr != null && _frames != null && _frames.Length >= 2;
         if (_sr != null && _frames != null && _frames.Length > 0)
@@ -37,8 +41,24 @@ public class AnimatedMapObject : MonoBehaviour
         while (_timer >= frameDur)
         {
             _timer -= frameDur;
-            _idx = (_idx + 1) % _frames.Length;
+            Advance();
             _sr.sprite = _frames[_idx];
+        }
+    }
+
+    // 推進一幀：循環 = 0→N-1 繞回 0；乒乓 = 0→N-1→0 來回（端點各停一幀，接縫不跳變）。
+    void Advance()
+    {
+        int n = _frames.Length;
+        if (_pingPong)
+        {
+            _idx += _dir;
+            if (_idx >= n - 1) { _idx = n - 1; _dir = -1; }
+            else if (_idx <= 0) { _idx = 0; _dir = 1; }
+        }
+        else
+        {
+            _idx = (_idx + 1) % n;
         }
     }
 }

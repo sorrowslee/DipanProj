@@ -85,6 +85,7 @@ namespace Dipan.MapRuntime
         public int zOrder = 0;
         public int hp = 1;       // 可破壞血量;編輯器寫入,缺省 = 1（打一下就壞）
         public float animFps = 8f; // 動畫地上物的每實例播放幀率（僅動畫物件有意義;靜態物件忽略）
+        public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，接縫不跳變)
     }
 
     public class TriggerRegion
