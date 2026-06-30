@@ -122,26 +122,6 @@
       "locked": false,
       "regions": [
         {
-          "id": "c56da01b",
-          "name": "傳送點1",
-          "typeId": "teleport",
-          "cells": [
-            [
-              17,
-              19
-            ],
-            [
-              18,
-              19
-            ]
-          ],
-          "params": {
-            "entranceId": "square_south",
-            "targetMapId": "",
-            "targetEntrance": ""
-          }
-        },
-        {
           "id": "c666946a",
           "name": "玩家出生點1",
           "typeId": "playerSpawn",
