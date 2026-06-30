@@ -49,7 +49,7 @@ def source_dirs():
 # 若來源已刪除的素材想清乾淨，手動刪 MapAssets 後再跑即可。
 os.makedirs(dst_root, exist_ok=True)
 
-# 0) 先從地圖編輯器 Maps/<模組>/*.dipanmap 拉進 GameAssets/Modules/<模組>/Maps/。
+# 0) 先從地圖編輯器拉地圖：Main → GameAssets/Main/Maps；其它 → GameAssets/Modules/<模組>/Maps。
 # src_root = .../DipanProj_Main/Assets/GameAssets → 上三層到 DipanProj，再進 DipanProj_MapEditor/Maps
 editor_maps = os.path.normpath(os.path.join(src_root, '..', '..', '..', 'DipanProj_MapEditor', 'Maps'))
 pulled = 0
@@ -60,9 +60,11 @@ if os.path.isdir(editor_maps):
             continue
         if only_module and module != only_module:
             continue
-        target_module = os.path.join(src_root, 'Modules', module)
+        # Main 模組 → GameAssets/Main；其它 → GameAssets/Modules/<模組>
+        target_module = os.path.join(src_root, 'Main') if module == 'Main' \
+            else os.path.join(src_root, 'Modules', module)
         if not os.path.isdir(target_module):
-            print(f"   [警告] 編輯器有「{module}」的地圖，但 GameAssets/Modules 無對應模組，略過")
+            print(f"   [警告] 編輯器有「{module}」的地圖，但 GameAssets 無對應目錄（{target_module}），略過")
             continue
         target_maps = os.path.join(target_module, 'Maps')
         os.makedirs(target_maps, exist_ok=True)

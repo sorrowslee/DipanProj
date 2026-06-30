@@ -35,8 +35,8 @@ public static class MapAssetSyncTool
         }
         Directory.CreateDirectory(dstRoot);
 
-        // 0) 先從地圖編輯器把編好的地圖拉進 GameAssets/Modules/<模組>/Maps/。
-        int pulled = PullMapsFromEditor(Path.Combine(srcRoot, "Modules"));
+        // 0) 先從地圖編輯器把編好的地圖拉進來：Main → GameAssets/Main/Maps，其它 → GameAssets/Modules/<模組>/Maps。
+        int pulled = PullMapsFromEditor(srcRoot);
 
         var catalog = new Catalog();
         int mapCount = 0;
@@ -101,10 +101,11 @@ public static class MapAssetSyncTool
     }
 
     /// <summary>
-    /// 從地圖編輯器 Maps/&lt;模組&gt;/*.dipanmap 拉進遊戲端 GameAssets/Modules/&lt;模組&gt;/Maps/。
-    /// 模組名 = 編輯器 Maps 下的子資料夾名,必須對應 GameAssets/Modules 內既有的模組(否則略過並警告)。
+    /// 從地圖編輯器 Maps/&lt;模組&gt;/*.dipanmap 拉進遊戲端：
+    /// 模組名 = "Main" → GameAssets/Main/Maps/（主/共用場景，如初始山洞、邪佛廣場）；
+    /// 其它模組 → GameAssets/Modules/&lt;模組&gt;/Maps/。目的地必須已存在(否則略過並警告)。
     /// </summary>
-    static int PullMapsFromEditor(string gameModulesRoot)
+    static int PullMapsFromEditor(string gameAssetsRoot)
     {
         string editorMaps = Path.GetFullPath(Path.Combine(Application.dataPath, EditorMapsRelative));
         if (!Directory.Exists(editorMaps))
@@ -117,11 +118,16 @@ public static class MapAssetSyncTool
         foreach (var moduleDir in Directory.GetDirectories(editorMaps))
         {
             string module = Path.GetFileName(moduleDir);
-            string targetModule = Path.Combine(gameModulesRoot, module);
+            // Main 模組 → GameAssets/Main；其它 → GameAssets/Modules/<模組>
+            string targetModule = module == "Main"
+                ? Path.Combine(gameAssetsRoot, "Main")
+                : Path.Combine(gameAssetsRoot, "Modules", module);
             if (!Directory.Exists(targetModule))
             {
-                Debug.LogWarning($"[SyncMapAssets] 編輯器有「{module}」的地圖,但 GameAssets/Modules 沒有對應模組,略過。" +
-                                 $"(若是新關卡,請先在 GameAssets/Modules 建立「{module}」資料夾)");
+                Debug.LogWarning($"[SyncMapAssets] 編輯器有「{module}」的地圖,但 GameAssets 沒有對應目錄（{targetModule}），略過。" +
+                                 (module == "Main"
+                                    ? "（請確認 GameAssets/Main 存在）"
+                                    : $"（若是新關卡,請先在 GameAssets/Modules 建立「{module}」資料夾）"));
                 continue;
             }
 
@@ -235,7 +241,7 @@ public static class MapAssetSyncTool
 
             var item = new CatalogItem
             {
-                id = Rel(srcRoot, d),       // 例：Modules/Tutorial/Monsters/SequenceImage/ZhaYu/walk、Main/Characters/SequenceImage/Base/walk
+                id = Rel(srcRoot, d),       // 例：Main/Monsters/SequenceImage/ZhaYu/walk、Main/Characters/SequenceImage/Base/walk
                 path = framesRel[0],
                 category = categoryDir,     // Monsters / Characters
                 module = module,

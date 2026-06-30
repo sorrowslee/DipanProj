@@ -1,6 +1,61 @@
 {
   "items": [
     {
+      "id": "Main/Environment/fireLight",
+      "path": "Main/Environment/fireLight.png",
+      "category": "Environment",
+      "module": "Main",
+      "pixelSize": 398,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Background/Stage_Cave",
+      "path": "Main/Background/Stage_Cave.png",
+      "category": "Background",
+      "module": "Main",
+      "pixelSize": 1448,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Background/Stage_Square",
+      "path": "Main/Background/Stage_Square.png",
+      "category": "Background",
+      "module": "Main",
+      "pixelSize": 1448,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Monsters/SequenceImage/ZhaYu/idle",
+      "path": "Main/Monsters/SequenceImage/ZhaYu/idle/idle_01.png",
+      "category": "Monsters",
+      "module": "Main",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Monsters/SequenceImage/ZhaYu/walk",
+      "path": "Main/Monsters/SequenceImage/ZhaYu/walk/walk_01.png",
+      "category": "Monsters",
+      "module": "Main",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 8,
+      "frames": [
+        "Main/Monsters/SequenceImage/ZhaYu/walk/walk_01.png",
+        "Main/Monsters/SequenceImage/ZhaYu/walk/walk_02.png",
+        "Main/Monsters/SequenceImage/ZhaYu/walk/walk_03.png",
+        "Main/Monsters/SequenceImage/ZhaYu/walk/walk_04.png",
+        "Main/Monsters/SequenceImage/ZhaYu/walk/walk_05.png",
+        "Main/Monsters/SequenceImage/ZhaYu/walk/walk_06.png",
+        "Main/Monsters/SequenceImage/ZhaYu/walk/walk_07.png",
+        "Main/Monsters/SequenceImage/ZhaYu/walk/walk_08.png"
+      ]
+    },
+    {
       "id": "Main/Characters/SequenceImage/Base/dead",
       "path": "Main/Characters/SequenceImage/Base/dead/Actor-iso_custom_dead_right_01.png",
       "category": "Characters",
@@ -956,24 +1011,6 @@
       "category": "Monsters",
       "module": "RedBridalGown",
       "pixelSize": 433,
-      "ppu": 256,
-      "frameCount": 1
-    },
-    {
-      "id": "Modules/Tutorial/Environment/fireLight",
-      "path": "Modules/Tutorial/Environment/fireLight.png",
-      "category": "Environment",
-      "module": "Tutorial",
-      "pixelSize": 398,
-      "ppu": 256,
-      "frameCount": 1
-    },
-    {
-      "id": "Modules/Tutorial/Background/Stage_Cave",
-      "path": "Modules/Tutorial/Background/Stage_Cave.png",
-      "category": "Background",
-      "module": "Tutorial",
-      "pixelSize": 1448,
       "ppu": 256,
       "frameCount": 1
     },

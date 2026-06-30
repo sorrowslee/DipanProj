@@ -12,14 +12,19 @@ namespace DipanMapEditor.Data
 
         public CatalogItem Find(string id) => items.Find(i => i.id == id);
 
-        /// <summary>可編輯的 module 清單（排除共用的 Main），依名稱排序、去重。</summary>
+        /// <summary>
+        /// 可建地圖的 module 清單：永遠含「Main」（主/共用場景，如初始山洞、邪佛廣場），
+        /// 排第一個當預設；其餘為有素材的關卡 module，依名稱排序、去重。
+        /// </summary>
         public System.Collections.Generic.List<string> EditableModules()
         {
             var set = new System.Collections.Generic.SortedSet<string>(System.StringComparer.Ordinal);
             foreach (var it in items)
                 if (!string.IsNullOrEmpty(it.module) && it.module != "Main")
                     set.Add(it.module);
-            return new System.Collections.Generic.List<string>(set);
+            var list = new System.Collections.Generic.List<string> { "Main" };   // Main 永遠可建
+            list.AddRange(set);
+            return list;
         }
     }
 
