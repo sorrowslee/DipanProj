@@ -39,6 +39,8 @@
 | [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md) | 打包/部署流程(Project Tools 選單、打包前對齊遠端 main、疑難排解) | 打包、部署、build/git 出錯時 |
 | [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md) | 效能診斷面板(PerfHud：FPS/CPU·GPU ms/瓶頸/顯卡，按 P) ＋ 上架前玩家畫面設定(VSync/幀率上限/視窗模式)規劃 | 排查幀數/卡頓、做畫面設定選單 |
 | [ATMOSPHERE.md](ATMOSPHERE.md) | 場景氛圍後處理（MapsTable 的 Atmosphere 欄 1~15：正常/幽暗/噩夢/烈日/焦土/沙塵/淺海/深海/深海+恐怖/風雪/強風/細雨/大雨/陰森森林鬼霧/電視雜訊；提燈光圈、熱浪、海洋折射、風絲、雨絲、漂移黑霧、雪花噪訊，地圖驅動、換圖即時切換） | 調某地圖陰森/炎熱/海洋/風雨/鬼霧/雜訊氛圍、做新地圖、改光圈/調色/扭曲 |
+| [SCENE_EFFECT.md](SCENE_EFFECT.md) | 場景特效（地圖級**世界端**環境表演，MapsTable 的 SceneEffect 欄；第一個＝火雨 FireRain：仿火焰拋擲彈的拋物線、純表演、跟相機、程式佔位素材）。與 Atmosphere（螢幕後處理）分工互補 | 做地圖級環境表演（火雨等）、加新場景特效、調火雨密度/弧線/大小 |
+| [RESOURCE_LOADING.md](RESOURCE_LOADING.md) | 資源載入與載入頁（地圖改「分幀載入＋LoadingPanel」解決進場/換圖凍住；依關卡 Resources/Loading/<module>.png 顯示載入圖、停留秒數、鎖輸入不暫停） | 進場/換圖會卡、做載入頁、放各關載入圖、調分幀批量 |
 | [INTRO_COMIC.md](INTRO_COMIC.md) | 序章開場漫畫播放器（獨立 Intro 場景、全程式、`IntroComicController`）：**整頁成品圖＋導讀式鏡頭**——鏡頭平移/縮放對焦每格(Focuses：Area/Zoom/X·YOffset、可綁格)、空白鍵下一格、下墜 13~15 全篇幅 cover、右上角兩段式 Skip、整頁圖放 `Resources/InitialStory`、右鍵帶入預設。播完接墜落、落 `MainScene` 的 Tutorial_Cave | 改開場漫畫、調每格鏡頭框/縮放/位移、Skip、下墜節奏 |
 | [INTRO_FALL.md](INTRO_FALL.md) | 序章「持續墜落深淵」程式動畫（獨立 Intro 場景、全程式建構、`IntroFallController`）：側面峽谷岩壁背景無限捲動＋散佈短碎條速度線 → 正面放射速度線＋時空扭曲 shader ＋色調穿越 → 收尾縮小沒入＋淡出載入下一場景 | 改開場墜落動畫、調速度線/山壁/色調/角色大小、接漫畫或進遊戲的串接 |
 | [CUTSCENE_TUNNEL.md](CUTSCENE_TUNNEL.md) | 過場鏈「穿隧道→播影片→換圖」（全程式、cutscene 觸發點啟動、一次性）：`CutsceneWatcher`(地圖端串接)＋`TunnelWalkController`(按鍵走出發光拱門、等比放大、白光收尾、Canvas 1200)＋`VideoPlayerOverlay`(StreamingAssets/Video 的 mp4、黑幕先蓋再準備、淡黑換圖、Canvas 1300)；影片放哪/觸發點參數(video/targetMapId)/Unity 接線 | 改穿隧道表演、接/換過場影片、調洞口/步數/晃動、cutscene 觸發點 |
