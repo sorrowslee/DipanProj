@@ -60,6 +60,7 @@ public class MapLoader : MonoBehaviour
     [Header("傳送點特效（VfxTable ID，須為 Loop=1/Duration=-1 的循環特效；0 = 不放）")]
     public int teleportVfxId = 6;
 
+
     // ---- runtime ----
     MapData _map;
     Catalog _catalog;
@@ -109,6 +110,7 @@ public class MapLoader : MonoBehaviour
         if (buildObjects) BuildObjects();
         if (buildWalls || buildBlockers) BuildCellColliders();
         if (buildTeleportMarkers) BuildTeleportMarkers();
+        BuildSceneFx();
         if (fitCameraToMap) FitCamera();
 
         Debug.Log($"[MapLoader] 載入完成：{_map.name}（{_map.width}×{_map.height}, module={_map.module}）");
@@ -150,6 +152,7 @@ public class MapLoader : MonoBehaviour
         yield return null;
 
         if (buildTeleportMarkers) BuildTeleportMarkers();
+        BuildSceneFx();
         if (fitCameraToMap) FitCamera();   // MapManager 會關掉此旗標；保留以相容 loadOnAwake
 
         LastLoadOk = true;
@@ -385,6 +388,35 @@ public class MapLoader : MonoBehaviour
             var d = go.AddComponent<DestructibleObject>();
             float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值
             d.Configure(hp, objectDestroyVfxId);
+        }
+    }
+
+    // ---- 場景特效（可放置的粒子特效，煙/火/冰/毒…；由編輯器 map.sceneFx 放置，SceneFxTable 定義外觀）----
+    void BuildSceneFx()
+    {
+        if (_map?.sceneFx == null || _map.sceneFx.Count == 0) return;
+
+        var root = new GameObject("SceneFx");
+        root.transform.SetParent(_root, false);   // 掛地圖 root，換圖拆 _root 一併清掉
+
+        foreach (var fx in _map.sceneFx)
+        {
+            Vector3 start = new Vector3(fx.startX, fx.startY, 0f);
+            Vector3 end = fx.hasEnd
+                ? new Vector3(fx.endX, fx.endY, 0f)
+                : start + new Vector3(0f, 2.5f * Mathf.Max(0.2f, fx.h), 0f);   // 沒終點＝從起點朝上噴一段
+
+            Vector3 dir = end - start;
+            float len = dir.magnitude;
+            Vector3 perp = (len > 1e-4f) ? new Vector3(-dir.y, dir.x, 0f).normalized : Vector3.right;
+            Vector3 ctrl = (start + end) * 0.5f + perp * fx.bulge;   // 控制點外推 → 弧線
+
+            var go = new GameObject($"SceneFx_{fx.fxId}");
+            go.transform.SetParent(root.transform, false);
+            go.transform.position = start;
+            go.AddComponent<SceneFxEmitter>().Configure(
+                SceneFxTable.Get(fx.fxId), start, ctrl, end,
+                fx.w, fx.h, fx.loop, fx.intermittent, fx.interval);
         }
     }
 

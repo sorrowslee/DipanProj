@@ -3177,7 +3177,7 @@ MonoBehaviour:
   MouthEdgeSoftness: 0.16
   MouthHalo: 0.5
   MouthHaloWidth: 0.45
-  MouthBlur: 0.008
+  MouthBlur: 0.0199
   ShakeAmount: 52
   ShakeSeconds: 0.26
   AdvanceKey: 32
@@ -4459,6 +4459,12 @@ MonoBehaviour:
   objectMaxHP: 20
   objectDestroyVfxId: 5
   teleportVfxId: 6
+  smokeObjectIds:
+  - Main/Environment/Buddha
+  smokeChestFracY: -0.05
+  smokeNeckFracY: 0.32
+  smokeSpawnRadiusFrac: 0.1
+  smokeSortingOrder: 25000
   objectsPerFrame: 8
 --- !u!4 &1751355723
 Transform:

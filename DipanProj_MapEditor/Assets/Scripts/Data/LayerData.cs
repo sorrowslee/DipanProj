@@ -84,4 +84,22 @@ namespace DipanMapEditor.Data
         [JsonProperty("params")]
         public Dictionary<string, object> Params = new Dictionary<string, object>();
     }
+
+    /// <summary>
+    /// 一個「場景特效」實例：可放置的粒子特效（煙/火/冰/毒…），外觀由 SceneFxTable 的 fxId 決定。
+    /// 起點必填、終點選填（有終點＝沿弧線流動，如煙霧圍巾；無終點＝從起點朝上噴）。座標為世界座標。
+    /// </summary>
+    public class SceneFxInstance
+    {
+        public string id;
+        public int fxId = 1;       // 特效編號（對應 SceneFxTable）
+        public float startX, startY;
+        public bool hasEnd = false;
+        public float endX, endY;
+        public float bulge = 0f;   // 弧線外鼓量（垂直起→終連線的偏移；0=直線，正負決定鼓哪邊）
+        public float w = 1f, h = 1f; // 煙團大小倍率（X / Y）
+        public bool loop = true;      // 是否持續（false=只播一輪，配合 intermittent）
+        public bool intermittent = false; // 是否間歇播放
+        public float interval = 2f;   // 間歇：開/關各持續幾秒
+    }
 }

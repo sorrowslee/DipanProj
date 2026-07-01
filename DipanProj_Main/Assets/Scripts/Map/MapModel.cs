@@ -24,6 +24,9 @@ namespace Dipan.MapRuntime
         public Vec2 origin = new Vec2(0, 0);
         public List<LayerData> layers = new List<LayerData>();
 
+        // 場景特效（可放置的粒子特效；編輯器放、遊戲端依 SceneFxTable 生成）。缺欄＝空清單。
+        public List<SceneFxInstance> sceneFx = new List<SceneFxInstance>();
+
         [JsonIgnore] public int Subdiv => walkSubdiv < 1 ? 1 : walkSubdiv;
         [JsonIgnore] public int FineWidth => width * Subdiv;
         [JsonIgnore] public int FineHeight => height * Subdiv;
@@ -86,6 +89,21 @@ namespace Dipan.MapRuntime
         public int hp = 1;       // 可破壞血量;編輯器寫入,缺省 = 1（打一下就壞）
         public float animFps = 8f; // 動畫地上物的每實例播放幀率（僅動畫物件有意義;靜態物件忽略）
         public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，接縫不跳變)
+    }
+
+    /// <summary>場景特效實例（編輯器放置、遊戲端依 SceneFxTable 的 fxId 生成粒子）。座標為世界座標。</summary>
+    public class SceneFxInstance
+    {
+        public string id;
+        public int fxId = 1;
+        public float startX, startY;
+        public bool hasEnd = false;
+        public float endX, endY;
+        public float bulge = 0f;       // 弧線外鼓量（垂直起→終連線的偏移）
+        public float w = 1f, h = 1f;   // 煙團大小倍率
+        public bool loop = true;
+        public bool intermittent = false;
+        public float interval = 2f;
     }
 
     public class TriggerRegion

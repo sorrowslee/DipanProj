@@ -10,6 +10,32 @@
       "frameCount": 1
     },
     {
+      "id": "Main/Environment/Buddha",
+      "path": "Main/Environment/Buddha/Buddha_01.png",
+      "category": "Environment",
+      "module": "Main",
+      "pixelSize": 1288,
+      "ppu": 256,
+      "frameCount": 15,
+      "frames": [
+        "Main/Environment/Buddha/Buddha_01.png",
+        "Main/Environment/Buddha/Buddha_02.png",
+        "Main/Environment/Buddha/Buddha_03.png",
+        "Main/Environment/Buddha/Buddha_04.png",
+        "Main/Environment/Buddha/Buddha_05.png",
+        "Main/Environment/Buddha/Buddha_06.png",
+        "Main/Environment/Buddha/Buddha_07.png",
+        "Main/Environment/Buddha/Buddha_08.png",
+        "Main/Environment/Buddha/Buddha_09.png",
+        "Main/Environment/Buddha/Buddha_10.png",
+        "Main/Environment/Buddha/Buddha_11.png",
+        "Main/Environment/Buddha/Buddha_12.png",
+        "Main/Environment/Buddha/Buddha_13.png",
+        "Main/Environment/Buddha/Buddha_14.png",
+        "Main/Environment/Buddha/Buddha_15.png"
+      ]
+    },
+    {
       "id": "Main/Environment/Cultist",
       "path": "Main/Environment/Cultist/Cultist_01.png",
       "category": "Environment",

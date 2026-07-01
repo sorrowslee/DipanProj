@@ -43,6 +43,7 @@ namespace DipanMapEditor.Core
             if (cam.GetComponent<WalkableOverlay>() == null) cam.gameObject.AddComponent<WalkableOverlay>();
             if (cam.GetComponent<TriggerOverlay>() == null) cam.gameObject.AddComponent<TriggerOverlay>();
             if (cam.GetComponent<ObjectSelectionOverlay>() == null) cam.gameObject.AddComponent<ObjectSelectionOverlay>();
+            if (cam.GetComponent<SceneFxOverlay>() == null) cam.gameObject.AddComponent<SceneFxOverlay>();
             if (cam.GetComponent<TileBrushPreview>() == null) cam.gameObject.AddComponent<TileBrushPreview>();
 
             // 3. Tilemap 視圖容器
@@ -115,6 +116,14 @@ namespace DipanMapEditor.Core
                 var trigGO = new GameObject("TriggerController");
                 trigGO.transform.SetParent(transform, false);
                 trigGO.AddComponent<TriggerController>();
+            }
+
+            // 8b. 場景特效控制
+            if (FindObjectOfType<SceneFxController>() == null)
+            {
+                var sfxGO = new GameObject("SceneFxController");
+                sfxGO.transform.SetParent(transform, false);
+                sfxGO.AddComponent<SceneFxController>();
             }
 
             // 9. Undo 熱鍵（Cmd/Ctrl+Z）

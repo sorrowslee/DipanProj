@@ -78,6 +78,11 @@ namespace DipanMapEditor.UI
 
         EditorCamera _cam;
         Tools.ObjectController _objCtl;
+        Tools.SceneFxController _sfxCtl;
+        Vector2 _sfxScroll;
+        // 場景特效數字欄的文字緩衝（讓使用者可清空/自由編輯；空或無效 = 套預設）。切換選取時重新同步。
+        SceneFxInstance _sfxBufFor;
+        string _bufFxId, _bufBulge, _bufW, _bufH, _bufInterval;
 
         // 物件調色盤
         List<PlaceableObject> _objects;
@@ -148,6 +153,12 @@ namespace DipanMapEditor.UI
             return _objCtl;
         }
 
+        Tools.SceneFxController SfxCtl()
+        {
+            if (_sfxCtl == null) _sfxCtl = FindObjectOfType<Tools.SceneFxController>();
+            return _sfxCtl;
+        }
+
         // ---- 供 PaintController 查詢：指標是否壓在 UI 面板上 ----
         public bool IsPointerOverUI(Vector3 mousePos)
         {
@@ -179,6 +190,10 @@ namespace DipanMapEditor.UI
             else if (CurrentTool == EditTool.Trigger)
             {
                 DrawTriggerPanel();
+            }
+            else if (CurrentTool == EditTool.SceneFx)
+            {
+                DrawSceneFxPanel();
             }
             else
             {
@@ -228,6 +243,8 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("可走", GUILayout.Width(50))) CurrentTool = EditTool.Walkable;
             GUI.color = CurrentTool == EditTool.Trigger ? Color.cyan : Color.white;
             if (GUILayout.Button("Trigger", GUILayout.Width(70))) { CurrentTool = EditTool.Trigger; TriggerPaintMode = true; }
+            GUI.color = CurrentTool == EditTool.SceneFx ? Color.cyan : Color.white;
+            if (GUILayout.Button("場景特效", GUILayout.Width(80))) CurrentTool = EditTool.SceneFx;
             GUI.color = Color.white;
 
             GUILayout.Space(12);
@@ -883,6 +900,98 @@ namespace DipanMapEditor.UI
             }
             GUILayout.EndHorizontal();
         }
+
+        void DrawSceneFxPanel()
+        {
+            var map = MapSession.Instance?.Map;
+            var ctl = SfxCtl();
+            if (map == null || ctl == null) return;
+
+            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+            _sfxScroll = GUILayout.BeginScrollView(_sfxScroll);
+
+            GUILayout.Label("場景特效（粒子）");
+            GUILayout.Label("外觀由 fxId 對應 SceneFxTable.csv\n（1煙 2火 3冰 4毒…）。");
+            if (GUILayout.Button("＋ 新增特效")) ctl.NewFx();
+
+            GUILayout.Space(6);
+            GUILayout.Label($"特效清單（{map.sceneFx.Count}）");
+            SceneFxInstance toDelete = null;
+            foreach (var fx in map.sceneFx)
+            {
+                GUILayout.BeginHorizontal();
+                GUI.color = (fx == ctl.Selected) ? Color.cyan : Color.white;
+                if (GUILayout.Button($"fx{fx.fxId}  {(fx.hasEnd ? "起→終" : "起點")}", GUILayout.Width(160))) ctl.Select(fx);
+                GUI.color = Color.white;
+                if (GUILayout.Button("刪", GUILayout.Width(36))) toDelete = fx;
+                GUILayout.EndHorizontal();
+            }
+            if (toDelete != null) { ctl.Select(toDelete); ctl.DeleteSelected(); }
+
+            var sel = ctl.Selected;
+            if (sel != null)
+            {
+                GUILayout.Space(8);
+                GUILayout.Label("── 編輯特效 ──");
+
+                GUILayout.BeginHorizontal();
+                GUI.color = ctl.Mode == Tools.SceneFxController.PlaceMode.Start ? Color.green : Color.white;
+                if (GUILayout.Button("放置起點(綠)")) ctl.BeginPlaceStart();
+                GUI.color = ctl.Mode == Tools.SceneFxController.PlaceMode.End ? new Color(1f, 0.5f, 0.5f) : Color.white;
+                if (GUILayout.Button("放置終點(紅)")) ctl.BeginPlaceEnd();
+                GUI.color = Color.white;
+                GUILayout.EndHorizontal();
+                GUILayout.Label(ctl.Mode == Tools.SceneFxController.PlaceMode.None
+                    ? "（點按鈕後到畫布上點一下放置）" : "→ 現在到畫布上點一下放置");
+
+                // 切換到不同特效時，把數字緩衝重新灌成該特效的現值。
+                if (_sfxBufFor != sel)
+                {
+                    _sfxBufFor = sel;
+                    _bufFxId = sel.fxId.ToString();
+                    _bufBulge = sel.bulge.ToString("0.###");
+                    _bufW = sel.w.ToString("0.###");
+                    _bufH = sel.h.ToString("0.###");
+                    _bufInterval = sel.interval.ToString("0.###");
+                }
+
+                sel.hasEnd = GUILayout.Toggle(sel.hasEnd, "有終點（沿弧線流動）");
+                _bufFxId = SfxField("特效編號 fxId", _bufFxId); sel.fxId = ParseIntOr(_bufFxId, 1);
+                _bufBulge = SfxField("弧線外鼓 bulge", _bufBulge); sel.bulge = ParseFloatOr(_bufBulge, 0f);
+                _bufW = SfxField("大小X w", _bufW); sel.w = ParseFloatOr(_bufW, 1f);
+                _bufH = SfxField("大小Y h", _bufH); sel.h = ParseFloatOr(_bufH, 1f);
+                sel.loop = GUILayout.Toggle(sel.loop, "循環播放 loop");
+                sel.intermittent = GUILayout.Toggle(sel.intermittent, "間歇播放 intermittent");
+                _bufInterval = SfxField("間歇間隔秒 interval", _bufInterval); sel.interval = ParseFloatOr(_bufInterval, 2f);
+
+                GUILayout.Space(4);
+                GUILayout.Label($"起點 ({sel.startX:0.0}, {sel.startY:0.0})"
+                    + (sel.hasEnd ? $"\n終點 ({sel.endX:0.0}, {sel.endY:0.0})" : ""));
+            }
+            else
+            {
+                GUILayout.Space(8);
+                GUILayout.Label("按「＋ 新增特效」建立，\n或點畫布上的標記選取。");
+            }
+
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
+
+        // 只畫「標籤 + 文字框」、回傳目前文字（不 parse）——讓緩衝可自由編輯/清空，不會被舊值蓋回去。
+        static string SfxField(string label, string buf)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(130));
+            string s = GUILayout.TextField(buf ?? "", GUILayout.Width(60));
+            GUILayout.EndHorizontal();
+            return s;
+        }
+
+        // 空字串/無效 → 回傳預設值（存進資料時就是預設，符合「沒填就給預設」）。
+        static int ParseIntOr(string s, int def) => int.TryParse(s, out int v) ? v : def;
+        static float ParseFloatOr(string s, float def) => float.TryParse(s, out float v) ? v : def;
 
         void DrawNewDialog()
         {

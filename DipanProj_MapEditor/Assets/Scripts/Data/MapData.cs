@@ -48,6 +48,9 @@ namespace DipanMapEditor.Data
         /// <summary>有序圖層。目前固定三層：game / walkable / trigger。</summary>
         public List<LayerData> layers = new List<LayerData>();
 
+        /// <summary>場景特效（可放置的粒子特效，煙/火/冰/毒…）；獨立於圖層，直接掛在地圖上。</summary>
+        public List<SceneFxInstance> sceneFx = new List<SceneFxInstance>();
+
         // ---- 便利存取 ----
 
         [JsonIgnore]
