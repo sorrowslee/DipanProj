@@ -178,7 +178,7 @@ MonoBehaviour:
   WarpStrength: 1
   ShowManji: 1
   ManjiRotateSpeed: 50
-  ManjiSizeFraction: 1.4
+  ManjiSizeFraction: 1.166
   ManjiAlpha: 0.84
   ManjiGold: {r: 1, g: 0.8, b: 0.42, a: 1}
   ManjiPurple: {r: 0.56, g: 0.3, b: 0.78, a: 1}
@@ -335,7 +335,7 @@ MonoBehaviour:
         width: 1
         height: 0.3
       Zoom: 0.9
-      XOffset: 0
+      XOffset: 0.1
       YOffset: 0.05
     - Area:
         serializedVersion: 2
@@ -343,7 +343,7 @@ MonoBehaviour:
         y: 0.31
         width: 1
         height: 0.22
-      Zoom: 0.6
+      Zoom: 0.5
       XOffset: 0
       YOffset: 0
     - Area:
@@ -365,8 +365,8 @@ MonoBehaviour:
         y: 0
         width: 0.52
         height: 1
-      Zoom: 0.7
-      XOffset: 0.2
+      Zoom: 0.6
+      XOffset: 0.1
       YOffset: -0.3
     - Area:
         serializedVersion: 2
@@ -383,8 +383,8 @@ MonoBehaviour:
         y: 0.33
         width: 0.48
         height: 0.34
-      Zoom: 0.8
-      XOffset: 0.1
+      Zoom: 0.7
+      XOffset: 0.05
       YOffset: 0.15
     - Area:
         serializedVersion: 2
@@ -393,7 +393,7 @@ MonoBehaviour:
         width: 0.48
         height: 0.33
       Zoom: 0.6
-      XOffset: 0.08
+      XOffset: 0.1
       YOffset: -0.17
     Fullscreen: 0
     HoldSeconds: 0
@@ -414,7 +414,7 @@ MonoBehaviour:
         y: 0.32
         width: 1
         height: 0.38
-      Zoom: 1
+      Zoom: 0.8
       XOffset: 0
       YOffset: 0.1
     - Area:
@@ -447,6 +447,9 @@ MonoBehaviour:
   ShowBackdrop: 1
   BackdropColor: {r: 0.05, g: 0.055, b: 0.07, a: 1}
   ShowVignette: 1
+  ContentScale: 0.5
+  FillHeightMode: 1
+  SideMarginFrac: 0.15
   ClearFadeSeconds: 0.3
   StartDelay: 0.3
   AdvanceKey: 32
@@ -456,7 +459,6 @@ MonoBehaviour:
   FallToTrigger: {fileID: 677678038}
   AutoLoadNextScene: 0
   NextSceneName: MainScene
-  ShowDebugHud: 1
 --- !u!4 &1748471241
 Transform:
   m_ObjectHideFlags: 0
