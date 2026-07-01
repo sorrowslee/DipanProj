@@ -3166,16 +3166,20 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 659a94f71d7094024998f957aef4bc94, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Steps: 5
+  Steps: 3
   StartDelay: 0.2
   ExitImage: {fileID: 0}
   ExitColor: {r: 1, g: 0.96, b: 0.85, a: 1}
-  ExitStartFrac: 0.1
-  ExitEndFrac: 2.2
-  GrowSeconds: 0.35
+  ExitStartFrac: 0.3
+  ExitEndFrac: 1.7
+  GrowSeconds: 0.9
   ExitYOffset: 0
-  ShakeAmount: 26
-  ShakeSeconds: 0.22
+  MouthEdgeSoftness: 0.16
+  MouthHalo: 0.5
+  MouthHaloWidth: 0.45
+  MouthBlur: 0.008
+  ShakeAmount: 52
+  ShakeSeconds: 0.26
   AdvanceKey: 32
   ClickToAdvance: 1
   PauseWhilePlaying: 1
