@@ -19,7 +19,7 @@ namespace Dipan.Cutscene
     public class TunnelWalkController : MonoBehaviour
     {
         [Header("步數")]
-        [Tooltip("要按幾下才徹底走出隧道")] public int Steps = 5;
+        [Tooltip("要按幾下才徹底走出隧道")] public int Steps = 3;
         [Tooltip("起播前延遲（秒）")] public float StartDelay = 0.2f;
 
         [Header("洞口（隧道盡頭的光，拱門形）")]
@@ -28,8 +28,14 @@ namespace Dipan.Cutscene
         [Tooltip("洞口光的顏色（暖白最像出口天光）")] public Color ExitColor = new Color(1f, 0.96f, 0.85f, 1f);
         [Tooltip("最初（最遠）洞口大小 = 螢幕高 × 此值")] [Range(0.05f, 1f)] public float ExitStartFrac = 0.30f;
         [Tooltip("走出時（最近）洞口大小 = 螢幕高 × 此值（>1 撐滿畫面）")] [Range(0.5f, 3f)] public float ExitEndFrac = 1.7f;
-        [Tooltip("每按一下洞口放大的動畫時間（秒）")] public float GrowSeconds = 0.30f;
+        [Tooltip("每按一下洞口放大的動畫時間（秒）；越大＝放大越慢、越蹣跚")] public float GrowSeconds = 0.9f;
         [Tooltip("洞口在畫面上的垂直位置（0=中央；負=偏下、正=偏上，螢幕高比例）")] [Range(-0.3f, 0.3f)] public float ExitYOffset = 0f;
+
+        [Header("洞口外觀（朦朧）※柔邊/柔暈於進 Play 時烘進貼圖，改完需重播；模糊為即時")]
+        [Tooltip("洞口邊緣柔化寬度：越大＝線條越粗、越朦朧")] [Range(0.02f, 0.35f)] public float MouthEdgeSoftness = 0.16f;
+        [Tooltip("洞口外圈柔暈的強度")] [Range(0f, 0.8f)] public float MouthHalo = 0.5f;
+        [Tooltip("洞口外圈柔暈的擴散寬度")] [Range(0.1f, 0.7f)] public float MouthHaloWidth = 0.45f;
+        [Tooltip("模糊 shader 的模糊量（UV 位移，即時生效）；0＝幾乎不糊。需 Resources/Shaders/TunnelBlur")] [Range(0f, 0.03f)] public float MouthBlur = 0.008f;
 
         [Header("踏步晃動（左右交替衝一下）")]
         [Tooltip("每按一下左右橫衝的幅度（像素）；左右交替模擬踏步")] public float ShakeAmount = 52f;
@@ -69,6 +75,7 @@ namespace Dipan.Cutscene
         float _prevTimeScale = 1f;
 
         Sprite _whiteSprite;
+        Material _exitMat;          // 洞口模糊材質（Custom/TunnelBlur）；載不到就不套，仍有柔邊
         System.Random _rnd = new System.Random(20260629);
 
         void Awake() { Build(); }
@@ -110,6 +117,7 @@ namespace Dipan.Cutscene
             if (_phase == Phase.Idle || _phase == Phase.Done) { if (Input.GetKeyDown(TestPlayKey)) Play(); return; }
 
             float dt = Time.unscaledDeltaTime;
+            if (_exitMat != null) _exitMat.SetFloat("_BlurSize", MouthBlur);   // 模糊量即時可調
 
             if (_phase == Phase.Delay)
             {
@@ -233,7 +241,7 @@ namespace Dipan.Cutscene
                 var tex = Resources.Load<Texture2D>("InitialStory/TunnelMouth");
                 if (tex != null) exitSp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
             }
-            if (exitSp == null) exitSp = SpriteOf(MakeTunnelMouth(256));
+            if (exitSp == null) exitSp = SpriteOf(MakeTunnelMouth(384, MouthEdgeSoftness, MouthHalo, MouthHaloWidth));
 
             var canvasGo = new GameObject("TunnelCanvas",
                 typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -258,6 +266,15 @@ namespace Dipan.Cutscene
 
             _exit = NewImage(_root, "Exit", exitSp, ExitColor);
             _exit.preserveAspect = true;   // 自備圖不變形
+            // 洞口模糊材質：載到就套，營造失焦朦朧；載不到只警告、退回柔邊貼圖（不會變洋紅）。
+            var blurSh = Resources.Load<Shader>("Shaders/TunnelBlur");
+            if (blurSh != null)
+            {
+                _exitMat = new Material(blurSh);
+                _exitMat.SetFloat("_BlurSize", MouthBlur);
+                _exit.material = _exitMat;
+            }
+            else Debug.LogWarning("[TunnelWalk] 找不到 Resources/Shaders/TunnelBlur，洞口不套模糊（仍有柔邊）。");
             _exitRt = (RectTransform)_exit.transform;
             _exitRt.anchorMin = _exitRt.anchorMax = new Vector2(0.5f, 0.5f);
             _exitRt.pivot = new Vector2(0.5f, 0.5f);
@@ -303,12 +320,15 @@ namespace Dipan.Cutscene
         }
 
         // 隧道口：拱門形（半圓頂＋直立兩側＋平底）＝卡通火車隧道口；柔邊＋外圈柔暈。白色，顏色由 Image.color 染。
-        static Texture2D MakeTunnelMouth(int n)
+        // feather＝邊緣柔化寬度（越大越粗越朦朧）；haloStrength/haloWidth＝外圈柔暈強度/擴散寬度。
+        static Texture2D MakeTunnelMouth(int n, float feather, float haloStrength, float haloWidth)
         {
             var t = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
             var px = new Color[n * n];
             float c = (n - 1) * 0.5f;
-            const float halfW = 0.42f, bottomY = -0.82f, archY = -0.05f, fe = 0.05f;
+            const float halfW = 0.42f, bottomY = -0.82f, archY = -0.05f;
+            float fe = Mathf.Max(0.01f, feather);
+            float hw = Mathf.Max(0.05f, haloWidth);
             for (int y = 0; y < n; y++)
                 for (int x = 0; x < n; x++)
                 {
@@ -318,8 +338,8 @@ namespace Dipan.Cutscene
                     float dRect = Mathf.Min(Mathf.Min(halfW - Mathf.Abs(nx), ny - bottomY), archY - ny);
                     float d = Mathf.Max(dRect, dDisk);          // 內部為正
                     float core = Mathf.Clamp01((d + fe) / (2f * fe));
-                    core = core * core * (3f - 2f * core);      // 柔邊
-                    float halo = Mathf.Clamp01((d + 0.32f) / 0.32f) * 0.40f;   // 外圈柔暈
+                    core = core * core * (3f - 2f * core);      // 柔邊（寬度＝feather）
+                    float halo = Mathf.Clamp01((d + hw) / hw) * haloStrength;   // 外圈柔暈
                     float a = Mathf.Clamp01(core + halo * (1f - core));
                     px[y * n + x] = new Color(1f, 1f, 1f, a);
                 }
