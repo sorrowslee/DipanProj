@@ -33,8 +33,9 @@
           "scaleY": 1.0,
           "sortKey": -0.8037424,
           "zOrder": 0,
-          "hp": 1,
-          "animFps": 24.0
+          "hp": -1,
+          "animFps": 24.0,
+          "pingPong": false
         }
       ]
     },
@@ -131,5 +132,6 @@
         }
       ]
     }
-  ]
+  ],
+  "sceneFx": []
 }

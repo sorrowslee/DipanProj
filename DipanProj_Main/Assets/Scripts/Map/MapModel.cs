@@ -123,6 +123,12 @@ namespace Dipan.MapRuntime
         /// <summary>取整數參數（值在 .dipanmap 以字串存，這裡 parse），找不到/無效回 fallback。</summary>
         public int GetInt(string key, int fallback = 0)
             => (Params != null && Params.TryGetValue(key, out var v) && v != null && int.TryParse(v.ToString(), out int n)) ? n : fallback;
+
+        /// <summary>取浮點參數（值在 .dipanmap 以字串存，這裡 parse），找不到/無效回 fallback。</summary>
+        public float GetFloat(string key, float fallback = 0f)
+            => (Params != null && Params.TryGetValue(key, out var v) && v != null
+                && float.TryParse(v.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float n))
+               ? n : fallback;
     }
 
     // ---- 素材目錄（catalog.json，由 sync_map_assets.sh 生成）----

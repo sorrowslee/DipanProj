@@ -38,6 +38,7 @@ public class MapManager : MonoBehaviour
     GameObject _player;
     TeleportWatcher _watcher;
     CutsceneWatcher _cutscene;
+    CameraZoneWatcher _camZone;
     MapCameraController _camera;
     int _currentMapId = -1;
     bool _loading;   // 載入進行中：擋掉重入（例如傳送 watcher 在載入期間又觸發）
@@ -231,5 +232,11 @@ public class MapManager : MonoBehaviour
         // 互動點：建立「靠近按 F」的拾取點 / 劇情點 + 星星標示特效（由 InteractionManager 統一管理，
         // 與地上掉落物共用同一套互動）。Setup 會清舊的、重建新的（= 當次停留記憶）。
         InteractionManager.Instance.SetupInteractPoints(mapLoader.Map, mapLoader.pickupTypeId, mapLoader.dramaTypeId);
+
+        // 鏡頭區：踩到就拉遠/位移相機、離開還原（給「站到佛陀腳下拉遠看全貌」用）。
+        if (_camZone == null)
+            _camZone = GetComponent<CameraZoneWatcher>() ?? gameObject.AddComponent<CameraZoneWatcher>();
+        _camZone.Setup(mapLoader.Map, mapLoader.camZoneTypeId,
+                       _player != null ? _player.transform : null, _camera);
     }
 }

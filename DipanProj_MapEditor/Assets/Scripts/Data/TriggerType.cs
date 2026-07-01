@@ -70,6 +70,16 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "targetEntrance", type = ParamType.String },   // 目標地圖的落點
                 }
             });
+            set.types.Add(new TriggerTypeDef
+            {
+                typeId = "camZone", displayName = "鏡頭區", color = "#66CCFF",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "zoom",    type = ParamType.Float },   // 縮放倍率（>1 拉遠、<1 拉近、留空=1）
+                    new TriggerParam { key = "offsetX", type = ParamType.Float },   // 鏡頭右(+)/左(-)位移（世界單位）
+                    new TriggerParam { key = "offsetY", type = ParamType.Float },   // 鏡頭上(+)/下(-)位移（世界單位）
+                }
+            });
             return set;
         }
     }

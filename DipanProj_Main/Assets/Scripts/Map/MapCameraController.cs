@@ -40,6 +40,18 @@ public class MapCameraController : MonoBehaviour
     float _tileSize = 1f;
     Vector3 _vel;               // SmoothDamp 速度暫存
 
+    // ---- 鏡頭區覆蓋（camZone trigger：踩上去拉遠/位移，離開還原）----
+    [Header("鏡頭區平滑（拉遠/恢復的過渡秒數）")]
+    public float zoneTransitionTime = 0.4f;
+    bool _applied;
+    float _baseOrtho;           // 當前模式的基準 orthographicSize（zoom=1 時的值）
+    Vector2 _baseCenter;        // 整張地圖模式的中心
+    bool _zoneActive;
+    float _zoneZoomMul = 1f;    // 目標縮放倍率（>1 拉遠、<1 拉近）
+    Vector2 _zoneOffset;        // 目標位移（世界單位）
+    float _zoomCur = 1f;        // 目前縮放（平滑趨近）
+    Vector2 _offsetCur;         // 目前位移（平滑趨近）
+
     /// <summary>
     /// 由 MapManager 在載圖 + 放好玩家後呼叫。依 mode 與地圖大小決定相機行為。
     /// </summary>
@@ -81,7 +93,27 @@ public class MapCameraController : MonoBehaviour
             else
                 Debug.Log($"[MapCameraController] 整張地圖模式（地圖 {map.width}×{map.height}）。");
         }
+
+        // 記錄基準（給鏡頭區縮放/位移用），並重置鏡頭區覆蓋（換地圖不殘留）。
+        _baseCenter = MapCoords.WorldCenter(map);
+        _baseOrtho = _cam.orthographic ? _cam.orthographicSize : (map.height * map.tileSize * 0.5f);
+        _zoneActive = false; _zoneZoomMul = 1f; _zoneOffset = Vector2.zero;
+        _zoomCur = 1f; _offsetCur = Vector2.zero;
+        _applied = true;
     }
+
+    // ---- 鏡頭區覆蓋 API（給 CameraZoneWatcher 呼叫）----
+
+    /// <summary>踩進鏡頭區：套用縮放倍率（>1 拉遠）與位移（世界單位）。平滑過渡。</summary>
+    public void SetCameraZone(float zoomMul, Vector2 offset)
+    {
+        _zoneActive = true;
+        _zoneZoomMul = Mathf.Max(0.05f, zoomMul);
+        _zoneOffset = offset;
+    }
+
+    /// <summary>離開鏡頭區：還原到本地圖的正常縮放/位置。</summary>
+    public void ClearCameraZone() => _zoneActive = false;
 
     /// <summary>整張地圖模式：置中地圖、用高度撐滿畫面（與原 MapLoader.FitCamera 一致）。</summary>
     void FitWholeMap(MapData map)
@@ -94,16 +126,34 @@ public class MapCameraController : MonoBehaviour
 
     void LateUpdate()
     {
-        if (!_following || _target == null || _cam == null) return;
+        if (!_applied || _cam == null) return;
 
-        Vector3 desired = ClampToBounds(_target.position);
-        Vector3 cur = _cam.transform.position;
-        desired.z = cur.z;
-
-        if (followSmoothTime <= 0f)
-            _cam.transform.position = desired;
+        // 1) 平滑趨近鏡頭區的縮放/位移目標（沒踩區域時目標 = 1 / 0，即還原）。
+        float targetZoom = _zoneActive ? _zoneZoomMul : 1f;
+        Vector2 targetOff = _zoneActive ? _zoneOffset : Vector2.zero;
+        if (zoneTransitionTime <= 0f) { _zoomCur = targetZoom; _offsetCur = targetOff; }
         else
+        {
+            float k = 1f - Mathf.Exp(-Time.deltaTime / Mathf.Max(0.01f, zoneTransitionTime * 0.5f));
+            _zoomCur = Mathf.Lerp(_zoomCur, targetZoom, k);
+            _offsetCur = Vector2.Lerp(_offsetCur, targetOff, k);
+        }
+
+        // 2) 套用縮放（在基準 orthoSize 上乘倍率）。
+        if (_cam.orthographic) _cam.orthographicSize = Mathf.Max(0.1f, _baseOrtho * _zoomCur);
+
+        // 3) 基準位置：跟隨模式＝夾在邊界內的玩家位置；整張地圖模式＝地圖中心。再加上鏡頭區位移。
+        Vector3 basePos = (_following && _target != null)
+            ? ClampToBounds(_target.position)
+            : new Vector3(_baseCenter.x, _baseCenter.y, 0f);
+
+        Vector3 cur = _cam.transform.position;
+        Vector3 desired = new Vector3(basePos.x + _offsetCur.x, basePos.y + _offsetCur.y, cur.z);
+
+        if (_following && followSmoothTime > 0f)
             _cam.transform.position = Vector3.SmoothDamp(cur, desired, ref _vel, followSmoothTime);
+        else
+            _cam.transform.position = desired;
     }
 
     /// <summary>把目標點夾進地圖邊界，使視窗不超出地圖（地圖該軸比視窗小時則置中該軸）。</summary>

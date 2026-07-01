@@ -35,6 +35,7 @@ public class MapLoader : MonoBehaviour
     public string pickupTypeId = "pickup";
     public string dramaTypeId = "drama";
     public string cutsceneTypeId = "cutscene";
+    public string camZoneTypeId = "camZone";
 
     [Header("開關")]
     public bool buildBackground = true;

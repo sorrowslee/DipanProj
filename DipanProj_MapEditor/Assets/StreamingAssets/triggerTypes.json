@@ -84,6 +84,25 @@
           "type": "String"
         }
       ]
+    },
+    {
+      "typeId": "camZone",
+      "displayName": "鏡頭區",
+      "color": "#66CCFF",
+      "params": [
+        {
+          "key": "zoom",
+          "type": "Float"
+        },
+        {
+          "key": "offsetX",
+          "type": "Float"
+        },
+        {
+          "key": "offsetY",
+          "type": "Float"
+        }
+      ]
     }
   ]
 }
