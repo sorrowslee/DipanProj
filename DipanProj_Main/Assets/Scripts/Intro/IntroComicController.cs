@@ -270,6 +270,8 @@ namespace Dipan.Intro
                 _fading.Clear();
                 if (_backdrop) _backdrop.enabled = false;
                 if (_vignette) _vignette.enabled = false;
+                if (_sideL) _sideL.enabled = false;         // 關掉左右黑邊，別讓它浮在墜落動畫上
+                if (_sideR) _sideR.enabled = false;
                 if (_canvas) _canvas.sortingOrder = 1100;   // 蓋在墜落 canvas(1000) 之上
                 FallToTrigger.gameObject.SetActive(true);
                 return;
