@@ -15,6 +15,13 @@ namespace Dipan.MapRuntime
         public const int TileNativePx = 256;
         const byte AlphaThreshold = 10;   // alpha 低於此值視為透明（去背邊）
 
+        /// <summary>
+        /// 場景貼圖濾波（方案二：柔化畫質）。
+        /// Bilinear = 放大時邊緣柔化、消除硬像素塊與非整數縮放的毛邊（大螢幕較不粗糙，預設）。
+        /// Point    = 保留硬派像素邊緣（舊版觀感）。想比較時把這行改成 FilterMode.Point 即可。
+        /// </summary>
+        public static FilterMode SceneFilterMode = FilterMode.Bilinear;
+
         readonly string _assetRoot;
         readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         readonly Dictionary<string, Sprite> _sprites = new Dictionary<string, Sprite>();
@@ -37,7 +44,7 @@ namespace Dipan.MapRuntime
             }
             tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             tex.LoadImage(File.ReadAllBytes(path));    // 自動調整尺寸，CPU 可讀
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = SceneFilterMode;
             tex.wrapMode = TextureWrapMode.Clamp;
             _textures[item.id] = tex;
             return tex;
@@ -74,7 +81,7 @@ namespace Dipan.MapRuntime
             }
             tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             tex.LoadImage(File.ReadAllBytes(path));
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = SceneFilterMode;
             tex.wrapMode = TextureWrapMode.Clamp;
             _textures[key] = tex;
             return tex;

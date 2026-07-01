@@ -228,3 +228,14 @@
 - **症狀**：主角（或任何角色）放進遊戲後變成全黑剪影、只剩輪廓；但在 Prefab 編輯／預覽視窗裡卻正常（只是偏暗）。換不同角色圖都一樣黑——「從第一個角色就這樣」。
 - **原因**：`Player.prefab` 的 **SpriteRenderer 的 `Color`（色調 Tint）被設成很暗的顏色**（實際值 RGB ≈ 0.12 / 0.07 / 0.07，約 10% 亮度的暗褐色）。SpriteRenderer 會把圖片**乘上**這個顏色，等於把整張圖壓暗；再進到本來就昏暗的氛圍地圖（提燈光圈，見 [ATMOSPHERE.md](ATMOSPHERE.md)）就直接變純黑剪影。因為 Tint 綁在 prefab 上、與圖片無關，所以**換哪張角色圖都一樣黑**。材質是 `Sprites-Default`（無光照）本身沒問題，純粹是 Tint。
 - **解法**：把該 SpriteRenderer 的 **Color 設回純白**（RGBA 全 255，尤其 **A=255** 別半透明）。Inspector：選 Player → Sprite Renderer → Color 色塊 → 設白。白色 = 不染色 = 顯示圖片原色。改完氛圍地圖裡仍會偏暗有氣氛，但不再是純黑。**通則：角色「整張均勻變暗／變色」先檢查 SpriteRenderer 的 Color，不是圖、不是材質、也不是光。**
+
+### G2. UI（背包/面板）在大螢幕看起來糊糊的、有塊狀髒點
+- **症狀**：小的 Game view 或遠端桌面看還好，回家用實體大螢幕全螢幕看，背包 / 面板背景與 icon「糊糊的、說不出哪裡不對」。
+- **原因**：`Resources/UI` 下的貼圖匯入時被 **Compressed（BC/DXT，quality 50）**＋ **Bilinear**。壓縮會在有漸層/細節/文字的 UI 圖上留 4×4 塊狀髒點，Bilinear 再糊一層；面板小的時候看不出來，放大到全螢幕就全暴露。與像素風格無關，純粹是匯入設定。
+- **解法**：把 UI 貼圖的 **Compression 改 None（未壓縮）**。本次已把 `Resources/UI` 下全部 39 張改掉；並加了 `Assets/Editor/UITextureImportSettings.cs`（`AssetPostprocessor`）——**以後丟進 `Resources/UI/` 的新圖，第一次匯入就自動套「不壓縮／關 Mipmap／Sprite／Max Size≥2048」**，不必手動改（只在首次匯入套，之後手動微調不會被蓋）。**通則：UI 這種要銳利的圖一律不壓縮、關 Mipmap，且畫得 ≥ 顯示尺寸別放大。** VRAM 代價很小（UI 量少），但別對「全遊戲所有圖」無腦套。
+- **補充（驗收方式）**：**遠端桌面不能拿來驗收畫質**——遠端會把畫面重新有損壓縮再串流，會同時掩蓋好與壞。像素級的銳利/粗糙一律回本機實體螢幕看。
+
+### G3. 場景在大螢幕顯得「低解析度 / 粗糙」（非整數放大 + 硬像素）
+- **症狀**：場景（地磚/家具）在大螢幕看起來顆粒粗、邊緣毛躁，像低解析度；小視窗卻還好。
+- **原因**：相機是**固定世界單位**（`MapCameraController` 跟隨模式 orthoSize 固定），畫面永遠顯示同樣多的世界，**視窗越大＝每個源像素被放越大**。加上場景圖用 `FilterMode.Point`（`MapSpriteLoader`）且**沒有 Pixel Perfect Camera**，非整數倍縮放會讓像素大小不均、邊緣閃爍。源圖其實不是低解析度（`TileNativePx = 256`），顆粒感有一部分是 AI「像素風」源圖本身畫進去的。
+- **解法（採方案二：柔化 + 之後重產更細源圖）**：`MapSpriteLoader` 加了可切換常數 **`SceneFilterMode`（預設 `Bilinear`）**，放大時柔化邊緣、消掉硬塊與毛邊；想回硬派像素改成 `FilterMode.Point` 即可。**未採 Pixel Perfect Camera**——它要求整數倍縮放與統一 PPU，會跟本專案的 zoom / 整張地圖模式 / 平滑跟隨 / 混雜 PPU 直接衝突，且美術是 AI 生成點陣圖非手排像素，回報低。若柔化後仍想更清晰，正解是照 [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) 把場景源圖重產得更細緻（顆粒更小）。

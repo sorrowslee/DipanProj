@@ -44,4 +44,16 @@
 
 ---
 
+## 畫質：UI 去壓縮 + 場景柔化 — 2026-07-01（分支 `fix/render-quality`，未合併）
+
+大螢幕「UI 糊、場景粗糙」的處理，詳見 [PROBLEMS.md](PROBLEMS.md) G2 / G3。**改動在 `fix/render-quality` 分支，尚未合回 `develop`，等回家用實體螢幕確認後再定案。**
+
+- [x] `Resources/UI` 全部 39 張貼圖 Compression 改 None（去糊）。
+- [x] `Assets/Editor/UITextureImportSettings.cs`：新 UI 圖自動套不壓縮預設。
+- [x] `MapSpriteLoader.SceneFilterMode` 場景濾波可切換，預設 `Bilinear`（方案二柔化）。
+- [ ] **回家實體螢幕確認**：UI 是否已清爽、場景 Bilinear 柔化能否接受。遠端桌面看不準（會重壓縮串流）。
+- [ ] **場景方向定案**：柔化 OK → 決定要不要進一步照 [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) 重產更細緻的場景源圖；想回硬像素 → `SceneFilterMode` 改回 `Point`。定案後再決定是否合併分支。
+
+---
+
 *建立於 2026-06-24：設定面板（音量 slider 先可拖曳、未接音訊；離開確認彈窗為暫時 placeholder；開啟用測試鍵 O）。*
