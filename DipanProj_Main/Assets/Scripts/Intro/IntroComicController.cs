@@ -75,8 +75,14 @@ namespace Dipan.Intro
         public bool ShowVignette = true;
 
         [Header("畫面範圍（整體等比縮小置中、四周留黑）")]
-        [Tooltip("漫畫整體縮放：1=滿版；0.5=縮成一半置中（左右各 1/4 黑邊、上下同比例）。等比縮放，所以你調好的每格構圖/位置完全保留，只是整體變小、變清晰")]
+        [Tooltip("漫畫整體縮放：1=滿版；0.5=縮成一半置中（左右各 1/4 黑邊、上下同比例）。等比縮放，所以你調好的每格構圖/位置完全保留，只是整體變小、變清晰。※ 開啟 FillHeightMode 時此值被忽略")]
         [Range(0.2f, 1f)] public float ContentScale = 0.5f;
+
+        [Header("填滿高度模式（高度貼滿、只留左右黑邊）")]
+        [Tooltip("開＝漫畫高度永遠貼滿螢幕，只在左右留黑邊（寬度由 SideMarginFrac 控制），忽略上面的 ContentScale。關＝用 ContentScale 等比縮小、四周留黑。改完按 R 生效")]
+        public bool FillHeightMode = false;
+        [Tooltip("左右各留多寬的黑邊（螢幕寬度比例）。0=不加黑邊（直式頁自然左右留黑）；0.2=左右各佔 20%。只在 FillHeightMode 開啟時作用")]
+        [Range(0f, 0.45f)] public float SideMarginFrac = 0.15f;
 
         [Header("換頁手感")]
         public float ClearFadeSeconds = 0.35f;
@@ -108,6 +114,7 @@ namespace Dipan.Intro
         Sprite _whiteSprite, _vignetteSprite;
         Image _backdrop, _vignette;
         RectTransform _stage;             // 中央舞台（左右/上下留黑）；漫畫只在這裡、外面被遮罩裁掉
+        Image _sideL, _sideR;             // FillHeightMode 的左右黑邊（蓋在舞台之上、Skip 之下）
         float _stageW = 1920f, _stageH = 1080f;
         Text _skip;
 
@@ -448,22 +455,52 @@ namespace Dipan.Intro
             _stage.anchorMin = _stage.anchorMax = new Vector2(0.5f, 0.5f);
             _stage.pivot = new Vector2(0.5f, 0.5f);
             stageGo.AddComponent<RectMask2D>();
+
+            // 左右黑邊（FillHeightMode 用）：建在舞台之後＝蓋在漫畫之上；Skip 在更後面＝仍在最上層。
+            _sideL = NewImage(_root, "SideBarL", _whiteSprite, BackdropColor);
+            var lrt = (RectTransform)_sideL.transform;
+            lrt.anchorMin = new Vector2(0f, 0f); lrt.anchorMax = new Vector2(0f, 1f);
+            lrt.pivot = new Vector2(0f, 0.5f); lrt.anchoredPosition = Vector2.zero;
+            _sideR = NewImage(_root, "SideBarR", _whiteSprite, BackdropColor);
+            var rrt = (RectTransform)_sideR.transform;
+            rrt.anchorMin = new Vector2(1f, 0f); rrt.anchorMax = new Vector2(1f, 1f);
+            rrt.pivot = new Vector2(1f, 0.5f); rrt.anchoredPosition = Vector2.zero;
+
             ApplyContentScale();
 
             _built = true;
             BuildSkip();
         }
 
-        // 鏡頭一律以「滿版 1920×1080」對焦（保留你調好的每格構圖），整體再用 localScale 等比縮小置中。
+        // 鏡頭一律以「滿版 1920×1080」對焦（保留你調好的每格構圖）；再依模式決定「等比縮小四周留黑」或「填滿高度只留左右黑邊」。
         void ApplyContentScale()
         {
-            _stageW = 1920f; _stageH = 1080f;
-            if (_stage)
+            _stageW = 1920f; _stageH = 1080f;   // 對焦座標永遠是滿版，兩模式共用 → 每格構圖不受影響
+            if (_stage) _stage.sizeDelta = new Vector2(_stageW, _stageH);
+
+            if (FillHeightMode)
             {
-                _stage.sizeDelta = new Vector2(_stageW, _stageH);
-                float k = Mathf.Clamp(ContentScale, 0.2f, 1f);
-                _stage.localScale = new Vector3(k, k, 1f);   // 縮小＋置中 → 四周留黑、構圖不變
+                // 高度永遠貼滿：舞台不縮放，只用左右黑邊蓋住兩側（寬度可調）。
+                if (_stage) _stage.localScale = Vector3.one;
+                float m = Mathf.Clamp(SideMarginFrac, 0f, 0.45f) * _stageW;
+                SetSideBar(_sideL, m);
+                SetSideBar(_sideR, m);
             }
+            else
+            {
+                // 原行為：等比縮小置中 → 四周留黑；關掉左右黑邊。
+                if (_stage) { float k = Mathf.Clamp(ContentScale, 0.2f, 1f); _stage.localScale = new Vector3(k, k, 1f); }
+                SetSideBar(_sideL, 0f);
+                SetSideBar(_sideR, 0f);
+            }
+        }
+
+        // 設一條左右黑邊的寬度（像素）；<=0 就隱藏。
+        static void SetSideBar(Image bar, float widthPx)
+        {
+            if (bar == null) return;
+            bar.enabled = widthPx > 0.5f;
+            ((RectTransform)bar.transform).sizeDelta = new Vector2(Mathf.Max(0f, widthPx), 0f);
         }
 
         // 右上角「Skip」字樣：粗體、放大、無背景、帶外框讓任何底色都看得到。
