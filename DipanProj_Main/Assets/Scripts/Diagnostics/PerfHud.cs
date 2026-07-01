@@ -1,5 +1,6 @@
 using System.Text;
 using UnityEngine;
+using Dipan.MapRuntime;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -82,6 +83,7 @@ namespace Dipan.Diagnostics
             {
                 if (Input.GetKeyDown(KeyCode.V)) CycleVSync();
                 if (Input.GetKeyDown(KeyCode.T)) CycleTarget();
+                if (Input.GetKeyDown(KeyCode.F)) MapSpriteLoader.ToggleSceneFilterMode();
             }
 
             // 用 unscaled，暫停（Time.timeScale=0）時也能量測
@@ -212,7 +214,7 @@ namespace Dipan.Diagnostics
             float w = 380f;
             var content = new GUIContent(text);
             float contentH = _label.CalcHeight(content, w);
-            const float ctrlRowH = 30f;   // 控制鈕那一列的高度
+            const float ctrlRowH = 58f;   // 控制鈕（兩列：VSync/FPS ＋ 場景濾波）的高度
             float h = Mathf.Min(contentH + 18f + ctrlRowH, Screen.height - 16f);
             GUILayout.BeginArea(new Rect(10, 10, w, h), _box);
 
@@ -221,6 +223,10 @@ namespace Dipan.Diagnostics
             if (GUILayout.Button("VSync(V): " + VSyncName(), _btn)) CycleVSync();
             if (GUILayout.Button("目標FPS(T): " + TargetName(), _btn)) CycleTarget();
             GUILayout.EndHorizontal();
+
+            // 場景貼圖濾波即時切換（比較大螢幕上「柔化 vs 硬像素」用）
+            if (GUILayout.Button("場景濾波(F): " + SceneFilterName(), _btn))
+                MapSpriteLoader.ToggleSceneFilterMode();
 
             GUILayout.Label(content, _label);
             GUILayout.EndArea();
@@ -261,6 +267,11 @@ namespace Dipan.Diagnostics
             string s = t < 0 ? "不限" : t.ToString();
             if (QualitySettings.vSyncCount > 0) s += "(VSync開,忽略)";
             return s;
+        }
+
+        private static string SceneFilterName()
+        {
+            return MapSpriteLoader.SceneFilterMode == FilterMode.Point ? "Point(硬像素)" : "Bilinear(柔化)";
         }
 
         private string BottleneckGuess()

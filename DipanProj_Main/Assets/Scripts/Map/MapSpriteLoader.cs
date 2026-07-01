@@ -18,9 +18,34 @@ namespace Dipan.MapRuntime
         /// <summary>
         /// 場景貼圖濾波（方案二：柔化畫質）。
         /// Bilinear = 放大時邊緣柔化、消除硬像素塊與非整數縮放的毛邊（大螢幕較不粗糙，預設）。
-        /// Point    = 保留硬派像素邊緣（舊版觀感）。想比較時把這行改成 FilterMode.Point 即可。
+        /// Point    = 保留硬派像素邊緣（舊版觀感）。
+        /// 執行期可用 PerfHud（按 P）的「場景濾波」按鈕、或按 F 即時切換（見 SetSceneFilterMode）。
         /// </summary>
         public static FilterMode SceneFilterMode = FilterMode.Bilinear;
+
+        // 追蹤所有 runtime 載入的場景貼圖，供執行期切換濾波時即時套用（已被銷毀者於切換時清掉）。
+        static readonly List<Texture2D> _liveTextures = new List<Texture2D>();
+
+        /// <summary>
+        /// 執行期設定場景貼圖濾波，並**即時**套到所有已載入的場景貼圖（否則只有之後新載入的才會變）。
+        /// </summary>
+        public static void SetSceneFilterMode(FilterMode mode)
+        {
+            SceneFilterMode = mode;
+            for (int i = _liveTextures.Count - 1; i >= 0; i--)
+            {
+                var t = _liveTextures[i];
+                if (t == null) { _liveTextures.RemoveAt(i); continue; } // 已銷毀
+                t.filterMode = mode;
+            }
+        }
+
+        /// <summary>在 Bilinear / Point 之間切換，回傳切換後的模式（給 PerfHud 按鈕用）。</summary>
+        public static FilterMode ToggleSceneFilterMode()
+        {
+            SetSceneFilterMode(SceneFilterMode == FilterMode.Point ? FilterMode.Bilinear : FilterMode.Point);
+            return SceneFilterMode;
+        }
 
         readonly string _assetRoot;
         readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
@@ -46,6 +71,7 @@ namespace Dipan.MapRuntime
             tex.LoadImage(File.ReadAllBytes(path));    // 自動調整尺寸，CPU 可讀
             tex.filterMode = SceneFilterMode;
             tex.wrapMode = TextureWrapMode.Clamp;
+            _liveTextures.Add(tex);
             _textures[item.id] = tex;
             return tex;
         }
@@ -83,6 +109,7 @@ namespace Dipan.MapRuntime
             tex.LoadImage(File.ReadAllBytes(path));
             tex.filterMode = SceneFilterMode;
             tex.wrapMode = TextureWrapMode.Clamp;
+            _liveTextures.Add(tex);
             _textures[key] = tex;
             return tex;
         }
