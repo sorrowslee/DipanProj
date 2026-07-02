@@ -880,7 +880,7 @@ namespace DipanMapEditor.UI
             };
             if (def != null)
                 foreach (var p in def.paramSchema)
-                    region.Params[p.key] = (p.type == ParamType.Bool) ? (object)false : "";
+                    region.Params[p.key] = (p.type == ParamType.Bool) ? (object)p.boolDefault : "";
             regions.Add(region);
             CurrentRegion = region;
             TriggerAddCells = true;
@@ -889,7 +889,7 @@ namespace DipanMapEditor.UI
         static void DrawParamField(TriggerRegion r, TriggerParam p)
         {
             GUILayout.BeginHorizontal();
-            GUILayout.Label(p.key, GUILayout.Width(90));
+            GUILayout.Label(string.IsNullOrEmpty(p.label) ? p.key : p.label, GUILayout.Width(90));
             if (p.type == ParamType.Bool)
             {
                 bool cur = r.Params.TryGetValue(p.key, out var v) && v is bool b && b;

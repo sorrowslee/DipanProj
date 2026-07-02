@@ -161,6 +161,32 @@ public class MapLoader : MonoBehaviour
         Debug.Log($"[MapLoader] 載入完成（分幀）：{_map.name}（{_map.width}×{_map.height}, module={_map.module}）");
     }
 
+    /// <summary>
+    /// 預載整個 module（＋Main 共用）的素材貼圖到快取：把 catalog 內屬於該 module/Main 的每筆圖先解碼快取
+    /// （最重的磁碟讀取＋PNG 解碼一次做完）。之後同 module 房間互跳因為都命中快取，建圖很快、不必再出讀取頁。
+    /// onProgress 回報 0~1。由 MapManager 在「進入新 module」時呼叫。
+    /// </summary>
+    public IEnumerator PreloadModuleRoutine(string module, System.Action<float> onProgress)
+    {
+        if (_catalog?.items == null || _sprites == null) { onProgress?.Invoke(1f); yield break; }
+
+        var items = new List<CatalogItem>();
+        foreach (var it in _catalog.items)
+            if (it != null && (it.module == module || it.module == "Main")) items.Add(it);
+
+        int total = Mathf.Max(1, items.Count), done = 0;
+        foreach (var it in items)
+        {
+            _sprites.GetTexture(it);   // 解碼＋快取主圖（動畫物件＝第一幀）
+            if (it.IsAnimated && it.frames != null)
+                for (int f = 0; f < it.frames.Count; f++) _sprites.GetFrameTexture(it.frames[f]);
+            done++;
+            if (done % 3 == 0) { onProgress?.Invoke((float)done / total); yield return null; }
+        }
+        onProgress?.Invoke(1f);
+        Debug.Log($"[MapLoader] 已預載 module「{module}」(+Main) 素材：{items.Count} 筆。");
+    }
+
     /// <summary>依當前地圖的 monsterSpawn 出生點生怪。需在 MonsterSpawner.Awake 之後呼叫（MapManager 在 Start 驅動）。</summary>
     public void SpawnMonsters()
     {
@@ -296,6 +322,7 @@ public class MapLoader : MonoBehaviour
     // ---- 地上物 ----
     const int SortBase = 1000000, BandStep = 10000;
     const float SortScale = 100f;
+    const int WalkableObjectSortingOrder = 5;   // 可走地上物：低於角色(10)、高於地磚(0)，畫在角色腳下
 
     void BuildObjects()
     {
@@ -348,7 +375,11 @@ public class MapLoader : MonoBehaviour
 
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = sprite;   // = 第一幀（GetWholeSprite 用 item.path = 第一幀）
-        sr.sortingOrder = SortBase + inst.zOrder * BandStep + Mathf.RoundToInt(-inst.sortKey * SortScale);
+        // 一般地上物：高排序帶（會蓋住角色，如家具/牆飾）。可走地上物（可踩上去，如木板/地毯）：
+        // 排到角色（sortingOrder 10）之下 → 用 5（高於地磚 0、低於角色），角色才會走在它上面。
+        sr.sortingOrder = inst.walkable
+            ? WalkableObjectSortingOrder
+            : SortBase + inst.zOrder * BandStep + Mathf.RoundToInt(-inst.sortKey * SortScale);
 
         // 動畫地上物：載入幀序列、掛上原地循環播放元件（速度 = 該實例 animFps）。
         // 碰撞框/血量/可破壞仍以第一幀建立（下方），動畫只換顯示用 sprite。
@@ -550,6 +581,7 @@ public class MapLoader : MonoBehaviour
         foreach (var r in trig.regions)
         {
             if (r.typeId != teleportTypeId) continue;
+            if (!r.GetBool("showMarker", true)) continue;   // 傳送點勾掉「使用傳送點外型」→ 不生外型（預設顯示）
             if (!RegionCenter(r, out Vector2 center)) continue;
             var inst = _vfx.Spawn(teleportVfxId, center, 0f);
             if (inst != null)

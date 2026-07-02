@@ -35,18 +35,28 @@
 - 顯示**該關卡的載入圖**（`Resources/Loading/<module>.png`，找不到退純黑底）+ 底部進度條 + 百分比。
 - 全程式建構、零 prefab，圖走 `Resources`（同 `UIBuilder` 慣例）。
 
-### 3. 串接（`MapManager.LoadMapRoutine`）
+### 3. 串接與「module 級預載」（`MapManager.LoadMapRoutine`）— 很重要
 
-`StartLevel` / `GoToMap` → `LoadMapInternal` 改成啟動協程，流程：
+**設計原則：讀取頁只在「進入新大地圖（module）」時出現；同一個 module 內房間互跳不出讀取頁。**
 
-1. 開 `LoadingPanel`、`SetModule(row.module)` 換對應圖。
-2. 等一幀讓它淡入，再**停留 `loadingScreenHoldSeconds` 秒**（預設 2，`WaitForSecondsRealtime`，不受暫停影響）——讓載入圖先看得到、不會一閃而過。
-3. `ClearTransientGameplay()` 清上一張地圖暫態物件。
-4. `yield` 跑 `mapLoader.LoadMapRoutine`（進度餵進載入頁，映射到 0~0.9）。
-5. 失敗 → 關載入頁、結束；成功 → 放玩家／相機／氛圍／場景特效／怪／觸發點，進度拉到 1。
-6. 關 `LoadingPanel`（淡出）。
+因為資源是「每張圖用到才載」，若每次換圖都彈讀取頁，RedBridalGown 內房間互跳也讀取＝很怪。改成**依 `module` 分兩條路徑**（`MapManager` 記著 `_loadedModule`，`row.module != _loadedModule` 即為「進入新 module」）：
 
-`_loading` 旗標擋重入（傳送 watcher 在載入期間又觸發會被忽略）。**首次進場也吃載入頁**（`UIManager` 由 `UIBootstrap` 在 `BeforeSceneLoad` 就建好）。每次「載一張地圖」（第一關或換關傳送）都走同一套。
+**A. 跨 module（進入新大地圖，如 Main→RedBridalGown、回 Main、首次進場）：**
+1. 開 `LoadingPanel`、`SetModule(row.module)`、停留 `loadingScreenHoldSeconds` 秒（預設 2，`WaitForSecondsRealtime`）。
+2. `ClearTransientGameplay()` 清暫態物件。
+3. **預載整個 module 資源**：`mapLoader.PreloadModuleRoutine(module, …)`——把 catalog 內屬於該 `module`＋`Main`（共用）的每筆圖先解碼快取（最重的磁碟讀取＋PNG 解碼一次做完）。進度 0~0.6。
+4. 分幀建目標圖 `mapLoader.LoadMapRoutine`。進度 0.6~0.95。
+5. 放玩家／相機／氛圍／場景特效／怪／觸發點（`PlaceAndSetup`）。
+6. `_loadedModule = row.module`；關 `LoadingPanel`。
+
+**B. 同 module（房間互跳）：**
+- **不出讀取頁**。因為資源已在進 module 時預載、全在快取，直接**同步** `mapLoader.LoadMap()` 快速建圖（命中快取、很快）→ `PlaceAndSetup` → 即時切換。
+
+`_loading` 旗標擋重入（傳送 watcher 在載入期間又觸發會被忽略）。首次進場（`_loadedModule` 為空）＝跨 module，一定出讀取頁（`UIManager` 由 `UIBootstrap` 在 `BeforeSceneLoad` 就建好）。
+
+> **記憶體取捨**：預載＝把整個 module 的圖解碼常駐記憶體，換到別 module 也不會自動釋放（為了房間互跳零讀取）。若記憶體吃緊，可加「離開 module 時清掉上一包快取」。
+>
+> **怪物貼圖**目前不在預載範圍（走 `MonsterSpriteLibrary` 另一套快取，該怪第一次出現時載入、之後快取）；要連怪一起預載可再擴充。
 
 ---
 
@@ -77,10 +87,11 @@
 ## 相關檔案
 
 - `Assets/Scripts/UI/Panels/LoadingPanel.cs` — 載入頁。
-- `Assets/Scripts/Map/MapLoader.cs` — `LoadMapRoutine` / `BuildObjectsRoutine` / `LastLoadOk` / `objectsPerFrame`。
-- `Assets/Scripts/Map/MapManager.cs` — `LoadMapRoutine`（串接載入頁）/ `loadingScreenHoldSeconds` / `_loading`。
+- `Assets/Scripts/Map/MapLoader.cs` — `LoadMapRoutine` / `BuildObjectsRoutine` / `PreloadModuleRoutine`（module 預載）/ `LastLoadOk` / `objectsPerFrame`。
+- `Assets/Scripts/Map/MapManager.cs` — `LoadMapRoutine`（跨/同 module 分支）/ `PlaceAndSetup` / `_loadedModule` / `loadingScreenHoldSeconds` / `_loading`。
 - `Assets/Resources/Loading/<module>.png` — 各關卡載入圖。
 
 ---
 
-*建立於 2026-06-30：地圖載入改「分幀 + 載入頁」——解決進場／換圖同步建圖造成的凍住。載入頁依關卡 module 顯示對應圖、停留 2 秒、鎖輸入不暫停；地上物分批建、回報進度。*
+*建立於 2026-06-30：地圖載入改「分幀 + 載入頁」——解決進場／換圖同步建圖造成的凍住。*
+*更新於 2026-07-02：改成 **module 級**——跨 module（進大地圖）才出讀取頁並預載整包資源；同 module 房間互跳命中快取、同步快速建圖、不出讀取頁。*

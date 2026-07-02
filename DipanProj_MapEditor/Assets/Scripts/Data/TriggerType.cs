@@ -27,6 +27,7 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "entranceId",     type = ParamType.String },
                     new TriggerParam { key = "targetMapId",    type = ParamType.Int },
                     new TriggerParam { key = "targetEntrance", type = ParamType.String },
+                    new TriggerParam { key = "showMarker",     type = ParamType.Bool, boolDefault = true, label = "使用傳送點外型" },
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -101,5 +102,7 @@ namespace DipanMapEditor.Data
     {
         public string key;
         public ParamType type = ParamType.String;
+        public string label;             // 面板顯示用（空＝顯示 key）
+        public bool boolDefault = false; // Bool 參數新建區域時的預設勾選狀態
     }
 }

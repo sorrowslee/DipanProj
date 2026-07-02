@@ -16,6 +16,12 @@
         {
           "key": "targetEntrance",
           "type": "String"
+        },
+        {
+          "key": "showMarker",
+          "type": "Bool",
+          "label": "使用傳送點外型",
+          "boolDefault": true
         }
       ]
     },

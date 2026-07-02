@@ -125,6 +125,16 @@ namespace Dipan.MapRuntime
         public int GetInt(string key, int fallback = 0)
             => (Params != null && Params.TryGetValue(key, out var v) && v != null && int.TryParse(v.ToString(), out int n)) ? n : fallback;
 
+        /// <summary>取布林參數：找不到/空 → fallback；"true"/"1" → true；"false"/"0" → false（也吃編輯器存的 bool）。</summary>
+        public bool GetBool(string key, bool fallback = false)
+        {
+            if (Params == null || !Params.TryGetValue(key, out var v) || v == null) return fallback;
+            string s = v.ToString().Trim().ToLowerInvariant();
+            if (s == "true" || s == "1") return true;
+            if (s == "false" || s == "0") return false;
+            return fallback;
+        }
+
         /// <summary>取浮點參數（值在 .dipanmap 以字串存，這裡 parse），找不到/無效回 fallback。</summary>
         public float GetFloat(string key, float fallback = 0f)
             => (Params != null && Params.TryGetValue(key, out var v) && v != null

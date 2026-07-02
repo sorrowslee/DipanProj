@@ -104,6 +104,7 @@ ID, Name,   Module,        Path,                                                
 | `entranceId` | String | **本傳送點的名字**，在這張圖內不重複（供別圖指定要落在這） |
 | `targetMapId` | Int | 目標地圖的 MapsTable `ID` |
 | `targetEntrance` | String | 目標地圖裡要落地的傳送點 `entranceId`；留空 = 落在目標圖的 playerSpawn |
+| `showMarker` | Bool | 是否顯示傳送點外型特效（面板顯示「使用傳送點外型」）。**預設打勾＝顯示**；取消＝這個傳送點不生外型（見 3.3）。舊地圖沒這欄一律當顯示（向下相容） |
 
 例：map1 的門 `entranceId=door1`、`targetMapId=2`、`targetEntrance=door2`；map2 的門 `entranceId=door2`、`targetMapId=1`、`targetEntrance=door1`。踩 door1 → 落在 map2 的 door2 上，走開再踩才會回去（靠落地防抖，見 4.1）。
 
@@ -120,7 +121,8 @@ ID, Name,   Module,        Path,                                                
 ### 3.3 傳送點特效（視覺標記）
 每張圖載入時，`MapLoader.BuildTeleportMarkers` 會在**每個 teleport 區域中心**放一個持續循環的標記特效，讓玩家看得到傳送點在哪。
 - 複用 VFX 系統：`VfxTable.csv` 的特效，須是 `Loop=1` + `Duration=-1`（無限循環、由外部管理生死）。
-- 由 `MapLoader.teleportVfxId` 指定（預設 **6**；填 0 = 不放）。特效掛進 MapRoot，換圖拆圖時一併清掉。
+- 由 `MapLoader.teleportVfxId` 指定（預設 **6**；填 0 = 全部不放）。特效掛進 MapRoot，換圖拆圖時一併清掉。
+- **逐點關閉**：傳送點參數 `showMarker` 取消勾選時，`BuildTeleportMarkers` 會跳過那個傳送點、不生外型（例：那裡已放自己的傳送門 SceneFx、或要隱形傳送點）。預設顯示、舊地圖無此欄一律顯示。
 - **目前 ID 6「傳送點」暫借爆炸序列圖**（`VfxEffects/Explosive/Explosive`）頂著用。**換圖**：把 `VfxTable.csv` 第 6 列的 `AniPath`/`AniNumber`/`AnimFPS`（必要時 `Scale`/`SortingOrder`）改成新素材即可，零改程式。`SortingOrder=5`（低於角色的 10，畫在腳下像地面光圈）。
 
 ---
