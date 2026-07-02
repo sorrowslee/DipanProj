@@ -15,6 +15,38 @@ namespace Dipan.MapRuntime
         public const int TileNativePx = 256;
         const byte AlphaThreshold = 10;   // alpha 低於此值視為透明（去背邊）
 
+        /// <summary>
+        /// 場景貼圖濾波。
+        /// Point    = 硬派像素邊緣（預設，專案採用的觀感）。
+        /// Bilinear = 放大時邊緣柔化、消除硬像素塊與非整數縮放的毛邊（比較用）。
+        /// 執行期可用 PerfHud（按 P）的「場景濾波」按鈕、或按 F 即時切換（見 SetSceneFilterMode）。
+        /// </summary>
+        public static FilterMode SceneFilterMode = FilterMode.Point;
+
+        // 追蹤所有 runtime 載入的場景貼圖，供執行期切換濾波時即時套用（已被銷毀者於切換時清掉）。
+        static readonly List<Texture2D> _liveTextures = new List<Texture2D>();
+
+        /// <summary>
+        /// 執行期設定場景貼圖濾波，並**即時**套到所有已載入的場景貼圖（否則只有之後新載入的才會變）。
+        /// </summary>
+        public static void SetSceneFilterMode(FilterMode mode)
+        {
+            SceneFilterMode = mode;
+            for (int i = _liveTextures.Count - 1; i >= 0; i--)
+            {
+                var t = _liveTextures[i];
+                if (t == null) { _liveTextures.RemoveAt(i); continue; } // 已銷毀
+                t.filterMode = mode;
+            }
+        }
+
+        /// <summary>在 Bilinear / Point 之間切換，回傳切換後的模式（給 PerfHud 按鈕用）。</summary>
+        public static FilterMode ToggleSceneFilterMode()
+        {
+            SetSceneFilterMode(SceneFilterMode == FilterMode.Point ? FilterMode.Bilinear : FilterMode.Point);
+            return SceneFilterMode;
+        }
+
         readonly string _assetRoot;
         readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         readonly Dictionary<string, Sprite> _sprites = new Dictionary<string, Sprite>();
@@ -37,8 +69,9 @@ namespace Dipan.MapRuntime
             }
             tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             tex.LoadImage(File.ReadAllBytes(path));    // 自動調整尺寸，CPU 可讀
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = SceneFilterMode;
             tex.wrapMode = TextureWrapMode.Clamp;
+            _liveTextures.Add(tex);
             _textures[item.id] = tex;
             return tex;
         }
@@ -74,8 +107,9 @@ namespace Dipan.MapRuntime
             }
             tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             tex.LoadImage(File.ReadAllBytes(path));
-            tex.filterMode = FilterMode.Point;
+            tex.filterMode = SceneFilterMode;
             tex.wrapMode = TextureWrapMode.Clamp;
+            _liveTextures.Add(tex);
             _textures[key] = tex;
             return tex;
         }
