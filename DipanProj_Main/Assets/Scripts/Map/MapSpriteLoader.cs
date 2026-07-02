@@ -16,12 +16,12 @@ namespace Dipan.MapRuntime
         const byte AlphaThreshold = 10;   // alpha 低於此值視為透明（去背邊）
 
         /// <summary>
-        /// 場景貼圖濾波（方案二：柔化畫質）。
-        /// Bilinear = 放大時邊緣柔化、消除硬像素塊與非整數縮放的毛邊（大螢幕較不粗糙，預設）。
-        /// Point    = 保留硬派像素邊緣（舊版觀感）。
+        /// 場景貼圖濾波。
+        /// Point    = 硬派像素邊緣（預設，專案採用的觀感）。
+        /// Bilinear = 放大時邊緣柔化、消除硬像素塊與非整數縮放的毛邊（比較用）。
         /// 執行期可用 PerfHud（按 P）的「場景濾波」按鈕、或按 F 即時切換（見 SetSceneFilterMode）。
         /// </summary>
-        public static FilterMode SceneFilterMode = FilterMode.Bilinear;
+        public static FilterMode SceneFilterMode = FilterMode.Point;
 
         // 追蹤所有 runtime 載入的場景貼圖，供執行期切換濾波時即時套用（已被銷毀者於切換時清掉）。
         static readonly List<Texture2D> _liveTextures = new List<Texture2D>();

@@ -44,15 +44,16 @@
 
 ---
 
-## 畫質：UI 去壓縮 + 場景柔化 — 2026-07-01（分支 `fix/render-quality`，未合併）
+## 畫質：UI 去壓縮 + 場景濾波 — 2026-07-01（已定案，已合回 `develop`）
 
-大螢幕「UI 糊、場景粗糙」的處理，詳見 [PROBLEMS.md](PROBLEMS.md) G2 / G3。**改動在 `fix/render-quality` 分支，尚未合回 `develop`，等回家用實體螢幕確認後再定案。**
+大螢幕「UI 糊、場景粗糙」的處理，詳見 [PROBLEMS.md](PROBLEMS.md) G2 / G3。
 
 - [x] `Resources/UI` 全部 39 張貼圖 Compression 改 None（去糊）。
 - [x] `Assets/Editor/UITextureImportSettings.cs`：新 UI 圖自動套不壓縮預設。
-- [x] `MapSpriteLoader.SceneFilterMode` 場景濾波可切換，預設 `Bilinear`（方案二柔化）。
-- [ ] **回家實體螢幕確認**：UI 是否已清爽、場景 Bilinear 柔化能否接受。遠端桌面看不準（會重壓縮串流）。
-- [ ] **場景方向定案**：柔化 OK → 決定要不要進一步照 [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) 重產更細緻的場景源圖；想回硬像素 → `SceneFilterMode` 改回 `Point`。定案後再決定是否合併分支。
+- [x] `MapSpriteLoader.SceneFilterMode` 場景濾波可切換，PerfHud（P）加「場景濾波(F)」按鈕/F 鍵即時切。
+- [x] **場景方向定案：採 `FilterMode.Point`（硬像素）為預設**；Bilinear 保留作比較。
+- [ ] （選配，之後有需要再做）想更清晰時照 [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) 把場景源圖重產得更細緻（顆粒更小）。
+- [ ] 回家實體螢幕最終確認 UI 清爽度（遠端桌面看不準，會重壓縮串流）。
 
 ---
 
