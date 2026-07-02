@@ -89,6 +89,7 @@ namespace Dipan.MapRuntime
         public int hp = 1;       // 可破壞血量;編輯器寫入,缺省 = 1（打一下就壞）
         public float animFps = 8f; // 動畫地上物的每實例播放幀率（僅動畫物件有意義;靜態物件忽略）
         public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，接縫不跳變)
+        public bool walkable = false; // 勾選＝不設碰撞、不擋路（走地圖可走層判定）；也因此不掛可破壞
     }
 
     /// <summary>場景特效實例（編輯器放置、遊戲端依 SceneFxTable 的 fxId 生成粒子）。座標為世界座標。</summary>

@@ -637,6 +637,10 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("下移層")) { UndoManager.Push(); ctl.LowerZ(); }
             GUILayout.EndHorizontal();
 
+            // 可走（勾選＝這個地上物不擋路、不設碰撞，走不走由地圖該格可走層決定；例：木板/地毯可踩上去）。
+            bool nextWalk = GUILayout.Toggle(sel.walkable, " 可走（不擋路，走地圖判定）");
+            if (nextWalk != sel.walkable) { UndoManager.Push(); sel.walkable = nextWalk; }
+
             // 不可被摧毀（勾選＝血量 -1）；未勾選才顯示可調的數值血量
             bool indes = sel.hp == -1;
             bool nextIndes = GUILayout.Toggle(indes, " 不可被摧毀（血量 -1）");
@@ -922,9 +926,13 @@ namespace DipanMapEditor.UI
             {
                 GUILayout.BeginHorizontal();
                 GUI.color = (fx == ctl.Selected) ? Color.cyan : Color.white;
-                if (GUILayout.Button($"fx{fx.fxId}  {(fx.hasEnd ? "起→終" : "起點")}", GUILayout.Width(160))) ctl.Select(fx);
+                if (GUILayout.Button($"fx{fx.fxId} {(fx.hasEnd ? "起→終" : "起點")}", GUILayout.Width(112))) ctl.Select(fx);
+                // 即時預覽切換：顯示＝跟遊戲內一樣跑這個特效；再按一次隱藏。
+                bool prev = ctl.IsPreviewing(fx);
+                GUI.color = prev ? Color.green : Color.white;
+                if (GUILayout.Button(prev ? "隱藏" : "顯示", GUILayout.Width(50))) ctl.TogglePreview(fx);
                 GUI.color = Color.white;
-                if (GUILayout.Button("刪", GUILayout.Width(36))) toDelete = fx;
+                if (GUILayout.Button("刪", GUILayout.Width(32))) toDelete = fx;
                 GUILayout.EndHorizontal();
             }
             if (toDelete != null) { ctl.Select(toDelete); ctl.DeleteSelected(); }

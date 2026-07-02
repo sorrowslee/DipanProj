@@ -1,91 +1,92 @@
-# 場景特效 (Scene Effect：地圖級世界端環境表演)
+# 場景特效 (Scene Effects)
 
-> 返回 [文件總覽](README.md)｜螢幕後處理氛圍見 [ATMOSPHERE.md](ATMOSPHERE.md)；一次性特效見 [VFX.md](VFX.md)；地圖載入見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)。
+> 返回 [文件總覽](README.md)｜螢幕後處理氛圍見 [ATMOSPHERE.md](ATMOSPHERE.md)；一次性特效見 [VFX.md](VFX.md)；地圖載入見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)；編輯器見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)。
 
-「場景特效」是**地圖級、世界空間**的環境表演（會在世界裡移動、有落點的物件），由 `MapsTable.csv` 的 `SceneEffect` 欄驅動、換圖即時切換。第一個效果是**火雨**。
+專案有**兩套**世界端的環境特效，名字相近、用途不同，先分清楚：
 
-> **與 Atmosphere 的分工（重要）**：Atmosphere 是**全螢幕後處理 shader**（螢幕空間，做雨/雪/霧/雜訊那種「整個畫面」的氛圍）；場景特效是**世界物件**（用 sprite、有世界座標落點、會跟地圖對齊）。兩者獨立、可並存。
->
-> 為什麼火雨不做成 Atmosphere：① 螢幕 shader 沒辦法用真正的火球 sprite 素材；② 砸進場的火球需要世界落點與落地特效；③ 本作是 **45° 俯視角、看不到天空**，所以「天空紅漩渦」那類螢幕背景在這個視角站不住腳（曾試做 Atmosphere mode 16，因概念不成立已移除）。
+| 系統 | 誰驅動 | 範圍 | 例子 | 程式 |
+|---|---|---|---|---|
+| **SceneEffect（地圖級）** | `MapsTable.csv` 的 `SceneEffect` 欄（整張地圖一種） | 整張地圖 | 火雨 FireRain | `SceneEffectController` |
+| **SceneFx（可放置）** | 編輯器「場景特效」工具逐個放置（`.dipanmap` 的 `sceneFx` 清單） | 單點/單塊 | 煙霧圍巾、火/冰/毒噴射、傳送門 | `SceneFxEmitter` / `PortalFx` |
+
+兩者都與 Atmosphere（全螢幕後處理 shader）**獨立可並存**。
 
 ---
 
-## 資料驅動：`MapsTable.csv` 的 `SceneEffect` 欄
+## 一、SceneEffect（地圖級，MapsTable 驅動）
 
-`MapsTable.csv` 第 8 欄 `SceneEffect`（向下相容：缺欄／留空／無法解析都退回 0）：
+`MapsTable.csv` 第 8 欄 `SceneEffect`（0/空=無、1=火雨），`MapManager` 載圖時呼叫 `SceneEffectController.ApplyMapSceneEffect(type, map)`（仿 `AtmosphereController`：自動生成、常駐、換圖即時切換並清殘留）。
 
-| 值 | 效果 |
+**火雨（FireRain）**：仿「火焰拋擲彈」拋物線，從畫面外上方拋火球進**相機可視範圍**、落地播火光，純表演不傷人。參數在 `FireRain` 元件（`spawnPerSecond` 密度、`fallSpeed`、`arcHeight` 弧高、`flightTime`、`sizeRange`…）。目前邪佛廣場（`Main_Square`）設 `SceneEffect=1`。
+
+---
+
+## 二、SceneFx（可放置的粒子特效）
+
+在地圖編輯器「**場景特效**」分頁逐個放置，存進 `.dipanmap` 的 `sceneFx` 清單，遊戲端 `MapLoader.BuildSceneFx` 載圖時依 `fxId` 對應 `SceneFxTable` 逐一生成。外觀走表、放置走實例——同「配方/武器」分表哲學。
+
+### 實例欄位（`SceneFxInstance`，編輯器放置）
+
+| 欄位 | 說明 |
 |---|---|
-| 0 / 空 | 無 |
-| 1 | 火雨（FireRain） |
+| `fxId` | 特效編號（對應 `SceneFxTable` 的一列） |
+| `startX/Y` | 起點（世界座標）；編輯器放**綠點** |
+| `hasEnd` / `endX/Y` | 是否有終點；終點放**紅點**。stream＝流動路徑終點；portal＝矩形對角 |
+| `bulge` | 弧線外鼓量（stream 用；垂直起→終連線的偏移，0=直線、正負決定鼓哪邊） |
+| `w` / `h` | 大小倍率（X/Y） |
+| `loop` / `intermittent` / `interval` | 循環 / 間歇 / 間歇開關各持續幾秒 |
 
-`MapTableRow` 多了 `sceneEffect` 欄，解析方式與 `Atmosphere` 一致（`MapTable.cs`）。目前邪佛廣場（`Main_Square`，ID 12）設 `SceneEffect=1`。
+### 外觀表（`Assets/Resources/Data/SceneFxTable.csv`）
 
----
+一列一種特效外觀。欄位：`Id,Name,R,G,B,EmitPerSecond,LifeMin,LifeMax,SizeStart,SizeEnd,PeakAlpha,Turbulence,SortingOrder,Kind`。
 
-## 執行：`SceneEffectController`（仿 `AtmosphereController`）
+- `Kind`：`stream`＝弧線粒子流（煙/火/冰/毒）；`portal`＝發光矩形傳送門（起/終點＝對角）。留空/缺＝stream。
+- 內建列：1 煙、2 火、3 冰、4 毒氣、5 傳送門（綠）。**加新種類＝加一列**、不動程式；換顏色＝複製一列改 RGB 給新 Id。
 
-`Assets/Scripts/Map/SceneEffectController.cs`：
+### 兩種 Kind 的行為
 
-- **自動生成、跨地圖常駐**（`[RuntimeInitializeOnLoadMethod]` + `DontDestroyOnLoad`，static `Instance`）。
-- `MapManager` 載圖時呼叫 `SceneEffectController.ApplyMapSceneEffect(row.sceneEffect, mapLoader.Map)`（緊接在 `ApplyMapAtmosphere` 後）。
-- 每次載圖會先 `StopAndClear()` 清掉上一張地圖的殘留，再依型別啟用對應效果（type 1 啟用 `FireRain`，其餘停用）。
+**stream（`SceneFxEmitter`）**：沿「起點→控制點→終點」的二次貝茲弧線持續冒柔邊粒子，一路放大、邊飄邊自轉＋亮度隨機、先淡入再淡出。濃煙的「滾滾澎湃」感靠：花椰菜狀雜訊粒子貼圖＋自轉＋高密度大顆長壽（都在表裡調）。
 
----
+**portal（`PortalFx`）**：起/終點＝矩形兩對角，畫一片**平穩發光的漸層能量光幕**（柔邊、縱向中央略亮、極緩慢細微呼吸，不流動不閃爍——平靜如湖水）。
 
-## 火雨 (FireRain)
+### 排序注意（重要）
 
-**做法＝仿「火焰拋擲彈」武器（`Sorrows.Ballistics` 的 `ParabolicBehavior`）的弧線**，但純表演、不碰戰鬥系統：
-
-- 以穩定密度持續從**畫面外上方**往相機可視範圍內**拋**火球（起點在畫面上緣外、左右隨機偏一邊 → 斜斜丟進來）。
-- 飛行採「地面位置 start→target 線性插值（固定飛行時間）＋ 視覺假高度拋物線 Y 偏移」做出弧線；火球沿飛行方向旋轉（頭在前、尾在後）。
-- 落到目標點時播一次**落地火光**（擴散放大 + 淡出）後自毀。
-- **範圍跟著相機可視畫面**（落點再夾在地圖範圍內），所以鏡頭走到哪、火球就丟到哪，密度看得到、不浪費。
-- **純表演，不傷害任何單位**（完全不經 `CombatSystem`）。
-
-### 可調參數（`FireRain` 元件，Inspector 或程式預設）
-
-| 欄位 | 預設 | 說明 |
-|---|---|---|
-| `spawnPerSecond` | 1.5 | 每秒丟幾顆（密度） |
-| `maxAlive` | 40 | 同時存在上限（保護效能） |
-| `flightTime` | 0.7~1.1 | 飛行時間（秒）；越小飛越快 |
-| `arcHeight` | 0.5~1.5 | 拋物線弧高；越小越接近直線 |
-| `launchAboveTop` | 3 | 起點在畫面上緣外多高開始丟 |
-| `throwSideRange` | 3~9 | 斜向丟入的水平偏移（越大越斜） |
-| `sizeRange` | 0.6~1.2 | 火球基準大小（`_size`） |
-| `sortingOrder` | 30000 | 繪製排序（**須 ≤32767**，見下方提醒） |
-
-> 火球**視覺**在 `TossedFireball.Init` 另外放大（localScale 用 `_size×1.1 / ×2.5`，= 在基準上再放大 2×），**落地火光大小仍依 `_size`**（兩者分開調）。要「只放大火球、不動火光」就改 localScale 倍率；要連火光一起就改 `sizeRange` 或火光的 `_size * 2.7` 倍率。
-
-> ⚠️ **`sortingOrder` 是 16-bit（−32768~32767）**：給超大值（如 2,000,000）會溢位繞回負數 → 火球被排到背景後面、整個看不到。詳見 [PROBLEMS.md](PROBLEMS.md) E4。
+- `SortingOrder` 是 16-bit（≤32767），**別填上百萬會溢位繞回負數而看不到**（見 [PROBLEMS.md](PROBLEMS.md) E4）。
+- 本專案排序層：背景 -1000 < 地磚 0 < 角色/怪 10 < 地上物（約 17000~22000，SortBase 繞回）。
+- **煙/火等要蓋在最前** → 用 25000。**傳送門要顯示在門洞（地上物）之上** → 用 20000（低於煙、仍高於門）。填太低會被門的圖蓋住。
 
 ---
 
-## 佔位素材（程式生成，零美術）
+## 三、編輯器操作與即時預覽
 
-火球與火光目前用 `SceneEffectSprites` **程式生成**的發光圖（彗星狀火球：亮黃頭＋橘紅尾；落地：橘黃柔光圓），static 快取、整個遊戲共用，**不需要任何美術檔**。
+在「場景特效」分頁：**＋新增特效** → 清單點選 → **放置起點(綠)/放置終點(紅)** 到畫布點放 → 填 `fxId` 等參數。每個特效旁有 **顯示/隱藏** 鈕＝**編輯器內即時預覽**，跑的是與遊戲**同一套** `SceneFxEmitter`/`PortalFx`/`SceneFxTable`（複製一份到編輯器專案），所以**所見即遊戲所得**；移動起/終點或改參數會即時重建預覽，刪除特效或換地圖預覽自動移除。
 
-之後補真素材時，把 `FireRain` 取 sprite 的來源（`SceneEffectSprites.Comet()` / `Glow()`）改成讀 `Resources`（或接 `VfxTable`）即可，**行為不變**。
+> **雙專案鏡像**：`SceneFxEmitter.cs` / `PortalFx.cs` / `SceneFxTable.cs` 與 `SceneFxTable.csv` 在**遊戲**（`Assets/Scripts/Map`、`Assets/Resources/Data`）與**編輯器**（`Assets/Scripts/Preview`、`Assets/Resources/Data`）**各有一份**（同 MapData/MapCoords 的鏡像慣例）。改特效外觀/行為要**兩邊一起改**才會一致。
 
 ---
 
-## 怎麼加一個新的場景特效（速查）
+## 四、做法速查
 
-1. 在 `SceneEffectController.Apply` 加一個 `type == N` 分支，啟用你的效果元件（仿 `FireRain`）。
-2. 寫一個 `MonoBehaviour` 效果元件（含 `Begin(map)` / `StopAndClear()`），用 `Update` 自行生成／管理世界物件。
-3. 在 `MapsTable.csv` 的 `SceneEffect` 欄填 N、更新表頭說明。
-4. 注意：純表演就**別碰 `CombatSystem`**；繪製排序記得 ≤32767。
+**煙霧圍巾（邪佛）**：放兩個 `fxId=1`（煙）特效，各自起點放肩、終點放頭側、`bulge` 一正一負往外鼓成兩條弧。
+
+**傳送門**：一個 `fxId=5`，勾「有終點」，綠起點放門洞左上、紅終點放右下（矩形對角）。顏色換＝表裡複製 Portal 列改 RGB。
+
+**噴射（火/冰/毒）**：`fxId=2/3/4`，起點放噴口；要方向就放終點、否則預設朝上噴。
+
+---
+
+## 五、素材
+
+粒子/光幕目前都用**程式生成的佔位素材**（花椰菜煙塊、柔光圓、漸層矩形），零美術、static 快取。之後補真素材時，把對應 sprite 來源改成讀 `Resources`（或接 VfxTable）即可，行為不變。
 
 ---
 
 ## 相關檔案
 
-- `Assets/Scripts/Map/SceneEffectController.cs` — 控制器 ＋ `FireRain` / `TossedFireball` / `FireImpactFx` ＋ `SceneEffectSprites`（佔位素材）。
-- `Assets/Scripts/Map/MapTable.cs` — `MapTableRow.sceneEffect` 欄與解析。
-- `Assets/Scripts/Map/MapManager.cs` — 載圖時呼叫 `ApplyMapSceneEffect`。
-- `Assets/Data/MapsTable.csv` — `SceneEffect` 欄。
+- 地圖級：`Assets/Scripts/Map/SceneEffectController.cs`（含 `FireRain`）、`Assets/Data/MapsTable.csv`（`SceneEffect` 欄）。
+- 可放置（遊戲）：`Assets/Scripts/Map/SceneFxEmitter.cs`、`PortalFx.cs`、`SceneFxTable.cs`、`Assets/Resources/Data/SceneFxTable.csv`；`MapLoader.BuildSceneFx`；`MapModel.SceneFxInstance`。
+- 可放置（編輯器）：`Assets/Scripts/Tools/SceneFxController.cs`（工具＋預覽）、`Core/SceneFxOverlay.cs`（畫起/終點/弧線）、`Data/LayerData.cs`（`SceneFxInstance`）、`Scripts/Preview/*`（鏡像的特效程式）。
 
 ---
 
-*建立於 2026-06-30：場景特效框架（世界端、地圖級、MapsTable 驅動）＋第一個效果「火雨」（仿火焰拋擲彈的拋物線、純表演、跟相機、程式佔位素材）。曾嘗試以 Atmosphere mode 16 做「天空紅漩渦」，因 45° 俯視角看不到天空、概念不成立而移除。*
+*建立於 2026-06-30、改寫於 2026-07-02：從最早「綁在 MapLoader 的佛陀煙霧 hack」演進為通用可放置的 SceneFx 系統（編輯器工具＋SceneFxTable＋stream/portal 兩 kind＋即時預覽）。地圖級 FireRain（MapsTable SceneEffect 欄）並存。*

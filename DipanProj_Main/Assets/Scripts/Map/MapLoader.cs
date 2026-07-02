@@ -367,7 +367,8 @@ public class MapLoader : MonoBehaviour
             (inst.flipY ? -1f : 1f) * inst.scaleY, 1f);
         go.transform.rotation = Quaternion.Euler(0, 0, inst.rot);
 
-        if (addObjectColliders)
+        // walkable = true：不設碰撞、不擋路（走不走由地圖可走層判定；例：木板/地毯）。因此也不掛可破壞。
+        if (addObjectColliders && !inst.walkable)
         {
             var box = _sprites.GetAlphaLocalBox(item, _map.tileSize);
             var col = go.AddComponent<BoxCollider2D>();
@@ -384,7 +385,8 @@ public class MapLoader : MonoBehaviour
         }
 
         // hp < 0（例如 -1）= 不可摧毀:不掛 DestructibleObject,但上面的碰撞框照常 → 等於一般牆壁(擋＋反彈)。
-        if (objectsDestructible && inst.hp >= 0)
+        // walkable 物件沒有碰撞、打不到，也不掛可破壞。
+        if (objectsDestructible && !inst.walkable && inst.hp >= 0)
         {
             var d = go.AddComponent<DestructibleObject>();
             float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值
