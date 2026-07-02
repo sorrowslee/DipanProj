@@ -23,6 +23,7 @@ public class SceneFxEmitter : MonoBehaviour
         public float peakAlpha;
         public float turbulence;
         public int sortingOrder;
+        public int kind;   // 0 = stream（弧線粒子流，如煙）；1 = portal（發光矩形傳送門，起/終點＝對角）
     }
 
     Look _look;

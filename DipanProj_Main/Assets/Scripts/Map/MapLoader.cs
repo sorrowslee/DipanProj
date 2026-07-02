@@ -402,22 +402,31 @@ public class MapLoader : MonoBehaviour
 
         foreach (var fx in _map.sceneFx)
         {
+            var look = SceneFxTable.Get(fx.fxId);
             Vector3 start = new Vector3(fx.startX, fx.startY, 0f);
             Vector3 end = fx.hasEnd
                 ? new Vector3(fx.endX, fx.endY, 0f)
                 : start + new Vector3(0f, 2.5f * Mathf.Max(0.2f, fx.h), 0f);   // 沒終點＝從起點朝上噴一段
 
-            Vector3 dir = end - start;
-            float len = dir.magnitude;
-            Vector3 perp = (len > 1e-4f) ? new Vector3(-dir.y, dir.x, 0f).normalized : Vector3.right;
-            Vector3 ctrl = (start + end) * 0.5f + perp * fx.bulge;   // 控制點外推 → 弧線
-
             var go = new GameObject($"SceneFx_{fx.fxId}");
             go.transform.SetParent(root.transform, false);
             go.transform.position = start;
-            go.AddComponent<SceneFxEmitter>().Configure(
-                SceneFxTable.Get(fx.fxId), start, ctrl, end,
-                fx.w, fx.h, fx.loop, fx.intermittent, fx.interval);
+
+            if (look.kind == 1)
+            {
+                // 傳送門：起點/終點＝矩形的對角，畫一塊發光矩形＋內部漂浮光點。
+                go.AddComponent<PortalFx>().Configure(look, start, end);
+            }
+            else
+            {
+                // 弧線粒子流（煙/火/冰/毒）：控制點外推成弧。
+                Vector3 dir = end - start;
+                float len = dir.magnitude;
+                Vector3 perp = (len > 1e-4f) ? new Vector3(-dir.y, dir.x, 0f).normalized : Vector3.right;
+                Vector3 ctrl = (start + end) * 0.5f + perp * fx.bulge;
+                go.AddComponent<SceneFxEmitter>().Configure(
+                    look, start, ctrl, end, fx.w, fx.h, fx.loop, fx.intermittent, fx.interval);
+            }
         }
     }
 

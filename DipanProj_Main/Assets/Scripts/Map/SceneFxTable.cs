@@ -50,6 +50,9 @@ public static class SceneFxTable
             if (v.Length < 13) continue;
             if (!int.TryParse(v[0].Trim(), out int id)) continue;
 
+            // 第 14 欄 Kind（選填、向下相容）：portal = 傳送門矩形；其餘/缺 = stream 弧線粒子流。
+            int kind = (v.Length >= 14 && v[13].Trim().ToLowerInvariant() == "portal") ? 1 : 0;
+
             _byId[id] = new SceneFxEmitter.Look
             {
                 color = new Color(F(v[2]), F(v[3]), F(v[4]), 1f),
@@ -61,6 +64,7 @@ public static class SceneFxTable
                 peakAlpha = F(v[10], 0.8f),
                 turbulence = F(v[11], 0.12f),
                 sortingOrder = (int)F(v[12], 25000f),
+                kind = kind,
             };
         }
         Debug.Log($"[SceneFxTable] 載入 {_byId.Count} 種場景特效。");

@@ -10,6 +10,51 @@
       "frameCount": 1
     },
     {
+      "id": "Main/Environment/rockAltar",
+      "path": "Main/Environment/rockAltar.png",
+      "category": "Environment",
+      "module": "Main",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Environment/rockDoor",
+      "path": "Main/Environment/rockDoor.png",
+      "category": "Environment",
+      "module": "Main",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Environment/rockSlate_armor",
+      "path": "Main/Environment/rockSlate_armor.png",
+      "category": "Environment",
+      "module": "Main",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Environment/rockSlate_script",
+      "path": "Main/Environment/rockSlate_script.png",
+      "category": "Environment",
+      "module": "Main",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Environment/rockSlate_weapon",
+      "path": "Main/Environment/rockSlate_weapon.png",
+      "category": "Environment",
+      "module": "Main",
+      "pixelSize": 500,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Main/Environment/Buddha",
       "path": "Main/Environment/Buddha/Buddha_01.png",
       "category": "Environment",
