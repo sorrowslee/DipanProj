@@ -1,52 +1,51 @@
 #!/bin/bash
+# 打包「之後」執行：用 butler 把 Windows 成品「增量」上傳到 itch.io。
+# 差分上傳（只傳有變動的位元組）、無單檔大小限制、不進 git —— 取代舊的 rsync + git push 流程。
+#
+# 前置（一次性）：在終端機 ./butler login 過一次（憑證存本機，之後免登入）。
+# 若從 Unity GUI 觸發時 butler 找不到憑證，可改在環境變數設 BUTLER_API_KEY。
 
-# --- 路徑設定修正 ---
-# 取得此腳本所在的根目錄 (DipanProj)
-PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+set -o pipefail
 
-# 修正：根據你的截圖，主專案資料夾是 DipanProj_Main
+PROJECT_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"     # = DipanProj
 MAIN_PROJECT_PATH="$PROJECT_ROOT/DipanProj_Main"
-# 修正：部署資料夾在 DipanProj 同層
-DEPLOY_PATH="$PROJECT_ROOT/../DipanProj_Deploy"
+BUILD_DIR="$MAIN_PROJECT_PATH/Builds/Windows_Test"
 
-echo "🚚 正在同步成品至 $DEPLOY_PATH..."
+# itch 目標：帳號/專案:channel
+TARGET="sorrowslee/dipan:windows"
 
-# 1. 搬移成品 (排除 .git)
-mkdir -p "$DEPLOY_PATH"
-
-# 關鍵修正：確保來源路徑正確指向主專案內的 Builds
-rsync -av --delete --exclude ".git" "$MAIN_PROJECT_PATH/Builds/Windows_Test/" "$DEPLOY_PATH/"
-if [ $? -ne 0 ]; then
-    echo "❌ 同步失敗，請確認 $MAIN_PROJECT_PATH/Builds/Windows_Test/ 是否存在（Windows 是否真的建置成功）。"
+# butler 執行檔位置：優先環境變數 BUTLER，其次 PATH 上的 butler，再退回 ~/butler/butler。
+BUTLER="${BUTLER:-butler}"
+if ! command -v "$BUTLER" >/dev/null 2>&1 && [ -x "$HOME/butler/butler" ]; then
+    BUTLER="$HOME/butler/butler"
+fi
+if ! command -v "$BUTLER" >/dev/null 2>&1 && [ ! -x "$BUTLER" ]; then
+    echo "❌ 找不到 butler。請確認已安裝，或設環境變數 BUTLER 指向 butler 執行檔（例如 ~/butler/butler）。"
     exit 1
 fi
 
-# 2. 推送到 GitHub（逐步檢查，誠實回報，不再假性成功）
-cd "$DEPLOY_PATH" || { echo "❌ 進不去部署資料夾：$DEPLOY_PATH"; exit 1; }
-
-if [ ! -d ".git" ]; then
-    echo "❌ 部署資料夾不是 git repo：$DEPLOY_PATH"
-    echo "   請先一次性設定（在終端機）："
-    echo "   cd \"$DEPLOY_PATH\" && git init && git branch -M main && git remote add origin <你的GitHub URL> && git add . && git commit -m init && git push -u origin main"
+if [ ! -d "$BUILD_DIR" ]; then
+    echo "❌ 找不到成品資料夾：$BUILD_DIR（Windows 是否真的建置成功？）"
     exit 1
 fi
 
-git add .
+# 版本號：用日期時間，方便在 itch 後台辨識這是哪次的 build。
+USERVERSION="$(date +'%Y.%m.%d-%H%M')"
 
-# 沒有變更就不算失敗，直接結束
-if git diff --cached --quiet; then
-    echo "ℹ️ 這次成品與遠端相同，無需推送（測試機已是最新）。"
-    echo "DEPLOY_RESULT=NOCHANGE"
-    exit 0
-fi
+echo "🚚 用 butler 增量上傳成品到 itch：$TARGET（版本 $USERVERSION）..."
 
-git commit -m "Auto Deploy: $(date +'%Y-%m-%d %H:%M:%S')" || { echo "❌ git commit 失敗"; exit 1; }
+# --ignore：排除不需上架的 Burst 除錯資訊（名稱本身就寫 DoNotShip）。
+"$BUTLER" push "$BUILD_DIR" "$TARGET" \
+    --userversion "$USERVERSION" \
+    --ignore "*_BurstDebugInformation_DoNotShip/*"
+RC=$?
 
-if git push; then
-    echo "🎉 已推送新版本到遠端。"
+if [ $RC -eq 0 ]; then
+    echo "🎉 已上傳到 itch（$TARGET，版本 $USERVERSION）。測試機用 itch app 或 butler 取得最新版即可。"
     echo "DEPLOY_RESULT=PUSHED"
+    exit 0
 else
-    echo "❌ git push 失敗。常見原因：未設遠端 / 沒有上游分支 / 從 Unity 啟動的程序拿不到 git 憑證或 SSH key。"
-    echo "   先在終端機手動測試： cd \"$DEPLOY_PATH\" && git push"
+    echo "❌ butler push 失敗（exit $RC）。常見原因：沒 ./butler login、網路問題、或 Unity GUI 環境找不到 butler / 憑證。"
+    echo "   先在終端機手動測試： \"$BUTLER\" push \"$BUILD_DIR\" \"$TARGET\""
     exit 1
 fi

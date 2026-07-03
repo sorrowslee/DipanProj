@@ -73,7 +73,6 @@ namespace Dipan.Flow
             if (sm == null) { Debug.LogError("[GameFlow] 沒有 SaveManager，無法新建遊戲。"); return; }
 
             sm.StartNewGameInSlot(slot, name);   // 建立並設為活躍（覆蓋時會先刪舊角）
-            CloseMenus();
             InGame = true;
 
             if (CanPlayIntro())
@@ -82,15 +81,27 @@ namespace Dipan.Flow
                 // 之後踩到 cutscene 過場到邪佛廣場（MapManager 進廣場會用洞穴出口出生 + 自動存）。
                 MapManager.SuppressAutoStart = false;
                 Debug.Log("[GameFlow] 新建遊戲 → 播開場鏈（交還自動進關卡給開場流程）。");
-                StartCoroutine(LoadSceneRoutine(SaveConstants.IntroSceneName));
+                StartCoroutine(NewGameIntroRoutine());   // 先蓋黑再關選單→載入開場，避免露出標題面板
             }
             else
             {
                 // 無開場：由本流程明確帶進廣場，保持抑制避免 MapManager 自動進 Main_Cave 打架。
+                CloseMenus();
                 MapManager.SuppressAutoStart = true;
                 Debug.Log("[GameFlow] 無開場場景（或未加入 Build Settings）→ 直接進邪佛廣場。");
                 StartCoroutine(GoToHubRoutine(SaveConstants.HubEntranceCaveExit));
             }
+        }
+
+        /// <summary>新建有開場：先蓋黑幕遮住標題/存讀檔面板，再關選單、載入 Intro，最後淡出露出開場。避免「標題閃一下才進漫畫」。</summary>
+        IEnumerator NewGameIntroRoutine()
+        {
+            var fader = ScreenFader.Ensure();
+            yield return fader.FadeTo(1f, 0.25f);   // 蓋黑（暫停中，用 unscaledTime 仍會動）
+            CloseMenus();                            // 在黑幕下關掉標題/存讀檔，玩家看不到淡出過程
+            yield return LoadSceneRoutine(SaveConstants.IntroSceneName);
+            yield return null;                       // 等一幀讓 Intro 場景初始化
+            yield return fader.FadeTo(0f, 0.35f);    // 淡出，露出開場漫畫
         }
 
         /// <summary>載入某欄存檔並直接進邪佛廣場（中央出生）。</summary>

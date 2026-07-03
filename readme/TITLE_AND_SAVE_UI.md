@@ -40,7 +40,8 @@
 
 | 檔案 | 內容 |
 |---|---|
-| `Assets/Scripts/Flow/GameFlowManager.cs` | **總流程指揮**（＋`GameFlowBootstrap` 開機自動生）：開機顯示標題；新建/繼續/覆蓋/刪除；載場景＋等 MapManager 就緒→進廣場。 |
+| `Assets/Scripts/Flow/GameFlowManager.cs` | **總流程指揮**（＋`GameFlowBootstrap` 開機自動生）：開機顯示標題；新建/繼續/覆蓋/刪除；載場景＋等 MapManager 就緒→進廣場。**新建有開場時走 `NewGameIntroRoutine`：先用 `ScreenFader` 蓋黑 → 關選單 → 載 Intro → 淡出**，避免關選單時露出後面的標題面板（「標題閃一下才進漫畫」）。 |
+| `Assets/Scripts/Flow/ScreenFader.cs` | 全螢幕黑幕淡入/淡出（跨場景常駐、`sortingOrder` 30000 蓋在所有 UI 上、用 unscaledTime 因過場可能暫停）。`ScreenFader.Ensure().FadeTo(alpha,dur)`。用於切場景時先蓋黑再切，遮掉選單淡出/場景切換的破綻。 |
 | `Assets/Scripts/UI/Panels/TitlePanel.cs` | 標題畫面（Window 層、全螢幕佔位）：標題圖（`Resources/UI/TitlePanel/TitlePanel_TW`，3:1）＋中間偏右佛陀動畫（`Resources/UI/TitlePanel/BuddhaTitle/BuddhaTitle_01..NN`，自動偵測幀數、按開始才播一次、用 unscaledTime 因暫停中）＋開始遊戲鈕（圖 `Resources/UI/Common/StartGameBtn`＋程式補字）→**動畫播完再多停 `BuddhaEndHold` 秒才**開存讀檔畫面（無圖則退回文字/直接開）。播放中鎖按鈕防重複、回標題自動重置回第一幀。位置/大小常數在檔案上方（`BuddhaFps`/`BuddhaOffset`/`BuddhaDisplaySize`/`TextGroupX`/`TitleWidth`/`TitleY`/`StartBtnWidth`/`StartBtnY`）。 |
 | `Assets/Scripts/UI/TitleFireFx.cs` | **標題火焰特效**（UI 端、用 unscaledTime 因面板暫停）：① 全螢幕持續落火（火星/帶尾火條飄落閃爍，`UiFallingEmber`）② 標題燃燒（背後脈動火光＋沿標題往上竄、柔邊高斯羽化＋寬度抖動的火舌，`UiRisingFlame`）。**不是**用 MapsTable 火雨（那是世界端 SpriteRenderer、綁相機/deltaTime，暫停中不動且會被 UI 蓋掉）——改在 Canvas 上重做、複用火雨的程序生成佔位圖 `SceneEffectSprites`。由 `TitlePanel` 以 `EnableFireFx` 開關、`Init(emberRoot,titleRect,titleGlow)` 啟動。密度/大小/速度常數在 `TitleFireFx` 上方（`EmbersPerSecond`/`FlamesPerSecond`/`EmberFall*`/`TitleGlowAlpha` 等）。（曾試做佛陀兩肩蒸騰濃煙〔照搬 `SceneFxEmitter` fbm 煙塊〕，2026-07-03 決定不放、已移除。） |
 | `Assets/Scripts/UI/Panels/SaveSlotPanel.cs` | 三欄存讀檔畫面：卡片顯示周目/完成關卡/上次遊玩；新建/繼續/覆蓋（ConfirmPopup）/刪除。 |

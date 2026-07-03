@@ -18,13 +18,8 @@ public class BuildScript
             return;
         }
 
-        // 打包前先把部署資料夾對齊遠端 main（無條件以遠端為準），確保之後 push 不會因落後而失敗。
-        if (!UpdateDeployRepo())
-        {
-            UnityEngine.Debug.LogError("❌ 部署資料夾同步失敗，已中止打包（先把 DipanProj_Deploy 的 git 弄好再試）。");
-            return;
-        }
-
+        // 部署改走 itch.io + butler（差分上傳、無大小限制、不進 git），
+        // 不再需要「打包前對齊遠端 git」那一步（已隨舊的 GitHub 部署一起退休）。
         UnityEngine.Debug.Log("🚀 [1/2] 正在 Unity 內部執行建置...");
         BuildReport report = BuildWindowsWithAutoCleanRetry(out bool dataOk);
 
@@ -98,7 +93,9 @@ public class BuildScript
         }
 
         BuildPlayerOptions options = new BuildPlayerOptions();
-        options.scenes = new[] { "Assets/Scenes/Intro.unity", "Assets/Scenes/MainScene.unity" };
+        // 場景 0 = MainScene（開機停在這裡顯示標題流程）；Intro 排第二，只在「新建遊戲」時才載入播開場鏈。
+        // ⚠️ 順序不能顛倒：Intro 若排第 0，開機會直接播漫畫、且墜落後 MapManager 因 SuppressAutoStart 未解除而全黑。
+        options.scenes = new[] { "Assets/Scenes/MainScene.unity", "Assets/Scenes/Intro.unity" };
         options.locationPathName = "Builds/Mac_Test/DipanProject.app";
         options.target = BuildTarget.StandaloneOSX;
         options.options = BuildOptions.None;
@@ -109,33 +106,6 @@ public class BuildScript
             UnityEngine.Debug.Log("✅ Mac 版建好：Builds/Mac_Test/DipanProject.app —— 直接雙擊跑跑看。能跑就代表專案/資料完整，問題只出在 Windows 模組。");
         else
             UnityEngine.Debug.LogError($"❌ Mac 版也建置失敗（result={report.summary.result}, errors={report.summary.totalErrors}）。代表問題不只在 Windows 模組，需再往專案挖。");
-    }
-
-    // 打包前：跑 update_deploy.sh 把 DipanProj_Deploy 無條件對齊遠端 main。成功回 true。
-    private static bool UpdateDeployRepo()
-    {
-        string scriptPath = Path.Combine(UnityEngine.Application.dataPath, "../../update_deploy.sh");
-
-        ProcessStartInfo startInfo = new ProcessStartInfo("/bin/bash");
-        startInfo.Arguments = scriptPath;
-        startInfo.UseShellExecute = false;
-        startInfo.RedirectStandardOutput = true;
-        startInfo.RedirectStandardError = true;
-        startInfo.CreateNoWindow = true;
-        startInfo.StandardOutputEncoding = System.Text.Encoding.UTF8;   // 修正中文輸出變 ??? 的問題
-        startInfo.StandardErrorEncoding = System.Text.Encoding.UTF8;
-
-        using (Process process = Process.Start(startInfo))
-        {
-            string output = process.StandardOutput.ReadToEnd();
-            string error = process.StandardError.ReadToEnd();
-            process.WaitForExit();
-
-            if (!string.IsNullOrEmpty(output)) UnityEngine.Debug.Log($"🔄 Deploy 同步: {output}");
-            if (!string.IsNullOrEmpty(error)) UnityEngine.Debug.Log($"ℹ️ Deploy 同步 (stderr): {error}");
-
-            return process.ExitCode == 0;
-        }
     }
 
     const string WinExe = "Builds/Windows_Test/DipanProject.exe";
@@ -170,7 +140,9 @@ public class BuildScript
         }
 
         BuildPlayerOptions options = new BuildPlayerOptions();
-        options.scenes = new[] { "Assets/Scenes/Intro.unity", "Assets/Scenes/MainScene.unity" };
+        // 場景 0 = MainScene（開機停在這裡顯示標題流程）；Intro 排第二，只在「新建遊戲」時才載入播開場鏈。
+        // ⚠️ 順序不能顛倒：Intro 若排第 0，開機會直接播漫畫、且墜落後 MapManager 因 SuppressAutoStart 未解除而全黑。
+        options.scenes = new[] { "Assets/Scenes/MainScene.unity", "Assets/Scenes/Intro.unity" };
         options.locationPathName = WinExe;
         options.target = BuildTarget.StandaloneWindows64;
         options.options = clean ? BuildOptions.CleanBuildCache : BuildOptions.None;
@@ -205,9 +177,7 @@ public class BuildScript
             if (process.ExitCode == 0)
             {
                 if (output.Contains("DEPLOY_RESULT=PUSHED"))
-                    UnityEngine.Debug.Log("🎉 部署成功：已推送新版本到遠端 GitHub（測試機 git pull 即可取得）。");
-                else if (output.Contains("DEPLOY_RESULT=NOCHANGE"))
-                    UnityEngine.Debug.Log("✅ 部署完成：這次成品與遠端相同，無需推送（測試機已是最新，沒有新東西要拉）。");
+                    UnityEngine.Debug.Log("🎉 部署成功：已用 butler 增量上傳新版本到 itch（測試機用 itch app / butler 取得最新版即可）。");
                 else
                     UnityEngine.Debug.Log("🎉 部署流程結束（exit 0）。");
             }

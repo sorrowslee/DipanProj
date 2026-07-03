@@ -22,13 +22,10 @@
 - **原因**:這台 Mac 沒裝(或裝不完整)**Windows Build Support (Mono)** 模組,且必須對「正在開這專案的那個 Unity 版本」安裝。
 - **解法**:Unity Hub → Installs → 對 `2022.3.62f3` Add Modules → 勾 **Windows Build Support (Mono)** → **完全關閉再重開** Unity。`BuildScript` 現在會先檢查,沒裝就擋下並提示。
 
-### A3. 部署 `git push` 失敗 / `fatal: not a git repository`
+### A3. 部署 `git push` 失敗 / `fatal: not a git repository`（⚠️ 已淘汰情境）
+> **2026-07-03 起部署改用 itch.io + butler，build 不再進 git，本坑不再發生。新流程見 [DEPLOY.md](DEPLOY.md)。** 以下保留存查。
 - **症狀**:打包成功但推送失敗;或 stderr 出現 `not a git repository`、`non-fast-forward`。
-- **原因**:`DipanProj_Deploy` 還不是 git repo;或本地 main 落後遠端(沒先 pull 就 push);或從 Unity GUI 啟動的程序拿不到 git 憑證/SSH key。
-- **解法**:
-  - 一次性把 `DipanProj_Deploy` 設為 git repo 並接遠端(見 [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md))。
-  - 落後遠端 → 已由 `update_deploy.sh`(打包前 `reset --hard origin/main`)解決。
-  - 憑證問題 → 先在終端機手動 `git fetch` / `git push` 一次把憑證帶起來。
+- **原因**:`DipanProj_Deploy` 還不是 git repo;或本地 main 落後遠端;或從 Unity GUI 啟動的程序拿不到 git 憑證/SSH key。
 
 ### A4. Windows 端「檔案都在、還是跳 Data folder not found」
 - **症狀**:`exe` 與 `DipanProject_Data` 看起來都在,仍報錯。
@@ -55,7 +52,8 @@
 - **原因**:批次模式 + Personal 授權的**正常現象**,與打包成敗無關。
 - **解法**:忽略。真正的失敗看 BuildStep 與 `_Data` 是否完整。
 
-### A9. `git push` 被拒：`File ...resources.assets.resS is 192 MB; exceeds GitHub's 100 MB limit`
+### A9. `git push` 被拒：`File ...resources.assets.resS ... exceeds GitHub's 100 MB limit`（⚠️ 已淘汰情境）
+> **根治：2026-07-03 起部署改用 itch.io + butler，build 產物不再進 git，就沒有 GitHub 100MB 單檔限制的問題了（見 [DEPLOY.md](DEPLOY.md)）。** 以下的「壓縮 build 貼圖」仍可作為縮小 build 體積的一般參考。
 - **症狀**:Build and Deploy 後 push，GitHub 退回，說某個檔（通常 `*_Data/resources.assets.resS`）超過 100MB。
 - **原因**:`resources.assets.resS` 是 Unity 烘進 build 的「資源資料流」——**凡是放在 `Assets/Resources/` 的貼圖都會進這個檔，且在 build 內展開成大尺寸**（接近未壓縮）。本專案 `Resources/InitialStory`（開場漫畫＋墜落大圖）＋ `Resources/UI`（大張面板底圖）疊起來就破百 MB。
 - **解法（治本）**:把那批大圖的**匯入設定**壓小——選取 `Resources/InitialStory`（及 UI 大底圖）→ Inspector：`Max Size` 設 1024（或留 2048）＋勾 **Use Crunch Compression**（或 `Compression = Normal`）＋取消 **Generate Mip Maps** → Apply → 重新 Build。觀念：
@@ -63,10 +61,13 @@
   - 開場圖走 `Resources.Load` → **吃**匯入設定；地圖素材在 `StreamingAssets`、用 raw bytes 載 → **不吃**匯入設定（原樣複製進 build，要縮得改檔案本身）。
 - **解法（治標）**:Deploy repo 改用 Git LFS 追 `*.resS *.assets *.bundle`（遠端 pull 的機器也要裝 LFS）。
 
-### A10. 遠端執行檔「沒有開場漫畫/墜落」，直接從遊戲場景開始
-- **症狀**:編輯器按 Play 看得到開場，但遠端 build 一開機就是遊戲場景（洞穴）。
-- **原因**:`BuildScript.cs` 的 `options.scenes` 只放了 `MainScene`，**沒把 `Intro` 場景包進 build**；build 的第 0 個場景就是開機載入的場景。編輯器看得到只是因為按 Play 時剛好開著 Intro。
-- **解法**:`options.scenes` 要含兩個、且 **Intro 排第 0**：`{ "Assets/Scenes/Intro.unity", "Assets/Scenes/MainScene.unity" }`（兩個打包方法都要改）。`MainScene` 也要在清單裡，墜落播完才載得到。
+### A10. build 開機直接播漫畫、墜落後全黑（或反過來：完全看不到開場）— 場景順序
+> **2026-07-03 更新**：加了「標題流程」後，開機**場景 0 改成 `MainScene`**（不再是 Intro）。以下依新設計。
+- **症狀**:
+  - **開機直接播開場漫畫、墜落動畫結束後一片黑**（不是從標題開始）→ Intro 被排成場景 0 了。
+  - 或反過來：**新建遊戲時看不到開場** → Intro 根本沒包進 build。
+- **原因**:build 的**第 0 個場景 = 開機載入的場景**。標題流程要求開機停在 `MainScene`（由 `GameFlowManager` 顯示標題），Intro 只在「新建遊戲」時才被載入。若 Intro 排第 0：開機直接跑 Intro 的漫畫→墜落，墜落後 `LoadScene("MainScene")`，但 `GameFlowBootstrap` 開機已把 `MapManager.SuppressAutoStart` 設 true、又沒經過「新建」流程去解除它 → MainScene 的 MapManager 不啟動 → **全黑**（同 H1 的根因，因開機場景錯而重現）。
+- **解法**:`BuildScript.cs` 的 `options.scenes` 要含兩個、且 **`MainScene` 排第 0、`Intro` 第二**：`{ "Assets/Scenes/MainScene.unity", "Assets/Scenes/Intro.unity" }`（`BuildWindows` 與 `BuildMacLocal` 兩個方法都要一致）。Intro→MainScene 是用**場景名稱**載入（非 build index），所以順序不影響開場鏈的接續。
 
 ---
 

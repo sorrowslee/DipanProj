@@ -39,7 +39,7 @@
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
 | [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留）＋§14 進度層（周目=generation、完成關卡=clearedModules、金錢、出生點旗標、進度 API） | 做存檔/讀檔、角色建立/轉生、物品持久化、記錄關卡/周目進度前 |
 | [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物 |
-| [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md) | 打包/部署流程(Project Tools 選單、打包前對齊遠端 main、疑難排解) | 打包、部署、build/git 出錯時 |
+| [DEPLOY.md](DEPLOY.md) | 打包/部署流程（**itch.io + butler** 差分上傳、PC 用 itch app 取得、Project Tools 選單、疑難排解） | 打包、部署、build 出錯、設定 butler/itch 時 |
 | [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md) | 效能診斷面板(PerfHud：FPS/CPU·GPU ms/瓶頸/顯卡，按 P) ＋ 上架前玩家畫面設定(VSync/幀率上限/視窗模式)規劃 | 排查幀數/卡頓、做畫面設定選單 |
 | [ATMOSPHERE.md](ATMOSPHERE.md) | 場景氛圍後處理（MapsTable 的 Atmosphere 欄 1~15：正常/幽暗/噩夢/烈日/焦土/沙塵/淺海/深海/深海+恐怖/風雪/強風/細雨/大雨/陰森森林鬼霧/電視雜訊；提燈光圈、熱浪、海洋折射、風絲、雨絲、漂移黑霧、雪花噪訊，地圖驅動、換圖即時切換） | 調某地圖陰森/炎熱/海洋/風雨/鬼霧/雜訊氛圍、做新地圖、改光圈/調色/扭曲 |
 | [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) | 進場一次性效果（MapsTable `EnterEffect` 欄，進圖播一次就結束）：睜眼醒來（後處理杏眼遮罩＋模糊對焦＋亮度暗角，用在初始洞窟）。與 Atmosphere/SceneEffect 的「持續狀態」分工 | 做進場過場（睜眼/昏迷/暈眩…）、改睜眼節奏、加新進場效果 |

@@ -16,7 +16,7 @@
 
 放在獨立的 `Intro` 場景（同 [INTRO_FALL.md](INTRO_FALL.md) 第 0 節的理由）。場景裡有兩個控制器：先播 `IntroComicController`（漫畫），播完啟用 `IntroFallController`（墜落），墜落播完載入 `MainScene`。
 
-> **打包提醒**：`Intro` 與 `MainScene` **兩個場景都要在 build 裡，且 Intro 排第 0 個**（開機載入的場景）。`BuildScript.cs` 的 `options.scenes` 已設成 `{ "Assets/Scenes/Intro.unity", "Assets/Scenes/MainScene.unity" }`。只放 MainScene 的話，遠端執行檔會直接從遊戲場景開始、看不到開場（見 [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md)）。
+> **打包提醒**：`Intro` 與 `MainScene` **兩個場景都要在 build 裡，且 `MainScene` 排第 0 個**（開機載入、跑標題流程；Intro 只在「新建遊戲」時才由 `GameFlowManager` 載入播開場鏈）。`BuildScript.cs` 的 `options.scenes` 已設成 `{ "Assets/Scenes/MainScene.unity", "Assets/Scenes/Intro.unity" }`。**順序不能顛倒**：Intro 若排第 0，開機會直接播漫畫、且墜落後 MapManager 因 `SuppressAutoStart` 未解除而全黑（見 [DEPLOY.md](DEPLOY.md) 與 [PROBLEMS.md](PROBLEMS.md) A10）。少了 Intro 則新建遊戲時看不到開場。
 
 ---
 
