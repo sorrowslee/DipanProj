@@ -31,6 +31,7 @@ public class MapTableRow
     public int mode = 2;        // 1 = 整張地圖；2 = 鏡頭跟隨（預設）
     public int atmosphere = 1;  // 1 = 正常；2 = 幽暗+打光；3 = 噩夢+打光（預設 1）
     public int sceneEffect = 0; // 場景特效：0 = 無；1 = 火雨（見 SceneEffectController，預設 0）
+    public int enterEffect = 0; // 進場一次性效果：0 = 無；1 = 睜眼醒來（見 EyeOpenController，預設 0）
 }
 
 public class MapTable : MonoBehaviour
@@ -106,6 +107,10 @@ public class MapTable : MonoBehaviour
             int sceneEffect = 0;
             if (v.Length >= 8 && int.TryParse(v[7].Trim(), out int se)) sceneEffect = se;
 
+            // EnterEffect 第 9 欄為新增、向下相容：缺欄 / 留空 / 無法解析都退回預設 0（無）。
+            int enterEffect = 0;
+            if (v.Length >= 9 && int.TryParse(v[8].Trim(), out int ee)) enterEffect = ee;
+
             var row = new MapTableRow
             {
                 id = id,
@@ -116,6 +121,7 @@ public class MapTable : MonoBehaviour
                 mode = mode,
                 atmosphere = atmosphere,
                 sceneEffect = sceneEffect,
+                enterEffect = enterEffect,
             };
 
             if (_byId.ContainsKey(id))

@@ -32,9 +32,21 @@ namespace Dipan.UI
         readonly List<UIPanel> _stack = new List<UIPanel>();                            // 視窗/彈窗堆疊順序
 
         bool _inputBlocked;
+        bool _extBlock, _extPause;   // 非面板系統（如進場睜眼過場）要求的擋輸入/暫停
 
         /// <summary>遊戲輸入是否該被 UI 擋住（給 PlayerController 等查詢）。無 UIManager 時恆為 false。</summary>
         public static bool IsGameplayInputBlocked => Instance != null && Instance._inputBlocked;
+
+        /// <summary>
+        /// 給非面板的系統掛「擋輸入 / 暫停」需求（例如進場睜眼過場：播放中暫停＋不能操作，播完解除）。
+        /// 與面板的需求一起參與 Recompute（任一要求就生效），所以不會被載入頁關閉時的重算覆蓋掉。
+        /// </summary>
+        public void SetExternalHold(bool block, bool pause)
+        {
+            _extBlock = block;
+            _extPause = pause;
+            Recompute();
+        }
 
         // 「沒有任何視窗開著時，按 ESC 要開的根面板」（例如設定）。由該面板的 launcher 註冊。
         Type _escapeRootPanel;
@@ -207,8 +219,8 @@ namespace Dipan.UI
                 if (p.BlocksGameplayInput) block = true;
                 if (p.PausesGame) pause = true;
             }
-            _inputBlocked = block;
-            Time.timeScale = pause ? 0f : 1f;
+            _inputBlocked = block || _extBlock;
+            Time.timeScale = (pause || _extPause) ? 0f : 1f;
         }
 
         /// <summary>

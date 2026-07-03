@@ -190,6 +190,8 @@ public class MapManager : MonoBehaviour
         AtmosphereController.ApplyMapAtmosphere(row.atmosphere);
         // 場景特效（世界端，如火雨）：依 SceneEffect 欄，換圖即時切換、自動清殘留。見 SceneEffectController。
         SceneEffectController.ApplyMapSceneEffect(row.sceneEffect, mapLoader.Map);
+        // 進場一次性效果（如睜眼醒來）：依 EnterEffect 欄，進圖播一次就結束（承接的全黑會蓋過載入頁收尾）。見 EyeOpenController。
+        EyeOpenController.ApplyMapEnterEffect(row.enterEffect);
         mapLoader.SpawnMonsters();
         SetupWatcher();
         Debug.Log($"[MapManager] 進入地圖 #{row.id}「{row.name}」(module={row.module})，落點={pos}。");
