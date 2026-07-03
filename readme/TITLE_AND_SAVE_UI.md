@@ -16,7 +16,8 @@
 
 ```
 開遊戲
-  └─ 標題畫面（TitlePanel）：標題 ＋「開始遊戲」
+  └─ 標題畫面（TitlePanel）：標題 ＋ 中間偏右佛陀動畫 ＋「開始遊戲」
+        └─（按開始 → 播一次佛陀動畫，播完才切換）
         └─ 三欄存讀檔（SaveSlotPanel）：欄位 1 / 2 / 3
               ├─ 空欄 → 新建遊戲 ──┐
               ├─ 有檔 → 繼續        │
@@ -40,7 +41,7 @@
 | 檔案 | 內容 |
 |---|---|
 | `Assets/Scripts/Flow/GameFlowManager.cs` | **總流程指揮**（＋`GameFlowBootstrap` 開機自動生）：開機顯示標題；新建/繼續/覆蓋/刪除；載場景＋等 MapManager 就緒→進廣場。 |
-| `Assets/Scripts/UI/Panels/TitlePanel.cs` | 標題畫面（Window 層、全螢幕佔位）：標題＋開始遊戲鈕→開存讀檔畫面。 |
+| `Assets/Scripts/UI/Panels/TitlePanel.cs` | 標題畫面（Window 層、全螢幕佔位）：標題＋中間偏右佛陀動畫（`Resources/UI/TitlePanel/BuddhaTitle/BuddhaTitle_01..NN`，自動偵測幀數、按開始才播一次、用 unscaledTime 因暫停中）＋開始遊戲鈕→**動畫播完才**開存讀檔畫面（無幀則直接開）。播放中鎖按鈕防重複、回標題自動重置回第一幀。速度/位置/大小常數在檔案上方（`BuddhaFps`/`BuddhaOffset`/`BuddhaDisplaySize`）。 |
 | `Assets/Scripts/UI/Panels/SaveSlotPanel.cs` | 三欄存讀檔畫面：卡片顯示周目/完成關卡/上次遊玩；新建/繼續/覆蓋（ConfirmPopup）/刪除。 |
 | `Assets/Scripts/Save/SaveManager.cs` | **改**：`SuppressAutoLoad`；槽位 API（`GetSlotProfile`/`SlotOccupied`/`StartNewGameInSlot`/`LoadSlot`/`DeleteSlot`）；`ReincarnateInPlace(carryIds)`（in-place 輪迴）；`CreateCharacter` 帶 slotIndex。 |
 | `Assets/Scripts/Save/SaveConstants.cs` | **改**：`SlotCount=3`、`HubEntranceCaveExit/Center`、`IntroSceneName`、`MainSceneName`。 |

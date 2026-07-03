@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Dipan.Flow;
@@ -5,9 +7,10 @@ using Dipan.Flow;
 namespace Dipan.UI
 {
     /// <summary>
-    /// 標題畫面（Overlay 層、全螢幕）。目前＝標題文字 ＋「開始遊戲」鈕；按下開始 → 開三欄存讀檔畫面。
-    /// **佔位視覺**（純色底 + 內建字型 + 純色鈕），之後換上正式標題圖與按鈕素材即可。
-    /// 未來要加「設定 / 離開遊戲 / 製作團隊」等鈕就往這裡加。見 readme/TITLE_AND_SAVE_UI.md。
+    /// 標題畫面（Window 層、全螢幕）。＝標題文字 ＋ 中間偏右的佛陀動畫 ＋「開始遊戲」鈕。
+    /// 流程：按下開始 → 播一次佛陀動畫（BuddhaTitle_01..NN）→ 播完才開三欄存讀檔畫面。
+    /// **其餘為佔位視覺**（純色底 + 內建字型 + 純色鈕），之後換上正式標題圖與按鈕素材即可。
+    /// 見 readme/TITLE_AND_SAVE_UI.md。
     /// </summary>
     public class TitlePanel : UIPanel
     {
@@ -19,36 +22,128 @@ namespace Dipan.UI
         public override bool CloseOnEscape => false;        // 標題不因 ESC 關閉
         public override bool ShowBackdrop => false;         // 自己就是整片不透明底
 
+        // ───────────── 佛陀動畫設定（要調就改這裡）─────────────
+        const string BuddhaFramePrefix = "UI/TitlePanel/BuddhaTitle/BuddhaTitle_"; // 幀路徑前綴（Resources 下、不含編號與副檔名）
+        const int    BuddhaMaxFrames   = 64;    // 自動偵測幀數的上限（載到 null 就停，加幀免改程式）
+        const float  BuddhaFps         = 8f;    // 動畫播放速度（幀/秒）：8 幀 ÷ 8 fps = 1 秒
+        const float  BuddhaEndHold     = 1f;    // 動畫播完後多停留幾秒才轉場（停在最後一幀）
+        const float  BuddhaDisplaySize = 950f;  // 顯示邊長（像素，維持長寬比）
+        static readonly Vector2 BuddhaOffset = new Vector2(480f, 0f); // 相對畫面中心的位移（正 X = 偏右）
+
+        // 標題文字與開始鈕整體往左偏移（負 X），與偏右的佛陀錯開。
+        const float TextGroupX = -380f;
+
+        Sprite[] _buddhaFrames;
+        Image _buddha;
+        Button _startBtn;
+        bool _playing;   // 動畫播放中：擋住重複點擊
+
         protected override void OnBuild()
         {
             // 全螢幕底（佔位：深色）。之後換成標題背景圖：UIBuilder.Image(transform,"BG",UIBuilder.LoadSprite("UI/Title/Background"))
             var bg = UIBuilder.SolidPanel(transform, "BG", new Color(0.06f, 0.05f, 0.08f, 1f));
             bg.raycastTarget = true;
 
+            // 佛陀動畫（中間偏右）。先建 → 排在文字/按鈕之前，讓文字與按鈕畫在其上、不被蓋住。
+            _buddhaFrames = LoadBuddhaFrames();
+            _buddha = UIBuilder.Image(transform, "Buddha",
+                (_buddhaFrames != null && _buddhaFrames.Length > 0) ? _buddhaFrames[0] : null);
+            _buddha.preserveAspect = true;
+            _buddha.raycastTarget = false;
+            UIBuilder.Anchor(_buddha.rectTransform,
+                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                BuddhaOffset, new Vector2(BuddhaDisplaySize, BuddhaDisplaySize));
+
             // 標題文字（佔位）：中文主標
             var title = UIBuilder.Text(transform, "Title", "燃燈劫", 110,
                 new Color(0.90f, 0.20f, 0.20f), TextAnchor.MiddleCenter);
             UIBuilder.Anchor(title.rectTransform,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(0f, 180f), new Vector2(1200f, 200f));
+                new Vector2(TextGroupX, 180f), new Vector2(1200f, 200f));
 
             // 英文副標
             var sub = UIBuilder.Text(transform, "Sub", "Burning Lamp: Rebirth of Ruin", 34,
                 new Color(0.75f, 0.72f, 0.68f), TextAnchor.MiddleCenter);
             UIBuilder.Anchor(sub.rectTransform,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(0f, 90f), new Vector2(1000f, 80f));
+                new Vector2(TextGroupX, 90f), new Vector2(1000f, 80f));
 
             // 開始遊戲鈕（佔位）
-            var start = UIBuilder.Button(transform, "StartButton", "開 始 遊 戲", OnStart,
+            _startBtn = UIBuilder.Button(transform, "StartButton", "開 始 遊 戲", OnStart,
                 new Color(0.20f, 0.18f, 0.24f, 1f));
-            start.targetGraphic = start.GetComponent<Image>();   // 程式建鈕需手動指（見 PROBLEMS D4）
-            UIBuilder.Anchor((RectTransform)start.transform,
+            _startBtn.targetGraphic = _startBtn.GetComponent<Image>();   // 程式建鈕需手動指（見 PROBLEMS D4）
+            UIBuilder.Anchor((RectTransform)_startBtn.transform,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(0f, -80f), new Vector2(420f, 96f));
+                new Vector2(TextGroupX, -80f), new Vector2(420f, 96f));
+        }
+
+        protected override void OnOpen()
+        {
+            // 每次回到標題都重置：停在第一幀、允許再次點擊。
+            _playing = false;
+            if (_startBtn != null) _startBtn.interactable = true;
+            if (_buddha != null && _buddhaFrames != null && _buddhaFrames.Length > 0)
+                _buddha.sprite = _buddhaFrames[0];
+        }
+
+        /// <summary>依前綴自動載入 BuddhaTitle_01、_02…直到載不到為止（加幀免改程式）。</summary>
+        static Sprite[] LoadBuddhaFrames()
+        {
+            var list = new List<Sprite>();
+            for (int i = 1; i <= BuddhaMaxFrames; i++)
+            {
+                var s = Resources.Load<Sprite>(BuddhaFramePrefix + i.ToString("D2"));
+                if (s == null) break;
+                list.Add(s);
+            }
+            if (list.Count == 0)
+                Debug.LogWarning($"[TitlePanel] 找不到佛陀動畫幀：Resources/{BuddhaFramePrefix}01…（請確認圖與 Sprite 設定）");
+            return list.ToArray();
         }
 
         void OnStart()
+        {
+            if (_playing) return;   // 動畫播放中忽略重複點擊
+
+            // 沒有幀就退回原本行為：直接開存讀檔畫面。
+            if (_buddhaFrames == null || _buddhaFrames.Length == 0)
+            {
+                GoToSlotSelect();
+                return;
+            }
+
+            _playing = true;
+            if (_startBtn != null) _startBtn.interactable = false;
+            StartCoroutine(PlayBuddhaThenContinue());
+        }
+
+        /// <summary>播一次佛陀動畫（用 unscaledTime，因為本面板把遊戲暫停），播完才切換到下一個 UI。</summary>
+        IEnumerator PlayBuddhaThenContinue()
+        {
+            float frameDur = 1f / Mathf.Max(0.01f, BuddhaFps);
+            for (int i = 0; i < _buddhaFrames.Length; i++)
+            {
+                if (_buddha != null) _buddha.sprite = _buddhaFrames[i];
+                float t = 0f;
+                while (t < frameDur)
+                {
+                    t += Time.unscaledDeltaTime;
+                    yield return null;
+                }
+            }
+
+            // 播完停在最後一幀多停留一下，再轉場（節奏更沉穩、不會太快切走）。
+            float hold = 0f;
+            while (hold < BuddhaEndHold)
+            {
+                hold += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            GoToSlotSelect();
+        }
+
+        void GoToSlotSelect()
         {
             if (GameFlowManager.Instance != null) GameFlowManager.Instance.OpenSlotSelect();
             else UIManager.Instance.Open<SaveSlotPanel>();
