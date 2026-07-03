@@ -627,18 +627,6 @@
       "locked": false,
       "regions": [
         {
-          "id": "a326c3bf",
-          "name": "玩家出生點1",
-          "typeId": "playerSpawn",
-          "cells": [
-            [
-              45,
-              45
-            ]
-          ],
-          "params": {}
-        },
-        {
           "id": "2e233143",
           "name": "鏡頭區1",
           "typeId": "camZone",
@@ -727,6 +715,48 @@
           "params": {
             "entranceId": "mainSqure_door",
             "targetMapId": "1",
+            "targetEntrance": "",
+            "showMarker": false
+          }
+        },
+        {
+          "id": "7d3288c1",
+          "name": "傳送點2",
+          "typeId": "teleport",
+          "cells": [
+            [
+              44,
+              43
+            ],
+            [
+              45,
+              43
+            ]
+          ],
+          "params": {
+            "entranceId": "caveExit",
+            "targetMapId": "",
+            "targetEntrance": "",
+            "showMarker": false
+          }
+        },
+        {
+          "id": "8cd23848",
+          "name": "傳送點3",
+          "typeId": "teleport",
+          "cells": [
+            [
+              44,
+              28
+            ],
+            [
+              45,
+              28
+            ]
+          ],
+          "params": {
+            "entranceId": "center",
+            "targetMapId": "",
             "targetEntrance": "",
             "showMarker": false
           }

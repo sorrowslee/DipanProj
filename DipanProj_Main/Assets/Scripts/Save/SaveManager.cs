@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Dipan.Inventory;
 
@@ -17,6 +18,13 @@ namespace Dipan.Save
     public class SaveManager : MonoBehaviour
     {
         public static SaveManager Instance { get; private set; }
+
+        /// <summary>
+        /// 開機時是否略過「自動載入/建立活躍角色」。由 GameFlowManager 在開機時設 true——
+        /// 改由標題→存讀檔 UI 決定要載哪個欄位或新建，而不是一進場就自動生 test001。
+        /// GameFlow 不存在時（純測試場景）維持 false = 舊行為（自動載入/建 test001）。
+        /// </summary>
+        public static bool SuppressAutoLoad = false;
 
         [Header("自動存檔")]
         [Tooltip("有變動時，每隔幾秒自動存一次。")]
@@ -56,7 +64,9 @@ namespace Dipan.Save
         {
             _inv = InventorySystem.Instance;                   // 快取一次（此時建立沒問題）
             _storage = StorageSystem.Instance;
-            LoadActiveOrCreateDefault();                       // 先載入（此時尚未訂閱，不會被自己的 Raise 標 dirty）
+            if (!SuppressAutoLoad)
+                LoadActiveOrCreateDefault();                   // 先載入（此時尚未訂閱，不會被自己的 Raise 標 dirty）
+            // SuppressAutoLoad = true 時不自動載：由 GameFlowManager 依玩家在存讀檔畫面的選擇呼叫 LoadSlot/StartNewGameInSlot。
             _inv.OnChanged += MarkDirty;                       // 之後的背包/倉庫變動才標記待存
             _storage.OnChanged += MarkDirty;
             _autoTimer = autoSaveIntervalSeconds;
@@ -120,13 +130,14 @@ namespace Dipan.Save
             }
         }
 
-        /// <summary>建立新角色並設為活躍（背包清空）。回傳該存檔。</summary>
-        public CharacterSave CreateCharacter(string name)
+        /// <summary>建立新角色並設為活躍（背包清空）。slotIndex 指定存檔欄位（-1 = 不指定）。回傳該存檔。</summary>
+        public CharacterSave CreateCharacter(string name, int slotIndex = -1)
         {
             var save = new CharacterSave
             {
                 characterId = Guid.NewGuid().ToString("N"),
                 name = string.IsNullOrWhiteSpace(name) ? SaveConstants.DefaultTestCharacterName : name,
+                slotIndex = slotIndex,
                 generation = 1,
                 createdAtUtc = NowUtc(),
                 lastPlayedUtc = NowUtc(),
@@ -197,6 +208,158 @@ namespace Dipan.Save
             SaveSystem.SaveRoster(_roster);
         }
 
+        // ───────────── 存檔欄位（槽位）API ─────────────
+        //
+        // 存讀檔畫面有 SlotCount 個欄位；一個欄位 = 一個角色（同一 slotIndex）。
+        // roster 只保留每欄最新的一個角色（覆蓋/刪除會清掉舊的）。
+
+        /// <summary>是否有活躍角色（false = 還在標題/存讀檔畫面、尚未載入任何進度）。</summary>
+        public bool HasActiveCharacter => _current != null;
+
+        /// <summary>取某欄位的摘要（沒有或損毀回 null）。給存讀檔 UI 畫卡片用（只讀 roster、不載完整檔）。</summary>
+        public CharacterProfile GetSlotProfile(int slotIndex)
+        {
+            if (_roster == null || _roster.characters == null) return null;
+            return _roster.characters.Find(c => c != null && !c.corrupt && c.slotIndex == slotIndex);
+        }
+
+        /// <summary>某欄位是否已有存檔。</summary>
+        public bool SlotOccupied(int slotIndex) => GetSlotProfile(slotIndex) != null;
+
+        /// <summary>
+        /// 在某欄位新建遊戲：若該欄已有角色先刪掉（＝覆蓋），再建一個 generation=1 的空角色並設為活躍。
+        /// 覆蓋前的「是否確認」由 UI 負責（見 SaveSlotPanel）。回傳新存檔。
+        /// </summary>
+        public CharacterSave StartNewGameInSlot(int slotIndex, string name)
+        {
+            var existing = GetSlotProfile(slotIndex);
+            if (existing != null) DeleteCharacter(existing.characterId);   // 覆蓋：清掉舊角色
+            return CreateCharacter(name, slotIndex);
+        }
+
+        /// <summary>載入某欄位的存檔並設為活躍。回傳成功與否。</summary>
+        public bool LoadSlot(int slotIndex)
+        {
+            var prof = GetSlotProfile(slotIndex);
+            if (prof == null) return false;
+            return SwitchCharacter(prof.characterId);
+        }
+
+        /// <summary>刪除某欄位的存檔（測試用；之後要不要開給玩家再說）。</summary>
+        public void DeleteSlot(int slotIndex)
+        {
+            var prof = GetSlotProfile(slotIndex);
+            if (prof != null) DeleteCharacter(prof.characterId);
+        }
+
+        // ───────────── 輪迴（in-place：同一欄位、周目 +1、重置進度、帶物）─────────────
+
+        /// <summary>
+        /// 輪迴：在「同一個存檔欄位」把當前角色重開一輪——generation(周目) +1、進度全部歸零、
+        /// 只帶入 carryItemIds 指定的物品（數量會夾到 min(周目, MaxCarryOnReincarnate)），
+        /// hubIntroSpawnDone 重置（回到「第一次進廣場」）。**倉庫不動**。
+        /// 帶哪幾件由玩家在輪迴選物 UI 決定（本方法只做資料重置＋塞入），回到廣場的移動由 GameFlowManager 處理。
+        /// </summary>
+        public void ReincarnateInPlace(IList<int> carryItemIds)
+        {
+            if (_current == null) return;
+
+            int leavingCycle = _current.generation;                 // 要離開的周目
+            int allowed = CarryCountForCycle(leavingCycle);         // 這次可帶幾件
+            var carried = new List<int>();
+            if (carryItemIds != null)
+                for (int i = 0; i < carryItemIds.Count && carried.Count < allowed; i++)
+                    if (carryItemIds[i] > 0) carried.Add(carryItemIds[i]);
+
+            // 重置：周目 +1、屬性/進度全新（記錄本代帶入物品），背包清空後塞回帶入物品。倉庫保留不動。
+            _current.generation = leavingCycle + 1;
+            _current.stats = new StatsDTO();
+            _current.progress = new ProgressDTO { inheritedItems = new List<int>(carried) };
+
+            Inv.RestoreState(null);                                 // 清空背包/裝備
+            foreach (int id in carried) Inv.AddItem(id, 1);         // 帶入物品（吃堆疊規則）
+
+            SaveNow();
+            Debug.Log($"[SaveManager] 輪迴 → 第 {_current.generation} 周目（帶入 {carried.Count} 件），進度已重置。");
+        }
+
+        // ───────────── 進度 API（周目 / 完成關卡 / 金錢 / 出生點旗標）─────────────
+        //
+        // 進度直接掛在 _current 上，用這些方法讀寫並標 dirty；存檔時 SaveNow 一併寫入。
+        // 「關卡」= MapsTable 的一個 Module（如 "RedBridalGown"）。見 readme/SAVE_SYSTEM.md。
+
+        /// <summary>大進度：周目（= 轉生世代 generation）。</summary>
+        public int Cycle => _current != null ? _current.generation : 0;
+
+        /// <summary>小進度：已完成的關卡數（去重後的 module 數）。</summary>
+        public int ClearedModuleCount => _current != null ? _current.progress.clearedModules.Count : 0;
+
+        /// <summary>金錢（存錢抽關卡用）。</summary>
+        public int Currency => _current != null ? _current.stats.currency : 0;
+
+        /// <summary>是否已由開場鏈首次抵達邪佛廣場（決定出生點：洞穴出口 vs 中央）。</summary>
+        public bool HubIntroSpawnDone
+        {
+            get => _current != null && _current.progress.hubIntroSpawnDone;
+            set { if (_current != null && _current.progress.hubIntroSpawnDone != value) { _current.progress.hubIntroSpawnDone = value; MarkDirty(); } }
+        }
+
+        /// <summary>
+        /// 標記某關卡（module）為已通關。idempotent：重複通關同一關不會重覆計數。
+        /// 由各關卡的「達成目標」trigger 呼叫。回傳 true 代表這是「第一次」通關（進度 +1）。
+        /// </summary>
+        public bool MarkModuleCleared(string moduleId)
+        {
+            if (_current == null || string.IsNullOrEmpty(moduleId)) return false;
+            var list = _current.progress.clearedModules;
+            if (list.Contains(moduleId)) return false;       // 已通關過 → 不算進度 +1
+            list.Add(moduleId);
+            MarkDirty();
+            Debug.Log($"[SaveManager] 完成關卡：{moduleId}（完成關卡數 {list.Count}）");
+            return true;
+        }
+
+        /// <summary>某關卡（module）是否已通關。</summary>
+        public bool IsModuleCleared(string moduleId)
+            => _current != null && !string.IsNullOrEmpty(moduleId) && _current.progress.clearedModules.Contains(moduleId);
+
+        /// <summary>解鎖（抽到）某關卡（module）。idempotent。</summary>
+        public bool MarkModuleUnlocked(string moduleId)
+        {
+            if (_current == null || string.IsNullOrEmpty(moduleId)) return false;
+            var list = _current.progress.unlockedModules;
+            if (list.Contains(moduleId)) return false;
+            list.Add(moduleId);
+            MarkDirty();
+            return true;
+        }
+
+        /// <summary>某關卡（module）是否已解鎖。</summary>
+        public bool IsModuleUnlocked(string moduleId)
+            => _current != null && !string.IsNullOrEmpty(moduleId) && _current.progress.unlockedModules.Contains(moduleId);
+
+        /// <summary>加錢（可為負，但不會低於 0；扣錢建議用 TrySpendCurrency）。</summary>
+        public void AddCurrency(int amount)
+        {
+            if (_current == null || amount == 0) return;
+            _current.stats.currency = Mathf.Max(0, _current.stats.currency + amount);
+            MarkDirty();
+        }
+
+        /// <summary>嘗試花費金錢；不足回 false、不扣。</summary>
+        public bool TrySpendCurrency(int amount)
+        {
+            if (_current == null || amount < 0) return false;
+            if (_current.stats.currency < amount) return false;
+            _current.stats.currency -= amount;
+            MarkDirty();
+            return true;
+        }
+
+        /// <summary>第 cycle 周目輪迴時可帶入的物品數 = min(cycle, 上限)。純函式，供轉生流程（Phase B）用。</summary>
+        public static int CarryCountForCycle(int cycle)
+            => Mathf.Clamp(cycle, 0, SaveConstants.MaxCarryOnReincarnate);
+
         // ───────────── 存檔 ─────────────
 
         /// <summary>把當前各系統狀態收集起來，原子寫回活躍角色的檔。</summary>
@@ -213,7 +376,14 @@ namespace Dipan.Save
             SaveSystem.SaveCharacter(_current);
 
             var p = _roster.Find(_current.characterId);
-            if (p != null) { p.name = _current.name; p.generation = _current.generation; p.lastPlayedUtc = _current.lastPlayedUtc; }
+            if (p != null)
+            {
+                p.name = _current.name;
+                p.slotIndex = _current.slotIndex;
+                p.generation = _current.generation;
+                p.clearedModuleCount = _current.progress.clearedModules.Count;
+                p.lastPlayedUtc = _current.lastPlayedUtc;
+            }
             SaveSystem.SaveRoster(_roster);
 
             _dirty = false;
@@ -252,7 +422,9 @@ namespace Dipan.Save
         {
             characterId = s.characterId,
             name = s.name,
+            slotIndex = s.slotIndex,
             generation = s.generation,
+            clearedModuleCount = s.progress != null ? s.progress.clearedModules.Count : 0,
             createdAtUtc = s.createdAtUtc,
             lastPlayedUtc = s.lastPlayedUtc,
         };

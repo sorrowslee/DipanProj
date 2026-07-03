@@ -239,3 +239,15 @@
 - **症狀**：場景（地磚/家具）在大螢幕看起來顆粒粗、邊緣毛躁，像低解析度；小視窗卻還好。
 - **原因**：相機是**固定世界單位**（`MapCameraController` 跟隨模式 orthoSize 固定），畫面永遠顯示同樣多的世界，**視窗越大＝每個源像素被放越大**。加上場景圖用 `FilterMode.Point`（`MapSpriteLoader`）且**沒有 Pixel Perfect Camera**，非整數倍縮放會讓像素大小不均、邊緣閃爍。源圖其實不是低解析度（`TileNativePx = 256`），顆粒感有一部分是 AI「像素風」源圖本身畫進去的。
 - **解法**：`MapSpriteLoader` 加了可切換常數 **`SceneFilterMode`**。實驗比較後**定案採 `FilterMode.Point`（硬派像素，預設）**；`Bilinear`（柔化）保留作比較用。執行期可用 **PerfHud（按 P）→「場景濾波(F)」按鈕或按 F** 即時來回切換（`ToggleSceneFilterMode` 會把已載入的貼圖即時重套濾波）——切換是臨時預覽，重開回預設 Point。注意 F 只在 P 面板開著時生效（避免與「靠近按 F 拾取」互動鍵衝突）。**未採 Pixel Perfect Camera**——它要求整數倍縮放與統一 PPU，會跟本專案的 zoom / 整張地圖模式 / 平滑跟隨 / 混雜 PPU 直接衝突，且美術是 AI 生成點陣圖非手排像素，回報低。若之後想更清晰，正解是照 [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) 把場景源圖重產得更細緻（顆粒更小）。
+
+
+---
+
+## H. 流程 / 存讀檔 (Game Flow & Save UI)
+
+> 系統說明見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md)、[SAVE_SYSTEM.md](SAVE_SYSTEM.md)。
+
+### H1. 加了標題流程後，開場墜落動畫結束、進 MainScene 卻一片黑（沒有任何關卡被載入）
+- **症狀**：接上「標題→存讀檔」流程後，新建遊戲會正常播開場漫畫＋墜落動畫，但墜落結束載入 MainScene 後**整個畫面全黑、無錯誤訊息**；改流程前墜落後會正常出現在 Main_Cave（地圖 11）。
+- **原因**：`GameFlowBootstrap` 在開機（BeforeSceneLoad）把 `MapManager.SuppressAutoStart` 設 true，目的是讓標題畫面蓋在「空的 MainScene」上、不要一進場就自動進關卡。但這個**靜態旗標整場有效**——開場鏈播完由 `IntroFallController` 載入 MainScene 時，那個新的 MapManager 也被壓住，`autoStartLevel` 不會 `StartLevel("Main")`（Main 模組首圖＝Main_Cave 11）→ 沒有任何地圖被建 → 全黑。原本能進 Main_Cave 正是靠這條自動進關卡。
+- **解法**：抑制只該作用在「開機當下的空 MainScene」，之後由各流程分支自己決定。`GameFlowManager` 在**新建＋播開場鏈**分支載入 Intro 場景前，把 `MapManager.SuppressAutoStart` 設回 **false**，交還給既有開場流程（Intro→MainScene 自動進 Main_Cave→過場到廣場）；**繼續 / 無開場直接進廣場**分支則維持 **true**、由流程明確 `GoToMap(廣場)`，避免和自動進 Main_Cave 打架。**通則：跨場景的「一次性抑制旗標」別設成整場有效，要在每個流程分支明確設定它的值。**

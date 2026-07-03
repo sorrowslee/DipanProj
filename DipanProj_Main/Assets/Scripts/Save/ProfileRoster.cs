@@ -7,7 +7,9 @@ namespace Dipan.Save
     {
         public string characterId;
         public string name;
-        public int generation = 1;
+        public int slotIndex = -1;              // 屬於哪個存檔欄位（0..SlotCount-1；-1 = 未指定/舊資料）
+        public int generation = 1;              // 周目（大進度）
+        public int clearedModuleCount = 0;      // 完成關卡數（小進度）——讓存讀檔 UI 只讀 profiles.json 即可顯示
         public string createdAtUtc;
         public string lastPlayedUtc;
         public bool corrupt = false;        // 載入失敗（存檔損毀）時標記，UI 顯示警告、不靜默清空

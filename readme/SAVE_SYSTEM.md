@@ -5,6 +5,8 @@
 > 背包資料層見 [INVENTORY.md](INVENTORY.md)；地圖狀態持久化（Phase 2）見 [MAP_SYSTEM.md](MAP_SYSTEM.md)；UI 框架見 [UI_SYSTEM.md](UI_SYSTEM.md)。
 >
 > **狀態：✅ Phase 1 程式完成（2026-06-23）、待 Unity 實機驗證。** 物品本地存檔 + 多角色 + 轉生 + 校驗/備份/原子寫入已實作（見 §13）。儲藏箱/屬性/地圖狀態/角色選擇 UI/Steam Cloud 為後續。本文件是規劃藍圖；實作若與現況有出入，以實作為準並回頭修本文件。
+>
+> **✅ 進度層（schema v2，2026-07-03）：周目 + 完成關卡 + 金錢 + 出生點旗標的資料層與 API 已加（見 §14）。** 標題／三欄存讀檔 UI、新建/繼續/覆蓋/刪除流程、進邪佛廣場自動存、輪迴帶物（min(周目,7)）為下一輪。
 
 把「玩家所擁有的東西」（背包 + 裝備 + 將來的儲藏箱，以及之後的角色屬性與地圖進度）存到**本地端**，跨 Windows / macOS，**無 server**。一次只有一個活躍角色（取名遊玩 → 卡關時留一樣物品 → **轉生**創新角色繼承該物品），但底層做成**多角色獨立存檔**以保留彈性。
 
@@ -104,14 +106,19 @@
     }
   ],
 
-  // ── 以下先佔位，這次不填內容（或填預設）──────────────
-  "stats": {                              // 角色屬性（HP 上限、金錢、等級…）— 待屬性系統
-    "currency": 0
+  // ── 屬性（部分已用：currency）──────────────────────
+  "stats": {                              // 角色屬性（HP 上限、等級…待屬性系統）
+    "currency": 0                         // 金錢（存錢抽關卡用）— 已接進度 API
   },
-  "progress": {                           // 解鎖關卡、劇情旗標、轉生繼承紀錄
-    "inheritedItemId": 0,                 // 本代從上一代繼承來的物品（0 = 無）
-    "unlockedModules": [],
-    "flags": {}
+
+  // ── 遊戲進度（周目 = 上面的 generation；完成關卡 = clearedModules）見 §14 ──
+  "progress": {
+    "inheritedItemId": 0,                 // 舊：單一繼承物品（保留相容）
+    "inheritedItems": [],                 // 本代從上一代帶入的物品 id（min(周目,7) 件；轉生流程 Phase B 用）
+    "unlockedModules": [],                // 已解鎖（抽到）的關卡 module
+    "clearedModules": [],                 // 已通關的關卡 module（去重；完成關卡數 = 長度）
+    "hubIntroSpawnDone": false,           // 是否已由開場鏈首次抵達邪佛廣場（決定出生點）
+    "flags": {}                           // 其他劇情/狀態旗標
   },
   "mapStates": {}                         // 對接 MAP_SYSTEM Phase 2 的「每張地圖狀態庫」
 }
@@ -362,3 +369,72 @@ public void RestoreState(InventoryDTO dto);
 ---
 
 *建立於 2026-06-23：定稿設計並完成 Phase 1 程式——`persistentDataPath` + 可讀 JSON + HMAC 校驗 + 原子寫入/備份；多角色 roster + 統一角色存檔（物品先做，屬性/地圖狀態預留）；轉生繼承；Steam Cloud 佈局預留。待 Unity 實機驗證；玩家面向角色/轉生 UI 為後續。*
+
+---
+
+## 14. 遊戲進度層（周目 / 完成關卡 / 金錢）— schema v2（2026-07-03）
+
+把玩家的遊戲進度接進統一角色存檔。**「關卡」在資料上 = MapsTable 的一個 `Module`**（例：`RedBridalGown` 是紅嫁衣關卡，含 map 1~10；`Main` 含洞穴 11 + 廣場 12）。**「邪佛廣場」= Map ID 12（`Main_Square`）**，是繼續遊戲與自動存檔點所指。
+
+### 14.1 兩種進度
+
+| 進度 | 存哪 | 說明 |
+|---|---|---|
+| **周目（大進度）** | `CharacterSave.generation` | 沿用轉生世代。輪迴一次 +1。 |
+| **完成關卡數（小進度）** | `progress.clearedModules`（去重集合）的長度 | 「通關過一個新 module」才 +1；重刷同一關不重覆計。 |
+
+例：三周目、完成 4 關 → `generation = 3`、`clearedModules` 有 4 個 module。
+
+### 14.2 新增欄位（`ProgressDTO` / `StatsDTO`）
+
+- `stats.currency`：金錢（存錢抽關卡）。
+- `progress.unlockedModules`：已解鎖（抽到）的關卡 module。
+- `progress.clearedModules`：已通關的關卡 module（去重；完成關卡數）。
+- `progress.hubIntroSpawnDone`：是否已由開場鏈**首次**抵達邪佛廣場——決定出生點：`false` → 出生在廣場下方洞穴出口（並設為 `true`）；`true` → 之後一律出生在廣場中央（省得每次跑遠）。
+- `progress.inheritedItems`：本代從上一代帶入的物品 id（`min(周目,7)` 件；**輪迴帶物流程 Phase B 才填**）。
+- `progress.flags`：其他劇情/狀態旗標（免改結構的彈性擴充）。
+
+### 14.3 設定常數（`SaveConstants`，要改關卡數量/編號改這裡）
+
+| 常數 | 值 | 意義 |
+|---|---|---|
+| `HubMapId` | `12` | 邪佛廣場 `Main_Square` 的 Map ID（繼續/存檔點） |
+| `MaxCarryOnReincarnate` | `7` | 輪迴帶物上限（第 N 次帶 `min(周目, 上限)` 件） |
+| `LevelsToUnlockBoss` | `7` | 完成幾關後邪佛要求對決（boss=第8關、最終關=第9關另計） |
+
+### 14.4 進度 API（`SaveManager`，直接讀寫 `_current` 並標 dirty）
+
+```csharp
+int  Cycle;                              // 周目（= generation）
+int  ClearedModuleCount;                 // 完成關卡數
+int  Currency;                           // 金錢
+bool HubIntroSpawnDone { get; set; }     // 出生點旗標
+
+bool MarkModuleCleared(string moduleId); // 通關某關（idempotent；回 true=第一次通關，進度+1）
+bool IsModuleCleared(string moduleId);
+bool MarkModuleUnlocked(string moduleId);// 解鎖/抽到某關（idempotent）
+bool IsModuleUnlocked(string moduleId);
+void AddCurrency(int amount);            // 加錢（夾到 ≥0）
+bool TrySpendCurrency(int amount);       // 花錢（不足回 false、不扣）
+static int CarryCountForCycle(int cycle);// = min(cycle, MaxCarryOnReincarnate)
+```
+
+- **關卡完成 trigger**：每關放一個「達成目標」trigger（擊殺 boss／完成囑託／收集道具…），觸發時呼叫 `SaveManager.Instance.MarkModuleCleared(該關 module 名)`。重複進入同一關不會重覆計數。
+- 進度掛在 `_current` 上，用上述方法改；存檔時 `SaveNow` 自動一併寫入（`CaptureFromSystems` 不必動——進度不是外部系統，是存檔自己的欄位）。
+
+### 14.5 roster 摘要帶完成關卡數
+
+`CharacterProfile` 加 `clearedModuleCount`（`SaveNow`/`ToProfile` 同步）。這樣三欄存讀檔 UI **只讀小小的 `profiles.json`** 就能顯示「周目 N ・ 完成 M 關 ・ 上次遊玩」，不必載入每個角色的完整存檔。
+
+### 14.6 schema v1 → v2 遷移
+
+只是「加欄位」——Newtonsoft 對舊檔缺的欄位給型別預設（空 List / `false`），`SaveSystem.Migrate` 把版本號補到 2 並對新集合做 null 防呆，**無資料搬遷**。舊 v1 測試檔可直接載入。
+
+### 14.7 這一輪未做（下一輪，結構已預留）
+
+- 標題 UI（標題＋開始遊戲）、三欄存讀檔 UI（新建/繼續/覆蓋/刪除、每欄測試用刪除鈕）。
+- 「存檔欄位 = 角色」對應與**輪迴改在原欄位 in-place**（`generation+1`、重置進度、帶入 `min(周目,7)` 件）——需改現行 `Reincarnate`（目前是「新建角色保留舊角色」）。
+- 進邪佛廣場（`HubMapId`）自動存檔、出生點依 `hubIntroSpawnDone` 二選一的實際接線。
+- 進度「階段」判定（可進關卡／邪佛要求對決／已破最終關）：由 `ClearedModuleCount` + `LevelsToUnlockBoss` 及 boss/final module 旗標推導，待邪佛戰與抽關卡系統成形再接。
+
+*更新於 2026-07-03：schema v2 進度層——周目=generation、完成關卡=clearedModules（去重）、金錢、出生點旗標；`SaveManager` 進度 API；roster 帶完成關卡數。UI 與流程為下一輪。*

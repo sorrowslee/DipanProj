@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using Dipan.MapRuntime;
 using Dipan.UI;
+using Dipan.Save;
 
 /// <summary>
 /// 地圖系統的大腦（場景持久單例）：負責「進入關卡」與「換地圖」，跨換圖不被拆掉。
@@ -47,6 +48,12 @@ public class MapManager : MonoBehaviour
     public int CurrentMapId => _currentMapId;
     public bool IsLoading => _loading;
 
+    /// <summary>
+    /// 抑制開場自動進關卡。由 GameFlowManager 在開機時設 true——改由標題→存讀檔 UI 決定要進哪。
+    /// GameFlow 不存在時維持 false = 舊行為（依 autoStartLevel 自動進 startModule，方便單場景測試）。
+    /// </summary>
+    public static bool SuppressAutoStart = false;
+
     void Awake()
     {
         Instance = this;
@@ -63,7 +70,7 @@ public class MapManager : MonoBehaviour
 
     void Start()
     {
-        if (autoStartLevel) StartLevel(startModule);
+        if (autoStartLevel && !SuppressAutoStart) StartLevel(startModule);
     }
 
     // ================= 對外 API =================
@@ -167,6 +174,15 @@ public class MapManager : MonoBehaviour
     void PlaceAndSetup(MapTableRow row, string entrance)
     {
         _currentMapId = row.id;
+
+        // 邪佛廣場出生點：第一次（開場鏈抵達）用洞穴出口；之後（繼續/回廳/輪迴）一律用中央，省得每次跑遠。
+        // 由存檔旗標 hubIntroSpawnDone 決定，覆寫傳入的 entrance。
+        bool isHub = row.id == SaveConstants.HubMapId;
+        if (isHub && SaveManager.Instance != null)
+            entrance = SaveManager.Instance.HubIntroSpawnDone
+                ? SaveConstants.HubEntranceCenter
+                : SaveConstants.HubEntranceCaveExit;
+
         Vector2 pos = ResolveSpawnPos(entrance);
         PlacePlayer(pos);
         SetupCamera(row.mode);
@@ -177,6 +193,13 @@ public class MapManager : MonoBehaviour
         mapLoader.SpawnMonsters();
         SetupWatcher();
         Debug.Log($"[MapManager] 進入地圖 #{row.id}「{row.name}」(module={row.module})，落點={pos}。");
+
+        // 進邪佛廣場（大廳）= 存檔檢查點：標記已抵達廣場（下次改中央出生）＋自動存檔。
+        if (isHub && SaveManager.Instance != null)
+        {
+            SaveManager.Instance.HubIntroSpawnDone = true;
+            SaveManager.Instance.SaveNow();
+        }
     }
 
     /// <summary>落點解析：具名落點 → playerSpawn → 地圖中心。</summary>

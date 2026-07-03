@@ -13,7 +13,8 @@ namespace Dipan.Save
         public int schemaVersion = SaveConstants.CurrentSchemaVersion;
         public string characterId;
         public string name;
-        public int generation = 1;          // 轉生世代（第幾代）
+        public int slotIndex = -1;          // 屬於哪個存檔欄位（0..SlotCount-1）
+        public int generation = 1;          // 轉生世代（= 周目）
         public string createdAtUtc;
         public string lastPlayedUtc;
         public long playTimeSeconds;
@@ -32,14 +33,28 @@ namespace Dipan.Save
     /// <remarks>HP/MP 刻意不存檔——玩家每次進遊戲都滿血滿魔（方便測試），見 readme/COMBAT.md §7。</remarks>
     public class StatsDTO
     {
-        public int currency = 0;
+        public int currency = 0;            // 金錢（存錢抽關卡用）
     }
 
-    /// <summary>進度與轉生紀錄（待進度系統，先佔位）。</summary>
+    /// <summary>
+    /// 進度與轉生紀錄。「關卡」= MapsTable 的一個 Module（如 RedBridalGown、Main）。
+    /// 大進度「周目」用 CharacterSave.generation；小進度「完成關卡數」= clearedModules 去重後的數量。
+    /// 見 readme/SAVE_SYSTEM.md。
+    /// </summary>
     public class ProgressDTO
     {
-        public int inheritedItemId = 0;     // 本代從上一代繼承來的物品（0 = 無）
-        public List<string> unlockedModules = new List<string>();
+        // ── 輪迴繼承 ──
+        public int inheritedItemId = 0;                              // 舊：單一繼承物品（保留相容；新流程改用 inheritedItems）
+        public List<int> inheritedItems = new List<int>();          // 本代從上一代帶入的物品 id（min(周目,7) 件；預留給轉生流程）
+
+        // ── 關卡進度 ──
+        public List<string> unlockedModules = new List<string>();   // 已解鎖（抽到）的關卡 module
+        public List<string> clearedModules = new List<string>();    // 已通關的關卡 module（去重集合；完成關卡數 = Count）
+
+        // ── 場景旗標 ──
+        public bool hubIntroSpawnDone = false;                      // 是否已由開場鏈首次抵達邪佛廣場（決定出生點：洞穴出口/中央）
+
+        // ── 其他劇情/狀態旗標（彈性擴充，免改結構）──
         public Dictionary<string, string> flags = new Dictionary<string, string>();
     }
 }

@@ -96,14 +96,24 @@ namespace Dipan.Save
         static CharacterSave Migrate(CharacterSave save)
         {
             if (save == null) return null;
-            // if (save.schemaVersion < 2) { /* v1 -> v2 ... */ save.schemaVersion = 2; }
+
+            // v1 -> v2：ProgressDTO 新增關卡進度欄位。Newtonsoft 對缺欄位給型別預設（空 List / false），
+            // 所以舊 v1 檔載入後這些欄位自然是空的，無需搬資料——只把版本號補上即可。
+            if (save.schemaVersion < 2) save.schemaVersion = 2;
+
             if (save.schemaVersion != SaveConstants.CurrentSchemaVersion)
                 save.schemaVersion = SaveConstants.CurrentSchemaVersion;
+
             // null 防呆（手改檔可能刪掉整個區塊）
             if (save.inventory == null) save.inventory = new Dipan.Inventory.InventoryDTO();
             if (save.storages == null) save.storages = new System.Collections.Generic.List<Dipan.Inventory.StorageDTO>();
             if (save.stats == null) save.stats = new StatsDTO();
             if (save.progress == null) save.progress = new ProgressDTO();
+            // ProgressDTO 內的集合也防呆（手改檔可能刪掉某個陣列）
+            if (save.progress.unlockedModules == null) save.progress.unlockedModules = new System.Collections.Generic.List<string>();
+            if (save.progress.clearedModules == null) save.progress.clearedModules = new System.Collections.Generic.List<string>();
+            if (save.progress.inheritedItems == null) save.progress.inheritedItems = new System.Collections.Generic.List<int>();
+            if (save.progress.flags == null) save.progress.flags = new System.Collections.Generic.Dictionary<string, string>();
             return save;
         }
 

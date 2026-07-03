@@ -35,7 +35,8 @@
 | [STORAGE.md](STORAGE.md) | 倉庫系統（StorageSystem + IItemGrid、倉庫+背包並排面板、點擊/拖放搬運、每角色獨立、存檔接線） | 改倉庫、做搬運 UI、套倉庫圖 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
-| [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留） | 做存檔/讀檔、角色建立/轉生、物品持久化前 |
+| [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留）＋§14 進度層（周目=generation、完成關卡=clearedModules、金錢、出生點旗標、進度 API） | 做存檔/讀檔、角色建立/轉生、物品持久化、記錄關卡/周目進度前 |
+| [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物 |
 | [BUILD_AND_DEPLOY.md](BUILD_AND_DEPLOY.md) | 打包/部署流程(Project Tools 選單、打包前對齊遠端 main、疑難排解) | 打包、部署、build/git 出錯時 |
 | [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md) | 效能診斷面板(PerfHud：FPS/CPU·GPU ms/瓶頸/顯卡，按 P) ＋ 上架前玩家畫面設定(VSync/幀率上限/視窗模式)規劃 | 排查幀數/卡頓、做畫面設定選單 |
 | [ATMOSPHERE.md](ATMOSPHERE.md) | 場景氛圍後處理（MapsTable 的 Atmosphere 欄 1~15：正常/幽暗/噩夢/烈日/焦土/沙塵/淺海/深海/深海+恐怖/風雪/強風/細雨/大雨/陰森森林鬼霧/電視雜訊；提燈光圈、熱浪、海洋折射、風絲、雨絲、漂移黑霧、雪花噪訊，地圖驅動、換圖即時切換） | 調某地圖陰森/炎熱/海洋/風雨/鬼霧/雜訊氛圍、做新地圖、改光圈/調色/扭曲 |
