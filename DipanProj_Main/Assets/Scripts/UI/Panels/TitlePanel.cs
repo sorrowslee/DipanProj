@@ -26,16 +26,29 @@ namespace Dipan.UI
         const string BuddhaFramePrefix = "UI/TitlePanel/BuddhaTitle/BuddhaTitle_"; // 幀路徑前綴（Resources 下、不含編號與副檔名）
         const int    BuddhaMaxFrames   = 64;    // 自動偵測幀數的上限（載到 null 就停，加幀免改程式）
         const float  BuddhaFps         = 8f;    // 動畫播放速度（幀/秒）：8 幀 ÷ 8 fps = 1 秒
-        const float  BuddhaEndHold     = 1f;    // 動畫播完後多停留幾秒才轉場（停在最後一幀）
+        const float  BuddhaEndHold     = 0.5f;    // 動畫播完後多停留幾秒才轉場（停在最後一幀）
         const float  BuddhaDisplaySize = 950f;  // 顯示邊長（像素，維持長寬比）
-        static readonly Vector2 BuddhaOffset = new Vector2(480f, 0f); // 相對畫面中心的位移（正 X = 偏右）
+        static readonly Vector2 BuddhaOffset = new Vector2(480f, -170f); // 相對畫面中心的位移（正 X = 偏右、負 Y = 往下，把下半身切邊推出畫面）
 
         // 標題文字與開始鈕整體往左偏移（負 X），與偏右的佛陀錯開。
         const float TextGroupX = -380f;
 
+        // ───────────── 標題圖 / 開始鈕圖（正式素材，皆 3:1）─────────────
+        const string TitleImagePath    = "UI/TitlePanel/TitlePanel_TW"; // 標題圖（Resources 下、不含副檔名）
+        const string StartBtnImagePath = "UI/Common/StartGameBtn";      // 開始鈕圖（無字，字由程式補）
+        const float  TitleWidth    = 820f;   // 標題圖寬（高 = 寬 / 3）
+        const float  TitleY        = 140f;   // 標題圖 Y（相對畫面中心）
+        const float  StartBtnWidth = 460f;   // 開始鈕寬（高 = 寬 / 3）
+        const float  StartBtnY     = -150f;  // 開始鈕 Y
+
+        // ───────────── 火焰特效 ─────────────
+        const bool EnableFireFx = true;      // 全螢幕落火 ＋ 標題燃燒（見 TitleFireFx）
+
         Sprite[] _buddhaFrames;
         Image _buddha;
         Button _startBtn;
+        Image _titleGlow;             // 標題背後火光
+        RectTransform _titleRect;     // 標題圖/文字的 rect（火舌掛在其上）
         bool _playing;   // 動畫播放中：擋住重複點擊
 
         protected override void OnBuild()
@@ -54,27 +67,57 @@ namespace Dipan.UI
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 BuddhaOffset, new Vector2(BuddhaDisplaySize, BuddhaDisplaySize));
 
-            // 標題文字（佔位）：中文主標
-            var title = UIBuilder.Text(transform, "Title", "燃燈劫", 110,
-                new Color(0.90f, 0.20f, 0.20f), TextAnchor.MiddleCenter);
-            UIBuilder.Anchor(title.rectTransform,
+            // 標題背後火光（燃燒氛圍，脈動由 TitleFireFx 驅動）。排在標題圖之前 → 畫在標題圖背後。
+            _titleGlow = UIBuilder.Image(transform, "TitleGlow", SceneEffectSprites.Glow(),
+                new Color(1f, 0.45f, 0.12f, 0f));   // 起始透明，交給 fx 脈動
+            _titleGlow.raycastTarget = false;
+            UIBuilder.Anchor(_titleGlow.rectTransform,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(TextGroupX, 180f), new Vector2(1200f, 200f));
+                new Vector2(TextGroupX, TitleY), new Vector2(TitleWidth * 1.25f, (TitleWidth / 3f) * 2.0f));
 
-            // 英文副標
-            var sub = UIBuilder.Text(transform, "Sub", "Burning Lamp: Rebirth of Ruin", 34,
-                new Color(0.75f, 0.72f, 0.68f), TextAnchor.MiddleCenter);
-            UIBuilder.Anchor(sub.rectTransform,
-                new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(TextGroupX, 90f), new Vector2(1000f, 80f));
+            // 標題圖（正式素材，3:1）。找不到就退回文字佔位。
+            var titleSprite = UIBuilder.LoadSprite(TitleImagePath);
+            if (titleSprite != null)
+            {
+                var titleImg = UIBuilder.Image(transform, "Title", titleSprite);
+                titleImg.preserveAspect = true;
+                titleImg.raycastTarget = false;
+                UIBuilder.Anchor(titleImg.rectTransform,
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(TextGroupX, TitleY), new Vector2(TitleWidth, TitleWidth / 3f));
+                _titleRect = titleImg.rectTransform;
+            }
+            else
+            {
+                var title = UIBuilder.Text(transform, "Title", "燃燈劫", 110,
+                    new Color(0.90f, 0.20f, 0.20f), TextAnchor.MiddleCenter);
+                UIBuilder.Anchor(title.rectTransform,
+                    new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
+                    new Vector2(TextGroupX, TitleY), new Vector2(1200f, 200f));
+                _titleRect = title.rectTransform;
+            }
 
-            // 開始遊戲鈕（佔位）
+            // 開始遊戲鈕：用正式按鈕圖（3:1、無字），文字由程式補在圖上。
+            var btnSprite = UIBuilder.LoadSprite(StartBtnImagePath);
             _startBtn = UIBuilder.Button(transform, "StartButton", "開 始 遊 戲", OnStart,
-                new Color(0.20f, 0.18f, 0.24f, 1f));
-            _startBtn.targetGraphic = _startBtn.GetComponent<Image>();   // 程式建鈕需手動指（見 PROBLEMS D4）
+                bgColor: Color.white, bgSprite: btnSprite);
+            var startImg = _startBtn.GetComponent<Image>();
+            startImg.preserveAspect = true;
+            _startBtn.targetGraphic = startImg;   // 程式建鈕需手動指（見 PROBLEMS D4）
+            var startLabel = _startBtn.GetComponentInChildren<Text>();
+            if (startLabel != null) startLabel.fontSize = 34;   // 補在圖上的文字放大些
             UIBuilder.Anchor((RectTransform)_startBtn.transform,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
-                new Vector2(TextGroupX, -80f), new Vector2(420f, 96f));
+                new Vector2(TextGroupX, StartBtnY), new Vector2(StartBtnWidth, StartBtnWidth / 3f));
+
+            // 火焰特效：全螢幕落火層（最上層、不擋點擊）＋ 標題燃燒。放最後 → 落火畫在最前面。
+            if (EnableFireFx)
+            {
+                var emberRoot = UIBuilder.Create("EmberLayer", transform);
+                var emberRt = UIBuilder.Stretch((RectTransform)emberRoot.transform);
+                var fx = gameObject.AddComponent<TitleFireFx>();
+                fx.Init(emberRt, _titleRect, _titleGlow);
+            }
         }
 
         protected override void OnOpen()
