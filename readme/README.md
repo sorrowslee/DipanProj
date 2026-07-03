@@ -1,4 +1,6 @@
-# 燃燈計畫 (Project Dipankara) — 開發文件總覽
+# 燃燈劫 (Burning Lamp: Rebirth of Ruin) — 開發文件總覽
+
+> **遊戲正式名稱**：中文《**燃燈劫**》／英文 **Burning Lamp: Rebirth of Ruin**。（開發代號 Project Dipankara / 燃燈計畫。）
 
 2D 俯視角動作遊戲（Steam）。核心概念啟發自《無限恐怖》：場景中有一尊**燃燈古佛**為守護者，真正的邪惡能量從佛像背後的**隧道**散發。核心戰鬥迴圈與底層架構已完成，採 CSV 資料驅動的配方／武器系統。
 

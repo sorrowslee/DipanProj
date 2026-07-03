@@ -25,14 +25,15 @@ namespace Dipan.UI
             var bg = UIBuilder.SolidPanel(transform, "BG", new Color(0.06f, 0.05f, 0.08f, 1f));
             bg.raycastTarget = true;
 
-            // 標題文字（佔位）
-            var title = UIBuilder.Text(transform, "Title", "燃燈計畫", 96,
+            // 標題文字（佔位）：中文主標
+            var title = UIBuilder.Text(transform, "Title", "燃燈劫", 110,
                 new Color(0.90f, 0.20f, 0.20f), TextAnchor.MiddleCenter);
             UIBuilder.Anchor(title.rectTransform,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),
                 new Vector2(0f, 180f), new Vector2(1200f, 200f));
 
-            var sub = UIBuilder.Text(transform, "Sub", "Project Dipankara", 34,
+            // 英文副標
+            var sub = UIBuilder.Text(transform, "Sub", "Burning Lamp: Rebirth of Ruin", 34,
                 new Color(0.75f, 0.72f, 0.68f), TextAnchor.MiddleCenter);
             UIBuilder.Anchor(sub.rectTransform,
                 new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f),

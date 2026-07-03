@@ -57,4 +57,28 @@
 
 ---
 
+## 標題／存讀檔／進度流程 — 2026-07-03 建立（見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md)、[SAVE_SYSTEM.md](SAVE_SYSTEM.md) §14）
+
+存讀檔進度層（周目＝generation、完成關卡＝clearedModules、金錢、出生點旗標）＋標題／三欄存讀檔 UI＋`GameFlowManager` 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、in-place 輪迴 API）**程式已完成、佔位視覺**，以下為缺口與待接線。
+
+**Unity 端待接（見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) §4）**
+- [ ] `Main_Square`（Map 12）在地圖編輯器放兩個具名落點：`caveExit`（下方洞穴出口）、`center`（廣場中央），不填 targetMapId。沒放會退回地圖中心，不會壞。
+- [ ] 要新建就播開場鏈 → 把 `Intro.unity` 加進 Build Settings（`MainScene` 保持 scene 0）。沒加則新建直接進廣場。
+- [ ] 每個關卡放一個「達成目標」trigger（擊殺 boss／完成囑託／收集道具…），觸發時呼叫 `SaveManager.Instance.MarkModuleCleared("該關 module 名")` 讓完成關卡數 +1（重複進入同關不重算）。
+
+**輪迴 / 邪佛戰（資料層已就緒，玩法流程待做）**
+- [ ] 玩家輸給邪佛後「挑選要帶哪幾件」的選物 UI（可帶數＝`min(周目,7)`，`ReincarnateInPlace(carryIds)` 已備）。
+- [ ] 觸發輪迴的接線（邪佛戰結果 → 選物 → `ReincarnateInPlace` → 回廣場）。
+- [ ] 邪佛戰（第 8 關）＋最終關卡（第 9 關）的流程與關卡本身。
+- [ ] 進度「階段」判定（可進關卡／完成 7 關後邪佛要求對決／破最終關後終局刷寶），由 `ClearedModuleCount` + `LevelsToUnlockBoss` + boss/final 旗標推導。
+- [ ] **待確認**：輪迴時倉庫（storages）是否也要一起重置？目前 `ReincarnateInPlace` **只清背包、倉庫不動**。
+
+**UI 收尾**
+- [ ] 正式建名輸入框（目前新建用預設名「存檔N」；`UIBuilder.InputField` 已可用）。
+- [ ] 「遊戲中回標題」鈕放進 `SettingsPanel`（依討論，之後再放）。
+- [ ] `TitlePanel` / `SaveSlotPanel` 佔位視覺換正式素材（標題圖、卡片框、按鈕；主標《燃燈劫》、副標 Burning Lamp: Rebirth of Ruin）。
+
+---
+
 *建立於 2026-06-24：設定面板（音量 slider 先可拖曳、未接音訊；離開確認彈窗為暫時 placeholder；開啟用測試鍵 O）。*
+*2026-07-03 追加：標題／存讀檔／進度流程的缺口與 Unity 待接線。*

@@ -8,6 +8,8 @@
 
 把「一 Play 就跳進關卡」改成 **標題畫面 → 三欄存讀檔畫面 → 玩家選擇** 的正式進入流程。全程式建構、零手動接線，仿 `UIManager` / `SaveManager` / `MapManager`。
 
+> **遊戲正式名稱**：中文《**燃燈劫**》／英文 **Burning Lamp: Rebirth of Ruin**。`TitlePanel` 目前用這組名稱當佔位主標／副標（之後換標題圖時沿用）。
+
 ---
 
 ## 1. 玩家流程
