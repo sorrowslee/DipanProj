@@ -320,9 +320,8 @@ public class MapLoader : MonoBehaviour
     }
 
     // ---- 地上物 ----
-    const int SortBase = 1000000, BandStep = 10000;
-    const float SortScale = 100f;
-    const int WalkableObjectSortingOrder = 5;   // 可走地上物：低於角色(10)、高於地磚(0)，畫在角色腳下
+    // Y 排序公式集中在 MapDepthSort（角色/怪物共用同一套，見該檔）。這裡只留「可走地上物」的固定低排序。
+    const int WalkableObjectSortingOrder = 5;   // 可走地上物：低於角色、高於地磚，畫在角色腳下
 
     void BuildObjects()
     {
@@ -375,11 +374,11 @@ public class MapLoader : MonoBehaviour
 
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = sprite;   // = 第一幀（GetWholeSprite 用 item.path = 第一幀）
-        // 一般地上物：高排序帶（會蓋住角色，如家具/牆飾）。可走地上物（可踩上去，如木板/地毯）：
-        // 排到角色（sortingOrder 10）之下 → 用 5（高於地磚 0、低於角色），角色才會走在它上面。
+        // 一般地上物：走 Y 排序帶（依放置 Y 與角色一起交錯遮蔽，見 MapDepthSort）。
+        // 可走地上物（可踩上去，如木板/地毯）：固定低排序、畫在角色腳下。
         sr.sortingOrder = inst.walkable
             ? WalkableObjectSortingOrder
-            : SortBase + inst.zOrder * BandStep + Mathf.RoundToInt(-inst.sortKey * SortScale);
+            : MapDepthSort.Order(inst.sortKey, inst.zOrder);
 
         // 動畫地上物：載入幀序列、掛上原地循環播放元件（速度 = 該實例 animFps）。
         // 碰撞框/血量/可破壞仍以第一幀建立（下方），動畫只換顯示用 sprite。

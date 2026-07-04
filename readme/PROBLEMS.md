@@ -219,9 +219,10 @@
 - **原因**:`RequireComponent` 會在缺件時嘗試 `AddComponent(該型別)`,但 **`Collider2D` 是抽象基底**(具體的是 `BoxCollider2D` / `CircleCollider2D`…),無法被實例化。
 - **解法**:別對抽象基底用 `RequireComponent`。本專案 `EnemyContactDamage` 改成**不標 RequireComponent**,程式內 `GetComponent<Collider2D>()` 取用 + null 檢查即可(怪物的 collider 由 `MonsterController.AutoAdjustCollider` 保證存在)。要強制需求就指定**具體**型別(如 `BoxCollider2D`)。
 
----
-
-## G. 角色 / 美術顯示 (Character & Sprite Rendering)
+### F3. Console 狂洗 `transform.position assign attempt for 'Bullet(Clone)' is not valid. Input position is { NaN, NaN, 0 }`
+- **症狀**:發射（尤其**拋物線／火焰拋擲彈**）時 Console 每幀噴一堆 `BulletInstance.cs` 的 `transform.position ... NaN` 錯誤。
+- **原因**:子彈的**落點/速度被算成 NaN**，之後 `transform.position += Velocity*dt` 每幀寫入 NaN 位置就報錯、且壞彈不會自己消失 → 洗版。拋物線的落點源頭是 `Camera.main.ScreenToWorldPoint(Input.mousePosition)`——滑鼠在遊戲視窗外、或相機該幀尚未就緒時，這個世界座標偶爾會是 NaN/Inf，一路傳進 `ParabolicBehavior` 的 `_arcEnd`，`Lerp` 到 progress>0 後整個變 NaN。
+- **解法**:兩層防護。① **來源清洗**：`PlayerController.ShootParabolic` 取得滑鼠世界座標後檢查 NaN/Inf，異常就退回「玩家前方一格」，這發仍打得出去。② **彈道核心安全網**：`BulletInstance.Update` 在寫入位置前檢查位移是否有限，非有限就直接銷毀該彈——**任何來源**的 NaN 彈都會被擋掉、不再洗版（通用防呆）。
 
 > 角色立繪／走路動畫的完整設定流程見 [CHARACTER_SETUP.md](CHARACTER_SETUP.md)。
 
@@ -240,6 +241,11 @@
 - **症狀**：場景（地磚/家具）在大螢幕看起來顆粒粗、邊緣毛躁，像低解析度；小視窗卻還好。
 - **原因**：相機是**固定世界單位**（`MapCameraController` 跟隨模式 orthoSize 固定），畫面永遠顯示同樣多的世界，**視窗越大＝每個源像素被放越大**。加上場景圖用 `FilterMode.Point`（`MapSpriteLoader`）且**沒有 Pixel Perfect Camera**，非整數倍縮放會讓像素大小不均、邊緣閃爍。源圖其實不是低解析度（`TileNativePx = 256`），顆粒感有一部分是 AI「像素風」源圖本身畫進去的。
 - **解法**：`MapSpriteLoader` 加了可切換常數 **`SceneFilterMode`**。實驗比較後**定案採 `FilterMode.Point`（硬派像素，預設）**；`Bilinear`（柔化）保留作比較用。執行期可用 **PerfHud（按 P）→「場景濾波(F)」按鈕或按 F** 即時來回切換（`ToggleSceneFilterMode` 會把已載入的貼圖即時重套濾波）——切換是臨時預覽，重開回預設 Point。注意 F 只在 P 面板開著時生效（避免與「靠近按 F 拾取」互動鍵衝突）。**未採 Pixel Perfect Camera**——它要求整數倍縮放與統一 PPU，會跟本專案的 zoom / 整張地圖模式 / 平滑跟隨 / 混雜 PPU 直接衝突，且美術是 AI 生成點陣圖非手排像素，回報低。若之後想更清晰，正解是照 [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) 把場景源圖重產得更細緻（顆粒更小）。
+
+### G4. 改了程式裡 `public` 欄位的預設值，遊戲卻沒生效（例：VfxManager.SortingOrder）
+- **症狀**：把某 MonoBehaviour 的 `public int SortingOrder = 100;` 在程式改成 `= 22000`，進遊戲卻還是舊行為（如冰凍特效仍被地上物蓋住）。
+- **原因**：`public`（或 `[SerializeField]`）欄位的值是**序列化在場景 / prefab 檔裡**的。一旦該元件被放進場景（如 `VfxManager` 掛在 MainScene），Unity 讀的是**場景檔存的那個值**，**程式碼裡的預設值只對「還沒序列化過的新實例」有效**（例如純 `AddComponent` 出來的）。所以改預設值不會動到已存在場景/prefab 上的那顆。
+- **解法**：改**場景/prefab 上那顆**——在 Inspector 選到該物件把值改掉；或直接改場景/prefab 檔裡序列化的那行（如 MainScene 的 `SortingOrder: 100` → `22000`）。⚠️ 若場景正開著，改檔後要讓 Unity **Reload 場景**才會載入新值；且**別在改檔後又存一次場景**，否則記憶體的舊值會覆寫回去。想「一律吃程式值」可改用 `const`（不序列化，如 `DamageNumberManager.SortingOrder`）或在 `Awake` 內強制指定。
 
 
 ---

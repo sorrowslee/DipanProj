@@ -158,7 +158,7 @@ public class MonsterSpawner : MonoBehaviour
         go.transform.position = position;
 
         var sr = go.AddComponent<SpriteRenderer>();
-        sr.sortingOrder = 10;   // 與角色同階（VFX 文件慣例：角色/怪物在 sortingOrder 10）
+        sr.sortingOrder = 10;   // 初始值；實際排序由 MonsterController 掛的 YSortByFeet 每幀依腳底 Y 覆寫（見 MapDepthSort）
 
         go.AddComponent<MonsterController>();
         return go;

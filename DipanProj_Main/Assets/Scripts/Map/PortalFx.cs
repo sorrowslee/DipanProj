@@ -44,13 +44,21 @@ public class PortalFx : MonoBehaviour
 
     Color WithAlpha(float a) { var c = _look.color; c.a = a; return c; }
 
-    // ── 光幕：柔邊「矩形」漸層（solid 內部、羽化邊；縱向中央略亮）。白色圖樣，顏色由 SpriteRenderer.color 染 ──
+    // ── 光幕：柔邊圓角矩形漸層（solid 內部、羽化邊；縱向中央略亮）。白色圖樣，顏色由 SpriteRenderer.color 染 ──
+    // ⚠️ 之前用 edge=min(ax,ay) 羽化 → 兩線性距離取 min 會在「對角線」形成脊線（帳篷函數的稜線），
+    //    烘進貼圖放大後就是明顯的 X。改用「左右羽化 × 上下羽化」相乘（可分離）＝平滑圓角矩形、無對角脊線；
+    //    縱向漸層改拋物線（無中央折線）。解析度也提高，放大後更平滑。
+    const float EdgeFeather = 0.18f;
     static Sprite _fillShared;
     static Sprite FillSprite()
     {
         if (_fillShared != null) return _fillShared;
-        const int n = 64;
-        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false) { wrapMode = TextureWrapMode.Clamp };
+        const int n = 256;
+        var tex = new Texture2D(n, n, TextureFormat.RGBA32, false)
+        {
+            wrapMode = TextureWrapMode.Clamp,
+            filterMode = FilterMode.Bilinear
+        };
         var px = new Color32[n * n];
         for (int y = 0; y < n; y++)
             for (int x = 0; x < n; x++)
@@ -59,9 +67,10 @@ public class PortalFx : MonoBehaviour
                 float ny = (y + 0.5f) / n * 2f - 1f;
                 float ax = 1f - Mathf.Abs(nx);          // 到左右邊的距離（0 邊、1 中）
                 float ay = 1f - Mathf.Abs(ny);          // 到上下邊的距離
-                float edge = Mathf.Min(ax, ay);
-                float alpha = Mathf.SmoothStep(0f, 0.18f, edge);           // 羽化邊、內部滿版
-                float bright = 0.72f + 0.28f * (1f - Mathf.Abs(ny));       // 縱向中央略亮＝柔和漸層
+                float fx = Mathf.SmoothStep(0f, EdgeFeather, ax);         // 左右羽化
+                float fy = Mathf.SmoothStep(0f, EdgeFeather, ay);         // 上下羽化
+                float alpha = fx * fy;                                    // 相乘＝圓角矩形柔邊，無對角脊線
+                float bright = 0.72f + 0.28f * (1f - ny * ny);           // 縱向漸層（拋物線，平滑無折線）
                 px[y * n + x] = new Color(bright, bright, bright, alpha);
             }
         tex.SetPixels32(px); tex.Apply();

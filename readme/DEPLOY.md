@@ -51,6 +51,19 @@ butler 是 itch 官方的命令列上傳工具。**注意坑**：官方 CDN 主�
 
 `deploy_only.sh` 找 butler 的順序：環境變數 `BUTLER` → PATH 上的 `butler` → `~/butler/butler`。所以照上面裝到 `~/butler/` 就能被 Unity 觸發的部署腳本找到。若憑證找不到（少見），可在環境變數設 `BUTLER_API_KEY`。
 
+### D. 換機器 / 多台 Mac 首次設定
+
+專案程式會透過 git 同步，但 **butler 屬「機器本機」的東西不會跟 git 走**。所以另一台 Mac 首次要各自做這幾步（做完就跟原本那台一樣）：
+
+1. **git pull 到最新**：確保拿到 butler 版 `deploy_only.sh` / `BuildScript.cs`（及最新專案程式）。
+2. **裝 butler 到 `~/butler/butler`**：同上面 A 的瀏覽器下載法（broth 解不到就從 `itchio.itch.io/butler` 下載＋`xattr -dr com.apple.quarantine`）。
+3. **`butler login`**：憑證存本機，每台要各自登一次（同一 itch 帳號多台授權沒問題）；或設 `BUTLER_API_KEY`。
+4. **裝 Unity Windows Build Support (Mono) 模組**：每台、每個 Unity 版本都要各自裝。
+
+免重做的：itch email 驗證（帳號層級）、itch 專案（`sorrowslee/dipan` 共用）。
+
+> **第一次從新機器 push 不會整包重傳**：butler 是拿 itch 上「上一版的簽章」做差分，只傳變動位元組（跟哪台機器無關）。只有第一次「打包」會慢些（本機 `Library/Bee` 增量快取要重建），那是打包耗時、不是上傳。
+
 ## PC 端取得（itch app）
 
 **取代舊的 `pull_and_run.bat`**（不再需要 git pull）：

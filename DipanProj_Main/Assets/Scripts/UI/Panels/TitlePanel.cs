@@ -26,7 +26,7 @@ namespace Dipan.UI
         const string BuddhaFramePrefix = "UI/TitlePanel/BuddhaTitle/BuddhaTitle_"; // 幀路徑前綴（Resources 下、不含編號與副檔名）
         const int    BuddhaMaxFrames   = 64;    // 自動偵測幀數的上限（載到 null 就停，加幀免改程式）
         const float  BuddhaFps         = 8f;    // 動畫播放速度（幀/秒）：8 幀 ÷ 8 fps = 1 秒
-        const float  BuddhaEndHold     = 0.5f;    // 動畫播完後多停留幾秒才轉場（停在最後一幀）
+        const float  BuddhaEndHold     = 0.3f;    // 動畫播完後多停留幾秒才轉場（停在最後一幀）
         const float  BuddhaDisplaySize = 950f;  // 顯示邊長（像素，維持長寬比）
         static readonly Vector2 BuddhaOffset = new Vector2(480f, -170f); // 相對畫面中心的位移（正 X = 偏右、負 Y = 往下，把下半身切邊推出畫面）
 

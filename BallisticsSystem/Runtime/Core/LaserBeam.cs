@@ -37,6 +37,9 @@ namespace Sorrows.Ballistics
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class LaserBeam : MonoBehaviour
     {
+        // 飛行戰鬥視覺畫在「地上物之上」以維持可讀性（與主遊戲擊中特效同層；16-bit 安全 <32767）。
+        const int BeamSortingOrder = 22000;
+
         public struct BeamHit
         {
             public GameObject Target;
@@ -138,14 +141,15 @@ namespace Sorrows.Ballistics
             _mesh.MarkDynamic();
             _mf.sharedMesh = _mesh;
             _mr.sharedMaterial = _beamMat;
-            _mr.sortingOrder = 50;
+            // 飛行戰鬥視覺畫在「地上物之上」以維持可讀性（與主遊戲擊中特效同層 ~22000，16-bit 安全）。
+            _mr.sortingOrder = BeamSortingOrder;
             _mr.enabled = DrawBeam;   // 火焰模式不畫光束本體（改由主遊戲沿 Points 鋪火焰）
 
             // 砲口 / 命中圓形光暈（用 glow shader，與光束本體分開）。火焰模式不需要光暈。
             if (DrawBeam)
             {
-                if (muzzleSprite != null) { _muzzle = CreateGlow("MuzzleGlow", muzzleSprite, beamColor, beamWidth * 1.3f, 55); _muzzleSr = _muzzle.GetComponent<SpriteRenderer>(); }
-                if (impactSprite != null) { _impact = CreateGlow("ImpactGlow", impactSprite, beamColor, beamWidth * 1.8f, 60); _impactSr = _impact.GetComponent<SpriteRenderer>(); }
+                if (muzzleSprite != null) { _muzzle = CreateGlow("MuzzleGlow", muzzleSprite, beamColor, beamWidth * 1.3f, BeamSortingOrder + 5); _muzzleSr = _muzzle.GetComponent<SpriteRenderer>(); }
+                if (impactSprite != null) { _impact = CreateGlow("ImpactGlow", impactSprite, beamColor, beamWidth * 1.8f, BeamSortingOrder + 10); _impactSr = _impact.GetComponent<SpriteRenderer>(); }
             }
 
             _dotTimer = DotInterval; // 讓第一幀即可結算一次傷害

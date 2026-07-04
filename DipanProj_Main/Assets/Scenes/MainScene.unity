@@ -4389,7 +4389,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   VfxCSV: {fileID: 4900000, guid: 47f9d0ae98720462496b32a9a1c753b4, type: 3}
   SortingLayerName: Default
-  SortingOrder: 100
+  SortingOrder: 22000
   VfxMaterial: {fileID: 0}
 --- !u!4 &1735090436
 Transform:

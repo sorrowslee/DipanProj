@@ -12,7 +12,9 @@ public class VfxManager : MonoBehaviour
 
     [Header("Sorting（所有 VFX 共用此排序設定）")]
     public string SortingLayerName = "Default";
-    public int SortingOrder = 100;
+    // 角色/怪物改走 Y 排序帶（MapDepthSort），擊中/發射特效預設要抬到那之上才不會被角色/地上物蓋掉。
+    // 需畫在角色腳下的特效（如地刺）仍在 VfxTable 自填低 SortingOrder，不受此預設影響。
+    public int SortingOrder = 22000;   // 高於角色/地上物 Y 排序帶（16-bit 安全，<32767）
     public Material VfxMaterial;   // 留空 = 用 Unity 預設 Sprite material（一般足夠）
 
     private readonly Dictionary<int, VfxData> _effects = new Dictionary<int, VfxData>();

@@ -44,6 +44,19 @@ public class GroundEffectInstance : MonoBehaviour
             _templateRenderer.sprite = null;
 
         BuildTiles();
+        if (_data.GlowFlicker)
+        {
+            // 佛光（Glow 模式）＝跟著玩家的光環：依中心 Y 和玩家一起排序（每幀更新，見 Update），
+            // 所以玩家在祭壇前面時光環也在前、在祭壇後面時被擋——不像地板火固定壓在低層。單張圖、無大範圍 tile 問題。
+            ApplyAuraYSort();
+        }
+        else
+        {
+            // 地板型（tile 火/毒、靜態單圖）：固定排序，高於「可走地上物」(MapLoader.WalkableObjectSortingOrder=5)、
+            // 低於角色與一般（不可走）地上物（Y 排序帶）。正好用「可走與否」分了「火在物件上或下」：
+            // 可走物＝地板鋪面(火畫在其上)、不可走立體物(祭壇/柱子)＝火在其腳下、被它蓋過。
+            SetTilesSortingOrder(GroundEffectSortingOrder);
+        }
 
         _hasInfiniteLife = _data.Duration < 0f;
         _lifeRemaining = _data.Duration;
@@ -168,9 +181,30 @@ public class GroundEffectInstance : MonoBehaviour
         }
     }
 
+    // 高於可走地上物(5)、低於角色/一般地上物(Y 排序帶) → 火在可走石板之上、在祭壇/柱子與角色之下。
+    private const int GroundEffectSortingOrder = 8;
+    // 佛光光環往後偏一點，讓玩家畫在光環之上（光環繞在腳邊、人在光中）。
+    private const float AuraYSortBias = 0.3f;
+
+    /// <summary>把整團特效（template＋所有 tile/單圖）設成同一個排序值。</summary>
+    private void SetTilesSortingOrder(int order)
+    {
+        if (_templateRenderer != null) _templateRenderer.sortingOrder = order;
+        for (int i = 0; i < _tileRenderers.Count; i++)
+            if (_tileRenderers[i] != null) _tileRenderers[i].sortingOrder = order;
+    }
+
+    /// <summary>佛光：依中心 Y（跟著玩家）進 Y 排序帶，和玩家/地上物一起交錯遮蔽。</summary>
+    private void ApplyAuraYSort()
+    {
+        SetTilesSortingOrder(MapDepthSort.Order(transform.position.y + AuraYSortBias, 0));
+    }
+
     private void Update()
     {
         if (!_initialized) return;
+
+        if (_data.GlowFlicker) ApplyAuraYSort();   // 佛光跟著玩家移動 → 每幀重算排序（單張圖，成本極低）
 
         TickAnimation();
         TickFlicker();

@@ -19,7 +19,8 @@ public class DamageNumberManager : MonoBehaviour
     const float HeadGap = 0.25f;         // 頭頂之上的間距
     const float Lifetime = 0.85f;        // 存活秒數
     const float RiseSpeed = 1.6f;        // 基準上升速度（世界單位/秒；各表演風格可自行詮釋）
-    const int SortingOrder = 600;        // 畫在角色(~10)/特效(~100)之上
+    // 角色/怪物改走 Y 排序帶（MapDepthSort，繞回 16-bit 後約 1~1.7 萬），傷害數字要抬到那之上才不會被角色/地上物蓋掉。
+    const int SortingOrder = 24000;      // 高於角色/地上物 Y 排序帶（16-bit 安全，<32767）
     const float ShadowOffset = 0.045f;   // 描邊/陰影偏移（世界單位）
 
     // ── 份量分級門檻（傷害越大、字越大、越搶眼）──

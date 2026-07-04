@@ -116,6 +116,9 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 腳下影子（見 readme/SHADOW.md）
         if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
 
+        // 依腳底 Y 動態排序，和地上物一起正確交錯遮蔽（見 MapDepthSort / YSortByFeet）。
+        if (GetComponent<YSortByFeet>() == null) gameObject.AddComponent<YSortByFeet>();
+
         // 走路動畫速度跟著實際移動速度（避免腳滑；見 readme/CHARACTER_SETUP.md）。
         // ReferenceSpeed = 正常移動速度(MoveSpeed) → 正常走就是 1×（動畫滿幀最順）；
         // 只有實際速度低於正常時（之後的減速 debuff／類比半推）動畫才按比例變慢。
@@ -703,9 +706,16 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void ShootParabolic(WeaponData weapon, ProjectileData recipe)
     {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Vector3 mousePos = Camera.main != null ? Camera.main.ScreenToWorldPoint(Input.mousePosition) : transform.position;
         mousePos.z = 0;
         Vector2 mouseTarget = (Vector2)mousePos;
+        // 保險：滑鼠世界座標偶爾會是 NaN/Inf（滑鼠在視窗外、相機該幀尚未就緒等）→ 會讓拋物線落點與速度變 NaN、
+        // 進而每幀狂洗「transform.position ... is not valid」。異常就退回「玩家前方一格」，讓這發仍打得出去。
+        if (float.IsNaN(mouseTarget.x) || float.IsNaN(mouseTarget.y) ||
+            float.IsInfinity(mouseTarget.x) || float.IsInfinity(mouseTarget.y))
+        {
+            mouseTarget = (Vector2)transform.position + Vector2.right;
+        }
 
         int count = Mathf.Max(1, recipe.SplitCount);
         float totalSpreadDeg = recipe.SpreadAngle;

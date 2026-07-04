@@ -139,7 +139,16 @@ namespace Sorrows.Ballistics
                 transform.rotation = Quaternion.Euler(0, 0, angle + SpriteAngleOffset);
             }
 
-            transform.position += (Vector3)(Velocity * Time.deltaTime);
+            // 安全網：任何來源算出非有限（NaN/Inf）的速度都會讓 transform.position 變 NaN 並每幀狂洗 console。
+            // 直接銷毀這顆壞彈，避免污染與洗版（例如上游落點被算成 NaN 時）。
+            Vector2 step = Velocity * Time.deltaTime;
+            if (float.IsNaN(step.x) || float.IsNaN(step.y) || float.IsInfinity(step.x) || float.IsInfinity(step.y))
+            {
+                _isDestroyed = true;
+                Destroy(gameObject);
+                return;
+            }
+            transform.position += (Vector3)step;
 
             if (AnimationSprites != null && AnimationSprites.Length > 1 && AnimFPS > 0 && _sr != null)
             {
