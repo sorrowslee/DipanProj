@@ -109,10 +109,12 @@ Shader "Custom/Atmosphere"
                 else if (_Mode > 3.5 && _Mode < 6.5)
                 {
                     // 熱浪扭曲（4/5/6）
+                    // 低頻大波：原本高頻(38/21/30)+快時間會讓全畫面逐行蠕動，看起來像「畫質粗糙」而非熱浪
+                    //（見 PROBLEMS.md E6 / PERF_QUALITY_AUDIT.md）。改成少數幾道緩慢大波，熱浪感保留、細節不再抖碎。
                     float t = _Time.y;
-                    float wob = sin(uv.y * 38.0 + t * 3.0) + sin(uv.y * 21.0 - t * 2.1);
-                    uv.x += wob * 0.0014;
-                    uv.y += sin(uv.x * 30.0 + t * 1.7) * 0.0011;
+                    float wob = sin(uv.y * 7.0 + t * 1.6) + sin(uv.y * 4.0 - t * 1.1);
+                    uv.x += wob * 0.0009;
+                    uv.y += sin(uv.x * 6.0 + t * 0.9) * 0.0006;
                 }
                 fixed4 col = tex2D(_MainTex, uv);
 
