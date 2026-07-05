@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Dipan.MapRuntime
 {
     /// <summary>
-    /// runtime 從磁碟載 PNG → Texture2D（Point 濾鏡，像素風）→ Sprite，並快取。
+    /// runtime 從磁碟載 PNG → Texture2D（預設 Bilinear+mipmap，見 SceneFilterMode 註解）→ Sprite，並快取。
     /// 關鍵：一律以 PPU = 256/tileSize 建 sprite（= 編輯器尺寸），不依賴主專案 PNG 的匯入 PPU，
     /// 否則家具大小會與 .dipanmap 內的座標/scale 對不上。
     /// 另提供「依不透明像素貼合」的本地碰撞框（給家具 BoxCollider2D 用）。
@@ -17,11 +17,13 @@ namespace Dipan.MapRuntime
 
         /// <summary>
         /// 場景貼圖濾波。
-        /// Point    = 硬派像素邊緣（預設，專案採用的觀感）。
-        /// Bilinear = 放大時邊緣柔化、消除硬像素塊與非整數縮放的毛邊（比較用）。
+        /// Bilinear = 預設。素材 256px/格在 1080p 只顯示 ~108px/格（0.42x 縮小），
+        ///            Point 縮小取樣會隨機丟棄過半像素 → 噪點與移動閃爍（見 PERF_QUALITY_AUDIT.md §2）。
+        ///            搭配 mipmap（LoadImage 於 mipChain=true 時自動生成）縮小取樣才正確。
+        /// Point    = 硬派像素邊緣（僅適合 >=1:1 放大顯示時，保留作 A/B 對比）。
         /// 執行期可用 PerfHud（按 P）的「場景濾波」按鈕、或按 F 即時切換（見 SetSceneFilterMode）。
         /// </summary>
-        public static FilterMode SceneFilterMode = FilterMode.Point;
+        public static FilterMode SceneFilterMode = FilterMode.Bilinear;
 
         // 追蹤所有 runtime 載入的場景貼圖，供執行期切換濾波時即時套用（已被銷毀者於切換時清掉）。
         static readonly List<Texture2D> _liveTextures = new List<Texture2D>();
@@ -67,7 +69,7 @@ namespace Dipan.MapRuntime
                 Debug.LogWarning($"[MapSpriteLoader] 找不到圖檔：{path}");
                 return null;
             }
-            tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex = new Texture2D(2, 2, TextureFormat.RGBA32, true); // mipChain=true：LoadImage 會自動生成 mipmap（縮小取樣用，記憶體 +33%）
             tex.LoadImage(File.ReadAllBytes(path));    // 自動調整尺寸，CPU 可讀
             tex.filterMode = SceneFilterMode;
             tex.wrapMode = TextureWrapMode.Clamp;
@@ -105,7 +107,7 @@ namespace Dipan.MapRuntime
                 Debug.LogWarning($"[MapSpriteLoader] 找不到動畫幀：{path}");
                 return null;
             }
-            tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            tex = new Texture2D(2, 2, TextureFormat.RGBA32, true); // mipChain=true：同 GetTexture，生成 mipmap
             tex.LoadImage(File.ReadAllBytes(path));
             tex.filterMode = SceneFilterMode;
             tex.wrapMode = TextureWrapMode.Clamp;
