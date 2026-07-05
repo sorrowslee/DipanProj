@@ -111,6 +111,19 @@ UI 用 Bilinear 但 `enableMipMap: 0`、`maxTextureSize: 2048`（不會被匯入
 
 ---
 
-## 6. 一句話總結
+## 6. 修正結果（2026-07-05 實施）
+
+| 項目 | 狀態 |
+|---|---|
+| ① Player/Monster 開 Interpolate＋Fixed Timestep 60Hz | ✅ 已實施，**實測卡頓明顯改善** |
+| ② MapSpriteLoader 改 Bilinear＋mipmap | ✅ 已實施（F 鍵可切回 Point 對比） |
+| ③ UI icon meta →128／按鈕→512＋開 mipmap | ✅ 已實施（PNG 未動） |
+| 熱浪扭曲改低頻大波（Atmosphere 4/5/6） | ❌ 已還原——作者偏好原本高頻觀感，屬美術選擇非 bug |
+
+補充發現：Main_Square（Map 12）特別粗糙的主因是 **Atmosphere=5 的熱浪扭曲**（每幀 ±2~3px 高頻重取樣整個畫面）疊加火雨（SceneEffect=1），與地圖大小（90×50 格）無關——鏡頭跟隨模式固定只顯示 10 格高，texel 密度不隨地圖尺寸變。若日後仍嫌該圖粗糙，可調 shader 熱浪係數（`Atmosphere.shader` mode 4/5/6 段的 0.0014/0.0011）或關閉該圖氛圍做對比。
+
+---
+
+## 7. 一句話總結
 
 不順 = 50Hz 物理 + 沒開內插；粗糙 = 256px 素材被 Point 濾波縮到 0.42x；UI 髒 = 5~10 倍縮小又沒 mipmap。**全部是縮放/取樣管線問題，風格不用換，素材不用重畫**（icon 只要調匯入尺寸）。
