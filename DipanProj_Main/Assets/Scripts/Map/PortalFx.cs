@@ -74,7 +74,10 @@ public class PortalFx : MonoBehaviour
                 px[y * n + x] = new Color(bright, bright, bright, alpha);
             }
         tex.SetPixels32(px); tex.Apply();
-        _fillShared = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 64f);
+        // ⚠️ PPU 必須 = n，sprite 才是 1×1 世界單位、localScale=_size 才會貼合門洞矩形。
+        //    之前 n 從 64 提到 256 時 PPU 忘了跟著改（仍 64）→ 光幕變 4 倍大，成了罩住門周遭的一片綠光
+        //   （見 PROBLEMS.md）。
+        _fillShared = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
         return _fillShared;
     }
 }

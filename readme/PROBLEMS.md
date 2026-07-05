@@ -218,6 +218,11 @@
 - **原因**:**與風格無關,是縮小倍率**。icon 原圖 256~500px,實際顯示只有 45~70px(= 5~10 倍縮小),匯入又是 Bilinear+無 mipmap+maxTextureSize 2048(不會被縮) → GPU 只取 2×2 texel,等於在 10×10 區域亂抽 4 點 → 顆粒與髒邊。
 - **解法**:**不用重畫**,改 .meta 的 `maxTextureSize` 讓匯入器先做高品質縮圖:小 icon → **128**、中型按鈕 → **512**、面板背景不動。**通則:UI 圖的原始尺寸 ≈ 顯示尺寸 × 2 就好,大圖硬塞小格子一定髒。**素材尺寸規範見 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) §4。
 
+### E8. 傳送門綠幕「突然消失」，變成門周遭一片綠光
+- **症狀**:場景特效的傳送門（SceneFx kind=portal）原本是貼合門洞的一片綠色光幕，某次改版後光幕不見了，只剩門周圍一大片淡淡綠光。
+- **原因**:程式生成貼圖的 **PPU 沒跟著解析度改**。`PortalFx.FillSprite()` 把貼圖從 64px 提到 256px（修對角脊線那次），但 `Sprite.Create(..., pixelsPerUnit: 64)` 沒改 → sprite 從 1×1 世界單位變 **4×4**，`localScale=_size` 再乘上去 → 光幕變 4 倍大（3.5×4.5 的門洞矩形變成 14×18 的大綠罩）。門洞內只剩貼圖中央一小塊、整體被攤薄，看起來就是「綠幕消失、周遭泛綠光」。
+- **解法**:程式生成 sprite 一律 **PPU = 貼圖邊長**（`Sprite.Create(tex, rect, pivot, n)`），sprite 恆為 1×1 世界單位、由 localScale 控制實際大小。**通則:改程式生成貼圖的解析度時，檢查 `Sprite.Create` 的 pixelsPerUnit 是否跟著改——n 與 PPU 綁死（或抽同一個常數），否則所有用 localScale 定尺寸的物件全部默默變大/變小。**
+
 ---
 
 ## F. 戰鬥 / 傷害 (Combat)
