@@ -115,6 +115,22 @@ public class MapCameraController : MonoBehaviour
     /// <summary>離開鏡頭區：還原到本地圖的正常縮放/位置。</summary>
     public void ClearCameraZone() => _zoneActive = false;
 
+    /// <summary>
+    /// 鏡頭區的縮放/位移是否已趨近目標（=拉伸表演完成）。給 CameraZoneWatcher 判斷
+    /// 「鏡頭到位後才觸發 camZone 的 next 觸發鏈」用（見 TriggerChain / readme/TRIGGER_CHAIN.md）。
+    /// 指數趨近永遠到不了 100%，取 2% 容差；zoom=1 且無位移的區域（純鏈觸發用）會立即成立。
+    /// </summary>
+    public bool ZoneSettled
+    {
+        get
+        {
+            float targetZoom = _zoneActive ? _zoneZoomMul : 1f;
+            Vector2 targetOff = _zoneActive ? _zoneOffset : Vector2.zero;
+            return Mathf.Abs(_zoomCur - targetZoom) <= 0.02f * Mathf.Max(0.1f, targetZoom)
+                && (_offsetCur - targetOff).sqrMagnitude <= 0.01f;
+        }
+    }
+
     /// <summary>整張地圖模式：置中地圖、用高度撐滿畫面（與原 MapLoader.FitCamera 一致）。</summary>
     void FitWholeMap(MapData map)
     {

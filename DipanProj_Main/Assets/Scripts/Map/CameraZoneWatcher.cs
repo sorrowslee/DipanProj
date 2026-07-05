@@ -20,7 +20,8 @@ public class CameraZoneWatcher : MonoBehaviour
     string _typeId = "camZone";
 
     readonly Dictionary<long, TriggerRegion> _cells = new Dictionary<long, TriggerRegion>();
-    TriggerRegion _active;   // 玩家目前所在的鏡頭區（null = 不在任何鏡頭區）
+    TriggerRegion _active;        // 玩家目前所在的鏡頭區（null = 不在任何鏡頭區）
+    TriggerRegion _chainPending;  // 進區後等「鏡頭拉伸到位」才觸發鏈的區域（有填 next/setFlag 才會設）
 
     public void Setup(MapData map, string camZoneTypeId, Transform player, MapCameraController camCtl)
     {
@@ -41,6 +42,7 @@ public class CameraZoneWatcher : MonoBehaviour
         }
 
         _active = null;
+        _chainPending = null;
         if (_camCtl != null) _camCtl.ClearCameraZone();   // 換圖先還原
     }
 
@@ -51,19 +53,37 @@ public class CameraZoneWatcher : MonoBehaviour
         Vector2Int cell = MapCoords.WorldToCell(_player.position, _map);
         _cells.TryGetValue(Key(cell.x, cell.y), out var region);   // 不在任何鏡頭區時 region = null
 
-        if (region == _active) return;   // 狀態沒變
+        // 觸發鏈：停用中（startDisabled 未解鎖）或 requireFlag 不成立的鏡頭區，踩到視同不在區內（每幀動態判定）。
+        if (region != null && !TriggerChain.IsActive(region)) region = null;
 
-        _active = region;
-        if (region != null)
+        if (region != _active)
         {
-            float zoom = region.GetFloat("zoom", 1f);
-            float ox = region.GetFloat("offsetX", 0f);
-            float oy = region.GetFloat("offsetY", 0f);
-            _camCtl.SetCameraZone(zoom, new Vector2(ox, oy));
+            _active = region;
+            _chainPending = null;   // 換區/離區：取消還沒到位的鏈觸發
+            if (region != null)
+            {
+                float zoom = region.GetFloat("zoom", 1f);
+                float ox = region.GetFloat("offsetX", 0f);
+                float oy = region.GetFloat("offsetY", 0f);
+                _camCtl.SetCameraZone(zoom, new Vector2(ox, oy));
+
+                // camZone 的「完成」= 鏡頭拉伸到位。有填 next/setFlag 才需要等（每次進區都會觸發一次；
+                // 要一次性請在鏈的下一節點掛 requireFlag，見 readme/TRIGGER_CHAIN.md）。
+                if (!string.IsNullOrEmpty(region.GetString("next")) || !string.IsNullOrEmpty(region.GetString("setFlag")))
+                    _chainPending = region;
+            }
+            else
+            {
+                _camCtl.ClearCameraZone();
+            }
         }
-        else
+
+        // 鏡頭到位 → 完成此 camZone → setFlag + 接 next（TriggerChain.OnCompleted）。
+        if (_chainPending != null && _camCtl.ZoneSettled)
         {
-            _camCtl.ClearCameraZone();
+            var r = _chainPending;
+            _chainPending = null;
+            TriggerChain.OnCompleted(r);
         }
     }
 
