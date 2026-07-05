@@ -127,6 +127,11 @@
   - `Tools/sync_map_assets.sh`(CLI)
   加完**重跑 Sync Map Assets**。catalog 用 `category = 上層資料夾名`,但 runtime 是用 **id(= 相對路徑)** `catalog.Find` 取圖,所以 category 叫什麼不影響載入(頭像不進編輯器清單,不必像 Drama 那樣考慮 category 過濾)。已修:`Talk` 已加入三處白名單(頭像對話立繪)。
 
+### C4. 編輯器讀圖後整片空白（格線正確、素材全消失、地磚調色盤說「沒有可畫的地磚」）
+- **症狀**:編輯器讀某張圖（例 Main_Square），格線大小正確、也顯示「已讀入」，但背景/地上物/地磚全部沒出現；調色盤顯示「沒有可畫的地磚」。Console 無紅字。
+- **原因**:**編輯器的 `StreamingAssets/MapAssets` 是同步拷貝（gitignored、不進版控），不完整就會這樣**。實例：catalog 只剩 RedBridalGown＋Tutorial、`Main/` 整個不見 → Main 的圖檔讀得進（.dipanmap 是資料）、但所有素材 id 都解析不到 → 全部隱形。同步工具是「**先清空目標再重建**」，中途失敗/中斷就會留下半套素材而且**不會報錯**。
+- **解法**:重跑同步即可：Unity 選單 `DipanMapEditor → 同步素材（全部 module）`，或 CLI `DipanProj_MapEditor/Tools/sync_assets.sh`（不帶參數 = Main＋全部 module）。跑完重新 Play 讓 bootstrap 重載 catalog。**通則:編輯器「讀得到圖但看不到東西」先查 catalog.json 的 module 分佈是否齊全（python 一行就能數），不是查地圖檔。**
+
 ---
 
 ## D. 存檔 / 常駐單例 (Save & Persistent Singletons)
