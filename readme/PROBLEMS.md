@@ -203,6 +203,21 @@
 - **原因**:`SpriteRenderer.sortingOrder` 雖宣告為 int,**實際是 16-bit(範圍 −32768~32767)**。給超大值(當時填 `2000000`)會**溢位繞回**:`2000000` 繞回後 ≈ **−31616(負)** → 比背景(`sortingOrder = −1000`)還低 → 被不透明背景蓋住、整個看不到。詭異的是地上物用 `1000000` 卻正常——因為 `1000000` 繞回後 ≈ **+16960(正)**,仍在背景之上,剛好沒事。
 - **解法**:`sortingOrder` 一律用**合法範圍內(≤32767)**的值。火雨改用 `30000`(在合法範圍、又高於地上物繞回後的 ~17000~22000,確保畫在最前)。**通則:任何 runtime 建的 `SpriteRenderer`,sortingOrder 別超過 32767;要「畫在最上層」用接近上限的值(如 30000),不要用上百萬的數字。**
 
+### E5. fps 明明 60(甚至數百)，角色移動仍有規律的微抖動(judder)
+- **症狀**:PC 上 VSync 60fps 或解開 VSync 讓 fps 狂升,走路時仍「說不出的不順」;fps 數字完全正常。
+- **原因**:兩件事疊加:① 物理 Fixed Timestep 是 0.02(**50Hz**),與 60Hz 螢幕形成拍頻——每 6 幀就有 1 幀物理沒更新或更新兩次;② Player/Monster 的 Rigidbody2D **Interpolate 全關**,角色位置直接吃 50Hz 物理步進 → 每秒約 10 次「跳半格」。相機(LateUpdate+SmoothDamp)是平滑的,角色是抖的,對比下更明顯。**抖動與 fps 高低無關**,所以拉高 fps 沒用;KVM 鎖 60Hz 下 fps>60 根本顯示不出來,只會撕裂(參 E1)。
+- **解法**:Player/Monster prefab 的 Rigidbody2D `Interpolate = Interpolate`(m_Interpolate: 1);TimeManager `Fixed Timestep` 改 `0.016666668`(60Hz)。**通則:fps 正常卻不順,先查「物理頻率 vs 螢幕刷新率」與 Rigidbody 內插,不是查效能。**詳見 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) §1。
+
+### E6. PC build 畫面粗糙有噪點、鏡頭移動時閃爍,Unity 編輯器裡卻好好的
+- **症狀**:1080p PC build 世界畫面「髒、粗糙」,鏡頭移動時整個畫面微微蠕動閃爍;Mac 編輯器 Game view 看不出問題。
+- **原因**:地圖素材 256px/格,但相機顯示 10 格高 → 1080p 一格只有 **108px**,素材被**縮小到 0.42 倍**;而 runtime 載圖用 **FilterMode.Point 且無 mipmap**——Point 在「放大」時是像素風,在「縮小」時是災難:每個螢幕像素只隨機挑 1 個原圖像素、丟掉週邊 5 個 → 噪點+移動閃爍。Mac Retina 的 Game view 像素密度接近 1:1 取樣,所以編輯器看不出來(解析度愈低愈慘)。
+- **解法**:`MapSpriteLoader` 預設改 `FilterMode.Bilinear`,`new Texture2D(..., mipChain: true)`(LoadImage 會自動生成 mipmap,記憶體 +33%)。遊戲內按 **F** 可即時 A/B 對比 Point/Bilinear。**通則:貼圖會被「縮小」顯示時,必須 Bilinear+mipmap;Point 只適合 ≥1:1 的整數倍放大。**詳見 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) §2。
+
+### E7. UI icon/按鈕看起來很髒、顆粒很大,懷疑是美術風格問題
+- **症狀**:背包 icon、關閉鈕等 UI 元件顆粒感重、邊緣髒,懷疑黑暗像素風格不適合。
+- **原因**:**與風格無關,是縮小倍率**。icon 原圖 256~500px,實際顯示只有 45~70px(= 5~10 倍縮小),匯入又是 Bilinear+無 mipmap+maxTextureSize 2048(不會被縮) → GPU 只取 2×2 texel,等於在 10×10 區域亂抽 4 點 → 顆粒與髒邊。
+- **解法**:**不用重畫**,改 .meta 的 `maxTextureSize` 讓匯入器先做高品質縮圖:小 icon → **128**、中型按鈕 → **512**、面板背景不動。**通則:UI 圖的原始尺寸 ≈ 顯示尺寸 × 2 就好,大圖硬塞小格子一定髒。**素材尺寸規範見 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) §4。
+
 ---
 
 ## F. 戰鬥 / 傷害 (Combat)
