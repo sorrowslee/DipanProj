@@ -844,6 +844,13 @@ namespace DipanMapEditor.UI
                     GUILayout.Label("參數");
                     foreach (var p in def.paramSchema) DrawParamField(CurrentRegion, p);
                 }
+
+                // 觸發鏈通用欄位（每種類型都有；遊戲端 TriggerChain 解讀，見主專案 readme/TRIGGER_CHAIN.md）。
+                GUILayout.Space(4);
+                GUILayout.Label("── 觸發鏈/條件（通用）──");
+                foreach (var p in TriggerTypeSet.ChainParams) DrawParamField(CurrentRegion, p);
+                GUILayout.Label("next 填另一個 trigger 的名稱；\n動作型(給物品/直接傳送)被鏈到\n=立即執行，位置型=解鎖啟用。");
+
                 GUILayout.Label("左鍵拖曳加/減格。");
             }
             else
@@ -942,6 +949,11 @@ namespace DipanMapEditor.UI
             {
                 GUILayout.Space(8);
                 GUILayout.Label("── 編輯特效 ──");
+                // id：給 trigger 的 linkedFx 欄位參照用（傳送點解鎖時顯示綠幕，見主專案 readme/TRIGGER_CHAIN.md）。
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("id(linkedFx用)", GUILayout.Width(90));
+                GUILayout.TextField(sel.id ?? "");   // 可選取複製；不寫回（id 由系統生成）
+                GUILayout.EndHorizontal();
 
                 GUILayout.BeginHorizontal();
                 GUI.color = ctl.Mode == Tools.SceneFxController.PlaceMode.Start ? Color.green : Color.white;

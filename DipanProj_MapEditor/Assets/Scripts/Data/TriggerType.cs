@@ -28,6 +28,7 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "targetMapId",    type = ParamType.Int },
                     new TriggerParam { key = "targetEntrance", type = ParamType.String },
                     new TriggerParam { key = "showMarker",     type = ParamType.Bool, boolDefault = true, label = "使用傳送點外型" },
+                    new TriggerParam { key = "linkedFx",       type = ParamType.String, label = "連動特效id" },   // 場景特效 id：停用時隱藏（綠幕）、解鎖時顯示
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -73,6 +74,26 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：被觸發鏈啟動時「直接給物品進背包」（不用按 F、不綁位置；格子畫在角落即可）。
+                typeId = "giveItem", displayName = "給予物品(鏈動作)", color = "#FFE08A",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "itemId", type = ParamType.String },
+                    new TriggerParam { key = "count",  type = ParamType.Int },   // 留空 = 1
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：被觸發鏈啟動時「直接傳送」（不用踩傳送點、不綁位置；格子畫在角落即可）。
+                typeId = "teleportTo", displayName = "直接傳送(鏈動作)", color = "#7FD4FF",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "targetMapId",    type = ParamType.Int },
+                    new TriggerParam { key = "targetEntrance", type = ParamType.String },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 typeId = "camZone", displayName = "鏡頭區", color = "#66CCFF",
                 paramSchema = new List<TriggerParam>
                 {
@@ -83,6 +104,24 @@ namespace DipanMapEditor.Data
             });
             return set;
         }
+
+        /// <summary>
+        /// 觸發鏈通用欄位（**每種類型都有**，編輯器在類型參數下方統一顯示；遊戲端 TriggerChain 解讀）：
+        ///   next          完成後啟動的 trigger（填同地圖另一個 trigger 的名稱或 id）
+        ///   startDisabled 初始停用（等鏈解鎖才生效；配 enableFlag 可跨存檔記住已解鎖）
+        ///   enableFlag    解鎖狀態旗標名（解鎖時寫 1；重進地圖旗標成立就自動啟用）
+        ///   requireFlag   旗標成立才可觸發；前綴 "!" 表否定（例 "!killedFamily"）
+        ///   setFlag       完成後寫 1 的旗標名
+        /// 見主專案 readme/TRIGGER_CHAIN.md。
+        /// </summary>
+        public static readonly List<TriggerParam> ChainParams = new List<TriggerParam>
+        {
+            new TriggerParam { key = "next",          type = ParamType.String, label = "next(接續)" },
+            new TriggerParam { key = "startDisabled", type = ParamType.Bool,   label = "初始停用" },
+            new TriggerParam { key = "enableFlag",    type = ParamType.String, label = "解鎖旗標" },
+            new TriggerParam { key = "requireFlag",   type = ParamType.String, label = "條件旗標" },
+            new TriggerParam { key = "setFlag",       type = ParamType.String, label = "完成寫旗標" },
+        };
     }
 
     public class TriggerTypeDef
