@@ -49,8 +49,12 @@ public static class MapAssetSyncTool
                 string cdir = Path.Combine(baseDir, cat);
                 if (!Directory.Exists(cdir)) continue;
 
-                // 直接位於該分類資料夾下的單張 PNG → 靜態素材（不遞迴）。
-                foreach (var png in Directory.GetFiles(cdir, "*.png", SearchOption.TopDirectoryOnly))
+                // 直接位於該分類資料夾下的單張 PNG → 靜態素材。
+                // Talk 例外：允許「每個 NPC 一個子資料夾」（例 Talk/Buddha/Buddha_normal.png），遞迴收所有 PNG、
+                // 各成一筆靜態素材（見 PROBLEMS.md C5）；其餘類別維持只收第一層——Environment 的子資料夾
+                // 另有「動畫物件」語意，不能混用。
+                var searchOpt = cat == "Talk" ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+                foreach (var png in Directory.GetFiles(cdir, "*.png", searchOpt))
                 {
                     string rel = Rel(srcRoot, png);
                     CopyOverwrite(png, Path.Combine(dstRoot, rel));

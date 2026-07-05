@@ -82,10 +82,19 @@ for module, base in source_dirs():
         cdir = os.path.join(base, cat)
         if not os.path.isdir(cdir):
             continue
-        for fn in sorted(os.listdir(cdir)):
-            if not fn.lower().endswith('.png'):
-                continue
-            abs_src = os.path.join(cdir, fn)
+        # Talk 允許「每個 NPC 一個子資料夾」（例 Talk/Buddha/Buddha_normal.png → id=…/Talk/Buddha/Buddha_normal），
+        # 遞迴收所有 PNG、各成一筆靜態素材（見 PROBLEMS.md C5；其餘類別維持只收第一層，
+        # 因 Environment 的子資料夾另有「動畫物件」語意，不能混用）。
+        if cat == 'Talk':
+            png_list = []
+            for _root, _dirs, _files in sorted(os.walk(cdir)):
+                for fn in sorted(_files):
+                    if fn.lower().endswith('.png'):
+                        png_list.append(os.path.join(_root, fn))
+        else:
+            png_list = [os.path.join(cdir, fn) for fn in sorted(os.listdir(cdir))
+                        if fn.lower().endswith('.png')]
+        for abs_src in png_list:
             rel = os.path.relpath(abs_src, src_root)          # e.g. Modules/RedBridalGown/Environment/x.png
             abs_dst = os.path.join(dst_root, rel)
             os.makedirs(os.path.dirname(abs_dst), exist_ok=True)

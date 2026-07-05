@@ -94,8 +94,11 @@ namespace Dipan.MapRuntime
                     string cdir = Path.Combine(baseDir, c);
                     if (!Directory.Exists(cdir)) continue;
 
-                    // 直接位於分類資料夾下的單張 PNG → 靜態素材（不遞迴）。
-                    foreach (var png in Directory.GetFiles(cdir, "*.png", SearchOption.TopDirectoryOnly))
+                    // 直接位於分類資料夾下的單張 PNG → 靜態素材。
+                    // Talk 例外：允許每個 NPC 一個子資料夾（遞迴收，見 PROBLEMS.md C5）；
+                    // 其餘類別維持只收第一層（Environment 子資料夾 = 動畫物件，不能混用）。
+                    var opt = c == "Talk" ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+                    foreach (var png in Directory.GetFiles(cdir, "*.png", opt))
                     {
                         string rel = MakeRelative(root, png).Replace('\\', '/');
                         cat.items.Add(new CatalogItem

@@ -132,6 +132,11 @@
 - **原因**:**編輯器的 `StreamingAssets/MapAssets` 是同步拷貝（gitignored、不進版控），不完整就會這樣**。實例：catalog 只剩 RedBridalGown＋Tutorial、`Main/` 整個不見 → Main 的圖檔讀得進（.dipanmap 是資料）、但所有素材 id 都解析不到 → 全部隱形。同步工具是「**先清空目標再重建**」，中途失敗/中斷就會留下半套素材而且**不會報錯**。
 - **解法**:重跑同步即可：Unity 選單 `DipanMapEditor → 同步素材（全部 module）`，或 CLI `DipanProj_MapEditor/Tools/sync_assets.sh`（不帶參數 = Main＋全部 module）。跑完重新 Play 讓 bootstrap 重載 catalog。**通則:編輯器「讀得到圖但看不到東西」先查 catalog.json 的 module 分佈是否齊全（python 一行就能數），不是查地圖檔。**
 
+### C5. NPC 立繪放在 Talk 子資料夾（Talk/Buddha/…），對話面板始終不顯示該立繪
+- **症狀**:DramaTalkTable 填了 `Main/Talk/Buddha/Buddha_normal`，圖也放在 `GameAssets/Main/Talk/Buddha/`，但對話面板該側立繪永遠空白。Console 有「找不到立繪（catalog id…）」警告。
+- **原因**:三條素材同步路徑對一般分類**只收分類資料夾第一層的 PNG**（`TopDirectoryOnly`），子資料夾整個略過（Environment 的子資料夾另有「動畫物件」語意）→ `Talk/Buddha/` 沒進 StreamingAssets 也沒進 catalog，`catalog.Find` 自然 null。另兩個常見疊加雷：CSV 路徑**帶了 `.png` 副檔名**（catalog id 一律不帶）、檔名打錯（本例曾是 `nuddha_normal.png`）。
+- **解法**:已把 **Talk 類別改成遞迴收子資料夾**（id=相對路徑去副檔名，例 `Main/Talk/Buddha/Buddha_normal`），三處同步一起改：`Tools/sync_map_assets.sh`、`Assets/Editor/MapAssetSyncTool.cs`、`Assets/Scripts/Map/MapIO.cs`。改完**重跑 Sync**。**通則:立繪/劇情圖欄位填的是 catalog id——不帶副檔名；填完先確認 catalog.json 裡真的有這個 id，沒有就是同步沒收到（白名單/層級/檔名三個方向查）。**
+
 ---
 
 ## D. 存檔 / 常駐單例 (Save & Persistent Singletons)
