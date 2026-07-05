@@ -82,3 +82,16 @@
 
 *建立於 2026-06-24：設定面板（音量 slider 先可拖曳、未接音訊；離開確認彈窗為暫時 placeholder；開啟用測試鍵 O）。*
 *2026-07-03 追加：標題／存讀檔／進度流程的缺口與 Unity 待接線。*
+
+---
+
+## 紅嫁衣「沒殺家人→榕樹妖」劇情分支 — 2026-07-05 規劃
+
+觸發鏈系統已完備（[TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)），邪佛大廳鏈已實裝；紅嫁衣分支尚未實作。
+
+- [ ] **怪物死亡寫旗標掛勾**（唯一要寫程式的部分）：MonsterData.csv 加 `DeathFlag` 欄＋`MonsterController.Die()` 呼叫 `TriggerChain.SetFlag`，家人五怪（8~12）填 `killedFamily`。
+- [ ] DramaTable/DramaTalkTable 新增紅嫁衣對話（Group 3、DramaTable ID 4）。
+- [ ] 編輯器在紅嫁衣最終房放 `紅嫁衣對話`(drama, requireFlag=`!killedFamily`, next=`送去榕樹妖`) + `送去榕樹妖`(teleportTo, targetMapId=10)。
+- [ ] 「殺了家人」的另一條分支內容未定義（作者決定）。
+
+**完整接手步驟見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7**（含檔案位置、行號、測試清單）。
