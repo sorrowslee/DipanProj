@@ -126,17 +126,36 @@ namespace Dipan.UI
             // 姓名牌匾擺在聚光側、顯示說話者姓名。
             Place(_plate.rectTransform, spotRight ? PlateRightCx : PlateLeftCx, PlateY, PlateW, PlateH);
 
-            // 左、右立繪各自顯示（有圖才顯示）；非聚光側壓暗（保留原色相）。
-            SetAvatar(_avatarLeft, l.LeftAvatar, dim: spotRight);    // 聚光在右 → 左立繪壓暗
-            SetAvatar(_avatarRight, l.RightAvatar, dim: !spotRight); // 聚光在左 → 右立繪壓暗
+            // 左、右立繪各自顯示（有圖才顯示）；非聚光側壓暗（保留原色相）。可用 CSV 選填欄微調縮放/位移。
+            SetAvatar(_avatarLeft, l.LeftAvatar, dim: spotRight, right: false,
+                      scale: l.LeftScale, offX: l.LeftOffsetX, offY: l.LeftOffsetY);
+            SetAvatar(_avatarRight, l.RightAvatar, dim: !spotRight, right: true,
+                      scale: l.RightScale, offX: l.RightOffsetX, offY: l.RightOffsetY);
         }
 
-        // 設定單一立繪：套 sprite、亮/暗、有圖才啟用。
-        void SetAvatar(Image avatar, Sprite sprite, bool dim)
+        // 設定單一立繪：套 sprite、亮/暗、有圖才啟用；並依該句的縮放/位移調整大小與位置。
+        // 大小：高 = AvatarHeight × scale，寬依 **sprite 實際長寬比** 自動算（不同比例的 NPC 立繪不會被硬塞進主角比例的框）。
+        // 位置：在標準落點上加 (offX, offY)（+X 往右、+Y 往上；右側立繪雖水平鏡像，位移方向仍以畫面為準）。
+        void SetAvatar(Image avatar, Sprite sprite, bool dim, bool right,
+                       float scale = 1f, float offX = 0f, float offY = 0f)
         {
             avatar.sprite = sprite;
             avatar.enabled = sprite != null;
             avatar.color = dim ? DimmedColor : SpotlightColor;
+            if (sprite == null) return;
+
+            float h = AvatarHeight * Mathf.Max(0.05f, scale);
+            float aspect = sprite.rect.height > 0f ? sprite.rect.width / sprite.rect.height : AvatarAspect;
+            float w = h * aspect;
+
+            var rt = avatar.rectTransform;
+            rt.sizeDelta = new Vector2(w, h);
+
+            float boxTop = BottomMargin + BgH * (DisplayWidth / BgW);
+            float bottomY = boxTop - AvatarOverlap + offY;
+            rt.anchoredPosition = right
+                ? new Vector2(-(AvatarSideMargin + w * 0.5f) + offX, bottomY)
+                : new Vector2(AvatarSideMargin + offX, bottomY);
         }
 
         // 建一個立繪 Image：站姿、排在對話框「後方」（被對話框蓋住），貼畫面左下 / 右下角；底部 = 對話框上緣 - AvatarOverlap。

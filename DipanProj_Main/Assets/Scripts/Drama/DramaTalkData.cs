@@ -23,6 +23,11 @@ namespace Dipan.Drama
         public int SpotlightSide;    // 聚光側（說話者）：1 = 左、2 = 右（其餘 / 留空視為 1）
         public string Text;          // 對話內容（CSV 內 \n 會轉成換行）
 
+        // 立繪微調（選填欄位，空 = 預設）：Scale 乘在標準立繪高度上（1 = 原大小）；
+        // OffsetX/Y 為畫面位移（CanvasScaler 參考單位，+X 往右、+Y 往上）。左右各自獨立。
+        public float LeftScale = 1f, LeftOffsetX = 0f, LeftOffsetY = 0f;
+        public float RightScale = 1f, RightOffsetX = 0f, RightOffsetY = 0f;
+
         public Sprite LeftAvatar;    // 載好的左立繪（解析失敗 / 留空＝null，TalkPanel 自動隱藏）
         public Sprite RightAvatar;   // 載好的右立繪（同上）
     }

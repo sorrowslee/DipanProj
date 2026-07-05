@@ -68,6 +68,7 @@ namespace Dipan.Drama
             _groups.Clear();
 
             // 表頭：ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
+            //      [,LeftScale,LeftOffsetX,LeftOffsetY,RightScale,RightOffsetX,RightOffsetY]（選填，空=1/0/0，向下相容）
             var all = new List<DramaTalkData>();
             string[] lines = (text ?? "").Split('\n');
             for (int i = 1; i < lines.Length; i++)   // 第 0 行是表頭
@@ -88,6 +89,13 @@ namespace Dipan.Drama
                     RightAvatarPath = Field(v, 4),
                     SpotlightSide = (Field(v, 5) == "2") ? 2 : 1,   // 2 = 聚光右；其餘（含留空）= 聚光左
                     Text = Unescape(Field(v, 6)),
+                    // 立繪微調（選填）：縮放與 XY 位移，左右各自獨立（空 = 1 / 0 / 0）。
+                    LeftScale = F(Field(v, 7), 1f),
+                    LeftOffsetX = F(Field(v, 8), 0f),
+                    LeftOffsetY = F(Field(v, 9), 0f),
+                    RightScale = F(Field(v, 10), 1f),
+                    RightOffsetX = F(Field(v, 11), 0f),
+                    RightOffsetY = F(Field(v, 12), 0f),
                 };
                 all.Add(d);
             }
@@ -167,6 +175,11 @@ namespace Dipan.Drama
         }
 
         static string Field(string[] v, int i) => (i < v.Length && v[i] != null) ? v[i].Trim() : "";
+
+        // 選填數字欄：空/解析失敗 → fallback（立繪縮放/位移用）。
+        static float F(string s, float fallback)
+            => float.TryParse(s, System.Globalization.NumberStyles.Float,
+                              System.Globalization.CultureInfo.InvariantCulture, out float r) ? r : fallback;
         static string Unescape(string s) => string.IsNullOrEmpty(s) ? s : s.Replace("\\n", "\n");
 
         static string[] ParseCsvLine(string line)
