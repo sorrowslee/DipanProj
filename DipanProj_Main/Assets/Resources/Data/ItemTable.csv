@@ -14,3 +14,5 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 101,銅錢,Currency,None,UI/Icons/Items/item_copperCoins,999,可交易的銅錢,"通用貨幣　可於商店交易","串錢的紅繩早已褪色，銅錢卻被摩挲得發亮。",
 102,卷軸,Material,None,UI/Icons/Items/item_reel,99,神秘的卷軸,"合成材料","紙頁泛黃，唯一能辨認的是一個「歸」字。",
 103,符紙,Consumable,None,UI/Icons/Items/item_talismanPaper,99,驅邪的符紙,"消耗品　使用後短暫驅邪","貼上門楣的第七夜，符紙無火自燃。",
+
+104,劇本-紅嫁衣,Consumable,None,UI/Icons/Items/scripts/Script_RedBridalGown,1,劇本,邪佛給你的劇本,一夜之間，風雲變色,

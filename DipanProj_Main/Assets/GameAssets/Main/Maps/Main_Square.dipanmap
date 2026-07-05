@@ -628,7 +628,7 @@
       "regions": [
         {
           "id": "2e233143",
-          "name": "鏡頭區1",
+          "name": "邪佛全貌",
           "typeId": "camZone",
           "cells": [
             [
@@ -695,12 +695,13 @@
           "params": {
             "zoom": "1.8",
             "offsetX": "",
-            "offsetY": "8"
+            "offsetY": "8",
+            "next": "邪佛對話"
           }
         },
         {
           "id": "972cd1be",
-          "name": "傳送點1",
+          "name": "劇本開門",
           "typeId": "teleport",
           "cells": [
             [
@@ -716,7 +717,10 @@
             "entranceId": "mainSqure_door",
             "targetMapId": "1",
             "targetEntrance": "",
-            "showMarker": false
+            "showMarker": false,
+            "startDisabled": true,
+            "enableFlag": "hallGateOpen",
+            "linkedFx": "2d656e16"
           }
         },
         {
@@ -759,6 +763,83 @@
             "targetMapId": "",
             "targetEntrance": "",
             "showMarker": false
+          }
+        },
+        {
+          "id": "17f35248",
+          "name": "邪佛對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "3",
+            "next": "給紅嫁衣劇本",
+            "requireFlag": "!hallGateOpen"
+          }
+        },
+        {
+          "id": "caab8f43",
+          "name": "給紅嫁衣劇本",
+          "typeId": "giveItem",
+          "cells": [
+            [
+              88,
+              48
+            ]
+          ],
+          "params": {
+            "itemId": "104",
+            "count": "1",
+            "next": "劇本開門"
+          }
+        },
+        {
+          "id": "dbe0787a",
+          "name": "初入場景對話",
+          "typeId": "drama",
+          "cells": [
+            [
+              43,
+              42
+            ],
+            [
+              44,
+              42
+            ],
+            [
+              45,
+              42
+            ],
+            [
+              46,
+              42
+            ],
+            [
+              46,
+              43
+            ],
+            [
+              46,
+              44
+            ],
+            [
+              45,
+              44
+            ],
+            [
+              44,
+              44
+            ],
+            [
+              43,
+              44
+            ],
+            [
+              43,
+              43
+            ]
+          ],
+          "params": {
+            "dramaId": "4"
           }
         }
       ]

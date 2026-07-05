@@ -179,6 +179,15 @@
       "frameCount": 1
     },
     {
+      "id": "Main/Talk/Buddha/Buddha_normal",
+      "path": "Main/Talk/Buddha/Buddha_normal.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1122,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Main/Monsters/SequenceImage/ZhaYu/idle",
       "path": "Main/Monsters/SequenceImage/ZhaYu/idle/idle_01.png",
       "category": "Monsters",

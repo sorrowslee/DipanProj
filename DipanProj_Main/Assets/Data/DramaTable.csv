@@ -1,3 +1,5 @@
 ID,ImagePath,Text,Type,TalkGroup
 1,Modules/RedBridalGown/Drama/drama_groupPhoto,一張和樂融融的全家福相片,1,
-2,,,2,1
+2,,跟紅嫁衣的對話,2,1
+3,,初始遊戲跟邪佛的對話，給予紅嫁衣劇本,2,2
+4,,初始遊戲剛出洞窟跟邪佛的對話,2,3
