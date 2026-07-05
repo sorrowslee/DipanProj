@@ -267,8 +267,21 @@ public class MapManager : MonoBehaviour
         _camera.Apply(mapLoader.Map, mode, _player != null ? _player.transform : null);
     }
 
+    /// <summary>
+    /// 觸發鏈解鎖/旗標變動後重建互動點（星星/提示要即時出現或消失）。
+    /// teleport/cutscene 是每幀動態判定（TriggerChain.IsActive），不需重建。由 TriggerChain 呼叫。
+    /// </summary>
+    public void RefreshTriggers()
+    {
+        if (InteractionManager.Exists) InteractionManager.Instance.RebuildPoints();
+    }
+
     void SetupWatcher()
     {
+        // 觸發鏈：先重建（計算 startDisabled/enableFlag 的初始啟用狀態、藏綠幕），
+        // 之後的 watcher / 互動點建立都會查它過濾。見 TriggerChain / readme/TRIGGER_CHAIN.md。
+        TriggerChain.Setup(mapLoader.Map, this, mapLoader.SceneFxById);
+
         if (_watcher == null)
             _watcher = GetComponent<TeleportWatcher>() ?? gameObject.AddComponent<TeleportWatcher>();
         _watcher.Setup(mapLoader.Map, mapLoader.teleportTypeId,

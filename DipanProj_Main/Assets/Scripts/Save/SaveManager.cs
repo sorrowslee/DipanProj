@@ -338,6 +338,23 @@ namespace Dipan.Save
         public bool IsModuleUnlocked(string moduleId)
             => _current != null && !string.IsNullOrEmpty(moduleId) && _current.progress.unlockedModules.Contains(moduleId);
 
+        /// <summary>自訂進度旗標是否成立（progress.flags[key] == "1"）。給觸發鏈的 requireFlag/enableFlag 等用，見 readme/TRIGGER_CHAIN.md。</summary>
+        public bool GetFlag(string key)
+            => _current != null && !string.IsNullOrEmpty(key)
+               && _current.progress.flags != null
+               && _current.progress.flags.TryGetValue(key, out var v) && v == "1";
+
+        /// <summary>寫自訂進度旗標（預設 "1"）。idempotent；跟其他進度一樣走 MarkDirty → SaveNow 落盤。</summary>
+        public void SetFlag(string key, string value = "1")
+        {
+            if (_current == null || string.IsNullOrEmpty(key)) return;
+            if (_current.progress.flags == null) _current.progress.flags = new System.Collections.Generic.Dictionary<string, string>();
+            if (_current.progress.flags.TryGetValue(key, out var old) && old == value) return;
+            _current.progress.flags[key] = value;
+            MarkDirty();
+            Debug.Log($"[SaveManager] 旗標 {key} = {value}");
+        }
+
         /// <summary>加錢（可為負，但不會低於 0；扣錢建議用 TrySpendCurrency）。</summary>
         public void AddCurrency(int amount)
         {

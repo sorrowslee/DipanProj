@@ -24,6 +24,11 @@ namespace Dipan.UI
         Text _text;
         RectTransform _imageRt;
 
+        protected override void OnClose()
+        {
+            TriggerChain.NotifyDramaClosed();   // 觸發鏈：劇情關閉 = 該劇情點動作完成（無待結鏈時無事）
+        }
+
         /// <summary>開啟並顯示指定劇情（找不到資料則印警告、不開）。任何系統可呼叫。</summary>
         public static void Show(int dramaId)
         {

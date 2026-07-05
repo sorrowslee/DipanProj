@@ -193,6 +193,7 @@ namespace Dipan.UI
         protected override void OnClose()
         {
             _lines = null;
+            TriggerChain.NotifyDramaClosed();   // 觸發鏈：對話關閉 = 該劇情點動作完成（無待結鏈時無事）
         }
 
         // 座標映射：錨到 frame 左上角、anchoredPosition=(px,-py)（與 SettingsPanel / ConfirmPopup 一致）

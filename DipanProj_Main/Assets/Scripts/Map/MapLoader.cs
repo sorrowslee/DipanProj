@@ -425,8 +425,13 @@ public class MapLoader : MonoBehaviour
     }
 
     // ---- 場景特效（可放置的粒子特效，煙/火/冰/毒…；由編輯器 map.sceneFx 放置，SceneFxTable 定義外觀）----
+
+    /// <summary>本張地圖的場景特效實例（sceneFx 的 id → 場上物件）。給觸發鏈 linkedFx 顯示/隱藏綠幕用（見 TriggerChain），換圖時重建。</summary>
+    public readonly Dictionary<string, GameObject> SceneFxById = new Dictionary<string, GameObject>();
+
     void BuildSceneFx()
     {
+        SceneFxById.Clear();
         if (_map?.sceneFx == null || _map.sceneFx.Count == 0) return;
 
         var root = new GameObject("SceneFx");
@@ -443,6 +448,7 @@ public class MapLoader : MonoBehaviour
             var go = new GameObject($"SceneFx_{fx.fxId}");
             go.transform.SetParent(root.transform, false);
             go.transform.position = start;
+            if (!string.IsNullOrEmpty(fx.id)) SceneFxById[fx.id] = go;
 
             if (look.kind == 1)
             {

@@ -64,6 +64,9 @@ public class CutsceneWatcher : MonoBehaviour
         Vector2Int cell = MapCoords.WorldToCell(_player.position, _map);
         bool on = _cells.TryGetValue(Key(cell.x, cell.y), out var region);
 
+        // 觸發鏈：停用中或 requireFlag 不成立的過場點，踩到視同沒踩（每幀動態判定）。見 TriggerChain。
+        if (on && !TriggerChain.IsActive(region)) on = false;
+
         if (!_armed)
         {
             if (!on) _armed = true;   // 著陸/出生時若剛好站在觸發點上，離開後才武裝

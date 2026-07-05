@@ -47,6 +47,10 @@ public class TeleportWatcher : MonoBehaviour
         Vector2Int cell = MapCoords.WorldToCell(_player.position, _map);
         bool onTeleport = _cells.TryGetValue(Key(cell.x, cell.y), out var region);
 
+        // 觸發鏈：停用中（startDisabled 未解鎖）或 requireFlag 不成立的傳送點，踩到視同沒踩（不消耗武裝）。
+        // 每幀動態判定 → 被鏈解鎖的瞬間即可生效，不必重建格表。見 TriggerChain。
+        if (onTeleport && !TriggerChain.IsActive(region)) onTeleport = false;
+
         if (!_armed)
         {
             if (!onTeleport) _armed = true;   // 離開傳送點 → 武裝

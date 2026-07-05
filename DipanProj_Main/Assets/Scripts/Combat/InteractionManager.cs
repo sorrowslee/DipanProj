@@ -72,6 +72,7 @@ public class InteractionManager : MonoBehaviour
         public int dramaId;
         public bool autoTrigger;        // Type 2（頭像對話）：碰到自動觸發、不顯示「按 F」提示
         // 共用
+        public TriggerRegion region;    // 來源 trigger（觸發鏈 next/setFlag 用，見 TriggerChain）
         public Vector2[] cellCenters;   // 區域各格中心（世界座標）
         public Vector2 center;          // 區域中心（提示與星星位置）
         public GameObject marker;       // 星星特效物件
@@ -79,6 +80,8 @@ public class InteractionManager : MonoBehaviour
 
     readonly List<GroundLoot> _loot = new List<GroundLoot>();
     readonly List<InteractPoint> _points = new List<InteractPoint>();
+    readonly HashSet<string> _consumed = new HashSet<string>();  // 本次停留已消耗的點（重建互動點時不復活）
+    MapData _lastMap; string _lastPickupT, _lastDramaT;          // RebuildPoints 用
     Transform _player;
     PickupTipPanel _tip;
 
@@ -94,10 +97,21 @@ public class InteractionManager : MonoBehaviour
     /// <summary>讀當前地圖的 pickup / drama trigger，建立互動點 + 星星標示。每次換圖由 MapManager 呼叫（會先清舊的）。</summary>
     public void SetupInteractPoints(MapData map, string pickupTypeId, string dramaTypeId)
     {
+        _consumed.Clear();   // 換圖 = 新的一次停留（當次停留記憶重置；永久化屬 Phase 2）
+        _lastMap = map; _lastPickupT = pickupTypeId; _lastDramaT = dramaTypeId;
+        BuildPoints();
+    }
+
+    /// <summary>重建互動點但**保留**本次停留的已消耗記錄（觸發鏈解鎖/旗標變動後由 MapManager.RefreshTriggers 呼叫）。</summary>
+    public void RebuildPoints() => BuildPoints();
+
+    void BuildPoints()
+    {
         ClearPoints();
+        var map = _lastMap;
         if (map?.TriggerLayer?.regions == null) return;
-        string pickupT = string.IsNullOrEmpty(pickupTypeId) ? "pickup" : pickupTypeId;
-        string dramaT = string.IsNullOrEmpty(dramaTypeId) ? "drama" : dramaTypeId;
+        string pickupT = string.IsNullOrEmpty(_lastPickupT) ? "pickup" : _lastPickupT;
+        string dramaT = string.IsNullOrEmpty(_lastDramaT) ? "drama" : _lastDramaT;
         var inv = InventorySystem.Instance;
 
         foreach (var r in map.TriggerLayer.regions)
@@ -106,6 +120,8 @@ public class InteractionManager : MonoBehaviour
             bool isPickup = r.typeId == pickupT;
             bool isDrama = r.typeId == dramaT;
             if (!isPickup && !isDrama) continue;
+            if (_consumed.Contains(r.id)) continue;      // 本次停留已消耗 → 不復活
+            if (!TriggerChain.IsActive(r)) continue;     // 停用中（startDisabled 未解鎖）或 requireFlag 不成立 → 隱形
 
             // 各格中心 + 區域中心。
             var centers = new List<Vector2>(r.cells.Count);
@@ -123,6 +139,7 @@ public class InteractionManager : MonoBehaviour
             var pt = new InteractPoint
             {
                 id = r.id,
+                region = r,
                 cellCenters = centers.ToArray(),
                 center = center,
             };
@@ -309,12 +326,15 @@ public class InteractionManager : MonoBehaviour
         }
 
         ConsumePoint(pt);
+        TriggerChain.OnCompleted(pt.region);   // 觸發鏈：撿完 = 完成 → setFlag + 接 next
     }
 
     // 觸發劇情點（依 DramaTable 的 Type 分支，並消耗該點 = 當次停留不再觸發；離開地圖會重建）。
     void TriggerDrama(InteractPoint pt)
     {
         if (pt == null) return;
+
+        TriggerChain.CompleteAfterDrama(pt.region);     // 觸發鏈：等對話面板關閉才算完成（面板 OnClose 通知）
 
         var data = DramaDatabase.Instance.Get(pt.dramaId);
         if (data != null && data.Type == 2)
@@ -327,6 +347,7 @@ public class InteractionManager : MonoBehaviour
 
     void ConsumePoint(InteractPoint pt)
     {
+        _consumed.Add(pt.id);   // 當次停留不復活（RebuildPoints 會跳過）
         if (pt.marker != null) Destroy(pt.marker);
         _points.Remove(pt);
         HideTip();
