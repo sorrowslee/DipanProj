@@ -59,6 +59,29 @@ public class InteractionManager : MonoBehaviour
 
     enum PointKind { Pickup, Drama }
 
+    // 重複規則（編輯器「重複規則」欄；決定同一個互動點多久能再觸發一次）。
+    //   Visit（預設，空值）：每次進這張地圖觸發一次（當次停留消耗，離圖重進復活）。
+    //   Always：每次踩/按都觸發（不消耗；自動觸發型加「離開半徑才重新武裝」避免每幀洗版）。
+    //   Cycle：每周目觸發一次（觸發後寫周目自動旗標，輪迴會清 → 下周目再觸發）。
+    //   Life：整個角色一輩子一次（寫終身自動旗標，跨輪迴保存；開新角色才會再觸發）。
+    enum RepeatMode { Visit, Always, Cycle, Life }
+
+    static RepeatMode ParseRepeat(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return RepeatMode.Visit;
+        switch (s.Trim())
+        {
+            case "每次": case "always": return RepeatMode.Always;
+            case "每周目": case "cycle": return RepeatMode.Cycle;
+            case "永久": case "life": return RepeatMode.Life;
+            default: return RepeatMode.Visit;   // 「每次進場」/未知 → 預設
+        }
+    }
+
+    // Cycle/Life 用的自動旗標名（作者不用命名，系統以 trigger id 產生）。Life 加「永久:」前綴 → 存終身旗標。
+    static string SeenKey(RepeatMode m, string id)
+        => (m == RepeatMode.Life ? TriggerChain.LifePrefix : "") + "已觸發:" + id;
+
     /// <summary>一個地圖編輯器放置的互動點（拾取點或劇情點）。</summary>
     class InteractPoint
     {
@@ -76,6 +99,8 @@ public class InteractionManager : MonoBehaviour
         public Vector2[] cellCenters;   // 區域各格中心（世界座標）
         public Vector2 center;          // 區域中心（提示與星星位置）
         public GameObject marker;       // 星星特效物件
+        public RepeatMode repeat;       // 重複規則（見 RepeatMode）
+        public bool armedForAlways = true;  // 僅 Always 自動觸發用：玩家離開半徑後重新武裝，避免每幀狂觸發
     }
 
     readonly List<GroundLoot> _loot = new List<GroundLoot>();
@@ -123,6 +148,11 @@ public class InteractionManager : MonoBehaviour
             if (_consumed.Contains(r.id)) continue;      // 本次停留已消耗 → 不復活
             if (!TriggerChain.IsActive(r)) continue;     // 停用中（startDisabled 未解鎖）或 requireFlag 不成立 → 隱形
 
+            // 重複規則：每周目/永久 觸發過就不再現身（自動旗標依 scope 存周目/終身）。
+            var repeat = ParseRepeat(r.GetString("repeat"));
+            if ((repeat == RepeatMode.Cycle || repeat == RepeatMode.Life)
+                && TriggerChain.FlagTrue(SeenKey(repeat, r.id))) continue;
+
             // 各格中心 + 區域中心。
             var centers = new List<Vector2>(r.cells.Count);
             Vector2 sum = Vector2.zero;
@@ -142,6 +172,7 @@ public class InteractionManager : MonoBehaviour
                 region = r,
                 cellCenters = centers.ToArray(),
                 center = center,
+                repeat = repeat,
             };
 
             if (isPickup)
@@ -237,7 +268,20 @@ public class InteractionManager : MonoBehaviour
         {
             var ap = _points[i];
             if (!ap.autoTrigger) continue;
-            if (NearestCellSqr(ap, p) <= touchSqr)
+            bool inside = NearestCellSqr(ap, p) <= touchSqr;
+
+            if (ap.repeat == RepeatMode.Always)
+            {
+                // 不消耗：只有「離開半徑後再踏進」才觸發一次，避免站在裡面每幀狂觸發。
+                if (!inside) { ap.armedForAlways = true; continue; }
+                if (!ap.armedForAlways) continue;
+                ap.armedForAlways = false;
+                HideTip();
+                TriggerDrama(ap);
+                return;
+            }
+
+            if (inside)
             {
                 HideTip();
                 TriggerDrama(ap);   // 內含 ConsumePoint（移除星星、當次不再觸發）
@@ -325,6 +369,7 @@ public class InteractionManager : MonoBehaviour
                                           : $"背包已滿，{pt.name} 掉落地上");
         }
 
+        MarkRepeatSeen(pt);
         ConsumePoint(pt);
         TriggerChain.OnCompleted(pt.region);   // 觸發鏈：撿完 = 完成 → setFlag + 接 next
     }
@@ -342,11 +387,21 @@ public class InteractionManager : MonoBehaviour
         else
             DramaPanel.Show(pt.dramaId);                // Type 1（或找不到資料）：大圖 + 文字（現有）
 
+        MarkRepeatSeen(pt);
         ConsumePoint(pt);
+    }
+
+    // 每周目/永久：觸發後寫自動旗標，讓之後（跨停留、依 scope 跨輪迴）不再現身。
+    void MarkRepeatSeen(InteractPoint pt)
+    {
+        if (pt.repeat == RepeatMode.Cycle || pt.repeat == RepeatMode.Life)
+            TriggerChain.SetFlag(SeenKey(pt.repeat, pt.id));
     }
 
     void ConsumePoint(InteractPoint pt)
     {
+        // Always：不消耗（靠「離開半徑重新武裝」控制節奏），星星與互動點保留。
+        if (pt.repeat == RepeatMode.Always) { HideTip(); return; }
         _consumed.Add(pt.id);   // 當次停留不復活（RebuildPoints 會跳過）
         if (pt.marker != null) Destroy(pt.marker);
         _points.Remove(pt);

@@ -112,15 +112,28 @@ namespace DipanMapEditor.Data
         ///   enableFlag    解鎖狀態旗標名（解鎖時寫 1；重進地圖旗標成立就自動啟用）
         ///   requireFlag   旗標成立才可觸發；前綴 "!" 表否定（例 "!killedFamily"）
         ///   setFlag       完成後寫 1 的旗標名
-        /// 見主專案 readme/TRIGGER_CHAIN.md。
+        ///   requireCycleMax 周目 ≤ 此值才成立（初始限定填 1；留空=不限）
+        ///   requireCycleMin 周目 ≥ 此值才成立（老手限定用；留空=不限）
+        ///   requireItem     背包道具條件：填 itemId=「須有此道具」；前綴 "!"（如 !104）=「須無此道具」；留空=不檢查
+        ///   repeat          重複規則：每次進場(預設)/每次/每周目/永久，見主專案 readme/TRIGGER_CHAIN.md
+        /// 以上所有條件（含 requireFlag）以 AND 結算，全成立才觸發。旗標名可加 "永久:" 前綴＝跨輪迴保存。
         /// </summary>
         public static readonly List<TriggerParam> ChainParams = new List<TriggerParam>
         {
-            new TriggerParam { key = "next",          type = ParamType.String, label = "next(接續)" },
-            new TriggerParam { key = "startDisabled", type = ParamType.Bool,   label = "初始停用" },
-            new TriggerParam { key = "enableFlag",    type = ParamType.String, label = "解鎖旗標" },
-            new TriggerParam { key = "requireFlag",   type = ParamType.String, label = "條件旗標" },
-            new TriggerParam { key = "setFlag",       type = ParamType.String, label = "完成寫旗標" },
+            // ── 條件（可不可以觸發）──
+            new TriggerParam { key = "requireFlag",     type = ParamType.String, label = "條件旗標",   group = "條件", isFlagRef = true, flagNegatable = true },
+            new TriggerParam { key = "requireCycleMax", type = ParamType.Int,    label = "周目上限",   group = "條件" },
+            new TriggerParam { key = "requireCycleMin", type = ParamType.Int,    label = "周目下限",   group = "條件" },
+            new TriggerParam { key = "requireItem",     type = ParamType.String, label = "道具條件",   group = "條件" },
+            // ── 一次性（會不會重複觸發）──
+            new TriggerParam { key = "repeat",          type = ParamType.String, label = "重複規則",   group = "一次性",
+                               options = new [] { "每次進場", "每次", "每周目", "永久" } },
+            // ── 流程（觸發後做什麼）──
+            new TriggerParam { key = "next",            type = ParamType.String, label = "接續觸發",   group = "流程" },
+            new TriggerParam { key = "setFlag",         type = ParamType.String, label = "完成寫旗標", group = "流程", isFlagRef = true },
+            // ── 解鎖（位置型：等鏈解鎖）──
+            new TriggerParam { key = "startDisabled",   type = ParamType.Bool,   label = "初始停用",   group = "解鎖" },
+            new TriggerParam { key = "enableFlag",      type = ParamType.String, label = "解鎖旗標",   group = "解鎖", isFlagRef = true },
         };
     }
 
@@ -143,5 +156,9 @@ namespace DipanMapEditor.Data
         public ParamType type = ParamType.String;
         public string label;             // 面板顯示用（空＝顯示 key）
         public bool boolDefault = false; // Bool 參數新建區域時的預設勾選狀態
+        public string group;             // 面板分組小節標題（同組連續顯示在同一節；空＝不分組）
+        public string[] options;         // 有值時＝以「循環按鈕」在這幾個選項間切換（避免打錯字），取代文字輸入
+        public bool isFlagRef;           // 此欄的值是「旗標名」→ 面板改用旗標登記表下拉選（不手打）
+        public bool flagNegatable;       // 旗標欄可否定（條件旗標）：加「有/沒有」切換，沒有＝存成 "!名字"
     }
 }

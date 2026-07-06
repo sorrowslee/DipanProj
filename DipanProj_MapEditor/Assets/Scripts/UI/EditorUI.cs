@@ -72,6 +72,15 @@ namespace DipanMapEditor.UI
         Vector2 _loadScroll, _bgScroll;
         string _statusMsg = "";
 
+        // 旗標登記表（全域；觸發點的旗標欄從這裡選）
+        static FlagRegistry _flagReg = new FlagRegistry();
+        bool _showFlags;
+        Vector2 _flagScroll;
+        string _flagMsg = "";
+        string _newFlagName = "";
+        // 旗標欄「輸入 id → 按確認」的暫存輸入（key＝region id + "/" + 欄位 key；按確認成功後清掉）
+        static readonly Dictionary<string, string> _flagIdBuf = new Dictionary<string, string>();
+
         const string MapsDirPrefKey = "MapEditor.MapsDir";
         static string DefaultMapsDir => Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Maps");
         string _mapsDir;   // 當前存讀檔資料夾（可自選，PlayerPrefs 記住）
@@ -113,6 +122,7 @@ namespace DipanMapEditor.UI
         {
             _cam = FindObjectOfType<EditorCamera>();
             _objCtl = FindObjectOfType<Tools.ObjectController>();
+            _flagReg = FlagRegistryStore.Load();
             _mapsDir = PlayerPrefs.GetString(MapsDirPrefKey, DefaultMapsDir);
             if (MapSession.Instance != null && MapSession.Instance.Map == null)
                 _showNew = true;
@@ -169,6 +179,7 @@ namespace DipanMapEditor.UI
             if (_showSave && CenteredRect(460, 210).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showLoad && CenteredRect(460, 340).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showBg && CenteredRect(420, 280).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (_showFlags && CenteredRect(480, 420).Contains(new Vector2(mousePos.x, ty))) return true;
             if (CurrentTool == EditTool.Object && ObjCtl()?.Selected != null
                 && mousePos.x <= InspectorW && ty >= Screen.height - InspectorH)
                 return true;                                // 物件選取面板
@@ -203,6 +214,7 @@ namespace DipanMapEditor.UI
             if (_showSave) DrawSaveDialog();
             if (_showLoad) DrawLoadDialog();
             if (_showBg) DrawBgDialog();
+            if (_showFlags) DrawFlagManager();
         }
 
         void DrawTopBar()
@@ -243,6 +255,8 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("可走", GUILayout.Width(50))) CurrentTool = EditTool.Walkable;
             GUI.color = CurrentTool == EditTool.Trigger ? Color.cyan : Color.white;
             if (GUILayout.Button("Trigger", GUILayout.Width(70))) { CurrentTool = EditTool.Trigger; TriggerPaintMode = true; }
+            GUI.color = Color.white;   // 旗標不是工具，永遠白（否則會沿用上一顆 Trigger 的 cyan 而看起來被選取）
+            if (GUILayout.Button("旗標", GUILayout.Width(50))) { _showFlags = true; _flagMsg = ""; }
             GUI.color = CurrentTool == EditTool.SceneFx ? Color.cyan : Color.white;
             if (GUILayout.Button("場景特效", GUILayout.Width(80))) CurrentTool = EditTool.SceneFx;
             GUI.color = Color.white;
@@ -845,11 +859,21 @@ namespace DipanMapEditor.UI
                     foreach (var p in def.paramSchema) DrawParamField(CurrentRegion, p);
                 }
 
-                // 觸發鏈通用欄位（每種類型都有；遊戲端 TriggerChain 解讀，見主專案 readme/TRIGGER_CHAIN.md）。
+                // 觸發鏈通用欄位（每種類型都有；遊戲端 TriggerChain 解讀）。依 group 分小節顯示。
                 GUILayout.Space(4);
                 GUILayout.Label("── 觸發鏈/條件（通用）──");
-                foreach (var p in TriggerTypeSet.ChainParams) DrawParamField(CurrentRegion, p);
-                GUILayout.Label("next 填另一個 trigger 的名稱；\n動作型(給物品/直接傳送)被鏈到\n=立即執行，位置型=解鎖啟用。");
+                string lastGroup = null;
+                foreach (var p in TriggerTypeSet.ChainParams)
+                {
+                    if (!string.IsNullOrEmpty(p.group) && p.group != lastGroup)
+                    {
+                        GUILayout.Space(2);
+                        GUILayout.Label($"◆ {p.group}");
+                        lastGroup = p.group;
+                    }
+                    DrawParamField(CurrentRegion, p);
+                }
+                GUILayout.Label("接續觸發＝填另一個區域的名稱；\n動作型(給物品/直接傳送)被接續到\n＝立即執行，位置型＝解鎖啟用。");
 
                 GUILayout.Label("左鍵拖曳加/減格。");
             }
@@ -897,7 +921,20 @@ namespace DipanMapEditor.UI
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(string.IsNullOrEmpty(p.label) ? p.key : p.label, GUILayout.Width(90));
-            if (p.type == ParamType.Bool)
+            if (p.isFlagRef)
+            {
+                DrawFlagField(r, p);
+            }
+            else if (p.options != null && p.options.Length > 0)
+            {
+                // 循環按鈕：在固定選項間切換，避免打錯字。留空＝顯示第一個選項(＝預設)。
+                string cur = (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString() : "";
+                int idx = System.Array.IndexOf(p.options, cur);
+                string shown = idx >= 0 ? cur : p.options[0];
+                if (GUILayout.Button(shown))
+                    r.Params[p.key] = p.options[idx < 0 ? 0 : (idx + 1) % p.options.Length];
+            }
+            else if (p.type == ParamType.Bool)
             {
                 bool cur = r.Params.TryGetValue(p.key, out var v) && v is bool b && b;
                 bool next = GUILayout.Toggle(cur, cur ? "true" : "false");
@@ -910,6 +947,110 @@ namespace DipanMapEditor.UI
                 if (next != cur) r.Params[p.key] = next;
             }
             GUILayout.EndHorizontal();
+        }
+
+        // 旗標欄：輸入「旗標 id」→ 按「確認」→ 查登記表把名稱填上並鎖定 → 出現「刪除」清空回可輸入。
+        // 存進地圖的只有「裸名字」（＋條件旗標的否定 !）；生命週期由登記表決定，遊戲端查表（方案乙、單一來源）。
+        static void DrawFlagField(TriggerRegion r, TriggerParam p)
+        {
+            string cur = (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString().Trim() : "";
+            bool neg = cur.StartsWith("!");
+            string bare = neg ? cur.Substring(1).Trim() : cur;
+
+            if (!string.IsNullOrEmpty(bare))
+            {
+                // 已配置 → 鎖定顯示名稱（＋生命週期）；條件旗標多一顆「有/沒有」切換；一顆「刪除」清空。
+                bool known = _flagReg != null && _flagReg.Contains(bare);
+                if (p.flagNegatable && known)
+                    if (GUILayout.Button(neg ? "沒有" : "有", GUILayout.Width(44)))
+                        r.Params[p.key] = (neg ? "" : "!") + bare;
+                GUILayout.Label(known ? DisplayFlag(bare) : bare + "（未登記）");
+                if (GUILayout.Button("刪除", GUILayout.Width(50)))
+                {
+                    r.Params[p.key] = "";
+                    _flagIdBuf.Remove(BufKey(r, p));
+                }
+                return;
+            }
+
+            // 未配置 → 輸入 id + 確認。沒按確認、或查無 id，就不會有名稱出現＝未配置成功。
+            string bk = BufKey(r, p);
+            string buf = _flagIdBuf.TryGetValue(bk, out var b) ? b : "";
+            GUILayout.Label("id", GUILayout.Width(16));
+            _flagIdBuf[bk] = GUILayout.TextField(buf, GUILayout.Width(46));
+            if (GUILayout.Button("確認", GUILayout.Width(50)))
+            {
+                if (int.TryParse(_flagIdBuf[bk], out int id) && _flagReg != null && _flagReg.FindById(id) is FlagDef f && f != null)
+                {
+                    r.Params[p.key] = f.name;   // 查到 → 填名稱（鎖定）。預設「有」；要「沒有」再按切換。
+                    _flagIdBuf.Remove(bk);
+                }
+                // 查無 → 保留輸入、不填名稱（作者看不到名稱＝知道沒配成功）。
+            }
+        }
+
+        static string BufKey(TriggerRegion r, TriggerParam p) => (r?.id ?? "") + "/" + p.key;
+
+        // 顯示旗標名＋生命週期（讓作者一眼看到這旗標是周目還是永久）。
+        static string DisplayFlag(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return "（未設）";
+            var f = _flagReg?.Find(name);
+            return f != null ? $"{name}（{f.ScopeLabel}）" : name;
+        }
+
+        // 旗標管理器：集中管理所有具名旗標的名稱與生命週期（周目/永久）。觸發點的旗標欄一律從這裡選。
+        void DrawFlagManager()
+        {
+            const int w = 480, h = 420;
+            GUILayout.BeginArea(CenteredRect(w, h), GUI.skin.box);
+            GUILayout.Label("旗標管理器（名稱＋生命週期）");
+
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("自動匯入地圖旗標", GUILayout.Width(140)))
+            {
+                var added = FlagRegistryStore.ImportUsedFlags(_flagReg);
+                _flagMsg = added.Count > 0 ? $"匯入 {added.Count} 個：{string.Join("、", added)}" : "沒有新的旗標可匯入。";
+            }
+            if (GUILayout.Button("儲存", GUILayout.Width(60)))
+            {
+                FlagRegistryStore.Save(_flagReg);
+                _flagMsg = "已儲存 flags.json（記得跑「刷新素材」或同步腳本帶進遊戲）。";
+            }
+            if (GUILayout.Button("關閉", GUILayout.Width(60))) _showFlags = false;
+            GUILayout.EndHorizontal();
+
+            // 新增一列
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("新增", GUILayout.Width(36));
+            _newFlagName = GUILayout.TextField(_newFlagName ?? "");
+            if (GUILayout.Button("＋", GUILayout.Width(30)))
+            {
+                if (_flagReg.Add(_newFlagName)) { _flagMsg = $"已新增「{_newFlagName.Trim()}」（預設周目）"; _newFlagName = ""; }
+                else _flagMsg = "名稱空白或已存在。";
+            }
+            GUILayout.EndHorizontal();
+
+            GUILayout.Label("id　名稱　　　　　　　生命週期　操作（觸發點填 id 選旗標）");
+            _flagScroll = GUILayout.BeginScrollView(_flagScroll, GUILayout.Height(250));
+            int removeAt = -1;
+            for (int i = 0; i < _flagReg.flags.Count; i++)
+            {
+                var f = _flagReg.flags[i];
+                GUILayout.BeginHorizontal();
+                GUILayout.Label(f.id.ToString(), GUILayout.Width(28));
+                f.name = GUILayout.TextField(f.name ?? "", GUILayout.Width(200));
+                if (GUILayout.Button(f.ScopeLabel, GUILayout.Width(60)))    // 周目 ↔ 永久
+                    f.scope = f.IsLife ? FlagDef.ScopeCycle : FlagDef.ScopeLife;
+                if (GUILayout.Button("刪除", GUILayout.Width(50))) removeAt = i;
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.EndScrollView();
+            if (removeAt >= 0) _flagReg.flags.RemoveAt(removeAt);
+
+            GUILayout.Label("改名不會自動更新已放好的觸發點；\n刪除/改名後記得到相關觸發點重選。");
+            if (!string.IsNullOrEmpty(_flagMsg)) GUILayout.Label(_flagMsg);
+            GUILayout.EndArea();
         }
 
         void DrawSceneFxPanel()

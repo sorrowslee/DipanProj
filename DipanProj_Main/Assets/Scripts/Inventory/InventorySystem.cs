@@ -142,6 +142,19 @@ namespace Dipan.Inventory
             return false;
         }
 
+        /// <summary>背包內某 itemId 的總數量（加總所有堆）。只算背包格，不含裝備欄。供觸發鏈條件（道具條件 requireItem）用。</summary>
+        public int CountOf(int itemId)
+        {
+            if (itemId <= 0 || _grid == null) return 0;
+            int total = 0;
+            for (int i = 0; i < GridCount; i++)
+                if (_grid[i].ItemId == itemId) total += _grid[i].Count;
+            return total;
+        }
+
+        /// <summary>背包是否含有此 itemId（至少 1 個）。只算背包格，不含裝備欄。</summary>
+        public bool Has(int itemId) => CountOf(itemId) > 0;
+
         // ───────────── 操作 ─────────────
 
         /// <summary>加入物品（先疊到既有同物品堆、再放空格）。回傳「放不下的剩餘數量」（0 = 全放進去）。</summary>

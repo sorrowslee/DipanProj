@@ -184,7 +184,16 @@ for module, base in source_dirs():
         shutil.copy2(abs_src, abs_dst)
         map_count += 1
 
-print(f"[sync_map_assets] 從編輯器拉入 {pulled} 張地圖；推送 {len(items)} 筆素材、{map_count} 張地圖 → {dst_root}")
+# 旗標登記表 flags.json（編輯器旗標管理器產出）：從 DipanProj_MapEditor/flags.json 帶進 StreamingAssets/MapAssets/，
+# 供遊戲端 FlagRegistry 查旗標生命週期（周目/永久）。找不到就略過（尚未建登記表時）。
+flag_src = os.path.normpath(os.path.join(editor_maps, '..', 'flags.json'))
+flag_copied = False
+if os.path.isfile(flag_src):
+    shutil.copy2(flag_src, os.path.join(dst_root, 'flags.json'))
+    flag_copied = True
+
+print(f"[sync_map_assets] 從編輯器拉入 {pulled} 張地圖；推送 {len(items)} 筆素材、{map_count} 張地圖"
+      f"{'、flags.json' if flag_copied else ''} → {dst_root}")
 for it in items:
     print("   ", it["module"], it["category"], it["id"])
 PY

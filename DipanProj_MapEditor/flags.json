@@ -1,0 +1,9 @@
+{
+  "flags": [
+    {
+      "id": 1,
+      "name": "hallGateOpen",
+      "scope": "cycle"
+    }
+  ]
+}

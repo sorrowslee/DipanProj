@@ -38,6 +38,9 @@ public static class TriggerChain
     const string KeyRequireFlag = "requireFlag";
     const string KeySetFlag = "setFlag";
     const string KeyLinkedFx = "linkedFx";
+    const string KeyRequireCycleMax = "requireCycleMax";
+    const string KeyRequireCycleMin = "requireCycleMin";
+    const string KeyRequireItem = "requireItem";   // 填 itemId=須有；"!itemId"=須無
 
     static MapData _map;
     static MapManager _manager;
@@ -73,15 +76,62 @@ public static class TriggerChain
     /// <summary>此 trigger 目前是否停用（startDisabled 未解鎖）。停用 = 踩到/按 F 都無反應、不顯示星星。</summary>
     public static bool IsDisabled(TriggerRegion r) => r != null && _disabled.Contains(r.id);
 
-    /// <summary>requireFlag 條件是否成立（沒填 = 成立；"!flag" = 否定）。</summary>
+    /// <summary>
+    /// 觸發條件是否全部成立（AND）。沒填的條件視為通過。目前支援：
+    ///   requireFlag     旗標成立（"!flag" = 否定；旗標名可加 "永久:" 前綴＝終身旗標）
+    ///   requireCycleMax 周目 ≤ 值（初始限定填 1）
+    ///   requireCycleMin 周目 ≥ 值（老手限定）
+    ///   requireItem     背包道具：填 itemId=須有；"!itemId"=須無
+    /// </summary>
     public static bool RequirementMet(TriggerRegion r)
     {
-        string req = r?.GetString(KeyRequireFlag);
-        if (string.IsNullOrEmpty(req)) return true;
-        bool neg = req.StartsWith("!");
-        if (neg) req = req.Substring(1).Trim();
-        if (string.IsNullOrEmpty(req)) return true;
-        return FlagTrue(req) != neg;
+        if (r == null) return true;
+
+        // 1) 旗標
+        string req = r.GetString(KeyRequireFlag);
+        if (!string.IsNullOrEmpty(req))
+        {
+            bool neg = req.StartsWith("!");
+            string key = neg ? req.Substring(1).Trim() : req.Trim();
+            if (!string.IsNullOrEmpty(key) && FlagTrue(key) == neg) return false;
+        }
+
+        // 2) 周目（無存檔時視為第 1 周目，讓單場景測試照樣看得到初始劇情）
+        int cycle = CurrentCycle();
+        string maxS = r.GetString(KeyRequireCycleMax);
+        if (!string.IsNullOrEmpty(maxS) && int.TryParse(maxS, out int cMax) && cycle > cMax) return false;
+        string minS = r.GetString(KeyRequireCycleMin);
+        if (!string.IsNullOrEmpty(minS) && int.TryParse(minS, out int cMin) && cycle < cMin) return false;
+
+        // 3) 背包道具（無背包系統時 count 視為 0）。"!itemId"＝須無、"itemId"＝須有。
+        string itemS = r.GetString(KeyRequireItem);
+        if (!string.IsNullOrEmpty(itemS))
+        {
+            bool mustNotHave = itemS.StartsWith("!");
+            string ids = mustNotHave ? itemS.Substring(1).Trim() : itemS.Trim();
+            if (int.TryParse(ids, out int iid) && iid > 0)
+            {
+                bool has = ItemCount(iid) > 0;
+                if (has == mustNotHave) return false;   // 須無卻有、或 須有卻無 → 擋
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>目前周目（= SaveManager.Cycle）；無存檔/無角色時退回 1（＝初始進度），讓單場景測試照常。</summary>
+    static int CurrentCycle()
+    {
+        var sm = SaveManager.Instance;
+        int c = sm != null ? sm.Cycle : 1;
+        return c <= 0 ? 1 : c;
+    }
+
+    /// <summary>背包內某 itemId 的數量；無背包系統時回 0。</summary>
+    static int ItemCount(int itemId)
+    {
+        var inv = InventorySystem.Instance;
+        return inv != null ? inv.CountOf(itemId) : 0;
     }
 
     /// <summary>踩踏/互動型 watcher 的統一入口：停用中或條件不成立 → 此 trigger 視同不存在。</summary>
@@ -231,11 +281,26 @@ public static class TriggerChain
 
     // ───────────────────────── 旗標（存檔 progress.flags；無存檔時退回記憶體） ─────────────────────────
 
+    // 旗標的生命範圍怎麼決定（方案乙）：
+    //   1) 名字帶「永久:」前綴 → 終身（給重複規則的自動旗標、與舊資料相容用）。
+    //   2) 否則查旗標登記表 flags.json（FlagRegistry）：登記為 life → 終身，否則周目。
+    // 終身存 CharacterSave.lifetimeFlags（跨輪迴）；周目存 progress.flags（輪迴清）。
+    // 無 SaveManager（單場景測試）時退回記憶體 _memFlags（用原 key，行為一致但不持久）。
+    public const string LifePrefix = "永久:";
+
+    // 回傳（是否終身, 去掉前綴的存檔用 key）。
+    static (bool life, string name) Resolve(string key)
+    {
+        if (key.StartsWith(LifePrefix)) return (true, key.Substring(LifePrefix.Length));
+        return (FlagRegistry.IsLife(key), key);
+    }
+
     public static bool FlagTrue(string key)
     {
         if (string.IsNullOrEmpty(key)) return false;
         var sm = SaveManager.Instance;
-        if (sm != null) return sm.GetFlag(key);
+        var (life, name) = Resolve(key);
+        if (sm != null) return life ? sm.GetLifetimeFlag(name) : sm.GetFlag(name);
         return _memFlags.TryGetValue(key, out var v) && v == "1";
     }
 
@@ -243,7 +308,8 @@ public static class TriggerChain
     {
         if (string.IsNullOrEmpty(key)) return;
         var sm = SaveManager.Instance;
-        if (sm != null) sm.SetFlag(key);
+        var (life, name) = Resolve(key);
+        if (sm != null) { if (life) sm.SetLifetimeFlag(name); else sm.SetFlag(name); }
         else _memFlags[key] = "1";
     }
 

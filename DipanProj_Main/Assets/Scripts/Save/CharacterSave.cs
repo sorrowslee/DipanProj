@@ -27,6 +27,11 @@ namespace Dipan.Save
         public StatsDTO stats = new StatsDTO();
         public ProgressDTO progress = new ProgressDTO();
         public Dictionary<string, object> mapStates = new Dictionary<string, object>();   // 對接 MAP_SYSTEM Phase 2
+
+        // ── 終身旗標（跨輪迴保存；只有開新角色才空）──
+        // 與 progress.flags（周目旗標，輪迴會清）分開。觸發鏈以旗標名前綴「永久:」路由到這裡。
+        // 放在頂層＝ReincarnateInPlace 只換 stats/progress，不會動到它。見 readme/TRIGGER_CHAIN.md。
+        public Dictionary<string, string> lifetimeFlags = new Dictionary<string, string>();
     }
 
     /// <summary>角色屬性（待屬性系統，先佔位）。</summary>

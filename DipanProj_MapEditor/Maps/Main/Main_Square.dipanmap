@@ -773,7 +773,8 @@
           "params": {
             "dramaId": "3",
             "next": "給紅嫁衣劇本",
-            "requireFlag": "!hallGateOpen"
+            "requireCycleMax": "1",
+            "requireItem": "!104"
           }
         },
         {
@@ -789,7 +790,9 @@
           "params": {
             "itemId": "104",
             "count": "1",
-            "next": "劇本開門"
+            "next": "劇本開門",
+            "requireCycleMax": "1",
+            "requireItem": "!104"
           }
         },
         {
@@ -839,7 +842,8 @@
             ]
           ],
           "params": {
-            "dramaId": "4"
+            "dramaId": "4",
+            "repeat": "永久"
           }
         }
       ]

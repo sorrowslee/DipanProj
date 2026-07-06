@@ -355,6 +355,23 @@ namespace Dipan.Save
             Debug.Log($"[SaveManager] 旗標 {key} = {value}");
         }
 
+        /// <summary>終身旗標是否成立（lifetimeFlags[key] == "1"）。跨輪迴保存，只有開新角色才空。觸發鏈以「永久:」前綴路由到這裡。</summary>
+        public bool GetLifetimeFlag(string key)
+            => _current != null && !string.IsNullOrEmpty(key)
+               && _current.lifetimeFlags != null
+               && _current.lifetimeFlags.TryGetValue(key, out var v) && v == "1";
+
+        /// <summary>寫終身旗標（預設 "1"）。跨輪迴保存（ReincarnateInPlace 不動 lifetimeFlags）。</summary>
+        public void SetLifetimeFlag(string key, string value = "1")
+        {
+            if (_current == null || string.IsNullOrEmpty(key)) return;
+            if (_current.lifetimeFlags == null) _current.lifetimeFlags = new System.Collections.Generic.Dictionary<string, string>();
+            if (_current.lifetimeFlags.TryGetValue(key, out var old) && old == value) return;
+            _current.lifetimeFlags[key] = value;
+            MarkDirty();
+            Debug.Log($"[SaveManager] 終身旗標 {key} = {value}");
+        }
+
         /// <summary>加錢（可為負，但不會低於 0；扣錢建議用 TrySpendCurrency）。</summary>
         public void AddCurrency(int amount)
         {
