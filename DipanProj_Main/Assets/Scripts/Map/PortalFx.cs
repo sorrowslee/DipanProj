@@ -31,6 +31,12 @@ public class PortalFx : MonoBehaviour
         _fill.sprite = FillSprite();
         _fill.sortingOrder = _look.sortingOrder;
         _fill.transform.localScale = new Vector3(_size.x, _size.y, 1f);
+        // 用「相加(additive)」混合＝在暗背景上發光，綠幕才明顯（一般 alpha 混合在暗門洞裡會看起來很悶）。
+        // 找不到加法 shader 時退回預設材質（仍是 alpha 混合，至少不會壞）。
+        var addShader = Shader.Find("Legacy Shaders/Particles/Additive")
+                        ?? Shader.Find("Particles/Additive")
+                        ?? Shader.Find("Mobile/Particles/Additive");
+        if (addShader != null) _fill.material = new Material(addShader);
         _fill.color = WithAlpha(_look.peakAlpha);
     }
 
@@ -48,7 +54,7 @@ public class PortalFx : MonoBehaviour
     // ⚠️ 之前用 edge=min(ax,ay) 羽化 → 兩線性距離取 min 會在「對角線」形成脊線（帳篷函數的稜線），
     //    烘進貼圖放大後就是明顯的 X。改用「左右羽化 × 上下羽化」相乘（可分離）＝平滑圓角矩形、無對角脊線；
     //    縱向漸層改拋物線（無中央折線）。解析度也提高，放大後更平滑。
-    const float EdgeFeather = 0.18f;
+    const float EdgeFeather = 0.10f;   // 羽化縮小 → 中央實心區更大、綠幕更飽滿明顯
     static Sprite _fillShared;
     static Sprite FillSprite()
     {

@@ -94,6 +94,15 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 傳送門互動點：玩家靠近按 F → 開啟「放劇本」傳送門 UI；linkTeleport 指向按下開啟後要解鎖的傳送點。
+                typeId = "portal", displayName = "傳送門互動", color = "#FF8844",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "linkTeleport", type = ParamType.String, label = "要開的傳送點名" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 typeId = "camZone", displayName = "鏡頭區", color = "#66CCFF",
                 paramSchema = new List<TriggerParam>
                 {

@@ -264,8 +264,13 @@ namespace Dipan.UI
             var inv = InventorySystem.Instance;
             if (w.kind == InventorySlotWidget.Kind.Grid)
             {
+                var portal = ScriptsPanel.ActiveGridIfOpen();
                 var store = StoragePanel.ActivePageIfOpen();
-                if (store != null)
+                int clickedId = inv.GetGrid(w.index).ItemId;
+                var clickedData = clickedId > 0 ? inv.GetData(clickedId) : null;
+                if (portal != null && clickedData != null && clickedData.IsScript)
+                    InventoryActions.QuickMoveGrid(w, portal);  // 傳送門開著：點劇本 → 送進傳送門方框
+                else if (store != null)
                     InventoryActions.QuickMoveGrid(w, store);   // 倉庫開著：點一下送進倉庫當前分頁
                 else
                     inv.EquipFromGrid(w.index);                  // 否則維持原本：點可裝備物品 → 裝備
@@ -274,6 +279,17 @@ namespace Dipan.UI
             {
                 inv.Unequip(w.equipSlot);
             }
+        }
+
+        /// <summary>找出目前放著某道具的背包格 RectTransform（給新手教學手指/遮罩指向）；找不到回 null。</summary>
+        public RectTransform FindGridSlotRect(int itemId)
+        {
+            var inv = InventorySystem.Instance;
+            if (inv == null || _gridSlots == null) return null;
+            for (int i = 0; i < _gridSlots.Length; i++)
+                if (_gridSlots[i] != null && inv.GetGrid(i).ItemId == itemId)
+                    return (RectTransform)_gridSlots[i].transform;
+            return null;
         }
 
         /// <summary>並排（右移）或單獨（置中）。由 StorageBagCoordinator 呼叫。</summary>

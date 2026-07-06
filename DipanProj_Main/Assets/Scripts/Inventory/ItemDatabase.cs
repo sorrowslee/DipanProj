@@ -71,6 +71,9 @@ namespace Dipan.Inventory
                 d.TipLore = Unescape(Field(v, 8));
                 string weaponStr = Field(v, 9);
                 d.WeaponID = !string.IsNullOrWhiteSpace(weaponStr) ? int.Parse(weaponStr) : 0;
+                string targetStr = Field(v, 10);   // 劇本目的地（選填欄；舊表沒有這欄 → Field 回 "" → 0）
+                d.TargetMapId = !string.IsNullOrWhiteSpace(targetStr) ? int.Parse(targetStr) : 0;
+                d.TargetEntrance = Field(v, 11);
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

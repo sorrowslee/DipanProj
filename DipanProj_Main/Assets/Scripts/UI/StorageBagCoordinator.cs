@@ -27,17 +27,24 @@ namespace Dipan.UI
             var ui = UIManager.Instance;
             if (ui == null) return;
 
-            if (Input.GetKeyDown(storageKey)) ui.Toggle<StoragePanel>();
-            if (Input.GetKeyDown(bagKey)) ui.Toggle<InventoryPanel>();
+            // 新手教學強制階段：鎖住背包/倉庫快捷鍵，避免玩家亂開打斷引導。
+            if (!TutorialManager.HardLock)
+            {
+                if (Input.GetKeyDown(storageKey)) ui.Toggle<StoragePanel>();
+                if (Input.GetKeyDown(bagKey)) ui.Toggle<InventoryPanel>();
+            }
 
             // 依當前開啟狀態套用版面（idempotent，每幀套無妨）
             var store = ui.Get<StoragePanel>();
             var bag = ui.Get<InventoryPanel>();
+            var scripts = ui.Get<ScriptsPanel>();
             bool storeOpen = store != null && store.IsOpen;
             bool bagOpen = bag != null && bag.IsOpen;
-            bool paired = storeOpen && bagOpen;
-            if (storeOpen) store.SetPairedLayout(paired);
-            if (bagOpen) bag.SetPairedLayout(paired);
+            bool scriptsOpen = scripts != null && scripts.IsOpen;
+            // 背包在「倉庫」或「傳送門」任一開著時都靠右並排（讓左邊留給倉庫/傳送門）。
+            bool bagPaired = bagOpen && (storeOpen || scriptsOpen);
+            if (storeOpen) store.SetPairedLayout(storeOpen && bagOpen);
+            if (bagOpen) bag.SetPairedLayout(bagPaired);
         }
     }
 

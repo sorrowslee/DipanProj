@@ -26,7 +26,20 @@ namespace DipanMapEditor.IO
                 return defaults;
             }
             string json = File.ReadAllText(path);
-            return JsonConfig.Deserialize<TriggerTypeSet>(json) ?? TriggerTypeSet.Defaults();
+            var set = JsonConfig.Deserialize<TriggerTypeSet>(json) ?? new TriggerTypeSet();
+
+            // 合併：補上檔案裡缺的內建類型（例如新版新增的 portal），讓「內建新增」不必手動改 json。
+            // 只補 typeId 不存在的，保留使用者既有類型與參數；有補到才回寫。
+            var builtin = TriggerTypeSet.Defaults();
+            bool changed = false;
+            foreach (var d in builtin.types)
+                if (set.Find(d.typeId) == null) { set.types.Add(d); changed = true; }
+            if (changed)
+            {
+                Save(set, path);
+                Debug.Log("[TriggerTypeStore] 補上缺少的內建 trigger 類型（含新版新增，如 portal）。");
+            }
+            return set;
         }
 
         public static void Save(TriggerTypeSet set, string path = null)

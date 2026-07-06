@@ -47,6 +47,7 @@ public static class TriggerChain
     static Dictionary<string, GameObject> _fxById;          // sceneFx id → 場上物件（MapLoader 提供）
     static readonly HashSet<string> _disabled = new HashSet<string>();       // 目前停用中的 region id
     static readonly Dictionary<string, string> _memFlags = new Dictionary<string, string>(); // 無存檔時的後備旗標
+    static readonly Dictionary<string, (int mapId, string entrance)> _teleportOverride = new Dictionary<string, (int, string)>(); // 傳送門：執行期覆寫目的地（劇本決定）
 
     static TriggerRegion _pendingDramaRegion;   // 等「對話關閉」才算完成的 region（DramaPanel/TalkPanel 關閉時通知）
 
@@ -57,6 +58,7 @@ public static class TriggerChain
         _manager = manager;
         _fxById = fxById;
         _disabled.Clear();
+        _teleportOverride.Clear();   // 换图 → 清掉上一張圖的傳送門目的地覆寫
         _pendingDramaRegion = null;
 
         if (map?.TriggerLayer?.regions == null) return;
@@ -143,9 +145,13 @@ public static class TriggerChain
     /// 一個 trigger 的動作完成（撿完、對話關了、給完物品…）：寫 setFlag，然後啟動 next。
     /// 各觸發端（InteractionManager / 本類的動作執行）在動作真正結束時呼叫。
     /// </summary>
+    /// <summary>任何 trigger 的動作「完成」時廣播它的名字（新手教學等系統可據此反應，例如「初入場景對話」「邪佛全貌」）。</summary>
+    public static event System.Action<string> OnTriggerFired;
+
     public static void OnCompleted(TriggerRegion r)
     {
         if (r == null) return;
+        if (!string.IsNullOrEmpty(r.name)) OnTriggerFired?.Invoke(r.name);
         string set = r.GetString(KeySetFlag);
         if (!string.IsNullOrEmpty(set))
         {
@@ -280,6 +286,40 @@ public static class TriggerChain
     }
 
     // ───────────────────────── 旗標（存檔 progress.flags；無存檔時退回記憶體） ─────────────────────────
+
+    // ───────────────────────── 傳送門（放劇本開門）─────────────────────────
+
+    /// <summary>
+    /// 傳送門 UI 按下「開啟」時呼叫：把名為 teleportName 的傳送點目的地設成劇本指定的關卡，然後解鎖它（亮綠幕）。
+    /// 目的地由劇本決定（hub）→ 存執行期覆寫，TeleportWatcher 踩到時優先讀它。回傳是否成功（找得到傳送點）。
+    /// </summary>
+    public static bool OpenPortal(string teleportName, int targetMapId, string targetEntrance)
+    {
+        if (string.IsNullOrEmpty(teleportName))
+        {
+            Debug.LogWarning("[TriggerChain] OpenPortal：portal 互動點沒填「要開的傳送點名」(linkTeleport)，無法開門。");
+            return false;
+        }
+        var r = Find(teleportName.Trim());
+        if (r == null)
+        {
+            Debug.LogWarning($"[TriggerChain] OpenPortal：本地圖找不到傳送點「{teleportName}」。");
+            return false;
+        }
+        if (targetMapId > 0) _teleportOverride[r.id] = (targetMapId, targetEntrance ?? "");
+        EnableRegion(r);   // 解鎖 + 寫 enableFlag + 亮 linkedFx 綠幕 + RefreshTriggers
+        return true;
+    }
+
+    /// <summary>TeleportWatcher 用：這個傳送點有沒有被傳送門設定過執行期目的地覆寫。</summary>
+    public static bool TryGetTeleportOverride(string regionId, out int mapId, out string entrance)
+    {
+        if (!string.IsNullOrEmpty(regionId) && _teleportOverride.TryGetValue(regionId, out var v))
+        {
+            mapId = v.mapId; entrance = v.entrance; return true;
+        }
+        mapId = -1; entrance = ""; return false;
+    }
 
     // 旗標的生命範圍怎麼決定（方案乙）：
     //   1) 名字帶「永久:」前綴 → 終身（給重複規則的自動旗標、與舊資料相容用）。

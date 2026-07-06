@@ -1,149 +1,161 @@
 {
-  "types": [
+ "types": [
+  {
+   "typeId": "teleport",
+   "displayName": "傳送點",
+   "color": "#33AAFF",
+   "params": [
     {
-      "typeId": "teleport",
-      "displayName": "傳送點",
-      "color": "#33AAFF",
-      "params": [
-        {
-          "key": "entranceId",
-          "type": "String"
-        },
-        {
-          "key": "targetMapId",
-          "type": "Int"
-        },
-        {
-          "key": "targetEntrance",
-          "type": "String"
-        },
-        {
-          "key": "showMarker",
-          "type": "Bool",
-          "label": "使用傳送點外型",
-          "boolDefault": true
-        },
-        {
-          "key": "linkedFx",
-          "type": "String",
-          "label": "連動特效id"
-        }
-      ]
+     "key": "entranceId",
+     "type": "String"
     },
     {
-      "typeId": "pickup",
-      "displayName": "道具拾取點",
-      "color": "#FFCC33",
-      "params": [
-        {
-          "key": "itemId",
-          "type": "String"
-        },
-        {
-          "key": "count",
-          "type": "Int"
-        }
-      ]
+     "key": "targetMapId",
+     "type": "Int"
     },
     {
-      "typeId": "playerSpawn",
-      "displayName": "玩家出生點",
-      "color": "#33FF88",
-      "params": []
+     "key": "targetEntrance",
+     "type": "String"
     },
     {
-      "typeId": "monsterSpawn",
-      "displayName": "怪物出生點",
-      "color": "#FF5555",
-      "params": [
-        {
-          "key": "monsterId",
-          "type": "String"
-        }
-      ]
+     "key": "showMarker",
+     "type": "Bool",
+     "label": "使用傳送點外型",
+     "boolDefault": true
     },
     {
-      "typeId": "drama",
-      "displayName": "劇情觸發點",
-      "color": "#AA66FF",
-      "params": [
-        {
-          "key": "dramaId",
-          "type": "Int"
-        }
-      ]
-    },
-    {
-      "typeId": "cutscene",
-      "displayName": "事件/過場觸發點",
-      "color": "#22CC99",
-      "params": [
-        {
-          "key": "cutsceneId",
-          "type": "String"
-        },
-        {
-          "key": "video",
-          "type": "String"
-        },
-        {
-          "key": "targetMapId",
-          "type": "Int"
-        },
-        {
-          "key": "targetEntrance",
-          "type": "String"
-        }
-      ]
-    },
-    {
-      "typeId": "giveItem",
-      "displayName": "給予物品(鏈動作)",
-      "color": "#FFE08A",
-      "params": [
-        {
-          "key": "itemId",
-          "type": "String"
-        },
-        {
-          "key": "count",
-          "type": "Int"
-        }
-      ]
-    },
-    {
-      "typeId": "teleportTo",
-      "displayName": "直接傳送(鏈動作)",
-      "color": "#7FD4FF",
-      "params": [
-        {
-          "key": "targetMapId",
-          "type": "Int"
-        },
-        {
-          "key": "targetEntrance",
-          "type": "String"
-        }
-      ]
-    },
-    {
-      "typeId": "camZone",
-      "displayName": "鏡頭區",
-      "color": "#66CCFF",
-      "params": [
-        {
-          "key": "zoom",
-          "type": "Float"
-        },
-        {
-          "key": "offsetX",
-          "type": "Float"
-        },
-        {
-          "key": "offsetY",
-          "type": "Float"
-        }
-      ]
+     "key": "linkedFx",
+     "type": "String",
+     "label": "連動特效id"
     }
-  ]
+   ]
+  },
+  {
+   "typeId": "pickup",
+   "displayName": "道具拾取點",
+   "color": "#FFCC33",
+   "params": [
+    {
+     "key": "itemId",
+     "type": "String"
+    },
+    {
+     "key": "count",
+     "type": "Int"
+    }
+   ]
+  },
+  {
+   "typeId": "playerSpawn",
+   "displayName": "玩家出生點",
+   "color": "#33FF88",
+   "params": []
+  },
+  {
+   "typeId": "monsterSpawn",
+   "displayName": "怪物出生點",
+   "color": "#FF5555",
+   "params": [
+    {
+     "key": "monsterId",
+     "type": "String"
+    }
+   ]
+  },
+  {
+   "typeId": "drama",
+   "displayName": "劇情觸發點",
+   "color": "#AA66FF",
+   "params": [
+    {
+     "key": "dramaId",
+     "type": "Int"
+    }
+   ]
+  },
+  {
+   "typeId": "cutscene",
+   "displayName": "事件/過場觸發點",
+   "color": "#22CC99",
+   "params": [
+    {
+     "key": "cutsceneId",
+     "type": "String"
+    },
+    {
+     "key": "video",
+     "type": "String"
+    },
+    {
+     "key": "targetMapId",
+     "type": "Int"
+    },
+    {
+     "key": "targetEntrance",
+     "type": "String"
+    }
+   ]
+  },
+  {
+   "typeId": "giveItem",
+   "displayName": "給予物品(鏈動作)",
+   "color": "#FFE08A",
+   "params": [
+    {
+     "key": "itemId",
+     "type": "String"
+    },
+    {
+     "key": "count",
+     "type": "Int"
+    }
+   ]
+  },
+  {
+   "typeId": "teleportTo",
+   "displayName": "直接傳送(鏈動作)",
+   "color": "#7FD4FF",
+   "params": [
+    {
+     "key": "targetMapId",
+     "type": "Int"
+    },
+    {
+     "key": "targetEntrance",
+     "type": "String"
+    }
+   ]
+  },
+  {
+   "typeId": "portal",
+   "displayName": "傳送門互動",
+   "color": "#FF8844",
+   "params": [
+    {
+     "key": "linkTeleport",
+     "type": "String",
+     "label": "要開的傳送點名"
+    }
+   ]
+  },
+  {
+   "typeId": "camZone",
+   "displayName": "鏡頭區",
+   "color": "#66CCFF",
+   "params": [
+    {
+     "key": "zoom",
+     "type": "Float"
+    },
+    {
+     "key": "offsetX",
+     "type": "Float"
+    },
+    {
+     "key": "offsetY",
+     "type": "Float"
+    }
+   ]
+  }
+ ]
 }

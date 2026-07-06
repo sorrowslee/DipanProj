@@ -145,8 +145,10 @@ public class MapCameraController : MonoBehaviour
         if (!_applied || _cam == null) return;
 
         // 1) 平滑趨近鏡頭區的縮放/位移目標（沒踩區域時目標 = 1 / 0，即還原）。
-        float targetZoom = _zoneActive ? _zoneZoomMul : 1f;
-        Vector2 targetOff = _zoneActive ? _zoneOffset : Vector2.zero;
+        // 新手教學「對準點」期間，忽略鏡頭區的縮放/位移（否則會被邪佛全貌那種 offset 推歪），純對準傳送門。
+        bool focusing = _focus.HasValue;
+        float targetZoom = focusing ? 1f : (_zoneActive ? _zoneZoomMul : 1f);
+        Vector2 targetOff = focusing ? Vector2.zero : (_zoneActive ? _zoneOffset : Vector2.zero);
         if (zoneTransitionTime <= 0f) { _zoomCur = targetZoom; _offsetCur = targetOff; }
         else
         {
@@ -158,19 +160,30 @@ public class MapCameraController : MonoBehaviour
         // 2) 套用縮放（在基準 orthoSize 上乘倍率）。
         if (_cam.orthographic) _cam.orthographicSize = Mathf.Max(0.1f, _baseOrtho * _zoomCur);
 
-        // 3) 基準位置：跟隨模式＝夾在邊界內的玩家位置；整張地圖模式＝地圖中心。再加上鏡頭區位移。
-        Vector3 basePos = (_following && _target != null)
-            ? ClampToBounds(_target.position)
-            : new Vector3(_baseCenter.x, _baseCenter.y, 0f);
+        // 3) 基準位置：有「對準點覆寫」（新手教學拉去看傳送門）就對準它；否則跟隨模式＝玩家、整張圖＝中心。再加鏡頭區位移。
+        Vector3 basePos = _focus.HasValue
+            ? new Vector3(_focus.Value.x, _focus.Value.y, 0f)   // 對準點不夾邊界，確保目標（傳送門）正好在畫面中央
+            : (_following && _target != null)
+                ? ClampToBounds(_target.position)
+                : new Vector3(_baseCenter.x, _baseCenter.y, 0f);
 
         Vector3 cur = _cam.transform.position;
         Vector3 desired = new Vector3(basePos.x + _offsetCur.x, basePos.y + _offsetCur.y, cur.z);
 
-        if (_following && followSmoothTime > 0f)
+        // 對準點期間也要平滑移動過去（即使整張圖模式），所以一律用 SmoothDamp。
+        if ((_following || _focus.HasValue) && followSmoothTime > 0f)
             _cam.transform.position = Vector3.SmoothDamp(cur, desired, ref _vel, followSmoothTime);
         else
             _cam.transform.position = desired;
     }
+
+    // ---- 新手教學：把鏡頭「對準某個世界座標」，設 null 還原成跟隨玩家 ----
+    Vector2? _focus;
+    /// <summary>對準某個世界座標（新手教學拉鏡頭看傳送門/邪佛用）。傳 null 還原。</summary>
+    public void SetFocusPoint(Vector2? worldPoint) => _focus = worldPoint;
+    /// <summary>鏡頭是否已大致移到對準點（給教學判斷「飄到位了」）。</summary>
+    public bool FocusReached(float tol = 0.3f)
+        => _focus.HasValue && ((Vector2)_cam.transform.position - (_focus.Value + _offsetCur)).sqrMagnitude <= tol * tol;
 
     /// <summary>把目標點夾進地圖邊界，使視窗不超出地圖（地圖該軸比視窗小時則置中該軸）。</summary>
     Vector3 ClampToBounds(Vector3 target)

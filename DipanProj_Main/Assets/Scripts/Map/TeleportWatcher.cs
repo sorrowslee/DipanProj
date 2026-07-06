@@ -59,10 +59,18 @@ public class TeleportWatcher : MonoBehaviour
 
         if (!onTeleport) return;
 
-        // 踩到傳送點：解除武裝並換圖。
+        // 踩到傳送點：解除武裝並換圖。目的地優先讀「傳送門執行期覆寫」（劇本決定的關卡），否則用區域自身設定。
         _armed = false;
-        int targetMapId = region.GetInt("targetMapId", -1);
-        string targetEntrance = region.GetString("targetEntrance");
+        int targetMapId; string targetEntrance;
+        if (TriggerChain.TryGetTeleportOverride(region.id, out int ovMap, out string ovEntrance))
+        {
+            targetMapId = ovMap; targetEntrance = ovEntrance;
+        }
+        else
+        {
+            targetMapId = region.GetInt("targetMapId", -1);
+            targetEntrance = region.GetString("targetEntrance");
+        }
         if (targetMapId < 0)
         {
             Debug.LogWarning($"[TeleportWatcher] 傳送點「{region.name}」未設定 targetMapId，略過。");

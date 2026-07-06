@@ -701,7 +701,7 @@
         },
         {
           "id": "7d3288c1",
-          "name": "傳送點2",
+          "name": "下方傳送點",
           "typeId": "teleport",
           "cells": [
             [
@@ -722,7 +722,7 @@
         },
         {
           "id": "8cd23848",
-          "name": "傳送點3",
+          "name": "中央傳送點",
           "typeId": "teleport",
           "cells": [
             [
@@ -820,6 +820,104 @@
           "params": {
             "dramaId": "4",
             "repeat": "永久"
+          }
+        },
+        {
+          "id": "699d335e",
+          "name": "傳送門互動",
+          "typeId": "portal",
+          "cells": [
+            [
+              49,
+              17
+            ],
+            [
+              49,
+              18
+            ],
+            [
+              49,
+              19
+            ],
+            [
+              50,
+              17
+            ],
+            [
+              51,
+              17
+            ],
+            [
+              52,
+              17
+            ],
+            [
+              52,
+              18
+            ],
+            [
+              52,
+              19
+            ],
+            [
+              50,
+              19
+            ],
+            [
+              51,
+              19
+            ],
+            [
+              51,
+              18
+            ],
+            [
+              50,
+              18
+            ],
+            [
+              49,
+              20
+            ],
+            [
+              50,
+              20
+            ],
+            [
+              51,
+              20
+            ],
+            [
+              52,
+              20
+            ]
+          ],
+          "params": {
+            "linkTeleport": "傳送門傳送點"
+          }
+        },
+        {
+          "id": "688928b4",
+          "name": "傳送門傳送點",
+          "typeId": "teleport",
+          "cells": [
+            [
+              50,
+              19
+            ],
+            [
+              51,
+              19
+            ]
+          ],
+          "params": {
+            "entranceId": "",
+            "targetMapId": "",
+            "targetEntrance": "",
+            "showMarker": false,
+            "linkedFx": "2d656e16",
+            "startDisabled": true,
+            "enableFlag": ""
           }
         }
       ]

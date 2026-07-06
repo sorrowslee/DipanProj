@@ -120,6 +120,40 @@
 | `紅嫁衣對話` | drama | dramaId=`<新>`, requireFlag=`!killedFamily`, next=`送去榕樹妖` |
 | `送去榕樹妖` | teleportTo（角落） | targetMapId=10（RedBridalGown_TreeDemon） |
 
+## 4.9 傳送門：放劇本開門（hub，劇本決定去哪關）
+
+新流程（邪佛不再自動開門）：**給紅嫁衣劇本（`setFlag=tutorialPortal` 啟動新手教學）→ 靠近傳送門按 F 開傳送門 UI（`ScriptsPanel`，強制連背包並排開）→ 把劇本從背包拖進單格方框 → 按圓鈕 → 消耗劇本、開啟對應傳送點（目的地＝劇本指定關卡）**。
+
+- **劇本→目的地**：`ItemTable.csv` 的 `TargetMapId`（＋`TargetEntrance`）決定這本劇本去哪關（劇本 104 = RedBridalGown map 1）。方框只收「有目的地」的道具（＝劇本）。以後每種劇本填自己的關卡即可（天生 hub）。
+- **編輯器要放兩個 trigger**（畫在傳送門地上物上）：
+  1. `傳送門互動`（**portal** 型）：玩家靠近按 F 開 UI。參數 `linkTeleport` ＝下面那個傳送點的**名字**。
+  2. `傳送點`（**teleport** 型，`初始停用`＝✓）：按下開啟後被解鎖。目的地會被劇本**執行期覆寫**，所以 `targetMapId` 可留空或填後備；`enableFlag`（如 `hallGateOpen`）讓開過就記住。
+- 程式：按鈕 → `TriggerChain.OpenPortal(linkTeleport, 劇本.TargetMapId, 落點)` ＝設目的地覆寫 ＋ `EnableRegion`（亮綠幕）。`TeleportWatcher` 踩到傳送點時優先讀覆寫目的地。
+- 新手教學：`TutorialManager`（步驟式）由 `tutorialPortal` 旗標啟動，三步（開 UI→放劇本→按鈕）跟著 `ScriptsPanel` 的事件前進，做完寫 `永久:tutorialPortalDone` 不再重播。
+
+## 4.95 新手教學（強制引導，寫死在程式）
+
+新手教學是**一次性、每次都一樣**的強制引導，刻意寫死在程式（不做成可編輯）。程式：`Assets/Scripts/UI/TutorialManager.cs`（大腦）＋`GuideFingerPanel`（手指）＋`TutorialBlockerPanel`（遮罩，只放行指定元件可點）＋`TutorialHintPanel`（提示字）。
+
+兩段：
+- **找邪佛手指**：玩家觸發「初入場景對話」→ 手指指畫面上方；觸發「邪佛全貌」→ 收起。（靠 `TriggerChain.OnTriggerFired` 廣播觸發點名字，跟對話內容無關。）
+- **傳送門強制流程**：偵測到背包出現紅嫁衣劇本 → 鏡頭飄去傳送門再拉回（此段定住）→ 放開自由跑 → 走到傳送門可按 F 那刻定住只能按 F → 開了傳送門 UI＋背包 → 遮罩＋手指指劇本(只能點) → 劇本入方框 → 遮罩＋手指指開啟鈕(只能點) → 按下開門 → 結束，寫永久記號不再出現。
+
+> ### ⚠️ 特別注意：新手教學「寫死清單」（改動前必看）
+> 以下是硬寫在程式裡的值/名字，不是資料驅動。要改動教學或改到相關東西時，**這些要同步改**（都集中在 `TutorialManager.cs` 上方常數，除非另註）：
+>
+> | 寫死的東西 | 值 | 在哪 | 改的時候注意 |
+> |---|---|---|---|
+> | 紅嫁衣劇本的道具編號 | `104` | `TutorialManager.ScriptItemId` | 若 `ItemTable.csv` 的劇本改編號，這裡要一起改 |
+> | 啟動「找邪佛手指」的觸發點名 | `初入場景對話` | `TutorialManager.TrigArrive` | 編輯器那個 drama 觸發點若改名，這裡要改 |
+> | 收起「找邪佛手指」的觸發點名 | `邪佛全貌` | `TutorialManager.TrigSawBuddha` | 編輯器那個 camZone 若改名，這裡要改 |
+> | 教學做過的永久記號 | `永久:tutorialPortalDone` | `TutorialManager.DoneFlag` | 純程式內部、**不進旗標管理器**；改名無妨，別跟別的撞即可 |
+> | 手指圖路徑 | `UI/Common/Guide_Finger` | `GuideFingerPanel.Res` | 換圖改路徑 |
+> | 鏡頭飄到哪 | 傳送門互動點中心 | `InteractionManager.TryGetPortalWorld` | 靠地圖上的 `傳送門互動`(portal) 區域算；沒放就不會啟動教學 |
+> | 強制按 F 的觸發判斷 | 走到傳送門互動點的可互動範圍 | `InteractionManager.PlayerNearPortal` | 用 pickup 半徑判斷 |
+>
+> 另外教學啟動**刻意不靠旗標、不靠對話 id**，而是靠「背包有沒有紅嫁衣劇本」＋觸發點名字廣播——因為邪佛那段對話之後可能一直加句子，用對話 id 會壞。
+
 ## 5. 運作細節（改程式前讀）
 
 - **完成時機**：pickup=入包後；drama=**面板關閉時**（DramaPanel/TalkPanel 的 OnClose → `TriggerChain.NotifyDramaClosed`）；giveItem=給完立即。

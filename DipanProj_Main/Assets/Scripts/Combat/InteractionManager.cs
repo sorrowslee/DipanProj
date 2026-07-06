@@ -57,7 +57,7 @@ public class InteractionManager : MonoBehaviour
         }
     }
 
-    enum PointKind { Pickup, Drama }
+    enum PointKind { Pickup, Drama, Portal }
 
     // 重複規則（編輯器「重複規則」欄；決定同一個互動點多久能再觸發一次）。
     //   Visit（預設，空值）：每次進這張地圖觸發一次（當次停留消耗，離圖重進復活）。
@@ -94,6 +94,8 @@ public class InteractionManager : MonoBehaviour
         // drama
         public int dramaId;
         public bool autoTrigger;        // Type 2（頭像對話）：碰到自動觸發、不顯示「按 F」提示
+        // portal（傳送門互動）
+        public string portalTeleport;   // 要開哪一個 teleport 區域（傳給 ScriptsPanel）
         // 共用
         public TriggerRegion region;    // 來源 trigger（觸發鏈 next/setFlag 用，見 TriggerChain）
         public Vector2[] cellCenters;   // 區域各格中心（世界座標）
@@ -144,7 +146,8 @@ public class InteractionManager : MonoBehaviour
             if (r.cells == null || r.cells.Count == 0) continue;
             bool isPickup = r.typeId == pickupT;
             bool isDrama = r.typeId == dramaT;
-            if (!isPickup && !isDrama) continue;
+            bool isPortal = r.typeId == "portal";
+            if (!isPickup && !isDrama && !isPortal) continue;
             if (_consumed.Contains(r.id)) continue;      // 本次停留已消耗 → 不復活
             if (!TriggerChain.IsActive(r)) continue;     // 停用中（startDisabled 未解鎖）或 requireFlag 不成立 → 隱形
 
@@ -188,6 +191,15 @@ public class InteractionManager : MonoBehaviour
                 pt.count = Mathf.Max(1, r.GetInt("count", 1));
                 pt.name = data != null ? data.Name : $"#{itemId}";
                 pt.marker = CreateMarker(center, pickupMarkerColor);
+            }
+            else if (isPortal)
+            {
+                // 對應傳送點若已解鎖（門開過了）→ 這個互動點不再出現（不留殘影、不留「按 F」）。
+                var tp = FindRegion(map, r.GetString("linkTeleport"));
+                if (tp != null && !TriggerChain.IsDisabled(tp)) continue;
+                pt.kind = PointKind.Portal;
+                pt.portalTeleport = r.GetString("linkTeleport");
+                // 傳送門是明顯的地上物、又有新手教學帶，不放星星標示（免得門裡浮一堆星星很怪）。
             }
             else // drama
             {
@@ -256,7 +268,8 @@ public class InteractionManager : MonoBehaviour
         if (_loot.Count == 0 && _points.Count == 0) { HideTip(); return; }
 
         // 開 UI（背包/劇情等）時不互動、不顯示提示。
-        if (UIManager.IsGameplayInputBlocked) { HideTip(); return; }
+        // 例外：新手教學把玩家定住、逼他按 F 那一刻，雖然輸入被擋，但要放行「按 F 開傳送門」。
+        if (UIManager.IsGameplayInputBlocked && !Dipan.UI.TutorialManager.AllowInteract) { HideTip(); return; }
 
         if (_player == null) _player = GameObject.FindGameObjectWithTag("Player")?.transform;
         if (_player == null) { HideTip(); return; }
@@ -314,23 +327,67 @@ public class InteractionManager : MonoBehaviour
             {
                 best = d; bestPoint = _points[i]; bestLoot = null;
                 tipPos = _points[i].center;
-                tipText = _points[i].kind == PointKind.Pickup
-                    ? $"按 {interactKey} 鍵拾取 {_points[i].name}"
-                    : $"按 {interactKey} 鍵";   // 劇情點：只提示按鍵
+                // 傳送門：新手教學強制階段(HardLock)時不顯示世界「按 F」浮字（畫面上方已有教學提示，重複又詭異），F 仍可按。
+                tipText = _points[i].kind == PointKind.Pickup ? $"按 {interactKey} 鍵拾取 {_points[i].name}"
+                        : _points[i].kind == PointKind.Portal ? (Dipan.UI.TutorialManager.HardLock ? null : $"按 {interactKey} 鍵開啟傳送門")
+                        : $"按 {interactKey} 鍵";   // 劇情點：只提示按鍵
             }
         }
 
         if (bestLoot == null && bestPoint == null) { HideTip(); return; }
 
-        if (_tip == null) _tip = PickupTipPanel.Ensure();
-        if (_tip != null) _tip.ShowAt(tipPos + Vector3.up * tipHeight, tipText);
+        if (tipText != null)
+        {
+            if (_tip == null) _tip = PickupTipPanel.Ensure();
+            if (_tip != null) _tip.ShowAt(tipPos + Vector3.up * tipHeight, tipText);
+        }
+        else HideTip();
 
         if (Input.GetKeyDown(interactKey))
         {
             if (bestLoot != null) TryPickUpLoot(bestLoot);
             else if (bestPoint.kind == PointKind.Pickup) CollectPickup(bestPoint);
+            else if (bestPoint.kind == PointKind.Portal) OpenPortal(bestPoint);
             else TriggerDrama(bestPoint);
         }
+    }
+
+    // 開啟傳送門 UI（不消耗此互動點：關掉 UI 後還能再按 F 重開）。
+    void OpenPortal(InteractPoint pt)
+    {
+        if (pt == null) return;
+        HideTip();
+        Dipan.UI.ScriptsPanel.OpenFor(pt.portalTeleport);
+    }
+
+    // 依名字找同地圖的一個 trigger region（給傳送門互動點查它連動的傳送點狀態用）。
+    static TriggerRegion FindRegion(MapData map, string name)
+    {
+        if (map?.TriggerLayer?.regions == null || string.IsNullOrEmpty(name)) return null;
+        foreach (var r in map.TriggerLayer.regions)
+            if (r.name == name) return r;
+        return null;
+    }
+
+    // ── 新手教學用 ──
+    /// <summary>當前地圖若有傳送門互動點，回傳其中心世界座標（給教學拉鏡頭用）。</summary>
+    public bool TryGetPortalWorld(out Vector2 center)
+    {
+        for (int i = 0; i < _points.Count; i++)
+            if (_points[i].kind == PointKind.Portal) { center = _points[i].center; return true; }
+        center = default; return false;
+    }
+
+    /// <summary>玩家是否已走到「可按 F 開傳送門」的範圍（給教學判斷何時進入強制按 F）。</summary>
+    public bool PlayerNearPortal()
+    {
+        if (_player == null) _player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        if (_player == null) return false;
+        Vector2 p = _player.position;
+        float r2 = pickupRadius * pickupRadius;
+        for (int i = 0; i < _points.Count; i++)
+            if (_points[i].kind == PointKind.Portal && NearestCellSqr(_points[i], p) <= r2) return true;
+        return false;
     }
 
     // 從地上撿（部分撿取：吃得下多少算多少，剩的留在地上）。
