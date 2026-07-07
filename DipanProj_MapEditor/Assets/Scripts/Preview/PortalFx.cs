@@ -1,54 +1,72 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 /// <summary>
-/// 傳送門特效（場景特效的 portal kind）。起點/終點＝矩形的兩個對角，畫一片「平穩發光的能量光幕」：
-/// 柔邊、縱向漸層的發光矩形（像鏡面/湖水），只做極緩慢細微的呼吸，不做流動/閃爍（保持平靜）。
-/// 純表演、程式生成佔位素材，之後可換真貼圖/序列圖。
-///
-/// 由 <see cref="MapLoader.BuildSceneFx"/> 在 fxId 對應 SceneFxTable 列 Kind=portal 時掛上並 Configure。
-/// 顏色/濃淡/排序來自 SceneFxTable（複用 <see cref="SceneFxEmitter.Look"/>）。
+/// 傳送門特效預覽（場景特效的 portal kind）。**與遊戲端 Map/PortalFx.cs 同一套畫法**：一片發光能量光幕，
+/// 用「UI 覆蓋層」畫（每幀把門洞世界矩形投影到螢幕、貼上綠色光幕）。遊戲端改用 UI 覆蓋層是為了免疫氛圍後處理，
+/// 編輯器端也照抄同一套，才能所見即所得（編輯器看到的＝遊戲跑出來的）。顏色/濃淡來自 SceneFxTable。
 /// </summary>
 [DisallowMultipleComponent]
 public class PortalFx : MonoBehaviour
 {
     SceneFxEmitter.Look _look;
-    Vector3 _center;
-    Vector2 _size;
-    SpriteRenderer _fill;
+    Vector3 _cornerA, _cornerB;
+    Canvas _canvas;
+    Image _img;
+    Camera _cam;
     float _t;
 
     public void Configure(SceneFxEmitter.Look look, Vector3 cornerA, Vector3 cornerB)
     {
         _look = look;
-        _center = (cornerA + cornerB) * 0.5f;
-        _size = new Vector2(Mathf.Max(0.2f, Mathf.Abs(cornerB.x - cornerA.x)),
-                            Mathf.Max(0.2f, Mathf.Abs(cornerB.y - cornerA.y)));
+        _cornerA = cornerA;
+        _cornerB = cornerB;
 
-        var fillGo = new GameObject("PortalFill");
-        fillGo.transform.SetParent(transform, false);
-        fillGo.transform.position = _center;
-        _fill = fillGo.AddComponent<SpriteRenderer>();
-        _fill.sprite = FillSprite();
-        _fill.sortingOrder = _look.sortingOrder;
-        _fill.transform.localScale = new Vector3(_size.x, _size.y, 1f);
-        _fill.color = WithAlpha(_look.peakAlpha);
+        var canvasGo = new GameObject("PortalCurtainCanvas");
+        canvasGo.transform.SetParent(transform, false);
+        _canvas = canvasGo.AddComponent<Canvas>();
+        _canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        _canvas.sortingOrder = 50;
+
+        var imgGo = new GameObject("PortalCurtain");
+        imgGo.transform.SetParent(canvasGo.transform, false);
+        _img = imgGo.AddComponent<Image>();
+        _img.sprite = FillSprite();
+        _img.raycastTarget = false;
+        _img.color = WithAlpha(_look.peakAlpha);
+
+        _cam = Camera.main != null ? Camera.main : FindObjectOfType<Camera>();
     }
 
-    void Update()
+    void LateUpdate()
     {
-        // 只做極緩慢、細微的亮度呼吸（週期約 8 秒、幅度很小），保持平靜如湖水；不流動、不縮放、不搖擺。
+        if (_img == null) return;
+        if (_cam == null) { _cam = Camera.main != null ? Camera.main : FindObjectOfType<Camera>(); if (_cam == null) return; }
+
+        Vector3 a = _cam.WorldToScreenPoint(_cornerA);
+        Vector3 b = _cam.WorldToScreenPoint(_cornerB);
+        Vector3 c = _cam.WorldToScreenPoint(new Vector3(_cornerA.x, _cornerB.y, 0f));
+        Vector3 d = _cam.WorldToScreenPoint(new Vector3(_cornerB.x, _cornerA.y, 0f));
+        float minX = Mathf.Min(Mathf.Min(a.x, b.x), Mathf.Min(c.x, d.x));
+        float maxX = Mathf.Max(Mathf.Max(a.x, b.x), Mathf.Max(c.x, d.x));
+        float minY = Mathf.Min(Mathf.Min(a.y, b.y), Mathf.Min(c.y, d.y));
+        float maxY = Mathf.Max(Mathf.Max(a.y, b.y), Mathf.Max(c.y, d.y));
+
+        var rt = _img.rectTransform;
+        rt.anchorMin = rt.anchorMax = Vector2.zero;
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = new Vector2((minX + maxX) * 0.5f, (minY + maxY) * 0.5f);
+        rt.sizeDelta = new Vector2(maxX - minX, maxY - minY);
+
         _t += Time.deltaTime;
-        float breathe = 0.95f + 0.05f * Mathf.Sin(_t * 0.8f);
-        _fill.color = WithAlpha(_look.peakAlpha * breathe);
+        float breathe = 0.9f + 0.1f * Mathf.Sin(_t * 0.8f);
+        _img.color = WithAlpha(_look.peakAlpha * breathe);
     }
 
     Color WithAlpha(float a) { var c = _look.color; c.a = a; return c; }
 
-    // ── 光幕：柔邊圓角矩形漸層（solid 內部、羽化邊；縱向中央略亮）。白色圖樣，顏色由 SpriteRenderer.color 染 ──
-    // ⚠️ 之前用 edge=min(ax,ay) 羽化 → 兩線性距離取 min 會在「對角線」形成脊線（帳篷函數的稜線），
-    //    烘進貼圖放大後就是明顯的 X。改用「左右羽化 × 上下羽化」相乘（可分離）＝平滑圓角矩形、無對角脊線；
-    //    縱向漸層改拋物線（無中央折線）。解析度也提高，放大後更平滑。（與遊戲端 Map/PortalFx.cs 同步）
-    const float EdgeFeather = 0.18f;
+    // ── 光幕圖樣：柔邊圓角矩形＋縱向漸層（與遊戲端 Map/PortalFx.cs 同步）──
+    const float EdgeFeather = 0.16f;
     static Sprite _fillShared;
     static Sprite FillSprite()
     {
@@ -63,18 +81,18 @@ public class PortalFx : MonoBehaviour
         for (int y = 0; y < n; y++)
             for (int x = 0; x < n; x++)
             {
-                float nx = (x + 0.5f) / n * 2f - 1f;   // -1..1
+                float nx = (x + 0.5f) / n * 2f - 1f;
                 float ny = (y + 0.5f) / n * 2f - 1f;
-                float ax = 1f - Mathf.Abs(nx);          // 到左右邊的距離（0 邊、1 中）
-                float ay = 1f - Mathf.Abs(ny);          // 到上下邊的距離
-                float fx = Mathf.SmoothStep(0f, EdgeFeather, ax);         // 左右羽化
-                float fy = Mathf.SmoothStep(0f, EdgeFeather, ay);         // 上下羽化
-                float alpha = fx * fy;                                    // 相乘＝圓角矩形柔邊，無對角脊線
-                float bright = 0.72f + 0.28f * (1f - ny * ny);           // 縱向漸層（拋物線，平滑無折線）
+                float ax = 1f - Mathf.Abs(nx);
+                float ay = 1f - Mathf.Abs(ny);
+                float fx = Mathf.SmoothStep(0f, EdgeFeather, ax);
+                float fy = Mathf.SmoothStep(0f, EdgeFeather, ay);
+                float alpha = fx * fy;
+                float bright = 0.8f + 0.2f * (1f - ny * ny);
                 px[y * n + x] = new Color(bright, bright, bright, alpha);
             }
         tex.SetPixels32(px); tex.Apply();
-        _fillShared = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 64f);
+        _fillShared = Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), n);
         return _fillShared;
     }
 }
