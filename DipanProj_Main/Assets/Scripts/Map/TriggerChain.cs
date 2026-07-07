@@ -30,6 +30,7 @@ public static class TriggerChain
 {
     public const string TypeGiveItem = "giveItem";
     public const string TypeTeleportTo = "teleportTo";
+    public const string TypeCameraFocus = "cameraFocus";   // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格中心＋黑幕，停留後拉回，再接 next
 
     // 通用欄位 key
     const string KeyNext = "next";
@@ -177,7 +178,9 @@ public static class TriggerChain
     {
         var r = _pendingDramaRegion;
         _pendingDramaRegion = null;
-        if (r != null) OnCompleted(r);
+        // 延後一幀再接鏈：此刻面板正在 OnClose，若同步接鏈又去開新對話會重入 → 舊面板把新面板關掉、
+        // IsOpen 殘留、遊戲永久暫停（玩家卡死）。等這幀面板完全關乾淨，下一幀再繼續鏈。
+        if (r != null) TriggerChainRunner.NextFrame(() => OnCompleted(r));
     }
 
     /// <summary>依名稱（優先）或 id 找到目標 trigger 並啟動：動作型立即執行、位置型解鎖。</summary>
@@ -199,6 +202,7 @@ public static class TriggerChain
         {
             case TypeGiveItem: ExecuteGiveItem(r); break;
             case TypeTeleportTo: ExecuteTeleportTo(r); break;
+            case TypeCameraFocus: ExecuteCameraFocus(r); break;
             default:
                 if (IsDramaType(r)) ExecuteDrama(r);   // 鏈到劇情點 = 立即播對話（對話→對話）
                 else EnableRegion(r);                   // 位置型（teleport/pickup/cutscene…）= 解鎖
@@ -252,6 +256,40 @@ public static class TriggerChain
             return;
         }
         _manager.GoToMap(targetMapId, targetEntrance);
+    }
+
+    // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格區域中心＋壓黑幕、停留、再拉回，全程定住玩家；表演完才接 next。
+    // 聚焦中心＝這個 trigger 畫的格子中心（通常畫在傳送門正中間一格）。
+    static void ExecuteCameraFocus(TriggerRegion r)
+    {
+        if (!RegionCenter(r, out Vector2 center))
+        {
+            Debug.LogWarning($"[TriggerChain] 鏡頭聚焦「{r.name}」沒畫任何格子，無法決定聚焦中心，直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+        var cam = Object.FindObjectOfType<MapCameraController>();
+        if (cam == null)
+        {
+            Debug.LogWarning($"[TriggerChain] 鏡頭聚焦「{r.name}」找不到 MapCameraController，直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+        float hold = r.GetFloat("holdSeconds", 1.6f);      // 停留秒數（留空＝1.6）
+        string dim = r.GetString("dim");                    // 黑幕樣式："中央留洞"（預設）/"整片全黑"/"無"
+        cam.PlayFocus(center, hold,
+            onStart: () =>
+            {
+                UIManager.Instance?.SetExternalHold(true, false);   // 飄鏡頭期間定住玩家（不暫停，鏡頭才會動）
+                if (dim == "整片全黑") TutorialDimPanel.ShowFullBlack();
+                else if (dim != "無") TutorialDimPanel.ShowSpotlightCenter();   // 空或「中央留洞」→ 中央留洞
+            },
+            onEnd: () =>
+            {
+                TutorialDimPanel.Hide();
+                UIManager.Instance?.SetExternalHold(false, false);
+                OnCompleted(r);   // 聚焦表演結束才接 next（例如接「指引玩家過門」的對話）
+            });
     }
 
     // 鏈到劇情點：立即播對話（不需玩家走過去按 F），對話關閉後接它自己的 next。
@@ -312,10 +350,12 @@ public static class TriggerChain
     }
 
     /// <summary>取某個 trigger 區域的世界中心（各格中心平均）。給新手教學手指指向某個觸發點（邪佛/傳送門）用。</summary>
-    public static bool TryGetRegionCenter(string name, out Vector2 center)
+    public static bool TryGetRegionCenter(string name, out Vector2 center) => RegionCenter(Find(name), out center);
+
+    /// <summary>某 trigger 區域的世界中心（各格中心平均）。沒畫格子回 false。</summary>
+    static bool RegionCenter(TriggerRegion r, out Vector2 center)
     {
         center = default;
-        var r = Find(name);
         if (r?.cells == null || r.cells.Count == 0) return false;
         Vector2 sum = Vector2.zero; int n = 0;
         foreach (var c in r.cells)

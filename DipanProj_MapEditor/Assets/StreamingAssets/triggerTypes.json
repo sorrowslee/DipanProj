@@ -156,6 +156,28 @@
      "type": "Float"
     }
    ]
+  },
+  {
+   "typeId": "cameraFocus",
+   "displayName": "鏡頭聚焦(鏈動作)",
+   "color": "#88DDFF",
+   "params": [
+    {
+     "key": "holdSeconds",
+     "type": "Float",
+     "label": "停留秒數"
+    },
+    {
+     "key": "dim",
+     "type": "String",
+     "label": "黑幕樣式",
+     "options": [
+      "中央留洞",
+      "整片全黑",
+      "無"
+     ]
+    }
+   ]
   }
  ]
 }

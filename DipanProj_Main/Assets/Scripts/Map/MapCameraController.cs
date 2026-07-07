@@ -177,13 +177,41 @@ public class MapCameraController : MonoBehaviour
             _cam.transform.position = desired;
     }
 
-    // ---- 新手教學：把鏡頭「對準某個世界座標」，設 null 還原成跟隨玩家 ----
+    // ---- 把鏡頭「對準某個世界座標」，設 null 還原成跟隨玩家 ----
     Vector2? _focus;
-    /// <summary>對準某個世界座標（新手教學拉鏡頭看傳送門/邪佛用）。傳 null 還原。</summary>
+    /// <summary>對準某個世界座標（拉鏡頭看傳送門/邪佛用）。傳 null 還原。</summary>
     public void SetFocusPoint(Vector2? worldPoint) => _focus = worldPoint;
     /// <summary>鏡頭是否已大致移到對準點（給教學判斷「飄到位了」）。</summary>
     public bool FocusReached(float tol = 0.3f)
-        => _focus.HasValue && ((Vector2)_cam.transform.position - (_focus.Value + _offsetCur)).sqrMagnitude <= tol * tol;
+        => _focus.HasValue && _cam != null && ((Vector2)_cam.transform.position - (_focus.Value + _offsetCur)).sqrMagnitude <= tol * tol;
+
+    // ---- 鏡頭聚焦一段表演（給「鏡頭聚焦」trigger 由觸發鏈驅動）----
+    // 流程：onStart（黑幕＋定住玩家）→ 平滑移到 center → 停留 holdSeconds 秒 → 拉回 → onEnd（收黑幕＋放開＋接 next）。
+    Coroutine _focusCo;
+    /// <summary>播放一段鏡頭聚焦：移到 center、停留、再拉回。onStart 在開始、onEnd 在結束時呼叫（黑幕/定住/接鏈交給外部）。</summary>
+    public void PlayFocus(Vector2 center, float holdSeconds, System.Action onStart, System.Action onEnd)
+    {
+        if (_focusCo != null) StopCoroutine(_focusCo);
+        _focusCo = StartCoroutine(FocusRoutine(center, holdSeconds, onStart, onEnd));
+    }
+
+    System.Collections.IEnumerator FocusRoutine(Vector2 center, float holdSeconds, System.Action onStart, System.Action onEnd)
+    {
+        onStart?.Invoke();
+        SetFocusPoint(center);
+        // 等鏡頭大致飄到位（最多等 2.5 秒，避免地圖太大追不到卡住）。
+        float t = 0f;
+        while (!FocusReached(0.3f) && t < 2.5f) { t += Time.unscaledDeltaTime; yield return null; }
+        // 停留讓玩家看清楚目標。
+        float h = 0f;
+        while (h < Mathf.Max(0f, holdSeconds)) { h += Time.unscaledDeltaTime; yield return null; }
+        // 放開對準點 → 鏡頭開始拉回玩家；稍等一下再收黑幕，過渡比較順。
+        SetFocusPoint(null);
+        float back = 0f;
+        while (back < 0.45f) { back += Time.unscaledDeltaTime; yield return null; }
+        _focusCo = null;
+        onEnd?.Invoke();
+    }
 
     /// <summary>把目標點夾進地圖邊界，使視窗不超出地圖（地圖該軸比視窗小時則置中該軸）。</summary>
     Vector3 ClampToBounds(Vector3 target)

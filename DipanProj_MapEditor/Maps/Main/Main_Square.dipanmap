@@ -766,7 +766,7 @@
           "params": {
             "itemId": "104",
             "count": "1",
-            "next": "",
+            "next": "叫玩家進入傳送門",
             "requireCycleMax": "1",
             "requireItem": "!104"
           }
@@ -918,6 +918,40 @@
             "linkedFx": "2d656e16",
             "startDisabled": true,
             "enableFlag": ""
+          }
+        },
+        {
+          "id": "acfd4051",
+          "name": "叫玩家進入傳送門",
+          "typeId": "drama",
+          "cells": [
+            [
+              87,
+              48
+            ]
+          ],
+          "params": {
+            "dramaId": "5",
+            "next": "鏡頭指向傳送門"
+          }
+        },
+        {
+          "id": "602f400f",
+          "name": "鏡頭指向傳送門",
+          "typeId": "cameraFocus",
+          "cells": [
+            [
+              50,
+              18
+            ],
+            [
+              51,
+              18
+            ]
+          ],
+          "params": {
+            "holdSeconds": "1.6",
+            "dim": ""
           }
         }
       ]

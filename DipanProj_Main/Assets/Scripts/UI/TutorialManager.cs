@@ -8,10 +8,12 @@ namespace Dipan.UI
     ///
     /// 兩段：
     ///  A) 找邪佛的手指：玩家觸發「初入場景對話」→ 出現手指指上方；觸發「邪佛全貌」→ 收起。
-    ///  B) 傳送門強制流程：偵測到背包出現紅嫁衣劇本(道具 104) → 鏡頭飄去傳送門再拉回（此段定住）→ 放開自由跑
+    ///  B) 傳送門強制流程：偵測到背包出現紅嫁衣劇本(道具 104) → 放開自由跑
     ///     → 走到傳送門可按 F 那一刻定住、只能按 F → 開了傳送門 UI＋背包 → 遮罩＋手指指劇本(只能點劇本)
     ///     → 劇本進方框 → 遮罩＋手指指開啟鈕(只能點鈕) → 按下開門 → 結束（永久記號，之後不再出現）。
     ///
+    /// 註：「給完劇本→鏡頭飄去傳送門＋黑幕」那段過場**已改成資料驅動**——由地圖上「鏡頭聚焦(鏈動作)」trigger
+    ///     接在對話鏈後面表演（見 readme/TRIGGER_CHAIN.md），不在本程式裡。本程式只管上面的強制互動步驟。
     /// ⚠️ 寫死清單見 readme/TRIGGER_CHAIN.md「新手教學寫死清單」。改動前先看那段。
     /// </summary>
     public class TutorialManager : MonoBehaviour
@@ -30,9 +32,8 @@ namespace Dipan.UI
         /// <summary>「定住只能按 F」那一刻：即使輸入被擋，也放行 InteractionManager 的 F 互動。</summary>
         public static bool AllowInteract { get; private set; }
 
-        enum Phase { Idle, Pan, WaitNear, ForceF, ClickScript, ClickButton, GuideToPortal, Done }
+        enum Phase { Idle, WaitNear, ForceF, ClickScript, ClickButton, GuideToPortal, Done }
         Phase _phase = Phase.Idle;
-        float _timer;
 
         // ScriptsPanel 事件旗標（每次開始重置）
         bool _evtOpened, _evtPlaced, _evtOpenedPortal;
@@ -40,7 +41,6 @@ namespace Dipan.UI
         Vector3 _portalCenter;         // 傳送門世界中心（教學結束後手指指這裡）
         Transform _player;
 
-        MapCameraController _cam;
         InteractionManager Interact => InteractionManager.Instance;
 
         Transform PlayerT()
@@ -79,7 +79,6 @@ namespace Dipan.UI
             switch (_phase)
             {
                 case Phase.Idle: TickIdle(); break;
-                case Phase.Pan: TickPan(); break;
                 case Phase.WaitNear: TickWaitNear(); break;
                 case Phase.ForceF: TickForceF(); break;
                 case Phase.ClickScript: TickClickScript(); break;
@@ -92,29 +91,16 @@ namespace Dipan.UI
 
         void TickIdle()
         {
-            // 拿到劇本、而且這輩子還沒做過傳送門教學 → 開始。
+            // 拿到劇本、而且這輩子還沒做過傳送門教學 → 進入「等玩家走到傳送門」。
+            // 註：給完劇本後的「飄鏡頭＋黑幕」過場已改由對話鏈上的「鏡頭聚焦」trigger 負責，這裡不再做。
+            //     那段期間玩家被鏡頭聚焦 trigger 定住、走不到傳送門，所以不會提早觸發下面的按 F。
             if (!HasScript() || TriggerChain.FlagTrue(DoneFlag)) return;
             if (Interact == null) return;
             if (!Interact.TryGetPortalWorld(out Vector2 portal)) return;   // 地圖還沒放傳送門就先不跑
 
-            _cam = _cam != null ? _cam : FindObjectOfType<MapCameraController>();
             _evtOpened = _evtPlaced = _evtOpenedPortal = false;
-            _portalCenter = new Vector3(portal.x, portal.y, 0f);
+            _portalCenter = new Vector3(portal.x, portal.y, 0f);   // 給教學尾聲手指指向用
             GuideFingerPanel.HidePanel();   // 收掉找邪佛手指（保險）
-            if (_cam != null) _cam.SetFocusPoint(portal);
-            UIManager.Instance?.SetExternalHold(true, false);   // 飄鏡頭期間定住玩家
-            TutorialDimPanel.ShowSpotlightCenter();             // 黑幕留中央圓洞，突顯已置中的傳送門（濃度 0.6，看得到了）
-            _timer = 0f;
-            _phase = Phase.Pan;
-        }
-
-        void TickPan()
-        {
-            _timer += Time.unscaledDeltaTime;
-            if (_timer < 2.2f) return;   // 飄過去＋停留一下
-            if (_cam != null) _cam.SetFocusPoint(null);          // 鏡頭拉回玩家
-            UIManager.Instance?.SetExternalHold(false, false);   // 放開，自由跑
-            TutorialDimPanel.Hide();
             _phase = Phase.WaitNear;
         }
 

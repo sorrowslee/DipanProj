@@ -182,6 +182,12 @@
   ```
 - **連帶通則**:「Add Component 搜不到某腳本」**第一步永遠先看 Console 有沒有紅字**——任一編譯錯誤都會讓全部腳本掛不上,先清掉編譯錯誤,別急著 Reimport/找新腳本沒被認得的理由。
 
+### D8. 觸發鏈「對話接對話」→ 對話關閉當幀玩家整個卡死（遊戲永久暫停、看不到新對話）
+- **症狀**:用觸發鏈把 `對話 → …(giveItem) → 對話 → …` 串起來，跑到「前一段對話結束、要接下一段對話」時，畫面卡住：**玩家不能動、遊戲像被暫停、也沒有任何新對話跳出來**。前一段對話能正常播完、拿到道具的 toast 也有，就是接著卡死。
+- **原因**:對話面板（`TalkPanel`/`DramaPanel`）在自己的 `OnClose` 裡**同步**通知觸發鏈接下去（`TriggerChain.NotifyDramaClosed`）。若鏈的下一步又是「開一段新對話」，等於在「面板正在關」的呼叫堆疊裡又去 `Open` 同一個面板 = **重入**。`UIPanel.DoClose` 的順序是先 `IsOpen=false`→`OnClose()`→再 `StartFade(0, deactivate)`：重入時新面板在 `OnClose` 中被 `DoOpen`（`IsOpen` 又設回 true），但控制權回到外層 `DoClose` 後那句 `StartFade(0, deactivate)` 把**剛開好的新面板又淡出停用**，而 `IsOpen` 停在 true → `UIManager.Recompute()` 看到「還有面板開著」持續**暫停＋擋輸入**，但那面板已被停用（看不見、Update 不跑、按鍵無法翻頁）→ 永久卡死。
+- **解法**:對話關閉後的接鏈**延後一幀**再跑，等舊面板那一幀完全關乾淨、`Recompute` 已解除暫停，下一幀再開新對話就不會重入。新增常駐小幫手 `Assets/Scripts/Map/TriggerChainRunner.cs`（`NextFrame(Action)`，自動生成、`Update` 不受 timeScale 影響故暫停中仍會跑），`TriggerChain.NotifyDramaClosed` 改成 `TriggerChainRunner.NextFrame(() => OnCompleted(r))`。中間只差一幀、無感。見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §5。
+- **通則**:**永遠不要在一個模態面板的 `OnClose` 裡同步開另一個模態面板**（或任何會 `Open` 面板的邏輯）。要接續就延後一幀。
+
 ---
 
 ## E. 效能 / 顯示 (Performance & Display)

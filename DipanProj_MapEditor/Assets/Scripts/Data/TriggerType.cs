@@ -111,6 +111,18 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "offsetY", type = ParamType.Float },   // 鏡頭上(+)/下(-)位移（世界單位）
                 }
             });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：被觸發鏈（next）啟動時「飄鏡頭到自己這格中心＋壓黑幕、停留、再拉回」，表演完才接 next。
+                // 格子畫在要對準的地方（例如傳送門正中間一格）。不用玩家踩，純靠鏈驅動。
+                typeId = "cameraFocus", displayName = "鏡頭聚焦(鏈動作)", color = "#88DDFF",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "holdSeconds", type = ParamType.Float, label = "停留秒數" },   // 鏡頭到位後停留幾秒（留空=1.6）
+                    new TriggerParam { key = "dim",         type = ParamType.String, label = "黑幕樣式",
+                                       options = new [] { "中央留洞", "整片全黑", "無" } },
+                }
+            });
             return set;
         }
 
