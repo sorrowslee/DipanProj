@@ -30,16 +30,24 @@ namespace Dipan.UI
         /// <summary>「定住只能按 F」那一刻：即使輸入被擋，也放行 InteractionManager 的 F 互動。</summary>
         public static bool AllowInteract { get; private set; }
 
-        enum Phase { Idle, Pan, WaitNear, ForceF, ClickScript, ClickButton, Done }
+        enum Phase { Idle, Pan, WaitNear, ForceF, ClickScript, ClickButton, GuideToPortal, Done }
         Phase _phase = Phase.Idle;
         float _timer;
 
         // ScriptsPanel 事件旗標（每次開始重置）
         bool _evtOpened, _evtPlaced, _evtOpenedPortal;
         RectTransform _lockedTarget;   // 目前遮罩/手指鎖在哪個元件（避免每幀重設造成閃爍）
+        Vector3 _portalCenter;         // 傳送門世界中心（教學結束後手指指這裡）
+        Transform _player;
 
         MapCameraController _cam;
         InteractionManager Interact => InteractionManager.Instance;
+
+        Transform PlayerT()
+        {
+            if (_player == null) { var g = GameObject.FindGameObjectWithTag("Player"); if (g != null) _player = g.transform; }
+            return _player;
+        }
 
         void Awake()
         {
@@ -53,10 +61,15 @@ namespace Dipan.UI
             ScriptsPanel.OnPortalOpened += () => _evtOpenedPortal = true;
         }
 
-        // ── A) 找邪佛手指（獨立於傳送門流程）──
+        // ── A) 找邪佛手指（獨立於傳送門流程）：手指在玩家頭上、隨時指向邪佛 ──
         void OnTriggerFired(string name)
         {
-            if (name == TrigArrive) GuideFingerPanel.ShowUp();
+            if (name == TrigArrive)
+            {
+                var p = PlayerT();
+                if (p != null && TriggerChain.TryGetRegionCenter(TrigSawBuddha, out Vector2 bc))
+                    GuideFingerPanel.ShowWorldGuide(p, new Vector3(bc.x, bc.y, 0f));
+            }
             else if (name == TrigSawBuddha) GuideFingerPanel.HidePanel();
         }
 
@@ -71,6 +84,7 @@ namespace Dipan.UI
                 case Phase.ForceF: TickForceF(); break;
                 case Phase.ClickScript: TickClickScript(); break;
                 case Phase.ClickButton: TickClickButton(); break;
+                case Phase.GuideToPortal: TickGuideToPortal(); break;
             }
         }
 
@@ -85,9 +99,11 @@ namespace Dipan.UI
 
             _cam = _cam != null ? _cam : FindObjectOfType<MapCameraController>();
             _evtOpened = _evtPlaced = _evtOpenedPortal = false;
+            _portalCenter = new Vector3(portal.x, portal.y, 0f);
             GuideFingerPanel.HidePanel();   // 收掉找邪佛手指（保險）
             if (_cam != null) _cam.SetFocusPoint(portal);
             UIManager.Instance?.SetExternalHold(true, false);   // 飄鏡頭期間定住玩家
+            TutorialDimPanel.ShowSpotlightCenter();             // 黑幕留中央圓洞，突顯已置中的傳送門（濃度 0.6，看得到了）
             _timer = 0f;
             _phase = Phase.Pan;
         }
@@ -98,6 +114,7 @@ namespace Dipan.UI
             if (_timer < 2.2f) return;   // 飄過去＋停留一下
             if (_cam != null) _cam.SetFocusPoint(null);          // 鏡頭拉回玩家
             UIManager.Instance?.SetExternalHold(false, false);   // 放開，自由跑
+            TutorialDimPanel.Hide();
             _phase = Phase.WaitNear;
         }
 
@@ -109,6 +126,7 @@ namespace Dipan.UI
                 UIManager.Instance?.SetExternalHold(true, false);   // 定住玩家（不能走/攻擊）
                 AllowInteract = true;   // 但放行按 F 開傳送門
                 HardLock = true;
+                TutorialDimPanel.ShowFullBlack();                   // 整個螢幕壓黑，只剩「按 F」字
                 TutorialHintPanel.Show("按 F 開啟傳送門");
                 _phase = Phase.ForceF;
             }
@@ -120,6 +138,7 @@ namespace Dipan.UI
             {
                 AllowInteract = false;
                 UIManager.Instance?.SetExternalHold(false, false);   // 交給面板接手（面板本身會暫停＋擋輸入）
+                TutorialDimPanel.Hide();
                 TutorialHintPanel.Hide();
                 _phase = Phase.ClickScript;
             }
@@ -144,7 +163,7 @@ namespace Dipan.UI
 
         void TickClickButton()
         {
-            if (_evtOpenedPortal) { Finish(); return; }
+            if (_evtOpenedPortal) { StartGuideToPortal(); return; }
             if (ScriptsPanel.OpenInstance() == null) { AbortToWaitNear(); return; }
 
             var p = ScriptsPanel.OpenInstance();
@@ -164,22 +183,38 @@ namespace Dipan.UI
             GuideFingerPanel.HidePanel();
             TutorialBlockerPanel.Unlock();
             TutorialHintPanel.Hide();
+            TutorialDimPanel.Hide();
             HardLock = false;
             AllowInteract = false;
             _phase = Phase.WaitNear;
         }
 
-        void Finish()
+        // 按下開啟後：不再強制，改成手指指引玩家走去傳送門（走近就收手指）。
+        void StartGuideToPortal()
         {
             _lockedTarget = null;
-            GuideFingerPanel.HidePanel();
             TutorialBlockerPanel.Unlock();
             TutorialHintPanel.Hide();
             HardLock = false;
             AllowInteract = false;
             UIManager.Instance?.SetExternalHold(false, false);
-            TriggerChain.SetFlag(DoneFlag);   // 永久：之後不再出現
-            _phase = Phase.Done;
+            TriggerChain.SetFlag(DoneFlag);   // 永久：之後不再重播整段教學
+
+            var p = PlayerT();
+            if (p != null) GuideFingerPanel.ShowWorldGuide(p, _portalCenter);   // 頭上手指指向傳送門
+            else GuideFingerPanel.HidePanel();
+            _phase = Phase.GuideToPortal;
+        }
+
+        void TickGuideToPortal()
+        {
+            var p = PlayerT();
+            // 走到傳送門附近就收手指（之後踩進去傳送、換圖時手指本來也會自動關）。
+            if (p == null || ((Vector2)p.position - (Vector2)_portalCenter).sqrMagnitude < 1.6f * 1.6f)
+            {
+                GuideFingerPanel.HidePanel();
+                _phase = Phase.Done;
+            }
         }
     }
 

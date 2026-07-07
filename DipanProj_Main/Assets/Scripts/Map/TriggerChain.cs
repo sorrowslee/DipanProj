@@ -311,6 +311,19 @@ public static class TriggerChain
         return true;
     }
 
+    /// <summary>取某個 trigger 區域的世界中心（各格中心平均）。給新手教學手指指向某個觸發點（邪佛/傳送門）用。</summary>
+    public static bool TryGetRegionCenter(string name, out Vector2 center)
+    {
+        center = default;
+        var r = Find(name);
+        if (r?.cells == null || r.cells.Count == 0) return false;
+        Vector2 sum = Vector2.zero; int n = 0;
+        foreach (var c in r.cells)
+            if (c != null && c.Length >= 2) { sum += MapCoords.CellCenter(c[0], c[1], _map); n++; }
+        if (n == 0) return false;
+        center = sum / n; return true;
+    }
+
     /// <summary>TeleportWatcher 用：這個傳送點有沒有被傳送門設定過執行期目的地覆寫。</summary>
     public static bool TryGetTeleportOverride(string regionId, out int mapId, out string entrance)
     {

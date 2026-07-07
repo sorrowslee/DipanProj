@@ -22,10 +22,13 @@ namespace Dipan.UI
         {
             _bg = UIBuilder.Image(transform, "HintBG", null, new Color(0f, 0f, 0f, 0.62f));
             UIBuilder.Anchor(_bg.rectTransform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                             new Vector2(0.5f, 1f), new Vector2(0f, -70f), new Vector2(760f, 64f));
+                             new Vector2(0.5f, 1f), new Vector2(0f, -120f), new Vector2(1200f, 110f));
             _bg.raycastTarget = false;
+            // 高 sortingOrder：確保提示字畫在背包/傳送門面板之上，不被蓋住截斷（比面板層 100~300 高、比手指 500 低）。
+            var cv = _bg.gameObject.AddComponent<Canvas>();
+            cv.overrideSorting = true; cv.sortingOrder = 460;
 
-            _text = UIBuilder.Text(_bg.transform, "HintText", "", 30, new Color(1f, 0.92f, 0.6f), TextAnchor.MiddleCenter);
+            _text = UIBuilder.Text(_bg.transform, "HintText", "", 60, new Color(1f, 0.92f, 0.6f), TextAnchor.MiddleCenter);  // 放大約 2 倍
             UIBuilder.Stretch(_text.rectTransform, 20, 20, 6, 6);
             _text.fontStyle = FontStyle.Bold;
         }

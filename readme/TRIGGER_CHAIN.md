@@ -153,6 +153,13 @@
 > | 強制按 F 的觸發判斷 | 走到傳送門互動點的可互動範圍 | `InteractionManager.PlayerNearPortal` | 用 pickup 半徑判斷 |
 >
 > 另外教學啟動**刻意不靠旗標、不靠對話 id**，而是靠「背包有沒有紅嫁衣劇本」＋觸發點名字廣播——因為邪佛那段對話之後可能一直加句子，用對話 id 會壞。
+>
+> **通用元件（不只教學能用）**：
+> - `GuideFingerPanel`（指引手指）：`ShowWorldGuide(anchor, worldTarget)` ＝手指出現在 anchor（玩家）頭上、指尖角度**隨時朝向世界目標**、往目標前後輕點（找路、指方向都用它）；`ShowAtUI(rect)` ＝指某個 UI 元件。手指圖 `Resources/UI/Common/Guide_Finger.png`（未旋轉時指尖朝左上 135°，`TipBaseAngle`）；頭上高度 `HeadWorldOffset`。
+> - `TutorialDimPanel`（黑幕）：`ShowFullBlack()` 整螢幕壓黑（突顯教學文字）／`ShowSpotlightCenter()` 中央留圓洞（突顯已置中的目標，如鏡頭對準的傳送門）／`Hide()`。
+> - `TutorialHintPanel`：畫面上方教學大字（字級已放大）。
+>
+> **教學各時機用到的表演**：鏡頭飄向傳送門時＝中央圓洞黑幕；「按 F 開啟傳送門」時＝整螢幕黑幕＋放大字；按下開啟後＝不強制、只用頭上手指指引玩家走向傳送門（走近收手指）。
 
 ## 5. 運作細節（改程式前讀）
 
