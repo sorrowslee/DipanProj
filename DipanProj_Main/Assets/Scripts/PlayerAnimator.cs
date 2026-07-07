@@ -30,6 +30,16 @@ public class PlayerAnimator : MonoBehaviour
     float _currentSpeed;
     bool _oneShotDone;   // 一次性動作（dead/attack）是否已播到最後一幀定格
 
+    // ── 甦醒表演（趴地 → 倒播 dead 爬起）：進場「睜眼醒來」用，見 MapManager.FireEnterTriggersRoutine ──
+    // 表演期間 SetState 全部忽略（HandleVisuals 每幀塞 Idle/Walk 也蓋不掉趴姿）；Dead 例外（真死打斷表演）。
+    bool _lyingHold;            // 趴地定格中（顯示 dead 最後一幀，不動）
+    bool _wakePlaying;          // 倒播爬起中
+    int _wakeIdx;               // 倒播索引（dead 最後一幀 → 第 0 幀）
+    System.Action _wakeDone;    // 爬起播完的回呼
+
+    /// <summary>表演中（趴地定格或爬起倒播）。</summary>
+    public bool IsWakeUpBusy => _lyingHold || _wakePlaying;
+
     /// <summary>
     /// 依血統載入各動作的幀。fps≤0 用 12、referenceSpeed≤0 用 5。
     /// <paramref name="targetHeight"/> = 角色站立顯示高度（世界單位，≤0 用 1.95）：依 idle（取不到改 walk）
@@ -81,6 +91,12 @@ public class PlayerAnimator : MonoBehaviour
     public void SetState(State s, float currentSpeed)
     {
         _currentSpeed = currentSpeed;
+        // 甦醒表演中：忽略一般狀態切換（趴姿/爬起不被 Idle/Walk 蓋掉）；真死（Dead）例外，打斷表演。
+        if (IsWakeUpBusy)
+        {
+            if (s != State.Dead) return;
+            CancelWakeUp(invokeDone: false);
+        }
         s = Resolve(s);
         if (s != _state)
         {
@@ -90,9 +106,71 @@ public class PlayerAnimator : MonoBehaviour
         }
     }
 
+    // ───────────────────────── 甦醒表演（睜眼醒來：趴地 → 倒播 dead 爬起） ─────────────────────────
+
+    /// <summary>
+    /// 立即趴地定格（顯示 dead 的最後一幀＝完全倒地），維持到 <see cref="PlayWakeUp"/> 被呼叫。
+    /// 沒有 dead 圖（該血統沒給倒地素材）回 false＝不表演，呼叫端直接跳過。
+    /// </summary>
+    public bool HoldLyingPose()
+    {
+        if (_dead == null || _dead.Length == 0 || _sr == null) return false;
+        _lyingHold = true; _wakePlaying = false; _wakeDone = null;
+        _sr.sprite = _dead[_dead.Length - 1];
+        return true;
+    }
+
+    /// <summary>
+    /// 倒播 dead（最後一幀 → 第 0 幀）＝爬起動畫，播完自動回 Idle 並回呼 onDone。
+    /// 沒有 dead 圖時直接回 Idle＋立即回呼（防呆）。速率用 BaseFps（與死亡同節奏）。
+    /// </summary>
+    public void PlayWakeUp(System.Action onDone)
+    {
+        if (_dead == null || _dead.Length == 0 || _sr == null)
+        {
+            CancelWakeUp(invokeDone: false);
+            onDone?.Invoke();
+            return;
+        }
+        _lyingHold = false;
+        _wakePlaying = true;
+        _wakeIdx = _dead.Length - 1;
+        _timer = 0f;
+        _wakeDone = onDone;
+        _sr.sprite = _dead[_wakeIdx];
+    }
+
+    // 結束/打斷表演：回 Idle 第 0 幀。invokeDone=true 時觸發播完回呼。
+    void CancelWakeUp(bool invokeDone)
+    {
+        _lyingHold = false; _wakePlaying = false;
+        var done = _wakeDone; _wakeDone = null;
+        _state = State.Idle; _idx = 0; _timer = 0f; _oneShotDone = false;
+        ApplyFrame();
+        if (invokeDone) done?.Invoke();
+    }
+
     void Update()
     {
         if (!_hasAny) return;
+
+        // 甦醒表演：趴地定格＝什麼都不做（sprite 已定在倒地幀）；爬起＝依 BaseFps 倒播 dead。
+        if (_lyingHold) return;
+        if (_wakePlaying)
+        {
+            if (BaseFps <= 0.01f) { CancelWakeUp(invokeDone: true); return; }
+            _timer += Time.deltaTime;
+            float dur = 1f / BaseFps;
+            while (_timer >= dur)
+            {
+                _timer -= dur;
+                if (_wakeIdx > 0) _wakeIdx--;
+                else { CancelWakeUp(invokeDone: true); return; }   // 倒播到第 0 幀 → 起身完成，回 Idle
+            }
+            _sr.sprite = _dead[Mathf.Clamp(_wakeIdx, 0, _dead.Length - 1)];
+            return;
+        }
+
         var frames = FramesFor(_state);
         if (frames == null || frames.Length == 0) return;
         if (frames.Length == 1) { ApplyFrame(); return; }

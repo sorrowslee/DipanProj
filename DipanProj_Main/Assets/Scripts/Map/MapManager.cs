@@ -44,6 +44,7 @@ public class MapManager : MonoBehaviour
     int _currentMapId = -1;
     bool _loading;   // 載入進行中：擋掉重入（例如傳送 watcher 在載入期間又觸發）
     string _loadedModule;   // 已進入/預載的大地圖 module；跨 module 才出讀取頁＋預載，同 module 房間互跳不讀取
+    bool _wakeUpWanted;   // 本次進圖要演「趴地→起身」（EnterEffect=1 睜眼醒來連動）；FireEnterTriggersRoutine 消化
 
     public int CurrentMapId => _currentMapId;
     public bool IsLoading => _loading;
@@ -168,6 +169,70 @@ public class MapManager : MonoBehaviour
         }
 
         _loading = false;
+
+        // 進場觸發（onEnter）：載入完全結束（載入頁已關、玩家已就位）後，自動點火本圖的「進場觸發」點。
+        StartCoroutine(FireEnterTriggersRoutine());
+    }
+
+    /// <summary>
+    /// 依序點火本圖所有「進場觸發(自動)」（typeId=onEnter）的觸發點：
+    /// 1) 先等進場一次性效果（睜眼醒來）播完，對話才不會蓋在效果上。
+    /// 2) 每顆各自檢查：啟用狀態＋條件（旗標/周目/道具）＋重複規則（每周目/永久 已觸發過就跳過）。
+    /// 3) 有填「延遲秒數」就再等（用未縮放時間：暫停中也照走）。
+    /// 4) 點火＝OnCompleted：寫完成旗標、啟動接續觸發（next）——它自己不做事，純鏈起點。
+    /// 5) 多顆依區域清單順序點火；前一顆若開了對話，等對話關閉才點下一顆（避免兩段對話相撞）。
+    /// 期間換圖就中止（新圖會有自己的一輪）。見 readme/TRIGGER_CHAIN.md。
+    /// </summary>
+    IEnumerator FireEnterTriggersRoutine()
+    {
+        var regions = mapLoader != null ? mapLoader.Map?.TriggerLayer?.regions : null;
+        if (regions == null) yield break;
+        int mapAtStart = _currentMapId;
+
+        // 睜眼醒來連動（1/2）：先趴地定格（此時玩家的 Start 已跑完、dead 幀已載入；睜眼開頭全黑蓋住切換瞬間）。
+        PlayerAnimator wakeAnim = null;
+        if (_wakeUpWanted)
+        {
+            _wakeUpWanted = false;
+            var animComp = _player != null ? _player.GetComponent<PlayerAnimator>() : null;
+            if (animComp != null && animComp.HoldLyingPose()) wakeAnim = animComp;
+        }
+
+        // 等進場效果（睜眼）播完（用未縮放時間輪詢；效果本身會暫停遊戲）。
+        while (EyeOpenController.IsPlaying) yield return null;
+
+        // 睜眼醒來連動（2/2）：倒播 dead＝爬起（定住玩家輸入、不暫停），起身完才點火進場觸發。
+        if (wakeAnim != null)
+        {
+            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(true, false);
+            bool wakeDone = false;
+            wakeAnim.PlayWakeUp(() => wakeDone = true);
+            while (!wakeDone && wakeAnim != null && wakeAnim.IsWakeUpBusy) yield return null;
+            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(false, false);
+            if (_currentMapId != mapAtStart || _loading) yield break;
+        }
+
+        foreach (var r in regions)
+        {
+            if (r == null || r.typeId != TriggerChain.TypeOnEnter) continue;
+            if (_currentMapId != mapAtStart || _loading) yield break;   // 期間換圖 → 中止
+
+            // 前一顆點火的鏈若開了對話，等它關閉再點下一顆（避免對話面板互撞）。
+            while (TriggerChain.DramaPending) yield return null;
+            if (_currentMapId != mapAtStart || _loading) yield break;
+
+            if (!TriggerChain.IsActive(r)) continue;        // 停用中/條件不成立
+            if (!TriggerChain.RepeatAllows(r)) continue;    // 每周目/永久 已觸發過
+
+            float delay = r.GetFloat("delaySeconds", 0f);
+            for (float t = 0f; t < delay; t += Time.unscaledDeltaTime) yield return null;
+            if (_currentMapId != mapAtStart || _loading) yield break;
+            if (!TriggerChain.IsActive(r)) continue;        // 延遲期間條件可能已改變，再查一次
+
+            TriggerChain.MarkRepeatSeen(r);
+            Debug.Log($"[MapManager] 進場觸發「{r.name}」點火。");
+            TriggerChain.OnCompleted(r);
+        }
     }
 
     /// <summary>建好地圖後的共同收尾：落點/玩家/相機/氛圍/場景特效/怪/觸發點（兩種載入路徑共用）。</summary>
@@ -192,6 +257,11 @@ public class MapManager : MonoBehaviour
         SceneEffectController.ApplyMapSceneEffect(row.sceneEffect, mapLoader.Map);
         // 進場一次性效果（如睜眼醒來）：依 EnterEffect 欄，進圖播一次就結束（承接的全黑會蓋過載入頁收尾）。見 EyeOpenController。
         EyeOpenController.ApplyMapEnterEffect(row.enterEffect);
+
+        // 睜眼醒來（EnterEffect=1）連動玩家「趴地 → 起身」表演：記下需求，實際趴地在 FireEnterTriggersRoutine
+        // 開頭才做——因為玩家第一次生成時 PlayerAnimator.Setup 在 Start() 才載幀，這裡（同幀更早）還拿不到 dead 圖；
+        // 協程開跑時 Start 已執行完，且睜眼開頭是全黑（眼皮閉合），看不到趴下前的站姿。
+        _wakeUpWanted = row.enterEffect == 1;
         mapLoader.SpawnMonsters();
         SetupWatcher();
         Debug.Log($"[MapManager] 進入地圖 #{row.id}「{row.name}」(module={row.module})，落點={pos}。");

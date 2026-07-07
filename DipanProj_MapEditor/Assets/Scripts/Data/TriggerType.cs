@@ -123,6 +123,18 @@ namespace DipanMapEditor.Data
                                        options = new [] { "中央留洞", "整片全黑", "無" } },
                 }
             });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 進場觸發：進入這張地圖、載入完全結束（含進場效果播完）後自動觸發一次，
+                // 自己不做事、只當觸發鏈的起點（接續觸發 next 指向要做的事，例如純鏈節點的劇情觸發點）。
+                // 不用塗格子：用「＋ 手動新增空區域」建立（0 格），從區域清單選取設參數即可。
+                // 一次性用「重複規則＝每周目/永久」或「周目上限」控制；預設每次進場都會觸發。
+                typeId = "onEnter", displayName = "進場觸發(自動)", color = "#FF66AA",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "delaySeconds", type = ParamType.Float, label = "延遲秒數" },   // 進場（效果播完）後再等幾秒才觸發（留空=0）
+                }
+            });
             return set;
         }
 

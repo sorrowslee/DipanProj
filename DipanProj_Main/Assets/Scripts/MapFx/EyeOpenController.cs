@@ -20,6 +20,9 @@ public class EyeOpenController : MonoBehaviour
 {
     public static EyeOpenController Instance { get; private set; }
 
+    /// <summary>進場效果是否正在播放中（給「進場觸發」等系統等待用：效果播完才觸發，避免對話蓋在睜眼上）。</summary>
+    public static bool IsPlaying => Instance != null && Instance._playing;
+
     [Header("時間軸（秒，可調）")]
     [Tooltip("整段睜眼過場的總長。")]
     public float duration = 4.0f;

@@ -37,13 +37,13 @@
 | [STORAGE.md](STORAGE.md) | 倉庫系統（StorageSystem + IItemGrid、倉庫+背包並排面板、點擊/拖放搬運、每角色獨立、存檔接線） | 改倉庫、做搬運 UI、套倉庫圖 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
-| [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) | 觸發鏈：trigger 接 trigger（next/startDisabled/旗標條件）、動作型 giveItem/teleportTo、傳送點綠幕連動 | 編排「對話→給物品→開門→傳送」這類事件流程、加條件分支 |
+| [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) | 觸發鏈：trigger 接 trigger（next/startDisabled/旗標條件）、動作型 giveItem/teleportTo/cameraFocus、**進場觸發 onEnter（一進地圖自動觸發、0 格不塗格子）**、傳送點綠幕連動 | 編排「對話→給物品→開門→傳送」這類事件流程、加條件分支、做「一進房間就播對話」 |
 | [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留）＋§14 進度層（周目=generation、完成關卡=clearedModules、金錢、出生點旗標、進度 API） | 做存檔/讀檔、角色建立/轉生、物品持久化、記錄關卡/周目進度前 |
 | [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物 |
 | [DEPLOY.md](DEPLOY.md) | 打包/部署流程（**itch.io + butler** 差分上傳、PC 用 itch app 取得、Project Tools 選單、疑難排解） | 打包、部署、build 出錯、設定 butler/itch 時 |
 | [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md) | 效能診斷面板(PerfHud：FPS/CPU·GPU ms/瓶頸/顯卡，按 P) ＋ 上架前玩家畫面設定(VSync/幀率上限/視窗模式)規劃 | 排查幀數/卡頓、做畫面設定選單 |
 | [ATMOSPHERE.md](ATMOSPHERE.md) | 場景氛圍後處理（MapsTable 的 Atmosphere 欄 1~15：正常/幽暗/噩夢/烈日/焦土/沙塵/淺海/深海/深海+恐怖/風雪/強風/細雨/大雨/陰森森林鬼霧/電視雜訊；提燈光圈、熱浪、海洋折射、風絲、雨絲、漂移黑霧、雪花噪訊，地圖驅動、換圖即時切換） | 調某地圖陰森/炎熱/海洋/風雨/鬼霧/雜訊氛圍、做新地圖、改光圈/調色/扭曲 |
-| [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) | 進場一次性效果（MapsTable `EnterEffect` 欄，進圖播一次就結束）：睜眼醒來（後處理杏眼遮罩＋模糊對焦＋亮度暗角，用在初始洞窟）。與 Atmosphere/SceneEffect 的「持續狀態」分工 | 做進場過場（睜眼/昏迷/暈眩…）、改睜眼節奏、加新進場效果 |
+| [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) | 進場一次性效果（MapsTable `EnterEffect` 欄，進圖播一次就結束）：睜眼醒來（後處理杏眼遮罩＋模糊對焦＋亮度暗角，用在初始洞窟）＋**玩家趴地→起身連動（倒播 dead 幀＝爬起，零新素材）**。與 Atmosphere/SceneEffect 的「持續狀態」分工 | 做進場過場（睜眼/昏迷/暈眩…）、改睜眼節奏、改趴地起身、加新進場效果 |
 | [SCENE_EFFECT.md](SCENE_EFFECT.md) | 場景特效（世界端）：① 地圖級 SceneEffect（MapsTable 欄，火雨）②**可放置 SceneFx**（編輯器「場景特效」分頁逐個放、SceneFxTable 驅動、stream 煙/火/冰/毒＋portal 傳送門、編輯器即時預覽）。與 Atmosphere（螢幕後處理）分工互補 | 做煙霧圍巾/噴射/傳送門、加新特效種類、調外觀、火雨、編輯器內預覽 |
 | [RESOURCE_LOADING.md](RESOURCE_LOADING.md) | 資源載入與載入頁（地圖改「分幀載入＋LoadingPanel」解決進場/換圖凍住；依關卡 Resources/Loading/<module>.png 顯示載入圖、停留秒數、鎖輸入不暫停） | 進場/換圖會卡、做載入頁、放各關載入圖、調分幀批量 |
 | [INTRO_COMIC.md](INTRO_COMIC.md) | 序章開場漫畫播放器（獨立 Intro 場景、全程式、`IntroComicController`）：**整頁成品圖＋導讀式鏡頭**——鏡頭平移/縮放對焦每格(Focuses：Area/Zoom/X·YOffset、可綁格)、空白鍵下一格、下墜 13~15 全篇幅 cover、右上角兩段式 Skip、整頁圖放 `Resources/InitialStory`、右鍵帶入預設。播完接墜落、落 `MainScene` 的 Tutorial_Cave | 改開場漫畫、調每格鏡頭框/縮放/位移、Skip、下墜節奏 |

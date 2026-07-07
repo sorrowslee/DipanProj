@@ -31,6 +31,7 @@ public static class TriggerChain
     public const string TypeGiveItem = "giveItem";
     public const string TypeTeleportTo = "teleportTo";
     public const string TypeCameraFocus = "cameraFocus";   // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格中心＋黑幕，停留後拉回，再接 next
+    public const string TypeOnEnter = "onEnter";           // 進場觸發（自動）：進圖載入結束後自動觸發，純鏈起點（0 格、不塗格子），見 MapManager.FireEnterTriggersRoutine
 
     // 通用欄位 key
     const string KeyNext = "next";
@@ -140,6 +141,36 @@ public static class TriggerChain
     /// <summary>踩踏/互動型 watcher 的統一入口：停用中或條件不成立 → 此 trigger 視同不存在。</summary>
     public static bool IsActive(TriggerRegion r) => !IsDisabled(r) && RequirementMet(r);
 
+    /// <summary>是否有對話正在播（等面板關閉的鏈節點還沒結）。進場觸發依序點火時據此等待，避免兩段對話撞在一起。</summary>
+    public static bool DramaPending => _pendingDramaRegion != null;
+
+    // ── 重複規則（repeat）給「進場觸發」用的判定/標記 ──
+    // 與 InteractionManager 的互動點用同一套自動旗標格式（"已觸發:"+id；永久加「永久:」前綴）。
+    //   每次進場（預設/空值）、每次：不限制（進場觸發本來就一次進圖只點火一次）。
+    //   每周目：觸發後寫周目自動旗標（輪迴清空 → 下周目再觸發）。
+    //   永久：觸發後寫終身自動旗標（跨輪迴保存，開新角色才會再觸發）。
+
+    /// <summary>依「重複規則」判定這個 trigger 是否還能觸發（每周目/永久 已觸發過 → false）。</summary>
+    public static bool RepeatAllows(TriggerRegion r)
+    {
+        string s = r?.GetString("repeat");
+        if (string.IsNullOrEmpty(s)) return true;
+        s = s.Trim();
+        if (s == "每周目" || s == "cycle") return !FlagTrue("已觸發:" + r.id);
+        if (s == "永久" || s == "life") return !FlagTrue(LifePrefix + "已觸發:" + r.id);
+        return true;
+    }
+
+    /// <summary>觸發當下標記「已觸發」自動旗標（只有 每周目/永久 兩種模式會寫；其他模式無事）。</summary>
+    public static void MarkRepeatSeen(TriggerRegion r)
+    {
+        string s = r?.GetString("repeat");
+        if (string.IsNullOrEmpty(s)) return;
+        s = s.Trim();
+        if (s == "每周目" || s == "cycle") SetFlag("已觸發:" + r.id);
+        else if (s == "永久" || s == "life") SetFlag(LifePrefix + "已觸發:" + r.id);
+    }
+
     // ───────────────────────── 完成 → 接鏈 ─────────────────────────
 
     /// <summary>
@@ -203,6 +234,7 @@ public static class TriggerChain
             case TypeGiveItem: ExecuteGiveItem(r); break;
             case TypeTeleportTo: ExecuteTeleportTo(r); break;
             case TypeCameraFocus: ExecuteCameraFocus(r); break;
+            case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
                 if (IsDramaType(r)) ExecuteDrama(r);   // 鏈到劇情點 = 立即播對話（對話→對話）
                 else EnableRegion(r);                   // 位置型（teleport/pickup/cutscene…）= 解鎖

@@ -21,6 +21,23 @@
 
 視覺：上下對稱的**杏眼狀眼皮遮罩**（中間開得多、兩側窄）＋**景深模糊由大轉 0**（剛醒視線糊）＋**亮度由暗回正**＋**暗角越沒睜開越重**。
 
+### 1.5 玩家「趴地 → 起身」連動（2026-07-07 加）
+
+睜眼（EnterEffect=1）自動連動玩家的甦醒表演，**零新素材**——爬起動畫＝把該血統的 `dead` 逐格幀**倒著播**（趴地幀 → 站立幀）：
+
+```
+進圖放好玩家 → 立刻定格在 dead 最後一幀（趴地）→ 睜眼過場播放（遊戲暫停）
+→ 睜眼播完 → 倒播 dead＝爬起（定住輸入、不暫停）→ 回 idle、恢復操作 → 才點火「進場觸發」
+```
+
+- 程式：`PlayerAnimator.HoldLyingPose()`（趴地定格）＋ `PlayerAnimator.PlayWakeUp(onDone)`（倒播爬起，速率同 BaseFps）；
+  `MapManager.PlaceAndSetup` 只記需求（`_wakeUpWanted`），趴地與起身都在 `MapManager.FireEnterTriggersRoutine` 執行——
+  因為玩家**第一次生成**時 `PlayerAnimator.Setup` 在 `Start()` 才載幀，PlaceAndSetup 當下拿不到 dead 圖；
+  協程開跑時已載好，且睜眼開頭全黑（眼皮閉合）蓋住趴下前的站姿瞬間。
+- 表演期間 `SetState` 被忽略（HandleVisuals 每幀塞 Idle 也蓋不掉趴姿）；**真死（Dead）例外**會打斷表演。
+- 防呆：該血統沒有 `dead/` 圖 → 整段跳過（只播睜眼、不趴地）。
+- 順序保證：**onEnter 進場觸發（對話等）一定在起身完成後才點火**（見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3）。
+
 ---
 
 ## 2. 檔案與運作

@@ -284,6 +284,12 @@
 - **解法**：改**場景/prefab 上那顆**——在 Inspector 選到該物件把值改掉；或直接改場景/prefab 檔裡序列化的那行（如 MainScene 的 `SortingOrder: 100` → `22000`）。⚠️ 若場景正開著，改檔後要讓 Unity **Reload 場景**才會載入新值；且**別在改檔後又存一次場景**，否則記憶體的舊值會覆寫回去。想「一律吃程式值」可改用 `const`（不序列化，如 `DamageNumberManager.SortingOrder`）或在 `Awake` 內強制指定。
 
 
+### G5. 玩家「生成的同一幀」對 PlayerAnimator 下指令沒反應（例：進圖立刻趴地失敗）
+- **症狀**：進圖時想讓玩家立刻擺出某個逐格動畫姿勢（如睜眼醒來的趴地定格），第一次生成玩家時完全沒效果；但之後換圖再進（玩家已存在）就正常。
+- **原因**：`PlayerAnimator.Setup`（載入 idle/walk/dead 逐格幀）是在 `PlayerController.Start()` 呼叫的；而 `MapManager.PlaceAndSetup` 在 Instantiate 玩家後**同一幀同步**繼續往下跑——此時只有 `Awake` 執行過、`Start` 還沒跑，幀陣列全是 null，`HoldLyingPose()` 之類查 `_dead` 的 API 判定「沒圖」直接跳過。之後的進圖玩家早已 `Start` 完，所以「只有第一次會壞」，非常隱蔽。
+- **解法**：對「剛生成的物件」要用到其 `Start` 初始化結果時，**至少等一幀**（丟進 coroutine / `TriggerChainRunner.NextFrame`）再下指令。本案把「趴地＋起身」整段搬進 `MapManager.FireEnterTriggersRoutine`（協程，載入頁關閉後才跑，`Start` 必已執行），`PlaceAndSetup` 只記 `_wakeUpWanted` 需求旗標；視覺上趴下前的站姿瞬間被睜眼開頭的全黑（眼皮閉合）蓋住。**通則：Instantiate 後同幀只能依賴 `Awake` 做完的事；依賴 `Start` 的操作要延一幀。**
+
+
 ---
 
 ## H. 流程 / 存讀檔 (Game Flow & Save UI)

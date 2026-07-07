@@ -22,6 +22,10 @@
 > **狀態**：idle/walk 循環、dead 一次性定格（死亡時觸發、不循環）。走路 fps 跟移動速度連動（防腳滑），同怪物。
 > 相關程式：`Assets/Scripts/PlayerAnimator.cs`、`PlayerSpriteLibrary.cs`、`PlayerController.cs`（`Bloodline` 欄 + `SetBloodline`）。機制細節同 [MONSTER_SETUP.md](MONSTER_SETUP.md)。
 >
+> **dead 幀一圖兩用（2026-07-07）**：`dead/` 除了死亡，還被「睜眼醒來」進場拿去**倒播＝爬起**（趴地→站立，零新素材）：
+> `PlayerAnimator.HoldLyingPose()`（定格 dead 最後一幀）＋ `PlayerAnimator.PlayWakeUp(onDone)`（倒播、播完回 idle），
+> 表演中一般 `SetState` 被忽略（真死 Dead 例外）。所以畫 dead 序列時**順播是倒下、倒播要能當爬起**（首幀＝站立、末幀＝完全趴平，中間別夾只適合單向的幀，例如噴血）。見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) §1.5。
+>
 > **碰撞框**：玩家碰撞框維持原本 prefab 上的設定（不像怪物那樣自動依圖貼合）——換血統若大小差很多，自行在 `Player` 上微調 collider。
 
 把一張「站立圖」+ 一張「走路序列圖」設定成「站著會待機、移動會走路」的主角。

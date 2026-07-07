@@ -35,7 +35,8 @@
           "zOrder": 0,
           "hp": -1,
           "animFps": 24.0,
-          "pingPong": false
+          "pingPong": false,
+          "walkable": false
         }
       ]
     },
@@ -128,6 +129,25 @@
             "video": "EvilBuddha.mp4",
             "targetMapId": "12",
             "targetEntrance": ""
+          }
+        },
+        {
+          "id": "20bef2de",
+          "name": "進場觸發接續對話",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "delaySeconds": "",
+            "next": "主角醒來對話"
+          }
+        },
+        {
+          "id": "98468999",
+          "name": "主角醒來對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "6"
           }
         }
       ]

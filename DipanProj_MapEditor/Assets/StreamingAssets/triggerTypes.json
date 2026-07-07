@@ -158,6 +158,18 @@
    ]
   },
   {
+   "typeId": "onEnter",
+   "displayName": "進場觸發(自動)",
+   "color": "#FF66AA",
+   "params": [
+    {
+     "key": "delaySeconds",
+     "type": "Float",
+     "label": "延遲秒數"
+    }
+   ]
+  },
+  {
    "typeId": "cameraFocus",
    "displayName": "鏡頭聚焦(鏈動作)",
    "color": "#88DDFF",
