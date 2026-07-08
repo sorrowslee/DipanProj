@@ -39,6 +39,18 @@ TempImage/
 /DipanProj_MapEditor/Assets/StreamingAssets/MapAssets/
 /DipanProj_MapEditor/Assets/StreamingAssets/MapAssets.meta
 
+# DipanProj_MapEditor — 特效預覽器「匯出換色版」的輸出（可隨時重烤，不進版控）
+/DipanProj_MapEditor/Assets/StreamingAssets/Effects_Recolored/
+/DipanProj_MapEditor/Assets/StreamingAssets/Effects_Recolored.meta
+
+# DipanProj_MapEditor — 整理好的特效庫（可用 Tools/organize_effects.py 從原始包重跑產生，不進版控）
+/DipanProj_MapEditor/Assets/StreamingAssets/Effects/
+/DipanProj_MapEditor/Assets/StreamingAssets/Effects.meta
+
+# DipanProj_MapEditor — 購買的原始特效包（大量二進位素材，各自留本機，不進版控）
+/DipanProj_MapEditor/Assets/Resources/Super Pixel Effects Gigapack/
+/DipanProj_MapEditor/Assets/Resources/Super Pixel Effects Gigapack.meta
+
 # DipanProj_Main — Sync Map Assets 從 GameAssets 產生的衍生素材副本，不進版控（打包前先跑一次 Sync）
 /DipanProj_Main/Assets/StreamingAssets/MapAssets/
 /DipanProj_Main/Assets/StreamingAssets/MapAssets.meta

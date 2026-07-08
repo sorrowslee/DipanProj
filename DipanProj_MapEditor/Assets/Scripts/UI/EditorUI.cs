@@ -88,6 +88,7 @@ namespace DipanMapEditor.UI
         EditorCamera _cam;
         Tools.ObjectController _objCtl;
         Tools.SceneFxController _sfxCtl;
+        EffectPreviewUI _preview;   // 特效預覽器（懶建立）
         Vector2 _sfxScroll;
         // 場景特效數字欄的文字緩衝（讓使用者可清空/自由編輯；空或無效 = 套預設）。切換選取時重新同步。
         SceneFxInstance _sfxBufFor;
@@ -180,6 +181,7 @@ namespace DipanMapEditor.UI
             if (_showLoad && CenteredRect(460, 340).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showBg && CenteredRect(420, 280).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showFlags && CenteredRect(480, 420).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (CurrentTool == EditTool.EffectPreview) return true; // 預覽器佔滿畫面，不編輯地圖
             if (CurrentTool == EditTool.Object && ObjCtl()?.Selected != null
                 && mousePos.x <= InspectorW && ty >= Screen.height - InspectorH)
                 return true;                                // 物件選取面板
@@ -205,6 +207,11 @@ namespace DipanMapEditor.UI
             else if (CurrentTool == EditTool.SceneFx)
             {
                 DrawSceneFxPanel();
+            }
+            else if (CurrentTool == EditTool.EffectPreview)
+            {
+                if (_preview == null) _preview = new EffectPreviewUI();
+                _preview.Draw(new Rect(0, TopBarH, Screen.width, Screen.height - TopBarH));
             }
             else
             {
@@ -256,9 +263,15 @@ namespace DipanMapEditor.UI
             GUI.color = CurrentTool == EditTool.Trigger ? Color.cyan : Color.white;
             if (GUILayout.Button("Trigger", GUILayout.Width(70))) { CurrentTool = EditTool.Trigger; TriggerPaintMode = true; }
             GUI.color = Color.white;   // 旗標不是工具，永遠白（否則會沿用上一顆 Trigger 的 cyan 而看起來被選取）
-            if (GUILayout.Button("旗標", GUILayout.Width(50))) { _showFlags = true; _flagMsg = ""; }
+            if (GUILayout.Button("旗標", GUILayout.Width(50))) { if (CurrentTool == EditTool.EffectPreview) CurrentTool = EditTool.TilePaint; _showFlags = true; _flagMsg = ""; }
             GUI.color = CurrentTool == EditTool.SceneFx ? Color.cyan : Color.white;
             if (GUILayout.Button("場景特效", GUILayout.Width(80))) CurrentTool = EditTool.SceneFx;
+            GUI.color = CurrentTool == EditTool.EffectPreview ? Color.cyan : Color.white;
+            if (GUILayout.Button("特效預覽器", GUILayout.Width(90)))
+            {
+                CurrentTool = EditTool.EffectPreview;
+                _showNew = _showSave = _showLoad = _showBg = _showFlags = false; // 開預覽器就收起所有彈窗（含新建地圖）
+            }
             GUI.color = Color.white;
 
             GUILayout.Space(12);
@@ -280,6 +293,7 @@ namespace DipanMapEditor.UI
         /// <summary>對話框互斥：開其中一個就關掉其他。</summary>
         void OpenDialog(bool newDlg = false, bool saveDlg = false, bool loadDlg = false, bool bgDlg = false)
         {
+            if (CurrentTool == EditTool.EffectPreview) CurrentTool = EditTool.TilePaint; // 從預覽器點「新建/存/讀/背景」→ 先離開預覽器
             _showNew = newDlg;
             _showSave = saveDlg;
             _showLoad = loadDlg;
