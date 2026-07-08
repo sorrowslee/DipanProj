@@ -360,6 +360,15 @@
       "frameCount": 1
     },
     {
+      "id": "Main/Characters/Talk/Base/hurt",
+      "path": "Main/Characters/Talk/Base/hurt.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1052,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Main/Characters/Talk/Base/normal",
       "path": "Main/Characters/Talk/Base/normal.png",
       "category": "Talk",

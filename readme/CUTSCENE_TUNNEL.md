@@ -71,6 +71,7 @@
 
 - **洞口放大是「等比」**：`ExitSizeAt(step) = a·(b/a)^(step/Steps)`，每步視覺變化比例一致，第一下不會突兀（早期「線性放大」第一下看起來跨太大）。洞口形狀 `MakeTunnelMouth()` 是「半圓頂 ∪ 直壁矩形」＝卡通火車隧道拱門。
 - 收尾：按滿 Steps → 白光罩滿 → `OnComplete`（在白幕下換圖）→ `Fadeout` 把白光淡出露出新圖。
+- **洞口光暈改用 shader（2026-07-08）**：原本洞口外圈的光是烘進 `MakeTunnelMouth` 貼圖的一圈均勻柔暈（`MouthHalo`），太厚像刻意的粗邊。現在**洞口貼圖只留乾淨的亮拱門＋柔邊**（烘進時 halo 傳 0），外圈光改由 `Custom/TunnelMouthGlow` shader 生成的一層加法光暈（鋪在黑底之上、洞口之下的全螢幕 quad）：由洞口中心往外**徑向柔和遞減**（不再有硬邊）＋**放射光束**（角度雜訊、沿半徑不變＝一條條散射）＋**霧感**（低頻 fbm），並用外部餵的 `_Anim`(`unscaledTime`) 微微流動（暫停中也動）。`MouthHalo`/`MouthHaloWidth` 兩欄已停用。可調欄位：`GlowColor`、`GlowRayStrength`、`GlowRaySharp`、`GlowRayFreq`、`GlowHaze`、`GlowSpread`、`GlowRadiusFrac`、`GlowAnimSpeed`（洞口變大時光暈半徑自動跟著長）。
 
 ### 2.3 `VideoPlayerOverlay`（過場影片播放器）
 `Assets/Scripts/Cutscene/VideoPlayerOverlay.cs`（namespace `Dipan.Cutscene`）

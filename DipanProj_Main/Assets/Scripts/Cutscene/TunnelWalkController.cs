@@ -31,11 +31,27 @@ namespace Dipan.Cutscene
         [Tooltip("每按一下洞口放大的動畫時間（秒）；越大＝放大越慢、越蹣跚")] public float GrowSeconds = 0.9f;
         [Tooltip("洞口在畫面上的垂直位置（0=中央；負=偏下、正=偏上，螢幕高比例）")] [Range(-0.3f, 0.3f)] public float ExitYOffset = 0f;
 
-        [Header("洞口外觀（朦朧）※柔邊/柔暈於進 Play 時烘進貼圖，改完需重播；模糊為即時")]
+        [Header("洞口外觀（朦朧）※柔邊於進 Play 時烘進貼圖，改完需重播；模糊為即時")]
         [Tooltip("洞口邊緣柔化寬度：越大＝線條越粗、越朦朧")] [Range(0.02f, 0.35f)] public float MouthEdgeSoftness = 0.16f;
-        [Tooltip("洞口外圈柔暈的強度")] [Range(0f, 0.8f)] public float MouthHalo = 0.5f;
-        [Tooltip("洞口外圈柔暈的擴散寬度")] [Range(0.1f, 0.7f)] public float MouthHaloWidth = 0.45f;
+        [Tooltip("（已停用）舊版烘在貼圖裡的外圈柔暈——洞口外光改由下方 shader 光暈生成，這兩欄不再作用")] [Range(0f, 0.8f)] public float MouthHalo = 0.5f;
+        [Tooltip("（已停用）見上")] [Range(0.1f, 0.7f)] public float MouthHaloWidth = 0.45f;
         [Tooltip("模糊 shader 的模糊量（UV 位移，即時生效）；0＝幾乎不糊。需 Resources/Shaders/TunnelBlur")] [Range(0f, 0.03f)] public float MouthBlur = 0.008f;
+
+        [Header("洞口光暈（shader：光發散進來＝放射光束＋霧感，取代烘死的粗邊）")]
+        [Tooltip("光暈顏色（暖白最像洞外天光）")] public Color GlowColor = new Color(1f, 0.93f, 0.78f, 1f);
+        [Tooltip("放射光束強度")] [Range(0f, 1.5f)] public float GlowRayStrength = 0.4f;
+        [Tooltip("光束銳利度：越大＝越細、越分明")] [Range(0.5f, 5f)] public float GlowRaySharp = 2.2f;
+        [Tooltip("放射光束的密度感（數量）")] [Range(2f, 20f)] public float GlowRayFreq = 8f;
+        [Tooltip("霧感底光強度")] [Range(0f, 1f)] public float GlowHaze = 0.22f;
+        [Tooltip("光暈往外散開的距離（相對洞口大小，會跟著洞口放大等比放大）")] [Range(0.02f, 1.5f)] public float GlowSpread = 0.25f;
+        [Tooltip("光暈半徑相對洞口大小（越大＝光從離洞口越遠處開始）")] [Range(0.1f, 0.6f)] public float GlowRadiusFrac = 0.30f;
+        [Tooltip("光暈圓心相對洞口的垂直微調（相對洞口大小；負＝往下）。拱門在貼圖裡偏下，預設 -0.11 把圓心對到拱門視覺中心")] [Range(-0.3f, 0.3f)] public float GlowCenterYFrac = -0.11f;
+        [Tooltip("光的流動速度（0＝靜止）")] [Range(0f, 3f)] public float GlowAnimSpeed = 1f;
+
+        [Header("走隧道提示（點滑鼠左鍵，右側閃爍）")]
+        [Tooltip("提示圖檔名（放 Resources/UI/Common/）；留空＝不顯示")] public string HintImage = "Guide_MouseLeft";
+        [Tooltip("提示圖高度（像素，寬依比例）")] public float HintHeight = 125f;
+        [Tooltip("提示圖位置（相對畫面中心，像素；+X 右、+Y 上）")] public Vector2 HintPos = new Vector2(885f, -420f);
 
         [Header("踏步晃動（左右交替衝一下）")]
         [Tooltip("每按一下左右橫衝的幅度（像素）；左右交替模擬踏步")] public float ShakeAmount = 52f;
@@ -61,9 +77,14 @@ namespace Dipan.Cutscene
         Canvas _canvas;
         RectTransform _root;       // 內容根（晃動位移加在這）
         Image _backdrop;           // 全黑
+        Image _glow;               // 洞口光暈（shader：放射光束＋霧感）
+        Material _glowMat;
         Image _exit;               // 洞口光
         RectTransform _exitRt;
+        Image _hint;               // 走隧道提示（點左鍵，右側閃爍）
         Image _flash;              // 收尾白光
+
+        const float HintFlashSpeed = 3.3f, HintFlashMin = 0.15f, HintFlashMax = 1f;   // 與新手教學提示同頻
 
         int _step;
         float _delayLeft;
@@ -118,6 +139,8 @@ namespace Dipan.Cutscene
 
             float dt = Time.unscaledDeltaTime;
             if (_exitMat != null) _exitMat.SetFloat("_BlurSize", MouthBlur);   // 模糊量即時可調
+            UpdateGlowMat();   // 光暈參數即時可調＋跟著洞口大小/流動
+            UpdateHint();      // 走隧道「點左鍵」提示（右側閃爍）
 
             if (_phase == Phase.Delay)
             {
@@ -227,6 +250,39 @@ namespace Dipan.Cutscene
             _exitRt.anchoredPosition = new Vector2(0f, ExitYOffset * 1080f);
         }
 
+        // 走隧道「點左鍵」提示：走隧道期間（Delay/Walking）在右側顯示並閃爍（頻率同新手教學）；收尾/結束收起。
+        void UpdateHint()
+        {
+            if (_hint == null) return;
+            bool show = _phase == Phase.Delay || _phase == Phase.Walking;
+            _hint.enabled = show;
+            if (!show) return;
+            var sp = _hint.sprite;
+            float w = HintHeight * (sp != null && sp.rect.height > 0f ? sp.rect.width / sp.rect.height : 1f);
+            _hint.rectTransform.sizeDelta = new Vector2(w, HintHeight);
+            _hint.rectTransform.anchoredPosition = HintPos;
+            float a = Mathf.Lerp(HintFlashMin, HintFlashMax, Mathf.Abs(Mathf.Sin(Time.unscaledTime * HintFlashSpeed)));
+            var c = _hint.color; c.a = a; _hint.color = c;
+        }
+
+        // 每幀把光暈參數餵給 shader：中心跟著洞口、半徑跟著洞口大小、_Anim 用 unscaledTime（暫停中仍流動）。
+        void UpdateGlowMat()
+        {
+            if (_glowMat == null) return;
+            _glowMat.SetColor("_Color", GlowColor);
+            // 圓心對到拱門視覺中心：拱門在貼圖裡偏下，往下移 GlowCenterYFrac×洞口大小（隨洞口變大等比下移）。
+            float centerY = 0.5f + ExitYOffset + GlowCenterYFrac * _exitCur;
+            _glowMat.SetVector("_Center", new Vector4(0.5f, centerY, 0f, 0f));
+            _glowMat.SetFloat("_Radius", Mathf.Max(0.02f, _exitCur * GlowRadiusFrac));
+            _glowMat.SetFloat("_Spread", Mathf.Max(0.005f, _exitCur * GlowSpread));   // 散開也跟著洞口大小等比縮放
+            _glowMat.SetFloat("_RayStrength", GlowRayStrength);
+            _glowMat.SetFloat("_RayFreq", GlowRayFreq);
+            _glowMat.SetFloat("_RaySharp", GlowRaySharp);
+            _glowMat.SetFloat("_Haze", GlowHaze);
+            _glowMat.SetFloat("_Anim", Time.unscaledTime * GlowAnimSpeed);
+            _glowMat.SetFloat("_Aspect", Screen.height > 0 ? (float)Screen.width / Screen.height : 1.777f);
+        }
+
         // ───────────── 建構 ─────────────
 
         void Build()
@@ -241,7 +297,8 @@ namespace Dipan.Cutscene
                 var tex = Resources.Load<Texture2D>("InitialStory/TunnelMouth");
                 if (tex != null) exitSp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
             }
-            if (exitSp == null) exitSp = SpriteOf(MakeTunnelMouth(384, MouthEdgeSoftness, MouthHalo, MouthHaloWidth));
+            // 洞口只烘「乾淨的亮拱門＋柔邊」，不再烘外圈粗暈（halo=0）——外圈光改由 TunnelMouthGlow shader 生成。
+            if (exitSp == null) exitSp = SpriteOf(MakeTunnelMouth(384, MouthEdgeSoftness, 0f, MouthHaloWidth));
 
             var canvasGo = new GameObject("TunnelCanvas",
                 typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
@@ -264,6 +321,13 @@ namespace Dipan.Cutscene
             _backdrop = NewImage(_root, "Black", _whiteSprite, Color.black);
             Stretch((RectTransform)_backdrop.transform);
 
+            // 洞口光暈（黑底之上、洞口之下）：全螢幕 quad，shader 由洞口中心往外畫放射光束＋霧感。
+            _glow = NewImage(_root, "Glow", _whiteSprite, Color.white);
+            Stretch((RectTransform)_glow.transform);
+            var glowSh = Resources.Load<Shader>("Shaders/TunnelMouthGlow");
+            if (glowSh != null) { _glowMat = new Material(glowSh); _glow.material = _glowMat; }
+            else Debug.LogWarning("[TunnelWalk] 找不到 Resources/Shaders/TunnelMouthGlow，洞口不套光暈（仍有洞口本體）。");
+
             _exit = NewImage(_root, "Exit", exitSp, ExitColor);
             _exit.preserveAspect = true;   // 自備圖不變形
             // 洞口模糊材質：載到就套，營造失焦朦朧；載不到只警告、退回柔邊貼圖（不會變洋紅）。
@@ -278,6 +342,21 @@ namespace Dipan.Cutscene
             _exitRt = (RectTransform)_exit.transform;
             _exitRt.anchorMin = _exitRt.anchorMax = new Vector2(0.5f, 0.5f);
             _exitRt.pivot = new Vector2(0.5f, 0.5f);
+
+            // 走隧道提示（點滑鼠左鍵）：右側閃爍，畫在洞口之上、白光之下。走隧道期間顯示、收尾時收起。
+            if (!string.IsNullOrEmpty(HintImage))
+            {
+                var hintSp = Resources.Load<Sprite>("UI/Common/" + HintImage);
+                if (hintSp != null)
+                {
+                    _hint = NewImage(canvasRt, "ClickHint", hintSp, Color.white);
+                    _hint.preserveAspect = true;
+                    _hint.rectTransform.anchorMin = _hint.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+                    _hint.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+                    _hint.enabled = false;
+                }
+                else Debug.LogWarning($"[TunnelWalk] 找不到走隧道提示圖 Resources/UI/Common/{HintImage}（不顯示提示）。");
+            }
 
             // 收尾白光（蓋全螢幕，在最上層）
             _flash = NewImage(canvasRt, "Flash", _whiteSprite, new Color(1f, 1f, 1f, 0f));

@@ -3178,6 +3178,18 @@ MonoBehaviour:
   MouthHalo: 0.5
   MouthHaloWidth: 0.45
   MouthBlur: 0.0199
+  GlowColor: {r: 1, g: 0.93, b: 0.78, a: 1}
+  GlowRayStrength: 0.6
+  GlowRaySharp: 2.2
+  GlowRayFreq: 8
+  GlowHaze: 0.35
+  GlowSpread: 0.38
+  GlowRadiusFrac: 0.282
+  GlowCenterYFrac: -0.137
+  GlowAnimSpeed: 2.17
+  HintImage: Guide_MouseLeft
+  HintHeight: 200
+  HintPos: {x: 885, y: -420}
   ShakeAmount: 52
   ShakeSeconds: 0.26
   AdvanceKey: 32
@@ -4444,6 +4456,7 @@ MonoBehaviour:
   pickupTypeId: pickup
   dramaTypeId: drama
   cutsceneTypeId: cutscene
+  camZoneTypeId: camZone
   buildBackground: 1
   buildTiles: 1
   buildObjects: 1
@@ -4459,12 +4472,6 @@ MonoBehaviour:
   objectMaxHP: 20
   objectDestroyVfxId: 5
   teleportVfxId: 6
-  smokeObjectIds:
-  - Main/Environment/Buddha
-  smokeChestFracY: -0.05
-  smokeNeckFracY: 0.32
-  smokeSpawnRadiusFrac: 0.1
-  smokeSortingOrder: 25000
   objectsPerFrame: 8
 --- !u!4 &1751355723
 Transform:
