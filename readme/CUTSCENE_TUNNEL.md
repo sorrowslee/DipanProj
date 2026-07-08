@@ -68,10 +68,16 @@
 | `PauseWhilePlaying` | true | 播放期間 `Time.timeScale=0` |
 | `FadeOutSeconds` | 0.5 | 走出後白光淡出露出新地圖的時間（換圖在白幕後發生） |
 | `PlayOnStart` / `TestPlayKey` | false / T | 測試用 |
+| **洞口光暈**（shader，見下） | | `GlowColor`/`GlowRayStrength`/`GlowRaySharp`/`GlowRayFreq`/`GlowHaze`/`GlowSpread`/`GlowRadiusFrac`/`GlowCenterYFrac`/`GlowAnimSpeed` |
+| **走隧道提示**（點左鍵，右側閃爍） | | `HintImage`=`Guide_MouseLeft`／`HintHeight`=125／`HintPos`=(885,-420) |
 
 - **洞口放大是「等比」**：`ExitSizeAt(step) = a·(b/a)^(step/Steps)`，每步視覺變化比例一致，第一下不會突兀（早期「線性放大」第一下看起來跨太大）。洞口形狀 `MakeTunnelMouth()` 是「半圓頂 ∪ 直壁矩形」＝卡通火車隧道拱門。
 - 收尾：按滿 Steps → 白光罩滿 → `OnComplete`（在白幕下換圖）→ `Fadeout` 把白光淡出露出新圖。
-- **洞口光暈改用 shader（2026-07-08）**：原本洞口外圈的光是烘進 `MakeTunnelMouth` 貼圖的一圈均勻柔暈（`MouthHalo`），太厚像刻意的粗邊。現在**洞口貼圖只留乾淨的亮拱門＋柔邊**（烘進時 halo 傳 0），外圈光改由 `Custom/TunnelMouthGlow` shader 生成的一層加法光暈（鋪在黑底之上、洞口之下的全螢幕 quad）：由洞口中心往外**徑向柔和遞減**（不再有硬邊）＋**放射光束**（角度雜訊、沿半徑不變＝一條條散射）＋**霧感**（低頻 fbm），並用外部餵的 `_Anim`(`unscaledTime`) 微微流動（暫停中也動）。`MouthHalo`/`MouthHaloWidth` 兩欄已停用。可調欄位：`GlowColor`、`GlowRayStrength`、`GlowRaySharp`、`GlowRayFreq`、`GlowHaze`、`GlowSpread`、`GlowRadiusFrac`、`GlowAnimSpeed`（洞口變大時光暈半徑自動跟著長）。
+- **洞口光暈改用 shader（2026-07-08）**：原本洞口外圈的光是烘進 `MakeTunnelMouth` 貼圖的一圈均勻柔暈（`MouthHalo`），太厚像刻意的粗邊。現在**洞口貼圖只留乾淨的亮拱門＋柔邊**（烘進時 halo 傳 0），外圈光改由 `Custom/TunnelMouthGlow` shader 生成的一層加法光暈（鋪在黑底之上、洞口之下的全螢幕 quad）：由洞口中心往外**徑向柔和遞減**（不再有硬邊）＋**放射光束**（角度雜訊、沿半徑不變＝一條條散射）＋**霧感**（低頻 fbm），並用外部餵的 `_Anim`(`unscaledTime`) 微微流動（暫停中也動）。`MouthHalo`/`MouthHaloWidth` 兩欄已停用。
+  - **光暈跟著洞口等比縮放**：`_Radius`＝洞口大小×`GlowRadiusFrac`、`_Spread`＝洞口大小×`GlowSpread`（**`GlowSpread` 是「相對洞口大小」的比例，不是絕對值**）、圓心 y 位移＝洞口大小×`GlowCenterYFrac`——三者都乘上當前洞口大小 `_exitCur`，所以按空白鍵洞口放大時光暈同比例一起變大，第一階段調好的比例會維持到後面每一階段。
+  - **圓心對到拱門視覺中心**：拱門在 `MakeTunnelMouth` 貼圖裡偏下（底 −0.82～頂 +0.37、中心約 −0.22，不在貼圖正中），所以光暈圓心用 `GlowCenterYFrac`（預設 −0.11）往下移對齊拱門中心，否則縮小半徑時只蓋得到洞口上半、蓋不到下半。
+  - 可調欄位：`GlowColor`／`GlowRayStrength`／`GlowRaySharp`／`GlowRayFreq`／`GlowHaze`／`GlowSpread`（相對比例）／`GlowRadiusFrac`／`GlowCenterYFrac`／`GlowAnimSpeed`，全部即時生效（不用重播）。
+- **走隧道提示（點左鍵，2026-07-08）**：走隧道靠空白鍵**或**左鍵前進，故走隧道期間（`Delay`/`Walking`）在畫面右下角顯示一張 `Guide_MouseLeft`「點左鍵」提示、**閃爍**（頻率 3.3、alpha 0.15～1，與新手教學 `PlayerHintPanel` 同頻），收尾（`Finishing`/`Fadeout`）時收起。畫在洞口之上、白光之下（洞口放大也蓋不掉它）。欄位：`HintImage`（提示圖檔名，放 `Resources/UI/Common/`，留空＝不顯示）、`HintHeight`（大小）、`HintPos`（相對畫面中心的像素位移）。與新手教學的 `playerHint` trigger 各自獨立（隧道是全螢幕過場、沒有世界玩家可掛，所以直接畫在隧道自己的 canvas 上）。
 
 ### 2.3 `VideoPlayerOverlay`（過場影片播放器）
 `Assets/Scripts/Cutscene/VideoPlayerOverlay.cs`（namespace `Dipan.Cutscene`）
