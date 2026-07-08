@@ -125,6 +125,22 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：被觸發鏈（next）啟動時，在玩家頭上「左上／右上」各擺一張提示圖（左右位置固定、不用填 XY），
+                // 指定張閃爍；到「收起時機」（玩家移動/攻擊/按任意鍵）自動收，收完接 next。做「只一次」用通用旗標欄
+                // （完成寫旗標=永久:xxx、條件旗標=!永久:xxx）。圖放 Resources/UI/Common/，填檔名（不含副檔名）。
+                typeId = "playerHint", displayName = "玩家提示(鏈動作)", color = "#FFD24D",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "leftImage",  type = ParamType.String, label = "左圖(檔名)" },   // 左上那張（例 Guide_Wasd）；留空＝不顯示
+                    new TriggerParam { key = "rightImage", type = ParamType.String, label = "右圖(檔名)" },   // 右上那張（例 Guide_Press）；留空＝不顯示
+                    new TriggerParam { key = "flashLeft",  type = ParamType.Bool,   label = "左圖閃爍", boolDefault = false },
+                    new TriggerParam { key = "flashRight", type = ParamType.Bool,   label = "右圖閃爍", boolDefault = true },
+                    new TriggerParam { key = "hideOn",     type = ParamType.String, label = "收起時機",
+                                       options = new [] { "移動", "攻擊", "任意鍵" } },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 進場觸發：進入這張地圖、載入完全結束（含進場效果播完）後自動觸發一次，
                 // 自己不做事、只當觸發鏈的起點（接續觸發 next 指向要做的事，例如純鏈節點的劇情觸發點）。
                 // 不用塗格子：用「＋ 手動新增空區域」建立（0 格），從區域清單選取設參數即可。

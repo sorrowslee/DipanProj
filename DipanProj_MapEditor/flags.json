@@ -3,7 +3,16 @@
     {
       "id": 1,
       "name": "hallGateOpen",
-      "scope": "cycle"
+      "scope": "cycle",
+      "IsLife": false,
+      "ScopeLabel": "周目"
+    },
+    {
+      "id": 2,
+      "name": "tutorialMoveDone",
+      "scope": "life",
+      "IsLife": true,
+      "ScopeLabel": "永久"
     }
   ]
 }

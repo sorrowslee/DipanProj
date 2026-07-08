@@ -190,6 +190,44 @@
      ]
     }
    ]
+  },
+  {
+   "typeId": "playerHint",
+   "displayName": "玩家提示(鏈動作)",
+   "color": "#FFD24D",
+   "params": [
+    {
+     "key": "leftImage",
+     "type": "String",
+     "label": "左圖(檔名)"
+    },
+    {
+     "key": "rightImage",
+     "type": "String",
+     "label": "右圖(檔名)"
+    },
+    {
+     "key": "flashLeft",
+     "type": "Bool",
+     "label": "左圖閃爍"
+    },
+    {
+     "key": "flashRight",
+     "type": "Bool",
+     "label": "右圖閃爍",
+     "boolDefault": true
+    },
+    {
+     "key": "hideOn",
+     "type": "String",
+     "label": "收起時機",
+     "options": [
+      "移動",
+      "攻擊",
+      "任意鍵"
+     ]
+    }
+   ]
   }
  ]
 }

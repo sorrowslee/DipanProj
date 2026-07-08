@@ -31,6 +31,7 @@ public static class TriggerChain
     public const string TypeGiveItem = "giveItem";
     public const string TypeTeleportTo = "teleportTo";
     public const string TypeCameraFocus = "cameraFocus";   // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格中心＋黑幕，停留後拉回，再接 next
+    public const string TypePlayerHint = "playerHint";     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，到收起時機（移動/攻擊/任意鍵）自動收，再接 next
     public const string TypeOnEnter = "onEnter";           // 進場觸發（自動）：進圖載入結束後自動觸發，純鏈起點（0 格、不塗格子），見 MapManager.FireEnterTriggersRoutine
 
     // 通用欄位 key
@@ -234,6 +235,7 @@ public static class TriggerChain
             case TypeGiveItem: ExecuteGiveItem(r); break;
             case TypeTeleportTo: ExecuteTeleportTo(r); break;
             case TypeCameraFocus: ExecuteCameraFocus(r); break;
+            case TypePlayerHint: ExecutePlayerHint(r); break;
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
                 if (IsDramaType(r)) ExecuteDrama(r);   // 鏈到劇情點 = 立即播對話（對話→對話）
@@ -322,6 +324,51 @@ public static class TriggerChain
                 UIManager.Instance?.SetExternalHold(false, false);
                 OnCompleted(r);   // 聚焦表演結束才接 next（例如接「指引玩家過門」的對話）
             });
+    }
+
+    // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，指定張閃爍；到收起時機（移動/攻擊/任意鍵）自動收，收完接 next。
+    static void ExecutePlayerHint(TriggerRegion r)
+    {
+        var playerGo = GameObject.FindGameObjectWithTag("Player");
+        if (playerGo == null)
+        {
+            Debug.LogWarning($"[TriggerChain] 玩家提示「{r.name}」找不到玩家，直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+        Sprite left = LoadHintSprite(r.GetString("leftImage"));
+        Sprite right = LoadHintSprite(r.GetString("rightImage"));
+        if (left == null && right == null)
+        {
+            Debug.LogWarning($"[TriggerChain] 玩家提示「{r.name}」左右圖都載不到（leftImage/rightImage），直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+        bool flashLeft = r.GetBool("flashLeft", false);
+        bool flashRight = r.GetBool("flashRight", true);
+        var mode = ParseHideMode(r.GetString("hideOn"));
+        // 收起（玩家移動/攻擊/按鍵）後才 OnCompleted → 寫 setFlag（可做「只一次」）＋接 next。
+        PlayerHintPanel.Show(playerGo.transform, left, flashLeft, right, flashRight, mode, () => OnCompleted(r));
+    }
+
+    // 載提示圖：填檔名（放 Resources/UI/Common/ 下，例 Guide_Wasd）或含「/」的完整 Resources 路徑。
+    static Sprite LoadHintSprite(string name)
+    {
+        if (string.IsNullOrEmpty(name)) return null;
+        name = name.Trim();
+        var sp = name.Contains("/") ? Resources.Load<Sprite>(name) : Resources.Load<Sprite>("UI/Common/" + name);
+        if (sp == null) Debug.LogWarning($"[TriggerChain] 玩家提示圖載不到：「{name}」（放 Resources/UI/Common/ 下、填檔名不含副檔名）。");
+        return sp;
+    }
+
+    static PlayerHintPanel.HideMode ParseHideMode(string s)
+    {
+        switch ((s ?? "").Trim())
+        {
+            case "攻擊": return PlayerHintPanel.HideMode.Attack;
+            case "任意鍵": return PlayerHintPanel.HideMode.AnyKey;
+            default: return PlayerHintPanel.HideMode.Move;   // 「移動」或留空
+        }
     }
 
     // 鏈到劇情點：立即播對話（不需玩家走過去按 F），對話關閉後接它自己的 next。

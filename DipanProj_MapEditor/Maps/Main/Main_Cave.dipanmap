@@ -147,7 +147,25 @@
           "typeId": "drama",
           "cells": [],
           "params": {
-            "dramaId": "6"
+            "dramaId": "6",
+            "next": "玩家提示如何移動",
+            "setFlag": "",
+            "requireFlag": ""
+          }
+        },
+        {
+          "id": "13a9285c",
+          "name": "玩家提示如何移動",
+          "typeId": "playerHint",
+          "cells": [],
+          "params": {
+            "leftImage": "Guide_Wasd",
+            "rightImage": "",
+            "flashLeft": true,
+            "flashRight": false,
+            "hideOn": "",
+            "requireFlag": "!tutorialMoveDone",
+            "setFlag": "tutorialMoveDone"
           }
         }
       ]

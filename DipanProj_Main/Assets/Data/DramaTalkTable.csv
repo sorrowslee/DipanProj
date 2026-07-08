@@ -12,4 +12,5 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 11,3,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Fear,1,你終於來了，到我面前來,1.1,,-130,,,
 12,4,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,去完成你的天命吧,1.1,,-130,,,
 13,4,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,現在，通過這扇門,1.1,,-130,,,
-14,5,主角,Actor_Fear,,1,這裡是哪裡?我怎麼會在這?,1.1,,-130,,,
+14,5,主角,Actor_Normal,,1,痛痛痛痛痛死我了,1.1,,-130,,,
+15,5,主角,Actor_Fear,,1,這裡是哪裡?我怎麼會在這?,1.1,,-130,,,
