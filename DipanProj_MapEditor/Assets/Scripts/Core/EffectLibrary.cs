@@ -24,7 +24,8 @@ namespace DipanMapEditor.Core
             public List<ColorSet> colors = new List<ColorSet>();
         }
 
-        public static string Root => Path.Combine(Application.streamingAssetsPath, "Effects");
+        // 放在 Assets 之外（DipanProj_MapEditor/Effects），Unity 完全不追蹤、編輯器不變慢；預覽器走 File IO 直接讀。
+        public static string Root => Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Effects"));
 
         static List<Entry> _entries;
         static readonly Dictionary<string, Texture2D> _texCache = new Dictionary<string, Texture2D>();

@@ -39,13 +39,14 @@ TempImage/
 /DipanProj_MapEditor/Assets/StreamingAssets/MapAssets/
 /DipanProj_MapEditor/Assets/StreamingAssets/MapAssets.meta
 
-# DipanProj_MapEditor — 特效預覽器「匯出換色版」的輸出（可隨時重烤，不進版控）
-/DipanProj_MapEditor/Assets/StreamingAssets/Effects_Recolored/
-/DipanProj_MapEditor/Assets/StreamingAssets/Effects_Recolored.meta
-
-# DipanProj_MapEditor — 整理好的特效庫（可用 Tools/organize_effects.py 從原始包重跑產生，不進版控）
-/DipanProj_MapEditor/Assets/StreamingAssets/Effects/
+# DipanProj_MapEditor — 特效庫與換色匯出，已移到 Assets 外（Unity 不追蹤、編輯器不變慢；可用 organize_effects.py 重跑產生，不進版控）
+/DipanProj_MapEditor/Effects/
+/DipanProj_MapEditor/Effects_Recolored/
+# 下載回來的原始特效包（龐大原始素材，整理進 Effects/ 後就不需進版控）
+/DipanProj_MapEditor/allEffects/
+# 舊位置殘留的孤兒 .meta（Unity 下次 refresh 會自動清）
 /DipanProj_MapEditor/Assets/StreamingAssets/Effects.meta
+/DipanProj_MapEditor/Assets/StreamingAssets/Effects_Recolored.meta
 
 # DipanProj_MapEditor — 購買的原始特效包（大量二進位素材，各自留本機，不進版控）
 /DipanProj_MapEditor/Assets/Resources/Super Pixel Effects Gigapack/

@@ -24,6 +24,7 @@
 | [GROUND_EFFECT.md](GROUND_EFFECT.md) | 地面特效鏈式觸發 AOE ＋ 拋物線型武器 | 改地面特效、拋物線、AOE |
 | [LASER.md](LASER.md) | 雷射光束系統 ＋ 雷射外型（BeamStyle 種類／調色盤） | 改雷射、加雷射種類或顏色 |
 | [VFX.md](VFX.md) | 一次性特效：發射特效（玩家身上）＋ 擊中特效（命中點），VfxTable 原語 | 加／改發射或擊中特效 |
+| [EFFECT_LIBRARY.md](EFFECT_LIBRARY.md) | 地圖編輯器端「特效素材庫＋預覽器」：原始包(`allEffects/`)→通用整理腳本(`organize_bundle.py`)→`Effects/`→特效預覽器（瀏覽/換色/匯出）；放 Assets 外、不被 sync、挑好再手動貼進遊戲 | 整理/瀏覽買來的特效包、挑特效貼進遊戲前 |
 | [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) | RecipeTable 每個欄位的詳細用法、填寫規則與組合範例 | 填配方表細節時的查詢手冊 |
 | [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（做過什麼、怎麼演進） | 想了解歷史脈絡 |
 | [ROADMAP.md](ROADMAP.md) | 待辦與未來規劃 | 規劃下一步 |

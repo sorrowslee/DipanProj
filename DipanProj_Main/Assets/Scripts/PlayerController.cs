@@ -59,6 +59,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     // 天降雷擊：從畫面上緣再往上多少單位開始劈、BlastRadius 留空時的預設 AOE 半徑
     private const float SkyStrikeTopMargin = 2f;
     private const float SkyStrikeDefaultBlast = 1.2f;
+    // 改用 sprite 雷柱後：雷柱爆閃在圖下緣，特效整體上移這麼多世界單位讓底部＝落點（與 VfxTable ID9 的 Scale 一起調；約＝雷柱世界高的一半）
+    private const float SkyStrikeBoltYOffset = 1.8f;
     private static readonly HashSet<int> _emptyHitSet = new HashSet<int>(); // 追蹤吸附用的空排除集（FindNearestDamageable 只讀不寫）
 
     // 命中迸發子武器：生成點沿命中面法線往外推的最小距離（避免生在牆/家具表面內被自己的 CheckSpawnOverlap 瞬殺）
@@ -1102,18 +1104,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     // 在 impact 點劈一道雷：垂直鋸齒閃電視覺 + 圓形 AOE 傷害（武器 Damage，含怪與可破壞家具）+ 可選地面特效。
     private void StrikeAt(WeaponData weapon, Vector2 impact, int dmgMask)
     {
-        // 1) 視覺：從畫面上緣外往下劈到 impact 的鋸齒閃電（複用靜態折線渲染）
-        Camera cam = Camera.main;
-        float topY = (cam != null) ? cam.transform.position.y + cam.orthographicSize + SkyStrikeTopMargin : impact.y + 12f;
-        _chainPathBuffer.Clear();
-        _chainPathBuffer.Add(new Vector2(impact.x, topY));
-        _chainPathBuffer.Add(impact);
-        List<Vector2> jagged = BuildJaggedPath(_chainPathBuffer);
-        BallisticsEngine.SpawnChainVisual(jagged, weapon.BeamStyle, weapon.BeamColor,
-            weapon.BeamWidth * PlayerScale, weapon.BeamMuzzleSprite, weapon.BeamImpactSprite, ChainFlashDuration);
-
-        // 2) 擊中特效（落點）
-        TrySpawnHitEffect(weapon, impact);
+        // 1) 視覺：sprite 雷柱（HitEffectID 指向的雷擊序列圖），往上補 SkyStrikeBoltYOffset 讓雷柱底部＝落點。
+        //    取代原本程式即時畫的鋸齒閃電（SpawnChainVisual）。本武器不再使用 BeamStyle/BeamColor/BeamWidth。
+        if (_vfxManager != null && weapon.HitEffectID > 0)
+            _vfxManager.Spawn(weapon.HitEffectID, impact + Vector2.up * SkyStrikeBoltYOffset, 0f);
 
         // 3) 圓形 AOE：以 BlastRadius（留空用預設）對範圍內 IDamageable（怪 + 可破壞家具）以武器 Damage 結算一次
         float radius = (weapon.Recipe != null && weapon.Recipe.BlastRadius > 0f) ? weapon.Recipe.BlastRadius : SkyStrikeDefaultBlast;

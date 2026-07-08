@@ -103,7 +103,7 @@ namespace DipanMapEditor.Core
             if (entry == null || color == null || color.frames.Count == 0) return 0;
 
             string modeTag = mode == Mode.None ? "orig" : DisplayNameAscii(mode);
-            outDir = Path.Combine(Application.streamingAssetsPath, "Effects_Recolored",
+            outDir = Path.Combine(Path.GetFullPath(Path.Combine(Application.dataPath, "..")), "Effects_Recolored",
                                   entry.category, entry.name, color.name + "_" + modeTag);
             Directory.CreateDirectory(outDir);
 

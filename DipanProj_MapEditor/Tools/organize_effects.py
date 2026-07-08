@@ -23,7 +23,7 @@ import shutil
 
 EDITOR_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 SRC = os.path.join(EDITOR_ROOT, "Assets", "Resources", "Super Pixel Effects Gigapack", "PNG")
-DST = os.path.join(EDITOR_ROOT, "Assets", "StreamingAssets", "Effects")
+DST = os.path.join(EDITOR_ROOT, "Effects")
 
 PAD = 3  # 幀補零位數（有效果達 120 幀，故用 3 位）
 
