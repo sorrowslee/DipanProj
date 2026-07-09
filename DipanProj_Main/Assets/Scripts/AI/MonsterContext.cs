@@ -13,6 +13,7 @@ public struct MonsterContext
     public MonsterController Self;      // 這隻怪的控制器（拿 HP／WeaponUser／狀態）
     public MonsterActuator Actuator;    // 移動器（MoveTowards／Stop）
     public MonsterSensor Sensor;        // 感知器（找玩家、可調 DetectionRange）
-    public Transform Player;            // 感測範圍內的玩家；範圍外 = null
+    public Transform Player;            // 玩家（Enemy 陣營=感測範圍內的玩家/範圍外 null；PlayerAlly=玩家本體，給跟隨用）
+    public Transform Enemy;             // 最近的敵怪（只有 PlayerAlly 會填，給 AllyBrain 攻擊用；Enemy 陣營為 null）
     public float DeltaTime;             // 這一幀的 Time.deltaTime（Brain 自管計時用）
 }

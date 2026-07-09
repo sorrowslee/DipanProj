@@ -16,14 +16,19 @@ namespace Dipan.UI
         {
             if (!seedTestItems) return;
             var inv = InventorySystem.Instance;
-            if (inv.HasAnyItem()) return;   // 已有東西就不重複塞（換場景/換圖也不會重塞）
 
-            // 武器（ItemTable ID 1~13，對應 WeaponTable；13=御靈水晶召喚，測試用）
-            for (int id = 1; id <= 13; id++) inv.AddItem(id);
-            // 雜物
-            inv.AddItem(101, 250); // 銅錢 x250
-            inv.AddItem(102, 5);   // 卷軸 x5
-            inv.AddItem(103, 12);  // 符紙 x12
+            // 武器 1~13（對應 WeaponTable）：**缺哪把就補哪把**，而不是「背包全空才塞」。
+            // 原本「全空才塞」會踩到：SaveManager(執行序 -500)開場先載入角色、RestoreState 先清空再還原「存檔裡的舊背包」，
+            // 舊角色存檔沒有新武器(如御靈水晶 13) → 背包非空 → 這裡跳過 → 測試武器一直不見/時有時無。
+            // 本元件在 SaveManager 之後(Start，序 0)跑，改成「補齊」就能在還原後把缺的測試武器補回。
+            // （純測試用；HasAnywhere 含裝備欄，避免已裝備的又被重複補一份。正式有撿道具系統後可刪整支。）
+            for (int id = 1; id <= 13; id++)
+                if (!inv.HasAnywhere(id)) inv.AddItem(id);
+
+            // 雜物只在「完全沒有」時給一次（避免每次載入都補到滿）。
+            if (!inv.Has(101)) inv.AddItem(101, 250); // 銅錢 x250
+            if (!inv.Has(102)) inv.AddItem(102, 5);   // 卷軸 x5
+            if (!inv.Has(103)) inv.AddItem(103, 12);  // 符紙 x12
         }
     }
 }

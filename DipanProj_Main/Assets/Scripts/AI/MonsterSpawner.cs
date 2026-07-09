@@ -96,6 +96,7 @@ public class MonsterSpawner : MonoBehaviour
             data.DamageReduction = (values.Length > 11 && !string.IsNullOrWhiteSpace(values[11])) ? float.Parse(values[11]) : 0f;
             data.Speed = (values.Length > 12 && !string.IsNullOrWhiteSpace(values[12])) ? float.Parse(values[12]) : 3f;
             data.AnimFPS = (values.Length > 13 && !string.IsNullOrWhiteSpace(values[13])) ? float.Parse(values[13]) : 8f;
+            data.AttackInterval = (values.Length > 14 && !string.IsNullOrWhiteSpace(values[14])) ? float.Parse(values[14]) : 0.5f;
 
             _monsterDatabase.Add(data);
         }
@@ -147,6 +148,7 @@ public class MonsterSpawner : MonoBehaviour
         
         controller.Initialize(data);
         controller.Faction = faction;       // 陣營：決定追誰/打誰/在哪層（在 Start 之前設好，contact/目標選擇才讀得到）
+        if (faction == MonsterFaction.PlayerAlly) controller.SetBrain(new AllyBrain());   // 玩家召喚物＝聰明跟班（跟玩家+打敵怪）
         controller.DeathFlag = deathFlag;   // 出生點 trigger 的「死亡觸發旗標」；此擺放專屬，空＝不寫旗標
 
         // 🟢 初始面向設定：根據主角位置決定面向

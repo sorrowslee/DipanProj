@@ -195,6 +195,11 @@
 
 ---
 
+### D9. 背包裡的（測試）道具「時有時無/常常消失」——測試種道具與存檔還原的順序衝突
+- **症狀**：某個新加的武器/道具（例：御靈水晶 13）明明進了背包，卻常常又不見了，時好時壞。
+- **原因**：`SaveManager`（`[DefaultExecutionOrder(-500)]`，很早）開場會**自動載入活躍角色** → `InventorySystem.RestoreState` **先清空背包再依存檔還原**。若角色存檔是在「還沒有這個道具」時建立的（存檔裡沒有它），還原後背包就沒有它。而測試種道具的 `InventoryLauncher`（執行序 0，跑在 SaveManager 之後）原本寫成「**背包全空才塞**」→ 還原後背包非空 → 跳過不補 → 道具永遠缺；偶爾在全新空存檔時才會出現＝時有時無。
+- **解法**：`InventoryLauncher` 改成「**缺哪把就補哪把**」（`for id 1..13: if(!HasAnywhere(id)) AddItem(id)`），因為它跑在 `RestoreState` 之後，就能把舊存檔缺的測試武器補回；補回後進廣場自動存檔會把它寫進存檔、之後就穩定。新增 `InventorySystem.HasAnywhere`（背包格+裝備欄都算，避免已裝備的又被重複補）。**通則**：任何「開場給預設物品」的邏輯要意識到它與存檔還原的先後——還原是清空重建，給道具要嘛在還原之後補、要嘛正式走存檔。（純測試用；正式改走撿道具/掉落系統。）（2026-07-09 記）
+
 ## E. 效能 / 顯示 (Performance & Display)
 
 ### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順
@@ -309,7 +314,11 @@
   1. **給會互毆的怪 `InvincibleTimeMs > 0`**（`MonsterData.csv`，建議先試 300~500）：`HitReactionHandler` 會做無敵時間＋白閃，把接觸傷害從「每幀」節流成「每 N 毫秒一次」，戰鬥就改由 **HP/傷害** 決定、不再靠 Update 順序＝穩定可預期。
   2. **平衡 HP vs ContactDamage**：目前近乎一擊必殺，想要「互毆幾下才分勝負」就拉高 HP 或調低 ContactDamage（例如雜兵 HP 拉到 30、接觸傷害降到 5）。
   3. （備案，若不想逐隻設 InvincibleTimeMs）可在 `EnemyContactDamage` 加「同一攻擊者對同一目標的重擊冷卻(dict 記 nextHitTime)」，但那也會改到「怪打玩家」的節奏，**優先用做法 1**。
-- **狀態**：機制已定位，**數值尚未調**（待作者）。程式端接觸傷害本身是對稱正確的（見 [BOSS_MODULE.md](BOSS_MODULE.md) §4、F 區 B7 的登記表做法）。（2026-07-09 記）
+- **狀態：✅ 已修（2026-07-09，改用系統機制、不靠調數值）**：關鍵是**「第一擊必互換」由系統保證**，而不是靠平衡數值。
+  - **① 致死延後銷毀（核心）**：`MonsterController.Die()` 只標記 `_isDead`，真正 `Destroy` 延到本幀 `LateUpdate`。這樣「殺死這隻怪的那一幀」，這隻怪自己的 `EnemyContactDamage` 仍會執行一次 → **死掉也能還手**。⇒ 兩隻怪一接觸，不管誰的 Update 先跑、不管攻速差多少，第一下一定雙方互換傷害（攻速快/攻高/血少的玻璃大炮撞上去，也一定吃到對方的反擊，不能全程無傷輾壓）。
+  - **② 攻速資料化**：接觸「之後多久打一次」＝攻速，做成 `MonsterData.csv` 的 `AttackInterval` 欄（秒，越小越快，空＝0.5），由 `EnemyContactDamage` 每隻怪各自用。第一擊互換（①）與攻速（②）分離：先互換、後看攻速/傷害/血量。
+  - **③ 還原**：先前「偷調」的測試怪 HP/ContactDamage 已還原（ZhaYu HP10、幽靈 HP3、接觸傷害 10）。公平性由機制保證，數值單純由作者依設計調。
+  - 傷害本身仍走中央 `CombatSystem`（見 [COMBAT.md](COMBAT.md)）；本則只解決「接觸的施加時機/互換」。
 
 ## H. 流程 / 存讀檔 (Game Flow & Save UI)
 

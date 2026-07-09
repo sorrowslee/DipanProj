@@ -155,6 +155,16 @@ namespace Dipan.Inventory
         /// <summary>背包是否含有此 itemId（至少 1 個）。只算背包格，不含裝備欄。</summary>
         public bool Has(int itemId) => CountOf(itemId) > 0;
 
+        /// <summary>背包格「或」任一裝備欄是否含有此 itemId（給測試補齊用，避免已裝備的又被重複補一份）。</summary>
+        public bool HasAnywhere(int itemId)
+        {
+            if (Has(itemId)) return true;
+            if (_equip != null)
+                foreach (var kv in _equip)
+                    if (kv.Value == itemId) return true;
+            return false;
+        }
+
         // ───────────── 操作 ─────────────
 
         /// <summary>加入物品（先疊到既有同物品堆、再放空格）。回傳「放不下的剩餘數量」（0 = 全放進去）。</summary>

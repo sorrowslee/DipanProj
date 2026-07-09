@@ -20,5 +20,6 @@ public class MonsterData
     public float KnockbackPercent;
 
     public float ContactDamage = 10f;   // 碰到玩家造成的傷害（留空 = 10）
+    public float AttackInterval = 0.5f; // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval，越小攻越快，留空 = 0.5）
     public float DamageReduction = 0f;   // 受擊減傷 %（留空 = 0；掛勾，之後接減傷/抗性）
 }

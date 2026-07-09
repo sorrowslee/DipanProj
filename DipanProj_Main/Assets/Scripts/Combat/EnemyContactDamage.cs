@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -19,11 +20,17 @@ public class EnemyContactDamage : MonoBehaviour
     private Transform _player;
     private Collider2D _playerCol;
 
+    // 攻速：同一攻擊者對同一目標的最短重擊間隔（CSV: MonsterData.AttackInterval）。第一擊必互換由
+    // MonsterController 的「致死延後銷毀」保證（死掉那幀仍還手）；這裡只管「之後多久打一次」＝攻速。見 PROBLEMS F5。
+    float _attackInterval = 0.5f;
+    readonly Dictionary<int, float> _nextHit = new Dictionary<int, float>();
+
     /// <summary>由 MonsterController 設定接觸傷害值（MonsterData.ContactDamage）與陣營。</summary>
-    public void Configure(float contactDamage, MonsterFaction faction = MonsterFaction.Enemy)
+    public void Configure(float contactDamage, MonsterFaction faction = MonsterFaction.Enemy, float attackInterval = 0.5f)
     {
         _damage = contactDamage;
         _faction = faction;
+        _attackInterval = attackInterval > 0.01f ? attackInterval : 0.5f;
         _myCol = GetComponent<Collider2D>();
     }
 
@@ -83,6 +90,11 @@ public class EnemyContactDamage : MonoBehaviour
 
     private void Hit(GameObject target)
     {
+        // 同目標重擊冷卻：這一擊還在冷卻內就跳過（否則每幀都打＝瞬間秒殺，勝負只看 Update 順序）。
+        int id = target.GetInstanceID();
+        if (_nextHit.TryGetValue(id, out float t) && Time.time < t) return;
+        _nextHit[id] = Time.time + _attackInterval;
+
         Vector2 dir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
         CombatSystem.Apply(gameObject, target, _damage, dir);
     }

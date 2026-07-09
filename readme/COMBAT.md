@@ -163,3 +163,15 @@
 ---
 
 *建立於 2026-06-25：玩家 HP/MP（CombatStats）＋ 中央傷害結算（DamageInfo/CombatSystem，所有武器與地面特效改走它）＋ 武器耗魔（WeaponTable ManaCost）＋ 怪物接觸傷害（EnemyContactDamage，幾何重疊）＋ 怪物減傷掛勾（MonsterData DamageReduction）＋ 血/魔 HUD（HudPanel）＋ 存檔（StatsDTO HP/MP）。加成/減傷/DOT 為掛勾就位、數值之後接。待 Unity 實機驗證。*
+
+---
+
+## 接觸傷害的「第一擊必互換」（怪打怪公平規則）
+
+`CombatSystem` 只結算**單次**命中；「兩隻怪貼在一起互毆」的施加時機由 `EnemyContactDamage` + `MonsterController` 處理，規則是：
+
+- **第一下一定雙方互換傷害**，之後才由攻速/傷害/血量決定。作法＝`MonsterController.Die()` **致死延後銷毀**（只標記 `_isDead`，真正 `Destroy` 延到本幀 `LateUpdate`）→ 殺死一隻怪的那一幀，牠自己的 `EnemyContactDamage` 仍會執行一次、**死掉也能還手**。故不管誰的 Update 先跑、攻速差多少，接觸第一擊一定互換（玻璃大炮撞上去也會一起受傷，不能無傷輾壓）。
+- **攻速** ＝ `MonsterData.csv` 的 `AttackInterval` 欄（秒，越小攻越快，空＝0.5）＝「同一攻擊者對同一目標多久打一次」。第一擊互換與攻速分離。
+- 目標判定走 `MonsterController.Active` 登記表 + `Physics2D.Distance`（不用 OverlapCircle，避開 `queriesStartInColliders=false` 貼身漏抓，見 [PROBLEMS.md](PROBLEMS.md) B7）。傷害仍統一走 `CombatSystem.Apply`（吃雙方 `ICombatModifiers`）。
+- 踩坑全紀錄見 [PROBLEMS.md](PROBLEMS.md) F5。
+

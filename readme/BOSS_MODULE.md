@@ -61,8 +61,8 @@
 
 | | Enemy（敵怪/boss/其召喚物） | PlayerAlly（玩家召喚的協戰怪） |
 |---|---|---|
-| **追誰** | 玩家（`MonsterSensor.GetTargetPlayer`） | 最近的敵怪（`FindNearestEnemy`，掃 Enemy 層） |
-| **接觸傷害打誰** | 玩家 ＋ 友軍（`EnemyContactDamage` hostileMask=Player\|Ally） | 敵怪（hostileMask=Enemy） |
+| **追誰** | 玩家（`MonsterSensor.GetTargetPlayer`） | **`AllyBrain`：附近有敵怪(AggroRange 7)就去打、否則跟玩家(FollowNear 2.2)**；敵怪由 `FindNearestEnemy` 登記表算 |
+| **接觸傷害打誰** | 玩家 ＋ 友軍 | 敵怪 |
 | **在哪個 Layer** | Enemy(7) | **Ally(8)** |
 
 **Ally 層(8)** 是這次新增的（`ProjectSettings/TagManager.asset`）。用途：玩家子彈打 Enemy 層 → **天生打不到自己的召喚物**；且召喚物不會用物理去推玩家/敵怪。碰撞用 `FactionLayers`（`Assets/Scripts/AI/FactionLayers.cs`）在進場前以 `Physics2D.IgnoreLayerCollision` 設定（Ally 穿過 Player/Enemy/Ally、只被 Environment 擋）——**不必手改 DynamicsManager 碰撞矩陣**，build 與編輯器都自動生效。接觸傷害與友軍找目標走 **`MonsterController.Active` 全場登記表 ＋ `Physics2D.Distance`**（**不用 OverlapCircle**——專案全域 `queriesStartInColliders=false` 會讓 OverlapCircle 貼身漏抓、且不對稱，見 [PROBLEMS.md](PROBLEMS.md) B7）＋中央 `CombatSystem`，玩家與怪物統一結算。**召喚物過傳送點**：換圖清場保留 PlayerAlly、`MapManager.RepositionPlayerAllies` 放好玩家後把它們移到新落點附近（跟著玩家走）。

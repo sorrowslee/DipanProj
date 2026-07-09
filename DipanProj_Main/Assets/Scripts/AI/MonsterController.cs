@@ -34,6 +34,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 
     [Header("Combat")]
     public float ContactDamage = 10f;            // 碰到玩家造成的傷害（CSV: MonsterData.ContactDamage）
+    public float AttackInterval = 0.5f;          // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval）
     public float DamageReductionPercent = 0f;    // 受擊減傷 %（掛勾；目前 CSV 預設 0，之後接減傷/抗性）
 
     [Header("Weapon / Skill")]
@@ -52,6 +53,24 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public static readonly List<MonsterController> Active = new List<MonsterController>();
     void OnEnable() { if (!Active.Contains(this)) Active.Add(this); }
     void OnDisable() { Active.Remove(this); }
+
+    // 玩家 transform 快取（友軍跟隨用；玩家是常駐物件，找一次即可）。
+    Transform _playerCache;
+    public Transform PlayerTransform
+    {
+        get
+        {
+            if (_playerCache == null)
+            {
+                var p = GameObject.FindGameObjectWithTag("Player");
+                if (p != null) _playerCache = p.transform;
+            }
+            return _playerCache;
+        }
+    }
+
+    /// <summary>換掉決策機（MonsterSpawner 在 PlayerAlly 陣營時改掛 AllyBrain）。</summary>
+    public void SetBrain(IMonsterBrain b) { if (b != null) _brain = b; }
 
     [Header("Death")]
     [Tooltip("死亡時播的特效 = VfxTable 的 ID；0 = 不播。檔名/張數/FPS 都在 VfxTable 那一列設定。")]
@@ -83,7 +102,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 接觸傷害：碰到玩家就扣血（幾何重疊判定，見 EnemyContactDamage）。ContactDamage 由 Initialize 從 CSV 設定，
         // 手動放置的怪用預設值。Initialize 在 Start 之前由 MonsterSpawner 呼叫，故此時值已就緒。
         var contact = gameObject.AddComponent<EnemyContactDamage>();
-        contact.Configure(ContactDamage, Faction);
+        contact.Configure(ContactDamage, Faction, AttackInterval);
 
         // 腳下影子（見 readme/SHADOW.md）
         if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
@@ -168,6 +187,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         KnockbackPercent = data.KnockbackPercent;
 
         ContactDamage = data.ContactDamage;
+        AttackInterval = data.AttackInterval;
         DamageReductionPercent = data.DamageReduction;
         AnimFPS = data.AnimFPS;
 
@@ -246,10 +266,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     {
         if (_isDead) return;
 
-        // 目標：Enemy 陣營追玩家；PlayerAlly 追最近的敵怪。target 同時餵給 Brain 與視覺（面向/攻擊動畫）。
-        Transform target = (Faction == MonsterFaction.PlayerAlly)
-            ? FindNearestEnemy()
-            : _sensor.GetTargetPlayer();
+        // 目標：Enemy 陣營＝追玩家；PlayerAlly＝跟玩家(ctx.Player) + 打最近敵怪(ctx.Enemy)。
+        Transform enemyTarget = (Faction == MonsterFaction.PlayerAlly) ? FindNearestEnemy() : null;
+        Transform playerTarget = (Faction == MonsterFaction.PlayerAlly) ? PlayerTransform : _sensor.GetTargetPlayer();
 
         if (_hitReaction == null || !_hitReaction.IsKnockedBack)
         {
@@ -258,17 +277,22 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 Self = this,
                 Actuator = _actuator,
                 Sensor = _sensor,
-                Player = target,
+                Player = playerTarget,
+                Enemy = enemyTarget,
                 DeltaTime = Time.deltaTime,
             };
             _brain.Think(in ctx);
         }
 
-        HandleVisuals(target);
+        // 面向/攻擊動畫的對象：友軍面向正在打的敵怪（沒有就面向玩家）；敵人面向玩家。
+        Transform faceTarget = (Faction == MonsterFaction.PlayerAlly)
+            ? (enemyTarget != null ? enemyTarget : playerTarget)
+            : playerTarget;
+        HandleVisuals(faceTarget);
     }
 
     // 友軍找最近的敵怪：走登記表(不用 OverlapCircle，避開 queriesStartInColliders 貼身漏抓)。範圍 = 感知器 DetectionRange。
-    private Transform FindNearestEnemy()
+    public Transform FindNearestEnemy()
     {
         float range = (_sensor != null) ? _sensor.DetectionRange : 10f;
         float rangeSq = range * range;
@@ -349,17 +373,27 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         return 1f - r / 100f;
     }
 
+    bool _dying;   // 已致死、待本幀 LateUpdate 才真正銷毀
+
+    // 致死：只標記，不立刻銷毀。真正的銷毀延到本幀 LateUpdate（所有 Update 跑完之後），
+    // 這樣「殺死這隻怪的那一幀」，這隻怪自己的 EnemyContactDamage 仍會執行一次 → **死掉也能還手**。
+    // ⇒ 兩隻怪一接觸，不管誰的 Update 先跑、不管攻速差多少，第一下一定雙方互換傷害（玻璃大炮撞上去也會一起受傷）。
     void Die()
     {
-        _isDead = true;
+        if (_isDead) return;
+        _isDead = true;    // 立刻停止行動（Update 提前 return）＋別的怪不再把它當目標（IsDead 過濾）
+        _dying = true;     // 實際銷毀延到 LateUpdate
+    }
 
-        // 死亡寫旗標（資料驅動）：出生點 trigger 有填「死亡觸發旗標」時把它設為 true，供觸發鏈條件（requireFlag）用，
-        // 例如「殺了家人→killedFamily→新娘生氣分支」。生命週期（周目/永久）由旗標登記表決定，SetFlag 自動處理；
-        // 無存檔時退回記憶體。旗標為空＝不寫。
+    void LateUpdate()
+    {
+        if (!_dying) return;
+        _dying = false;
+
+        // 死亡寫旗標（資料驅動）：例「殺了家人→killedFamily→新娘生氣分支」。旗標為空＝不寫。
         if (!string.IsNullOrEmpty(DeathFlag)) TriggerChain.SetFlag(DeathFlag);
 
-        // 死亡特效：在怪物自身位置播一次（VfxTable 的 DeathVfxId）。特效是獨立 GameObject，
-        // 不受怪物銷毀影響，會自己播完整輪後自毀（仿 DestructibleObject 的破壞特效）。
+        // 死亡特效（VfxTable 的 DeathVfxId）：獨立 GameObject，不受怪物銷毀影響。
         if (DeathVfxId > 0)
         {
             if (_vfx == null) _vfx = FindObjectOfType<VfxManager>();
@@ -367,7 +401,6 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             else Debug.LogWarning("[MonsterController] 場景找不到 VfxManager，死亡特效略過。");
         }
 
-        // 簡單處理：直接銷毀物件
         Destroy(gameObject);
     }
 }
