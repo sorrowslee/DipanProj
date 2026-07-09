@@ -31,6 +31,9 @@ namespace Dipan.Drama
             }
         }
 
+        /// <summary>進入 Play 模式時丟掉單例（已關 Domain Reload；否則快取的立繪 Sprite 是上一輪被銷毀的 → 對話立繪變空白）。由 PlayModeStaticReset 呼叫。</summary>
+        public static void ResetForPlayMode() => _instance = null;
+
         // 群組編號 → 該群組的對話（已依流水號由小到大排序）
         readonly Dictionary<int, List<DramaTalkData>> _groups = new Dictionary<int, List<DramaTalkData>>();
 

@@ -119,7 +119,7 @@
         },
         {
           "id": "b404f3c8",
-          "name": "劇情觸發點1",
+          "name": "紅嫁衣生氣對話",
           "typeId": "drama",
           "cells": [
             [
@@ -133,13 +133,55 @@
             [
               1,
               6
+            ],
+            [
+              10,
+              8
+            ],
+            [
+              8,
+              8
             ]
           ],
           "params": {
-            "dramaId": "2"
+            "dramaId": "2",
+            "requireFlag": "killedFamily"
+          }
+        },
+        {
+          "id": "01243274",
+          "name": "紅嫁衣感謝對話",
+          "typeId": "drama",
+          "cells": [
+            [
+              1,
+              5
+            ],
+            [
+              1,
+              6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              9,
+              8
+            ],
+            [
+              10,
+              8
+            ]
+          ],
+          "params": {
+            "dramaId": "7",
+            "requireFlag": "!killedFamily",
+            "repeat": "每次進場"
           }
         }
       ]
     }
-  ]
+  ],
+  "sceneFx": []
 }

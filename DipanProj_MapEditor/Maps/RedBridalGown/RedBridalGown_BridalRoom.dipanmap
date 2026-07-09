@@ -152,7 +152,28 @@
           "id": "01243274",
           "name": "紅嫁衣感謝對話",
           "typeId": "drama",
-          "cells": [],
+          "cells": [
+            [
+              1,
+              5
+            ],
+            [
+              1,
+              6
+            ],
+            [
+              8,
+              8
+            ],
+            [
+              9,
+              8
+            ],
+            [
+              10,
+              8
+            ]
+          ],
           "params": {
             "dramaId": "7",
             "requireFlag": "!killedFamily",

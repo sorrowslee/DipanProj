@@ -188,7 +188,8 @@
             ]
           ],
           "params": {
-            "monsterId": "2"
+            "monsterId": "2",
+            "deathFlag": "killedFamily"
           }
         },
         {
@@ -206,7 +207,8 @@
             ]
           ],
           "params": {
-            "monsterId": "3"
+            "monsterId": "3",
+            "deathFlag": "killedFamily"
           }
         },
         {
@@ -220,10 +222,12 @@
             ]
           ],
           "params": {
-            "monsterId": "7"
+            "monsterId": "7",
+            "deathFlag": "killedFamily"
           }
         }
       ]
     }
-  ]
+  ],
+  "sceneFx": []
 }

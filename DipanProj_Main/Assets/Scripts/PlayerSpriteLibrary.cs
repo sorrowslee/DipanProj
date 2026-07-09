@@ -28,6 +28,9 @@ public class PlayerSpriteLibrary
         }
     }
 
+    /// <summary>進入 Play 模式時丟掉單例（已關 Domain Reload；否則 static 快取會回傳上一輪被銷毀的 sprite → 角色只剩影子/不見）。由 PlayModeStaticReset 呼叫。</summary>
+    public static void ResetForPlayMode() => _instance = null;
+
     readonly Dictionary<string, CatalogItem> _byTail = new Dictionary<string, CatalogItem>();   // "<血統>/<state>"(小寫)
     readonly Dictionary<string, Sprite[]> _frameCache = new Dictionary<string, Sprite[]>();
     MapSpriteLoader _loader;

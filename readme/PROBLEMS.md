@@ -312,3 +312,10 @@
 - **原因**：**電腦開著 VPN**。實際情境：早上在家待命開了 VPN，之後沒關就帶著同一台（裝著 Claude App 的）電腦回公司接不同網路 → VPN 改了對外網路路徑，Claude App 與雲端 session 之間的橋接連線就一直建立不起來或中途斷掉。**與資料夾有沒有連、Unity、專案程式全都無關。**
 - **解法**：**把 VPN 關掉**。實測：一關 VPN，橋接器立刻恢復、AI 讀得到目錄也寫得回檔。若關了還沒好，再重開 Claude App 讓它重連；仍不行就**開一個新對話**（新 session 會綁到當下活著的橋接器，舊對話可能還綁在斷掉的橋接器上），或請 AI 把改好的檔打包成 zip 由你自己 `unzip -o` 覆蓋（不靠橋接也能落地）。
 - **通則**：Cowork 橋接器忽然「連不上 / 寫不回」時，**先查網路層變動**（VPN、切換 Wi-Fi/網段、Proxy、公司防火牆）——這類最容易被忽略、卻最常是真兇；其次才是重連 App 或換新對話重綁。（2026-07-09 記）
+
+### I2. 按 Play 進 Play 模式等很久（Domain Reload）＋ 關掉後的 static 殘留保險
+- **症狀**：遊戲專案每次按 Play 到真正跑起來要等很久（連只顯示標題也慢），開發很痛苦。
+- **原因**：`EditorSettings` 的 **Enter Play Mode Options 沒開**（`m_EnterPlayModeOptionsEnabled: 0`），每次進 Play 都做完整的 **Domain Reload（重載所有腳本組件）＋ Scene Reload**；腳本量一大就明顯慢。
+- **解法**：開 **Edit → Project Settings → Editor → Enter Play Mode Settings**（＝把 `m_EnterPlayModeOptionsEnabled` 設 1；選項 `3` = Domain/Scene reload 都停用）→ 進 Play 幾乎瞬間。改過腳本那次仍要重新編譯＋載入，無法避免；沒改程式的 Play 才會秒進。
+- **代價與保險（重要）**：關掉 Domain Reload 後 **C# `static` 不會每次 Play 自動歸零**，上一輪殘留會讓「**第二次以後的 Play**」行為異常——最典型是 **static 事件累積訂閱者**（`TriggerChain.OnTriggerFired` → 重複觸發／呼叫到已銷毀物件）與**抑制旗標殘留**（`MapManager.SuppressAutoStart` 沒被重設 → dev 直接進關卡時全黑）。已加 `Assets/Scripts/PlayModeStaticReset.cs`（`[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]`，每次進 Play 最早期統一重置這些 static，並呼叫 `TriggerChain.ResetForPlayMode()` 清集合/事件、`FlagRegistry.Reload()` 清快取）。**之後若又踩到「第二次 Play 才出現」的殘留，把該類別的 static 加進 `PlayModeStaticReset` 清即可。** UnityEngine.Object 的 static 快取（程序生成 sprite 等）靠既有 `if (x==null) x=Build()` 會自動重建（Unity 對已銷毀物件 `==null` 回 true），不必處理。
+- **附帶**：`MapManager` 加 `DevLoadingHoldSecondsOverride`，`DevQuickStart` 在編輯器測試時把載入頁停留秒數設 0（build 沒那支腳本，維持正式秒數讓玩家看載入圖）。（2026-07-09 記）

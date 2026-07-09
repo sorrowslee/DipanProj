@@ -25,6 +25,9 @@ namespace Dipan.Drama
             }
         }
 
+        /// <summary>進入 Play 模式時丟掉單例（已關 Domain Reload；否則快取的劇情圖 Sprite 是上一輪被銷毀的 → 劇情面板變空白）。由 PlayModeStaticReset 呼叫。</summary>
+        public static void ResetForPlayMode() => _instance = null;
+
         readonly Dictionary<int, DramaData> _items = new Dictionary<int, DramaData>();
 
         public DramaData Get(int id)

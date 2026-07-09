@@ -34,6 +34,7 @@ public static class DevQuickStart
         MapManager.DevStartMapId = 0;
         MapManager.DevStartModuleOverride = null;
         Dipan.Flow.GameFlowManager.TitleFlowEnabled = true;
+        MapManager.DevLoadingHoldSecondsOverride = 0f;   // 編輯器測試：載入頁不停留那段等待（build 沒這支腳本，維持正式秒數）
 
         string t = Cur;
         if (string.IsNullOrEmpty(t)) return;   // 關閉＝走正式流程

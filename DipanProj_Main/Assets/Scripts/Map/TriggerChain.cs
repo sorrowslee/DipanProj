@@ -76,6 +76,22 @@ public static class TriggerChain
         }
     }
 
+    /// <summary>
+    /// 進入 Play 模式時重置所有 static 狀態（已關 Domain Reload，static 不會自動歸零；由 PlayModeStaticReset 呼叫）。
+    /// 尤其 static 事件 <see cref="OnTriggerFired"/>——跨 Play 會累積訂閱者（重複觸發、呼叫到已銷毀的物件），必清。
+    /// </summary>
+    public static void ResetForPlayMode()
+    {
+        _map = null;
+        _manager = null;
+        _fxById = null;
+        _disabled.Clear();
+        _memFlags.Clear();
+        _teleportOverride.Clear();
+        _pendingDramaRegion = null;
+        OnTriggerFired = null;
+    }
+
     // ───────────────────────── 查詢（給各 watcher / InteractionManager 用） ─────────────────────────
 
     /// <summary>此 trigger 目前是否停用（startDisabled 未解鎖）。停用 = 踩到/按 F 都無反應、不顯示星星。</summary>

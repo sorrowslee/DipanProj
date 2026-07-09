@@ -67,6 +67,12 @@ public class MapManager : MonoBehaviour
     /// </summary>
     public static int DevStartMapId;
 
+    /// <summary>
+    /// （測試用）&gt;=0 = 覆寫載入頁「停留秒數」（開發時設 0，省掉每次進關卡那段刻意的等待）。&lt;0 = 不覆寫、用 Inspector 的 loadingScreenHoldSeconds。
+    /// 由 Editor-only 的 DevQuickStart 在編輯器 Play 設 0；build 沒那支腳本，維持正式的停留秒數（讓玩家看載入圖）。
+    /// </summary>
+    public static float DevLoadingHoldSecondsOverride = -1f;
+
     void Awake()
     {
         Instance = this;
@@ -140,8 +146,8 @@ public class MapManager : MonoBehaviour
             LoadingPanel lp = (UIManager.Instance != null) ? UIManager.Instance.Open<LoadingPanel>() : null;
             if (lp != null) { lp.SetModule(row.module); lp.SetProgress(0f); }
             yield return null;
-            if (loadingScreenHoldSeconds > 0f)
-                yield return new WaitForSecondsRealtime(loadingScreenHoldSeconds);
+            float hold = DevLoadingHoldSecondsOverride >= 0f ? DevLoadingHoldSecondsOverride : loadingScreenHoldSeconds;
+            if (hold > 0f) yield return new WaitForSecondsRealtime(hold);
 
             ClearTransientGameplay();
 

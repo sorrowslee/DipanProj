@@ -30,6 +30,9 @@ public class MonsterSpriteLibrary
         }
     }
 
+    /// <summary>進入 Play 模式時丟掉單例（已關 Domain Reload；否則 static 快取會回傳上一輪被銷毀的 sprite → 怪物只剩影子/不見）。由 PlayModeStaticReset 呼叫。</summary>
+    public static void ResetForPlayMode() => _instance = null;
+
     // 「<怪名>/<state>」(小寫) → catalog item
     readonly Dictionary<string, CatalogItem> _byTail = new Dictionary<string, CatalogItem>();
     // 「<怪名>/<state>」(小寫) → 已載好的幀（快取，避免重覆建 sprite）
