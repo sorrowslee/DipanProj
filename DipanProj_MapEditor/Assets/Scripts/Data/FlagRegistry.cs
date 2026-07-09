@@ -11,15 +11,19 @@ namespace DipanMapEditor.Data
     {
         public int id;                      // 系統自動配置的唯一編號（觸發點用 id 查表填名稱）
         public string name;
-        public string scope = ScopeCycle;   // "cycle"（周目，輪迴清）| "life"（永久，跨輪迴）
+        public string scope = ScopeCycle;   // "cycle"（周目，輪迴清）| "life"（永久，跨輪迴）| "level"（關卡單次，進 module 清、不進存檔）
         public string note;                 // 備註（可選，只在編輯器顯示）
 
         public const string ScopeCycle = "cycle";
         public const string ScopeLife = "life";
+        public const string ScopeLevel = "level";   // 關卡單次：每次進關卡（module）歸零、只存記憶體。做「這趟有沒有殺家人」這種。
 
         public bool IsLife => scope == ScopeLife;
+        public bool IsLevel => scope == ScopeLevel;
         /// <summary>生命週期的中文顯示（管理器切換鈕用）。</summary>
-        public string ScopeLabel => IsLife ? "永久" : "周目";
+        public string ScopeLabel => IsLife ? "永久" : IsLevel ? "關卡單次" : "周目";
+        /// <summary>切換鈕：周目 → 永久 → 關卡單次 → 周目。</summary>
+        public void CycleScope() => scope = (scope == ScopeCycle) ? ScopeLife : (scope == ScopeLife) ? ScopeLevel : ScopeCycle;
     }
 
     /// <summary>全域旗標登記表（所有地圖共用；旗標本來就跨地圖存在存檔裡）。</summary>

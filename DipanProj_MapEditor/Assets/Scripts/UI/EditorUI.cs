@@ -81,6 +81,18 @@ namespace DipanMapEditor.UI
         // 旗標欄「輸入 id → 按確認」的暫存輸入（key＝region id + "/" + 欄位 key；按確認成功後清掉）
         static readonly Dictionary<string, string> _flagIdBuf = new Dictionary<string, string>();
 
+        // 「螢幕特效表」參照彈窗（playScreenFx 的 effectId 欄旁的按鈕開）：列出可填的一次性全螢幕過場特效 id。
+        // ⚠️ 這些欄位在 static 的 DrawParamField 裡被寫入，所以**必須 static**（同 _flagIdBuf/_flagReg），否則編譯不過。
+        static bool _showScreenFx;
+        static Vector2 _screenFxScroll;
+        static TriggerRegion _screenFxRegion;   // 開表時記住是哪顆 trigger 的哪個欄，點「填入」就寫回去
+        static string _screenFxKey;
+        // ★ 螢幕特效清單（維護點之一）：新增一種螢幕特效時，這裡加一列，並在遊戲端 ScreenFxPlayer.Play 加對應 case。
+        static readonly (int id, string name, string desc)[] ScreenFxCatalog =
+        {
+            (1, "破幻術", "幻境崩碎回歸現實：玻璃裂紋→碎塊崩落色散→白光收尾。紅嫁衣沒殺家人分支傳去榕樹妖前播。"),
+        };
+
         const string MapsDirPrefKey = "MapEditor.MapsDir";
         static string DefaultMapsDir => Path.Combine(Directory.GetParent(Application.dataPath).FullName, "Maps");
         string _mapsDir;   // 當前存讀檔資料夾（可自選，PlayerPrefs 記住）
@@ -181,6 +193,7 @@ namespace DipanMapEditor.UI
             if (_showLoad && CenteredRect(460, 340).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showBg && CenteredRect(420, 280).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showFlags && CenteredRect(480, 420).Contains(new Vector2(mousePos.x, ty))) return true;
+            if (_showScreenFx && CenteredRect(560, 360).Contains(new Vector2(mousePos.x, ty))) return true;
             if (CurrentTool == EditTool.EffectPreview) return true; // 預覽器佔滿畫面，不編輯地圖
             if (CurrentTool == EditTool.Object && ObjCtl()?.Selected != null
                 && mousePos.x <= InspectorW && ty >= Screen.height - InspectorH)
@@ -222,6 +235,7 @@ namespace DipanMapEditor.UI
             if (_showLoad) DrawLoadDialog();
             if (_showBg) DrawBgDialog();
             if (_showFlags) DrawFlagManager();
+            if (_showScreenFx) DrawScreenFxTable();
         }
 
         void DrawTopBar()
@@ -270,7 +284,7 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("特效預覽器", GUILayout.Width(90)))
             {
                 CurrentTool = EditTool.EffectPreview;
-                _showNew = _showSave = _showLoad = _showBg = _showFlags = false; // 開預覽器就收起所有彈窗（含新建地圖）
+                _showNew = _showSave = _showLoad = _showBg = _showFlags = _showScreenFx = false; // 開預覽器就收起所有彈窗（含新建地圖）
             }
             GUI.color = Color.white;
 
@@ -947,7 +961,20 @@ namespace DipanMapEditor.UI
         {
             GUILayout.BeginHorizontal();
             GUILayout.Label(string.IsNullOrEmpty(p.label) ? p.key : p.label, GUILayout.Width(90));
-            if (p.isFlagRef)
+            if (p.isScreenEffectRef)
+            {
+                // 螢幕特效 id：直接輸入 id，旁邊一顆「螢幕特效表」開參照清單（列出可填的 id，可點填入）。
+                string cur = (r.Params.TryGetValue(p.key, out var sv) && sv != null) ? sv.ToString() : "";
+                string next = GUILayout.TextField(cur, GUILayout.Width(46));
+                if (next != cur) r.Params[p.key] = next;
+                if (GUILayout.Button("螢幕特效表", GUILayout.Width(90)))
+                {
+                    _showScreenFx = true;
+                    _screenFxRegion = r;
+                    _screenFxKey = p.key;
+                }
+            }
+            else if (p.isFlagRef)
             {
                 DrawFlagField(r, p);
             }
@@ -1073,8 +1100,8 @@ namespace DipanMapEditor.UI
                 GUILayout.BeginHorizontal();
                 GUILayout.Label(f.id.ToString(), GUILayout.Width(28));
                 f.name = GUILayout.TextField(f.name ?? "", GUILayout.Width(200));
-                if (GUILayout.Button(f.ScopeLabel, GUILayout.Width(60)))    // 周目 ↔ 永久
-                    f.scope = f.IsLife ? FlagDef.ScopeCycle : FlagDef.ScopeLife;
+                if (GUILayout.Button(f.ScopeLabel, GUILayout.Width(72)))    // 周目 → 永久 → 關卡單次
+                    f.CycleScope();
                 if (GUILayout.Button("刪除", GUILayout.Width(50))) removeAt = i;
                 GUILayout.EndHorizontal();
             }
@@ -1083,6 +1110,36 @@ namespace DipanMapEditor.UI
 
             GUILayout.Label("改名不會自動更新已放好的觸發點；\n刪除/改名後記得到相關觸發點重選。");
             if (!string.IsNullOrEmpty(_flagMsg)) GUILayout.Label(_flagMsg);
+            GUILayout.EndArea();
+        }
+
+        // 螢幕特效表：列出「播放螢幕特效」trigger 的 effectId 欄可填的一次性全螢幕過場特效，可點「填入」寫回該欄。
+        // 清單來源＝ScreenFxCatalog（上面的維護點）。純參照，不改遊戲行為。
+        void DrawScreenFxTable()
+        {
+            const int w = 560, h = 360;
+            GUILayout.BeginArea(CenteredRect(w, h), GUI.skin.box);
+            GUILayout.Label("螢幕特效表（一次性全螢幕過場特效；填進「播放螢幕特效」trigger 的『螢幕特效id』欄）");
+            GUILayout.Label("id　名稱　　說明（點「填入」把 id 寫回欄位）");
+
+            _screenFxScroll = GUILayout.BeginScrollView(_screenFxScroll, GUILayout.Height(270));
+            foreach (var e in ScreenFxCatalog)
+            {
+                GUILayout.BeginHorizontal(GUI.skin.box);
+                GUILayout.Label(e.id.ToString(), GUILayout.Width(28));
+                GUILayout.Label(e.name, GUILayout.Width(90));
+                GUILayout.Label(e.desc);
+                if (_screenFxRegion != null && !string.IsNullOrEmpty(_screenFxKey)
+                    && GUILayout.Button("填入", GUILayout.Width(50)))
+                {
+                    _screenFxRegion.Params[_screenFxKey] = e.id.ToString();
+                    _showScreenFx = false;
+                }
+                GUILayout.EndHorizontal();
+            }
+            GUILayout.EndScrollView();
+
+            if (GUILayout.Button("關閉", GUILayout.Width(60))) _showScreenFx = false;
             GUILayout.EndArea();
         }
 

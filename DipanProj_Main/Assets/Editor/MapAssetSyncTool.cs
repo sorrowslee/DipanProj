@@ -21,6 +21,9 @@ public static class MapAssetSyncTool
     // 編輯器 Maps 資料夾(相對 DipanProj_Main/Assets):結構為 Maps/<模組名>/*.dipanmap。
     const string EditorMapsRelative = "../../DipanProj_MapEditor/Maps";
 
+    // 編輯器旗標登記表(相對 DipanProj_Main/Assets):編輯器把 flags.json 存在自己專案根目錄(Assets 上一層)。
+    const string EditorFlagsRelative = "../../DipanProj_MapEditor/flags.json";
+
     // priority 20:與 Build and Deploy(0)差 > 10 → 上方出現分隔線；檔案處理類功能由此往下延伸。
     [MenuItem("Project Tools/Sync Map Assets", false, 20)]
     public static void SyncMapAssets()
@@ -37,6 +40,10 @@ public static class MapAssetSyncTool
 
         // 0) 先從地圖編輯器把編好的地圖拉進來：Main → GameAssets/Main/Maps，其它 → GameAssets/Modules/<模組>/Maps。
         int pulled = PullMapsFromEditor(srcRoot);
+
+        // 0.5) 旗標登記表 flags.json：從編輯器根目錄複製進 StreamingAssets/MapAssets。
+        //      遊戲端 FlagRegistry 讀這份決定每個旗標的範圍(周目/永久/關卡單次)——沒帶過來就會把新旗標當周目、讀錯存檔。
+        int flagsPulled = PullFlagsFromEditor(dstRoot);
 
         var catalog = new Catalog();
         int mapCount = 0;
@@ -100,8 +107,25 @@ public static class MapAssetSyncTool
             }));
 
         AssetDatabase.Refresh();
-        Debug.Log($"✅ [SyncMapAssets] 從編輯器拉入 {pulled} 張地圖;" +
+        Debug.Log($"✅ [SyncMapAssets] 從編輯器拉入 {pulled} 張地圖、{flagsPulled} 份旗標登記表;" +
                   $"推送 {catalog.items.Count} 筆素材、{mapCount} 張地圖 → StreamingAssets/MapAssets");
+    }
+
+    /// <summary>
+    /// 從地圖編輯器根目錄把 flags.json 複製進遊戲端 StreamingAssets/MapAssets/flags.json。
+    /// 遊戲端 <see cref="Dipan.MapRuntime.FlagRegistry"/> 讀這份決定每個旗標的範圍(周目/永久/關卡單次)。
+    /// 找不到就略過並警告(不擋整個同步)。回傳複製了幾份(0 或 1)。
+    /// </summary>
+    static int PullFlagsFromEditor(string dstRoot)
+    {
+        string editorFlags = Path.GetFullPath(Path.Combine(Application.dataPath, EditorFlagsRelative));
+        if (!File.Exists(editorFlags))
+        {
+            Debug.LogWarning($"[SyncMapAssets] 找不到編輯器旗標登記表,略過 flags.json(遊戲端旗標範圍不會更新):{editorFlags}");
+            return 0;
+        }
+        CopyOverwrite(editorFlags, Path.Combine(dstRoot, "flags.json"));
+        return 1;
     }
 
     /// <summary>

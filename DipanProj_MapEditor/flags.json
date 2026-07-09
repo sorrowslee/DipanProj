@@ -5,13 +5,7 @@
       "name": "hallGateOpen",
       "scope": "cycle",
       "IsLife": false,
-      "ScopeLabel": "周目"
-    },
-    {
-      "id": 3,
-      "name": "killedFamily",
-      "scope": "cycle",
-      "IsLife": false,
+      "IsLevel": false,
       "ScopeLabel": "周目"
     },
     {
@@ -19,7 +13,16 @@
       "name": "tutorialMoveDone",
       "scope": "life",
       "IsLife": true,
+      "IsLevel": false,
       "ScopeLabel": "永久"
+    },
+    {
+      "id": 3,
+      "name": "killedFamily",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
     }
   ]
 }

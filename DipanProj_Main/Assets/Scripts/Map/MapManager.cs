@@ -151,6 +151,10 @@ public class MapManager : MonoBehaviour
 
             ClearTransientGameplay();
 
+            // 進入新關卡（module）：清掉「關卡單次」旗標——所以像 killedFamily 這種「這趟有沒有殺家人」每次進關重算。
+            // （同 module 房間互跳走 else 分支、不清，旗標在整趟關卡內延續。）
+            TriggerChain.ClearLevelFlags();
+
             // 預載本 module（+Main 共用）的所有素材貼圖 → 進去後房間互跳不必再讀取。進度 0~0.6。
             yield return StartCoroutine(mapLoader.PreloadModuleRoutine(
                 row.module, p => { if (lp != null) lp.SetProgress(p * 0.6f); }));

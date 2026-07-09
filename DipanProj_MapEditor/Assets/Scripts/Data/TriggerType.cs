@@ -144,6 +144,18 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：被觸發鏈（next）啟動時，就地播一次性全螢幕過場特效（依 effectId 分派，如 1=破幻術「幻境崩碎回歸現實」），
+                // 暫停＋擋操作、播完才接 next（通常 next = 直接傳送(teleportTo) 把玩家傳去現實地圖，如榕樹妖）。
+                // 不用玩家踩、純靠鏈驅動；格子畫在角落即可。effectId 旁的「螢幕特效表」按鈕可查/填可用的 id。
+                typeId = "playScreenFx", displayName = "播放螢幕特效(鏈動作)", color = "#D98CFF",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "effectId", type = ParamType.Int,   label = "螢幕特效id", isScreenEffectRef = true },   // 1=破幻術；點旁邊「螢幕特效表」看清單
+                    new TriggerParam { key = "duration", type = ParamType.Float, label = "特效秒數" },   // 覆寫該特效總長（留空＝該特效預設；破幻術預設 2.2）
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 進場觸發：進入這張地圖、載入完全結束（含進場效果播完）後自動觸發一次，
                 // 自己不做事、只當觸發鏈的起點（接續觸發 next 指向要做的事，例如純鏈節點的劇情觸發點）。
                 // 不用塗格子：用「＋ 手動新增空區域」建立（0 格），從區域清單選取設參數即可。
@@ -212,5 +224,6 @@ namespace DipanMapEditor.Data
         public string[] options;         // 有值時＝以「循環按鈕」在這幾個選項間切換（避免打錯字），取代文字輸入
         public bool isFlagRef;           // 此欄的值是「旗標名」→ 面板改用旗標登記表下拉選（不手打）
         public bool flagNegatable;       // 旗標欄可否定（條件旗標）：加「有/沒有」切換，沒有＝存成 "!名字"
+        public bool isScreenEffectRef;   // 此欄的值是「螢幕特效 id」→ 面板加「螢幕特效表」按鈕開參照清單（可查/填 id）
     }
 }

@@ -59,14 +59,15 @@
 
 ## 2.5 旗標與範圍：整套只有「一種旗標」，差在活多久
 
-一句話：**所有會被記住的東西都是旗標；一個旗標＝一個名字＋一個生命週期**。生命週期兩種：
+一句話：**所有會被記住的東西都是旗標；一個旗標＝一個名字＋一個生命週期**。生命週期三種：
 
 - **周目**：存 `progress.flags`，**輪迴（`ReincarnateInPlace`）會整包清空** → 下一周目重置。
 - **永久**：存 `CharacterSave.lifetimeFlags`，**跨輪迴保存**，只有開新角色才空。
+- **關卡單次**：**只存記憶體、不進存檔**，**每次進「關卡（module）」時歸零**（`MapManager` 換 module 時 `TriggerChain.ClearLevelFlags`；同 module 房間互跳不清）。用在「**這一趟關卡有沒有發生某事**」這種**每次進關要重算**的判定——典型就是 `killedFamily`（這趟有沒有殺家人）：周目旗標會讓「上一趟殺過」殘留到這趟，關卡單次才正確。存讀檔會重置（讀檔＝重新進關），對這類判定剛好。
 
 ### 2.5.0 旗標管理器（作者實際怎麼用）
 
-生命週期是**旗標自己的屬性**，集中在編輯器 trigger 頁籤的「**旗標**」按鈕 → 旗標管理器裡設定：一列一個旗標，含**系統自動配的 id**＋名稱＋周目/永久切換鈕＋刪除，可新增、可「自動匯入地圖旗標」（掃所有地圖把用到的旗標收編）、按「儲存」寫出 `flags.json`。
+生命週期是**旗標自己的屬性**，集中在編輯器 trigger 頁籤的「**旗標**」按鈕 → 旗標管理器裡設定：一列一個旗標，含**系統自動配的 id**＋名稱＋生命週期切換鈕（**周目 → 永久 → 關卡單次** 循環）＋刪除，可新增、可「自動匯入地圖旗標」（掃所有地圖把用到的旗標收編）、按「儲存」寫出 `flags.json`。
 
 之後所有觸發點的「條件旗標／完成寫旗標／解鎖旗標」都用 **id 配置**（不手打名字、不會拼錯）：欄位是一個輸入框，**輸入旗標 id → 按「確認」**，系統就去登記表查該 id、把名稱填上並鎖定顯示（如 `hallGateOpen（周目）`）；此時旁邊出現「刪除」，按了就清空、又變回可輸入。**沒按確認、或查無該 id，就不會有名稱出現＝沒配置成功**（名字正確出現才算數）。條件旗標鎖定後另有「有/沒有」切換（沒有＝存成 `!名字`）。
 
@@ -101,6 +102,9 @@
   ⚠️ 換圖 = 鏈的終點（setFlag 會先寫掉，next 填了也不會執行）。cutscene 同理。
 - **`cameraFocus` 鏡頭聚焦(鏈動作)**：`holdSeconds`（停留秒數，留空=1.6）、`dim`（黑幕樣式：`中央留洞`(預設)／`整片全黑`／`無`）。被鏈啟動時**飄鏡頭到自己那格區域中心＋壓黑幕、停留、再拉回**，全程定住玩家；**表演完才接 next**。聚焦中心＝這個 trigger 畫的格子中心（通常畫在要對準的地方正中一格，例如傳送門中間）。純靠鏈驅動，**玩家踩不觸發**。
   典型用法：`對話 → next → cameraFocus → next → 下一段對話`，讓「講完話 → 鏡頭帶去看目標 → 再講引導詞」的運鏡完全由地圖資料排出來，不用寫程式。
+- **`playScreenFx` 播放螢幕特效(鏈動作)**：`effectId`（螢幕特效 id，欄旁有「**螢幕特效表**」按鈕可查/填清單）、`duration`（特效秒數，留空＝該特效預設）。被鏈啟動時**就地播一次性全螢幕過場特效**（依 `effectId` 分派，**id 1＝破幻術**「幻境崩碎回歸現實」：voronoi 玻璃裂紋 → 碎塊帶色散翻轉崩落 → 露白光 → 全白），暫停遊戲＋擋操作、**播完才接 next**。純靠鏈驅動、玩家踩不觸發。
+  典型用法：`紅嫁衣對話 → next → playScreenFx(effectId=1) → next → teleportTo`（對話完 → 幻境當場崩碎 → 傳去現實榕樹妖）；破幻術收尾全白剛好蓋過跨 module 載入頁。
+  程式（**加一種螢幕特效的三個維護點**）：① 寫該特效的 shader＋控制器（仿 `IllusionShatterController`／`EyeOpenController`，提供 `static Play(onDone, duration)`）；② 遊戲端 `ScreenFxPlayer.Play` 加一個 `case`；③ 更新編輯器「螢幕特效表」清單（`EditorUI.ScreenFxCatalog`）＋本檔／MAP_ENTER_EFFECT.md。這樣**加特效只動資料＋控制器、永遠不用再加 trigger 型別**。
 - **`playerHint` 玩家提示(鏈動作)**：`leftImage`／`rightImage`（左上／右上那張的**檔名**，放 `Resources/UI/Common/`、不含副檔名，留空＝該側不顯示）、`flashLeft`／`flashRight`（各自要不要閃，預設左不閃、右閃）、`hideOn`（收起時機：`移動`(預設)／`攻擊`／`任意鍵`）。被鏈啟動時在**玩家頭上左上／右上各擺一張提示圖**（左右位置固定、跟著玩家跑），到收起時機（玩家開始移動／攻擊／按任意鍵）**自動收起才接 next**。左右槽的螢幕位移是 `PlayerHintPanel` 常數（調一次、編輯器只選左右不用填 XY）。純鏈驅動、不擋輸入、不暫停、玩家踩不觸發。
   **做「只出現一次」**＝用通用旗標欄：`完成寫旗標=永久:xxx`＋`條件旗標=!永久:xxx`（收起後才寫旗標，之後 `requireFlag` 不成立就不再顯示）。典型用法：`醒來對話 → next → playerHint`（左圖 `Guide_Wasd` 不閃、右圖 `Guide_Press` 閃、收起=`移動`）＝移動教學；攻擊教學照抄一個放 `Guide_MouseLeft`、收起=`攻擊`。
 - **`onEnter` 進場觸發(自動)**：**一進這張地圖就自動觸發**（不用玩家踩、不用按 F），純鏈起點——自己不做事，全靠 `next` 接要做的事（播對話、給物品、鏡頭聚焦…）。`delaySeconds`（延遲秒數，留空=0）：進場後再等幾秒才觸發。
@@ -134,11 +138,14 @@
 
 > 一次性看需求選：`重複規則=每周目`（下輪迴再播）、`永久`（一輩子一次）、`周目上限=1`（只第 1 周目）。留預設＝每次進房都播。
 
-**紅嫁衣：沒殺家人 → 對話完傳送到榕樹妖（⏳ 未實作，步驟見 §7）**
+**紅嫁衣：沒殺家人 → 對話完幻境崩碎 → 傳送到榕樹妖（機制✅ 完備；擺 trigger 見 §7）**
 | trigger | 類型 | 關鍵欄位 |
 |---|---|---|
-| `紅嫁衣對話` | drama | dramaId=`<新>`, requireFlag=`!killedFamily`, next=`送去榕樹妖` |
+| `紅嫁衣對話` | drama | dramaId=`<新>`, requireFlag=`!killedFamily`, next=`破幻術` |
+| `破幻術` | playScreenFx（角落） | **effectId=1**（破幻術）, duration=留空(或秒數), next=`送去榕樹妖` |
 | `送去榕樹妖` | teleportTo（角落） | targetMapId=10（RedBridalGown_TreeDemon） |
+
+> `killedFamily` 在旗標管理器設成 **關卡單次**（每次進紅嫁衣重算，見 §2.5）。
 
 ## 4.9 傳送門：放劇本開門（hub，劇本決定去哪關）
 
@@ -203,15 +210,15 @@
 ## 7. 接手實作指南：紅嫁衣「沒殺家人」分支（⏳ 未實作）
 
 > 目標劇情：玩家在紅嫁衣關卡若**沒有殺任何怪（＝沒對她的家人出手）**，與紅嫁衣對話完畢後傳送到榕樹妖地圖（MapsTable **10** = `RedBridalGown_TreeDemon`）對決；若**殺過任一怪**，紅嫁衣生氣、與玩家對戰。
-> 鏈系統與**殺怪偵測機制皆已完備**（出生點的「死亡觸發旗標」欄，2026-07-09 實作）；剩下是填對話、在編輯器擺 trigger，以及兩場頭目戰（AI／技能另做）。
+> 鏈系統、**殺怪偵測機制**（出生點的「死亡觸發旗標」欄，2026-07-09）、**破幻術轉場**（泛用 `playScreenFx` 鏈動作＋崩碎後處理＝螢幕特效 id 1，2026-07-09）、**關卡單次旗標**（2026-07-09）皆已完備；剩下是填對話、在編輯器擺 trigger，以及兩場頭目戰（AI／技能另做）。
 
 ### 步驟 1：怪物死亡寫旗標（✅ 機制已實作，改在編輯器填、不用寫程式）
 
-偵測「有沒有殺怪」已做成**資料驅動、綁在每個出生點**：怪物出生點 trigger 多了「**死亡觸發旗標**」欄（`deathFlag`）。這個出生點生出來的怪死亡時，`MonsterController.Die()` 就把該旗標設為 true（`MapLoader.SpawnMonstersFromMap` 讀 `deathFlag` → `MonsterSpawner.SpawnMonster` → `MonsterController.DeathFlag`）。生命週期（周目／永久）由旗標登記表決定，`TriggerChain.SetFlag` 自動處理、無存檔退回記憶體。
+偵測「有沒有殺怪」已做成**資料驅動、綁在每個出生點**：怪物出生點 trigger 多了「**死亡觸發旗標**」欄（`deathFlag`）。這個出生點生出來的怪死亡時，`MonsterController.Die()` 就把該旗標設為 true（`MapLoader.SpawnMonstersFromMap` 讀 `deathFlag` → `MonsterSpawner.SpawnMonster` → `MonsterController.DeathFlag`）。生命週期（周目／永久／關卡單次）由旗標登記表決定，`TriggerChain.SetFlag` 自動處理、無存檔退回記憶體。
 
 做法（全在編輯器，零改程式）：
 
-1. 旗標管理器把 `killedFamily` 建成 **周目**旗標（輪迴會清）。
+1. 旗標管理器把 `killedFamily` 建成 **關卡單次**旗標（切換鈕循環到「關卡單次」）——每次進紅嫁衣關卡歸零、只存記憶體，所以判的是「**這一趟**有沒有殺家人」（周目旗標會殘留到下一趟就錯了，見 §2.5）。
 2. 紅嫁衣關（RedBridalGown 各張地圖）家人怪的 `monsterSpawn` 出生點，「死亡觸發旗標」欄選 `killedFamily`（輸入 id → 確認）。因為家人怪只出現在這關，這個旗標實質就等於「這一趟殺過家人／殺過任何怪」。
 3. 存檔後跑 `Project Tools → Sync Map Assets`。
 
@@ -228,14 +235,17 @@
 ### 步驟 3：編輯器放 trigger（紅嫁衣的最終房間地圖，哪張由作者決定）
 
 1. `紅嫁衣對話`（drama）：塗在紅嫁衣 NPC 位置（Type=2 碰到自動觸發）。參數：
-   `dramaId=4`、`requireFlag=!killedFamily`、`next=送去榕樹妖`。
-2. `送去榕樹妖`（teleportTo，「直接傳送(鏈動作)」）：塗地圖角落 1 格即可。參數：
+   `dramaId=4`、`requireFlag=!killedFamily`、`next=破幻術`。
+2. `破幻術`（playScreenFx，「播放螢幕特效(鏈動作)」）：塗地圖角落 1 格即可。參數：
+   `effectId=1`（點欄旁「螢幕特效表」可查，1＝破幻術）、`duration=`（空＝預設 2.2 秒；要更快/更慢就填秒數）、`next=送去榕樹妖`。對話關閉後就地播幻境崩碎、收尾全白，播完自動接傳送。
+3. `送去榕樹妖`（teleportTo，「直接傳送(鏈動作)」）：塗地圖角落 1 格即可。參數：
    `targetMapId=10`、`targetEntrance=`（空 = 落在目標圖 playerSpawn；要指定落點就在榕樹妖圖放 teleport 區填 entranceId，這裡填同名）。
-3. 存檔後跑 `Tools/sync_map_assets.sh`（或 Project Tools → Sync Map Assets）把地圖帶進主遊戲。
+4. 存檔後跑 `Tools/sync_map_assets.sh`（或 Project Tools → Sync Map Assets）把地圖帶進主遊戲。
 
 ### 步驟 4：測試
 
-- 沒殺家人 → 碰紅嫁衣 → 對話 → 播完自動傳送到榕樹妖 ✓
+- 沒殺家人 → 碰紅嫁衣 → 對話 → 播完幻境崩碎（裂紋→碎塊崩落→全白）→ 自動傳送到榕樹妖 ✓
+  （崩碎期間遊戲暫停、玩家不能動；全白收尾接上跨關載入頁應無縫）
 - 先殺任一家人（Console 應出現「旗標 killedFamily = 1」）→ 碰紅嫁衣 → **毫無反應**（requireFlag 擋掉）✓
 - 存檔重開後旗標仍在（progress.flags）✓
 

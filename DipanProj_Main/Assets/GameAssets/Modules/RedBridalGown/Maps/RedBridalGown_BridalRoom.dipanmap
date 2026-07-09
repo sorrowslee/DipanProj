@@ -177,7 +177,29 @@
           "params": {
             "dramaId": "7",
             "requireFlag": "!killedFamily",
-            "repeat": "每次進場"
+            "repeat": "每次進場",
+            "next": "破幻術"
+          }
+        },
+        {
+          "id": "46874b5c",
+          "name": "傳送去榕樹妖",
+          "typeId": "teleportTo",
+          "cells": [],
+          "params": {
+            "targetMapId": "10",
+            "targetEntrance": ""
+          }
+        },
+        {
+          "id": "22487383",
+          "name": "破幻術",
+          "typeId": "playScreenFx",
+          "cells": [],
+          "params": {
+            "effectId": "1",
+            "duration": "",
+            "next": "傳送去榕樹妖"
           }
         }
       ]

@@ -32,6 +32,7 @@ public static class TriggerChain
     public const string TypeTeleportTo = "teleportTo";
     public const string TypeCameraFocus = "cameraFocus";   // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格中心＋黑幕，停留後拉回，再接 next
     public const string TypePlayerHint = "playerHint";     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，到收起時機（移動/攻擊/任意鍵）自動收，再接 next
+    public const string TypePlayScreenFx = "playScreenFx"; // 播放螢幕特效（鏈動作）：就地播一次性全螢幕過場特效（依 effectId，如 1=破幻術）、暫停擋操作，播完再接 next（通常＝teleportTo）
     public const string TypeOnEnter = "onEnter";           // 進場觸發（自動）：進圖載入結束後自動觸發，純鏈起點（0 格、不塗格子），見 MapManager.FireEnterTriggersRoutine
 
     // 通用欄位 key
@@ -50,6 +51,7 @@ public static class TriggerChain
     static Dictionary<string, GameObject> _fxById;          // sceneFx id → 場上物件（MapLoader 提供）
     static readonly HashSet<string> _disabled = new HashSet<string>();       // 目前停用中的 region id
     static readonly Dictionary<string, string> _memFlags = new Dictionary<string, string>(); // 無存檔時的後備旗標
+    static readonly HashSet<string> _levelFlags = new HashSet<string>();                      // 關卡單次旗標（進 module 清、不進存檔）
     static readonly Dictionary<string, (int mapId, string entrance)> _teleportOverride = new Dictionary<string, (int, string)>(); // 傳送門：執行期覆寫目的地（劇本決定）
 
     static TriggerRegion _pendingDramaRegion;   // 等「對話關閉」才算完成的 region（DramaPanel/TalkPanel 關閉時通知）
@@ -77,8 +79,9 @@ public static class TriggerChain
     }
 
     /// <summary>
-    /// 進入 Play 模式時重置所有 static 狀態（已關 Domain Reload，static 不會自動歸零；由 PlayModeStaticReset 呼叫）。
-    /// 尤其 static 事件 <see cref="OnTriggerFired"/>——跨 Play 會累積訂閱者（重複觸發、呼叫到已銷毀的物件），必清。
+    /// 進入 Play 模式時把所有可變 static 歸零（已關 Domain Reload，否則上一輪殘留會讓「第二次以後 Play」出錯：
+    /// static 事件 <see cref="OnTriggerFired"/> 累積訂閱者＝重複觸發／呼叫到已銷毀物件；抑制集合殘留＝解鎖狀態錯亂）。
+    /// 由 <c>PlayModeStaticReset</c> 在每次進 Play 最早期呼叫。build 每次全新程序、本來就乾淨，這段等於無害 no-op。
     /// </summary>
     public static void ResetForPlayMode()
     {
@@ -87,6 +90,7 @@ public static class TriggerChain
         _fxById = null;
         _disabled.Clear();
         _memFlags.Clear();
+        _levelFlags.Clear();
         _teleportOverride.Clear();
         _pendingDramaRegion = null;
         OnTriggerFired = null;
@@ -163,7 +167,7 @@ public static class TriggerChain
 
     // ── 重複規則（repeat）給「進場觸發」用的判定/標記 ──
     // 與 InteractionManager 的互動點用同一套自動旗標格式（"已觸發:"+id；永久加「永久:」前綴）。
-    //   關卡單次（預設/空值）、每次：不限制（進場觸發本來就一次進圖只點火一次）。
+    //   每次進場（預設/空值）、每次：不限制（進場觸發本來就一次進圖只點火一次）。
     //   每周目：觸發後寫周目自動旗標（輪迴清空 → 下周目再觸發）。
     //   永久：觸發後寫終身自動旗標（跨輪迴保存，開新角色才會再觸發）。
 
@@ -252,6 +256,7 @@ public static class TriggerChain
             case TypeTeleportTo: ExecuteTeleportTo(r); break;
             case TypeCameraFocus: ExecuteCameraFocus(r); break;
             case TypePlayerHint: ExecutePlayerHint(r); break;
+            case TypePlayScreenFx: ExecutePlayScreenFx(r); break;
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
                 if (IsDramaType(r)) ExecuteDrama(r);   // 鏈到劇情點 = 立即播對話（對話→對話）
@@ -340,6 +345,16 @@ public static class TriggerChain
                 UIManager.Instance?.SetExternalHold(false, false);
                 OnCompleted(r);   // 聚焦表演結束才接 next（例如接「指引玩家過門」的對話）
             });
+    }
+
+    // 播放螢幕特效（鏈動作）：就地播一次性全螢幕過場特效（依 effectId 分派，如 1=破幻術「幻境崩碎回歸現實」；
+    // 暫停＋擋操作由各特效控制器自己管），播完才接 next（通常 next = teleportTo，把玩家傳去現實地圖）。
+    // 語意例＝玩家親眼看到「當前這張幻境場景」龜裂崩碎、收尾全白，再無縫接跨關載入頁。可填 duration 覆寫特效總長。
+    static void ExecutePlayScreenFx(TriggerRegion r)
+    {
+        int effectId = r.GetInt("effectId", 0);
+        float dur = r.GetFloat("duration", -1f);   // 留空 = 用該特效控制器預設總長
+        ScreenFxPlayer.Play(effectId, () => OnCompleted(r), dur);   // 未知/為 0 的 id：ScreenFxPlayer 會警告並直接接 next
     }
 
     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，指定張閃爍；到收起時機（移動/攻擊/任意鍵）自動收，收完接 next。
@@ -469,37 +484,46 @@ public static class TriggerChain
         mapId = -1; entrance = ""; return false;
     }
 
-    // 旗標的生命範圍怎麼決定（方案乙）：
+    // 旗標的生命範圍怎麼決定（方案乙），三選一：
     //   1) 名字帶「永久:」前綴 → 終身（給重複規則的自動旗標、與舊資料相容用）。
-    //   2) 否則查旗標登記表 flags.json（FlagRegistry）：登記為 life → 終身，否則周目。
-    // 終身存 CharacterSave.lifetimeFlags（跨輪迴）；周目存 progress.flags（輪迴清）。
-    // 無 SaveManager（單場景測試）時退回記憶體 _memFlags（用原 key，行為一致但不持久）。
+    //   2) 否則查旗標登記表 flags.json（FlagRegistry）：登記為 life → 終身；level → 關卡單次；否則周目。
+    // 終身存 CharacterSave.lifetimeFlags（跨輪迴）；周目存 progress.flags（輪迴清）；
+    // **關卡單次存記憶體 _levelFlags（進新 module 時清、不進存檔）**——做「這趟關卡有沒有殺家人（killedFamily）」這種每次進關重算的判定。
+    // 無 SaveManager（單場景測試）時，周目退回記憶體 _memFlags；關卡單次一律走 _levelFlags（行為一致）。
     public const string LifePrefix = "永久:";
 
-    // 回傳（是否終身, 去掉前綴的存檔用 key）。
-    static (bool life, string name) Resolve(string key)
+    enum FlagScope { Cycle, Life, Level }
+
+    // 回傳（範圍, 去掉前綴的存檔用 key）。
+    static (FlagScope scope, string name) Resolve(string key)
     {
-        if (key.StartsWith(LifePrefix)) return (true, key.Substring(LifePrefix.Length));
-        return (FlagRegistry.IsLife(key), key);
+        if (key.StartsWith(LifePrefix)) return (FlagScope.Life, key.Substring(LifePrefix.Length));
+        if (FlagRegistry.IsLevel(key)) return (FlagScope.Level, key);
+        return (FlagRegistry.IsLife(key) ? FlagScope.Life : FlagScope.Cycle, key);
     }
 
     public static bool FlagTrue(string key)
     {
         if (string.IsNullOrEmpty(key)) return false;
+        var (scope, name) = Resolve(key);
+        if (scope == FlagScope.Level) return _levelFlags.Contains(name);   // 關卡單次：只查記憶體
         var sm = SaveManager.Instance;
-        var (life, name) = Resolve(key);
-        if (sm != null) return life ? sm.GetLifetimeFlag(name) : sm.GetFlag(name);
+        if (sm != null) return scope == FlagScope.Life ? sm.GetLifetimeFlag(name) : sm.GetFlag(name);
         return _memFlags.TryGetValue(key, out var v) && v == "1";
     }
 
     public static void SetFlag(string key)
     {
         if (string.IsNullOrEmpty(key)) return;
+        var (scope, name) = Resolve(key);
+        if (scope == FlagScope.Level) { _levelFlags.Add(name); return; }   // 關卡單次：只寫記憶體
         var sm = SaveManager.Instance;
-        var (life, name) = Resolve(key);
-        if (sm != null) { if (life) sm.SetLifetimeFlag(name); else sm.SetFlag(name); }
+        if (sm != null) { if (scope == FlagScope.Life) sm.SetLifetimeFlag(name); else sm.SetFlag(name); }
         else _memFlags[key] = "1";
     }
+
+    /// <summary>清掉所有「關卡單次」旗標。由 MapManager 在進入新 module（換關卡）時呼叫——所以每次進關這類旗標重算。</summary>
+    public static void ClearLevelFlags() => _levelFlags.Clear();
 
     // ───────────────────────── 內部 ─────────────────────────
 

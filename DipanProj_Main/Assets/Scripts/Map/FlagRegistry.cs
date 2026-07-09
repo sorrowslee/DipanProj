@@ -10,7 +10,7 @@ namespace Dipan.MapRuntime
     {
         public int id;                   // 編輯器配置的編號（遊戲端不使用，僅為與 flags.json 對齊）
         public string name;
-        public string scope = "cycle";   // "cycle"（周目，輪迴清）| "life"（永久，跨輪迴）
+        public string scope = "cycle";   // "cycle"（周目，輪迴清）| "life"（永久，跨輪迴）| "level"（關卡單次，進 module 清、不進存檔）
         public string note;
     }
 
@@ -30,12 +30,14 @@ namespace Dipan.MapRuntime
         public const string SubDir = "MapAssets";
         public const string FileName = "flags.json";
 
-        static Dictionary<string, bool> _life;   // 旗標名 → 是否永久
+        static Dictionary<string, bool> _life;    // 旗標名 → 是否永久
+        static Dictionary<string, bool> _level;   // 旗標名 → 是否關卡單次（進 module 清、不進存檔）
 
         static void EnsureLoaded()
         {
             if (_life != null) return;
             _life = new Dictionary<string, bool>();
+            _level = new Dictionary<string, bool>();
             try
             {
                 string path = Path.Combine(Application.streamingAssetsPath, SubDir, FileName);
@@ -44,7 +46,11 @@ namespace Dipan.MapRuntime
                     var data = MapJsonConfig.Deserialize<FlagRegistryData>(File.ReadAllText(path));
                     if (data?.flags != null)
                         foreach (var f in data.flags)
-                            if (!string.IsNullOrEmpty(f.name)) _life[f.name] = (f.scope == "life");
+                            if (!string.IsNullOrEmpty(f.name))
+                            {
+                                _life[f.name] = (f.scope == "life");
+                                _level[f.name] = (f.scope == "level");
+                            }
                 }
                 else Debug.Log("[FlagRegistry] 找不到 flags.json，所有具名旗標一律當周目（尚未建旗標登記表時的預設）。");
             }
@@ -59,7 +65,15 @@ namespace Dipan.MapRuntime
             return _life.TryGetValue(name, out var v) && v;
         }
 
+        /// <summary>此旗標是否登記為「關卡單次」（進新 module 時歸零、只存記憶體不進存檔）。未登記＝否（回 false）。</summary>
+        public static bool IsLevel(string name)
+        {
+            if (string.IsNullOrEmpty(name)) return false;
+            EnsureLoaded();
+            return _level.TryGetValue(name, out var v) && v;
+        }
+
         /// <summary>清快取（換存檔/重載資源後想重讀時用）。</summary>
-        public static void Reload() => _life = null;
+        public static void Reload() { _life = null; _level = null; }
     }
 }

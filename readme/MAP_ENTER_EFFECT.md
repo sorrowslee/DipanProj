@@ -73,4 +73,21 @@
 
 ---
 
+## 附：離場螢幕特效（含破幻術）—— 不走 EnterEffect，是「觸發鏈動作 `playScreenFx`」
+
+「進場一次性效果」（EnterEffect，本檔上半）是**綁地圖、在目標圖載完後播**的螢幕後處理。另一個需求是**離開/劇情當下、還在舊場景時**播一次過場（例：破幻術「幻境崩碎回歸現實」），這用**觸發鏈動作 `playScreenFx`**（不綁地圖、不走 MapsTable）：由劇本在還在幻境場景時接鏈播放，玩家親眼看到「當前這張場景」崩碎、收尾全白，播完再由鏈接 `teleportTo` 傳去現實地圖。
+
+為什麼破幻術不做成 EnterEffect：EnterEffect 在**目標圖載完後**才播（只吃得到新場景畫面）、且**綁地圖＝每次進該圖都播**。破幻術要的是「崩的是**舊**幻境、只在這個劇情節點播一次」，所以走鏈動作（見紅嫁衣「沒殺家人」分支）。
+
+**資料驅動、不再為每種特效加 trigger 型別**：`playScreenFx` 只有一顆，填一個 `effectId`（欄旁「螢幕特效表」按鈕可查/填）。id → 特效由遊戲端 `ScreenFxPlayer.Play` 分派。**目前 id 1 = 破幻術**。
+
+- 加一種螢幕特效的三個維護點：① 寫 shader＋控制器（仿 `IllusionShatterController`／`EyeOpenController`）；② `ScreenFxPlayer.Play` 加一個 `case`；③ 更新編輯器「螢幕特效表」清單（`EditorUI.ScreenFxCatalog`）＋本節。
+- 破幻術程式：`Assets/Scripts/MapFx/IllusionShatterController.cs`（自生成常駐單例、曲線驅動、`unscaled` 時間、blit 掛主相機、`SetExternalHold` 暫停擋操作）＋ `Resources/Shaders/IllusionShatter.shader`（voronoi 玻璃裂紋＋碎塊崩落色散＋白光）。
+- 接線與參數（`effectId`／`duration`）：見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3（`playScreenFx`）與 §7（紅嫁衣分支步驟）。
+- ⚠️ 命名：這裡的「螢幕特效」＝一次性全螢幕後處理過場，跟世界端的 **場景特效**（`SceneEffect` 火雨／`SceneFx` 煙霧傳送門，見 SCENE_EFFECT.md）是**兩套不同東西**，別混。
+- 破幻術目前是**程序版**（崩碎層＝當前畫面剝掉暖色濾鏡的複本，露出白光）。若之後要「真的從紅嫁衣畫面崩到榕樹妖畫面」的雙層交叉，需在換圖前抓一張畫面截圖餵給 shader（capture 版，plumbing 較多），可再升級。
+
+---
+
 *建立於 2026-07-03：進場一次性效果系統＋第一個效果「睜眼醒來」（後處理版：杏眼遮罩＋模糊對焦＋亮度暗角，MapsTable `EnterEffect` 欄驅動、進圖播一次）。*
+*2026-07-09 附記：離場螢幕特效改用泛用鏈動作 `playScreenFx`＋`effectId`（不再為每種特效加 trigger 型別；id 1＝破幻術崩碎後處理，紅嫁衣→榕樹妖用）＋編輯器「螢幕特效表」picker。*

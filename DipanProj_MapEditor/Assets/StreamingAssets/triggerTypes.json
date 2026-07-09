@@ -234,6 +234,24 @@
      ]
     }
    ]
+  },
+  {
+   "typeId": "playScreenFx",
+   "displayName": "播放螢幕特效(鏈動作)",
+   "color": "#D98CFF",
+   "params": [
+    {
+     "key": "effectId",
+     "type": "Int",
+     "label": "螢幕特效id",
+     "isScreenEffectRef": true
+    },
+    {
+     "key": "duration",
+     "type": "Float",
+     "label": "特效秒數"
+    }
+   ]
   }
  ]
 }
