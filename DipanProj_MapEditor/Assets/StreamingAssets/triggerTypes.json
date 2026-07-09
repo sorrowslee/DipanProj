@@ -252,6 +252,24 @@
      "label": "特效秒數"
     }
    ]
+  },
+  {
+   "typeId": "togglePortal",
+   "displayName": "開關傳送點(鏈動作)",
+   "color": "#5AC8B0",
+   "params": [
+    {
+     "key": "target",
+     "type": "String",
+     "label": "傳送點名稱",
+     "isPortalList": true
+    },
+    {
+     "key": "show",
+     "type": "Bool",
+     "label": "顯示(否=隱藏)"
+    }
+   ]
   }
  ]
 }

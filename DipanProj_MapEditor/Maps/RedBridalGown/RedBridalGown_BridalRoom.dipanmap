@@ -83,7 +83,7 @@
       "regions": [
         {
           "id": "1084d4c8",
-          "name": "傳送點1",
+          "name": "左方傳送點",
           "typeId": "teleport",
           "cells": [
             [
@@ -103,7 +103,7 @@
         },
         {
           "id": "79e7a154",
-          "name": "傳送點2",
+          "name": "下方傳送點",
           "typeId": "teleport",
           "cells": [
             [
@@ -145,7 +145,8 @@
           ],
           "params": {
             "dramaId": "2",
-            "requireFlag": "killedFamily"
+            "requireFlag": "killedFamily",
+            "next": "開關傳送點"
           }
         },
         {
@@ -195,11 +196,26 @@
           "id": "22487383",
           "name": "破幻術",
           "typeId": "playScreenFx",
-          "cells": [],
+          "cells": [
+            [
+              16,
+              3
+            ]
+          ],
           "params": {
             "effectId": "1",
             "duration": "",
             "next": "傳送去榕樹妖"
+          }
+        },
+        {
+          "id": "577140d2",
+          "name": "開關傳送點",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "下方傳送點,左方傳送點",
+            "show": false
           }
         }
       ]

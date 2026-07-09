@@ -156,6 +156,18 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：被觸發鏈（next）啟動時，把 target 指定的「傳送點」隱藏封鎖或顯示解鎖（含外型/綠幕與踩踏功能）。
+                // Boss 房封門用：onEnter→對話→togglePortal(target=房間傳送點, show=off) 進門封門；打贏後 Boss 死亡旗標鏈接 show=on 復原。
+                // 不用玩家踩、純靠鏈驅動；格子畫在角落即可。target 填傳送點的「名稱」（在該傳送點的 名稱 欄設）。
+                typeId = "togglePortal", displayName = "開關傳送點(鏈動作)", color = "#5AC8B0",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "target", type = ParamType.String, label = "傳送點名稱", isPortalList = true },   // 可多筆：按「＋」加欄；每欄填一個傳送點「名稱」
+                    new TriggerParam { key = "show",   type = ParamType.Bool,   label = "顯示(否=隱藏)", boolDefault = false },   // 打勾=顯示解鎖；不打勾=隱藏封鎖（預設）
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 進場觸發：進入這張地圖、載入完全結束（含進場效果播完）後自動觸發一次，
                 // 自己不做事、只當觸發鏈的起點（接續觸發 next 指向要做的事，例如純鏈節點的劇情觸發點）。
                 // 不用塗格子：用「＋ 手動新增空區域」建立（0 格），從區域清單選取設參數即可。
@@ -225,5 +237,6 @@ namespace DipanMapEditor.Data
         public bool isFlagRef;           // 此欄的值是「旗標名」→ 面板改用旗標登記表下拉選（不手打）
         public bool flagNegatable;       // 旗標欄可否定（條件旗標）：加「有/沒有」切換，沒有＝存成 "!名字"
         public bool isScreenEffectRef;   // 此欄的值是「螢幕特效 id」→ 面板加「螢幕特效表」按鈕開參照清單（可查/填 id）
+        public bool isPortalList;        // 此欄是「可多筆」字串清單 → 面板渲染成多欄、按「＋」加一欄、「−」刪一欄；存成逗號分隔字串
     }
 }

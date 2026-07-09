@@ -429,6 +429,9 @@ public class MapLoader : MonoBehaviour
     /// <summary>本張地圖的場景特效實例（sceneFx 的 id → 場上物件）。給觸發鏈 linkedFx 顯示/隱藏綠幕用（見 TriggerChain），換圖時重建。</summary>
     public readonly Dictionary<string, GameObject> SceneFxById = new Dictionary<string, GameObject>();
 
+    /// <summary>本張地圖的傳送點內建外型（teleport region id → marker 特效物件）。給觸發鏈 togglePortal 隱藏/恢復傳送點外型用，換圖時重建。</summary>
+    public readonly Dictionary<string, GameObject> TeleportMarkerById = new Dictionary<string, GameObject>();
+
     void BuildSceneFx()
     {
         SceneFxById.Clear();
@@ -571,6 +574,7 @@ public class MapLoader : MonoBehaviour
     // 複用 VFX 系統的「Loop=1 / Duration=-1」（無限循環、外部管理生死）；掛進 MapRoot，換圖拆除時一併清掉。
     void BuildTeleportMarkers()
     {
+        TeleportMarkerById.Clear();
         if (teleportVfxId <= 0) return;
         var trig = _map?.TriggerLayer;
         if (trig?.regions == null) return;
@@ -592,6 +596,7 @@ public class MapLoader : MonoBehaviour
             if (inst != null)
             {
                 inst.transform.SetParent(_root, true);   // 掛進 MapRoot，換圖拆除時一併清掉
+                if (!string.IsNullOrEmpty(r.id)) TeleportMarkerById[r.id] = inst.gameObject;   // 供 togglePortal 隱藏/恢復外型
                 n++;
             }
         }

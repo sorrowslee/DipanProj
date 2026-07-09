@@ -959,6 +959,8 @@ namespace DipanMapEditor.UI
 
         static void DrawParamField(TriggerRegion r, TriggerParam p)
         {
+            if (p.isPortalList) { DrawPortalListField(r, p); return; }   // 可多筆清單：自己畫多欄＋＋/−，不走單行版型
+
             GUILayout.BeginHorizontal();
             GUILayout.Label(string.IsNullOrEmpty(p.label) ? p.key : p.label, GUILayout.Width(90));
             if (p.isScreenEffectRef)
@@ -1000,6 +1002,37 @@ namespace DipanMapEditor.UI
                 if (next != cur) r.Params[p.key] = next;
             }
             GUILayout.EndHorizontal();
+        }
+
+        // 可多筆清單欄（如 togglePortal 的傳送點名稱）：一欄一個值，最後一欄旁有「＋」加欄、每欄有「−」刪欄；
+        // 存進 r.Params 的是「逗號分隔的一個字串」。⚠️ **刻意不過濾空欄**——否則按「＋」加的空欄會當幀被濾掉、
+        // 看起來沒反應（此為先前的 bug）；空欄對遊戲無害，TriggerChain.ExecuteTogglePortal 讀時會 Trim 後跳過空的。
+        static void DrawPortalListField(TriggerRegion r, TriggerParam p)
+        {
+            // 目前值 → 拆清單（保留空欄；空字串 Split 也會得到一個空欄，至少一欄可輸入）。
+            string cur = (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString() : "";
+            var names = new List<string>(cur.Split(','));
+            if (names.Count == 0) names.Add("");
+
+            bool changed = false;
+            int removeAt = -1;
+            for (int i = 0; i < names.Count; i++)
+            {
+                GUILayout.BeginHorizontal();
+                // 第一欄顯示欄位標籤，其餘欄留空對齊。
+                GUILayout.Label(i == 0 ? (string.IsNullOrEmpty(p.label) ? p.key : p.label) : "", GUILayout.Width(90));
+                string next = GUILayout.TextField(names[i] ?? "");
+                if (next != names[i]) { names[i] = next; changed = true; }
+                if (GUILayout.Button("−", GUILayout.Width(24))) removeAt = i;                 // 刪這一欄
+                if (i == names.Count - 1 && GUILayout.Button("＋", GUILayout.Width(24)))       // 最後一欄旁：加一空欄
+                    { names.Add(""); changed = true; }
+                GUILayout.EndHorizontal();
+            }
+            if (removeAt >= 0) { names.RemoveAt(removeAt); changed = true; }
+            if (names.Count == 0) { names.Add(""); changed = true; }   // 全刪光 → 至少留一欄
+
+            if (changed)
+                r.Params[p.key] = string.Join(",", names);   // 保留空欄（含尾逗號）；遊戲端讀時自動略過空的
         }
 
         // 旗標欄：輸入「旗標 id」→ 按「確認」→ 查登記表把名稱填上並鎖定 → 出現「刪除」清空回可輸入。

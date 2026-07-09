@@ -374,7 +374,7 @@ public class MapManager : MonoBehaviour
     {
         // 觸發鏈：先重建（計算 startDisabled/enableFlag 的初始啟用狀態、藏綠幕），
         // 之後的 watcher / 互動點建立都會查它過濾。見 TriggerChain / readme/TRIGGER_CHAIN.md。
-        TriggerChain.Setup(mapLoader.Map, this, mapLoader.SceneFxById);
+        TriggerChain.Setup(mapLoader.Map, this, mapLoader.SceneFxById, mapLoader.TeleportMarkerById);
 
         if (_watcher == null)
             _watcher = GetComponent<TeleportWatcher>() ?? gameObject.AddComponent<TeleportWatcher>();

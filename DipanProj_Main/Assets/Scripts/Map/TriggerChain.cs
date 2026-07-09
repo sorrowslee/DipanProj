@@ -33,6 +33,7 @@ public static class TriggerChain
     public const string TypeCameraFocus = "cameraFocus";   // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格中心＋黑幕，停留後拉回，再接 next
     public const string TypePlayerHint = "playerHint";     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，到收起時機（移動/攻擊/任意鍵）自動收，再接 next
     public const string TypePlayScreenFx = "playScreenFx"; // 播放螢幕特效（鏈動作）：就地播一次性全螢幕過場特效（依 effectId，如 1=破幻術）、暫停擋操作，播完再接 next（通常＝teleportTo）
+    public const string TypeTogglePortal = "togglePortal"; // 開關傳送點（鏈動作）：把 target 指定的傳送點隱藏封鎖(show=false)或顯示解鎖(show=true)，含外型/綠幕，再接 next。Boss 房封門用
     public const string TypeOnEnter = "onEnter";           // 進場觸發（自動）：進圖載入結束後自動觸發，純鏈起點（0 格、不塗格子），見 MapManager.FireEnterTriggersRoutine
 
     // 通用欄位 key
@@ -49,6 +50,7 @@ public static class TriggerChain
     static MapData _map;
     static MapManager _manager;
     static Dictionary<string, GameObject> _fxById;          // sceneFx id → 場上物件（MapLoader 提供）
+    static Dictionary<string, GameObject> _teleportMarkerById; // teleport region id → 傳送點內建外型 marker（MapLoader 提供，togglePortal 隱藏/恢復用）
     static readonly HashSet<string> _disabled = new HashSet<string>();       // 目前停用中的 region id
     static readonly Dictionary<string, string> _memFlags = new Dictionary<string, string>(); // 無存檔時的後備旗標
     static readonly HashSet<string> _levelFlags = new HashSet<string>();                      // 關卡單次旗標（進 module 清、不進存檔）
@@ -56,12 +58,14 @@ public static class TriggerChain
 
     static TriggerRegion _pendingDramaRegion;   // 等「對話關閉」才算完成的 region（DramaPanel/TalkPanel 關閉時通知）
 
-    /// <summary>換圖後重建：計算每個 trigger 的初始啟用狀態、套用 linkedFx 顯示/隱藏。由 MapManager 呼叫。</summary>
-    public static void Setup(MapData map, MapManager manager, Dictionary<string, GameObject> fxById)
+    /// <summary>換圖後重建：計算每個 trigger 的初始啟用狀態、套用 linkedFx／傳送點外型 顯示/隱藏。由 MapManager 呼叫。</summary>
+    public static void Setup(MapData map, MapManager manager, Dictionary<string, GameObject> fxById,
+                             Dictionary<string, GameObject> teleportMarkerById = null)
     {
         _map = map;
         _manager = manager;
         _fxById = fxById;
+        _teleportMarkerById = teleportMarkerById;
         _disabled.Clear();
         _teleportOverride.Clear();   // 换图 → 清掉上一張圖的傳送門目的地覆寫
         _pendingDramaRegion = null;
@@ -74,7 +78,7 @@ public static class TriggerChain
             string ef = r.GetString(KeyEnableFlag);
             bool unlocked = !string.IsNullOrEmpty(ef) && FlagTrue(ef);
             if (!unlocked) _disabled.Add(r.id);
-            ApplyLinkedFx(r, visible: unlocked);
+            ApplyTeleportVisual(r, visible: unlocked);   // 綠幕＋傳送點外型都跟著初始狀態顯示/隱藏
         }
     }
 
@@ -88,6 +92,7 @@ public static class TriggerChain
         _map = null;
         _manager = null;
         _fxById = null;
+        _teleportMarkerById = null;
         _disabled.Clear();
         _memFlags.Clear();
         _levelFlags.Clear();
@@ -257,6 +262,7 @@ public static class TriggerChain
             case TypeCameraFocus: ExecuteCameraFocus(r); break;
             case TypePlayerHint: ExecutePlayerHint(r); break;
             case TypePlayScreenFx: ExecutePlayScreenFx(r); break;
+            case TypeTogglePortal: ExecuteTogglePortal(r); break;
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
                 if (IsDramaType(r)) ExecuteDrama(r);   // 鏈到劇情點 = 立即播對話（對話→對話）
@@ -357,6 +363,32 @@ public static class TriggerChain
         ScreenFxPlayer.Play(effectId, () => OnCompleted(r), dur);   // 未知/為 0 的 id：ScreenFxPlayer 會警告並直接接 next
     }
 
+    // 開關傳送點（鏈動作）：把 target 指定的**一或多個**傳送點隱藏封鎖或顯示解鎖，含外型/綠幕與踩踏功能，立即完成接 next。
+    //   target = 要控制的傳送點名稱（可多筆，編輯器按「＋」加欄，存成以逗號分隔的一個字串；傳送點名稱請勿含逗號）；
+    //   show   = true 顯示解鎖（＝EnableRegion，會順便寫該傳送點的 enableFlag 存檔記住）、
+    //            false 隱藏封鎖（＝DisableRegion，執行期狀態、不寫存檔，換圖/重進房間重算）。留空 show 預設 false（封門是主要用途）。
+    // 典型：Boss 房 onEnter→對話→togglePortal(target=門A,門B, show=false) 進門一次封多個門；打贏後 Boss 死亡旗標鏈接 togglePortal(show=true) 一次復原。
+    static void ExecuteTogglePortal(TriggerRegion r)
+    {
+        string targets = r.GetString("target");
+        bool show = r.GetBool("show", false);
+        if (string.IsNullOrWhiteSpace(targets))
+        {
+            Debug.LogWarning($"[TriggerChain] togglePortal「{r.name}」沒填 target（要開關的傳送點名），略過（仍接 next）。");
+            OnCompleted(r);
+            return;
+        }
+        foreach (var raw in targets.Split(','))   // 多筆以逗號分隔；單筆＝沒逗號＝一個元素，向下相容
+        {
+            string name = raw.Trim();
+            if (name.Length == 0) continue;
+            var tp = Find(name);
+            if (tp == null) { Debug.LogWarning($"[TriggerChain] togglePortal「{r.name}」找不到傳送點「{name}」，略過這一個。"); continue; }
+            if (show) EnableRegion(tp); else DisableRegion(tp);
+        }
+        OnCompleted(r);   // 動作型：立即完成、接 next
+    }
+
     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，指定張閃爍；到收起時機（移動/攻擊/任意鍵）自動收，收完接 next。
     static void ExecutePlayerHint(TriggerRegion r)
     {
@@ -418,7 +450,7 @@ public static class TriggerChain
         // 面板若沒開成（資料缺），關閉事件不會來 → 鏈停在這，Console 已有各面板的警告可查。
     }
 
-    // 解鎖位置型 trigger：移出停用集、寫 enableFlag（存檔記住）、顯示 linkedFx、要求 MapManager 重建 watcher。
+    // 解鎖位置型 trigger：移出停用集、寫 enableFlag（存檔記住）、顯示 linkedFx＋傳送點外型、要求 MapManager 重建 watcher。
     static void EnableRegion(TriggerRegion r)
     {
         if (!_disabled.Remove(r.id))
@@ -428,9 +460,24 @@ public static class TriggerChain
         }
         string ef = r.GetString(KeyEnableFlag);
         if (!string.IsNullOrEmpty(ef)) SetFlag(ef);
-        ApplyLinkedFx(r, visible: true);
+        ApplyTeleportVisual(r, visible: true);
         if (_manager != null) _manager.RefreshTriggers();
         Debug.Log($"[TriggerChain] 解鎖 trigger「{r.name}」({r.typeId})。");
+    }
+
+    // 隱藏/封鎖位置型 trigger（EnableRegion 的反向；togglePortal show=false 用）：加進停用集、隱藏 linkedFx＋傳送點外型、
+    // 要求 MapManager 重建 watcher。**執行期狀態、刻意不寫 enableFlag**——換圖/重進房間會依 startDisabled+enableFlag 重算
+    // （所以 Boss 房每次進場靠 onEnter 重新封即可；要「跨存讀檔記住封著」的情境再另設計）。
+    static void DisableRegion(TriggerRegion r)
+    {
+        if (!_disabled.Add(r.id))
+        {
+            Debug.Log($"[TriggerChain] 「{r.name}」本來就停用中，無事。");
+            return;
+        }
+        ApplyTeleportVisual(r, visible: false);
+        if (_manager != null) _manager.RefreshTriggers();
+        Debug.Log($"[TriggerChain] 隱藏/封鎖 trigger「{r.name}」({r.typeId})。");
     }
 
     // ───────────────────────── 旗標（存檔 progress.flags；無存檔時退回記憶體） ─────────────────────────
@@ -546,5 +593,15 @@ public static class TriggerChain
         if (string.IsNullOrEmpty(fxId) || _fxById == null) return;
         if (_fxById.TryGetValue(fxId.Trim(), out var go) && go != null) go.SetActive(visible);
         else Debug.LogWarning($"[TriggerChain] 「{r.name}」linkedFx=「{fxId}」在本地圖找不到場景特效。");
+    }
+
+    // 傳送點「整體視覺」顯示/隱藏：linkedFx 綠幕 ＋ 傳送點內建外型 marker（showMarker）兩條都套，
+    // 確保 togglePortal/解鎖/初始停用時「看起來真的消失/出現」，不是只擋踩踏、圖還留著。
+    static void ApplyTeleportVisual(TriggerRegion r, bool visible)
+    {
+        ApplyLinkedFx(r, visible);
+        if (_teleportMarkerById != null && !string.IsNullOrEmpty(r.id)
+            && _teleportMarkerById.TryGetValue(r.id, out var marker) && marker != null)
+            marker.SetActive(visible);
     }
 }
