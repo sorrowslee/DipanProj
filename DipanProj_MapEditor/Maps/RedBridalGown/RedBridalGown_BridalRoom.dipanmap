@@ -217,6 +217,21 @@
             "target": "下方傳送點,左方傳送點",
             "show": false
           }
+        },
+        {
+          "id": "dcc5253d",
+          "name": "紅嫁衣殭屍出生點",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              9,
+              4
+            ]
+          ],
+          "params": {
+            "monsterId": "13",
+            "deathFlag": ""
+          }
         }
       ]
     }

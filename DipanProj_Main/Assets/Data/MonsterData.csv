@@ -11,3 +11,4 @@ ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, Knockbac
 10,Ghost_Mother,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
 11,Ghost_YoungBrother,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
 12,Ghost_YoungSister,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
+13,RedBridalGown,50, Chase    , Contact,1,,0,10,50,20,0,1,25
