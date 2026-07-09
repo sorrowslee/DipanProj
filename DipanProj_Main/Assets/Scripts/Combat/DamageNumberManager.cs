@@ -57,6 +57,13 @@ public class DamageNumberManager : MonoBehaviour
     void OnApplicationQuit() => _quitting = true;
     void OnDestroy() { if (_instance == this) _instance = null; }
 
+    /// <summary>
+    /// 關閉 Domain Reload（Enter Play Mode Options）後，進入 Play 的最早期由 <see cref="PlayModeStaticReset"/> 呼叫。
+    /// 停止 Play 時 OnApplicationQuit 會把 _quitting 設成 true；沒有 Domain Reload 就會殘留到下一次 Play，
+    /// 導致 Instance 永遠被 (_quitting) 守衛擋成 null → 第二次以後 Play 傷害數字不再出現。這裡歸零即可。
+    /// </summary>
+    public static void ResetForPlayMode() { _quitting = false; _instance = null; }
+
     /// <summary>在目標頭上顯示傷害數字（顏色依目標是否為玩家自動選）。amount &lt;= 0 不顯示。</summary>
     public static void Show(GameObject target, float amount)
     {

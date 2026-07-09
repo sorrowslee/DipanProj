@@ -37,6 +37,10 @@ public static class PlayModeStaticReset
         Dipan.Drama.DramaDatabase.ResetForPlayMode();
         Dipan.Drama.DramaTalkDatabase.ResetForPlayMode();
 
+        // 傷害數字管理器：懶漢單例 + _quitting 守衛。停止 Play 的 OnApplicationQuit 會把 _quitting 設 true，
+        // 沒 Domain Reload 就殘留 → 下次 Play 的 Instance 被擋成 null、頭上傷害數字消失。歸零解死結。
+        DamageNumberManager.ResetForPlayMode();
+
         // 旗標登記表快取：丟掉上一輪載入的 flags.json，下次存取重讀。
         Dipan.MapRuntime.FlagRegistry.Reload();
     }
