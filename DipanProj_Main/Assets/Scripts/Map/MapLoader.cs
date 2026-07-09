@@ -420,7 +420,7 @@ public class MapLoader : MonoBehaviour
         {
             var d = go.AddComponent<DestructibleObject>();
             float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值
-            d.Configure(hp, objectDestroyVfxId);
+            d.Configure(hp, objectDestroyVfxId, inst.breakFlag);   // 破壞時寫此擺放的「破壞觸發旗標」
         }
     }
 
@@ -660,10 +660,12 @@ public class MapLoader : MonoBehaviour
                 continue;
             }
 
+            string deathFlag = r.GetString("deathFlag");   // 出生點「死亡觸發旗標」；此區域每隻怪死都會寫，空＝不寫
+
             foreach (var c in r.cells)
             {
                 if (c == null || c.Length < 2) continue;
-                spawner.SpawnMonster(monsterId, MapCoords.CellCenter(c[0], c[1], _map));
+                spawner.SpawnMonster(monsterId, MapCoords.CellCenter(c[0], c[1], _map), deathFlag);
                 spawned++;
             }
         }

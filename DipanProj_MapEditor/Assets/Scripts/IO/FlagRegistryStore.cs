@@ -29,6 +29,7 @@ namespace DipanMapEditor.IO
                 {
                     var reg = JsonConfig.Deserialize<FlagRegistry>(File.ReadAllText(Path)) ?? new FlagRegistry();
                     reg.NormalizeIds();   // 補齊 id（舊檔可能沒有）
+                    reg.SortById();       // 一律依 id 由小到大顯示（即使舊檔是按名稱存的，開管理器也會是 id 順序）
                     return reg;
                 }
             }
@@ -40,7 +41,7 @@ namespace DipanMapEditor.IO
         {
             try
             {
-                reg.SortByName();
+                reg.SortById();   // 依 id 由小到大存（存檔順序穩定；管理器不再因存檔重排成字母序）
                 File.WriteAllText(Path, JsonConfig.Serialize(reg));
                 Debug.Log($"[FlagRegistryStore] 已儲存旗標登記表：{Path}（{reg.flags.Count} 個）");
             }

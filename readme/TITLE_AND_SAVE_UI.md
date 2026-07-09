@@ -67,6 +67,16 @@
 
 **要暫時回到舊的「直接進關卡」測試流程**：在任何 `BeforeSceneLoad` 前把 `GameFlowManager.TitleFlowEnabled = false` 即可（bootstrap 會整個略過，兩個旗標維持 false）。
 
+### 測試快捷：直接進某關卡（DevQuickStart，Editor-only）
+
+反覆測單一關卡（例如紅嫁衣）不必每次從標題→讀檔→廣場→開傳送門。用選單 **`Project Tools/測試/直接進關卡`** 一鍵切換：
+
+- **紅嫁衣 (RedBridalGown)** / **初始洞窟 (Main_Cave)**：按 Play 直接載入該 module 首張地圖（跳過標題流程；有勾＝目前選的）。
+- **邪佛廣場 (Main_Square)**：直接進廣場（map 12，是 Main 模組的**非首圖**，所以用「地圖 id」進、不是用 module）。
+- **關閉（走正式標題流程）**：恢復正式流程。
+
+原理：`Assets/Editor/DevQuickStart.cs`（Editor-only、不進 build）在 `AfterAssembliesLoaded`（早於 `GameFlowBootstrap`）把 `TitleFlowEnabled` 關掉，再用 `MapManager.DevStartModuleOverride`（進 module 首圖）或 `MapManager.DevStartMapId`（直接進某地圖，如廣場 12）覆寫開機目標——**不動場景序列化的 `MapManager.startModule`（＝Main）**，所以關掉後正式開場鏈照舊。狀態存 EditorPrefs（只影響本機編輯器）。要加別的關卡／地圖就在 `DevQuickStart.cs` 複製一個選單項、填 module 名或地圖 id。
+
 ---
 
 ## 4. Unity 端要做的接線（照做）

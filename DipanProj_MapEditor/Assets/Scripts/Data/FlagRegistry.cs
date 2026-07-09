@@ -56,7 +56,7 @@ namespace DipanMapEditor.Data
             foreach (var f in flags) if (f.id <= 0) { f.id = NextId(); used.Add(f.id); }
         }
 
-        /// <summary>依名稱排序（管理器顯示用）。id 不受影響。</summary>
-        public void SortByName() => flags.Sort((a, b) => string.CompareOrdinal(a.name, b.name));
+        /// <summary>依 id 由小到大排序（管理器顯示與存檔用）。新增的旗標 id 較大＝排在後面，順序穩定不跳。</summary>
+        public void SortById() => flags.Sort((a, b) => a.id.CompareTo(b.id));
     }
 }

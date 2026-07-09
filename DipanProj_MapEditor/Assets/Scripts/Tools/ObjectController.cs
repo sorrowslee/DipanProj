@@ -222,6 +222,7 @@ namespace DipanMapEditor.Tools
                 animFps = Selected.animFps,
                 pingPong = Selected.pingPong,
                 walkable = Selected.walkable,
+                breakFlag = Selected.breakFlag,
             };
             copy.sortKey = copy.y;
             map.GameLayer.objects.Add(copy);

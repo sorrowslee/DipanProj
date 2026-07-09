@@ -695,6 +695,18 @@ namespace DipanMapEditor.UI
                 }
             }
 
+            // 破壞觸發旗標：破壞這個可破壞物件時把指定旗標設為 true（給觸發鏈 requireFlag 用，例：打破供品→改變劇情走向）。
+            // 只有「可破壞」（非可走、非不可摧毀）的物件才有效；用旗標管理器登記的旗標（輸入 id→確認），與觸發點同一套。
+            if (!sel.walkable && sel.hp != -1)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("破壞旗標", GUILayout.Width(64));
+                var objSel = sel;   // 供 lambda 捕捉（各實例自己的暫存鍵，切換選取不殘留輸入）
+                DrawFlagFieldCore(objSel.breakFlag ?? "", "obj" + objSel.GetHashCode() + "/breakFlag", false,
+                    val => objSel.breakFlag = val);
+                GUILayout.EndHorizontal();
+            }
+
             // 動畫地上物：每實例可調播放 FPS（靜態物件不顯示此列）。改了下一幀即生效（ObjectView.Update 讀 animFps）。
             var animItem = MapSession.Instance?.Catalog?.Find(sel.assetId);
             if (animItem != null && animItem.IsAnimated)
@@ -966,38 +978,45 @@ namespace DipanMapEditor.UI
         // 旗標欄：輸入「旗標 id」→ 按「確認」→ 查登記表把名稱填上並鎖定 → 出現「刪除」清空回可輸入。
         // 存進地圖的只有「裸名字」（＋條件旗標的否定 !）；生命週期由登記表決定，遊戲端查表（方案乙、單一來源）。
         static void DrawFlagField(TriggerRegion r, TriggerParam p)
+            => DrawFlagFieldCore(
+                (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString().Trim() : "",
+                BufKey(r, p), p.flagNegatable,
+                val => r.Params[p.key] = val);
+
+        // 旗標欄核心（trigger 參數與地上物「破壞旗標」共用）：輸入 id→確認→鎖成名字；已配置時顯示名稱＋刪除。
+        //   cur=目前值（可含否定 !）、bufKey=輸入暫存的鍵、negatable=可否加「有/沒有」、setValue=寫回值。
+        static void DrawFlagFieldCore(string cur, string bufKey, bool negatable, System.Action<string> setValue)
         {
-            string cur = (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString().Trim() : "";
+            cur = cur?.Trim() ?? "";
             bool neg = cur.StartsWith("!");
             string bare = neg ? cur.Substring(1).Trim() : cur;
 
             if (!string.IsNullOrEmpty(bare))
             {
-                // 已配置 → 鎖定顯示名稱（＋生命週期）；條件旗標多一顆「有/沒有」切換；一顆「刪除」清空。
+                // 已配置 → 鎖定顯示名稱（＋生命週期）；可否定的多一顆「有/沒有」切換；一顆「刪除」清空。
                 bool known = _flagReg != null && _flagReg.Contains(bare);
-                if (p.flagNegatable && known)
+                if (negatable && known)
                     if (GUILayout.Button(neg ? "沒有" : "有", GUILayout.Width(44)))
-                        r.Params[p.key] = (neg ? "" : "!") + bare;
+                        setValue((neg ? "" : "!") + bare);
                 GUILayout.Label(known ? DisplayFlag(bare) : bare + "（未登記）");
                 if (GUILayout.Button("刪除", GUILayout.Width(50)))
                 {
-                    r.Params[p.key] = "";
-                    _flagIdBuf.Remove(BufKey(r, p));
+                    setValue("");
+                    _flagIdBuf.Remove(bufKey);
                 }
                 return;
             }
 
             // 未配置 → 輸入 id + 確認。沒按確認、或查無 id，就不會有名稱出現＝未配置成功。
-            string bk = BufKey(r, p);
-            string buf = _flagIdBuf.TryGetValue(bk, out var b) ? b : "";
+            string buf = _flagIdBuf.TryGetValue(bufKey, out var b) ? b : "";
             GUILayout.Label("id", GUILayout.Width(16));
-            _flagIdBuf[bk] = GUILayout.TextField(buf, GUILayout.Width(46));
+            _flagIdBuf[bufKey] = GUILayout.TextField(buf, GUILayout.Width(46));
             if (GUILayout.Button("確認", GUILayout.Width(50)))
             {
-                if (int.TryParse(_flagIdBuf[bk], out int id) && _flagReg != null && _flagReg.FindById(id) is FlagDef f && f != null)
+                if (int.TryParse(_flagIdBuf[bufKey], out int id) && _flagReg != null && _flagReg.FindById(id) is FlagDef f && f != null)
                 {
-                    r.Params[p.key] = f.name;   // 查到 → 填名稱（鎖定）。預設「有」；要「沒有」再按切換。
-                    _flagIdBuf.Remove(bk);
+                    setValue(f.name);   // 查到 → 填名稱（鎖定）。條件旗標預設「有」；要「沒有」再按切換。
+                    _flagIdBuf.Remove(bufKey);
                 }
                 // 查無 → 保留輸入、不填名稱（作者看不到名稱＝知道沒配成功）。
             }

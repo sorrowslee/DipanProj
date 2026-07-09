@@ -17,6 +17,7 @@
 2. **同步**：`Project Tools → Sync Map Assets`（把圖收進 catalog ＋ StreamingAssets）。
 3. **填 CSV**：在 `Assets/Data/MonsterData.csv` 加一列（`Name` = 資料夾名 `<怪名>`，**`PrefabPath` 留空** = 走 route B），填 HP / Speed / ContactDamage / Scale / AnimFPS 等。
 4. **擺進地圖**：地圖編輯器放 `monsterSpawn` 出生點、填這隻的 `monsterId`（= CSV 的 ID）。
+   - （選填）**死亡觸發旗標**欄：這個出生點生的怪死亡時把指定旗標設為 true（給觸發鏈 `requireFlag` 用，例：殺家人→`killedFamily`→劇情分支）。綁「這一次擺放」而非怪物種類、每個出生點各自設定；空＝不寫。旗標先在旗標管理器登記，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7。
 5. **進遊戲**：自動生這隻怪、套 CSV 數值、依怪名載圖。有 `attack/` 才會演攻擊、沒有就只發呆＋走路（防呆自動處理，零改程式）。
 
 > **同一隻怪所有幀建議用相同像素尺寸**（例如都 500×500），否則切狀態會忽大忽小（同主角「站立／走路 PPU 要一致」的道理；route B 一律以 PPU 256 載入，尺寸由像素數決定）。整體大小用 CSV 的 `Scale` 微調。

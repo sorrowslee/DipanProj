@@ -69,6 +69,7 @@ namespace DipanMapEditor.Data
         public float animFps = 8f; // 動畫地上物的每實例播放幀率（僅動畫物件有意義；靜態物件忽略）
         public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，首尾接不順時用，接縫消失)
         public bool walkable = false; // 勾選＝不擋路/不設碰撞，可走與否交給地圖可走層判定（例：木板/地毯）
+        public string breakFlag = ""; // 被破壞時把此旗標設為 true（給觸發鏈 requireFlag 用，例：打破供品→改變劇情）；空＝不寫。僅可破壞物件有效
     }
 
     /// <summary>一塊 trigger 區域：型別 + 名稱 + 格集合 + 參數（依 TriggerType schema）。</summary>

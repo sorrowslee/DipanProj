@@ -8,6 +8,13 @@
       "ScopeLabel": "周目"
     },
     {
+      "id": 3,
+      "name": "killedFamily",
+      "scope": "cycle",
+      "IsLife": false,
+      "ScopeLabel": "周目"
+    },
+    {
       "id": 2,
       "name": "tutorialMoveDone",
       "scope": "life",

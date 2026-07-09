@@ -38,6 +38,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     [Header("Death")]
     [Tooltip("死亡時播的特效 = VfxTable 的 ID；0 = 不播。檔名/張數/FPS 都在 VfxTable 那一列設定。")]
     public int DeathVfxId = 7;                    // VfxTable ID 7 = 怪物死亡（暫借爆炸圖）
+    [Tooltip("死亡時把此旗標設為 true（給觸發鏈 requireFlag 用，例：殺了家人→killedFamily→新娘生氣分支）。" +
+             "由地圖出生點的「死亡觸發旗標」欄填入、每個擺放各自設定；空＝不寫。")]
+    public string DeathFlag;                       // 由 MonsterSpawner 從出生點 trigger 的 deathFlag 參數設定
     static VfxManager _vfx;                       // 全場唯一，快取共用（仿 DestructibleObject）
 
     void Start()
@@ -291,6 +294,11 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     void Die()
     {
         _isDead = true;
+
+        // 死亡寫旗標（資料驅動）：出生點 trigger 有填「死亡觸發旗標」時把它設為 true，供觸發鏈條件（requireFlag）用，
+        // 例如「殺了家人→killedFamily→新娘生氣分支」。生命週期（周目/永久）由旗標登記表決定，SetFlag 自動處理；
+        // 無存檔時退回記憶體。旗標為空＝不寫。
+        if (!string.IsNullOrEmpty(DeathFlag)) TriggerChain.SetFlag(DeathFlag);
 
         // 死亡特效：在怪物自身位置播一次（VfxTable 的 DeathVfxId）。特效是獨立 GameObject，
         // 不受怪物銷毀影響，會自己播完整輪後自毀（仿 DestructibleObject 的破壞特效）。

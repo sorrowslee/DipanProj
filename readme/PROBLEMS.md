@@ -300,3 +300,15 @@
 - **症狀**：接上「標題→存讀檔」流程後，新建遊戲會正常播開場漫畫＋墜落動畫，但墜落結束載入 MainScene 後**整個畫面全黑、無錯誤訊息**；改流程前墜落後會正常出現在 Main_Cave（地圖 11）。
 - **原因**：`GameFlowBootstrap` 在開機（BeforeSceneLoad）把 `MapManager.SuppressAutoStart` 設 true，目的是讓標題畫面蓋在「空的 MainScene」上、不要一進場就自動進關卡。但這個**靜態旗標整場有效**——開場鏈播完由 `IntroFallController` 載入 MainScene 時，那個新的 MapManager 也被壓住，`autoStartLevel` 不會 `StartLevel("Main")`（Main 模組首圖＝Main_Cave 11）→ 沒有任何地圖被建 → 全黑。原本能進 Main_Cave 正是靠這條自動進關卡。
 - **解法**：抑制只該作用在「開機當下的空 MainScene」，之後由各流程分支自己決定。`GameFlowManager` 在**新建＋播開場鏈**分支載入 Intro 場景前，把 `MapManager.SuppressAutoStart` 設回 **false**，交還給既有開場流程（Intro→MainScene 自動進 Main_Cave→過場到廣場）；**繼續 / 無開場直接進廣場**分支則維持 **true**、由流程明確 `GoToMap(廣場)`，避免和自動進 Main_Cave 打架。**通則：跨場景的「一次性抑制旗標」別設成整場有效，要在每個流程分支明確設定它的值。**
+
+---
+
+## I. 開發環境 / 工具（Cowork Claude App 橋接器）
+
+> 這節不是遊戲程式的坑，是用 Claude 桌面 App 的 Cowork 開發時、「AI 讀寫本機專案檔」用的橋接器踩到的坑。
+
+### I1. Claude App 橋接器一直失敗 / 看不到專案目錄 / 檔案寫不回硬碟（元凶是 VPN）
+- **症狀**：用 Claude 桌面 App 的 Cowork，資料夾明明還連著，AI 卻一直回報「device not connected / 橋接器失敗」——讀不到專案目錄、`device_commit_files` 寫不回本機，所以 `git status` 看不到任何變動（AI 說改好了、硬碟上卻沒東西）。重開 App 偶爾好一下又壞。
+- **原因**：**電腦開著 VPN**。實際情境：早上在家待命開了 VPN，之後沒關就帶著同一台（裝著 Claude App 的）電腦回公司接不同網路 → VPN 改了對外網路路徑，Claude App 與雲端 session 之間的橋接連線就一直建立不起來或中途斷掉。**與資料夾有沒有連、Unity、專案程式全都無關。**
+- **解法**：**把 VPN 關掉**。實測：一關 VPN，橋接器立刻恢復、AI 讀得到目錄也寫得回檔。若關了還沒好，再重開 Claude App 讓它重連；仍不行就**開一個新對話**（新 session 會綁到當下活著的橋接器，舊對話可能還綁在斷掉的橋接器上），或請 AI 把改好的檔打包成 zip 由你自己 `unzip -o` 覆蓋（不靠橋接也能落地）。
+- **通則**：Cowork 橋接器忽然「連不上 / 寫不回」時，**先查網路層變動**（VPN、切換 Wi-Fi/網段、Proxy、公司防火牆）——這類最容易被忽略、卻最常是真兇；其次才是重連 App 或換新對話重綁。（2026-07-09 記）

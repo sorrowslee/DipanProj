@@ -15,6 +15,11 @@
 - 每個地上物的血量由**地圖編輯器**寫入 `.dipanmap` 的 `objects[].hp`(預設 **1**,打一下就壞)。`MapLoader` 讀 `inst.hp` 設給 `DestructibleObject`;`hp == 0` 退回 `MapLoader.objectMaxHP`(全域後備)。
 - **`hp == -1`(或任何負值)= 不可摧毀**:不掛 `DestructibleObject`,但仍保留碰撞框 → 等於一面打不爆的牆(擋玩家/怪物＋反彈子彈),用來擺「固定障礙物」。
 
+### 破壞觸發旗標（打破某物 → 改變劇情）
+
+- 每個可破壞地上物的選取面板有「**破壞旗標**」欄(`ObjectInstance.breakFlag`,編輯器物件面板、輸入旗標 id→確認)。這個物件被打爆時 `DestructibleObject.Die()` 把該旗標設為 true(給觸發鏈 `requireFlag` 用,例:打破珍貴供品→改變關卡走向)。**綁「這一個擺放」**、每個各自設定;空＝不寫。旗標先在編輯器旗標管理器登記(周目/永久),見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)。
+- 只有**可破壞**物件(非可走、`hp >= 0`)才寫得出旗標;不可摧毀(`hp = -1`)或可走物件不掛 `DestructibleObject`,此欄無效(面板也不顯示)。
+
 ### 傷害來源(全部統一走 `IDamageable`)
 
 怪物(`MonsterController`)與地上物(`DestructibleObject`)都實作 **`IDamageable`**(`Assets/Scripts/Combat/IDamageable.cs`),所有傷害點用同一條路徑結算,因此**任何能造成傷害的武器都能破壞地上物**:

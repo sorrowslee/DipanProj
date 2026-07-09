@@ -34,7 +34,10 @@
           "sortKey": -4.399561,
           "zOrder": 0,
           "hp": 1,
-          "animFps": 8.0
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "breakFlag": ""
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/furniture_round_stool",
@@ -48,7 +51,10 @@
           "sortKey": -5.2359333,
           "zOrder": 0,
           "hp": 1,
-          "animFps": 8.0
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "breakFlag": ""
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/furniture_round_stool",
@@ -62,7 +68,10 @@
           "sortKey": -5.2359333,
           "zOrder": 0,
           "hp": 1,
-          "animFps": 8.0
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "breakFlag": ""
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/kitchen_stove_1",
@@ -76,7 +85,10 @@
           "sortKey": -2.986908,
           "zOrder": 0,
           "hp": 1,
-          "animFps": 8.0
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "breakFlag": ""
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/kitchen_water_bucket",
@@ -90,7 +102,10 @@
           "sortKey": -8.212624,
           "zOrder": 0,
           "hp": 1,
-          "animFps": 8.0
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "breakFlag": ""
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/container_bamboo_basket",
@@ -104,7 +119,10 @@
           "sortKey": -3.15774035,
           "zOrder": 0,
           "hp": 1,
-          "animFps": 8.0
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "breakFlag": ""
         }
       ]
     },
@@ -216,7 +234,8 @@
             ]
           ],
           "params": {
-            "monsterId": "2"
+            "monsterId": "2",
+            "deathFlag": "killedFamily"
           }
         },
         {
@@ -241,5 +260,6 @@
         }
       ]
     }
-  ]
+  ],
+  "sceneFx": []
 }

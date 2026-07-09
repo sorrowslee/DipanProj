@@ -103,7 +103,7 @@ public class MonsterSpawner : MonoBehaviour
         Debug.Log($"Loaded {_monsterDatabase.Count} monsters from CSV.");
     }
 
-    public void SpawnMonster(int id, Vector2 position)
+    public void SpawnMonster(int id, Vector2 position, string deathFlag = null)
     {
         MonsterData data = _monsterDatabase.Find(m => m.ID == id);
         if (data == null)
@@ -142,6 +142,7 @@ public class MonsterSpawner : MonoBehaviour
         }
         
         controller.Initialize(data);
+        controller.DeathFlag = deathFlag;   // 出生點 trigger 的「死亡觸發旗標」；此擺放專屬，空＝不寫旗標
 
         // 🟢 初始面向設定：根據主角位置決定面向
         SetInitialOrientation(go);

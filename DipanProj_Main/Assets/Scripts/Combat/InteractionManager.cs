@@ -60,7 +60,7 @@ public class InteractionManager : MonoBehaviour
     enum PointKind { Pickup, Drama, Portal }
 
     // 重複規則（編輯器「重複規則」欄；決定同一個互動點多久能再觸發一次）。
-    //   Visit（預設，空值）：每次進這張地圖觸發一次（當次停留消耗，離圖重進復活）。
+    //   Visit（關卡單次，預設/空值）：進這張地圖只觸發一次（當次停留消耗，離圖重進復活）。
     //   Always：每次踩/按都觸發（不消耗；自動觸發型加「離開半徑才重新武裝」避免每幀洗版）。
     //   Cycle：每周目觸發一次（觸發後寫周目自動旗標，輪迴會清 → 下周目再觸發）。
     //   Life：整個角色一輩子一次（寫終身自動旗標，跨輪迴保存；開新角色才會再觸發）。
@@ -74,7 +74,8 @@ public class InteractionManager : MonoBehaviour
             case "每次": case "always": return RepeatMode.Always;
             case "每周目": case "cycle": return RepeatMode.Cycle;
             case "永久": case "life": return RepeatMode.Life;
-            default: return RepeatMode.Visit;   // 「每次進場」/未知 → 預設
+            case "關卡單次": case "每次進場": case "visit": return RepeatMode.Visit;   // 關卡單次＝進這張圖只觸發一次（舊值「每次進場」相容）
+            default: return RepeatMode.Visit;   // 未知/空 → 預設（關卡單次）
         }
     }
 

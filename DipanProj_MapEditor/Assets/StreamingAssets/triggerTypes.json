@@ -59,6 +59,12 @@
     {
      "key": "monsterId",
      "type": "String"
+    },
+    {
+     "key": "deathFlag",
+     "type": "String",
+     "label": "死亡觸發旗標",
+     "isFlagRef": true
     }
    ]
   },

@@ -51,6 +51,9 @@ namespace DipanMapEditor.Data
                 paramSchema = new List<TriggerParam>
                 {
                     new TriggerParam { key = "monsterId", type = ParamType.String },
+                    // 死亡觸發旗標：這個出生點生的怪死亡時把此旗標設為 true（給觸發鏈 requireFlag 用，例：殺家人→killedFamily）。
+                    // isFlagRef＝用旗標登記表選（輸入 id→確認），不手打。每個出生點各自設定；空＝不寫。
+                    new TriggerParam { key = "deathFlag", type = ParamType.String, label = "死亡觸發旗標", isFlagRef = true },
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -144,7 +147,7 @@ namespace DipanMapEditor.Data
                 // 進場觸發：進入這張地圖、載入完全結束（含進場效果播完）後自動觸發一次，
                 // 自己不做事、只當觸發鏈的起點（接續觸發 next 指向要做的事，例如純鏈節點的劇情觸發點）。
                 // 不用塗格子：用「＋ 手動新增空區域」建立（0 格），從區域清單選取設參數即可。
-                // 一次性用「重複規則＝每周目/永久」或「周目上限」控制；預設每次進場都會觸發。
+                // 一次性用「重複規則＝每周目/永久」或「周目上限」控制；預設每次進這張圖都會觸發（重複規則＝關卡單次）。
                 typeId = "onEnter", displayName = "進場觸發(自動)", color = "#FF66AA",
                 paramSchema = new List<TriggerParam>
                 {
@@ -164,7 +167,7 @@ namespace DipanMapEditor.Data
         ///   requireCycleMax 周目 ≤ 此值才成立（初始限定填 1；留空=不限）
         ///   requireCycleMin 周目 ≥ 此值才成立（老手限定用；留空=不限）
         ///   requireItem     背包道具條件：填 itemId=「須有此道具」；前綴 "!"（如 !104）=「須無此道具」；留空=不檢查
-        ///   repeat          重複規則：每次進場(預設)/每次/每周目/永久，見主專案 readme/TRIGGER_CHAIN.md
+        ///   repeat          重複規則：關卡單次(預設)/每次/每周目/永久，見主專案 readme/TRIGGER_CHAIN.md
         /// 以上所有條件（含 requireFlag）以 AND 結算，全成立才觸發。旗標名可加 "永久:" 前綴＝跨輪迴保存。
         /// </summary>
         public static readonly List<TriggerParam> ChainParams = new List<TriggerParam>
@@ -176,7 +179,7 @@ namespace DipanMapEditor.Data
             new TriggerParam { key = "requireItem",     type = ParamType.String, label = "道具條件",   group = "條件" },
             // ── 一次性（會不會重複觸發）──
             new TriggerParam { key = "repeat",          type = ParamType.String, label = "重複規則",   group = "一次性",
-                               options = new [] { "每次進場", "每次", "每周目", "永久" } },
+                               options = new [] { "關卡單次", "每次", "每周目", "永久" } },
             // ── 流程（觸發後做什麼）──
             new TriggerParam { key = "next",            type = ParamType.String, label = "接續觸發",   group = "流程" },
             new TriggerParam { key = "setFlag",         type = ParamType.String, label = "完成寫旗標", group = "流程", isFlagRef = true },

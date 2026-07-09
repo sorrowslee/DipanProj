@@ -55,6 +55,18 @@ public class MapManager : MonoBehaviour
     /// </summary>
     public static bool SuppressAutoStart = false;
 
+    /// <summary>
+    /// （測試用）覆寫「開機自動進哪個 module」——**不動場景序列化的 startModule**，所以正式開場鏈仍進 Main。
+    /// 由 Editor-only 的 DevQuickStart 選單設定（Project Tools/測試/直接進關卡）。空/null＝不覆寫、走 startModule。
+    /// </summary>
+    public static string DevStartModuleOverride;
+
+    /// <summary>
+    /// （測試用）&gt;0 = 開機直接進「這張指定地圖 id」（例：邪佛廣場 12，是模組首圖以外的圖）。
+    /// 優先於 <see cref="DevStartModuleOverride"/>。由 Editor-only 的 DevQuickStart 選單設定。0 = 不用。
+    /// </summary>
+    public static int DevStartMapId;
+
     void Awake()
     {
         Instance = this;
@@ -71,7 +83,9 @@ public class MapManager : MonoBehaviour
 
     void Start()
     {
-        if (autoStartLevel && !SuppressAutoStart) StartLevel(startModule);
+        if (!autoStartLevel || SuppressAutoStart) return;
+        if (DevStartMapId > 0) GoToMap(DevStartMapId, null);   // 測試：直接進指定地圖（如邪佛廣場 12；落點由 PlaceAndSetup 依 Hub 旗標決定）
+        else StartLevel(string.IsNullOrEmpty(DevStartModuleOverride) ? startModule : DevStartModuleOverride);
     }
 
     // ================= 對外 API =================
