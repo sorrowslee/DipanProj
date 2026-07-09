@@ -35,6 +35,12 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public float ContactDamage = 10f;            // 碰到玩家造成的傷害（CSV: MonsterData.ContactDamage）
     public float DamageReductionPercent = 0f;    // 受擊減傷 %（掛勾；目前 CSV 預設 0，之後接減傷/抗性）
 
+    [Header("Weapon / Skill")]
+    [Tooltip("這隻怪使用的武器 = WeaponTable 的 ID（CSV: MonsterData.Weapon 填數字）。Contact/空 = 只近戰接觸傷害、不掛武器。")]
+    public int WeaponId = -1;
+    // 怪物用武器的統一入口（召喚等技能走這裡；投射武器 Phase 2）。boss 級 Brain 透過 ctx.Self.WeaponUser 施放。
+    public MonsterWeaponUser WeaponUser { get; private set; }
+
     [Header("Death")]
     [Tooltip("死亡時播的特效 = VfxTable 的 ID；0 = 不播。檔名/張數/FPS 都在 VfxTable 那一列設定。")]
     public int DeathVfxId = 7;                    // VfxTable ID 7 = 怪物死亡（暫借爆炸圖）
@@ -165,9 +171,21 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             case "Chase":
                 _brain = new ChaseBrain();
                 break;
+            case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
+                _brain = new RedBridalGownBrain();
+                break;
             default:
                 _brain = new ChaseBrain();
                 break;
+        }
+
+        // 武器/技能：MonsterData.Weapon 填「WeaponTable 的 ID」時，掛上 MonsterWeaponUser（Contact/空/非數字 = 不掛）。
+        WeaponId = (!string.IsNullOrWhiteSpace(data.Weapon) && int.TryParse(data.Weapon.Trim(), out int wid)) ? wid : -1;
+        if (WeaponId > 0)
+        {
+            WeaponUser = GetComponent<MonsterWeaponUser>();
+            if (WeaponUser == null) WeaponUser = gameObject.AddComponent<MonsterWeaponUser>();
+            WeaponUser.Configure(this, WeaponId);
         }
 
         AutoAdjustCollider();
@@ -220,7 +238,15 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 
         if (_hitReaction == null || !_hitReaction.IsKnockedBack)
         {
-            _brain.Think(_actuator, player);
+            var ctx = new MonsterContext
+            {
+                Self = this,
+                Actuator = _actuator,
+                Sensor = _sensor,
+                Player = player,
+                DeltaTime = Time.deltaTime,
+            };
+            _brain.Think(in ctx);
         }
 
         HandleVisuals(player);

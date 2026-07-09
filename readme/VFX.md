@@ -33,7 +33,7 @@
 | `ID` | 特效唯一識別碼（WeaponTable 的 FireEffectID / HitEffectID / TrailEffectID 引用此值） |
 | `Name` | 僅供辨識，程式不使用 |
 | `AniPath` | 序列圖路徑前綴（相對 `Resources/`，不含 `_01` 編號與副檔名） |
-| `AniNumber` | 序列圖張數，系統載入 `{AniPath}_01` ~ `{AniPath}_NN` |
+| `AniNumber` | 序列圖張數，系統載入 `{AniPath}_01` ~ `{AniPath}_NN`（**2 位補零**，從 `_01` 起算）。⚠️ **必須與實際檔案張數完全相符**：`VfxManager` 是「全有或全無」——只要有任一幀載不到（例如 `AniNumber` 多算一張、或某張命名/匯入不對），整個特效的 `AnimationSprites` 會被設成 `null`、`Spawn` 直接跳過＝**遊戲裡完全看不到**（Console 會有 `Vfx sprite not found at ...` 警告可查）。 |
 | `AnimFPS` | 播放幀率（幀/秒） |
 | `Scale` | 整體縮放倍率；留空或 ≤ 0 = 1 |
 | `Loop` | 是否循環；留空/0 = 播一輪自毀（預設），1 = 循環 |

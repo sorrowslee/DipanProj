@@ -103,13 +103,13 @@ public class MonsterSpawner : MonoBehaviour
         Debug.Log($"Loaded {_monsterDatabase.Count} monsters from CSV.");
     }
 
-    public void SpawnMonster(int id, Vector2 position, string deathFlag = null)
+    public GameObject SpawnMonster(int id, Vector2 position, string deathFlag = null)
     {
         MonsterData data = _monsterDatabase.Find(m => m.ID == id);
         if (data == null)
         {
             Debug.LogError($"Monster ID {id} not found!");
-            return;
+            return null;
         }
 
         GameObject go;
@@ -146,6 +146,8 @@ public class MonsterSpawner : MonoBehaviour
 
         // 🟢 初始面向設定：根據主角位置決定面向
         SetInitialOrientation(go);
+
+        return go;   // 回傳生成物件（召喚技能用來追蹤同時存在上限；一般呼叫端可忽略）
     }
 
     /// <summary>

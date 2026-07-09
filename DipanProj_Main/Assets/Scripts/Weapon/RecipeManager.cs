@@ -41,6 +41,14 @@ public class RecipeEntry
     // 與 SubRecipeID 不同：SubRecipeID 是配方(無外型，仿母武器)；SubWeaponOnHit 是武器(自帶外型)。0/留空 = 不觸發。
     public int SubWeaponOnHit = 0;
     public SubWeaponHitTarget SubWeaponHitTarget = SubWeaponHitTarget.Enemy; // 打到哪類目標才迸發（Enemy/Environment/All）
+
+    // 召喚型武器：1 時施放不發射子彈，改在施放者周圍生怪（冷卻用 FireInterval 欄）。目前先做給怪物(boss)，
+    // 未來可原樣給主角。名單/數量/上限/半徑走下面四欄，由 MonsterWeaponUser（或未來玩家側）結算。
+    public bool IsSummon = false;
+    public int[] SummonIds;          // 可召喚的怪物 ID 池（CSV SummonIds 欄，用 | 分隔避開逗號）；每次從中隨機抽
+    public int SummonCount = 1;      // 每次施放召喚幾隻
+    public int SummonMaxAlive = 4;   // 同一施放者的分身同時存在上限（達上限則暫停召喚）
+    public float SummonRadius = 2f;  // 在施放者周圍多遠的環上生成
 }
 
 public class RecipeManager : MonoBehaviour
@@ -263,11 +271,36 @@ public class RecipeManager : MonoBehaviour
                 entry.SubWeaponHitTarget = ParseSubWeaponHitTarget(v[36].Trim());
             }
 
+            // 召喚型武器：留空 / 0 = 否；1 = 召喚（施放時生怪、不發射子彈，冷卻沿用 FireInterval 欄）。
+            entry.IsSummon = false;
+            if (v.Length >= 38 && !string.IsNullOrWhiteSpace(v[37]))
+            {
+                entry.IsSummon = int.Parse(v[37].Trim()) != 0;
+            }
+            if (entry.IsSummon)
+            {
+                entry.SummonIds = ParseIntListPipe(v.Length >= 39 ? v[38] : null);
+                entry.SummonCount = (v.Length >= 40 && !string.IsNullOrWhiteSpace(v[39])) ? int.Parse(v[39].Trim()) : 1;
+                entry.SummonMaxAlive = (v.Length >= 41 && !string.IsNullOrWhiteSpace(v[40])) ? int.Parse(v[40].Trim()) : 4;
+                entry.SummonRadius = (v.Length >= 42 && !string.IsNullOrWhiteSpace(v[41])) ? float.Parse(v[41].Trim()) : 2f;
+            }
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }
 
         Debug.Log($"Loaded {_recipes.Count} recipes from CSV.");
+    }
+
+    // 解析用 | 分隔的整數清單（召喚 ID 池用；CSV 是逗號分隔，故名單改用 | 避開）。空 = 空陣列。
+    private static int[] ParseIntListPipe(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return new int[0];
+        string[] parts = s.Split('|');
+        List<int> list = new List<int>();
+        foreach (string p in parts)
+            if (int.TryParse(p.Trim(), out int id)) list.Add(id);
+        return list.ToArray();
     }
 
     private void ResolveSubRecipes()

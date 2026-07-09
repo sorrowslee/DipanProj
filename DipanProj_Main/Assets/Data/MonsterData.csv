@@ -1,7 +1,7 @@
 ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent, ContactDamage, DamageReduction, Speed, AnimFPS
  1, ZhaYu, 10, Chase    , Contact,1.2,           ,                0,                  3,               20,            10,               0,     1,       8
 2, Ghost_Boy,3, Chase    , Contact,0.7,           ,                0,1,120,            10,               0,     1,       8
-3,Ghost_Dog,3, Chase    , Contact,0.5,           ,                0,1,120,            10,               0,     1,       8
+3,Ghost_Dog,3, Chase    , Contact,0.4,           ,                0,1,120,            10,               0,     1,       8
 4,Ghost_FatBoy,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
 5,Ghost_Father,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
 6,Ghost_FatMan,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
@@ -11,4 +11,4 @@ ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, Knockbac
 10,Ghost_Mother,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
 11,Ghost_YoungBrother,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
 12,Ghost_YoungSister,3, Chase    , Contact,1,           ,                0,1,120,            10,               0,     1,       8
-13,RedBridalGown,50, Chase    , Contact,1,,0,10,50,20,0,1,25
+13,RedBridalGown,50, RedBridalGown, 14,1,,0,10,50,20,0,3.5,25

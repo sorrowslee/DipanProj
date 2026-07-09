@@ -95,7 +95,8 @@ namespace DipanMapEditor.Core
         static byte To255(float v) => (byte)Mathf.Clamp(Mathf.RoundToInt(v * 255f), 0, 255);
 
         /// <summary>把某效果的某顏色整串幀，套色後匯出成 PNG。
-        /// 輸出到 StreamingAssets/Effects_Recolored/&lt;類別&gt;/&lt;效果&gt;/&lt;顏色&gt;_&lt;模式&gt;/&lt;效果&gt;_001.png。
+        /// 輸出到 Effects_Recolored/&lt;類別&gt;/&lt;效果&gt;/&lt;顏色&gt;_&lt;模式&gt;/&lt;效果&gt;_01.png。
+        /// 檔名用 **2 位補零**（`_01`、`_10`、`_100`…）＝與遊戲 VfxManager 的 `_{i:D2}` 命名一致，匯出後可直接放進遊戲、免改名（見 readme/EFFECT_LIBRARY.md）。
         /// 回傳寫出的幀數；outDir 由 out 參數帶回實際輸出資料夾。</summary>
         public static int ExportColorSet(EffectLibrary.Entry entry, EffectLibrary.ColorSet color, Mode mode, out string outDir)
         {
@@ -113,7 +114,7 @@ namespace DipanMapEditor.Core
                 var tex = GetRecolored(color.frames[i], mode);
                 if (tex == null) continue;
                 byte[] bytes = tex.EncodeToPNG();
-                string name = string.Format("{0}_{1:000}.png", entry.name, i + 1);
+                string name = string.Format("{0}_{1:00}.png", entry.name, i + 1);   // 2 位補零，對齊遊戲 VfxManager 的 _{i:D2}（免匯出後改名）
                 File.WriteAllBytes(Path.Combine(outDir, name), bytes);
                 written++;
             }

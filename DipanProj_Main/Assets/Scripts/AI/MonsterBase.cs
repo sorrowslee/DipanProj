@@ -1,9 +1,10 @@
 using UnityEngine;
 
-// 決策機介面
+// 決策機介面：每幀由 MonsterController 傳入 MonsterContext（打包 self/actuator/sensor/player…）。
+// 舊簽名 Think(actuator, player) 已升級為 Think(in MonsterContext)，讓 boss 級 Brain 也能拿到自身控制器施放技能。
 public interface IMonsterBrain
 {
-    void Think(MonsterActuator actuator, Transform player);
+    void Think(in MonsterContext ctx);
 }
 
 // 感知器：負責找玩家

@@ -12,3 +12,4 @@ ID(武器唯一識別碼), Name(武器名稱/僅供辨識), Damage(傷害數值/
 11, 蜂巢, 2, 24, Weapon/single/weapon_honeyComb, 0, , , ,4.2, , , , , , , 1
 12, 蜜蜂, 1, 25, Weapon/single/weapon_bee, -47, , , ,3, , , , , , , 1
 13,御靈水晶, 1, 25, Weapon/single/weapon_crystal,0, , , ,, , , , , , , 1
+14, 紅嫁衣召喚, 0, 26, , 0, , , , , , , , , , , 1

@@ -4,8 +4,11 @@ public class ChaseBrain : IMonsterBrain
 {
     public float StopDistance = 1f; // 不要貼太近
 
-    public void Think(MonsterActuator actuator, Transform player)
+    public void Think(in MonsterContext ctx)
     {
+        MonsterActuator actuator = ctx.Actuator;
+        Transform player = ctx.Player;
+
         if (player == null)
         {
             actuator.Stop();

@@ -17,6 +17,7 @@
 | [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md) | CSV 雙表（RecipeTable／WeaponTable）、Recipe／WeaponManager、BounceTarget、序列圖、SpriteAngleOffset | 加／改武器、配方、CSV 欄位 |
 | [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md) | 玩家控制器、怪物 AI、受擊反應系統（閃爍／擊退／無敵） | 改玩家或怪物行為、受擊反應 |
 | [MONSTER_SETUP.md](MONSTER_SETUP.md) | 怪物量產（route B：程式逐格動畫、地圖素材管線載圖、零 prefab/Animator；idle/walk 必備、attack 可選、防呆；CSV 加 AnimFPS） | 量產新怪、換怪物外觀、加怪物動作動畫 |
+| [BOSS_MODULE.md](BOSS_MODULE.md) | Boss 戰鬥模組框架（一隻強怪＝一個 Brain 模組：MonsterContext／MonsterWeaponUser seam）＋紅嫁衣女殭屍（逃跑＋召喚）＋召喚做成表驅動武器（RecipeTable IsSummon 五欄） | 做/改 boss 與強怪戰鬥模式、加召喚、讓怪物用武器 |
 | [COMBAT.md](COMBAT.md) | 戰鬥傷害系統：玩家 HP/MP（CombatStats）、中央傷害結算（DamageInfo/CombatSystem）、武器耗魔（ManaCost）、怪物接觸傷害＋減傷、血/魔 HUD、頭上浮動傷害數字、加成/減傷/DOT 掛勾 | 改傷害結算、加 HP/MP/魔耗、傷害加成/減傷、接觸傷害、血魔條、傷害數字 |
 | [SHADOW.md](SHADOW.md) | 角色腳下橢圓影子（BlobShadow，程序生成、自動跟隨、玩家與怪物自動掛） | 改影子外觀/大小、給新角色加影子 |
 | [CHARACTER_SETUP.md](CHARACTER_SETUP.md) | 主角外型：**已改走路線 B（程式逐格動畫、血統換外型）**——Characters/SequenceImage/<血統>/idle·walk·dead、`Bloodline` 欄/`SetBloodline`；下半為舊 Animator 流程（已取代，存參考） | 換主角外型、加血統、加死亡動畫 |
