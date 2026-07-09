@@ -18,8 +18,8 @@ namespace Dipan.UI
             var inv = InventorySystem.Instance;
             if (inv.HasAnyItem()) return;   // 已有東西就不重複塞（換場景/換圖也不會重塞）
 
-            // 12 把武器（ItemTable ID 1~12，對應 WeaponTable 1~12）
-            for (int id = 1; id <= 12; id++) inv.AddItem(id);
+            // 武器（ItemTable ID 1~13，對應 WeaponTable；13=御靈水晶召喚，測試用）
+            for (int id = 1; id <= 13; id++) inv.AddItem(id);
             // 雜物
             inv.AddItem(101, 250); // 銅錢 x250
             inv.AddItem(102, 5);   // 卷軸 x5

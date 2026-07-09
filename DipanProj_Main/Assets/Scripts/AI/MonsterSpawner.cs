@@ -83,8 +83,8 @@ public class MonsterSpawner : MonoBehaviour
             data.ID = int.Parse(values[0]);
             data.Name = values[1];
             data.HP = float.Parse(values[2]);
-            data.BrainType = values[3];
-            data.Weapon = values[4];
+            data.BrainType = values[3].Trim();   // 必須 Trim：CSV 值常帶前導空白，不 Trim 會讓 BrainType switch（如 RedBridalGown）對不上而掉回 default=Chase
+            data.Weapon = values[4].Trim();
             data.Scale = float.Parse(values[5]);
             data.PrefabPath = values[6].Trim();
 
@@ -103,7 +103,7 @@ public class MonsterSpawner : MonoBehaviour
         Debug.Log($"Loaded {_monsterDatabase.Count} monsters from CSV.");
     }
 
-    public GameObject SpawnMonster(int id, Vector2 position, string deathFlag = null)
+    public GameObject SpawnMonster(int id, Vector2 position, string deathFlag = null, MonsterFaction faction = MonsterFaction.Enemy)
     {
         MonsterData data = _monsterDatabase.Find(m => m.ID == id);
         if (data == null)
@@ -125,8 +125,12 @@ public class MonsterSpawner : MonoBehaviour
             go = BuildMonsterGameObject(data.Name, position);
         }
 
-        // 將 Layer 設為 Inspector 指定的 EnemyLayer，不寫死編號
-        if (EnemyLayer != 0)
+        // Layer：Enemy 陣營用 Inspector 指定的 EnemyLayer（不寫死編號）；PlayerAlly 用 Ally 層（玩家子彈打不到、不推玩家）。
+        if (faction == MonsterFaction.PlayerAlly && FactionLayers.AllyLayer >= 0)
+        {
+            go.layer = FactionLayers.AllyLayer;
+        }
+        else if (EnemyLayer != 0)
         {
             int layerIndex = Mathf.RoundToInt(Mathf.Log(EnemyLayer.value, 2));
             go.layer = layerIndex;
@@ -142,6 +146,7 @@ public class MonsterSpawner : MonoBehaviour
         }
         
         controller.Initialize(data);
+        controller.Faction = faction;       // 陣營：決定追誰/打誰/在哪層（在 Start 之前設好，contact/目標選擇才讀得到）
         controller.DeathFlag = deathFlag;   // 出生點 trigger 的「死亡觸發旗標」；此擺放專屬，空＝不寫旗標
 
         // 🟢 初始面向設定：根據主角位置決定面向

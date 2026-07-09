@@ -4,7 +4,7 @@ using UnityEngine;
 /// 玩家逐格動畫播放器（路線 B：純程式、不用 Unity Animator）。與 <see cref="MonsterAnimator"/> 同模式，
 /// 多了「一次性動作（dead）播完定格」的支援，並用「血統(bloodline)」決定外型。
 ///
-/// 狀態：Idle / Walk（循環）、Dead（一次性，播完停在最後一幀）。Attack 預留（一次性），有圖才會用。
+/// 狀態：Idle / Walk / Attack（循環；Attack 攻擊按住時反覆播）、Dead（一次性，播完停在最後一幀）。有圖才會用。
 /// 防呆：只有「載得到圖」的狀態才存在（<see cref="Has"/>）；要播沒圖的狀態時自動退回
 /// Dead/Attack→Idle、Walk→Idle；一張圖都沒有就整個不動。
 ///
@@ -210,7 +210,8 @@ public class PlayerAnimator : MonoBehaviour
         _sr.sprite = frames[_idx];
     }
 
-    static bool IsLooping(State s) => s == State.Idle || s == State.Walk;
+    // Idle/Walk/Attack 循環播（攻擊按住時 cast 反覆播）；Dead 一次性（播完定格最後一幀）。
+    static bool IsLooping(State s) => s == State.Idle || s == State.Walk || s == State.Attack;
 
     State Resolve(State s)
     {

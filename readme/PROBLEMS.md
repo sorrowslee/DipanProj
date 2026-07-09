@@ -106,6 +106,11 @@
 
 ---
 
+### B7. 新的接觸/範圍傷害用 OverlapCircle 找目標，貼身重疊時漏抓（且不對稱：A 打得到 B、B 打不到 A）
+- **症狀**：加陣營制後，敵人接觸傷害打得到玩家召喚的友軍，**友軍撞上敵怪卻打不死牠**（明明看起來重疊了）。兩邊用同一支 `EnemyContactDamage`、邏輯對稱，卻只有一方生效。
+- **原因**：改用 `Physics2D.OverlapCircle`/`OverlapCircleNonAlloc` 找敵對目標。專案全域 **`queriesStartInColliders = 0`（false）**（`ProjectSettings/Physics2DSettings.asset`），這會讓 overlap/cast 查詢**略過「重疊在查詢起點」的 collider**。兩隻怪深度重疊時，各自的中心可能落在對方 collider 內 → 被對方的查詢排除；因兩者大小/相對位置不同，常常變成「一方抓得到、另一方抓不到」的不對稱漏抓。（同一個雷/同雷射砲口貼身怪打不到，PlayerController 有註解、記於本檔他處。）
+- **解法**：接觸/貼身傷害**別用 OverlapCircle 找目標**。改維護一份全場怪物登記表（`MonsterController.Active`，OnEnable/OnDisable 進出），逐一用 **`Physics2D.Distance(colA, colB)`** 判重疊——它是兩個 collider 的直接距離運算，**不受 `queriesStartInColliders` 影響**（這也是原本「敵人打玩家」一直穩定的原因，那段本來就用 `Physics2D.Distance`）。玩家目標用 tag 找、怪物目標用登記表濾陣營。**通則**：本專案任何「貼身/重疊」判定優先用 `Physics2D.Distance` 或既有目標清單，不要用 OverlapCircle 當唯一偵測。（2026-07-09 記）
+
 ## C. 地圖編輯器 / 素材同步
 
 ### C1. 動畫地上物同步後在「地上物」清單看不到(category 變成資料夾名)
@@ -291,6 +296,20 @@
 
 
 ---
+
+### F4. 紅嫁衣 boss（BrainType=RedBridalGown）還是用追擊、不逃跑不召喚
+- **症狀**：怪物有生出來、也會攻擊，但 boss 只會像一般怪一樣追玩家（`RedBridalGownBrain` 的逃跑＋召喚完全沒作用）。
+- **原因**：`MonsterSpawner.LoadMonsterData` 讀 `BrainType`/`Weapon` 時**沒有 `.Trim()`**。CSV 欄位值常帶前導空白（例 `13,RedBridalGown,50, RedBridalGown, 14,...` → `BrainType = " RedBridalGown"`），`switch (data.BrainType){ case "RedBridalGown": }` 對不上 → 掉回 `default = new ChaseBrain()`。**其他怪剛好 default 也是 Chase，所以這個 bug 一直被藏著**，直到出現第一個非 Chase 的 BrainType 才爆。（`Weapon` 因為 `MonsterController.Initialize` 讀取時有 `.Trim()` 才沒中招，但 brain 是 Chase、根本不會呼叫 `MonsterWeaponUser`，所以也不召喚。）
+- **解法**：`LoadMonsterData` 的 `data.BrainType = values[3].Trim();`、`data.Weapon = values[4].Trim();`（已修，2026-07-09）。**通則**：CSV 欄位拿來做字串比對（switch/等值）前一律先 Trim，別靠來源沒有空白。
+
+### F5. 召喚物 vs 敵怪對打「忽勝忽敗」（有時 1 打 3 全身而退，有時 3 隻打不過 1 隻）
+- **症狀**：玩家召喚的協戰怪與敵怪互毆，結果很不穩定、像擲骰子——同樣的隻數有時輕鬆全滅對方、有時反被秒殺。
+- **原因**：接觸傷害是 `EnemyContactDamage.Update` **每一幀**對重疊的敵對目標結算一次；而**所有怪 `InvincibleTimeMs = 0`（無無敵時間節流）**，加上 `HP(3~10) ≤ ContactDamage(10)` 幾乎**一擊斃命**。於是「兩隻重疊的那一幀，誰的 `Update` 先被 Unity 呼叫，誰就先把對方打死」——`Update` 在同型元件間的執行順序**不保證**，於是勝負看起來是隨機的。**這套接觸傷害原本只為「怪→玩家」設計**（玩家自己有無敵時間 + `HitReactionHandler` 節流），從沒為「怪→怪」平衡過，陣營制把它暴露出來。
+- **解法（資料/平衡，作者決定數值）**：
+  1. **給會互毆的怪 `InvincibleTimeMs > 0`**（`MonsterData.csv`，建議先試 300~500）：`HitReactionHandler` 會做無敵時間＋白閃，把接觸傷害從「每幀」節流成「每 N 毫秒一次」，戰鬥就改由 **HP/傷害** 決定、不再靠 Update 順序＝穩定可預期。
+  2. **平衡 HP vs ContactDamage**：目前近乎一擊必殺，想要「互毆幾下才分勝負」就拉高 HP 或調低 ContactDamage（例如雜兵 HP 拉到 30、接觸傷害降到 5）。
+  3. （備案，若不想逐隻設 InvincibleTimeMs）可在 `EnemyContactDamage` 加「同一攻擊者對同一目標的重擊冷卻(dict 記 nextHitTime)」，但那也會改到「怪打玩家」的節奏，**優先用做法 1**。
+- **狀態**：機制已定位，**數值尚未調**（待作者）。程式端接觸傷害本身是對稱正確的（見 [BOSS_MODULE.md](BOSS_MODULE.md) §4、F 區 B7 的登記表做法）。（2026-07-09 記）
 
 ## H. 流程 / 存讀檔 (Game Flow & Save UI)
 

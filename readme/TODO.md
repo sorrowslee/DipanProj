@@ -95,3 +95,20 @@
 - [ ] 「殺了家人」的另一條分支內容未定義（作者決定）。
 
 **完整接手步驟見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7**（含檔案位置、行號、測試清單）。
+
+---
+
+## 主角攻擊動畫「沒顯示」— 待除錯（2026-07-09）
+
+攻擊動畫已接線（`attack/` 資料夾 + 按住開火播 cast，見 [CHARACTER_SETUP.md](CHARACTER_SETUP.md)、PROGRESS 同日），但實機**攻擊時沒看到攻擊動作**。程式端已就緒，最可能是素材同步/載入沒到位。回家接手時**依序**檢查：
+
+- [ ] **先跑 `Project Tools → Sync Map Assets`（第一嫌疑）**：25 張 cast 幀目前只在 `GameAssets/Main/Characters/SequenceImage/Base/attack/`，遊戲是從 `StreamingAssets/MapAssets/Main/Characters/SequenceImage/Base/attack/` + catalog 載入的，**StreamingAssets 端還沒有 attack**（已確認）。沒同步 → `PlayerSpriteLibrary.GetFrames(血統,"attack")` 回 null → `Has(Attack)=false` → `HandleVisuals` 自動退回 Walk/Idle（所以攻擊時只會走路/發呆，看起來「沒有攻擊動作」）。
+- [ ] 同步後確認 `StreamingAssets/MapAssets/Main/Characters/SequenceImage/Base/attack/` 有 25 張圖，且 catalog（`StreamingAssets/MapAssets/…catalog…json`）有 `Base/attack` 這筆（frameCount=25）。
+- [ ] 進 Play 看 Console 有無 `[PlayerAnimator] 血統「Base」找不到…` 警告；若仍抓不到 attack，多半是 catalog 沒收到該葉資料夾（檢查 Sync 工具的角色素材白名單有沒有含 `Characters/SequenceImage` 的子資料夾遞迴）。
+- [ ] 關了 Domain Reload 時，若同步後第一次沒更新，重進 Play（`PlayModeStaticReset` 會重置 `PlayerSpriteLibrary` 單例重載）。
+
+**確認能顯示後可再調（都在程式常數，非 bug）：**
+- [ ] 攻擊播放速度：目前沿用 `PlayerAnimFPS`（與 idle/walk 共用）。要獨立速度 → 給 `PlayerAnimator` 加 per-state 的 attack fps。
+- [ ] 觸發方式：目前是「**按住開火鍵**」就播（吃輸入，沒魔力/冷卻中也會擺姿勢）。若要改「**真的射出去那一下**才播」，改成在實際發射點（Shoot/UpdateLaser/UpdateAura）觸發 + 一次性播完。
+- [ ] 殘留時間 `AttackAnimLinger`（PlayerController 常數，現 0.12s）。
+- [ ] 大小一致性：attack 幀顯示縮放沿用 idle 可見高度換算；cast 幀主體高度與 idle 差太多會忽大忽小。

@@ -43,5 +43,8 @@ public static class PlayModeStaticReset
 
         // 旗標登記表快取：丟掉上一輪載入的 flags.json，下次存取重讀。
         Dipan.MapRuntime.FlagRegistry.Reload();
+
+        // 怪物登記表：清上一輪殘留（接觸傷害/友軍找目標靠它）。
+        MonsterController.Active.Clear();
     }
 }

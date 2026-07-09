@@ -49,14 +49,33 @@
 
 **現有資料**：配方 26「召喚-紅嫁衣家人」(`IsSummon=1`, `FireInterval=3` 冷卻, `SummonIds=8|9|10|11|12`, `SummonCount=2`, `SummonMaxAlive=5`, `SummonRadius=2`) ← 武器 14「紅嫁衣召喚」 ← 怪物 13 `Weapon=14`。召喚出的家人幽靈用最基本的 `Chase`（ChaseBrain）追玩家。
 
-**未來給主角用**：召喚邏輯寫成擁有者無關（只靠 transform 位置＋配方）。要讓主角召喚，把 `MonsterWeaponUser.TrySummon` 抽成共用靜態 helper、玩家側 `PlayerController.Shoot` 加一個 `if (recipe.IsSummon)` 分支呼叫即可（雙方各持一份 alive 清單管上限）。**本期未接玩家側**（守住「不動玩家戰鬥、降風險」的範圍決定）。
+**玩家側已接（2026-07-09，測試用）**：召喚核心抽成擁有者無關的共用靜態 `SummonSystem.Cast(owner, originPos, recipe, aliveTracker)`——`MonsterWeaponUser`（boss）與 `PlayerController.Shoot`（玩家）都呼叫它，各持一份 alive 清單管同時上限。玩家 Shoot 在「需要 BulletPrefab」的守衛**之前**先攔 `IsSummon`：耗魔→播發射特效→`SummonSystem.Cast`→`_fireTimer=FireInterval`（按住左鍵依冷卻重複召喚）。
+- **測試武器＝13 號「御靈水晶」**（RecipeID→27）。配方 27：`IsSummon=1`, `FireInterval=1.5`, `SummonIds=1`（ZhaYu，Main 的怪、**任何地圖都載得到 idle+walk**，故不必先 Sync 就能測）, `SummonCount=1`, `SummonMaxAlive=3`, `SummonRadius=1.5`。切到御靈水晶、按住左鍵即在身邊召喚。要召家人幽靈把 `SummonIds` 改 `8|9|10|11|12`（需在 RedBridalGown 地圖或先 Sync 讓幽靈 walk 幀到位）。
+- **陣營制已完成（2026-07-09）**：召喚帶陣營——**玩家召喚＝`PlayerAlly`（協戰）**、**怪物/boss 召喚＝`Enemy`**。見下 §4。
 
 ---
 
-## 4. 接手待辦（Unity / 編輯器端）
+## 4. 陣營制（玩家召喚＝友軍、怪物召喚＝敵人）
+
+召喚帶 `MonsterFaction`（`SummonSystem.Cast(..., faction)`）：玩家 `PlayerController.Shoot` 傳 `PlayerAlly`、boss `MonsterWeaponUser` 傳 `Enemy`。`MonsterController.Faction` 決定三件事：
+
+| | Enemy（敵怪/boss/其召喚物） | PlayerAlly（玩家召喚的協戰怪） |
+|---|---|---|
+| **追誰** | 玩家（`MonsterSensor.GetTargetPlayer`） | 最近的敵怪（`FindNearestEnemy`，掃 Enemy 層） |
+| **接觸傷害打誰** | 玩家 ＋ 友軍（`EnemyContactDamage` hostileMask=Player\|Ally） | 敵怪（hostileMask=Enemy） |
+| **在哪個 Layer** | Enemy(7) | **Ally(8)** |
+
+**Ally 層(8)** 是這次新增的（`ProjectSettings/TagManager.asset`）。用途：玩家子彈打 Enemy 層 → **天生打不到自己的召喚物**；且召喚物不會用物理去推玩家/敵怪。碰撞用 `FactionLayers`（`Assets/Scripts/AI/FactionLayers.cs`）在進場前以 `Physics2D.IgnoreLayerCollision` 設定（Ally 穿過 Player/Enemy/Ally、只被 Environment 擋）——**不必手改 DynamicsManager 碰撞矩陣**，build 與編輯器都自動生效。接觸傷害與友軍找目標走 **`MonsterController.Active` 全場登記表 ＋ `Physics2D.Distance`**（**不用 OverlapCircle**——專案全域 `queriesStartInColliders=false` 會讓 OverlapCircle 貼身漏抓、且不對稱，見 [PROBLEMS.md](PROBLEMS.md) B7）＋中央 `CombatSystem`，玩家與怪物統一結算。**召喚物過傳送點**：換圖清場保留 PlayerAlly、`MapManager.RepositionPlayerAllies` 放好玩家後把它們移到新落點附近（跟著玩家走）。
+
+> 檔案：`MonsterFaction.cs`（列舉）、`FactionLayers.cs`（層解析＋碰撞設定）、`EnemyContactDamage.cs`（改陣營制）、`MonsterController.cs`（Faction 欄位＋FindNearestEnemy）、`MonsterSpawner.cs`（faction 參數＋設層）。
+
+## 5. 接手待辦（Unity / 編輯器端）
 
 - [ ] **重跑 `Project Tools → Sync Map Assets`**：家人幽靈的 `walk` 幀在 `GameAssets` 有、但 `StreamingAssets` 多數只有 `idle`（尚未同步）；不同步召喚出的幽靈會缺走路動畫。順帶把 CSV 也帶到位。
 - [ ] **在編輯器紅嫁衣最終房放 boss**：怪物出生點填**怪物 ID 13**（RedBridalGown）。她的 BrainType/Weapon 已在 CSV 設好。
 - [ ] **家人怪出生點**（給 killedFamily 用）：預先擺放的家人怪（8~12）出生點填「死亡觸發旗標」`killedFamily`（關卡單次），與 boss 召喚分身無關。
 - [ ] **實機調手感**：逃跑速度（CSV `Speed`，現 3.5）、逃/停距離與召喚冷卻/上限（配方 26）。太難就降 `SummonMaxAlive`/拉長 `FireInterval`；她太好抓就升 `Speed`。
+- [x] ~~boss 只會追擊、不逃跑不召喚~~ → **已修**（BrainType 沒 Trim，見 [PROBLEMS.md](PROBLEMS.md) F4）。修後若仍要驗證：確認 MonsterData.csv 已被 Unity 重匯入、boss 出生點填怪物 ID 13。
+- [ ] **怪打怪傷害忽勝忽敗**（召喚物 vs 敵怪）＝接觸傷害每幀結算＋怪 InvincibleTimeMs=0＋近乎一擊斃命 → 勝負看 Update 順序。**待調數值**：給互毆的怪 `InvincibleTimeMs`>0（300~500）＋平衡 HP/ContactDamage。詳見 [PROBLEMS.md](PROBLEMS.md) F5。
+- [ ] boss 召喚的家人幽靈(8~12)若只有站姿/看不到 → 幽靈 walk 幀還沒進 StreamingAssets，跑 `Project Tools → Sync Map Assets`。
 - [ ] （Phase 2）要讓怪物射飛劍/落雷 → 把 PlayerController 發射管線抽成共用服務，`MonsterWeaponUser` 非召喚分支接上。

@@ -82,38 +82,9 @@ public class MonsterWeaponUser : MonoBehaviour
         return cast;
     }
 
-    // 召喚：從配方的 ID 池隨機抽 SummonCount 隻，在召喚者周圍 SummonRadius 生成；受 SummonMaxAlive 同時上限限制。
+    // 召喚：委派給玩家/怪物共用的 SummonSystem（同時上限用本元件自己的 _summoned 清單追蹤）。
     private bool TrySummon(RecipeEntry recipe)
     {
-        _summoned.RemoveAll(go => go == null);   // 清掉已死的分身（被 Destroy → Unity 判定為 null）
-
-        if (recipe.SummonIds == null || recipe.SummonIds.Length == 0) return false;
-        if (_summoned.Count >= recipe.SummonMaxAlive) return false;   // 已達同時上限，這次不召
-
-        var spawner = FindObjectOfType<MonsterSpawner>();
-        if (spawner == null)
-        {
-            Debug.LogWarning("[MonsterWeaponUser] 場景找不到 MonsterSpawner，召喚略過。");
-            return false;
-        }
-
-        int want = Mathf.Max(1, recipe.SummonCount);
-        int room = recipe.SummonMaxAlive - _summoned.Count;
-        int n = Mathf.Min(want, room);
-
-        int spawnedNow = 0;
-        for (int k = 0; k < n; k++)
-        {
-            int id = recipe.SummonIds[Random.Range(0, recipe.SummonIds.Length)];
-            Vector2 ring = Random.insideUnitCircle.normalized;
-            if (ring.sqrMagnitude < 0.0001f) ring = Vector2.right;
-            Vector2 pos = (Vector2)transform.position + ring * recipe.SummonRadius + Random.insideUnitCircle * 0.3f;
-
-            // 分身不帶 deathFlag：殺家人旗標(killedFamily)綁「編輯器擺放的家人怪出生點」，
-            // boss 召喚的分身不算「殺了家人」，所以留空（見 readme/TRIGGER_CHAIN.md §7）。
-            GameObject go = spawner.SpawnMonster(id, pos);
-            if (go != null) { _summoned.Add(go); spawnedNow++; }
-        }
-        return spawnedNow > 0;
+        return SummonSystem.Cast(gameObject, transform.position, recipe, _summoned, MonsterFaction.Enemy);
     }
 }

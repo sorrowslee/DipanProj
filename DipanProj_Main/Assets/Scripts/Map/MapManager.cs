@@ -274,6 +274,7 @@ public class MapManager : MonoBehaviour
 
         Vector2 pos = ResolveSpawnPos(entrance);
         PlacePlayer(pos);
+        RepositionPlayerAllies(pos);   // 玩家召喚物跟著過傳送點：移到玩家新落點附近
         SetupCamera(row.mode);
         // 依 MapsTable 的 Atmosphere 欄套用氛圍後處理（換圖即時切換，室外→古墓自動變氛圍）。見 AtmosphereController。
         AtmosphereController.ApplyMapAtmosphere(row.atmosphere);
@@ -326,6 +327,22 @@ public class MapManager : MonoBehaviour
         else Debug.LogError("[MapManager] 無法生成/找到玩家（檢查 MainSpawner 的 PlayerMappings 與 Player tag）。");
     }
 
+    /// <summary>玩家的召喚物(PlayerAlly)跟著過傳送點：換圖清場時保留，這裡把存活的移到玩家新落點附近（黃金角散開免堆疊）。</summary>
+    void RepositionPlayerAllies(Vector2 center)
+    {
+        var list = MonsterController.Active;
+        int k = 0;
+        for (int i = 0; i < list.Count; i++)
+        {
+            MonsterController mc = list[i];
+            if (mc == null || mc.IsDead || mc.Faction != MonsterFaction.PlayerAlly) continue;
+            float ang = k * 2.399963f;   // 黃金角，讓多隻散開不重疊
+            Vector2 off = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * 1.2f;
+            mc.transform.position = center + off;
+            k++;
+        }
+    }
+
     /// <summary>清掉屬於上一張地圖的暫態物件：怪物、飛行子彈、雷射、地面特效、一次性 VFX、地上掉落物，以及玩家身上持續型武器。</summary>
     void ClearTransientGameplay()
     {
@@ -336,7 +353,9 @@ public class MapManager : MonoBehaviour
             if (pc != null) pc.ClearPersistentWeaponsForMapChange();
         }
 
-        DestroyAllOfType<MonsterController>();
+        // 怪物：清敵怪，但**保留玩家的召喚物(PlayerAlly)**——它們跟玩家一起過傳送點（下方 PlaceAndSetup→RepositionPlayerAllies 會移到玩家新落點）。
+        foreach (var mcx in FindObjectsOfType<MonsterController>())
+            if (mcx != null && mcx.Faction != MonsterFaction.PlayerAlly) Destroy(mcx.gameObject);
         DestroyAllOfType<Sorrows.Ballistics.BulletInstance>();
         DestroyAllOfType<Sorrows.Ballistics.LaserBeam>();
         DestroyAllOfType<GroundEffectInstance>();

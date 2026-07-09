@@ -11,6 +11,7 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 10,天降雷擊,Weapon,Weapon,UI/Icons/Equipment/weapon_talisman,1,符咒,傷害 8　自天而降、範圍轟擊,符成，天怒應聲而落。,10,,
 11,蜂巢,Weapon,Weapon,UI/Icons/Equipment/weapon_honeyComb,1,蜂巢,傷害 2　命中後迸出追蹤蜜蜂,打碎它，憤怒便傾巢而出。,11,,
 12,蜜蜂,Weapon,Weapon,UI/Icons/Equipment/weapon_bee,1,蜜蜂,傷害 1　成群追擊的蜜蜂,嗡嗡聲逼近時，已經太遲了。,12,,
+13,御靈水晶,Weapon,Weapon,Weapon/single/weapon_crystal,1,御靈水晶,傷害 1　召喚御靈協戰,靈石一握，喚亡者為兵。,13,,
 101,銅錢,Currency,None,UI/Icons/Items/item_copperCoins,999,可交易的銅錢,通用貨幣　可於商店交易,串錢的紅繩早已褪色，銅錢卻被摩挲得發亮。,,,
 102,卷軸,Material,None,UI/Icons/Items/item_reel,99,神秘的卷軸,合成材料,紙頁泛黃，唯一能辨認的是一個「歸」字。,,,
 103,符紙,Consumable,None,UI/Icons/Items/item_talismanPaper,99,驅邪的符紙,消耗品　使用後短暫驅邪,貼上門楣的第七夜，符紙無火自燃。,,,

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
@@ -41,6 +42,17 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     // 怪物用武器的統一入口（召喚等技能走這裡；投射武器 Phase 2）。boss 級 Brain 透過 ctx.Self.WeaponUser 施放。
     public MonsterWeaponUser WeaponUser { get; private set; }
 
+    [Header("Faction")]
+    [Tooltip("陣營：Enemy=一般敵怪/boss/其召喚物(追玩家)；PlayerAlly=玩家召喚的協戰怪(追敵怪)。由 MonsterSpawner 設定。")]
+    public MonsterFaction Faction = MonsterFaction.Enemy;
+    public bool IsDead => _isDead;
+
+    // 全場活著的怪物登記表：接觸傷害與友軍找目標都靠它 + Physics2D.Distance，**不用 OverlapCircle**
+    // ——專案全域 queriesStartInColliders=false，OverlapCircle 會漏抓「重疊在查詢起點」的貼身目標（見 PROBLEMS）。
+    public static readonly List<MonsterController> Active = new List<MonsterController>();
+    void OnEnable() { if (!Active.Contains(this)) Active.Add(this); }
+    void OnDisable() { Active.Remove(this); }
+
     [Header("Death")]
     [Tooltip("死亡時播的特效 = VfxTable 的 ID；0 = 不播。檔名/張數/FPS 都在 VfxTable 那一列設定。")]
     public int DeathVfxId = 7;                    // VfxTable ID 7 = 怪物死亡（暫借爆炸圖）
@@ -71,7 +83,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 接觸傷害：碰到玩家就扣血（幾何重疊判定，見 EnemyContactDamage）。ContactDamage 由 Initialize 從 CSV 設定，
         // 手動放置的怪用預設值。Initialize 在 Start 之前由 MonsterSpawner 呼叫，故此時值已就緒。
         var contact = gameObject.AddComponent<EnemyContactDamage>();
-        contact.Configure(ContactDamage);
+        contact.Configure(ContactDamage, Faction);
 
         // 腳下影子（見 readme/SHADOW.md）
         if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
@@ -234,7 +246,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     {
         if (_isDead) return;
 
-        Transform player = _sensor.GetTargetPlayer();
+        // 目標：Enemy 陣營追玩家；PlayerAlly 追最近的敵怪。target 同時餵給 Brain 與視覺（面向/攻擊動畫）。
+        Transform target = (Faction == MonsterFaction.PlayerAlly)
+            ? FindNearestEnemy()
+            : _sensor.GetTargetPlayer();
 
         if (_hitReaction == null || !_hitReaction.IsKnockedBack)
         {
@@ -243,13 +258,30 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 Self = this,
                 Actuator = _actuator,
                 Sensor = _sensor,
-                Player = player,
+                Player = target,
                 DeltaTime = Time.deltaTime,
             };
             _brain.Think(in ctx);
         }
 
-        HandleVisuals(player);
+        HandleVisuals(target);
+    }
+
+    // 友軍找最近的敵怪：走登記表(不用 OverlapCircle，避開 queriesStartInColliders 貼身漏抓)。範圍 = 感知器 DetectionRange。
+    private Transform FindNearestEnemy()
+    {
+        float range = (_sensor != null) ? _sensor.DetectionRange : 10f;
+        float rangeSq = range * range;
+        Transform best = null; float bestSq = float.MaxValue;
+        var list = Active;
+        for (int i = 0; i < list.Count; i++)
+        {
+            MonsterController mc = list[i];
+            if (mc == null || mc == this || mc.IsDead || mc.Faction != MonsterFaction.Enemy) continue;
+            float sq = ((Vector2)mc.transform.position - (Vector2)transform.position).sqrMagnitude;
+            if (sq <= rangeSq && sq < bestSq) { bestSq = sq; best = mc.transform; }
+        }
+        return best;
     }
 
     private void HandleVisuals(Transform player)

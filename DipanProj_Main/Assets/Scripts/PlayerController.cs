@@ -35,6 +35,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     private HitReactionHandler _hitReaction;
     private CombatStats _stats;            // HP/MP 數值層（血/魔條訂閱它的事件）；見 readme/COMBAT.md
     private float _fireTimer = 0f;
+    // 攻擊動畫：攻擊(按住開火)時播 attack；放開後再多撐 AttackAnimLinger 秒才回移動狀態
+    // （讓單擊也看得到、連射不閃）。沒有 attack 圖的血統自動略過、維持原本 Walk/Idle。
+    private float _attackAnimUntil = -1f;
+    const float AttackAnimLinger = 0.12f;
     private float _contManaTimer = 0f;     // 持續型武器（雷射/佛光）的每秒耗魔計時器
     private bool _isDead = false;
     private readonly List<BulletInstance> _activeOrbitalBullets = new List<BulletInstance>();
@@ -54,6 +58,9 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // 連鎖閃電：折線緩衝（避免每次發射配置）+ 閃光存活秒數
     private static readonly List<Vector2> _chainPathBuffer = new List<Vector2>(16);
+
+    // 召喚型武器：玩家召喚出的分身追蹤（給同時上限 SummonMaxAlive 用）。與 boss 各持一份，共用 SummonSystem。
+    private readonly List<GameObject> _summonAlive = new List<GameObject>();
     private const float ChainFlashDuration = 0.16f;
 
     // 天降雷擊：從畫面上緣再往上多少單位開始劈、BlastRadius 留空時的預設 AOE 半徑
@@ -209,8 +216,17 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_spriteRenderer == null) return;
 
         float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
-        // 路線 B：移動→走路、靜止→發呆（死亡時 Update 已提前 return，不會蓋掉 Dead 狀態）
-        if (_playerAnim != null)
+        if (_playerAnim == null) return;
+
+        // 攻擊動畫優先：按住開火(空白/左鍵)時播 attack；放開後再撐 AttackAnimLinger 秒（單擊也看得到、連射不閃）。
+        bool attacking = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+        if (attacking) _attackAnimUntil = Time.time + AttackAnimLinger;
+
+        // 路線 B：攻擊→cast；否則 移動→走路 / 靜止→發呆（死亡時 Update 已提前 return，不會蓋掉 Dead 狀態）。
+        // 沒有 attack 圖的血統 Has(Attack)=false，SetState 會自動退回 Idle，等同維持舊行為。
+        if (_playerAnim.Has(PlayerAnimator.State.Attack) && Time.time < _attackAnimUntil)
+            _playerAnim.SetState(PlayerAnimator.State.Attack, currentSpeed);
+        else
             _playerAnim.SetState(currentSpeed > 0.1f ? PlayerAnimator.State.Walk : PlayerAnimator.State.Idle, currentSpeed);
     }
 
@@ -355,7 +371,20 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_weaponManager == null) return;
 
         WeaponData weapon = _weaponManager.GetCurrentWeapon();
-        if (weapon == null || weapon.BulletPrefab == null || weapon.Recipe == null) return;
+        if (weapon == null || weapon.Recipe == null) return;
+
+        // 召喚型武器：不發射子彈、不需要 BulletPrefab。耗魔後直接在玩家周圍生怪（與 boss 共用 SummonSystem）。
+        // 注意：召喚出的怪目前走敵人 AI（會追玩家）——玩家召喚的「友軍」faction 尚未做，見 readme/BOSS_MODULE.md。
+        if (weapon.Recipe.IsSummon)
+        {
+            if (_stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return;
+            TrySpawnFireEffect(weapon, AimDirectionToMouse());
+            SummonSystem.Cast(gameObject, transform.position, weapon.Recipe, _summonAlive, MonsterFaction.PlayerAlly);
+            _fireTimer = (weapon.Recipe.Data != null) ? weapon.Recipe.Data.FireInterval : 1f;
+            return;
+        }
+
+        if (weapon.BulletPrefab == null) return;
 
         ProjectileData recipe = weapon.Recipe.Data;
 
