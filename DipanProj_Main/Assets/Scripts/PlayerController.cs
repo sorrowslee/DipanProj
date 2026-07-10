@@ -41,6 +41,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     // （讓單擊也看得到、連射不閃）。沒有 attack 圖的血統自動略過、維持原本 Walk/Idle。
     private float _attackAnimUntil = -1f;
     const float AttackAnimLinger = 0.12f;
+    private bool _continuousFireWasActive;   // 持續武器（雷射/佛光）攻擊動作只在「開始放的那一下」擺一次，用這個記上一幀狀態
     private float _contManaTimer = 0f;     // 持續型武器（雷射/佛光）的每秒耗魔計時器
     private bool _isDead = false;
     private readonly List<BulletInstance> _activeOrbitalBullets = new List<BulletInstance>();
@@ -220,10 +221,15 @@ public class PlayerController : MonoBehaviour, IDamageable
         float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
         if (_playerAnim == null) return;
 
-        // 攻擊動畫「只有真的攻擊出去」才擺：離散武器由 HandleFiring 在實際發射成功時設 _attackAnimUntil
-        //（CD 中／召喚已達上限／魔力不足都不會設）；持續武器（雷射/佛光）只要光束/佛光還在（＝有魔力在放）就算在攻擊。
-        if (_activeBeams.Count > 0 || _activeAura != null)
-            _attackAnimUntil = Time.time + AttackAnimLinger;
+        // 攻擊動畫「只有真的攻擊出去」才擺：
+        //  ‧ 離散武器：由 HandleFiring 在每次「實際發射成功」時各設一次 _attackAnimUntil（一發一個攻擊動作）。
+        //  ‧ 持續武器（雷射/佛光）：只在「開始放的那一下」（上升緣）擺**一次**；按住的期間不再重擺（後面一直擺很怪）。
+        // 這個「持續 vs 離散」的差別天生來自武器的發射模式——持續武器會產生 _activeBeams/_activeAura、離散走 Shoot——
+        // 所以不必寫死武器類型，也不必多一個欄位維護；之後任何新的持續型武器只要走同一套光束/佛光機制就自動生效。
+        bool continuousFireActive = _activeBeams.Count > 0 || _activeAura != null;
+        if (continuousFireActive && !_continuousFireWasActive)
+            _attackAnimUntil = Time.time + AttackAnimLinger;   // 上升緣＝剛開始放 → 擺一次就好
+        _continuousFireWasActive = continuousFireActive;
 
         // 路線 B：攻擊→cast；否則 移動→走路 / 靜止→發呆（死亡時 Update 已提前 return，不會蓋掉 Dead 狀態）。
         // 沒有 attack 圖的血統 Has(Attack)=false，SetState 會自動退回 Idle，等同維持舊行為。
