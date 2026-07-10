@@ -52,7 +52,15 @@ public class DestructibleObject : MonoBehaviour, IDamageable
         if (DestroyVfxId > 0)
         {
             if (_vfx == null) _vfx = FindObjectOfType<VfxManager>();
-            if (_vfx != null) _vfx.Spawn(DestroyVfxId, transform.position, 0f);
+            if (_vfx != null)
+            {
+                // 特效大小跟著地上物：縮放到「這個物件的可見高度」（同招喚特效的做法，見 VfxManager.SpawnSizedToHeight）。
+                var sr = GetComponentInChildren<SpriteRenderer>();
+                if (sr != null && sr.bounds.size.y > 0.0001f)
+                    _vfx.SpawnSizedToHeight(DestroyVfxId, sr.bounds.center, sr.bounds.size.y);
+                else
+                    _vfx.Spawn(DestroyVfxId, transform.position, 0f);
+            }
             else Debug.LogWarning("[DestructibleObject] 場景找不到 VfxManager,破壞特效略過。");
         }
         Destroy(gameObject);

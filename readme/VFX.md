@@ -32,7 +32,11 @@
 * 玩家（`PlayerController.Shoot`）與 boss（`MonsterWeaponUser`）召喚**共用** `SummonSystem.Cast`，都吃這一欄。
 * 同時上限（`SummonMaxAlive`）由 `SummonSystem` 一次算好；施放端在扣魔/進冷卻前先用 `SummonSystem.HasRoom` 確認有空位（滿了不扣魔、不動作）。場景找不到 `VfxManager` 則只生怪、不播特效。
 * 留空 / 0 = 不播特效、立即生怪（原行為）。目前紅嫁衣召喚（武器 14）、御靈水晶（武器 13）用 `VfxTable` 10「招喚怪物」。
-* **特效大小自動跟著怪物**：召喚走 `VfxManager.SpawnSizedToHeight`，把特效縮放到該怪的可見高度（route B 怪＝`CharacterWorldHeight`（預設 1.95）× `MonsterData.Scale`），所以**大怪大特效、小怪小特效**。此時 `VfxTable` 該列的 `Scale` 欄對召喚特效改當「**相對怪物高度的倍率**」（1 = 與怪等高、1.3 = 比怪大 30% 包住牠）；id 10 目前設 1.3。
+* **特效大小自動跟著目標**（召喚／怪物死亡／地上物破壞共用）：走 `VfxManager.SpawnSizedToHeight`，把特效縮放到「目標的可見高度」——
+  - 招喚（id 10）＝該怪可見高度（route B 怪＝`CharacterWorldHeight` 1.95 × `MonsterData.Scale`）；
+  - 怪物死亡（id 7，`MonsterController` 死亡）＝該怪 `SpriteRenderer.bounds` 的高度與中心；
+  - 地上物破壞（id 5，`DestructibleObject`）＝該地上物 `SpriteRenderer.bounds` 的高度與中心。
+  所以**大目標大特效、小目標小特效**。此時 `VfxTable` 該列的 `Scale` 欄對這三種特效改當「**相對目標高度的倍率**」（1 = 與目標等高、1.3 = 比目標大 30% 包住它）。**要調大小就改這一欄**：id 10 目前 1.3；id 5／id 7 目前 1（＝與物件/怪等高），覺得爆裂太小/太大就往上/下調。
 
 
 ## 配置檔案

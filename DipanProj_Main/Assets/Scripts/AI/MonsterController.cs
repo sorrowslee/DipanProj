@@ -23,6 +23,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public bool SpriteSourceFacesRight = true;
     public float AnimFPS = 8f;           // 程式動畫播放幀率（CSV: AnimFPS，留空 = 8）
     public float AttackRange = 1.3f;     // 進入此距離且有 attack 圖 → 播攻擊動畫（略大於 ChaseBrain.StopDistance）
+    [Tooltip("施放技能（如召喚）後，attack 動畫維持播放的秒數（讓遠距離施法也看得到出手動作）")]
+    public float SkillCastAnimSeconds = 0.6f;
     [Tooltip("角色站立顯示高度（世界單位），與主角 PlayerController.CharacterWorldHeight 同一套邏輯：" +
              "依 idle 可見高度自動換算，讓「同一張圖丟主角或怪物資料夾都一樣大」。要某隻怪特別大/小，再用 CSV 的 Scale 當倍率。" +
              "<=0 = 關閉自動換算、沿用原生像素大小。")]
@@ -45,6 +47,11 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public int WeaponId = -1;
     // 怪物用武器的統一入口（召喚等技能走這裡；投射武器 Phase 2）。boss 級 Brain 透過 ctx.Self.WeaponUser 施放。
     public MonsterWeaponUser WeaponUser { get; private set; }
+    private float _skillCastAnimUntil;   // < Time.time 前都播 attack 動畫（施放技能觸發，見 NotifySkillCast）
+
+    /// <summary>怪物成功施放一次技能（召喚等）時由 MonsterWeaponUser 呼叫：讓 attack 動畫演一小段，
+    /// 即使怪離玩家很遠（如紅嫁衣邊逃邊召）也看得到出手動作。</summary>
+    public void NotifySkillCast() => _skillCastAnimUntil = Time.time + SkillCastAnimSeconds;
 
     [Header("Faction")]
     [Tooltip("陣營：Enemy=一般敵怪/boss/其召喚物(追玩家)；PlayerAlly=玩家召喚的協戰怪(追敵怪)。由 MonsterSpawner 設定。")]
@@ -341,9 +348,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         if (_monAnim != null)
         {
             MonsterAnimator.State st;
-            if (player != null
-                && _monAnim.Has(MonsterAnimator.State.Attack)
-                && Vector2.Distance(transform.position, player.position) <= AttackRange)
+            bool casting = Time.time < _skillCastAnimUntil;   // 施放技能中 → 出手動作（不限距離）
+            bool inAttackRange = player != null
+                && Vector2.Distance(transform.position, player.position) <= AttackRange;
+            if (_monAnim.Has(MonsterAnimator.State.Attack) && (casting || inAttackRange))
                 st = MonsterAnimator.State.Attack;
             else if (moving) st = MonsterAnimator.State.Walk;
             else st = MonsterAnimator.State.Idle;
@@ -418,7 +426,14 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         if (DeathVfxId > 0)
         {
             if (_vfx == null) _vfx = FindObjectOfType<VfxManager>();
-            if (_vfx != null) _vfx.Spawn(DeathVfxId, transform.position, 0f);
+            if (_vfx != null)
+            {
+                // 特效大小跟著怪物：縮放到「這隻怪的可見高度」（同招喚特效的做法，見 VfxManager.SpawnSizedToHeight）。
+                if (_spriteRenderer != null && _spriteRenderer.bounds.size.y > 0.0001f)
+                    _vfx.SpawnSizedToHeight(DeathVfxId, _spriteRenderer.bounds.center, _spriteRenderer.bounds.size.y);
+                else
+                    _vfx.Spawn(DeathVfxId, transform.position, 0f);
+            }
             else Debug.LogWarning("[MonsterController] 場景找不到 VfxManager，死亡特效略過。");
         }
 

@@ -27,6 +27,7 @@
 ### Brain & Actuator
 * `IMonsterBrain` 介面：`Think(actuator, player)` 決策邏輯，目前實作 `ChaseBrain`（追擊）。
 * `MonsterActuator`：執行物理移動（`_rb.velocity`），維護 `IsMoving` 狀態旗標供動畫系統查詢。
+* **攻擊動畫觸發（`MonsterController.HandleVisuals` + `MonsterAnimator` 的 `attack` 幀）**：怪演 attack 動畫有兩個來源——① 接觸攻擊：玩家進入 `AttackRange`(預設 1.3) 內；② **施放技能**：`MonsterWeaponUser` 成功施放（如紅嫁衣召喚家人）時呼叫 `MonsterController.NotifySkillCast()`，讓 attack 動畫維持 `SkillCastAnimSeconds`(預設 0.6s)——**不限距離**，所以邊逃邊召的 boss 也看得到出手動作。怪沒有 `attack` 幀時 `MonsterAnimator.Has` 會自動退回走路/發呆、不報錯。
 * **尋徑：全域 A*（2026-07-10 定案）**：怪物走 `MapNavGrid`（`Scripts/AI/MapNavGrid.cs`）的 A* 尋徑，能真正繞過整片牆/家具、走凹角、只有無路可走才到不了。
   - **格怎麼來（2026-07-10 定案）**：每次載圖後 `MapManager.PlaceAndSetup` 呼叫 `MapNavGrid.EnsureBuilt(mapLoader.Map)`。牆/水/可走以**地圖可走層位元圖**（`MapData.WalkableLayer.blocked`，`'0'` 可走／`'1'` 牆／`'2'` 水）為權威——這是 `MapLoader` 生牆碰撞用的同一份資料、載圖當下就在、與物理時序無關（避免牆是 `CompositeCollider2D`、建格同幀還沒 query-ready 而整片誤判可走，見 PROBLEMS F9）。格解析度＝地圖子格（`tileSize/walkSubdiv`）。淨空（讓路徑離牆一個身位）用**位元圖把牆往外膨脹 `clearCells` 格**（依子格大小自適應，`AgentRadius/子格` 四捨五入）——純位元圖、確定性、保證連通，**不用物理去啃牆**（物理 `OverlapCircle` 會把整片 composite 牆多啃一圈、把窄喉道切斷，害兩個房間不連通，見 PROBLEMS F9）。**地上物家具**（不在位元圖裡）才用 `Physics2D.OverlapCircle`（`Environment`＋`Water`，小半徑 ~0.16）做**聯集**補進格子——這一步在牆膨脹之後跑、半徑遠小於牆淨空，所以只封「真的壓在家具上」的格、碰不到牆（`UnionPhysics` 開關，預設開）。
   - **怎麼走**（`MonsterActuator.MoveTowards`）：① 目標**直線可達**→ 直接走；「直線可達」用 **`MapNavGrid.HasLineOfSight`（和 A* 同一份格子的格視線）**判定，不是物理細射線——這樣「能不能直走」與 A* 障礙（含家具膨脹）一致，不會因細射線穿過家具淨空而誤判可直走、結果撞上家具（見 PROBLEMS F11）。② 否則走 A* 路徑（八方向＋視線平滑成少數航點，`RepathInterval=0.35s` 重算、目標移動夠遠也重算；怪若卡在不可走格會先被導到最近可走格脫困）。

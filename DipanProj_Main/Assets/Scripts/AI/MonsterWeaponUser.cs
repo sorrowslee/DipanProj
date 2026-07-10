@@ -78,6 +78,7 @@ public class MonsterWeaponUser : MonoBehaviour
         {
             float interval = (recipe.Data != null) ? recipe.Data.FireInterval : 1f;
             _cooldown = Mathf.Max(0.1f, interval);
+            if (_owner != null) _owner.NotifySkillCast();   // 施法成功 → 讓怪演 attack 出手動作
         }
         return cast;
     }
