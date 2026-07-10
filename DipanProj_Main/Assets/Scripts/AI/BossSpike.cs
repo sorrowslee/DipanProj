@@ -18,9 +18,12 @@ public class BossSpike : MonoBehaviour, IDamageable
     const float EruptRise   = 0.25f;// 地刺開始冒出到「真的危險/可打」的緩衝
     const float ActiveTime  = 1.1f; // 危險＋可被打的窗口長度
     const float SpikeVfxLife = 2.2f;// 地刺特效總壽命（讓收回動畫視覺播完才銷毀）
-    const float HitBoxW = 0.9f;     // 危險/命中框寬（× scale）
-    const float HitBoxH = 1.3f;     // 危險/命中框高（× scale）
+    const float HitBoxW = 0.9f;     // 後備核心框寬（× scale）：只有在抓不到地刺特效可見邊界時才用
+    const float HitBoxH = 1.3f;     // 後備核心框高（× scale）
     const float PlayerHitInterval = 0.25f; // 對玩家的重擊嘗試間隔（真正節流靠玩家無敵時間）
+
+    // 【除錯】true = 地刺危險時，用紅框把『實際受傷範圍』畫在畫面上（Game View 也看得到）。抓完手感改回 false。
+    public static bool DebugDrawHitbox = false;
 
     static VfxManager _vfx;
 
@@ -31,20 +34,29 @@ public class BossSpike : MonoBehaviour, IDamageable
     BoxCollider2D _col;
     VfxInstance _spikeVfx;   // 冒出的地刺特效實體（被打時閃白光用）
     EnemyContactDamage _contact;
+    LineRenderer _dbgBox;   // 除錯用：受傷範圍紅框
 
     /// <summary>生成一根地刺。pos = 生成點（可走地面），scale = 大小倍率，boss = 反傷對象，damage = 碰玩家傷害。</summary>
-    public static BossSpike Fire(Vector2 pos, float scale, MonsterController boss, float damage)
+    // hitFillW / hitFillH：碰撞框＝可見地刺的寬/高比例（貼齊基座往上長）。預設就套用，讓每一根地刺都跟大地刺同樣範圍。
+    public static BossSpike Fire(Vector2 pos, float scale, MonsterController boss, float damage, float startDelay = 0f, float hitFillW = 0.75f, float hitFillH = 0.60f)
     {
         var go = new GameObject("BossSpike");
         go.transform.position = pos;
         var s = go.AddComponent<BossSpike>();
-        s.Init(pos, scale, boss, damage);
+        s.Init(pos, scale, boss, damage, startDelay, hitFillW, hitFillH);
         return s;
     }
 
-    void Init(Vector2 pos, float scale, MonsterController boss, float damage)
+    float _startDelay;
+    float _hitFillW;  // >0：冒出時把碰撞框寬對齊「可見地刺」的這個比例（放大版大絕用）；0：用固定核心框
+    float _hitFillH;  // >0：碰撞框高對齊可見地刺的比例，且『貼齊地刺基座』往上長（地刺是從底部往上冒，圖的上半是空的）
+
+    void Init(Vector2 pos, float scale, MonsterController boss, float damage, float startDelay, float hitFillW, float hitFillH)
     {
         _boss = boss;
+        _startDelay = startDelay;
+        _hitFillW = hitFillW;
+        _hitFillH = hitFillH;
         _scale = scale <= 0f ? 1f : scale;
         _damage = damage;
         if (_vfx == null) _vfx = FindObjectOfType<VfxManager>();
@@ -67,6 +79,8 @@ public class BossSpike : MonoBehaviour, IDamageable
 
     IEnumerator Run()
     {
+        if (_startDelay > 0f) yield return new WaitForSeconds(_startDelay);   // 排掃：錯開時間 → 推進浪
+
         // ① 預警：箭頭往下
         if (_vfx != null) _vfx.Spawn(ArrowVfxId, transform.position, 0f, _scale);
         yield return new WaitForSeconds(WarnTime);
@@ -88,8 +102,58 @@ public class BossSpike : MonoBehaviour, IDamageable
     void SetExposed(bool on)
     {
         _exposed = on;
+        // 放大版大絕：冒出當下把碰撞框對齊「看得到的地刺」。地刺是從圖的底部往上冒、圖的上半是空的，
+        // 所以碰撞框要『貼齊基座、只涵蓋下半』，不能罩滿整張圖（會在空白處誤傷）。
+        if (on && _col != null && _hitFillW > 0f && _hitFillH > 0f && _spikeVfx != null)
+        {
+            Bounds b = _spikeVfx.WorldBounds;
+            if (b.size.x > 0.01f && b.size.y > 0.01f)
+            {
+                float w = b.size.x * _hitFillW;
+                float h = b.size.y * _hitFillH;
+                _col.size = new Vector2(w, h);
+                float boxBottom = b.center.y - b.extents.y;          // 貼齊圖底＝地刺基座
+                float centerY   = boxBottom + h * 0.5f;              // 從基座往上長
+                _col.offset = new Vector2(b.center.x - transform.position.x, centerY - transform.position.y);
+            }
+        }
         if (_col != null) _col.enabled = on;
         if (_contact != null) _contact.enabled = on;
+
+        if (DebugDrawHitbox) { if (on) DrawDebugBox(); else ClearDebugBox(); }
+    }
+
+    // 用 LineRenderer 把碰撞框（含 size/offset）畫成紅色矩形，Game View 也看得到。
+    void DrawDebugBox()
+    {
+        if (_col == null) return;
+        if (_dbgBox == null)
+        {
+            var go = new GameObject("SpikeHitboxDbg");
+            go.transform.SetParent(transform, false);
+            _dbgBox = go.AddComponent<LineRenderer>();
+            _dbgBox.useWorldSpace = false;
+            _dbgBox.loop = true;
+            _dbgBox.positionCount = 4;
+            _dbgBox.widthMultiplier = 0.06f;
+            _dbgBox.numCornerVertices = 0;
+            _dbgBox.material = new Material(Shader.Find("Sprites/Default"));
+            _dbgBox.startColor = _dbgBox.endColor = new Color(1f, 0f, 0f, 0.9f);
+            _dbgBox.sortingLayerName = "Default";
+            _dbgBox.sortingOrder = 32000;   // 疊在最上面
+        }
+        Vector2 c = _col.offset;
+        Vector2 h = _col.size * 0.5f;
+        _dbgBox.SetPosition(0, new Vector3(c.x - h.x, c.y - h.y, 0f));
+        _dbgBox.SetPosition(1, new Vector3(c.x + h.x, c.y - h.y, 0f));
+        _dbgBox.SetPosition(2, new Vector3(c.x + h.x, c.y + h.y, 0f));
+        _dbgBox.SetPosition(3, new Vector3(c.x - h.x, c.y + h.y, 0f));
+        _dbgBox.enabled = true;
+    }
+
+    void ClearDebugBox()
+    {
+        if (_dbgBox != null) _dbgBox.enabled = false;
     }
 
     // 玩家打到「露在外面的地刺」→ 傷害轉給榕樹妖本體（收回/預警期間打不到，這裡再保險擋一層）。

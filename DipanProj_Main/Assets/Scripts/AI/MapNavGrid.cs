@@ -219,6 +219,35 @@ public class MapNavGrid : MonoBehaviour
     /// <summary>世界座標的視線檢查（用和 A* 同一份 _walk 格）：起訖任一格不可走、或直線經過不可走格 → false。
     /// 給 MonsterActuator.DirectClear 用，讓「直線可達」的判定和 A* 障礙（含家具膨脹）一致，避免細射線穿過家具淨空
     /// 而誤判可直走、結果撞上家具卡住。</summary>
+    /// <summary>世界座標該點所在格可不可走（沒建格則視為可走、不設限）。給榕樹妖排掃沿線找可走點用。</summary>
+    public bool IsWalkableWorld(Vector2 p)
+    {
+        if (!_ready) return true;
+        return _walk[WorldToIndex(p)];
+    }
+
+    /// <summary>整張尋徑格覆蓋的世界矩形（含牆）。給榕樹妖排掃決定 x/y 範圍用。</summary>
+    public Rect WorldRect => new Rect(_originTL.x, _originTL.y - _h * _cell, _w * _cell, _h * _cell);
+
+    /// <summary>可走區域的外框（所有可走格的 min/max 世界座標）。給榕樹妖排掃把排攤在可走 y 範圍、放大版取中心用。</summary>
+    public Rect WalkableBounds()
+    {
+        if (!_ready || _walk == null) return WorldRect;
+        float minX = float.MaxValue, minY = float.MaxValue, maxX = float.MinValue, maxY = float.MinValue;
+        bool any = false;
+        for (int i = 0; i < _walk.Length; i++)
+            if (_walk[i])
+            {
+                Vector2 p2 = CellCenter(i);
+                if (p2.x < minX) minX = p2.x;
+                if (p2.x > maxX) maxX = p2.x;
+                if (p2.y < minY) minY = p2.y;
+                if (p2.y > maxY) maxY = p2.y;
+                any = true;
+            }
+        return any ? Rect.MinMaxRect(minX, minY, maxX, maxY) : WorldRect;
+    }
+
     /// <summary>隨機取一個可走格的世界中心點（給榕樹妖在場上隨機下地刺用）。取不到回 false。</summary>
     public bool TryGetRandomWalkable(out Vector2 world)
     {

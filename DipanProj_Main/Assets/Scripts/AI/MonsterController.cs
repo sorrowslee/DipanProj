@@ -57,6 +57,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     [Tooltip("陣營：Enemy=一般敵怪/boss/其召喚物(追玩家)；PlayerAlly=玩家召喚的協戰怪(追敵怪)。由 MonsterSpawner 設定。")]
     public MonsterFaction Faction = MonsterFaction.Enemy;
     public bool IsDead => _isDead;
+    public float CurrentHealth => _currentHealth;                       // 目前血量（給 boss Brain 判階段用）
+    public float HealthFraction => MaxHealth > 0f ? _currentHealth / MaxHealth : 0f;  // 血量比例 0~1
 
     // 全場活著的怪物登記表：接觸傷害與友軍找目標都靠它 + Physics2D.Distance，**不用 OverlapCircle**
     // ——專案全域 queriesStartInColliders=false，OverlapCircle 會漏抓「重疊在查詢起點」的貼身目標（見 PROBLEMS）。

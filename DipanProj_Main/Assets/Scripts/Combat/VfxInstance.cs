@@ -24,6 +24,9 @@ public class VfxInstance : MonoBehaviour
     MaterialPropertyBlock _flashMpb;
     Coroutine _flashCo;
 
+    /// <summary>目前這格圖在世界空間的顯示邊界（含 scale）。給「以特效當外觀的攻擊物」把碰撞框對齊可見範圍。</summary>
+    public Bounds WorldBounds => _renderer != null ? _renderer.bounds : new Bounds(transform.position, Vector3.zero);
+
     public void Initialize(VfxData data, SpriteRenderer renderer)
     {
         _data = data;
