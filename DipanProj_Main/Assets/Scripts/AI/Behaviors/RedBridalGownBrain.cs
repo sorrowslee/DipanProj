@@ -4,8 +4,8 @@ using UnityEngine;
 /// 紅嫁衣女殭屍 Boss 戰鬥模組（第一個 boss 級 Brain，示範「一隻強怪＝一個 Brain 模組」）。
 ///
 /// 行為：
-///  ‧ 躲玩家——玩家靠近就往「反方向」直線逃（用她自己的 MonsterData.Speed）。刻意不做繞牆尋路，
-///    所以會被牆角／家具卡住讓玩家追上；速度也刻意低，避免玩家永遠追不到。
+///  ‧ 躲玩家——玩家靠近就往「反方向」逃（走 A* 尋徑會自動繞牆／家具，和其他怪一樣不做硬碰撞）。
+///    「讓玩家追得上」不靠被卡住，而是把她的 MonsterData.Speed 調慢即可。
 ///  ‧ 定時召喚家人幽靈當追兵——召喚是一把 WeaponTable 的「召喚武器」，冷卻/名單/數量/同時上限
 ///    全走配方（RecipeTable 的 IsSummon 那組欄位），由 <see cref="MonsterWeaponUser"/> 結算。
 ///    召喚不綁逃跑狀態、只看冷卻，確保 boss 持續施壓（她速度慢、多半在逃，若綁「安全才召」會幾乎不召）。
@@ -31,8 +31,6 @@ public class RedBridalGownBrain : IMonsterBrain
         _inited = true;
         if (ctx.Sensor != null) ctx.Sensor.DetectionRange = DetectionRange;
         _weapon = (ctx.Self != null) ? ctx.Self.WeaponUser : null;
-        // boss 逃跑刻意走直線、會被牆角/家具卡住讓玩家追上（設計）→ 關掉避障，不走繞路。
-        if (ctx.Actuator != null) ctx.Actuator.AvoidObstacles = false;
     }
 
     public void Think(in MonsterContext ctx)
@@ -58,7 +56,7 @@ public class RedBridalGownBrain : IMonsterBrain
             Vector2 away = (Vector2)act.transform.position - (Vector2)player.position;
             if (away.sqrMagnitude < 0.0001f) away = Random.insideUnitCircle.normalized;   // 重疊時隨機挑個方向
             Vector2 target = (Vector2)act.transform.position + away.normalized * AwayLookahead;
-            act.MoveTowards(target);   // 直線逃、不繞路 → 會被牆角卡住讓玩家追上
+            act.MoveTowards(target);   // 往反方向逃（走 A* 會自動繞牆）；追得上與否靠 Speed 調慢
         }
         else
         {

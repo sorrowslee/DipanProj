@@ -22,4 +22,5 @@ public class MonsterData
     public float ContactDamage = 10f;   // 碰到玩家造成的傷害（留空 = 10）
     public float AttackInterval = 0.5f; // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval，越小攻越快，留空 = 0.5）
     public float DamageReduction = 0f;   // 受擊減傷 %（留空 = 0；掛勾，之後接減傷/抗性）
+    public float DetectionRange = 10f;  // 感測玩家半徑（CSV: DetectionRange，留空 = 10）。怪 dist<=此值才發現玩家去追；紅嫁衣房約 18x10、對角 ~20.6，要全域看到玩家設 ~25。
 }

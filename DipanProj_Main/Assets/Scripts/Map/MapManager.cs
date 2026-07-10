@@ -276,6 +276,7 @@ public class MapManager : MonoBehaviour
         PlacePlayer(pos);
         RepositionPlayerAllies(pos);   // 玩家召喚物跟著過傳送點：移到玩家新落點附近
         SetupCamera(row.mode);
+        MapNavGrid.EnsureBuilt(mapLoader.Map);   // 建怪物 A* 尋徑格（含牆＋地上物）
         // 依 MapsTable 的 Atmosphere 欄套用氛圍後處理（換圖即時切換，室外→古墓自動變氛圍）。見 AtmosphereController。
         AtmosphereController.ApplyMapAtmosphere(row.atmosphere);
         // 場景特效（世界端，如火雨）：依 SceneEffect 欄，換圖即時切換、自動清殘留。見 SceneEffectController。

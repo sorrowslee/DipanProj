@@ -97,6 +97,7 @@ public class MonsterSpawner : MonoBehaviour
             data.Speed = (values.Length > 12 && !string.IsNullOrWhiteSpace(values[12])) ? float.Parse(values[12]) : 3f;
             data.AnimFPS = (values.Length > 13 && !string.IsNullOrWhiteSpace(values[13])) ? float.Parse(values[13]) : 8f;
             data.AttackInterval = (values.Length > 14 && !string.IsNullOrWhiteSpace(values[14])) ? float.Parse(values[14]) : 0.5f;
+            data.DetectionRange = (values.Length > 15 && !string.IsNullOrWhiteSpace(values[15])) ? float.Parse(values[15]) : 10f;
 
             _monsterDatabase.Add(data);
         }

@@ -4,6 +4,9 @@ using UnityEngine;
 public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 {
     private MonsterSensor _sensor;
+    // 所有怪一律靠 A* 導航、碰撞框全設 trigger（不做硬碰撞、不會卡在牆/家具上）。
+    private BoxCollider2D _bodyCol;
+    private BoxCollider2D _feetCol;
     private MonsterActuator _actuator;
     private IMonsterBrain _brain;
     private HitReactionHandler _hitReaction;
@@ -164,16 +167,32 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     /// </summary>
     private void FitVisibleBoxCollider(Vector2 visSize, Vector2 visOffset)
     {
-        var col = GetComponent<Collider2D>();
-        BoxCollider2D box = col as BoxCollider2D;
-        if (box == null)
+        // 身體框（貼合可見像素）：用於「打擊/接觸」幾何判定（玩家攻擊查詢 queriesHitTriggers=1 吃得到、
+        // EnemyContactDamage 用 Physics2D.Distance 也吃得到，皆不受 trigger 影響）。
+        if (_bodyCol == null)
         {
-            if (col != null) Destroy(col);   // 萬一有別型 collider（如舊圓）→ 換成貼合的 Box
-            box = gameObject.AddComponent<BoxCollider2D>();
+            var col = GetComponent<Collider2D>();
+            _bodyCol = col as BoxCollider2D;
+            if (_bodyCol == null)
+            {
+                if (col != null) Destroy(col);   // 萬一有別型 collider（如舊圓）→ 換成貼合的 Box
+                _bodyCol = gameObject.AddComponent<BoxCollider2D>();
+            }
         }
-        box.size = new Vector2(Mathf.Max(0.01f, visSize.x + HitboxPadding),
-                               Mathf.Max(0.01f, visSize.y + HitboxPadding));
-        box.offset = visOffset;
+        _bodyCol.size = new Vector2(Mathf.Max(0.01f, visSize.x + HitboxPadding),
+                                    Mathf.Max(0.01f, visSize.y + HitboxPadding));
+        _bodyCol.offset = visOffset;
+
+        // 所有怪一律靠 A* 導航、不做硬碰撞——身體框＋腳底框都設 trigger（只做「被打到／接觸傷害」的幾何判定，
+        // `queriesHitTriggers=1`、`Physics2D.Distance` 都吃得到，不擋路）。怪永遠不會頂在牆/家具上卡死，只照 A*
+        // 路徑平滑走；牆的迴避由 A*（路徑一定走在有淨空的可走格上）＋ DirectClear 的格視線保證，連通的圖不會穿牆。
+        _bodyCol.isTrigger = true;
+        if (_feetCol == null) _feetCol = gameObject.AddComponent<BoxCollider2D>();
+        float feetH = Mathf.Clamp(visSize.x * 0.35f, 0.1f, 0.3f);
+        float baseY = visOffset.y - visSize.y * 0.5f;   // 可見框底 = 腳的位置（俯視角 pivot 在腳）
+        _feetCol.size = new Vector2(Mathf.Max(0.05f, visSize.x * 0.5f), feetH);
+        _feetCol.offset = new Vector2(visOffset.x, baseY + feetH * 0.5f);
+        _feetCol.isTrigger = true;
     }
 
     public void Initialize(MonsterData data)
@@ -193,6 +212,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
         if (_sensor == null) _sensor = gameObject.AddComponent<MonsterSensor>();
+        _sensor.DetectionRange = data.DetectionRange;   // 感測半徑資料化（CSV: DetectionRange）。boss 級 Brain 之後在 Think 內可再覆寫（如紅嫁衣→30）。
         
         _actuator = gameObject.GetComponent<MonsterActuator>();
         if (_actuator == null) _actuator = gameObject.AddComponent<MonsterActuator>();
@@ -246,6 +266,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             circle.radius = Mathf.Max(0.005f, (maxDim / 2f) + (HitboxPadding / 2f));
             circle.offset = sr.sprite.bounds.center;
         }
+        if (col != null) col.isTrigger = true;   // 所有怪：無硬碰撞、純 A* 導航
     }
 
     // 🟢 在編輯器中顯示紅色受擊範圍，方便即時調整

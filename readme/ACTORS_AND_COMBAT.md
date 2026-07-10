@@ -27,7 +27,13 @@
 ### Brain & Actuator
 * `IMonsterBrain` 介面：`Think(actuator, player)` 決策邏輯，目前實作 `ChaseBrain`（追擊）。
 * `MonsterActuator`：執行物理移動（`_rb.velocity`），維護 `IsMoving` 狀態旗標供動畫系統查詢。
-* **障礙迴避（2026-07-10）**：`MoveTowards` 會用 `CircleCast` 往前探路，被牆／地上物擋住就往兩側**逐步加大角度**找「最接近原方向的暢通方向」滑過去（貼牆繞行、鑽窄縫）。**避障不會讓怪原地凍住**——一整圈都被擋時仍朝目標推；另有解卡：「想動卻沒位移超過 0.25s」會自動往側邊滑 0.4s 脫離卡點（`UpdateStuck`）。追擊（`ChaseBrain`）與友軍（`AllyBrain`）自動生效；**紅嫁衣 boss 逃跑刻意關掉**（`AvoidObstacles=false`，維持「被卡住讓玩家追上」的設計）。可調欄位（`MonsterActuator`）：`AvoidObstacles`（總開關）、`AvoidLookahead`（往前探多遠，預設 1.5）、`AvoidProbeScale`（探測圓＝自身半身寬 × 此值，預設 0.9；越小越鑽得進窄縫）。避障只查 `Environment`＋`Water` 層。
+* **尋徑：全域 A*（2026-07-10 定案）**：怪物走 `MapNavGrid`（`Scripts/AI/MapNavGrid.cs`）的 A* 尋徑，能真正繞過整片牆/家具、走凹角、只有無路可走才到不了。
+  - **格怎麼來（2026-07-10 定案）**：每次載圖後 `MapManager.PlaceAndSetup` 呼叫 `MapNavGrid.EnsureBuilt(mapLoader.Map)`。牆/水/可走以**地圖可走層位元圖**（`MapData.WalkableLayer.blocked`，`'0'` 可走／`'1'` 牆／`'2'` 水）為權威——這是 `MapLoader` 生牆碰撞用的同一份資料、載圖當下就在、與物理時序無關（避免牆是 `CompositeCollider2D`、建格同幀還沒 query-ready 而整片誤判可走，見 PROBLEMS F9）。格解析度＝地圖子格（`tileSize/walkSubdiv`）。淨空（讓路徑離牆一個身位）用**位元圖把牆往外膨脹 `clearCells` 格**（依子格大小自適應，`AgentRadius/子格` 四捨五入）——純位元圖、確定性、保證連通，**不用物理去啃牆**（物理 `OverlapCircle` 會把整片 composite 牆多啃一圈、把窄喉道切斷，害兩個房間不連通，見 PROBLEMS F9）。**地上物家具**（不在位元圖裡）才用 `Physics2D.OverlapCircle`（`Environment`＋`Water`，小半徑 ~0.16）做**聯集**補進格子——這一步在牆膨脹之後跑、半徑遠小於牆淨空，所以只封「真的壓在家具上」的格、碰不到牆（`UnionPhysics` 開關，預設開）。
+  - **怎麼走**（`MonsterActuator.MoveTowards`）：① 目標**直線可達**→ 直接走；「直線可達」用 **`MapNavGrid.HasLineOfSight`（和 A* 同一份格子的格視線）**判定，不是物理細射線——這樣「能不能直走」與 A* 障礙（含家具膨脹）一致，不會因細射線穿過家具淨空而誤判可直走、結果撞上家具（見 PROBLEMS F11）。② 否則走 A* 路徑（八方向＋視線平滑成少數航點，`RepathInterval=0.35s` 重算、目標移動夠遠也重算；怪若卡在不可走格會先被導到最近可走格脫困）。
+  - **🔑 準則：所有怪物一律用 A* 導航、一律不做硬碰撞（無例外，含 boss、含所有招喚物）**（2026-07-10 定案，見 PROBLEMS F11）。每隻怪身上的碰撞框（貼合圖的身體框＋腳底框）**全設 `isTrigger`**——只做「被打到／接觸傷害」的幾何判定（`queriesHitTriggers=1`、`Physics2D.Distance` 都吃得到），**不擋路**。牆/家具的迴避完全交給 A*（尋徑格已含兩者），所以怪**永遠不會頂在牆角或桌腳上卡死**，只會照路徑平滑走；正常連通的圖不會穿牆（路徑一定走在有淨空的可走格上）。在 `MonsterController.FitVisibleBoxCollider`／`AutoAdjustCollider` 內無條件設定，**不要**再為任何怪加回實體碰撞框。
+  - 追擊（`ChaseBrain`）、友軍（`AllyBrain`）、boss 逃跑（`RedBridalGownBrain`）都走 A*。**「讓玩家追得上逃跑的 boss」不靠把她卡住，而是把她的 `MonsterData.Speed` 調慢**（她逃跑會用 A* 自動繞牆）。沒有 `MapNavGrid`（單場景測試）時自動退回局部避障。
+  - **感測半徑資料化（2026-07-10）**：怪「多遠能發現玩家」＝ `MonsterSensor.DetectionRange`，現由 `MonsterData.csv` 的 `DetectionRange` 欄設定（`MonsterController.Initialize` 套用）。預設 10；紅嫁衣家人幽靈/ZhaYu 設 25（房對角 ~20.6，全域看得到）、boss 30。**怪不追先分清**：完全不動＝沒發現（查 DetectionRange 與距離，見 PROBLEMS F10）；會動/震盪＝發現了但走不到（查尋徑格，見 PROBLEMS F9）。
+  - 可調：`MapNavGrid.AgentRadius`（牆淨空，預設 0.3）、`MapNavGrid.UnionPhysics`（是否把家具聯集進格，預設開）、`MonsterActuator.AvoidObstacles`（總開關）。**限制**：格在載圖時建一次，打破家具開路後格不會即時更新（怪仍會繞原路，之後再補「破壞後重建格」即可）。
 
 ### MonsterController
 * 管理怪物血量（`MaxHealth`, `_currentHealth`）。
