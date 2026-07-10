@@ -34,7 +34,7 @@ public class VfxManager : MonoBehaviour
     }
 
     /// <summary>在指定座標生成一次性特效。angleDeg 用於有方向性的特效（如揮砍）；無方向的爆裂填 0 即可。</summary>
-    public VfxInstance Spawn(int id, Vector2 position, float angleDeg = 0f)
+    public VfxInstance Spawn(int id, Vector2 position, float angleDeg = 0f, float extraScale = 1f)
     {
         VfxData data = GetEffect(id);
         if (data == null) return null;
@@ -55,8 +55,23 @@ public class VfxManager : MonoBehaviour
         if (VfxMaterial != null) sr.sharedMaterial = VfxMaterial;
 
         var instance = go.AddComponent<VfxInstance>();
-        instance.Initialize(data, sr);
+        instance.Initialize(data, sr);   // 已設 localScale = data.Scale
+        // extraScale：在 VfxTable 的 Scale 之上再乘一個倍率（召喚特效用來縮放到怪物大小）。
+        if (extraScale > 0f && !Mathf.Approximately(extraScale, 1f))
+            go.transform.localScale = Vector3.one * (data.Scale * extraScale);
         return instance;
+    }
+
+    /// <summary>在指定座標播特效，並縮放到「世界高度 ≈ targetWorldHeight × VfxTable.Scale」——
+    /// VfxTable 的 Scale 在此當「相對目標的倍率」（1 = 與目標等高、1.3 = 放大 30%）。用於召喚特效跟著怪物大小。</summary>
+    public VfxInstance SpawnSizedToHeight(int id, Vector2 position, float targetWorldHeight, float angleDeg = 0f)
+    {
+        VfxData data = GetEffect(id);
+        if (data == null || data.AnimationSprites == null || data.AnimationSprites.Length == 0)
+            return Spawn(id, position, angleDeg);
+        float nativeH = data.AnimationSprites[0].bounds.size.y;   // 第一幀原生世界高（由匯入 PPU 決定）
+        float extra = (nativeH > 0.0001f && targetWorldHeight > 0f) ? targetWorldHeight / nativeH : 1f;
+        return Spawn(id, position, angleDeg, extra);
     }
 
     private void LoadEffects()

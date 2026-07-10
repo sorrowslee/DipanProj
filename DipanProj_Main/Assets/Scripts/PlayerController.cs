@@ -35,6 +35,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     private HitReactionHandler _hitReaction;
     private CombatStats _stats;            // HP/MP 數值層（血/魔條訂閱它的事件）；見 readme/COMBAT.md
     private float _fireTimer = 0f;
+    private float _lastSkillAlertTime = -99f;
+    private const float SkillAlertMinInterval = 0.4f;   // 技能提示（冷卻中/召喚已滿）最短間隔（秒），避免連點洗版
     // 攻擊動畫：攻擊(按住開火)時播 attack；放開後再多撐 AttackAnimLinger 秒才回移動狀態
     // （讓單擊也看得到、連射不閃）。沒有 attack 圖的血統自動略過、維持原本 Walk/Idle。
     private float _attackAnimUntil = -1f;
@@ -218,9 +220,10 @@ public class PlayerController : MonoBehaviour, IDamageable
         float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
         if (_playerAnim == null) return;
 
-        // 攻擊動畫優先：按住開火(空白/左鍵)時播 attack；放開後再撐 AttackAnimLinger 秒（單擊也看得到、連射不閃）。
-        bool attacking = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
-        if (attacking) _attackAnimUntil = Time.time + AttackAnimLinger;
+        // 攻擊動畫「只有真的攻擊出去」才擺：離散武器由 HandleFiring 在實際發射成功時設 _attackAnimUntil
+        //（CD 中／召喚已達上限／魔力不足都不會設）；持續武器（雷射/佛光）只要光束/佛光還在（＝有魔力在放）就算在攻擊。
+        if (_activeBeams.Count > 0 || _activeAura != null)
+            _attackAnimUntil = Time.time + AttackAnimLinger;
 
         // 路線 B：攻擊→cast；否則 移動→走路 / 靜止→發呆（死亡時 Update 已提前 return，不會蓋掉 Dead 狀態）。
         // 沒有 attack 圖的血統 Has(Attack)=false，SetState 會自動退回 Idle，等同維持舊行為。
@@ -299,8 +302,15 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
+        // 離散武器：冷卻好才發射。冷卻中若「按下」攻擊 → 跳提示、不動作、不扣魔（所有離散武器統一走這裡）。
+        bool firePressed = Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
         if (firing && _fireTimer <= 0)
-            Shoot();
+        {
+            if (Shoot(firePressed))
+                _attackAnimUntil = Time.time + AttackAnimLinger;   // 真的發射出去才擺攻擊動作
+        }
+        else if (_fireTimer > 0f && firePressed)
+            ShowSkillAlert("技能正在冷卻中");
     }
 
     // ── 佛光：按住攻擊時，在玩家身上維持一個「跟著玩家移動」的 GroundEffect 圓形 AOE ──
@@ -366,37 +376,45 @@ public class PlayerController : MonoBehaviour, IDamageable
         _rb.velocity = _moveInput * MoveSpeed;
     }
 
-    void Shoot()
+    // pressed = 這一幀是否「剛按下」攻擊（決定要不要跳技能提示，如召喚已達上限；連按/連射不重複洗版）。
+    // 回傳是否「真的發射出去」：魔力不足／召喚已滿 → false（CD 中此函式不會被呼叫）。用來決定要不要擺攻擊動作。
+    bool Shoot(bool pressed)
     {
-        if (_weaponManager == null) return;
+        if (_weaponManager == null) return false;
 
         WeaponData weapon = _weaponManager.GetCurrentWeapon();
-        if (weapon == null || weapon.Recipe == null) return;
+        if (weapon == null || weapon.Recipe == null) return false;
 
         // 召喚型武器：不發射子彈、不需要 BulletPrefab。耗魔後直接在玩家周圍生怪（與 boss 共用 SummonSystem）。
         // 注意：召喚出的怪目前走敵人 AI（會追玩家）——玩家召喚的「友軍」faction 尚未做，見 readme/BOSS_MODULE.md。
         if (weapon.Recipe.IsSummon)
         {
-            if (_stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return;
+            // 召喚滿了（達同時上限）就不動作、也不扣魔（避免「扣了魔卻沒生怪」）；剛按下才跳提示。
+            if (!SummonSystem.HasRoom(weapon.Recipe, _summonAlive))
+            {
+                if (pressed) ShowSkillAlert("召喚數已達上限");
+                return false;
+            }
+            if (_stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
             TrySpawnFireEffect(weapon, AimDirectionToMouse());
-            SummonSystem.Cast(gameObject, transform.position, weapon.Recipe, _summonAlive, MonsterFaction.PlayerAlly);
+            SummonSystem.Cast(gameObject, transform.position, weapon.Recipe, _summonAlive, MonsterFaction.PlayerAlly, weapon.SummonEffectID);
             _fireTimer = (weapon.Recipe.Data != null) ? weapon.Recipe.Data.FireInterval : 1f;
-            return;
+            return true;
         }
 
-        if (weapon.BulletPrefab == null) return;
+        if (weapon.BulletPrefab == null) return false;
 
         ProjectileData recipe = weapon.Recipe.Data;
 
         if (recipe.IsLaser)
         {
             // 雷射由 HandleFiring → UpdateLaser 持續路徑處理，不走離散發射
-            return;
+            return false;
         }
 
         // 魔力：不夠就不發射（不重置 _fireTimer、不播發射特效）。離散武器每發扣一次 ManaCost。
         if (_stats != null && !_stats.TrySpendMana(weapon.ManaCost))
-            return;
+            return false;
 
         // 發射特效：每次離散發射在玩家身上播一次，朝瞄準方向
         TrySpawnFireEffect(weapon, AimDirectionToMouse());
@@ -423,6 +441,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
 
         _fireTimer = recipe.FireInterval;
+        return true;
     }
 
     private void ShootNormal(WeaponData weapon, ProjectileData recipe)
@@ -1334,6 +1353,14 @@ public class PlayerController : MonoBehaviour, IDamageable
         mousePos.z = 0f;
         Vector2 dir = (Vector2)mousePos - (Vector2)transform.position;
         return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.right;
+    }
+
+    // 技能無法施放時的中央 toast 提示（冷卻中 / 召喚已達上限…），用既有「獲得道具」的 AlertPanel。連點有節流避免洗版。
+    private void ShowSkillAlert(string message)
+    {
+        if (Time.unscaledTime - _lastSkillAlertTime < SkillAlertMinInterval) return;
+        _lastSkillAlertTime = Time.unscaledTime;
+        Dipan.UI.AlertPanel.Toast(message);
     }
 
     private void TrySpawnFireEffect(WeaponData weapon, Vector2 aimDir)

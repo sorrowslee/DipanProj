@@ -114,6 +114,9 @@ public class WeaponManager : MonoBehaviour
             // 魔力消耗（第 16 欄）；留空 / 缺欄 = 1（見 readme/COMBAT.md）
             weapon.ManaCost = (v.Length > 16 && !string.IsNullOrWhiteSpace(v[16])) ? float.Parse(v[16].Trim()) : 1f;
 
+            // 召喚特效 ID（第 17 欄，引用 VfxTable）：召喚型武器在每個生怪點播放，特效播完才生怪；留空 / 0 = 不播、立即生怪
+            weapon.SummonEffectID = (v.Length > 17 && !string.IsNullOrWhiteSpace(v[17])) ? int.Parse(v[17].Trim()) : 0;
+
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
 

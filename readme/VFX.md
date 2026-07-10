@@ -24,6 +24,17 @@
 
 三者都引用同一張 `VfxTable.csv`、用同一個 `VfxManager.Spawn(id, position, angle)`。
 
+## 召喚特效（`SummonEffectID`，武器表；特效播完才生怪）
+
+召喚型武器（`IsSummon`，見 [BOSS_MODULE.md](BOSS_MODULE.md)）可在 **WeaponTable** 填 `SummonEffectID`（引用 `VfxTable`）——施放時在**每個生怪點**播一次特效，怪物**在同一幀一起出現**（邊播特效邊出現；其他三種特效也是即放即忘，這個只是多在生怪點播一顆特效）。
+
+* 由 `SummonSystem.Cast` 在每個生怪點 `VfxManager.Spawn` 播特效，並在**同一幀** `SpawnMonster`。
+* 玩家（`PlayerController.Shoot`）與 boss（`MonsterWeaponUser`）召喚**共用** `SummonSystem.Cast`，都吃這一欄。
+* 同時上限（`SummonMaxAlive`）由 `SummonSystem` 一次算好；施放端在扣魔/進冷卻前先用 `SummonSystem.HasRoom` 確認有空位（滿了不扣魔、不動作）。場景找不到 `VfxManager` 則只生怪、不播特效。
+* 留空 / 0 = 不播特效、立即生怪（原行為）。目前紅嫁衣召喚（武器 14）、御靈水晶（武器 13）用 `VfxTable` 10「招喚怪物」。
+* **特效大小自動跟著怪物**：召喚走 `VfxManager.SpawnSizedToHeight`，把特效縮放到該怪的可見高度（route B 怪＝`CharacterWorldHeight`（預設 1.95）× `MonsterData.Scale`），所以**大怪大特效、小怪小特效**。此時 `VfxTable` 該列的 `Scale` 欄對召喚特效改當「**相對怪物高度的倍率**」（1 = 與怪等高、1.3 = 比怪大 30% 包住牠）；id 10 目前設 1.3。
+
+
 ## 配置檔案
 
 `Assets/Data/VfxTable.csv`：

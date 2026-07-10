@@ -8,3 +8,4 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 7,怪物死亡(暫借爆炸), VfxEffects/Destroyed/Destroyed,4,10,1,0,,
 8,沙土爆炸, VfxEffects/FloorExplosive/FloorExplosive,9,24,0.5,0,,
 9,天降雷擊(sprite雷柱), VfxEffects/SkyLightning/SkyLightning,8,15,2.8,0,,
+10,招喚怪物, VfxEffects/Summon/fanfx1_magic_puff_B,21,15,1.3,0,,

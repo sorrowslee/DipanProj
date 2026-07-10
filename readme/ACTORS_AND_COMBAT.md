@@ -22,10 +22,12 @@
 ### MonsterSensor
 * 玩家參考在 `Start()` 時快取一次（`FindGameObjectWithTag`），之後每幀直接讀取快取，不重複搜尋全場景。
 * 若快取遺失（玩家死亡/重生），自動嘗試重新尋找。
+* **感測範圍 `DetectionRange`（世界單位＝地圖格數）**：怪物只在「與玩家**直線距離 ≤ DetectionRange**」時才追（`GetTargetPlayer` 回玩家，否則回 null）。**1 世界單位 = 1 格 tile**（tileSize=1）。一般怪預設 **10**、紅嫁衣 boss 用 **30**。紅嫁衣關卡每張房間都是 **18×10 格**，對角線（房內最遠距離）≈ **20.6**——所以要「整張房間都看得到玩家」設 **≥ 21**（保險用 25 更穩）。改在 `MonsterSensor.DetectionRange`（一般怪）或 `RedBridalGownBrain` 的 `DetectionRange` 常數（boss）。
 
 ### Brain & Actuator
 * `IMonsterBrain` 介面：`Think(actuator, player)` 決策邏輯，目前實作 `ChaseBrain`（追擊）。
 * `MonsterActuator`：執行物理移動（`_rb.velocity`），維護 `IsMoving` 狀態旗標供動畫系統查詢。
+* **障礙迴避（2026-07-10）**：`MoveTowards` 會用 `CircleCast` 往前探路，被牆／地上物擋住就往兩側**逐步加大角度**找「最接近原方向的暢通方向」滑過去（貼牆繞行、鑽窄縫）。**避障不會讓怪原地凍住**——一整圈都被擋時仍朝目標推；另有解卡：「想動卻沒位移超過 0.25s」會自動往側邊滑 0.4s 脫離卡點（`UpdateStuck`）。追擊（`ChaseBrain`）與友軍（`AllyBrain`）自動生效；**紅嫁衣 boss 逃跑刻意關掉**（`AvoidObstacles=false`，維持「被卡住讓玩家追上」的設計）。可調欄位（`MonsterActuator`）：`AvoidObstacles`（總開關）、`AvoidLookahead`（往前探多遠，預設 1.5）、`AvoidProbeScale`（探測圓＝自身半身寬 × 此值，預設 0.9；越小越鑽得進窄縫）。避障只查 `Environment`＋`Water` 層。
 
 ### MonsterController
 * 管理怪物血量（`MaxHealth`, `_currentHealth`）。

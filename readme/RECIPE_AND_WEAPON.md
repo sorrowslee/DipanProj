@@ -61,6 +61,7 @@
 | `FireEffectID` | 發射特效 ID（引用 `VfxTable`）：發射時在玩家身上播一次、朝瞄準方向；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `HitEffectID` | 擊中特效 ID（引用 `VfxTable`）：子彈／光束命中怪物、障礙物、拋物線落地時在命中點播一次；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `TrailEffectID` | 軌跡特效 ID（引用 `VfxTable`）：沿子彈飛行路徑每隔配方的 `TrailStep` 距離種一個（**地刺類武器**靠這個沿路長出尖刺）；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
+| `SummonEffectID` | 召喚特效 ID（引用 `VfxTable`）：**召喚型武器**（`IsSummon`）施放時在**每個生怪點**播一次，怪物**同一幀一起出現**（邊播特效邊出現）；留空 / 0 = 不播、無特效直接生怪。見 [VFX.md](VFX.md)、[BOSS_MODULE.md](BOSS_MODULE.md) |
 
 ## 序列圖動畫設定說明
 

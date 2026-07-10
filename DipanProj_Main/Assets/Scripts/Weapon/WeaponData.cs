@@ -25,6 +25,7 @@ public class WeaponData
     public int FireEffectID;   // 發射時在玩家身上播放（朝瞄準方向）
     public int HitEffectID;    // 子彈／光束命中怪物、障礙物、拋物線落地時，在命中點播放
     public int TrailEffectID;  // 沿子彈飛行路徑每隔 TrailStep 距離種一個（地刺武器靠這個沿路長出尖刺）
+    public int SummonEffectID; // 召喚型武器：在每個生怪點播放一次，特效播完才生怪；0 / 留空 = 不播、立即生怪
 
     public RecipeEntry Recipe;
     public GameObject BulletPrefab;

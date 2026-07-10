@@ -52,6 +52,7 @@
 **玩家側已接（2026-07-09，測試用）**：召喚核心抽成擁有者無關的共用靜態 `SummonSystem.Cast(owner, originPos, recipe, aliveTracker)`——`MonsterWeaponUser`（boss）與 `PlayerController.Shoot`（玩家）都呼叫它，各持一份 alive 清單管同時上限。玩家 Shoot 在「需要 BulletPrefab」的守衛**之前**先攔 `IsSummon`：耗魔→播發射特效→`SummonSystem.Cast`→`_fireTimer=FireInterval`（按住左鍵依冷卻重複召喚）。
 - **測試武器＝13 號「御靈水晶」**（RecipeID→27）。配方 27：`IsSummon=1`, `FireInterval=1.5`, `SummonIds=1`（ZhaYu，Main 的怪、**任何地圖都載得到 idle+walk**，故不必先 Sync 就能測）, `SummonCount=1`, `SummonMaxAlive=3`, `SummonRadius=1.5`。切到御靈水晶、按住左鍵即在身邊召喚。要召家人幽靈把 `SummonIds` 改 `8|9|10|11|12`（需在 RedBridalGown 地圖或先 Sync 讓幽靈 walk 幀到位）。
 - **陣營制已完成（2026-07-09）**：召喚帶陣營——**玩家召喚＝`PlayerAlly`（協戰）**、**怪物/boss 召喚＝`Enemy`**。見下 §4。
+- **召喚特效（2026-07-10）**：召喚型武器可在**武器表**填 `SummonEffectID`（引用 VfxTable），施放時在**每個生怪點播特效、同一幀就生怪（邊播邊出現）**（`SummonSystem.Cast`，玩家/boss 共用；扣魔/冷卻前先 `HasRoom` 確認有空位）。武器 14（紅嫁衣召喚）、13（御靈水晶）已填 VfxTable 10「招喚怪物」。留空 / 0 = 不播、立即生怪。見 [VFX.md](VFX.md)。
 
 ---
 

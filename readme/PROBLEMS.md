@@ -320,6 +320,25 @@
   - **③ 還原**：先前「偷調」的測試怪 HP/ContactDamage 已還原（ZhaYu HP10、幽靈 HP3、接觸傷害 10）。公平性由機制保證，數值單純由作者依設計調。
   - 傷害本身仍走中央 `CombatSystem`（見 [COMBAT.md](COMBAT.md)）；本則只解決「接觸的施加時機/互換」。
 
+### F6. Boss（紅嫁衣）召喚出來的是玩家的怪（ZhaYu），不是她的家人幽靈
+- **症狀**：玩家用御靈水晶（武器 13）召喚 ZhaYu；去打紅嫁衣 boss，她也召喚 ZhaYu，而不是家人幽靈——像是「召喚共用同一管道、大家召一樣的東西」。
+- **原因**：**不是共用管道**。`SummonSystem.Cast(recipe, ...)` 讀的是**呼叫端各自傳入的 recipe**（玩家 `PlayerController.Shoot` 傳當前武器的配方、boss `MonsterWeaponUser` 傳自己武器的配方），兩邊 SummonIds 本來就各自獨立。真正原因是**資料填錯**：`MonsterData.csv` 的 boss（怪物 13 RedBridalGown）`Weapon` 欄填成 **13**（＝御靈水晶，配方 27、`SummonIds=1` 召喚 ZhaYu），應該是 **14**（紅嫁衣召喚家人，配方 26、`SummonIds=2|3|…|12` 召喚家人幽靈）＝boss 被裝上了玩家的測試水晶。
+- **解法**：把 `MonsterData.csv` 怪物 13 的 `Weapon` 改成 `14`。**通則**：boss/怪物「召喚錯東西／用錯技能」先順 `MonsterData.Weapon → WeaponTable 的 RecipeID → RecipeTable 的 SummonIds` 這條資料鏈查是否指錯，多半是資料、不是程式（召喚共用 `SummonSystem` 但吃各自的配方）。
+
+---
+
+### F7. 召喚出來的怪出生在牆裡／不可走區，走不出來
+- **症狀**：boss（或玩家）召喚時，怪出生在牆/不可走格（例：boss 逃到房間右邊，召喚環 `SummonRadius` 剛好探進右側牆），怪卡在牆裡動不了。
+- **原因**：`SummonSystem.Cast` 原本只在施放者周圍 `SummonRadius` 環上隨機取點，**沒檢查該點可不可走**。
+- **解法**：`SummonSystem.FindSpawnPos` 用 `Physics2D.OverlapCircle(p, 0.35, Environment|Water)` 驗證候選點，撞牆就換角度、由外往內縮找空位，都不行退回施放者腳下（一定可走）。**通則**：任何「在某點生實體」的機制（召喚/掉落/傳送落點）都該先驗證該點不在牆/水裡。
+
+### F8. 怪物追一追停在空地不動（避障誤判「被包住」而凍結）
+- **症狀**：怪物在可走空地上追玩家，追到某點就完全不動了，即使玩家站到旁邊也追不到。
+- **原因**：加了局部避障後，`SteerAround` 在「所有探測方向都被擋」時回 `Vector2.zero` → `Stop()`，一旦誤判（或怪的高碰撞框卡在牆邊）就會每幀凍在原地。
+- **解法**：避障**永不回 zero**（一整圈都被擋也仍朝目標推，交給物理/解卡處理）＋新增**解卡**：`MonsterActuator.UpdateStuck` 偵測「想動卻幾乎沒位移超過 0.25s」→ 往側邊滑 0.4s 脫困、換邊重試。**通則**：局部避障不要用「偵測不到出路就停」當唯一手段，會因誤判凍住；改成「永不凍住＋卡住就側滑脫困」。（2026-07-10 記）
+
+---
+
 ## H. 流程 / 存讀檔 (Game Flow & Save UI)
 
 > 系統說明見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md)、[SAVE_SYSTEM.md](SAVE_SYSTEM.md)。

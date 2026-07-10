@@ -31,6 +31,8 @@ public class RedBridalGownBrain : IMonsterBrain
         _inited = true;
         if (ctx.Sensor != null) ctx.Sensor.DetectionRange = DetectionRange;
         _weapon = (ctx.Self != null) ? ctx.Self.WeaponUser : null;
+        // boss 逃跑刻意走直線、會被牆角/家具卡住讓玩家追上（設計）→ 關掉避障，不走繞路。
+        if (ctx.Actuator != null) ctx.Actuator.AvoidObstacles = false;
     }
 
     public void Think(in MonsterContext ctx)

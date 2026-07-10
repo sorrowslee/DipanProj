@@ -85,6 +85,7 @@ public class MonsterWeaponUser : MonoBehaviour
     // 召喚：委派給玩家/怪物共用的 SummonSystem（同時上限用本元件自己的 _summoned 清單追蹤）。
     private bool TrySummon(RecipeEntry recipe)
     {
-        return SummonSystem.Cast(gameObject, transform.position, recipe, _summoned, MonsterFaction.Enemy);
+        int vfxId = (_weapon != null) ? _weapon.SummonEffectID : 0;
+        return SummonSystem.Cast(gameObject, transform.position, recipe, _summoned, MonsterFaction.Enemy, vfxId);
     }
 }
