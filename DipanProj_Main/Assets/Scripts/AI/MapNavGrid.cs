@@ -219,6 +219,20 @@ public class MapNavGrid : MonoBehaviour
     /// <summary>世界座標的視線檢查（用和 A* 同一份 _walk 格）：起訖任一格不可走、或直線經過不可走格 → false。
     /// 給 MonsterActuator.DirectClear 用，讓「直線可達」的判定和 A* 障礙（含家具膨脹）一致，避免細射線穿過家具淨空
     /// 而誤判可直走、結果撞上家具卡住。</summary>
+    /// <summary>隨機取一個可走格的世界中心點（給榕樹妖在場上隨機下地刺用）。取不到回 false。</summary>
+    public bool TryGetRandomWalkable(out Vector2 world)
+    {
+        world = Vector2.zero;
+        if (!_ready || _w <= 0) return false;
+        int n = _w * _h;
+        for (int t = 0; t < 40; t++)
+        {
+            int i = Random.Range(0, n);
+            if (_walk[i]) { world = CellCenter(i); return true; }
+        }
+        return false;
+    }
+
     public bool HasLineOfSight(Vector2 fromW, Vector2 toW)
     {
         if (!_ready) return false;

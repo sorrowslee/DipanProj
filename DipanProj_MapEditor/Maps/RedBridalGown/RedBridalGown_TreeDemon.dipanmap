@@ -133,6 +133,21 @@
           "params": {
             "dramaId": "8"
           }
+        },
+        {
+          "id": "6d074c16",
+          "name": "榕樹妖",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              8,
+              2
+            ]
+          ],
+          "params": {
+            "monsterId": "14",
+            "deathFlag": ""
+          }
         }
       ]
     }

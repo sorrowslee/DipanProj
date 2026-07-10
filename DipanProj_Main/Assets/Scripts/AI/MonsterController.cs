@@ -233,6 +233,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();
                 break;
+            case "BanyanTree":      // 榕樹妖 boss：不可直接打，玩家打牠的地刺反傷本體（見 BanyanTreeBrain）
+                _brain = new BanyanTreeBrain();
+                break;
             default:
                 _brain = new ChaseBrain();
                 break;

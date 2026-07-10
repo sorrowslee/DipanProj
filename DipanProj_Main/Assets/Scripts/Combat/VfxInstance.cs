@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -17,6 +18,11 @@ public class VfxInstance : MonoBehaviour
     private float _lifeRemaining;   // 只在 Loop=true 或「靜態單張/沒給 FPS」時用到
     private bool _infiniteLife;     // Loop + Duration<0：永不自毀（外部管理生死）
     private bool _initialized;
+
+    // 受擊白光（沿用怪物那套 SpriteFlash shader）：給「以特效當外觀的攻擊物」（如榕樹妖地刺）被打時閃一下。
+    static Material _flashMat;
+    MaterialPropertyBlock _flashMpb;
+    Coroutine _flashCo;
 
     public void Initialize(VfxData data, SpriteRenderer renderer)
     {
@@ -48,6 +54,40 @@ public class VfxInstance : MonoBehaviour
         _animTimer = 0f;
         _animFrame = 0;
         _initialized = true;
+    }
+
+    /// <summary>受擊白光閃一下（和怪物 HitReactionHandler 同一顆 SpriteFlash shader）。給地刺等「用特效當外觀」的攻擊物在被打時呼叫。</summary>
+    public void Flash(float intensity = 0.7f, int count = 2, float dur = 0.05f)
+    {
+        if (_renderer == null) return;
+        if (_flashMat == null)
+        {
+            Shader sh = Resources.Load<Shader>("Shaders/SpriteFlash");
+            if (sh != null) _flashMat = new Material(sh);
+        }
+        if (_flashMat == null) return;                                   // 沒 shader 就算了，不報錯
+        if (_renderer.sharedMaterial != _flashMat) _renderer.sharedMaterial = _flashMat;
+        if (_flashMpb == null) _flashMpb = new MaterialPropertyBlock();
+        if (_flashCo != null) StopCoroutine(_flashCo);
+        _flashCo = StartCoroutine(FlashRoutine(intensity, count, dur));
+    }
+
+    IEnumerator FlashRoutine(float intensity, int count, float dur)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            SetFlash(intensity); yield return new WaitForSeconds(dur);
+            SetFlash(0f);        yield return new WaitForSeconds(dur);
+        }
+        _flashCo = null;
+    }
+
+    void SetFlash(float a)
+    {
+        if (_renderer == null || _flashMpb == null) return;
+        _renderer.GetPropertyBlock(_flashMpb);
+        _flashMpb.SetFloat("_FlashAmount", a);
+        _renderer.SetPropertyBlock(_flashMpb);
     }
 
     private void Update()
