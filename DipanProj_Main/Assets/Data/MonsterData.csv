@@ -1,7 +1,7 @@
 ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent, ContactDamage, DamageReduction, Speed, AnimFPS, AttackInterval(接觸攻擊間隔秒/攻速/越小攻越快/空為0.5), DetectionRange
  1, ZhaYu, 10, Chase    , Contact,1.2,           ,                0,                  3,               20, 10,               0,     1,       8,,25
 2, Ghost_Boy, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25
-3,Ghost_Dog, 3, Chase    , Contact,0.4,           ,                0,1,120, 10,               0,     1,       8,,25
+3,Ghost_Dog, 3, Chase    , Contact,0.4,           ,                0,1,120, 10,               0,2,       8,,25
 4,Ghost_FatBoy, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25
 5,Ghost_Father, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
 6,Ghost_FatMan, 3, Chase    , Contact,1.1,           ,                0,1,120, 10,               0,     1,       8,,25

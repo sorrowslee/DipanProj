@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class ChaseBrain : IMonsterBrain
 {
-    public float StopDistance = 1f; // 不要貼太近
+    public float StopDistance = 0.2f; // 貼上玩家才吃得到接觸傷害（怪已是 trigger、不會推玩家，可以重疊）
 
     public void Think(in MonsterContext ctx)
     {

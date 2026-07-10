@@ -105,7 +105,12 @@ public class HitReactionHandler : MonoBehaviour
         float spriteWidth = _spriteRenderer.sprite.bounds.size.x;
         float worldWidth = spriteWidth * Mathf.Abs(transform.lossyScale.x);
         float knockbackDistance = worldWidth * (_knockbackPercent / 100f);
-        Vector2 velocity = direction.normalized * (knockbackDistance / KNOCKBACK_DURATION);
+
+        // 怪物現在是 trigger（無硬碰撞），擊退不會被牆擋 → 會飛穿牆再被 A* 拉回來。這裡用物理射線偵測「真正的牆」，
+        // 把擊退距離夾到牆邊之前：後面空地就照原距離退、後面是牆就退到牆邊為止（退不夠遠也還是會退到能退的最遠處）。
+        Vector2 dir = direction.normalized;
+        knockbackDistance = ClampToWall(_rb.position, dir, knockbackDistance);
+        Vector2 velocity = dir * (knockbackDistance / KNOCKBACK_DURATION);
 
         IsKnockedBack = true;
         _rb.velocity = velocity;
@@ -114,6 +119,20 @@ public class HitReactionHandler : MonoBehaviour
 
         _rb.velocity = Vector2.zero;
         IsKnockedBack = false;
+    }
+
+    // 用物理射線沿擊退方向找「真正的牆/水」，把距離夾到牆邊之前（留一點邊距讓身體別陷進去）。
+    // 用實際碰撞而非尋徑格：尋徑格為了怪身淨空把牆膨脹了一圈，會害怪退不進那圈；這裡要讓怪能一路退到真牆邊。
+    // 後面沒牆 → 回原距離（正常退）；後面有牆 → 回「到牆邊」的距離（退到能退的最遠處，不會是 0，除非已經貼著牆）。
+    private float ClampToWall(Vector2 start, Vector2 dir, float dist)
+    {
+        if (dist <= 0f) return dist;
+        int mask = LayerMask.GetMask("Environment", "Water");
+        if (mask == 0) return dist;
+        const float margin = 0.15f;   // 約腳框半寬：讓身體停在牆邊而不是中心貼上牆
+        RaycastHit2D hit = Physics2D.Raycast(start, dir, dist + margin, mask);
+        if (hit.collider == null) return dist;             // 後面沒牆 → 照原距離退
+        return Mathf.Max(0f, hit.distance - margin);       // 後面有牆 → 退到牆邊之前
     }
 
     private IEnumerator InvincibilityPeriod()

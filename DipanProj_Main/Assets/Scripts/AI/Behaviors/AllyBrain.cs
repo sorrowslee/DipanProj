@@ -10,7 +10,7 @@ using UnityEngine;
 public class AllyBrain : IMonsterBrain
 {
     const float AggroRange = 7f;    // 敵怪在這距離內就去打（否則優先跟玩家）
-    const float AttackStop = 1.0f;  // 打敵怪的停止距離（貼上去才吃得到接觸傷害）
+    const float AttackStop = 0.2f;  // 打敵怪的停止距離：貼上去重疊才吃得到接觸傷害（雙方都是 trigger、不互推）
     const float FollowNear = 2.2f;  // 跟玩家：距離 > 這值才靠近，內就停（不黏太緊）
 
     public void Think(in MonsterContext ctx)
