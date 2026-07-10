@@ -14,3 +14,6 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 13,4,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,現在，通過這扇門,1.1,,-130,,,
 14,5,主角,Actor_Hurt,,1,痛痛痛痛痛死我了,1.1,,-130,,,
 15,5,主角,Actor_Fear,,1,這裡是哪裡?我怎麼會在這?,1.1,,-130,,,
+16,7,主角,,Actor_Fear,2,這是怎麼樣? 發生什麼事? 房子呢? 怎麼消失了?,,,,,,
+17,7,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious,Actor_Fear,1,哼，那女人竟然敢放過獵物，看我不好好修理她,,,-50,,,
+18,7,榕樹妖,Modules/RedBridalGown/Talk/treeFace_crazy,Actor_Fear,1,現在，你還是乖乖化為我的氣血吧，成為我的養分，死後魂魄也要為我所用，哈哈哈,,,-50,,,

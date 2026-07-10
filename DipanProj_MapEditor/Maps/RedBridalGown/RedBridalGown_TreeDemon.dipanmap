@@ -21,7 +21,25 @@
       "opacity": 1.0,
       "locked": false,
       "tiles": [],
-      "objects": []
+      "objects": [
+        {
+          "assetId": "Modules/RedBridalGown/Environment/treeFace_vicious",
+          "x": 8.764398,
+          "y": -1.19920421,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 0.70734787,
+          "scaleY": 0.70734787,
+          "sortKey": -1.19920421,
+          "zOrder": 0,
+          "hp": 1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "breakFlag": ""
+        }
+      ]
     },
     {
       "id": "walk",
@@ -96,6 +114,25 @@
             ]
           ],
           "params": {}
+        },
+        {
+          "id": "1bec981d",
+          "name": "進場觸發對話",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "delaySeconds": "",
+            "next": "榕樹妖跟玩家對話"
+          }
+        },
+        {
+          "id": "876ddade",
+          "name": "榕樹妖跟玩家對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "8"
+          }
         }
       ]
     }
