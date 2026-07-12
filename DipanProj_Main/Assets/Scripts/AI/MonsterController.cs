@@ -237,6 +237,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 break;
             case "BanyanTree":      // 榕樹妖 boss：不可直接打，玩家打牠的地刺反傷本體（見 BanyanTreeBrain）
                 _brain = new BanyanTreeBrain();
+                DeathVfxId = 0;        // 死亡用臉地上物的自訂燃燒演出（BanyanBossFace），不放一般死亡特效
                 break;
             default:
                 _brain = new ChaseBrain();
@@ -417,6 +418,17 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         if (_isDead) return;
         _isDead = true;    // 立刻停止行動（Update 提前 return）＋別的怪不再把它當目標（IsDead 過濾）
         _dying = true;     // 實際銷毀延到 LateUpdate
+
+        // 榕樹妖：死亡不是「怪消失」而是一段燃燒演出（臉燒→消失→整棵樹此起彼落燒）。
+        if (_brain is BanyanTreeBrain)
+        {
+            BanyanBossFace.Instance?.PlayDeath();
+            BossSpike.CancelAll();   // 地刺立刻停止（含預警中/冒出中），不再傷人
+        }
+
+        // 召喚者（boss）死亡：回收還在場上的召喚分身（例：紅嫁衣的家人幽靈）。
+        var weaponUser = GetComponent<MonsterWeaponUser>();
+        if (weaponUser != null) weaponUser.RecallSummons();
     }
 
     void LateUpdate()

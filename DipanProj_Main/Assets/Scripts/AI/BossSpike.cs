@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
@@ -26,6 +27,7 @@ public class BossSpike : MonoBehaviour, IDamageable
     public static bool DebugDrawHitbox = false;
 
     static VfxManager _vfx;
+    static readonly List<BossSpike> _active = new List<BossSpike>();   // 場上所有還在的地刺（boss 死掉要一次收掉）
 
     MonsterController _boss;   // 反傷對象（本體）
     float _damage;             // 碰到玩家的傷害
@@ -33,6 +35,7 @@ public class BossSpike : MonoBehaviour, IDamageable
     bool _exposed;             // 危險窗內才 true（才傷人、才可被打）
     BoxCollider2D _col;
     VfxInstance _spikeVfx;   // 冒出的地刺特效實體（被打時閃白光用）
+    VfxInstance _arrowVfx;   // 預警箭頭特效實體（提前取消時要一起收）
     EnemyContactDamage _contact;
     LineRenderer _dbgBox;   // 除錯用：受傷範圍紅框
 
@@ -60,6 +63,7 @@ public class BossSpike : MonoBehaviour, IDamageable
         _scale = scale <= 0f ? 1f : scale;
         _damage = damage;
         if (_vfx == null) _vfx = FindObjectOfType<VfxManager>();
+        _active.Add(this);
 
         // 危險/命中框：trigger（不擋路），Enemy 層讓玩家武器打得到。先建好，預警期間關閉、冒出時才開。
         int enemyLayer = LayerMask.NameToLayer("Enemy");
@@ -82,7 +86,7 @@ public class BossSpike : MonoBehaviour, IDamageable
         if (_startDelay > 0f) yield return new WaitForSeconds(_startDelay);   // 排掃：錯開時間 → 推進浪
 
         // ① 預警：箭頭往下
-        if (_vfx != null) _vfx.Spawn(ArrowVfxId, transform.position, 0f, _scale);
+        if (_vfx != null) _arrowVfx = _vfx.Spawn(ArrowVfxId, transform.position, 0f, _scale);
         yield return new WaitForSeconds(WarnTime);
 
         // ② 冒出：地刺特效 + 開危險/命中窗
@@ -154,6 +158,25 @@ public class BossSpike : MonoBehaviour, IDamageable
     void ClearDebugBox()
     {
         if (_dbgBox != null) _dbgBox.enabled = false;
+    }
+
+    void OnDestroy() { _active.Remove(this); }
+
+    /// <summary>把場上所有地刺（含預警中、冒出中）立刻收掉——boss 被打敗時呼叫，招式不再傷人。</summary>
+    public static void CancelAll()
+    {
+        var snapshot = new List<BossSpike>(_active);   // Destroy 會改動 _active，先複製一份
+        foreach (var s in snapshot)
+            if (s != null) s.CancelImmediate();
+        _active.Clear();
+    }
+
+    // 立刻消滅這根地刺：連它的預警箭頭 / 地刺特效一起收（不留殘影、不再判傷）。
+    void CancelImmediate()
+    {
+        if (_arrowVfx != null) Destroy(_arrowVfx.gameObject);
+        if (_spikeVfx != null) Destroy(_spikeVfx.gameObject);
+        Destroy(gameObject);
     }
 
     // 玩家打到「露在外面的地刺」→ 傷害轉給榕樹妖本體（收回/預警期間打不到，這裡再保險擋一層）。

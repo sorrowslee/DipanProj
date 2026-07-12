@@ -414,9 +414,19 @@ public class MapLoader : MonoBehaviour
             }
         }
 
+        // 榕樹妖的臉：掛控制器（發招換 crazy 臉、死亡燃燒演出）。載入 crazy 變體 sprite 交給它。
+        bool isBanyanFace = !string.IsNullOrEmpty(inst.assetId) && inst.assetId.Contains("treeFace");
+        if (isBanyanFace)
+        {
+            var crazyItem = _catalog.Find(inst.assetId.Replace("vicious", "crazy"));
+            Sprite crazySprite = crazyItem != null ? _sprites.GetWholeSprite(crazyItem, _map.tileSize) : null;
+            go.AddComponent<BanyanBossFace>().Setup(sr, sprite, crazySprite);
+        }
+
         // hp < 0（例如 -1）= 不可摧毀:不掛 DestructibleObject,但上面的碰撞框照常 → 等於一般牆壁(擋＋反彈)。
         // walkable 物件沒有碰撞、打不到，也不掛可破壞。
-        if (objectsDestructible && !inst.walkable && inst.hp >= 0)
+        // 榕樹妖的臉刻意不可破壞（boss 不能被直接攻擊；臉是演出用地上物，被打爆會破壞死亡表演）。
+        if (objectsDestructible && !inst.walkable && inst.hp >= 0 && !isBanyanFace)
         {
             var d = go.AddComponent<DestructibleObject>();
             float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值

@@ -131,7 +131,8 @@
           "typeId": "drama",
           "cells": [],
           "params": {
-            "dramaId": "8"
+            "dramaId": "8",
+            "next": "榕樹妖boss資訊"
           }
         },
         {
@@ -147,6 +148,16 @@
           "params": {
             "monsterId": "14",
             "deathFlag": ""
+          }
+        },
+        {
+          "id": "76247d31",
+          "name": "榕樹妖boss資訊",
+          "typeId": "bossIntro",
+          "cells": [],
+          "params": {
+            "monsterId": "14",
+            "warnVfxId": ""
           }
         }
       ]

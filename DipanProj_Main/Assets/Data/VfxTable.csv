@@ -15,4 +15,4 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 14,警告, VfxEffects/Warnning/symbol_warning_text_001,32,15,1,0,,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 15,綠色火焰, VfxEffects/GreenFire/fire_C,120,15,3,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 16,紅色鬼火, VfxEffects/GhostFire_Red/fire_looping_001,12,15,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-17,紅色鬼火, VfxEffects/GroundFire_Red/fanfx2_fire_spell,23,15,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+17,紅色地上火焰, VfxEffects/GroundFire_Red/fanfx2_fire_spell,23,15,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

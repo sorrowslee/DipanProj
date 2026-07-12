@@ -83,6 +83,14 @@ public class MonsterWeaponUser : MonoBehaviour
         return cast;
     }
 
+    /// <summary>擁有者（boss）死亡時呼叫：回收所有還活著的召喚分身——boss 死了、招式（召喚物）也該及時撤掉。</summary>
+    public void RecallSummons()
+    {
+        foreach (var go in _summoned)
+            if (go != null) Destroy(go);
+        _summoned.Clear();
+    }
+
     // 召喚：委派給玩家/怪物共用的 SummonSystem（同時上限用本元件自己的 _summoned 清單追蹤）。
     private bool TrySummon(RecipeEntry recipe)
     {

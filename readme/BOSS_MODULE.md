@@ -2,7 +2,7 @@
 
 > 返回 [文件總覽](README.md)｜怪物量產見 [MONSTER_SETUP.md](MONSTER_SETUP.md)｜武器/配方見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)｜傷害結算見 [COMBAT.md](COMBAT.md)｜劇情分支見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7
 >
-> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚）程式完成（2026-07-09）；✅ 榕樹妖 boss（地刺／三階段／三大絕）程式完成（2026-07-10），待實機微調＋換臉。** 投射型武器供怪物使用（飛劍/落雷…）為 Phase 2。
+> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚）程式完成（2026-07-09）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** 待實機微調。投射型武器供怪物使用（飛劍/落雷…）為 Phase 2。
 
 「一隻強怪＝一個 Brain 模組」。第一個範例是紅嫁衣女殭屍。未來每隻 boss 都新增一個自己的 Brain 類別，其它系統不動。
 
@@ -28,6 +28,8 @@
 - **逃跑**：玩家進入 `FleeRange`(4.0) 內 → 往「反方向」直線逃（用她自己的 `MonsterData.Speed`）；拉開到 `SafeRange`(6.5) 才停（遲滯避免臨界抖動）。**刻意不做繞牆尋路** → 會被牆角/家具卡住讓玩家追上；速度也刻意低於玩家（玩家 5、她預設 3.5）。
 - **召喚**：**只看冷卻、不綁逃跑狀態**（她多半在逃，若綁「安全才召」會幾乎不召）。召喚是一把 WeaponTable 武器（見 §3），冷卻/名單/數量/上限全走配方。
 - **手感常數**都在 `RedBridalGownBrain.cs` 上方（`FleeRange`/`SafeRange`/`DetectionRange`/`AwayLookahead`）；逃跑速度走 CSV `Speed`。
+
+**boss 死亡＝召喚物回收**：紅嫁衣被打敗時，她召喚出來、還活著的家人幽靈會**當場被回收清除**（`MonsterWeaponUser.RecallSummons`，由 `MonsterController.Die` 呼叫）——boss 死了招式不該還在場上。這是通用機制，見 §6.7。
 
 **與「殺家人」劇情分支的關係（重要）**：`killedFamily` 旗標綁「**編輯器擺放的家人怪出生點**上的死亡觸發旗標」（見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7）。**boss 召喚出來的分身刻意不帶 `deathFlag`**（`MonsterWeaponUser.TrySummon` 呼叫 `SpawnMonster(id, pos)` 不傳旗標），所以玩家殺召喚分身**不會**誤觸 killedFamily——分支邏輯天生乾淨。
 
@@ -83,15 +85,16 @@
 
 ---
 
-## 6. 榕樹妖（`BanyanTreeBrain` ＋ `BossSpike`）— 打「牠的攻擊物」反傷本體
+## 6. 榕樹妖（`BanyanTreeBrain` ＋ `BossSpike` ＋ `BanyanBossFace`）— 打「牠的攻擊物」反傷本體
 
-**概念**：跟紅嫁衣完全相反的一種 boss。榕樹妖本體＝**背景的一棵樹、無法直接攻擊**（本體是**無圖隱形的 `MonsterController`**，只管血量＋編排攻擊、不移動）。牠用**地刺**攻擊玩家；玩家要**閃過地刺**，並**攻擊「冒出來的地刺」**把傷害反饋給本體。臉是地上物（`treeFace_vicious.png` 平時／`treeFace_crazy.png` 攻擊時，換臉為待做）。
+**概念**：跟紅嫁衣完全相反的一種 boss。榕樹妖本體＝**背景的一棵樹、無法直接攻擊**（本體是**無圖隱形的 `MonsterController`**，只管血量＋編排攻擊、不移動）。牠用**地刺**攻擊玩家；玩家要**閃過地刺**，並**攻擊「冒出來的地刺」**把傷害反饋給本體。臉是地上物（`treeFace_vicious`）——原設計攻擊時換 `treeFace_crazy` 臉，但**兩張素材搭不上、已決定不換臉**（維持 vicious）；換臉管線（`BanyanBossFace.FlashAttacking`）保留但停用，日後有合適素材再由 brain 呼叫即可恢復。
 
-**兩個檔案**：
+**三個檔案**：
 | 檔案（`Assets/Scripts/AI/`） | 角色 |
 |---|---|
 | `Behaviors/BanyanTreeBrain.cs` | boss 腦：讀血量切階段、編排每一波地刺。手感常數全在檔案上方。 |
 | `BossSpike.cs` | **地刺攻擊實體**（一次性、自跑狀態機）。單根／一排／放大版都用這同一個實體，差在生成的位置／時間／scale／碰撞框比例。 |
+| `BanyanBossFace.cs` | 臉地上物的控制器（MapLoader 依 assetId 自動掛）。主責＝**boss 死亡的整棵樹燃燒演出**（見 §6.6）；另含停用中的換臉管線。 |
 
 ### 6.1 地刺的一生（`BossSpike`）
 
@@ -115,37 +118,62 @@
 
 ### 6.3 三階段（讀 `MonsterController.HealthFraction`）
 
-| 階段 | 血量 | 行為 |
+| 階段 | 進入條件 | 行為 |
 |---|---|---|
-| 1 | >50% | 隨機灑 `P1_Spikes`(3) 根、每 `P1_Interval`(3.0s)。慢而少。 |
-| 2 | 50%~20% | 加量加速：`P2_Spikes`(5) 根、每 `P2_Interval`(1.8s)。 |
-| 3 | <20% | **只放大絕、不夾一般地刺**，三招隨機輪流，每 `P3_UltimateInterval`(3.5s)。 |
+| 1 | 血量 > `P2_HpEnter` | 隨機灑 `P1_Spikes`(3) 根、每 `P1_Interval`(3.0s)。慢而少。 |
+| 2 | 血量 ≤ `P2_HpEnter` | 加量加速：`P2_Spikes`(5) 根、每 `P2_Interval`(1.8s)。 |
+| 3 | 血量 ≤ `P3_HpEnter` | **只放大絕、不夾一般地刺**，三招隨機輪流，每 `P3_UltimateInterval`(3.5s)。 |
 
-> **測試開關** `ForcePhase`（檔案上方 const）：0＝依血量自動切換（正式用）、1/2/3＝一進關卡就強制那一階段。測完改回 **0**。目前為方便測第三階段留在 3。
+- **階段切換血量已資料化**：`P2_HpEnter` / `P3_HpEnter`（`BanyanTreeBrain.cs` 上方 const，填百分比小數：0.5＝50%，`≤` 該值就進下一階段；`P2` 要比 `P3` 大）。第一階段不用填（滿血就是 P1）。
+- **測試開關** `ForcePhase`：0＝依血量自動切換（正式用，現值）、1/2/3＝一進關卡就強制那一階段。測完務必留 0。
 
 ### 6.4 第三階段的三招大絕
 
 | 招 | 方法 | 說明 |
 |---|---|---|
 | 橫掃浪（RowSweep） | `RowSweep()` | 把 `Sweep_TotalRows`(5) 排攤在可走區的 y 範圍、只收「有地刺可放」的排，隨機挑不重複 `Sweep_RowsPerCast`(2) 排，逐排**反方向**、起跑時間用遞增 `startDelay` 錯開＝**推進浪**（`Sweep_ColStagger`/`Sweep_RowGap`）。 |
-| 大地刺（GiantSpike） | `GiantSpike()` | 一根放大版，固定在**畫面正中間**（相機中心；`Camera.main` 沒 tag 時退回 `FindObjectOfType`）。`Giant_Scale`(2.24＝原 2.8 的 80%)、`Giant_Damage`(30)。碰撞框同樣 base-anchored 貼齊可見刺。 |
+| 大地刺（GiantSpike） | `GiantSpike()` | 一根放大版，固定在**畫面正中間**（相機中心；`Camera.main` 沒 tag 時退回 `FindObjectOfType`）。`Giant_Scale`(2.24＝原 2.8 的 80%)、`Giant_Damage`(30)。碰撞框同樣 base-anchored 貼齊可見刺（`Giant_HitFillW/H`）。 |
 | 狂亂地刺（SpikeStorm） | `SpikeStorm()` | 一次在隨機可走點灑 `Storm_Spikes`(20) 根一般地刺（同 1/2 階段的地刺，量爆多）。 |
 
 **出招頻率（不完全隨機）**：`_lastUlt`/`_ultRepeat` 記上一招與連續次數——**同一招最多連兩次，第三次強制換別招**（若已連放 2 次，這次就從另外兩招裡挑）。所以 A-A-B、B-B-C 可以，A-A-A 不會。
 
 ### 6.5 地圖與資料
 
-- **地圖**：`StreamingAssets/MapAssets/Modules/RedBridalGown/Maps/RedBridalGown_TreeDemon.dipanmap`（18×10、walkSubdiv=4）。**只有下半可走**（樹在上方背景），地刺與隨機點都落在這塊。
-- **MonsterData.csv 第 14 列**：`BanyanTree`，HP 100、`BrainType=BanyanTree`、`Weapon=Contact`、`Speed=0`（不動）、`ContactDamage=0`（本體不靠碰撞、傷害全走地刺）、`InvincibleTimeMs=0`、`DetectionRange=40`（整場都算得到玩家，本體不動要能一直施壓）。
+- **地圖**：`StreamingAssets/MapAssets/Modules/RedBridalGown/Maps/RedBridalGown_TreeDemon.dipanmap`（18×10、walkSubdiv=4）。**只有下半可走**（樹在上方背景），地刺與隨機點都落在這塊。Game 層有 1 個地上物＝臉 `treeFace_vicious`（x≈8.76, y≈-1.20），MapLoader 依 assetId 掛 `BanyanBossFace`、並把它**改成不可破壞**（boss 不能被直接打，臉被打爆會破壞死亡演出）。
+- **MonsterData.csv 第 14 列**：`BanyanTree`，HP 100、`BrainType=BanyanTree`、`Weapon=Contact`、`Speed=0`（不動）、`ContactDamage=0`（本體不靠碰撞、傷害全走地刺）、`InvincibleTimeMs=0`、`DetectionRange=40`（整場都算得到玩家，本體不動要能一直施壓）。`DeathVfxId` 在 brain 掛上時被設 0——死亡改用臉的自訂燃燒演出，不放一般死亡特效。
 - **`MonsterController` 支援**：`HealthFraction`／`CurrentHealth` 供 Brain 讀血切階段；`TakeDamage` 為 public（`IDamageable`）供地刺反傷。
 
-### 6.6 手感調整位置
+### 6.6 死亡演出：整棵樹燃燒（`BanyanBossFace`）
 
-全部在 `BanyanTreeBrain.cs` 上方 const（各階段間隔/數量、三大絕的排數/推進速度/大地刺 scale 與傷害/狂亂數量、`Giant_HitFillW/H`）＋ `BossSpike.cs` 上方 const（`WarnTime`/`ActiveTime`/`PlayerHitInterval`、後備核心框）。改數值即可、不動邏輯。
+boss 血量歸零 → `MonsterController.Die()` 呼叫 `BanyanBossFace.Instance.PlayDeath()`，跑一段燃燒演出（協程）：
+1. **臉的位置先起火**（VfxTable **16** 紅色鬼火），燒 `FaceBurnTime`(1.0s)。
+2. **臉地上物消失**（火繼續燒）。
+3. **各地陸續起火、越冒越多，最後鋪滿整棵樹**：把樹的範圍（以臉為中心的世界盒 `TreeAreaHalfW`/`Top`/`Bottom`）用 `FireSpacing`(1.0) 切成網格火點、洗牌成隨機順序、逐點點燃，**間隔越點越短**（`SpreadStartInterval`→`SpreadMinInterval`，每點 ×`SpreadAccel`(0.88)）＝越冒越多；鋪滿即止、不再新增。
+- 火焰用 `VfxManager.SpawnLoop`（複製一份 VfxData 覆寫 Loop/Duration，不動共用表資料）；壽命 `FireLife = -1`＝**無限循環永不熄滅**（著火就一直燒）。
+- **不設固定數量上限**：火點數＝樹範圍 ÷ 間距（現值約 **13×4 ＋臉 ≈ 53 個**同時在場）。要更多/更少改 `FireSpacing`；太吃效能就把它調大。手感常數全在 `BanyanBossFace.cs` 上方。
 
-### 6.7 待辦
+### 6.7 ⭐ boss 死亡 → 招式（技能內容）立刻回收（通用原則）
 
-- [ ] **換臉**：攻擊時臉切 `treeFace_crazy`、平時 `treeFace_vicious`（`MapLoader` 依 assetId 掛一個 BossFace 元件，Brain 施放時通知切換）。**尚未做**。
-- [ ] 測完把 `ForcePhase` 改回 0、`DebugDrawHitbox` 確認為 false、移除 `BanyanTreeBrain` 裡的 `[Banyan]` 除錯 log。
-- [ ] 實機微調三階段難度（間隔/數量/大絕頻率）與地刺傷害。
+**boss 死了，牠正在場上的招式必須當場撤掉、不能繼續傷人。** 一律在 `MonsterController.Die()` 那一刻處理（與死亡同幀）：
+
+| Boss | 要回收的東西 | 機制 |
+|---|---|---|
+| 榕樹妖 | 所有**地刺**（含預警箭頭中、正冒出中、排掃/狂亂裡排隊等 `startDelay` 還沒冒的） | `BossSpike` 維護一份全場登記表（`_active`，Init 註冊 / OnDestroy 註銷）；`BossSpike.CancelAll()` 一次把每根地刺連同它的**預警箭頭 + 地刺特效**一起銷毀（`CancelImmediate`），不留殘影、不再判傷。`Die()` 對 `BanyanTreeBrain` 呼叫。 |
+| 紅嫁衣（及任何召喚型 boss） | 還活著的**召喚分身**（家人幽靈…） | `MonsterWeaponUser.RecallSummons()` 把自己 `_summoned` 清單裡還在的分身全數 `Destroy`、清空。`Die()` 對「身上有 `MonsterWeaponUser`」的怪一律呼叫——通用，不限紅嫁衣。 |
+
+> **加下一隻會「留下持續性招式」的 boss 時記得比照**：把該招式的實體登記進一個可一次清除的表（像 `BossSpike._active`），在 `Die()` 收掉。避免「boss 死了、地上的火/毒/分身還在扣血」這種穿幫。
+
+### 6.8 手感調整位置
+
+- `BanyanTreeBrain.cs` 上方 const：階段血量門檻（`P2_HpEnter`/`P3_HpEnter`）、各階段間隔/數量、三大絕的排數/推進速度/大地刺 scale 與傷害/狂亂數量、`Giant_HitFillW/H`。
+- `BossSpike.cs` 上方 const：`WarnTime`/`ActiveTime`/`PlayerHitInterval`、後備核心框、除錯 `DebugDrawHitbox`。
+- `BanyanBossFace.cs` 上方 const：死亡燃燒的火種類/大小/密度/蔓延節奏/範圍/壽命。
+
+### 6.9 待辦
+
+- [x] ~~換臉（攻擊 crazy / 平時 vicious）~~ → **決定不換臉**（兩張素材搭不上），維持 vicious；管線保留停用。
+- [x] ~~死亡演出~~ → **完成**（整棵樹紅色鬼火此起彼落、鋪滿、無限燒）。
+- [x] ~~boss 死亡回收招式~~ → **完成**（地刺 `CancelAll` / 召喚 `RecallSummons`）。
+- [ ] 測完把 `ForcePhase` 確認為 0、`DebugDrawHitbox` 確認為 false、移除 `BanyanTreeBrain` 裡的 `[Banyan]` 除錯 log。
+- [ ] 實機微調三階段難度（間隔/數量/大絕頻率）、地刺傷害、死亡火焰密度/效能。
 

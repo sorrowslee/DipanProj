@@ -62,6 +62,38 @@ public class VfxManager : MonoBehaviour
         return instance;
     }
 
+    /// <summary>生成「循環播放」的特效（持續燃燒等），lifeSeconds 秒後自毀。不動 VfxTable：複製一份 data 覆寫 Loop/Duration。
+    /// extraScale＝在 VfxTable.Scale 之上再乘的倍率（同 Spawn）。用於榕樹妖死亡的持續火焰。</summary>
+    public VfxInstance SpawnLoop(int id, Vector2 position, float extraScale = 1f, float lifeSeconds = 600f)
+    {
+        VfxData src = GetEffect(id);
+        if (src == null || src.AnimationSprites == null || src.AnimationSprites.Length == 0)
+        {
+            Debug.LogWarning($"Vfx ID {id} 無法循環生成（找不到或沒圖）。");
+            return null;
+        }
+        // 複製一份，避免動到共用的表資料（別的呼叫者還會用同一顆 VfxData）。
+        var data = new VfxData {
+            ID = src.ID, Name = src.Name, AniPath = src.AniPath, AniNumber = src.AniNumber,
+            AnimFPS = src.AnimFPS, Scale = src.Scale, Loop = true, Duration = lifeSeconds,
+            HasSortingOrder = src.HasSortingOrder, SortingOrder = src.SortingOrder,
+            AnimationSprites = src.AnimationSprites
+        };
+
+        var go = new GameObject($"VfxLoop_{data.Name}");
+        go.transform.position = new Vector3(position.x, position.y, 0f);
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sortingLayerName = SortingLayerName;
+        sr.sortingOrder = data.HasSortingOrder ? data.SortingOrder : SortingOrder;
+        if (VfxMaterial != null) sr.sharedMaterial = VfxMaterial;
+
+        var instance = go.AddComponent<VfxInstance>();
+        instance.Initialize(data, sr);
+        if (extraScale > 0f && !Mathf.Approximately(extraScale, 1f))
+            go.transform.localScale = Vector3.one * (data.Scale * extraScale);
+        return instance;
+    }
+
     /// <summary>在指定座標播特效，並縮放到「世界高度 ≈ targetWorldHeight × VfxTable.Scale」——
     /// VfxTable 的 Scale 在此當「相對目標的倍率」（1 = 與目標等高、1.3 = 放大 30%）。用於召喚特效跟著怪物大小。</summary>
     public VfxInstance SpawnSizedToHeight(int id, Vector2 position, float targetWorldHeight, float angleDeg = 0f)
