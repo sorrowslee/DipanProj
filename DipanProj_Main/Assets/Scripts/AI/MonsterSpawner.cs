@@ -99,11 +99,18 @@ public class MonsterSpawner : MonoBehaviour
             data.AttackInterval = (values.Length > 14 && !string.IsNullOrWhiteSpace(values[14])) ? float.Parse(values[14]) : 0.5f;
             data.DetectionRange = (values.Length > 15 && !string.IsNullOrWhiteSpace(values[15])) ? float.Parse(values[15]) : 10f;
 
+            // 顯示名/頭像（boss 開戰資訊用；一般怪留空即可）。字串欄一律 Trim（CSV 值常帶空白，見 PROBLEMS F4）。
+            data.DisplayName = (values.Length > 16 && !string.IsNullOrWhiteSpace(values[16])) ? values[16].Trim() : "";
+            data.PortraitPath = (values.Length > 17 && !string.IsNullOrWhiteSpace(values[17])) ? values[17].Trim() : "";
+
             _monsterDatabase.Add(data);
         }
-        
+
         Debug.Log($"Loaded {_monsterDatabase.Count} monsters from CSV.");
     }
+
+    /// <summary>依 ID 取怪物配方資料（找不到回 null、不印錯誤）。給 BossIntroPanel 等 UI 端查 DisplayName / PortraitPath 用。</summary>
+    public MonsterData GetData(int id) => _monsterDatabase.Find(m => m.ID == id);
 
     public GameObject SpawnMonster(int id, Vector2 position, string deathFlag = null, MonsterFaction faction = MonsterFaction.Enemy)
     {

@@ -1,15 +1,18 @@
-ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編號與副檔名), AniNumber(序列圖張數), AnimFPS(播放幀率), Scale(縮放倍率/空為1), Loop(是否循環/0播一輪自毀1循環/空為0), Duration(僅Loop=1時的存活秒數), SortingOrder(排序層級/留空用VfxManager全域預設/角色為10故地刺類填<10畫在腳下)
-1, 爆炸, VfxEffects/Explosive/Explosive,8, 20,1, 0,,
-2,冰凍, VfxEffects/Frozen/Frozen,5,10,0.5, 0,,
-3,地刺, VfxEffects/EarthSpik/EarthSpik,7,10,0.5,0,,5
-4,火球, VfxEffects/FireBall/FireBall,4,10,0.2,1,-1,8
-5,地上物破壞, VfxEffects/Destroyed/burst_splatter_001,10,15,1,0,,
-6,傳送點(實心光盤+淡光), VfxEffects/Teleport/Teleport,48,24,0.4,1,-1,5
-7,怪物死亡, VfxEffects/MonsterDead/fanfx1_skull_puff,12,15,1,0,,
-8,沙土爆炸, VfxEffects/FloorExplosive/FloorExplosive,9,24,0.5,0,,
-9,天降雷擊(sprite雷柱), VfxEffects/SkyLightning/SkyLightning,8,15,2.8,0,,
-10,招喚怪物, VfxEffects/Summon/fanfx1_magic_puff_B,21,15,1.3,0,,
-11,榕樹妖的地刺, VfxEffects/EarthSpik2/fanfx2_earth_spikes,32,15,2,0,,5
-12,箭頭往上, VfxEffects/ArrowUp/scifx2_buff,15,15,1,0,,5
-13,箭頭往下, VfxEffects/ArrowDown/scifx2_debuff,15,15,1,0,,5
-14,警告, VfxEffects/Warnning/symbol_warning_text_001,32,15,1,0,,5
+ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編號與副檔名), AniNumber(序列圖張數), AnimFPS(播放幀率), Scale(縮放倍率/空為1), Loop(是否循環/0播一輪自毀1循環/空為0), Duration(僅Loop=1時的存活秒數), SortingOrder(排序層級/留空用VfxManager全域預設/角色為10故地刺類填<10畫在腳下),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1, 爆炸, VfxEffects/Explosive/Explosive,8, 20,1, 0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2,冰凍, VfxEffects/Frozen/Frozen,5,10,0.5, 0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3,地刺, VfxEffects/EarthSpik/EarthSpik,7,10,0.5,0,,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4,火球, VfxEffects/FireBall/FireBall,4,10,0.2,1,-1,8,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5,地上物破壞, VfxEffects/Destroyed/burst_splatter_001,10,15,1,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+6,傳送點(實心光盤+淡光), VfxEffects/Teleport/Teleport,48,24,0.4,1,-1,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+7,怪物死亡, VfxEffects/MonsterDead/fanfx1_skull_puff,12,15,1,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+8,沙土爆炸, VfxEffects/FloorExplosive/FloorExplosive,9,24,0.5,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+9,天降雷擊(sprite雷柱), VfxEffects/SkyLightning/SkyLightning,8,15,2.8,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+10,招喚怪物, VfxEffects/Summon/fanfx1_magic_puff_B,21,15,1.3,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+11,榕樹妖的地刺, VfxEffects/EarthSpik2/fanfx2_earth_spikes,32,15,2,0,,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+12,箭頭往上, VfxEffects/ArrowUp/scifx2_buff,15,15,1,0,,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+13,箭頭往下, VfxEffects/ArrowDown/scifx2_debuff,15,15,1,0,,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+14,警告, VfxEffects/Warnning/symbol_warning_text_001,32,15,1,0,,5,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+15,綠色火焰, VfxEffects/GreenFire/fire_C,120,15,3,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+16,紅色鬼火, VfxEffects/GhostFire_Red/fire_looping_001,12,15,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+17,紅色鬼火, VfxEffects/GroundFire_Red/fanfx2_fire_spell,23,15,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

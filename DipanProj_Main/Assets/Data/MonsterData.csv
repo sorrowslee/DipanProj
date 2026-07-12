@@ -1,4 +1,4 @@
-ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent, ContactDamage, DamageReduction, Speed, AnimFPS, AttackInterval(接觸攻擊間隔秒/攻速/越小攻越快/空為0.5), DetectionRange
+ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent, ContactDamage, DamageReduction, Speed, AnimFPS, AttackInterval(接觸攻擊間隔秒/攻速/越小攻越快/空為0.5), DetectionRange, DisplayName(顯示名/boss開戰資訊用/空退回Name), PortraitPath(頭像立繪catalog id/例Modules/關卡/Talk/xxx)
  1, ZhaYu, 10, Chase    , Contact,1.2,           ,                0,                  3,               20, 10,               0,     1,       8,,25
 2, Ghost_Boy, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25
 3,Ghost_Dog, 3, Chase    , Contact,0.4,           ,                0,1,120, 10,               0,2,       8,,25
@@ -11,5 +11,5 @@ ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, Knockbac
 10,Ghost_Mother, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
 11,Ghost_YoungBrother, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
 12,Ghost_YoungSister, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
-13,RedBridalGown,50,RedBridalGown,14,1,,0,10,50,20,0,3.5,25,,30
-14,BanyanTree,100,BanyanTree,Contact,1,,0,0,0,0,0,0,8,,40
+13,RedBridalGown,50,RedBridalGown,14,1,,0,10,50,20,0,3.5,25,,30,紅嫁衣,Modules/RedBridalGown/Talk/redBridalGown_angry
+14,BanyanTree,100,BanyanTree,Contact,1,,0,0,0,0,0,0,8,,40,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious

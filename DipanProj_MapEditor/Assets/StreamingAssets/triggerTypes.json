@@ -1,275 +1,467 @@
 {
- "types": [
-  {
-   "typeId": "teleport",
-   "displayName": "傳送點",
-   "color": "#33AAFF",
-   "params": [
+  "types": [
     {
-     "key": "entranceId",
-     "type": "String"
+      "typeId": "teleport",
+      "displayName": "傳送點",
+      "color": "#33AAFF",
+      "params": [
+        {
+          "key": "entranceId",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "targetMapId",
+          "type": "Int",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "targetEntrance",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "showMarker",
+          "type": "Bool",
+          "label": "使用傳送點外型",
+          "boolDefault": true,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "linkedFx",
+          "type": "String",
+          "label": "連動特效id",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
     },
     {
-     "key": "targetMapId",
-     "type": "Int"
+      "typeId": "pickup",
+      "displayName": "道具拾取點",
+      "color": "#FFCC33",
+      "params": [
+        {
+          "key": "itemId",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "count",
+          "type": "Int",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
     },
     {
-     "key": "targetEntrance",
-     "type": "String"
+      "typeId": "playerSpawn",
+      "displayName": "玩家出生點",
+      "color": "#33FF88",
+      "params": []
     },
     {
-     "key": "showMarker",
-     "type": "Bool",
-     "label": "使用傳送點外型",
-     "boolDefault": true
+      "typeId": "monsterSpawn",
+      "displayName": "怪物出生點",
+      "color": "#FF5555",
+      "params": [
+        {
+          "key": "monsterId",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "deathFlag",
+          "type": "String",
+          "label": "死亡觸發旗標",
+          "boolDefault": false,
+          "isFlagRef": true,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
     },
     {
-     "key": "linkedFx",
-     "type": "String",
-     "label": "連動特效id"
+      "typeId": "drama",
+      "displayName": "劇情觸發點",
+      "color": "#AA66FF",
+      "params": [
+        {
+          "key": "dramaId",
+          "type": "Int",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "cutscene",
+      "displayName": "事件/過場觸發點",
+      "color": "#22CC99",
+      "params": [
+        {
+          "key": "cutsceneId",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "video",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "targetMapId",
+          "type": "Int",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "targetEntrance",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "giveItem",
+      "displayName": "給予物品(鏈動作)",
+      "color": "#FFE08A",
+      "params": [
+        {
+          "key": "itemId",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "count",
+          "type": "Int",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "teleportTo",
+      "displayName": "直接傳送(鏈動作)",
+      "color": "#7FD4FF",
+      "params": [
+        {
+          "key": "targetMapId",
+          "type": "Int",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "targetEntrance",
+          "type": "String",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "portal",
+      "displayName": "傳送門互動",
+      "color": "#FF8844",
+      "params": [
+        {
+          "key": "linkTeleport",
+          "type": "String",
+          "label": "要開的傳送點名",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "camZone",
+      "displayName": "鏡頭區",
+      "color": "#66CCFF",
+      "params": [
+        {
+          "key": "zoom",
+          "type": "Float",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "offsetX",
+          "type": "Float",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "offsetY",
+          "type": "Float",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "onEnter",
+      "displayName": "進場觸發(自動)",
+      "color": "#FF66AA",
+      "params": [
+        {
+          "key": "delaySeconds",
+          "type": "Float",
+          "label": "延遲秒數",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "cameraFocus",
+      "displayName": "鏡頭聚焦(鏈動作)",
+      "color": "#88DDFF",
+      "params": [
+        {
+          "key": "holdSeconds",
+          "type": "Float",
+          "label": "停留秒數",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "dim",
+          "type": "String",
+          "label": "黑幕樣式",
+          "boolDefault": false,
+          "options": [
+            "中央留洞",
+            "整片全黑",
+            "無"
+          ],
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "playerHint",
+      "displayName": "玩家提示(鏈動作)",
+      "color": "#FFD24D",
+      "params": [
+        {
+          "key": "leftImage",
+          "type": "String",
+          "label": "左圖(檔名)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "rightImage",
+          "type": "String",
+          "label": "右圖(檔名)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "flashLeft",
+          "type": "Bool",
+          "label": "左圖閃爍",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "flashRight",
+          "type": "Bool",
+          "label": "右圖閃爍",
+          "boolDefault": true,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "hideOn",
+          "type": "String",
+          "label": "收起時機",
+          "boolDefault": false,
+          "options": [
+            "移動",
+            "攻擊",
+            "任意鍵"
+          ],
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "playScreenFx",
+      "displayName": "播放螢幕特效(鏈動作)",
+      "color": "#D98CFF",
+      "params": [
+        {
+          "key": "effectId",
+          "type": "Int",
+          "label": "螢幕特效id",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": true,
+          "isPortalList": false
+        },
+        {
+          "key": "duration",
+          "type": "Float",
+          "label": "特效秒數",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "togglePortal",
+      "displayName": "開關傳送點(鏈動作)",
+      "color": "#5AC8B0",
+      "params": [
+        {
+          "key": "target",
+          "type": "String",
+          "label": "傳送點名稱",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": true
+        },
+        {
+          "key": "show",
+          "type": "Bool",
+          "label": "顯示(否=隱藏)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "bossIntro",
+      "displayName": "Boss開戰資訊(鏈動作)",
+      "color": "#FF4D6A",
+      "params": [
+        {
+          "key": "monsterId",
+          "type": "Int",
+          "label": "怪物ID(MonsterData)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "warnVfxId",
+          "type": "Int",
+          "label": "警告特效id(空=14)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
     }
-   ]
-  },
-  {
-   "typeId": "pickup",
-   "displayName": "道具拾取點",
-   "color": "#FFCC33",
-   "params": [
-    {
-     "key": "itemId",
-     "type": "String"
-    },
-    {
-     "key": "count",
-     "type": "Int"
-    }
-   ]
-  },
-  {
-   "typeId": "playerSpawn",
-   "displayName": "玩家出生點",
-   "color": "#33FF88",
-   "params": []
-  },
-  {
-   "typeId": "monsterSpawn",
-   "displayName": "怪物出生點",
-   "color": "#FF5555",
-   "params": [
-    {
-     "key": "monsterId",
-     "type": "String"
-    },
-    {
-     "key": "deathFlag",
-     "type": "String",
-     "label": "死亡觸發旗標",
-     "isFlagRef": true
-    }
-   ]
-  },
-  {
-   "typeId": "drama",
-   "displayName": "劇情觸發點",
-   "color": "#AA66FF",
-   "params": [
-    {
-     "key": "dramaId",
-     "type": "Int"
-    }
-   ]
-  },
-  {
-   "typeId": "cutscene",
-   "displayName": "事件/過場觸發點",
-   "color": "#22CC99",
-   "params": [
-    {
-     "key": "cutsceneId",
-     "type": "String"
-    },
-    {
-     "key": "video",
-     "type": "String"
-    },
-    {
-     "key": "targetMapId",
-     "type": "Int"
-    },
-    {
-     "key": "targetEntrance",
-     "type": "String"
-    }
-   ]
-  },
-  {
-   "typeId": "giveItem",
-   "displayName": "給予物品(鏈動作)",
-   "color": "#FFE08A",
-   "params": [
-    {
-     "key": "itemId",
-     "type": "String"
-    },
-    {
-     "key": "count",
-     "type": "Int"
-    }
-   ]
-  },
-  {
-   "typeId": "teleportTo",
-   "displayName": "直接傳送(鏈動作)",
-   "color": "#7FD4FF",
-   "params": [
-    {
-     "key": "targetMapId",
-     "type": "Int"
-    },
-    {
-     "key": "targetEntrance",
-     "type": "String"
-    }
-   ]
-  },
-  {
-   "typeId": "portal",
-   "displayName": "傳送門互動",
-   "color": "#FF8844",
-   "params": [
-    {
-     "key": "linkTeleport",
-     "type": "String",
-     "label": "要開的傳送點名"
-    }
-   ]
-  },
-  {
-   "typeId": "camZone",
-   "displayName": "鏡頭區",
-   "color": "#66CCFF",
-   "params": [
-    {
-     "key": "zoom",
-     "type": "Float"
-    },
-    {
-     "key": "offsetX",
-     "type": "Float"
-    },
-    {
-     "key": "offsetY",
-     "type": "Float"
-    }
-   ]
-  },
-  {
-   "typeId": "onEnter",
-   "displayName": "進場觸發(自動)",
-   "color": "#FF66AA",
-   "params": [
-    {
-     "key": "delaySeconds",
-     "type": "Float",
-     "label": "延遲秒數"
-    }
-   ]
-  },
-  {
-   "typeId": "cameraFocus",
-   "displayName": "鏡頭聚焦(鏈動作)",
-   "color": "#88DDFF",
-   "params": [
-    {
-     "key": "holdSeconds",
-     "type": "Float",
-     "label": "停留秒數"
-    },
-    {
-     "key": "dim",
-     "type": "String",
-     "label": "黑幕樣式",
-     "options": [
-      "中央留洞",
-      "整片全黑",
-      "無"
-     ]
-    }
-   ]
-  },
-  {
-   "typeId": "playerHint",
-   "displayName": "玩家提示(鏈動作)",
-   "color": "#FFD24D",
-   "params": [
-    {
-     "key": "leftImage",
-     "type": "String",
-     "label": "左圖(檔名)"
-    },
-    {
-     "key": "rightImage",
-     "type": "String",
-     "label": "右圖(檔名)"
-    },
-    {
-     "key": "flashLeft",
-     "type": "Bool",
-     "label": "左圖閃爍"
-    },
-    {
-     "key": "flashRight",
-     "type": "Bool",
-     "label": "右圖閃爍",
-     "boolDefault": true
-    },
-    {
-     "key": "hideOn",
-     "type": "String",
-     "label": "收起時機",
-     "options": [
-      "移動",
-      "攻擊",
-      "任意鍵"
-     ]
-    }
-   ]
-  },
-  {
-   "typeId": "playScreenFx",
-   "displayName": "播放螢幕特效(鏈動作)",
-   "color": "#D98CFF",
-   "params": [
-    {
-     "key": "effectId",
-     "type": "Int",
-     "label": "螢幕特效id",
-     "isScreenEffectRef": true
-    },
-    {
-     "key": "duration",
-     "type": "Float",
-     "label": "特效秒數"
-    }
-   ]
-  },
-  {
-   "typeId": "togglePortal",
-   "displayName": "開關傳送點(鏈動作)",
-   "color": "#5AC8B0",
-   "params": [
-    {
-     "key": "target",
-     "type": "String",
-     "label": "傳送點名稱",
-     "isPortalList": true
-    },
-    {
-     "key": "show",
-     "type": "Bool",
-     "label": "顯示(否=隱藏)"
-    }
-   ]
-  }
- ]
+  ]
 }

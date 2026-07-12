@@ -19,6 +19,9 @@ public class MonsterData
     public float KnockbackThreshold;
     public float KnockbackPercent;
 
+    public string DisplayName = "";     // 顯示名稱（boss 開戰資訊等 UI 用；留空＝退回 Name）。注意 Name 是程式鍵（動畫資料夾/GameObject 名），不能拿來顯示。
+    public string PortraitPath = "";    // 頭像立繪 catalog id（例 Modules/RedBridalGown/Talk/redBridalGown_angry；boss 開戰資訊用，與 Talk 立繪同一條管線）
+
     public float ContactDamage = 10f;   // 碰到玩家造成的傷害（留空 = 10）
     public float AttackInterval = 0.5f; // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval，越小攻越快，留空 = 0.5）
     public float DamageReduction = 0f;   // 受擊減傷 %（留空 = 0；掛勾，之後接減傷/抗性）

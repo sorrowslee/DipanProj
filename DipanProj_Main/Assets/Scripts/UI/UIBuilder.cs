@@ -30,6 +30,22 @@ namespace Dipan.UI
             }
         }
 
+        /// <summary>
+        /// 從 Resources 載一個字型（路徑不含副檔名，例 "Fonts/Bakudai/Bakudai-Bold"）。
+        /// 給「特定 UI 用特別字體」的面板用（例：BossIntroPanel 姓名牌用毛筆字）；載不到印警告並回 DefaultFont，不會開天窗。
+        /// </summary>
+        public static Font LoadFont(string resourcesPath)
+        {
+            if (string.IsNullOrEmpty(resourcesPath)) return DefaultFont;
+            var f = Resources.Load<Font>(resourcesPath);
+            if (f == null)
+            {
+                Debug.LogWarning($"[UIBuilder] 找不到字型：Resources/{resourcesPath}，退回預設字型。");
+                return DefaultFont;
+            }
+            return f;
+        }
+
         // ───────────────────────── 基礎物件 ─────────────────────────
 
         /// <summary>建一個空的 UI 物件（帶 RectTransform）並掛到 parent 底下。</summary>

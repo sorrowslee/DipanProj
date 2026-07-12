@@ -146,7 +146,7 @@
           "params": {
             "dramaId": "2",
             "requireFlag": "killedFamily",
-            "next": "開關傳送點"
+            "next": "紅嫁衣boss資訊"
           }
         },
         {
@@ -231,6 +231,17 @@
           "params": {
             "monsterId": "13",
             "deathFlag": ""
+          }
+        },
+        {
+          "id": "32409895",
+          "name": "紅嫁衣boss資訊",
+          "typeId": "bossIntro",
+          "cells": [],
+          "params": {
+            "monsterId": "13",
+            "warnVfxId": "",
+            "next": "開關傳送點"
           }
         }
       ]

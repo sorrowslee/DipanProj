@@ -168,6 +168,19 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：被觸發鏈（next）啟動時播「Boss 開戰資訊」表演——暫停遊戲 → 螢幕中央 Warning 特效 →
+                // 左側滑入 boss 頭像（Talk 立繪）、右側滑入姓名牌匾＋顯示名，停留後淡出、接 next。
+                // 顯示名/頭像填在主專案 MonsterData.csv 的 DisplayName / PortraitPath 欄，這裡只填怪物 ID（與怪物出生點同一個 ID）。
+                // 不用玩家踩、純靠鏈驅動；格子畫在角落即可（0 格也可）。典型：boss 房 onEnter→對話→bossIntro→togglePortal 封門。
+                typeId = "bossIntro", displayName = "Boss開戰資訊(鏈動作)", color = "#FF4D6A",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "monsterId", type = ParamType.Int, label = "怪物ID(MonsterData)" },
+                    new TriggerParam { key = "warnVfxId", type = ParamType.Int, label = "警告特效id(空=14)" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 進場觸發：進入這張地圖、載入完全結束（含進場效果播完）後自動觸發一次，
                 // 自己不做事、只當觸發鏈的起點（接續觸發 next 指向要做的事，例如純鏈節點的劇情觸發點）。
                 // 不用塗格子：用「＋ 手動新增空區域」建立（0 格），從區域清單選取設參數即可。
