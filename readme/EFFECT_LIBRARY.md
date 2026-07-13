@@ -67,7 +67,7 @@
 4. 在 `Assets/Data/VfxTable.csv` 加一列（`AniPath`／張數／`AnimFPS`＝15／`Scale`／`Loop`…），欄位細節見 [VFX.md](VFX.md)。
 5. **大小要調 `Scale`**：新圖以 **PPU 100** 匯入，世界大小 ＝ `原生px ÷ 100 × Scale`；依原本特效的視覺大小換算一個起始值，實機再微調。
 
-> 範例：天降雷擊改用 sprite 雷柱，就是「挑 `Lightning/lightning_strike_003A` 黃色 → 複製進 `Resources/VfxEffects/SkyLightning`（改 2 位命名）→ VfxTable 加列 → 武器 `HitEffectID` 指過去 → 程式端改在落點播它」。細節見 [LASER.md](LASER.md) 天降雷擊一節。
+> 範例：九霄雷獄使用 `fanfx2_lightning_spell_tileable_start/loop` 組成全高雷柱，落點另接 `epic_explosion_B`；入選幀分別放進 `Resources/VfxEffects/SkyLightningColumn` 與 `SkyLightningExplosion`。細節見 [LASER.md](LASER.md) 落雷模式。
 
 ---
 

@@ -52,7 +52,7 @@ public class WeaponManager : MonoBehaviour
         return null;
     }
 
-    // 取「使用指定配方的武器」（天降雷擊接 SubRecipeID 連鎖時，用連鎖配方對應的武器外觀/傷害）。找不到回 null。
+    // 取「使用指定配方的武器」（落雷模式接 SubRecipeID 連鎖時，用連鎖配方對應的武器外觀/傷害）。找不到回 null。
     public WeaponData GetWeaponByRecipeID(int recipeID)
     {
         return _recipeToWeapon.TryGetValue(recipeID, out WeaponData w) ? w : null;
@@ -120,8 +120,10 @@ public class WeaponManager : MonoBehaviour
             weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
             weapon.BulletPrefab = BulletPrefab;
 
-            // 雷射 / 連鎖閃電 / 天降雷擊都複用光束渲染（含砲口/命中光暈素材）
-            if (weapon.Recipe != null && weapon.Recipe.Data != null && (weapon.Recipe.Data.IsLaser || weapon.Recipe.IsChain || weapon.Recipe.IsSkyStrike))
+            // 雷射／連鎖及「非分段」落雷才需要光束素材；九霄雷獄的分段雷柱自帶 Sprite，不載無用光暈。
+            if (weapon.Recipe != null && weapon.Recipe.Data != null
+                && (weapon.Recipe.Data.IsLaser || weapon.Recipe.IsChain
+                    || (weapon.Recipe.IsSkyStrike && !weapon.Recipe.UseSegmentedSkyStrike)))
                 LoadBeamAssets(weapon);
 
             if (!string.IsNullOrEmpty(weapon.WeaponAniPath) && weapon.WeaponAniNumber > 0)

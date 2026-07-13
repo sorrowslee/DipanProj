@@ -17,13 +17,16 @@ namespace Dipan.UI
             if (!seedTestItems) return;
             var inv = InventorySystem.Instance;
 
-            // 武器 1~13（對應 WeaponTable）：**缺哪把就補哪把**，而不是「背包全空才塞」。
+            // 測試武器白名單：既有 1~9、11~13，加上本輪保留的 21/22/24/25/27/28。
             // 原本「全空才塞」會踩到：SaveManager(執行序 -500)開場先載入角色、RestoreState 先清空再還原「存檔裡的舊背包」，
             // 舊角色存檔沒有新武器(如御靈水晶 13) → 背包非空 → 這裡跳過 → 測試武器一直不見/時有時無。
             // 本元件在 SaveManager 之後(Start，序 0)跑，改成「補齊」就能在還原後把缺的測試武器補回。
             // （純測試用；HasAnywhere 含裝備欄，避免已裝備的又被重複補一份。正式有撿道具系統後可刪整支。）
-            for (int id = 1; id <= 13; id++)
+            int[] testWeaponIds = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 21, 22, 24, 25, 27, 28 };
+            foreach (int id in testWeaponIds)
+            {
                 if (!inv.HasAnywhere(id)) inv.AddItem(id);
+            }
 
             // 雜物只在「完全沒有」時給一次（避免每次載入都補到滿）。
             if (!inv.Has(101)) inv.AddItem(101, 250); // 銅錢 x250

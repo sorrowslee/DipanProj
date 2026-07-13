@@ -66,11 +66,11 @@ public class PlayerController : MonoBehaviour, IDamageable
     private readonly List<GameObject> _summonAlive = new List<GameObject>();
     private const float ChainFlashDuration = 0.16f;
 
-    // 天降雷擊：從畫面上緣再往上多少單位開始劈、BlastRadius 留空時的預設 AOE 半徑
-    private const float SkyStrikeTopMargin = 2f;
+    // 落雷模式：BlastRadius 留空時的預設 AOE 半徑
     private const float SkyStrikeDefaultBlast = 1.2f;
-    // 改用 sprite 雷柱後：雷柱爆閃在圖下緣，特效整體上移這麼多世界單位讓底部＝落點（與 VfxTable ID9 的 Scale 一起調；約＝雷柱世界高的一半）
-    private const float SkyStrikeBoltYOffset = 1.8f;
+    // 雷柱圖以中心為 pivot；落雷時依該 VFX 的實際 Sprite 高度×Scale 自動算半高，讓圖片底部精準對齊落點。
+    // 無法讀到素材時才用此舊值後備。
+    private const float SkyStrikeBoltFallbackYOffset = 1.8f;
     private static readonly HashSet<int> _emptyHitSet = new HashSet<int>(); // 追蹤吸附用的空排除集（FindNearestDamageable 只讀不寫）
 
     // 命中迸發子武器：生成點沿命中面法線往外推的最小距離（避免生在牆/家具表面內被自己的 CheckSpawnOverlap 瞬殺）
@@ -425,7 +425,19 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 發射特效：每次離散發射在玩家身上播一次，朝瞄準方向
         TrySpawnFireEffect(weapon, AimDirectionToMouse());
 
-        if (weapon.Recipe.IsSkyStrike)
+        if (weapon.Recipe.IsDash)
+        {
+            ShootDash(weapon, recipe);
+        }
+        else if (weapon.Recipe.IsGroundCast)
+        {
+            ShootGroundCast(weapon, recipe);
+        }
+        else if (weapon.Recipe.IsMelee)
+        {
+            ShootMelee(weapon, recipe);
+        }
+        else if (weapon.Recipe.IsSkyStrike)
         {
             ShootSkyStrike(weapon, recipe);
         }
@@ -448,6 +460,96 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         _fireTimer = recipe.FireInterval;
         return true;
+    }
+
+    // 突進斬：CircleCast 保證不穿牆，OverlapCapsule 覆蓋整段路徑；傷害目標依 GameObject 去重。
+    // 使用 Rigidbody2D.position 位移，保留玩家 Rigidbody 的碰撞／後續物理狀態。
+    private void ShootDash(WeaponData weapon, ProjectileData recipe)
+    {
+        Vector2 origin = transform.position;
+        Vector2 aim = AimDirectionToMouse();
+        float distance = Mathf.Max(0.1f, weapon.Recipe.DashDistance);
+        float width = Mathf.Max(0.2f, weapon.Recipe.DashWidth);
+
+        RaycastHit2D wall = Physics2D.CircleCast(origin, width * 0.45f, aim, distance, EnvLayer);
+        float travel = wall.collider != null ? Mathf.Max(0f, wall.distance - width * 0.5f) : distance;
+        Vector2 end = origin + aim * travel;
+        Vector2 mid = (origin + end) * 0.5f;
+        float angle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
+
+        if (_vfxManager != null && weapon.HitEffectID > 0)
+            _vfxManager.Spawn(weapon.HitEffectID, mid, angle);
+
+        Vector2 capsuleSize = new Vector2(Mathf.Max(width, travel + width), width);
+        Collider2D[] hits = Physics2D.OverlapCapsuleAll(mid, capsuleSize, CapsuleDirection2D.Horizontal,
+            angle, EnemyLayer | EnvLayer);
+        var damaged = new HashSet<int>();
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider2D col = hits[i];
+            if (col == null) continue;
+            IDamageable target = col.GetComponentInParent<IDamageable>();
+            Component component = target as Component;
+            if (component == null || component.gameObject == gameObject) continue;
+            int key = component.gameObject.GetInstanceID();
+            if (!damaged.Add(key)) continue;
+            Vector2 hitDir = ((Vector2)component.transform.position - origin).normalized;
+            CombatSystem.Apply(gameObject, component.gameObject, weapon.Damage, hitDir);
+        }
+
+        if (_rb != null) _rb.position = end;
+        else transform.position = end;
+    }
+
+    // 定點法陣：在滑鼠位置（受 BeamRange 限制）生成 GroundEffect。
+    // GroundEffect 的半徑／持續時間／DOT 節拍／動畫走表，單次傷害由武器表覆寫，能重用於黑洞、毒霧、雷獄等。
+    private void ShootGroundCast(WeaponData weapon, ProjectileData recipe)
+    {
+        if (_groundEffectManager == null || weapon.Recipe.GroundEffectID <= 0)
+        {
+            Debug.LogWarning($"定點法陣 '{weapon.Name}' 缺 GroundEffectManager 或 GroundEffectID。");
+            return;
+        }
+
+        Vector2 origin = transform.position;
+        Vector3 mouse = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Vector2 delta = (Vector2)mouse - origin;
+        float range = recipe.BeamRange > 0f ? recipe.BeamRange : 8f;
+        Vector2 target = origin + Vector2.ClampMagnitude(delta, range);
+        _groundEffectManager.Spawn(weapon.Recipe.GroundEffectID, target, weapon.Damage);
+        TrySpawnHitEffect(weapon, target);
+    }
+
+    // 近身扇形：以玩家為圓心、瞄準方向為軸，對半徑 BlastRadius／總角 MeleeAngle 內的 IDamageable 各結算一次。
+    // 視覺只播一次 HitEffect，避免每打到一隻怪就疊一套揮砍動畫。
+    private void ShootMelee(WeaponData weapon, ProjectileData recipe)
+    {
+        Vector2 origin = transform.position;
+        Vector2 aim = AimDirectionToMouse();
+        float radius = weapon.Recipe.BlastRadius > 0f ? weapon.Recipe.BlastRadius : 2f;
+        float halfAngle = Mathf.Clamp(weapon.Recipe.MeleeAngle, 1f, 360f) * 0.5f;
+        float visualAngle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
+        Vector2 visualPos = origin + aim * (radius * 0.45f);
+        if (_vfxManager != null && weapon.HitEffectID > 0)
+            _vfxManager.Spawn(weapon.HitEffectID, visualPos, visualAngle);
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(origin, radius, EnemyLayer | EnvLayer);
+        var damaged = new HashSet<int>();
+        for (int i = 0; i < hits.Length; i++)
+        {
+            Collider2D col = hits[i];
+            if (col == null) continue;
+            IDamageable target = col.GetComponentInParent<IDamageable>();
+            if (target == null) continue;
+            Component component = target as Component;
+            if (component == null || component.gameObject == gameObject) continue;
+
+            Vector2 toTarget = (Vector2)component.transform.position - origin;
+            if (toTarget.sqrMagnitude > 0.0001f && Vector2.Angle(aim, toTarget) > halfAngle) continue;
+            int key = component.gameObject.GetInstanceID();
+            if (!damaged.Add(key)) continue;
+            CombatSystem.Apply(gameObject, component.gameObject, weapon.Damage, toTarget.normalized);
+        }
     }
 
     private void ShootNormal(WeaponData weapon, ProjectileData recipe)
@@ -1005,8 +1107,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     }
 
     // 從 firstTarget 起連鎖：逐跳找最近可傷害目標、結算傷害、畫鋸齒折線。
-    // startPoint = 折線起點（玩家位置 or 天降雷擊落點）；用本武器 Damage + 外觀，連鎖次數/半徑由呼叫者傳入。
-    // 連鎖閃電武器走自己的配方；天降雷擊接 SubRecipeID 時，由雷擊在落點呼叫此方法、傳入 sub-recipe 的次數/半徑。
+    // startPoint = 折線起點（玩家位置或落雷點）；用本武器 Damage + 外觀，連鎖次數/半徑由呼叫者傳入。
+    // 連鎖閃電武器走自己的配方；落雷模式接 SubRecipeID 時，由雷擊在落點呼叫此方法、傳入 sub-recipe 的次數/半徑。
     private void RunChain(WeaponData weapon, Vector2 startPoint, Transform firstTarget, int chainCount, float chainRadius)
     {
         int dmgMask = EnemyLayer.value | EnvLayer.value;
@@ -1083,7 +1185,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     }
 
     // 在每段之間插入橫向抖動中點 → 閃電鋸齒外觀（純視覺，不影響命中）。
-    // 細分數依「段長」決定（每約 segPerJag 單位一個鋸齒點），所以短段不過密、長段（如天降雷擊的長垂直閃電）也夠鋸齒。
+    // 細分數依「段長」決定（每約 segPerJag 單位一個鋸齒點），所以短段不過密、長段（如落雷模式的長垂直閃電）也夠鋸齒。
     private static List<Vector2> BuildJaggedPath(List<Vector2> pts)
     {
         var outp = new List<Vector2>(pts.Count * 6);
@@ -1111,7 +1213,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         return outp;
     }
 
-    // ── 天降雷擊：從畫面上緣外劈下到滑鼠所在點，落地以 BlastRadius 做圓形 AOE ──
+    // ── 落雷模式：從畫面上緣外劈下到滑鼠所在點，落地以 BlastRadius 做圓形 AOE ──
     // 吃 SpreadCount/SpreadAngle（多道落點，仿拋物線扇形分佈）與 HomingTurnSpeed（落點吸附最近怪，當搜尋半徑）。
     // 目標搜尋與傷害全在主遊戲側；視覺複用 LaserBeam 折線（垂直鋸齒閃電）。
     private void ShootSkyStrike(WeaponData weapon, ProjectileData recipe)
@@ -1158,10 +1260,25 @@ public class PlayerController : MonoBehaviour, IDamageable
     // 在 impact 點劈一道雷：垂直鋸齒閃電視覺 + 圓形 AOE 傷害（武器 Damage，含怪與可破壞家具）+ 可選地面特效。
     private void StrikeAt(WeaponData weapon, Vector2 impact, int dmgMask)
     {
-        // 1) 視覺：sprite 雷柱（HitEffectID 指向的雷擊序列圖），往上補 SkyStrikeBoltYOffset 讓雷柱底部＝落點。
-        //    取代原本程式即時畫的鋸齒閃電（SpawnChainVisual）。本武器不再使用 BeamStyle/BeamColor/BeamWidth。
-        if (_vfxManager != null && weapon.HitEffectID > 0)
-            _vfxManager.Spawn(weapon.HitEffectID, impact + Vector2.up * SkyStrikeBoltYOffset, 0f);
+        // 1) 視覺：sprite 雷柱（HitEffectID 指向的雷擊序列圖）。依實際圖高×表格 Scale 算半高，
+        //    所以不同武器能各自調雷柱大小，底部仍會落在 impact。
+        if (weapon.Recipe != null && weapon.Recipe.UseSegmentedSkyStrike)
+        {
+            SegmentedLightningColumn.Spawn(impact, Camera.main);
+            // 分段雷柱的 HitEffectID 專門留給地面爆炸，不再兼任雷柱本體。
+            TrySpawnHitEffect(weapon, impact);
+        }
+        else if (_vfxManager != null && weapon.HitEffectID > 0)
+        {
+            float boltOffset = SkyStrikeBoltFallbackYOffset;
+            VfxData bolt = _vfxManager.GetEffect(weapon.HitEffectID);
+            if (bolt != null && bolt.AnimationSprites != null && bolt.AnimationSprites.Length > 0
+                && bolt.AnimationSprites[0] != null)
+            {
+                boltOffset = bolt.AnimationSprites[0].bounds.size.y * bolt.Scale * 0.5f;
+            }
+            _vfxManager.Spawn(weapon.HitEffectID, impact + Vector2.up * boltOffset, 0f);
+        }
 
         // 3) 圓形 AOE：以 BlastRadius（留空用預設）對範圍內 IDamageable（怪 + 可破壞家具）以武器 Damage 結算一次
         float radius = (weapon.Recipe != null && weapon.Recipe.BlastRadius > 0f) ? weapon.Recipe.BlastRadius : SkyStrikeDefaultBlast;
@@ -1279,7 +1396,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         // 子武器只支援「會飛的一般子彈」；特殊型(雷射/環繞/拋物線/連鎖/雷擊)不適合當 OnHit 迸發，先擋掉並提示。
         if (subRecipe.IsLaser || subRecipe.IsOrbital || subRecipe.IsParabolic
-            || subWeapon.Recipe.IsChain || subWeapon.Recipe.IsSkyStrike)
+            || subWeapon.Recipe.IsChain || subWeapon.Recipe.IsSkyStrike
+            || subWeapon.Recipe.IsGroundCast || subWeapon.Recipe.IsMelee || subWeapon.Recipe.IsDash)
         {
             Debug.LogWarning($"SubWeaponOnHit 指向的武器 '{subWeapon.Name}' 是特殊型(雷射/環繞/拋物線/連鎖/雷擊)，命中迸發目前只支援一般飛行子彈。");
             return;

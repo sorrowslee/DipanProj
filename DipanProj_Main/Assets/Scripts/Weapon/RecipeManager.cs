@@ -33,7 +33,7 @@ public class RecipeEntry
     public float ChainRadius = 4f;  // 每跳的搜尋半徑（世界單位）
     public int ChainCount = 0;       // 跳躍次數（= MaxBounces 欄；總命中數 = 1 + ChainCount）
 
-    // 天降雷擊：1 時從畫面上緣劈下到滑鼠所在點，落地以 BlastRadius 做圓形 AOE（武器 Damage）。
+    // 落雷模式：1 時從畫面上緣劈下到滑鼠所在點，落地以 BlastRadius 做圓形 AOE（目前九霄雷獄使用）。
     // 吃 SpreadCount/SpreadAngle（多道落點）與 HomingTurnSpeed（落點吸附最近怪，當搜尋半徑用）。與其他模式互斥。
     public bool IsSkyStrike = false;
 
@@ -49,6 +49,21 @@ public class RecipeEntry
     public int SummonCount = 1;      // 每次施放召喚幾隻
     public int SummonMaxAlive = 4;   // 同一施放者的分身同時存在上限（達上限則暫停召喚）
     public float SummonRadius = 2f;  // 在施放者周圍多遠的環上生成
+
+    // 定點法陣：在滑鼠位置生成 GroundEffect；射程沿用 BeamRange、傷害以武器 Damage 覆寫 GroundEffectTable。
+    public bool IsGroundCast = false;
+
+    // 近身扇形攻擊：半徑沿用 BlastRadius，角度用 MeleeAngle；HitEffectID 只在斬擊中心播一次。
+    public bool IsMelee = false;
+    public float MeleeAngle = 100f;
+
+    // 突進斬：沿瞄準方向移動，遇 Environment 提前停；掃過的膠囊區域各目標受傷一次。
+    public bool IsDash = false;
+    public float DashDistance = 4f;
+    public float DashWidth = 1f;
+
+    // 分段全高雷柱：僅搭配 IsSkyStrike；start + tileable loop + end 從鏡頭頂外鋪到落點。
+    public bool UseSegmentedSkyStrike = false;
 }
 
 public class RecipeManager : MonoBehaviour
@@ -251,7 +266,7 @@ public class RecipeManager : MonoBehaviour
                 data.BeamRange = (v.Length >= 29 && !string.IsNullOrWhiteSpace(v[28])) ? float.Parse(v[28].Trim()) : 20f;
             }
 
-            // 天降雷擊：留空 / 0 = 否；1 = 從畫面上緣劈下到滑鼠點。AOE 半徑沿用 BlastRadius 欄、散射用 SpreadCount/SpreadAngle、追蹤用 HomingTurnSpeed（當搜尋半徑）。
+            // 落雷模式：留空 / 0 = 否；1 = 從畫面上緣劈下到滑鼠點。AOE 半徑沿用 BlastRadius 欄。
             entry.IsSkyStrike = false;
             if (v.Length >= 35 && !string.IsNullOrWhiteSpace(v[34]))
             {
@@ -285,6 +300,22 @@ public class RecipeManager : MonoBehaviour
                 entry.SummonRadius = (v.Length >= 42 && !string.IsNullOrWhiteSpace(v[41])) ? float.Parse(v[41].Trim()) : 2f;
             }
 
+            // 定點法陣（第 42 欄）：滑鼠位置生成 GroundEffect。射程沿用 BeamRange（空=8）。
+            entry.IsGroundCast = v.Length >= 43 && !string.IsNullOrWhiteSpace(v[42]) && int.Parse(v[42].Trim()) != 0;
+            if (entry.IsGroundCast)
+                data.BeamRange = (v.Length >= 29 && !string.IsNullOrWhiteSpace(v[28])) ? float.Parse(v[28].Trim()) : 8f;
+
+            // 近身扇形（第 43～44 欄）：攻擊半徑沿用 BlastRadius，角度空=100。
+            entry.IsMelee = v.Length >= 44 && !string.IsNullOrWhiteSpace(v[43]) && int.Parse(v[43].Trim()) != 0;
+            entry.MeleeAngle = (v.Length >= 45 && !string.IsNullOrWhiteSpace(v[44])) ? float.Parse(v[44].Trim()) : 100f;
+
+            // 突進斬（第 45～47 欄）：距離空=4、掃擊寬空=1。
+            entry.IsDash = v.Length >= 46 && !string.IsNullOrWhiteSpace(v[45]) && int.Parse(v[45].Trim()) != 0;
+            entry.DashDistance = (v.Length >= 47 && !string.IsNullOrWhiteSpace(v[46])) ? float.Parse(v[46].Trim()) : 4f;
+            entry.DashWidth = (v.Length >= 48 && !string.IsNullOrWhiteSpace(v[47])) ? float.Parse(v[47].Trim()) : 1f;
+            entry.UseSegmentedSkyStrike = v.Length >= 49 && !string.IsNullOrWhiteSpace(v[48])
+                                           && int.Parse(v[48].Trim()) != 0;
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }
@@ -311,7 +342,7 @@ public class RecipeManager : MonoBehaviour
             if (entry.SubRecipeID > 0 && _recipes.TryGetValue(entry.SubRecipeID, out RecipeEntry subEntry))
             {
                 entry.Data.SubProjectileData = subEntry.Data;
-                entry.SubRecipe = subEntry;   // 保留子配方參考（天降雷擊接連鎖時要讀 sub 的 IsChain/ChainCount/ChainRadius）
+                entry.SubRecipe = subEntry;   // 保留子配方參考（落雷接連鎖時會讀 sub 的 IsChain/ChainCount/ChainRadius）
             }
         }
     }
