@@ -113,6 +113,16 @@
 
 ## C. 地圖編輯器 / 素材同步
 
+### C6. 從 `DipanProj_MapEditor/Effects` 複製 PNG 到遊戲後，VFX／動畫子彈完全隱形，Console 報 `Animation sprite not found`
+- **症狀**：檔案確實存在於 `Assets/Resources/Weapon/` 或 `Assets/Resources/VfxEffects/`，路徑、檔名與幀數也正確，但 `Resources.Load<Sprite>` 回傳 null，武器或特效完全看不到。
+- **原因**：`Effects/` 在 Unity `Assets` 外，複製進主遊戲時沒有 `.meta`；Unity 第一次匯入若仍是一般 Texture（不是 Sprite），用 `Resources.Load<Sprite>` 就載不到。原專案只有 `Resources/UI` 的自動匯入器，武器／VFX 沒有同等防呆。
+- **解法**：已新增 `Assets/Editor/GameEffectTextureImportSettings.cs`；新放進 `Resources/Weapon`、`Resources/VfxEffects`、`Resources/GroundEffect` 的圖片第一次匯入會自動設為 Single Sprite、PPU 100、Point、關 Mipmap、透明、無壓縮。已經生成錯誤 `.meta` 的舊圖需在 Inspector 手動套相同設定或 Reimport；匯入後再確認 `Resources.Load<Sprite>(路徑)` 不為 null。
+
+### C7. 從 Effects 匯入的動畫子彈只剩一個小點，命中特效反而比飛行物清楚
+- **症狀**：子彈確實有飛出去，也能命中及播放 HitEffect，但飛行途中小到無法辨識武器外型。
+- **原因**：誤把 `WeaponTable.BulletScale` 當成圖片的最終世界縮放。實際生成還會乘 `BulletPrefab.transform.localScale`（目前 **0.1**）與 `PlayerScale`（Player prefab 目前 **0.8**）；因此填 1 的 32px 圖最後只有 `0.32×0.1×0.8=0.0256` 世界單位，幾乎是一個點。舊武器源圖多達數百像素，所以原本填 1～5 沒那麼明顯；Effects 投射物多為 32～96px，必須反算。
+- **解法**：用 `目標世界寬 ÷ (原生像素寬/PPU × BulletPrefabScale × PlayerScale)` 算 BulletScale。以目前 PPU100／prefab0.1／玩家0.8，32px 飛行物要約 0.64 格寬就填 25；96px 飛行物要約 1 格寬就填約 13。Effects 動畫子彈必須依原圖尺寸個別反算，不要用命中特效的 Scale 推測子彈 Scale（兩者生成路徑不同）。
+
 ### C1. 動畫地上物同步後在「地上物」清單看不到(category 變成資料夾名)
 - **症狀**:在 `Environment/<子資料夾>/` 放了多張幀圖、同步素材後,編輯器「地上物」工具的清單裡找不到這個動畫物件。檢查 `catalog.json` 會看到那些幀變成**一張一筆獨立項目、`category` = 子資料夾名**(例如 `Teleport`),而非收成一筆 `category: Environment` 的動畫物件。
 - **原因**:**素材同步有兩條路徑,改了一條忘了另一條**。① CLI `Tools/sync_assets.sh`、② Unity 選單 `DipanMapEditor → 同步素材`(`Assets/Editor/AssetSyncTool.cs`)。兩者都會重生 `catalog.json`。舊版兩者都用「遞迴掃所有 PNG + `category = 上層資料夾名`」,所以子資料夾的幀會被當成各自獨立、且 category 變成子資料夾名 → 被物件清單的 `category == Environment` 過濾掉。**只改了其中一條(例如只改 bash)、卻用另一條(Unity 選單)同步,就會中這個雷**。

@@ -42,9 +42,13 @@
 | IsAura | 整數 | 否 | 佛光型武器（1 = 是，留空或 0 = 否；與 IsOrbital / IsParabolic / IsLaser 互斥）。不發射子彈，改在玩家身上維持一個「跟著玩家移動」的圓形 AOE（圓的定義走本列 `GroundEffectID`、傷害走武器表 `Damage`）。見 [GROUND_EFFECT.md](GROUND_EFFECT.md) 的佛光章節 |
 | IsChain | 整數 | 否 | 連鎖閃電（1 = 是，留空或 0 = 否；與其他模式互斥）。朝滑鼠射出命中首怪後逐跳。**跳躍次數沿用 `MaxBounces` 欄、第一段射程沿用 `BeamRange` 欄**。見 [LASER.md](LASER.md) 的連鎖閃電章節 |
 | ChainRadius | 小數 | 否 | 連鎖閃電每一跳的搜尋半徑（世界單位）；留空 = 4 |
-| IsSkyStrike | 整數 | 否 | 天降雷擊（1 = 是，留空或 0 = 否；與其他模式互斥）。從畫面上緣劈下到滑鼠點，落地以 `BlastRadius` 做圓形 AOE。吃 `SpreadCount`/`SpreadAngle`（多道）與 `HomingTurnSpeed`（落點吸附，當搜尋半徑）。見 [LASER.md](LASER.md) 的天降雷擊章節 |
+| IsSkyStrike | 整數 | 否 | 落雷模式（1 = 是，留空或 0 = 否；與其他模式互斥）。從畫面上緣劈下到滑鼠點，落地以 `BlastRadius` 做圓形 AOE。吃 `SpreadCount`/`SpreadAngle`（多道）與 `HomingTurnSpeed`（落點吸附，當搜尋半徑）。目前由九霄雷獄使用，見 [LASER.md](LASER.md) |
 | SubWeaponOnHit | 整數 | 否 | 命中迸發子武器：子彈命中時在命中點生成「**武器表上指定 ID** 的武器」一發（子武器**自帶外型/傷害/追蹤**）。留空 / 0 = 不觸發。**與 `SubRecipeID` 不同**（見下方說明） |
 | SubWeaponHitTarget | 字串 | 否 | 迸發過濾：`Enemy`（預設）/ `Environment`（牆＋可破壞家具）/ `All`（任一都迸）|
+| 集氣模式 | 布林 | 否 | `1`／`true` 啟用，留空／`0`／`false` 關閉。按住攻擊 3 秒後放開可獲得傷害 ×3、視覺 ×2；與 `IsLaser`、`IsAura` 互斥。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
+| 集氣時間縮減 | 百分比 | 否 | 留空為 `0%`；`30%` 代表縮短 30%（3 秒→2.1 秒），`-20%` 代表延長 20%（3 秒→3.6 秒）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
+
+> 雷射配方可用 `BeamRange=-1` 表示延伸射程；反射仍完全由 `BounceTarget` 與 `MaxBounces` 控制，例如 `Environment + 3` 就只在牆面反射 3 次。詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
 
 ---
 
@@ -272,11 +276,11 @@
 - 目標搜尋與傷害都在主遊戲側結算，`LaserBeam` 只當折線視覺（短命淡出的電弧）
 - 範例：配方 22「連鎖閃電」`IsChain=1, MaxBounces=4, BeamRange=15, ChainRadius=4, FireInterval=0.5`；武器 11「連鎖閃電」`Damage=3, BeamStyle=7(閃電), BeamColor=6(藍), BeamWidth=0.25`。詳見 [LASER.md](LASER.md)
 
-### IsSkyStrike（天降雷擊）
+### IsSkyStrike（落雷模式；目前九霄雷獄使用）
 - 啟用條件：`IsSkyStrike = 1`，與其他特殊模式互斥
 - 行為：點一下（吃 `FireInterval`）從**畫面上緣外往下劈**到滑鼠所在點，落地以 `BlastRadius`（留空＝1.2）半徑做**圓形 AOE**，對範圍內 `IDamageable`（怪 + 可破壞家具）以**武器 `Damage`** 結算一次
-- **欄位複用**：AOE 半徑 = `BlastRadius`；散射（多道落點）= `SpreadCount`/`SpreadAngle`；追蹤（落點吸附最近怪）= `HomingTurnSpeed`（此處當**搜尋半徑**世界單位用）；可選落點殘留 = `GroundEffectID`；外觀 = 武器表 `BeamStyle`/`BeamColor`/`BeamWidth`
-- 範例：配方 23「天降雷擊」`IsSkyStrike=1, BlastRadius=1.5, FireInterval=0.6`；武器 12「天降雷擊」`Damage=8, BeamStyle=7(閃電), BeamColor=3(黃), BeamWidth=0.35`。想試分裂把 `SpreadCount`=3/`SpreadAngle`=60；想試追蹤把 `HomingTurnSpeed`=3。詳見 [LASER.md](LASER.md)
+- **欄位複用**：AOE 半徑 = `BlastRadius`；散射 = `SpreadCount`/`SpreadAngle`；追蹤落點吸附 = `HomingTurnSpeed`；`UseSegmentedSkyStrike=1` 啟用全高分段雷柱。
+- 目前：配方 37「九霄雷獄」`IsSkyStrike=1, UseSegmentedSkyStrike=1, BlastRadius=1.6, FireInterval=0.9`；武器 24 `Damage=8, HitEffectID=26`。詳見 [LASER.md](LASER.md)
 
 ### SubWeaponOnHit / SubWeaponHitTarget（命中迸發子武器）vs SubRecipeID
 兩個都叫「Sub」，但本質不同，別搞混：

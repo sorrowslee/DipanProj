@@ -24,8 +24,11 @@
 | [ANIMATOR_ADD_STATE.md](ANIMATOR_ADD_STATE.md) | Animator 新增一個狀態的速查（做 clip→加狀態→參數連線→程式觸發→清垃圾，單張/序列圖皆有） | 給角色加新動畫狀態（死亡/攻擊/受傷…） |
 | [GROUND_EFFECT.md](GROUND_EFFECT.md) | 地面特效鏈式觸發 AOE ＋ 拋物線型武器 | 改地面特效、拋物線、AOE |
 | [LASER.md](LASER.md) | 雷射光束系統 ＋ 雷射外型（BeamStyle 種類／調色盤） | 改雷射、加雷射種類或顏色 |
+| [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md) | Pack 4 像素雷射素材拆解、平鋪折線渲染、無限延伸／反射與武器「鏡界折光」 | 改像素雷射、反射上限或擴充 Pack 4 顏色／造型 |
 | [VFX.md](VFX.md) | 一次性特效：發射特效（玩家身上）＋ 擊中特效（命中點），VfxTable 原語 | 加／改發射或擊中特效 |
 | [EFFECT_LIBRARY.md](EFFECT_LIBRARY.md) | 地圖編輯器端「特效素材庫＋預覽器」：原始包(`allEffects/`)→通用整理腳本(`organize_bundle.py`)→`Effects/`→特效預覽器（瀏覽/換色/匯出）；放 Assets 外、不被 sync、挑好再手動貼進遊戲 | 整理/瀏覽買來的特效包、挑特效貼進遊戲前 |
+| [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md) | Effects 全庫審閱、特效武器化原則、已實作武器與下一批候選 | 從特效庫設計／擴充武器、查新武器素材來源 |
+| [CHARGE_MODE.md](CHARGE_MODE.md) | RecipeTable 集氣模式：按住／放開流程、3 秒倍率、藍紅集氣特效與持續武器互斥規則 | 啟用集氣武器、調整集氣倍率／特效或排查輸入互斥 |
 | [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) | RecipeTable 每個欄位的詳細用法、填寫規則與組合範例 | 填配方表細節時的查詢手冊 |
 | [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（做過什麼、怎麼演進） | 想了解歷史脈絡 |
 | [ROADMAP.md](ROADMAP.md) | 待辦與未來規劃 | 規劃下一步 |

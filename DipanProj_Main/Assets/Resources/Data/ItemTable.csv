@@ -8,7 +8,6 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 7,火焰噴射器,Weapon,Weapon,UI/Icons/Equipment/weapon_skullHorn,1,骷髏號角,"傷害 2／跳　持續噴吐烈焰","號角齊鳴，群骷髏吐出地獄之息。",7
 8,佛光,Weapon,Weapon,UI/Icons/Equipment/weapon_sacredLamp,1,古燈,"傷害 1　籠罩己身的光環、灼傷近敵","燈火不滅，照處邪祟自焚。",8
 9,連鎖閃電,Weapon,Weapon,UI/Icons/Equipment/weapon_whip,1,鞭子,"傷害 3　命中後在敵間逐跳連鎖","鞭梢撕裂空氣，雷光順勢而走。",9
-10,天降雷擊,Weapon,Weapon,UI/Icons/Equipment/weapon_talisman,1,符咒,"傷害 8　自天而降、範圍轟擊","符成，天怒應聲而落。",10
 11,蜂巢,Weapon,Weapon,UI/Icons/Equipment/weapon_honeyComb,1,蜂巢,"傷害 2　命中後迸出追蹤蜜蜂","打碎它，憤怒便傾巢而出。",11
 12,蜜蜂,Weapon,Weapon,UI/Icons/Equipment/weapon_bee,1,蜜蜂,"傷害 1　成群追擊的蜜蜂","嗡嗡聲逼近時，已經太遲了。",12
 101,銅錢,Currency,None,UI/Icons/Items/item_copperCoins,999,可交易的銅錢,"通用貨幣　可於商店交易","串錢的紅繩早已褪色，銅錢卻被摩挲得發亮。",

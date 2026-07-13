@@ -35,12 +35,14 @@
 | `dotInterval` | `DotInterval` | 雷射傷害節拍（秒）：每 N 秒對當下掃到的目標各結算一次傷害；留空 = 0.5 |
 | `BeamRange` | `BeamRange` | 雷射最大射程（世界單位）；Speed / LifeTime 對光束無意義，改用此欄限制長度；留空 = 20 |
 
-> 地面特效相關欄位（`GroundEffectID` / `GroundEffectTrigger` / `GroundEffectHitTarget`）、拋物線欄位（`IsParabolic` / `ArcHeight` / `LaunchSource` / `LandingScatterRadius` / `BlastRadius` 落地殺傷半徑）、佛光欄位（`IsAura`：跟隨玩家的圓形 AOE）也在 RecipeTable，記在 [GROUND_EFFECT.md](GROUND_EFFECT.md)。
-> 連鎖閃電欄位（`IsChain` / `ChainRadius`，跳躍次數借 `MaxBounces`、首段射程借 `BeamRange`）、天降雷擊欄位（`IsSkyStrike`，AOE 半徑借 `BlastRadius`、散射借 `SpreadCount`/`SpreadAngle`、落點吸附借 `HomingTurnSpeed`）記在 [LASER.md](LASER.md)。
+> 地面特效相關欄位（`GroundEffectID` / `GroundEffectTrigger` / `GroundEffectHitTarget`）、拋物線欄位（`IsParabolic` / `ArcHeight` / `LaunchSource` / `LandingScatterRadius` / `BlastRadius` 落地殺傷半徑）、佛光欄位（`IsAura`：跟隨玩家的圓形 AOE）也在 RecipeTable，記在 [GROUND_EFFECT.md](GROUND_EFFECT.md)。離散武器可用 `集氣模式` 啟用按住 3 秒強化施放，詳見 [CHARGE_MODE.md](CHARGE_MODE.md)。
+> 連鎖閃電欄位（`IsChain` / `ChainRadius`）與落雷欄位（`IsSkyStrike` / `UseSegmentedSkyStrike`，目前九霄雷獄使用）記在 [LASER.md](LASER.md)。
 > 命中迸發子武器欄位（`SubWeaponOnHit` 指向**武器表**的武器、`SubWeaponHitTarget` = Enemy/Environment/All）——子武器自帶外型，與只仿母武器外型的 `SubRecipeID` 不同，詳見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)。
 > 軌跡欄位 `TrailStep`（沿路種特效，做地刺類武器）見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 與 [BALLISTICS.md](BALLISTICS.md) 的 `OnTrailPoint`。
 
 ## 武器表 (WeaponTable.csv)
+
+`PixelBeamSet` 控制貼圖式雷射外觀：留空沿用 shader 雷射，`A_Blue` 使用 Pack 4 A 組藍色 origin／center／impact 動畫。詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
 定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。
 
 | CSV 欄位 | 說明 |

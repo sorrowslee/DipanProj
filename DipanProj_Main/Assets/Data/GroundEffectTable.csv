@@ -1,3 +1,6 @@
 ID, Name    , Radius, Duration, DamageInterval, Damage, AniPath                    , AniNumber, AnimFPS, TileSize, RenderMode(Tile或Single或Glow/空為Tile/Single為單張靜態圓暈/Glow為加色發光且燈火忽強忽弱明滅)
  1, 火焰燃燒,    1.5,        3,            0.5,      1, GroundEffect/fireGround/fire,        6,      12,        0.5
 2, 佛光, 1.2, -1, 0.3, 1, GroundEffect/buddhaLight/buddhaLight, 1, 0, 1, Glow
+3, 虛空吞口, 2.4, 4, 0.5, 1, GroundEffect/VoidMaw/VoidMaw, 24, 15, 1, Single
+6, 冰封法陣, 2.5, 2.5, 0.5, 1, GroundEffect/IcePrison/IcePrison, 50, 20, 1, Single
+7, 死字咒, 2.2, 3.33, 0, 1, GroundEffect/DeathSeal/DeathSeal, 50, 15, 1, Single

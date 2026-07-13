@@ -2,6 +2,8 @@
 
 > 返回 [文件總覽](README.md)
 
+> Pack 4 像素化、可無限延伸並在牆面多次反射的實作與武器「鏡界折光」，另見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
+
 持續掃射型雷射武器。與「會飛的子彈」本質不同——它是「一條當下就存在的線」，不適用 `BulletInstance`（會移動的點）與 `IBulletBehavior`（為移動設計），因此**新增獨立的 `LaserBeam` 核心元件**，與 `BulletInstance` 平級。設計上仍嚴守解耦邊界：**彈道系統只管幾何 + 渲染 + 回報命中，絕不結算傷害**。
 
 本文分兩半：前半是**光束行為／渲染**（LaserBeam 元件、主遊戲串接），後半是**外型系統**（BeamStyle 種類化、如何加第 11 種）。
@@ -131,39 +133,39 @@
 
 ---
 
-## 四、天降雷擊（IsSkyStrike：從畫面上緣劈下 + 圓形 AOE）
+## 四、落雷模式（IsSkyStrike；目前武器＝九霄雷獄）
 
-從**畫面上緣外往下劈**到滑鼠所在點，落地造成**圓形範圍傷害**。和連鎖閃電同源（共用折線渲染當垂直鋸齒閃電），AOE 用拋物線的 `BlastRadius` 那套圓形範圍傷害。
+從**畫面上緣外往下劈**到滑鼠所在點，落地造成**圓形範圍傷害**。底層 `IsSkyStrike` 目前由九霄雷獄使用；AOE 沿用 `BlastRadius`，視覺以 `UseSegmentedSkyStrike` 啟用分段全高雷柱。
 
 ### 機制（全在主遊戲側 `PlayerController.ShootSkyStrike` / `StrikeAt`）
 * **落點**：滑鼠所在世界座標。`SpreadCount > 1` 時以「玩家→滑鼠」為基準軸、在 `±SpreadAngle/2` 扇形上、與滑鼠等距分佈出 N 個落點（同拋物線的扇形落點）。
-* **視覺**：每個落點從「畫面上緣 + 邊距」垂直往下劈一道鋸齒閃電（複用 `BallisticsEngine.SpawnChainVisual` 的靜態折線 + 短命淡出）。
+* **視覺**：九霄雷獄由 `SegmentedLightningColumn` 生成——start 作鏡頭外雷首，依鏡頭頂端到落點距離動態鋪 N 節 tileable loop，保持等寬一路打到地面；不使用會收細的 end。地面另播 WeaponTable `HitEffectID` 的大型爆炸。
 * **圓形 AOE**：落點以 `BlastRadius`（留空＝預設 1.2）半徑 `OverlapCircleAll(Enemy|Env)`，對範圍內 `IDamageable`（**怪與可破壞家具都吃**）以**武器 `Damage`** 結算一次。
 * **可選殘留**：`GroundEffectID > 0` 時在落點生成一團地面特效（焦痕/殘電/燃燒…）。
 * 目標搜尋與傷害都不碰彈道系統（守住邊界）。
 
 ### 吃得下的配方欄位
-| 欄位 | 對天降雷擊的意義 |
+| 欄位 | 對落雷模式的意義 |
 |---|---|
 | `BlastRadius` | 落地圓形 AOE 半徑（留空＝1.2） |
 | `SpreadCount` / `SpreadAngle` | **散射**：一次劈 N 道、落點分佈在滑鼠方向 ±SpreadAngle/2 的扇形上 |
 | `HomingTurnSpeed` | **追蹤＝落點吸附**：>0 時把每個落點吸附到「該落點 `HomingTurnSpeed` 半徑（世界單位）內最近的可傷害目標」。留空/0＝精準劈在滑鼠點。**注意此處 HomingTurnSpeed 當「搜尋半徑」用**（與連鎖閃電當「扇形錐半角」不同；各武器按自己合理的方式解讀） |
 | `GroundEffectID` | 落點殘留地面特效（可選） |
 | `Damage`（武器表） | AOE 傷害 |
-| `BeamStyle`/`BeamColor`/`BeamWidth`（武器表） | 閃電外觀（建議 BeamStyle=7 閃電、BeamColor 黃/白） |
+| `UseSegmentedSkyStrike` | 1＝使用 start＋動態 loop 的全高分段雷柱 |
+| `HitEffectID`（武器表） | 分段模式下專門代表地面命中特效，不再兼任雷柱本體 |
 
-* **範例**（目前設定）：武器 12「天降雷擊」`Damage=8, RecipeID=23, BeamStyle=7, BeamColor=3(黃), BeamWidth=0.35`；配方 23「天降雷擊」`IsSkyStrike=1, BlastRadius=1.5, FireInterval=0.6`（預設單道、不追蹤）。
-* **想試分裂**：把配方 23 的 `SpreadCount` 改 3、`SpreadAngle` 改 60（一次劈 3 道）。**想試追蹤**：把 `HomingTurnSpeed` 設成搜尋半徑（例如 3）→ 落點會吸附附近的怪。
+* **目前設定**：武器 24「九霄雷獄」`Damage=8, RecipeID=37, HitEffectID=26`；配方 37 `IsSkyStrike=1, UseSegmentedSkyStrike=1, BlastRadius=1.6, FireInterval=0.9`。
+* **想試分裂**：把配方 37 的 `SpreadCount` 改 3、`SpreadAngle` 改 60。**想試追蹤**：把 `HomingTurnSpeed` 設成搜尋半徑（例如 3）。
 * **調整方向**：AOE 大小 → `BlastRadius`；幾道 → `SpreadCount`/`SpreadAngle`；吸附範圍 → `HomingTurnSpeed`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`；落點殘留 → `GroundEffectID`。
 
 ### 接 SubRecipeID = 落點接連鎖閃電（已實作）
-天降雷擊配方填 `SubRecipeID` 指向一個 `IsChain` 配方時，**落地後會從落點接一條連鎖閃電**轟擊旁邊的怪：首目標 = 落點 sub 配方 `ChainRadius` 內最近的可傷害目標，之後逐跳 sub 配方的次數（`MaxBounces`）。
+落雷配方填 `SubRecipeID` 指向一個 `IsChain` 配方時，可在落地後從落點接一條連鎖閃電；目前九霄雷獄不使用此能力。
 
 * **連鎖的外觀＋傷害＝「定義該連鎖配方的那把武器」**（`WeaponManager.GetWeaponByRecipeID(sub.ID)` 查出，例如連鎖閃電武器 11）。所以雷擊（黃）與接出來的連鎖（白/該武器的顏色）**可各有顏色、粗細、傷害**——雷擊 AOE 走武器 12 `Damage`、連鎖每跳走武器 11 `Damage`。查不到對應武器才退回發射武器（雷擊）本身。
   * 跳躍次數/半徑用**子配方**的（`ChainCount`/`ChainRadius`）。
 * 實作：`RecipeEntry.SubRecipe` 保留子配方參考（`ResolveSubRecipes` 設定）；`WeaponManager` 建 `RecipeID → 武器` 對照；`StrikeAt` 落點查出連鎖武器後呼叫共用的 `PlayerController.RunChain`（與連鎖閃電武器同一套）。
-* 目前設定：配方 23 `SubRecipeID=22`（連鎖閃電 4 跳 / 半徑 4）；連鎖外觀由**武器 11**（連鎖閃電，`BeamColor=9` 白）決定。**想換連鎖顏色就改武器 11 的 `BeamColor`**（會同時影響你直接拿連鎖閃電武器與雷擊接出來的連鎖，因為共用同一把）。
-* 想關掉就把配方 23 的 `SubRecipeID` 清空。
+* 目前九霄雷獄不接 SubRecipe，保持「單次落雷＋地爆」；此接點僅保留作未來配方能力。
 
 > 註：若同一條連鎖配方被多把武器引用，`GetWeaponByRecipeID` 取**最低 ID** 那把的外觀/傷害。要讓「雷擊的連鎖」和「直接拿的連鎖武器」長不一樣，得各自用不同配方（複製一份連鎖配方給雷擊指）。
 
