@@ -370,6 +370,16 @@
 - **原因**：地刺特效圖（`fanfx2_earth_spikes`，160×128、pivot 置中）是**從底部往上長、實體只佔圖的下半、上半是空的**。舊碰撞框是「**以圖正中心為中心**的固定核心框」（0.9×1.3×scale）：① 中心在圖正中央，但刺的實體在下半 → 框落在刺上半、圈不到基座；② 放大版 scale 一拉大，框跟著往上罩到空白上半 → 站在沒刺的地方也被判定。小 scale 時因為絕對偏差小、勉強能接受，大 scale 就爆開。
 - **解法**：碰撞框改成**貼齊「可見地刺」的 base-anchored 框**——冒出當下讀特效顯示邊界（`VfxInstance.WorldBounds`），**框底對齊圖底（地刺基座）往上長**，寬＝可見寬×0.75、高＝可見高×0.60，且**所有地刺共用同一規則**（`BossSpike.Fire` 預設 `hitFillW/H`）。另加**除錯紅框**（`BossSpike.DebugDrawHitbox`，用 LineRenderer 畫在 Game View）方便對照調整。**通則**：當「碰撞判定」要對齊「一張美術圖」時，別用手寫固定框硬猜，去讀該圖的實際顯示邊界來貼合；且要注意**圖的實體不一定置中**（像從地面往上長的東西是底部貼齊），框要 anchor 到實體那一側、不是圖的幾何中心。（2026-07-10 記，見 [BOSS_MODULE.md](BOSS_MODULE.md) §6.2）
 
+### F15. 怪物「原地踏步」——播走路動畫卻沒真的移動（尤其紅嫁衣等會逃跑的 boss）
+- **症狀**：玩家沒靠近時，怪物（特別是紅嫁衣 boss）一直播走路動畫，但位置沒有真的改變，像在原地踏步。
+- **原因**：`MonsterController.HandleVisuals` 用「**指令速度**」`_rb.velocity.magnitude > 0.1` 判斷是否在動。但**所有怪的碰撞框都是 trigger**（走 A* 導航、不做硬碰撞，見 F11），逃跑被卡在牆角、或 A* 目標點不可達而在原地微調時，`MoveTowards` 仍每幀把 `velocity` 設成滿的 `MoveSpeed`、實際位置卻幾乎沒變 → 指令在動、人沒動 → 誤判成走路。
+- **解法**：改看「**實際位移速度**」——每幀量 `transform.position` 的位移 ÷ `Time.deltaTime`（加指數平滑 tau 0.08 吃單幀抖動；玩家/怪物 Rigidbody2D 已開 Interpolate 故量測穩定），超過 `MoveAnimThreshold`（新增欄位，預設 0.12 世界單位/秒）才播走路、否則 idle；此速度也餵 `MonsterAnimator.SetState` 讓走路 fps 跟真實移動連動。通用、對所有怪生效。**通則**：判斷「角色有沒有在動」要看**實際位移**、別看指令速度——尤其「trigger 碰撞（不會被牆擋停）＋外部尋徑」時，指令速度與真實位移會嚴重不一致。（2026-07-13 記，見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)）
+
+### F16. boss 召喚/攻擊時沒有出手動作（施法時只發呆，或明明畫了 attack 幀卻不播）
+- **症狀**：紅嫁衣召喚家人時原本有「施法動作」，修掉 F15 的原地踏步後施法動作消失、變成召喚時站著不動。更一般的情形：某隻 boss/怪明明畫了 `attack` 幀，遊戲裡卻從來不播攻擊動畫。
+- **原因**：怪的 `attack` 幀只放在 `GameAssets/.../<怪名>/attack/`，**沒有同步進 `StreamingAssets`**（紅嫁衣的 StreamingAssets 端只有 `idle`/`walk`）。遊戲是從 StreamingAssets 載圖，`MonsterSpriteLibrary.Has(Attack)` 因此是 **false** → `HandleVisuals` 施法時的 Attack 請求被 `Has` 擋掉、掉回「移動→走路」。F15 之前她召喚時剛好被卡在牆角（velocity 滿）→ 播走路，被誤看成「施法動作」；F15 把原地改判成 idle 後，那個假施法走路就沒了。**根因＝boss 的 attack 幀漏 Sync**，與「主角攻擊動畫沒顯示」同源（見 [TODO.md](TODO.md)）。
+- **解法**：兩層。**① 程式即時保底**：`HandleVisuals` 在施法視窗（`_skillCastAnimUntil`／`NotifySkillCast`）內若沒有 attack 幀，退回播**走路**當出手表演（只在該 0.6s，平常靜止仍 idle、不回到原地踏步），且原地施法時用 `MoveSpeed` 餵走路 fps 讓節奏正常。**② 治本**：跑 `Project Tools → Sync Map Assets` 把 `RedBridalGown/attack`（及其他怪的 attack）推進 StreamingAssets，`Has(Attack)` 變 true 後就自動改播真正的攻擊動畫（程式已接好、零改動）。**通則**：怪的 `attack`（或任何新動作葉資料夾）加了圖，一定要重跑一次 Sync，否則遊戲端 `Has` 抓不到、靜默退回其他狀態、不報錯，很難察覺。（2026-07-13 記，見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)、[MONSTER_SETUP.md](MONSTER_SETUP.md)）
+
 ---
 
 ## H. 流程 / 存讀檔 (Game Flow & Save UI)
@@ -414,3 +424,8 @@
 - **症狀**：開了 Enter Play Mode Options（見 I2）後，怪物／角色被打時**頭上的浮動傷害數字消失了**——之前明明會跳。第一次 Play（或改過腳本、觸發重編譯的那次）正常，第二次以後就不出現；戰鬥、扣血、擊中特效都正常，唯獨數字沒了。
 - **原因**：`DamageNumberManager` 是**懶漢單例＋ `_quitting` 守衛**：`Instance` 取用時 `if (_quitting) return null;` 擺在「建立 GameObject」之前，而 `_quitting` 只在 `Awake` 裡被設回 false。編輯器**停止 Play 時 `OnApplicationQuit` 會把 `_quitting` 設成 true**。以前每次 Play 都有 Domain Reload 把 static 歸零所以沒事；關掉之後 `_quitting = true` 殘留到下一次 Play → `Show()` 取 `Instance` 被守衛擋成 null → 直接 return、不生數字。而且因為物件從沒被建立，`Awake` 也沒機會把 `_quitting` 設回 false ＝**死結**。（與 I3 同源＝關 Domain Reload 後的 static 殘留，但這裡卡的是「阻止建立」的旗標而非銷毀的 sprite；`VfxManager` 沒有 `_quitting` 守衛、走 `if(null)重建` 自癒，故擊中特效不受影響——只有傷害數字中招。）
 - **解法**：給 `DamageNumberManager` 加 `public static void ResetForPlayMode() { _quitting = false; _instance = null; }`，並在 `Assets/Scripts/PlayModeStaticReset.cs` 每次進 Play 時呼叫（放在其他 `ResetForPlayMode` 旁）。**通則同 I2/I3**：關掉 Domain Reload 後，凡是「用 static 旗標擋住單例建立／或 static 快取 runtime 物件」的類別，都要在 `PlayModeStaticReset` 歸零。打包版每次都是全新程序、本來就乾淨，這段是無害 no-op。（2026-07-09 記）
+
+### I6. Console 跳 `FMOD failed to switch back to normal output ... Cannot call this command after System::init.`（可忽略）
+- **症狀**：編輯器 Console 出現一則紅字 `FMOD failed to switch back to normal output … : "Cannot call this command after System::init. " (32)`，戰鬥／畫面／遊戲邏輯全部正常。
+- **原因**：這是 **Unity 引擎內建音訊層（底層用 FMOD 驅動 AudioManager）** 的警告，**不是專案程式碼**（本專案目前還沒有音訊系統，這不是遊戲音效）。Unity 想把音訊輸出「切回預設裝置」但 FMOD 已經 `init` 過、不能再切，就印這行。常見觸發＝**音訊輸出裝置變動**：藍牙耳機連/斷、HDMI 螢幕的音訊通道斷開重連、切換遠端桌面、進出 Play 模式時系統音訊焦點跳動。本機走遠端／ATEN 4K HDMI（見 E1），HDMI/遠端桌面的音訊裝置最容易在進 Play 或視窗切換時被系統重新指派而命中此情境。
+- **解法**：**可忽略**——單次警告、不會 crash、不影響執行與打包，正式 build 一般不出現。嫌煩按 Console `Clear`；真的常跳就重開一次 Unity、或確認接的音訊輸出裝置穩定不要中途斷。**與角色/怪物/動畫程式無關**（能進 Play 看到它就代表腳本已正常編譯）。（2026-07-13 記）
