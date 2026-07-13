@@ -17,6 +17,7 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 25,幽影突,Weapon,Weapon,VfxEffects/GhostDash/GhostDash_01,1,幽影突,傷害 7　向瞄準方向突進斬擊,影子仍留原地，刀鋒已在五步之外。,25,,
 27,冰封法陣,Weapon,Weapon,GroundEffect/IcePrison/IcePrison_01,1,冰封法陣,傷害 2.5／跳　定點冰獄,寒氣結界閉合之時，連聲音也被凍住。,27,,
 28,死字咒,Weapon,Weapon,GroundEffect/DeathSeal/DeathSeal_01,1,死字咒,傷害 12　定點一次處決法印,一字既成，生者名冊便少了一筆。,28,,
+29,鏡界折光,Weapon,Weapon,VfxEffects/PixelLaserA_Blue/Origin/Origin_01,1,鏡界折光,傷害 2／跳　無限延伸並在牆面持續反射,鏡光一出，萬壁皆成它的下一面鏡子。,29,,
 101,銅錢,Currency,None,UI/Icons/Items/item_copperCoins,999,可交易的銅錢,通用貨幣　可於商店交易,串錢的紅繩早已褪色，銅錢卻被摩挲得發亮。,,,
 102,卷軸,Material,None,UI/Icons/Items/item_reel,99,神秘的卷軸,合成材料,紙頁泛黃，唯一能辨認的是一個「歸」字。,,,
 103,符紙,Consumable,None,UI/Icons/Items/item_talismanPaper,99,驅邪的符紙,消耗品　使用後短暫驅邪,貼上門楣的第七夜，符紙無火自燃。,,,

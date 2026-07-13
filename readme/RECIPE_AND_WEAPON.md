@@ -41,6 +41,8 @@
 > 軌跡欄位 `TrailStep`（沿路種特效，做地刺類武器）見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 與 [BALLISTICS.md](BALLISTICS.md) 的 `OnTrailPoint`。
 
 ## 武器表 (WeaponTable.csv)
+
+`PixelBeamSet` 控制貼圖式雷射外觀：留空沿用 shader 雷射，`A_Blue` 使用 Pack 4 A 組藍色 origin／center／impact 動畫。詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
 定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。
 
 | CSV 欄位 | 說明 |

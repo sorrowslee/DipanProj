@@ -22,7 +22,7 @@ namespace Dipan.UI
             // 舊角色存檔沒有新武器(如御靈水晶 13) → 背包非空 → 這裡跳過 → 測試武器一直不見/時有時無。
             // 本元件在 SaveManager 之後(Start，序 0)跑，改成「補齊」就能在還原後把缺的測試武器補回。
             // （純測試用；HasAnywhere 含裝備欄，避免已裝備的又被重複補一份。正式有撿道具系統後可刪整支。）
-            int[] testWeaponIds = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 21, 22, 24, 25, 27, 28 };
+            int[] testWeaponIds = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 11, 12, 13, 21, 22, 24, 25, 27, 28, 29 };
             foreach (int id in testWeaponIds)
             {
                 if (!inv.HasAnywhere(id)) inv.AddItem(id);

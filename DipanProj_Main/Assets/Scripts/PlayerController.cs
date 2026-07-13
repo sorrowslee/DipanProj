@@ -429,7 +429,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             TrailEffectID = source.TrailEffectID, SummonEffectID = source.SummonEffectID,
             Recipe = source.Recipe, BulletPrefab = source.BulletPrefab, WeaponSprite = source.WeaponSprite,
             WeaponSprites = source.WeaponSprites, BeamMuzzleSprite = source.BeamMuzzleSprite,
-            BeamImpactSprite = source.BeamImpactSprite
+            BeamImpactSprite = source.BeamImpactSprite, PixelBeamSet = source.PixelBeamSet
         };
     }
 
@@ -864,7 +864,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             _beamAngleOffsets.Add(offset);
 
             // TrailEffectID > 0 = 火焰噴射器模式：不畫光束 mesh，改沿路徑鋪火焰 Vfx
-            bool drawBeam = weapon.TrailEffectID <= 0;
+            bool usePixelBeam = !string.IsNullOrEmpty(weapon.PixelBeamSet);
+            bool drawBeam = weapon.TrailEffectID <= 0 && !usePixelBeam;
             LaserBeam beam = BallisticsEngine.SpawnBeam(
                 recipe, origin, Vector2.right,
                 collisionMask, pierceableLayers, nonBounceLayers,
@@ -874,7 +875,14 @@ public class PlayerController : MonoBehaviour, IDamageable
                 drawBeam);
             // 環境命中(牆/可破壞地上物)走獨立回呼：只用來扣可破壞物的血，不在牆上噴擊中特效/分裂
             if (beam != null)
+            {
                 beam.OnBeamEnvironmentTick = (b, envHits) => HandleBeamEnvironment(firedWeapon, envHits);
+                if (usePixelBeam)
+                {
+                    var visual = beam.gameObject.AddComponent<PixelLaserBeamVisual>();
+                    visual.Initialize(beam, weapon.PixelBeamSet, width);
+                }
+            }
             _activeBeams.Add(beam);
         }
     }

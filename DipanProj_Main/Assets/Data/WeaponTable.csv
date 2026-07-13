@@ -1,4 +1,4 @@
-ID(武器唯一識別碼), Name(武器名稱/僅供辨識), Damage(傷害數值/雷射時為每次DOT傷害), RecipeID(對應配方表的ID), WeaponSpritePath(武器圖路徑/相對Resources不含副檔名/與WeaponAniPath二擇一), SpriteAngleOffset(圖片角度偏移度/補正攻擊端朝向), WeaponAniPath(序列圖路徑前綴/有值時忽略WeaponSpritePath), WeaponAniNumber(序列圖張數), AnimFPS(序列圖播放幀率), BulletScale(子彈縮放倍率/空為1), BeamStyle(雷射種類編號/1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光/空為2), BeamColor(雷射顏色編號/1紅2橙3黃4綠5青6藍7紫8洋紅9白10琥珀金/空為9), BeamWidth(雷射粗細/視覺與命中共用/空為0.5), FireEffectID(發射特效ID/引用VfxTable/空或0不觸發), HitEffectID(擊中特效ID/引用VfxTable/空或0不觸發), TrailEffectID(軌跡特效ID/引用VfxTable/沿子彈路徑每隔配方TrailStep種一個/空或0不觸發), ManaCost(發射消耗魔力/離散武器每發/雷射佛光每秒/空為1), SummonEffectID(召喚特效ID/引用VfxTable/召喚型武器在每個生怪點播放/特效播完才生怪/空或0不播並立即生怪)
+ID(武器唯一識別碼), Name(武器名稱/僅供辨識), Damage(傷害數值/雷射時為每次DOT傷害), RecipeID(對應配方表的ID), WeaponSpritePath(武器圖路徑/相對Resources不含副檔名/與WeaponAniPath二擇一), SpriteAngleOffset(圖片角度偏移度/補正攻擊端朝向), WeaponAniPath(序列圖路徑前綴/有值時忽略WeaponSpritePath), WeaponAniNumber(序列圖張數), AnimFPS(序列圖播放幀率), BulletScale(子彈縮放倍率/空為1), BeamStyle(雷射種類編號/1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光/空為2), BeamColor(雷射顏色編號/1紅2橙3黃4綠5青6藍7紫8洋紅9白10琥珀金/空為9), BeamWidth(雷射粗細/視覺與命中共用/空為0.5), FireEffectID(發射特效ID/引用VfxTable/空或0不觸發), HitEffectID(擊中特效ID/引用VfxTable/空或0不觸發), TrailEffectID(軌跡特效ID/引用VfxTable/沿子彈路徑每隔配方TrailStep種一個/空或0不觸發), ManaCost(發射消耗魔力/離散武器每發/雷射佛光每秒/空為1), SummonEffectID(召喚特效ID/引用VfxTable/召喚型武器在每個生怪點播放/特效播完才生怪/空或0不播並立即生怪), PixelBeamSet(像素雷射素材組/空白為shader/A_Blue)
 1, 3分裂追蹤飛劍         ,      1,        8, Weapon/single/weapon_sword   ,               135,              ,                ,        ,            ,,,,,2,, 1,
 2, 5分裂反彈彎刀         ,      2,        5, Weapon/single/weapon_scimitar,                 0,              ,                ,        ,            ,,,,,,, 1,
 3, 火焰環繞彈            ,      2,        9,                       ,                 0, Weapon/animation/fire/fire  ,               6,      12,           5,,,,,,, 1,
@@ -18,3 +18,4 @@ ID(武器唯一識別碼), Name(武器名稱/僅供辨識), Damage(傷害數值/
 25,幽影突,7,38,,0,,,,,,,,,23,,3,
 27,冰封法陣,2.5,40,,0,,,,,,,,,,,4,
 28,死字咒,12,41,,0,,,,,,,,,,,6,
+29,鏡界折光,2,42,,0,,,,,,6,0.38,,,,2,,A_Blue

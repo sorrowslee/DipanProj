@@ -48,6 +48,8 @@
 | 集氣模式 | 布林 | 否 | `1`／`true` 啟用，留空／`0`／`false` 關閉。按住攻擊 3 秒後放開可獲得傷害 ×3、視覺 ×2；與 `IsLaser`、`IsAura` 互斥。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
 | 集氣時間縮減 | 百分比 | 否 | 留空為 `0%`；`30%` 代表縮短 30%（3 秒→2.1 秒），`-20%` 代表延長 20%（3 秒→3.6 秒）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
 
+> 雷射配方可用 `BeamRange=-1` 表示延伸射程；反射仍完全由 `BounceTarget` 與 `MaxBounces` 控制，例如 `Environment + 3` 就只在牆面反射 3 次。詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
+
 ---
 
 ## 各欄位詳細說明

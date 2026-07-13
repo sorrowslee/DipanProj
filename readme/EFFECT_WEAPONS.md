@@ -2,6 +2,8 @@
 
 > 返回 [文件總覽](README.md)｜特效庫操作見 [EFFECT_LIBRARY.md](EFFECT_LIBRARY.md)｜武器欄位見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)
 
+Super Pixel Projectiles Pack 4 的 A 組藍色雷射已製作為武器 29「鏡界折光」：origin／center／impact loop 沿反射折線動態平鋪，詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
+
 ## 資產審閱
 
 - 已審閱 `DipanProj_MapEditor/Effects` 共 398 套動畫、2,421 組顏色／變體、約 48,117 張 PNG。

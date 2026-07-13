@@ -35,6 +35,12 @@ namespace Dipan.EditorTools
 
             importer.textureType = TextureImporterType.Sprite;
             importer.spriteImportMode = SpriteImportMode.Single;
+            // FullRect 才能穩定支援 SpriteRenderer.DrawMode=Tiled（像素雷射中心段沿任意長度平鋪）。
+            // Unity 2022 的 spriteMeshType 位於 TextureImporterSettings，不在 TextureImporter 本體。
+            var textureSettings = new TextureImporterSettings();
+            importer.ReadTextureSettings(textureSettings);
+            textureSettings.spriteMeshType = SpriteMeshType.FullRect;
+            importer.SetTextureSettings(textureSettings);
             importer.spritePixelsPerUnit = 100f;
             importer.mipmapEnabled = false;
             importer.filterMode = FilterMode.Point;

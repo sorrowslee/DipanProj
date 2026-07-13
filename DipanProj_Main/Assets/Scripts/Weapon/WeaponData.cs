@@ -22,6 +22,7 @@ public class WeaponData
     public BeamStyle BeamStyle;            // 由 BeamStyle 編號(1~10)解析的整組外型參數
     public Color BeamColor = Color.white;  // 由 BeamColor 編號(1~10)解析的顏色
     public float BeamWidth = 0.5f;         // 雷射粗細（視覺與命中共用）
+    public string PixelBeamSet;            // 空白 = shader 雷射；A_Blue = Pack 4 像素砲口／平鋪中心／撞擊端
 
     // ── 一次性特效（VFX）ID，引用 VfxTable；0 / 留空 = 不觸發 ──
     public int FireEffectID;   // 發射時在玩家身上播放（朝瞄準方向）

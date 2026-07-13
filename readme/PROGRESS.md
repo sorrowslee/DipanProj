@@ -1,5 +1,7 @@
 # 目前進度 (Current Progress)
 
+* [x] Pack 4 像素反射雷射（2026-07-13，見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)）：研究 A／B 兩套 origin／center／impact 與六色變體，選用 A 組藍色 loop 製作武器 29「鏡界折光」。新增 `PixelBeamSet` 與 `PixelLaserBeamVisual`，將中心段沿 ray-march 反射折線平鋪、在轉折補撞擊火花；Recipe 42 用 `BeamRange=-1` 延伸射程，反射則完全服從 `BounceTarget=Environment, MaxBounces=3`。追蹤、散射、穿透與 DOT 均沿用既有雷射配方管線。
+
 * [x] 武器集氣模式（2026-07-13，見 [CHARGE_MODE.md](CHARGE_MODE.md)）：RecipeTable 新增預設 false 的 `集氣模式` 與百分比 `集氣時間縮減`；空白鍵／滑鼠左鍵按住集氣、放開施放，完成後傷害 ×3、視覺 ×2。匯入 `scifi_charge_up_003` 藍／紅各 16 幀作集氣中／完成提示，特效高度依角色當下實際高度調整為 1.15 倍；雷射、佛光等持續輸入武器在載入時強制互斥。換地圖與暫停／阻擋操作 UI 會凍結並保留集氣，恢復後若按鍵仍按住便延續，遭清場的光圈會自動重建。Unity 2022.3.62f3 乾淨匯入與編譯通過。
 
 * [x] 特效庫武器化定案（2026-07-13，見 [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md)）：審閱 398 套動畫／2,421 組變體，最終保留血月鬼爪、虛空吞口、九霄雷獄、幽影突、冰封法陣、死字咒六把；新增泛用 `IsMelee`、`IsGroundCast`、`IsDash`、`UseSegmentedSkyStrike`。九霄雷獄以 start 雷首＋動態 N 節等寬 tileable loop 從鏡頭外鋪到落點，接大型環形爆炸。未入選測試武器及其專屬素材／表列已清除，舊落雷武器 ID 10 亦已移除；`IsSkyStrike` 底層由九霄雷獄繼續使用。Unity 2022.3.62f3 驗證副本乾淨匯入與編譯通過。

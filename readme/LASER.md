@@ -2,6 +2,8 @@
 
 > 返回 [文件總覽](README.md)
 
+> Pack 4 像素化、可無限延伸並在牆面多次反射的實作與武器「鏡界折光」，另見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
+
 持續掃射型雷射武器。與「會飛的子彈」本質不同——它是「一條當下就存在的線」，不適用 `BulletInstance`（會移動的點）與 `IBulletBehavior`（為移動設計），因此**新增獨立的 `LaserBeam` 核心元件**，與 `BulletInstance` 平級。設計上仍嚴守解耦邊界：**彈道系統只管幾何 + 渲染 + 回報命中，絕不結算傷害**。
 
 本文分兩半：前半是**光束行為／渲染**（LaserBeam 元件、主遊戲串接），後半是**外型系統**（BeamStyle 種類化、如何加第 11 種）。

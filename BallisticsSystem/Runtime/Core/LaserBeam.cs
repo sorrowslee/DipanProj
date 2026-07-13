@@ -83,6 +83,8 @@ namespace Sorrows.Ballistics
         private const float HomingStep = 0.3f;        // 追蹤時的行進步長（越小曲線越平滑、越耗）
         private const float HomingAcquireRadius = 50f;
         private const int MaxMarchSteps = 2048;
+        // CSV 以 BeamRange=-1 表示延伸到實用安全距離；反射次數仍完全服從 MaxBounces。
+        private const float InfiniteBeamDistance = 200f;
 
         private Shader _shader;
         private Shader _glowShader;
@@ -250,9 +252,9 @@ namespace Sorrows.Ballistics
             Vector2 dir = AimDirection.sqrMagnitude > 0.0001f ? AimDirection.normalized : Vector2.right;
             _points.Add(pos);
 
-            float remaining = Mathf.Max(0.01f, BeamRange);
+            float remaining = BeamRange < 0f ? InfiniteBeamDistance : Mathf.Max(0.01f, BeamRange);
             int pierceLeft = PierceCount;
-            int bouncesLeft = HasBounce ? MaxBounces : 0;
+            int bouncesLeft = HasBounce ? Mathf.Max(0, MaxBounces) : 0;
             float step = HasHoming ? HomingStep : remaining;
             int safety = 0;
 
