@@ -32,6 +32,14 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     private float _currentHealth;
     private bool _isDead = false;
 
+    [Header("Animation")]
+    [Tooltip("走路/發呆判定門檻（世界單位/秒）：以「實際位移速度」判斷是否在移動，超過才播走路、否則發呆。" +
+             "改看實際位移（非指令速度 rb.velocity）→ 逃跑被牆/角落卡住而原地不動時不會誤播走路（原地踏步）。")]
+    public float MoveAnimThreshold = 0.12f;
+    private Vector2 _lastVisualPos;      // 上一幀量測位置（算實際位移速度用）
+    private bool _lastVisualPosInit;     // 是否已初始化 _lastVisualPos
+    private float _visualSpeedEma;       // 實際位移速度的指數平滑（避免單幀抖動造成走路/發呆閃爍）
+
     [Header("Hit Reaction")]
     public float InvincibleTimeMs = 0f;
     public float KnockbackThreshold = 0f;
@@ -346,8 +354,20 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     {
         if (_spriteRenderer == null) return;
 
-        float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
-        bool moving = currentSpeed > 0.1f;
+        // 「有沒有在移動」改看『實際位移速度』（每幀真的移動了多少），不看指令速度 _rb.velocity——
+        // 逃跑/被卡在牆角時 velocity 仍是滿的 MoveSpeed 但位置沒變，會誤播走路（原地踏步）。
+        // 玩家/怪物 Rigidbody2D 已開 Interpolate（見 PROBLEMS E5），transform.position 每幀平滑更新 → 位移量測穩定。
+        Vector2 pos = transform.position;
+        if (!_lastVisualPosInit) { _lastVisualPos = pos; _lastVisualPosInit = true; }
+        float dt = Time.deltaTime;
+        float rawSpeed = dt > 0.0001f ? Vector2.Distance(pos, _lastVisualPos) / dt : 0f;
+        _lastVisualPos = pos;
+        // 指數平滑：吃掉單幀抖動（物理步與畫面步不完全對齊時的零位移幀），避免走路/發呆一幀一跳。
+        _visualSpeedEma = (dt > 0.0001f)
+            ? Mathf.Lerp(_visualSpeedEma, rawSpeed, 1f - Mathf.Exp(-dt / 0.08f))
+            : rawSpeed;
+        float currentSpeed = _visualSpeedEma;
+        bool moving = currentSpeed > MoveAnimThreshold;
 
         // 1. 狀態決策（路線 B）：在攻擊範圍內且有 attack 圖 → 攻擊；否則 移動→走路 / 靜止→發呆。
         //    沒有 attack 圖的怪不會被選到 Attack（Has 防呆），自然只演走路/發呆。
@@ -357,12 +377,24 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             bool casting = Time.time < _skillCastAnimUntil;   // 施放技能中 → 出手動作（不限距離）
             bool inAttackRange = player != null
                 && Vector2.Distance(transform.position, player.position) <= AttackRange;
-            if (_monAnim.Has(MonsterAnimator.State.Attack) && (casting || inAttackRange))
-                st = MonsterAnimator.State.Attack;
+            bool wantAttackPose = casting || inAttackRange;
+
+            if (wantAttackPose && _monAnim.Has(MonsterAnimator.State.Attack))
+                st = MonsterAnimator.State.Attack;            // 有 attack 幀 → 播真正的攻擊/施法動作
+            else if (casting)
+                // 施法但這隻怪沒有 attack 幀（如紅嫁衣的 attack 尚未 Sync 進 StreamingAssets）：
+                // 退回播走路當「出手」表演，保留召喚時的動作感（不會像 idle 那樣完全不動）。
+                // 只在 0.6s 召喚視窗內，平常靜止仍是 idle——不會回到「原地踏步」的舊 bug。
+                st = MonsterAnimator.State.Walk;
             else if (moving) st = MonsterAnimator.State.Walk;
             else st = MonsterAnimator.State.Idle;
 
-            _monAnim.SetState(st, currentSpeed);
+            // 走路 fps 平常跟實際位移連動；但「施法退回走路且原地不動」時改用正常移動速度餵，
+            // 讓出手表演以正常節奏播（否則實際位移≈0 會被 fps 連動壓到最慢）。
+            float animSpeed = currentSpeed;
+            if (st == MonsterAnimator.State.Walk && casting && !moving)
+                animSpeed = (_actuator != null && _actuator.MoveSpeed > 0.01f) ? _actuator.MoveSpeed : 3f;
+            _monAnim.SetState(st, animSpeed);
         }
 
         // 舊路線後備：若這隻怪用的是自帶 Unity Animator 的 prefab，沿用 isMoving 驅動。
