@@ -32,6 +32,10 @@ namespace Dipan.Save
         // 與 progress.flags（周目旗標，輪迴會清）分開。觸發鏈以旗標名前綴「永久:」路由到這裡。
         // 放在頂層＝ReincarnateInPlace 只換 stats/progress，不會動到它。見 readme/TRIGGER_CHAIN.md。
         public Dictionary<string, string> lifetimeFlags = new Dictionary<string, string>();
+
+        // 曾達到過的最高「完成關卡數」（跨輪迴保存，同 lifetimeFlags 放頂層＝ReincarnateInPlace 不重置）。
+        // 給地上物「出現條件＝永久（lifetime）」判定用：只要某周目曾完成 N 關，該物件就永久出現。缺欄＝0。
+        public int lifetimeMaxClears = 0;
     }
 
     /// <summary>角色屬性（待屬性系統，先佔位）。</summary>

@@ -91,6 +91,10 @@ namespace Dipan.MapRuntime
         public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，接縫不跳變)
         public bool walkable = false; // 勾選＝不設碰撞、不擋路（走地圖可走層判定）；也因此不掛可破壞
         public string breakFlag = ""; // 被破壞時把此旗標設為 true（給觸發鏈 requireFlag 用，例：打破供品→改變劇情）；空＝不寫。僅可破壞物件有效
+        // 出現條件：完成 N 關後才出現（用「完成關卡數」判定）。0（或缺欄）＝一開始就出現。MapLoader 進圖當下判定，未達則不生此物件。
+        public int appearAfterClears = 0;
+        // 出現條件範圍：cycle＝每周目重算（本周目完成數）、lifetime＝曾達到過就永久出現。缺欄＝cycle。
+        public string appearScope = "cycle";
     }
 
     /// <summary>場景特效實例（編輯器放置、遊戲端依 SceneFxTable 的 fxId 生成粒子）。座標為世界座標。</summary>

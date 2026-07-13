@@ -35,6 +35,7 @@ namespace DipanMapEditor.UI
 
         // 座標/血量/FPS 輸入框暫存（依焦點決定要不要從物件同步回來）
         string _objXBuf = "", _objYBuf = "", _objHpBuf = "", _objFpsBuf = "";
+        string _objAppearBuf = "";   // 出現條件「完成 N 關」輸入暫存
 
         // Trigger
         public TriggerRegion CurrentRegion { get; private set; }
@@ -636,8 +637,10 @@ namespace DipanMapEditor.UI
         void DrawObjectInspector()
         {
             var ctl = ObjCtl();
-            var sel = ctl?.Selected;
-            if (sel == null) return;   // 沒選取就不畫面板（避免擋住點擊）
+            if (ctl == null || ctl.SelectionCount == 0) return;   // 沒選取就不畫面板（避免擋住點擊）
+            if (ctl.SelectionCount > 1) { DrawMultiObjectInspector(ctl); return; }   // 多選＝精簡面板
+            var sel = ctl.Selected;
+            if (sel == null) return;
 
             var rect = new Rect(0, Screen.height - InspectorH, InspectorW, InspectorH);
             GUILayout.BeginArea(rect, GUI.skin.box);
@@ -678,6 +681,42 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("上移層")) { UndoManager.Push(); ctl.RaiseZ(); }
             if (GUILayout.Button("下移層")) { UndoManager.Push(); ctl.LowerZ(); }
             GUILayout.EndHorizontal();
+
+            // 出現條件：完成 N 關後才出現（0＝一開始就有）。遊戲端進地圖當下依「完成關卡數」判定，未達則不生此物件。
+            // 同 hp/fps 的防退回作法：沒在打字時 buffer 先跟著物件值，±按鈕才不會被回寫誤判而回退。
+            bool editingAppear = GUI.GetNameOfFocusedControl() == "objAppear";
+            if (!editingAppear) _objAppearBuf = sel.appearAfterClears.ToString();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("出現:完成", GUILayout.Width(72));
+            if (GUILayout.Button("－", GUILayout.Width(24))) { UndoManager.Push(); sel.appearAfterClears = Mathf.Max(0, sel.appearAfterClears - 1); _objAppearBuf = sel.appearAfterClears.ToString(); }
+            GUI.SetNextControlName("objAppear");
+            string sap = GUILayout.TextField(_objAppearBuf, GUILayout.Width(40));
+            if (GUILayout.Button("＋", GUILayout.Width(24))) { UndoManager.Push(); sel.appearAfterClears += 1; _objAppearBuf = sel.appearAfterClears.ToString(); }
+            GUILayout.Label("關後", GUILayout.Width(40));
+            GUILayout.EndHorizontal();
+            if (editingAppear && sap != _objAppearBuf)
+            {
+                _objAppearBuf = sap;
+                if (int.TryParse(sap, out var vap) && vap >= 0) sel.appearAfterClears = vap;
+            }
+            if (sel.appearAfterClears <= 0)
+            {
+                GUILayout.Label("（0＝一開始就出現）");
+            }
+            else
+            {
+                // 範圍：每周目（本周目完成數、輪迴會再隱藏）／永久（曾完成過就一直在）。
+                bool isCycle = sel.appearScope != "lifetime";
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("範圍", GUILayout.Width(72));
+                GUI.color = isCycle ? Color.cyan : Color.white;
+                if (GUILayout.Button("每周目")) { if (!isCycle) { UndoManager.Push(); sel.appearScope = "cycle"; } }
+                GUI.color = !isCycle ? Color.cyan : Color.white;
+                if (GUILayout.Button("永久")) { if (isCycle) { UndoManager.Push(); sel.appearScope = "lifetime"; } }
+                GUI.color = Color.white;
+                GUILayout.EndHorizontal();
+                GUILayout.Label(isCycle ? "（每周目完成 N 關才出現，輪迴重置）" : "（曾完成過 N 關就永久出現）");
+            }
 
             // 可走（勾選＝這個地上物不擋路、不設碰撞，走不走由地圖該格可走層決定；例：木板/地毯可踩上去）。
             bool nextWalk = GUILayout.Toggle(sel.walkable, " 可走（不擋路，走地圖判定）");
@@ -762,6 +801,22 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("取消選取")) ctl.Deselect();
             if (GUILayout.Button("刪除")) { UndoManager.Push(); ctl.DeleteSelected(); }
             GUILayout.EndHorizontal();
+            GUILayout.EndArea();
+        }
+
+        // 多選時的精簡面板：只給整組操作（複製全部／刪除全部／取消）。單物件的座標/翻轉/縮放等仍需回到單選才顯示。
+        void DrawMultiObjectInspector(DipanMapEditor.Tools.ObjectController ctl)
+        {
+            var rect = new Rect(0, Screen.height - 132, InspectorW, 132);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+            GUILayout.Label($"已選 {ctl.SelectionCount} 個地上物");
+            GUILayout.Label("Cmd＋點＝加選／取消　Ctrl＋拖＝一起移動");
+            GUILayout.Space(4);
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("複製")) { UndoManager.Push(); ctl.DuplicateSelected(); }
+            if (GUILayout.Button("刪除")) { UndoManager.Push(); ctl.DeleteSelected(); }
+            GUILayout.EndHorizontal();
+            if (GUILayout.Button("取消選取")) ctl.Deselect();
             GUILayout.EndArea();
         }
 

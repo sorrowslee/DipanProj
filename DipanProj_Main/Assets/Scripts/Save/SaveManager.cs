@@ -294,6 +294,11 @@ namespace Dipan.Save
         /// <summary>小進度：已完成的關卡數（去重後的 module 數）。</summary>
         public int ClearedModuleCount => _current != null ? _current.progress.clearedModules.Count : 0;
 
+        /// <summary>曾達到過的最高「完成關卡數」（跨輪迴保存）。給地上物「永久出現」條件用。
+        /// 取「存下的高水位」與「本周目當前完成數」的較大者，涵蓋這欄加入前就已通關的舊存檔冷啟動。</summary>
+        public int LifetimeMaxClears
+            => _current == null ? 0 : System.Math.Max(_current.lifetimeMaxClears, _current.progress.clearedModules.Count);
+
         /// <summary>金錢（存錢抽關卡用）。</summary>
         public int Currency => _current != null ? _current.stats.currency : 0;
 
@@ -314,6 +319,7 @@ namespace Dipan.Save
             var list = _current.progress.clearedModules;
             if (list.Contains(moduleId)) return false;       // 已通關過 → 不算進度 +1
             list.Add(moduleId);
+            if (list.Count > _current.lifetimeMaxClears) _current.lifetimeMaxClears = list.Count;  // 更新跨輪迴高水位（永久出現條件用）
             MarkDirty();
             Debug.Log($"[SaveManager] 完成關卡：{moduleId}（完成關卡數 {list.Count}）");
             return true;

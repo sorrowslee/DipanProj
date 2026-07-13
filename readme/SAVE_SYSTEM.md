@@ -393,6 +393,7 @@ public void RestoreState(InventoryDTO dto);
 - `progress.hubIntroSpawnDone`：是否已由開場鏈**首次**抵達邪佛廣場——決定出生點：`false` → 出生在廣場下方洞穴出口（並設為 `true`）；`true` → 之後一律出生在廣場中央（省得每次跑遠）。
 - `progress.inheritedItems`：本代從上一代帶入的物品 id（`min(周目,7)` 件；**輪迴帶物流程 Phase B 才填**）。
 - `progress.flags`：其他劇情/狀態旗標（免改結構的彈性擴充）。
+- **`CharacterSave.lifetimeMaxClears`（頂層欄位，非 `ProgressDTO`）**：曾達到過的最高「完成關卡數」。跟 `lifetimeFlags` 一樣放**頂層**＝**輪迴不重置**（`ReincarnateInPlace` 只換 `stats`/`progress`）。`MarkModuleCleared` 通關時更新此高水位，載檔時取 `max(存下值, 本周目完成數)` 補冷啟動。給**地上物「出現條件＝永久（lifetime）」**判定用（見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md) §4.3）。
 
 ### 14.3 設定常數（`SaveConstants`，要改關卡數量/編號改這裡）
 
@@ -406,7 +407,8 @@ public void RestoreState(InventoryDTO dto);
 
 ```csharp
 int  Cycle;                              // 周目（= generation）
-int  ClearedModuleCount;                 // 完成關卡數
+int  ClearedModuleCount;                 // 完成關卡數（本周目）
+int  LifetimeMaxClears;                  // 曾達到的最高完成關卡數（跨輪迴；地上物「永久」出現條件用）
 int  Currency;                           // 金錢
 bool HubIntroSpawnDone { get; set; }     // 出生點旗標
 
@@ -421,6 +423,7 @@ static int CarryCountForCycle(int cycle);// = min(cycle, MaxCarryOnReincarnate)
 
 - **關卡完成 trigger**：每關放一個「達成目標」trigger（擊殺 boss／完成囑託／收集道具…），觸發時呼叫 `SaveManager.Instance.MarkModuleCleared(該關 module 名)`。重複進入同一關不會重覆計數。
 - 進度掛在 `_current` 上，用上述方法改；存檔時 `SaveNow` 自動一併寫入（`CaptureFromSystems` 不必動——進度不是外部系統，是存檔自己的欄位）。
+- **地上物出現條件**：`MapLoader.BuildOneObject` 進圖當下讀 `ClearedModuleCount`（`cycle` 範圍）或 `LifetimeMaxClears`（`lifetime` 範圍）與該物件的 `appearAfterClears` 比對，未達則不生此物件（見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md) §4.3）。沒有 `SaveManager`（編輯器直測）時不擋、一律出現。
 
 ### 14.5 roster 摘要帶完成關卡數
 

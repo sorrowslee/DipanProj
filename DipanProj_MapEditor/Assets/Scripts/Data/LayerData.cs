@@ -70,6 +70,10 @@ namespace DipanMapEditor.Data
         public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，首尾接不順時用，接縫消失)
         public bool walkable = false; // 勾選＝不擋路/不設碰撞，可走與否交給地圖可走層判定（例：木板/地毯）
         public string breakFlag = ""; // 被破壞時把此旗標設為 true（給觸發鏈 requireFlag 用，例：打破供品→改變劇情）；空＝不寫。僅可破壞物件有效
+        // 出現條件：完成 N 關後才出現（用「完成關卡數」判定）。0（或缺欄）＝一開始就出現。遊戲端 MapLoader 進圖當下判定，未達則不生此物件。
+        public int appearAfterClears = 0;
+        // 出現條件範圍：cycle＝每周目重算（本周目完成數，輪迴重置會再隱藏）、lifetime＝曾達到過就永久出現。缺欄＝cycle。
+        public string appearScope = "cycle";
     }
 
     /// <summary>一塊 trigger 區域：型別 + 名稱 + 格集合 + 參數（依 TriggerType schema）。</summary>

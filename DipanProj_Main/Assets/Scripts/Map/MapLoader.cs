@@ -4,6 +4,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 using Dipan.MapRuntime;
+using Dipan.Save;
 
 /// <summary>
 /// 主遊戲端的 .dipanmap 載入器：把一張地圖建成背景／地磚／地上物／牆碰撞。
@@ -360,6 +361,17 @@ public class MapLoader : MonoBehaviour
     /// <summary>建一個地上物（載圖、SpriteRenderer、動畫、碰撞框、可破壞）。sync 與分幀版共用。</summary>
     void BuildOneObject(ObjectInstance inst, Transform objRoot)
     {
+        // 出現條件：完成 N 關後才出現（0=一律出現）。進地圖當下判定，未達則整個不生（連碰撞都沒有＝還沒出現）。
+        // 範圍：lifetime=曾達到的最高完成數（永久）、其餘(cycle)=本周目完成數（輪迴重置會再隱藏）。
+        // 沒有 SaveManager（如編輯器直測/DevQuickStart 無存檔）時不擋，一律照舊出現，方便測試。
+        if (inst.appearAfterClears > 0 && SaveManager.Instance != null)
+        {
+            int have = (inst.appearScope == "lifetime")
+                ? SaveManager.Instance.LifetimeMaxClears
+                : SaveManager.Instance.ClearedModuleCount;
+            if (have < inst.appearAfterClears) return;
+        }
+
         var item = _catalog.Find(inst.assetId);
         var sprite = _sprites.GetWholeSprite(item, _map.tileSize);
         if (sprite == null) { Debug.LogWarning($"[MapLoader] 地上物找不到：{inst.assetId}"); return; }
