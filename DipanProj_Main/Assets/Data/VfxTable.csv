@@ -18,3 +18,5 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 22,血月鬼爪,VfxEffects/BloodClaw/BloodClaw,10,20,2.2,0,,
 23,幽影突,VfxEffects/GhostDash/GhostDash,9,20,4,0,,
 26,九霄落雷地爆,VfxEffects/SkyLightningExplosion/SkyLightningExplosion,13,20,1.8,0,,
+27,集氣中藍光,VfxEffects/ChargeUpBlue/ChargeUpBlue,16,16,1.6,1,-1,
+28,集氣完成紅光,VfxEffects/ChargeUpRed/ChargeUpRed,16,16,1.6,1,-1,

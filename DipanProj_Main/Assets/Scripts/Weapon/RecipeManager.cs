@@ -64,6 +64,12 @@ public class RecipeEntry
 
     // 分段全高雷柱：僅搭配 IsSkyStrike；start + tileable loop + end 從鏡頭頂外鋪到落點。
     public bool UseSegmentedSkyStrike = false;
+
+    // 集氣模式：按住攻擊鍵，放開時才施放；滿 3 秒時傷害 ×3、武器視覺尺寸 ×2。
+    // 持續輸入型武器（IsLaser / IsAura）互斥，CSV 即使誤填也會在載入時停用。
+    public bool IsChargeMode = false;
+    // 集氣時間縮減百分比：30 = 減少 30%；-20 = 延長 20%。CSV 可填 30% / -20%，留空 = 0。
+    public float ChargeTimeReductionPercent = 0f;
 }
 
 public class RecipeManager : MonoBehaviour
@@ -316,6 +322,15 @@ public class RecipeManager : MonoBehaviour
             entry.UseSegmentedSkyStrike = v.Length >= 49 && !string.IsNullOrWhiteSpace(v[48])
                                            && int.Parse(v[48].Trim()) != 0;
 
+            // 集氣模式（第 50 欄）：留空 / 0 / false = 關；1 / true = 開。
+            entry.IsChargeMode = v.Length >= 50 && ParseOptionalBool(v[49]);
+            if (entry.IsChargeMode && (data.IsLaser || entry.IsAura))
+            {
+                Debug.LogWarning($"Recipe {entry.ID} '{entry.Name}' 的集氣模式與持續型武器互斥，已自動停用。");
+                entry.IsChargeMode = false;
+            }
+            entry.ChargeTimeReductionPercent = v.Length >= 51 ? ParsePercent(v[50]) : 0f;
+
             entry.Data = data;
             _recipes[entry.ID] = entry;
         }
@@ -332,6 +347,29 @@ public class RecipeManager : MonoBehaviour
         foreach (string p in parts)
             if (int.TryParse(p.Trim(), out int id)) list.Add(id);
         return list.ToArray();
+    }
+
+    private static bool ParseOptionalBool(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string normalized = value.Trim();
+        return normalized == "1" || normalized.Equals("true", System.StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static float ParsePercent(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return 0f;
+        string normalized = value.Trim();
+        if (normalized.EndsWith("%"))
+            normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+        if (!float.TryParse(normalized, System.Globalization.NumberStyles.Float,
+            System.Globalization.CultureInfo.InvariantCulture, out float percent))
+        {
+            Debug.LogWarning($"無法解析集氣時間縮減 '{value}'，已使用 0%。");
+            return 0f;
+        }
+        // 100% 會讓集氣時間歸零，因此上限設為 99%；負值代表延長，最低容許 -1000%。
+        return Mathf.Clamp(percent, -1000f, 99f);
     }
 
     private void ResolveSubRecipes()

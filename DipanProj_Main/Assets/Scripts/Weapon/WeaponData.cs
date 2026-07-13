@@ -15,6 +15,8 @@ public class WeaponData
     public int WeaponAniNumber;
     public float AnimFPS;
     public float BulletScale = 1f;
+    // 單次施放的視覺倍率快照；一般射擊為 1，完整集氣射擊為 2。
+    public float CastVisualScale = 1f;
 
     // ── 雷射外觀（在 WeaponTable 只填編號；數字定義在 BeamStyleLibrary）──
     public BeamStyle BeamStyle;            // 由 BeamStyle 編號(1~10)解析的整組外型參數

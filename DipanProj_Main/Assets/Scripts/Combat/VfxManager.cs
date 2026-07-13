@@ -94,6 +94,22 @@ public class VfxManager : MonoBehaviour
         return instance;
     }
 
+    /// <summary>生成循環特效並把最終世界高度精準縮放到 targetWorldHeight；用於需跟角色實際大小同步的集氣光圈。</summary>
+    public VfxInstance SpawnLoopSizedToHeight(int id, Vector2 position, float targetWorldHeight, float lifeSeconds = -1f)
+    {
+        VfxData data = GetEffect(id);
+        if (data == null || data.AnimationSprites == null || data.AnimationSprites.Length == 0
+            || data.AnimationSprites[0] == null)
+            return SpawnLoop(id, position, 1f, lifeSeconds);
+
+        float nativeHeight = data.AnimationSprites[0].bounds.size.y;
+        float baseHeight = nativeHeight * Mathf.Max(0.0001f, data.Scale);
+        float extraScale = baseHeight > 0.0001f && targetWorldHeight > 0f
+            ? targetWorldHeight / baseHeight
+            : 1f;
+        return SpawnLoop(id, position, extraScale, lifeSeconds);
+    }
+
     /// <summary>在指定座標播特效，並縮放到「世界高度 ≈ targetWorldHeight × VfxTable.Scale」——
     /// VfxTable 的 Scale 在此當「相對目標的倍率」（1 = 與目標等高、1.3 = 放大 30%）。用於召喚特效跟著怪物大小。</summary>
     public VfxInstance SpawnSizedToHeight(int id, Vector2 position, float targetWorldHeight, float angleDeg = 0f)

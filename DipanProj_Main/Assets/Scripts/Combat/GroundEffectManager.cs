@@ -30,7 +30,7 @@ public class GroundEffectManager : MonoBehaviour
     /// &lt; 0（預設）= 用 GroundEffectTable 的 Damage；&ge; 0 = 改用此值
     /// （佛光等「載體型」特效把武器表 Damage 餵進來）。
     /// </param>
-    public GroundEffectInstance Spawn(int id, Vector2 position, float damageOverride = -1f)
+    public GroundEffectInstance Spawn(int id, Vector2 position, float damageOverride = -1f, float visualScale = 1f)
     {
         if (GroundEffectPrefab == null)
         {
@@ -51,6 +51,8 @@ public class GroundEffectManager : MonoBehaviour
         }
 
         instance.Initialize(data, EnemyLayer | EnvironmentLayer, damageOverride);
+        if (visualScale > 0f && !Mathf.Approximately(visualScale, 1f))
+            go.transform.localScale = Vector3.one * visualScale;
         return instance;
     }
 

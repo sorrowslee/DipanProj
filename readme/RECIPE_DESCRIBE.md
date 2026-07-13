@@ -45,6 +45,8 @@
 | IsSkyStrike | 整數 | 否 | 落雷模式（1 = 是，留空或 0 = 否；與其他模式互斥）。從畫面上緣劈下到滑鼠點，落地以 `BlastRadius` 做圓形 AOE。吃 `SpreadCount`/`SpreadAngle`（多道）與 `HomingTurnSpeed`（落點吸附，當搜尋半徑）。目前由九霄雷獄使用，見 [LASER.md](LASER.md) |
 | SubWeaponOnHit | 整數 | 否 | 命中迸發子武器：子彈命中時在命中點生成「**武器表上指定 ID** 的武器」一發（子武器**自帶外型/傷害/追蹤**）。留空 / 0 = 不觸發。**與 `SubRecipeID` 不同**（見下方說明） |
 | SubWeaponHitTarget | 字串 | 否 | 迸發過濾：`Enemy`（預設）/ `Environment`（牆＋可破壞家具）/ `All`（任一都迸）|
+| 集氣模式 | 布林 | 否 | `1`／`true` 啟用，留空／`0`／`false` 關閉。按住攻擊 3 秒後放開可獲得傷害 ×3、視覺 ×2；與 `IsLaser`、`IsAura` 互斥。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
+| 集氣時間縮減 | 百分比 | 否 | 留空為 `0%`；`30%` 代表縮短 30%（3 秒→2.1 秒），`-20%` 代表延長 20%（3 秒→3.6 秒）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
 
 ---
 
