@@ -68,6 +68,14 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public float CurrentHealth => _currentHealth;                       // 目前血量（給 boss Brain 判階段用）
     public float HealthFraction => MaxHealth > 0f ? _currentHealth / MaxHealth : 0f;  // 血量比例 0~1
 
+    [Header("Speech / 說話")]
+    // 遊戲中頭上會講的話（CSV: 句子1~句子4）；由 Initialize 從 MonsterData 帶入，有填才在 Start 掛 MonsterSpeech。
+    [HideInInspector] public List<MonsterSpeechLine> SpeechLines;
+    // 是否已發現玩家（發現後才開口說話）。一旦發現就維持 true（黏著；小房間內玩家不會真的甩開）。
+    public bool IsAwareOfPlayer { get; private set; }
+    // 是否為 boss（劇情要角）。由 Initialize 的 BrainType 判定；MonsterSpeech 用它把說話頻率加倍、幾乎必說。
+    public bool IsBoss { get; private set; }
+
     // 全場活著的怪物登記表：接觸傷害與友軍找目標都靠它 + Physics2D.Distance，**不用 OverlapCircle**
     // ——專案全域 queriesStartInColliders=false，OverlapCircle 會漏抓「重疊在查詢起點」的貼身目標（見 PROBLEMS）。
     public static readonly List<MonsterController> Active = new List<MonsterController>();
@@ -138,6 +146,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             var act = GetComponent<MonsterActuator>();
             if (act != null) asv.ReferenceSpeed = act.MoveSpeed;
         }
+
+        // 遊戲中說話（見 MonsterSpeech / MonsterSpeechPanel）：CSV 有填句子才掛；發現玩家後才會開口。
+        if (SpeechLines != null && SpeechLines.Count > 0 && GetComponent<MonsterSpeech>() == null)
+            gameObject.AddComponent<MonsterSpeech>().Configure(this);
 
         // 路線 B：程式逐格動畫——依怪名載 idle/walk/attack 並播放（見 MonsterAnimator / MonsterSpriteLibrary）。
         // 只在「沒有 Unity Animator ＋ 有怪名」時啟用，避免和舊 prefab 的 Animator 同時搶著換 sprite：
@@ -226,6 +238,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         AttackInterval = data.AttackInterval;
         DamageReductionPercent = data.DamageReduction;
         AnimFPS = data.AnimFPS;
+        SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
         if (_sensor == null) _sensor = gameObject.AddComponent<MonsterSensor>();
@@ -242,10 +255,12 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 break;
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();
+                IsBoss = true;
                 break;
             case "BanyanTree":      // 榕樹妖 boss：不可直接打，玩家打牠的地刺反傷本體（見 BanyanTreeBrain）
                 _brain = new BanyanTreeBrain();
                 DeathVfxId = 0;        // 死亡用臉地上物的自訂燃燒演出（BanyanBossFace），不放一般死亡特效
+                IsBoss = true;
                 break;
             default:
                 _brain = new ChaseBrain();
@@ -311,6 +326,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 目標：Enemy 陣營＝追玩家；PlayerAlly＝跟玩家(ctx.Player) + 打最近敵怪(ctx.Enemy)。
         Transform enemyTarget = (Faction == MonsterFaction.PlayerAlly) ? FindNearestEnemy() : null;
         Transform playerTarget = (Faction == MonsterFaction.PlayerAlly) ? PlayerTransform : _sensor.GetTargetPlayer();
+
+        // 發現玩家（或友軍發現敵怪）→ 記住，之後才允許說話（黏著，不再變回未發現）。
+        if (!IsAwareOfPlayer && (playerTarget != null || enemyTarget != null)) IsAwareOfPlayer = true;
 
         if (_hitReaction == null || !_hitReaction.IsKnockedBack)
         {

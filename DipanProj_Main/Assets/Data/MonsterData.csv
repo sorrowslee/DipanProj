@@ -1,15 +1,15 @@
-ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent, ContactDamage, DamageReduction, Speed, AnimFPS, AttackInterval(接觸攻擊間隔秒/攻速/越小攻越快/空為0.5), DetectionRange, DisplayName(顯示名/boss開戰資訊用/空退回Name), PortraitPath(頭像立繪catalog id/例Modules/關卡/Talk/xxx)
- 1, ZhaYu, 10, Chase    , Contact,1.2,           ,                0,                  3,               20, 10,               0,     1,       8,,25
-2, Ghost_Boy, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25
-3,Ghost_Dog, 3, Chase    , Contact,0.4,           ,                0,1,120, 10,               0,2,       8,,25
-4,Ghost_FatBoy, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25
-5,Ghost_Father, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
-6,Ghost_FatMan, 3, Chase    , Contact,1.1,           ,                0,1,120, 10,               0,     1,       8,,25
-7,Ghost_Girl, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25
-8,Ghost_GrandMa, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
-9,Ghost_GrandPa, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
-10,Ghost_Mother, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
-11,Ghost_YoungBrother, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
-12,Ghost_YoungSister, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25
-13,RedBridalGown,50,RedBridalGown,14,1,,0,10,50,20,0,3.5,25,,30,紅嫁衣,Modules/RedBridalGown/Talk/redBridalGown_angry
-14,BanyanTree,100,BanyanTree,Contact,1,,0,0,0,0,0,0,8,,40,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious
+ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, KnockbackThreshold, KnockbackPercent, ContactDamage, DamageReduction, Speed, AnimFPS, AttackInterval(接觸攻擊間隔秒/攻速/越小攻越快/空為0.5), DetectionRange, DisplayName(顯示名/boss開戰資訊用/空退回Name), PortraitPath(頭像立繪catalog id/例Modules/關卡/Talk/xxx), 句子1(格式:文字/或 N%:文字=血量剩N%才會講), 句子2, 句子3, 句子4
+ 1, ZhaYu, 10, Chase    , Contact,1.2,           ,                0,                  3,               20, 10,               0,     1,       8,,25,,,我要殺了你~~,哈哈哈，你怕了吧~~,30%: 你真的惹怒我了,10%: 不要逼我使出大絕招!
+2, Ghost_Boy, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25,,,大哥哥陪我玩,嗚嗚，我好怕喔,不要，我不要,爹，娘救命啊
+3,Ghost_Dog, 3, Chase    , Contact,0.4,           ,                0,1,120, 10,               0,2,       8,,25,,,,,,
+4,Ghost_FatBoy, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25,,,大哥哥陪我玩,嗚嗚，我好怕喔,不要，我不要,爹，娘救命啊
+5,Ghost_Father, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,大俠，快離開,老朽，老朽也不願意,我可憐的女兒啊,
+6,Ghost_FatMan, 3, Chase    , Contact,1.1,           ,                0,1,120, 10,               0,     1,       8,,25,,,不，不要殺我,滾出去,為什麼是我??,
+7,Ghost_Girl, 3, Chase    , Contact,0.7,           ,                0,1,120, 10,               0,     1,       8,,25,,,大哥哥陪我玩,嗚嗚，我好怕喔,不要，我不要,爹，娘救命啊
+8,Ghost_GrandMa, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,嗚嗚嗚,老身真的好苦啊,請幫幫我孫女,
+9,Ghost_GrandPa, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,一夕之間，家破人亡,我好怨啊,我可憐的孫女,
+10,Ghost_Mother, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,我的乖女兒,寶貝，娘好想妳,求你救救我女兒,
+11,Ghost_YoungBrother, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,大俠，請幫幫我們吧,我不想傷害你,求你救我,
+12,Ghost_YoungSister, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,大俠，請幫幫我們吧,我不想傷害你,求你救我,
+13,RedBridalGown,50,RedBridalGown,14,1,,0,10,50,20,0,3.5,25,,30,紅嫁衣,Modules/RedBridalGown/Talk/redBridalGown_angry,你竟然對我家人動手,受死吧,我好恨啊,納命來
+14,BanyanTree,100,BanyanTree,Contact,1,,0,0,0,0,0,0,8,,40,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious,不管生死，都得服侍我,這一家人的亡魂，都在我這,70%: 你真的惹怒我了,30%: 讓你魂歸西天，死吧!

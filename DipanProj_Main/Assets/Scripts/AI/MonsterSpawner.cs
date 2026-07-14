@@ -103,10 +103,53 @@ public class MonsterSpawner : MonoBehaviour
             data.DisplayName = (values.Length > 16 && !string.IsNullOrWhiteSpace(values[16])) ? values[16].Trim() : "";
             data.PortraitPath = (values.Length > 17 && !string.IsNullOrWhiteSpace(values[17])) ? values[17].Trim() : "";
 
+            // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
+            // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
+            data.SpeechLines.Clear();
+            for (int c = 18; c <= 21; c++)
+            {
+                if (values.Length <= c) break;
+                if (ParseSpeechLine(values[c], out var line)) data.SpeechLines.Add(line);
+            }
+
             _monsterDatabase.Add(data);
         }
 
         Debug.Log($"Loaded {_monsterDatabase.Count} monsters from CSV.");
+    }
+
+    /// <summary>
+    /// 解析一格說話文本 → <see cref="MonsterSpeechLine"/>。空白格回 false（不加入）。
+    /// 前綴「N%:」或「N%：」（半/全形冒號皆可）＝血量比例剩 N% 以下才解鎖；無前綴＝門檻 100（一直可講）。
+    /// 例：「我要殺了你~~」→ 門檻100；「30%: 你真的惹怒我了」→ 門檻30、文字「你真的惹怒我了」。
+    /// 只有「開頭是數字＋%＋冒號」才當門檻，一般句子含冒號（如「他說：快跑」）不受影響。
+    /// </summary>
+    private static bool ParseSpeechLine(string raw, out MonsterSpeechLine line)
+    {
+        line = new MonsterSpeechLine { UnlockAtPercent = 100f, Text = "" };
+        if (string.IsNullOrWhiteSpace(raw)) return false;
+
+        string s = raw.Trim();
+        int colon = s.IndexOf(':');
+        if (colon < 0) colon = s.IndexOf('：');   // 全形冒號也吃
+        if (colon > 0)
+        {
+            string head = s.Substring(0, colon).Trim();
+            // head 必須形如「數字%」或「數字％」才視為門檻前綴
+            if (head.Length >= 2 && (head[head.Length - 1] == '%' || head[head.Length - 1] == '％'))
+            {
+                string numPart = head.Substring(0, head.Length - 1).Trim();
+                if (float.TryParse(numPart, out float pct))
+                {
+                    line.UnlockAtPercent = Mathf.Clamp(pct, 0f, 100f);
+                    line.Text = s.Substring(colon + 1).Trim();
+                    return !string.IsNullOrEmpty(line.Text);
+                }
+            }
+        }
+
+        line.Text = s;   // 無門檻前綴：整句都是文字，門檻 100（一直可講）
+        return true;
     }
 
     /// <summary>依 ID 取怪物配方資料（找不到回 null、不印錯誤）。給 BossIntroPanel 等 UI 端查 DisplayName / PortraitPath 用。</summary>
