@@ -191,6 +191,19 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "delaySeconds", type = ParamType.Float, label = "延遲秒數" },   // 進場（效果播完）後再等幾秒才觸發（留空=0）
                 }
             });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型（終端）：觸發時播「卍字離場 → 通關結算 → 返回廣場」流程並記過關（見主專案 GameFlowManager.EndLevel）。
+                // 接 boss 自動過關：本 trigger 的「旗標成立自動觸發(fireOnFlag)」填某旗標，怪物出生點的「死亡觸發旗標」填同一個名字
+                //   → 打倒 boss（設旗標）→ 本 trigger 自動觸發過關，不用玩家踩點。用「＋ 手動新增空區域」建立（0 格也可）。
+                // 也可當「踩點過關」：畫格子讓玩家踩到即過關（不填 fireOnFlag）。玩家死亡走同一結算但標題自動改「殞命」（程式端，不需擺 trigger）。
+                typeId = "clearLevel", displayName = "過關(結算)", color = "#FFC24D",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "fireOnFlag", type = ParamType.String, label = "旗標成立自動觸發", isFlagRef = true },   // 填 boss 死亡旗標同名＝boss死自動過關；留空＝改用玩家踩點觸發
+                    new TriggerParam { key = "delaySeconds", type = ParamType.Float, label = "延時觸發(空=2秒)" },   // 觸發後等這麼久才播離場/結算，讓 boss 死前對話或表演演完；留空＝2 秒
+                }
+            });
             return set;
         }
 

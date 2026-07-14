@@ -48,6 +48,7 @@ public class MapManager : MonoBehaviour
 
     public int CurrentMapId => _currentMapId;
     public bool IsLoading => _loading;
+    public string CurrentModule => _loadedModule;   // 目前所在大地圖 module（結算/記過關用）
 
     /// <summary>
     /// 抑制開場自動進關卡。由 GameFlowManager 在開機時設 true——改由標題→存讀檔 UI 決定要進哪。

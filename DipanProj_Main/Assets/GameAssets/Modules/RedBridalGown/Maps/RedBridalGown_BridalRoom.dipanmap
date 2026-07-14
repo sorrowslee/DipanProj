@@ -230,7 +230,7 @@
           ],
           "params": {
             "monsterId": "13",
-            "deathFlag": ""
+            "deathFlag": "redBridalCleared"
           }
         },
         {
@@ -242,6 +242,27 @@
             "monsterId": "13",
             "warnVfxId": "",
             "next": "開關傳送點"
+          }
+        },
+        {
+          "id": "c25f35ac",
+          "name": "過關",
+          "typeId": "clearLevel",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "redBridalCleared",
+            "delaySeconds": "10",
+            "next": "紅嫁衣被打敗對話"
+          }
+        },
+        {
+          "id": "3829ee59",
+          "name": "紅嫁衣被打敗對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "9",
+            "next": ""
           }
         }
       ]

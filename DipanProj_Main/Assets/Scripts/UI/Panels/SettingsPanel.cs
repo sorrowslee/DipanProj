@@ -36,9 +36,15 @@ namespace Dipan.UI
 
         // 右上關閉鈕（中心 + 大小）
         const float CloseCx = 1018f, CloseCy = 150f, CloseSize = 110f;
-        // 底部離開遊戲鈕（中心 + 寬高；LongBtn 原圖 612x408，比例 1.5:1）
-        const float ExitCx = 561f, ExitCy = 985f, ExitW = 312f, ExitH = 208f;
+        // 底部離開遊戲鈕（寬高；LongBtn 原圖 612x408，比例 1.5:1）
+        const float ExitCy = 985f, ExitW = 312f, ExitH = 208f;
         const float ExitIconSize = 130f;   // 門 icon 疊在離開鈕上的大小
+        // 離開鈕的兩種水平位置：只有它一顆（廣場）＝置中；與返回鈕並排（關卡內）＝左移，兩顆對稱置中。
+        const float ExitCxSingle = 561f;
+        const float ExitCxPaired = 385f;
+        // 返回廣場鈕（**只在關卡內出現**，擺在離開鈕右邊；同款 LongBtn 底＋返回 icon）
+        const float ReturnCx = 737f, ReturnW = 312f, ReturnH = 208f;
+        const float ReturnIconSize = 130f;
 
         [Tooltip("面板顯示高度（CanvasScaler 參考單位，1080 為滿版）。")]
         public float displayHeight = 1040f;
@@ -49,6 +55,8 @@ namespace Dipan.UI
 
         RectTransform _frame;
         Slider _musicSlider, _sfxSlider;
+        RectTransform _exitBtnRt;   // 離開鈕（OnOpen 依是否在關卡內調整水平位置）
+        GameObject _returnBtnGo;    // 返回廣場鈕（OnOpen 依是否在關卡內顯示/隱藏）
 
         protected override void OnBuild()
         {
@@ -74,6 +82,7 @@ namespace Dipan.UI
 
             BuildCloseButton();
             BuildExitButton();
+            BuildReturnHubButton();
         }
 
         protected override void OnOpen()
@@ -81,6 +90,22 @@ namespace Dipan.UI
             // 重新開啟時，把把手同步到目前記憶值
             if (_musicSlider != null) _musicSlider.SetValueWithoutNotify(_musicVol);
             if (_sfxSlider != null) _sfxSlider.SetValueWithoutNotify(_sfxVol);
+
+            // 關卡內才顯示「返回廣場」鈕；在廣場/標題只有離開鈕、且離開鈕回到置中原位。
+            bool showReturn = ShouldShowReturn();
+            if (_returnBtnGo != null) _returnBtnGo.SetActive(showReturn);
+            if (_exitBtnRt != null)
+                _exitBtnRt.anchoredPosition = new Vector2(showReturn ? ExitCxPaired : ExitCxSingle, -ExitCy);
+        }
+
+        // 是否顯示「返回廣場」：要在一張已載入的關卡地圖上、且不是邪佛廣場。
+        // 用地圖狀態判斷（不看 GameFlowManager.InGame），這樣 DevQuickStart 直接進關卡也會正確顯示。
+        // 標題畫面 CurrentMapId <= 0（未載圖）→ 不顯示；廣場 = HubMapId → 不顯示。
+        static bool ShouldShowReturn()
+        {
+            var mm = MapManager.Instance;
+            if (mm == null || mm.CurrentMapId <= 0) return false;
+            return mm.CurrentMapId != Dipan.Save.SaveConstants.HubMapId;
         }
 
         // ── 音量 slider：軌道與圖示在背景上，這裡建一個 Unity Slider 把 DragIcon 當把手 ──
@@ -156,7 +181,8 @@ namespace Dipan.UI
             var ss = b.spriteState;
             ss.pressedSprite = P; ss.highlightedSprite = N; ss.selectedSprite = N;
             b.spriteState = ss;
-            Place((RectTransform)b.transform, ExitCx, ExitCy, ExitW, ExitH);
+            _exitBtnRt = (RectTransform)b.transform;
+            Place(_exitBtnRt, ExitCxSingle, ExitCy, ExitW, ExitH);   // 預設置中；OnOpen 會依情境調整
 
             // 門 icon 疊在按鈕中央（不擋點擊）
             var icon = UIBuilder.Image(b.transform, "DoorIcon", UIBuilder.LoadSprite("UI/SettingPanel/SettingPanelExitIcon"));
@@ -166,6 +192,45 @@ namespace Dipan.UI
             irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
             irt.anchoredPosition = Vector2.zero;
             irt.sizeDelta = new Vector2(ExitIconSize, ExitIconSize);
+        }
+
+        // ── 返回廣場鈕（兩態 SpriteSwap，同款 LongBtn）→ 卍字離場 → 結算(無標題) → 回邪佛廣場 ──
+        void BuildReturnHubButton()
+        {
+            Sprite N = UIBuilder.LoadSprite("UI/Common/LongBtn_normal");
+            Sprite P = UIBuilder.LoadSprite("UI/Common/LongBtn_pressed");
+            var b = UIBuilder.Button(_frame, "ReturnHubBtn", "", OnClickReturnHub, Color.white, N);
+            var img = b.GetComponent<Image>();
+            img.preserveAspect = true;
+            b.targetGraphic = img;
+            b.transition = Selectable.Transition.SpriteSwap;
+            var ss = b.spriteState;
+            ss.pressedSprite = P; ss.highlightedSprite = N; ss.selectedSprite = N;
+            b.spriteState = ss;
+            _returnBtnGo = b.gameObject;
+            Place((RectTransform)b.transform, ReturnCx, ExitCy, ReturnW, ReturnH);
+
+            // 返回 icon 疊在按鈕中央（不擋點擊）
+            var icon = UIBuilder.Image(b.transform, "ReturnIcon", UIBuilder.LoadSprite("UI/SettingPanel/SettingPanelReturnIcon"));
+            icon.preserveAspect = true;
+            icon.raycastTarget = false;
+            var irt = icon.rectTransform;
+            irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
+            irt.anchoredPosition = Vector2.zero;
+            irt.sizeDelta = new Vector2(ReturnIconSize, ReturnIconSize);
+        }
+
+        void OnClickReturnHub()
+        {
+            // 二次確認（防手滑；中途返回＝放棄本關進度、不記過關）。
+            ConfirmPopup.Show("確定要返回廣場嗎？", DoReturnHub);
+        }
+
+        void DoReturnHub()
+        {
+            // 先關掉設定面板（解除它的暫停），再走與過關/死亡同一套離場流程（Return＝無標題、不記過關）。
+            UIManager.Instance?.Close(this);
+            Dipan.Flow.GameFlowManager.Instance?.EndLevel(Dipan.Flow.GameFlowManager.LevelEndKind.Return);
         }
 
         void OnClickExit()

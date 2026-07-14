@@ -1666,7 +1666,21 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_playerAnim != null) _playerAnim.SetState(PlayerAnimator.State.Dead, 0f);
 
         Debug.Log("Player died!");
-        // TODO: 死亡流程（重生 / 讀檔 / 結束畫面）。目前到「播動畫 + 停止操作」，之後接存檔與 UI。
+
+        // 死亡流程：卍字離場 → 結算（死亡標題）→ 返回廣場。走與過關同一套。見 GameFlowManager.EndLevel。
+        Dipan.Flow.GameFlowManager.Instance?.EndLevel(Dipan.Flow.GameFlowManager.LevelEndKind.Death);
+    }
+
+    /// <summary>
+    /// 復活/重置：血魔補滿、解除死亡定格、動畫回 idle。由結算「返回廣場」流程在回廣場前呼叫，
+    /// 讓死亡後回到廣場的玩家是活的滿血狀態（HP/MP 本來就不存檔、每次滿——見 readme/COMBAT.md）。
+    /// </summary>
+    public void ReviveFull()
+    {
+        _isDead = false;
+        if (_stats != null) _stats.Init(PlayerMaxHealth, PlayerMaxMana, HealthRegenPerSec, ManaRegenPerSec);
+        if (_playerAnim != null) _playerAnim.SetState(PlayerAnimator.State.Idle, 0f);
+        _moveInput = Vector2.zero;
     }
 
     // 給其他系統取用玩家數值（HUD / 回血道具 / debuff…）。

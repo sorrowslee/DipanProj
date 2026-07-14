@@ -37,7 +37,9 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
-          "breakFlag": ""
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle"
         }
       ]
     },
@@ -147,7 +149,7 @@
           ],
           "params": {
             "monsterId": "14",
-            "deathFlag": ""
+            "deathFlag": "redBridalCleared"
           }
         },
         {
@@ -158,6 +160,26 @@
           "params": {
             "monsterId": "14",
             "warnVfxId": ""
+          }
+        },
+        {
+          "id": "79c3ad98",
+          "name": "過關",
+          "typeId": "clearLevel",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "redBridalCleared",
+            "delaySeconds": "10",
+            "next": "榕樹妖被打敗對話"
+          }
+        },
+        {
+          "id": "2ed6f53c",
+          "name": "榕樹妖被打敗對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "10"
           }
         }
       ]

@@ -462,6 +462,33 @@
           "isPortalList": false
         }
       ]
+    },
+    {
+      "typeId": "clearLevel",
+      "displayName": "過關(結算)",
+      "color": "#FFC24D",
+      "params": [
+        {
+          "key": "fireOnFlag",
+          "type": "String",
+          "label": "旗標成立自動觸發",
+          "boolDefault": false,
+          "isFlagRef": true,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "delaySeconds",
+          "type": "Float",
+          "label": "延時觸發(空=2秒)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
     }
   ]
 }

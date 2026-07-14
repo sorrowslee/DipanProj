@@ -36,6 +36,7 @@ public static class TriggerChain
     public const string TypeTogglePortal = "togglePortal"; // 開關傳送點（鏈動作）：把 target 指定的傳送點隱藏封鎖(show=false)或顯示解鎖(show=true)，含外型/綠幕，再接 next。Boss 房封門用
     public const string TypeOnEnter = "onEnter";           // 進場觸發（自動）：進圖載入結束後自動觸發，純鏈起點（0 格、不塗格子），見 MapManager.FireEnterTriggersRoutine
     public const string TypeBossIntro = "bossIntro";       // Boss開戰資訊（鏈動作）：暫停＋中央警告特效＋左滑入頭像＋右滑入姓名牌匾，表演完再接 next（見 BossIntroPanel）
+    public const string TypeClearLevel = "clearLevel";     // 過關（終端動作）：觸發「卍字離場→結算→返回廣場」流程並記過關（見 GameFlowManager.EndLevel）。接法：這個 trigger 填 fireOnFlag=<boss死亡旗標>，boss 出生點的「死亡觸發旗標」填同一個名字→boss死自動過關。本動作是鏈終點、不接 next
 
     // 通用欄位 key
     const string KeyNext = "next";
@@ -47,6 +48,7 @@ public static class TriggerChain
     const string KeyRequireCycleMax = "requireCycleMax";
     const string KeyRequireCycleMin = "requireCycleMin";
     const string KeyRequireItem = "requireItem";   // 填 itemId=須有；"!itemId"=須無
+    const string KeyFireOnFlag = "fireOnFlag";     // 「旗標一成立就自動觸發本 trigger」：填旗標名。與 onEnter（進場自動）同類、改由旗標驅動。用途：boss 死亡設旗標→clearLevel 自動觸發，不需玩家踩點
 
     static MapData _map;
     static MapManager _manager;
@@ -265,6 +267,7 @@ public static class TriggerChain
             case TypePlayScreenFx: ExecutePlayScreenFx(r); break;
             case TypeTogglePortal: ExecuteTogglePortal(r); break;
             case TypeBossIntro: ExecuteBossIntro(r); break;
+            case TypeClearLevel: ExecuteClearLevel(r); break;
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
                 if (IsDramaType(r)) ExecuteDrama(r);   // 鏈到劇情點 = 立即播對話（對話→對話）
@@ -319,6 +322,23 @@ public static class TriggerChain
             return;
         }
         _manager.GoToMap(targetMapId, targetEntrance);
+    }
+
+    // 過關（動作）：啟動「延時倒數（玩家可動）→ 卍字離場 → 結算 → 返回廣場」流程；同時接續觸發 next（例如 boss 被打敗對話）。
+    // 接法一（boss 死自動）：clearLevel 填 fireOnFlag=<旗標>，boss 出生點「死亡觸發旗標」填同名 → boss 死自動過關。
+    // 接法二（踩點過關）：在地圖擺一個 clearLevel 觸發點，玩家踩到就過關。
+    // 延時觸發(delaySeconds) 秒數內玩家可自由操作（撿戰利品等），期間可用「接續觸發」接一段對話（對話會自己暫停時間）。
+    static void ExecuteClearLevel(TriggerRegion r)
+    {
+        var gf = Dipan.Flow.GameFlowManager.Instance;
+        if (gf == null) { Debug.LogWarning($"[TriggerChain] clearLevel「{r.name}」找不到 GameFlowManager，略過。"); return; }
+        if (gf.IsEndingLevel) return;   // 已在結束流程中 → 不重複觸發（雙保險：避免對話被重跑）
+
+        float delay = r.GetFloat("delaySeconds", 2f);   // 延時觸發：空/無效＝2 秒
+        gf.EndLevel(Dipan.Flow.GameFlowManager.LevelEndKind.Clear, delay);
+
+        // 寫 setFlag（若有）＋ 接續觸發 next（讓「接續觸發」的 boss 對話等鏈在延時期間跑起來）。只在第一次跑。
+        OnCompleted(r);
     }
 
     // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格區域中心＋壓黑幕、停留、再拉回，全程定住玩家；表演完才接 next。
@@ -582,10 +602,46 @@ public static class TriggerChain
     {
         if (string.IsNullOrEmpty(key)) return;
         var (scope, name) = Resolve(key);
-        if (scope == FlagScope.Level) { _levelFlags.Add(name); return; }   // 關卡單次：只寫記憶體
-        var sm = SaveManager.Instance;
-        if (sm != null) { if (scope == FlagScope.Life) sm.SetLifetimeFlag(name); else sm.SetFlag(name); }
-        else _memFlags[key] = "1";
+        bool wasSet;   // 設定前是否已成立（用來判斷「首次成立」）
+        if (scope == FlagScope.Level)
+        {
+            wasSet = _levelFlags.Contains(name);
+            _levelFlags.Add(name);   // 關卡單次：只寫記憶體
+        }
+        else
+        {
+            var sm = SaveManager.Instance;
+            if (sm != null)
+            {
+                wasSet = scope == FlagScope.Life ? sm.GetLifetimeFlag(name) : sm.GetFlag(name);
+                if (scope == FlagScope.Life) sm.SetLifetimeFlag(name); else sm.SetFlag(name);
+            }
+            else
+            {
+                wasSet = _memFlags.TryGetValue(key, out var v) && v == "1";
+                _memFlags[key] = "1";
+            }
+        }
+        // 只在「首次成立」時自動觸發：重複設同一旗標不再重跑 fireOnFlag
+        // （否則 clearLevel 等被重複觸發 → 接續的對話會一直彈出）。
+        if (!wasSet) AutoFireOnFlag(key);
+    }
+
+    // 旗標成立就自動觸發：掃目前地圖裡 fireOnFlag 對上此旗標、且未停用的 trigger，延一幀 Activate（避免在 SetFlag 當下重入）。
+    // 與 onEnter（進場自動）同一類「自動鏈起點」，只是改由旗標驅動。典型：boss 死亡 deathFlag → clearLevel(fireOnFlag=該旗標) 自動過關。
+    static void AutoFireOnFlag(string flagKey)
+    {
+        if (_map?.TriggerLayer?.regions == null || string.IsNullOrEmpty(flagKey)) return;
+        string want = flagKey.Trim();
+        foreach (var r in _map.TriggerLayer.regions)
+        {
+            if (r == null) continue;
+            string fof = r.GetString(KeyFireOnFlag);
+            if (string.IsNullOrEmpty(fof) || fof.Trim() != want) continue;
+            if (IsDisabled(r)) continue;
+            string key = !string.IsNullOrEmpty(r.name) ? r.name : r.id;
+            TriggerChainRunner.NextFrame(() => Activate(key));
+        }
     }
 
     /// <summary>清掉所有「關卡單次」旗標。由 MapManager 在進入新 module（換關卡）時呼叫——所以每次進關這類旗標重算。</summary>

@@ -17,3 +17,5 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 16,7,主角,,Actor_Fear,2,這是怎麼樣? 發生什麼事? 房子呢? 怎麼消失了?,,,,,,
 17,7,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious,Actor_Fear,1,哼，那女人竟然敢放過獵物，看我不好好修理她,,,-50,,,
 18,7,榕樹妖,Modules/RedBridalGown/Talk/treeFace_crazy,Actor_Fear,1,現在，你還是乖乖化為我的氣血吧，成為我的養分，死後魂魄也要為我所用，哈哈哈,,,-50,,,
+19,8,????,Modules/RedBridalGown/Talk/redBridalGown_angry,,1,竟然被你打敗，我，我好恨啊~~,,,-50,,,
+20,9,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious,,1,可惡，可惡，我恨哪~~,,,-50,,,

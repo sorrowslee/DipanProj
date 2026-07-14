@@ -28,16 +28,24 @@ namespace DipanMapEditor.IO
             string json = File.ReadAllText(path);
             var set = JsonConfig.Deserialize<TriggerTypeSet>(json) ?? new TriggerTypeSet();
 
-            // 合併：補上檔案裡缺的內建類型（例如新版新增的 portal），讓「內建新增」不必手動改 json。
-            // 只補 typeId 不存在的，保留使用者既有類型與參數；有補到才回寫。
+            // 合併：讓「內建新增」不必手動改 json。
+            //  ① 補上檔案裡缺的內建類型（例如新版新增的 portal）。
+            //  ② 對「已存在的類型」補上它缺少的內建參數（例如 clearLevel 後來新增的 delaySeconds），保留使用者既有參數。
+            // 只做「新增」、不刪不改既有，安全。有補到才回寫。
             var builtin = TriggerTypeSet.Defaults();
             bool changed = false;
             foreach (var d in builtin.types)
-                if (set.Find(d.typeId) == null) { set.types.Add(d); changed = true; }
+            {
+                var existing = set.Find(d.typeId);
+                if (existing == null) { set.types.Add(d); changed = true; continue; }
+                foreach (var p in d.paramSchema)
+                    if (existing.paramSchema.Find(x => x.key == p.key) == null)
+                    { existing.paramSchema.Add(p); changed = true; }
+            }
             if (changed)
             {
                 Save(set, path);
-                Debug.Log("[TriggerTypeStore] 補上缺少的內建 trigger 類型（含新版新增，如 portal）。");
+                Debug.Log("[TriggerTypeStore] 補上缺少的內建 trigger 類型/參數（含新版新增，如 portal、clearLevel 的 delaySeconds）。");
             }
             return set;
         }

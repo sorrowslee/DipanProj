@@ -17,6 +17,7 @@
 | [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md) | CSV 雙表（RecipeTable／WeaponTable）、Recipe／WeaponManager、BounceTarget、序列圖、SpriteAngleOffset | 加／改武器、配方、CSV 欄位 |
 | [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md) | 玩家控制器、怪物 AI、受擊反應系統（閃爍／擊退／無敵） | 改玩家或怪物行為、受擊反應 |
 | [MONSTER_SETUP.md](MONSTER_SETUP.md) | 怪物量產（route B：程式逐格動畫、地圖素材管線載圖、零 prefab/Animator；idle/walk 必備、attack 可選、防呆；CSV 加 AnimFPS） | 量產新怪、換怪物外觀、加怪物動作動畫 |
+| [MONSTER_SPEECH.md](MONSTER_SPEECH.md) | 怪物頭上對話框（CSV 句子1~4＋血量%門檻、發現玩家後隨機說、boss 頻率兩倍、水墨泡泡底板隨機輪流＋避邊鏡像） | 加/改怪物台詞、調說話頻率、換對話框底板 |
 | [BOSS_MODULE.md](BOSS_MODULE.md) | Boss 戰鬥模組框架（一隻強怪＝一個 Brain 模組：MonsterContext／MonsterWeaponUser seam）＋紅嫁衣女殭屍（逃跑＋召喚）＋召喚做成表驅動武器（RecipeTable IsSummon 五欄） | 做/改 boss 與強怪戰鬥模式、加召喚、讓怪物用武器 |
 | [COMBAT.md](COMBAT.md) | 戰鬥傷害系統：玩家 HP/MP（CombatStats）、中央傷害結算（DamageInfo/CombatSystem）、武器耗魔（ManaCost）、怪物接觸傷害＋減傷、血/魔 HUD、頭上浮動傷害數字、加成/減傷/DOT 掛勾 | 改傷害結算、加 HP/MP/魔耗、傷害加成/減傷、接觸傷害、血魔條、傷害數字 |
 | [SHADOW.md](SHADOW.md) | 角色腳下橢圓影子（BlobShadow，程序生成、自動跟隨、玩家與怪物自動掛） | 改影子外觀/大小、給新角色加影子 |
@@ -45,6 +46,7 @@
 | [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) | 觸發鏈：trigger 接 trigger（next/startDisabled/旗標條件）、動作型 giveItem/teleportTo/cameraFocus、**進場觸發 onEnter（一進地圖自動觸發、0 格不塗格子）**、傳送點綠幕連動 | 編排「對話→給物品→開門→傳送」這類事件流程、加條件分支、做「一進房間就播對話」 |
 | [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留）＋§14 進度層（周目=generation、完成關卡=clearedModules、金錢、出生點旗標、進度 API） | 做存檔/讀檔、角色建立/轉生、物品持久化、記錄關卡/周目進度前 |
 | [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物 |
+| [LEVEL_END_FLOW.md](LEVEL_END_FLOW.md) | 過關/死亡/返回廣場 → 卍字離場特效 → 結算畫面 → 回廣場（clearLevel 觸發＋fireOnFlag＋延時觸發＋倒數＋ResultPanel 美術；EndLevel 三模式） | 改過關/死亡表演、離場特效、結算版面、接 clearLevel |
 | [DEPLOY.md](DEPLOY.md) | 打包流程（Project Tools 選單、BuildScript 打包＋驗收、場景順序、打包疑難排解） | 打包、build 出錯時 |
 | [ITCH_BUTLER.md](ITCH_BUTLER.md) | **itch.io & butler 手冊**：裝 butler（台灣 DNS 坑）、登入、換機器設定清單、常用指令（`status` 查推送）、PC 用 itch app 取得、費用、itch/butler 疑難排解 | 設定新 Mac、上傳出錯、查推送狀態、**任何 itch/butler 問題** |
 | [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md) | 效能診斷面板(PerfHud：FPS/CPU·GPU ms/瓶頸/顯卡，按 P) ＋ 上架前玩家畫面設定(VSync/幀率上限/視窗模式)規劃 | 排查幀數/卡頓、做畫面設定選單 |

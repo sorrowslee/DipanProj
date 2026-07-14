@@ -23,6 +23,14 @@
       "IsLife": false,
       "IsLevel": true,
       "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 4,
+      "name": "redBridalCleared",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
     }
   ]
 }

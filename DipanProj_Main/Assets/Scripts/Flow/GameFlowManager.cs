@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using Dipan.Save;
@@ -127,6 +128,155 @@ namespace Dipan.Flow
             if (SaveManager.Instance != null) SaveManager.Instance.DeleteSlot(slot);
         }
 
+        // ───────────── 流程：過關 / 死亡 → 卍字離場 → 結算 → 返回廣場 ─────────────
+
+        // 關卡 module → 顯示名（結算畫面「關卡：xxx」用）。新增關卡在這加一行即可；查無＝直接顯示 module id。
+        static readonly Dictionary<string, string> ModuleDisplayNames = new Dictionary<string, string>
+        {
+            { "RedBridalGown", "紅嫁衣" },
+            { "BanyanTree", "榕樹妖" },
+        };
+        static string DisplayNameOf(string module)
+            => (!string.IsNullOrEmpty(module) && ModuleDisplayNames.TryGetValue(module, out var n)) ? n : module;
+
+        bool _endingLevel;              // 結束流程進行中（防重入：boss 死＋玩家死同幀只跑一次）
+        public bool IsEndingLevel => _endingLevel;   // 給 clearLevel 判斷「已在結束流程中就別重跑對話」
+        Transform _endPlayer;          // 被卍字吞走的玩家（回廣場前還原縮放/復活用）
+        Vector3 _endPlayerScale;       // 玩家原始縮放
+        string _endModule;             // 這關的 module（結算底圖/關卡名/記過關用）
+
+        /// <summary>結束本關的三種情形。</summary>
+        public enum LevelEndKind
+        {
+            Clear,   // 過關：記進度、標題「通關結算」
+            Death,   // 死亡：不記進度、標題「死亡結算」、死亡定格多停一下
+            Return,  // 主動返回廣場（設定面板）：不記進度、不顯示標題
+        }
+
+        /// <summary>
+        /// 結束本關：播卍字離場特效 → 開結算畫面。
+        /// Clear＝過關（記進度、通關標題）／Death＝死亡（死亡標題）／Return＝主動返回（無標題、不記進度）。
+        /// 由 clearLevel 觸發動作、PlayerController.Die、設定面板「返回廣場」呼叫；同幀多次呼叫只生效一次。
+        /// </summary>
+        // 死亡的延時（固定）：讓死亡動畫演一下再吞。過關的延時走 clearLevel 觸發的「延時觸發」欄位（見 delaySeconds 參數）。
+        const float DeathDelaySeconds = 2f;
+
+        /// <param name="delaySeconds">Clear 專用：觸發後等這麼久才播離場（讓 boss 死前對話/表演演完）。&lt;0＝用預設 2 秒。其他 kind 忽略此值。</param>
+        public void EndLevel(LevelEndKind kind, float delaySeconds = -1f)
+        {
+            if (_endingLevel) return;
+            // 必須「已載入一張關卡地圖」才觸發（標題畫面 CurrentMapId <= 0）。用地圖狀態判斷而非 InGame，
+            // 這樣走 DevQuickStart（直接進關卡、沒跑標題流程、InGame=false）也能正常結束關卡。
+            if (MapManager.Instance == null || MapManager.Instance.CurrentMapId <= 0) return;
+            _endingLevel = true;
+            StartCoroutine(EndLevelRoutine(kind, delaySeconds));
+        }
+
+        IEnumerator EndLevelRoutine(LevelEndKind kind, float delaySeconds)
+        {
+            bool win = kind == LevelEndKind.Clear;
+            bool showTitle = kind != LevelEndKind.Return;
+
+            _endModule = MapManager.Instance != null ? MapManager.Instance.CurrentModule : null;
+
+            var playerGo = GameObject.FindGameObjectWithTag("Player");
+            _endPlayer = playerGo != null ? playerGo.transform : null;
+            _endPlayerScale = _endPlayer != null ? _endPlayer.localScale : Vector3.one;
+
+            // 延時秒數：過關＝觸發欄位（<0 用 2）；死亡＝固定 2；返回＝短。
+            float delay = kind == LevelEndKind.Clear ? (delaySeconds >= 0f ? delaySeconds : 2f)
+                        : kind == LevelEndKind.Death ? DeathDelaySeconds
+                        : 0.25f;
+
+            // ── 階段一：等待 ──
+            if (kind == LevelEndKind.Clear)
+            {
+                // 過關：**不擋操作、不暫停** → 玩家可自由移動撿戰利品；boss 對話（clearLevel 的 next，由 TriggerChain 觸發）
+                // 自己會暫停。倒數用 scaled time（對話暫停時自動凍住），並在上方顯示「X 秒後即將進入結算」。
+                yield return ClearCountdown(delay);
+            }
+            else
+            {
+                // 死亡/返回：擋操作但不暫停（死亡動畫仍會演），等固定秒數。
+                if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(true, false);
+                if (delay > 0f) yield return new WaitForSecondsRealtime(delay);
+            }
+
+            // 階段二：暫停（怪物/子彈定住）＋播卍字離場特效（吞玩家、飛上天；特效用 unscaledTime）。
+            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(true, true);
+            bool fxDone = false;
+            LevelExitManjiController.Play(_endPlayer, () => fxDone = true);
+            while (!fxDone) yield return null;
+
+            // 只有過關記進度（存檔）。死亡與主動返回都不算過關。
+            if (kind == LevelEndKind.Clear && SaveManager.Instance != null && !string.IsNullOrEmpty(_endModule))
+            {
+                SaveManager.Instance.MarkModuleCleared(_endModule);
+                SaveManager.Instance.SaveNow();
+            }
+
+            // 開結算畫面（覆蓋全螢幕、暫停）。玩家此時縮到 ~0 且在畫面外，被結算面板蓋住。
+            ResultPanel.Show(win, showTitle, _endModule, DisplayNameOf(_endModule));
+        }
+
+        /// <summary>
+        /// 過關延時倒數：期間玩家可自由操作（不擋不暫停），上方顯示「X 秒後即將進入結算」。
+        /// 用 scaled time 計時 → boss 對話（會暫停遊戲）期間自動凍住，對話結束玩家能動時才繼續倒數。
+        /// </summary>
+        IEnumerator ClearCountdown(float total)
+        {
+            var panel = UIManager.Instance != null ? UIManager.Instance.Open<ExitCountdownPanel>() : null;
+            float remaining = Mathf.Max(0f, total);
+            while (remaining > 0f)
+            {
+                if (panel != null) panel.SetSeconds(Mathf.CeilToInt(remaining));
+                remaining -= Time.deltaTime;   // scaled：遊戲暫停（對話中）時為 0 → 倒數凍住
+                yield return null;
+            }
+            if (UIManager.Instance != null) UIManager.Instance.Close<ExitCountdownPanel>();
+        }
+
+        /// <summary>結算畫面「返回廣場」按鈕：淡黑 → 復活/還原玩家 → 回邪佛廣場中央 → 淡出。</summary>
+        public void ReturnToHubFromResult()
+        {
+            StartCoroutine(ReturnFromResultRoutine());
+        }
+
+        IEnumerator ReturnFromResultRoutine()
+        {
+            var fader = ScreenFader.Ensure();
+            yield return fader.FadeTo(1f, 0.3f);          // 蓋黑（暫停中，用 unscaledTime）
+
+            if (UIManager.Instance != null) UIManager.Instance.Close<ResultPanel>();
+
+            // 還原玩家：縮放復原 + 復活（血魔滿、解除死亡定格）。GoToMap 之後會把玩家移到廣場落點。
+            if (_endPlayer != null)
+            {
+                _endPlayer.localScale = _endPlayerScale;
+                var pc = _endPlayer.GetComponent<PlayerController>();
+                if (pc != null) pc.ReviveFull();
+            }
+
+            // 解除暫停/鎖（GoToMap 的載入流程要在正常 timeScale 下跑）。
+            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(false, false);
+
+            // 回邪佛廣場中央
+            if (MapManager.Instance != null)
+                MapManager.Instance.GoToMap(SaveConstants.HubMapId, SaveConstants.HubEntranceCenter);
+
+            // 等載入完成再淡出（跨 module 會出讀取頁，這裡多等它一下）。
+            yield return null;
+            float t = 0f;
+            while (MapManager.Instance != null && MapManager.Instance.IsLoading && t < 10f)
+            {
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            yield return fader.FadeTo(0f, 0.35f);
+
+            _endingLevel = false;
+        }
+
         // ───────────── 場景協調 ─────────────
 
         bool CanPlayIntro()
@@ -171,11 +321,16 @@ namespace Dipan.Flow
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Boot()
         {
-            if (!GameFlowManager.TitleFlowEnabled) return;   // 關閉時維持舊測試流程
+            // 標題流程開啟時：把 SaveManager / MapManager 切到「由流程驅動」（不自動載檔/進關卡）。
+            // 關閉時（DevQuickStart 直接進關卡）維持舊測試流程，不動這兩個抑制旗標。
+            if (GameFlowManager.TitleFlowEnabled)
+            {
+                SaveManager.SuppressAutoLoad = true;
+                MapManager.SuppressAutoStart = true;
+            }
 
-            SaveManager.SuppressAutoLoad = true;   // 不自動載/建 test001，改由存讀檔畫面決定
-            MapManager.SuppressAutoStart = true;   // 不自動進 startModule，改由流程 GoToMap/StartLevel
-
+            // GameFlowManager **一律建立**（不論走不走標題流程）：過關/死亡/返回廣場等關卡結束流程都靠它，
+            // DevQuickStart 直接進關卡時也要能用。它在 Start 只有 TitleFlowEnabled 才開標題，dev 模式下只是待命。
             if (GameFlowManager.Instance == null)
             {
                 var go = new GameObject("[GameFlowManager]");
