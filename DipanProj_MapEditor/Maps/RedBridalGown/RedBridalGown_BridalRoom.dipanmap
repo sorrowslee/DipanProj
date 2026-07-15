@@ -262,7 +262,17 @@
           "cells": [],
           "params": {
             "dramaId": "9",
-            "next": ""
+            "next": "過關"
+          }
+        },
+        {
+          "id": "b419446f",
+          "name": "觀察boss死亡",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "redBridalCleared",
+            "next": "紅嫁衣被打敗對話"
           }
         }
       ]

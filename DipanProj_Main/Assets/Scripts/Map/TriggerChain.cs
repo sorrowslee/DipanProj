@@ -36,7 +36,8 @@ public static class TriggerChain
     public const string TypeTogglePortal = "togglePortal"; // 開關傳送點（鏈動作）：把 target 指定的傳送點隱藏封鎖(show=false)或顯示解鎖(show=true)，含外型/綠幕，再接 next。Boss 房封門用
     public const string TypeOnEnter = "onEnter";           // 進場觸發（自動）：進圖載入結束後自動觸發，純鏈起點（0 格、不塗格子），見 MapManager.FireEnterTriggersRoutine
     public const string TypeBossIntro = "bossIntro";       // Boss開戰資訊（鏈動作）：暫停＋中央警告特效＋左滑入頭像＋右滑入姓名牌匾，表演完再接 next（見 BossIntroPanel）
-    public const string TypeClearLevel = "clearLevel";     // 過關（終端動作）：觸發「卍字離場→結算→返回廣場」流程並記過關（見 GameFlowManager.EndLevel）。接法：這個 trigger 填 fireOnFlag=<boss死亡旗標>，boss 出生點的「死亡觸發旗標」填同一個名字→boss死自動過關。本動作是鏈終點、不接 next
+    public const string TypeClearLevel = "clearLevel";     // 過關（鏈動作）：被 next 呼叫到就啟動「延時倒數（玩家可動）→ 卍字離場 → 結算 → 返回廣場」流程並記過關（見 GameFlowManager.EndLevel）。旗標偵測已抽到 watchFlag，這裡純鏈動作
+    public const string TypeWatchFlag = "watchFlag";       // 觀察旗標變動（自動）：監聽 fireOnFlag 指定的旗標，該旗標「首次成立(false→true)」時觸發自己的 next。本身不做事，只當「旗標驅動的鏈起點」（同 onEnter，改由旗標驅動）。見 AutoFireOnFlag
 
     // 通用欄位 key
     const string KeyNext = "next";
@@ -268,6 +269,7 @@ public static class TriggerChain
             case TypeTogglePortal: ExecuteTogglePortal(r); break;
             case TypeBossIntro: ExecuteBossIntro(r); break;
             case TypeClearLevel: ExecuteClearLevel(r); break;
+            case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
                 if (IsDramaType(r)) ExecuteDrama(r);   // 鏈到劇情點 = 立即播對話（對話→對話）
@@ -324,10 +326,11 @@ public static class TriggerChain
         _manager.GoToMap(targetMapId, targetEntrance);
     }
 
-    // 過關（動作）：啟動「延時倒數（玩家可動）→ 卍字離場 → 結算 → 返回廣場」流程；同時接續觸發 next（例如 boss 被打敗對話）。
-    // 接法一（boss 死自動）：clearLevel 填 fireOnFlag=<旗標>，boss 出生點「死亡觸發旗標」填同名 → boss 死自動過關。
-    // 接法二（踩點過關）：在地圖擺一個 clearLevel 觸發點，玩家踩到就過關。
-    // 延時觸發(delaySeconds) 秒數內玩家可自由操作（撿戰利品等），期間可用「接續觸發」接一段對話（對話會自己暫停時間）。
+    // 過關（鏈動作）：被 next 呼叫到就啟動「延時倒數（玩家可動）→ 卍字離場 → 結算 → 返回廣場」流程。
+    // 旗標偵測已抽到 watchFlag，這裡是純鏈動作——由 watchFlag（或任何 trigger）的「接續觸發」接進來。
+    //   典型：boss 死亡旗標 → watchFlag → next 接對話/動畫/給獎勵…→ 最後接 clearLevel。
+    //   也可「踩點過關」：畫格子讓玩家踩到即過關。
+    // 延時觸發(delaySeconds) 秒數內玩家可自由操作（撿戰利品等）、上方顯示倒數；仍保留「接續觸發」（可在開始倒數的瞬間再觸發別的）。
     static void ExecuteClearLevel(TriggerRegion r)
     {
         var gf = Dipan.Flow.GameFlowManager.Instance;

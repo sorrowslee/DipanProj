@@ -464,20 +464,27 @@
       ]
     },
     {
-      "typeId": "clearLevel",
-      "displayName": "過關(結算)",
-      "color": "#FFC24D",
+      "typeId": "watchFlag",
+      "displayName": "觀察旗標變動",
+      "color": "#7FE0A0",
       "params": [
         {
           "key": "fireOnFlag",
           "type": "String",
-          "label": "旗標成立自動觸發",
+          "label": "監聽旗標(成立即觸發)",
           "boolDefault": false,
           "isFlagRef": true,
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false
-        },
+        }
+      ]
+    },
+    {
+      "typeId": "clearLevel",
+      "displayName": "過關(結算)",
+      "color": "#FFC24D",
+      "params": [
         {
           "key": "delaySeconds",
           "type": "Float",

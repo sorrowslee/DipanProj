@@ -179,7 +179,18 @@
           "typeId": "drama",
           "cells": [],
           "params": {
-            "dramaId": "10"
+            "dramaId": "10",
+            "next": "過關"
+          }
+        },
+        {
+          "id": "3550ca7f",
+          "name": "觀察boss死亡",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "redBridalCleared",
+            "next": "榕樹妖被打敗對話"
           }
         }
       ]

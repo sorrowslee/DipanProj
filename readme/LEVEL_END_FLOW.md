@@ -32,22 +32,33 @@
 | `Scripts/UI/Panels/ResultPanel.cs` | 結算畫面。底＝`Resources/Loading/<module>.png`；美術元件在 `Resources/UI/ClearStagePanel/`（標題/死亡標題/獎勵框/獲得獎勵標頭/返回按鈕）。`Show(win, showTitle, module, displayName)`。獎勵格容器 `RewardsArea` **目前留空**、無道具時顯示大「無」字 |
 | `Scripts/UI/Panels/ExitCountdownPanel.cs` | 過關延時期間上方的「X 秒後即將進入結算」倒數提示（HUD 層、不擋不暫停） |
 | `Scripts/UI/Panels/SettingsPanel.cs` | 「返回廣場」鈕：**只在關卡內顯示**（廣場/標題只有離開遊戲鈕、且離開鈕移回置中）；按下有二次確認 `ConfirmPopup` |
-| `Scripts/Map/TriggerChain.cs` | `clearLevel` 動作型 trigger（`ExecuteClearLevel`）＋ `fireOnFlag` 自動觸發機制（`AutoFireOnFlag`） |
+| `Scripts/Map/TriggerChain.cs` | `watchFlag`（觀察旗標變動）＋ `clearLevel`（過關鏈動作）兩個 trigger；`fireOnFlag` 自動觸發機制（`AutoFireOnFlag`） |
 | `Scripts/PlayerController.cs` | `Die()` 接 `EndLevel(Death)`；`ReviveFull()` |
 
-## clearLevel 觸發（編輯器）
-在**地圖編輯器**（`DipanProj_MapEditor`）擺一個 `過關(結算)` 類型的 trigger。參數：
-- **旗標成立自動觸發(`fireOnFlag`)**：填一個旗標名（例 `redBridalCleared`）。把 **boss 出生點的「死亡觸發旗標」填同一個名字** → 打倒 boss 自動過關（不用玩家踩點；0 格區域即可，用「＋手動新增空區域」建立）。
-- **延時觸發(`delaySeconds`)**：過關後等這麼久才離場（讓 boss 死前對話/表演演完、玩家撿戰利品）。**留空＝2 秒**。
-- **接續觸發(`next`)**：可接一段「被打敗對話」，會在過關當下觸發（對話自己會暫停時間、倒數凍住）。
+## 兩顆 trigger：watchFlag（偵測）＋ clearLevel（執行）
+**旗標偵測與過關執行拆成兩顆**（2026-07-14 重構），中間可串任意表演（對話→動畫→給獎勵…），不用全擠進過關延時窗。
 
-也可當「踩點過關」：畫格子讓玩家踩到即過關（不填 fireOnFlag）。
+**① 觀察旗標變動（`watchFlag`）**——監聽旗標、驅動鏈起點：
+- 參數 **`fireOnFlag`**：要監聽的旗標名。該旗標**首次成立(false→true)**時，觸發自己的「接續觸發(next)」。本身不做事（同 `onEnter`，改由旗標驅動）。0 格，用「＋手動新增空區域」建立。
+- ⚠️ 是「旗標翻成 true 的那一刻」才觸發，**不是**「進場時旗標已 true 就觸發」——後者請用 `onEnter + 條件旗標(requireFlag)`。
 
-`fireOnFlag` 的底層：`TriggerChain.SetFlag` 在旗標**首次成立**時掃描本圖 `fireOnFlag` 對上的 trigger、延一幀 `Activate`。與 `onEnter`（進場自動）同類，只是改由旗標驅動。
+**② 過關(結算)（`clearLevel`）**——純鏈動作：
+- 參數 **`delaySeconds`（延時觸發）**：被觸發後倒數幾秒才進結算（**留空＝2 秒**）；這段玩家可自由操作（撿戰利品）、上方顯示倒數。
+- 由別的 trigger 的「接續觸發」接進來；也可「踩點過關」（畫格子讓玩家踩到）。仍保留 `next`（可在開始倒數那刻再觸發別的）。
+
+**典型接法（紅嫁衣）**：
+```
+boss 出生點 死亡觸發旗標 = redBridalCleared
+watchFlag(fireOnFlag=redBridalCleared) → next → 被打敗對話
+被打敗對話 → next →（可選）動畫/給獎勵…
+最後一個 → next → 過關(結算)  → 倒數(delaySeconds) → 結算
+```
+
+`fireOnFlag` 的底層：`TriggerChain.SetFlag` 在旗標**首次成立**時掃描本圖 `fireOnFlag` 對上的 trigger（現在＝watchFlag）、延一幀 `Activate`。
 
 ## 雷點 / 已知限制（PROBLEMS 類）
 - **卍字被特效蓋住 → 排序**：世界特效（`VfxManager` 預設 `SortingOrder=22000`，如榕樹妖死亡火焰）比角色排序（Y 排序帶 ~1~1.7 萬）高。卍字若只設「玩家+5」會被蓋住。**卍字固定用 `SortingOrder=25000`**（>22000、<32767 16-bit 安全；UI 覆蓋層永遠更上層不受影響）。（2026-07-14 榕樹妖火焰蓋住卍字修正）
-- **接續觸發不能接回自己形成環**：clearLevel 的 `next` 接對話、對話的 `next` 又接回 clearLevel → 無限互觸發、對話狂彈。**過關/對話的 `next` 不要形成環**。另外 clearLevel 的「完成寫旗標」不需要再填 fireOnFlag 的同名旗標（boss 出生點死亡旗標設它就夠）。
+- **接續觸發(`next`)不能接成環**：例如過關 `next` 接對話、對話 `next` 又接回過關 → 無限互觸發、對話狂彈。**整條鏈的 `next` 不要形成環**。旗標也一樣：別讓某步的「完成寫旗標」設成 watchFlag 正在監聽的同名旗標（會再觸發一次那條鏈）。
   - 防線：`SetFlag` 只在旗標「首次成立」時才跑 `fireOnFlag`（重複設同旗標不再重觸發）；`ExecuteClearLevel` 若 `GameFlowManager.IsEndingLevel` 為真就跳過。
 - **編輯器加了新 trigger 類型/參數卻沒出現**：編輯器啟動時的合併只在 `triggerTypes.json` 缺該類型/參數時補進去。改 `TriggerType.cs` 的 `Defaults()` 後**重開編輯器**才會合併（現已支援「對既有類型補新參數」，見 `TriggerTypeStore.cs`）。真的沒出現就檢查 `DipanProj_MapEditor/Assets/StreamingAssets/triggerTypes.json`。
 - **延時期間玩家被殘留怪物打死**：流程已在進行，死亡流程會被 `_endingLevel` 擋掉 → 仍走過關結算。boss 房打完通常無其他怪，一般不會遇到。
