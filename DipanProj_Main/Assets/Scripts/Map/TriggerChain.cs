@@ -38,6 +38,7 @@ public static class TriggerChain
     public const string TypeBossIntro = "bossIntro";       // Boss開戰資訊（鏈動作）：暫停＋中央警告特效＋左滑入頭像＋右滑入姓名牌匾，表演完再接 next（見 BossIntroPanel）
     public const string TypeClearLevel = "clearLevel";     // 過關（鏈動作）：被 next 呼叫到就啟動「延時倒數（玩家可動）→ 卍字離場 → 結算 → 返回廣場」流程並記過關（見 GameFlowManager.EndLevel）。旗標偵測已抽到 watchFlag，這裡純鏈動作
     public const string TypeWatchFlag = "watchFlag";       // 觀察旗標變動（自動）：監聽 fireOnFlag 指定的旗標，該旗標「首次成立(false→true)」時觸發自己的 next。本身不做事，只當「旗標驅動的鏈起點」（同 onEnter，改由旗標驅動）。見 AutoFireOnFlag
+    public const string TypeSelectScript = "selectScript"; // 選擇劇本（鏈動作）：被 next 啟動時開「選擇劇本」面板（邪佛發牌），玩家按領取拿走某張劇本→加進背包→關閉→接 next。取代原本直接 giveItem 給紅嫁衣劇本。scriptIds='|' 分隔可領取劇本道具 id、specialIds='|' 分隔用特殊裂紋框的 id。見 SelectScriptPanel
 
     // 通用欄位 key
     const string KeyNext = "next";
@@ -267,6 +268,7 @@ public static class TriggerChain
             case TypePlayerHint: ExecutePlayerHint(r); break;
             case TypePlayScreenFx: ExecutePlayScreenFx(r); break;
             case TypeTogglePortal: ExecuteTogglePortal(r); break;
+            case TypeSelectScript: ExecuteSelectScript(r); break;
             case TypeBossIntro: ExecuteBossIntro(r); break;
             case TypeClearLevel: ExecuteClearLevel(r); break;
             case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
@@ -307,6 +309,47 @@ public static class TriggerChain
             AlertPanel.Toast($"背包已滿，{display} ×{leftover} 掉落地上");
         }
         OnCompleted(r);
+    }
+
+    // 開啟「選擇劇本」面板（邪佛發牌）：擺出卡片，玩家按領取拿走某張劇本→加進背包→關閉→接 next。
+    //   scriptIds  ：可領取的劇本道具 id，用 '|' 分隔（初始＝"104" 紅嫁衣）。
+    //   specialIds ：其中要用特殊裂紋框的 id（同樣 '|' 分隔；業障回響/紅嫁衣）。
+    // 「加進背包」由面板做（同原本 giveItem 的效果），本動作只負責開面板＋領取後接 next（鏡頭聚焦/傳送門對話…）。
+    // scriptIds 為空/無效 → 直接接 next，不卡住鏈。
+    static void ExecuteSelectScript(TriggerRegion r)
+    {
+        var special = ParseIdSet(r.GetString("specialIds"));
+        var cards = new List<Dipan.UI.SelectScriptPanel.CardSpec>();
+        foreach (int id in ParseIds(r.GetString("scriptIds")))
+            cards.Add(new Dipan.UI.SelectScriptPanel.CardSpec(id, special.Contains(id)));
+
+        if (cards.Count == 0)
+        {
+            Debug.LogWarning($"[TriggerChain] selectScript「{r.name}」scriptIds 為空或無效，直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+
+        // 延一幀開面板（避免與「上一個對話關閉」同幀重入，比照 bossIntro）；領取後（面板已關）再延一幀接 next。
+        TriggerChainRunner.NextFrame(() =>
+            Dipan.UI.SelectScriptPanel.Open(cards, _ => TriggerChainRunner.NextFrame(() => OnCompleted(r))));
+    }
+
+    // 解析 '|' 分隔的道具 id 清單（空/無效略過）。
+    static List<int> ParseIds(string s)
+    {
+        var list = new List<int>();
+        if (string.IsNullOrEmpty(s)) return list;
+        foreach (var part in s.Split('|'))
+            if (int.TryParse(part.Trim(), out int id) && id > 0) list.Add(id);
+        return list;
+    }
+
+    static HashSet<int> ParseIdSet(string s)
+    {
+        var set = new HashSet<int>();
+        foreach (int id in ParseIds(s)) set.Add(id);
+        return set;
     }
 
     // 直接傳送（不用踩傳送點）。換圖 = 鏈的終點（setFlag 會先寫，next 填了也無意義）。

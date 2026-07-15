@@ -168,6 +168,20 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：被觸發鏈（next）啟動時開「選擇劇本」面板（邪佛發牌）——擺出關卡卡片，玩家按「領取」拿走某張劇本
+                // → 加進背包 → 關閉 → 接 next。取代原本「邪佛對話後直接 giveItem 給紅嫁衣劇本」那一步。
+                // 初始關卡＝只填一張紅嫁衣：scriptIds="104"、specialIds="104"（特殊裂紋框）。
+                // 日後多關＝scriptIds 填該輪要擺的多張劇本 id（'|' 分隔），業障回響的舊關 id 放進 specialIds。
+                // 不用玩家踩、純靠鏈驅動；格子畫在角落即可（0 格也可）。
+                typeId = "selectScript", displayName = "選擇劇本(鏈動作)", color = "#C0464C",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "scriptIds",  type = ParamType.String, label = "可領取劇本id('|'分隔)" },   // 例：104（初始紅嫁衣）；多關用 '|' 分隔
+                    new TriggerParam { key = "specialIds", type = ParamType.String, label = "特殊框劇本id('|'分隔)" },   // 其中要用裂紋框的（業障回響/紅嫁衣），例：104
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 動作型：被觸發鏈（next）啟動時播「Boss 開戰資訊」表演——暫停遊戲 → 螢幕中央 Warning 特效 →
                 // 左側滑入 boss 頭像（Talk 立繪）、右側滑入姓名牌匾＋顯示名，停留後淡出、接 next。
                 // 顯示名/頭像填在主專案 MonsterData.csv 的 DisplayName / PortraitPath 欄，這裡只填怪物 ID（與怪物出生點同一個 ID）。

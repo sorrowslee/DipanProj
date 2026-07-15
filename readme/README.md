@@ -47,6 +47,7 @@
 | [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留）＋§14 進度層（周目=generation、完成關卡=clearedModules、金錢、出生點旗標、進度 API） | 做存檔/讀檔、角色建立/轉生、物品持久化、記錄關卡/周目進度前 |
 | [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物 |
 | [LEVEL_END_FLOW.md](LEVEL_END_FLOW.md) | 過關/死亡/返回廣場 → 卍字離場特效 → 結算畫面 → 回廣場（clearLevel 觸發＋fireOnFlag＋延時觸發＋倒數＋ResultPanel 美術；EndLevel 三模式） | 改過關/死亡表演、離場特效、結算版面、接 clearLevel |
+| [SELECT_SCRIPT.md](SELECT_SCRIPT.md) | 選擇劇本面板（邪佛發牌選關 UI；劇本＝背包道具、selectScript 鏈動作、素材依 module 自動載、特殊裂紋框）＋ ⏳ 從第 2 輪起「系統自動 3新+1舊」發牌的設計與前置缺口 | 改選劇本 UI、接邪佛發牌、做/規劃 3新+1舊 系統發牌 |
 | [DEPLOY.md](DEPLOY.md) | 打包流程（Project Tools 選單、BuildScript 打包＋驗收、場景順序、打包疑難排解） | 打包、build 出錯時 |
 | [ITCH_BUTLER.md](ITCH_BUTLER.md) | **itch.io & butler 手冊**：裝 butler（台灣 DNS 坑）、登入、換機器設定清單、常用指令（`status` 查推送）、PC 用 itch app 取得、費用、itch/butler 疑難排解 | 設定新 Mac、上傳出錯、查推送狀態、**任何 itch/butler 問題** |
 | [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md) | 效能診斷面板(PerfHud：FPS/CPU·GPU ms/瓶頸/顯卡，按 P) ＋ 上架前玩家畫面設定(VSync/幀率上限/視窗模式)規劃 | 排查幀數/卡頓、做畫面設定選單 |

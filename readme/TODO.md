@@ -112,3 +112,22 @@
 - [ ] 觸發方式：目前是「**按住開火鍵**」就播（吃輸入，沒魔力/冷卻中也會擺姿勢）。若要改「**真的射出去那一下**才播」，改成在實際發射點（Shoot/UpdateLaser/UpdateAura）觸發 + 一次性播完。
 - [ ] 殘留時間 `AttackAnimLinger`（PlayerController 常數，現 0.12s）。
 - [ ] 大小一致性：attack 幀顯示縮放沿用 idle 可見高度換算；cast 幀主體高度與 idle 差太多會忽大忽小。
+
+---
+
+## 選擇劇本面板：系統自動發牌 3新+1舊 — 2026-07-15 規劃（見 [SELECT_SCRIPT.md](SELECT_SCRIPT.md)）
+
+初始版（單卡紅嫁衣、`selectScript` 鏈動作、素材依 module 自動載）**程式已完成**。從第 2 輪起「邪佛隨機發 3 新 + 1 舊、roll 一次就固定並存檔、內容由系統算不讓編輯器配置」尚未做——**卡在兩個前置**（要先有其他關卡＋在存檔加「完整通關」判定）。完整設計、roll 規則、實作步驟見 [SELECT_SCRIPT.md](SELECT_SCRIPT.md) §4。
+
+**前置缺口（沒有就做不了）**
+- [ ] **完整通關判定（最關鍵）**：`ProgressDTO` 目前只有 `clearedModules` 布林，**沒有「100% 完整通關 vs 通關沒挖乾淨」**——3新+1舊 的第 4 格（業障回響舊關）靠它。待拍板：布林 vs 完成度百分比。
+- [ ] **可派發關卡目錄（level pool）**：roll 新關需要「所有可派發關卡」清單（module＋劇本道具 id）。目前只有紅嫁衣，要等多做幾關。
+- [ ] **roll 結果存檔**：`ProgressDTO` 加 `currentOffer`（本次發牌清單＋哪張 special）＋「本次已領取」旗標；roll 一次寫存檔、重開同一次不變。schema 版本 +1。
+
+**實作（前置到位後）**
+- [ ] 發牌服務 `SelectScriptOffer`（`GetOrRollOffer`/`ConsumeOffer`/`ClearOfferAfterClear`；初始情境回紅嫁衣）。
+- [ ] `selectScript` 改**無參數**（拿掉 `scriptIds`/`specialIds`，編輯器 `TriggerType.cs` 同步拿掉）；動作改呼叫發牌服務。
+- [ ] 過關流程（`GameFlowManager`/`clearLevel`）接 `ClearOfferAfterClear`；領取回呼接 `ConsumeOffer`。
+- [ ] 「完整通關」寫入點（挖乾淨判定，來源＝該關隱藏 boss/分支/綁定獎勵旗標）。
+
+**待拍板決策**：完成度布林 vs 百分比；roll 時機（過關回廣場當下 vs 首次開介面當下）；業障回響權重/保底 v1 要不要做；level pool 來源（劇本道具自動推 vs 另開小表）。

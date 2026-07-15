@@ -5988,7 +5988,7 @@
           "cells": [],
           "params": {
             "dramaId": "3",
-            "next": "給紅嫁衣劇本",
+            "next": "讓玩家選擇劇本",
             "requireCycleMax": "1",
             "requireItem": "!104"
           }
@@ -6192,6 +6192,17 @@
           "params": {
             "holdSeconds": "1.6",
             "dim": ""
+          }
+        },
+        {
+          "id": "05c1bdef",
+          "name": "讓玩家選擇劇本",
+          "typeId": "selectScript",
+          "cells": [],
+          "params": {
+            "scriptIds": "104",
+            "specialIds": "",
+            "next": "叫玩家進入傳送門"
           }
         }
       ]

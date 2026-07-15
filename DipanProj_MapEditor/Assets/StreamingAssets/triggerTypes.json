@@ -496,6 +496,33 @@
           "isPortalList": false
         }
       ]
+    },
+    {
+      "typeId": "selectScript",
+      "displayName": "選擇劇本(鏈動作)",
+      "color": "#C0464C",
+      "params": [
+        {
+          "key": "scriptIds",
+          "type": "String",
+          "label": "可領取劇本id('|'分隔)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "specialIds",
+          "type": "String",
+          "label": "特殊框劇本id('|'分隔)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
     }
   ]
 }
