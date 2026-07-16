@@ -132,9 +132,9 @@ public class PlayerController : MonoBehaviour, IDamageable
         _hitReaction.Configure(_spriteRenderer, _rb,
             PlayerInvincibleTimeMs, PlayerKnockbackThreshold, PlayerKnockbackPercent);
 
-        // 開啟血/魔 HUD（HUD 層、不暫停、不擋輸入）。UIManager 由 UIBootstrap 保證已存在。
+        // 開啟底部操控列 HUD（液體血球 HP/MP，HUD 層、不暫停、不擋輸入）。UIManager 由 UIBootstrap 保證已存在。
         if (Dipan.UI.UIManager.Instance != null)
-            Dipan.UI.UIManager.Instance.Open<Dipan.UI.HudPanel>();
+            Dipan.UI.UIManager.Instance.Open<Dipan.UI.BottomHudPanel>();
 
         // 腳下影子（見 readme/SHADOW.md）
         if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
