@@ -1116,8 +1116,35 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/RedBridalGown/Talk/redBridalGown_expect",
+      "path": "Modules/RedBridalGown/Talk/redBridalGown_expect.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1122,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Talk/redBridalGown_expect2",
+      "path": "Modules/RedBridalGown/Talk/redBridalGown_expect2.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/RedBridalGown/Talk/redBridalGown_fear",
       "path": "Modules/RedBridalGown/Talk/redBridalGown_fear.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Talk/redBridalGown_happy",
+      "path": "Modules/RedBridalGown/Talk/redBridalGown_happy.png",
       "category": "Talk",
       "module": "RedBridalGown",
       "pixelSize": 1086,

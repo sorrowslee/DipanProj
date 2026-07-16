@@ -38,7 +38,7 @@ Shader "Custom/LiquidOrb"
         }
         Cull Off
         ZWrite Off
-        ZTest Always
+        ZTest [unity_GUIZTestMode]   // 跟隨畫布層級（Screen Space Overlay 依 sortingOrder 排序）；原本硬寫 Always 會穿透到視窗層之上
         Blend SrcAlpha OneMinusSrcAlpha
 
         Pass

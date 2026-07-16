@@ -19,6 +19,7 @@ namespace Dipan.Inventory
     {
         public List<GridSlotDTO> grid = new List<GridSlotDTO>();
         public Dictionary<string, int> equipment = new Dictionary<string, int>();
+        public int[] potionSlots;   // 藥水格綁定（長度 = PotionSlotCount）；跟背包一起存檔
     }
 
     /// <summary>

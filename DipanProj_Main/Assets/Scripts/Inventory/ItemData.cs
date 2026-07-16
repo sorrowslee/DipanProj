@@ -29,11 +29,15 @@ namespace Dipan.Inventory
         public int WeaponID;          // 對應 WeaponTable 的武器 ID（裝備此武器 → 玩家切到該武器）；0 = 非武器
         public int TargetMapId;       // 劇本類道具：放進傳送門後要去的關卡（MapsTable ID）；0 = 非劇本
         public string TargetEntrance; // 目的地落點名（空 = 目標圖預設出生點）
+        public int HealHp;            // 藥劑：喝下回復的生命（0 = 不回血）
+        public int HealMp;            // 藥劑：喝下回復的魔力（0 = 不回魔）
         public Sprite Icon;           // 由 ItemDatabase 從 Resources 載入
 
         public bool IsEquippable => EquipSlot != EquipSlot.None;
         public bool Stackable => MaxStack > 1;
         /// <summary>是不是「劇本」（可放進傳送門選關卡的道具）＝有指定目的地關卡。</summary>
         public bool IsScript => TargetMapId > 0;
+        /// <summary>是不是「藥劑」（可拖到 HUD 藥水格、按數字鍵使用）。</summary>
+        public bool IsPotion => Category == "Potion";
     }
 }

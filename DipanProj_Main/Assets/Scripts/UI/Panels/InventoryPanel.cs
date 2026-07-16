@@ -6,7 +6,7 @@ namespace Dipan.UI
 {
     /// <summary>
     /// 背包面板（呈現層）。背景用 inventoryPanelBG.png 整張當底，依量到的像素座標在上面疊互動格子，
-    /// 從 InventorySystem 讀資料繪 icon。座標都在「背景原圖像素空間」(1122x1402)，整個 frame 等比縮放塞進畫面。
+    /// 從 InventorySystem 讀資料繪 icon。座標都在「背景原圖像素空間」(1126x1397)，整個 frame 等比縮放塞進畫面。
     ///
     /// v1 互動：點道具格中的可裝備物品 → 裝備；點裝備欄 → 卸下；移入顯示高亮 + 底部欄顯示名稱 + 浮動 tooltip
     /// （上半 TipStats 正楷、下半 TipLore 斜體）。拖放重排等屬後續，見 readme/INVENTORY.md。
@@ -19,20 +19,22 @@ namespace Dipan.UI
         public override bool ShowBackdrop => true;   // 遮罩由 UIManager 統一鋪在所有視窗最底層（一層、不蓋面板）
         public override bool CloseOnEscape => true;
 
-        // ── 背景原圖尺寸 ──
-        const float BgW = 1122f, BgH = 1402f;
+        // ── 背景原圖尺寸（2026-07-16 新版背景 inventoryPanelBG.png）──
+        const float BgW = 1126f, BgH = 1397f;
 
-        // ── 道具格（量自背景）──
-        const float GridLeft = 466f, GridPitchX = 80.857f, GridTop = 280f, GridPitchY = 87.111f;
+        // ── 道具格 7x9（量自新背景）──
+        const float GridLeft = 464f, GridPitchX = 79.4f, GridTop = 261f, GridPitchY = 85.9f;
         const float ItemIconSize = 70f;
 
-        // ── 裝備欄中心（量自背景）──
-        static readonly float[] EquipColX = { 152f, 308.5f };   // 左欄 / 右欄
-        static readonly float[] EquipRowY = { 410f, 705f, 1000f };
-        const float EquipBoxW = 128f, EquipBoxH = 195f, EquipIconSize = 120f;
+        // ── 裝備欄（新版：上面圓形徽章＝類型標示，icon 顯示在下方大方框；量自新背景）──
+        static readonly float[] EquipColX = { 152f, 304f };        // 左欄 / 右欄（大方框中心 x）
+        static readonly float[] EquipRowY = { 379f, 632f, 884f };  // 三排大方框中心 y
+        const float EquipBoxW = 104f, EquipBoxH = 162f, EquipIconSize = 100f;
 
-        // ── 底部名稱列 ──
-        const float NameBarX = 660f, NameBarY = 1272f, NameBarW = 360f, NameBarH = 54f;
+        // ── 藥水格 2 格（新版背景左欄最下方；左＝鍵1、右＝鍵2）──
+        static readonly float[] PotionCx = { 241f, 334f };
+        static readonly Color DropHiColor = new Color(1f, 0.82f, 0.3f, 0.30f);   // 拖曳時「可放這格」黃色高亮
+        const float PotionCy = 1067f, PotionBoxSize = 72f, PotionIconSize = 64f;
 
         [Tooltip("面板顯示高度（CanvasScaler 參考單位，1080 為滿版）。")]
         public float displayHeight = 1040f;
@@ -43,6 +45,8 @@ namespace Dipan.UI
         Image _highlight;
         InventorySlotWidget[] _gridSlots;
         InventorySlotWidget[] _equipSlots;
+        PotionSlot[] _potionSlots;
+        int _lastDragId = -1;
 
         // ── tooltip ──
         const float TooltipWidth = 460f;
@@ -108,29 +112,67 @@ namespace Dipan.UI
 
             BuildRefreshButton();
             BuildTooltip();
+            BuildPotionSlots();
         }
 
-        // ── 重整（整理道具格）按鈕：中心位置（底圖原生像素，左上為原點，X→右、Y→下）。往上調小 RefreshCy、往右調大 RefreshCx。
-        const float RefreshCx = 870f, RefreshCy = 1240f, RefreshSize = 120f;
-        const string RefreshResDir = "UI/StoragePanel/";   // 沿用倉庫那組按鈕素材
+        // 兩個藥水格（拖藥劑上來綁定種類、顯示 icon＋剩餘數量；遊戲中按 1/2 使用，見 PotionHotkeys）。
+        void BuildPotionSlots()
+        {
+            _potionSlots = new PotionSlot[PotionCx.Length];
+            for (int i = 0; i < PotionCx.Length; i++)
+            {
+                var go = UIBuilder.Create($"PotionSlot{i}", _frame);
+                Place(UIBuilder.Rect(go), PotionCx[i], PotionCy, PotionBoxSize, PotionBoxSize);
+
+                var hit = go.AddComponent<Image>();
+                hit.color = new Color(1f, 1f, 1f, 0f);   // 透明命中區（收拖放）
+                hit.raycastTarget = true;
+
+                var dropHi = UIBuilder.Image(go.transform, "DropHi", null, DropHiColor);
+                UIBuilder.Stretch(dropHi.rectTransform);
+                dropHi.raycastTarget = false;
+                dropHi.enabled = false;
+
+                var icon = UIBuilder.Image(go.transform, "Icon", null, Color.white);
+                var irt = icon.rectTransform;
+                irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
+                irt.anchoredPosition = Vector2.zero;
+                irt.sizeDelta = new Vector2(PotionIconSize, PotionIconSize);
+                icon.preserveAspect = true; icon.raycastTarget = false; icon.enabled = false;
+
+                var count = UIBuilder.Text(go.transform, "Count", "", 20, Color.white, TextAnchor.LowerRight);
+                UIBuilder.Stretch(count.rectTransform, 0, 6, 0, 4);
+
+                var slot = go.AddComponent<PotionSlot>();
+                slot.index = i;
+                slot.icon = icon;
+                slot.count = count;
+                slot.dropHi = dropHi;
+                slot.Entered = ShowTooltip;
+                slot.Exited = HideTooltip;
+                _potionSlots[i] = slot;
+            }
+        }
+
+        // ── 重整（整理道具格）按鈕：新版背景把它做成「透明按鈕蓋在底部中央的方孔錢幣上」——點錢幣＝整理背包，
+        //    不覆蓋美術。位置/大小 = 錢幣中心（底圖像素，左上為原點）。想改點擊區就調這三個常數。
+        const float RefreshCx = 443f, RefreshCy = 1210f, RefreshSize = 90f;
 
         void BuildRefreshButton()
         {
-            Sprite R(string n) => Resources.Load<Sprite>(RefreshResDir + n);
             var rb = UIBuilder.Button(_frame, "Refresh", "",
-                                      () => InventorySystem.Instance.SortGrid(), Color.white, R("RefreshBG_normal"));
-            rb.targetGraphic = rb.GetComponent<Image>();
-            rb.transition = Selectable.Transition.SpriteSwap;
-            var ss = rb.spriteState;
-            ss.pressedSprite = R("RefreshBG_pressed");
-            ss.highlightedSprite = R("RefreshBG_normal");
-            ss.selectedSprite = R("RefreshBG_normal");
-            rb.spriteState = ss;
+                                      () => InventorySystem.Instance.SortGrid(), new Color(1f, 1f, 1f, 0f));
+            var img = rb.GetComponent<Image>();
+            rb.targetGraphic = img;
+            rb.transition = Selectable.Transition.ColorTint;   // 透明底＋輕微 tint 當 hover 回饋（錢幣美術照樣露出）
+            var cb = rb.colors;
+            cb.normalColor = new Color(1f, 1f, 1f, 0f);
+            cb.highlightedColor = new Color(1f, 0.9f, 0.6f, 0.18f);
+            cb.pressedColor = new Color(1f, 0.8f, 0.4f, 0.30f);
+            cb.selectedColor = new Color(1f, 1f, 1f, 0f);
+            cb.colorMultiplier = 1f;
+            rb.colors = cb;
             Place((RectTransform)rb.transform, RefreshCx, RefreshCy, RefreshSize, RefreshSize);
-
-            var ic = UIBuilder.Image(rb.transform, "Icon", R("RefreshIcon"));
-            ic.preserveAspect = true; ic.raycastTarget = false;
-            UIBuilder.Stretch(ic.rectTransform, 26, 26, 26, 26);
         }
 
         /// <summary>建浮動 tooltip：掛在 panel root（不受 frame 縮放），上半正楷功能、下半斜體劇情，高度自動。</summary>
@@ -191,11 +233,23 @@ namespace Dipan.UI
             var count = UIBuilder.Text(go.transform, "Count", "", 20, Color.white, TextAnchor.LowerRight);
             UIBuilder.Stretch(count.rectTransform, 0, 6, 0, 4);
 
+            Image dropHi = null;
+            if (kind == InventorySlotWidget.Kind.Equip)
+            {
+                dropHi = UIBuilder.Image(go.transform, "DropHi", null, DropHiColor);
+                UIBuilder.Stretch(dropHi.rectTransform);
+                dropHi.raycastTarget = false;
+                dropHi.transform.SetAsFirstSibling();
+                dropHi.enabled = false;
+            }
+
             var widget = go.AddComponent<InventorySlotWidget>();
             widget.kind = kind;
             widget.icon = icon;
             widget.count = count;
+            widget.dropHi = dropHi;
             widget.Clicked = OnSlotClicked;
+            widget.RightClicked = OnSlotRightClicked;
             widget.Entered = OnSlotEnter;
             widget.Exited = OnSlotExit;
             return widget;
@@ -215,6 +269,7 @@ namespace Dipan.UI
             var inv = InventorySystem.Instance;
             inv.OnChanged += Redraw;
             Redraw();
+            _lastDragId = -1;   // 開背包時重算「可放欄位」高亮
         }
 
         protected override void OnClose()
@@ -239,6 +294,9 @@ namespace Dipan.UI
                 int id = inv.GetEquipped(_equipSlots[i].equipSlot);
                 SetSlotVisual(_equipSlots[i], id, id > 0 ? 1 : 0);
             }
+            if (_potionSlots != null)
+                for (int i = 0; i < _potionSlots.Length; i++)
+                    if (_potionSlots[i] != null) _potionSlots[i].Refresh();
         }
 
         void SetSlotVisual(InventorySlotWidget w, int itemId, int count)
@@ -300,11 +358,14 @@ namespace Dipan.UI
 
         void OnSlotEnter(InventorySlotWidget w)
         {
-            // 高亮貼到該格、壓在 icon 之後
-            _highlight.transform.SetParent(w.transform, false);
-            UIBuilder.Stretch(_highlight.rectTransform);
-            _highlight.transform.SetAsFirstSibling();
-            _highlight.gameObject.SetActive(true);
+            // 拖曳中不用 hover 高亮（改用「可放欄位」高亮，見 UpdateDropHighlights）
+            if (SlotDragController.DraggingItemId == 0)
+            {
+                _highlight.transform.SetParent(w.transform, false);
+                UIBuilder.Stretch(_highlight.rectTransform);
+                _highlight.transform.SetAsFirstSibling();
+                _highlight.gameObject.SetActive(true);
+            }
 
             var inv = InventorySystem.Instance;
             int id = (w.kind == InventorySlotWidget.Kind.Grid)
@@ -352,6 +413,45 @@ namespace Dipan.UI
         void Update()
         {
             if (_tooltip != null && _tooltip.gameObject.activeSelf) PositionTooltip();
+            int drag = SlotDragController.DraggingItemId;
+            if (drag != _lastDragId) { _lastDragId = drag; UpdateDropHighlights(drag); }
+        }
+
+        // 拖起某類物品時，把「該類物品能放、且空著的專用欄」亮黃光（裝備欄/藥水格）。放開時 itemId=0 → 全部關掉。
+        void UpdateDropHighlights(int itemId)
+        {
+            if (_equipSlots != null)
+                foreach (var w in _equipSlots) if (w != null && w.dropHi != null) w.dropHi.enabled = false;
+            if (_potionSlots != null)
+                foreach (var s in _potionSlots) if (s != null && s.dropHi != null) s.dropHi.enabled = false;
+
+            var d = itemId > 0 ? InventorySystem.Instance.GetData(itemId) : null;
+            if (d == null) return;
+            var inv = InventorySystem.Instance;
+            if (d.IsEquippable)
+            {
+                if (_equipSlots != null)
+                    foreach (var w in _equipSlots)
+                        if (w != null && w.dropHi != null && w.equipSlot == d.EquipSlot && inv.GetEquipped(w.equipSlot) == 0)
+                            w.dropHi.enabled = true;
+            }
+            else if (d.IsPotion)
+            {
+                if (_potionSlots != null)
+                    for (int i = 0; i < _potionSlots.Length; i++)
+                        if (_potionSlots[i] != null && _potionSlots[i].dropHi != null && inv.GetPotionSlot(i) == 0)
+                            _potionSlots[i].dropHi.enabled = true;
+            }
+        }
+
+        // 右鍵背包格裡的藥水 → 依規則自動放進藥水格（空位優先、滿了取代1號）。
+        void OnSlotRightClicked(InventorySlotWidget w)
+        {
+            if (w == null || w.kind != InventorySlotWidget.Kind.Grid) return;
+            var inv = InventorySystem.Instance;
+            int id = inv.GetGrid(w.index).ItemId;
+            var d = id > 0 ? inv.GetData(id) : null;
+            if (d != null && d.IsPotion) inv.AutoPlacePotion(id);
         }
 
         /// <summary>tooltip 跟著游標；游標在右半邊就翻到左側顯示，避免超出畫面。</summary>

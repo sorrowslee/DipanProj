@@ -15,10 +15,14 @@ namespace Dipan.UI
         static ISlotView _src;
         static GameObject _ghost;
 
+        /// <summary>目前正在拖曳的物品 ID（0=沒拖）。面板輪詢它來「拖起某類物品時亮出可放的空欄位」（不用 static 事件，避免關 Domain Reload 殘留）。</summary>
+        public static int DraggingItemId { get; private set; }
+
         public static void Begin(ISlotView view, PointerEventData e)
         {
-            if (view == null || !InventoryActions.HasItem(view)) { _src = null; return; }
+            if (view == null || !InventoryActions.HasItem(view)) { _src = null; DraggingItemId = 0; return; }
             _src = view;
+            DraggingItemId = InventoryActions.ItemIdOf(view);
 
             // 讓來源格在拖曳期間不擋 raycast，drop 才能命中底下的目標格
             var cg = view.Rt.GetComponent<CanvasGroup>();
@@ -48,6 +52,7 @@ namespace Dipan.UI
 
         public static void End(ISlotView view)
         {
+            DraggingItemId = 0;
             var cg = view != null ? view.Rt.GetComponent<CanvasGroup>() : null;
             if (cg != null) cg.blocksRaycasts = true;
             if (_ghost != null) { Object.Destroy(_ghost); _ghost = null; }

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Dipan.Inventory;
 
 namespace Dipan.UI
 {
@@ -12,7 +13,10 @@ namespace Dipan.UI
     ///
     /// 版面座標＝框圖 <c>BottomControlPanel_Bg.png</c>（原圖 2172×724）的像素，載入時依 <see cref="DisplayWidth"/> 等比縮放。
     /// 兩顆血球畫在框「之上」、剛好蓋住框圖裡實心畫的紅/藍球，停在 socket 邊緣（框沒鏤空、不必重切圖）。
-    /// 見 readme/COMBAT.md、readme/UI_SYSTEM.md。
+    ///
+    /// 註：喝藥「藥水格」的綁定/拖放在背包介面內做（見 <see cref="PotionSlot"/>）；底部 HUD 這兩格只「鏡像顯示」
+    /// 背包設定好的藥水 icon＋剩餘數量（讀 <see cref="InventorySystem"/>、訂閱 OnChanged 即時更新），使用見 <see cref="PotionHotkeys"/>（按 1/2）。
+    /// 見 readme/BOTTOM_HUD.md、COMBAT.md、UI_SYSTEM.md。
     /// </summary>
     public class BottomHudPanel : UIPanel
     {
@@ -36,10 +40,12 @@ namespace Dipan.UI
         const float OrbRadius = 115f;                       // 球半徑（框圖像素）
         const float OrbCoverScale = 1.0f;                   // 液體圓盤相對實心球的大小（1=剛好蓋住，<1 露出畫邊）
 
-        // 血瓶槽內框（框圖像素；先建空錨點，日後放血瓶 icon / 點擊區）
-        static readonly Vector2 Slot0Center = new Vector2(986f, 416f);
-        static readonly Vector2 Slot1Center = new Vector2(1141f, 416f);
-        static readonly Vector2 SlotSize    = new Vector2(105f, 128f);
+        // ── 血瓶槽（鏡像顯示背包綁定的藥水；只呈現、不互動。左格＝鍵1、右格＝鍵2，與背包藥水格一一對應）──
+        static readonly Vector2 Slot0Center = new Vector2(994f, 412f);   // 左血瓶槽中心（框圖像素）
+        static readonly Vector2 Slot1Center = new Vector2(1164f, 412f);  // 右血瓶槽中心
+        static readonly Vector2 SlotSize    = new Vector2(133f, 140f);   // 槽內框（框圖像素）
+        const float SlotIconFill  = 0.74f;                  // icon 佔槽內框的比例
+        const int   SlotCountFont = 18;                     // 剩餘數量字級（螢幕像素）
 
         // ── 螢幕呈現（實機可調）──
         const float DisplayWidth = 1180f;                   // 整條在螢幕上的寬度（高度依原圖比例）
@@ -54,6 +60,8 @@ namespace Dipan.UI
         float _scale;
         RectTransform _frame;
         LiquidOrb _hp, _mp;
+        Image[] _potionIcons;
+        Text[] _potionCounts;
         CombatStats _stats;
 
         protected override void OnBuild()
@@ -73,9 +81,34 @@ namespace Dipan.UI
             _hp = MakeOrb("HpOrb", HpCenter, HpLiquid, HpDeep, "HP");
             _mp = MakeOrb("MpOrb", MpCenter, MpLiquid, MpDeep, "MP");
 
-            // 血瓶槽錨點（暫空）
-            MakeSlotAnchor("PotionSlot0", Slot0Center);
-            MakeSlotAnchor("PotionSlot1", Slot1Center);
+            // 兩格血瓶槽：鏡像顯示背包綁定的藥水（icon＋剩餘數量），只呈現、不互動
+            _potionIcons  = new Image[2];
+            _potionCounts = new Text[2];
+            MakePotionDisplay(0, Slot0Center);
+            MakePotionDisplay(1, Slot1Center);
+        }
+
+        // 在一格血瓶槽上放 icon＋剩餘數量（顯示用；拖放/綁定都在背包做）。
+        void MakePotionDisplay(int i, Vector2 artCenter)
+        {
+            var go = UIBuilder.Create($"PotionDisplay{i}", _frame);
+            ArtRect(go, artCenter, SlotSize);
+
+            var icon = UIBuilder.Image(go.transform, "Icon", null, Color.white);
+            icon.raycastTarget = false;
+            icon.preserveAspect = true;
+            icon.enabled = false;
+            var irt = icon.rectTransform;
+            irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
+            irt.anchoredPosition = Vector2.zero;
+            irt.sizeDelta = new Vector2(SlotSize.x * _scale * SlotIconFill, SlotSize.y * _scale * SlotIconFill);
+
+            var count = UIBuilder.Text(go.transform, "Count", "", SlotCountFont, Color.white, TextAnchor.LowerRight);
+            count.raycastTarget = false;
+            UIBuilder.Stretch(count.rectTransform, 4f, 6f, 4f, 4f);
+
+            _potionIcons[i]  = icon;
+            _potionCounts[i] = count;
         }
 
         LiquidOrb MakeOrb(string name, Vector2 artCenter, Color liquid, Color deep, string label)
@@ -87,12 +120,6 @@ namespace Dipan.UI
             return orb;
         }
 
-        RectTransform MakeSlotAnchor(string name, Vector2 artCenter)
-        {
-            var go = UIBuilder.Create(name, _frame);
-            return ArtRect(go, artCenter, SlotSize);
-        }
-
         // 用「框圖像素座標（原點左上、y 向下）」擺一個子物件，中心對準 artCenter、尺寸 artSize。
         RectTransform ArtRect(GameObject go, Vector2 artCenter, Vector2 artSize)
         {
@@ -102,6 +129,40 @@ namespace Dipan.UI
             rt.anchoredPosition = new Vector2(artCenter.x * _scale, -artCenter.y * _scale);
             rt.sizeDelta = new Vector2(artSize.x * _scale, artSize.y * _scale);
             return rt;
+        }
+
+        protected override void OnOpen()
+        {
+            var inv = InventorySystem.Instance;
+            if (inv != null) inv.OnChanged += RefreshPotions;
+            RefreshPotions();
+        }
+
+        protected override void OnClose()
+        {
+            var inv = InventorySystem.Instance;
+            if (inv != null) inv.OnChanged -= RefreshPotions;
+        }
+
+        // 依背包藥水綁定＋剩餘數量刷新兩格血瓶槽（與背包藥水格完全對齊；某種類用完 → 該格清空）。
+        void RefreshPotions()
+        {
+            var inv = InventorySystem.Instance;
+            if (inv == null || _potionIcons == null) return;
+            for (int i = 0; i < _potionIcons.Length; i++)
+            {
+                int id   = inv.GetPotionSlot(i);
+                var d    = id > 0 ? inv.GetData(id) : null;
+                int have = (id > 0 && d != null) ? inv.CountOf(id) : 0;
+                var icon = _potionIcons[i];
+                var cnt  = _potionCounts[i];
+                if (icon != null)
+                {
+                    icon.sprite  = d != null ? d.Icon : null;
+                    icon.enabled = d != null && d.Icon != null && have > 0;
+                }
+                if (cnt != null) cnt.text = have > 0 ? have.ToString() : "";
+            }
         }
 
         void Update()

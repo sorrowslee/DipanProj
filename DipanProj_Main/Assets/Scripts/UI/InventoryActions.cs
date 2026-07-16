@@ -66,16 +66,27 @@ namespace Dipan.UI
             src.Grid.SetAt(src.GridIndex, b);
         }
 
-        // ── 格 → 裝備欄（裝備；原本裝著的換回來源格）──
+        // ── 格 → 裝備欄（放錯也自動歸位）：可裝備物裝到「它自己該去的欄位」；藥水丟到裝備欄 → 自動進藥水格 ──
         static void GridToEquip(ISlotView src, ISlotView dst)
         {
             var st = src.Grid.GetAt(src.GridIndex);
             var d = src.Grid.GetData(st.ItemId);
-            if (d == null || d.EquipSlot != dst.Equip) return;   // 槽位不符 → 不裝
+            if (d == null) return;
+            if (d.IsPotion) { InventorySystem.Instance.AutoPlacePotion(st.ItemId); return; }
+            if (d.IsEquippable) EquipToCorrectSlot(src);
+        }
 
+        /// <summary>把來源格的可裝備物裝到「它自己該去的裝備欄」（不管拖到哪個欄位）；原本裝著的換回來源格。放錯自動歸位共用。</summary>
+        public static void EquipToCorrectSlot(ISlotView src)
+        {
+            if (src == null || src.Grid == null) return;
+            var st = src.Grid.GetAt(src.GridIndex);
+            var d = src.Grid.GetData(st.ItemId);
+            if (d == null || !d.IsEquippable) return;
             var inv = InventorySystem.Instance;
-            int prev = inv.GetEquipped(dst.Equip);
-            inv.SetEquipped(dst.Equip, st.ItemId);
+            var target = d.EquipSlot;
+            int prev = inv.GetEquipped(target);
+            inv.SetEquipped(target, st.ItemId);
             src.Grid.SetAt(src.GridIndex, prev > 0 ? One(prev) : ItemStack.Empty);
         }
 

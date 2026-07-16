@@ -32,6 +32,15 @@ namespace Dipan.UI
             if (!inv.Has(101)) inv.AddItem(101, 250); // 銅錢 x250
             if (!inv.Has(102)) inv.AddItem(102, 5);   // 卷軸 x5
             if (!inv.Has(103)) inv.AddItem(103, 12);  // 符紙 x12
+            TopUp(inv, 201, 99);   // 小回血瓶 補到 x99（作弊；堆疊上限 99）
+            TopUp(inv, 202, 99);   // 小回魔瓶 補到 x99（作弊）
+        }
+
+        // 作弊/測試：把某物品在背包裡補到指定數量（已達或超過就不動）。
+        static void TopUp(InventorySystem inv, int itemId, int target)
+        {
+            int need = target - inv.CountOf(itemId);
+            if (need > 0) inv.AddItem(itemId, need);
         }
     }
 }

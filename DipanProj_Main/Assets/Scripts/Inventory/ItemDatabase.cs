@@ -74,6 +74,10 @@ namespace Dipan.Inventory
                 string targetStr = Field(v, 10);   // 劇本目的地（選填欄；舊表沒有這欄 → Field 回 "" → 0）
                 d.TargetMapId = !string.IsNullOrWhiteSpace(targetStr) ? int.Parse(targetStr) : 0;
                 d.TargetEntrance = Field(v, 11);
+                string hpStr = Field(v, 12);
+                d.HealHp = !string.IsNullOrWhiteSpace(hpStr) ? int.Parse(hpStr) : 0;
+                string mpStr = Field(v, 13);
+                d.HealMp = !string.IsNullOrWhiteSpace(mpStr) ? int.Parse(mpStr) : 0;
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

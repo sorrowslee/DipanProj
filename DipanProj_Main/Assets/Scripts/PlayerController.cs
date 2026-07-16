@@ -132,7 +132,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         _hitReaction.Configure(_spriteRenderer, _rb,
             PlayerInvincibleTimeMs, PlayerKnockbackThreshold, PlayerKnockbackPercent);
 
-        // 開啟底部操控列 HUD（液體血球 HP/MP，HUD 層、不暫停、不擋輸入）。UIManager 由 UIBootstrap 保證已存在。
+        // 開啟血/魔 HUD（HUD 層、不暫停、不擋輸入）。UIManager 由 UIBootstrap 保證已存在。
         if (Dipan.UI.UIManager.Instance != null)
             Dipan.UI.UIManager.Instance.Open<Dipan.UI.BottomHudPanel>();
 
@@ -395,6 +395,20 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (characterHeight <= 0.01f) characterHeight = CharacterWorldHeight > 0f ? CharacterWorldHeight : 1.95f;
         _chargeVfx = _vfxManager.SpawnLoopSizedToHeight(vfxId, transform.position,
             characterHeight * ChargeVfxHeightRatio, -1f);
+    }
+
+    // ── 喝藥特效（一次性、跟角色可見大小同步；不管喝哪種藥都播）。由 HUD 藥水格使用藥劑時呼叫，見 readme/BOTTOM_HUD.md ──
+    private const int DrinkPotionVfxId = 29;                 // VfxTable「使用藥劑」
+    private const float DrinkPotionVfxHeightRatio = 1.0f;    // 相對玩家可見高度（1 = 與玩家等高）
+    private const float DrinkPotionVfxLifeSeconds = 1.6f;    // 播一輪就結束（≈ 24 幀 / 15fps）
+    public void PlayDrinkPotionVfx()
+    {
+        if (_vfxManager == null) return;
+        float characterHeight = _spriteRenderer != null ? _spriteRenderer.bounds.size.y : CharacterWorldHeight;
+        if (characterHeight <= 0.01f) characterHeight = CharacterWorldHeight > 0f ? CharacterWorldHeight : 1.95f;
+        var vfx = _vfxManager.SpawnLoopSizedToHeight(DrinkPotionVfxId, transform.position,
+            characterHeight * DrinkPotionVfxHeightRatio, DrinkPotionVfxLifeSeconds);
+        if (vfx != null) vfx.transform.SetParent(transform, true);   // 跟著玩家移動
     }
 
     private static float GetChargeRequiredSeconds(WeaponData weapon)

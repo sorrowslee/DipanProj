@@ -25,6 +25,7 @@ namespace Dipan.Inventory
         public const int Columns = 7;
         public const int Rows = 9;
         public const int GridCount = Columns * Rows;
+        public const int PotionSlotCount = 2;   // 藥水格數（要加格改這裡）
 
         static InventorySystem _instance;
         public static InventorySystem Instance
@@ -48,6 +49,7 @@ namespace Dipan.Inventory
 
         ItemStack[] _grid;
         Dictionary<EquipSlot, int> _equip;   // 裝備欄 → 物品 ID（0 = 空）
+        int[] _potionSlots;                  // 藥水格綁定（長度 = PotionSlotCount）；跟背包一起存檔
 
         /// <summary>任何變動（加/減/移動/裝/卸）後觸發，UI 用來重繪。</summary>
         public event Action OnChanged;
@@ -70,6 +72,7 @@ namespace Dipan.Inventory
             else Db.LoadFromResources();
             _grid = new ItemStack[GridCount];
             _equip = new Dictionary<EquipSlot, int>();
+            _potionSlots = new int[PotionSlotCount];
         }
 
         void Raise() => OnChanged?.Invoke();
@@ -211,6 +214,44 @@ namespace Dipan.Inventory
             return true;
         }
 
+        /// <summary>依物品 ID 移除 count 個（跨堆扣除，供喝藥/消耗用）。回傳沒扣到的剩餘。</summary>
+        public int RemoveItem(int itemId, int count = 1)
+        {
+            if (itemId <= 0 || count <= 0 || _grid == null) return count;
+            for (int i = 0; i < GridCount && count > 0; i++)
+            {
+                if (_grid[i].ItemId == itemId && _grid[i].Count > 0)
+                {
+                    int take = Mathf.Min(_grid[i].Count, count);
+                    _grid[i].Count -= take;
+                    if (_grid[i].Count <= 0) _grid[i] = ItemStack.Empty;
+                    count -= take;
+                }
+            }
+            Raise();
+            return count;
+        }
+
+        // ── HUD 藥水格綁定（跟背包一起存檔；HUD 讀/寫，見 readme/BOTTOM_HUD.md）──
+        /// <summary>取藥水格綁定的藥劑物品 ID（i = 0/1）；0 = 空。</summary>
+        public int GetPotionSlot(int i) => (_potionSlots != null && i >= 0 && i < _potionSlots.Length) ? _potionSlots[i] : 0;
+        /// <summary>設定藥水格綁定（0 = 清空）。會觸發 OnChanged 讓 HUD 重繪。</summary>
+        public void SetPotionSlot(int i, int itemId)
+        {
+            if (_potionSlots == null || i < 0 || i >= _potionSlots.Length) return;
+            _potionSlots[i] = Mathf.Max(0, itemId);
+            Raise();
+        }
+
+        /// <summary>把一個藥劑種類依規則自動放進藥水格：已綁定不動；否則放編號最小的空格；全滿取代 index 0。可延伸（格數=PotionSlotCount）。</summary>
+        public void AutoPlacePotion(int itemId)
+        {
+            if (itemId <= 0 || _potionSlots == null) return;
+            for (int i = 0; i < _potionSlots.Length; i++) if (_potionSlots[i] == itemId) return;
+            for (int i = 0; i < _potionSlots.Length; i++) if (_potionSlots[i] == 0) { _potionSlots[i] = itemId; Raise(); return; }
+            _potionSlots[0] = itemId; Raise();
+        }
+
         /// <summary>交換兩個道具格（拖放重排用）。</summary>
         public bool MoveGrid(int from, int to)
         {
@@ -274,6 +315,7 @@ namespace Dipan.Inventory
             if (_equip != null)
                 foreach (var kv in _equip)
                     if (kv.Value > 0) dto.equipment[kv.Key.ToString()] = kv.Value;
+            dto.potionSlots = (int[])_potionSlots.Clone();
             return dto;
         }
 
@@ -285,6 +327,7 @@ namespace Dipan.Inventory
         {
             for (int i = 0; i < GridCount; i++) _grid[i] = ItemStack.Empty;
             _equip.Clear();
+            for (int i = 0; i < _potionSlots.Length; i++) _potionSlots[i] = 0;
 
             if (dto != null)
             {
@@ -309,6 +352,12 @@ namespace Dipan.Inventory
                         if (GetData(kv.Value) == null) { Debug.LogWarning($"[InventorySystem] 還原跳過未知裝備 ID {kv.Value}"); continue; }
                         _equip[slot] = kv.Value;
                     }
+            }
+
+            for (int i = 0; i < _potionSlots.Length; i++)
+            {
+                int id = (dto != null && dto.potionSlots != null && i < dto.potionSlots.Length) ? dto.potionSlots[i] : 0;
+                _potionSlots[i] = GetData(id) != null ? id : 0;   // 綁定的藥若已不在物品表 → 清空
             }
 
             Raise();

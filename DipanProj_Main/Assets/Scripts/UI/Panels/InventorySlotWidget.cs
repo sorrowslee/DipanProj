@@ -23,8 +23,10 @@ namespace Dipan.UI
 
         public Image icon;
         public Text count;
+        public Image dropHi;   // 拖曳時「可放這格」黃色高亮（裝備欄用）
 
         public Action<InventorySlotWidget> Clicked;
+        public Action<InventorySlotWidget> RightClicked;
         public Action<InventorySlotWidget> Entered;
         public Action<InventorySlotWidget> Exited;
 
@@ -36,7 +38,11 @@ namespace Dipan.UI
         public RectTransform Rt => (RectTransform)transform;
         public Sprite DragIcon() => (icon != null && icon.enabled) ? icon.sprite : null;
 
-        public void OnPointerClick(PointerEventData e) => Clicked?.Invoke(this);
+        public void OnPointerClick(PointerEventData e)
+        {
+            if (e.button == PointerEventData.InputButton.Right) RightClicked?.Invoke(this);
+            else Clicked?.Invoke(this);
+        }
         public void OnPointerEnter(PointerEventData e) => Entered?.Invoke(this);
         public void OnPointerExit(PointerEventData e) => Exited?.Invoke(this);
 
