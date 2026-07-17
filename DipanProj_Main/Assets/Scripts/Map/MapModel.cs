@@ -95,6 +95,16 @@ namespace Dipan.MapRuntime
         public int appearAfterClears = 0;
         // 出現條件範圍：cycle＝每周目重算（本周目完成數）、lifetime＝曾達到過就永久出現。缺欄＝cycle。
         public string appearScope = "cycle";
+
+        // 動畫地上物：true＝播一次到最後一幀就停住（不循環，例：跪拜停在跪姿）；false＝依 pingPong 循環/乒乓。
+        public bool playOnce = false;
+        // 出現條件（旗標）：此旗標為 true 才顯示（空＝不看旗標）。與 appearAfterClears 同時設＝兩者都滿足才顯示(AND)。
+        // 進圖時旗標未成立則先建好藏起來，旗標中途成立時由 MapObjectRevealer 現身（動畫從第0幀起播）。
+        public string appearFlag = "";
+        // 旗標中途成立後，延遲幾秒才現身（0＝立刻）。只對「靠旗標中途現身」有意義。
+        public float appearDelaySeconds = 0f;
+        // 現身時淡入（只對「靠旗標中途現身」有意義；進圖旗標已成立＝直接顯示，不淡入）。
+        public bool appearFade = false;
     }
 
     /// <summary>場景特效實例（編輯器放置、遊戲端依 SceneFxTable 的 fxId 生成粒子）。座標為世界座標。</summary>

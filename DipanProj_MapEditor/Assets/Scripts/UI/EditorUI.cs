@@ -18,8 +18,8 @@ namespace DipanMapEditor.UI
         const float TopBarH = 30f;
         const float PaletteW = 240f;
         const float Thumb = 48f;
-        const float InspectorW = 300f;
-        const float InspectorH = 238f;
+        const float InspectorW = 360f;
+        const float InspectorH = 470f;
 
         public EditTool CurrentTool { get; private set; } = EditTool.TilePaint;
         public string SelectedObjectAssetId { get; private set; }
@@ -35,6 +35,9 @@ namespace DipanMapEditor.UI
 
         // 座標/血量/FPS 輸入框暫存（依焦點決定要不要從物件同步回來）
         string _objXBuf = "", _objYBuf = "", _objHpBuf = "", _objFpsBuf = "";
+        string _objAppearDelayBuf = "";
+        Vector2 _objInspScroll;
+        DipanMapEditor.Core.ObjectView _objView;
         string _objAppearBuf = "";   // 出現條件「完成 N 關」輸入暫存
 
         // Trigger
@@ -137,6 +140,7 @@ namespace DipanMapEditor.UI
         {
             _cam = FindObjectOfType<EditorCamera>();
             _bottomUi = FindObjectOfType<BottomUiOverlay>();
+            _objView = FindObjectOfType<DipanMapEditor.Core.ObjectView>();
             _objCtl = FindObjectOfType<Tools.ObjectController>();
             _flagReg = FlagRegistryStore.Load();
             _mapsDir = PlayerPrefs.GetString(MapsDirPrefKey, DefaultMapsDir);
@@ -658,11 +662,14 @@ namespace DipanMapEditor.UI
             var sel = ctl.Selected;
             if (sel == null) return;
 
-            var rect = new Rect(0, Screen.height - InspectorH, InspectorW, InspectorH);
+            float h = Mathf.Min(InspectorH, Screen.height - TopBarH - 8f);
+            var rect = new Rect(0, Screen.height - h, InspectorW, h);
             GUILayout.BeginArea(rect, GUI.skin.box);
             GUILayout.Label($"選取：{Short(sel.assetId)}　縮放 {sel.scaleX:0.00}　角度 {sel.rot:0}°　層 {sel.zOrder}");
 
             // 座標：未編輯時顯示物件當前座標；改數值或按 ± 就移動（每次 ±0.1）
+            _objInspScroll = GUILayout.BeginScrollView(_objInspScroll);
+
             GUILayout.BeginHorizontal();
             GUILayout.Label("X", GUILayout.Width(12));
             if (GUILayout.Button("－", GUILayout.Width(22))) { UndoManager.Push(); ctl.SetPosition(sel.x - 0.1f, sel.y); }
@@ -732,6 +739,37 @@ namespace DipanMapEditor.UI
                 GUI.color = Color.white;
                 GUILayout.EndHorizontal();
                 GUILayout.Label(isCycle ? "（每周目完成 N 關才出現，輪迴重置）" : "（曾完成過 N 關就永久出現）");
+            }
+
+            // ── 出現條件②：某旗標為 true 才顯示（與上面「完成 N 關」同時設＝兩者都要滿足）。旗標用旗標管理器登記（輸入 id→確認），與觸發點/破壞旗標同一套。
+            {
+                var objSelF = sel;
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("出現旗標", GUILayout.Width(64));
+                DrawFlagFieldCore(objSelF.appearFlag ?? "", "obj" + objSelF.GetHashCode() + "/appearFlag", false,
+                    val => objSelF.appearFlag = val);
+                GUILayout.EndHorizontal();
+                if (!string.IsNullOrEmpty(sel.appearFlag))
+                {
+                    bool editingDelay = GUI.GetNameOfFocusedControl() == "objAppearDelay";
+                    if (!editingDelay) _objAppearDelayBuf = sel.appearDelaySeconds.ToString("0.#");
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("現身延遲", GUILayout.Width(64));
+                    if (GUILayout.Button("－", GUILayout.Width(24))) { UndoManager.Push(); sel.appearDelaySeconds = Mathf.Max(0f, sel.appearDelaySeconds - 0.5f); _objAppearDelayBuf = sel.appearDelaySeconds.ToString("0.#"); }
+                    GUI.SetNextControlName("objAppearDelay");
+                    string sd = GUILayout.TextField(_objAppearDelayBuf, GUILayout.Width(44));
+                    if (GUILayout.Button("＋", GUILayout.Width(24))) { UndoManager.Push(); sel.appearDelaySeconds += 0.5f; _objAppearDelayBuf = sel.appearDelaySeconds.ToString("0.#"); }
+                    GUILayout.Label("秒後現身", GUILayout.Width(72));
+                    GUILayout.EndHorizontal();
+                    if (editingDelay && sd != _objAppearDelayBuf)
+                    {
+                        _objAppearDelayBuf = sd;
+                        if (float.TryParse(sd, out var vd) && vd >= 0f) sel.appearDelaySeconds = vd;
+                    }
+                    bool nextFade = GUILayout.Toggle(sel.appearFade, " 現身淡入");
+                    if (nextFade != sel.appearFade) { UndoManager.Push(); sel.appearFade = nextFade; }
+                    GUILayout.Label("（延遲/淡入只在「靠旗標中途現身」時生效）");
+                }
             }
 
             // 可走（勾選＝這個地上物不擋路、不設碰撞，走不走由地圖該格可走層決定；例：木板/地毯可踩上去）。
@@ -811,7 +849,14 @@ namespace DipanMapEditor.UI
                 if (GUILayout.Button("乒乓(來回)")) { if (!sel.pingPong) { UndoManager.Push(); sel.pingPong = true; } }
                 GUI.color = Color.white;
                 GUILayout.EndHorizontal();
+
+                // 播一次：勾了＝播到最後一幀就停住（不循環，例：跪拜停在跪姿）。勾選時上面的循環/乒乓不生效。
+                bool nextOnce = GUILayout.Toggle(sel.playOnce, " 播一次（停在最後一幀）");
+                if (nextOnce != sel.playOnce) { UndoManager.Push(); sel.playOnce = nextOnce; if (_objView != null) _objView.ReplayAnim(sel); }
+                if (GUILayout.Button("重播預覽") && _objView != null) _objView.ReplayAnim(sel);
             }
+
+            GUILayout.EndScrollView();
 
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("取消選取")) ctl.Deselect();

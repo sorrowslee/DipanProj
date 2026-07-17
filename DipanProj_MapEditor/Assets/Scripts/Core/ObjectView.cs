@@ -80,7 +80,12 @@ namespace DipanMapEditor.Core
                 {
                     a.timer -= frameDur;
                     int n = a.frames.Length;
-                    if (inst.pingPong)   // 乒乓：0→N-1→0 來回（首尾接不順時接縫消失）
+                    if (inst.playOnce)   // 播一次：0→N-1 到底停在最後一幀（所見即遊戲內：跪拜停在跪姿）
+                    {
+                        if (a.idx >= n - 1) { a.idx = n - 1; a.timer = 0f; break; }
+                        a.idx++;
+                    }
+                    else if (inst.pingPong)   // 乒乓：0→N-1→0 來回（首尾接不順時接縫消失）
                     {
                         a.idx += a.dir;
                         if (a.idx >= n - 1) { a.idx = n - 1; a.dir = -1; }
@@ -89,6 +94,18 @@ namespace DipanMapEditor.Core
                     else a.idx = (a.idx + 1) % n;
                     sr.sprite = a.frames[a.idx];
                 }
+            }
+        }
+
+        /// <summary>重播某動畫物件的預覽（回到第0幀）；給編輯器「重播」鈕用（播一次的物件會停在最後一幀，用這個再看一次）。</summary>
+        public void ReplayAnim(ObjectInstance inst)
+        {
+            if (inst != null && _anims.TryGetValue(inst, out var a) && a != null)
+            {
+                a.idx = 0; a.dir = 1; a.timer = 0f;
+                if (a.frames != null && a.frames.Length > 0
+                    && _renderers.TryGetValue(inst, out var sr) && sr != null)
+                    sr.sprite = a.frames[0];
             }
         }
 

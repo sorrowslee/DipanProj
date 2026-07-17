@@ -670,8 +670,19 @@ public static class TriggerChain
         }
         // 只在「首次成立」時自動觸發：重複設同一旗標不再重跑 fireOnFlag
         // （否則 clearLevel 等被重複觸發 → 接續的對話會一直彈出）。
-        if (!wasSet) AutoFireOnFlag(key);
+        if (!wasSet)
+        {
+            AutoFireOnFlag(key);
+            OnFlagFirstSet?.Invoke(key);   // 通知外部（如 MapObjectRevealer：讓 appearFlag 對上的地上物現身）
+        }
     }
+
+    /// <summary>
+    /// 某旗標「首次成立」時觸發（只在真正從未成立→成立的那一刻，重複 SetFlag 不會再發）。
+    /// 由 <see cref="MapObjectRevealer"/> 訂閱，讓 appearFlag 對上此旗標的地上物中途現身。
+    /// 傳入字串＝原始旗標 key（與 fireOnFlag / 地上物 appearFlag 存的裸名字一致）。
+    /// </summary>
+    public static event System.Action<string> OnFlagFirstSet;
 
     // 旗標成立就自動觸發：掃目前地圖裡 fireOnFlag 對上此旗標、且未停用的 trigger，延一幀 Activate（避免在 SetFlag 當下重入）。
     // 與 onEnter（進場自動）同一類「自動鏈起點」，只是改由旗標驅動。典型：boss 死亡 deathFlag → clearLevel(fireOnFlag=該旗標) 自動過關。

@@ -21,6 +21,7 @@ public class BanyanBossFace : MonoBehaviour
     const float FaceFireScale   = 1.0f;  // 臉上那團火的倍率（相對 VfxTable.Scale）
     const float TreeFireScale   = 1.0f;  // 樹上每團火的倍率
     const float FireLife        = -1f;   // 火焰壽命：<0 = 無限循環、永不熄滅（著火就一直燒）
+    const int   FireSortOrder   = 3;     // 火焰排序：畫在背景層（樹在背景燒）——高於地磚(0)、低於可走物(5)/角色/劇情物/卍字，才不會蓋住玩家與鬼魂/紅嫁衣
 
     // ── 擴散式蔓延（不設固定上限；用網格鋪滿整棵樹，隨機順序點燃、節奏越來越快＝越冒越多，鋪滿即止）──
     const float FireSpacing         = 0.9f;  // 火點網格間距（越小＝越密、越多火，也越吃效能）
@@ -78,6 +79,14 @@ public class BanyanBossFace : MonoBehaviour
         StartCoroutine(DeathRoutine());
     }
 
+    // 把火焰壓到背景層（樹在背景燃燒），避免蓋住玩家/鬼魂/紅嫁衣/卍字離場特效（VFX 預設排序 22000 高於一切）。
+    void SetFireBackdrop(VfxInstance f)
+    {
+        if (f == null) return;
+        var sr = f.GetComponent<SpriteRenderer>();
+        if (sr != null) sr.sortingOrder = FireSortOrder;
+    }
+
     IEnumerator DeathRoutine()
     {
         var vfx = FindObjectOfType<VfxManager>();
@@ -86,7 +95,7 @@ public class BanyanBossFace : MonoBehaviour
         Vector2 faceCenter = (_sr != null) ? (Vector2)_sr.bounds.center : (Vector2)transform.position;
 
         // ① 臉的位置先起火（持續火，不會停）。
-        if (vfx != null) vfx.SpawnLoop(FireVfxId, faceCenter, FaceFireScale, FireLife);
+        if (vfx != null) SetFireBackdrop(vfx.SpawnLoop(FireVfxId, faceCenter, FaceFireScale, FireLife));
         yield return new WaitForSeconds(FaceBurnTime);
 
         // ② 臉（地上物）消失（火繼續燒）。
@@ -113,7 +122,7 @@ public class BanyanBossFace : MonoBehaviour
         foreach (var cell in cells)
         {
             Vector2 p = cell + new Vector2(Random.Range(-FireJitter, FireJitter), Random.Range(-FireJitter, FireJitter));
-            if (vfx != null) vfx.SpawnLoop(FireVfxId, p, TreeFireScale, FireLife);
+            if (vfx != null) SetFireBackdrop(vfx.SpawnLoop(FireVfxId, p, TreeFireScale, FireLife));
             yield return new WaitForSeconds(interval);
             interval = Mathf.Max(SpreadMinInterval, interval * SpreadAccel);   // 越點越快＝越冒越多
         }

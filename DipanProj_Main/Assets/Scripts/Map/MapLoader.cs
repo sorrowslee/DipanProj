@@ -71,6 +71,7 @@ public class MapLoader : MonoBehaviour
     string _assetRoot;
     Transform _root;
     int _envLayer;
+    MapObjectRevealer _revealer;   // 本圖「靠旗標中途現身」的地上物顯現管理器（掛物件根下，換圖隨 MapRoot 銷毀）
     int _blockerLayer;
 
     public MapData Map => _map;
@@ -237,6 +238,7 @@ public class MapLoader : MonoBehaviour
             Destroy(_root.gameObject);
             _root = null;
         }
+        _revealer = null;   // 隨 MapRoot 一起銷毀了，清引用
     }
 
     /// <summary>地圖檔路徑解析：先 StreamingAssets/MapAssets，再（編輯器）GameAssets。</summary>
@@ -331,6 +333,7 @@ public class MapLoader : MonoBehaviour
 
         var objRoot = new GameObject("Objects");
         objRoot.transform.SetParent(_root, false);
+        _revealer = objRoot.AddComponent<MapObjectRevealer>();   // 靠旗標中途現身的地上物用
 
         foreach (var inst in layer.objects) BuildOneObject(inst, objRoot.transform);
     }
@@ -343,6 +346,7 @@ public class MapLoader : MonoBehaviour
 
         var objRoot = new GameObject("Objects");
         objRoot.transform.SetParent(_root, false);
+        _revealer = objRoot.AddComponent<MapObjectRevealer>();   // 靠旗標中途現身的地上物用
 
         int total = layer.objects.Count, done = 0;
         foreach (var inst in layer.objects)
@@ -361,7 +365,7 @@ public class MapLoader : MonoBehaviour
     /// <summary>建一個地上物（載圖、SpriteRenderer、動畫、碰撞框、可破壞）。sync 與分幀版共用。</summary>
     void BuildOneObject(ObjectInstance inst, Transform objRoot)
     {
-        // 出現條件：完成 N 關後才出現（0=一律出現）。進地圖當下判定，未達則整個不生（連碰撞都沒有＝還沒出現）。
+        // 出現條件①「完成 N 關」：進地圖當下判定（此條件不會在關卡進行中改變），未達則整個不生。
         // 範圍：lifetime=曾達到的最高完成數（永久）、其餘(cycle)=本周目完成數（輪迴重置會再隱藏）。
         // 沒有 SaveManager（如編輯器直測/DevQuickStart 無存檔）時不擋，一律照舊出現，方便測試。
         if (inst.appearAfterClears > 0 && SaveManager.Instance != null)
@@ -371,6 +375,13 @@ public class MapLoader : MonoBehaviour
                 : SaveManager.Instance.ClearedModuleCount;
             if (have < inst.appearAfterClears) return;
         }
+
+        // 出現條件②「旗標」：與①同時設＝兩者都要滿足(AND)。旗標未成立時「先建好、藏起來」，
+        // 等旗標中途成立由 MapObjectRevealer 現身（動畫從第0幀起播）；重進場旗標已成立＝直接顯示。
+        bool flagGated = !string.IsNullOrEmpty(inst.appearFlag);
+        bool flagTrue  = !flagGated || TriggerChain.FlagTrue(inst.appearFlag);
+        bool hidden    = flagGated && !flagTrue;    // 先藏、等旗標
+        bool alreadyOn = flagGated && flagTrue;     // 重進場旗標已成立（早已現身過）
 
         var item = _catalog.Find(inst.assetId);
         var sprite = _sprites.GetWholeSprite(item, _map.tileSize);
@@ -392,13 +403,19 @@ public class MapLoader : MonoBehaviour
             ? WalkableObjectSortingOrder
             : MapDepthSort.Order(inst.sortKey, inst.zOrder);
 
-        // 動畫地上物：載入幀序列、掛上原地循環播放元件（速度 = 該實例 animFps）。
-        // 碰撞框/血量/可破壞仍以第一幀建立（下方），動畫只換顯示用 sprite。
+        // 動畫地上物：載入幀序列、掛播放元件。播放模式＝循環/乒乓/播一次(playOnce)。
+        // 起播控制：藏起來→暫停(等現身再 PlayFromStart)；重進場旗標已成立且播一次→定格最後一幀(不重播)；其餘→照播。
+        AnimatedMapObject anim = null;
         if (item != null && item.IsAnimated)
         {
             var frames = _sprites.GetAnimationFrames(item, _map.tileSize);
             if (frames != null && frames.Length >= 2)
-                go.AddComponent<AnimatedMapObject>().Initialize(sr, frames, inst.animFps, inst.pingPong);
+            {
+                bool showLast    = alreadyOn && inst.playOnce;   // 早已跪好 → 定格最後一幀
+                bool startPlaying = !hidden && !showLast;        // 藏→暫停；定格→不播；其餘→播
+                anim = go.AddComponent<AnimatedMapObject>();
+                anim.Initialize(sr, frames, inst.animFps, inst.pingPong, inst.playOnce, startPlaying, showLast);
+            }
             else
                 Debug.LogWarning($"[MapLoader] 動畫地上物「{inst.assetId}」幀載入失敗，退回靜態第一幀。");
         }
@@ -410,10 +427,11 @@ public class MapLoader : MonoBehaviour
         go.transform.rotation = Quaternion.Euler(0, 0, inst.rot);
 
         // walkable = true：不設碰撞、不擋路（走不走由地圖可走層判定；例：木板/地毯）。因此也不掛可破壞。
+        BoxCollider2D col = null;
         if (addObjectColliders && !inst.walkable)
         {
             var box = _sprites.GetAlphaLocalBox(item, _map.tileSize);
-            var col = go.AddComponent<BoxCollider2D>();
+            col = go.AddComponent<BoxCollider2D>();
             if (box.ok)
             {
                 col.size = box.size * objectColliderScale;
@@ -443,6 +461,15 @@ public class MapLoader : MonoBehaviour
             var d = go.AddComponent<DestructibleObject>();
             float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值
             d.Configure(hp, objectDestroyVfxId, inst.breakFlag);   // 破壞時寫此擺放的「破壞觸發旗標」
+        }
+
+        // 靠旗標中途現身：先關掉顯示與碰撞、登記給 revealer；旗標成立時再現身（延遲/淡入/動畫起播）。
+        if (hidden && _revealer != null)
+        {
+            sr.enabled = false;
+            if (col != null) col.enabled = false;
+            _revealer.RegisterHidden(inst.appearFlag, go, sr, col, anim,
+                                     inst.appearDelaySeconds, inst.appearFade);
         }
     }
 
