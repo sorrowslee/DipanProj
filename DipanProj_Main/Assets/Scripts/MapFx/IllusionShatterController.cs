@@ -112,7 +112,7 @@ public class IllusionShatterController : MonoBehaviour
             _playing = false;
             if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(false, false);
             var cb = _onDone; _onDone = null;
-            cb?.Invoke();
+            cb?.Invoke();   // 呼叫 onDone → ScreenFxPlayer 的包裝會復原 HUD
         }
     }
 
@@ -141,6 +141,7 @@ public class IllusionShatterController : MonoBehaviour
         Apply(0f);
 
         // 播放中：暫停遊戲 + 擋玩家操作（未縮放時間照播；Finish 解除）。
+        // 註：HUD 層的隱藏/復原由 ScreenFxPlayer 統一處理（所有全螢幕過場共用），本控制器不碰。
         if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(true, true);
     }
 
@@ -184,7 +185,7 @@ public class IllusionShatterController : MonoBehaviour
         // 先接鏈（onDone → teleportTo → GoToMap 會同步開載入頁蓋住畫面），再停掉 blit ——
         // 這樣停 blit 時載入頁（或已建好的新圖）已在上面，不會閃回幻境畫面。
         var cb = _onDone; _onDone = null;
-        cb?.Invoke();
+        cb?.Invoke();   // 呼叫 onDone → ScreenFxPlayer 的包裝會在此時（載入頁已蓋上）復原 HUD
 
         if (_blit != null) { _blit.Material = null; _blit.enabled = false; }
     }

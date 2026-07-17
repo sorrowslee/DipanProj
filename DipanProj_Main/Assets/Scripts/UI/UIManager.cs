@@ -48,6 +48,19 @@ namespace Dipan.UI
             Recompute();
         }
 
+        /// <summary>
+        /// 暫時隱藏/顯示某一整層 UI（只切該層 Canvas.enabled，不動面板本體、訂閱、狀態）。
+        /// 給全螢幕過場（如破幻術）播放時把 HUD 藏到特效之下、播完復原用。
+        /// 註：只影響「畫面上顯示」；面板仍存在、資料照更新，enabled 轉回 true 立即恢復原樣。
+        /// </summary>
+        public void SetLayerVisible(UILayer layer, bool visible)
+        {
+            if (_layerCanvas == null) return;
+            int i = (int)layer;
+            if (i < 0 || i >= _layerCanvas.Length) return;
+            if (_layerCanvas[i] != null) _layerCanvas[i].enabled = visible;
+        }
+
         // 「沒有任何視窗開著時，按 ESC 要開的根面板」（例如設定）。由該面板的 launcher 註冊。
         Type _escapeRootPanel;
 
