@@ -78,6 +78,14 @@ namespace DipanMapEditor.Core
                 ghostGO.AddComponent<ObjectGhostPreview>();
             }
 
+            // 3d. 底部 UI 參考層（「顯示底部ui」，世界空間疊在地圖底部；預設隱藏）
+            if (FindObjectOfType<BottomUiOverlay>() == null)
+            {
+                var buGO = new GameObject("BottomUiOverlay");
+                buGO.transform.SetParent(transform, false);
+                buGO.AddComponent<BottomUiOverlay>();
+            }
+
             // 4. IMGUI 介面
             if (FindObjectOfType<EditorUI>() == null)
             {

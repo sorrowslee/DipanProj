@@ -99,6 +99,7 @@ namespace DipanMapEditor.UI
         string _mapsDir;   // 當前存讀檔資料夾（可自選，PlayerPrefs 記住）
 
         EditorCamera _cam;
+        BottomUiOverlay _bottomUi;   // 「顯示底部ui」參考層
         Tools.ObjectController _objCtl;
         Tools.SceneFxController _sfxCtl;
         EffectPreviewUI _preview;   // 特效預覽器（懶建立）
@@ -135,6 +136,7 @@ namespace DipanMapEditor.UI
         void Start()
         {
             _cam = FindObjectOfType<EditorCamera>();
+            _bottomUi = FindObjectOfType<BottomUiOverlay>();
             _objCtl = FindObjectOfType<Tools.ObjectController>();
             _flagReg = FlagRegistryStore.Load();
             _mapsDir = PlayerPrefs.GetString(MapsDirPrefKey, DefaultMapsDir);
@@ -264,6 +266,20 @@ namespace DipanMapEditor.UI
                 _objects = null;
             }
             if (GUILayout.Button("背景", GUILayout.Width(50)) && MapSession.Instance?.Map != null) OpenDialog(bgDlg: true);
+
+            // 底部 UI 參考層：按一下疊上遊戲底部操控列（世界空間、貼齊地圖底部置中、半透明），再按一下隱藏。
+            GUI.color = (_bottomUi != null && _bottomUi.Visible) ? Color.cyan : Color.white;
+            if (GUILayout.Button("顯示底部ui", GUILayout.Width(90)))
+            {
+                if (_bottomUi == null) _bottomUi = FindObjectOfType<BottomUiOverlay>();
+                if (_bottomUi != null)
+                {
+                    if (_bottomUi.Visible) { _bottomUi.Hide(); _statusMsg = "已隱藏底部 UI 參考層"; }
+                    else if (_bottomUi.Show()) _statusMsg = "已疊上底部 UI 參考層（半透明、貼齊地圖底部）";
+                    else _statusMsg = "找不到底部 UI 圖：請先執行 選單 DipanMapEditor→同步素材（全部 module）";
+                }
+            }
+            GUI.color = Color.white;
 
             GUILayout.Space(12);
             // 工具切換

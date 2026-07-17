@@ -56,6 +56,10 @@ namespace DipanMapEditor.EditorTools
             }
 
             File.WriteAllText(Path.Combine(target, CatalogLoader.FileName), JsonConfig.Serialize(catalog));
+
+            // 順手把遊戲的底部操控列 HUD 圖搬進編輯器（供「顯示底部ui」參考層用；無條件覆蓋，以防日後換 UI）。
+            bool bottomUiOk = CopyBottomUi(repoRoot);
+
             AssetDatabase.Refresh();
 
             // 執行中的話順手刷新調色盤
@@ -67,8 +71,31 @@ namespace DipanMapEditor.EditorTools
 
             string list = modules.Count > 0 ? string.Join("、", modules) : "（無 module）";
             Debug.Log($"[AssetSync] 已同步 {catalog.items.Count} 張 PNG，module：{list}");
+            string bottomUiLine = bottomUiOk ? "\n底部 UI 圖：已更新" : "\n底部 UI 圖：⚠ 找不到來源，未更新";
             EditorUtility.DisplayDialog("同步素材完成",
-                $"已同步 {catalog.items.Count} 張 PNG。\nmodule：{list}\n\n進 Play 時新建地圖即可選 module。", "OK");
+                $"已同步 {catalog.items.Count} 張 PNG。\nmodule：{list}{bottomUiLine}\n\n進 Play 時新建地圖即可選 module。", "OK");
+        }
+
+        // 底部操控列 HUD 圖：遊戲端在 Resources/UI/BottomControlPanel/，同步到編輯器 StreamingAssets/EditorUI/。
+        // 對應 Core.BottomUiOverlay.SubDir / FileName（保持一致）。
+        const string BottomUiSubDir = "EditorUI";
+        const string BottomUiFileName = "BottomControlPanel_Bg.png";
+
+        /// <summary>把遊戲底部 UI 框圖無條件覆蓋進編輯器 StreamingAssets/EditorUI/。找不到來源回 false。</summary>
+        static bool CopyBottomUi(string repoRoot)
+        {
+            string src = Path.Combine(repoRoot, "DipanProj_Main", "Assets", "Resources", "UI",
+                                      "BottomControlPanel", BottomUiFileName);
+            if (!File.Exists(src))
+            {
+                Debug.LogWarning($"[AssetSync] 找不到底部 UI 圖來源：{src}（未更新，「顯示底部ui」會沿用舊圖或不可用）");
+                return false;
+            }
+            string destDir = Path.Combine(Application.streamingAssetsPath, BottomUiSubDir);
+            Directory.CreateDirectory(destDir);
+            File.Copy(src, Path.Combine(destDir, BottomUiFileName), true);   // 無條件覆蓋
+            Debug.Log("[AssetSync] 已更新底部 UI 圖 → StreamingAssets/EditorUI/" + BottomUiFileName);
+            return true;
         }
 
         // 只拿來源底下的 Environment / Tiles / Background
