@@ -295,9 +295,19 @@ public static class TriggerChain
             return;
         }
 
+        // 關卡進度：一趟關卡內同一個 giveItem 只給一次（onEnter 會在每次進圖重觸發；不擋住 next）。
+        int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+        if (RunProgress.Exists && RunProgress.Instance.RunActive
+            && RunProgress.Instance.IsTriggerConsumed(mapId, r.id))
+        {
+            OnCompleted(r);   // 本趟已給過 → 不再給，仍接 next（門/傳送等後續照走）
+            return;
+        }
+
         var data = inv.GetData(itemId);
         string display = data != null ? data.Name : $"#{itemId}";
-        int leftover = inv.AddItem(itemId, count);
+        // 關卡內進臨時包（通關才落袋，恆回 0）、廣場進真背包（可能溢出）。見 RunProgress。
+        int leftover = RunProgress.Instance.GiveItem(itemId, count);
         int added = count - leftover;
         if (added > 0)
             AlertPanel.Toast(added > 1 ? $"獲得 {display} ×{added}" : $"獲得 {display}");
@@ -308,6 +318,8 @@ public static class TriggerChain
             InteractionManager.Instance.DropLoot(itemId, leftover, pos);
             AlertPanel.Toast($"背包已滿，{display} ×{leftover} 掉落地上");
         }
+        // 記本趟已給（非 run 期間由 RunProgress 內部忽略）。
+        if (RunProgress.Exists) RunProgress.Instance.MarkTriggerConsumed(mapId, r.id);
         OnCompleted(r);
     }
 

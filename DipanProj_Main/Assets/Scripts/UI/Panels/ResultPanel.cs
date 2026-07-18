@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Dipan.Inventory;
 
 namespace Dipan.UI
 {
@@ -129,9 +131,66 @@ namespace Dipan.UI
         /// showTitle＝false 時不顯示任何標題（主動返回廣場用）。module 決定底圖、displayName 顯示關卡名。
         /// </summary>
         public static void Show(bool win, bool showTitle, string module, string displayName)
+            => Show(win, showTitle, module, displayName, null);
+
+        /// <summary>開啟結算畫面並在獎勵區顯示這趟落袋的臨時包內容（rewards＝(itemId, count)；null/空＝顯示「無」）。</summary>
+        public static void Show(bool win, bool showTitle, string module, string displayName,
+                                IList<KeyValuePair<int, int>> rewards)
         {
             var p = UIManager.Instance?.Open<ResultPanel>();
             p?.Setup(win, showTitle, module, displayName);
+            p?.PopulateRewards(rewards);
+        }
+
+        /// <summary>把過關落袋的道具鋪進獎勵區（圖示＋×數量、置中排列、自動換行）。空 → 顯示大「無」字。</summary>
+        void PopulateRewards(IList<KeyValuePair<int, int>> rewards)
+        {
+            if (_rewardsArea == null) return;
+
+            // 清掉上一次的獎勵格子（面板常駐複用）。
+            for (int i = _rewardsArea.childCount - 1; i >= 0; i--)
+                Destroy(_rewardsArea.GetChild(i).gameObject);
+
+            int n = rewards != null ? rewards.Count : 0;
+            if (n > 0)
+            {
+                var inv = InventorySystem.Instance;
+                const float cell = 120f, gap = 24f, iconSize = 84f, rowH = 120f;
+                float areaW = _rewardsArea.sizeDelta.x;
+                int perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + gap) / (cell + gap)));
+                int rows = Mathf.CeilToInt(n / (float)perRow);
+
+                for (int i = 0; i < n; i++)
+                {
+                    var kv = rewards[i];
+                    var data = inv != null ? inv.GetData(kv.Key) : null;
+                    int row = i / perRow, col = i % perRow;
+                    int rowCount = Mathf.Min(perRow, n - row * perRow);
+                    float totalW = rowCount * cell + (rowCount - 1) * gap;
+                    float x = -totalW / 2f + cell / 2f + col * (cell + gap);
+                    float y = (rows - 1) * rowH * 0.5f - row * rowH;
+
+                    // 圖示
+                    var icon = UIBuilder.Image(_rewardsArea, $"Reward{i}", data != null ? data.Icon : null, Color.white);
+                    icon.raycastTarget = false;
+                    var irt = icon.rectTransform;
+                    irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
+                    irt.sizeDelta = new Vector2(iconSize, iconSize);
+                    irt.anchoredPosition = new Vector2(x, y + 12f);
+                    if (data == null || data.Icon == null) icon.enabled = false;
+
+                    // ×數量
+                    var ct = UIBuilder.Text(_rewardsArea, $"RewardCnt{i}", $"×{kv.Value}", 30,
+                        new Color(0.96f, 0.90f, 0.66f, 1f), TextAnchor.MiddleCenter);
+                    var crt = ct.rectTransform;
+                    crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);
+                    crt.sizeDelta = new Vector2(cell, 34f);
+                    crt.anchoredPosition = new Vector2(x, y - iconSize * 0.5f - 6f);
+                    ct.raycastTarget = false;
+                }
+            }
+
+            if (_emptyText != null) _emptyText.enabled = _rewardsArea.childCount == 0;
         }
 
         void Setup(bool win, bool showTitle, string module, string displayName)

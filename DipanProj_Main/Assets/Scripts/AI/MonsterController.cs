@@ -108,6 +108,17 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public string DeathFlag;                       // 由 MonsterSpawner 從出生點 trigger 的 deathFlag 參數設定
     static VfxManager _vfx;                       // 全場唯一，快取共用（仿 DestructibleObject）
 
+    [Header("Run / 關卡進度")]
+    [Tooltip("本張地圖唯一的出生點 key（由 MapLoader 依 monsterSpawn 區域 id + 格座標產生）。有值＝地圖出生的怪，" +
+             "死亡時記進 RunProgress『已清』（本趟不再重生）並掉寶；空＝召喚物等，不記進度、不掉寶。")]
+    public string SpawnKey;
+
+    [Header("Loot / 暫定掉寶（正式掉寶公式之後換；數值可調）")]
+    [Tooltip("必掉金錢（銅錢）數量下限。")] public int lootMoneyMin = 1;
+    [Tooltip("必掉金錢（銅錢）數量上限。")] public int lootMoneyMax = 5;
+    [Tooltip("機率掉一瓶藥（小回血 201 / 小回魔 202，各半）。0~1。")]
+    [Range(0f, 1f)] public float lootPotionChance = 0.35f;
+
     void Start()
     {
         _animator = GetComponent<Animator>();
@@ -489,6 +500,18 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 死亡寫旗標（資料驅動）：例「殺了家人→killedFamily→新娘生氣分支」。旗標為空＝不寫。
         if (!string.IsNullOrEmpty(DeathFlag)) TriggerChain.SetFlag(DeathFlag);
 
+        // 關卡進度＋掉寶：只對「地圖出生的敵怪」(有 SpawnKey) 且在關卡 run 內處理。
+        //   ‧ 記進 RunProgress『已清』→ 本趟換圖回來不再重生（Boss 也走這條，死了不復生）。
+        //   ‧ 掉寶：必掉銅錢＋機率掉藥，掉在屍體位置、按 F 撿進臨時包（見 DropRunLoot）。
+        // 召喚物（無 SpawnKey）不記、不掉，避免無限刷。
+        if (Faction == MonsterFaction.Enemy && !string.IsNullOrEmpty(SpawnKey)
+            && RunProgress.Exists && RunProgress.Instance.RunActive)
+        {
+            int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+            RunProgress.Instance.MarkSpawnKilled(mapId, SpawnKey);
+            DropRunLoot();
+        }
+
         // 死亡特效（VfxTable 的 DeathVfxId）：獨立 GameObject，不受怪物銷毀影響。
         if (DeathVfxId > 0)
         {
@@ -505,5 +528,25 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         }
 
         Destroy(gameObject);
+    }
+
+    /// <summary>
+    /// 暫定掉寶（正式掉寶公式之後換）：必掉銅錢（RunProgress.MoneyItemId）＋機率掉一瓶藥（201/202）。
+    /// 透過 InteractionManager.DropLoot 掉在屍體位置，會自動登記進 RunProgress（沒撿的換圖回來還在）。
+    /// </summary>
+    void DropRunLoot()
+    {
+        if (!InteractionManager.Exists) return;
+        var im = InteractionManager.Instance;
+        Vector2 pos = transform.position;
+
+        int money = Random.Range(lootMoneyMin, Mathf.Max(lootMoneyMin, lootMoneyMax) + 1);
+        if (money > 0) im.DropLoot(RunProgress.MoneyItemId, money, pos);
+
+        if (Random.value < lootPotionChance)
+        {
+            int potionId = (Random.value < 0.5f) ? 201 : 202;   // 201 小回血瓶 / 202 小回魔瓶
+            im.DropLoot(potionId, 1, pos);
+        }
     }
 }

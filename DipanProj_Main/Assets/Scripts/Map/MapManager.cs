@@ -156,6 +156,10 @@ public class MapManager : MonoBehaviour
             // （同 module 房間互跳走 else 分支、不清，旗標在整趟關卡內延續。）
             TriggerChain.ClearLevelFlags();
 
+            // 一趟關卡的臨時包/進度：進「非廣場」module = 開新的一趟（重置臨時包與已清怪/已取物/掉落物）；
+            // 進廣場/教學則保險清掉殘留。同 module 房間互跳走 else 分支、不呼叫，本趟進度延續。見 RunProgress。
+            RunProgress.Instance.OnEnterModule(row.module);
+
             // 預載本 module（+Main 共用）的所有素材貼圖 → 進去後房間互跳不必再讀取。進度 0~0.6。
             yield return StartCoroutine(mapLoader.PreloadModuleRoutine(
                 row.module, p => { if (lp != null) lp.SetProgress(p * 0.6f); }));
@@ -291,6 +295,10 @@ public class MapManager : MonoBehaviour
         _wakeUpWanted = row.enterEffect == 1;
         mapLoader.SpawnMonsters();
         SetupWatcher();
+
+        // 關卡進度：把這張地圖「還沒撿走的掉落物」在原座標重放（換圖回來紅水還在原地）。見 RunProgress / InteractionManager。
+        if (InteractionManager.Exists) InteractionManager.Instance.RestoreGroundDrops(_currentMapId);
+
         Debug.Log($"[MapManager] 進入地圖 #{row.id}「{row.name}」(module={row.module})，落點={pos}。");
 
         // 進邪佛廣場（大廳）= 存檔檢查點：標記已抵達廣場（下次改中央出生）＋自動存檔。

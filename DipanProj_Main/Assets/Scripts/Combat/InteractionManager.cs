@@ -150,6 +150,9 @@ public class InteractionManager : MonoBehaviour
             bool isPortal = r.typeId == "portal";
             if (!isPickup && !isDrama && !isPortal) continue;
             if (_consumed.Contains(r.id)) continue;      // 本次停留已消耗 → 不復活
+            // 關卡進度：本趟已取/已觸發過（跨換圖記憶）→ 重進地圖也不再出現。見 RunProgress。
+            if (RunProgress.Exists && RunProgress.Instance.RunActive
+                && RunProgress.Instance.IsTriggerConsumed(CurMapId, r.id)) continue;
             if (!TriggerChain.IsActive(r)) continue;     // 停用中（startDisabled 未解鎖）或 requireFlag 不成立 → 隱形
 
             // 重複規則：每周目/永久 觸發過就不再現身（自動旗標依 scope 存周目/終身）。
@@ -221,8 +224,35 @@ public class InteractionManager : MonoBehaviour
         }
     }
 
-    /// <summary>在 pos 放一個掉落物（通用入口，怪物掉落也用這個）。同點重疊會稍微散開避免疊死。</summary>
+    /// <summary>在 pos 放一個掉落物（通用入口，怪物掉落也用這個）。同點重疊會稍微散開避免疊死。
+    /// 關卡 run 內會登記進 RunProgress（沒撿的換圖回來原地重放）。</summary>
     public GroundLoot DropLoot(int itemId, int count, Vector2 pos)
+    {
+        var loot = CreateLoot(itemId, count, Scatter(pos));
+        if (loot != null && RunProgress.Exists && RunProgress.Instance.RunActive)
+        {
+            int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+            loot.RunDropId = RunProgress.Instance.RegisterGroundDrop(
+                mapId, itemId, count, loot.transform.position);
+        }
+        return loot;
+    }
+
+    /// <summary>換圖回來時，依 RunProgress 記錄把本張地圖「還沒撿的掉落物」在原座標重放（不重新登記、沿用原 dropId）。</summary>
+    public void RestoreGroundDrops(int mapId)
+    {
+        if (!RunProgress.Exists) return;
+        var drops = RunProgress.Instance.GetGroundDrops(mapId);
+        for (int i = 0; i < drops.Count; i++)
+        {
+            var d = drops[i];
+            var loot = CreateLoot(d.itemId, d.count, new Vector2(d.x, d.y));   // 用原座標、不散開
+            if (loot != null) loot.RunDropId = d.id;
+        }
+    }
+
+    /// <summary>純建立一個地上掉落物件（不散開、不登記進度）。DropLoot 與 RestoreGroundDrops 共用。</summary>
+    GroundLoot CreateLoot(int itemId, int count, Vector2 spawnPos)
     {
         if (count <= 0) return null;
         var inv = InventorySystem.Instance;
@@ -233,9 +263,8 @@ public class InteractionManager : MonoBehaviour
             return null;
         }
 
-        Vector2 spawn = Scatter(pos);
         var go = new GameObject($"GroundLoot_{data.Name}");
-        go.transform.position = new Vector3(spawn.x, spawn.y, 0f);
+        go.transform.position = new Vector3(spawnPos.x, spawnPos.y, 0f);
         var loot = go.AddComponent<GroundLoot>();
         loot.Init(itemId, count, data.Name, data.Icon, lootWorldSize, sortingLayerName, sortingOrder);
         _loot.Add(loot);
@@ -265,6 +294,14 @@ public class InteractionManager : MonoBehaviour
     {
         for (int i = _loot.Count - 1; i >= 0; i--)
             if (_loot[i] == null) _loot.RemoveAt(i);
+
+        // Shift：全域切換地上掉落物「名稱x數量」標籤（預設顯示；與「靠近才顯示的按 F 拾取」互不影響）。
+        if (Input.GetKeyDown(KeyCode.LeftShift) || Input.GetKeyDown(KeyCode.RightShift))
+        {
+            GroundLoot.LabelsVisible = !GroundLoot.LabelsVisible;
+            for (int i = 0; i < _loot.Count; i++)
+                if (_loot[i] != null) _loot[i].SetLabelVisible(GroundLoot.LabelsVisible);
+        }
 
         if (_loot.Count == 0 && _points.Count == 0) { HideTip(); return; }
 
@@ -317,7 +354,7 @@ public class InteractionManager : MonoBehaviour
             {
                 best = d; bestLoot = _loot[i]; bestPoint = null;
                 tipPos = _loot[i].transform.position;
-                tipText = $"按 {interactKey} 鍵拾取 {_loot[i].DisplayName}";
+                tipText = $"按 {interactKey} 鍵拾取";   // 名稱已由地上常駐標籤顯示，靠近提示只留「按 F 拾取」
             }
         }
         for (int i = 0; i < _points.Count; i++)
@@ -391,30 +428,42 @@ public class InteractionManager : MonoBehaviour
         return false;
     }
 
-    // 從地上撿（部分撿取：吃得下多少算多少，剩的留在地上）。
+    // 目前地圖 id（給關卡進度記錄用；沒有 MapManager 時 -1）。
+    static int CurMapId => MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+
+    // 取得物品的統一入口：關卡內進臨時包（RunProgress，回 0）、廣場進真背包（回放不下的剩餘）。
+    static int GiveToPlayer(int itemId, int count) => RunProgress.Instance.GiveItem(itemId, count);
+
+    // 從地上撿（部分撿取：吃得下多少算多少，剩的留在地上）。關卡內進臨時包、廣場進真背包。
     void TryPickUpLoot(GroundLoot loot)
     {
-        var inv = InventorySystem.Instance;
-        if (inv == null || loot == null) return;
+        if (loot == null) return;
 
-        int leftover = inv.AddItem(loot.ItemId, loot.Count);
+        int leftover = GiveToPlayer(loot.ItemId, loot.Count);
         int added = loot.Count - leftover;
 
         if (added <= 0) { AlertPanel.Toast("背包已滿"); return; }
 
         AlertPanel.Toast(added > 1 ? $"獲得 {loot.DisplayName} ×{added}" : $"獲得 {loot.DisplayName}");
 
-        if (leftover > 0) loot.SetCount(leftover);
-        else { _loot.Remove(loot); Destroy(loot.gameObject); HideTip(); }
+        if (leftover > 0)
+        {
+            loot.SetCount(leftover);
+            if (RunProgress.Exists) RunProgress.Instance.UpdateGroundDropCount(CurMapId, loot.RunDropId, leftover);
+        }
+        else
+        {
+            if (RunProgress.Exists) RunProgress.Instance.RemoveGroundDrop(CurMapId, loot.RunDropId);
+            _loot.Remove(loot); Destroy(loot.gameObject); HideTip();
+        }
     }
 
-    // 撿拾取點（一律消耗該點：吃得下的進背包、剩的掉腳下變成地上掉落物）。
+    // 撿拾取點（一律消耗該點：吃得下的進背包/臨時包、剩的掉腳下變成地上掉落物）。
     void CollectPickup(InteractPoint pt)
     {
-        var inv = InventorySystem.Instance;
-        if (inv == null || pt == null) return;
+        if (pt == null) return;
 
-        int leftover = inv.AddItem(pt.itemId, pt.count);
+        int leftover = GiveToPlayer(pt.itemId, pt.count);   // 關卡內進臨時包（恆 0）、廣場進真背包
         int added = pt.count - leftover;
 
         if (added > 0)
@@ -461,6 +510,8 @@ public class InteractionManager : MonoBehaviour
         // Always：不消耗（靠「離開半徑重新武裝」控制節奏），星星與互動點保留。
         if (pt.repeat == RepeatMode.Always) { HideTip(); return; }
         _consumed.Add(pt.id);   // 當次停留不復活（RebuildPoints 會跳過）
+        // 關卡進度：本趟已取/已觸發（跨換圖記憶）→ 重進地圖也不再出現。非 run 期間由 RunProgress 內部忽略。
+        if (RunProgress.Exists) RunProgress.Instance.MarkTriggerConsumed(CurMapId, pt.id);
         if (pt.marker != null) Destroy(pt.marker);
         _points.Remove(pt);
         HideTip();

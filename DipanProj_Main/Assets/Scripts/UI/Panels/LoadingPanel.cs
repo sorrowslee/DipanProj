@@ -28,12 +28,13 @@ namespace Dipan.UI
         public override float FadeDuration => 0.25f;
 
         // ── 版面常數（螢幕 px，1920×1080 參考解析度；要移位/縮放改這裡）──
-        const float BarWidth         = 1000f;        // 進度條寬
+        const float BarWidth         = 1000f;        // 進度條基準寬（配合 BarScale；一般不用動這個）
+        const float BarScale         = 0.5f;           // ★整體縮放進度條：1=原大小、0.85=縮到85%、0.7=70%…（只縮進度條，不影響文字大小）
         const float BarAspect        = 250f / 1000f; // 素材原生比例（高/寬）→ 高 = 寬 × 0.25
         const float BarBottomMargin  = 20f;          // 進度條底（含吊穗）離畫面底的距離（越大越往上）
         const float EndCapHeightFrac = 0.42f;        // 端蓋高 = 進度條高 × 此值（素材為正方形）
-        const float PercentGap       = -20f;         // 百分比文字底緣相對「底框頂端」的位移（越大越高、負值壓進框頂上緣）
-        const int   PercentFontSize  = 52;
+        const float PercentGap       = 0f;         // 百分比文字底緣相對「底框頂端」的位移（越大越高、負值壓進框頂上緣）
+        const int   PercentFontSize  = 32;
 
         // ── 素材量測值（art 空間 1000×250，y 由上往下；換素材才需要動）──
         const float GoldTopFrac = 78f  / 250f, GoldBotFrac = 180f / 250f;  // 金色填充在其素材裡的垂直範圍
@@ -62,7 +63,7 @@ namespace Dipan.UI
             _bg.enabled = false;
 
             _barW = BarWidth;
-            _barH = BarWidth * BarAspect;
+            _barH = _barW * BarAspect * BarScale;
             _fillH = _barH * (ChanBotFrac - ChanTopFrac) / (GoldBotFrac - GoldTopFrac);   // 金色壓成軌道高（≈0.667×）
             _trackCenterFromTop = _barH * (ChanTopFrac + ChanBotFrac) * 0.5f;             // 軌道中心離進度條頂端
 

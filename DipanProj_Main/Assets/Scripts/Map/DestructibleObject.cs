@@ -23,6 +23,10 @@ public class DestructibleObject : MonoBehaviour, IDamageable
     bool _dead;
     static VfxManager _vfx;   // 全場唯一,快取共用
 
+    // 關卡進度：本張地圖唯一的地上物 key（由 MapLoader 設）；破壞時記進 RunProgress，換圖回來不再重建。
+    int _runMapId = -1;
+    string _runKey;
+
     /// <summary>由 MapLoader 設定血量與破壞特效 ID。</summary>
     public void Configure(float maxHP, int destroyVfxId, string breakFlag = null)
     {
@@ -30,6 +34,13 @@ public class DestructibleObject : MonoBehaviour, IDamageable
         DestroyVfxId = destroyVfxId;
         BreakFlag = breakFlag;
         _hp = maxHP;
+    }
+
+    /// <summary>由 MapLoader 設定關卡進度用的地圖 id 與物件 key（破壞時記進 RunProgress，本趟不再重建）。</summary>
+    public void SetRunKey(int mapId, string key)
+    {
+        _runMapId = mapId;
+        _runKey = key;
     }
 
     void Awake() { _hp = MaxHP; }
@@ -48,6 +59,10 @@ public class DestructibleObject : MonoBehaviour, IDamageable
 
         // 破壞寫旗標（資料驅動）：物件有填「破壞觸發旗標」時設為 true，供觸發鏈條件用（例：打破供品→改變劇情走向）。
         if (!string.IsNullOrEmpty(BreakFlag)) TriggerChain.SetFlag(BreakFlag);
+
+        // 關卡進度：記本趟這個地上物已破壞（換圖回來不再重建）。非 run 期間由 RunProgress 內部忽略。
+        if (!string.IsNullOrEmpty(_runKey) && RunProgress.Exists)
+            RunProgress.Instance.MarkObjectDestroyed(_runMapId, _runKey);
 
         if (DestroyVfxId > 0)
         {

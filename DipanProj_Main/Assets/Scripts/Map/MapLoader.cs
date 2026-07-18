@@ -335,7 +335,7 @@ public class MapLoader : MonoBehaviour
         objRoot.transform.SetParent(_root, false);
         _revealer = objRoot.AddComponent<MapObjectRevealer>();   // 靠旗標中途現身的地上物用
 
-        foreach (var inst in layer.objects) BuildOneObject(inst, objRoot.transform);
+        for (int i = 0; i < layer.objects.Count; i++) BuildOneObject(layer.objects[i], objRoot.transform, i);
     }
 
     /// <summary>分幀建地上物：每 perFrame 個 yield 一次並回報進度（0~1）。建構內容與 BuildObjects 完全相同。</summary>
@@ -349,9 +349,9 @@ public class MapLoader : MonoBehaviour
         _revealer = objRoot.AddComponent<MapObjectRevealer>();   // 靠旗標中途現身的地上物用
 
         int total = layer.objects.Count, done = 0;
-        foreach (var inst in layer.objects)
+        for (int i = 0; i < layer.objects.Count; i++)
         {
-            BuildOneObject(inst, objRoot.transform);
+            BuildOneObject(layer.objects[i], objRoot.transform, i);
             done++;
             if (done % perFrame == 0)
             {
@@ -362,9 +362,15 @@ public class MapLoader : MonoBehaviour
         onProgress?.Invoke(1f);
     }
 
-    /// <summary>建一個地上物（載圖、SpriteRenderer、動畫、碰撞框、可破壞）。sync 與分幀版共用。</summary>
-    void BuildOneObject(ObjectInstance inst, Transform objRoot)
+    /// <summary>建一個地上物（載圖、SpriteRenderer、動畫、碰撞框、可破壞）。sync 與分幀版共用。objIndex＝在 objects 清單的索引，當關卡進度的穩定 key。</summary>
+    void BuildOneObject(ObjectInstance inst, Transform objRoot, int objIndex)
     {
+        // 關卡進度：本趟已被破壞的地上物不再重建（換圖回來維持破壞狀態）。key＝清單索引，同一張地圖檔每次解析順序一致。
+        int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+        string objKey = $"obj#{objIndex}";
+        if (RunProgress.Exists && RunProgress.Instance.RunActive
+            && RunProgress.Instance.IsObjectDestroyed(mapId, objKey)) return;
+
         // 出現條件①「完成 N 關」：進地圖當下判定（此條件不會在關卡進行中改變），未達則整個不生。
         // 範圍：lifetime=曾達到的最高完成數（永久）、其餘(cycle)=本周目完成數（輪迴重置會再隱藏）。
         // 沒有 SaveManager（如編輯器直測/DevQuickStart 無存檔）時不擋，一律照舊出現，方便測試。
@@ -461,6 +467,7 @@ public class MapLoader : MonoBehaviour
             var d = go.AddComponent<DestructibleObject>();
             float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值
             d.Configure(hp, objectDestroyVfxId, inst.breakFlag);   // 破壞時寫此擺放的「破壞觸發旗標」
+            d.SetRunKey(mapId, objKey);   // 關卡進度：破壞後本趟不再重建
         }
 
         // 靠旗標中途現身：先關掉顯示與碰撞、登記給 revealer；旗標成立時再現身（延遲/淡入/動畫起播）。
@@ -696,6 +703,10 @@ public class MapLoader : MonoBehaviour
         MonsterSpawner spawner = null;
         int spawned = 0;
 
+        // 關卡進度：本張地圖已清掉的出生點，本趟不再重生（RunProgress，換圖回來沿用）。
+        int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+        bool runActive = RunProgress.Exists && RunProgress.Instance.RunActive;
+
         foreach (var r in trig.regions)
         {
             if (r.typeId != monsterSpawnTypeId || r.cells == null || r.cells.Count == 0) continue;
@@ -723,7 +734,11 @@ public class MapLoader : MonoBehaviour
             foreach (var c in r.cells)
             {
                 if (c == null || c.Length < 2) continue;
-                spawner.SpawnMonster(monsterId, MapCoords.CellCenter(c[0], c[1], _map), deathFlag);
+                // 本張地圖唯一的出生點 key（區域 id + 格座標）；用來記「這格的怪已清、本趟不再生」。
+                string spawnKey = $"{r.id}#{c[0]},{c[1]}";
+                if (runActive && RunProgress.Instance.IsSpawnKilled(mapId, spawnKey)) continue;   // 已清 → 不重生
+                spawner.SpawnMonster(monsterId, MapCoords.CellCenter(c[0], c[1], _map), deathFlag,
+                                     MonsterFaction.Enemy, spawnKey);
                 spawned++;
             }
         }

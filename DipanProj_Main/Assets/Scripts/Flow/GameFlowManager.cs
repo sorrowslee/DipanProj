@@ -208,7 +208,16 @@ namespace Dipan.Flow
             LevelExitManjiController.Play(_endPlayer, () => fxDone = true);
             while (!fxDone) yield return null;
 
-            // 只有過關記進度（存檔）。死亡與主動返回都不算過關。
+            // 臨時包結算：過關＝整包併入真背包並清空、拿到內容快照顯示；死亡/返回＝整包丟棄（這趟零收穫）。
+            // 見 readme/CORE_LOOP_DESIGN.md §6、RunProgress。
+            List<KeyValuePair<int, int>> rewards = null;
+            if (RunProgress.Exists)
+            {
+                if (kind == LevelEndKind.Clear) rewards = RunProgress.Instance.SettleIntoBag();
+                else RunProgress.Instance.EndRunDiscard();
+            }
+
+            // 只有過關記進度（存檔）。死亡與主動返回都不算過關。（先結算臨時包再存檔，讓落袋的戰利品一起寫入。）
             if (kind == LevelEndKind.Clear && SaveManager.Instance != null && !string.IsNullOrEmpty(_endModule))
             {
                 SaveManager.Instance.MarkModuleCleared(_endModule);
@@ -216,7 +225,8 @@ namespace Dipan.Flow
             }
 
             // 開結算畫面（覆蓋全螢幕、暫停）。玩家此時縮到 ~0 且在畫面外，被結算面板蓋住。
-            ResultPanel.Show(win, showTitle, _endModule, DisplayNameOf(_endModule));
+            // 過關時把臨時包內容（rewards）顯示在獎勵區；死亡/返回 rewards=null → 顯示「無」。
+            ResultPanel.Show(win, showTitle, _endModule, DisplayNameOf(_endModule), rewards);
         }
 
         /// <summary>

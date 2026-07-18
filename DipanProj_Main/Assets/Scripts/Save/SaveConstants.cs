@@ -15,6 +15,10 @@ namespace Dipan.Save
         /// <summary>邪佛廣場（大廳）在 MapsTable 的 Map ID。繼續遊戲、自動存檔點都指向它。</summary>
         public const int HubMapId = 12;   // Main_Square
 
+        /// <summary>廣場/教學所屬的 module 名。此 module 的地圖（廣場、初始洞窟）不算「關卡」——
+        /// 取得的道具直接進真背包、不走臨時包、不做關卡進度持久化。其餘 module 一律視為關卡。見 RunProgress。</summary>
+        public const string HubModule = "Main";
+
         /// <summary>輪迴帶入物品的上限。第 N 次輪迴帶 min(周目, 上限) 件，達上限後恆為上限。</summary>
         public const int MaxCarryOnReincarnate = 7;
 
