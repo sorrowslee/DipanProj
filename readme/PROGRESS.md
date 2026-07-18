@@ -1,5 +1,7 @@
 # 目前進度 (Current Progress)
 
+* [x] 底部 HUD 血球＋藥水系統（2026-07-16，見 [BOTTOM_HUD.md](BOTTOM_HUD.md)、[INVENTORY.md](INVENTORY.md)）：底部操控列以自繪著色器畫 HP/MP 液體血球（阻尼彈簧搖晃、暗場景調色、去描邊）取代舊左上血條。新增**藥水系統**——藥劑分類（`201` 小回血瓶／`202` 小回魔瓶，`HealHp/HealMp`、`MaxStack=99`），背包兩格藥水格綁定「種類」、按 1/2 喝並播喝藥特效，底部 HUD 兩格**鏡像顯示**（訂閱 `OnChanged` 即時同步）。互動加：拖曳可放欄位黃色高亮、丟錯格自動歸位、右鍵藥水快放。修正背包版面座標到真正背景 `1126×1397`（原本用到舊快取 1133×1388 導致高亮偏位），並修液體球著色器 `ZTest Always → [unity_GUIZTestMode]`（原本會穿透蓋住背包／黑幕）。
+
 * [x] Pack 4 像素反射雷射（2026-07-13，見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)）：研究 A／B 兩套 origin／center／impact 與六色變體，選用 A 組藍色 loop 製作武器 29「鏡界折光」。新增 `PixelBeamSet` 與 `PixelLaserBeamVisual`，將中心段沿 ray-march 反射折線平鋪、在轉折補撞擊火花；Recipe 42 用 `BeamRange=-1` 延伸射程，反射則完全服從 `BounceTarget=Environment, MaxBounces=3`。追蹤、散射、穿透與 DOT 均沿用既有雷射配方管線。
 
 * [x] 武器集氣模式（2026-07-13，見 [CHARGE_MODE.md](CHARGE_MODE.md)）：RecipeTable 新增預設 false 的 `集氣模式` 與百分比 `集氣時間縮減`；空白鍵／滑鼠左鍵按住集氣、放開施放，完成後傷害 ×3、視覺 ×2。匯入 `scifi_charge_up_003` 藍／紅各 16 幀作集氣中／完成提示，特效高度依角色當下實際高度調整為 1.15 倍；雷射、佛光等持續輸入武器在載入時強制互斥。換地圖與暫停／阻擋操作 UI 會凍結並保留集氣，恢復後若按鍵仍按住便延續，遭清場的光圈會自動重建。Unity 2022.3.62f3 乾淨匯入與編譯通過。

@@ -3,6 +3,8 @@
 > 返回 [文件總覽](README.md)｜底層框架見 [UI_SYSTEM.md](UI_SYSTEM.md)｜倉庫與「背包↔倉庫互搬」見 [STORAGE.md](STORAGE.md)｜存檔見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md)
 >
 > **2026-06-23 更新**：背包已接入「共用 slot 拖放/搬運系統」，可與倉庫**拖放＋點擊互搬**（含裝備）；新增**重整鈕**（整理道具格）；**移除底部名稱列**（tooltip 已顯示名稱）；資料層加 `CaptureState/RestoreState`（存檔）、`SetEquipped`、`SortGrid`，並實作 `IItemGrid`。詳見下文與 [STORAGE.md](STORAGE.md)。
+>
+> **2026-07-16 更新**：新增**藥水系統**（藥劑分類、背包兩格藥水格綁定種類、按 1/2 喝、喝藥特效）；拖曳可放的專用欄位**黃色高亮**＋丟錯格**自動歸位**＋**右鍵藥水快放**；版面座標**重量**到新背景 `1126×1397`（原本用到舊快取尺寸導致高亮偏位）；底部 HUD 血瓶槽**鏡像顯示**背包藥水（見 [BOTTOM_HUD.md](BOTTOM_HUD.md)）。
 
 背包＝建在 UI 底層框架上的第一個面板。嚴守**資料層 / 呈現層分離**：`InventorySystem`（純資料、有什麼/加減/裝卸、發事件）與 `InventoryPanel`（只訂閱事件繪圖、操作回呼資料層）。背景用整張示意圖當底、不拆圖,只在上面疊互動格子放 icon。
 
@@ -19,18 +21,20 @@
 
 ---
 
-## 背景與格子座標（量自 `inventoryPanelBG.png`，1122×1402）
+## 背景與格子座標（量自 `inventoryPanelBG.png`，**1126×1397**）
 
 背景圖：`Resources/UI/InventoryPanel/inventoryPanelBG.png`。座標都在**背景原圖像素空間**（左上為原點、y 向下）；整個 `Frame` 等比縮放塞進畫面（預設顯示高 1040 參考單位），格子座標因此不必隨解析度改。
 
-| 區域 | 參數 |
-|---|---|
-| 道具格 7×9 | 左 `x=466`、橫距 `80.857`；頂 `y=280`、縱距 `87.111`。格 (c,r) 中心 = `(466+(c+0.5)*80.857, 280+(r+0.5)*87.111)` |
-| 裝備欄 6 格 | 左欄 `x=152`、右欄 `x=308.5`；三列 `y=410 / 705 / 1000`。順序：左上武器·右上胸甲·左中鞋子·右中手套·左下護身符·右下戒指 |
-| 重整鈕（整理道具格） | 中心 `RefreshCx/RefreshCy`（預設 `970,1268`）、`RefreshSize`（預設 120）。沿用倉庫那組 Refresh 素材（`UI/StoragePanel/RefreshBG_*`/`RefreshIcon`），按下呼叫 `InventorySystem.SortGrid()` |
-| ~~底部名稱列~~ | **已移除**（tooltip 已顯示名稱）。`NameBarX/Y/W/H` 常數仍在但未使用 |
+> ⚠️ **座標一定要對準真正的背景圖尺寸**：2026-07-16 一度用到「舊快取的 1133×1388」量座標，整套被平移＋縮放 → 武器格黃光偏大、藥水格完全沒對準。已對真正的 `1126×1397` 重量（邊緣偵測＋疊圖目視驗證）。**改背景圖務必重量**（`BgW/BgH` 與下表全部）。
 
-> 這些常數寫在 `InventoryPanel.cs` 最上方,改版面只改那裡。`UIPanel` 的座標映射 `Place(rt, px, py, w, h)`：錨到 frame 左上角、`anchoredPosition=(px,-py)`。
+| 區域 | 參數（`InventoryPanel.cs` 最上方常數） |
+|---|---|
+| 道具格 7×9 | 左 `GridLeft=464`、橫距 `GridPitchX=79.4`；頂 `GridTop=261`、縱距 `GridPitchY=85.9`。格 (c,r) 中心 = `(464+(c+0.5)*79.4, 261+(r+0.5)*85.9)`；icon `70px` |
+| 裝備欄 6 格 | 左欄 `x=152`、右欄 `x=304`；三列 `y=379 / 632 / 884`；格框 `104×162`、icon `100px`。順序：左上武器·右上胸甲·左中鞋子·右中手套·左下護身符·右下戒指 |
+| 藥水格 2 格 | 左欄最下方，中心 `x=241 / 334`、`y=1067`；格框 `72×72`、icon `64px`。左＝鍵1、右＝鍵2（見下方「藥水系統」） |
+| 重整鈕（整理道具格） | 中心 `RefreshCx/RefreshCy=443/1210`、`RefreshSize=90`。做成透明按鈕蓋在底部方孔錢幣上（不覆蓋美術、hover 輕微 tint），按下呼叫 `InventorySystem.SortGrid()` |
+
+> 座標映射 `Place(rt, px, py, w, h)`：錨到 frame 左上角、`pivot=(0.5,0.5)`、`anchoredPosition=(px,-py)`、`sizeDelta=(w,h)`。裝備欄/藥水格的黃色高亮（`dropHi`）就是拉伸貼滿各自的格框。
 
 ---
 
@@ -52,8 +56,12 @@
 | `TipStats` | **tooltip 上半（正楷）**：功能/屬性。之後可能改由裝備屬性組字,現階段純讀此欄 |
 | `TipLore` | **tooltip 下半（斜體）**：劇情描述 |
 | `WeaponID` | **對應 `WeaponTable` 的武器 ID**。裝備此武器到武器欄 → 玩家切到該武器能力（見下方「裝備→使用武器」）。非武器留空 |
+| `TargetMapId` | **劇本類道具**：放進傳送門後要去的關卡（`MapsTable` ID）；`0`/空 = 非劇本 |
+| `TargetEntrance` | 目的地落點名（空 = 目標圖預設出生點） |
+| `HealHp` | **藥劑**：喝下回復的生命（`0` = 不回血） |
+| `HealMp` | **藥劑**：喝下回復的魔力（`0` = 不回魔） |
 
-目前 15 筆：**12 把武器**（ItemTable ID `1~12`，`WeaponID` 同號對應 `WeaponTable` 1~12，`EquipSlot=Weapon`）+ 3 個雜物（ID `101~103`：銅錢/卷軸/符紙）。武器 icon 在 `UI/Icons/Equipment/`，雜物在 `UI/Icons/Items/`。
+內容（會持續增加）：**武器**（ItemTable ID 與 `WeaponID` 同號對應 `WeaponTable`，`EquipSlot=Weapon`）＋雜物（`101~103`：銅錢/卷軸/符紙）＋**藥水**（`201` 小回血瓶、`202` 小回魔瓶：`Category=Potion`、`HealHp/HealMp=10`、`MaxStack=99`）。分類欄 `Category` 目前用到 `Weapon`、`Currency/Material`、**`Potion`（藥劑，可拖到藥水格、按數字鍵喝）**。武器 icon 在 `UI/Icons/Equipment/`，其餘在 `UI/Icons/Items/`。
 
 > **CSV 寫法**：欄位內含逗號的長文字請用雙引號包覆,例如 `"傷害 5，直線飛行"`;引號內要放一個雙引號就寫 `""`。需要換行就在文字裡寫 `\n`(會被轉成換行)。`ItemDatabase` 用支援引號的解析器讀取。
 
@@ -102,9 +110,35 @@
 - `Assets/Scripts/Inventory/InventorySystem.cs`（資料層 + 事件 + 單例）
 - `Assets/Scripts/UI/Panels/InventoryPanel.cs`（面板）
 - `Assets/Scripts/UI/Panels/InventorySlotWidget.cs`（格子互動元件，已實作 `ISlotView` + 拖放）
-- `Assets/Scripts/UI/InventoryLauncher.cs`（測試：只負責種子物品；開關鍵 B 已移到 `StorageBagCoordinator`）
+- `Assets/Scripts/UI/InventoryLauncher.cs`（測試種子物品；開關鍵 B 已移到 `StorageBagCoordinator`。**作弊**：開場把 `201/202` 藥水各補到 99——`TopUp` 補差額；改回 `if(!Has)` 或刪掉即取消）
 - 共用搬運（與倉庫同套，見 [STORAGE.md](STORAGE.md)）：`UI/ISlotView.cs`、`UI/SlotDragController.cs`、`UI/InventoryActions.cs`、`UI/StorageBagCoordinator.cs`
 - `Assets/Data/ItemTable.csv`（與其他資料表同位置）、`Assets/Resources/UI/InventoryPanel/inventoryPanelBG.png`、`Assets/Resources/UI/Icons/...`
+
+---
+
+## 藥水系統（藥劑 / 藥水格 / 高亮 / 自動歸位 / 右鍵快放）
+
+> **2026-07-16 新增。** 底部 HUD 的鏡像顯示與喝藥見 [BOTTOM_HUD.md](BOTTOM_HUD.md)。
+
+**藥劑（Potion）**：`ItemTable.Category=Potion` 的物品（`ItemData.IsPotion`）。喝下依 `HealHp/HealMp` 回血/回魔。目前 `201` 小回血瓶、`202` 小回魔瓶（各回 10、`MaxStack=99`）。
+
+**藥水格（背包內兩格，左＝鍵1、右＝鍵2）**：`Assets/Scripts/UI/PotionSlot.cs`。綁定的是藥劑**種類**（物品 ID）、不是某一瓶：
+
+- 從道具格拖一種藥劑上來 → 記住 ID、顯示 icon ＋背包剩餘數量；那個種類在背包歸零 → 自動清空該格。
+- 綁定存在 `InventorySystem`（`GetPotionSlot/SetPotionSlot`，跟背包一起存檔，`InventoryDTO.potionSlots`）。**只記種類、不動背包內容**（不走搬移邏輯）；往格外拖＝解綁清空。
+- 使用（喝）由常駐 `PotionHotkeys` 在遊戲中按 1/2 觸發（見 [BOTTOM_HUD.md](BOTTOM_HUD.md)）。
+
+**拖曳時的「可放欄位」黃色高亮（`dropHi`）**：拖起某類物品 → 把「該類能放、且**空著**的專用欄」亮黃光（拖裝備亮對應的空裝備欄、拖藥劑亮空的藥水格），放開時全關。判斷靠 `SlotDragController.DraggingItemId`（全域拖曳中的物品 ID，輪詢式、避開 Domain Reload 殘留），面板 `UpdateDropHighlights` 更新。**拖曳中不做 hover 高亮**（改用這個）。
+
+**丟錯格自動歸位（`InventoryActions`）**：
+
+- 藥劑丟到裝備欄 → 自動放到藥水格（`AutoPlacePotion`）。
+- 裝備丟到藥水格 → 自動裝到正確裝備欄（`EquipToCorrectSlot`）。
+- 丟到一般道具格 → 就是單純重排/搬移（不特別處理）。
+
+**右鍵藥水快放**：在道具格對藥劑按右鍵 → 依規則自動放進藥水格（`InventorySystem.AutoPlacePotion`）：有空位優先放**最小索引**（1 號優先於 2 號）；全滿則取代 0 號；已綁在某格則不動。可延伸到 N 格（`PotionSlotCount`）。`InventorySlotWidget` 依左/右鍵分流（右鍵 → `RightClicked`）。
+
+**相關檔案**：`UI/PotionSlot.cs`、`UI/PotionHotkeys.cs`、`Inventory/InventorySystem.cs`（`GetPotionSlot/SetPotionSlot/AutoPlacePotion/PotionSlotCount`）、`Inventory/InventoryDTO.cs`（`potionSlots` 存檔）、`UI/InventoryActions.cs`（`EquipToCorrectSlot`）、`UI/Panels/InventorySlotWidget.cs`（右鍵分流＋`dropHi`）、`UI/Panels/InventoryPanel.cs`（`UpdateDropHighlights`）。喝藥特效見 [VFX.md](VFX.md)。
 
 ---
 
@@ -131,3 +165,4 @@
 
 *建立於 2026-06-22：背包 v1（資料層 InventorySystem + 呈現層 InventoryPanel,整張背景 + 量測座標疊互動格,點擊裝/卸,hover 名稱）。建在 [UI_SYSTEM.md](UI_SYSTEM.md) 底層上。*
 *2026-06-23 更新：接入共用 slot 拖放/搬運系統（與倉庫互拖、含裝備）；新增重整鈕（SortGrid）；移除底部名稱列；資料層加 IItemGrid / SetEquipped / SortGrid / Capture·RestoreState。見 [STORAGE.md](STORAGE.md)、[SAVE_SYSTEM.md](SAVE_SYSTEM.md)。*
+*2026-07-16 更新：藥水系統（Potion 分類、背包兩格藥水格綁定種類、按 1/2 喝、喝藥特效）；拖曳可放欄位黃色高亮 + 丟錯格自動歸位 + 右鍵藥水快放；版面座標重量到新背景 1126×1397（修正高亮偏位）；底部 HUD 血瓶槽鏡像顯示背包藥水（見 [BOTTOM_HUD.md](BOTTOM_HUD.md)）；ItemTable 加 TargetMapId/TargetEntrance/HealHp/HealMp 欄。*

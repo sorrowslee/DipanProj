@@ -16,7 +16,7 @@ Diablo 風的底部操控列：整條石雕框（燃燈佛、法輪、血瓶槽�
 |---|---|
 | `Assets/Resources/Shaders/LiquidOrb.shader` | 液體球著色器 `Custom/LiquidOrb`（Built-in 管線、掛 uGUI RawImage）。液面線＝依 `_Fill` 的水平線＋兩道正弦漣漪＋`_Slosh` 傾斜/上下晃；再疊球面明暗、液面亮邊、內部流動噪訊。亮度/高光/描邊/液面亮邊都是參數。 |
 | `Assets/Scripts/UI/LiquidOrb.cs` | 單顆血球元件：建 RawImage＋material，用「阻尼彈簧」在 C# 算搖晃量灌進 `_Slosh`。`Init(liquid,deep,label)`＋每幀 `SetStats(cur,max)`。滑鼠懸停在圓形範圍內顯示「label cur/max」數字。時間走 `unscaledDeltaTime`（暫停時仍微動）。 |
-| `Assets/Scripts/UI/Panels/BottomHudPanel.cs` | HUD 面板：載框圖、把兩顆球擺在量到的圓心、建兩個血瓶槽空錨點。特性同舊 HudPanel（HUD 層、不暫停、不擋輸入、不遮罩、不入 ESC 堆疊、換場景保留）。 |
+| `Assets/Scripts/UI/Panels/BottomHudPanel.cs` | HUD 面板：載框圖、把兩顆球擺在量到的圓心、**兩格血瓶槽鏡像顯示背包綁定的藥水（icon＋剩餘數量，訂閱 `InventorySystem.OnChanged` 即時更新）**。特性同舊 HudPanel（HUD 層、不暫停、不擋輸入、不遮罩、不入 ESC 堆疊、換場景保留）。 |
 | `Assets/Resources/UI/BottomControlPanel/BottomControlPanel_Bg.png` | 框圖素材（2172×724，Sprite）。 |
 
 由 `PlayerController.Start` 開啟：`UIManager.Instance.Open<Dipan.UI.BottomHudPanel>()`。
@@ -37,7 +37,7 @@ Diablo 風的底部操控列：整條石雕框（燃燈佛、法輪、血瓶槽�
 > ⚠️ 框圖的紅/藍球是**實心畫進去、不是鏤空**。所以液體球畫在框**之上**、剛好蓋住實心球、停在 socket 邊緣（不必重切圖）。
 
 - 紅球圓心 `(210, 350)`、藍球圓心 `(1980, 350)`、半徑 `115`。
-- 血瓶槽內框 `105×128`，中心 `(986, 416)` 與 `(1141, 416)`（目前只放空錨點 `PotionSlot0/1`）。
+- 血瓶槽內框 `133×140`，中心 `(994, 412)`（左＝鍵1）與 `(1164, 412)`（右＝鍵2）。**鏡像顯示背包藥水格綁定的藥水**（icon＋背包剩餘數量），只呈現、不互動——拖放/綁定都在背包做。
 - 框不透明內容 y 範圍 `[109, 606]`（用來對齊螢幕底）。
 - 螢幕呈現：`DisplayWidth = 1180` 等比縮放、底部置中。
 
@@ -68,14 +68,27 @@ Diablo 風的底部操控列：整條石雕框（燃燈佛、法輪、血瓶槽�
 - **玻璃反光素材 `BottomControlPanel_Bubble.png` 不能用**：圓內部是一整片不透明灰（alpha 255、RGB ~190），疊上去會把液體蓋成灰。已改由著色器自生高光，該圖**已棄用/刪除**。
 - **框圖匯入 `maxTextureSize` = 2048**，但原圖 2172 寬會被 Unity 縮一點；想更銳可調 4096＋Compression None（同專案 UI 去壓縮慣例，見 [PROBLEMS.md](PROBLEMS.md) G2/G3）。
 - 著色器 `_T` 用 `unscaledTime`：HUD 不暫停，但開背包（暫停）時液面仍要微動，所以不吃 `Time.timeScale`。
+- **液體球著色器別硬寫 `ZTest Always`**：自繪 material 硬寫 `ZTest Always` 會無視畫布 `sortingOrder`、穿透畫到上層視窗（背包）之上——開背包時血球會蓋在背包上、連背包壓底的半透明黑幕都蓋不住。已改成標準 uGUI 的 `ZTest [unity_GUIZTestMode]`，血球才會跟隨層級（HUD 層 `sortingOrder=0` < Window 層 `100`，正確被背包蓋住）。
 
 ---
 
 ## 6. 待接
 
-- 血瓶槽目前只放空錨點（`PotionSlot0/1`）；血瓶玩法（裝哪些瓶、快捷鍵、冷卻、數量）未定。之後放血瓶 icon / 點擊區時，直接抓這兩個錨點的 rect 即可。
+- ✅ **血瓶槽已接玩法**：鏡像顯示背包綁定的藥水、按 **1/2** 喝（見下方 §7 與 [INVENTORY.md](INVENTORY.md) 藥水系統）。藥水冷卻未做。
 - 技能列（框中段）先留空，按鈕內容未定。
 
 ---
 
+## 7. 藥水格（喝藥）— 與背包對齊
+
+底部兩格血瓶槽是**背包藥水格的鏡像顯示**：綁定/拖放/右鍵/解綁全部在背包介面做（見 [INVENTORY.md](INVENTORY.md) 的「藥水系統」），這裡只讀同一份資料畫出來。
+
+- **資料來源**：`InventorySystem.GetPotionSlot(0/1)` = 綁定的藥劑**種類 ID**（跟背包一起存檔）。左格＝索引 0＝鍵 **1**、右格＝索引 1＝鍵 **2**，與背包藥水格一一對應。
+- **顯示**：每格畫該藥水 icon ＋背包剩餘數量（`CountOf`）；訂閱 `InventorySystem.OnChanged`，設定/更換/喝掉/歸零時即時同步（某種類用完 → 該格自動清空）。實作在 `BottomHudPanel.MakePotionDisplay/RefreshPotions`。
+- **喝**：由自動生成的常駐 `PotionHotkeys` 在遊戲中（非開背包/暫停）按 1/2 觸發：套效果（`HealHp/HealMp`）＋扣背包一瓶＋在玩家身上播喝藥特效（`PlayerController.PlayDrinkPotionVfx`，隨玩家外型大小縮放，見 [VFX.md](VFX.md)）。滿血/滿魔也照喝照扣。
+- **邊界**：HUD 這兩格是唯讀顯示、不放互動元件（不攔截點擊）。
+
+---
+
 *建立於 2026-07-16：底部操控列 HUD ＋ 液體血球（著色器液體、阻尼彈簧搖晃、懸停數字、暗場景調色、去描邊定案）。取代舊左上角 HudPanel。*
+*2026-07-16 更新：血瓶槽接上玩法——鏡像顯示背包綁定的藥水（icon＋數量、訂閱 OnChanged 即時同步），按 1/2 喝（`PotionHotkeys`）；修正液體球著色器 `ZTest Always` → `ZTest [unity_GUIZTestMode]`（原本會穿透蓋住背包）；血瓶槽座標改 `133×140` @ `(994,412)/(1164,412)`。*
