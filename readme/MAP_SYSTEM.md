@@ -123,6 +123,7 @@ ID, Name,   Module,        Path,                                                
 - 複用 VFX 系統：`VfxTable.csv` 的特效，須是 `Loop=1` + `Duration=-1`（無限循環、由外部管理生死）。
 - 由 `MapLoader.teleportVfxId` 指定（預設 **6**；填 0 = 全部不放）。特效掛進 MapRoot，換圖拆圖時一併清掉。
 - **逐點關閉**：傳送點參數 `showMarker` 取消勾選時，`BuildTeleportMarkers` 會跳過那個傳送點、不生外型（例：那裡已放自己的傳送門 SceneFx、或要隱形傳送點）。預設顯示、舊地圖無此欄一律顯示。
+- **外型位置＝精準錨點（2026-07-18）**：外型預設放在 teleport 格子的「平均中心」（整格塗、精度只有半格，常跟門的美術對不準）。傳送點參數可存 `markerX`/`markerY`（世界座標）＝外型的精準落點——`BuildTeleportMarkers` 有就放那、沒有才退回格子中心（向下相容）。**在編輯器點放＋畫布黃十字即時預覽**對齊門（見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md) §4.5）。只影響外型視覺，落地解析（§3.2）與踩踏功能格子都不變。
 - **目前 ID 6「傳送點」暫借爆炸序列圖**（`VfxEffects/Explosive/Explosive`）頂著用。**換圖**：把 `VfxTable.csv` 第 6 列的 `AniPath`/`AniNumber`/`AnimFPS`（必要時 `Scale`/`SortingOrder`）改成新素材即可，零改程式。`SortingOrder=5`（低於角色的 10，畫在腳下像地面光圈）。
 
 ---

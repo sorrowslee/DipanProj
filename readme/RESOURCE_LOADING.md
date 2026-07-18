@@ -33,6 +33,7 @@
 - `BlocksGameplayInput = true`：載入期間鎖玩家輸入（`PlayerController` 已遵守此旗標）。
 - `PausesGame = false`：**不暫停**——分幀載入靠協程逐幀推進，暫停會讓逐幀 `yield` 停擺。
 - 顯示**該關卡的載入圖**（`Resources/Loading/<module>.png`，找不到退純黑底）+ 底部進度條 + 百分比。
+- **進度條＝美術素材（2026-07-18）**：`Resources/UI/LoadingBarPanel/`（底框蓮花吊飾＋深色軌道、金色填充、金色端蓋），錨在畫面底部中央。進度用 **RectMask2D** 遮罩裁切金色填充＝可見右緣＝遮罩寬度，金色端蓋放在同一個寬度上 → **端蓋一定黏在金條尾巴**（別用 `Image.Filled`，裁切邊會跟算出的端蓋對不上）。兩張素材沒畫在對齊位置（底框軌道 y[52,120]、金填充 y[78,180]），填充要**垂直壓成軌道高(×0.667)＋頂端對齊**才落進軌道。「載入中…XX%」用**預設字型**＋燙金漸層（新增 `UIVerticalGradient` BaseMeshEffect）＋暗描邊。版面常數 `BarWidth`/`BarBottomMargin`(越大越高)/`PercentGap`(越小越低)可調。
 - 全程式建構、零 prefab，圖走 `Resources`（同 `UIBuilder` 慣例）。
 
 ### 3. 串接與「module 級預載」（`MapManager.LoadMapRoutine`）— 很重要
