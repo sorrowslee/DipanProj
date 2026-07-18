@@ -131,8 +131,8 @@
 
 | 招 | 方法 | 說明 |
 |---|---|---|
-| 橫掃浪（RowSweep） | `RowSweep()` | 把 `Sweep_TotalRows`(5) 排攤在可走區的 y 範圍、只收「有地刺可放」的排，隨機挑不重複 `Sweep_RowsPerCast`(2) 排，逐排**反方向**、起跑時間用遞增 `startDelay` 錯開＝**推進浪**（`Sweep_ColStagger`/`Sweep_RowGap`）。 |
-| 大地刺（GiantSpike） | `GiantSpike()` | 一根放大版，固定在**畫面正中間**（相機中心；`Camera.main` 沒 tag 時退回 `FindObjectOfType`）。`Giant_Scale`(2.24＝原 2.8 的 80%)、`Giant_Damage`(30)。碰撞框同樣 base-anchored 貼齊可見刺（`Giant_HitFillW/H`）。 |
+| 橫掃浪（RowSweep） | `RowSweep()` | 把 `Sweep_TotalRows`(**3**，場地縮小後由 5 改 3) 排攤在**可走內縮框**的 y 範圍、只收「有地刺可放」的排，隨機挑不重複 `Sweep_RowsPerCast`(2) 排，逐排**反方向**、起跑時間用遞增 `startDelay` 錯開＝**推進浪**（`Sweep_ColStagger`/`Sweep_RowGap`）。 |
+| 大地刺（GiantSpike） | `GiantSpike()` | 一根放大版，固定在**畫面正中間**（相機中心；`Camera.main` 沒 tag 時退回 `FindObjectOfType`），並**夾進可走內縮框＋驗證落點可走**（相機中心可能落在樹背景／HUD 等不可走處）。`Giant_Scale`(2.24＝原 2.8 的 80%)、`Giant_Damage`(30)。碰撞框同樣 base-anchored 貼齊可見刺（`Giant_HitFillW/H`）。 |
 | 狂亂地刺（SpikeStorm） | `SpikeStorm()` | 一次在隨機可走點灑 `Storm_Spikes`(20) 根一般地刺（同 1/2 階段的地刺，量爆多）。 |
 
 **出招頻率（不完全隨機）**：`_lastUlt`/`_ultRepeat` 記上一招與連續次數——**同一招最多連兩次，第三次強制換別招**（若已連放 2 次，這次就從另外兩招裡挑）。所以 A-A-B、B-B-C 可以，A-A-A 不會。
@@ -166,6 +166,7 @@ boss 血量歸零 → `MonsterController.Die()` 呼叫 `BanyanBossFace.Instance.
 ### 6.8 手感調整位置
 
 - `BanyanTreeBrain.cs` 上方 const：階段血量門檻（`P2_HpEnter`/`P3_HpEnter`）、各階段間隔/數量、三大絕的排數/推進速度/大地刺 scale 與傷害/狂亂數量、`Giant_HitFillW/H`。
+- **地刺生成安全內縮**（2026-07-18）：`SpawnEdgeInset`(0.5，上/左/右)、`SpawnBottomInset`(1.0，HUD 那一側)＝地刺（隨機灑/排掃/大地刺）只在「可走區再往內縮」的框內生成，避免貼著底部操控列 HUD／左右血魔球冒刺。覺得還太靠邊就把數值調大。所有生成都走 `SpawnBounds(nav)`（= `MapNavGrid.WalkableBounds()` 內縮）。
 - `BossSpike.cs` 上方 const：`WarnTime`/`ActiveTime`/`PlayerHitInterval`、後備核心框、除錯 `DebugDrawHitbox`。
 - `BanyanBossFace.cs` 上方 const：死亡燃燒的火種類/大小/密度/蔓延節奏/範圍/壽命。
 

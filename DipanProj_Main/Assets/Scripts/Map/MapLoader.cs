@@ -428,7 +428,7 @@ public class MapLoader : MonoBehaviour
 
         // walkable = true：不設碰撞、不擋路（走不走由地圖可走層判定；例：木板/地毯）。因此也不掛可破壞。
         BoxCollider2D col = null;
-        if (addObjectColliders && !inst.walkable)
+        if (addObjectColliders && !inst.walkable && !inst.passThrough)
         {
             var box = _sprites.GetAlphaLocalBox(item, _map.tileSize);
             col = go.AddComponent<BoxCollider2D>();
@@ -456,7 +456,7 @@ public class MapLoader : MonoBehaviour
         // hp < 0（例如 -1）= 不可摧毀:不掛 DestructibleObject,但上面的碰撞框照常 → 等於一般牆壁(擋＋反彈)。
         // walkable 物件沒有碰撞、打不到，也不掛可破壞。
         // 榕樹妖的臉刻意不可破壞（boss 不能被直接攻擊；臉是演出用地上物，被打爆會破壞死亡表演）。
-        if (objectsDestructible && !inst.walkable && inst.hp >= 0 && !isBanyanFace)
+        if (objectsDestructible && !inst.walkable && !inst.passThrough && inst.hp >= 0 && !isBanyanFace)
         {
             var d = go.AddComponent<DestructibleObject>();
             float hp = inst.hp > 0 ? inst.hp : objectMaxHP;   // >0 用編輯器血量;==0 退回全域後備值

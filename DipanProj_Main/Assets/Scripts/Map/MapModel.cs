@@ -89,7 +89,8 @@ namespace Dipan.MapRuntime
         public int hp = 1;       // 可破壞血量;編輯器寫入,缺省 = 1（打一下就壞）
         public float animFps = 8f; // 動畫地上物的每實例播放幀率（僅動畫物件有意義;靜態物件忽略）
         public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，接縫不跳變)
-        public bool walkable = false; // 勾選＝不設碰撞、不擋路（走地圖可走層判定）；也因此不掛可破壞
+        public bool walkable = false; // 勾選＝不設碰撞、不擋路（走地圖可走層判定）；也因此不掛可破壞。畫在角色腳下（固定低排序）。
+        public bool passThrough = false; // 勾選＝不設碰撞（可穿過）但『照常 Y-sort』依 Y 前後遮蔽（站立的鬼魂/煙/光用）。與 walkable 的差別：walkable 固定畫在角色腳下、passThrough 依 Y 和角色/彼此正確交錯。
         public string breakFlag = ""; // 被破壞時把此旗標設為 true（給觸發鏈 requireFlag 用，例：打破供品→改變劇情）；空＝不寫。僅可破壞物件有效
         // 出現條件：完成 N 關後才出現（用「完成關卡數」判定）。0（或缺欄）＝一開始就出現。MapLoader 進圖當下判定，未達則不生此物件。
         public int appearAfterClears = 0;

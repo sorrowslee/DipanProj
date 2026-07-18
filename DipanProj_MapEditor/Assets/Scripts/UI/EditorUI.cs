@@ -772,9 +772,12 @@ namespace DipanMapEditor.UI
                 }
             }
 
-            // 可走（勾選＝這個地上物不擋路、不設碰撞，走不走由地圖該格可走層決定；例：木板/地毯可踩上去）。
-            bool nextWalk = GUILayout.Toggle(sel.walkable, " 可走（不擋路，走地圖判定）");
-            if (nextWalk != sel.walkable) { UndoManager.Push(); sel.walkable = nextWalk; }
+            // 可走（勾選＝這個地上物不擋路、不設碰撞、畫在角色腳下；例：木板/地毯可踩上去）。
+            bool nextWalk = GUILayout.Toggle(sel.walkable, " 可走");
+            if (nextWalk != sel.walkable) { UndoManager.Push(); sel.walkable = nextWalk; if (nextWalk) sel.passThrough = false; }
+            // 可穿越（勾選＝無碰撞可穿過，但照常 Y-sort 依 Y 前後遮蔽；給站立的鬼魂/煙/光這種穿透物）。與可走互斥。
+            bool nextPass = GUILayout.Toggle(sel.passThrough, " 可穿越");
+            if (nextPass != sel.passThrough) { UndoManager.Push(); sel.passThrough = nextPass; if (nextPass) sel.walkable = false; }
 
             // 不可被摧毀（勾選＝血量 -1）；未勾選才顯示可調的數值血量
             bool indes = sel.hp == -1;
@@ -804,7 +807,7 @@ namespace DipanMapEditor.UI
 
             // 破壞觸發旗標：破壞這個可破壞物件時把指定旗標設為 true（給觸發鏈 requireFlag 用，例：打破供品→改變劇情走向）。
             // 只有「可破壞」（非可走、非不可摧毀）的物件才有效；用旗標管理器登記的旗標（輸入 id→確認），與觸發點同一套。
-            if (!sel.walkable && sel.hp != -1)
+            if (!sel.walkable && !sel.passThrough && sel.hp != -1)
             {
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("破壞旗標", GUILayout.Width(64));

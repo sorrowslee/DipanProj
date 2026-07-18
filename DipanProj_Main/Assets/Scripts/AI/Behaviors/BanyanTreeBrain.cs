@@ -26,6 +26,11 @@ public class BanyanTreeBrain : IMonsterBrain
     const float SpikeDamage      = 10f;   // 一般地刺碰玩家傷害
     const float SpikeScale       = 1f;    // 一般地刺大小
 
+    // ── 地刺生成的「安全內縮」：可走區的最外圈（尤其貼著底部操控列 HUD／左右血魔球）不要冒地刺 ──
+    // 隨機灑、排掃、放大版都吃這個內縮框。單位＝世界座標；覺得還太靠邊就把數值調大。
+    const float SpawnEdgeInset   = 0.5f;  // 上／左／右 往內縮（避開牆邊、左右血魔球上方）
+    const float SpawnBottomInset = 1.0f;  // 底部（HUD 那一側）多縮一點，地刺不貼著操控列冒出
+
     // ── 階段一 (>50%) ──
     const float P1_Interval = 3.0f;
     const int   P1_Spikes   = 3;
@@ -37,8 +42,9 @@ public class BanyanTreeBrain : IMonsterBrain
     // ── 階段三 (<20%)：只放兩招大絕、隨機輪流（不夾一般地刺）──
     const float P3_UltimateInterval = 3.5f;  // 兩次大絕之間的間隔（秒）
 
-    // ── 大絕一：橫掃（5 排固定位置，每次隨機挑 2 排、逐排反方向推進）──
-    const int   Sweep_TotalRows   = 5;     // 由上到下共 5 排固定位置
+    // ── 大絕一：橫掃（3 排固定位置，每次隨機挑 2 排、逐排反方向推進）──
+    // ↑ 場地縮小後由 5 排改 3 排（2026-07-18）：3 排都落在可走範圍內、彼此更分明。
+    const int   Sweep_TotalRows   = 3;     // 由上到下共 3 排固定位置
     const int   Sweep_RowsPerCast = 2;     // 每次放幾排
     const float Sweep_ColStep     = 1.2f;  // 每排上地刺的間距（世界單位）
     const float Sweep_ColStagger  = 0.12f; // 同排相鄰兩根冒出的時間差（＝推進速度）
@@ -135,9 +141,26 @@ public class BanyanTreeBrain : IMonsterBrain
     {
         var nav = MapNavGrid.Instance;
         if (nav == null || _boss == null) return;
+        Rect sb = SpawnBounds(nav);
         for (int i = 0; i < count; i++)
-            if (nav.TryGetRandomWalkable(out Vector2 p))
-                BossSpike.Fire(p, SpikeScale, _boss, SpikeDamage);
+        {
+            // 取可走點，但排除貼著邊緣／HUD 的最外圈：多試幾次直到落在內縮框內。
+            Vector2 p = Vector2.zero; bool ok = false;
+            for (int t = 0; t < 12 && !ok; t++)
+                if (nav.TryGetRandomWalkable(out p) && sb.Contains(p)) ok = true;
+            if (ok) BossSpike.Fire(p, SpikeScale, _boss, SpikeDamage);
+        }
+    }
+
+    // 可走區外框再往內縮（排除貼著牆／HUD 的最外圈）＝地刺允許生成的範圍。可走區太小縮到反轉時退回其中心點。
+    static Rect SpawnBounds(MapNavGrid nav)
+    {
+        Rect b = nav.WalkableBounds();
+        float xMin = b.xMin + SpawnEdgeInset,   xMax = b.xMax - SpawnEdgeInset;
+        float yMin = b.yMin + SpawnBottomInset, yMax = b.yMax - SpawnEdgeInset;
+        if (xMax < xMin) { float c = (b.xMin + b.xMax) * 0.5f; xMin = xMax = c; }
+        if (yMax < yMin) { float c = (b.yMin + b.yMax) * 0.5f; yMin = yMax = c; }
+        return Rect.MinMaxRect(xMin, yMin, xMax, yMax);
     }
 
     // 大絕一：把 5 排攤在「可走區的 y 範圍」內、只收「有地刺可放」的排（避免整排落在牆上→看起來只出一排），
@@ -146,7 +169,7 @@ public class BanyanTreeBrain : IMonsterBrain
     {
         var nav = MapNavGrid.Instance;
         if (nav == null || _boss == null) return;
-        Rect b = nav.WalkableBounds();
+        Rect b = SpawnBounds(nav);   // 用「內縮框」＝排掃也不貼邊緣／HUD
 
         // 先算每一排的可走 x 清單，只收有地刺可放的排。
         var rowTy = new List<float>();
@@ -187,11 +210,18 @@ public class BanyanTreeBrain : IMonsterBrain
     void GiantSpike()
     {
         if (_boss == null) return;
+        var nav = MapNavGrid.Instance;
         Camera cam = Camera.main;
         if (cam == null) cam = Object.FindObjectOfType<Camera>();
-        Vector2 pos;
-        if (cam != null) pos = cam.transform.position;                             // 畫面正中間
-        else { var nav = MapNavGrid.Instance; pos = (nav != null) ? nav.WalkableBounds().center : Vector2.zero; }
+        Vector2 pos = (cam != null) ? (Vector2)cam.transform.position
+                    : (nav != null ? nav.WalkableBounds().center : Vector2.zero); // 畫面正中間（沒相機退回可走中心）
+        // 遵循可走規範：把大地刺夾進「可走內縮框」，且落點必須可走（相機中心可能落在樹背景／HUD 等不可走處）。
+        if (nav != null)
+        {
+            Rect sb = SpawnBounds(nav);
+            pos = new Vector2(Mathf.Clamp(pos.x, sb.xMin, sb.xMax), Mathf.Clamp(pos.y, sb.yMin, sb.yMax));
+            if (!nav.IsWalkableWorld(pos)) pos = sb.center;
+        }
         BossSpike.Fire(pos, Giant_Scale, _boss, Giant_Damage, 0f, Giant_HitFillW, Giant_HitFillH);   // 碰撞框貼齊可見地刺（貼基座、只下半）
     }
 }

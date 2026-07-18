@@ -68,7 +68,8 @@ namespace DipanMapEditor.Data
         public int hp = 1;       // 血量；-1 = 不可被摧毀，>=0 = 可摧毀血量（預設 1，交由遊戲端解讀）
         public float animFps = 8f; // 動畫地上物的每實例播放幀率（僅動畫物件有意義；靜態物件忽略）
         public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，首尾接不順時用，接縫消失)
-        public bool walkable = false; // 勾選＝不擋路/不設碰撞，可走與否交給地圖可走層判定（例：木板/地毯）
+        public bool walkable = false; // 勾選＝不擋路/不設碰撞，畫在角色腳下（可走與否交給地圖可走層判定；例：木板/地毯）
+        public bool passThrough = false; // 勾選＝不設碰撞（可穿過）但照常 Y-sort 依 Y 前後遮蔽（站立的鬼魂/煙/光用；walkable 則畫在角色腳下）
         public string breakFlag = ""; // 被破壞時把此旗標設為 true（給觸發鏈 requireFlag 用，例：打破供品→改變劇情）；空＝不寫。僅可破壞物件有效
         // 出現條件：完成 N 關後才出現（用「完成關卡數」判定）。0（或缺欄）＝一開始就出現。遊戲端 MapLoader 進圖當下判定，未達則不生此物件。
         public int appearAfterClears = 0;
