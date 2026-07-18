@@ -640,7 +640,11 @@ public class MapLoader : MonoBehaviour
         {
             if (r.typeId != teleportTypeId) continue;
             if (!r.GetBool("showMarker", true)) continue;   // 傳送點勾掉「使用傳送點外型」→ 不生外型（預設顯示）
-            if (!RegionCenter(r, out Vector2 center)) continue;
+            // 外型位置：優先用「視覺錨點」markerX/markerY（編輯器點放的精準世界座標）；沒設才退回格子平均中心。
+            Vector2 center;
+            if (r.Params != null && r.Params.ContainsKey("markerX") && r.Params.ContainsKey("markerY"))
+                center = new Vector2(r.GetFloat("markerX"), r.GetFloat("markerY"));
+            else if (!RegionCenter(r, out center)) continue;
             var inst = _vfx.Spawn(teleportVfxId, center, 0f);
             if (inst != null)
             {

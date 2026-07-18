@@ -1,4 +1,5 @@
 using UnityEngine;
+using DipanMapEditor.Data;
 using DipanMapEditor.Tools;
 using DipanMapEditor.UI;
 
@@ -67,6 +68,44 @@ namespace DipanMapEditor.Core
             }
             GL.End();
             GL.PopMatrix();
+
+            // 選取中的傳送點：畫「外型位置」預覽（黃十字＝特效實際落點；藍格＝踩踏功能區）。給對齊門用。
+            if (current != null && current.typeId == "teleport" && TryMarkerPos(current, map, out Vector2 mp))
+            {
+                _mat.SetPass(0);
+                GL.PushMatrix();
+                GL.Begin(GL.LINES);
+                GL.Color(new Color(1f, 0.92f, 0.2f, 0.95f));
+                float rr = ts * 0.38f;
+                GL.Vertex3(mp.x - rr, mp.y, 0); GL.Vertex3(mp.x + rr, mp.y, 0);
+                GL.Vertex3(mp.x, mp.y - rr, 0); GL.Vertex3(mp.x, mp.y + rr, 0);
+                GL.Vertex3(mp.x - rr, mp.y, 0); GL.Vertex3(mp.x, mp.y + rr, 0);
+                GL.Vertex3(mp.x, mp.y + rr, 0); GL.Vertex3(mp.x + rr, mp.y, 0);
+                GL.Vertex3(mp.x + rr, mp.y, 0); GL.Vertex3(mp.x, mp.y - rr, 0);
+                GL.Vertex3(mp.x, mp.y - rr, 0); GL.Vertex3(mp.x - rr, mp.y, 0);
+                GL.End();
+                GL.PopMatrix();
+            }
+        }
+
+        // 傳送點外型的預覽位置：有錨點 markerX/markerY 用它，否則用格子平均中心（同遊戲端 RegionCenter）。
+        static bool TryMarkerPos(TriggerRegion r, MapData map, out Vector2 pos)
+        {
+            pos = Vector2.zero;
+            if (r.Params != null
+                && r.Params.TryGetValue("markerX", out var vx) && vx != null && float.TryParse(vx.ToString(), out float mx)
+                && r.Params.TryGetValue("markerY", out var vy) && vy != null && float.TryParse(vy.ToString(), out float my))
+            { pos = new Vector2(mx, my); return true; }
+            if (r.cells == null || r.cells.Count == 0) return false;
+            Vector2 sum = Vector2.zero; int n = 0;
+            Vector2 origin = MapCoords.Origin(map);
+            foreach (var c in r.cells)
+            {
+                if (c == null || c.Length < 2) continue;
+                sum += MapCoords.CellCenter(c[0], c[1], map.tileSize, origin); n++;
+            }
+            if (n == 0) return false;
+            pos = sum / n; return true;
         }
     }
 }

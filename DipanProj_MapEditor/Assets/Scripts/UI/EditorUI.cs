@@ -42,6 +42,10 @@ namespace DipanMapEditor.UI
 
         // Trigger
         public TriggerRegion CurrentRegion { get; private set; }
+
+        // 傳送點「外型位置」點放模式：面板開啟後，TriggerController 下一次點畫布就把 markerX/markerY 設成點擊處。
+        public bool MarkerPlaceActive { get; private set; }
+        public void EndMarkerPlace() => MarkerPlaceActive = false;
         public bool TriggerAddCells { get; private set; } = true;     // true=加格、false=減格
         public bool TriggerPaintMode { get; private set; } = true;    // true=筆刷、false=檢視（點區域檢查參數）
         // true=選了類型、每畫一筆建一個「新」區域；false=正在編輯某個既有區域（加進它）
@@ -1018,6 +1022,10 @@ namespace DipanMapEditor.UI
                     foreach (var p in def.paramSchema) DrawParamField(CurrentRegion, p);
                 }
 
+                // 傳送點：外型特效(marker)的精準位置——可獨立於功能格子點放，並在畫布即時預覽(黃十字)。
+                if (CurrentRegion.typeId == "teleport") DrawTeleportMarkerAnchor();
+                else MarkerPlaceActive = false;
+
                 // 觸發鏈通用欄位（每種類型都有；遊戲端 TriggerChain 解讀）。依 group 分小節顯示。
                 GUILayout.Space(4);
                 GUILayout.Label("── 觸發鏈/條件（通用）──");
@@ -1044,6 +1052,35 @@ namespace DipanMapEditor.UI
 
             GUILayout.EndScrollView();
             GUILayout.EndArea();
+        }
+
+        // 傳送點「外型位置」小面板：狀態 + 點放 + 回到中心（預覽黃十字由 TriggerOverlay 畫）。
+        void DrawTeleportMarkerAnchor()
+        {
+            var r = CurrentRegion;
+            GUILayout.Space(4);
+            GUILayout.Label("── 外型位置（傳送點特效）──");
+            bool has = r.Params != null && r.Params.ContainsKey("markerX") && r.Params.ContainsKey("markerY");
+            if (has)
+            {
+                float.TryParse(r.Params["markerX"].ToString(), out float mx);
+                float.TryParse(r.Params["markerY"].ToString(), out float my);
+                GUILayout.Label($"目前：自訂 ({mx:F2}, {my:F2})");
+            }
+            else GUILayout.Label("目前：跟隨格子平均中心");
+            GUILayout.BeginHorizontal();
+            GUI.color = MarkerPlaceActive ? Color.cyan : Color.white;
+            if (GUILayout.Button(MarkerPlaceActive ? "點門正中央…(Esc取消)" : "設定外型位置")) MarkerPlaceActive = !MarkerPlaceActive;
+            GUI.color = Color.white;
+            if (GUILayout.Button("回到中心") && r.Params != null)
+            {
+                UndoManager.Push();
+                r.Params.Remove("markerX");
+                r.Params.Remove("markerY");
+                MarkerPlaceActive = false;
+            }
+            GUILayout.EndHorizontal();
+            GUILayout.Label("黃十字＝特效實際落點、藍格＝踩踏功能區。\n按「設定外型位置」再點門正中央即可對齊。");
         }
 
         /// <summary>供 TriggerController 在開始畫時呼叫：沒有當前區域就依選取的類型自動建一個。</summary>

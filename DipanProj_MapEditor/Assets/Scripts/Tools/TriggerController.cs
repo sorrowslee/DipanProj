@@ -32,6 +32,25 @@ namespace DipanMapEditor.Tools
 
             var map = session.Map;
 
+            // 傳送點「外型位置」點放：面板按下「設定外型位置」後，下一次點畫布就把該傳送點的 markerX/markerY 設成點擊處。
+            if (_ui.MarkerPlaceActive)
+            {
+                if (Input.GetKeyDown(KeyCode.Escape)) { _ui.EndMarkerPlace(); return; }
+                if (Input.GetMouseButtonDown(0) && !_ui.IsPointerOverUI(Input.mousePosition))
+                {
+                    var reg = _ui.CurrentRegion;
+                    if (reg != null && reg.typeId == "teleport" && reg.Params != null)
+                    {
+                        Vector3 w = _cam.ScreenToWorldPoint(Input.mousePosition);
+                        UndoManager.Push();
+                        reg.Params["markerX"] = w.x;
+                        reg.Params["markerY"] = w.y;
+                    }
+                    _ui.EndMarkerPlace();
+                }
+                return;   // 放置模式中吃掉輸入，不做塗刷/選取
+            }
+
             // ESC：進入檢視模式（停止筆刷，改成點區域檢查）
             if (Input.GetKeyDown(KeyCode.Escape)) { _ui.EnterTriggerInspect(); return; }
 
