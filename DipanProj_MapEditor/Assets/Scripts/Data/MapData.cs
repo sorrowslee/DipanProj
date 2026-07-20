@@ -51,6 +51,9 @@ namespace DipanMapEditor.Data
         /// <summary>場景特效（可放置的粒子特效，煙/火/冰/毒…）；獨立於圖層，直接掛在地圖上。</summary>
         public List<SceneFxInstance> sceneFx = new List<SceneFxInstance>();
 
+        /// <summary>劇情演出（半演出半漫畫的過場）；null＝此圖無演出。目前一張圖最多一段。</summary>
+        public Cutscene cutscene = null;
+
         // ---- 便利存取 ----
 
         [JsonIgnore]

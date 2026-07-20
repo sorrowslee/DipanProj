@@ -115,6 +115,13 @@ namespace DipanMapEditor.UI
         SceneFxInstance _sfxBufFor;
         string _bufFxId, _bufBulge, _bufW, _bufH, _bufInterval;
 
+        // 劇情工具
+        Tools.CutsceneController _csCtl;
+        Vector2 _csScroll;
+        CutsceneActor _csActorBufFor;
+        CutsceneStep _csStepBufFor;
+        string _csBufDrama, _csBufSeconds, _csBufZoom, _csBufScale, _csBufFps;
+
         // 物件調色盤
         List<PlaceableObject> _objects;
         string _objectsModule;
@@ -193,6 +200,12 @@ namespace DipanMapEditor.UI
             return _sfxCtl;
         }
 
+        Tools.CutsceneController CsCtl()
+        {
+            if (_csCtl == null) _csCtl = FindObjectOfType<Tools.CutsceneController>();
+            return _csCtl;
+        }
+
         // ---- 供 PaintController 查詢：指標是否壓在 UI 面板上 ----
         public bool IsPointerOverUI(Vector3 mousePos)
         {
@@ -231,6 +244,10 @@ namespace DipanMapEditor.UI
             else if (CurrentTool == EditTool.SceneFx)
             {
                 DrawSceneFxPanel();
+            }
+            else if (CurrentTool == EditTool.Cutscene)
+            {
+                DrawCutscenePanel();
             }
             else if (CurrentTool == EditTool.EffectPreview)
             {
@@ -305,6 +322,8 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("旗標", GUILayout.Width(50))) { if (CurrentTool == EditTool.EffectPreview) CurrentTool = EditTool.TilePaint; _showFlags = true; _flagMsg = ""; }
             GUI.color = CurrentTool == EditTool.SceneFx ? Color.cyan : Color.white;
             if (GUILayout.Button("場景特效", GUILayout.Width(80))) CurrentTool = EditTool.SceneFx;
+            GUI.color = CurrentTool == EditTool.Cutscene ? Color.cyan : Color.white;
+            if (GUILayout.Button("劇情", GUILayout.Width(50))) CurrentTool = EditTool.Cutscene;
             GUI.color = CurrentTool == EditTool.EffectPreview ? Color.cyan : Color.white;
             if (GUILayout.Button("特效預覽器", GUILayout.Width(90)))
             {
@@ -1527,6 +1546,252 @@ namespace DipanMapEditor.UI
         {
             int slash = id.LastIndexOf('/');
             return slash >= 0 ? id.Substring(slash + 1) : id;
+        }
+
+        // ================= 劇情演出（Cutscene）面板 =================
+        static readonly string[] StepTypes =
+            { "move", "face", "dialogue", "wait", "camera", "cameraFollow", "comic", "spawn", "despawn", "screenFx", "setFlag", "end" };
+
+        void DrawCutscenePanel()
+        {
+            var map = MapSession.Instance?.Map;
+            var ctl = CsCtl();
+            if (map == null || ctl == null) return;
+
+            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+            _csScroll = GUILayout.BeginScrollView(_csScroll);
+
+            GUILayout.Label("劇情演出（半演出半漫畫）");
+            var cs = map.cutscene;
+            if (cs == null)
+            {
+                GUILayout.Label("此圖尚無演出。");
+                if (GUILayout.Button("＋ 建立演出")) ctl.EnsureCutscene();
+                GUILayout.EndScrollView(); GUILayout.EndArea(); return;
+            }
+
+            cs.autoStartOnEnter = GUILayout.Toggle(cs.autoStartOnEnter, "一進圖自動播 autoStart");
+            cs.skippable = GUILayout.Toggle(cs.skippable, "可略過 skippable");
+            cs.lockInput = GUILayout.Toggle(cs.lockInput, "演出期間鎖操作 lockInput");
+            if (GUILayout.Button("刪除整段演出"))
+            {
+                ctl.RemoveCutscene();
+                GUILayout.EndScrollView(); GUILayout.EndArea(); return;
+            }
+
+            GUILayout.Space(6);
+            GUILayout.Label($"── 演員（{cs.actors.Count}）──");
+            if (GUILayout.Button("＋ 新增演員")) ctl.NewActor();
+            CutsceneActor delA = null;
+            foreach (var a in cs.actors)
+            {
+                GUILayout.BeginHorizontal();
+                GUI.color = (a == ctl.SelectedActor) ? Color.cyan : Color.white;
+                if (GUILayout.Button($"{a.id} [{a.kind}]", GUILayout.Width(150))) ctl.SelectActor(a);
+                GUI.color = Color.white;
+                if (GUILayout.Button("刪", GUILayout.Width(32))) delA = a;
+                GUILayout.EndHorizontal();
+            }
+            if (delA != null) ctl.DeleteActor(delA);
+
+            var sa = ctl.SelectedActor;
+            if (sa != null)
+            {
+                GUILayout.Space(4);
+                GUILayout.Label("── 編輯演員 ──");
+                sa.id = LabeledText("id", sa.id);
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("種類", GUILayout.Width(60));
+                GUI.color = sa.kind == "npc" ? Color.cyan : Color.white;
+                if (GUILayout.Button("npc", GUILayout.Width(50))) sa.kind = "npc";
+                GUI.color = sa.kind == "player" ? Color.cyan : Color.white;
+                if (GUILayout.Button("主角傀儡", GUILayout.Width(80))) sa.kind = "player";
+                GUI.color = Color.white;
+                GUILayout.EndHorizontal();
+                if (sa.kind == "npc") sa.spriteFolder = LabeledText("序列圖資料夾", sa.spriteFolder);
+                FacingRow("起始朝向", ref sa.facing);
+                sa.spawnAtStart = GUILayout.Toggle(sa.spawnAtStart, "開場就在場上（否＝等 spawn）");
+                if (_csActorBufFor != sa)
+                {
+                    _csActorBufFor = sa;
+                    _csBufScale = sa.scale.ToString("0.###");
+                    _csBufFps = sa.animFps.ToString("0.###");
+                }
+                _csBufScale = LabeledText("縮放 scale", _csBufScale); sa.scale = ParseFloatOr(_csBufScale, 1f);
+                _csBufFps = LabeledText("動畫 fps", _csBufFps); sa.animFps = ParseFloatOr(_csBufFps, 8f);
+                GUI.color = ctl.Mode == Tools.CutsceneController.PlaceMode.ActorPos ? Color.green : Color.white;
+                if (GUILayout.Button("放置起點（點畫布）")) ctl.BeginPlaceActor();
+                GUI.color = Color.white;
+                GUILayout.Label($"起點 ({sa.x:0.0}, {sa.y:0.0})　朝{(sa.facing == "right" ? "右" : "左")}");
+            }
+
+            GUILayout.Space(8);
+            GUILayout.Label($"── 步驟（{cs.steps.Count}）依序執行 ──");
+            if (GUILayout.Button("＋ 新增步驟")) ctl.NewStep();
+            CutsceneStep delS = null;
+            for (int i = 0; i < cs.steps.Count; i++)
+            {
+                var s2 = cs.steps[i];
+                GUILayout.BeginHorizontal();
+                GUI.color = (s2 == ctl.SelectedStep) ? Color.cyan : Color.white;
+                if (GUILayout.Button($"{i + 1}. {StepSummary(s2)}", GUILayout.Width(150))) ctl.SelectStep(s2);
+                GUI.color = Color.white;
+                if (GUILayout.Button("↑", GUILayout.Width(24))) ctl.MoveStep(s2, -1);
+                if (GUILayout.Button("↓", GUILayout.Width(24))) ctl.MoveStep(s2, +1);
+                if (GUILayout.Button("刪", GUILayout.Width(28))) delS = s2;
+                GUILayout.EndHorizontal();
+            }
+            if (delS != null) ctl.DeleteStep(delS);
+
+            var ss = ctl.SelectedStep;
+            if (ss != null) DrawStepEditor(cs, ss, ctl);
+
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
+
+        void DrawStepEditor(Cutscene cs, CutsceneStep s, Tools.CutsceneController ctl)
+        {
+            GUILayout.Space(4);
+            GUILayout.Label("── 編輯步驟 ──");
+            GUILayout.Label("型別");
+            int per = 0;
+            GUILayout.BeginHorizontal();
+            foreach (var t in StepTypes)
+            {
+                GUI.color = s.type == t ? Color.cyan : Color.white;
+                if (GUILayout.Button(t, GUILayout.Width(78))) s.type = t;
+                GUI.color = Color.white;
+                if (++per % 3 == 0) { GUILayout.EndHorizontal(); GUILayout.BeginHorizontal(); }
+            }
+            GUILayout.EndHorizontal();
+
+            if (_csStepBufFor != s)
+            {
+                _csStepBufFor = s;
+                _csBufDrama = s.dramaId.ToString();
+                _csBufSeconds = s.seconds.ToString("0.###");
+                _csBufZoom = s.zoom.ToString("0.###");
+            }
+
+            switch (s.type)
+            {
+                case "move":
+                    ActorPicker(cs, s, false);
+                    PlaceStepPosRow(ctl, s, "放置目標位置（點畫布）");
+                    FacingRow("抵達後朝向", ref s.facing);
+                    s.parallelNext = GUILayout.Toggle(s.parallelNext, "與下一步同時（走位＋運鏡）");
+                    break;
+                case "face":
+                    ActorPicker(cs, s, false);
+                    FacingRow("朝向", ref s.facing);
+                    break;
+                case "dialogue":
+                    _csBufDrama = LabeledText("dramaId(DramaTable)", _csBufDrama); s.dramaId = ParseIntOr(_csBufDrama, 0);
+                    GUILayout.Label("（沿用劇情系統，播完才繼續）");
+                    break;
+                case "wait":
+                    _csBufSeconds = LabeledText("等待秒數", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 1f);
+                    break;
+                case "camera":
+                    PlaceStepPosRow(ctl, s, "放置鏡頭中心（點畫布）");
+                    _csBufZoom = LabeledText("縮放 zoom(1=原)", _csBufZoom); s.zoom = ParseFloatOr(_csBufZoom, 1f);
+                    _csBufSeconds = LabeledText("過渡秒數", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 1f);
+                    s.parallelNext = GUILayout.Toggle(s.parallelNext, "與下一步同時");
+                    break;
+                case "cameraFollow":
+                    ActorPicker(cs, s, true);
+                    s.parallelNext = GUILayout.Toggle(s.parallelNext, "與下一步同時");
+                    break;
+                case "comic":
+                    s.assetId = LabeledText("圖片路徑id", s.assetId);
+                    _csBufSeconds = LabeledText("停留秒數", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 3f);
+                    GUILayout.Label("（置中顯示，期間演員暫停）");
+                    break;
+                case "spawn":
+                case "despawn":
+                    ActorPicker(cs, s, false);
+                    break;
+                case "screenFx":
+                    s.assetId = LabeledText("effectId(1=破幻術)", s.assetId);
+                    _csBufSeconds = LabeledText("停留秒數", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 0f);
+                    break;
+                case "setFlag":
+                    s.flag = LabeledText("旗標名", s.flag);
+                    break;
+                case "end":
+                    s.assetId = LabeledText("去向(fall/mapId)", s.assetId);
+                    GUILayout.Label("（結束演出並交棒）");
+                    break;
+            }
+        }
+
+        void ActorPicker(Cutscene cs, CutsceneStep s, bool allowPlayerEmpty)
+        {
+            GUILayout.Label("演員");
+            GUILayout.BeginHorizontal();
+            if (allowPlayerEmpty)
+            {
+                GUI.color = string.IsNullOrEmpty(s.actorId) ? Color.cyan : Color.white;
+                if (GUILayout.Button("玩家", GUILayout.Width(60))) s.actorId = "";
+            }
+            foreach (var a in cs.actors)
+            {
+                GUI.color = s.actorId == a.id ? Color.cyan : Color.white;
+                if (GUILayout.Button(a.id, GUILayout.Width(90))) s.actorId = a.id;
+            }
+            GUI.color = Color.white;
+            GUILayout.EndHorizontal();
+        }
+
+        void PlaceStepPosRow(Tools.CutsceneController ctl, CutsceneStep s, string label)
+        {
+            GUI.color = ctl.Mode == Tools.CutsceneController.PlaceMode.StepPos ? Color.green : Color.white;
+            if (GUILayout.Button(label)) ctl.BeginPlaceStepPos();
+            GUI.color = Color.white;
+            GUILayout.Label(s.hasPos ? $"目標 ({s.x:0.0}, {s.y:0.0})" : "（尚未設定位置）");
+        }
+
+        static void FacingRow(string label, ref string facing)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(90));
+            GUI.color = facing == "left" ? Color.cyan : Color.white;
+            if (GUILayout.Button("左", GUILayout.Width(40))) facing = "left";
+            GUI.color = facing == "right" ? Color.cyan : Color.white;
+            if (GUILayout.Button("右", GUILayout.Width(40))) facing = "right";
+            GUI.color = Color.white;
+            GUILayout.EndHorizontal();
+        }
+
+        static string LabeledText(string label, string val)
+        {
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(130));
+            string r = GUILayout.TextField(val ?? "", GUILayout.Width(90));
+            GUILayout.EndHorizontal();
+            return r;
+        }
+
+        static string StepSummary(CutsceneStep s)
+        {
+            switch (s.type)
+            {
+                case "move": return $"move {s.actorId}";
+                case "face": return $"face {s.actorId} {s.facing}";
+                case "dialogue": return $"對話 #{s.dramaId}";
+                case "wait": return $"等 {s.seconds:0.#}s";
+                case "camera": return "運鏡";
+                case "cameraFollow": return $"鏡頭跟 {(string.IsNullOrEmpty(s.actorId) ? "玩家" : s.actorId)}";
+                case "comic": return $"漫畫 {Short(s.assetId ?? "")}";
+                case "spawn": return $"出現 {s.actorId}";
+                case "despawn": return $"消失 {s.actorId}";
+                case "screenFx": return $"螢幕fx {s.assetId}";
+                case "setFlag": return $"旗標 {s.flag}";
+                case "end": return $"結束→{s.assetId}";
+                default: return s.type;
+            }
         }
 
         static Rect CenteredRect(int w, int h)

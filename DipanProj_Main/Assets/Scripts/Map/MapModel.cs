@@ -27,6 +27,9 @@ namespace Dipan.MapRuntime
         // 場景特效（可放置的粒子特效；編輯器放、遊戲端依 SceneFxTable 生成）。缺欄＝空清單。
         public List<SceneFxInstance> sceneFx = new List<SceneFxInstance>();
 
+        /// <summary>劇情演出（半演出半漫畫的過場）；null＝此圖無演出。目前一張圖最多一段。</summary>
+        public Cutscene cutscene = null;
+
         [JsonIgnore] public int Subdiv => walkSubdiv < 1 ? 1 : walkSubdiv;
         [JsonIgnore] public int FineWidth => width * Subdiv;
         [JsonIgnore] public int FineHeight => height * Subdiv;

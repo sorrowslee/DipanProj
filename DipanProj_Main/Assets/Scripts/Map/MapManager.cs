@@ -296,6 +296,9 @@ public class MapManager : MonoBehaviour
         mapLoader.SpawnMonsters();
         SetupWatcher();
 
+        // 劇情演出：此圖有 cutscene 且設 autoStart 就開演（半演出半漫畫的開場等）。見 CutsceneDirector。
+        Dipan.Cutscene.CutsceneDirector.MaybeAutoStart(mapLoader.Map, _player);
+
         // 關卡進度：把這張地圖「還沒撿走的掉落物」在原座標重放（換圖回來紅水還在原地）。見 RunProgress / InteractionManager。
         if (InteractionManager.Exists) InteractionManager.Instance.RestoreGroundDrops(_currentMapId);
 

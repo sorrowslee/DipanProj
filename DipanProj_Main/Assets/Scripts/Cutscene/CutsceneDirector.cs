@@ -1,0 +1,269 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using Dipan.MapRuntime;
+using Dipan.UI;
+using Dipan.Drama;
+
+namespace Dipan.Cutscene
+{
+    /// <summary>
+    /// 劇情演出排程器：讀 <see cref="MapData.cutscene"/>，用協程依序執行步驟（支援 parallelNext 並行），
+    /// 串接鎖輸入、A* 走位、對話（沿用 DramaTable）、置中漫畫、運鏡、螢幕特效、旗標、結束交棒。
+    /// 由 <see cref="MapManager"/> 在每次載圖完成後呼叫 <see cref="MaybeAutoStart"/>。
+    /// 半演出半漫畫的開場設計見 readme（CUTSCENE_DIRECTOR）。
+    /// </summary>
+    public class CutsceneDirector : MonoBehaviour
+    {
+        static CutsceneDirector _active;
+
+        Dipan.MapRuntime.Cutscene _cs;
+        float _tileSize = 1f;
+        readonly Dictionary<string, CutsceneActor> _actors = new Dictionary<string, CutsceneActor>();
+        MapCameraController _cam;
+        bool _skip;
+        GameObject _comicGo;
+
+        /// <summary>載圖完成後呼叫：此圖有演出且 autoStartOnEnter 就開演。</summary>
+        public static void MaybeAutoStart(MapData map, GameObject player)
+        {
+            if (map == null || map.cutscene == null) return;
+            var cs = map.cutscene;
+            if (!cs.autoStartOnEnter || cs.steps == null || cs.steps.Count == 0) return;
+
+            if (_active != null) { Destroy(_active.gameObject); _active = null; }   // 換圖收掉上一個
+
+            var go = new GameObject("[CutsceneDirector]");
+            var dir = go.AddComponent<CutsceneDirector>();
+            _active = dir;
+            dir._cs = cs;
+            dir._tileSize = map.tileSize > 0f ? map.tileSize : 1f;
+            dir.StartCoroutine(dir.Run());
+        }
+
+        void Update()
+        {
+            if (_cs != null && _cs.skippable && !_skip && Input.GetKeyDown(KeyCode.Escape))
+                _skip = true;   // 略過：中止剩餘步驟，直接收尾＋交棒
+        }
+
+        IEnumerator Run()
+        {
+            _cam = FindObjectOfType<MapCameraController>();
+            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(_cs.lockInput, false);
+
+            BuildActors();
+
+            var steps = _cs.steps;
+            int i = 0;
+            while (i < steps.Count && !_skip)
+            {
+                // 收集一個「並行群組」：以 parallelNext=true 串起的連續步驟同時開始，全部做完才往下。
+                var group = new List<Coroutine>();
+                while (true)
+                {
+                    var s = steps[i];
+                    group.Add(StartCoroutine(RunStep(s)));
+                    bool parallel = s.parallelNext;
+                    i++;
+                    if (!parallel || i >= steps.Count) break;
+                }
+                foreach (var c in group) yield return c;
+            }
+
+            // 交棒：找最後一個 end 步驟的去向（被略過時也照它走）。
+            CutsceneStep endStep = null;
+            for (int k = steps.Count - 1; k >= 0; k--) if (steps[k].type == "end") { endStep = steps[k]; break; }
+
+            Cleanup();
+            if (endStep != null) DoHandoff(endStep.assetId);
+            if (_active == this) _active = null;
+            Destroy(gameObject);
+        }
+
+        void BuildActors()
+        {
+            foreach (var a in _cs.actors)
+            {
+                CutsceneActor rt = (a.kind == "player")
+                    ? CutsceneActor.Player(a.id, a.facing, 0f)
+                    : CutsceneActor.Npc(a.id, a.spriteFolder, new Vector2(a.x, a.y), a.facing, a.scale, a.animFps, 3f, _tileSize);
+                if (!string.IsNullOrEmpty(a.id)) _actors[a.id] = rt;
+                if (!a.spawnAtStart) rt.SetActive(false);
+            }
+        }
+
+        CutsceneActor Find(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return null;
+            _actors.TryGetValue(id, out var a);
+            return a;
+        }
+
+        IEnumerator RunStep(CutsceneStep s)
+        {
+            if (_skip) yield break;
+            switch (s.type)
+            {
+                case "move": yield return MoveStep(s); break;
+                case "face": { var a = Find(s.actorId); if (a != null) a.Face(s.facing); break; }
+                case "dialogue": yield return DialogueStep(s); break;
+                case "wait": yield return WaitUnscaled(s.seconds); break;
+                case "camera": yield return CameraStep(s); break;
+                case "cameraFollow": yield return CameraFollowStep(s); break;
+                case "comic": yield return ComicStep(s); break;
+                case "spawn": { var a = Find(s.actorId); if (a != null) a.SetActive(true); break; }
+                case "despawn": { var a = Find(s.actorId); if (a != null) a.SetActive(false); break; }
+                case "screenFx": yield return ScreenFxStep(s); break;
+                case "setFlag": if (!string.IsNullOrEmpty(s.flag)) TriggerChain.SetFlag(s.flag); break;
+                case "end": break;   // 在主迴圈結束後統一處理
+            }
+        }
+
+        IEnumerator MoveStep(CutsceneStep s)
+        {
+            var a = Find(s.actorId);
+            if (a == null || !s.hasPos) yield break;
+            Vector2 target = new Vector2(s.x, s.y);
+            float guard = 0f;
+            while (!a.Reached(target, 0.25f) && !_skip && guard < 20f)
+            {
+                a.TickMove(target);
+                guard += Time.unscaledDeltaTime;
+                yield return null;
+            }
+            a.StopMove();
+            if (!string.IsNullOrEmpty(s.facing)) a.Face(s.facing);
+        }
+
+        IEnumerator DialogueStep(CutsceneStep s)
+        {
+            var data = DramaDatabase.Instance != null ? DramaDatabase.Instance.Get(s.dramaId) : null;
+            if (data != null && data.Type == 2) DramaTalkController.Play(data.TalkGroup);
+            else DramaPanel.Show(s.dramaId);
+
+            float t = 0f; bool opened = false;
+            while (t < 0.5f) { if (DramaOpen()) { opened = true; break; } t += Time.unscaledDeltaTime; yield return null; }
+            if (opened) while (DramaOpen() && !_skip) yield return null;
+        }
+
+        static bool DramaOpen()
+            => UIManager.Instance != null && (UIManager.Instance.IsOpen<DramaPanel>() || UIManager.Instance.IsOpen<TalkPanel>());
+
+        IEnumerator CameraStep(CutsceneStep s)
+        {
+            if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
+            if (_cam != null)
+            {
+                if (s.hasPos) _cam.SetFocusPoint(new Vector2(s.x, s.y));
+                if (Mathf.Abs(s.zoom - 1f) > 0.001f) _cam.SetCameraZone(s.zoom, Vector2.zero);
+                else _cam.ClearCameraZone();
+            }
+            yield return WaitUnscaled(s.seconds > 0f ? s.seconds : 1f);
+        }
+
+        IEnumerator CameraFollowStep(CutsceneStep s)
+        {
+            if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
+            if (_cam != null) { _cam.SetFocusPoint(null); _cam.ClearCameraZone(); }   // 放回跟隨玩家
+            yield return WaitUnscaled(s.seconds > 0f ? s.seconds : 0.5f);
+        }
+
+        IEnumerator ComicStep(CutsceneStep s)
+        {
+            foreach (var kv in _actors) kv.Value.StopMove();   // 期間演員暫停
+            ShowComic(s.assetId);
+            yield return WaitUnscaled(s.seconds > 0f ? s.seconds : 3f);
+            HideComic();
+        }
+
+        IEnumerator ScreenFxStep(CutsceneStep s)
+        {
+            int id = 0; int.TryParse(s.assetId, out id);
+            bool done = false;
+            ScreenFxPlayer.Play(id, () => done = true, s.seconds > 0f ? s.seconds : -1f);
+            float guard = 0f;
+            while (!done && !_skip && guard < 30f) { guard += Time.unscaledDeltaTime; yield return null; }
+        }
+
+        IEnumerator WaitUnscaled(float seconds)
+        {
+            if (seconds <= 0f) { yield return null; yield break; }
+            float t = 0f;
+            while (t < seconds && !_skip) { t += Time.unscaledDeltaTime; yield return null; }
+        }
+
+        // ---- 置中漫畫（輕量全螢幕 canvas；黑底＋置中圖，停留 N 秒）----
+        void ShowComic(string pathId)
+        {
+            HideComic();
+            Sprite sprite = string.IsNullOrEmpty(pathId) ? null : Resources.Load<Sprite>(pathId);
+
+            _comicGo = new GameObject("[CutsceneComic]");
+            var canvas = _comicGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 5000;
+            _comicGo.AddComponent<UnityEngine.UI.CanvasScaler>();
+
+            var bg = new GameObject("bg");
+            bg.transform.SetParent(_comicGo.transform, false);
+            var bgImg = bg.AddComponent<UnityEngine.UI.Image>();
+            bgImg.color = Color.black;
+            var bgrt = bgImg.rectTransform;
+            bgrt.anchorMin = Vector2.zero; bgrt.anchorMax = Vector2.one;
+            bgrt.offsetMin = Vector2.zero; bgrt.offsetMax = Vector2.zero;
+
+            if (sprite != null)
+            {
+                var img = new GameObject("img");
+                img.transform.SetParent(_comicGo.transform, false);
+                var im = img.AddComponent<UnityEngine.UI.Image>();
+                im.sprite = sprite;
+                im.preserveAspect = true;
+                var rt = im.rectTransform;
+                rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+                rt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height);
+                rt.anchoredPosition = Vector2.zero;
+            }
+            else
+            {
+                Debug.LogWarning($"[Cutscene] 漫畫圖找不到（Resources.Load 失敗）：'{pathId}'。" +
+                    "圖要放在某個 Resources 資料夾下、filePath 不含副檔名。");
+            }
+        }
+
+        void HideComic()
+        {
+            if (_comicGo != null) { Destroy(_comicGo); _comicGo = null; }
+        }
+
+        void Cleanup()
+        {
+            HideComic();
+            foreach (var kv in _actors) kv.Value.Cleanup();
+            _actors.Clear();
+            if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
+            if (_cam != null) { _cam.SetFocusPoint(null); _cam.ClearCameraZone(); }
+            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(false, false);
+        }
+
+        // 結束交棒：assetId 可為 mapId 數字 / "map:12" → MapManager.GoToMap；"scene:名稱" → 載場景。
+        // "fall"（接墜落動畫）需依你的場景結構接線，見教學。
+        void DoHandoff(string target)
+        {
+            if (string.IsNullOrEmpty(target)) return;
+            if (target.StartsWith("scene:"))
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene(target.Substring(6));
+                return;
+            }
+            string t = target.StartsWith("map:") ? target.Substring(4) : target;
+            if (int.TryParse(t, out int mapId))
+            {
+                if (MapManager.Instance != null) MapManager.Instance.GoToMap(mapId, null);
+                return;
+            }
+            Debug.LogWarning($"[Cutscene] end 去向無法解析：'{target}'（用 mapId 數字、'map:12' 或 'scene:Intro'）。'fall' 請見教學接線。");
+        }
+    }
+}
