@@ -24,6 +24,8 @@ namespace Dipan.Cutscene
         MapCameraController _cam;
         bool _skip;
         GameObject _comicGo;
+        GameObject _fadeGo;
+        UnityEngine.UI.Image _fadeImg;
 
         /// <summary>載圖完成後呼叫：此圖有演出且 autoStartOnEnter 就開演。</summary>
         public static void MaybeAutoStart(MapData map, GameObject player)
@@ -120,6 +122,7 @@ namespace Dipan.Cutscene
                 case "comic": yield return ComicStep(s); break;
                 case "spawn": { var a = Find(s.actorId); if (a != null) a.SetActive(true); break; }
                 case "despawn": { var a = Find(s.actorId); if (a != null) a.SetActive(false); break; }
+                case "fade": yield return FadeStep(s); break;
                 case "screenFx": yield return ScreenFxStep(s); break;
                 case "setFlag": if (!string.IsNullOrEmpty(s.flag)) TriggerChain.SetFlag(s.flag); break;
                 case "end": break;   // 在主迴圈結束後統一處理
@@ -191,6 +194,36 @@ namespace Dipan.Cutscene
             HideComic();
         }
 
+        IEnumerator FadeStep(CutsceneStep s)
+        {
+            bool toBlack = s.assetId != "in";               // 預設淡出到全黑；"in"＝從黑淡回
+            float dur = s.seconds > 0f ? s.seconds : 1f;
+            EnsureFade();
+            float from = _fadeImg != null ? _fadeImg.color.a : (toBlack ? 0f : 1f);
+            float to = toBlack ? 1f : 0f;
+            float t = 0f;
+            while (t < dur && !_skip) { t += Time.deltaTime; SetFadeAlpha(Mathf.Lerp(from, to, Mathf.Clamp01(t / dur))); yield return null; }
+            SetFadeAlpha(to);
+            if (!toBlack) HideFade();                        // 淡入完成 → 移除黑幕
+        }
+
+        void EnsureFade()
+        {
+            if (_fadeGo != null) return;
+            _fadeGo = new GameObject("[CutsceneFade]");
+            var canvas = _fadeGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 90;                        // 在對話框(UILayer.Window=100)之下、遊戲世界/角色之上 → 全黑但對話框(尖叫)仍浮在黑幕上可見
+            _fadeGo.AddComponent<UnityEngine.UI.CanvasScaler>();
+            _fadeImg = _fadeGo.AddComponent<UnityEngine.UI.Image>();
+            _fadeImg.raycastTarget = false;
+            _fadeImg.color = new Color(0f, 0f, 0f, 0f);
+            var rt = _fadeImg.rectTransform;
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+        }
+        void SetFadeAlpha(float a) { if (_fadeImg != null) _fadeImg.color = new Color(0f, 0f, 0f, a); }
+        void HideFade() { if (_fadeGo != null) { Destroy(_fadeGo); _fadeGo = null; _fadeImg = null; } }
+
         IEnumerator ScreenFxStep(CutsceneStep s)
         {
             int id = 0; int.TryParse(s.assetId, out id);
@@ -247,6 +280,7 @@ namespace Dipan.Cutscene
         void Cleanup(bool destroyNpcs)
         {
             HideComic();
+            HideFade();
             foreach (var kv in _actors)
             {
                 var a = kv.Value;
@@ -266,6 +300,18 @@ namespace Dipan.Cutscene
         void DoHandoff(string target)
         {
             if (string.IsNullOrEmpty(target)) return;
+            if (target == "fall")
+            {
+                // 劇情尾段接墜落：載入 Intro 場景只播全螢幕頁（Story_13~15）→ 側/正墜落 → 卍字 → 回 MainScene 起關到初始洞窟（11 睜眼）。
+                // 切場景前先用跨場景常駐黑幕(ScreenFader,30000)壓黑並自動淡出：撐過場景載入(hold) → 墜落漫畫背景就位後淡出(fade)。
+                // 自清式：協程跑在常駐的 ScreenFader 上、會延續到 Intro 場景，不靠 IntroComic 去清 → 一路黑到漫畫、無亮閃、也不會卡在全黑。
+                Dipan.Flow.ScreenFader.Ensure().BlackThenFadeOut(0.5f, 0.4f);
+                Dipan.Intro.IntroComicController.FallTailOnly = true;
+                MapManager.SuppressAutoStart = false;
+                MapManager.BootStartMapId = Dipan.Save.SaveConstants.PostFallMapId;   // 墜落尾段結束回 MainScene 後起關到初始洞窟
+                UnityEngine.SceneManagement.SceneManager.LoadScene(Dipan.Save.SaveConstants.IntroSceneName);
+                return;
+            }
             if (target.StartsWith("scene:"))
             {
                 UnityEngine.SceneManagement.SceneManager.LoadScene(target.Substring(6));

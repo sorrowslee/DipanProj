@@ -1557,7 +1557,7 @@ namespace DipanMapEditor.UI
 
         // ================= 劇情演出（Cutscene）面板 =================
         static readonly string[] StepTypes =
-            { "move", "face", "dialogue", "wait", "camera", "cameraFollow", "comic", "spawn", "despawn", "screenFx", "setFlag", "end" };
+            { "move", "face", "dialogue", "wait", "camera", "cameraFollow", "comic", "fade", "spawn", "despawn", "screenFx", "setFlag", "end" };
 
         void DrawCutscenePanel()
         {
@@ -1735,6 +1735,18 @@ namespace DipanMapEditor.UI
                     _csBufSeconds = LabeledText("停留秒數", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 3f);
                     GUILayout.Label("（置中顯示，期間演員暫停）");
                     break;
+                case "fade":
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("方向", GUILayout.Width(60));
+                    GUI.color = s.assetId != "in" ? Color.cyan : Color.white;
+                    if (GUILayout.Button("淡出→全黑", GUILayout.Width(90))) s.assetId = "out";
+                    GUI.color = s.assetId == "in" ? Color.cyan : Color.white;
+                    if (GUILayout.Button("淡入→變回", GUILayout.Width(90))) s.assetId = "in";
+                    GUI.color = Color.white;
+                    GUILayout.EndHorizontal();
+                    _csBufSeconds = LabeledText("秒數", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 1f);
+                    GUILayout.Label("（淡出後維持全黑；要變回再加一個淡入）");
+                    break;
                 case "spawn":
                 case "despawn":
                     ActorPicker(cs, s, false);
@@ -1811,6 +1823,7 @@ namespace DipanMapEditor.UI
                 case "camera": return "運鏡";
                 case "cameraFollow": return $"鏡頭跟 {(string.IsNullOrEmpty(s.actorId) ? "玩家" : s.actorId)}";
                 case "comic": return $"漫畫 {Short(s.assetId ?? "")}";
+                case "fade": return s.assetId == "in" ? "淡入" : "淡出全黑";
                 case "spawn": return $"出現 {s.actorId}";
                 case "despawn": return $"消失 {s.actorId}";
                 case "screenFx": return $"螢幕fx {s.assetId}";

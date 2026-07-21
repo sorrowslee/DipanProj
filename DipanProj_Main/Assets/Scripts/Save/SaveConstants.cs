@@ -15,6 +15,12 @@ namespace Dipan.Save
         /// <summary>邪佛廣場（大廳）在 MapsTable 的 Map ID。繼續遊戲、自動存檔點都指向它。</summary>
         public const int HubMapId = 12;   // Main_Square
 
+        /// <summary>新遊戲起關的地圖 ID（山道劇情第一張＝Main_InitialForest1）。</summary>
+        public const int NewGameStartMapId = 13;
+
+        /// <summary>墜落尾段結束後起關的地圖 ID（初始洞窟＝Main_Cave，睜眼醒來）。</summary>
+        public const int PostFallMapId = 11;
+
         /// <summary>廣場/教學所屬的 module 名。此 module 的地圖（廣場、初始洞窟）不算「關卡」——
         /// 取得的道具直接進真背包、不走臨時包、不做關卡進度持久化。其餘 module 一律視為關卡。見 RunProgress。</summary>
         public const string HubModule = "Main";

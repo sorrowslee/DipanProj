@@ -69,6 +69,12 @@ public class MapManager : MonoBehaviour
     public static int DevStartMapId;
 
     /// <summary>
+    /// （流程用）&gt;0 = 這個場景載入後，Start() 直接起關到指定 MapId（一次性，用完歸零）。
+    /// 由 GameFlowManager 新遊戲 / 劇情 end='fall' 墜落尾段設定，優先於所有其他起關邏輯。
+    /// </summary>
+    public static int BootStartMapId;
+
+    /// <summary>
     /// （測試用）&gt;=0 = 覆寫載入頁「停留秒數」（開發時設 0，省掉每次進關卡那段刻意的等待）。&lt;0 = 不覆寫、用 Inspector 的 loadingScreenHoldSeconds。
     /// 由 Editor-only 的 DevQuickStart 在編輯器 Play 設 0；build 沒那支腳本，維持正式的停留秒數（讓玩家看載入圖）。
     /// </summary>
@@ -90,6 +96,7 @@ public class MapManager : MonoBehaviour
 
     void Start()
     {
+        if (BootStartMapId > 0) { int m = BootStartMapId; BootStartMapId = 0; GoToMap(m, null); return; }   // 流程指定起關（新遊戲山道 13 / 墜落後洞窟 11），優先於一切
         if (!autoStartLevel || SuppressAutoStart) return;
         if (DevStartMapId > 0) GoToMap(DevStartMapId, null);   // 測試：直接進指定地圖（如邪佛廣場 12；落點由 PlaceAndSetup 依 Hub 旗標決定）
         else StartLevel(string.IsNullOrEmpty(DevStartModuleOverride) ? startModule : DevStartModuleOverride);

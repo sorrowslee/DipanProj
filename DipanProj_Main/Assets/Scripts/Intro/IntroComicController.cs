@@ -21,6 +21,9 @@ namespace Dipan.Intro
     [DisallowMultipleComponent]
     public class IntroComicController : MonoBehaviour
     {
+        /// <summary>由劇情系統 end='fall' 觸發：只保留 Fullscreen 頁（Story_13~15），跳過開場漫畫，直接接墜落尾段。一次性。</summary>
+        public static bool FallTailOnly = false;
+
         /// <summary>一個鏡頭（一格或一組）。</summary>
         [Serializable]
         public class Focus
@@ -142,6 +145,12 @@ namespace Dipan.Intro
         {
             BuildCanvas();
             if (Pages == null || Pages.Count == 0) Pages = BuildDefaultPages();
+            if (FallTailOnly)
+            {
+                Pages = Pages.FindAll(pg => pg != null && pg.Fullscreen);   // 只留全螢幕頁（Story_13~15），跳過開場漫畫
+                FallTailOnly = false;
+                Debug.Log($"[IntroComic] FallTailOnly：過濾後 Pages={Pages.Count}（黑幕由 ScreenFader 自動淡出）");
+            }
             Debug.Log($"[IntroComic] Awake：Pages={Pages.Count}、AdvanceKey={AdvanceKey}");
         }
 

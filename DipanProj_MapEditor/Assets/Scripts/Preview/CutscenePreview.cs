@@ -22,6 +22,8 @@ namespace DipanMapEditor.Preview
         readonly Dictionary<string, PActor> _byId = new Dictionary<string, PActor>();
         bool _skip;
         GameObject _comicGo;
+        GameObject _fadeGo;
+        UnityEngine.UI.Image _fadeImg;
 
         public void Play(Cutscene cs, MapData map)
         {
@@ -39,6 +41,7 @@ namespace DipanMapEditor.Preview
         {
             if (_co != null) { StopCoroutine(_co); _co = null; }
             HideComic();
+            HideFade();
             foreach (var a in _all) if (a.go != null) Destroy(a.go);
             _all.Clear(); _byId.Clear();
             if (_root != null) { Destroy(_root.gameObject); _root = null; }
@@ -110,6 +113,7 @@ namespace DipanMapEditor.Preview
                 case "despawn": { var a = Find(s.actorId); if (a != null && a.go != null) a.go.SetActive(false); break; }
                 case "dialogue": _status = $"對話 #{s.dramaId}（遊戲內播放）"; yield return Wait(1.5f); break;
                 case "comic": yield return ComicStep(s); break;
+                case "fade": yield return FadeStep(s); break;
                 case "screenFx": _status = $"螢幕特效 {s.assetId}（遊戲內播放）"; yield return Wait(s.seconds > 0f ? s.seconds : 1f); break;
                 case "camera": _status = "運鏡（預覽不動鏡頭）"; yield return Wait(s.seconds > 0f ? s.seconds : 1f); break;
                 case "cameraFollow": _status = "鏡頭跟隨（預覽不動鏡頭）"; yield return Wait(s.seconds > 0f ? s.seconds : 0.5f); break;
@@ -141,6 +145,37 @@ namespace DipanMapEditor.Preview
         }
 
         IEnumerator Wait(float sec) { float t = 0f; while (t < sec && !_skip) { t += Time.deltaTime; yield return null; } }
+
+        IEnumerator FadeStep(CutsceneStep s)
+        {
+            bool toBlack = s.assetId != "in";
+            float dur = s.seconds > 0f ? s.seconds : 1f;
+            _status = toBlack ? "淡出全黑" : "淡入";
+            EnsureFade();
+            float from = _fadeImg != null ? _fadeImg.color.a : (toBlack ? 0f : 1f);
+            float to = toBlack ? 1f : 0f;
+            float t = 0f;
+            while (t < dur && !_skip) { t += Time.deltaTime; SetFadeAlpha(Mathf.Lerp(from, to, Mathf.Clamp01(t / dur))); yield return null; }
+            SetFadeAlpha(to);
+            if (!toBlack) HideFade();
+        }
+
+        void EnsureFade()
+        {
+            if (_fadeGo != null) return;
+            _fadeGo = new GameObject("[PreviewFade]");
+            var canvas = _fadeGo.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 5500;   // 在預覽漫畫(6000)之下、場景之上
+            _fadeGo.AddComponent<UnityEngine.UI.CanvasScaler>();
+            _fadeImg = _fadeGo.AddComponent<UnityEngine.UI.Image>();
+            _fadeImg.raycastTarget = false;
+            _fadeImg.color = new Color(0f, 0f, 0f, 0f);
+            var rt = _fadeImg.rectTransform;
+            rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one; rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+        }
+        void SetFadeAlpha(float a) { if (_fadeImg != null) _fadeImg.color = new Color(0f, 0f, 0f, a); }
+        void HideFade() { if (_fadeGo != null) { Destroy(_fadeGo); _fadeGo = null; _fadeImg = null; } }
 
         IEnumerator ComicStep(CutsceneStep s)
         {

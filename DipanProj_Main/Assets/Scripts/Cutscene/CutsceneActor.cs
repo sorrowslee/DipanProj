@@ -70,6 +70,7 @@ namespace Dipan.Cutscene
             a._act = pgo.AddComponent<MonsterActuator>();
             a._act.MoveSpeed = moveSpeed > 0f ? moveSpeed : 5f;
             if (a._rb != null) a._rb.velocity = Vector2.zero;
+            a.SetIdle();   // 停用 PlayerController 後沒人驅動動畫 → 先設 idle，否則卡在進場時的走路幀
             a.Face(facing);
             return a;
         }

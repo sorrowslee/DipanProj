@@ -76,22 +76,39 @@ namespace Dipan.Flow
             sm.StartNewGameInSlot(slot, name);   // 建立並設為活躍（覆蓋時會先刪舊角）
             InGame = true;
 
-            if (CanPlayIntro())
+            // 新流程：跳過開場漫畫，直接進山道劇情（Main_InitialForest1＝13）。
+            // 劇情播到 end='fall' 時，CutsceneDirector 再接墜落尾段（Story_13~15→側/正墜落→初始洞窟 11）。
+            MapManager.SuppressAutoStart = true;   // 由本流程明確帶進山道，避免 MapManager 自動進關卡打架
+            Debug.Log($"[GameFlow] 新建遊戲 → 直接進山道劇情（起關 MapId={SaveConstants.NewGameStartMapId}）。");
+            StartCoroutine(NewGameToForestRoutine());
+        }
+
+        /// <summary>新建遊戲：蓋黑幕遮住標題/存讀檔 → 關選單 → 確保在 MainScene → 等 MapManager 就緒後直接 GoToMap 到山道 → 淡出露出載入頁。</summary>
+        IEnumerator NewGameToForestRoutine()
+        {
+            var fader = ScreenFader.Ensure();
+            yield return fader.FadeTo(1f, 0.25f);   // 蓋黑（暫停中，用 unscaledTime 仍會動）
+            CloseMenus();                            // 在黑幕下關掉標題/存讀檔
+
+            // 確保在 MainScene（標題若本來就在 MainScene，這裡是無動作，不重載）。
+            if (SceneManager.GetActiveScene().name != SaveConstants.MainSceneName)
+                yield return StartCoroutine(LoadSceneRoutine(SaveConstants.MainSceneName));
+
+            // 等 MapManager 就緒（不能靠它 Start 自動起關——標題已在 MainScene 時 Start 早就跑完了）。
+            float t = 0f;
+            while (MapManager.Instance == null && t < mapManagerWaitTimeout)
             {
-                // 交還給既有開場鏈：解除抑制，讓 Intro→MainScene 後 MapManager 照舊自動進 Main_Cave，
-                // 之後踩到 cutscene 過場到邪佛廣場（MapManager 進廣場會用洞穴出口出生 + 自動存）。
-                MapManager.SuppressAutoStart = false;
-                Debug.Log("[GameFlow] 新建遊戲 → 播開場鏈（交還自動進關卡給開場流程）。");
-                StartCoroutine(NewGameIntroRoutine());   // 先蓋黑再關選單→載入開場，避免露出標題面板
+                t += Time.unscaledDeltaTime;
+                yield return null;
             }
+
+            if (MapManager.Instance != null)
+                MapManager.Instance.GoToMap(SaveConstants.NewGameStartMapId, null);   // 明確起關到山道（Main_InitialForest1＝13）
             else
-            {
-                // 無開場：由本流程明確帶進廣場，保持抑制避免 MapManager 自動進 Main_Cave 打架。
-                CloseMenus();
-                MapManager.SuppressAutoStart = true;
-                Debug.Log("[GameFlow] 無開場場景（或未加入 Build Settings）→ 直接進邪佛廣場。");
-                StartCoroutine(GoToHubRoutine(SaveConstants.HubEntranceCaveExit));
-            }
+                Debug.LogError("[GameFlow] 等不到 MapManager，無法進山道（確認 MainScene 裡有 MapManager）。");
+
+            yield return null;                       // 等一幀讓 GoToMap 開出載入頁
+            yield return fader.FadeTo(0f, 0.35f);    // 淡出，露出載入頁/山道
         }
 
         /// <summary>新建有開場：先蓋黑幕遮住標題/存讀檔面板，再關選單、載入 Intro，最後淡出露出開場。避免「標題閃一下才進漫畫」。</summary>
