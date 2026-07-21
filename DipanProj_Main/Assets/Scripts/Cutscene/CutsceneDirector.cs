@@ -58,21 +58,24 @@ namespace Dipan.Cutscene
             BuildActors();
 
             var steps = _cs.steps;
+            var bg = new List<Coroutine>();   // background 步驟：啟動後不擋，最後才等它們收尾
             int i = 0;
             while (i < steps.Count && !_skip)
             {
-                // 收集一個「並行群組」：以 parallelNext=true 串起的連續步驟同時開始，全部做完才往下。
+                // 並行群組：parallelNext 串起的步驟同時開始、全做完才往下；background 步驟則丟背景、主線立刻往下。
                 var group = new List<Coroutine>();
                 while (true)
                 {
                     var s = steps[i];
-                    group.Add(StartCoroutine(RunStep(s)));
-                    bool parallel = s.parallelNext;
+                    var co = StartCoroutine(RunStep(s));
                     i++;
-                    if (!parallel || i >= steps.Count) break;
+                    if (s.background) { if (co != null) bg.Add(co); if (i >= steps.Count) break; continue; }
+                    group.Add(co);
+                    if (!s.parallelNext || i >= steps.Count) break;
                 }
                 foreach (var c in group) yield return c;
             }
+            foreach (var c in bg) if (c != null) yield return c;   // 等背景動作收尾（例如一家人走完）再結束
 
             // 交棒：找最後一個 end 步驟的去向（被略過時也照它走）。
             CutsceneStep endStep = null;
@@ -90,7 +93,7 @@ namespace Dipan.Cutscene
             {
                 CutsceneActor rt = (a.kind == "player")
                     ? CutsceneActor.Player(a.id, a.facing, 0f)
-                    : CutsceneActor.Npc(a.id, a.spriteFolder, new Vector2(a.x, a.y), a.facing, a.scale, a.animFps, 3f, _tileSize);
+                    : CutsceneActor.Npc(a.id, a.spriteFolder, new Vector2(a.x, a.y), a.facing, a.scale, a.animFps, 3f, _tileSize, a.flying);
                 if (!string.IsNullOrEmpty(a.id)) _actors[a.id] = rt;
                 if (!a.spawnAtStart) rt.SetActive(false);
             }
@@ -127,6 +130,7 @@ namespace Dipan.Cutscene
         {
             var a = Find(s.actorId);
             if (a == null || !s.hasPos || a.tr == null) yield break;
+            a.EnsureVisible();   // 移動一個還沒現身的演員 → 讓它現身（否則隱藏剛體不會動、卡守門時間）
             Vector2 target = new Vector2(s.x, s.y);
             a.SetMoveSpeed(s.speed > 0f ? s.speed : 2f);
             float guard = 0f, stall = 0f, best = float.MaxValue;
@@ -135,10 +139,11 @@ namespace Dipan.Cutscene
                 a.TickMove(target);
                 float dist = ((Vector2)a.tr.position - target).magnitude;
                 if (dist < best - 0.02f) { best = dist; stall = 0f; }   // 有進步就重置
-                else stall += Time.unscaledDeltaTime;
+                else stall += Time.deltaTime;
                 // 已很近卻停止進步（A* 到不了精確點、在終點鬼打牆）→ 視為抵達，收乾淨。
+                // 用 Time.deltaTime（受暫停影響）：對話暫停時計時凍結，不會誤把「離目標近」的背景 NPC 判定成已抵達而停住。
                 if (stall > 0.6f && dist < 1.0f) break;
-                guard += Time.unscaledDeltaTime;
+                guard += Time.deltaTime;
                 yield return null;
             }
             a.StopMove();
@@ -214,16 +219,9 @@ namespace Dipan.Cutscene
             canvas.sortingOrder = 5000;
             _comicGo.AddComponent<UnityEngine.UI.CanvasScaler>();
 
-            var bg = new GameObject("bg");
-            bg.transform.SetParent(_comicGo.transform, false);
-            var bgImg = bg.AddComponent<UnityEngine.UI.Image>();
-            bgImg.color = Color.black;
-            var bgrt = bgImg.rectTransform;
-            bgrt.anchorMin = Vector2.zero; bgrt.anchorMax = Vector2.one;
-            bgrt.offsetMin = Vector2.zero; bgrt.offsetMax = Vector2.zero;
-
             if (sprite != null)
             {
+                // 置中、保持比例、縮到約螢幕 90%×80% 內；不加黑底、不拉全螢幕（場景照樣看得到）。
                 var img = new GameObject("img");
                 img.transform.SetParent(_comicGo.transform, false);
                 var im = img.AddComponent<UnityEngine.UI.Image>();
@@ -231,7 +229,7 @@ namespace Dipan.Cutscene
                 im.preserveAspect = true;
                 var rt = im.rectTransform;
                 rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
-                rt.sizeDelta = new Vector2(sprite.rect.width, sprite.rect.height);
+                rt.sizeDelta = new Vector2(Screen.width * 0.9f, Screen.height * 0.8f);
                 rt.anchoredPosition = Vector2.zero;
             }
             else

@@ -48,9 +48,11 @@ public class MonsterAnimator : MonoBehaviour
         ReferenceSpeed = referenceSpeed > 0f ? referenceSpeed : 3f;
 
         var lib = MonsterSpriteLibrary.Instance;
+        // 逐動作高度正規化：walk/attack 對齊 idle 的可見高度，消除 AI 各動作大小落差（走路變大、停下變小）。
+        float idleVis = StateVisH(lib, monsterName, "idle");
         _idle = lib.GetFrames(monsterName, "idle", tileSize);
-        _walk = lib.GetFrames(monsterName, "walk", tileSize);
-        _attack = lib.GetFrames(monsterName, "attack", tileSize);
+        _walk = lib.GetFrames(monsterName, "walk", StateTile(lib, monsterName, "walk", tileSize, idleVis));
+        _attack = lib.GetFrames(monsterName, "attack", StateTile(lib, monsterName, "attack", tileSize, idleVis));
 
         // idle 是必備；萬一只給了 walk 沒給 idle，就用 walk 當待機後備（不至於沒圖）
         if (_idle == null && _walk != null) _idle = _walk;
@@ -71,6 +73,15 @@ public class MonsterAnimator : MonoBehaviour
     }
 
     /// <summary>這隻怪有沒有這個動作的圖。</summary>
+    // 逐動作高度正規化助手：讓某動作的顯示縮放(tileSize)使其「可見高度」= idle 的可見高度。
+    static float StateVisH(MonsterSpriteLibrary lib, string name, string state)
+        => (lib.TryGetVisibleBox(name, state, 1f, out var sz, out _) && sz.y > 0.0001f) ? sz.y : 0f;
+    static float StateTile(MonsterSpriteLibrary lib, string name, string state, float baseTile, float idleVis)
+    {
+        float v = StateVisH(lib, name, state);
+        return (idleVis > 0.0001f && v > 0.0001f) ? Mathf.Clamp(baseTile * (idleVis / v), 0.1f, 30f) : baseTile;
+    }
+
     public bool Has(State s) => FramesFor(s) != null;
 
     /// <summary>

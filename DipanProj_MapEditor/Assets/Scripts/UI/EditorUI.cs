@@ -117,6 +117,7 @@ namespace DipanMapEditor.UI
 
         // 劇情工具
         Tools.CutsceneController _csCtl;
+        Preview.CutscenePreview _previewCtl;
         Vector2 _csScroll;
         CutsceneActor _csActorBufFor;
         CutsceneStep _csStepBufFor;
@@ -204,6 +205,12 @@ namespace DipanMapEditor.UI
         {
             if (_csCtl == null) _csCtl = FindObjectOfType<Tools.CutsceneController>();
             return _csCtl;
+        }
+
+        Preview.CutscenePreview PreviewCtl()
+        {
+            if (_previewCtl == null) _previewCtl = FindObjectOfType<Preview.CutscenePreview>();
+            return _previewCtl;
         }
 
         // ---- 供 PaintController 查詢：指標是否壓在 UI 面板上 ----
@@ -1574,6 +1581,21 @@ namespace DipanMapEditor.UI
             cs.autoStartOnEnter = GUILayout.Toggle(cs.autoStartOnEnter, "一進圖自動播 autoStart");
             cs.skippable = GUILayout.Toggle(cs.skippable, "可略過 skippable");
             cs.lockInput = GUILayout.Toggle(cs.lockInput, "演出期間鎖操作 lockInput");
+            GUILayout.Space(4);
+            var pv = PreviewCtl();
+            if (pv != null && pv.IsPlaying)
+            {
+                GUI.color = new Color(1f, 0.6f, 0.6f);
+                if (GUILayout.Button("■ 停止預覽")) pv.Stop();
+                GUI.color = Color.white;
+            }
+            else
+            {
+                GUI.color = new Color(0.6f, 1f, 0.6f);
+                if (GUILayout.Button("▶ 預覽演出（Esc 略過）") && pv != null) pv.Play(cs, map);
+                GUI.color = Color.white;
+            }
+            GUILayout.Space(4);
             if (GUILayout.Button("刪除整段演出"))
             {
                 ctl.RemoveCutscene();
@@ -1612,6 +1634,7 @@ namespace DipanMapEditor.UI
                 if (sa.kind == "npc") sa.spriteFolder = LabeledText("序列圖資料夾", sa.spriteFolder);
                 FacingRow("起始朝向", ref sa.facing);
                 sa.spawnAtStart = GUILayout.Toggle(sa.spawnAtStart, "開場就在場上（否＝等 spawn）");
+                sa.flying = GUILayout.Toggle(sa.flying, "飛行：直線移動、不受可走層（蝴蝶/鬼魂）");
                 if (_csActorBufFor != sa)
                 {
                     _csActorBufFor = sa;
@@ -1684,6 +1707,7 @@ namespace DipanMapEditor.UI
                     _csBufSpeed = LabeledText("速度(格/秒,0=預設2)", _csBufSpeed); s.speed = ParseFloatOr(_csBufSpeed, 0f);
                     FacingRow("抵達後朝向", ref s.facing);
                     s.parallelNext = GUILayout.Toggle(s.parallelNext, "與下一步同時（走位＋運鏡）");
+                    s.background = GUILayout.Toggle(s.background, "背景執行（不擋後續：邊走，主線照跑到下一步）");
                     break;
                 case "face":
                     ActorPicker(cs, s, false);

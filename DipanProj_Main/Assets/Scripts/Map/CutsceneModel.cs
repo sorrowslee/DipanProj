@@ -25,6 +25,7 @@ namespace Dipan.MapRuntime
         public float x, y;
         public string facing = "down";
         public bool spawnAtStart = true;
+        public bool flying = false;   // 飛行：直線移動、不受可走層
         public float scale = 1f;
         public float animFps = 8f;
     }
@@ -47,5 +48,6 @@ namespace Dipan.MapRuntime
         public float zoom = 1f;
         public string flag = "";
         public bool parallelNext = false;
+        public bool background = false;   // 背景執行：啟動後不擋後續
     }
 }

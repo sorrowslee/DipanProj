@@ -36,6 +36,7 @@ namespace DipanMapEditor.Data
         public float x, y;                 // 起始世界座標（player 忽略，用玩家當前位置）
         public string facing = "down";     // 起始朝向：down/up/left/right
         public bool spawnAtStart = true;   // true＝開場就在場上；false＝等 spawn 步驟才出現
+        public bool flying = false;        // 飛行：直線移動、不受可走層限制（蝴蝶/鬼魂/飄浮物）
         public float scale = 1f;
         public float animFps = 8f;
     }
@@ -72,5 +73,6 @@ namespace DipanMapEditor.Data
         public float zoom = 1f;         // camera 縮放
         public string flag = "";        // setFlag
         public bool parallelNext = false; // 與下一步同時開始
+        public bool background = false;   // 背景執行：啟動後不擋後續（主線立刻處理下一步），角色邊跑主線照走
     }
 }

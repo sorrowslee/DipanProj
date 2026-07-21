@@ -143,6 +143,14 @@ namespace DipanMapEditor.Core
                 csGO.AddComponent<CutsceneController>();
             }
 
+            // 8d. 劇情預覽器
+            if (FindObjectOfType<DipanMapEditor.Preview.CutscenePreview>() == null)
+            {
+                var pvGO = new GameObject("CutscenePreview");
+                pvGO.transform.SetParent(transform, false);
+                pvGO.AddComponent<DipanMapEditor.Preview.CutscenePreview>();
+            }
+
             // 9. Undo 熱鍵（Cmd/Ctrl+Z）
             if (FindObjectOfType<UndoHotkey>() == null)
             {

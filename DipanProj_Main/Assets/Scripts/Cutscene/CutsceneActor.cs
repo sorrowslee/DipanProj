@@ -25,7 +25,7 @@ namespace Dipan.Cutscene
 
         /// <summary>生一個 npc 演員（外觀走 &lt;spriteFolder&gt; 的 idle/walk，同怪物素材管線）。</summary>
         public static CutsceneActor Npc(string id, string spriteFolder, Vector2 pos, string facing,
-                                        float scale, float animFps, float moveSpeed, float tileSize)
+                                        float scale, float animFps, float moveSpeed, float tileSize, bool flying = false)
         {
             var a = new CutsceneActor { id = id, isPlayer = false };
             var go = new GameObject("CsActor_" + id);
@@ -42,6 +42,7 @@ namespace Dipan.Cutscene
 
             a._act = go.AddComponent<MonsterActuator>();
             a._act.MoveSpeed = moveSpeed > 0f ? moveSpeed : 3f;
+            a._act.AvoidObstacles = !flying;   // 飛行＝關掉 A*/避障，直線飛（不被可走層/牆吸附）
 
             go.AddComponent<YSortByFeet>();   // 腳底 Y 排序，和地上物/玩家正確交錯
             a.Face(facing);
@@ -119,6 +120,8 @@ namespace Dipan.Cutscene
         public void SetMoveSpeed(float v) { if (_act != null && v > 0f) _act.MoveSpeed = v; }
 
         public void SetActive(bool on) { if (go != null && !isPlayer) go.SetActive(on); }
+
+        public void EnsureVisible() { if (go != null && !isPlayer && !go.activeSelf) go.SetActive(true); }
 
         public void Cleanup()
         {

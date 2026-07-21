@@ -26,3 +26,7 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 25,10,???,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_expect2,2,...,,,,,,
 25,10,???,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_happy,2,我，我真的恢復了，謝謝您，我的大恩人,,,,,,
 26,10,主角,Actor_Proud,Modules/RedBridalGown/Talk/redBridalGown_happy,1,沒什麼啦，好啦，我感覺到那傢伙要來接我了，後會有期，再見~~,,,,,,
+27,11,主角,Actor_Normal,,1,今天真是個神清氣爽的早晨，早起爬山真是對的，今天看我征服這座大山!,,,,,,
+28,12,主角,Actor_Normal,,1,一家人來爬山呀，真好，老爸老媽一定都還在睡，下次把他們也抓來一起爬山,,,,,,
+29,13,主角,Actor_Proud,,1,做了好事心情真是舒暢，休息一下再繼續爬吧,,,,,,
+30,14,主角,,,1,啊啊啊啊啊啊啊啊啊~~~~,,,,,,

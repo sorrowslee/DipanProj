@@ -64,10 +64,12 @@ public class PlayerAnimator : MonoBehaviour
             tileSize = targetHeight / wbox.y;
         tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
 
+        // 逐動作高度正規化：walk/attack 對齊 idle 的可見高度（消除 AI 各動作大小落差）；dead 維持躺姿用 idle 縮放、不正規化。
+        float idleVis = StateVisH(lib, bloodline, "idle");
         _idle = lib.GetFrames(bloodline, "idle", tileSize);
-        _walk = lib.GetFrames(bloodline, "walk", tileSize);
+        _walk = lib.GetFrames(bloodline, "walk", StateTile(lib, bloodline, "walk", tileSize, idleVis));
         _dead = lib.GetFrames(bloodline, "dead", tileSize);
-        _attack = lib.GetFrames(bloodline, "attack", tileSize);
+        _attack = lib.GetFrames(bloodline, "attack", StateTile(lib, bloodline, "attack", tileSize, idleVis));
 
         if (_idle == null && _walk != null) _idle = _walk;   // 沒給 idle 就用 walk 當待機後備
 
@@ -83,6 +85,15 @@ public class PlayerAnimator : MonoBehaviour
         _state = State.Idle;
         _idx = 0; _timer = 0f; _oneShotDone = false;
         ApplyFrame();
+    }
+
+    // 逐動作高度正規化助手：讓某動作的顯示縮放(tileSize)使其「可見高度」= idle 的可見高度。
+    static float StateVisH(PlayerSpriteLibrary lib, string b, string state)
+        => (lib.TryGetVisibleBox(b, state, out var sz, out _) && sz.y > 0.0001f) ? sz.y : 0f;
+    static float StateTile(PlayerSpriteLibrary lib, string b, string state, float baseTile, float idleVis)
+    {
+        float v = StateVisH(lib, b, state);
+        return (idleVis > 0.0001f && v > 0.0001f) ? Mathf.Clamp(baseTile * (idleVis / v), 0.1f, 30f) : baseTile;
     }
 
     public bool Has(State s) => FramesFor(s) != null;

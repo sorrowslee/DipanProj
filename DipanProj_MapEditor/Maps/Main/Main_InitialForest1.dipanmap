@@ -114,6 +114,25 @@
             "showMarker": true,
             "linkedFx": ""
           }
+        },
+        {
+          "id": "743ee48b",
+          "name": "進場觸發對話",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "delaySeconds": "",
+            "next": "玩家初始對話"
+          }
+        },
+        {
+          "id": "f187c557",
+          "name": "玩家初始對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "12"
+          }
         }
       ]
     }
