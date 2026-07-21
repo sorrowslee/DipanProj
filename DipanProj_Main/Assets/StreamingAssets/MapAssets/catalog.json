@@ -206,6 +206,24 @@
       "frameCount": 1
     },
     {
+      "id": "Main/Talk/Girl/Girl_Fear",
+      "path": "Main/Talk/Girl/Girl_Fear.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Talk/Girl/Girl_Smile",
+      "path": "Main/Talk/Girl/Girl_Smile.png",
+      "category": "Talk",
+      "module": "Main",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Main/Monsters/SequenceImage/Butterfly/idle",
       "path": "Main/Monsters/SequenceImage/Butterfly/idle/ButterFly-iso_custom_fly2_right_01.png",
       "category": "Monsters",

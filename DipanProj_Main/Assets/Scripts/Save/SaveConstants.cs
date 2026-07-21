@@ -21,6 +21,12 @@ namespace Dipan.Save
         /// <summary>墜落尾段結束後起關的地圖 ID（初始洞窟＝Main_Cave，睜眼醒來）。</summary>
         public const int PostFallMapId = 11;
 
+        /// <summary>山道劇情第二張（Main_InitialForest2）。</summary>
+        public const int IntroForestMap2Id = 14;
+
+        /// <summary>是否為「開場山道劇情場景」（初始森林 13/14）。這些場景不顯示血球 HUD，初始洞窟(11)起才顯示。</summary>
+        public static bool IsIntroCutsceneMap(int mapId) => mapId == NewGameStartMapId || mapId == IntroForestMap2Id;
+
         /// <summary>廣場/教學所屬的 module 名。此 module 的地圖（廣場、初始洞窟）不算「關卡」——
         /// 取得的道具直接進真背包、不走臨時包、不做關卡進度持久化。其餘 module 一律視為關卡。見 RunProgress。</summary>
         public const string HubModule = "Main";

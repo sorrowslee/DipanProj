@@ -86,6 +86,8 @@ namespace Dipan.Intro
 
         [Header("測試（正式上線可關）")]
         public KeyCode SkipKey = KeyCode.Escape;      // 直接收尾
+        // Skip 只在開發階段可用（編輯器 或 Development Build）；正式打包(release build)移除，玩家不能跳過墜落。
+        static bool AllowSkip => Application.isEditor || Debug.isDebugBuild;
         public KeyCode ReplayKey = KeyCode.R;         // 重播
 
         // 分段邊界（由上面三個秒數推算）
@@ -430,7 +432,7 @@ namespace Dipan.Intro
         void HandleDebugKeys()
         {
             if (Input.GetKeyDown(ReplayKey)) Play();
-            if (Input.GetKeyDown(SkipKey)) Skip();
+            if (AllowSkip && Input.GetKeyDown(SkipKey)) Skip();   // 正式打包不能跳過
         }
 
         // ───────────── 建立圖層（一次）─────────────

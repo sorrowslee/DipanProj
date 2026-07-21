@@ -248,6 +248,14 @@ public class MapManager : MonoBehaviour
             if (_currentMapId != mapAtStart || _loading) yield break;
         }
 
+        // 等「進場自動劇情」演完再點火進場觸發：避免劇情的對話與進場觸發對話互相蓋掉。
+        // （劇情由 MaybeAutoStart 在 PlaceAndSetup 內同步開演，此時 IsPlaying 已為 true。）
+        while (Dipan.Cutscene.CutsceneDirector.IsPlaying)
+        {
+            if (_currentMapId != mapAtStart || _loading) yield break;   // 劇情交棒換圖 → 中止（新圖自有一輪）
+            yield return null;
+        }
+
         foreach (var r in regions)
         {
             if (r == null || r.typeId != TriggerChain.TypeOnEnter) continue;
@@ -302,6 +310,17 @@ public class MapManager : MonoBehaviour
         _wakeUpWanted = row.enterEffect == 1;
         mapLoader.SpawnMonsters();
         SetupWatcher();
+
+        // 血球 HUD 顯示規則：開場山道劇情場景(初始森林13/14)不顯示，初始洞窟(11)起才顯示。
+        // 玩家跨圖不重生（PlayerController.Start 只在初次生成時開 HUD、且已擋掉劇情場景），
+        // 所以進到洞窟(或之後任何非劇情場景)時由這裡負責把 HUD 開起來。
+        if (UIManager.Instance != null)
+        {
+            if (SaveConstants.IsIntroCutsceneMap(row.id))
+            { if (UIManager.Instance.IsOpen<BottomHudPanel>()) UIManager.Instance.Close<BottomHudPanel>(); }
+            else
+            { if (!UIManager.Instance.IsOpen<BottomHudPanel>()) UIManager.Instance.Open<BottomHudPanel>(); }
+        }
 
         // 劇情演出：此圖有 cutscene 且設 autoStart 就開演（半演出半漫畫的開場等）。見 CutsceneDirector。
         Dipan.Cutscene.CutsceneDirector.MaybeAutoStart(mapLoader.Map, _player);

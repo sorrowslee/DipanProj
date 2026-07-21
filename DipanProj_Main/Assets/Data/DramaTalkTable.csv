@@ -30,3 +30,8 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 28,12,主角,Actor_Normal,,1,一家人來爬山呀，真好，老爸老媽一定都還在睡，下次把他們也抓來一起爬山,,,,,,
 29,13,主角,Actor_Proud,,1,做了好事心情真是舒暢，休息一下再繼續爬吧,,,,,,
 30,14,主角,,,1,啊啊啊啊啊啊啊啊啊~~~~,,,,,,
+31,15,主角,,,1,現在想想，這一切如果是夢就好了...,,,,,,
+32,16,小女孩,,Main/Talk/Girl/Girl_Fear,2,啊啊，要掉下去了，救命呀~~,,,,,,-50
+33,17,主角,Actor_Fear,Main/Talk/Girl/Girl_Fear,1,危險啊~~,,,,,,
+34,18,主角,Actor_Normal,Main/Talk/Girl/Girl_Smile,1,真的很危險，小妹妹下次要注意安全唷,,,,,,-50
+35,18,主角,Actor_Normal,Main/Talk/Girl/Girl_Smile,2,好，我知道了，謝謝大哥哥,,,,,,-50

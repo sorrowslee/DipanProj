@@ -120,6 +120,8 @@ namespace Dipan.Intro
         Image _sideL, _sideR;             // FillHeightMode 的左右黑邊（蓋在舞台之上、Skip 之下）
         float _stageW = 1920f, _stageH = 1080f;
         Text _skip;
+        // Skip 只在開發階段顯示/可用（編輯器 或 Development Build）；正式打包(release build)自動移除，玩家不能跳過墜落開場。
+        static bool AllowSkip => Application.isEditor || Debug.isDebugBuild;
 
         class PageView
         {
@@ -164,7 +166,7 @@ namespace Dipan.Intro
             bool overSkip = mouseDown && OverSkip();
 
             if (Input.GetKeyDown(ReplayKey)) { ResetAll(); return; }
-            if (Input.GetKeyDown(SkipKey) || overSkip) { DoSkip(); return; }
+            if (AllowSkip && (Input.GetKeyDown(SkipKey) || overSkip)) { DoSkip(); return; }
             bool advance = Input.GetKeyDown(AdvanceKey) || (ClickToAdvance && mouseDown && !overSkip);
 
             if (!_began)
@@ -217,7 +219,7 @@ namespace Dipan.Intro
             _delayLeft = Mathf.Max(0f, StartDelay);
             // 還原舞台（重播時）
             ApplyContentScale();   // 換了 ContentScale 後按 R 即生效
-            if (_skip) _skip.gameObject.SetActive(true);
+            if (_skip) _skip.gameObject.SetActive(AllowSkip);   // 正式打包不顯示 Skip
             if (_backdrop) _backdrop.enabled = true;
             if (_vignette) _vignette.enabled = true;
             if (_canvas) { _canvas.enabled = true; _canvas.sortingOrder = 1000; }

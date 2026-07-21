@@ -137,5 +137,61 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "cutscene": {
+    "autoStartOnEnter": true,
+    "skippable": true,
+    "lockInput": true,
+    "actors": [],
+    "steps": [
+      {
+        "type": "fade",
+        "actorId": "",
+        "hasPos": false,
+        "x": 0.0,
+        "y": 0.0,
+        "facing": "",
+        "dramaId": 0,
+        "seconds": 0.1,
+        "speed": 0.0,
+        "assetId": "",
+        "zoom": 1.0,
+        "flag": "",
+        "parallelNext": false,
+        "background": false
+      },
+      {
+        "type": "dialogue",
+        "actorId": "",
+        "hasPos": false,
+        "x": 0.0,
+        "y": 0.0,
+        "facing": "",
+        "dramaId": 16,
+        "seconds": 1.0,
+        "speed": 0.0,
+        "assetId": "",
+        "zoom": 1.0,
+        "flag": "",
+        "parallelNext": false,
+        "background": false
+      },
+      {
+        "type": "fade",
+        "actorId": "",
+        "hasPos": false,
+        "x": 0.0,
+        "y": 0.0,
+        "facing": "",
+        "dramaId": 0,
+        "seconds": 1.0,
+        "speed": 0.0,
+        "assetId": "in",
+        "zoom": 1.0,
+        "flag": "",
+        "parallelNext": false,
+        "background": false
+      }
+    ]
+  }
 }

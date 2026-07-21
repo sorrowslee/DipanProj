@@ -133,7 +133,10 @@ public class PlayerController : MonoBehaviour, IDamageable
             PlayerInvincibleTimeMs, PlayerKnockbackThreshold, PlayerKnockbackPercent);
 
         // 開啟血/魔 HUD（HUD 層、不暫停、不擋輸入）。UIManager 由 UIBootstrap 保證已存在。
-        if (Dipan.UI.UIManager.Instance != null)
+        // 例外：開場山道劇情場景(初始森林13/14)不顯示血球 HUD，初始洞窟(11)起才由 MapManager 開起來。
+        bool inIntroCutscene = MapManager.Instance != null
+            && Dipan.Save.SaveConstants.IsIntroCutsceneMap(MapManager.Instance.CurrentMapId);
+        if (Dipan.UI.UIManager.Instance != null && !inIntroCutscene)
             Dipan.UI.UIManager.Instance.Open<Dipan.UI.BottomHudPanel>();
 
         // 腳下影子（見 readme/SHADOW.md）

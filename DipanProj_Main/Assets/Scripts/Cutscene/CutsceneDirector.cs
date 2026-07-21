@@ -16,6 +16,9 @@ namespace Dipan.Cutscene
     public class CutsceneDirector : MonoBehaviour
     {
         static CutsceneDirector _active;
+
+        /// <summary>目前是否有劇情正在自動演出（給 MapManager 判斷「等劇情演完再點火進場觸發」）。</summary>
+        public static bool IsPlaying => _active != null;
         static readonly List<GameObject> _standing = new List<GameObject>();
 
         Dipan.MapRuntime.Cutscene _cs;
