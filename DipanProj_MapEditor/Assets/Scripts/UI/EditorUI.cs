@@ -120,7 +120,7 @@ namespace DipanMapEditor.UI
         Vector2 _csScroll;
         CutsceneActor _csActorBufFor;
         CutsceneStep _csStepBufFor;
-        string _csBufDrama, _csBufSeconds, _csBufZoom, _csBufScale, _csBufFps;
+        string _csBufDrama, _csBufSeconds, _csBufZoom, _csBufScale, _csBufFps, _csBufSpeed;
 
         // 物件調色盤
         List<PlaceableObject> _objects;
@@ -1673,6 +1673,7 @@ namespace DipanMapEditor.UI
                 _csBufDrama = s.dramaId.ToString();
                 _csBufSeconds = s.seconds.ToString("0.###");
                 _csBufZoom = s.zoom.ToString("0.###");
+                _csBufSpeed = s.speed.ToString("0.###");
             }
 
             switch (s.type)
@@ -1680,6 +1681,7 @@ namespace DipanMapEditor.UI
                 case "move":
                     ActorPicker(cs, s, false);
                     PlaceStepPosRow(ctl, s, "放置目標位置（點畫布）");
+                    _csBufSpeed = LabeledText("速度(格/秒,0=預設2)", _csBufSpeed); s.speed = ParseFloatOr(_csBufSpeed, 0f);
                     FacingRow("抵達後朝向", ref s.facing);
                     s.parallelNext = GUILayout.Toggle(s.parallelNext, "與下一步同時（走位＋運鏡）");
                     break;

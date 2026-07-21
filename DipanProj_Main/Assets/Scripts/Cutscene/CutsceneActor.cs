@@ -80,8 +80,12 @@ namespace Dipan.Cutscene
             _act.MoveTowards(target);
             float sp = _rb != null ? _rb.velocity.magnitude : 0f;
             SetWalk(sp);
-            if (_rb != null && Mathf.Abs(_rb.velocity.x) > 0.05f)
-                Face(_rb.velocity.x >= 0f ? "right" : "left");
+            // 依「往目標的水平方向」轉向（不看瞬時速度，避免 A* 折線/解卡讓頭左右亂轉）；很接近時保持原朝向。
+            if (tr != null)
+            {
+                float dx = target.x - tr.position.x;
+                if (Mathf.Abs(dx) > 0.15f) Face(dx >= 0f ? "right" : "left");
+            }
         }
 
         public bool Reached(Vector2 target, float tol)
@@ -111,6 +115,8 @@ namespace Dipan.Cutscene
             bool faceRight = dir == "right";
             _sr.flipX = (faceRight != _sourceFacesRight);
         }
+
+        public void SetMoveSpeed(float v) { if (_act != null && v > 0f) _act.MoveSpeed = v; }
 
         public void SetActive(bool on) { if (go != null && !isPlayer) go.SetActive(on); }
 

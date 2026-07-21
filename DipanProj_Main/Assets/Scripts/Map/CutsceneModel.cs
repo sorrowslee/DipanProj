@@ -42,6 +42,7 @@ namespace Dipan.MapRuntime
         public string facing = "";      // left / right
         public int dramaId = 0;         // dialogue → DramaTable.csv
         public float seconds = 0f;
+        public float speed = 0f;        // move：走路速度（格/秒）；0＝用預設
         public string assetId = "";
         public float zoom = 1f;
         public string flag = "";

@@ -67,6 +67,7 @@ namespace DipanMapEditor.Data
         public string facing = "";      // face / move 抵達後朝向：left / right（空＝依移動方向）
         public int dramaId = 0;         // dialogue：對應 DramaTable.csv 的 dramaId
         public float seconds = 0f;      // wait / camera 過渡 / comic 停留 / screenFx 停留
+        public float speed = 0f;        // move：走路速度（格/秒）；0＝用預設
         public string assetId = "";     // comic 置中圖路徑id / screenFx effectId / end 去向
         public float zoom = 1f;         // camera 縮放
         public string flag = "";        // setFlag

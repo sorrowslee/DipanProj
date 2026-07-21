@@ -16,6 +16,7 @@ namespace Dipan.Cutscene
     public class CutsceneDirector : MonoBehaviour
     {
         static CutsceneDirector _active;
+        static readonly List<GameObject> _standing = new List<GameObject>();
 
         Dipan.MapRuntime.Cutscene _cs;
         float _tileSize = 1f;
@@ -32,6 +33,8 @@ namespace Dipan.Cutscene
             if (!cs.autoStartOnEnter || cs.steps == null || cs.steps.Count == 0) return;
 
             if (_active != null) { Destroy(_active.gameObject); _active = null; }   // 換圖收掉上一個
+            for (int i = 0; i < _standing.Count; i++) if (_standing[i] != null) Destroy(_standing[i]);
+            _standing.Clear();
 
             var go = new GameObject("[CutsceneDirector]");
             var dir = go.AddComponent<CutsceneDirector>();
@@ -75,7 +78,7 @@ namespace Dipan.Cutscene
             CutsceneStep endStep = null;
             for (int k = steps.Count - 1; k >= 0; k--) if (steps[k].type == "end") { endStep = steps[k]; break; }
 
-            Cleanup();
+            Cleanup(endStep != null);
             if (endStep != null) DoHandoff(endStep.assetId);
             if (_active == this) _active = null;
             Destroy(gameObject);
@@ -123,12 +126,18 @@ namespace Dipan.Cutscene
         IEnumerator MoveStep(CutsceneStep s)
         {
             var a = Find(s.actorId);
-            if (a == null || !s.hasPos) yield break;
+            if (a == null || !s.hasPos || a.tr == null) yield break;
             Vector2 target = new Vector2(s.x, s.y);
-            float guard = 0f;
-            while (!a.Reached(target, 0.25f) && !_skip && guard < 20f)
+            a.SetMoveSpeed(s.speed > 0f ? s.speed : 2f);
+            float guard = 0f, stall = 0f, best = float.MaxValue;
+            while (!a.Reached(target, 0.3f) && !_skip && guard < 20f)
             {
                 a.TickMove(target);
+                float dist = ((Vector2)a.tr.position - target).magnitude;
+                if (dist < best - 0.02f) { best = dist; stall = 0f; }   // 有進步就重置
+                else stall += Time.unscaledDeltaTime;
+                // 已很近卻停止進步（A* 到不了精確點、在終點鬼打牆）→ 視為抵達，收乾淨。
+                if (stall > 0.6f && dist < 1.0f) break;
                 guard += Time.unscaledDeltaTime;
                 yield return null;
             }
@@ -237,10 +246,17 @@ namespace Dipan.Cutscene
             if (_comicGo != null) { Destroy(_comicGo); _comicGo = null; }
         }
 
-        void Cleanup()
+        void Cleanup(bool destroyNpcs)
         {
             HideComic();
-            foreach (var kv in _actors) kv.Value.Cleanup();
+            foreach (var kv in _actors)
+            {
+                var a = kv.Value;
+                if (a.isPlayer) { a.Cleanup(); continue; }   // 一定還原玩家控制
+                if (destroyNpcs) { a.Cleanup(); continue; }  // 有 end 交棒換圖 → 銷毀
+                a.StopMove();                                // 同圖結束、沒交棒 → 留在原地站著(idle)
+                if (a.go != null) _standing.Add(a.go);       // 記著，下次開演前清掉，避免重進時堆疊
+            }
             _actors.Clear();
             if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
             if (_cam != null) { _cam.SetFocusPoint(null); _cam.ClearCameraZone(); }

@@ -96,5 +96,92 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "cutscene": {
+    "autoStartOnEnter": true,
+    "skippable": true,
+    "lockInput": true,
+    "actors": [
+      {
+        "id": "dad",
+        "kind": "npc",
+        "spriteFolder": "Family_Father",
+        "x": 8.713274,
+        "y": -4.16187859,
+        "facing": "right",
+        "spawnAtStart": true,
+        "scale": 3.0,
+        "animFps": 8.0
+      },
+      {
+        "id": "mon",
+        "kind": "npc",
+        "spriteFolder": "Family_Mother",
+        "x": 9.242614,
+        "y": -4.67651463,
+        "facing": "right",
+        "spawnAtStart": true,
+        "scale": 3.0,
+        "animFps": 8.0
+      },
+      {
+        "id": "girl",
+        "kind": "npc",
+        "spriteFolder": "Family_Girl",
+        "x": 8.732061,
+        "y": -4.73507261,
+        "facing": "right",
+        "spawnAtStart": true,
+        "scale": 3.0,
+        "animFps": 8.0
+      }
+    ],
+    "steps": [
+      {
+        "type": "move",
+        "actorId": "dad",
+        "hasPos": true,
+        "x": 9.551396,
+        "y": -2.72089839,
+        "facing": "right",
+        "dramaId": 0,
+        "seconds": 1.0,
+        "speed": 1.0,
+        "assetId": "",
+        "zoom": 1.0,
+        "flag": "",
+        "parallelNext": true
+      },
+      {
+        "type": "move",
+        "actorId": "mon",
+        "hasPos": true,
+        "x": 10.0807352,
+        "y": -2.95616031,
+        "facing": "right",
+        "dramaId": 0,
+        "seconds": 1.0,
+        "speed": 1.0,
+        "assetId": "",
+        "zoom": 1.0,
+        "flag": "",
+        "parallelNext": true
+      },
+      {
+        "type": "move",
+        "actorId": "girl",
+        "hasPos": true,
+        "x": 9.587732,
+        "y": -3.35785,
+        "facing": "right",
+        "dramaId": 0,
+        "seconds": 1.0,
+        "speed": 1.0,
+        "assetId": "",
+        "zoom": 1.0,
+        "flag": "",
+        "parallelNext": true
+      }
+    ]
+  }
 }
