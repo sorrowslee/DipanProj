@@ -235,7 +235,7 @@ public class MapManager : MonoBehaviour
         }
 
         // 等進場效果（睜眼）播完（用未縮放時間輪詢；效果本身會暫停遊戲）。
-        while (EyeOpenController.IsPlaying) yield return null;
+        while (ScreenFxPlayer.IsAnyPlaying) yield return null;   // 等任何進場全螢幕過場（睜眼/馬賽克…）播完
 
         // 睜眼醒來連動（2/2）：倒播 dead＝爬起（定住玩家輸入、不暫停），起身完才點火進場觸發。
         if (wakeAnim != null)
@@ -301,13 +301,14 @@ public class MapManager : MonoBehaviour
         AtmosphereController.ApplyMapAtmosphere(row.atmosphere);
         // 場景特效（世界端，如火雨）：依 SceneEffect 欄，換圖即時切換、自動清殘留。見 SceneEffectController。
         SceneEffectController.ApplyMapSceneEffect(row.sceneEffect, mapLoader.Map);
-        // 進場一次性效果（如睜眼醒來）：依 EnterEffect 欄，進圖播一次就結束（承接的全黑會蓋過載入頁收尾）。見 EyeOpenController。
-        EyeOpenController.ApplyMapEnterEffect(row.enterEffect);
+        // 進場一次性全螢幕過場：依 EnterEffect 欄（＝ScreenFxTable 的 id，0=無/1=睜眼/2=破幻術/3=馬賽克…），
+        // 統一經 ScreenFxPlayer 分派，與劇情 screenFx 共用同一份 id → 同 id 同效果。見 ScreenFxPlayer / ScreenFxTable。
+        ScreenFxPlayer.Play(row.enterEffect, null);
 
         // 睜眼醒來（EnterEffect=1）連動玩家「趴地 → 起身」表演：記下需求，實際趴地在 FireEnterTriggersRoutine
         // 開頭才做——因為玩家第一次生成時 PlayerAnimator.Setup 在 Start() 才載幀，這裡（同幀更早）還拿不到 dead 圖；
         // 協程開跑時 Start 已執行完，且睜眼開頭是全黑（眼皮閉合），看不到趴下前的站姿。
-        _wakeUpWanted = row.enterEffect == 1;
+        _wakeUpWanted = ScreenFxTable.WakeUpPose(row.enterEffect);   // 由表決定此進場特效要不要連動玩家趴地→起身（目前只有睜眼）
         mapLoader.SpawnMonsters();
         SetupWatcher();
 

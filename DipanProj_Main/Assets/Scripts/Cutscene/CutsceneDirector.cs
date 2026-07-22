@@ -232,6 +232,9 @@ namespace Dipan.Cutscene
             int id = 0; int.TryParse(s.assetId, out id);
             bool done = false;
             ScreenFxPlayer.Play(id, () => done = true, s.seconds > 0f ? s.seconds : -1f);
+            // 螢幕特效是「相機後處理」（在所有 UI 之下），劇情黑幕(UI 疊層)會蓋住它 → 開始這一步就把黑幕即時移除，
+            // 特效才看得到。同一幀移除、特效已啟動，不會閃出清晰場景（馬賽克從暗色粗格起、與黑幕銜接）。
+            HideFade();
             float guard = 0f;
             while (!done && !_skip && guard < 30f) { guard += Time.unscaledDeltaTime; yield return null; }
         }

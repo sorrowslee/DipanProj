@@ -177,7 +177,7 @@
         "background": false
       },
       {
-        "type": "fade",
+        "type": "screenFx",
         "actorId": "",
         "hasPos": false,
         "x": 0.0,
@@ -186,7 +186,23 @@
         "dramaId": 0,
         "seconds": 1.0,
         "speed": 0.0,
-        "assetId": "in",
+        "assetId": "3",
+        "zoom": 1.0,
+        "flag": "",
+        "parallelNext": false,
+        "background": false
+      },
+      {
+        "type": "end",
+        "actorId": "",
+        "hasPos": false,
+        "x": 0.0,
+        "y": 0.0,
+        "facing": "",
+        "dramaId": 0,
+        "seconds": 1.0,
+        "speed": 0.0,
+        "assetId": "",
         "zoom": 1.0,
         "flag": "",
         "parallelNext": false,

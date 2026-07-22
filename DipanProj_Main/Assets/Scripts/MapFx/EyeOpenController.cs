@@ -37,6 +37,8 @@ public class EyeOpenController : MonoBehaviour
     EyeOpenBlit _blit;
     bool _playing;
     float _elapsed;
+    System.Action _onDone;
+    float _duration;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void AutoSpawn()
@@ -52,7 +54,7 @@ public class EyeOpenController : MonoBehaviour
     {
         if (Instance == null) AutoSpawn();
         if (Instance == null) return;
-        if (type == 1) Instance.Play();
+        if (type == 1) Instance.PlayInternal(null, -1f);
     }
 
     void Awake()
@@ -103,14 +105,26 @@ public class EyeOpenController : MonoBehaviour
         {
             _playing = false;
             if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(false, false);
+            var cb = _onDone; _onDone = null;
+            cb?.Invoke();   // 呼叫 onDone → ScreenFxPlayer 的包裝會復原 HUD
         }
     }
 
-    public void Play()
+    /// <summary>統一分派入口（給 ScreenFxPlayer；睜眼＝螢幕特效 id 1）：播一次睜眼，播完呼叫 onDone。durationOverride ≥ 0 覆寫總長。</summary>
+    public static void Play(System.Action onDone, float durationOverride = -1f)
     {
-        if (_mat == null) return;
+        if (Instance == null) AutoSpawn();
+        if (Instance == null) { onDone?.Invoke(); return; }
+        Instance.PlayInternal(onDone, durationOverride);
+    }
+
+    void PlayInternal(System.Action onDone, float durationOverride)
+    {
+        if (_mat == null) { onDone?.Invoke(); return; }
         EnsureHooks();
-        if (_blit == null) return;   // 相機還沒好（少見）；不強播，避免半套
+        if (_blit == null) { onDone?.Invoke(); return; }   // 相機還沒好（少見）；不強播，避免半套
+        _onDone = onDone;
+        _duration = durationOverride >= 0f ? durationOverride : duration;
         _elapsed = 0f;
         _playing = true;
         _mat.SetFloat("_Feather", 0.06f);
@@ -139,7 +153,7 @@ public class EyeOpenController : MonoBehaviour
         if (_blit == null) { EnsureHooks(); if (_blit != null) _blit.Material = _mat; }
 
         _elapsed += Time.unscaledDeltaTime;   // 用 unscaled：即使暫停(timeScale=0)也能播
-        float nt = duration > 0f ? Mathf.Clamp01(_elapsed / duration) : 1f;
+        float nt = _duration > 0f ? Mathf.Clamp01(_elapsed / _duration) : 1f;
         Apply(nt);
         if (nt >= 1f) Finish();
     }
@@ -158,6 +172,8 @@ public class EyeOpenController : MonoBehaviour
         _playing = false;
         if (_blit != null) { _blit.Material = null; _blit.enabled = false; }   // 關掉效果、恢復正常畫面
         if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(false, false);   // 解除暫停/擋操作
+        var cb = _onDone; _onDone = null;
+        cb?.Invoke();   // 呼叫 onDone → ScreenFxPlayer 的包裝會復原 HUD
     }
 }
 

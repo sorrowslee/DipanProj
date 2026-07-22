@@ -31,7 +31,7 @@ public class MapTableRow
     public int mode = 2;        // 1 = 整張地圖；2 = 鏡頭跟隨（預設）
     public int atmosphere = 1;  // 1 = 正常；2 = 幽暗+打光；3 = 噩夢+打光（預設 1）
     public int sceneEffect = 0; // 場景特效：0 = 無；1 = 火雨（見 SceneEffectController，預設 0）
-    public int enterEffect = 0; // 進場一次性效果：0 = 無；1 = 睜眼醒來（見 EyeOpenController，預設 0）
+    public int enterEffect = 0; // 進場一次性全螢幕過場＝ScreenFxTable 的 id：0=無 / 1=睜眼醒來 / 2=破幻術 / 3=馬賽克清晰（與劇情 screenFx 共用同一份 id；預設 0）
 }
 
 public class MapTable : MonoBehaviour

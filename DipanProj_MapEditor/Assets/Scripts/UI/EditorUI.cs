@@ -95,10 +95,14 @@ namespace DipanMapEditor.UI
         static Vector2 _screenFxScroll;
         static TriggerRegion _screenFxRegion;   // 開表時記住是哪顆 trigger 的哪個欄，點「填入」就寫回去
         static string _screenFxKey;
-        // ★ 螢幕特效清單（維護點之一）：新增一種螢幕特效時，這裡加一列，並在遊戲端 ScreenFxPlayer.Play 加對應 case。
+        // ★ 螢幕特效清單（維護點之一）：id 必須對齊主遊戲 Resources/ScreenFxTable.csv。
+        //   新增一種：這裡加一列 + 遊戲端寫 shader/控制器 + ScreenFxPlayer.Play 加 case + ScreenFxTable.csv 加列。
+        //   這份 id 同時給「劇情 screenFx 步驟」與「MapsTable 的 EnterEffect 欄」共用（同 id 同效果）。
         static readonly (int id, string name, string desc)[] ScreenFxCatalog =
         {
-            (1, "破幻術", "幻境崩碎回歸現實：玻璃裂紋→碎塊崩落色散→白光收尾。紅嫁衣沒殺家人分支傳去榕樹妖前播。"),
+            (1, "睜眼醒來", "眼皮閉合→睜開的進場醒來。填在 MapsTable 的 EnterEffect 欄時會連動玩家趴地→起身。"),
+            (2, "破幻術", "幻境崩碎回歸現實：玻璃裂紋→碎塊崩落色散→白光收尾。紅嫁衣沒殺家人分支傳去榕樹妖前播。"),
+            (3, "馬賽克清晰", "像素馬賽克格由粗到細慢慢收斂成清晰畫面。適合放在劇情亮起後、進場觸發對話前。"),
         };
 
         const string MapsDirPrefKey = "MapEditor.MapsDir";
@@ -1752,7 +1756,7 @@ namespace DipanMapEditor.UI
                     ActorPicker(cs, s, false);
                     break;
                 case "screenFx":
-                    s.assetId = LabeledText("effectId(1=破幻術)", s.assetId);
+                    s.assetId = LabeledText("effectId(1睜眼/2破幻術/3馬賽克)", s.assetId);
                     _csBufSeconds = LabeledText("停留秒數", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 0f);
                     break;
                 case "setFlag":

@@ -10,6 +10,25 @@
 
 ---
 
+## 0. 統一登記：ScreenFxTable（2026-07 整併）
+
+「全螢幕過場特效」原本散成兩條路、id 空間還不一樣（EnterEffect 的 1＝睜眼、screenFx 的 1＝破幻術）。現已整併成**單一登記表**，避免同一種特效兩邊各設一次：
+
+- 唯一表：`Assets/Resources/ScreenFxTable.csv`（欄位 `Id,Name,Key,DurationSeconds,WakeUpPose,Notes`）。
+- 目前 id：**1 = 睜眼醒來**、**2 = 破幻術**、**3 = 馬賽克清晰**。`0` = 無特效。
+- 兩個填寫入口共用同一份 id → **同 id 同效果**：
+  - `MapsTable.csv` 的 `EnterEffect` 欄（進圖播一次）。
+  - 劇情編輯器的 `screenFx` 步驟 / 觸發鏈的 `playScreenFx` 動作。
+- 分派：兩邊都經 `ScreenFxPlayer.Play(id, onDone, duration)` → switch 到對應控制器（`EyeOpenController` / `IllusionShatterController` / `MosaicController`）。`ScreenFxPlayer.IsAnyPlaying` 供「進場觸發等特效播完」輪詢。
+- `WakeUpPose=1`（目前只有睜眼）＝當 EnterEffect 時連動玩家「趴地→起身」（原本程式寫死 `enterEffect==1`，現改讀表）。
+- **新增一種螢幕特效的維護點**：①`ScreenFxTable.csv` 加一列 ②寫 shader＋控制器（提供 `static Play(onDone,duration)`）③`ScreenFxPlayer.Play` 加 case ④編輯器 `EditorUI.ScreenFxCatalog` 同步一列。
+- ⚠️ 破幻術的 id 從 1 改成 2；既有 `RedBridalGown_BridalRoom.dipanmap` 的 `playScreenFx` effectId 已一併改為 2。
+
+### 馬賽克清晰（id 3）
+像素馬賽克格由粗到細慢慢收斂成清晰畫面（`_Progress` 0→1）。shader＝`Resources/Shaders/Mosaic.shader`、控制器＝`MosaicController`。與睜眼／破幻術不同，**它不自行暫停/鎖輸入**（`SetExternalHold` 是布林非計數，若在劇情內自行 hold 會把劇情的鎖一起解掉），暫停/鎖輸入交給呼叫端（劇情 `lockInput`）。典型用法：山道劇情亮起後、進場觸發對話前放一格 `screenFx=3`。
+
+---
+
 ## 1. 睜眼醒來（type 1）
 
 用在**初始洞窟 Main_Cave**：主角從高處墜落昏迷，進洞窟場景後「睜開眼睛」的感覺。時間軸（總長 `duration`，預設 2.6 秒，可調）：
