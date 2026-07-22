@@ -1,4 +1,0 @@
-Id,Name,Key,DurationSeconds,WakeUpPose,Notes
-1,睜眼醒來,eyeOpen,4.0,1,眼皮閉合→睜開的進場醒來；EnterEffect 填 1 會連動玩家趴地→起身。整段暫停遊戲。
-2,破幻術,illusionShatter,2.2,0,幻境崩碎回歸現實：玻璃裂紋→碎塊崩落色散→白光收尾。整段暫停遊戲。
-3,馬賽克清晰,mosaic,2.0,0,像素馬賽克格由粗到細慢慢收斂成清晰畫面；不自行暫停（交由劇情鎖輸入）。
