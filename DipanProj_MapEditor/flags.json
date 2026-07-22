@@ -39,6 +39,14 @@
       "IsLife": false,
       "IsLevel": true,
       "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 6,
+      "name": "tutorialBuddleLight",
+      "scope": "life",
+      "IsLife": true,
+      "IsLevel": false,
+      "ScopeLabel": "永久"
     }
   ]
 }

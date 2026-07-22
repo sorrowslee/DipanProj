@@ -1,5 +1,6 @@
 using UnityEngine;
 using Dipan.Inventory;
+using Dipan.Localization;
 
 namespace Dipan.UI
 {
@@ -27,11 +28,20 @@ namespace Dipan.UI
         const string DoneFlag = "永久:tutorialPortalDone"; // 傳送門教學做過的永久記號（程式內部用，不進旗標管理器）
 
         // ── 柴房佛燈教學（紅嫁衣關第一間房）寫死的值 ──
-        const string LampStartTrig = "柴房教學起點";       // onEnter 進場觸發點名：一進柴房自動啟動佛燈教學
-        const string LampPickupTrig = "柴房佛燈";          // 佛燈 pickup 觸發點名（手指指向它＋撿完由此名廣播）
+        // ⚠️ 這幾個名字/旗標必須跟地圖 RedBridalGown_Woodshed 的 trigger 完全一致（改編輯器就要改這裡）。
+        const string LampStartTrig = "新手教學-邪佛對話"; // 這顆 drama「關閉」時＝教學開始（＝地圖上邪佛對話那顆 trigger 的名字）
+        const string LampPickupTrig = "柴房佛燈拾取";      // 佛燈 pickup 觸發點名（手指指向它＋撿完由此名廣播 _lampPicked）
         const int LampItemId = 8;                          // 佛燈＝道具/武器 8（佛光；ItemTable 8 WeaponID=8）
-        const string LampTakenFlag = "永久:woodshedLampTaken";      // 撿走佛燈（pickup setFlag；也驅動佛燈地上物 disappearFlag）
-        const string LampDoneFlag = "永久:woodshedLampTutorialDone"; // 整段佛燈教學做過的永久記號（做完不再強制引導）
+        const string LampTakenFlag = "tutorialBuddleLight"; // 撿走佛燈（＝pickup 的 setFlag；旗標管理器登記的 life 旗標）
+        const string LampDoneFlag = "tutorialBuddleLight";  // 同一顆旗標：撿到即視為「這段做過」，onEnter 也 gate 這個（!tutorialBuddleLight 才播）
+
+        // 佛燈教學提示字串的語言表 id（實際字串在 Assets/Data/LanguageTable.csv，1001–1006）。
+        const int TxtGoPick = 1001;    // 走過去，撿起佛燈（靠近按 F）
+        const int TxtForceF = 1002;    // 按 F 撿起佛燈
+        const int TxtOpenBag = 1003;   // 按 B 打開背包
+        const int TxtClickEquip = 1004;// 點一下佛燈，裝備它
+        const int TxtCloseBag = 1005;  // 按 B 關閉背包
+        const int TxtLight = 1006;     // 按住左鍵或空白鍵，點亮佛燈
 
         /// <summary>強制階段時鎖住其他快捷鍵（背包/倉庫開關等）。由本管理器控制、別的系統查詢。</summary>
         public static bool HardLock { get; private set; }
@@ -261,7 +271,7 @@ namespace Dipan.UI
                 // 從頭：手指指向佛燈、提示走過去撿。
                 if (Interact != null && Interact.TryGetPickupWorld(LampItemId, out Vector2 lw) && PlayerT() != null)
                     GuideFingerPanel.ShowWorldGuide(PlayerT(), new Vector3(lw.x, lw.y, 0f));
-                TutorialHintPanel.Show("走過去，撿起佛燈（靠近按 F）");
+                TutorialHintPanel.Show(Language.GetText(TxtGoPick));
                 _phase = Phase.LampGuidePick;
                 return;
             }
@@ -298,7 +308,7 @@ namespace Dipan.UI
                 AllowInteract = true;                                // 放行按 F 撿
                 HardLock = true;
                 GuideFingerPanel.HidePanel();
-                TutorialHintPanel.Show("按 F 撿起佛燈");
+                TutorialHintPanel.Show(Language.GetText(TxtForceF));
                 _phase = Phase.LampForceF;
             }
         }
@@ -316,7 +326,7 @@ namespace Dipan.UI
             UIManager.Instance?.SetExternalHold(true, false);   // 續定住玩家（不能走/攻擊）
             HardLock = true;                                     // 鎖倉庫等快捷鍵
             AllowBag = true;                                     // 但放行 B 開背包
-            TutorialHintPanel.Show("按 B 打開背包");
+            TutorialHintPanel.Show(Language.GetText(TxtOpenBag));
             _phase = Phase.LampOpenBag;
         }
 
@@ -327,7 +337,7 @@ namespace Dipan.UI
             {
                 AllowBag = false;   // 開了就先鎖 B（避免提前關）；接著只准點佛燈格
                 _lockedTarget = null;
-                TutorialHintPanel.Show("點一下佛燈，裝備它");
+                TutorialHintPanel.Show(Language.GetText(TxtClickEquip));
                 _phase = Phase.LampClickEquip;
             }
         }
@@ -341,7 +351,7 @@ namespace Dipan.UI
                 GuideFingerPanel.HidePanel();
                 TutorialBlockerPanel.Unlock();
                 AllowBag = true;                       // 放行 B 關背包
-                TutorialHintPanel.Show("按 B 關閉背包");
+                TutorialHintPanel.Show(Language.GetText(TxtCloseBag));
                 _phase = Phase.LampCloseBag;
                 return;
             }
@@ -375,7 +385,7 @@ namespace Dipan.UI
             AllowInteract = false;
             _auraHoldTimer = 0f;
             UIManager.Instance?.SetExternalHold(false, false);   // 放行玩家：可攻擊/開佛光
-            TutorialHintPanel.Show("按住左鍵或空白鍵，點亮佛燈");
+            TutorialHintPanel.Show(Language.GetText(TxtLight));
             _phase = Phase.LampLight;
         }
 

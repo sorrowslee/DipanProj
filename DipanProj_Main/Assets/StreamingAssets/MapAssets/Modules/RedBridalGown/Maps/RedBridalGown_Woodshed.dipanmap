@@ -44,42 +44,19 @@
           "playOnce": false,
           "appearFlag": "",
           "appearDelaySeconds": 0.0,
-          "appearFade": false
-        },
-        {
-          "assetId": "Modules/RedBridalGown/Environment/container_wood_crate",
-          "x": 10.0419226,
-          "y": -5.20736074,
-          "rot": 0.0,
-          "flipX": false,
-          "flipY": false,
-          "scaleX": 1.0,
-          "scaleY": 1.0,
-          "sortKey": -5.20736074,
-          "zOrder": 0,
-          "hp": -1,
-          "animFps": 8.0,
-          "pingPong": false,
-          "walkable": false,
-          "passThrough": false,
-          "breakFlag": "",
-          "appearAfterClears": 0,
-          "appearScope": "cycle",
-          "playOnce": false,
-          "appearFlag": "",
-          "appearDelaySeconds": 0.0,
-          "appearFade": false
+          "appearFade": false,
+          "disappearFlag": ""
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/weapon_sacredLamp",
-          "x": 10.0419226,
-          "y": -4.73079824,
+          "x": 10.492671,
+          "y": -4.461542,
           "rot": 0.0,
           "flipX": false,
           "flipY": false,
           "scaleX": 1.0,
           "scaleY": 1.0,
-          "sortKey": -4.73079824,
+          "sortKey": -4.461542,
           "zOrder": 1,
           "hp": -1,
           "animFps": 8.0,
@@ -93,7 +70,7 @@
           "appearFlag": "",
           "appearDelaySeconds": 0.0,
           "appearFade": false,
-          "disappearFlag": "永久:woodshedLampTaken"
+          "disappearFlag": "tutorialBuddleLight"
         }
       ]
     },
@@ -189,7 +166,7 @@
         },
         {
           "id": "lamp0pick",
-          "name": "柴房佛燈",
+          "name": "柴房佛燈拾取",
           "typeId": "pickup",
           "cells": [
             [
@@ -200,16 +177,31 @@
           "params": {
             "itemId": "8",
             "repeat": "永久",
-            "setFlag": "永久:woodshedLampTaken",
-            "toRealBag": "true"
+            "setFlag": "tutorialBuddleLight",
+            "toRealBag": "true",
+            "requireFlag": "!tutorialBuddleLight"
           }
         },
         {
-          "id": "lamp0enter",
-          "name": "柴房教學起點",
+          "id": "cbd909ec",
+          "name": "進場觸發-觸發邪佛對話",
           "typeId": "onEnter",
           "cells": [],
-          "params": {}
+          "params": {
+            "delaySeconds": "",
+            "requireFlag": "!tutorialBuddleLight",
+            "next": "新手教學-邪佛對話"
+          }
+        },
+        {
+          "id": "a2d294f0",
+          "name": "新手教學-邪佛對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "20",
+            "next": "柴房教學起點"
+          }
         }
       ]
     }

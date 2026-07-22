@@ -35,6 +35,9 @@ public static class ScreenFxTable
 
     static Dictionary<int, Row> _rows;
 
+    /// <summary>進 Play 時清快取（Domain Reload 已關；provider 接好前若載過會殘留空表）。由 PlayModeStaticReset 呼叫。</summary>
+    public static void ResetForPlayMode() => _rows = null;
+
     static void EnsureLoaded()
     {
         if (_rows != null) return;

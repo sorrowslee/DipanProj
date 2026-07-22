@@ -13,6 +13,9 @@ public static class SceneFxTable
 {
     static Dictionary<int, SceneFxEmitter.Look> _byId;
 
+    /// <summary>進 Play 時清快取（Domain Reload 已關；provider 接好前若載過會殘留空表）。由 PlayModeStaticReset 呼叫。</summary>
+    public static void ResetForPlayMode() => _byId = null;
+
     public static SceneFxEmitter.Look Get(int fxId)
     {
         EnsureLoaded();

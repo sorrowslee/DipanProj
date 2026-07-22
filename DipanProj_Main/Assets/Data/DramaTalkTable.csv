@@ -35,3 +35,10 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 33,17,主角,Actor_Fear,Main/Talk/Girl/Girl_Fear,1,危險啊~~,,,,,,
 34,18,主角,Actor_Normal,Main/Talk/Girl/Girl_Smile,1,真的很危險，小妹妹下次要注意安全唷,,,,,,-50
 35,18,主角,Actor_Normal,Main/Talk/Girl/Girl_Smile,2,好，我知道了，謝謝大哥哥,,,,,,-50
+36,19,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,這裡就是你證明己身之處，此地充滿妖孽，非常危險,1.1,,-130,,,-50
+37,19,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,吾贈汝佛燈一盞，汝好自為之,1.1,,-130,,,-50
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,

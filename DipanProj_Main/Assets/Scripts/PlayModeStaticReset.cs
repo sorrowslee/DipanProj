@@ -46,5 +46,11 @@ public static class PlayModeStaticReset
 
         // 怪物登記表：清上一輪殘留（接觸傷害/友軍找目標靠它）。
         MonsterController.Active.Clear();
+
+        // 資料表快取（provider 載入的靜態表）：清掉，下次存取重讀。
+        // 尤其 Language——若曾在 provider 接好前載過一次會殘留空表，之後接好也不重載 → 字串全變 [lang:id]。
+        Dipan.Localization.Language.ResetForPlayMode();
+        SceneFxTable.ResetForPlayMode();
+        ScreenFxTable.ResetForPlayMode();
     }
 }
