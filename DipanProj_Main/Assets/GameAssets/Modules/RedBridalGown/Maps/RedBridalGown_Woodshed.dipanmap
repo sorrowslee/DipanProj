@@ -149,7 +149,9 @@
           "params": {
             "entranceId": "Woodshed_north",
             "targetMapId": "2",
-            "targetEntrance": "Storeroom_south"
+            "targetEntrance": "Storeroom_south",
+            "startDisabled": true,
+            "enableFlag": "tutorialBuddleLight"
           }
         },
         {
@@ -179,7 +181,8 @@
             "repeat": "永久",
             "setFlag": "tutorialBuddleLight",
             "toRealBag": "true",
-            "requireFlag": "!tutorialBuddleLight"
+            "requireFlag": "!tutorialBuddleLight",
+            "next": "新手教學結束後開啟傳送點"
           }
         },
         {
@@ -201,6 +204,17 @@
           "params": {
             "dramaId": "20",
             "next": "柴房教學起點"
+          }
+        },
+        {
+          "id": "af8d9dd4",
+          "name": "新手教學結束後開啟傳送點",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點1",
+            "show": true,
+            "requireFlag": ""
           }
         }
       ]

@@ -196,6 +196,23 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
+        // 教學「鎖移動、只允許開火」：佛燈教學最後一步——玩家不能走（走不掉），但要能按住左鍵/空白鍵開佛光。
+        if (Dipan.UI.TutorialManager.FireOnly)
+        {
+            _moveInput = Vector2.zero;   // 鎖住移動
+            // 開火時仍依滑鼠決定朝向（不影響點亮，只是好看）
+            if (_spriteRenderer != null && Camera.main != null
+                && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)))
+            {
+                float dx = Camera.main.ScreenToWorldPoint(Input.mousePosition).x - transform.position.x;
+                if (dx < 0) SetFacing(false); else if (dx > 0) SetFacing(true);
+            }
+            if (_fireTimer > 0) _fireTimer -= Time.deltaTime;
+            HandleFiring();      // 允許攻擊/佛光（其餘移動、切武器 E 都跳過）
+            HandleVisuals();
+            return;
+        }
+
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
         _moveInput = new Vector2(h, v).normalized;

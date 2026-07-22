@@ -52,6 +52,9 @@ namespace Dipan.UI
         /// <summary>佛燈教學「按 B 開/關背包」步驟：即使 HardLock 鎖著別的快捷鍵，也放行 B 鍵。由 StorageBagCoordinator 查詢。</summary>
         public static bool AllowBag { get; private set; }
 
+        /// <summary>佛燈教學「點亮佛燈」步驟：鎖住玩家移動、但放行攻擊/開火（否則按住左鍵開不了佛光）。由 PlayerController 查詢。</summary>
+        public static bool FireOnly { get; private set; }
+
         enum Phase
         {
             Idle, WaitNear, ForceF, ClickScript, ClickButton, GuideToPortal, Done,
@@ -89,6 +92,13 @@ namespace Dipan.UI
             if (Instance != null && Instance != this) { Destroy(gameObject); return; }
             Instance = this;
             DontDestroyOnLoad(gameObject);
+
+            // 已關 Domain Reload：這些強制旗標是 static，跨 Play 會殘留。每次新 Play 會生一個新實例（見 TutorialBootstrap），
+            // 在此把它們清乾淨——避免「上一輪停在點亮/強制步驟時停 Play」→ 下一輪玩家一開場就被鎖住不能動。
+            HardLock = false;
+            AllowInteract = false;
+            AllowBag = false;
+            FireOnly = false;
 
             TriggerChain.OnTriggerFired += OnTriggerFired;
             ScriptsPanel.OnOpened += () => _evtOpened = true;
@@ -384,7 +394,8 @@ namespace Dipan.UI
             AllowBag = false;
             AllowInteract = false;
             _auraHoldTimer = 0f;
-            UIManager.Instance?.SetExternalHold(false, false);   // 放行玩家：可攻擊/開佛光
+            UIManager.Instance?.SetExternalHold(false, false);   // 解除全鎖（否則連開火都被擋）
+            FireOnly = true;                                     // 但改上「鎖移動、只放行開火」：玩家走不掉、只能按住左鍵點亮
             TutorialHintPanel.Show(Language.GetText(TxtLight));
             _phase = Phase.LampLight;
         }
@@ -397,6 +408,7 @@ namespace Dipan.UI
 
             if (_auraHoldTimer >= 0.35f)   // 稍微持續＝確實點亮（避免手滑一下就過）
             {
+                FireOnly = false;                     // 解除鎖移動：玩家自由，可走去傳送門
                 TutorialHintPanel.Hide();
                 GuideFingerPanel.HidePanel();
                 TriggerChain.SetFlag(LampDoneFlag);   // 永久：整段教學完成，之後不再強制引導
