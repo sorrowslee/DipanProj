@@ -21,7 +21,80 @@
       "opacity": 1.0,
       "locked": false,
       "tiles": [],
-      "objects": []
+      "objects": [
+        {
+          "assetId": "Modules/RedBridalGown/Environment/wood_log_3",
+          "x": 11.4103012,
+          "y": -6.633906,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.21,
+          "scaleY": 1.21,
+          "sortKey": -6.633906,
+          "zOrder": 0,
+          "hp": -1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/container_wood_crate",
+          "x": 10.0419226,
+          "y": -5.20736074,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -5.20736074,
+          "zOrder": 0,
+          "hp": -1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/weapon_sacredLamp",
+          "x": 10.0419226,
+          "y": -4.73079824,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -4.73079824,
+          "zOrder": 1,
+          "hp": -1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false
+        }
+      ]
     },
     {
       "id": "walk",
@@ -102,26 +175,19 @@
           }
         },
         {
-          "id": "59283d74",
-          "name": "傳送點2",
-          "typeId": "teleport",
+          "id": "85299340",
+          "name": "玩家出生點1",
+          "typeId": "playerSpawn",
           "cells": [
             [
-              16,
-              5
-            ],
-            [
-              16,
+              7,
               6
             ]
           ],
-          "params": {
-            "entranceId": "Woodshed_east",
-            "targetMapId": "7",
-            "targetEntrance": "Courtyard_west3"
-          }
+          "params": {}
         }
       ]
     }
-  ]
+  ],
+  "sceneFx": []
 }

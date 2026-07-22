@@ -1,12 +1,12 @@
 ID,Name,Module,Path,IsLevelStart,MapMode,Atmosphere(1正常/2幽暗+打光/3噩夢+打光/4烈日曝曬/5焦土餘燼/6沙塵暴/7淺海/8深海/9深海+恐怖/10風雪/11強風/12綿綿細雨/13大雨/14陰森森林鬼霧/15電視雜訊/空=1),SceneEffect(0無/1火雨/空=0),EnterEffect(0無/1睜眼醒來/空=0)
-1,RedBridalGown_Woodshed,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Woodshed.dipanmap,0,2,2,0,
+1,RedBridalGown_Woodshed,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Woodshed.dipanmap,1,2,2,0,
 2,RedBridalGown_Storeroom,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Storeroom.dipanmap,0,2,2,0,
 3,RedBridalGown_Kitchen,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Kitchen.dipanmap,0,2,2,0,
 4,RedBridalGown_LivingRoom1,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_LivingRoom1.dipanmap,0,2,2,0,
 5,RedBridalGown_ShrineHall,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_ShrineHall.dipanmap,0,2,2,0,
 6,RedBridalGown_BridalRoom,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_BridalRoom.dipanmap,0,2,2,0,
 7,RedBridalGown_Courtyard,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Courtyard.dipanmap,0,2,2,0,
-8,RedBridalGown_LivingRoom2,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_LivingRoom2.dipanmap,1,2,2,0,
+8,RedBridalGown_LivingRoom2,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_LivingRoom2.dipanmap,0,2,2,0,
 9,RedBridalGown_Study,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Study.dipanmap,0,2,2,0,
 10,RedBridalGown_TreeDemon,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_TreeDemon.dipanmap,0,2,14,0,
 11,Main_Cave,Main,Main/Maps/Main_Cave.dipanmap,0,2,1,0,1

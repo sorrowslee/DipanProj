@@ -1350,6 +1350,15 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/RedBridalGown/Environment/weapon_sacredLamp",
+      "path": "Modules/RedBridalGown/Environment/weapon_sacredLamp.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 256,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/RedBridalGown/Environment/wood_axe_block",
       "path": "Modules/RedBridalGown/Environment/wood_axe_block.png",
       "category": "Environment",

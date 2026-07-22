@@ -114,22 +114,6 @@
           }
         },
         {
-          "id": "acb693b2",
-          "name": "傳送點3",
-          "typeId": "teleport",
-          "cells": [
-            [
-              2,
-              7
-            ]
-          ],
-          "params": {
-            "entranceId": "Courtyard_west3",
-            "targetMapId": "1",
-            "targetEntrance": "Woodshed_east"
-          }
-        },
-        {
           "id": "b2e1813e",
           "name": "傳送點4",
           "typeId": "teleport",
