@@ -91,6 +91,7 @@ public class InteractionManager : MonoBehaviour
         // pickup
         public int itemId;
         public int count;
+        public bool toRealBag;   // true＝直接進真背包 InventorySystem（不走關卡臨時包）；給起始/教學道具用（如佛燈，撿了要能當場裝備、死亡也保留）
         public string name;
         // drama
         public int dramaId;
@@ -193,6 +194,8 @@ public class InteractionManager : MonoBehaviour
                 pt.kind = PointKind.Pickup;
                 pt.itemId = itemId;
                 pt.count = Mathf.Max(1, r.GetInt("count", 1));
+                string toReal = r.GetString("toRealBag");
+                pt.toRealBag = toReal == "true" || toReal == "1";   // 直接進真背包（不走臨時包）；起始/教學道具用
                 pt.name = data != null ? data.Name : $"#{itemId}";
                 pt.marker = CreateMarker(center, pickupMarkerColor);
             }
@@ -428,6 +431,26 @@ public class InteractionManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>當前地圖若有某 itemId 的拾取點，回傳其中心世界座標（給教學手指指向佛燈用）。</summary>
+    public bool TryGetPickupWorld(int itemId, out Vector2 center)
+    {
+        for (int i = 0; i < _points.Count; i++)
+            if (_points[i].kind == PointKind.Pickup && _points[i].itemId == itemId) { center = _points[i].center; return true; }
+        center = default; return false;
+    }
+
+    /// <summary>玩家是否已走到某 itemId 拾取點「可按 F 拾取」的範圍（給教學判斷何時進入強制按 F）。</summary>
+    public bool PlayerNearPickup(int itemId)
+    {
+        if (_player == null) _player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        if (_player == null) return false;
+        Vector2 p = _player.position;
+        float r2 = pickupRadius * pickupRadius;
+        for (int i = 0; i < _points.Count; i++)
+            if (_points[i].kind == PointKind.Pickup && _points[i].itemId == itemId && NearestCellSqr(_points[i], p) <= r2) return true;
+        return false;
+    }
+
     // 目前地圖 id（給關卡進度記錄用；沒有 MapManager 時 -1）。
     static int CurMapId => MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
 
@@ -463,7 +486,10 @@ public class InteractionManager : MonoBehaviour
     {
         if (pt == null) return;
 
-        int leftover = GiveToPlayer(pt.itemId, pt.count);   // 關卡內進臨時包（恆 0）、廣場進真背包
+        // toRealBag＝直接進真背包（起始/教學道具，如佛燈：撿了要能當場開背包裝備、死亡也不丟）；否則走既有規則（關卡內臨時包/廣場真背包）。
+        int leftover = pt.toRealBag
+            ? (InventorySystem.Instance != null ? InventorySystem.Instance.AddItem(pt.itemId, pt.count) : pt.count)
+            : GiveToPlayer(pt.itemId, pt.count);
         int added = pt.count - leftover;
 
         if (added > 0)

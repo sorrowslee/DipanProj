@@ -3,7 +3,8 @@ using System.Globalization;
 using UnityEngine;
 
 /// <summary>
-/// 場景特效外觀表（Resources/Data/SceneFxTable.csv）。fxId → 一組 <see cref="SceneFxEmitter.Look"/>（顏色/密度/大小/壽命/濃度…）。
+/// 場景特效外觀表（CSV 在 Assets/Data/SceneFxTable.csv，與其他表同位置，由場景上的 SceneFxTableProvider 提供）。
+/// fxId → 一組 <see cref="SceneFxEmitter.Look"/>（顏色/密度/大小/壽命/濃度…）。
 /// 懶漢載入一次、快取。加新特效種類 = CSV 加一列，不動程式。
 ///
 /// 欄位：Id,Name,R,G,B,EmitPerSecond,LifeMin,LifeMax,SizeStart,SizeEnd,PeakAlpha,Turbulence,SortingOrder
@@ -33,10 +34,14 @@ public static class SceneFxTable
         if (_byId != null) return;
         _byId = new Dictionary<int, SceneFxEmitter.Look>();
 
-        var ta = Resources.Load<TextAsset>("Data/SceneFxTable");
+        // 正典：場景上的 SceneFxTableProvider（Assets/Data/SceneFxTable.csv）；找不到才退回 Resources（舊位置）。
+        var provider = Object.FindObjectOfType<SceneFxTableProvider>();
+        var ta = (provider != null && provider.sceneFxCSV != null)
+            ? provider.sceneFxCSV
+            : Resources.Load<TextAsset>("Data/SceneFxTable");
         if (ta == null || string.IsNullOrWhiteSpace(ta.text))
         {
-            Debug.LogWarning("[SceneFxTable] 找不到 Resources/Data/SceneFxTable.csv，改用內建煙霧預設。");
+            Debug.LogWarning("[SceneFxTable] 找不到 SceneFxTable.csv（Assets/Data/ 或 Resources/Data/），改用內建煙霧預設。");
             _byId[1] = Default();
             return;
         }

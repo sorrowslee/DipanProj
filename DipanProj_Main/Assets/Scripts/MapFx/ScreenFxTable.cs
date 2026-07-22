@@ -9,7 +9,7 @@ using UnityEngine;
 ///   - 劇情編輯器的 <c>screenFx</c> 步驟 / 觸發鏈的 <c>playScreenFx</c> 動作
 /// 兩邊填「同一個 Id」就會打到「同一個效果」（都經 <see cref="ScreenFxPlayer.Play"/> 分派）。
 ///
-/// 資料來源：<c>Resources/ScreenFxTable.csv</c>（首次存取時 lazy load）。
+/// 資料來源：<c>Assets/Data/ScreenFxTable.csv</c>（由場景上的 ScreenFxTableProvider 提供；首次存取時 lazy load）。
 /// 欄位：Id, Name, Key, DurationSeconds, WakeUpPose, Notes
 ///   - Id           = 共用整數 id（EnterEffect 與 screenFx 都填它）。0 = 無特效。
 ///   - Name         = 顯示名稱（編輯器下拉用）。
@@ -40,10 +40,14 @@ public static class ScreenFxTable
         if (_rows != null) return;
         _rows = new Dictionary<int, Row>();
 
-        var ta = Resources.Load<TextAsset>("ScreenFxTable");
+        // 正典：場景上的 ScreenFxTableProvider（Assets/Data/ScreenFxTable.csv）；找不到才退回 Resources（舊位置）。
+        var provider = Object.FindObjectOfType<ScreenFxTableProvider>();
+        var ta = (provider != null && provider.screenFxCSV != null)
+            ? provider.screenFxCSV
+            : Resources.Load<TextAsset>("Data/ScreenFxTable");
         if (ta == null || string.IsNullOrEmpty(ta.text))
         {
-            Debug.LogWarning("[ScreenFxTable] 找不到或讀不到 Resources/ScreenFxTable.csv；螢幕特效以控制器預設運作。");
+            Debug.LogWarning("[ScreenFxTable] 找不到或讀不到 ScreenFxTable.csv（Assets/Data/ 或 Resources/Data/）；螢幕特效以控制器預設運作。");
             return;
         }
 

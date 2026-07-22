@@ -1,0 +1,6 @@
+Id,Name,R,G,B,EmitPerSecond,LifeMin,LifeMax,SizeStart,SizeEnd,PeakAlpha,Turbulence,SortingOrder,Kind
+1,Smoke,0.07,0.06,0.06,48,2.2,3.6,0.9,2.5,0.8,0.22,25000,stream
+2,Fire,1.0,0.5,0.12,42,0.5,1.0,0.4,1.0,0.95,0.15,25000,stream
+3,Ice,0.6,0.85,1.0,26,1.0,1.8,0.4,1.1,0.7,0.1,25000,stream
+4,PoisonGas,0.4,0.8,0.2,22,1.8,3.0,0.7,1.9,0.55,0.12,25000,stream
+5,Portal,0.25,1.0,0.45,18,1.0,1.8,0.15,0.35,0.75,0.05,24000,portal

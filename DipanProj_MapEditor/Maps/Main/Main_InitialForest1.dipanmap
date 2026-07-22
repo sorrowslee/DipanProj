@@ -131,7 +131,23 @@
           "typeId": "drama",
           "cells": [],
           "params": {
-            "dramaId": "12"
+            "dramaId": "12",
+            "next": "玩家移動教學"
+          }
+        },
+        {
+          "id": "7f2f9061",
+          "name": "玩家移動教學",
+          "typeId": "playerHint",
+          "cells": [],
+          "params": {
+            "leftImage": "Guide_Wasd",
+            "rightImage": "",
+            "flashLeft": true,
+            "flashRight": false,
+            "hideOn": "",
+            "requireFlag": "!tutorialMoveDone",
+            "setFlag": "tutorialMoveDone"
           }
         }
       ]

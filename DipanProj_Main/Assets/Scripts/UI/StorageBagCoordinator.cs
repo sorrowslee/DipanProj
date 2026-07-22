@@ -28,11 +28,10 @@ namespace Dipan.UI
             if (ui == null) return;
 
             // 新手教學強制階段：鎖住背包/倉庫快捷鍵，避免玩家亂開打斷引導。
-            if (!TutorialManager.HardLock)
-            {
-                if (Input.GetKeyDown(storageKey)) ui.Toggle<StoragePanel>();
-                if (Input.GetKeyDown(bagKey)) ui.Toggle<InventoryPanel>();
-            }
+            // 例外：佛燈教學的「按 B 開/關背包」步驟會放行 B 鍵（AllowBag），此時仍鎖倉庫 K。
+            bool hotkeysFree = !TutorialManager.HardLock;
+            if (hotkeysFree && Input.GetKeyDown(storageKey)) ui.Toggle<StoragePanel>();
+            if ((hotkeysFree || TutorialManager.AllowBag) && Input.GetKeyDown(bagKey)) ui.Toggle<InventoryPanel>();
 
             // 依當前開啟狀態套用版面（idempotent，每幀套無妨）
             var store = ui.Get<StoragePanel>();

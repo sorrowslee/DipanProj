@@ -36,7 +36,15 @@
           "hp": -1,
           "animFps": 24.0,
           "pingPong": false,
-          "walkable": false
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false
         }
       ]
     },
@@ -148,24 +156,9 @@
           "cells": [],
           "params": {
             "dramaId": "6",
-            "next": "玩家提示如何移動",
+            "next": "",
             "setFlag": "",
             "requireFlag": ""
-          }
-        },
-        {
-          "id": "13a9285c",
-          "name": "玩家提示如何移動",
-          "typeId": "playerHint",
-          "cells": [],
-          "params": {
-            "leftImage": "Guide_Wasd",
-            "rightImage": "",
-            "flashLeft": true,
-            "flashRight": false,
-            "hideOn": "",
-            "requireFlag": "!tutorialMoveDone",
-            "setFlag": "tutorialMoveDone"
           }
         }
       ]

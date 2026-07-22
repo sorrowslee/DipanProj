@@ -27,6 +27,9 @@ public class MapObjectRevealer : MonoBehaviour
     // 旗標裸名字 → 等待現身的物件清單。
     readonly Dictionary<string, List<Hidden>> _byFlag = new Dictionary<string, List<Hidden>>();
 
+    // 旗標裸名字 → 旗標成立時要「消失（銷毀）」的物件清單（disappearFlag，與 _byFlag 相反）。
+    readonly Dictionary<string, List<GameObject>> _disappearByFlag = new Dictionary<string, List<GameObject>>();
+
     void OnEnable()  { TriggerChain.OnFlagFirstSet += OnFlagFirstSet; }
     void OnDisable() { TriggerChain.OnFlagFirstSet -= OnFlagFirstSet; }
 
@@ -40,10 +43,28 @@ public class MapObjectRevealer : MonoBehaviour
         list.Add(new Hidden { go = go, sr = sr, col = col, anim = anim, delay = delaySeconds, fade = fade });
     }
 
+    /// <summary>登記一個「等旗標成立就消失（銷毀）」的地上物。由 MapLoader 在建物件時呼叫（disappearFlag）。</summary>
+    public void RegisterDisappear(string flag, GameObject go)
+    {
+        if (string.IsNullOrEmpty(flag) || go == null) return;
+        string key = flag.Trim();
+        if (!_disappearByFlag.TryGetValue(key, out var list)) { list = new List<GameObject>(); _disappearByFlag[key] = list; }
+        list.Add(go);
+    }
+
     void OnFlagFirstSet(string flagKey)
     {
         if (string.IsNullOrEmpty(flagKey)) return;
         string key = flagKey.Trim();
+
+        // 消失：旗標成立 → 把登記在此旗標下的地上物銷毀（碰撞一併移除、路自動開通）。
+        if (_disappearByFlag.TryGetValue(key, out var goList))
+        {
+            _disappearByFlag.Remove(key);   // 只處理一次
+            foreach (var go in goList)
+                if (go != null) Destroy(go);
+        }
+
         if (!_byFlag.TryGetValue(key, out var list)) return;
         _byFlag.Remove(key);   // 只現身一次
         foreach (var h in list)

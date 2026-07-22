@@ -31,9 +31,19 @@ namespace Dipan.Inventory
             LoadFromText(csv.text);
         }
 
-        /// <summary>後備路徑：若 CSV 仍放在 Resources（舊位置）才用得到；已搬到 Assets/Data 後一般走 TextAsset。</summary>
+        /// <summary>
+        /// 沒有直接 TextAsset 時的通用載入（給 StorageSystem，以及 InventorySystem 找不到 provider 時用）。
+        /// 一律以「正典來源」為先：先找場景上的 <see cref="ItemTableProvider"/>（CSV 在 Assets/Data），
+        /// 找不到才退回 Resources（舊位置，已淘汰）。這樣所有呼叫端都吃同一份 Assets/Data/ItemTable.csv，
+        /// 不會有人讀到 Resources 裡的舊表。
+        /// </summary>
         public void LoadFromResources(string path = "Data/ItemTable")
         {
+            // 正典：場景上的 ItemTableProvider（Assets/Data/ItemTable.csv）。
+            var provider = Object.FindObjectOfType<ItemTableProvider>();
+            if (provider != null && provider.itemCSV != null) { LoadFromText(provider.itemCSV.text); return; }
+
+            // 後備：Resources（舊位置）。
             var csv = Resources.Load<TextAsset>(path);
             if (csv == null)
             {

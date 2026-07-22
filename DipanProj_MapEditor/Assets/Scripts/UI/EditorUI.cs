@@ -806,6 +806,17 @@ namespace DipanMapEditor.UI
                 }
             }
 
+            // ── 消失旗標：此旗標為 true 時這個地上物消失（與「出現旗標」相反）。進圖時已成立＝根本不生；中途成立＝立即銷毀。
+            //    搭配觸發鏈 setFlag 用（例：pickup 撿起佛燈 → setFlag → 佛燈地上物消失）。用旗標管理器登記的旗標。
+            {
+                var objSelG = sel;
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("消失旗標", GUILayout.Width(64));
+                DrawFlagFieldCore(objSelG.disappearFlag ?? "", "obj" + objSelG.GetHashCode() + "/disappearFlag", false,
+                    val => objSelG.disappearFlag = val);
+                GUILayout.EndHorizontal();
+            }
+
             // 可走（勾選＝這個地上物不擋路、不設碰撞、畫在角色腳下；例：木板/地毯可踩上去）。
             bool nextWalk = GUILayout.Toggle(sel.walkable, " 可走");
             if (nextWalk != sel.walkable) { UndoManager.Push(); sel.walkable = nextWalk; if (nextWalk) sel.passThrough = false; }

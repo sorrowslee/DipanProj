@@ -92,7 +92,8 @@
           "playOnce": false,
           "appearFlag": "",
           "appearDelaySeconds": 0.0,
-          "appearFade": false
+          "appearFade": false,
+          "disappearFlag": "永久:woodshedLampTaken"
         }
       ]
     },
@@ -184,6 +185,30 @@
               6
             ]
           ],
+          "params": {}
+        },
+        {
+          "id": "lamp0pick",
+          "name": "柴房佛燈",
+          "typeId": "pickup",
+          "cells": [
+            [
+              10,
+              4
+            ]
+          ],
+          "params": {
+            "itemId": "8",
+            "repeat": "永久",
+            "setFlag": "永久:woodshedLampTaken",
+            "toRealBag": "true"
+          }
+        },
+        {
+          "id": "lamp0enter",
+          "name": "柴房教學起點",
+          "typeId": "onEnter",
+          "cells": [],
           "params": {}
         }
       ]

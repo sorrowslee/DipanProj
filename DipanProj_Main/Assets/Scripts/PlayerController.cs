@@ -59,6 +59,9 @@ public class PlayerController : MonoBehaviour, IDamageable
     private GroundEffectInstance _activeAura;
     private WeaponData _activeAuraWeapon;
 
+    /// <summary>佛光（IsAura）光環目前是否開著（按住左鍵/空白鍵維持中）。供新手教學偵測「玩家真的點亮佛燈」用。</summary>
+    public bool IsAuraActive => _activeAura != null;
+
     // 離散武器集氣：按住空白／左鍵，放開才施放。3 秒完成後傷害 ×3、視覺 ×2。
     private const float ChargeRequiredSeconds = 3f;
     private const float ChargeVfxHeightRatio = 1.15f;

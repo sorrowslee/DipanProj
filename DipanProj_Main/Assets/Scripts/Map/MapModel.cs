@@ -109,6 +109,10 @@ namespace Dipan.MapRuntime
         public float appearDelaySeconds = 0f;
         // 現身時淡入（只對「靠旗標中途現身」有意義；進圖旗標已成立＝直接顯示，不淡入）。
         public bool appearFade = false;
+        // 消失旗標：此旗標為 true 時這個地上物消失（與 appearFlag 相反）。空＝永不因旗標消失。
+        // 進圖時旗標已成立＝根本不生此物件；旗標於關卡中途成立＝由 MapObjectRevealer 立即銷毀。
+        // 搭配觸發鏈 setFlag 用（例：pickup 撿起佛燈 → setFlag → 佛燈地上物消失）。
+        public string disappearFlag = "";
     }
 
     /// <summary>場景特效實例（編輯器放置、遊戲端依 SceneFxTable 的 fxId 生成粒子）。座標為世界座標。</summary>

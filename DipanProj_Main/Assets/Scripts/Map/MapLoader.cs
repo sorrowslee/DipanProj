@@ -382,6 +382,11 @@ public class MapLoader : MonoBehaviour
             if (have < inst.appearAfterClears) return;
         }
 
+        // 消失旗標：旗標已成立＝這個地上物早該消失（例：上次已撿走佛燈）→ 進圖時根本不生。
+        // 旗標尚未成立＝照常建好，並登記給 revealer，等關卡中途旗標成立時銷毀（見文末 RegisterDisappear）。
+        bool disappearGated = !string.IsNullOrEmpty(inst.disappearFlag);
+        if (disappearGated && TriggerChain.FlagTrue(inst.disappearFlag)) return;
+
         // 出現條件②「旗標」：與①同時設＝兩者都要滿足(AND)。旗標未成立時「先建好、藏起來」，
         // 等旗標中途成立由 MapObjectRevealer 現身（動畫從第0幀起播）；重進場旗標已成立＝直接顯示。
         bool flagGated = !string.IsNullOrEmpty(inst.appearFlag);
@@ -478,6 +483,10 @@ public class MapLoader : MonoBehaviour
             _revealer.RegisterHidden(inst.appearFlag, go, sr, col, anim,
                                      inst.appearDelaySeconds, inst.appearFade);
         }
+
+        // 消失旗標：登記給 revealer，等關卡中途此旗標首次成立時把整個物件銷毀（碰撞一併移除）。
+        if (disappearGated && _revealer != null)
+            _revealer.RegisterDisappear(inst.disappearFlag, go);
     }
 
     // ---- 場景特效（可放置的粒子特效，煙/火/冰/毒…；由編輯器 map.sceneFx 放置，SceneFxTable 定義外觀）----
