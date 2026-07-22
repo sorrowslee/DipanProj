@@ -89,6 +89,8 @@ namespace DipanMapEditor.Data
         // 遊戲端：進圖時旗標已成立＝根本不生此物件；旗標中途成立＝由 MapObjectRevealer 立即銷毀。
         // 搭配觸發鏈 setFlag 用（例：pickup 撿起佛燈 → setFlag → 佛燈地上物消失）。
         public string disappearFlag = "";
+        // 發光半徑（世界單位）：>0＝這個地上物擺在原地時發光照亮周遭（火把/香爐/地上的佛燈…）。0/空＝不發光。
+        public float lightRadius = 0f;
     }
 
     /// <summary>一塊 trigger 區域：型別 + 名稱 + 格集合 + 參數（依 TriggerType schema）。</summary>

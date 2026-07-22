@@ -25,11 +25,19 @@ public class AtmosphereController : MonoBehaviour
 {
     public static AtmosphereController Instance { get; private set; }
 
-    // ── 提燈光圈可調參數（viewport 比例，以畫面「高度」為 1；type 2/3 共用）──
-    private const float InnerRadius = 0.13f;   // 圓內全亮半徑
-    private const float OuterRadius = 0.28f;   // 圓外到此完全壓到底亮
-    private const float BreatheMin  = 0.93f;   // 呼吸時半徑最小倍率
-    private const float BreatheMax  = 1.06f;   // 呼吸時半徑最大倍率
+    // ── 提燈光圈可調參數 ──
+    // 光圈大小改成「由光源的發光半徑(世界單位)決定」——玩家身上發光裝的最大半徑，或最近的發光地上物。
+    // 沒有任何光源 → 把中心推出畫面，整片壓到「圈外」暗度（暗氛圍下沒燈就全暗）。
+    private const float InnerOuterRatio = 0.46f;  // 內圈(全亮)半徑 = 外圈半徑 × 此比例（沿用原本 0.13/0.28 的比例）
+    private const float BreatheMin  = 0.93f;      // 呼吸時半徑最小倍率
+    private const float BreatheMax  = 1.06f;      // 呼吸時半徑最大倍率
+    private const float FallbackOuterVp = 0.28f;  // 相機非正交時的後備外圈（viewport 比例）
+    // 掃裝備欄取最大發光半徑用（靜態陣列，避免每幀 Enum.GetValues 產生 GC）。
+    private static readonly Dipan.Inventory.EquipSlot[] EquipSlots =
+    {
+        Dipan.Inventory.EquipSlot.Weapon, Dipan.Inventory.EquipSlot.Chest, Dipan.Inventory.EquipSlot.Boots,
+        Dipan.Inventory.EquipSlot.Gloves, Dipan.Inventory.EquipSlot.Amulet, Dipan.Inventory.EquipSlot.Ring,
+    };
 
     private int _mode = 1;   // 當前氛圍型別（1=正常/off；2=幽暗；3=噩夢）。預設 off，等地圖設定。
 
@@ -119,6 +127,7 @@ public class AtmosphereController : MonoBehaviour
 
         _blit.Material = _mat;
         _mat.SetFloat("_Mode", _mode);   // 2 或 3，shader 依此切換外觀
+        _mat.SetFloat("_Aspect", (float)Screen.width / Mathf.Max(1, Screen.height));
 
         // 油燈式呼吸：Perlin 慢漂為主 + 一點慢正弦，輕微調整光圈半徑。
         float t = Time.time;
@@ -127,17 +136,60 @@ public class AtmosphereController : MonoBehaviour
         float mix  = Mathf.Clamp01(0.85f * slow + 0.15f * fast);
         float breathe = Mathf.Lerp(BreatheMin, BreatheMax, mix);
 
-        // 玩家螢幕位置（viewport 0..1）；找不到玩家就退回畫面中心。
-        Vector2 vp = new Vector2(0.5f, 0.5f);
-        if (_player != null)
+        // 決定「單一光源」：玩家身上發光裝(最大半徑)→玩家；否則最近的發光地上物；都沒有→無光源。
+        if (ResolveLightSource(out Vector3 srcWorld, out float srcWorldR))
         {
-            Vector3 v = _cam.WorldToViewportPoint(_player.position);
-            vp = new Vector2(v.x, v.y);
+            Vector3 v = _cam.WorldToViewportPoint(srcWorld);
+            float outerVp = OuterViewportFromWorld(srcWorldR);
+            _mat.SetVector("_PlayerPos", new Vector4(v.x, v.y, 0f, 0f));
+            _mat.SetFloat("_OuterR", outerVp * breathe);
+            _mat.SetFloat("_InnerR", outerVp * InnerOuterRatio * breathe);
         }
+        else
+        {
+            // 沒有光源：把中心推出畫面 → 整片壓到「圈外」暗度（暗氛圍下沒燈就全暗）。
+            _mat.SetVector("_PlayerPos", new Vector4(-10f, -10f, 0f, 0f));
+            _mat.SetFloat("_OuterR", 0.002f);
+            _mat.SetFloat("_InnerR", 0.001f);
+        }
+    }
 
-        _mat.SetVector("_PlayerPos", new Vector4(vp.x, vp.y, 0f, 0f));
-        _mat.SetFloat("_Aspect", (float)Screen.width / Mathf.Max(1, Screen.height));
-        _mat.SetFloat("_InnerR", InnerRadius * breathe);
-        _mat.SetFloat("_OuterR", OuterRadius * breathe);
+    // 目前的光圈中心與世界半徑。玩家有發光裝＝以玩家為心；否則取最近的發光地上物；都沒有回 false。
+    private bool ResolveLightSource(out Vector3 world, out float worldRadius)
+    {
+        world = default; worldRadius = 0f;
+
+        float pr = PlayerEquippedLightRadius();
+        if (pr > 0f && _player != null) { world = _player.position; worldRadius = pr; return true; }
+
+        Vector3 from = _player != null ? _player.position : _cam.transform.position;
+        var nearest = LightSource.Nearest(from);
+        if (nearest != null) { world = nearest.transform.position; worldRadius = nearest.radius; return true; }
+
+        return false;
+    }
+
+    // 玩家 6 個裝備欄裡最大的發光半徑（沒有發光裝 = 0）。
+    private static float PlayerEquippedLightRadius()
+    {
+        var inv = Dipan.Inventory.InventorySystem.Instance;
+        if (inv == null) return 0f;
+        float max = 0f;
+        for (int i = 0; i < EquipSlots.Length; i++)
+        {
+            int id = inv.GetEquipped(EquipSlots[i]);
+            if (id <= 0) continue;
+            var d = inv.GetData(id);
+            if (d != null && d.LightRadius > max) max = d.LightRadius;
+        }
+        return max;
+    }
+
+    // 世界半徑 → viewport 外圈比例（以畫面高度為 1）。正交相機：viewport 高 = 2 × orthographicSize 世界單位。
+    private float OuterViewportFromWorld(float worldRadius)
+    {
+        if (_cam != null && _cam.orthographic && _cam.orthographicSize > 0.01f)
+            return worldRadius / (2f * _cam.orthographicSize);
+        return FallbackOuterVp;   // 非正交相機（理論上不會走到）：退回固定比例
     }
 }

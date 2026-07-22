@@ -113,6 +113,9 @@ namespace Dipan.MapRuntime
         // 進圖時旗標已成立＝根本不生此物件；旗標於關卡中途成立＝由 MapObjectRevealer 立即銷毀。
         // 搭配觸發鏈 setFlag 用（例：pickup 撿起佛燈 → setFlag → 佛燈地上物消失）。
         public string disappearFlag = "";
+        // 發光半徑（世界單位）：>0＝這個地上物「擺在原地」時發光照亮周遭（火把/香爐/地上的佛燈…）。0/空＝不發光。
+        // 由 MapLoader 掛 LightSource；AtmosphereController 在暗氛圍下以它為光圈中心（玩家沒發光裝時取最近的）。
+        public float lightRadius = 0f;
     }
 
     /// <summary>場景特效實例（編輯器放置、遊戲端依 SceneFxTable 的 fxId 生成粒子）。座標為世界座標。</summary>

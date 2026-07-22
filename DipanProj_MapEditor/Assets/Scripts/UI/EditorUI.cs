@@ -36,6 +36,7 @@ namespace DipanMapEditor.UI
         // 座標/血量/FPS 輸入框暫存（依焦點決定要不要從物件同步回來）
         string _objXBuf = "", _objYBuf = "", _objHpBuf = "", _objFpsBuf = "";
         string _objAppearDelayBuf = "";
+        string _objLightBuf = "";   // 發光半徑輸入暫存
         Vector2 _objInspScroll;
         DipanMapEditor.Core.ObjectView _objView;
         string _objAppearBuf = "";   // 出現條件「完成 N 關」輸入暫存
@@ -815,6 +816,26 @@ namespace DipanMapEditor.UI
                 DrawFlagFieldCore(objSelG.disappearFlag ?? "", "obj" + objSelG.GetHashCode() + "/disappearFlag", false,
                     val => objSelG.disappearFlag = val);
                 GUILayout.EndHorizontal();
+            }
+
+            // ── 發光半徑（世界單位）：>0＝這個地上物擺在原地時發光照亮周遭（火把/香爐/地上的佛燈…）。0＝不發光。
+            //    在「暗氛圍」地圖(幽暗/噩夢)才看得到效果；玩家沒發光裝時，以最近的發光地上物為光圈中心。
+            {
+                bool editingLight = GUI.GetNameOfFocusedControl() == "objLight";
+                if (!editingLight) _objLightBuf = sel.lightRadius.ToString("0.##");
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("發光半徑", GUILayout.Width(64));
+                if (GUILayout.Button("－", GUILayout.Width(24))) { UndoManager.Push(); sel.lightRadius = Mathf.Max(0f, sel.lightRadius - 0.5f); _objLightBuf = sel.lightRadius.ToString("0.##"); }
+                GUI.SetNextControlName("objLight");
+                string sl = GUILayout.TextField(_objLightBuf, GUILayout.Width(56));
+                if (GUILayout.Button("＋", GUILayout.Width(24))) { UndoManager.Push(); sel.lightRadius += 0.5f; _objLightBuf = sel.lightRadius.ToString("0.##"); }
+                GUILayout.Label("格（0=不發光）", GUILayout.Width(96));
+                GUILayout.EndHorizontal();
+                if (editingLight && sl != _objLightBuf)
+                {
+                    _objLightBuf = sl;
+                    if (float.TryParse(sl, out var vl) && vl >= 0f) sel.lightRadius = vl;
+                }
             }
 
             // 可走（勾選＝這個地上物不擋路、不設碰撞、畫在角色腳下；例：木板/地毯可踩上去）。

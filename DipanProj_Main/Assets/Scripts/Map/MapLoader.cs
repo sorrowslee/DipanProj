@@ -487,6 +487,10 @@ public class MapLoader : MonoBehaviour
         // 消失旗標：登記給 revealer，等關卡中途此旗標首次成立時把整個物件銷毀（碰撞一併移除）。
         if (disappearGated && _revealer != null)
             _revealer.RegisterDisappear(inst.disappearFlag, go);
+
+        // 發光地上物（火把/香爐/地上的佛燈…）：掛 LightSource，AtmosphereController 在暗氛圍下拿來當光圈中心。
+        if (inst.lightRadius > 0f)
+            go.AddComponent<LightSource>().radius = inst.lightRadius;
     }
 
     // ---- 場景特效（可放置的粒子特效，煙/火/冰/毒…；由編輯器 map.sceneFx 放置，SceneFxTable 定義外觀）----

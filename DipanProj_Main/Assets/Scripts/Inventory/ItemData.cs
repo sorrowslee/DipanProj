@@ -31,6 +31,7 @@ namespace Dipan.Inventory
         public string TargetEntrance; // 目的地落點名（空 = 目標圖預設出生點）
         public int HealHp;            // 藥劑：喝下回復的生命（0 = 不回血）
         public int HealMp;            // 藥劑：喝下回復的魔力（0 = 不回魔）
+        public float LightRadius;     // 發光半徑（世界單位）：>0＝此裝備「裝在身上」時發光照亮周遭；0/空＝不發光。取所有裝備欄最大值畫光圈。
         public Sprite Icon;           // 由 ItemDatabase 從 Resources 載入
 
         public bool IsEquippable => EquipSlot != EquipSlot.None;

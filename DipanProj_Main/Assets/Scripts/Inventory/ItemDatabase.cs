@@ -88,6 +88,10 @@ namespace Dipan.Inventory
                 d.HealHp = !string.IsNullOrWhiteSpace(hpStr) ? int.Parse(hpStr) : 0;
                 string mpStr = Field(v, 13);
                 d.HealMp = !string.IsNullOrWhiteSpace(mpStr) ? int.Parse(mpStr) : 0;
+                string lightStr = Field(v, 14);   // 發光半徑（選填；舊表沒這欄 → "" → 0）。用 InvariantCulture 避免逗號小數點地區設定問題。
+                d.LightRadius = (!string.IsNullOrWhiteSpace(lightStr)
+                    && float.TryParse(lightStr, System.Globalization.NumberStyles.Float,
+                                      System.Globalization.CultureInfo.InvariantCulture, out float lr)) ? lr : 0f;
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

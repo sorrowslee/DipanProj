@@ -52,5 +52,8 @@ public static class PlayModeStaticReset
         Dipan.Localization.Language.ResetForPlayMode();
         SceneFxTable.ResetForPlayMode();
         ScreenFxTable.ResetForPlayMode();
+
+        // 發光物登記表：清上一輪殘留（AtmosphereController 取最近發光地上物靠它）。
+        LightSource.ClearAll();
     }
 }
