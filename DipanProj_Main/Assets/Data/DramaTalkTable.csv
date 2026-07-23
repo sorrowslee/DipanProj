@@ -37,8 +37,7 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 35,18,主角,Actor_Normal,Main/Talk/Girl/Girl_Smile,2,好，我知道了，謝謝大哥哥,,,,,,-50
 36,19,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,這裡就是你證明己身之處，此地充滿妖孽，非常危險,1.1,,-130,,,-50
 37,19,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,吾贈汝佛燈一盞，汝好自為之,1.1,,-130,,,-50
-,,,,,,,,,,,,
-,,,,,,,,,,,,
+38,20,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,怕你沒命，最後再幫你一次，去那邊撿點保命的小東西,1.1,,-130,,,-50
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,

@@ -330,8 +330,10 @@ namespace Dipan.UI
                     InventoryActions.QuickMoveGrid(w, portal);  // 傳送門開著：點劇本 → 送進傳送門方框
                 else if (store != null)
                     InventoryActions.QuickMoveGrid(w, store);   // 倉庫開著：點一下送進倉庫當前分頁
+                else if (clickedData != null && clickedData.IsPotion)
+                    inv.AutoPlacePotion(clickedId);              // 藥水：左鍵自動進藥水格（與裝備左鍵自動裝備同邏輯；空位優先＝左格＝鍵1）
                 else
-                    inv.EquipFromGrid(w.index);                  // 否則維持原本：點可裝備物品 → 裝備
+                    inv.EquipFromGrid(w.index);                  // 可裝備物品：左鍵自動裝備
             }
             else
             {

@@ -14,12 +14,25 @@
 
 「全螢幕過場特效」原本散成兩條路、id 空間還不一樣（EnterEffect 的 1＝睜眼、screenFx 的 1＝破幻術）。現已整併成**單一登記表**，避免同一種特效兩邊各設一次：
 
-- 唯一表：`Assets/Resources/ScreenFxTable.csv`（欄位 `Id,Name,Key,DurationSeconds,WakeUpPose,Notes`）。
+- 唯一表：`Assets/Data/ScreenFxTable.csv`（欄位 `Id,Name,Key,DurationSeconds,WakeUpPose,Notes`）。**（2026-07-22 起與其它資料表一起搬到 `Assets/Data`，靠 `ScreenFxTableProvider` 載入；舊路徑 `Assets/Resources/ScreenFxTable.csv` 已淘汰。見 [PROBLEMS.md](PROBLEMS.md) I 區「資料表搬家」。）**
 - 目前 id：**1 = 睜眼醒來**、**2 = 破幻術**、**3 = 馬賽克清晰**。`0` = 無特效。
-- 兩個填寫入口共用同一份 id → **同 id 同效果**：
-  - `MapsTable.csv` 的 `EnterEffect` 欄（進圖播一次）。
-  - 劇情編輯器的 `screenFx` 步驟 / 觸發鏈的 `playScreenFx` 動作。
-- 分派：兩邊都經 `ScreenFxPlayer.Play(id, onDone, duration)` → switch 到對應控制器（`EyeOpenController` / `IllusionShatterController` / `MosaicController`）。`ScreenFxPlayer.IsAnyPlaying` 供「進場觸發等特效播完」輪詢。
+- **三個填寫入口**共用同一份 id → **同 id 同效果**：
+  1. `MapsTable.csv` 的 `EnterEffect` 欄（進目標圖載完後播一次）。
+  2. 劇情編輯器（「劇情」工具）的 `screenFx` 步驟（`assetId`＝id）。
+  3. 觸發鏈的 `playScreenFx` 動作（`effectId`＝id）。
+- 分派：三邊都經 `ScreenFxPlayer.Play(id, onDone, duration)` → switch 到對應控制器（`EyeOpenController` / `IllusionShatterController` / `MosaicController`）。`ScreenFxPlayer.IsAnyPlaying` 供「進場觸發等特效播完」輪詢。
+
+> ### ⏱ `DurationSeconds` 是「預設時間」，會被呼叫端的 override 蓋掉（踩過的坑）
+>
+> `ScreenFxTable.csv` 的 `DurationSeconds` **只是預設值**——`ScreenFxPlayer.Play(id, onDone, duration)` 的第三個參數 `duration ≥ 0` 就以它為準、**完全不看 CSV**；`duration < 0`（傳 `-1`）才回退去讀 CSV 的 `DurationSeconds`。三個入口帶不帶 override：
+>
+> | 入口 | override 欄位 | 行為 |
+> |---|---|---|
+> | `MapsTable` `EnterEffect` | 無 | `Play(id, null)` 不帶時間 → **永遠吃 CSV `DurationSeconds`** |
+> | 劇情 `screenFx` 步驟 | 「停留秒數」(`seconds`) | `seconds > 0` → 用 seconds（蓋掉 CSV）；`= 0`/留空 → 回退吃 CSV |
+> | 觸發鏈 `playScreenFx` | `duration` 參數 | 有填 → 用它（蓋掉 CSV）；留空 → 回退吃 CSV |
+>
+> **典型症狀**：改 `ScreenFxTable.csv` 的 `DurationSeconds` 完全沒反應。多半是那個特效是從**劇情 `screenFx` 步驟**觸發，而那一步的「停留秒數」被填了值（例：初始森林 `Main_InitialForest1` 的進場演出第 3 步 mosaic 填了 `seconds=1`），override 掉了 CSV。要吃 CSV 就把該步的「停留秒數」清成 0；要就地各設時長就直接調那個欄位（此時 CSV 只是沒被用到的預設）。
 - `WakeUpPose=1`（目前只有睜眼）＝當 EnterEffect 時連動玩家「趴地→起身」（原本程式寫死 `enterEffect==1`，現改讀表）。
 - **新增一種螢幕特效的維護點**：①`ScreenFxTable.csv` 加一列 ②寫 shader＋控制器（提供 `static Play(onDone,duration)`）③`ScreenFxPlayer.Play` 加 case ④編輯器 `EditorUI.ScreenFxCatalog` 同步一列。
 - ⚠️ 破幻術的 id 從 1 改成 2；既有 `RedBridalGown_BridalRoom.dipanmap` 的 `playScreenFx` effectId 已一併改為 2。

@@ -47,6 +47,14 @@
       "IsLife": true,
       "IsLevel": false,
       "ScopeLabel": "永久"
+    },
+    {
+      "id": 7,
+      "name": "tutorialHpPosition",
+      "scope": "life",
+      "IsLife": true,
+      "IsLevel": false,
+      "ScopeLabel": "永久"
     }
   ]
 }

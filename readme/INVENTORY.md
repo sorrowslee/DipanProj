@@ -110,7 +110,7 @@
 - `Assets/Scripts/Inventory/InventorySystem.cs`（資料層 + 事件 + 單例）
 - `Assets/Scripts/UI/Panels/InventoryPanel.cs`（面板）
 - `Assets/Scripts/UI/Panels/InventorySlotWidget.cs`（格子互動元件，已實作 `ISlotView` + 拖放）
-- `Assets/Scripts/UI/InventoryLauncher.cs`（測試種子物品；開關鍵 B 已移到 `StorageBagCoordinator`。**作弊**：開場把 `201/202` 藥水各補到 99——`TopUp` 補差額；改回 `if(!Has)` 或刪掉即取消）
+- `Assets/Scripts/UI/InventoryLauncher.cs`（**已停用／no-op**：2026-07-22 起新角色初始背包保持**完全空**，不再自動塞測試物品。開關鍵 B 已移到 `StorageBagCoordinator`。此元件留著不做事，可從場景移除；要臨時塞測試裝備就在 `Start()` 自行 `InventorySystem.Instance.AddItem(id)`，或還原 git 舊版種子碼。）
 - 共用搬運（與倉庫同套，見 [STORAGE.md](STORAGE.md)）：`UI/ISlotView.cs`、`UI/SlotDragController.cs`、`UI/InventoryActions.cs`、`UI/StorageBagCoordinator.cs`
 - `Assets/Data/ItemTable.csv`（與其他資料表同位置）、`Assets/Resources/UI/InventoryPanel/inventoryPanelBG.png`、`Assets/Resources/UI/Icons/...`
 
@@ -136,7 +136,7 @@
 - 裝備丟到藥水格 → 自動裝到正確裝備欄（`EquipToCorrectSlot`）。
 - 丟到一般道具格 → 就是單純重排/搬移（不特別處理）。
 
-**右鍵藥水快放**：在道具格對藥劑按右鍵 → 依規則自動放進藥水格（`InventorySystem.AutoPlacePotion`）：有空位優先放**最小索引**（1 號優先於 2 號）；全滿則取代 0 號；已綁在某格則不動。可延伸到 N 格（`PotionSlotCount`）。`InventorySlotWidget` 依左/右鍵分流（右鍵 → `RightClicked`）。
+**左鍵/右鍵藥水快放**：在道具格對藥劑按**左鍵**（2026-07-22 起，與裝備左鍵自動裝備一致；路徑在 `InventoryPanel.OnSlotClicked` 對 `IsPotion` 分流）或**右鍵**，都會自動放進藥水格（`InventorySystem.AutoPlacePotion`）：有空位優先放**最小索引**（1 號優先於 2 號）；全滿則取代 0 號；已綁在某格則不動。也可直接**拖曳**到藥水格。可延伸到 N 格（`PotionSlotCount`）。`InventorySlotWidget` 依左/右鍵分流。
 
 **相關檔案**：`UI/PotionSlot.cs`、`UI/PotionHotkeys.cs`、`Inventory/InventorySystem.cs`（`GetPotionSlot/SetPotionSlot/AutoPlacePotion/PotionSlotCount`）、`Inventory/InventoryDTO.cs`（`potionSlots` 存檔）、`UI/InventoryActions.cs`（`EquipToCorrectSlot`）、`UI/Panels/InventorySlotWidget.cs`（右鍵分流＋`dropHi`）、`UI/Panels/InventoryPanel.cs`（`UpdateDropHighlights`）。喝藥特效見 [VFX.md](VFX.md)。
 
@@ -145,7 +145,7 @@
 ## 怎麼測
 
 1. 開 Unity 等編譯(無紅錯)。
-2. 把 `InventoryLauncher` 掛到場景任一物件、按 **Play**（首次自動塞測試物品）。開關鍵 B 由 `StorageBagCoordinator`（開場自動生成）接管。
+2. 開關鍵 B 由 `StorageBagCoordinator`（開場自動生成）接管。**新角色初始背包完全空**（`InventoryLauncher` 已 no-op，不再自動塞測試物品）——要看 icon 就先靠撿道具/掉落/劇本取得，或臨時在 `InventoryLauncher.Start()` 自行 `AddItem`。
 3. 按 **B** 開背包：有 icon、遊戲暫停、背景變暗;移游標看高亮+tooltip;倉庫沒開時點武器類道具 → 裝到武器欄、點武器欄 → 卸回背包;ESC 關。
 4. 倉庫＋背包互搬見 [STORAGE.md](STORAGE.md)（K 開倉庫、B 並排叫出背包、拖放/點擊互搬）。
 

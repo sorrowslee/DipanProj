@@ -44,6 +44,9 @@
 | [STORAGE.md](STORAGE.md) | 倉庫系統（StorageSystem + IItemGrid、倉庫+背包並排面板、點擊/拖放搬運、每角色獨立、存檔接線） | 改倉庫、做搬運 UI、套倉庫圖 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
+| [LOCALIZATION.md](LOCALIZATION.md) | 多語系／語言表（`Language.GetText(id)` 唯一取用入口、`LanguageTable.csv` id,cn,en、LanguageTableProvider、預設中文支援英文、id 分段慣例） | 加/改玩家可見字串、切語言、做多語系前 |
+| [WOODSHED_LAMP_TUTORIAL.md](WOODSHED_LAMP_TUTORIAL.md) | 柴房佛燈強制新手教學（紅嫁衣第一間房：撿佛燈→裝備→強制點亮的 phase 狀態機；地上物 disappearFlag、pickup toRealBag、FireOnly 鎖移動只放行開火、PlayerController.IsAuraActive） | 改柴房教學流程、教學寫死清單、地圖佈置/傳送門門檻 |
+| [STOREROOM_POTION_TUTORIAL.md](STOREROOM_POTION_TUTORIAL.md) | 儲藏室 HP 藥水強制新手教學（紅嫁衣第二間房：撿藥水→左鍵放進藥水格→強制按 1 喝；DrinkOnly 鎖、喝完 `TriggerChain.Activate` togglePortal 開傳送點123） | 改藥水教學流程、教學寫死清單、地圖佈置 |
 | [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) | 觸發鏈：trigger 接 trigger（next/startDisabled/旗標條件）、動作型 giveItem/teleportTo/cameraFocus、**進場觸發 onEnter（一進地圖自動觸發、0 格不塗格子）**、傳送點綠幕連動 | 編排「對話→給物品→開門→傳送」這類事件流程、加條件分支、做「一進房間就播對話」 |
 | [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留）＋§14 進度層（周目=generation、完成關卡=clearedModules、金錢、出生點旗標、進度 API） | 做存檔/讀檔、角色建立/轉生、物品持久化、記錄關卡/周目進度前 |
 | [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物 |

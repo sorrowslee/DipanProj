@@ -439,3 +439,17 @@
 - **症狀**：編輯器 Console 出現一則紅字 `FMOD failed to switch back to normal output … : "Cannot call this command after System::init. " (32)`，戰鬥／畫面／遊戲邏輯全部正常。
 - **原因**：這是 **Unity 引擎內建音訊層（底層用 FMOD 驅動 AudioManager）** 的警告，**不是專案程式碼**（本專案目前還沒有音訊系統，這不是遊戲音效）。Unity 想把音訊輸出「切回預設裝置」但 FMOD 已經 `init` 過、不能再切，就印這行。常見觸發＝**音訊輸出裝置變動**：藍牙耳機連/斷、HDMI 螢幕的音訊通道斷開重連、切換遠端桌面、進出 Play 模式時系統音訊焦點跳動。本機走遠端／ATEN 4K HDMI（見 E1），HDMI/遠端桌面的音訊裝置最容易在進 Play 或視窗切換時被系統重新指派而命中此情境。
 - **解法**：**可忽略**——單次警告、不會 crash、不影響執行與打包，正式 build 一般不出現。嫌煩按 Console `Clear`；真的常跳就重開一次 Unity、或確認接的音訊輸出裝置穩定不要中途斷。**與角色/怪物/動畫程式無關**（能進 Play 看到它就代表腳本已正常編譯）。（2026-07-13 記）
+
+### I7. 資料表從 `Resources/Data` 搬到 `Assets/Data` 後，字串／特效表變空（`[lang:id]`、睜眼趴地失效、馬賽克秒數讀不到）
+- **症狀**：把數個 CSV 從 `Assets/Resources/Data` 移到 `Assets/Data`（統一存放位置）後，明明檔案還在、內容也對，遊戲端卻讀不到——語言字串全變 `[lang:1001]` 這種占位、睜眼特效後玩家不趴地起身、`ScreenFxTable` 整張讀不到。
+- **原因**：**兩件事疊在一起**。(a) `Assets/Data` 底下的 CSV **不在 `Resources/`、不會被 `Resources.Load` 找到**，也不會自動打進 build——非 Resources 資產要「有人在場景裡拿著它的序列化參照」才進得了 build。本專案的作法是每張表配一個 **provider MonoBehaviour**（`ItemTableProvider`／`LanguageTableProvider`／`ScreenFxTableProvider`／`SceneFxTableProvider`…）掛在 `MainScene`、Inspector 拖進對應 `TextAsset`，各表 `LoadXxx` 改成**先找 provider、找不到才退回 `Resources.Load`**。搬了表卻**沒把 provider 掛上場景/沒拖 TextAsset**，表就是空的。(b) 就算 provider 後來接好了，**關掉 Domain Reload（見 I2）** 會讓 static 快取殘留——若曾在 provider 接好前 Play 過一次，那張表的 static 已快取成**空**，之後接好也不重載，字串照樣是 `[lang:id]`。
+- **解法**：(a) 每張搬到 `Assets/Data` 的表，都要有對應 provider 掛在 `MainScene` 且 TextAsset 已拖進去（漏了就整張空）。(b) 給這些表加 `ResetForPlayMode()`（把 static `_rows`/單例設 null，下次存取重讀），並在 `Assets/Scripts/PlayModeStaticReset.cs` 統一呼叫——目前已納入 `Language` / `SceneFxTable` / `ScreenFxTable`。**通則同 I2/I3/I5**：關掉 Domain Reload 後，凡是 static 快取「provider 載入的資料表」的類別，都要在 `PlayModeStaticReset` 清掉；接好 provider 後**務必重編譯＋重新 Play 一次**讓 `ResetForPlayMode` 生效，別拿殘留空表除錯。（2026-07-22 記）
+
+---
+
+## J. 螢幕特效 / 進場過場 (Screen FX)
+
+### J1. 改 `ScreenFxTable.csv` 的 `DurationSeconds` 完全沒反應（被呼叫端的時間 override 蓋掉）
+- **症狀**：某螢幕特效（如 id 3「馬賽克清晰」）想調播放時長，改 `ScreenFxTable.csv` 的 `DurationSeconds` 不管填多少都沒用；懷疑「沒吃這個欄位」或「cache 沒清」。
+- **原因**：**都不是**——程式路徑完全正確。`ScreenFxTable.csv` 的 `DurationSeconds` **只是「預設值」**：分派入口 `ScreenFxPlayer.Play(id, onDone, duration)` 的第三參數 `duration ≥ 0` 就以它為準、**完全不讀 CSV**；`duration < 0`（`-1`）才回退去讀 CSV。三個入口帶不帶 override 不同：`MapsTable` 的 `EnterEffect` 不帶（`Play(id,null)`）→ **永遠吃 CSV**；**劇情 `screenFx` 步驟**帶「停留秒數」(`seconds > 0 ? seconds : -1`)；**觸發鏈 `playScreenFx`** 帶 `duration` 參數。實際元兇：那個馬賽克是從 `Main_InitialForest1.dipanmap` 的**進場演出（cutscene）第 3 步 `screenFx`** 觸發，而那一步的「停留秒數」被填成 `1.0`，於是 `Play(3, …, 1.0)` 用 1 秒、CSV 的 `DurationSeconds` 根本沒被讀到。
+- **解法**：看要哪種行為——要吃 CSV 的秒數，就進地圖編輯器「**劇情**」工具、點那個 `screenFx` 步驟，把「停留秒數」**清成 0**（回退讀 CSV）；要就地各設不同時長，就直接調那個「停留秒數」欄位（此時 CSV 只是沒被用到的預設）。**排查通則**：某螢幕特效改 CSV 秒數沒反應時，先確認它是**從哪個入口觸發**——劇情步驟／`playScreenFx` 觸發器都有各自的時間 override 欄位，填了就以呼叫端為準。（別忘了這類進場演出藏在 `.dipanmap` 的 `cutscene` 區塊、要用編輯器頂端「劇情」工具才看得到，不在觸發器/物件層。）（2026-07-22 記）

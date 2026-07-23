@@ -213,6 +213,15 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
+        // 教學「鎖移動、只允許喝藥」：藥水教學最後一步——玩家不能走，但要能按 1 喝藥。
+        // PotionHotkeys 只查 IsGameplayInputBlocked（這步沒 SetExternalHold，故不被擋），照常運作。
+        if (Dipan.UI.TutorialManager.DrinkOnly)
+        {
+            _moveInput = Vector2.zero;   // 鎖住移動（不開火）
+            HandleVisuals();
+            return;
+        }
+
         float h = Input.GetAxisRaw("Horizontal");
         float v = Input.GetAxisRaw("Vertical");
         _moveInput = new Vector2(h, v).normalized;

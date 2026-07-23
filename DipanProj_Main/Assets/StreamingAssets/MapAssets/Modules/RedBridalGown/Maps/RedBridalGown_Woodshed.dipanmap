@@ -202,6 +202,26 @@
             [
               10,
               4
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              9,
+              5
+            ],
+            [
+              9,
+              4
+            ],
+            [
+              11,
+              4
+            ],
+            [
+              11,
+              5
             ]
           ],
           "params": {
@@ -210,7 +230,7 @@
             "setFlag": "tutorialBuddleLight",
             "toRealBag": "true",
             "requireFlag": "!tutorialBuddleLight",
-            "next": "新手教學結束後開啟傳送點"
+            "next": "新手教學後開啟傳送點"
           }
         },
         {
@@ -235,14 +255,14 @@
           }
         },
         {
-          "id": "af8d9dd4",
-          "name": "新手教學結束後開啟傳送點",
+          "id": "21a284e5",
+          "name": "新手教學後開啟傳送點",
           "typeId": "togglePortal",
           "cells": [],
           "params": {
             "target": "傳送點1",
             "show": true,
-            "requireFlag": ""
+            "requireFlag": "tutorialBuddleLight"
           }
         }
       ]

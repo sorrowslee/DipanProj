@@ -36,7 +36,7 @@
 | `w` / `h` | 大小倍率（X/Y） |
 | `loop` / `intermittent` / `interval` | 循環 / 間歇 / 間歇開關各持續幾秒 |
 
-### 外觀表（`Assets/Resources/Data/SceneFxTable.csv`）
+### 外觀表（`Assets/Data/SceneFxTable.csv`）
 
 一列一種特效外觀。欄位：`Id,Name,R,G,B,EmitPerSecond,LifeMin,LifeMax,SizeStart,SizeEnd,PeakAlpha,Turbulence,SortingOrder,Kind`。
 
@@ -61,7 +61,7 @@
 
 在「場景特效」分頁：**＋新增特效** → 清單點選 → **放置起點(綠)/放置終點(紅)** 到畫布點放 → 填 `fxId` 等參數。每個特效旁有 **顯示/隱藏** 鈕＝**編輯器內即時預覽**，跑的是與遊戲**同一套** `SceneFxEmitter`/`PortalFx`/`SceneFxTable`（複製一份到編輯器專案），所以**所見即遊戲所得**；移動起/終點或改參數會即時重建預覽，刪除特效或換地圖預覽自動移除。
 
-> **雙專案鏡像**：`SceneFxEmitter.cs` / `PortalFx.cs` / `SceneFxTable.cs` 與 `SceneFxTable.csv` 在**遊戲**（`Assets/Scripts/Map`、`Assets/Resources/Data`）與**編輯器**（`Assets/Scripts/Preview`、`Assets/Resources/Data`）**各有一份**（同 MapData/MapCoords 的鏡像慣例）。改特效外觀/行為要**兩邊一起改**才會一致。
+> **雙專案鏡像**：`SceneFxEmitter.cs` / `PortalFx.cs` / `SceneFxTable.cs` 與 `SceneFxTable.csv` 在**遊戲**（`Assets/Scripts/Map`、CSV 已於 2026-07-22 搬到 `Assets/Data`、靠 `SceneFxTableProvider` 載入）與**編輯器**（`Assets/Scripts/Preview`、CSV 仍在 `Assets/Resources/Data`）**各有一份**（同 MapData/MapCoords 的鏡像慣例）。改特效外觀/行為要**兩邊一起改**才會一致。
 
 ---
 
@@ -84,7 +84,7 @@
 ## 相關檔案
 
 - 地圖級：`Assets/Scripts/Map/SceneEffectController.cs`（含 `FireRain`）、`Assets/Data/MapsTable.csv`（`SceneEffect` 欄）。
-- 可放置（遊戲）：`Assets/Scripts/Map/SceneFxEmitter.cs`、`PortalFx.cs`、`SceneFxTable.cs`、`Assets/Resources/Data/SceneFxTable.csv`；`MapLoader.BuildSceneFx`；`MapModel.SceneFxInstance`。
+- 可放置（遊戲）：`Assets/Scripts/Map/SceneFxEmitter.cs`、`PortalFx.cs`、`SceneFxTable.cs`、`Assets/Data/SceneFxTable.csv`（靠 `SceneFxTableProvider` 載入）；`MapLoader.BuildSceneFx`；`MapModel.SceneFxInstance`。
 - 可放置（編輯器）：`Assets/Scripts/Tools/SceneFxController.cs`（工具＋預覽）、`Core/SceneFxOverlay.cs`（畫起/終點/弧線）、`Data/LayerData.cs`（`SceneFxInstance`）、`Scripts/Preview/*`（鏡像的特效程式）。
 
 ---

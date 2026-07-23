@@ -43,6 +43,19 @@ namespace Dipan.UI
         const int TxtCloseBag = 1005;  // 按 B 關閉背包
         const int TxtLight = 1006;     // 按住左鍵或空白鍵，點亮佛燈
 
+        // ── 儲藏室 HP 藥水教學（紅嫁衣關第二間房）寫死的值 ──
+        // ⚠️ 這幾個名字/旗標必須跟地圖 RedBridalGown_Storeroom 的 trigger 完全一致。
+        const string PotionStartTrig = "新手教學-邪佛提示拾取藥水"; // 這顆 drama(21)「關閉」＝教學開始
+        const string PotionPickupTrig = "新手教學-hp藥水拾取點";     // 藥水 pickup 觸發點名（撿完由此名廣播）
+        const int PotionItemId = 201;                               // 小回血瓶（ItemTable 201）
+        const string PotionTakenFlag = "tutorialHpPosition";        // 撿走藥水（＝pickup 的 setFlag）
+        const string PotionDoneFlag = "tutorialHpPosition";         // 同一顆：撿到即視為做過，onEnter/drama gate !tutorialHpPosition
+        const string PotionPortalTrig = "新手教學結束開啟傳送點";     // 喝完藥→Activate 這顆 togglePortal 開傳送點123
+        const int TxtPotionGoPick = 1007; // 走過去，撿起藥水（靠近按 F）
+        const int TxtPotionForceF = 1008; // 按 F 撿起藥水
+        const int TxtPotionClick = 1009;  // 點一下藥水，放進藥水格
+        const int TxtPotionDrink = 1010;  // 按 1 喝下藥水
+
         /// <summary>強制階段時鎖住其他快捷鍵（背包/倉庫開關等）。由本管理器控制、別的系統查詢。</summary>
         public static bool HardLock { get; private set; }
 
@@ -55,6 +68,9 @@ namespace Dipan.UI
         /// <summary>佛燈教學「點亮佛燈」步驟：鎖住玩家移動、但放行攻擊/開火（否則按住左鍵開不了佛光）。由 PlayerController 查詢。</summary>
         public static bool FireOnly { get; private set; }
 
+        /// <summary>藥水教學「喝藥」步驟：鎖住玩家移動、但放行藥水熱鍵（按 1 喝）。由 PlayerController 查詢。</summary>
+        public static bool DrinkOnly { get; private set; }
+
         enum Phase
         {
             Idle, WaitNear, ForceF, ClickScript, ClickButton, GuideToPortal, Done,
@@ -65,6 +81,13 @@ namespace Dipan.UI
             LampClickEquip,  // 手指指佛燈格、只放行它→點一下裝備
             LampCloseBag,    // 提示按 B 關閉背包
             LampLight,       // 放行→按住左鍵/空白鍵點亮佛燈
+            // ── 儲藏室 HP 藥水教學 ──
+            PotionGuidePick, // 手指指向藥水、自由走過去
+            PotionForceF,    // 走到可撿範圍→定住只能按 F
+            PotionOpenBag,   // 提示按 B 打開背包
+            PotionClickBind, // 手指指藥水格、只放行它→左鍵放進藥水格
+            PotionCloseBag,  // 提示按 B 關閉背包
+            PotionDrink,     // 鎖移動→按 1 喝藥
         }
         Phase _phase = Phase.Idle;
 
@@ -78,6 +101,10 @@ namespace Dipan.UI
         bool _lampPicked;              // 佛燈 pickup 已完成（由 OnTriggerFired 收 LampPickupTrig 設）
         float _auraHoldTimer;          // 佛光已持續開著的累計秒數（點亮判定要稍微持續，避免誤觸）
         PlayerController _pc;           // 玩家控制器（讀 IsAuraActive）
+
+        // 藥水教學用
+        bool _potionPicked;            // 藥水 pickup 已完成（OnTriggerFired 收 PotionPickupTrig 設）
+        int _potionBaseline;           // 進喝藥步驟時的藥水數量（之後數量下降＝喝了一瓶）
 
         InteractionManager Interact => InteractionManager.Instance;
 
@@ -99,6 +126,7 @@ namespace Dipan.UI
             AllowInteract = false;
             AllowBag = false;
             FireOnly = false;
+            DrinkOnly = false;
 
             TriggerChain.OnTriggerFired += OnTriggerFired;
             ScriptsPanel.OnOpened += () => _evtOpened = true;
@@ -118,6 +146,8 @@ namespace Dipan.UI
             else if (name == TrigSawBuddha) GuideFingerPanel.HidePanel();
             else if (name == LampStartTrig) BeginLampTutorial();   // 一進柴房→啟動佛燈教學
             else if (name == LampPickupTrig) _lampPicked = true;    // 佛燈撿完（pickup 完成廣播）
+            else if (name == PotionStartTrig) BeginPotionTutorial();   // 一進儲藏室（drama21 關閉）→啟動藥水教學
+            else if (name == PotionPickupTrig) _potionPicked = true;   // 藥水撿完（pickup 完成廣播）
         }
 
         // ── B) 傳送門強制流程 ──
@@ -137,6 +167,12 @@ namespace Dipan.UI
                 case Phase.LampClickEquip: TickLampClickEquip(); break;
                 case Phase.LampCloseBag: TickLampCloseBag(); break;
                 case Phase.LampLight: TickLampLight(); break;
+                case Phase.PotionGuidePick: TickPotionGuidePick(); break;
+                case Phase.PotionForceF: TickPotionForceF(); break;
+                case Phase.PotionOpenBag: TickPotionOpenBag(); break;
+                case Phase.PotionClickBind: TickPotionClickBind(); break;
+                case Phase.PotionCloseBag: TickPotionCloseBag(); break;
+                case Phase.PotionDrink: TickPotionDrink(); break;
             }
         }
 
@@ -412,6 +448,150 @@ namespace Dipan.UI
                 TutorialHintPanel.Hide();
                 GuideFingerPanel.HidePanel();
                 TriggerChain.SetFlag(LampDoneFlag);   // 永久：整段教學完成，之後不再強制引導
+                _phase = Phase.Done;
+            }
+        }
+
+        // ═════════════════════ 儲藏室 HP 藥水教學（強制引導）═════════════════════
+        // 一進儲藏室（drama21 關閉）→ 走去撿藥水（強制按 F）→ 按 B 開背包→手指指藥水格→左鍵放進藥水格→按 B 關背包
+        // → 鎖移動→按 1 喝藥 → 完成（Activate togglePortal 開傳送點123；tutorialHpPosition 於 pickup 已寫）。
+
+        void BeginPotionTutorial()
+        {
+            if (TriggerChain.FlagTrue(PotionDoneFlag)) return;            // 整段做過了
+            if (_phase != Phase.Idle && _phase != Phase.Done) return;     // 正在別的教學流程中，不插隊
+            _potionPicked = false;
+            _potionBaseline = 0;
+            GuideFingerPanel.HidePanel();
+
+            // 只認 PotionTakenFlag（pickup 專屬旗標），不看背包有沒有藥水（起始/測試裝可能本來就有）。
+            if (!TriggerChain.FlagTrue(PotionTakenFlag))
+            {
+                if (Interact != null && Interact.TryGetPickupWorld(PotionItemId, out Vector2 pw) && PlayerT() != null)
+                    GuideFingerPanel.ShowWorldGuide(PlayerT(), new Vector3(pw.x, pw.y, 0f));
+                TutorialHintPanel.Show(Language.GetText(TxtPotionGoPick));
+                _phase = Phase.PotionGuidePick;
+                return;
+            }
+
+            // 已撿過（中途離開再回來）：已綁藥水格→教喝藥；否則→教開背包放進藥水格。
+            var inv = InventorySystem.Instance;
+            bool bound = inv != null && (inv.GetPotionSlot(0) == PotionItemId || inv.GetPotionSlot(1) == PotionItemId);
+            if (bound) StartPotionDrink(); else StartPotionOpenBag();
+        }
+
+        void TickPotionGuidePick()
+        {
+            if (Interact == null) return;
+            if (!Interact.TryGetPickupWorld(PotionItemId, out Vector2 pw))
+            {
+                if (TriggerChain.FlagTrue(PotionTakenFlag)) StartPotionOpenBag();   // 確實撿走才跳；否則點還沒建好，先等
+                return;
+            }
+            var finger = UIManager.Instance?.Get<GuideFingerPanel>();
+            var p = PlayerT();
+            if ((finger == null || !finger.IsOpen) && p != null)
+                GuideFingerPanel.ShowWorldGuide(p, new Vector3(pw.x, pw.y, 0f));
+
+            if (Interact.PlayerNearPickup(PotionItemId))
+            {
+                UIManager.Instance?.SetExternalHold(true, false);   // 定住玩家（不能走/攻擊）
+                AllowInteract = true;                                // 放行按 F 撿
+                HardLock = true;
+                GuideFingerPanel.HidePanel();
+                TutorialHintPanel.Show(Language.GetText(TxtPotionForceF));
+                _phase = Phase.PotionForceF;
+            }
+        }
+
+        void TickPotionForceF()
+        {
+            if (_potionPicked) StartPotionOpenBag();   // 藥水撿完 → 教開背包
+        }
+
+        void StartPotionOpenBag()
+        {
+            _lockedTarget = null;
+            GuideFingerPanel.HidePanel();
+            AllowInteract = false;
+            UIManager.Instance?.SetExternalHold(true, false);   // 續定住玩家
+            HardLock = true;                                     // 鎖倉庫等快捷鍵
+            AllowBag = true;                                     // 但放行 B 開背包
+            TutorialHintPanel.Show(Language.GetText(TxtOpenBag));
+            _phase = Phase.PotionOpenBag;
+        }
+
+        void TickPotionOpenBag()
+        {
+            var bag = UIManager.Instance?.Get<InventoryPanel>();
+            if (bag != null && bag.IsOpen)
+            {
+                AllowBag = false;   // 開了先鎖 B（避免提前關）；接著只准點藥水格
+                _lockedTarget = null;
+                TutorialHintPanel.Show(Language.GetText(TxtPotionClick));
+                _phase = Phase.PotionClickBind;
+            }
+        }
+
+        void TickPotionClickBind()
+        {
+            var inv = InventorySystem.Instance;
+            if (inv != null && (inv.GetPotionSlot(0) == PotionItemId || inv.GetPotionSlot(1) == PotionItemId))
+            {
+                _lockedTarget = null;
+                GuideFingerPanel.HidePanel();
+                TutorialBlockerPanel.Unlock();
+                AllowBag = true;                       // 放行 B 關背包
+                TutorialHintPanel.Show(Language.GetText(TxtCloseBag));
+                _phase = Phase.PotionCloseBag;
+                return;
+            }
+
+            var bag = UIManager.Instance?.Get<InventoryPanel>();
+            if (bag == null || !bag.IsOpen) { StartPotionOpenBag(); return; }   // 背包被關掉→回「按 B 開背包」
+
+            // 指向背包裡藥水那格、只放行它（左鍵點→AutoPlacePotion 進藥水格）。只在目標改變時重設，避免閃爍。
+            var slot = bag.FindGridSlotRect(PotionItemId);
+            if (slot != null && slot != _lockedTarget)
+            {
+                _lockedTarget = slot;
+                GuideFingerPanel.ShowAtUI(slot);
+                TutorialBlockerPanel.LockTo(slot.gameObject);
+            }
+        }
+
+        void TickPotionCloseBag()
+        {
+            var bag = UIManager.Instance?.Get<InventoryPanel>();
+            if (bag == null || !bag.IsOpen) StartPotionDrink();
+        }
+
+        void StartPotionDrink()
+        {
+            _lockedTarget = null;
+            GuideFingerPanel.HidePanel();
+            TutorialBlockerPanel.Unlock();
+            HardLock = false;
+            AllowBag = false;
+            AllowInteract = false;
+            var inv = InventorySystem.Instance;
+            _potionBaseline = inv != null ? inv.CountOf(PotionItemId) : 0;   // 記下目前瓶數，之後下降＝喝了
+            UIManager.Instance?.SetExternalHold(false, false);   // 解除全鎖（否則藥水熱鍵也被 IsGameplayInputBlocked 擋）
+            DrinkOnly = true;                                    // 鎖移動、只放行按 1 喝藥
+            TutorialHintPanel.Show(Language.GetText(TxtPotionDrink));
+            _phase = Phase.PotionDrink;
+        }
+
+        void TickPotionDrink()
+        {
+            var inv = InventorySystem.Instance;
+            int now = inv != null ? inv.CountOf(PotionItemId) : 0;
+            if (now < _potionBaseline)   // 瓶數下降＝喝了一瓶 → 完成
+            {
+                DrinkOnly = false;                       // 解鎖移動
+                TutorialHintPanel.Hide();
+                GuideFingerPanel.HidePanel();
+                TriggerChain.Activate(PotionPortalTrig); // 執行地圖上的 togglePortal→開傳送點123（requireFlag=tutorialHpPosition 已成立）
                 _phase = Phase.Done;
             }
         }

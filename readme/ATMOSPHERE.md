@@ -29,7 +29,7 @@
 | `15` | 電視雜訊 | 灰調 + 每幀雪花噪點 + 掃描線 + 滾動同步條 + 偶發整列水平撕裂 + 輕微閃爍 | 訊號干擾、靈異播送、夢境/精神異常、過場 |
 
 > **留空 / 缺欄 / 無法解析 = 預設 1（正常）**，所以舊地圖、未填的地圖都不受影響。
-> 用提燈光圈的是 type 2/3/9（半徑相同，由控制器餵入並呼吸），只差在周邊壓多暗與色調。
+> 用提燈光圈的是 type 2/3/9（只差在周邊壓多暗與色調）。**光圈大小與有無，2026-07-22 起改由「光源」驅動**——玩家身上的發光裝或地上的發光物，見下面〈照明：光圈由光源驅動〉。
 > type 4/5/6 帶**熱浪扭曲**、type 7/8/9 帶**水下折射晃動**、type 10/11 帶**風吹拂**——都是以滾動正弦輕微位移取樣 UV（`_Time` 驅動、無需貼圖）。
 > 風絲（10 橫向、11 斜向）用雜湊函式 `windStreak` 打散成不規則短截線；11 用 `rot2` 把風絲轉成單一斜向（兩層同角度、不交叉）。
 
@@ -41,6 +41,33 @@
 - **type 2~15**：用同一個 shader `Custom/Atmosphere`，靠 `_Mode`（2~15）切換外觀。用提燈光圈的（2/3/9）由控制器每幀餵入玩家螢幕位置與光圈半徑，半徑以**油燈式 Perlin 明滅**呼吸；炎熱（4/5/6）、海洋（7/8/9）、風系（10/11）、雨系（12/13）、鬼霧（14）、電視雜訊（15）在 shader 內以 `_Time` 做扭曲/風絲/雨絲/黑霧/雪花，不需控制器額外參數。
 - **UI 不受影響**：後處理只作用在主相機算繪的畫面；Screen Space Overlay 的 HUD／面板在其後合成，不會被壓暗。
 
+## 照明：光圈由光源驅動（2026-07-22）
+
+陰森系（type 2/3/9）的提燈光圈，**不再是「永遠以玩家為心、固定半徑」**，改成綁「**光源**」——沒光源時整片壓到圈外暗度（暗場景沒燈就全暗、逼玩家點燈）。光源優先序（單一光源，只會有一個圈）：
+
+1. **玩家身上的發光裝**：掃 6 個裝備欄，取最大的 `LightRadius`（`> 0` 就以玩家為圈心、用該半徑）。所以玩家只有在**裝了會發光的裝備**（目前＝佛燈）時才自帶光圈；卸下就沒光。
+2. 否則**最近的發光地上物**（`LightSource.Nearest`）：地上的佛燈／火把等，圈心在該物件、用它的半徑。地上佛燈被撿走（物件銷毀）就退出登記、光圈跟著消失。
+3. 都沒有 → **無光源**：把光圈中心推出畫面、半徑趨零 → 整片圈外暗度（全暗）。
+
+### 半徑欄位
+
+| 來源 | 欄位 | 位置 |
+|---|---|---|
+| 可裝備的發光裝 | `LightRadius`（世界單位） | `Assets/Data/ItemTable.csv` 最後一欄（佛燈 id 8 ＝ `3.5`） |
+| 發光地上物 | `lightRadius`（世界單位） | 地圖物件 `ObjectInstance.lightRadius`，編輯器物件面板可填 |
+
+世界半徑 → 螢幕光圈：正交相機下 `外圈viewport = worldRadius / (2 × orthographicSize)`，所以**同一盞燈在不同縮放的地圖，照亮的世界範圍一致**（不再是固定螢幕比例）。內圈（全亮）＝外圈 × `InnerOuterRatio`（0.46）。半徑仍以油燈式 Perlin 明滅呼吸。
+
+### 「照亮圈」與「殺怪圈」是兩回事
+
+佛燈（`IsAura` 武器）使用時本身有一個 **`GroundEffect` 光環＝殺怪圈**（灼傷近敵）；這裡的**照亮圈**是氛圍後處理、只管「看得見多大範圍」，兩者半徑各自獨立：照亮圈可以放大（看得遠、不那麼壓迫），殺怪圈維持小（怪要靠近才燒得到，玩家不會太輕鬆）。想調哪個就調哪個，互不影響。
+
+### 相關檔案
+
+- `Assets/Scripts/LightSource.cs`（新）—「會發光的世界物件」標記，掛在地上物上（由 `MapLoader` 依 `lightRadius` 掛）、自登記進 static 表；`Nearest(from)` 回最近的一個。`ClearAll()` 由 `PlayModeStaticReset` 每次進 Play 清（避免跨 Play 殘留）。
+- `AtmosphereController.cs` — `ResolveLightSource` / `PlayerEquippedLightRadius` / `OuterViewportFromWorld`（見 `LateUpdate`）。
+- `Inventory/ItemData.cs`＋`ItemDatabase.cs` — 多一個 `LightRadius` 欄；`Map/MapModel.cs`＋編輯器 `Data/LayerData.cs` — `ObjectInstance.lightRadius`；`Map/MapLoader.cs` — 依 `lightRadius` 掛 `LightSource`。
+
 ## 檔案
 
 - `Assets/Scripts/Atmosphere/AtmosphereController.cs` — 單例、地圖驅動、餵 shader 參數。
@@ -51,7 +78,7 @@
 ## 怎麼調
 
 - **每張地圖選型別**：改 `MapsTable.csv` 該列的 `Atmosphere`（1~15）。恐怖 3；末日炎熱 4／5／6；海洋 7／8／9；風雪 10、強風 11；細雨 12、大雨 13；鬼霧 14；電視雜訊 15。
-- **光圈大小**（type 2/3/9）：`AtmosphereController.cs` 上方的 `InnerRadius` / `OuterRadius`（兩者等比例改，越小圈越小；目前 0.13 / 0.28）。
+- **光圈大小**（type 2/3/9）：改**光源的世界半徑**——發光裝改 `ItemTable.csv` 的 `LightRadius`（佛燈 id 8＝3.5）、發光地上物改地圖物件的 `lightRadius`。內外圈比例改 `AtmosphereController.cs` 的 `InnerOuterRatio`（0.46）。詳見上面〈照明：光圈由光源驅動〉。
 - **各型別的調色／壓暗／冷暖／去飽和**：`Atmosphere.shader` 的 `frag` 內，type 2~9 各自一段的常數（如 type2 周邊亮度 `lerp(0.35,…)`、type5 橙紅 tint、type7 青綠 `float3(0.62,0.92,1.02)`+焦散、type8 深藍 `float3(0.30,0.50,0.85)`+水霧、type9 潛水燈 `lerp(0.04,1.0,v)` 等）。
 - **扭曲強度/快慢**：熱浪（4/5/6）、水下折射（7/8/9）、風吹拂（10/11）各一段在 frag 頂部，調位移幅度（熱浪 `0.0014`、海洋 `0.0022`、風 `0.0016`）與頻率/時間係數。
 - **風雪風絲/霧/陣風**（type 10）：風絲用 `windStreak(...)` 兩層疊（改 `scale`=密度、`speed`=快慢、整體 `* 0.07`=明顯度，段落隨機度在函式內 `step(0.55,…)`）；翻騰白霧改 `edge`（範圍）、`churn`（翻滾）與 `fog * 0.7`（濃度）；陣風節奏改 `gust` 的兩個 sin。

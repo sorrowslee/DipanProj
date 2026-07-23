@@ -6,3 +6,8 @@ id,cn,en
 1004,點一下佛燈，裝備它,Click the lamp to equip it
 1005,按 B 關閉背包,Press B to close your bag
 1006,按住左鍵或空白鍵，點亮佛燈,Hold Left-Click or Space to light the lamp
+# ── 新手教學：儲藏室 HP 藥水（1007–1099）──
+1007,走過去，撿起藥水（靠近按 F）,Walk over and pick up the potion (get close and press F)
+1008,按 F 撿起藥水,Press F to pick up the potion
+1009,點一下藥水，放進藥水格,Click the potion to place it in the potion slot
+1010,按 1 喝下藥水,Press 1 to drink the potion

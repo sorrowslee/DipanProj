@@ -21,7 +21,34 @@
       "opacity": 1.0,
       "locked": false,
       "tiles": [],
-      "objects": []
+      "objects": [
+        {
+          "assetId": "Modules/RedBridalGown/Environment/furniture_storage_rack",
+          "x": 13.5272884,
+          "y": -2.813124,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -2.813124,
+          "zOrder": 0,
+          "hp": -1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
+        }
+      ]
     },
     {
       "id": "walk",
@@ -94,7 +121,9 @@
           "params": {
             "entranceId": "Storeroom_south",
             "targetMapId": "1",
-            "targetEntrance": "Woodshed_north"
+            "targetEntrance": "Woodshed_north",
+            "startDisabled": true,
+            "enableFlag": "tutorialHpPosition"
           }
         },
         {
@@ -114,7 +143,9 @@
           "params": {
             "entranceId": "Storeroom_east",
             "targetMapId": "7",
-            "targetEntrance": "Courtyard_west2"
+            "targetEntrance": "Courtyard_west2",
+            "startDisabled": true,
+            "enableFlag": "tutorialHpPosition"
           }
         },
         {
@@ -130,7 +161,79 @@
           "params": {
             "entranceId": "Storeroom_north",
             "targetMapId": "3",
-            "targetEntrance": "Kitchen_south"
+            "targetEntrance": "Kitchen_south",
+            "startDisabled": true,
+            "enableFlag": "tutorialHpPosition"
+          }
+        },
+        {
+          "id": "6c974286",
+          "name": "新手教學-hp藥水拾取點",
+          "typeId": "pickup",
+          "cells": [
+            [
+              12,
+              2
+            ],
+            [
+              13,
+              2
+            ],
+            [
+              14,
+              2
+            ],
+            [
+              12,
+              3
+            ],
+            [
+              13,
+              3
+            ],
+            [
+              14,
+              3
+            ]
+          ],
+          "params": {
+            "itemId": "201",
+            "count": "5",
+            "requireFlag": "!tutorialHpPosition",
+            "setFlag": "tutorialHpPosition",
+            "toRealBag": "true"
+          }
+        },
+        {
+          "id": "52723503",
+          "name": "進場觸發-新手教學",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "delaySeconds": "",
+            "requireFlag": "!tutorialHpPosition",
+            "next": "新手教學-邪佛提示拾取藥水"
+          }
+        },
+        {
+          "id": "0a593985",
+          "name": "新手教學-邪佛提示拾取藥水",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "21",
+            "requireFlag": "!tutorialHpPosition"
+          }
+        },
+        {
+          "id": "c6eabce5",
+          "name": "新手教學結束開啟傳送點",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點1,傳送點2,傳送點3",
+            "show": true,
+            "requireFlag": "tutorialHpPosition"
           }
         }
       ]
