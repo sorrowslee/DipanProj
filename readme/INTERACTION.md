@@ -29,7 +29,8 @@
 |---|---|
 | `Assets/Scripts/Combat/InteractionManager.cs` | **大腦**：常駐單例（仿 InventorySystem）。每幀找最近且在 `pickupRadius` 內的目標、驅動提示、收 F 鍵互動。`SetupInteractPoints` 建觸發點、`DropLoot` 放掉落物、`ClearAll` 清場。 |
 | `Assets/Scripts/Combat/GroundLoot.cs` | 地上掉落物世界物件：`SpriteRenderer` 用道具 icon，依 sprite 實際尺寸縮放到 `lootWorldSize`（與 PPU 無關）。持 `itemId/count`。 |
-| `Assets/Scripts/Combat/InteractMarker.cs` | 觸發點的**星星標示特效**（拾取點＝金、劇情點＝紫）。純程式畫五角星 sprite（反鋸齒、共用快取）＋每顆星閃爍/脈動/浮動/自轉。撿掉/看完即連同銷毀。 |
+| `Assets/Scripts/Combat/InteractMarker.cs` | 觸發點的**星星標示特效**（拾取點＝金、劇情點＝紫）。純程式畫五角星 sprite（反鋸齒、共用快取）＋每顆星閃爍/脈動/浮動/自轉。撿掉/看完即連同銷毀。星星放在 `InteractOverlay` 層、由下方 Overlay 相機重畫（暗場景也可見）。 |
+| `Assets/Scripts/Combat/OverlayCameraController.cs` | **Overlay 疊加相機**：把星星等世界標示畫在氛圍後處理之上、不被壓暗（見〈暗場景也看得到星星〉）。自動生成、跨場景常駐、零接線。 |
 | `Assets/Scripts/UI/Panels/PickupTipPanel.cs` | 跟隨目標的「按 F 鍵…」提示（HUD 層；世界座標→螢幕→Canvas local 定位；本體常開、只切內容顯隱避免閃爍）。 |
 | `Assets/Scripts/UI/Panels/AlertPanel.cs` | 中央 toast（HUD、不暫停/不擋輸入/不遮罩、約 2 秒淡出、多則往上疊）。`AlertPanel.Toast("…")` 任何系統可叫。 |
 
@@ -82,6 +83,22 @@
 | `markerSortingOrder` | 20 | 星星排序（高於角色，浮在空中） |
 
 星星的細部動畫（閃爍/脈動/浮動/自轉/散布/大小）可在 `InteractMarker` 上方欄位調。
+
+---
+
+## 暗場景也看得到星星（Overlay 疊加相機）
+
+> **2026-07-23 加。**
+
+**問題**：氛圍後處理（見 [ATMOSPHERE.md](ATMOSPHERE.md)）掛在**主相機**上，會壓暗它畫的所有世界物件。星星標示是世界 `SpriteRenderer`，在幽暗/噩夢場景（`Atmosphere` 2/3）光圈外會被壓到很暗、幾乎看不到；而「按 F」提示是 UI（Screen Space Overlay、在後處理之上）不受影響 → 會出現「**提示看得到、星星看不到**」（實例：儲藏室 `Atmosphere=2`，遠處藥水櫃的星星被壓暗；柴房 `Atmosphere=1` 不壓暗所以星星一直亮）。
+
+**解法**：星星改由一台**疊在主相機之上、不做後處理**的相機重畫，就不會被壓暗。
+
+- **`OverlayCameraController.cs`**（自動生成、跨場景常駐、零接線，同 `AtmosphereController` 模式）：每幀對齊 `Camera.main` 的視角/投影，只畫 **`InteractOverlay`** 這個 Unity Layer；`depth = 主相機 + 1`、`clearFlags = Depth`（只疊上去、不清色、不套 Atmosphere）；同時把主相機 `cullingMask` **去掉**這層（免得主相機又畫一份被壓暗的）。
+- **`InteractMarker`** 生成星星時把它們（含父物件）放到 `InteractOverlay` 層（`LayerMask.NameToLayer(OverlayCameraController.LayerName)`）。**找不到這層就退回原本**（星星留在 Default、被壓暗），不會報錯。
+- **圖層登記**：`InteractOverlay` 在 `ProjectSettings/TagManager.asset` 第 **9** 格。⚠️ 新機器 clone 專案後要確認這層在（Unity 讀 TagManager）；缺了的話 Console 會跳「找不到 Layer InteractOverlay」黃字警告、星星暫時退回被壓暗，重開 Unity 或補回該層即可。
+- **層次順序**：場景（壓暗） → 星星（Overlay 相機） → HUD/UI（Screen Space Overlay，最上）。
+- 這是專案**第一台第二相機**。任何「該永遠可見、又是世界物件」的東西（未來例如想讓地上掉落物 icon 在暗場景也看得到）都可放 `InteractOverlay` 層重用這台相機。
 
 ---
 

@@ -91,5 +91,6 @@
 ## 備註
 
 - 這是 Built-in 管線的覆蓋層方案，刻意不走 URP。若日後要「火把實際打光、牆會投影」那種逐光源互動，才需評估遷移 URP（會牽動既有自訂 shader）。
+- **互動星星（拾取/劇情點的星星標示）刻意不被本後處理壓暗**：它們放在 `InteractOverlay` 層、由 `OverlayCameraController` 的疊加相機畫在後處理**之上**（暗場景也永遠可見，因為它是玩家的互動指引、性質同 UI 提示）。其餘世界物件（角色/怪/地上物）仍照常受壓暗。詳見 [INTERACTION.md](INTERACTION.md)〈暗場景也看得到星星〉。
 - 設計沿革見 [PROGRESS.md](PROGRESS.md)。陰森系先前用 git 分支比較過 spotlight／full／colorgrade 三種雛形，整併成 type 2（= full-soft）與 type 3（= full）；末日炎熱系同樣分支比較 noon／ember／dust，整併成 type 4／5／6；海洋系（7/8/9）、山頂風系（10 風雪 / 11 強風）、雨系（12 細雨 / 13 大雨）、陰森森林鬼霧（14）、電視雜訊（15）直接加在 develop。
 - 熱浪扭曲是全螢幕均勻的克制版微晃；若日後要更真實（只在地面/火源附近、或更強的地平線蜃景），可改成漸層遮罩或局部套用。

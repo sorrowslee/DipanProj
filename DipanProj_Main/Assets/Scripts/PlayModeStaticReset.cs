@@ -25,6 +25,7 @@ public static class PlayModeStaticReset
         MapManager.DevStartMapId = 0;
         MapManager.DevStartModuleOverride = null;
         Dipan.Save.SaveManager.SuppressAutoLoad = false;
+        Dipan.Save.SaveManager.DevFreshCharacter = false;
         Dipan.Flow.GameFlowManager.TitleFlowEnabled = true;
 
         // 觸發鏈：清 static 集合／快取／**事件訂閱**（OnTriggerFired 跨 Play 會累積 → 重複觸發、呼叫到已銷毀的 TutorialManager 等）。

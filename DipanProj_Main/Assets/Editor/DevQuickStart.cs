@@ -13,6 +13,10 @@ using UnityEditor;
 ///  - **地圖 id**（邪佛廣場）→ 直接進**指定地圖**（<see cref="MapManager.DevStartMapId"/>）；因為廣場是 Main 模組的
 ///    map 12、非首圖，用 module 進不了它。
 /// 都**不動場景序列化的 `MapManager.startModule`（＝Main）**，所以「關閉」後正式開場鏈照舊。狀態存 EditorPrefs（只影響本機）。
+///
+/// 另外：只要選了任一目標（含廣場），就打開 <see cref="Dipan.Save.SaveManager.DevFreshCharacter"/>——
+/// 進場時砍掉舊的一次性測試角色、建一個全新乾淨角色（所有旗標／進度／背包歸零），
+/// 所以每次按 Play 都能從零開始反覆測（例如新手教學），且完全不動玩家正式三欄存檔。「關閉」則照舊走正式存檔。
 /// </summary>
 public static class DevQuickStart
 {
@@ -34,12 +38,14 @@ public static class DevQuickStart
         MapManager.DevStartMapId = 0;
         MapManager.DevStartModuleOverride = null;
         Dipan.Flow.GameFlowManager.TitleFlowEnabled = true;
+        Dipan.Save.SaveManager.DevFreshCharacter = false;   // 先清乾淨（同上，避免關閉時殘留上一輪的 true）
         MapManager.DevLoadingHoldSecondsOverride = 0f;   // 編輯器測試：載入頁不停留那段等待（build 沒這支腳本，維持正式秒數）
 
         string t = Cur;
         if (string.IsNullOrEmpty(t)) return;   // 關閉＝走正式流程
 
         Dipan.Flow.GameFlowManager.TitleFlowEnabled = false;   // 跳過標題 / 存讀檔流程
+        Dipan.Save.SaveManager.DevFreshCharacter = true;       // 任一測試目標（含廣場）都用全新乾淨角色進場、所有旗標歸零
         if (t == "Hub")
         {
             MapManager.DevStartMapId = Dipan.Save.SaveConstants.HubMapId;   // 邪佛廣場（map 12，非模組首圖）

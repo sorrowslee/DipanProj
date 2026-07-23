@@ -26,6 +26,17 @@ namespace Dipan.Save
         /// </summary>
         public static bool SuppressAutoLoad = false;
 
+        /// <summary>
+        /// 測試模式（DevQuickStart「直接進關卡」）：開機時不載入舊角色，改建立一個乾淨的一次性測試角色
+        /// （generation=1、所有旗標／進度／背包全空）。每次按 Play 進來都先砍掉上一個 dev 角色再重建，
+        /// 保證每趟測試都是全新狀態（例如可反覆測新手教學）。由 DevQuickStart 設 true、PlayModeStaticReset 每次 Play 歸零。
+        /// 選「關閉（走正式流程）」時維持 false，完全走正式三欄存檔、不受影響。見 readme/SAVE_SYSTEM.md §10。
+        /// </summary>
+        public static bool DevFreshCharacter = false;
+
+        /// <summary>一次性測試角色的固定 id（永遠 slotIndex=-1，不會出現在正式三欄）。每次 dev 進場砍掉重建同一個。</summary>
+        public const string DevCharacterId = "__dev_quickstart__";
+
         [Header("自動存檔")]
         [Tooltip("有變動時，每隔幾秒自動存一次。")]
         public float autoSaveIntervalSeconds = 90f;
@@ -64,7 +75,9 @@ namespace Dipan.Save
         {
             _inv = InventorySystem.Instance;                   // 快取一次（此時建立沒問題）
             _storage = StorageSystem.Instance;
-            if (!SuppressAutoLoad)
+            if (DevFreshCharacter)
+                CreateOrResetDevCharacter();                   // 測試模式：砍掉舊 dev 角色、建一個全新乾淨角色（所有旗標歸零）
+            else if (!SuppressAutoLoad)
                 LoadActiveOrCreateDefault();                   // 先載入（此時尚未訂閱，不會被自己的 Raise 標 dirty）
             // SuppressAutoLoad = true 時不自動載：由 GameFlowManager 依玩家在存讀檔畫面的選擇呼叫 LoadSlot/StartNewGameInSlot。
             _inv.OnChanged += MarkDirty;                       // 之後的背包/倉庫變動才標記待存
@@ -128,6 +141,38 @@ namespace Dipan.Save
                 Debug.LogError($"[SaveManager] 角色「{prof.name}」存檔損毀且無法救回，建立新測試角色。");
                 CreateCharacter(SaveConstants.DefaultTestCharacterName);
             }
+        }
+
+        /// <summary>
+        /// 測試模式專用：砍掉上一個一次性測試角色（固定 <see cref="DevCharacterId"/>）再建一個全新乾淨的。
+        /// generation=1、progress/stats/lifetimeFlags 全空、背包清空 → 所有旗標（含永久旗標如新手教學）歸零，
+        /// 每次按 Play 直接進關卡都是全新狀態。slotIndex 固定 -1 → 永遠不會出現在正式三欄、也不會被正式流程載到。
+        /// 會設為活躍角色，之後 F5/F9/自動存都寫到這個 dev 角色，不會動到玩家的正式存檔。見 readme/SAVE_SYSTEM.md §10。
+        /// </summary>
+        void CreateOrResetDevCharacter()
+        {
+            // 砍：清掉上一輪 dev 角色的存檔與名冊項（若在）。用固定 id 回收，磁碟上永遠只留一個 dev 角色。
+            DeleteCharacter(DevCharacterId);
+
+            // 重建：固定 id、全空的一次性測試角色。
+            var save = new CharacterSave
+            {
+                characterId = DevCharacterId,
+                name = "DEV(測試)",
+                slotIndex = -1,
+                generation = 1,
+                createdAtUtc = NowUtc(),
+                lastPlayedUtc = NowUtc(),
+            };
+            _current = save;
+            ApplyToSystems(save);   // 清空背包/倉庫
+
+            _roster.characters.Add(ToProfile(save));
+            _roster.activeCharacterId = save.characterId;
+
+            SaveSystem.SaveCharacter(save);
+            SaveSystem.SaveRoster(_roster);
+            Debug.Log("[SaveManager] 測試模式：已建立全新測試角色 DEV(測試)，所有旗標/進度歸零。（要走正式存檔：選單 → 直接進關卡 → 關閉）");
         }
 
         /// <summary>建立新角色並設為活躍（背包清空）。slotIndex 指定存檔欄位（-1 = 不指定）。回傳該存檔。</summary>

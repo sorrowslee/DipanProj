@@ -61,12 +61,18 @@ public class InteractMarker : MonoBehaviour
         if (_built) return;
         _built = true;
 
+        // 讓星星改由「疊在氛圍後處理之上」的 OverlayCamera 畫 → 暗場景也永遠可見。
+        // 找不到該 Layer（沒在 Tags and Layers 加）就退回原本行為（被氛圍壓暗）。
+        int _ovLayer = LayerMask.NameToLayer(OverlayCameraController.LayerName);
+        if (_ovLayer >= 0) gameObject.layer = _ovLayer;
+
         if (_starSprite == null) _starSprite = BuildStarSprite();
 
         for (int i = 0; i < starCount; i++)
         {
             var go = new GameObject($"Star_{i}");
             go.transform.SetParent(transform, false);
+            if (_ovLayer >= 0) go.layer = _ovLayer;
 
             var sr = go.AddComponent<SpriteRenderer>();
             sr.sprite = _starSprite;
