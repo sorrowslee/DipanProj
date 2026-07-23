@@ -453,3 +453,12 @@
 - **症狀**：某螢幕特效（如 id 3「馬賽克清晰」）想調播放時長，改 `ScreenFxTable.csv` 的 `DurationSeconds` 不管填多少都沒用；懷疑「沒吃這個欄位」或「cache 沒清」。
 - **原因**：**都不是**——程式路徑完全正確。`ScreenFxTable.csv` 的 `DurationSeconds` **只是「預設值」**：分派入口 `ScreenFxPlayer.Play(id, onDone, duration)` 的第三參數 `duration ≥ 0` 就以它為準、**完全不讀 CSV**；`duration < 0`（`-1`）才回退去讀 CSV。三個入口帶不帶 override 不同：`MapsTable` 的 `EnterEffect` 不帶（`Play(id,null)`）→ **永遠吃 CSV**；**劇情 `screenFx` 步驟**帶「停留秒數」(`seconds > 0 ? seconds : -1`)；**觸發鏈 `playScreenFx`** 帶 `duration` 參數。實際元兇：那個馬賽克是從 `Main_InitialForest1.dipanmap` 的**進場演出（cutscene）第 3 步 `screenFx`** 觸發，而那一步的「停留秒數」被填成 `1.0`，於是 `Play(3, …, 1.0)` 用 1 秒、CSV 的 `DurationSeconds` 根本沒被讀到。
 - **解法**：看要哪種行為——要吃 CSV 的秒數，就進地圖編輯器「**劇情**」工具、點那個 `screenFx` 步驟，把「停留秒數」**清成 0**（回退讀 CSV）；要就地各設不同時長，就直接調那個「停留秒數」欄位（此時 CSV 只是沒被用到的預設）。**排查通則**：某螢幕特效改 CSV 秒數沒反應時，先確認它是**從哪個入口觸發**——劇情步驟／`playScreenFx` 觸發器都有各自的時間 override 欄位，填了就以呼叫端為準。（別忘了這類進場演出藏在 `.dipanmap` 的 `cutscene` 區塊、要用編輯器頂端「劇情」工具才看得到，不在觸發器/物件層。）（2026-07-22 記）
+
+---
+
+## K. 互動 / 拾取 (Interaction & Pickup)
+
+### K1. 走到擋路家具（櫃子/桌子）前，「按 F」提示出不來、撿不到（教學卡在「走過去按 F」）
+- **症狀**：pickup 放在櫃子/桌子這種家具上，玩家走過去卻不出現星星／「按 F」提示、撿不到東西；新手教學會卡在「走過去撿」那步永遠不前進。
+- **原因**：F 互動是量「玩家 → 該 pickup **最近感應格的中心**」的距離、在 `InteractionManager.pickupRadius`（預設 **1.2** 世界單位）內才算數（`PlayerNearPickup` / `NearestCellSqr`）。若感應格只放在**家具那一格**，而家具是**實心擋路物**（物件 `walkable:false`，有碰撞體），玩家會被擋在家具**前面**、身體中心進不了家具那格中心的 1.2 內 → 永遠不觸發。**跟 `pickupRadius` 調多大關係不大**：感應點在實心物「裡面」，半徑要開到很大才搆得到，還會連帶放寬撿地上物/踩傳送點的距離、手感變鬆。
+- **解法**：把該 pickup 的**感應格延伸到家具前方（玩家站得到的地板）那排**——pickup 支援多格，`NearestCellSqr` 取最近格，玩家一走到家具前、最近格就落在 1.2 內。手指指向用的 `center` 是各格平均，仍會落在家具前緣，位置不會跑掉。**通則**：pickup 放在實心家具上 → 感應格務必含**前方可站的地板格**，別只放在家具那格。實例：儲藏室藥水櫃 `furniture_storage_rack` 的 pickup 從單格 `[13,2]` 擴成 3×2 `[12-14, 2-3]`（含櫃子那排＋前方地板那排）。少數「整體互動都想放寬一點」才考慮調大全域 `pickupRadius`。（2026-07-23 記）

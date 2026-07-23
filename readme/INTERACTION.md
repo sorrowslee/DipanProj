@@ -90,6 +90,8 @@
 1. **編輯器**：放「道具拾取點」trigger 填 `itemId`（對 [INVENTORY.md](INVENTORY.md) 的 `ItemTable`）＋ `count`（可疊道具一次給多個，留空=1）；放「劇情觸發點」trigger 填 `dramaId`（見 [DRAMA.md](DRAMA.md)）。存檔 → `Project Tools → Sync Map Assets`。
 2. **Play**：靠近觸發點看到星星＋提示，按 **F**。拾取點背包滿了會把道具掉腳下，清完背包再走近按 F 撿回。
 
+> ⚠️ **拾取點放在實心家具（櫃子/桌子等 `walkable:false` 物件）上時**：感應是量「玩家 → 最近感應格**中心**」在 `pickupRadius`(1.2) 內，而玩家會被家具碰撞體擋在前面、進不了家具那格 1.2 內 → 按 F 觸發不了（跟半徑大小關係不大，點在實心物裡要調到很大才搆得到）。把該 pickup 的**感應格延伸到家具前方（可站的地板）那排**（多格 pickup，`NearestCellSqr` 取最近格；手指 `center`＝各格平均、仍指家具前緣）即可，別只放家具那格——比調大全域 `pickupRadius`（會連帶放寬撿地上物/傳送點的距離）乾淨。實例見 [STOREROOM_POTION_TUTORIAL.md](STOREROOM_POTION_TUTORIAL.md)、坑見 [PROBLEMS.md](PROBLEMS.md) K1。
+
 ---
 
 ## 通用掉落入口（之後怪物掉落複用）
