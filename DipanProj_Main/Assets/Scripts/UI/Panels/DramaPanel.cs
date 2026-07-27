@@ -18,11 +18,18 @@ namespace Dipan.UI
         public override bool PausesGame => true;          // 模態：暫停遊戲
         public override bool BlocksGameplayInput => true; // 擋住移動/攻擊
         public override bool ShowBackdrop => true;        // 半透明黑遮罩
-        public override bool CloseOnEscape => true;       // ESC 關
+        // ESC 關掉劇情圖＝**開發用**，正式打包不給玩家跳過劇情（見 DevSkip）。
+        public override bool CloseOnEscape => DevSkip.Allowed;
 
         Image _image;
         Text _text;
         RectTransform _imageRt;
+
+        /// <summary>開啟時先擋一次冷卻：避免前一段對話的連點慣性把這張劇情圖瞬間關掉。</summary>
+        protected override void OnOpen()
+        {
+            BlockInputFor(InputCooldown);
+        }
 
         protected override void OnClose()
         {
@@ -47,7 +54,8 @@ namespace Dipan.UI
         {
             // 整片透明關閉鈕（點任意處關閉）；放最底層，圖/文在它之上但不擋點擊（raycastTarget=false）。
             var closeBtn = UIBuilder.Button(transform, "ClickToClose", null,
-                () => UIManager.Instance.Close(this), new Color(0, 0, 0, 0));
+                () => { if (TryConsumeInput()) UIManager.Instance.Close(this); },   // 防連點：見 UIPanel.TryConsumeInput
+                new Color(0, 0, 0, 0));
             UIBuilder.Stretch((RectTransform)closeBtn.transform);
             closeBtn.targetGraphic = closeBtn.GetComponent<Image>();   // 程式建按鈕需手動指（見 PROBLEMS D4）
 

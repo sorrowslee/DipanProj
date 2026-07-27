@@ -9,7 +9,8 @@
 ## 玩家控制器 (PlayerController)
 
 * `Rigidbody2D (Dynamic)`，透過 `FixedUpdate` 設定 `_rb.velocity` 移動。
-* 持有 `WeaponManager` 引用與 `CurrentWeaponID`，透過 `SwitchWeapon(id)` 切換武器。**初始武器為武器表最後一號（最高 ID）**；按 `E` 呼叫 `WeaponManager.SwitchToPreviousWeapon()` 往前切（往較小 ID、繞回最高）。
+* 持有 `WeaponManager` 引用與 `CurrentWeaponID`，透過 `SwitchWeapon(id)` 切換武器。**武器的唯一來源是背包武器欄**（`OnInventoryChanged` → `SwitchWeapon`）：裝備哪把就用哪把，**卸下就是 `CurrentWeaponID = 0`＝沒有武器**。
+* **不能開火時，按左鍵／空白鍵完全沒反應**（兩種情形：**沒有裝備武器**，或**這張地圖禁用武器**＝ MapsTable 的 `NoWeapon` 欄，見 [MAP_SYSTEM.md](MAP_SYSTEM.md)）——不發射、不扣魔、不擺攻擊動作、也不轉身面向滑鼠。實作是 `HandleFiring()` 開頭一道 `!CanFire` 的 guard，放在所有分支之前，一處擋掉雷射／佛光／集氣／離散全部路徑，並順手清掉殘留的光束/佛光/集氣。`PlayerController.CanFire` 是「有武器 ＋ 這張圖沒禁用」的單一判斷，發射與「按攻擊鍵轉身」共用它，確保兩處永遠一致。（2026-07-27 改；此前 `Start()` 會強制帶上武器表最高 ID，導致空手也能攻擊。E 鍵循環切換同時移除。）
 * 發射時從 `WeaponManager` 取得 `WeaponData` → `RecipeEntry` → `ProjectileData`，並將 `BounceTarget` 映射為 `NonBounceLayers`。
 * `ResolvePierceableLayers(RecipeEntry)`：依 `BlockedByEnvironment` 決定是否把 `EnvLayer` 加入 `PierceableLayers`，所有 `Shoot*` 路徑共用此方法，讓 CSV 欄位對所有武器（環繞、直射、分裂…）都能生效。
 * **環繞彈**：`ProjectileData.IsOrbital` 為真時走 `ShootOrbital`；每次發射前會先銷毀本玩家上一輪尚未消失的環繞子彈，再依 `OrbitalCount` 重新生成（`OnDestroy` 時亦會清掉，避免引用已銷毀的玩家 Transform）。
@@ -86,3 +87,4 @@
 ### 擊退方向
 * 怪物被子彈擊中時：方向為子彈位置 → 怪物位置（推離子彈）。
 * 玩家被怪物接觸時：方向由未來的接觸傷害系統提供（預留介面）。
+*2026-07-27 更正：初始武器與 E 鍵切換的敘述已過時（強制指派最高 ID 與 `SwitchToPreviousWeapon` 皆已移除）。*

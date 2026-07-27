@@ -99,7 +99,7 @@
 
 - 連結靠 `ItemTable.WeaponID` → `WeaponTable.ID`。
 - 橋接在 `PlayerController`:`Start` 訂閱 `InventorySystem.OnChanged`,武器欄內容變動時取該物品的 `WeaponID`,呼叫 `WeaponManager.SwitchWeapon(weaponID)`。卸下武器（欄位清空）時保留當前武器、不切換。`OnDestroy` 退訂。
-- **E 鍵循環切換保留不動**,與裝備並存:不按 E 時「裝備哪把就用哪把」;按 E 仍可在所有武器間循環（此時當前武器可能與裝備欄不同,屬暫時測試行為）。
+- **武器欄是武器的唯一來源**（2026-07-27 起）:裝備哪把就用哪把、**卸下就沒有武器**（空手時按攻擊完全沒反應）。原本的 E 鍵循環切換已移除,不再有「當前武器與裝備欄不一致」的情況。
 - 邊界:`InventorySystem` 仍是純資料層、不認識戰鬥;由 `PlayerController`（既有戰鬥整合點,本就持有 `WeaponManager`）做連結。
 
 ### 相關檔案

@@ -51,7 +51,11 @@ namespace Dipan.Cutscene
 
         void Update()
         {
-            if (_cs != null && _cs.skippable && !_skip && Input.GetKeyDown(KeyCode.Escape))
+            // ESC 略過整段演出＝**開發用**：中止剩餘步驟後會直接跳到最後的 end 執行交棒
+            // （例如初始森林 2 的 end='fall' 會立刻接墜落→初始洞窟，玩家等於一鍵跳完整段開場）。
+            // 正式打包一律不給用，玩家不能跳過劇情；Development Build 仍可用，方便測後段流程。
+            // 同慣例見 IntroComicController / IntroFallController 的 AllowSkip。
+            if (DevSkip.Allowed && _cs != null && _cs.skippable && !_skip && Input.GetKeyDown(KeyCode.Escape))
                 _skip = true;   // 略過：中止剩餘步驟，直接收尾＋交棒
         }
 

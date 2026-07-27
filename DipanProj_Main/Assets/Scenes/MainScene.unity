@@ -1213,7 +1213,7 @@ MonoBehaviour:
   WeaponCSV: {fileID: 4900000, guid: f1aabce7930f14cc9a470a986eb86643, type: 3}
   RecipeManager: {fileID: 537006689}
   BulletPrefab: {fileID: 4779254322593184360, guid: fc83fb3e78a6645dca22c211421ba1f1, type: 3}
-  CurrentWeaponID: 1
+  CurrentWeaponID: 0
 --- !u!114 &537006689
 MonoBehaviour:
   m_ObjectHideFlags: 0

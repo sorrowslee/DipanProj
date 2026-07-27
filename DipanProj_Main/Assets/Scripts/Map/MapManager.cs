@@ -47,6 +47,10 @@ public class MapManager : MonoBehaviour
     bool _wakeUpWanted;   // 本次進圖要演「趴地→起身」（EnterEffect=1 睜眼醒來連動）；FireEnterTriggersRoutine 消化
 
     public int CurrentMapId => _currentMapId;
+
+    /// <summary>目前這張地圖是否禁止玩家使用武器（MapsTable 的 NoWeapon 欄）。
+    /// 由 <see cref="PlaceAndSetup"/> 在每次換圖時依該列更新；PlayerController 的發射 guard 讀它。</summary>
+    public bool WeaponDisabled { get; private set; }
     public bool IsLoading => _loading;
     public string CurrentModule => _loadedModule;   // 目前所在大地圖 module（結算/記過關用）
 
@@ -297,6 +301,11 @@ public class MapManager : MonoBehaviour
         RepositionPlayerAllies(pos);   // 玩家召喚物跟著過傳送點：移到玩家新落點附近
         SetupCamera(row.mode);
         MapNavGrid.EnsureBuilt(mapLoader.Map);   // 建怪物 A* 尋徑格（含牆＋地上物）
+        // 依 MapsTable 的 NoWeapon 欄決定這張圖能不能用武器（劇情地圖／大廳禁用）。
+        // 只記狀態，實際攔截在 PlayerController.HandleFiring 的 guard——那裡一處就擋掉所有發射路徑。
+        // 換圖時 ClearPersistentWeaponsForMapChange 已清掉光束/佛光；集氣狀態跨圖保留，進禁用圖第一幀由 guard 取消。
+        WeaponDisabled = row.noWeapon;
+
         // 依 MapsTable 的 Atmosphere 欄套用氛圍後處理（換圖即時切換，室外→古墓自動變氛圍）。見 AtmosphereController。
         AtmosphereController.ApplyMapAtmosphere(row.atmosphere);
         // 場景特效（世界端，如火雨）：依 SceneEffect 欄，換圖即時切換、自動清殘留。見 SceneEffectController。

@@ -47,7 +47,10 @@
 | `Path` | 字串 | 地圖檔相對路徑，格式同 `MapLoader.mapPath`（例：`Modules/RedBridalGown/Maps/RedBridalGown_01.dipanmap`）。`Sync Map Assets` 會把 `.dipanmap` 同步進 `StreamingAssets/MapAssets/`，路徑一致。 |
 | `IsLevelStart` | 0/1 | 是否為該 Module 的首張地圖。玩家一進入該關卡就載入這張、在它的 playerSpawn 出生。**每個 Module 必須恰好一張 = 1。** |
 | `MapMode` | 1/2 | **相機模式**。`1` = 整張地圖（縮放塞滿畫面、角色變小）；`2` = 鏡頭跟隨（角色維持正常大小、鏡頭跟著玩家走）。**留空 / 缺欄 = 預設 2。** 詳見下方「2.1 相機模式」。 |
-| `Atmosphere` | 1~11 | **氛圍後處理**。`1` 正常；`2` 幽暗+打光；`3` 噩夢+打光；`4` 烈日曝曬；`5` 焦土餘燼；`6` 沙塵暴（4/5/6 末日炎熱系、帶熱浪）；`7` 淺海；`8` 深海；`9` 深海+恐怖（7/8/9 海洋系、帶水下折射）；`10` 風雪；`11` 強風（10/11 山頂風系）；`12` 綿綿細雨；`13` 大雨（12/13 雨系）；`14` 陰森森林鬼霧；`15` 電視雜訊。**留空 / 缺欄 = 預設 1。** 換地圖即時切換，所以可「室外白天 → 傳送 → 古墓變陰森」。詳見 [ATMOSPHERE.md](ATMOSPHERE.md)。 |
+| `Atmosphere` | 1~15 | **氛圍後處理**。`1` 正常；`2` 幽暗+打光；`3` 噩夢+打光；`4` 烈日曝曬；`5` 焦土餘燼；`6` 沙塵暴（4/5/6 末日炎熱系、帶熱浪）；`7` 淺海；`8` 深海；`9` 深海+恐怖（7/8/9 海洋系、帶水下折射）；`10` 風雪；`11` 強風（10/11 山頂風系）；`12` 綿綿細雨；`13` 大雨（12/13 雨系）；`14` 陰森森林鬼霧；`15` 電視雜訊。**留空 / 缺欄 = 預設 1。** 換地圖即時切換，所以可「室外白天 → 傳送 → 古墓變陰森」。詳見 [ATMOSPHERE.md](ATMOSPHERE.md)。 |
+| `SceneEffect` | 0/1 | **場景特效（世界端）**。`0` 無；`1` 火雨。**留空 / 缺欄 = 預設 0。** 詳見 [SCENE_EFFECT.md](SCENE_EFFECT.md)。 |
+| `EnterEffect` | 整數 | **進場一次性全螢幕過場**＝ `ScreenFxTable` 的 id（`0` 無 / `1` 睜眼醒來 / `2` 破幻術 / `3` 馬賽克清晰…），與劇情 `screenFx` 步驟共用同一份 id → 同 id 同效果。**留空 / 缺欄 = 預設 0。** 詳見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md)。 |
+| `NoWeapon` | 0/1 | **這張地圖禁止玩家使用武器**。`0` 可用；`1` 禁用。**留空 / 缺欄 = 預設 0（可用）。** 禁用時按左鍵／空白鍵**完全沒反應**——不發射、不扣 MP、不擺攻擊動作、也不轉身面向滑鼠；移動／互動按 F／背包／喝藥一律正常，怪物用武器也不受影響。用在劇情用地圖與「亂放武器很奇怪」的大廳。目前填 1 的是 `Main_Cave`(11)、`Main_Square`(12)、`Main_InitialForest1`(13)、`Main_InitialForest2`(14)。⚠️ **別填在新手教學的地圖上**——柴房佛燈教學要玩家實際開火點亮佛燈，禁用會卡死（見 [WOODSHED_LAMP_TUTORIAL.md](WOODSHED_LAMP_TUTORIAL.md)）。實作：`MapTable` 讀第 10 欄 → `MapManager.WeaponDisabled` → `PlayerController.CanFire` → `HandleFiring` 的 guard。 |
 
 **規則**
 - `ID` 全域唯一整數（不要每個關卡各自從 1 編號），傳送點只存一個 int 最單純。
@@ -289,3 +292,4 @@ ID, Name,   Module,        Path,                                                
 *建立於 2026-06-18：定調多圖串接（Phase 1，現在做）與地圖狀態持久化（Phase 2，核心玩法、不可簡化、之後實作）。Phase 1 架構須為 Phase 2 預留位置。2026-06-18 稍晚：Phase 1 程式完成（MapsTable/MapTable/MapManager/TeleportWatcher + MapLoader 重構），待 Unity 接線。*
 
 *2026-07-27 更正：**Phase 2 早已於 2026-07-18 完成**（commit `4aa7659`「加入關卡儲存機制」），實作為獨立單例 `RunProgress` 而非草案的 `MapManager.MapState`。本文件先前一直寫著「之後實作」，§0 分期表、§5、§5.3/5.4、§7 開放問題、§8 里程碑均已更正；完整規格見 [RUN_PROGRESS.md](RUN_PROGRESS.md)。*
+*2026-07-27：欄位表補上 `SceneEffect` / `EnterEffect`（實作早就有、表一直沒補）與新增的 `NoWeapon`；`Atmosphere` 範圍由 1~11 更正為 1~15。*

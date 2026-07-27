@@ -94,6 +94,35 @@ namespace Dipan.UI
         /// <summary>每次關閉時呼叫（適合退訂事件）。</summary>
         protected virtual void OnClose() { }
 
+        // ───────────── 防連點（給對話這類「一下就翻過去」的面板用）─────────────
+        //
+        // 問題：劇情對話時猛按左鍵／空白鍵，會一次跳掉好幾句，有時立繪都還沒顯示出來就被跳過。
+        // 作法：把「前進一次」節流成每 InputCooldown 秒最多一次；面板剛開啟時也先擋一次冷卻，
+        //       確保玩家至少看得到第一句與立繪。
+        //
+        // ⚠ 這是 opt-in 的工具：**基底不會自動套用**，只有主動呼叫 TryConsumeInput 的面板才有節流
+        //   （否則背包、設定這種需要連續操作的面板會變得很鈍）。
+        // ⚠ 一律用 unscaledTime——對話面板 PausesGame=true，Time.time 在暫停時不會前進。
+
+        /// <summary>防連點的預設冷卻秒數。</summary>
+        public const float InputCooldown = 0.5f;
+
+        float _inputReadyAt;
+
+        /// <summary>接下來 seconds 秒內的 <see cref="TryConsumeInput"/> 一律當作沒按。開啟面板／剛換頁時呼叫。</summary>
+        protected void BlockInputFor(float seconds) => _inputReadyAt = Time.unscaledTime + seconds;
+
+        /// <summary>
+        /// 嘗試吃掉一次「前進 / 關閉」輸入：還在冷卻內回 false（這次連點忽略），
+        /// 否則回 true 並重新起算冷卻。呼叫端在回 false 時直接 return 即可。
+        /// </summary>
+        protected bool TryConsumeInput(float cooldown = InputCooldown)
+        {
+            if (Time.unscaledTime < _inputReadyAt) return false;
+            _inputReadyAt = Time.unscaledTime + cooldown;
+            return true;
+        }
+
         // ───────────── 淡入淡出（unscaledTime，暫停時仍動）─────────────
 
         void StartFade(float target, bool deactivateAtEnd)

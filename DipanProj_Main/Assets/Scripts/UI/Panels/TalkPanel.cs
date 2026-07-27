@@ -23,7 +23,9 @@ namespace Dipan.UI
         public override bool PausesGame => true;
         public override bool BlocksGameplayInput => true;
         public override bool ShowBackdrop => true;    // 半透明黑遮罩（UIManager 共用，鋪在對話框+立繪後方，把場景壓暗）
-        public override bool CloseOnEscape => true;
+        // ESC 關掉整段對話＝**開發用**，正式打包不給玩家跳過劇情（見 DevSkip）。
+        // 關掉後按 ESC 完全沒反應：UIManager 的 ESC 是「有視窗且允許才關」，不會 fall through 去開設定面板。
+        public override bool CloseOnEscape => DevSkip.Allowed;
 
         // ── 對話框背板原圖尺寸 / 顯示大小 ──
         const float BgW = 2246f, BgH = 828f;
@@ -195,8 +197,19 @@ namespace Dipan.UI
             return avatar;
         }
 
+        /// <summary>開啟時先擋一次冷卻：避免上一段對話的連點慣性直接把第一句（連同立繪）跳掉。</summary>
+        protected override void OnOpen()
+        {
+            BlockInputFor(InputCooldown);
+        }
+
         void Next()
         {
+            // 防連點：0.5 秒內不管按幾次都只算一次（見 UIPanel.TryConsumeInput）。
+            // 鍵盤與整片點擊鈕都經由這裡，所以節流放這一處就涵蓋兩個入口。
+            // 註：ESC 關閉不走這裡、不受節流——那是明確的「我要跳過」意圖。
+            if (!TryConsumeInput()) return;
+
             _index++;
             ShowCurrent();   // 超過最後一句會自動關閉
         }

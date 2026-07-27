@@ -64,6 +64,9 @@
 | [INTRO_COMIC.md](INTRO_COMIC.md) | 序章開場漫畫播放器（獨立 Intro 場景、全程式、`IntroComicController`）：**整頁成品圖＋導讀式鏡頭**——鏡頭平移/縮放對焦每格(Focuses：Area/Zoom/X·YOffset、可綁格)、空白鍵下一格、下墜 13~15 全篇幅 cover、右上角兩段式 Skip、整頁圖放 `Resources/InitialStory`、右鍵帶入預設。播完接墜落、落 `MainScene` 的 Tutorial_Cave | 改開場漫畫、調每格鏡頭框/縮放/位移、Skip、下墜節奏 |
 | [INTRO_FALL.md](INTRO_FALL.md) | 序章「持續墜落深淵」程式動畫（獨立 Intro 場景、全程式建構、`IntroFallController`）：側面峽谷岩壁背景無限捲動＋散佈短碎條速度線 → 正面放射速度線＋時空扭曲 shader ＋色調穿越 → 收尾縮小沒入＋淡出載入下一場景 | 改開場墜落動畫、調速度線/山壁/色調/角色大小、接漫畫或進遊戲的串接 |
 | [CUTSCENE_TUNNEL.md](CUTSCENE_TUNNEL.md) | 過場鏈「穿隧道→播影片→換圖」（全程式、cutscene 觸發點啟動、一次性）：`CutsceneWatcher`(地圖端串接)＋`TunnelWalkController`(按鍵走出發光拱門、等比放大、白光收尾、Canvas 1200)＋`VideoPlayerOverlay`(StreamingAssets/Video 的 mp4、黑幕先蓋再準備、淡黑換圖、Canvas 1300)；影片放哪/觸發點參數(video/targetMapId)/Unity 接線 | 改穿隧道表演、接/換過場影片、調洞口/步數/晃動、cutscene 觸發點 |
+| [CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) | **核心迴圈企劃**（設計意圖，非程式規格）：輪迴為主軸、access／power 兩軸分離、邪佛「3新+1舊」四選一與業障回響、正常 3 輪／上限 4 輪破邪佛、帶物 min(周目,7)、20 關深/標準分層、關卡內收穫「通關才落袋、死亡歸零」 | 想確認玩法方向與已拍板的規則；做任何影響經濟/關卡選擇/輪迴節奏的功能前 |
+| [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) | 效能與畫質稽核（2026-07-05 四大根因與修正：Rigidbody2D Interpolate、60Hz 物理、地圖貼圖 Bilinear+mipmap、UI maxTextureSize；素材尺寸規範） | 排查卡頓/畫面粗糙、訂素材尺寸前 |
+| [PROPS_IMAGEGEN_LIST.md](PROPS_IMAGEGEN_LIST.md) | 地上物產圖清單（A 家具 12／B 裝飾儀式 12／C 庭院 6／D 廚房 7／E 儲藏 6／F 柴房 4／G 場景大物 2，共 49 件，各附提示詞與 credits 估算） | 要產一批地上物素材時挑清單、估成本 |
 | [PROBLEMS.md](PROBLEMS.md) | **踩坑記錄與解法**(症狀→原因→解法) | **第一次看文件時必看**；遇到怪問題、或要把新坑記下來時 |
 | [TODO.md](TODO.md) | **待補清單**：目前先做到能動但還缺一塊、或暫時做不到之後再補的項目 | 想知道哪些是半成品/暫缺；做到一半得擱置時把缺口記這裡 |
 
@@ -74,3 +77,4 @@
 - 跨模組／邊界相關的改動，先讀 [ARCHITECTURE.md](ARCHITECTURE.md) 的「解耦原則與邊界規範」。
 - 大多數玩法擴充是「在 CSV 加一列 ＋ 既有系統參數」就能做到；動程式前先確認不能用資料驅動解決。
 - **做到一半得擱置、或某功能暫時缺一塊**時，記到 [TODO.md](TODO.md)（缺口清單），別讓半成品的暫缺資訊散落。
+*2026-07-27：文件地圖補上先前漏收的 CORE_LOOP_DESIGN / PERF_QUALITY_AUDIT / PROPS_IMAGEGEN_LIST 三份。*

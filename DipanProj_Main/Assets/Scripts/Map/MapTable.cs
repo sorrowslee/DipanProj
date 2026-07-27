@@ -19,6 +19,10 @@ using UnityEngine;
 ///   14 = 陰森森林鬼霧（畫面偏暗、陰綠冷調 + 漂移黑霧、偶爾一陣濃）；
 ///   15 = 電視雜訊（雪花 + 掃描線 + 滾動同步條 + 偶發水平撕裂 + 灰調閃爍）。
 ///   留空 / 缺欄 / 無法解析 = 預設 1（正常）。換地圖時自動切換，所以可「室外→傳送→古墓」變氛圍。
+/// - NoWeapon = 這張地圖是否**禁止玩家使用武器**：0 = 可用（預設）；1 = 禁用。
+///   禁用時按左鍵／空白鍵完全沒反應——不發射、不扣 MP、不擺攻擊動作、也不轉身面向滑鼠。
+///   用在劇情用地圖（開場山道、初始洞窟）與邪佛廣場這種「亂放武器很奇怪」的大廳。
+///   只擋玩家發射，移動／互動／背包／喝藥一律正常，怪物用武器也不受影響。
 /// 見 readme/MAP_SYSTEM.md。
 /// </summary>
 public class MapTableRow
@@ -32,6 +36,7 @@ public class MapTableRow
     public int atmosphere = 1;  // 1 = 正常；2 = 幽暗+打光；3 = 噩夢+打光（預設 1）
     public int sceneEffect = 0; // 場景特效：0 = 無；1 = 火雨（見 SceneEffectController，預設 0）
     public int enterEffect = 0; // 進場一次性全螢幕過場＝ScreenFxTable 的 id：0=無 / 1=睜眼醒來 / 2=破幻術 / 3=馬賽克清晰（與劇情 screenFx 共用同一份 id；預設 0）
+    public bool noWeapon = false; // 禁止玩家使用武器：0/空 = 可用（預設）；1 = 禁用（劇情地圖、大廳）
 }
 
 public class MapTable : MonoBehaviour
@@ -111,6 +116,10 @@ public class MapTable : MonoBehaviour
             int enterEffect = 0;
             if (v.Length >= 9 && int.TryParse(v[8].Trim(), out int ee)) enterEffect = ee;
 
+            // NoWeapon 第 10 欄為新增、向下相容：缺欄 / 留空 / 無法解析都退回預設 0（可用武器）。
+            bool noWeapon = false;
+            if (v.Length >= 10 && int.TryParse(v[9].Trim(), out int nw)) noWeapon = nw != 0;
+
             var row = new MapTableRow
             {
                 id = id,
@@ -122,6 +131,7 @@ public class MapTable : MonoBehaviour
                 atmosphere = atmosphere,
                 sceneEffect = sceneEffect,
                 enterEffect = enterEffect,
+                noWeapon = noWeapon,
             };
 
             if (_byId.ContainsKey(id))

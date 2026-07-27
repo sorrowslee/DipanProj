@@ -6,19 +6,22 @@ public class WeaponManager : MonoBehaviour
     public TextAsset WeaponCSV;
     public RecipeManager RecipeManager;
     public GameObject BulletPrefab;
-    public int CurrentWeaponID = 1;
+    /// <summary>目前武器的 WeaponTable ID；<b>0 = 沒有裝備武器</b>（此時 <see cref="GetCurrentWeapon"/> 回 null，玩家不能攻擊）。
+    /// 由 <c>PlayerController.OnInventoryChanged</c> 依背包武器欄設定——裝備哪把就是哪把、卸下就回 0。</summary>
+    public int CurrentWeaponID = 0;
 
     private Dictionary<int, WeaponData> _weapons = new Dictionary<int, WeaponData>();
     private readonly Dictionary<int, WeaponData> _recipeToWeapon = new Dictionary<int, WeaponData>(); // RecipeID → 使用該配方的武器（取最低 ID 那把）
-    private List<int> _weaponIDs = new List<int>();
+    private List<int> _weaponIDs = new List<int>();   // 載入後排序保留；目前無人讀取（E 鍵循環切換移除後），留著供之後做武器圖鑑/除錯用
     private WeaponData _currentWeapon;
 
     void Start()
     {
         LoadWeapons();
-        // 初始武器 = 武器表裡的最後一號（_weaponIDs 已排序，最後一個 = 最高 ID）
-        if (_weaponIDs.Count > 0)
-            CurrentWeaponID = _weaponIDs[_weaponIDs.Count - 1];
+        // 這裡刻意「不」指定任何初始武器：沒有裝備武器就是沒有武器，按攻擊不該有反應。
+        // （2026-07-27 前這裡會強制帶上武器表最高 ID，導致玩家一開場、或卸下裝備後仍能攻擊。）
+        // 實際武器由 PlayerController 依背包武器欄呼叫 SwitchWeapon 設定；它在訂閱背包事件後會立刻做一次初始同步，
+        // 讀檔還原也會經由 InventorySystem.RestoreState 結尾的 Raise() 走到同一條路，所以這裡不需要預設值。
         RefreshCurrentWeapon();
     }
 
@@ -33,18 +36,14 @@ public class WeaponManager : MonoBehaviour
         RefreshCurrentWeapon();
     }
 
-    // 往前切換武器：往較小 ID 方向移動；到第一個再繞回最後一個
-    public void SwitchToPreviousWeapon()
-    {
-        if (_weaponIDs.Count == 0) return;
-
-        int currentIndex = _weaponIDs.IndexOf(CurrentWeaponID);
-        int prevIndex = (currentIndex - 1 + _weaponIDs.Count) % _weaponIDs.Count;
-        SwitchWeapon(_weaponIDs[prevIndex]);
-    }
+    // 註：原本這裡有 SwitchToPreviousWeapon()（E 鍵循環切換整張武器表），
+    // 已於 2026-07-27 移除——武器一律由背包武器欄決定，不再有繞過裝備的切換途徑。
 
     public WeaponData GetWeapon(int id)
     {
+        // id <= 0 = 「沒有裝備武器」，是正常狀態而非錯誤 → 安靜回 null，不要洗 Console。
+        if (id <= 0) return null;
+
         if (_weapons.TryGetValue(id, out WeaponData weapon))
             return weapon;
 

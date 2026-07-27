@@ -31,7 +31,7 @@
 | 欄位 | 預設 | 意義 |
 |---|---|---|
 | `autoStartOnEnter` | true | 一進圖自動開演 |
-| `skippable` | true | 可按 **Esc** 略過（略過＝中止剩餘步驟，仍執行結尾交棒） |
+| `skippable` | true | 可按 **Esc** 略過。⚠️ **只在開發階段有效**（`DevSkip.Allowed`＝編輯器或 Development Build），正式打包玩家按 ESC 沒反應。⚠️ **略過＝中止剩餘步驟後「仍執行結尾交棒」**——所以在 `end='fall'` 的圖上按 ESC 會直接跳完整段開場接墜落，不是只跳過眼前這句 |
 | `lockInput` | true | 演出期間鎖玩家操作（走 `UIManager.SetExternalHold`） |
 | `actors` | — | 演員清單 |
 | `steps` | — | 步驟清單，**依序執行** |
@@ -105,6 +105,8 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 ## 3. 結束交棒（`end` 的去向）
 
 `CutsceneDirector` 在主迴圈結束後**回頭找最後一個 `end` 步驟**（被 Esc 略過時也照它走），依 `assetId` 分派：
+
+> ⚠️ **「略過也照走 end」是最容易誤判的行為**：在 `Main_InitialForest2`（`end='fall'`）按一下 ESC，會直接中止整段劇情 → 交棒墜落動畫 → 回 `MainScene` 進初始洞窟(11) → 洞窟的 `EnterEffect=1` 觸發「趴地→爬起」。看起來像「按 ESC 就會莫名其妙播爬起動畫」，其實是一路交棒過去的正常結果。2026-07-27 起 ESC 略過已限制為開發階段專用。
 
 | assetId | 行為 |
 |---|---|

@@ -159,3 +159,21 @@
 - [ ] **什麼時候該遷移**：遇到「某張表的某一欄需要能打半形逗號」時，把那**一張表**換成 `CsvUtil.SplitLine()` 即可，不必全面換。目前已知受限的是 `MonsterData` 的「句子1~4」（怪物台詞，見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)）與 `DramaTalkTable` 的 `Text`。
 - [ ] **遷移時要注意**：換過去之後，該 CSV 若原本有**裸露的雙引號**會被當成引號語法解析，要一併檢查既有資料。
 - [ ] 已支援引號的兩處（`ItemDatabase`、`Language`）各有一份自己的實作，之後順手時可改成呼叫 `CsvUtil`（純整理，不急）。
+
+---
+
+## 跳過劇情：`VideoPlayerOverlay` 還沒鎖 — 2026-07-27
+
+2026-07-27 已把「ESC 跳過劇情」限制成開發階段專用（`DevSkip.Allowed`，套在 `CutsceneDirector` / `TalkPanel` / `DramaPanel`），開場漫畫與墜落動畫本來就有各自的 `AllowSkip`。**唯一還沒區分開發／正式的跳過入口是過場影片**。
+
+- [ ] **`VideoPlayerOverlay.AllowSkip` 是 Inspector 上的 public bool**（預設 true），打包後玩家可按 ESC 或左鍵跳過過場影片。要不要一併鎖成 `DevSkip.Allowed` 由作者決定——影片跳過的性質和劇情不太一樣（重複看同一段影片很煩，多數遊戲允許跳）。要鎖的話改一行即可。
+- [ ] 若之後新增任何「可跳過」的表演，記得套 `DevSkip.Allowed`（見 `Assets/Scripts/DevSkip.cs`）。
+
+---
+
+## 死碼：開場漫畫流程的殘骸 — 2026-07-27 記
+
+開場改走劇情編輯器、`Page_01~03` 也刪掉之後，`GameFlowManager` 裡還留著舊「新建遊戲播漫畫」路線的殘骸。
+
+- [ ] **`GameFlowManager.NewGameIntroRoutine()`（約第 115 行）沒有任何呼叫端**。`StartNewGame` 現在走的是 `NewGameToForestRoutine()`（直接進山道劇情 13）。留著會讓後人以為還有「新建遊戲播漫畫」這條路。確認無誤後可刪。
+- [ ] 順帶確認 `Intro` 場景裡 `IntroComicController` 的 `Pages` 清單——前三頁（`Page_01~03`）指向的圖已刪除，雖然 `FallTailOnly` 會把它們濾掉、實際不會載入，但清單留著已失效的項目容易誤導。要清的話在 Intro 場景的 Inspector 刪掉那三筆即可。

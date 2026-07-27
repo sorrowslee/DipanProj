@@ -62,6 +62,18 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// <summary>佛光（IsAura）光環目前是否開著（按住左鍵/空白鍵維持中）。供新手教學偵測「玩家真的點亮佛燈」用。</summary>
     public bool IsAuraActive => _activeAura != null;
 
+    /// <summary>玩家現在能不能開火。兩個條件：**有裝備武器** ＋ **這張地圖沒禁用武器**（MapsTable 的 NoWeapon 欄）。
+    /// 發射 guard 與「按攻擊鍵轉身面向滑鼠」都讀它，確保兩處判斷永遠一致。</summary>
+    public bool CanFire
+    {
+        get
+        {
+            if (_weaponManager == null || _weaponManager.GetCurrentWeapon() == null) return false;
+            if (MapManager.Instance != null && MapManager.Instance.WeaponDisabled) return false;
+            return true;
+        }
+    }
+
     // 離散武器集氣：按住空白／左鍵，放開才施放。3 秒完成後傷害 ×3、視覺 ×2。
     private const float ChargeRequiredSeconds = 3f;
     private const float ChargeVfxHeightRatio = 1.15f;
@@ -163,7 +175,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             Debug.LogError("WeaponManager not found in scene!");
         }
 
-        // 背包橋接：裝備武器欄的武器 → 切到該武器（E 鍵切換仍保留，兩者並存）。
+        // 背包橋接：裝備武器欄的武器 → 切到該武器。**武器來源只有這一條**（E 鍵循環切換已於 2026-07-27 移除）。
         _inventory = Dipan.Inventory.InventorySystem.Instance;
         _inventory.OnChanged += OnInventoryChanged;
         OnInventoryChanged();   // 初始同步（若一開始就有裝備）
@@ -201,14 +213,17 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             _moveInput = Vector2.zero;   // 鎖住移動
             // 開火時仍依滑鼠決定朝向（不影響點亮，只是好看）
-            if (_spriteRenderer != null && Camera.main != null
+            // 這裡的轉身條件也要帶 CanFire，與下方一般路徑（isAttacking）保持一致：
+            // 不能開火時按攻擊鍵不該有任何反應，包含轉身。目前柴房教學此階段必定已裝備佛燈、
+            // 且教學地圖沒設 NoWeapon，所以實務上恆為 true；寫上去是避免未來「禁武地圖 + FireOnly 教學」時行為不一致。
+            if (_spriteRenderer != null && Camera.main != null && CanFire
                 && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)))
             {
                 float dx = Camera.main.ScreenToWorldPoint(Input.mousePosition).x - transform.position.x;
                 if (dx < 0) SetFacing(false); else if (dx > 0) SetFacing(true);
             }
             if (_fireTimer > 0) _fireTimer -= Time.deltaTime;
-            HandleFiring();      // 允許攻擊/佛光（其餘移動、切武器 E 都跳過）
+            HandleFiring();      // 允許攻擊/佛光（移動已鎖；E 鍵切武器已於 2026-07-27 移除）
             HandleVisuals();
             return;
         }
@@ -228,7 +243,9 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         if (_spriteRenderer != null)
         {
-            bool isAttacking = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+            // 不能開火時按攻擊鍵不該有任何反應——包含「轉身面向滑鼠」。
+            // （否則空手／禁武地圖邊走邊按左鍵，人物朝向會跟移動方向不一致。）
+            bool isAttacking = CanFire && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0));
             if (isAttacking)
             {
                 Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -242,11 +259,6 @@ public class PlayerController : MonoBehaviour, IDamageable
                 if (h < 0) SetFacing(false);
                 else if (h > 0) SetFacing(true);
             }
-        }
-
-        if (Input.GetKeyDown(KeyCode.E) && _weaponManager != null)
-        {
-            _weaponManager.SwitchToPreviousWeapon();
         }
 
         if (_fireTimer > 0) _fireTimer -= Time.deltaTime;
@@ -304,17 +316,26 @@ public class PlayerController : MonoBehaviour, IDamageable
     }
 
     // 背包武器欄變動時呼叫：裝備哪把武器就切到哪把（用該物品的 WeaponID 對應 WeaponTable）。
-    // 卸下（武器欄清空）時保留當前武器、不切換。E 鍵的循環切換不受影響。
+    // **卸下（武器欄清空）＝ 切成「沒有武器」**（WeaponID 0）——沒裝備武器就不該能攻擊。
+    // 這是玩家武器的唯一來源；Start 訂閱後會立刻呼叫一次做初始同步，讀檔還原也會經 RestoreState 的 Raise() 走到這裡。
     private void OnInventoryChanged()
     {
         if (_weaponManager == null || _inventory == null) return;
         int itemId = _inventory.GetEquipped(Dipan.Inventory.EquipSlot.Weapon);
         if (itemId == _lastEquippedWeaponItemId) return;   // 武器欄沒變（只是別處變動）就略過
         _lastEquippedWeaponItemId = itemId;
-        if (itemId <= 0) return;                            // 卸下：保留當前武器
-        var data = _inventory.GetData(itemId);
-        if (data != null && data.WeaponID > 0)
-            _weaponManager.SwitchWeapon(data.WeaponID);
+
+        var data = itemId > 0 ? _inventory.GetData(itemId) : null;
+        int weaponId = (data != null && data.WeaponID > 0) ? data.WeaponID : 0;   // 0 = 沒有武器
+        _weaponManager.SwitchWeapon(weaponId);
+
+        // 卸下當下若正放著持續型武器或集氣中，立刻收乾淨（不等下一幀 HandleFiring 的 guard）。
+        if (weaponId == 0)
+        {
+            ClearActiveBeams();
+            ClearActiveAura();
+            if (_isCharging) CancelCharge();
+        }
     }
 
     /// <summary>換地圖時清掉屬於舊地圖的持續武器。集氣狀態刻意保留；MapManager 會清掉舊 VFX，進新圖後若按鍵仍按住會自動重建。</summary>
@@ -332,9 +353,23 @@ public class PlayerController : MonoBehaviour, IDamageable
         bool firing = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
         bool firePressed = Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
 
-        bool isLaser = weapon != null && weapon.Recipe != null
+        // ── 不能開火（沒裝備武器 / 這張地圖禁用武器）：完全不動作 ──
+        // 這道 guard 刻意放在所有分支之前，一處就擋掉雷射／佛光／集氣／離散全部發射路徑：
+        // 不發射、不扣魔（耗魔都在 Shoot/UpdateLaser/UpdateAura 內）、也不擺攻擊動作
+        // （離散靠下面的 _attackAnimUntil、持續型靠 HandleVisuals 的 _activeBeams/_activeAura，兩者這裡都走不到／已清空）。
+        if (!CanFire)
+        {
+            if (_activeBeams.Count > 0) ClearActiveBeams();
+            if (_activeAura != null) ClearActiveAura();
+            if (_isCharging) CancelCharge();
+            // 刻意「不」跳提示：需求是沒武器時完全沒反應；而且開場劇情到柴房撿佛燈前玩家本來就空手，
+            // 提示會一路蹦在那段刻意乾淨的演出畫面上（初始森林 13/14 連血球 HUD 都關掉了）。
+            return;
+        }
+
+        bool isLaser = weapon.Recipe != null
                        && weapon.Recipe.Data != null && weapon.Recipe.Data.IsLaser;
-        bool isAura = weapon != null && weapon.Recipe != null && weapon.Recipe.IsAura;
+        bool isAura = weapon.Recipe != null && weapon.Recipe.IsAura;
 
         // 切到非雷射武器、或換了不同雷射武器 → 先清掉舊光束
         if (_activeBeams.Count > 0 && (!isLaser || weapon != _activeBeamWeapon))
@@ -355,7 +390,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
-        if (weapon != null && weapon.Recipe != null && weapon.Recipe.IsChargeMode)
+        if (weapon.Recipe != null && weapon.Recipe.IsChargeMode)
         {
             UpdateChargeFiring(weapon, firing, firePressed);
             return;

@@ -87,6 +87,19 @@ public class InventoryPanel : UIPanel
 
 ---
 
+## 防連點工具（`UIPanel` 提供，opt-in）
+
+對話這類「一下就翻過去」的面板，若被猛按會連跳好幾頁。`UIPanel` 基底提供兩支 protected 方法供面板自行套用：
+
+- `BlockInputFor(seconds)` — 在 `OnOpen()` 呼叫，讓面板剛開啟時先擋一段冷卻（避免上一頁的連點慣性吃掉新內容）
+- `TryConsumeInput(cooldown = UIPanel.InputCooldown)` — 前進/關閉的入口呼叫，冷卻中回 `false` 就直接 `return`
+
+預設冷卻 `UIPanel.InputCooldown = 0.5f`，用 `Time.unscaledTime`（`PausesGame` 的面板不能用 `Time.time`）。
+
+**基底不會自動套用**——背包、設定那種需要連續操作的面板不該被節流。目前只有 `TalkPanel` 與 `DramaPanel` 使用，詳見 [DRAMA.md](DRAMA.md) 的「防連點」一節。
+
+---
+
 ## 設計重點
 
 - **暫停 / 輸入閘門「視面板而定」**：每個面板自己宣告 `PausesGame` / `BlocksGameplayInput`，UIManager 統合——任一開啟面板要求就生效，全部關掉才解除（`Recompute()`）。

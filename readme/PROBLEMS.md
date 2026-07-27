@@ -291,7 +291,13 @@
 - **原因**:子彈的**落點/速度被算成 NaN**，之後 `transform.position += Velocity*dt` 每幀寫入 NaN 位置就報錯、且壞彈不會自己消失 → 洗版。拋物線的落點源頭是 `Camera.main.ScreenToWorldPoint(Input.mousePosition)`——滑鼠在遊戲視窗外、或相機該幀尚未就緒時，這個世界座標偶爾會是 NaN/Inf，一路傳進 `ParabolicBehavior` 的 `_arcEnd`，`Lerp` 到 progress>0 後整個變 NaN。
 - **解法**:兩層防護。① **來源清洗**：`PlayerController.ShootParabolic` 取得滑鼠世界座標後檢查 NaN/Inf，異常就退回「玩家前方一格」，這發仍打得出去。② **彈道核心安全網**：`BulletInstance.Update` 在寫入位置前檢查位移是否有限，非有限就直接銷毀該彈——**任何來源**的 NaN 彈都會被擋掉、不再洗版（通用防呆）。
 
+---
+
+## G. 角色圖像 / 序列化 (Character Visuals & Serialization)
+
 > 角色立繪／走路動畫的完整設定流程見 [CHARACTER_SETUP.md](CHARACTER_SETUP.md)。
+>
+> ⚠️ 本章之後會**接回 F 系列（F4 起）**——G 是後來插進來的，編號沒有重排，`### F4` 以後仍屬「F. 戰鬥 / 傷害」。用搜尋找編號即可，別依賴閱讀順序。
 
 ### G1. 角色進遊戲變一團黑／剪影，但在 prefab 預覽裡看得到
 - **症狀**：主角（或任何角色）放進遊戲後變成全黑剪影、只剩輪廓；但在 Prefab 編輯／預覽視窗裡卻正常（只是偏暗）。換不同角色圖都一樣黑——「從第一個角色就這樣」。
@@ -472,6 +478,27 @@
   - (b) 在 `PlayModeStaticReset.cs` 明確把該 static 設回 null。
 - **通則（新增任何快取前先看這條）**：**凡是「陣列／集合型的 UnityEngine.Object static 快取」，都不適用 `== null` 自動重建，必須照上面兩種之一處理。** 單一物件的快取（`static Sprite _x`、`static Material _m`）則安全，維持原慣例即可。`PlayModeStaticReset.cs` 的檔頭註解已寫入這條規則。（2026-07-27 記；當時全專案只有 `SegmentedLightningColumn` 一處是陣列型，已修）
 
+### I9. `.git/index.lock` 一直冒出來，每次要下 git 指令前都得先手動刪（AI 在橋接器裡跑 git 造成）
+- **症狀**：自己要 `git add` / `git commit` 時被擋，說有另一個 git 程序在跑；去看發現 `.git/index.lock` 又在了。刪掉沒多久又出現，跟 AI 協作的那幾天特別頻繁。
+- **原因**：**兩件事相乘**。
+  1. **`git status` / `git diff` 不是純唯讀**——它們會順手 refresh index（更新每個檔案的 stat 快取好加速下次比對），為此必須先建立 `.git/index.lock`，用完再 unlink。
+  2. **Cowork 橋接器的檔案系統不允許刪除任何檔案**（`rm` / `mv` / `unlink` 一律 `Operation not permitted`，`.git/` 底下也一樣）。
+  → git 建了 lock、用完想刪、被拒絕 → **lock 永遠留在原地**，之後任何 git 寫入操作都被它擋住。
+  AI 端會看到 `warning: unable to unlink '.../.git/index.lock': Operation not permitted`——**看到這行就代表已經把 lock 留給使用者了**。
+  而且 **AI 自己清不掉**（`rm` 和 `mv` 都被拒），只能請使用者手動刪。
+- **解法**：**透過橋接器跑的所有 git 一律加 `--no-optional-locks`**（git 專為這種唯讀查詢設計的旗標：不要為了優化去拿鎖）。實測對照：
+
+  | 指令 | 會不會留下 lock |
+  |---|---|
+  | `git --no-optional-locks status --short` | ✅ 不會 |
+  | `git --no-optional-locks diff` / `diff --stat` / `diff --numstat` | ✅ 不會 |
+  | `git log` / `git show <ref>:<path>`（純讀 object，不碰 index） | ✅ 不會 |
+  | `git status`（不加旗標） | ❌ **會** |
+  | `git diff`（不加旗標） | ❌ **會** |
+
+  等效寫法：`GIT_OPTIONAL_LOCKS=0 git status`。
+- **通則**：**在橋接器（device_bash）裡把 git 當成「唯讀查詢工具」時，一律帶 `--no-optional-locks`。** 要跟 HEAD 對照舊版內容，用 `git show HEAD:<path>` 讀 object 就好，不必碰 index。已經卡住時只能請使用者手動 `rm .git/index.lock`——AI 在橋接器裡沒有刪檔權限。（2026-07-27 記；此前 AI 每改一批檔案就跑一次 `git status` 驗證，因而反覆製造這個檔案）
+
 ---
 
 ## J. 螢幕特效 / 進場過場 (Screen FX)
@@ -480,6 +507,12 @@
 - **症狀**：某螢幕特效（如 id 3「馬賽克清晰」）想調播放時長，改 `ScreenFxTable.csv` 的 `DurationSeconds` 不管填多少都沒用；懷疑「沒吃這個欄位」或「cache 沒清」。
 - **原因**：**都不是**——程式路徑完全正確。`ScreenFxTable.csv` 的 `DurationSeconds` **只是「預設值」**：分派入口 `ScreenFxPlayer.Play(id, onDone, duration)` 的第三參數 `duration ≥ 0` 就以它為準、**完全不讀 CSV**；`duration < 0`（`-1`）才回退去讀 CSV。三個入口帶不帶 override 不同：`MapsTable` 的 `EnterEffect` 不帶（`Play(id,null)`）→ **永遠吃 CSV**；**劇情 `screenFx` 步驟**帶「停留秒數」(`seconds > 0 ? seconds : -1`)；**觸發鏈 `playScreenFx`** 帶 `duration` 參數。實際元兇：那個馬賽克是從 `Main_InitialForest1.dipanmap` 的**進場演出（cutscene）第 3 步 `screenFx`** 觸發，而那一步的「停留秒數」被填成 `1.0`，於是 `Play(3, …, 1.0)` 用 1 秒、CSV 的 `DurationSeconds` 根本沒被讀到。
 - **解法**：看要哪種行為——要吃 CSV 的秒數，就進地圖編輯器「**劇情**」工具、點那個 `screenFx` 步驟，把「停留秒數」**清成 0**（回退讀 CSV）；要就地各設不同時長，就直接調那個「停留秒數」欄位（此時 CSV 只是沒被用到的預設）。**排查通則**：某螢幕特效改 CSV 秒數沒反應時，先確認它是**從哪個入口觸發**——劇情步驟／`playScreenFx` 觸發器都有各自的時間 override 欄位，填了就以呼叫端為準。（別忘了這類進場演出藏在 `.dipanmap` 的 `cutscene` 區塊、要用編輯器頂端「劇情」工具才看得到，不在觸發器/物件層。）（2026-07-22 記）
+
+### J2. 在開場劇情按 ESC 後，主角莫名其妙播「從地上爬起來」的動畫
+- **症狀**：初始森林那段開場劇情，按 ESC 略過對話後，主角突然演出「趴地→爬起」；用滑鼠左鍵正常結束對話則不會。看起來像動畫系統出錯或 `PlayerAnimator` 被誤觸發。
+- **原因**：**不是動畫的錯，是一路交棒過去的正常結果。** ESC 同一下被兩處讀到：① `UIManager` 依 `CloseOnEscape` 關掉對話面板；② `CutsceneDirector.Update` 依 `skippable` 設 `_skip=true`。而 `_skip` 的語意是「**中止剩餘步驟，但仍執行最後的 `end` 交棒**」——`Main_InitialForest2` 的 `end` 是 `assetId='fall'`，於是一按 ESC 就：跳完整段劇情 → 接墜落動畫 → 回 `MainScene` 起關到初始洞窟(11) → 洞窟 `MapsTable.EnterEffect=1`（睜眼醒來）→ `ScreenFxTable` 該列 `WakeUpPose=1` → `MapManager.FireEnterTriggersRoutine` 執行 `HoldLyingPose()` + `PlayWakeUp()`。點左鍵不會，是因為左鍵只結束當前那句對話，後面二十幾個步驟照演。
+- **解法**：ESC 略過改成**只有開發階段能用**——新增 `Assets/Scripts/DevSkip.cs`（`Allowed => Application.isEditor || Debug.isDebugBuild`），套在 `CutsceneDirector` 的 ESC 判斷與 `TalkPanel`／`DramaPanel` 的 `CloseOnEscape`。正式打包玩家按 ESC 完全沒反應，也就不會誤觸發交棒。
+- **排查通則**：**看到「某個表演莫名其妙被觸發」時，先確認是不是「跳過機制把流程一路推到了別的場景」**，而不是去追那個表演本身的程式。`CutsceneDirector` 的略過「會執行 end 交棒」這點特別違反直覺——它不是「停在原地」，而是「快轉到結局」。（2026-07-27 記）
 
 ---
 

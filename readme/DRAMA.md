@@ -164,6 +164,41 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 
 ---
 
+## 防連點（對話不會被猛按跳掉）
+
+> **問題**：對話時猛按左鍵／空白鍵，會一次跳掉好幾句；有時立繪都還沒顯示出來就被跳過。
+
+**作法**：把「前進一次 / 關閉一次」節流成 **每 0.5 秒最多一次**，而且**面板剛開啟時也先擋一次冷卻**——後者才是「立繪還沒出來就被跳掉」的解方（否則上一句的連點慣性會直接吃掉新開的那一句）。
+
+**工具在基底**：`UIPanel` 提供兩支 protected 方法（見 `Assets/Scripts/UI/UIPanel.cs`）：
+
+| 成員 | 作用 |
+|---|---|
+| `UIPanel.InputCooldown` | 預設冷卻秒數，目前 **0.5** |
+| `BlockInputFor(seconds)` | 接下來 N 秒內的 `TryConsumeInput` 一律當作沒按。在 `OnOpen()` 呼叫 |
+| `TryConsumeInput(cooldown = InputCooldown)` | 冷卻中回 `false`（這次連點忽略），否則回 `true` 並重新起算 |
+
+**⚠️ 這是 opt-in 的**：基底不會自動套用，只有主動呼叫 `TryConsumeInput` 的面板才有節流——否則背包、設定那種需要連續操作的面板會變得很鈍。
+
+**⚠️ 一律用 `Time.unscaledTime`**：對話面板 `PausesGame = true`，`Time.time` 在暫停時根本不會前進，用它會永遠卡在冷卻裡。
+
+**目前套用在兩處**：
+
+- **`TalkPanel`（Type 2 頭像對話）**：節流放在 `Next()` 內一處——鍵盤（空白／Enter）與整片點擊鈕都經過它，兩個入口一次涵蓋。
+- **`DramaPanel`（Type 1 大圖）**：節流放在整片關閉鈕的 callback。
+
+**ESC 只在開發階段有效**：兩個面板的 `CloseOnEscape` 已改成 `DevSkip.Allowed`（＝編輯器內或 Development Build 才 true）。
+
+- **正式打包：按 ESC 對話完全沒反應**，玩家不能跳過劇情。也不會誤開設定面板——`UIManager` 的 ESC 是「有視窗且該視窗允許才關」，不允許就什麼都不做（不會 fall through 到「開根面板」那個分支）。
+- **不會卡死**：對話播完 `ShowCurrent()` 會自動 `Close`；`DramaPanel` 的整片點擊關閉鈕照常可用。
+- 開發階段的 ESC 走 `UIManager`、不經過防連點節流。
+
+**沒有套用**：序章開場漫畫（`IntroComicController`）的空白鍵翻頁是獨立實作、不走 `UIPanel`，維持原樣。之後若也想要，照同一個模式加即可。
+
+**要調整節奏**就改 `UIPanel.InputCooldown`（全域），或在個別面板呼叫 `TryConsumeInput(自訂秒數)`。
+
+---
+
 ## 待辦（之後可加）
 
 - 多頁劇情（連續對話/翻頁）、標題列、角色立繪、打字機逐字顯示、語音/音效。
@@ -174,3 +209,4 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 
 *建立於 2026-06-23：劇情觸發點（編輯器 `drama` trigger）＋ `DramaTable.csv` ＋ `DramaPanel`（模態、半透明遮罩、大圖+文字、ESC/點擊關閉）。觸發互動複用 [INTERACTION.md](INTERACTION.md) 的 InteractionManager（靠近按 F、星星標示、一次性消耗）。*
 *2026-07-27 更正：「永久記錄屬 Phase 2」兩處已過時——跨換圖記憶已於 2026-07-18 由 `RunProgress` 完成。*
+*2026-07-27：新增「防連點」一節（`UIPanel.TryConsumeInput` / `BlockInputFor`，0.5 秒節流＋開啟時先擋一次）。*
