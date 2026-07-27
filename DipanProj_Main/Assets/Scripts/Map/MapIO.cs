@@ -82,14 +82,14 @@ namespace Dipan.MapRuntime
             => Path.Combine(assetRoot, item.path.Replace('/', Path.DirectorySeparatorChar));
 
 #if UNITY_EDITOR
-        static readonly string[] Cats = { "Environment", "Tiles", "Background", "Drama", "Talk" };
+        // 分類白名單的單一來源在 MapAssetCategories（同 namespace，見該檔說明）。
 
         static Catalog BuildFromGameAssets(string root)
         {
             var cat = new Catalog();
             void Scan(string moduleName, string baseDir)
             {
-                foreach (var c in Cats)
+                foreach (var c in MapAssetCategories.All)
                 {
                     string cdir = Path.Combine(baseDir, c);
                     if (!Directory.Exists(cdir)) continue;
@@ -97,7 +97,7 @@ namespace Dipan.MapRuntime
                     // 直接位於分類資料夾下的單張 PNG → 靜態素材。
                     // Talk 例外：允許每個 NPC 一個子資料夾（遞迴收，見 PROBLEMS.md C5）；
                     // 其餘類別維持只收第一層（Environment 子資料夾 = 動畫物件，不能混用）。
-                    var opt = c == "Talk" ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+                    var opt = MapAssetCategories.IsRecursive(c) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
                     foreach (var png in Directory.GetFiles(cdir, "*.png", opt))
                     {
                         string rel = MakeRelative(root, png).Replace('\\', '/');
@@ -113,7 +113,7 @@ namespace Dipan.MapRuntime
                     }
 
                     // Environment 子資料夾 = 一個動畫地上物（多幀收成一筆，依檔名排序＝播放順序）。
-                    if (c == "Environment") ScanAnimated(cdir, moduleName);
+                    if (c == MapAssetCategories.Environment) ScanAnimated(cdir, moduleName);
                 }
 
                 // 逐格動畫素材（路線 B）：怪物 Monsters/SequenceImage/、玩家 Characters/SequenceImage/，

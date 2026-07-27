@@ -16,7 +16,7 @@ using Dipan.MapRuntime;
 public static class MapAssetSyncTool
 {
     const int PPU = 256;
-    static readonly string[] Cats = { "Environment", "Tiles", "Background", "Drama", "Talk" };
+    // 分類白名單的單一來源在 Dipan.MapRuntime.MapAssetCategories（見該檔說明；改分類只需改那裡＋shell 版）。
 
     // 編輯器 Maps 資料夾(相對 DipanProj_Main/Assets):結構為 Maps/<模組名>/*.dipanmap。
     const string EditorMapsRelative = "../../DipanProj_MapEditor/Maps";
@@ -51,7 +51,7 @@ public static class MapAssetSyncTool
         foreach (var (module, baseDir) in SourceDirs(srcRoot))
         {
             // 1) 素材
-            foreach (var cat in Cats)
+            foreach (var cat in MapAssetCategories.All)
             {
                 string cdir = Path.Combine(baseDir, cat);
                 if (!Directory.Exists(cdir)) continue;
@@ -60,7 +60,7 @@ public static class MapAssetSyncTool
                 // Talk 例外：允許「每個 NPC 一個子資料夾」（例 Talk/Buddha/Buddha_normal.png），遞迴收所有 PNG、
                 // 各成一筆靜態素材（見 PROBLEMS.md C5）；其餘類別維持只收第一層——Environment 的子資料夾
                 // 另有「動畫物件」語意，不能混用。
-                var searchOpt = cat == "Talk" ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+                var searchOpt = MapAssetCategories.IsRecursive(cat) ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
                 foreach (var png in Directory.GetFiles(cdir, "*.png", searchOpt))
                 {
                     string rel = Rel(srcRoot, png);
@@ -77,7 +77,7 @@ public static class MapAssetSyncTool
                 }
 
                 // Environment 子資料夾 = 一個動畫地上物（多幀收成一筆，與編輯器同步邏輯一致）。
-                if (cat == "Environment")
+                if (cat == MapAssetCategories.Environment)
                     AddAnimatedObjects(cdir, srcRoot, dstRoot, module, catalog);
             }
 
@@ -109,6 +109,58 @@ public static class MapAssetSyncTool
         AssetDatabase.Refresh();
         Debug.Log($"✅ [SyncMapAssets] 從編輯器拉入 {pulled} 張地圖、{flagsPulled} 份旗標登記表;" +
                   $"推送 {catalog.items.Count} 筆素材、{mapCount} 張地圖 → StreamingAssets/MapAssets");
+        LogSummary(catalog);
+    }
+
+    /// <summary>
+    /// 同步後印出「每個分類收了幾筆」的摘要。
+    ///
+    /// <para><b>為什麼要這個</b>：同步漏檔是本專案最常見也最難查的坑——漏了不會報錯，
+    /// 只會在遊戲裡靜默退回別的行為（例如 boss 的 attack 幀沒同步 → Has(Attack)=false → 默默改播走路動畫，
+    /// 見 readme/PROBLEMS.md F16）。把數字印出來，異常一眼就看得到（例如某關的 Environment 突然變 0）。</para>
+    ///
+    /// <para>純輸出，不改變任何同步行為；數字對不上時請自行比對 GameAssets 與 StreamingAssets/MapAssets。</para>
+    /// </summary>
+    static void LogSummary(Catalog catalog)
+    {
+        if (catalog == null || catalog.items == null) return;
+
+        // category → (筆數, 其中動畫筆數)；另記 module → 筆數。
+        var byCat = new Dictionary<string, int>();
+        var animByCat = new Dictionary<string, int>();
+        var byModule = new Dictionary<string, int>();
+
+        foreach (var it in catalog.items)
+        {
+            if (it == null) continue;
+            string c = string.IsNullOrEmpty(it.category) ? "(未分類)" : it.category;
+            string m = string.IsNullOrEmpty(it.module) ? "(無 module)" : it.module;
+
+            byCat.TryGetValue(c, out int n); byCat[c] = n + 1;
+            byModule.TryGetValue(m, out int mn); byModule[m] = mn + 1;
+            if (it.IsAnimated) { animByCat.TryGetValue(c, out int an); animByCat[c] = an + 1; }
+        }
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("[SyncMapAssets] 同步摘要\n  分類：");
+        foreach (var kv in byCat)
+        {
+            animByCat.TryGetValue(kv.Key, out int anim);
+            sb.Append($"\n    {kv.Key} = {kv.Value} 筆");
+            if (anim > 0) sb.Append($"（其中 {anim} 筆為多幀動畫/序列圖）");
+        }
+        sb.Append("\n  module：");
+        foreach (var kv in byModule) sb.Append($"\n    {kv.Key} = {kv.Value} 筆");
+
+        // 白名單裡「一筆都沒收到」的分類 → 多半是資料夾名打錯或整包漏放，值得看一眼。
+        var missing = new List<string>();
+        foreach (var c in MapAssetCategories.All) if (!byCat.ContainsKey(c)) missing.Add(c);
+
+        Debug.Log(sb.ToString());
+        if (missing.Count > 0)
+            Debug.LogWarning($"[SyncMapAssets] 這些分類這次「一筆都沒收到」：{string.Join("、", missing)}。" +
+                             "若該分類本來就還沒用到，可以忽略；若原本應該要有，請檢查 GameAssets 底下的" +
+                             "資料夾名稱是否正確（大小寫也要對）——漏同步不會有其他錯誤訊息。");
     }
 
     /// <summary>

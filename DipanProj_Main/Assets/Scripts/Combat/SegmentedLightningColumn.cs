@@ -27,8 +27,9 @@ public sealed class SegmentedLightningColumn : MonoBehaviour
         float fps = DefaultFps, float duration = DefaultDuration)
     {
         EnsureLoaded();
-        if (camera == null || _start == null || _start.Length == 0
-            || _loop == null || _loop.Length == 0)
+        // 用 IsStale 而非「陣列 == null」：Load() 永遠回傳非 null 陣列（即使每格 Resources.Load 都失敗），
+        // 舊守衛攔不到「陣列在但元素全 null」，會一路走到底下取 _loop[0].bounds 而丟 NullReference。
+        if (camera == null || IsStale(_start) || IsStale(_loop))
         {
             Debug.LogWarning("分段雷柱素材未完整載入，略過雷柱視覺。");
             return;
@@ -41,9 +42,17 @@ public sealed class SegmentedLightningColumn : MonoBehaviour
 
     static void EnsureLoaded()
     {
-        if (_start == null) _start = Load(StartPath, 2);
-        if (_loop == null) _loop = Load(LoopPath, 8);
+        // ⚠ 陣列型的 static 快取「不能」只判斷 `_x == null`：
+        // 關掉 Domain Reload 後，停止 Play 被銷毀的是陣列「裡面的 Sprite」，
+        // 陣列本身是純 C# 物件、永遠不會變 null → 舊寫法不會重載，第二次 Play 會拿到一堆已銷毀的 Sprite
+        // （症狀：雷柱不見／變白塊）。所以要連「元素是否還活著」一起判。
+        // 見 readme/PROBLEMS.md 的 Domain Reload 系列（I3/I5/I7）與 PlayModeStaticReset.cs 的註記。
+        if (IsStale(_start)) _start = Load(StartPath, 2);
+        if (IsStale(_loop)) _loop = Load(LoopPath, 8);
     }
+
+    /// <summary>陣列為 null／空／首元素已被銷毀（Unity 的 == null 對已銷毀物件回 true）＝需要重載。</summary>
+    static bool IsStale(Sprite[] arr) => arr == null || arr.Length == 0 || arr[0] == null;
 
     static Sprite[] Load(string prefix, int count)
     {

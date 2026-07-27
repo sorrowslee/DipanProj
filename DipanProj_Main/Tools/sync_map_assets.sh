@@ -18,6 +18,10 @@ SRC_ROOT="$PROJ_DIR/Assets/GameAssets"
 DST_ROOT="$PROJ_DIR/Assets/StreamingAssets/MapAssets"
 ONLY_MODULE="${1:-}"
 PPU=256
+# ⚠ 這份清單與 C# 版是「兩份獨立實作」，改分類時兩邊都要改：
+#    ① Assets/Scripts/Map/MapAssetCategories.cs 的 All（MapIO 與 MapAssetSyncTool 共用那一份）
+#    ② 這一行
+#    漏改不會報錯、只會靜默少同步（見 readme/PROBLEMS.md C1/C3/C5/I4/F16）。
 CATS=(Environment Tiles Background Drama Talk)
 
 python3 - "$SRC_ROOT" "$DST_ROOT" "$ONLY_MODULE" "$PPU" "${CATS[@]}" <<'PY'

@@ -13,6 +13,16 @@ using UnityEngine;
 /// UnityEngine.Object 的 static 快取（程序生成的 sprite/texture 等）靠既有的 `if (x == null) x = Build()` 慣例會自動重建
 /// （Unity 對已銷毀物件的 `== null` 回 true），不需要在這裡處理。
 /// 若之後又踩到「第二次 Play 才出現」的殘留，把該類別的 static 加進這裡清即可。
+///
+/// ⚠ <b>上面那條「== null 自動重建」的慣例，對「陣列／集合型」的 UnityEngine.Object 快取不成立。</b>
+/// 停止 Play 被銷毀的是<b>容器裡的元素</b>，容器本身（`Sprite[]`、`List&lt;Sprite&gt;`、`Dictionary&lt;_, Sprite&gt;`）
+/// 是純 C# 物件、<b>永遠不會變 null</b> → `if (arr == null) arr = Load()` 不會觸發，第二次 Play 拿到一整包已銷毀的物件
+/// （症狀：該素材整組不見／變白塊，且只有第二次以後的 Play 會出現）。
+/// 兩種解法擇一：
+///   (a) 在該類別自己判元素，例：`if (arr == null || arr.Length == 0 || arr[0] == null) arr = Load();`
+///       —— 見 <c>SegmentedLightningColumn.IsStale</c>（2026-07-27 修）。
+///   (b) 在本檔明確把該 static 設回 null。
+/// <b>新增任何「陣列／集合型的 UnityEngine.Object static 快取」時，務必照上面其中一種處理。</b>
 /// </summary>
 public static class PlayModeStaticReset
 {

@@ -149,3 +149,13 @@
 - [x] ~~`Cutscene` 系統（2026-07-20）完全沒有文件~~ → 已補 [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md)。
 - [ ] 一張圖只能有一段演出、沒有條件分支、不能用 trigger 手動啟動——這三項是目前的設計上限，之後若開場以外的關卡要用劇情演出，可能得補「trigger 啟動指定演出」的入口。
 - [ ] 編輯器端 `CutsceneData.cs` 的型別註解漏列 `fade` 與 `background`（實作有、註解沒跟上），順手時補一下。
+
+---
+
+## CsvUtil：已備好但尚未啟用 — 2026-07-27
+
+`Assets/Scripts/Data/CsvUtil.cs` 已建立（`SplitLine()` 支援雙引號包逗號、`Field/FieldInt/FieldFloat/FieldBool` 防呆取值），但**目前零呼叫**——既有 13 處 CSV 解析刻意一行未改，避免大規模重構的風險。
+
+- [ ] **什麼時候該遷移**：遇到「某張表的某一欄需要能打半形逗號」時，把那**一張表**換成 `CsvUtil.SplitLine()` 即可，不必全面換。目前已知受限的是 `MonsterData` 的「句子1~4」（怪物台詞，見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)）與 `DramaTalkTable` 的 `Text`。
+- [ ] **遷移時要注意**：換過去之後，該 CSV 若原本有**裸露的雙引號**會被當成引號語法解析，要一併檢查既有資料。
+- [ ] 已支援引號的兩處（`ItemDatabase`、`Language`）各有一份自己的實作，之後順手時可改成呼叫 `CsvUtil`（純整理，不急）。

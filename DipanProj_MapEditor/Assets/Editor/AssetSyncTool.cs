@@ -17,6 +17,11 @@ namespace DipanMapEditor.EditorTools
     /// 動畫地上物：Environment/ 底下的「子資料夾」= 一個動畫物件，多幀收成一筆 catalog item
     /// （category 仍是 Environment、id = 資料夾相對路徑，含 frameCount / frames，依檔名排序＝播放順序）。
     /// 與 Tools/sync_assets.sh 行為一致。
+    ///
+    /// <para>⚠ <b>只有三類是刻意的，不要「順手補上」Drama / Talk。</b>
+    /// 那兩類是遊戲端的劇情大圖與對話立繪（DramaPanel / TalkPanel 用），
+    /// 地圖編輯器的素材調色盤用不到，所以編輯器端不同步它們。
+    /// 遊戲端的完整白名單見 DipanProj_Main/Assets/Scripts/Map/MapAssetCategories.cs。</para>
     /// </summary>
     public static class AssetSyncTool
     {

@@ -152,6 +152,17 @@
 - **原因**:三條素材同步路徑對一般分類**只收分類資料夾第一層的 PNG**（`TopDirectoryOnly`），子資料夾整個略過（Environment 的子資料夾另有「動畫物件」語意）→ `Talk/Buddha/` 沒進 StreamingAssets 也沒進 catalog，`catalog.Find` 自然 null。另兩個常見疊加雷：CSV 路徑**帶了 `.png` 副檔名**（catalog id 一律不帶）、檔名打錯（本例曾是 `nuddha_normal.png`）。
 - **解法**:已把 **Talk 類別改成遞迴收子資料夾**（id=相對路徑去副檔名，例 `Main/Talk/Buddha/Buddha_normal`），三處同步一起改：`Tools/sync_map_assets.sh`、`Assets/Editor/MapAssetSyncTool.cs`、`Assets/Scripts/Map/MapIO.cs`。改完**重跑 Sync**。**通則:立繪/劇情圖欄位填的是 catalog id——不帶副檔名；填完先確認 catalog.json 裡真的有這個 id，沒有就是同步沒收到（白名單/層級/檔名三個方向查）。**
 
+### C8. 要新增／改名一個素材分類時，該去哪裡改（白名單已收斂成單一來源）
+- **症狀**：C1／C3／C5／I4／F16 反覆出現的同一個母題——新增一種素材資料夾、或改了同步範圍，結果「有些地方生效、有些沒生效」，而且**漏改不會報錯，只會靜默少同步**，要進遊戲看到東西不見才發現。
+- **原因**：「哪些資料夾要同步」這份白名單原本在遊戲端**寫了三次**（`Assets/Scripts/Map/MapIO.cs`、`Assets/Editor/MapAssetSyncTool.cs`、`Tools/sync_map_assets.sh`），三份各自獨立，改一處另外兩處不會跟著動。
+- **解法**：2026-07-27 已把**兩份 C# 收斂成單一來源** `Assets/Scripts/Map/MapAssetCategories.cs`（`All` 陣列＋`IsRecursive()`），`MapIO` 與 `MapAssetSyncTool` 都引用它。**現在改分類只有 2 個地方要動**：
+  1. `Assets/Scripts/Map/MapAssetCategories.cs` 的 `All`（兩支 C# 自動跟著變）
+  2. `Tools/sync_map_assets.sh` 的 `CATS=(...)`（仍是獨立的 shell/python 實作，該行上方已加註解提醒）
+- **兩個容易誤會的點**：
+  - **`DipanProj_MapEditor` 的 `AssetSyncTool` 只同步 Environment／Tiles／Background 是刻意的**，不是漏的。`Drama`／`Talk` 是遊戲端的劇情大圖與對話立繪，地圖編輯器的調色盤用不到——**不要「順手幫它補上」**（該檔註解已標明）。
+  - **分類名稱若拿來當「判斷條件」，一定要用常數不要打字面值**。例如「動畫地上物」的觸發開關是 `cat == MapAssetCategories.Environment`；當初若留成 `cat == "Environment"`，將來改名時 `All` 迴圈會變、這行不會變，動畫地上物會**整批靜默消失**。判斷條件目前已全部收斂，只剩「當輸出標籤用」的字面值（寫錯只是 category 標籤不同，風險低）。
+- **順帶**：`Sync Map Assets` 跑完現在會印**同步摘要**（每個分類收了幾筆、其中幾筆是多幀動畫、各 module 幾筆；某分類掛零會跳 Warning）。**懷疑漏同步時第一件事就是看那段摘要**，比進遊戲試快得多。（2026-07-27 記）
+
 ---
 
 ## D. 存檔 / 常駐單例 (Save & Persistent Singletons)
@@ -444,6 +455,22 @@
 - **症狀**：把數個 CSV 從 `Assets/Resources/Data` 移到 `Assets/Data`（統一存放位置）後，明明檔案還在、內容也對，遊戲端卻讀不到——語言字串全變 `[lang:1001]` 這種占位、睜眼特效後玩家不趴地起身、`ScreenFxTable` 整張讀不到。
 - **原因**：**兩件事疊在一起**。(a) `Assets/Data` 底下的 CSV **不在 `Resources/`、不會被 `Resources.Load` 找到**，也不會自動打進 build——非 Resources 資產要「有人在場景裡拿著它的序列化參照」才進得了 build。本專案的作法是每張表配一個 **provider MonoBehaviour**（`ItemTableProvider`／`LanguageTableProvider`／`ScreenFxTableProvider`／`SceneFxTableProvider`…）掛在 `MainScene`、Inspector 拖進對應 `TextAsset`，各表 `LoadXxx` 改成**先找 provider、找不到才退回 `Resources.Load`**。搬了表卻**沒把 provider 掛上場景/沒拖 TextAsset**，表就是空的。(b) 就算 provider 後來接好了，**關掉 Domain Reload（見 I2）** 會讓 static 快取殘留——若曾在 provider 接好前 Play 過一次，那張表的 static 已快取成**空**，之後接好也不重載，字串照樣是 `[lang:id]`。
 - **解法**：(a) 每張搬到 `Assets/Data` 的表，都要有對應 provider 掛在 `MainScene` 且 TextAsset 已拖進去（漏了就整張空）。(b) 給這些表加 `ResetForPlayMode()`（把 static `_rows`/單例設 null，下次存取重讀），並在 `Assets/Scripts/PlayModeStaticReset.cs` 統一呼叫——目前已納入 `Language` / `SceneFxTable` / `ScreenFxTable`。**通則同 I2/I3/I5**：關掉 Domain Reload 後，凡是 static 快取「provider 載入的資料表」的類別，都要在 `PlayModeStaticReset` 清掉；接好 provider 後**務必重編譯＋重新 Play 一次**讓 `ResetForPlayMode` 生效，別拿殘留空表除錯。（2026-07-22 記）
+
+### I8. 關掉 Domain Reload 後「第二次以後的 Play」某組序列圖整組不見／變白塊（陣列型 static 快取）
+- **症狀**：第一次按 Play 一切正常；**停止後再按第二次 Play**，某個用「一組序列圖」畫出來的東西整組消失或變白塊（實例：九霄雷獄的分段落雷柱 `SegmentedLightningColumn`）。Console 不一定報錯，也可能在取 `sprite.bounds` 時才丟 NullReference／MissingReference。單張圖的快取則不會有這問題。
+- **原因**：與 I3／I5／I7 同一條線（關掉 Domain Reload 讓 static 殘留），但**多了一個容易漏掉的轉折**。`PlayModeStaticReset.cs` 的既有慣例是「UnityEngine.Object 的 static 快取靠 `if (x == null) x = Load()` 會自動重建」——因為 Unity 對**已銷毀物件**的 `== null` 回 true。**但這條慣例對「陣列／集合型」的快取不成立**：停止 Play 被銷毀的是**容器裡的元素**，而容器本身（`Sprite[]`、`List<Sprite>`、`Dictionary<_, Sprite>`）是**純 C# 物件、永遠不會變 null** → `if (arr == null)` 不會通過 → 快取不重載 → 第二次 Play 拿到一整包已銷毀的 Sprite。
+  - 附帶的第二個坑：若 `Load()` 是「先 `new Sprite[n]` 再逐格 `Resources.Load` 填」的寫法，**素材真的缺失時它仍回傳非 null 陣列**，所以連 `arr == null || arr.Length == 0` 這種守衛也攔不到「陣列在、元素全 null」，那句本來要擋下來的警告永遠不會執行，直接一路走到取 `bounds` 時炸掉。
+- **解法**：**判「元素還活著沒」，不要只判容器**。兩種寫法擇一：
+  - (a) 在該類別自己判，並且**守衛也要用同一個判斷**（順便修掉上面那個攔不到的問題）：
+    ```csharp
+    static bool IsStale(Sprite[] arr) => arr == null || arr.Length == 0 || arr[0] == null;
+    // 載入
+    if (IsStale(_start)) _start = Load(StartPath, 2);
+    // 守衛（別再寫 _start == null || _start.Length == 0，攔不到全 null 的情況）
+    if (camera == null || IsStale(_start) || IsStale(_loop)) { Debug.LogWarning("素材未完整載入"); return; }
+    ```
+  - (b) 在 `PlayModeStaticReset.cs` 明確把該 static 設回 null。
+- **通則（新增任何快取前先看這條）**：**凡是「陣列／集合型的 UnityEngine.Object static 快取」，都不適用 `== null` 自動重建，必須照上面兩種之一處理。** 單一物件的快取（`static Sprite _x`、`static Material _m`）則安全，維持原慣例即可。`PlayModeStaticReset.cs` 的檔頭註解已寫入這條規則。（2026-07-27 記；當時全專案只有 `SegmentedLightningColumn` 一處是陣列型，已修）
 
 ---
 
