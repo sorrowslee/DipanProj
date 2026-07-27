@@ -29,7 +29,7 @@
 |---|---|
 | `Scripts/Flow/GameFlowManager.cs` | 流程指揮：`EndLevel` / `EndLevelRoutine` / `ClearCountdown` / `ReturnToHubFromResult`；關卡 module→顯示名對照表 `ModuleDisplayNames`（**加新關卡在這加一行**）；`IsEndingLevel` |
 | `Scripts/Flow/LevelExitManjiController.cs` | 世界座標卍字離場特效（沿用開場墜落的卍字圖 `Resources/InitialStory/Manji`，載不到程序生成）。淡入→縮小吞玩家（金→紫）→飛上天淡出。**`SortingOrder = 25000`**（見下方雷點） |
-| `Scripts/UI/Panels/ResultPanel.cs` | 結算畫面。底＝`Resources/Loading/<module>.png`；美術元件在 `Resources/UI/ClearStagePanel/`（標題/死亡標題/獎勵框/獲得獎勵標頭/返回按鈕）。`Show(win, showTitle, module, displayName)`。獎勵格容器 `RewardsArea` **目前留空**、無道具時顯示大「無」字 |
+| `Scripts/UI/Panels/ResultPanel.cs` | 結算畫面。底＝`Resources/Loading/<module>.png`；美術元件在 `Resources/UI/ClearStagePanel/`（標題/死亡標題/獎勵框/獲得獎勵標頭/返回按鈕）。`Show(win, showTitle, module, displayName, rewards)`。獎勵格 `RewardsArea` ✅ **已接臨時包**（`PopulateRewards` 排圖示＋×數量），死亡/返回時 `rewards=null` → 顯示大「無」字 |
 | `Scripts/UI/Panels/ExitCountdownPanel.cs` | 過關延時期間上方的「X 秒後即將進入結算」倒數提示（HUD 層、不擋不暫停） |
 | `Scripts/UI/Panels/SettingsPanel.cs` | 「返回廣場」鈕：**只在關卡內顯示**（廣場/標題只有離開遊戲鈕、且離開鈕移回置中）；按下有二次確認 `ConfirmPopup` |
 | `Scripts/Map/TriggerChain.cs` | `watchFlag`（觀察旗標變動）＋ `clearLevel`（過關鏈動作）兩個 trigger；`fireOnFlag` 自動觸發機制（`AutoFireOnFlag`） |
@@ -65,6 +65,8 @@ watchFlag(fireOnFlag=redBridalCleared) → next → 被打敗對話
 - **打包鐵則沿用既有**：Intro/MainScene 都要在 Build、MainScene 排第 0（見 INTRO_COMIC / CUTSCENE_TUNNEL）。
 
 ## 尚未做（待補）
-- 獎勵內容（道具/經驗/金錢）——`ResultPanel.RewardsArea` 已預留，之後把「圖示＋名稱＋×數量」塞進去、大「無」字會自動隱藏（判斷 `childCount`）。
-- 死亡專屬結算的獎勵規則（目前死亡結算獎勵區同樣留空）。
+- ~~獎勵內容（道具/經驗/金錢）~~ → ✅ **已接**（2026-07-18）：`GameFlowManager` 在卍字特效後呼叫 `RunProgress.SettleIntoBag()`，把這趟臨時包的 `(itemId, count)` 快照傳給 `ResultPanel.Show`，`PopulateRewards` 排出圖示＋×數量。見 [RUN_PROGRESS.md](RUN_PROGRESS.md) §6。
+- 死亡專屬結算的獎勵規則——死亡/返回走 `EndRunDiscard()`，這趟**零收穫**（設計如此，見 [CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) §6），獎勵區顯示大「無」字。
+- 結算時真背包放不下的溢出物：目前只印 Warning 並捨棄，待補。
 - 卍字吞人時玩家腳下影子是獨立物件、不會跟著縮（約 3 秒特效期間的小瑕疵）。
+*2026-07-27 更正：結算獎勵區原記「目前留空」，實際已於 2026-07-18 接上臨時包結算。*

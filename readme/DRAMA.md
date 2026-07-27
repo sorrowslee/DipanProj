@@ -13,7 +13,7 @@
 - 定義在 `DipanProj_MapEditor` 的 `triggerTypes.json` ＋ `TriggerType.cs` 的 `Defaults()`（兩處同步）。
 - runtime 由 `InteractionManager` 讀 `region.GetInt("dramaId")`，不需要 triggerTypes.json。
 - **觸發方式依該 dramaId 在 DramaTable 的 `Type` 而定**：Type 1＝靠近按 F（放紫色星星）；Type 2（頭像對話）＝**碰到自動觸發、且不放星星**（純隱形觸發點，見下方「觸發分支與觸發方式」）。編輯器端不分型別，都只填 `dramaId`。
-- 觸發後一次性消耗（當次停留不再觸發、離開地圖重建）——與拾取點同模型，永久記錄屬 Phase 2（見 [INTERACTION.md](INTERACTION.md)）。
+- 觸發後一次性消耗（當次停留不再觸發）；✅ **同一趟關卡內跨換圖記憶**（離開房間再回來不會重播），完整離開關卡才重置——與拾取點同模型，見 [INTERACTION.md](INTERACTION.md)、[RUN_PROGRESS.md](RUN_PROGRESS.md)。
 
 ---
 
@@ -82,7 +82,7 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 | 1（大圖+文字） | **靠近按 F**（顯示「按 F 鍵」提示） | 有（紫星） | `DramaPanel.Show(dramaId)` |
 | 2（頭像對話） | **碰到自動觸發**（踏進區域 `dramaTouchRadius`＝0.6 內就播，不需按鍵、不顯示提示） | **無**（純隱形觸發點） | `DramaTalkController.Play(TalkGroup)` → TalkPanel |
 
-- 自動觸發點不參與「按 F」的最近目標選取（`InteractPoint.autoTrigger`）。觸發後一律 `ConsumePoint`（星星移除、當次停留不再觸發；換地圖重建——永久化屬 Phase 2）。
+- 自動觸發點不參與「按 F」的最近目標選取（`InteractPoint.autoTrigger`）。觸發後一律 `ConsumePoint`（星星移除、當次停留不再觸發；並記進 `RunProgress.consumedTriggers`，本趟關卡跨換圖不再出現）。
 - `dramaTouchRadius` 在 `InteractionManager` Inspector 可調。Type 1（或查不到資料）維持原本的「按 F」。
 
 ### 對話介面 `TalkPanel`（✅ 已接上）
@@ -173,3 +173,4 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 ---
 
 *建立於 2026-06-23：劇情觸發點（編輯器 `drama` trigger）＋ `DramaTable.csv` ＋ `DramaPanel`（模態、半透明遮罩、大圖+文字、ESC/點擊關閉）。觸發互動複用 [INTERACTION.md](INTERACTION.md) 的 InteractionManager（靠近按 F、星星標示、一次性消耗）。*
+*2026-07-27 更正：「永久記錄屬 Phase 2」兩處已過時——跨換圖記憶已於 2026-07-18 由 `RunProgress` 完成。*

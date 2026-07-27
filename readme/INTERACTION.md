@@ -53,9 +53,16 @@
 
 ## 一次性與記憶範圍（重要）
 
-觸發點（拾取/劇情）按 F 觸發後**立即消耗**（星星移除、當次停留不再觸發）。但「記憶」只活在 `InteractionManager` 的當次清單裡——**換地圖時 `MapManager.ClearAll` 清空、再 `SetupInteractPoints` 依新圖重建**，所以離開再回來觸發點會**重新出現**、地上掉落物會被清掉。
+記憶分**兩層**，兩層都要成立觸發點才會出現：
 
-這是過渡行為：永久記錄（撿過/看過不再出現、地上未撿掉落物保留）屬 [MAP_SYSTEM.md](MAP_SYSTEM.md) 的 **Phase 2**（`consumedTriggers` / `groundLoot`），之後接存檔再做。觸發點區域已有穩定 `id`（編輯器產生），Phase 2 直接拿來當鍵。
+1. **當次停留**（`InteractionManager._consumed`）：按 F 觸發後立即消耗，星星移除、當次不再觸發。換地圖時 `ClearAll` 清空、`SetupInteractPoints` 依新圖重建。
+2. **一趟關卡**（`RunProgress.consumedTriggers`）✅：撿過／看過的觸發點**跨換圖記憶**——離開房間再回來**不會**重新出現；地上沒撿的掉落物也會在**原座標重放**。鍵就是觸發點區域的 `id`（編輯器產生，本來就穩定）。
+
+第 2 層的生命週期是**「一趟關卡」**：同關卡內怎麼跑都記得，**完整離開關卡（回廣場／死亡）才整個重置**。純記憶體、不寫存檔。完整規格見 **[RUN_PROGRESS.md](RUN_PROGRESS.md)**。
+
+> `repeat=每次`（`RepeatMode.Always`）的觸發點刻意**不消耗**，靠「離開半徑重新武裝」控制節奏，所以也不會進第 2 層記錄。
+>
+> 跨輪迴／跨存檔的「永久看過」是**另一套**——觸發鏈 `repeat` 的 `每周目`／`永久` 自動旗標，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)。三者各管各的、不衝突。
 
 ---
 
@@ -113,17 +120,22 @@
 
 ## 通用掉落入口（之後怪物掉落複用）
 
-`InteractionManager.DropLoot(itemId, count, pos)` 是通用入口——目前用於「拾取點滿了溢出」，未來**怪物死亡掉落**直接呼叫它即可（同一套地上 icon＋按 F 撿）。
+`InteractionManager.DropLoot(itemId, count, pos)` 是通用入口——用於「拾取點滿了溢出」與**怪物死亡掉落**（✅ 已接，見 [RUN_PROGRESS.md](RUN_PROGRESS.md) §6 的暫定掉寶公式），同一套地上 icon＋按 F 撿。
+
+在關卡 run 內，`DropLoot` 會自動把這筆登記進 `RunProgress`（回傳的 `GroundLoot` 帶 `RunDropId`），換圖回來由 `RestoreGroundDrops` 用**原座標**重放；部分撿取會回寫剩餘數量。
+
+> **取得物品的統一入口是 `RunProgress.Instance.GiveItem(itemId, count)`**——關卡內進臨時包、廣場進真背包。新增任何給物品的來源都走這裡，不要直接呼叫 `InventorySystem.AddItem`。
 
 ---
 
 ## 待辦（之後可加）
 
-- Phase 2 永久記錄（撿過/看過不再出現、地上未撿掉落物保留＋存檔）——見 [MAP_SYSTEM.md](MAP_SYSTEM.md) §5、[SAVE_SYSTEM.md](SAVE_SYSTEM.md)。
-- 怪物死亡掉落 → 接 `DropLoot`。
+- ~~Phase 2 永久記錄（撿過/看過不再出現、地上未撿掉落物保留）~~ → ✅ **已完成**（2026-07-18，見 [RUN_PROGRESS.md](RUN_PROGRESS.md)）。跨存檔的永久化目前刻意不做。
+- ~~怪物死亡掉落 → 接 `DropLoot`~~ → ✅ **已接**（掉落公式仍為暫定，之後換資料驅動的掉寶表）。
 - 掉落物專屬地上圖（目前暫借背包 icon 縮小）。
 - 數量拆分撿取、右鍵快速撿。
 
 ---
 
 *建立於 2026-06-23：拾取點＋地上掉落物＋星星標示＋中央 toast，統一成「靠近按 F」的 `InteractionManager`（由 `LootManager` 一般化改名而來；`PickupMarker`→`InteractMarker`）。劇情觸發點共用本系統、見 [DRAMA.md](DRAMA.md)。*
+*2026-07-27 更正：「一次性與記憶範圍」與「待辦」原本寫著跨圖記憶屬未實作的 Phase 2，實際已於 2026-07-18 由 `RunProgress` 完成，一併補上怪物掉落已接線與 `GiveItem` 統一入口。*
