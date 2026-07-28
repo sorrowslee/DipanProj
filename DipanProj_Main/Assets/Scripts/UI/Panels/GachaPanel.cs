@@ -21,6 +21,7 @@ namespace Dipan.UI
     /// 換圖之後只要重量這幾個數字，其他東西會自己跟著對齊。</para>
     ///
     /// 素材：
+    ///   Resources/UI/GachaPanel/GachaPanel_Bg           整個面板最底層的殿堂背景（機台就站在它的地磚上）
     ///   Resources/UI/GachaPanel/GachaPanel_GachaBg      機台本體（含內窗、層板、兩側滾筒、底座）
     ///   Resources/UI/GachaPanel/GachaPanel_TitleBg      頂部標題橫幅（放池名）
     ///   Resources/UI/GachaPanel/GachaPanel_CoinBg       金錢橫條（左側圓座 + 右側數字）
@@ -52,6 +53,19 @@ namespace Dipan.UI
         const string TxtConfirm = "確 定";
         const string TxtEmptyPool = "這座祭壇還沒有可抽的東西";
         const string TxtBadPool = "這座祭壇沒有設定（檢查 GachaPoolTable.csv）";
+
+        // ── 殿堂背景（最底層）──
+        // 這張圖是 4:3（1448x1086）而畫布是 16:9，四邊又都是實心的（沒有透明邊可以裁），
+        // 所以三種擺法只能選一種：
+        //   ① 橫向拉滿 → 兩側的菩薩浮雕會被拉寬 33%，一眼看得出來變形
+        //   ② 等比放大到蓋滿寬度 → 高度變 1440，上下各切掉 180，頂端的鈴鐺鏈與底部的地磚蓮燈全沒了
+        //   ③ 等比對齊高度、兩側留邊 ← 採用這個
+        // 選 ③ 是因為這張圖的構圖上下都有東西（頂端垂鏈、底部地磚與蓮花燈），切掉哪一邊都可惜；
+        // 而它的左右邊緣本來就幾乎全黑（量到 RGB 約 6~7/255），只要底色調成一樣的黑，接縫就看不出來。
+        const float HallH = 1080f;                  // ＝畫布參考高度，整張構圖完整保留（寬度由 ArtHall 的比例算）
+        // 兩側補色：取自背景圖最外緣的平均色，讓「圖」與「補的底色」看起來是同一片牆。
+        // ⚠ 必須不透明——底下是遊戲畫面，留一點透明度會讓兩側隱約透出場景、破功。
+        static readonly Color HallEdge = new Color(0.027f, 0.026f, 0.028f, 1f);
 
         // ── 機台（版面的錨，其他東西都掛在它身上）──
         const float MachineH = 840f;             // 機台高（畫布 1080 的 78%）
@@ -163,10 +177,12 @@ namespace Dipan.UI
         {
             _randomFeed = RandomCandidate;
 
-            var bg = UIBuilder.SolidPanel(transform, "BG", new Color(0.05f, 0.04f, 0.06f, 0.97f));
+            // 純色底：① 擋住底下的遊戲畫面與點擊 ② 補殿堂背景兩側（與畫布比例不同）留下的空白
+            var bg = UIBuilder.SolidPanel(transform, "BG", HallEdge);
             bg.raycastTarget = true;
 
-            BuildMachine();     // 機台底圖（最底層）
+            BuildHall();        // 殿堂背景（最底層的圖）
+            BuildMachine();     // 機台底圖（站在殿堂的地磚上）
             BuildReel();        // 直欄格子（疊在機台內窗上）
             BuildStageDim();    // 中獎舞台的壓暗（蓋住格子，但在中選框之下 → 金框仍然亮著）
             BuildSelectFrame(); // 中選框（疊在格子之上）
@@ -176,6 +192,12 @@ namespace Dipan.UI
             BuildResultRow();
             BuildButtons();
             BuildMultiSummary();   // 最後建 = 疊在最上層（它的全螢幕遮罩要擋住底下的抽選鈕）
+        }
+
+        // 殿堂背景：等比對齊畫布高度、置中；兩側露出來的部分由上面那層純色底補（同色，看不出接縫）。
+        void BuildHall()
+        {
+            PlaceArt(MakeArt(transform, "HallBg", ArtHall), ArtHall, HallH, Vector2.zero);
         }
 
         void BuildMachine()
@@ -831,6 +853,9 @@ namespace Dipan.UI
             public float Aspect => bw / bh;
         }
 
+        // 殿堂背景是唯一一張「整張都是內容」的圖（實心 RGB、沒有透明邊），所以邊界框＝整張畫布。
+        // 仍然走 ArtSpec 是為了沿用 LoadArt 的尺寸檢查——換圖時尺寸不同會出警告，不會默默跑位。
+        static readonly ArtSpec ArtHall    = new ArtSpec(Dir + "GachaPanel_Bg",          1448, 1086,   0,   0, 1448, 1086);
         static readonly ArtSpec ArtMachine = new ArtSpec(Dir + "GachaPanel_GachaBg",     1536, 1024, 350,   8,  835, 978);
         static readonly ArtSpec ArtTitle   = new ArtSpec(Dir + "GachaPanel_TitleBg",     1536, 1024,  83, 233, 1369, 332);
         static readonly ArtSpec ArtCoin    = new ArtSpec(Dir + "GachaPanel_CoinBg",      1536, 1024, 305, 398,  925, 185);
