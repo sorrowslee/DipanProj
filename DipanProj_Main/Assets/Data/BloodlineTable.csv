@@ -1,0 +1,24 @@
+Id,Key,DisplayName,SpriteFolder,MaxHpAdd,MoveSpeedMul,OutgoingDamageBonusPercent,SkillId,Note
+# ─────────────────────────────────────────────────────────────────────────────
+# 血統表。血統藥劑（ItemTable 的 BloodlineID 欄）指到這裡的 Id。
+#
+# 為什麼要分兩張表：血統的數值／技能只有血統用得到，塞進 ItemTable 會讓其他 99% 的道具多出一堆空欄。
+# 這是專案既有的模式（武器道具 ItemTable.WeaponID → WeaponTable），照抄。
+# 血統之後要加什麼數值，就在這張表加欄，不影響 ItemTable，也不影響其他三個抽選池。
+#
+# 欄位說明：
+#   Id            血統 ID（唯一）。1 固定保留給「人類（初始外型）」。
+#   Key           程式用的英文代號（除錯訊息用）。
+#   DisplayName   玩家看得到的名字。
+#   SpriteFolder  外型資料夾名，對應 GameAssets/Main/Characters/SequenceImage/<這一欄>/。
+#                 ⚠ 目前只有 Base 這組素材，所以全部先填 Base——填了不存在的資料夾，
+#                   角色會找不到外型圖變成只剩影子。等各血統的 idle/walk/dead 幀做好、
+#                   跑過 Sync Map Assets 之後，再把這一欄改成該資料夾名。
+#   MaxHpAdd      最大生命加減（絕對值，可為負）。留空 = 0。
+#   MoveSpeedMul  移動速度倍率。留空 = 1。
+#   OutgoingDamageBonusPercent  造成傷害加成百分比（接 CombatStats 既有的加成掛勾）。留空 = 0。
+#   SkillId       預留：血統附帶的技能。⚠ 技能系統目前還不存在，填了只會印一則提示，不會有效果。
+# ─────────────────────────────────────────────────────────────────────────────
+1,Human,人類,Base,0,1,0,,初始外型。輪迴後回到這個狀態
+2,WildSoul,野魂,Base,-10,1.2,0,,移動快但體弱
+3,Ghost,幽靈,Base,-20,1.35,10,,打贏紅嫁衣後解鎖

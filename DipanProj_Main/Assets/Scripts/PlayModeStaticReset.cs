@@ -36,6 +36,7 @@ public static class PlayModeStaticReset
         MapManager.DevStartModuleOverride = null;
         Dipan.Save.SaveManager.SuppressAutoLoad = false;
         Dipan.Save.SaveManager.DevFreshCharacter = false;
+        Dipan.Save.SaveManager.DevPreClearedModules = null;
         Dipan.Flow.GameFlowManager.TitleFlowEnabled = true;
 
         // 觸發鏈：清 static 集合／快取／**事件訂閱**（OnTriggerFired 跨 Play 會累積 → 重複觸發、呼叫到已銷毀的 TutorialManager 等）。
@@ -63,6 +64,13 @@ public static class PlayModeStaticReset
         Dipan.Localization.Language.ResetForPlayMode();
         SceneFxTable.ResetForPlayMode();
         ScreenFxTable.ResetForPlayMode();
+
+        // 抽選系統的資料表（池登記表／各池基本表／血統表）＋血統系統的單例。
+        // 三張表都是「provider 提供 TextAsset、載一次就快取」，殘留的話 provider 接好也不重載。
+        Dipan.Gacha.GachaPoolTable.ResetForPlayMode();
+        Dipan.Gacha.GachaRollTable.ResetForPlayMode();
+        Dipan.Gacha.BloodlineTable.ResetForPlayMode();
+        Dipan.Gacha.BloodlineSystem.ResetForPlayMode();
 
         // 發光物登記表：清上一輪殘留（AtmosphereController 取最近發光地上物靠它）。
         LightSource.ClearAll();

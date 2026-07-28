@@ -330,6 +330,8 @@ namespace Dipan.UI
                     InventoryActions.QuickMoveGrid(w, portal);  // 傳送門開著：點劇本 → 送進傳送門方框
                 else if (store != null)
                     InventoryActions.QuickMoveGrid(w, store);   // 倉庫開著：點一下送進倉庫當前分頁
+                else if (clickedData != null && clickedData.IsBloodline)
+                    TryDrinkBloodline(clickedId, clickedData);   // 血統藥劑：左鍵＝喝（不可逆，先跳確認）
                 else if (clickedData != null && clickedData.IsPotion)
                     inv.AutoPlacePotion(clickedId);              // 藥水：左鍵自動進藥水格（與裝備左鍵自動裝備同邏輯；空位優先＝左格＝鍵1）
                 else
@@ -453,7 +455,30 @@ namespace Dipan.UI
             var inv = InventorySystem.Instance;
             int id = inv.GetGrid(w.index).ItemId;
             var d = id > 0 ? inv.GetData(id) : null;
-            if (d != null && d.IsPotion) inv.AutoPlacePotion(id);
+            if (d != null && d.IsBloodline) TryDrinkBloodline(id, d);
+            else if (d != null && d.IsPotion) inv.AutoPlacePotion(id);
+        }
+
+        /// <summary>
+        /// 喝血統藥劑：一次性、不可逆（喝下去永久改變本世外型與數值，本世不能再喝第二瓶），
+        /// 所以一定先跳確認彈窗。已定型時直接擋下並說明——不要讓玩家點了才發現沒反應。
+        /// 輪迴後會自動回到未定型狀態（旗標存在周目層），所以留著的藥劑下一世還能喝。
+        /// </summary>
+        void TryDrinkBloodline(int itemId, Dipan.Inventory.ItemData d)
+        {
+            if (Dipan.Gacha.BloodlineSystem.IsFixedThisCycle)
+            {
+                AlertPanel.Toast($"你的血脈已定為「{Dipan.Gacha.BloodlineSystem.CurrentDisplayName}」，這一世不能再改變");
+                return;
+            }
+            string name = d != null ? d.Name : $"#{itemId}";
+            ConfirmPopup.Show($"喝下「{name}」？\n血統一世只能決定一次，喝下去就不能反悔。", () =>
+            {
+                if (Dipan.Gacha.BloodlineSystem.TryDrink(itemId, out string reason))
+                    AlertPanel.Toast($"血脈已定：{Dipan.Gacha.BloodlineSystem.CurrentDisplayName}");
+                else
+                    AlertPanel.Toast(reason ?? "無法飲用");
+            });
         }
 
         /// <summary>tooltip 跟著游標；游標在右半邊就翻到左側顯示，避免超出畫面。</summary>

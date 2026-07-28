@@ -523,6 +523,73 @@
           "isPortalList": false
         }
       ]
+    },
+    {
+      "typeId": "openPanel",
+      "displayName": "開啟介面(按F)",
+      "color": "#7ED957",
+      "params": [
+        {
+          "key": "panelId",
+          "type": "String",
+          "label": "面板",
+          "boolDefault": false,
+          "options": [
+            "gacha"
+          ],
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "arg",
+          "type": "String",
+          "label": "參數(抽選池代號)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "tipName",
+          "type": "String",
+          "label": "提示文字後綴(選填)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "unlockRoll",
+      "displayName": "解鎖抽選內容(鏈動作)",
+      "color": "#59C7B0",
+      "params": [
+        {
+          "key": "pool",
+          "type": "String",
+          "label": "抽選池代號",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "entry",
+          "type": "String",
+          "label": "物品id('|'分隔)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
     }
   ]
 }

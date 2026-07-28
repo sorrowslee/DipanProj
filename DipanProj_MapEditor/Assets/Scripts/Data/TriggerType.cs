@@ -182,6 +182,33 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 位置型：玩家走到這些格子上按 F 就開啟指定的 UI 面板。
+                // 祭壇抽選＝在祭壇「前方可站的地板」畫幾格，panelId 填 gacha、arg 填抽選池代號（武器/裝備/血統/道具…）。
+                // ⚠ 祭壇本身是地上物（walkable=false 會擋路），所以感應格一定要包含祭壇前方站得到的地板，
+                //    否則玩家走不進感應範圍——與儲藏室藥水櫃同一個坑（見 readme/STOREROOM_POTION_TUTORIAL.md）。
+                // 刻意做成通用的「開啟介面」而不是「祭壇」專用，之後商店/鐵匠/圖鑑都能共用同一種筆刷。
+                typeId = "openPanel", displayName = "開啟介面(按F)", color = "#7ED957",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "panelId", type = ParamType.String, label = "面板", options = new[] { "gacha" } },
+                    new TriggerParam { key = "arg",     type = ParamType.String, label = "參數(抽選池代號)" },   // gacha＝GachaPoolTable.csv 的 PoolId，例：weapon / armor / blood / item
+                    new TriggerParam { key = "tipName", type = ParamType.String, label = "提示文字後綴(選填)" },  // 例填「抽選」→ 顯示「按 F 鍵抽選」；留空只顯示「按 F 鍵」
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：把某個物品「永久」加進某個抽選池（跨輪迴保留），之後在對應祭壇就抽得到。
+                // 典型：紅嫁衣 boss 死亡旗標 → watchFlag → next 接這顆（pool=blood、entry=302 幽靈血統藥劑）。
+                // 不用玩家踩，格子畫在角落或用「＋ 手動新增空區域」建 0 格即可。重複觸發不會重複加。
+                typeId = "unlockRoll", displayName = "解鎖抽選內容(鏈動作)", color = "#59C7B0",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "pool",  type = ParamType.String, label = "抽選池代號" },        // GachaPoolTable.csv 的 PoolId
+                    new TriggerParam { key = "entry", type = ParamType.String, label = "物品id('|'分隔)" },   // 可一次解鎖多個
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 動作型：被觸發鏈（next）啟動時播「Boss 開戰資訊」表演——暫停遊戲 → 螢幕中央 Warning 特效 →
                 // 左側滑入 boss 頭像（Talk 立繪）、右側滑入姓名牌匾＋顯示名，停留後淡出、接 next。
                 // 顯示名/頭像填在主專案 MonsterData.csv 的 DisplayName / PortraitPath 欄，這裡只填怪物 ID（與怪物出生點同一個 ID）。
@@ -252,6 +279,16 @@ namespace DipanMapEditor.Data
             new TriggerParam { key = "requireCycleMax", type = ParamType.Int,    label = "周目上限",   group = "條件" },
             new TriggerParam { key = "requireCycleMin", type = ParamType.Int,    label = "周目下限",   group = "條件" },
             new TriggerParam { key = "requireItem",     type = ParamType.String, label = "道具條件",   group = "條件" },
+            // 完成關卡數條件：與「地上物出現條件（完成 N 關）」是同一個概念、同一組範圍值，
+            // 讓「祭壇的圖」與「祭壇的按 F 感應區」可以用一模一樣的條件，不會出現「圖沒出來但按得到」。
+            new TriggerParam { key = "requireClearsMin",   type = ParamType.Int,    label = "最低完成關卡數", group = "條件" },
+            new TriggerParam { key = "requireClearsMax",   type = ParamType.Int,    label = "最高完成關卡數", group = "條件" },
+            new TriggerParam { key = "requireClearsScope", type = ParamType.String, label = "關卡數範圍",     group = "條件",
+                               options = new [] { "cycle", "lifetime" } },
+            // 條件不成立時要不要把棒子交給 next（預設維持原本行為＝整條鏈中止）。
+            // 「初次限定的對話」卡在鏈中間時一定要選「跳過這顆繼續」，否則後面的發劇本會一起被吃掉。
+            new TriggerParam { key = "onBlocked",          type = ParamType.String, label = "條件不成立時",   group = "條件",
+                               options = new [] { "中止整條鏈", "跳過這顆繼續" } },
             // ── 一次性（會不會重複觸發）──
             new TriggerParam { key = "repeat",          type = ParamType.String, label = "重複規則",   group = "一次性",
                                options = new [] { "關卡單次", "每次", "每周目", "永久" } },

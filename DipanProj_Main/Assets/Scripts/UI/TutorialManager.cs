@@ -184,6 +184,12 @@ namespace Dipan.UI
             // 註：給完劇本後的「飄鏡頭＋黑幕」過場已改由對話鏈上的「鏡頭聚焦」trigger 負責，這裡不再做。
             //     那段期間玩家被鏡頭聚焦 trigger 定住、走不到傳送門，所以不會提早觸發下面的按 F。
             if (!HasScript() || TriggerChain.FlagTrue(DoneFlag)) return;
+            // 已經通關過任何一關 = 這玩家早就會用傳送門了，不要再強制引導一次。
+            // 為什麼要這條：DoneFlag 是「永久旗標」，但測試選單的「直接進關卡」每次都會建一個全新的
+            // dev 角色（所有永久旗標歸零），所以光靠 DoneFlag 在測試時擋不住；正式遊玩若哪天旗標沒寫成功
+            // 也會整段重播。用「完成關卡數」當第二道保險，兩種情況一起解決。
+            if (Dipan.Save.SaveManager.Instance != null
+                && Dipan.Save.SaveManager.Instance.ClearedModuleCount > 0) return;
             if (Interact == null) return;
             if (!Interact.TryGetPortalWorld(out Vector2 portal)) return;   // 地圖還沒放傳送門就先不跑
 

@@ -38,7 +38,27 @@ public static class TriggerChain
     public const string TypeBossIntro = "bossIntro";       // Boss開戰資訊（鏈動作）：暫停＋中央警告特效＋左滑入頭像＋右滑入姓名牌匾，表演完再接 next（見 BossIntroPanel）
     public const string TypeClearLevel = "clearLevel";     // 過關（鏈動作）：被 next 呼叫到就啟動「延時倒數（玩家可動）→ 卍字離場 → 結算 → 返回廣場」流程並記過關（見 GameFlowManager.EndLevel）。旗標偵測已抽到 watchFlag，這裡純鏈動作
     public const string TypeWatchFlag = "watchFlag";       // 觀察旗標變動（自動）：監聽 fireOnFlag 指定的旗標，該旗標「首次成立(false→true)」時觸發自己的 next。本身不做事，只當「旗標驅動的鏈起點」（同 onEnter，改由旗標驅動）。見 AutoFireOnFlag
+    public const string TypeUnlockRoll = "unlockRoll";     // 解鎖抽選內容（鏈動作）：把某個物品永久加進某個抽選池（跨輪迴保留）。例：打贏紅嫁衣→血統池+幽靈。pool=池代號(GachaPoolTable 的 PoolId)、entry=物品 id。見 Dipan.Gacha.GachaService
     public const string TypeSelectScript = "selectScript"; // 選擇劇本（鏈動作）：被 next 啟動時開「選擇劇本」面板（邪佛發牌），玩家按領取拿走某張劇本→加進背包→關閉→接 next。取代原本直接 giveItem 給紅嫁衣劇本。scriptIds='|' 分隔可領取劇本道具 id、specialIds='|' 分隔用特殊裂紋框的 id。見 SelectScriptPanel
+
+    // ── 位置型 typeId（玩家踩到／按 F 才生效，被鏈啟動＝「解鎖」）──
+    // 這些不進 Activate 的 switch，實際行為由 MapLoader / TeleportWatcher / InteractionManager 建點時處理。
+    // 收成一份明表，是為了讓 Activate 的 default 分支能分辨「這是位置型」還是「作者新增了動作型卻忘了加 case」——
+    // 後者以前會靜默被當成解鎖處理，查半天查不出來（見下方 default 的警告）。
+    public const string TypeTeleport = "teleport";
+    public const string TypePickup = "pickup";
+    public const string TypeCutscene = "cutscene";
+    public const string TypePortal = "portal";           // 傳送門互動（靠近按 F 開 ScriptsPanel）
+    public const string TypeOpenPanel = "openPanel";     // 開啟 UI 面板（靠近按 F）：panelId 指定要開哪個面板、arg 傳參數。祭壇抽選＝panelId=gacha、arg=池代號
+    public const string TypeCamZone = "camZone";
+    public const string TypePlayerSpawn = "playerSpawn";
+    public const string TypeMonsterSpawn = "monsterSpawn";
+
+    static readonly HashSet<string> PositionTypes = new HashSet<string>
+    {
+        TypeTeleport, TypePickup, TypeCutscene, TypePortal, TypeOpenPanel,
+        TypeCamZone, TypePlayerSpawn, TypeMonsterSpawn,
+    };
 
     // 通用欄位 key
     const string KeyNext = "next";
@@ -50,6 +70,10 @@ public static class TriggerChain
     const string KeyRequireCycleMax = "requireCycleMax";
     const string KeyRequireCycleMin = "requireCycleMin";
     const string KeyRequireItem = "requireItem";   // 填 itemId=須有；"!itemId"=須無
+    const string KeyRequireClearsMin = "requireClearsMin";      // 最低完成關卡數：完成數 ≥ 此值才可觸發（空=不限制）
+    const string KeyRequireClearsMax = "requireClearsMax";      // 最高完成關卡數：完成數 ≤ 此值才可觸發（空=不限制；填 0＝只在一關都還沒通時）
+    const string KeyRequireClearsScope = "requireClearsScope";  // "lifetime"=看跨輪迴高水位；其餘/空=本周目
+    const string KeyOnBlocked = "onBlocked";                    // 條件不成立時：空/「中止整條鏈」=停；「跳過這顆繼續」=改跑自己的 next
     const string KeyFireOnFlag = "fireOnFlag";     // 「旗標一成立就自動觸發本 trigger」：填旗標名。與 onEnter（進場自動）同類、改由旗標驅動。用途：boss 死亡設旗標→clearLevel 自動觸發，不需玩家踩點
 
     static MapData _map;
@@ -116,6 +140,8 @@ public static class TriggerChain
     ///   requireFlag     旗標成立（"!flag" = 否定；旗標名可加 "永久:" 前綴＝終身旗標）
     ///   requireCycleMax 周目 ≤ 值（初始限定填 1）
     ///   requireCycleMin 周目 ≥ 值（老手限定）
+    ///   requireClearsMin 最低完成關卡數：完成數 ≥ 值（搭配 requireClearsScope：lifetime=跨輪迴高水位／空=本周目）
+    ///   requireClearsMax 最高完成關卡數：完成數 ≤ 值（填 0＝只在「一關都還沒通」時成立，用來擋初次限定的內容）
     ///   requireItem     背包道具：填 itemId=須有；"!itemId"=須無
     /// </summary>
     public static bool RequirementMet(TriggerRegion r)
@@ -138,7 +164,24 @@ public static class TriggerChain
         string minS = r.GetString(KeyRequireCycleMin);
         if (!string.IsNullOrEmpty(minS) && int.TryParse(minS, out int cMin) && cycle < cMin) return false;
 
-        // 3) 背包道具（無背包系統時 count 視為 0）。"!itemId"＝須無、"itemId"＝須有。
+        // 3) 完成關卡數（最低／最高）：與地上物的「出現條件（完成 N 關）」是同一個概念與同一組範圍值
+        //    （見 MapLoader 的 appearAfterClears / appearScope），故意做成一樣，
+        //    這樣「祭壇的圖」和「祭壇的按 F 感應區」可以填一模一樣的條件，不會一個看不見一個按得到。
+        //    範圍：lifetime＝跨輪迴曾達到的最高完成關卡數；其餘/空＝本周目完成關卡數。
+        //    無存檔（單場景測試）時視為 0，也就是「有填就擋住」——測試時請用測試選單的「1關後」進場。
+        string clearsMinS = r.GetString(KeyRequireClearsMin);
+        string clearsMaxS = r.GetString(KeyRequireClearsMax);
+        if (!string.IsNullOrEmpty(clearsMinS) || !string.IsNullOrEmpty(clearsMaxS))
+        {
+            var sm = SaveManager.Instance;
+            bool lifetime = r.GetString(KeyRequireClearsScope).Trim() == "lifetime";
+            int have = sm == null ? 0 : (lifetime ? sm.LifetimeMaxClears : sm.ClearedModuleCount);
+            if (!string.IsNullOrEmpty(clearsMinS) && int.TryParse(clearsMinS, out int cMinClear) && have < cMinClear) return false;
+            // 最高值的 0 是有意義的值（「一關都還沒通」），所以不能像最低值那樣用 >0 當「有填」的判斷。
+            if (!string.IsNullOrEmpty(clearsMaxS) && int.TryParse(clearsMaxS, out int cMaxClear) && have > cMaxClear) return false;
+        }
+
+        // 4) 背包道具（無背包系統時 count 視為 0）。"!itemId"＝須無、"itemId"＝須有。
         string itemS = r.GetString(KeyRequireItem);
         if (!string.IsNullOrEmpty(itemS))
         {
@@ -256,7 +299,21 @@ public static class TriggerChain
         }
         if (!RequirementMet(r))
         {
-            Debug.Log($"[TriggerChain] 「{r.name}」requireFlag 不成立，鏈在此中止。");
+            // 預設：條件不成立＝整條鏈就此中止（維持原本行為）。
+            // 但「初次限定的對話」這種節點卡在鏈中間時，中止會把後面該做的事（發劇本…）一起吃掉。
+            // 填「條件不成立時＝跳過這顆繼續」就改成：不執行自己、也不寫 setFlag，直接把棒子交給自己的 next。
+            string onBlocked = r.GetString(KeyOnBlocked).Trim();
+            if (onBlocked == "跳過這顆繼續" || onBlocked == "skip")
+            {
+                string skipNext = r.GetString(KeyNext);
+                if (!string.IsNullOrEmpty(skipNext))
+                {
+                    Debug.Log($"[TriggerChain] 「{r.name}」條件不成立 → 跳過這顆，繼續跑「{skipNext.Trim()}」。");
+                    Activate(skipNext.Trim());
+                    return;
+                }
+            }
+            Debug.Log($"[TriggerChain] 「{r.name}」觸發條件不成立，鏈在此中止。");
             return;
         }
 
@@ -269,13 +326,24 @@ public static class TriggerChain
             case TypePlayScreenFx: ExecutePlayScreenFx(r); break;
             case TypeTogglePortal: ExecuteTogglePortal(r); break;
             case TypeSelectScript: ExecuteSelectScript(r); break;
+            case TypeUnlockRoll: ExecuteUnlockRoll(r); break;
             case TypeBossIntro: ExecuteBossIntro(r); break;
             case TypeClearLevel: ExecuteClearLevel(r); break;
             case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
                 if (IsDramaType(r)) ExecuteDrama(r);   // 鏈到劇情點 = 立即播對話（對話→對話）
-                else EnableRegion(r);                   // 位置型（teleport/pickup/cutscene…）= 解鎖
+                else
+                {
+                    // ⚠ 新增動作型 trigger 卻忘了在上面加 case，會靜默掉到這裡被當成「位置型解鎖」，
+                    //    症狀是「鏈跑過去了但什麼都沒發生」，很難查。認不得的 typeId 直接吼一聲。
+                    if (!PositionTypes.Contains(r.typeId))
+                        Debug.LogWarning($"[TriggerChain] typeId「{r.typeId}」（trigger「{r.name}」）不在已知的位置型清單裡，" +
+                                         "也沒有對應的動作 case——先當成位置型解鎖處理。" +
+                                         "如果它其實是動作型，請到 TriggerChain.Activate 的 switch 補一個 case；" +
+                                         "如果它是位置型，請把 typeId 加進 PositionTypes。");
+                    EnableRegion(r);                   // 位置型（teleport/pickup/cutscene…）= 解鎖
+                }
                 break;
         }
     }
@@ -345,6 +413,34 @@ public static class TriggerChain
         // 延一幀開面板（避免與「上一個對話關閉」同幀重入，比照 bossIntro）；領取後（面板已關）再延一幀接 next。
         TriggerChainRunner.NextFrame(() =>
             Dipan.UI.SelectScriptPanel.Open(cards, _ => TriggerChainRunner.NextFrame(() => OnCompleted(r))));
+    }
+
+    // 解鎖抽選內容（鏈動作）：把某個物品永久加進某個抽選池，之後在對應祭壇就抽得到。
+    //   pool  ：池代號（GachaPoolTable.csv 的 PoolId，例 blood / weapon）
+    //   entry ：要解鎖的物品 id，可用 '|' 分隔一次解鎖多個
+    // 典型用法：紅嫁衣 boss 死亡旗標 → watchFlag → next 接這顆（pool=blood、entry=302 幽靈血統藥劑）。
+    // 解鎖寫進存檔頂層（跨輪迴保留），idempotent——重複觸發不會重複加。無效參數也照樣接 next，不卡鏈。
+    static void ExecuteUnlockRoll(TriggerRegion r)
+    {
+        string pool = r.GetString("pool").Trim();
+        var ids = ParseIds(r.GetString("entry"));
+        var sm = SaveManager.Instance;
+
+        if (string.IsNullOrEmpty(pool) || ids.Count == 0)
+        {
+            Debug.LogWarning($"[TriggerChain] unlockRoll「{r.name}」pool 或 entry 沒填（pool=「{pool}」、entry=「{r.GetString("entry")}」），直接接 next。");
+        }
+        else if (sm == null)
+        {
+            Debug.LogWarning($"[TriggerChain] unlockRoll「{r.name}」沒有 SaveManager（單場景測試？），解鎖不會保存，直接接 next。");
+        }
+        else
+        {
+            foreach (int id in ids)
+                if (sm.UnlockRollEntry(pool, id))
+                    Debug.Log($"[TriggerChain] unlockRoll：抽選池「{pool}」新增可抽物品 {id}");
+        }
+        OnCompleted(r);
     }
 
     // 解析 '|' 分隔的道具 id 清單（空/無效略過）。

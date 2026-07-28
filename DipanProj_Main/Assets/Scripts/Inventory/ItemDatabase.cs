@@ -92,6 +92,8 @@ namespace Dipan.Inventory
                 d.LightRadius = (!string.IsNullOrWhiteSpace(lightStr)
                     && float.TryParse(lightStr, System.Globalization.NumberStyles.Float,
                                       System.Globalization.CultureInfo.InvariantCulture, out float lr)) ? lr : 0f;
+                string bloodStr = Field(v, 15);   // 血統藥劑 → BloodlineTable 的 Id（選填欄；舊表沒這欄 → "" → 0）
+                d.BloodlineID = int.TryParse(bloodStr, out int bid) ? bid : 0;
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

@@ -1200,12 +1200,23 @@ namespace DipanMapEditor.UI
             }
             else if (p.options != null && p.options.Length > 0)
             {
-                // 循環按鈕：在固定選項間切換，避免打錯字。留空＝顯示第一個選項(＝預設)。
+                // 循環按鈕：在固定選項間切換，避免打錯字。
+                //
+                // ⚠ 值是空的時候一定要顯示「（未設定）」，**不可以拿第一個選項來充數**。
+                //   舊版就是那樣寫的，造成兩個症狀：
+                //     ① 畫面說謊——作者看到欄位已經是想要的值就不會去點它，實際存檔卻是空字串。
+                //        祭壇的「面板」欄整組失效就是這樣來的：看起來是 gacha，存檔裡是 ""。
+                //     ② 第一次點擊看起來沒反應——因為第一下寫入的正好是畫面上已經顯示的那個選項，
+                //        要點第二下才看得到變化。
+                //   之所以拖到現在才發現，是因為在此之前所有 options 欄位的「空值語意」剛好都等於
+                //   第一個選項（repeat 空＝關卡單次、dim 空＝中央留洞…），行為上看不出差別。
+                //   改成顯示「（未設定）」之後：第一次點＝寫入第一個選項且畫面同步變化，所見即所存。
+                //   註：多數欄位「未設定」在遊戲端的行為仍等同第一個選項，看到它只代表「這格我還沒碰過」。
                 string cur = (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString() : "";
                 int idx = System.Array.IndexOf(p.options, cur);
-                string shown = idx >= 0 ? cur : p.options[0];
-                if (GUILayout.Button(shown))
-                    r.Params[p.key] = p.options[idx < 0 ? 0 : (idx + 1) % p.options.Length];
+                bool unset = idx < 0;
+                if (GUILayout.Button(unset ? "（未設定）" : cur))
+                    r.Params[p.key] = p.options[unset ? 0 : (idx + 1) % p.options.Length];
             }
             else if (p.type == ParamType.Bool)
             {

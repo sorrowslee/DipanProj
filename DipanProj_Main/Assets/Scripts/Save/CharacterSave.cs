@@ -33,6 +33,13 @@ namespace Dipan.Save
         // 放在頂層＝ReincarnateInPlace 只換 stats/progress，不會動到它。見 readme/TRIGGER_CHAIN.md。
         public Dictionary<string, string> lifetimeFlags = new Dictionary<string, string>();
 
+        // ── 抽選池的永久解鎖清單（跨輪迴保存；key = GachaPoolTable.csv 的 PoolId，value = 解鎖的物品 id）──
+        // 「打贏紅嫁衣 → 血統池 +幽靈」這類解鎖寫在這裡，而不是改 CSV：
+        // 實際抽選池 = 基本表（BaseXxxRoll.csv 過濾後） ∪ 這份清單。由觸發鏈動作 unlockRoll 寫入。
+        // 放頂層（與 lifetimeFlags 同級）＝ReincarnateInPlace 只換 stats/progress，不會被輪迴清掉。
+        // 缺欄（舊存檔）= 空字典，不需要遷移。見 readme/GACHA_SYSTEM.md。
+        public Dictionary<string, List<int>> unlockedRollEntries = new Dictionary<string, List<int>>();
+
         // 曾達到過的最高「完成關卡數」（跨輪迴保存，同 lifetimeFlags 放頂層＝ReincarnateInPlace 不重置）。
         // 給地上物「出現條件＝永久（lifetime）」判定用：只要某周目曾完成 N 關，該物件就永久出現。缺欄＝0。
         public int lifetimeMaxClears = 0;

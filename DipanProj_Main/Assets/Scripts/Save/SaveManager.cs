@@ -34,6 +34,14 @@ namespace Dipan.Save
         /// </summary>
         public static bool DevFreshCharacter = false;
 
+        /// <summary>
+        /// 測試用：建立 dev 測試角色時，順便把這些 module 標記成「已通關」。
+        /// 給「要通過 N 關才會出現的東西」測試用（例如祭壇的地上物出現條件 appearAfterClears）——
+        /// 不然每次都得真的從頭把關卡打完一次才看得到。
+        /// 由 <c>DevQuickStart</c>（Editor-only）設定；null／空＝不預先通關。
+        /// </summary>
+        public static string[] DevPreClearedModules = null;
+
         /// <summary>一次性測試角色的固定 id（永遠 slotIndex=-1，不會出現在正式三欄）。每次 dev 進場砍掉重建同一個。</summary>
         public const string DevCharacterId = "__dev_quickstart__";
 
@@ -170,9 +178,28 @@ namespace Dipan.Save
             _roster.characters.Add(ToProfile(save));
             _roster.activeCharacterId = save.characterId;
 
+            // 測試用「預先通關」：把指定 module 記成已通關，讓「要通過 N 關才出現」的東西直接看得到。
+            // 走 MarkModuleCleared 而不是自己塞 list，才會一併更新跨輪迴高水位 lifetimeMaxClears
+            // （地上物出現條件的 appearScope=lifetime 讀的是那一個）。
+            string preCleared = "";
+            if (DevPreClearedModules != null)
+            {
+                foreach (string m in DevPreClearedModules)
+                {
+                    if (string.IsNullOrWhiteSpace(m)) continue;
+                    MarkModuleCleared(m.Trim());
+                    preCleared += (preCleared.Length > 0 ? "、" : "") + m.Trim();
+                }
+                // roster 摘要（存讀檔畫面顯示的「完成 N 關」）也要跟著更新，否則卡片會顯示 0。
+                var prof = _roster.Find(save.characterId);
+                if (prof != null) prof.clearedModuleCount = save.progress.clearedModules.Count;
+            }
+
             SaveSystem.SaveCharacter(save);
             SaveSystem.SaveRoster(_roster);
-            Debug.Log("[SaveManager] 測試模式：已建立全新測試角色 DEV(測試)，所有旗標/進度歸零。（要走正式存檔：選單 → 直接進關卡 → 關閉）");
+            Debug.Log("[SaveManager] 測試模式：已建立全新測試角色 DEV(測試)，所有旗標/進度歸零。" +
+                      (preCleared.Length > 0 ? $"（已預先標記通關：{preCleared}）" : "") +
+                      "（要走正式存檔：選單 → 直接進關卡 → 關閉）");
         }
 
         /// <summary>建立新角色並設為活躍（背包清空）。slotIndex 指定存檔欄位（-1 = 不指定）。回傳該存檔。</summary>
@@ -404,6 +431,60 @@ namespace Dipan.Save
             _current.progress.flags[key] = value;
             MarkDirty();
             Debug.Log($"[SaveManager] 旗標 {key} = {value}");
+        }
+
+        /// <summary>
+        /// 讀自訂進度旗標的**原始字串值**（沒有這個 key 回空字串）。
+        /// <see cref="GetFlag"/> 只回答「是不是 1」，但旗標值本來就能存任意字串——
+        /// 例如「本世血統」就把 BloodlineTable 的 Id 存在旗標值裡（見 BloodlineSystem），
+        /// 這樣輪迴時 ReincarnateInPlace 換掉整個 progress，血統自動回到未定型狀態。
+        /// </summary>
+        public string GetFlagValue(string key)
+            => (_current != null && !string.IsNullOrEmpty(key)
+                && _current.progress.flags != null
+                && _current.progress.flags.TryGetValue(key, out var v)) ? v : "";
+
+        // ───────────── 抽選池的永久解鎖清單（跨輪迴保存）─────────────
+        //
+        // 「打贏紅嫁衣 → 血統池 +幽靈」這類解鎖存在這裡，不改 CSV。
+        // 實際抽選池 = 基本表 ∪ 這份清單（見 Dipan.Gacha.GachaService.BuildCandidates）。
+        // 存在 CharacterSave 頂層 = ReincarnateInPlace 不會清掉，所以解鎖是永久的。
+
+        /// <summary>把某個物品解鎖進某個抽選池。idempotent。回傳 true 代表這是第一次解鎖。</summary>
+        public bool UnlockRollEntry(string poolId, int itemId)
+        {
+            if (_current == null || string.IsNullOrEmpty(poolId) || itemId <= 0) return false;
+            if (_current.unlockedRollEntries == null)
+                _current.unlockedRollEntries = new System.Collections.Generic.Dictionary<string, System.Collections.Generic.List<int>>();
+            if (!_current.unlockedRollEntries.TryGetValue(poolId, out var list) || list == null)
+            {
+                list = new System.Collections.Generic.List<int>();
+                _current.unlockedRollEntries[poolId] = list;
+            }
+            if (list.Contains(itemId)) return false;
+            list.Add(itemId);
+            MarkDirty();
+            Debug.Log($"[SaveManager] 抽選池「{poolId}」解鎖物品 {itemId}");
+            return true;
+        }
+
+        /// <summary>某個抽選池目前已解鎖的物品清單（永遠不回 null）。</summary>
+        public System.Collections.Generic.IReadOnlyList<int> GetUnlockedRollEntries(string poolId)
+        {
+            if (_current != null && !string.IsNullOrEmpty(poolId)
+                && _current.unlockedRollEntries != null
+                && _current.unlockedRollEntries.TryGetValue(poolId, out var list) && list != null)
+                return list;
+            return System.Array.Empty<int>();
+        }
+
+        /// <summary>某個物品是否已解鎖進某個抽選池。</summary>
+        public bool IsRollEntryUnlocked(string poolId, int itemId)
+        {
+            if (itemId <= 0) return false;
+            var list = GetUnlockedRollEntries(poolId);
+            for (int i = 0; i < list.Count; i++) if (list[i] == itemId) return true;
+            return false;
         }
 
         /// <summary>終身旗標是否成立（lifetimeFlags[key] == "1"）。跨輪迴保存，只有開新角色才空。觸發鏈以「永久:」前綴路由到這裡。</summary>

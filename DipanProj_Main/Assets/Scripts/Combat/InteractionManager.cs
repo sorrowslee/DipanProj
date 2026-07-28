@@ -57,7 +57,21 @@ public class InteractionManager : MonoBehaviour
         }
     }
 
-    enum PointKind { Pickup, Drama, Portal }
+    /// <summary>
+    /// 一種「可按 F 的互動目標」的定義。
+    ///
+    /// <para>以前 pickup / drama / portal 三種目標的判斷散在三個地方（建點的 if 串、提示文字的三元運算子鏈、
+    /// 按 F 的 if/else 鏈），加一種目標要同步改四處，漏改一處是靜默失敗（最典型：F 有效但提示不顯示）。
+    /// 現在收成一張表：<b>加一種互動目標 = 在 <see cref="BuildKindRegistry"/> 加一筆</b>，其他地方一行都不用動。</para>
+    /// </summary>
+    class InteractKind
+    {
+        public string TypeId;                                   // 對應地圖編輯器的 trigger typeId
+        public Color? MarkerColor;                              // null = 不放星星標示
+        public System.Func<InteractPoint, TriggerRegion, bool> Setup;   // 讀參數；回 false = 這顆不建（參數無效/條件不符）
+        public System.Func<InteractPoint, string> Tip;          // 靠近時的提示文字；回 null = 不顯示
+        public System.Action<InteractPoint> Activate;           // 按 F 做什麼
+    }
 
     // 重複規則（編輯器「重複規則」欄；決定同一個互動點多久能再觸發一次）。
     //   Visit（關卡單次，預設/空值）：進這張地圖只觸發一次（當次停留消耗，離圖重進復活）。
@@ -87,7 +101,7 @@ public class InteractionManager : MonoBehaviour
     class InteractPoint
     {
         public string id;
-        public PointKind kind;
+        public string kindId;           // = 來源 trigger 的 typeId（對應 InteractKind.TypeId）
         // pickup
         public int itemId;
         public int count;
@@ -98,6 +112,9 @@ public class InteractionManager : MonoBehaviour
         public bool autoTrigger;        // Type 2（頭像對話）：碰到自動觸發、不顯示「按 F」提示
         // portal（傳送門互動）
         public string portalTeleport;   // 要開哪一個 teleport 區域（傳給 ScriptsPanel）
+        // openPanel（靠近按 F 開某個 UI；祭壇抽選用這個）
+        public string panelId;          // 要開哪個面板（見 OpenPanelPoint 的分派）
+        public string panelArg;         // 傳給面板的參數（祭壇＝抽選池代號）
         // 共用
         public TriggerRegion region;    // 來源 trigger（觸發鏈 next/setFlag 用，見 TriggerChain）
         public Vector2[] cellCenters;   // 區域各格中心（世界座標）
@@ -110,6 +127,7 @@ public class InteractionManager : MonoBehaviour
     readonly List<GroundLoot> _loot = new List<GroundLoot>();
     readonly List<InteractPoint> _points = new List<InteractPoint>();
     readonly HashSet<string> _consumed = new HashSet<string>();  // 本次停留已消耗的點（重建互動點時不復活）
+    Dictionary<string, InteractKind> _kinds;                     // typeId → 互動型別定義（BuildPoints 時建，每幀查）
     MapData _lastMap; string _lastPickupT, _lastDramaT;          // RebuildPoints 用
     Transform _player;
     PickupTipPanel _tip;
@@ -134,6 +152,113 @@ public class InteractionManager : MonoBehaviour
     /// <summary>重建互動點但**保留**本次停留的已消耗記錄（觸發鏈解鎖/旗標變動後由 MapManager.RefreshTriggers 呼叫）。</summary>
     public void RebuildPoints() => BuildPoints();
 
+    /// <summary>
+    /// 建出「有哪幾種可按 F 的目標」的登記表。每次 BuildPoints 重建（很便宜，就幾筆），
+    /// 因為 pickup / drama 的 typeId 可由 MapLoader 的 Inspector 欄位覆寫。
+    ///
+    /// <b>要加一種新的互動目標，只要在這裡加一筆</b>——建點、提示、按 F 三件事都在同一個地方寫完。
+    /// </summary>
+    Dictionary<string, InteractKind> BuildKindRegistry(MapData map, string pickupT, string dramaT)
+    {
+        var inv = InventorySystem.Instance;
+        var kinds = new List<InteractKind>
+        {
+            // ── 道具拾取點：撿 itemId × count ──
+            new InteractKind
+            {
+                TypeId = pickupT,
+                MarkerColor = pickupMarkerColor,
+                Setup = (pt, r) =>
+                {
+                    if (!int.TryParse(r.GetString("itemId"), out int itemId) || itemId <= 0)
+                    {
+                        Debug.LogWarning($"[InteractionManager] 拾取點「{r.name}」itemId 無效（{r.GetString("itemId")}），略過。");
+                        return false;
+                    }
+                    var data = inv != null ? inv.GetData(itemId) : null;
+                    pt.itemId = itemId;
+                    pt.count = Mathf.Max(1, r.GetInt("count", 1));
+                    string toReal = r.GetString("toRealBag");
+                    pt.toRealBag = toReal == "true" || toReal == "1";   // 直接進真背包（不走臨時包）；起始/教學道具用
+                    pt.name = data != null ? data.Name : $"#{itemId}";
+                    return true;
+                },
+                Tip = pt => $"按 {interactKey} 鍵拾取 {pt.name}",
+                Activate = CollectPickup,
+            },
+
+            // ── 劇情觸發點：Type 1 按 F 開大圖、Type 2 碰到自動播頭像對話 ──
+            new InteractKind
+            {
+                TypeId = dramaT,
+                MarkerColor = dramaMarkerColor,
+                Setup = (pt, r) =>
+                {
+                    int dramaId = r.GetInt("dramaId", 0);
+                    if (dramaId <= 0)
+                    {
+                        Debug.LogWarning($"[InteractionManager] 劇情點「{r.name}」dramaId 無效（{r.GetString("dramaId")}），略過。");
+                        return false;
+                    }
+                    pt.dramaId = dramaId;
+                    var dd = DramaDatabase.Instance.Get(dramaId);
+                    pt.autoTrigger = dd != null && dd.Type == 2;   // Type 2＝碰到自動觸發；Type 1＝按 F
+                    return true;
+                },
+                Tip = _ => $"按 {interactKey} 鍵",   // 劇情點：只提示按鍵
+                Activate = TriggerDrama,
+            },
+
+            // ── 傳送門互動：開 ScriptsPanel 放劇本 ──
+            new InteractKind
+            {
+                TypeId = TriggerChain.TypePortal,
+                MarkerColor = null,   // 傳送門是明顯的地上物、又有新手教學帶，不放星星（免得門裡浮一堆星星很怪）
+                Setup = (pt, r) =>
+                {
+                    // 對應傳送點若已解鎖（門開過了）→ 這個互動點不再出現（不留殘影、不留「按 F」）。
+                    var tp = FindRegion(map, r.GetString("linkTeleport"));
+                    if (tp != null && !TriggerChain.IsDisabled(tp)) return false;
+                    pt.portalTeleport = r.GetString("linkTeleport");
+                    return true;
+                },
+                // 新手教學強制階段(HardLock)時不顯示世界「按 F」浮字（畫面上方已有教學提示，重複又詭異），F 仍可按。
+                Tip = _ => Dipan.UI.TutorialManager.HardLock ? null : $"按 {interactKey} 鍵開啟傳送門",
+                Activate = OpenPortal,
+            },
+
+            // ── 開啟 UI 面板：靠近按 F 開某個介面。祭壇抽選就是用這個（panelId=gacha、arg=池代號）──
+            //    刻意做成通用型別而不是「altar 祭壇」專用，之後商店/鐵匠/圖鑑都能共用同一種 trigger。
+            new InteractKind
+            {
+                TypeId = TriggerChain.TypeOpenPanel,
+                MarkerColor = null,   // 祭壇/商店本身是明顯的地上物，不放星星
+                Setup = (pt, r) =>
+                {
+                    pt.panelId = r.GetString("panelId").Trim();
+                    pt.panelArg = r.GetString("arg").Trim();
+                    if (pt.panelId.Length == 0)
+                    {
+                        Debug.LogWarning($"[InteractionManager] 開啟介面點「{r.name}」沒填 panelId，略過。");
+                        return false;
+                    }
+                    pt.name = r.GetString("tipName").Trim();   // 選填：覆寫提示文字裡的名稱
+                    return true;
+                },
+                Tip = pt => string.IsNullOrEmpty(pt.name) ? $"按 {interactKey} 鍵" : $"按 {interactKey} 鍵{pt.name}",
+                Activate = OpenPanelPoint,
+            },
+        };
+
+        var map2 = new Dictionary<string, InteractKind>();
+        foreach (var k in kinds)
+        {
+            if (string.IsNullOrEmpty(k.TypeId) || map2.ContainsKey(k.TypeId)) continue;
+            map2[k.TypeId] = k;
+        }
+        return map2;
+    }
+
     void BuildPoints()
     {
         ClearPoints();
@@ -141,15 +266,12 @@ public class InteractionManager : MonoBehaviour
         if (map?.TriggerLayer?.regions == null) return;
         string pickupT = string.IsNullOrEmpty(_lastPickupT) ? "pickup" : _lastPickupT;
         string dramaT = string.IsNullOrEmpty(_lastDramaT) ? "drama" : _lastDramaT;
-        var inv = InventorySystem.Instance;
+        _kinds = BuildKindRegistry(map, pickupT, dramaT);   // 快取起來：KindOf 每幀都要用，不能重建
 
         foreach (var r in map.TriggerLayer.regions)
         {
             if (r.cells == null || r.cells.Count == 0) continue;
-            bool isPickup = r.typeId == pickupT;
-            bool isDrama = r.typeId == dramaT;
-            bool isPortal = r.typeId == "portal";
-            if (!isPickup && !isDrama && !isPortal) continue;
+            if (!_kinds.TryGetValue(r.typeId, out var kind)) continue;   // 不是可互動的型別
             if (_consumed.Contains(r.id)) continue;      // 本次停留已消耗 → 不復活
             // 關卡進度：本趟已取/已觸發過（跨換圖記憶）→ 重進地圖也不再出現。見 RunProgress。
             if (RunProgress.Exists && RunProgress.Instance.RunActive
@@ -177,54 +299,29 @@ public class InteractionManager : MonoBehaviour
             var pt = new InteractPoint
             {
                 id = r.id,
+                kindId = r.typeId,
                 region = r,
                 cellCenters = centers.ToArray(),
                 center = center,
                 repeat = repeat,
             };
 
-            if (isPickup)
-            {
-                if (!int.TryParse(r.GetString("itemId"), out int itemId) || itemId <= 0)
-                {
-                    Debug.LogWarning($"[InteractionManager] 拾取點「{r.name}」itemId 無效（{r.GetString("itemId")}），略過。");
-                    continue;
-                }
-                var data = inv != null ? inv.GetData(itemId) : null;
-                pt.kind = PointKind.Pickup;
-                pt.itemId = itemId;
-                pt.count = Mathf.Max(1, r.GetInt("count", 1));
-                string toReal = r.GetString("toRealBag");
-                pt.toRealBag = toReal == "true" || toReal == "1";   // 直接進真背包（不走臨時包）；起始/教學道具用
-                pt.name = data != null ? data.Name : $"#{itemId}";
-                pt.marker = CreateMarker(center, pickupMarkerColor);
-            }
-            else if (isPortal)
-            {
-                // 對應傳送點若已解鎖（門開過了）→ 這個互動點不再出現（不留殘影、不留「按 F」）。
-                var tp = FindRegion(map, r.GetString("linkTeleport"));
-                if (tp != null && !TriggerChain.IsDisabled(tp)) continue;
-                pt.kind = PointKind.Portal;
-                pt.portalTeleport = r.GetString("linkTeleport");
-                // 傳送門是明顯的地上物、又有新手教學帶，不放星星標示（免得門裡浮一堆星星很怪）。
-            }
-            else // drama
-            {
-                int dramaId = r.GetInt("dramaId", 0);
-                if (dramaId <= 0)
-                {
-                    Debug.LogWarning($"[InteractionManager] 劇情點「{r.name}」dramaId 無效（{r.GetString("dramaId")}），略過。");
-                    continue;
-                }
-                pt.kind = PointKind.Drama;
-                pt.dramaId = dramaId;
-                var dd = DramaDatabase.Instance.Get(dramaId);
-                pt.autoTrigger = dd != null && dd.Type == 2;   // Type 2＝碰到自動觸發；Type 1＝按 F
-                // Type 1 才放紫色星星提示；Type 2（碰到自動觸發）不顯示星星（純隱形觸發點）。
-                if (!pt.autoTrigger) pt.marker = CreateMarker(center, dramaMarkerColor);
-            }
+            if (kind.Setup != null && !kind.Setup(pt, r)) continue;   // 參數無效/條件不符 → 這顆不建
+
+            // 星星標示：型別有指定顏色才放。劇情點的 Type 2（碰到自動觸發）是隱形觸發點，也不放。
+            if (kind.MarkerColor.HasValue && !pt.autoTrigger)
+                pt.marker = CreateMarker(center, kind.MarkerColor.Value);
+
             _points.Add(pt);
         }
+    }
+
+    /// <summary>取某個互動點的型別定義（提示文字與按 F 行為都問它）。找不到回 null。</summary>
+    /// <remarks>用 BuildPoints 建好的快取，不要在這裡重建——這支每幀都會被呼叫。</remarks>
+    InteractKind KindOf(InteractPoint pt)
+    {
+        if (pt == null || _kinds == null) return null;
+        return _kinds.TryGetValue(pt.kindId, out var k) ? k : null;
     }
 
     /// <summary>在 pos 放一個掉落物（通用入口，怪物掉落也用這個）。同點重疊會稍微散開避免疊死。
@@ -368,10 +465,8 @@ public class InteractionManager : MonoBehaviour
             {
                 best = d; bestPoint = _points[i]; bestLoot = null;
                 tipPos = _points[i].center;
-                // 傳送門：新手教學強制階段(HardLock)時不顯示世界「按 F」浮字（畫面上方已有教學提示，重複又詭異），F 仍可按。
-                tipText = _points[i].kind == PointKind.Pickup ? $"按 {interactKey} 鍵拾取 {_points[i].name}"
-                        : _points[i].kind == PointKind.Portal ? (Dipan.UI.TutorialManager.HardLock ? null : $"按 {interactKey} 鍵開啟傳送門")
-                        : $"按 {interactKey} 鍵";   // 劇情點：只提示按鍵
+                var k = KindOf(_points[i]);                     // 提示文字由型別定義決定（回 null = 不顯示）
+                tipText = k?.Tip != null ? k.Tip(_points[i]) : $"按 {interactKey} 鍵";
             }
         }
 
@@ -386,10 +481,11 @@ public class InteractionManager : MonoBehaviour
 
         if (Input.GetKeyDown(interactKey))
         {
-            if (bestLoot != null) TryPickUpLoot(bestLoot);
-            else if (bestPoint.kind == PointKind.Pickup) CollectPickup(bestPoint);
-            else if (bestPoint.kind == PointKind.Portal) OpenPortal(bestPoint);
-            else TriggerDrama(bestPoint);
+            if (bestLoot != null) { TryPickUpLoot(bestLoot); return; }
+
+            var k = KindOf(bestPoint);                          // 按 F 的行為也由型別定義決定
+            if (k?.Activate != null) k.Activate(bestPoint);
+            else Debug.LogWarning($"[InteractionManager] 互動點「{bestPoint.id}」的型別「{bestPoint.kindId}」沒有登記按 F 的行為。");
         }
     }
 
@@ -399,6 +495,24 @@ public class InteractionManager : MonoBehaviour
         if (pt == null) return;
         HideTip();
         Dipan.UI.ScriptsPanel.OpenFor(pt.portalTeleport);
+    }
+
+    // 開啟指定的 UI 面板（不消耗此互動點：關掉 UI 後還能再按 F 重開，祭壇本來就是可以一直回來抽的）。
+    // panelId → 面板的對應寫在這裡；之後要接商店/鐵匠/圖鑑就在這個 switch 加一個 case。
+    void OpenPanelPoint(InteractPoint pt)
+    {
+        if (pt == null) return;
+        HideTip();
+        switch (pt.panelId)
+        {
+            case "gacha":   // 祭壇抽選：arg = GachaPoolTable.csv 的 PoolId
+                Dipan.UI.GachaPanel.OpenFor(pt.panelArg);
+                break;
+            default:
+                Debug.LogWarning($"[InteractionManager] 開啟介面點「{pt.id}」的 panelId=「{pt.panelId}」沒有對應的面板。" +
+                                 "可用值目前只有 gacha；要加新的請到 InteractionManager.OpenPanelPoint 補一個 case。");
+                break;
+        }
     }
 
     // 依名字找同地圖的一個 trigger region（給傳送門互動點查它連動的傳送點狀態用）。
@@ -415,7 +529,7 @@ public class InteractionManager : MonoBehaviour
     public bool TryGetPortalWorld(out Vector2 center)
     {
         for (int i = 0; i < _points.Count; i++)
-            if (_points[i].kind == PointKind.Portal) { center = _points[i].center; return true; }
+            if (_points[i].kindId == TriggerChain.TypePortal) { center = _points[i].center; return true; }
         center = default; return false;
     }
 
@@ -427,7 +541,7 @@ public class InteractionManager : MonoBehaviour
         Vector2 p = _player.position;
         float r2 = pickupRadius * pickupRadius;
         for (int i = 0; i < _points.Count; i++)
-            if (_points[i].kind == PointKind.Portal && NearestCellSqr(_points[i], p) <= r2) return true;
+            if (_points[i].kindId == TriggerChain.TypePortal && NearestCellSqr(_points[i], p) <= r2) return true;
         return false;
     }
 
@@ -435,7 +549,7 @@ public class InteractionManager : MonoBehaviour
     public bool TryGetPickupWorld(int itemId, out Vector2 center)
     {
         for (int i = 0; i < _points.Count; i++)
-            if (_points[i].kind == PointKind.Pickup && _points[i].itemId == itemId) { center = _points[i].center; return true; }
+            if (_points[i].kindId == PickupTypeId && _points[i].itemId == itemId) { center = _points[i].center; return true; }
         center = default; return false;
     }
 
@@ -447,9 +561,12 @@ public class InteractionManager : MonoBehaviour
         Vector2 p = _player.position;
         float r2 = pickupRadius * pickupRadius;
         for (int i = 0; i < _points.Count; i++)
-            if (_points[i].kind == PointKind.Pickup && _points[i].itemId == itemId && NearestCellSqr(_points[i], p) <= r2) return true;
+            if (_points[i].kindId == PickupTypeId && _points[i].itemId == itemId && NearestCellSqr(_points[i], p) <= r2) return true;
         return false;
     }
+
+    // 目前這張圖使用的 pickup typeId（可由 MapLoader 的 Inspector 欄位覆寫，預設 "pickup"）。
+    string PickupTypeId => string.IsNullOrEmpty(_lastPickupT) ? TriggerChain.TypePickup : _lastPickupT;
 
     // 目前地圖 id（給關卡進度記錄用；沒有 MapManager 時 -1）。
     static int CurMapId => MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;

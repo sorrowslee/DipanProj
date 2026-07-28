@@ -32,6 +32,7 @@ namespace Dipan.Inventory
         public int HealHp;            // 藥劑：喝下回復的生命（0 = 不回血）
         public int HealMp;            // 藥劑：喝下回復的魔力（0 = 不回魔）
         public float LightRadius;     // 發光半徑（世界單位）：>0＝此裝備「裝在身上」時發光照亮周遭；0/空＝不發光。取所有裝備欄最大值畫光圈。
+        public int BloodlineID;       // 血統藥劑：對應 BloodlineTable 的 Id（喝下去改變本世外型與數值）；0 = 不是血統藥劑
         public Sprite Icon;           // 由 ItemDatabase 從 Resources 載入
 
         public bool IsEquippable => EquipSlot != EquipSlot.None;
@@ -40,5 +41,10 @@ namespace Dipan.Inventory
         public bool IsScript => TargetMapId > 0;
         /// <summary>是不是「藥劑」（可拖到 HUD 藥水格、按數字鍵使用）。</summary>
         public bool IsPotion => Category == "Potion";
+        /// <summary>
+        /// 是不是「血統藥劑」（一次性消耗道具：喝下去永久改變本世外型與數值，本世只能喝一次）。
+        /// 刻意不可裝備（EquipSlot=None）也不算 Potion——它不進 HUD 藥水格，而是在背包裡點一下喝掉。
+        /// </summary>
+        public bool IsBloodline => BloodlineID > 0;
     }
 }

@@ -1,0 +1,22 @@
+PoolId,DisplayName,BaseTable,SlateSprite,CostSingle,CostMulti,MultiCount,CostItemId,Note
+# ─────────────────────────────────────────────────────────────────────────────
+# 抽選池登記表：一列 = 一座祭壇 = 一個抽選池。
+#
+#   新增一個大項 → 加一列 ＋ 做一張同名基本表 ＋ 把基本表拖進場景的 GachaTableProvider。
+#   刪除一個大項 → 刪這一列就好（例如日後把「裝備」併進「武器」＝刪 armor 列、把內容貼進 BaseWeaponRoll）。
+#   程式完全不認識「武器/裝備/血統/道具」這些字，所以增刪大項不用改任何一行程式。
+#
+# 欄位說明：
+#   PoolId      池代號（英文小寫，唯一）。地圖編輯器的 openPanel 觸發用 arg 指定它。
+#   DisplayName 面板標題顯示用。
+#   BaseTable   基本表檔名（不含 .csv）。要與拖進 GachaTableProvider 的 TextAsset 名稱一致。
+#   SlateSprite 這座祭壇對應的石板圖檔名（僅供編輯器擺圖時對照，程式不讀）。
+#   CostSingle  單抽價格。
+#   CostMulti   連抽價格；填 0 = 這個池不開放連抽（血統是一次性藥劑，一次給十瓶不合理）。
+#   MultiCount  連抽一次抽幾個（CostMulti 為 0 時忽略）。
+#   CostItemId  用哪個道具當錢；留空 = 銅錢 101。
+# ─────────────────────────────────────────────────────────────────────────────
+weapon,武器,BaseWeaponRoll,rockSlate_weapon,100,900,10,101,
+armor,裝備,BaseArmorRoll,rockSlate_armor,100,900,10,101,ItemTable 目前還沒有防具，基本表是空的（面板會顯示「這座祭壇還沒有可抽的東西」）
+blood,血統,BaseBloodRoll,rockSlate_blood,300,0,0,101,一次性藥劑，刻意不開放連抽
+item,道具,BaseItemRoll,rockSlate_item,50,450,10,101,

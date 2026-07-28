@@ -37,9 +37,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -56,9 +63,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -75,9 +89,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -94,9 +115,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -113,9 +141,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -132,9 +167,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -151,9 +193,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -170,9 +219,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -189,9 +245,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -208,9 +271,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -227,9 +297,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -246,9 +323,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -265,9 +349,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -284,9 +375,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -303,9 +401,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -322,9 +427,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Buddha",
@@ -341,9 +453,16 @@
           "animFps": 6.0,
           "pingPong": true,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/rockAltar",
@@ -360,9 +479,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 1,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/rockAltar",
@@ -379,9 +505,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 1,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/rockAltar",
@@ -398,9 +531,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 1,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/rockSlate_armor",
@@ -417,9 +557,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": true,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 1,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/rockSlate_script",
@@ -436,9 +583,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": true,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 1,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/rockSlate_weapon",
@@ -455,9 +609,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": true,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 1,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/rockDoor",
@@ -474,9 +635,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": true,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -493,9 +661,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -512,9 +687,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -531,9 +713,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -550,9 +739,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -569,9 +765,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -588,9 +791,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -607,9 +817,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -626,9 +843,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -645,9 +869,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -664,9 +895,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -683,9 +921,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -702,9 +947,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -721,9 +973,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -740,9 +999,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -759,9 +1025,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -778,9 +1051,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -797,9 +1077,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -816,9 +1103,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -835,9 +1129,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -854,9 +1155,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -873,9 +1181,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -892,9 +1207,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -911,9 +1233,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -930,9 +1259,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -949,9 +1285,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -968,9 +1311,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -987,9 +1337,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1006,9 +1363,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1025,9 +1389,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1044,9 +1415,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1063,9 +1441,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1082,9 +1467,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1101,9 +1493,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1120,9 +1519,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1139,9 +1545,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1158,9 +1571,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1177,9 +1597,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1196,9 +1623,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1215,9 +1649,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1234,9 +1675,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1253,9 +1701,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1272,9 +1727,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1291,9 +1753,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1310,9 +1779,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1329,9 +1805,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1348,9 +1831,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1367,9 +1857,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1386,9 +1883,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1405,9 +1909,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1424,9 +1935,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1443,9 +1961,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1462,9 +1987,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1481,9 +2013,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1500,9 +2039,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1519,9 +2065,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1538,9 +2091,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1557,9 +2117,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1576,9 +2143,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1595,9 +2169,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1614,9 +2195,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1633,9 +2221,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1652,9 +2247,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1671,9 +2273,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1690,9 +2299,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1709,9 +2325,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1728,9 +2351,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1747,9 +2377,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1766,9 +2403,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1785,9 +2429,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1804,9 +2455,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1823,9 +2481,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1842,9 +2507,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1861,9 +2533,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1880,9 +2559,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1899,9 +2585,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1918,9 +2611,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1937,9 +2637,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1956,9 +2663,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1975,9 +2689,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -1994,9 +2715,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2013,9 +2741,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2032,9 +2767,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2051,9 +2793,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2070,9 +2819,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2089,9 +2845,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2108,9 +2871,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2127,9 +2897,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2146,9 +2923,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2165,9 +2949,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2184,9 +2975,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2203,9 +3001,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2222,9 +3027,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2241,9 +3053,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2260,9 +3079,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2279,9 +3105,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2298,9 +3131,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2317,9 +3157,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2336,9 +3183,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2355,9 +3209,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2374,9 +3235,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2393,9 +3261,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2412,9 +3287,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2431,9 +3313,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2450,9 +3339,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2469,9 +3365,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2488,9 +3391,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2507,9 +3417,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2526,9 +3443,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2545,9 +3469,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2564,9 +3495,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2583,9 +3521,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2602,9 +3547,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2621,9 +3573,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2640,9 +3599,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2659,9 +3625,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2678,9 +3651,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2697,9 +3677,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2716,9 +3703,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2735,9 +3729,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2754,9 +3755,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2773,9 +3781,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2792,9 +3807,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2811,9 +3833,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2830,9 +3859,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2849,9 +3885,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2868,9 +3911,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2887,9 +3937,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2906,9 +3963,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2925,9 +3989,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2944,9 +4015,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2963,9 +4041,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -2982,9 +4067,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3001,9 +4093,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3020,9 +4119,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3039,9 +4145,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3058,9 +4171,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3077,9 +4197,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3096,9 +4223,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3115,9 +4249,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3134,9 +4275,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3153,9 +4301,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3172,9 +4327,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3191,9 +4353,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3210,9 +4379,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3229,9 +4405,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3248,9 +4431,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3267,9 +4457,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3286,9 +4483,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3305,9 +4509,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3324,9 +4535,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3343,9 +4561,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3362,9 +4587,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3381,9 +4613,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3400,9 +4639,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3419,9 +4665,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3438,9 +4691,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3457,9 +4717,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3476,9 +4743,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3495,9 +4769,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3514,9 +4795,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3533,9 +4821,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3552,9 +4847,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3571,9 +4873,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3590,9 +4899,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3609,9 +4925,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3628,9 +4951,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3647,9 +4977,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3666,9 +5003,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3685,9 +5029,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3704,9 +5055,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3723,9 +5081,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3742,9 +5107,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3761,9 +5133,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3780,9 +5159,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3799,9 +5185,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3818,9 +5211,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3837,9 +5237,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3856,9 +5263,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3875,9 +5289,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3894,9 +5315,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3913,9 +5341,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3932,9 +5367,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3951,9 +5393,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3970,9 +5419,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -3989,9 +5445,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4008,9 +5471,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4027,9 +5497,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4046,9 +5523,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4065,9 +5549,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4084,9 +5575,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4103,9 +5601,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4122,9 +5627,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4141,9 +5653,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4160,9 +5679,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4179,9 +5705,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4198,9 +5731,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4217,9 +5757,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4236,9 +5783,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4255,9 +5809,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4274,9 +5835,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4293,9 +5861,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4312,9 +5887,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4331,9 +5913,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4350,9 +5939,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4369,9 +5965,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4388,9 +5991,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4407,9 +6017,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4426,9 +6043,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4445,9 +6069,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4464,9 +6095,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4483,9 +6121,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4502,9 +6147,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4521,9 +6173,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4540,9 +6199,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4559,9 +6225,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4578,9 +6251,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4597,9 +6277,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4616,9 +6303,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4635,9 +6329,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4654,9 +6355,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4673,9 +6381,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4692,9 +6407,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4711,9 +6433,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4730,9 +6459,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4749,9 +6485,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4768,9 +6511,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4787,9 +6537,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4806,9 +6563,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4825,9 +6589,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4844,9 +6615,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4863,9 +6641,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4882,9 +6667,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4901,9 +6693,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4920,9 +6719,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4939,9 +6745,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4958,9 +6771,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4977,9 +6797,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -4996,9 +6823,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5015,9 +6849,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5034,9 +6875,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5053,9 +6901,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5072,9 +6927,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5091,9 +6953,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5110,9 +6979,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5129,9 +7005,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5148,9 +7031,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5167,9 +7057,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5186,9 +7083,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5205,9 +7109,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5224,9 +7135,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5243,9 +7161,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5262,9 +7187,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5281,9 +7213,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5300,9 +7239,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5319,9 +7265,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5338,9 +7291,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5357,9 +7317,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5376,9 +7343,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5395,9 +7369,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5414,9 +7395,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5433,9 +7421,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5452,9 +7447,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5471,9 +7473,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5490,9 +7499,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5509,9 +7525,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5528,9 +7551,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5547,9 +7577,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5566,9 +7603,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5585,9 +7629,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5604,9 +7655,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5623,9 +7681,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         },
         {
           "assetId": "Main/Environment/Cultist",
@@ -5642,9 +7707,16 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
+          "passThrough": false,
           "breakFlag": "",
           "appearAfterClears": 0,
-          "appearScope": "cycle"
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0
         }
       ]
     },
@@ -5990,25 +8062,9 @@
             "dramaId": "3",
             "next": "讓玩家選擇劇本",
             "requireCycleMax": "1",
-            "requireItem": "!104"
-          }
-        },
-        {
-          "id": "caab8f43",
-          "name": "給紅嫁衣劇本",
-          "typeId": "giveItem",
-          "cells": [
-            [
-              88,
-              48
-            ]
-          ],
-          "params": {
-            "itemId": "104",
-            "count": "1",
-            "next": "叫玩家進入傳送門",
-            "requireCycleMax": "1",
-            "requireItem": "!104"
+            "requireItem": "!104",
+            "requireClearsMax": "0",
+            "onBlocked": "中止整條鏈"
           }
         },
         {
@@ -6059,7 +8115,8 @@
           ],
           "params": {
             "dramaId": "4",
-            "repeat": "永久"
+            "repeat": "永久",
+            "requireClearsMax": "0"
           }
         },
         {
@@ -6203,6 +8260,162 @@
             "scriptIds": "104",
             "specialIds": "",
             "next": "叫玩家進入傳送門"
+          }
+        },
+        {
+          "id": "15cbb18b",
+          "name": "武器祭壇",
+          "typeId": "openPanel",
+          "cells": [
+            [
+              34,
+              19
+            ],
+            [
+              34,
+              20
+            ],
+            [
+              34,
+              21
+            ],
+            [
+              33,
+              21
+            ],
+            [
+              33,
+              20
+            ],
+            [
+              33,
+              19
+            ],
+            [
+              35,
+              21
+            ],
+            [
+              35,
+              20
+            ],
+            [
+              35,
+              19
+            ]
+          ],
+          "params": {
+            "panelId": "gacha",
+            "arg": "weapon",
+            "tipName": "",
+            "requireCycleMin": "",
+            "requireClears": "1",
+            "requireClearsScope": "cycle",
+            "requireClearsMin": "1"
+          }
+        },
+        {
+          "id": "2d07ce37",
+          "name": "裝備祭壇",
+          "typeId": "openPanel",
+          "cells": [
+            [
+              37,
+              19
+            ],
+            [
+              37,
+              20
+            ],
+            [
+              37,
+              21
+            ],
+            [
+              36,
+              21
+            ],
+            [
+              36,
+              20
+            ],
+            [
+              36,
+              19
+            ],
+            [
+              38,
+              21
+            ],
+            [
+              38,
+              20
+            ],
+            [
+              38,
+              19
+            ]
+          ],
+          "params": {
+            "panelId": "gacha",
+            "arg": "armor",
+            "tipName": "",
+            "requireCycleMin": "",
+            "requireClears": "1",
+            "requireClearsScope": "cycle",
+            "requireClearsMin": "1"
+          }
+        },
+        {
+          "id": "cce63e95",
+          "name": "血統祭壇",
+          "typeId": "openPanel",
+          "cells": [
+            [
+              40,
+              19
+            ],
+            [
+              40,
+              20
+            ],
+            [
+              40,
+              21
+            ],
+            [
+              41,
+              21
+            ],
+            [
+              41,
+              20
+            ],
+            [
+              41,
+              19
+            ],
+            [
+              39,
+              19
+            ],
+            [
+              39,
+              20
+            ],
+            [
+              39,
+              21
+            ]
+          ],
+          "params": {
+            "panelId": "gacha",
+            "arg": "blood",
+            "tipName": "",
+            "requireCycleMin": "",
+            "requireClears": "1",
+            "requireClearsScope": "cycle",
+            "requireClearsMin": "1"
           }
         }
       ]

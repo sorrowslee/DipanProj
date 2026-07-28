@@ -1,0 +1,5 @@
+ItemId,Weight,MinCycle,RequireFlag,Note
+# 裝備池的基本盤。
+# ⚠ 目前 ItemTable 裡還沒有任何防具（Chest/Boots/Gloves/Amulet/Ring 一件都沒有），
+#   所以這張表是空的。祭壇仍可放、面板仍可開，只是會顯示「這座祭壇還沒有可抽的東西」並停用抽選鈕。
+#   之後在 ItemTable 加防具後，把 ID 填進來即可。

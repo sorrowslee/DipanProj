@@ -1191,6 +1191,7 @@ GameObject:
   - component: {fileID: 537006693}
   - component: {fileID: 537006694}
   - component: {fileID: 537006695}
+  - component: {fileID: 537006696}
   m_Layer: 0
   m_Name: GameManagers
   m_TagString: Untagged
@@ -1314,6 +1315,25 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sceneFxCSV: {fileID: 4900000, guid: 0e2b6eb543eb7453aa3133d86be78bd3, type: 3}
+--- !u!114 &537006696
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 537006687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a32c6873dc234689a9ea4814a58ebb2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  poolTableCSV: {fileID: 4900000, guid: 5f58f93a0059444e3a9f6646e695dadb, type: 3}
+  rollTableCSVs:
+  - {fileID: 4900000, guid: aec16b6de9d96483a852b334e5ee278e, type: 3}
+  - {fileID: 4900000, guid: 94a01b4431f7f412291fd172d5c14ff4, type: 3}
+  - {fileID: 4900000, guid: 64ad95d25dfbe44b1a4ef0ee1f40b1ef, type: 3}
+  - {fileID: 4900000, guid: 9aefce22e721d46c7a43a2738bf81d35, type: 3}
+  bloodlineTableCSV: {fileID: 4900000, guid: cc5b5d22279bd45898a8450215ae1fc7, type: 3}
 --- !u!114 &550503362
 MonoBehaviour:
   m_ObjectHideFlags: 0
