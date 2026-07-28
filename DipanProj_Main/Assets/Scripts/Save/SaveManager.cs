@@ -504,12 +504,16 @@ namespace Dipan.Save
             Debug.Log($"[SaveManager] 終身旗標 {key} = {value}");
         }
 
+        /// <summary>金錢數字變動時觸發（背包面板的金額顯示靠它即時更新）。</summary>
+        public event System.Action OnCurrencyChanged;
+
         /// <summary>加錢（可為負，但不會低於 0；扣錢建議用 TrySpendCurrency）。</summary>
         public void AddCurrency(int amount)
         {
             if (_current == null || amount == 0) return;
             _current.stats.currency = Mathf.Max(0, _current.stats.currency + amount);
             MarkDirty();
+            OnCurrencyChanged?.Invoke();
         }
 
         /// <summary>嘗試花費金錢；不足回 false、不扣。</summary>
@@ -519,7 +523,51 @@ namespace Dipan.Save
             if (_current.stats.currency < amount) return false;
             _current.stats.currency -= amount;
             MarkDirty();
+            OnCurrencyChanged?.Invoke();
             return true;
+        }
+
+        /// <summary>
+        /// 把背包（與倉庫）裡的銅錢道具收進金錢數字。
+        ///
+        /// <para>金錢原本是「可堆疊的背包道具 101」，後來改成獨立的數字顯示在背包下方，
+        /// 不再佔背包格。這支負責兩件事：①把舊存檔裡已經堆在背包裡的銅錢換算成數字（一次性遷移）；
+        /// ②當作安全網——萬一哪個路徑漏了攔截、讓銅錢又跑進背包，下次載入會自動收乾淨。</para>
+        /// </summary>
+        void SweepMoneyIntoWallet()
+        {
+            if (_current == null) return;
+            int moneyId = RunProgress.MoneyItemId;
+            int total = 0;
+
+            if (Inv != null)
+            {
+                int n = Inv.CountOf(moneyId);
+                if (n > 0) { Inv.RemoveItem(moneyId, n); total += n; }
+            }
+            if (Storage != null)
+            {
+                for (int page = 0; page < Storage.Pages; page++)
+                {
+                    var g = Storage.Page(page);
+                    if (g == null) continue;
+                    for (int i = 0; i < g.Capacity; i++)
+                    {
+                        var st = g.GetAt(i);
+                        if (st.ItemId == moneyId && st.Count > 0)
+                        {
+                            total += st.Count;
+                            g.SetAt(i, ItemStack.Empty);
+                        }
+                    }
+                }
+            }
+
+            if (total <= 0) return;
+            _current.stats.currency = Mathf.Max(0, _current.stats.currency + total);
+            MarkDirty();
+            OnCurrencyChanged?.Invoke();
+            Debug.Log($"[SaveManager] 已把背包/倉庫裡的銅錢 {total} 收進金錢（金錢改成獨立數字，不再佔背包格）。");
         }
 
         /// <summary>第 cycle 周目輪迴時可帶入的物品數 = min(cycle, 上限)。純函式，供轉生流程（Phase B）用。</summary>
@@ -581,6 +629,7 @@ namespace Dipan.Save
         {
             Inv.RestoreState(save != null ? save.inventory : null);
             Storage.RestoreState(save != null ? save.storages : null);   // 沒有就各頁還原成空
+            SweepMoneyIntoWallet();   // 舊存檔裡堆在背包的銅錢 → 換算成金錢數字（見該函式說明）
             // HP/MP 不還原：由 PlayerController 在 Start 以 CombatStats.Init 設成滿血滿魔。
         }
 

@@ -163,6 +163,17 @@
   - **分類名稱若拿來當「判斷條件」，一定要用常數不要打字面值**。例如「動畫地上物」的觸發開關是 `cat == MapAssetCategories.Environment`；當初若留成 `cat == "Environment"`，將來改名時 `All` 迴圈會變、這行不會變，動畫地上物會**整批靜默消失**。判斷條件目前已全部收斂，只剩「當輸出標籤用」的字面值（寫錯只是 category 標籤不同，風險低）。
 - **順帶**：`Sync Map Assets` 跑完現在會印**同步摘要**（每個分類收了幾筆、其中幾筆是多幀動畫、各 module 幾筆；某分類掛零會跳 Warning）。**懷疑漏同步時第一件事就是看那段摘要**，比進遊戲試快得多。（2026-07-27 記）
 
+### C9. 地圖編輯器的「選項循環按鈕」明明沒設定，卻顯示第一個選項——存進 `.dipanmap` 的其實是空字串
+- **症狀**：編輯器 trigger 參數裡那種**點一下換下一個選項**的欄位（例：`面板：gacha`、`條件不成立時：中止整條鏈`），新建的 trigger 一打開就顯示第一個選項，看起來已經設定好了。但**進遊戲該設定沒作用**；而且**點第一下按鈕不會換**（畫面不變），要點第二下才跳到下一個選項。
+- **原因**：按鈕的顯示與遞增用同一個 `IndexOf` 結果。值是空字串時 `IndexOf` 回傳 **-1**，顯示端卻 fallback 成 `options[0]`（於是畫面「看起來有值」），遞增端算 `(-1+1) % n = 0` → 又回到 `options[0]`（於是「第一下沒反應」）。兩個症狀是同一個 -1 造成的。**真正的狀態是「未設定」，不是 options[0]**——所以存進 `.dipanmap` 的是空字串，遊戲端讀到空的自然不生效。
+- **解法**：把「未設定」當成獨立狀態顯示與處理（`EditorUI.cs`）：
+  ```csharp
+  bool unset = idx < 0;
+  if (GUILayout.Button(unset ? "（未設定）" : cur))
+      r.Params[p.key] = p.options[unset ? 0 : (idx + 1) % p.options.Length];
+  ```
+  這樣未設定會明白寫著「（未設定）」，點第一下就落到 `options[0]`。**通則：任何「用 IndexOf 找目前值」的 UI，-1 要當成第三種狀態顯示出來，不要 fallback 成 [0]——fallback 會讓「沒填」偽裝成「填了預設值」，而且這種錯誤不會報錯、只會讓資料靜默失效。** ⚠️ 修好之前建的 trigger 要**回去重點一次**那些欄位（本例是三座祭壇的 `panelId` 全都是空字串）。（2026-07-28 記）
+
 ---
 
 ## D. 存檔 / 常駐單例 (Save & Persistent Singletons)
@@ -221,6 +232,15 @@
 - **原因**：`SaveManager`（`[DefaultExecutionOrder(-500)]`，很早）開場會**自動載入活躍角色** → `InventorySystem.RestoreState` **先清空背包再依存檔還原**。若角色存檔是在「還沒有這個道具」時建立的（存檔裡沒有它），還原後背包就沒有它。而測試種道具的 `InventoryLauncher`（執行序 0，跑在 SaveManager 之後）原本寫成「**背包全空才塞**」→ 還原後背包非空 → 跳過不補 → 道具永遠缺；偶爾在全新空存檔時才會出現＝時有時無。
 - **解法**：`InventoryLauncher` 改成「**缺哪把就補哪把**」（`for id 1..13: if(!HasAnywhere(id)) AddItem(id)`），因為它跑在 `RestoreState` 之後，就能把舊存檔缺的測試武器補回；補回後進廣場自動存檔會把它寫進存檔、之後就穩定。新增 `InventorySystem.HasAnywhere`（背包格+裝備欄都算，避免已裝備的又被重複補）。**通則**：任何「開場給預設物品」的邏輯要意識到它與存檔還原的先後——還原是清空重建，給道具要嘛在還原之後補、要嘛正式走存檔。（純測試用；正式改走撿道具/掉落系統。）（2026-07-09 記）
 
+### D10. `CS1061 'RectTransform' does not contain a definition for 'SetActive'`
+- **症狀**：新寫的面板編不過，錯在 `_summaryRoot.SetActive(true)` 這一行。看起來完全正常的一行。
+- **原因**：`SetActive` 是 **`GameObject`** 的方法，不是 `Transform`／`RectTransform` 的。專案裡程式建 UI 的慣例是把 `UIBuilder` 回傳的 `RectTransform` 存成欄位（`RectTransform _summaryRoot`），所以手很自然就打成 `_root.SetActive(...)`——但 `RectTransform` 只有 `gameObject.SetActive(...)`。
+- **解法**：`_summaryRoot.gameObject.SetActive(true)`。**通則（給 AI／給沒開 IDE 就大量寫 UI 程式碼的情況）：交檔前的自檢不能只做括號配對。** 這類「型別對不上但語法完全合法」的錯只有編譯器抓得到，所以至少要對常見誤用做一次字串掃描，例如：
+  ```
+  rg '\b_?[A-Za-z]*(Rect)?Transform[A-Za-z_]*\.SetActive\('
+  ```
+  同類還有 `Button.rectTransform`（見 D6）、`Image.sprite = Texture2D`、`Transform.position` 當 `RectTransform.anchoredPosition` 用。（2026-07-28 記）
+
 ## E. 效能 / 顯示 (Performance & Display)
 
 ### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順
@@ -269,6 +289,17 @@
 - **症狀**:場景特效的傳送門（SceneFx kind=portal）原本是貼合門洞的一片綠色光幕，某次改版後光幕不見了，只剩門周圍一大片淡淡綠光。
 - **原因**:程式生成貼圖的 **PPU 沒跟著解析度改**。`PortalFx.FillSprite()` 把貼圖從 64px 提到 256px（修對角脊線那次），但 `Sprite.Create(..., pixelsPerUnit: 64)` 沒改 → sprite 從 1×1 世界單位變 **4×4**，`localScale=_size` 再乘上去 → 光幕變 4 倍大（3.5×4.5 的門洞矩形變成 14×18 的大綠罩）。門洞內只剩貼圖中央一小塊、整體被攤薄，看起來就是「綠幕消失、周遭泛綠光」。
 - **解法**:程式生成 sprite 一律 **PPU = 貼圖邊長**（`Sprite.Create(tex, rect, pivot, n)`），sprite 恆為 1×1 世界單位、由 localScale 控制實際大小。**通則:改程式生成貼圖的解析度時，檢查 `Sprite.Create` 的 pixelsPerUnit 是否跟著改——n 與 PPU 綁死（或抽同一個常數），否則所有用 localScale 定尺寸的物件全部默默變大/變小。**
+
+### E9. AI 產的 UI 素材貼上去「位置怪怪的、周圍一大圈空白」——素材是整張畫布輸出，內容只佔中間一小塊
+- **症狀**：拿 AI 產的介面素材（機台、標題條、按鈕底…）照設計稿的尺寸放進 uGUI，結果元件之間的間距全跑掉、對不齊；把 Image 拉到「看起來對」的大小時，實際圖案又太小。用 `preserveAspect` 也救不回來，因為那只保住整張圖的比例。
+- **原因**：AI 出圖幾乎都是**固定畫布**（1536×1024、1000×250 這種），實際內容只畫在畫布中間一塊，四周是**透明留白**，而且每張圖的留白比例都不一樣。uGUI 的 `RectTransform` 對齊的是**整張圖**，不是「有顏色的那塊」——所以你以為在對齊機台，其實在對齊一張比機台大 40% 的透明矩形。**這不是匯入設定或 pivot 的問題，重設 pivot 也只是換一個對不準的方式。**
+- **解法**：**別去改圖，改成「量一次、程式反推」**。對每張素材量出「內容的 alpha 邊界框」，寫成一張表：
+  ```csharp
+  struct ArtSpec { public string path; public float fullW, fullH, bx, by, bw, bh; }
+  // 例：機台圖畫布 1536×1024，內容框 (350,8) 寬 835 高 978
+  ```
+  再用一個 `PlaceArt(img, spec, contentH, center)` 由「我希望內容框多高／中心在哪」**反推**整張圖該給多大的 `sizeDelta` 與該偏移多少。版面常數從此全部描述**內容框**，跟畫布留白脫鉤。量邊界框可以用 PIL：`Image.open(p).getchannel('A').getbbox()`。
+  **關鍵配套**：`LoadArt` 載入時比對 sprite 的實際尺寸和 `fullW/fullH`，不符就 `Debug.LogWarning`。因為這張表是「量出來的常數」，**素材重出圖／改尺寸時它會默默失效**——有這個警告，重出圖會當場報，而不是進遊戲才發現版面整個歪掉。（2026-07-28 記）
 
 ---
 
@@ -522,3 +553,17 @@
 - **症狀**：pickup 放在櫃子/桌子這種家具上，玩家走過去卻不出現星星／「按 F」提示、撿不到東西；新手教學會卡在「走過去撿」那步永遠不前進。
 - **原因**：F 互動是量「玩家 → 該 pickup **最近感應格的中心**」的距離、在 `InteractionManager.pickupRadius`（預設 **1.2** 世界單位）內才算數（`PlayerNearPickup` / `NearestCellSqr`）。若感應格只放在**家具那一格**，而家具是**實心擋路物**（物件 `walkable:false`，有碰撞體），玩家會被擋在家具**前面**、身體中心進不了家具那格中心的 1.2 內 → 永遠不觸發。**跟 `pickupRadius` 調多大關係不大**：感應點在實心物「裡面」，半徑要開到很大才搆得到，還會連帶放寬撿地上物/踩傳送點的距離、手感變鬆。
 - **解法**：把該 pickup 的**感應格延伸到家具前方（玩家站得到的地板）那排**——pickup 支援多格，`NearestCellSqr` 取最近格，玩家一走到家具前、最近格就落在 1.2 內。手指指向用的 `center` 是各格平均，仍會落在家具前緣，位置不會跑掉。**通則**：pickup 放在實心家具上 → 感應格務必含**前方可站的地板格**，別只放在家具那格。實例：儲藏室藥水櫃 `furniture_storage_rack` 的 pickup 從單格 `[13,2]` 擴成 3×2 `[12-14, 2-3]`（含櫃子那排＋前方地板那排）。少數「整體互動都想放寬一點」才考慮調大全域 `pickupRadius`。（2026-07-23 記）
+
+### K2. 給鏈「中間那顆」加條件，結果把後面整段一起吞掉（玩家永遠拿不到後面該給的東西＝軟鎖）
+- **症狀**：邪佛廣場的鏈是 `看全貌 → 邪佛對話 → 給紅嫁衣劇本 → 劇本開門`。為了讓「打過一關的老玩家不要再看一次初始對話」，在 `邪佛對話` 上加了 `最高完成關卡數 = 0`。結果對話確實不播了，但**劇本也不再發**、傳送門不開，玩家直接卡死在廣場。
+- **原因**：`TriggerChain` 的預設語意是「**條件不成立 → 整條鏈在此中止**」。這對「鏈的第一顆」是對的（整段事件不該發生），但對**鏈中間那顆**就變成「跳過一句對話 = 連同後面所有動作一起取消」。`requireFlag`／`requireCycleMax`／`requireItem` 全都是這個行為，只是以前沒有人在鏈中間加條件所以沒踩到。**順帶一提這條鏈本身也有 bug**：原本的守門是 `requireCycleMax=1` ＋ `requireItem=!104`（背包沒劇本才播），但劇本一旦被消耗掉、周目又還是 1，兩個條件就**同時再度成立** → 初始對話與新手教學會重播。所以才需要「完成關卡數」這個維度的條件。
+- **解法**：新增通用欄位 **`onBlocked` 條件不成立時**，兩個選項：`中止整條鏈`（預設，＝舊行為）／**`跳過這顆繼續`**（條件不成立時不做自己的事，但**照樣 `Activate(next)`**）。
+  ```csharp
+  if (!RequirementMet(r)) {
+      string onBlocked = r.GetString(KeyOnBlocked).Trim();
+      if (onBlocked == "跳過這顆繼續" || onBlocked == "skip") { … Activate(skipNext.Trim()); return; }
+      Debug.Log($"[TriggerChain]「{r.name}」觸發條件不成立，鏈在此中止.");  return;
+  }
+  ```
+  本例正解：`邪佛對話` 設 `最高完成關卡數=0` ＋ `條件不成立時=跳過這顆繼續`，`給紅嫁衣劇本` 保留自己的 `requireItem=!104`（已經有劇本就不重複給）。
+- **通則**：**在鏈中間加條件前，先問「這顆被擋掉時，後面那些還該不該發生」**——想「整段取消」用預設，想「只跳過這一句」一定要同時設 `條件不成立時=跳過這顆繼續`。另外原本條件不成立是靜默的，現在會印一行 log，排查「鏈莫名其妙斷在中間」時先看 Console。（2026-07-28 記）

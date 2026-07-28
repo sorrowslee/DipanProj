@@ -35,6 +35,19 @@
 | `requireCycleMax` | 周目上限 | 周目（`SaveManager.Cycle`）**≤** 此值才成立。**初始限定填 `1`**（只第 1 周目、老手不再觸發）。留空＝不限 |
 | `requireCycleMin` | 周目下限 | 周目 **≥** 此值才成立（做「玩了好幾輪才出現」的對話）。留空＝不限 |
 | `requireItem` | 道具條件 | 背包道具條件（只算背包格、不含裝備欄）：填 `itemId`＝**須有**此道具；前綴 `!`（如 `!104`）＝**須無**此道具。留空＝不檢查 |
+| `requireClearsMin` | 最低完成關卡數 | 完成關卡數 **≥** 此值才成立。做「打過至少 N 關才開放」（例：抽選祭壇填 `1`）。留空＝不限 |
+| `requireClearsMax` | 最高完成關卡數 | 完成關卡數 **≤** 此值才成立。做「只有還沒打過關的新手才觸發」（例：邪佛初始對話填 `0`）。留空＝不限 |
+| `requireClearsScope` | 關卡數範圍 | 上面兩個數字算哪一種：`cycle`（預設，本周目完成幾關）／`life`（這隻角色終身累計）。循環按鈕切換 |
+
+> **為什麼另外要有「完成關卡數」而不是只用周目**：邪佛初始對話原本用 `requireCycleMax=1` ＋ `requireItem=!104` 守門，但打完第一關後劇本被消耗掉、周目卻仍是 1 → **兩個條件同時再度成立，初始對話與新手教學會重播**。「這周目打過幾關」才是「還是不是新手」的正確判準。（見 [PROBLEMS.md](PROBLEMS.md) K2）
+
+**條件不成立時要怎樣（`onBlocked`）**
+
+| 欄位 | 編輯器標籤 | 意義 |
+|---|---|---|
+| `onBlocked` | 條件不成立時 | 上面任一條件不成立時的行為：`中止整條鏈`（**預設**，＝舊行為）／`跳過這顆繼續`（自己不做事，但照樣 `Activate(next)`） |
+
+> ⚠️ **在鏈「中間」那顆加條件前必讀**：預設是「條件不成立 → 整條鏈中止」。這對鏈的**第一顆**是對的（整段事件不該發生），但對中間那顆＝「跳過一句對話」會連同**後面所有動作一起取消**。實例：`邪佛對話` 加了 `最高完成關卡數=0` 之後，後面的 `給紅嫁衣劇本`／`劇本開門` 一起沒了，玩家軟鎖在廣場。正解是同時設 `條件不成立時=跳過這顆繼續`。條件不成立現在會印一行 log，排查「鏈莫名斷在中間」先看 Console。
 
 **一次性（會不會重複觸發）**
 
@@ -118,6 +131,12 @@
   - **一次性控制**：預設 `關卡單次` = 每次進這張圖都觸發。只想觸發一次用 `重複規則=每周目/永久`，或 `周目上限=1`，或 條件旗標/道具條件。
   - **同圖多顆**：依區域清單順序依序點火，各自查條件；前一顆的鏈若開了對話，會**等對話關閉**才點下一顆。仍建議用條件把多顆錯開（例：一顆 `requireFlag=!x`、另一顆 `requireFlag=x`）。
   - 邊界：換圖時進行中的點火中止（新圖有自己的一輪）；被別的鏈 `next` 指到時＝純轉接（直接完成、接自己的 next）；單場景測試（無 MapManager）不會點火。
+- **`unlockRoll` 解鎖抽選內容(鏈動作)**：`poolId`（哪個抽選池，＝`GachaPoolTable.csv` 的 `PoolId`，例 `weapon`／`blood`）、`itemId`（要加進池的道具 ID）。被鏈啟動時把這一筆寫進存檔的 `unlockedRollEntries`，該祭壇之後就抽得到它。**永久、跨輪迴、重複執行無害**（同一筆只會有一份）。典型用法：接在 boss 死亡旗標鏈上——`紅嫁衣死 → unlockRoll(blood, 302 幽靈血統藥劑)`、`榕樹妖死 → unlockRoll(weapon, 地刺戢)`。純鏈驅動、玩家踩不觸發、格子畫在角落即可。詳見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §3。
+
+**位置型（靠近按 F，不是鏈動作）**
+
+- **`openPanel` 開啟介面(按F)**：`panelId`（要開哪個面板，目前只有 `gacha`）、`poolId`（`panelId=gacha` 時用：要開哪個抽選池）。玩家走到這幾格附近會出現星星＋「按 F」提示，按 F 開該面板。**地上物與觸發是兩件事**——祭壇的圖是地圖上的地上物（`rockAltar.png` ＋ `rockSlate_weapon.png` 之類的牌子），互動是**另外畫一顆 `openPanel` 觸發**蓋在祭壇前方玩家站得到的地板格上（跟 pickup 一樣要留意 [PROBLEMS.md](PROBLEMS.md) K1：感應格別只畫在實心物上）。條件欄位照常有效——祭壇填 `最低完成關卡數=1` ＝ 打過一關才開放，未達門檻走過去不會出現提示。
+  > 程式端：`InteractionManager` 原本是寫死的 `enum PointKind` + 三處 switch，這次改成**可註冊的 `InteractKind` 表**（`TypeId`／`MarkerColor`／`Setup`／`Tip`／`Activate`），之後加互動型別只要在 `BuildKindRegistry()` 加一筆。
 
 ## 4. 範例編排
 
@@ -125,7 +144,7 @@
 | trigger | 類型 | 關鍵欄位 |
 |---|---|---|
 | `邪佛全貌` | camZone | zoom=1.8, offsetY=8, next=`邪佛對話`（鏡頭拉伸**到位**才觸發） |
-| `邪佛對話` | drama（cells=0 純鏈節點） | dramaId=3, **requireCycleMax=1**（只第 1 周目）, **requireItem=!104**（背包已有劇本＝談過了，不再播）, next=`給紅嫁衣劇本` |
+| `邪佛對話` | drama（cells=0 純鏈節點） | dramaId=3, **requireCycleMax=1**（只第 1 周目）, **requireItem=!104**（背包已有劇本＝談過了，不再播）, **requireClearsMax=0 ＋ onBlocked=跳過這顆繼續**（2026-07-28 加：已打過關就不再播，但後面照跑）, next=`給紅嫁衣劇本` |
 | `給紅嫁衣劇本` | giveItem（角落 1 格） | itemId=104(劇本-紅嫁衣), count=1, **requireCycleMax=1**, **requireItem=!104**（初始進度＋背包沒劇本才給）, next=`劇本開門` |
 | `劇本開門` | teleport（門口） | startDisabled=✓, enableFlag=`hallGateOpen`, linkedFx=`2d656e16`(綠幕), targetMapId=1 |
 
@@ -134,6 +153,18 @@
 > ⚠️ **連帶待辦（第 2 周目的門）**：給劇本被限在第 1 周目後，第 2 周目起這條鏈不跑、`劇本開門`(startDisabled) 不會被解鎖 → 老手進不了關卡。這塊會由**下一階段的「點傳送門→放置劇情道具 UI→開門」**接手（玩家自己把想去的關卡劇本放進傳送門即開），屆時 `劇本開門` 的解鎖改由「放入劇本」驅動，不再靠這條自動鏈。在該 UI 完成前，第 2 周目的門暫時無法開啟。
 >
 > **運鏡插入點（2026-07 規劃，作者接線）**：把「給劇本」後面接上一段引導對話再飄鏡頭——`給紅嫁衣劇本` 的 `next` 改指向新的 `邪佛叫你去傳送門`（drama，Group3），它的 `next` 再指向 `鏡頭聚焦傳送門`（**cameraFocus**，格子畫在傳送門正中間一格，`dim=中央留洞`）。這樣順序＝交劇本→補話「通過那扇門…」→對話結束才飄鏡頭壓黑。⚠️ 前提：對話用 `next` 是**整段播完才觸發**（`ExecuteDrama`→面板關閉→`NotifyDramaClosed`→接 next），把關鍵對話 group 加成兩句以上即可自行驗證。
+>
+> **2026-07-28 補：打完一關後初始對話會重播**。`requireCycleMax=1` ＋ `requireItem=!104` 這組守門有漏洞——劇本一旦被消耗掉、周目又還是 1，兩個條件就同時再度成立。修法是加 `requireClearsMax=0`（本周目完成 0 關才播），但**一定要同時設 `onBlocked=跳過這顆繼續`**，否則擋掉這顆會把後面的 `給紅嫁衣劇本`／`劇本開門` 一起吞掉、玩家軟鎖在廣場。同理 `初入場景對話` 也設 `最高完成關卡數=0`。見 [PROBLEMS.md](PROBLEMS.md) K2。
+
+**祭壇抽選（✅ 2026-07-28 實裝於 Main_Square；地上物與觸發分開）**
+| trigger | 類型 | 關鍵欄位 |
+|---|---|---|
+| `武器祭壇` | openPanel（祭壇**前方**玩家站得到那排地板格） | panelId=`gacha`, poolId=`weapon`, **requireClearsMin=1**（打過一關才開放） |
+| `裝備祭壇` | openPanel | panelId=`gacha`, poolId=`armor`, requireClearsMin=1 |
+| `血統祭壇` | openPanel | panelId=`gacha`, poolId=`blood`, requireClearsMin=1 |
+| `紅嫁衣死→給幽靈血統` | unlockRoll（角落 1 格，接在 boss 死亡旗標鏈上） | poolId=`blood`, itemId=302 |
+
+> 祭壇的**圖**是地上物（`rockAltar.png` ＋ `rockSlate_weapon.png` 等牌子），要在地圖編輯器另外擺；觸發只是蓋在它前面的一片感應格。整套抽選見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)。
 
 **一進房間就播對話（onEnter 標準用法；兩顆都是「手動新增空區域」的 0 格節點）**
 | trigger | 類型 | 關鍵欄位 |

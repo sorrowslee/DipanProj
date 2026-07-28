@@ -111,6 +111,7 @@ namespace Dipan.UI
             _highlight.gameObject.SetActive(false);
 
             BuildRefreshButton();
+            BuildMoneyText();
             BuildTooltip();
             BuildPotionSlots();
         }
@@ -158,6 +159,11 @@ namespace Dipan.UI
         //    不覆蓋美術。位置/大小 = 錢幣中心（底圖像素，左上為原點）。想改點擊區就調這三個常數。
         const float RefreshCx = 443f, RefreshCy = 1210f, RefreshSize = 90f;
 
+        // ── 金錢總額（底部方孔錢右邊的凹槽）──
+        // 金錢不再是可堆疊的背包道具，改成一個數字顯示在這裡（見 SaveManager.SweepMoneyIntoWallet）。
+        // 座標是從 inventoryPanelBG 量出來的：凹槽大約 x 518~991、中心 y 1207。
+        const float MoneyCx = 754f, MoneyCy = 1207f, MoneyW = 440f, MoneyH = 52f;
+
         void BuildRefreshButton()
         {
             var rb = UIBuilder.Button(_frame, "Refresh", "",
@@ -173,6 +179,21 @@ namespace Dipan.UI
             cb.colorMultiplier = 1f;
             rb.colors = cb;
             Place((RectTransform)rb.transform, RefreshCx, RefreshCy, RefreshSize, RefreshSize);
+        }
+
+        // 底部金錢總額：貼在方孔錢右邊的凹槽裡，靠左對齊（緊接著錢幣圖）。
+        void BuildMoneyText()
+        {
+            _moneyText = UIBuilder.Text(_frame, "MoneyTotal", "0", 34,
+                                        new Color(1f, 0.88f, 0.55f), TextAnchor.MiddleLeft);
+            Place(_moneyText.rectTransform, MoneyCx, MoneyCy, MoneyW, MoneyH);
+        }
+
+        void RedrawMoney()
+        {
+            if (_moneyText == null) return;
+            var sm = Dipan.Save.SaveManager.Instance;
+            _moneyText.text = sm != null ? sm.Currency.ToString("N0") : "0";
         }
 
         /// <summary>建浮動 tooltip：掛在 panel root（不受 frame 縮放），上半正楷功能、下半斜體劇情，高度自動。</summary>
@@ -256,6 +277,8 @@ namespace Dipan.UI
         }
 
         /// <summary>把 RectTransform 放到背景像素座標 (px,py)（左上為原點、y 向下），中心對齊、給定寬高。</summary>
+        Text _moneyText;   // 底部金錢總額
+
         void Place(RectTransform rt, float px, float py, float w, float h)
         {
             rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);   // 錨到 frame 左上角
@@ -268,7 +291,10 @@ namespace Dipan.UI
         {
             var inv = InventorySystem.Instance;
             inv.OnChanged += Redraw;
+            var sm = Dipan.Save.SaveManager.Instance;
+            if (sm != null) sm.OnCurrencyChanged += RedrawMoney;   // 金錢是獨立數字，不會觸發背包的 OnChanged
             Redraw();
+            RedrawMoney();
             _lastDragId = -1;   // 開背包時重算「可放欄位」高亮
         }
 
@@ -276,6 +302,8 @@ namespace Dipan.UI
         {
             if (InventorySystem.Instance != null)
                 InventorySystem.Instance.OnChanged -= Redraw;
+            var sm = Dipan.Save.SaveManager.Instance;
+            if (sm != null) sm.OnCurrencyChanged -= RedrawMoney;
             ClearHighlight();
             HideTooltip();
         }

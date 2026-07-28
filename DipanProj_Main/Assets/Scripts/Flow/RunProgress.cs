@@ -21,7 +21,11 @@ using Dipan.Save;
 /// </summary>
 public class RunProgress : MonoBehaviour
 {
-    /// <summary>金錢＝銅錢道具（ItemTable ID 101）。掉落/臨時包/結算全部把金錢當這個道具處理。</summary>
+    /// <summary>
+    /// 金錢＝銅錢道具（ItemTable ID 101）。掉落與關卡內臨時包仍然「當成道具」處理（才能沿用掉落物、
+    /// 撿取、結算那一整套），但**落袋時會轉成獨立的金錢數字**，不佔背包格——見 <see cref="GiveItem"/>
+    /// 與 <see cref="SettleIntoBag"/>。ItemTable 的這一列仍然要保留（圖示與名稱還要用）。
+    /// </summary>
     public const int MoneyItemId = 101;
 
     static RunProgress _instance;
@@ -141,13 +145,21 @@ public class RunProgress : MonoBehaviour
         snapshot.Sort((a, b) => a.Key.CompareTo(b.Key));
 
         var inv = InventorySystem.Instance;
-        if (inv != null)
-            foreach (var kv in snapshot)
+        var sm = Dipan.Save.SaveManager.Instance;
+        foreach (var kv in snapshot)
+        {
+            // 金錢走錢包（獨立數字），不佔背包格、也不會因為背包滿而掉。
+            if (kv.Key == MoneyItemId)
             {
-                int leftover = inv.AddItem(kv.Key, kv.Value);
-                if (leftover > 0)
-                    Debug.LogWarning($"[RunProgress] 結算時背包已滿，道具 {kv.Key} ×{leftover} 無法放入（暫時捨棄）。");
+                if (sm != null) sm.AddCurrency(kv.Value);
+                else Debug.LogWarning($"[RunProgress] 沒有 SaveManager，結算的金錢 {kv.Value} 無處可放。");
+                continue;
             }
+            if (inv == null) continue;
+            int leftover = inv.AddItem(kv.Key, kv.Value);
+            if (leftover > 0)
+                Debug.LogWarning($"[RunProgress] 結算時背包已滿，道具 {kv.Key} ×{leftover} 無法放入（暫時捨棄）。");
+        }
 
         _temp.Clear();
         _maps.Clear();
@@ -171,6 +183,16 @@ public class RunProgress : MonoBehaviour
             _temp[itemId] = c + count;
             return 0;
         }
+        // 金錢不進背包（改成獨立數字顯示在背包下方）。這裡是「取得物品的統一入口」，
+        // 所以攔在這一層，掉落物、觸發鏈 giveItem、抽選發獎…全部自動適用。
+        if (itemId == MoneyItemId)
+        {
+            var sm = Dipan.Save.SaveManager.Instance;
+            if (sm != null) { sm.AddCurrency(count); return 0; }
+            Debug.LogWarning("[RunProgress] 沒有 SaveManager，金錢無處可放（本次遊玩不會保存）。");
+            return count;
+        }
+
         var inv = InventorySystem.Instance;
         return inv != null ? inv.AddItem(itemId, count) : count;
     }

@@ -5,6 +5,8 @@
 > **2026-06-23 更新**：背包已接入「共用 slot 拖放/搬運系統」，可與倉庫**拖放＋點擊互搬**（含裝備）；新增**重整鈕**（整理道具格）；**移除底部名稱列**（tooltip 已顯示名稱）；資料層加 `CaptureState/RestoreState`（存檔）、`SetEquipped`、`SortGrid`，並實作 `IItemGrid`。詳見下文與 [STORAGE.md](STORAGE.md)。
 >
 > **2026-07-16 更新**：新增**藥水系統**（藥劑分類、背包兩格藥水格綁定種類、按 1/2 喝、喝藥特效）；拖曳可放的專用欄位**黃色高亮**＋丟錯格**自動歸位**＋**右鍵藥水快放**；版面座標**重量**到新背景 `1126×1397`（原本用到舊快取尺寸導致高亮偏位）；底部 HUD 血瓶槽**鏡像顯示**背包藥水（見 [BOTTOM_HUD.md](BOTTOM_HUD.md)）。
+>
+> **2026-07-28 更新**：⚠️ **金錢不再是背包道具**——銅錢（101）改成存檔裡的一個數字，背包底部銅錢 icon 後面直接顯示總額（見下方「金錢」一節）。`ItemTable.csv` 新增 **`BloodlineID`** 欄（>0 ＝ 這是血統藥劑，喝下去換外型、本世只能用一次；見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5）。
 
 背包＝建在 UI 底層框架上的第一個面板。嚴守**資料層 / 呈現層分離**：`InventorySystem`（純資料、有什麼/加減/裝卸、發事件）與 `InventoryPanel`（只訂閱事件繪圖、操作回呼資料層）。背景用整張示意圖當底、不拆圖,只在上面疊互動格子放 icon。
 
@@ -60,10 +62,25 @@
 | `TargetEntrance` | 目的地落點名（空 = 目標圖預設出生點） |
 | `HealHp` | **藥劑**：喝下回復的生命（`0` = 不回血） |
 | `HealMp` | **藥劑**：喝下回復的魔力（`0` = 不回魔） |
+| `BloodlineID` | **血統藥劑**：`>0` ＝ 這是血統藥劑，對應 `BloodlineTable.csv` 的血統 ID（喝下去主角換外型＋屬性，**本世只能用一次**）；`0`/空 = 不是血統藥劑。程式端另有 `ItemData.IsBloodline`。見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5 |
 
 內容（會持續增加）：**武器**（ItemTable ID 與 `WeaponID` 同號對應 `WeaponTable`，`EquipSlot=Weapon`）＋雜物（`101~103`：銅錢/卷軸/符紙）＋**藥水**（`201` 小回血瓶、`202` 小回魔瓶：`Category=Potion`、`HealHp/HealMp=10`、`MaxStack=99`）。分類欄 `Category` 目前用到 `Weapon`、`Currency/Material`、**`Potion`（藥劑，可拖到藥水格、按數字鍵喝）**。武器 icon 在 `UI/Icons/Equipment/`，其餘在 `UI/Icons/Items/`。
 
 > **CSV 寫法**：欄位內含逗號的長文字請用雙引號包覆,例如 `"傷害 5，直線飛行"`;引號內要放一個雙引號就寫 `""`。需要換行就在文字裡寫 `\n`(會被轉成換行)。`ItemDatabase` 用支援引號的解析器讀取。
+
+**2026-07-28 追加的列**：`301` 血統藥劑・野魂（`BloodlineID=2`）、`302` 血統藥劑・幽靈（`BloodlineID=3`）。
+
+---
+
+## 金錢：不是背包道具，是存檔裡的一個數字（2026-07-28 改）
+
+抽選祭壇要花錢之後，銅錢當可疊道具就不合用了——背包很快被錢塞滿，而且「三格 99 顆」也沒辦法當貨幣算。現在：
+
+- **資料**：金錢存在角色存檔的 currency 欄（`SaveManager.AddCurrency` / `Currency`），**背包裡完全不會有銅錢道具**。
+- **顯示**：背包面板背景**底部那個銅錢 icon 後面**直接印總額（`BuildMoneyText()`／`RedrawMoney()`，座標常數 `MoneyCx/MoneyCy/MoneyW/MoneyH`）。面板訂閱 `SaveManager.OnCurrencyChanged`，抽完獎當場就會跳數字。
+- **⚠️ 掉落端刻意不動**：怪物掉寶、寶箱、觸發鏈的 `giveItem(101)` **全部照舊寫「給道具 101」**。轉換發生在唯一入口——`RunProgress.GiveItem` 與過關落袋 `SettleIntoBag` 看到 101 就改呼叫 `SaveManager.AddCurrency`。所以既有的掉落表與地圖資料一列都不用改。
+- **`ItemTable` 的 101 那一列要保留**：toast 的「獲得 銅錢 ×50」還要靠它拿名稱與 icon。
+- **舊存檔遷移**：`SaveManager.ApplyToSystems` 會跑一次 `SweepMoneyIntoWallet()`，把背包/倉庫裡殘留的 101 掃進錢包。`StorageLauncher` 也不再開場塞 500 銅錢（改用作弊面板的「獲得 10000 元」）。
 
 ---
 
@@ -90,6 +107,7 @@
   - **點擊**：倉庫沒開時，點道具格的可裝備物品 → 裝備（原裝的換回該格）、點裝備欄 → 卸回第一個空格；**倉庫開著時**，點道具格 → 整堆送到倉庫當前分頁（見 [STORAGE.md](STORAGE.md)）。
   - **拖放**（透過共用 `SlotDragController`）：格內重排/合併/交換、拖到裝備欄＝裝備、拖去倉庫＝存放（含裝備）。
   - **重整鈕**：整理道具格。
+  - **血統藥劑**（`BloodlineID > 0`）：點下去先跳 `ConfirmPopup` 確認（**這輩子只能喝一次**），確認後 `TryDrinkBloodline` 換外型＋套屬性、消耗藥劑。已經喝過（周目旗標 `血統` 成立）則直接提示不能再喝。見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5。
   - **與倉庫並排**：倉庫＋背包同開時各自左右移（`StorageBagCoordinator` 控；背包右移位置 `PairRightX`）。
 - **tooltip**：移到物品上跳出浮動說明（掛在 panel root、不受 frame 縮放、跟著游標、近右邊自動翻到左側、不擋 hover）。三段：**名稱（粗體金）**＋ **`TipStats`（正楷）**＋ **`TipLore`（斜體）**;高度由 `VerticalLayoutGroup + ContentSizeFitter` 自動撐開,空欄自動隱藏該段。
 
@@ -166,3 +184,4 @@
 *建立於 2026-06-22：背包 v1（資料層 InventorySystem + 呈現層 InventoryPanel,整張背景 + 量測座標疊互動格,點擊裝/卸,hover 名稱）。建在 [UI_SYSTEM.md](UI_SYSTEM.md) 底層上。*
 *2026-06-23 更新：接入共用 slot 拖放/搬運系統（與倉庫互拖、含裝備）；新增重整鈕（SortGrid）；移除底部名稱列；資料層加 IItemGrid / SetEquipped / SortGrid / Capture·RestoreState。見 [STORAGE.md](STORAGE.md)、[SAVE_SYSTEM.md](SAVE_SYSTEM.md)。*
 *2026-07-16 更新：藥水系統（Potion 分類、背包兩格藥水格綁定種類、按 1/2 喝、喝藥特效）；拖曳可放欄位黃色高亮 + 丟錯格自動歸位 + 右鍵藥水快放；版面座標重量到新背景 1126×1397（修正高亮偏位）；底部 HUD 血瓶槽鏡像顯示背包藥水（見 [BOTTOM_HUD.md](BOTTOM_HUD.md)）；ItemTable 加 TargetMapId/TargetEntrance/HealHp/HealMp 欄。*
+*2026-07-28 更新：**金錢改成存檔數字、不再是背包道具**（背包底部銅錢 icon 後顯示總額，訂閱 `SaveManager.OnCurrencyChanged`；掉落端仍給道具 101，由 `RunProgress.GiveItem`/`SettleIntoBag` 轉呼叫 `AddCurrency`；`SweepMoneyIntoWallet` 遷移舊存檔）；ItemTable 加 `BloodlineID` 欄＋血統藥劑 301/302，背包點血統藥劑＝確認後換外型。見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)。*

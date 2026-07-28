@@ -43,6 +43,7 @@
 | [INVENTORY.md](INVENTORY.md) | 背包系統（InventorySystem 資料層 + InventoryPanel、ItemTable.csv、icon 規格、格子座標） | 改背包、物品、裝備欄、加 icon |
 | [STORAGE.md](STORAGE.md) | 倉庫系統（StorageSystem + IItemGrid、倉庫+背包並排面板、點擊/拖放搬運、每角色獨立、存檔接線） | 改倉庫、做搬運 UI、套倉庫圖 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
+| [GACHA_SYSTEM.md](GACHA_SYSTEM.md) | **祭壇抽選系統**（邪佛廣場走到祭壇按 F 抽選：四層資料架構讓「武器/裝備/血統/道具」大項可隨時增刪、打通關卡解鎖新內容進池、老虎機表演＋十連結算面板；**金錢改成獨立數字不再是背包道具**、血統藥劑一次性換外型；新觸發 `openPanel`／`unlockRoll`、新條件「最低/最高完成關卡數」＋「條件不成立時」） | 加/改抽選大項或池內容、放新祭壇、改抽選介面表演、動金錢或血統 |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
 | [LOCALIZATION.md](LOCALIZATION.md) | 多語系／語言表（`Language.GetText(id)` 唯一取用入口、`LanguageTable.csv` id,cn,en、LanguageTableProvider、預設中文支援英文、id 分段慣例） | 加/改玩家可見字串、切語言、做多語系前 |
 | [WOODSHED_LAMP_TUTORIAL.md](WOODSHED_LAMP_TUTORIAL.md) | 柴房佛燈強制新手教學（紅嫁衣第一間房：撿佛燈→裝備→強制點亮的 phase 狀態機；地上物 disappearFlag、pickup toRealBag、FireOnly 鎖移動只放行開火、PlayerController.IsAuraActive） | 改柴房教學流程、教學寫死清單、地圖佈置/傳送門門檻 |
@@ -78,3 +79,4 @@
 - 大多數玩法擴充是「在 CSV 加一列 ＋ 既有系統參數」就能做到；動程式前先確認不能用資料驅動解決。
 - **做到一半得擱置、或某功能暫時缺一塊**時，記到 [TODO.md](TODO.md)（缺口清單），別讓半成品的暫缺資訊散落。
 *2026-07-27：文件地圖補上先前漏收的 CORE_LOOP_DESIGN / PERF_QUALITY_AUDIT / PROPS_IMAGEGEN_LIST 三份。*
+*2026-07-28：新增 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)（祭壇抽選系統）。*

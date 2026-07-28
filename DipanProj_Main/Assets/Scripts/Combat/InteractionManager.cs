@@ -604,7 +604,9 @@ public class InteractionManager : MonoBehaviour
         if (pt == null) return;
 
         // toRealBag＝直接進真背包（起始/教學道具，如佛燈：撿了要能當場開背包裝備、死亡也不丟）；否則走既有規則（關卡內臨時包/廣場真背包）。
-        int leftover = pt.toRealBag
+        // toRealBag 是給起始/教學道具用的「直接進真背包」捷徑，但金錢例外：
+        // 金錢是獨立數字、不佔背包格，一律回到統一入口處理。
+        int leftover = (pt.toRealBag && pt.itemId != RunProgress.MoneyItemId)
             ? (InventorySystem.Instance != null ? InventorySystem.Instance.AddItem(pt.itemId, pt.count) : pt.count)
             : GiveToPlayer(pt.itemId, pt.count);
         int added = pt.count - leftover;

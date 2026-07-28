@@ -75,10 +75,18 @@ namespace Dipan.Gacha
             return result;
         }
 
-        /// <summary>玩家目前身上有多少「這個池用來付帳的道具」。</summary>
+        /// <summary>這個池是不是用「金錢」付帳（金錢是獨立數字，不在背包裡）。</summary>
+        static bool PaysWithWallet(GachaPoolDef pool) => pool != null && pool.CostItemId == RunProgress.MoneyItemId;
+
+        /// <summary>玩家目前有多少「這個池用來付帳的東西」。金錢走錢包，其他道具走背包。</summary>
         public static int MoneyHeld(GachaPoolDef pool)
         {
             if (pool == null) return 0;
+            if (PaysWithWallet(pool))
+            {
+                var sm = SaveManager.Instance;
+                return sm != null ? sm.Currency : 0;
+            }
             var inv = InventorySystem.Instance;
             return inv != null ? inv.CountOf(pool.CostItemId) : 0;
         }
@@ -134,12 +142,24 @@ namespace Dipan.Gacha
             int cost = multi ? pool.CostMulti : pool.CostSingle;
 
             // 扣錢（CanRoll 已確認夠，這裡再擋一次以防中間狀態變了）
-            var inv = InventorySystem.Instance;
-            if (inv == null) { res.Reason = "沒有背包系統"; return res; }
-            if (inv.RemoveItem(pool.CostItemId, cost) > 0)
+            if (PaysWithWallet(pool))
             {
-                res.Reason = $"{MoneyName(pool)}不足";
-                return res;
+                var sm = SaveManager.Instance;
+                if (sm == null || !sm.TrySpendCurrency(cost))
+                {
+                    res.Reason = $"{MoneyName(pool)}不足";
+                    return res;
+                }
+            }
+            else
+            {
+                var inv0 = InventorySystem.Instance;
+                if (inv0 == null) { res.Reason = "沒有背包系統"; return res; }
+                if (inv0.RemoveItem(pool.CostItemId, cost) > 0)
+                {
+                    res.Reason = $"{MoneyName(pool)}不足";
+                    return res;
+                }
             }
 
             for (int i = 0; i < count; i++)

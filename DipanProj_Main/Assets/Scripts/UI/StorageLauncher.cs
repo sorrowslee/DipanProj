@@ -18,7 +18,7 @@ namespace Dipan.UI
             var st = StorageSystem.Instance;
             if (st.HasAnyItem()) return;
             var p0 = st.Page(0);    // 種到第 1 頁
-            p0.AddItem(101, 500);   // 銅錢
+            // 銅錢不再是背包/倉庫道具（改成獨立金錢數字），所以測試種子不種它了。
             p0.AddItem(102, 30);    // 卷軸
             p0.AddItem(103, 20);    // 符紙
             st.Page(1).AddItem(1, 1);   // 第 2 頁放一把武器，方便驗證切頁

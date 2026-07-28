@@ -13,7 +13,8 @@ namespace Dipan.UI
     /// （見 <see cref="OnBuild"/> 裡「＝＝＝ 如何新增一個作弊分頁 ＝＝＝」的說明）。
     ///
     /// 目前分頁：
-    ///   1.「給道具」：填入物品 ID + 數量 → 按確認 → 直接加進玩家「真背包」（InventorySystem.AddItem）。
+    ///   1.「給道具」：填入物品 ID + 數量 → 按確認 → 走 RunProgress.GiveItem（關卡內進臨時包、廣場進真背包；
+    ///      給 101 銅錢會轉成金錢數字）。
     ///
     /// 風格對齊專案：全程式建構、零 prefab / Inspector 接線（同 SettingsPanel / InventoryPanel）。
     /// 開啟時暫停遊戲 + 擋輸入（方便打字），ESC 或右上 X 關閉。
@@ -45,6 +46,10 @@ namespace Dipan.UI
         static readonly Color ColInputBg = new Color(1f, 1f, 1f, 0.10f);
         static readonly Color ColOk      = new Color(0.55f, 0.9f, 0.55f, 1f);
         static readonly Color ColErr     = new Color(0.95f, 0.5f, 0.5f, 1f);
+        // 功能分組的底板色：不同功能給不同色塊，一眼看得出「這幾個東西是一組的」。
+        static readonly Color ColGroupA  = new Color(1f, 1f, 1f, 0.05f);            // 中性（依 ID 給道具）
+        static readonly Color ColGroupB  = new Color(0.86f, 0.72f, 0.36f, 0.09f);   // 金調（快捷鈕）
+        static readonly Color ColDivider = new Color(1f, 1f, 1f, 0.12f);
 
         RectTransform _frame;
         RectTransform _navCol;     // 左側分頁欄
@@ -171,32 +176,61 @@ namespace Dipan.UI
             Place(head.rectTransform, 0f, 0f, 600f, 40f);
 
             var hint = UIBuilder.Text(root, "Hint",
-                "填入物品 ID 與數量，按「確認給予」直接放進背包。\n物品 ID 見 Assets/Data/ItemTable.csv（例：101 銅錢、201 回血藥）。",
+                "物品 ID 見 Assets/Data/ItemTable.csv（例：201 回血藥）。",
                 18, new Color(1f, 1f, 1f, 0.6f), TextAnchor.UpperLeft);
-            Place(hint.rectTransform, 0f, 48f, 780f, 60f);
+            Place(hint.rectTransform, 0f, 46f, GroupW, 30f);
 
-            // 物品 ID
+            // ── 第一組：依 ID 給道具 ──
+            //    ID、數量、確認是同一件事的三個步驟，排成一列才好操作（填、填、按）。
+            const float G1Y = 92f, G1H = 124f, Row1Y = 136f, RowH = 48f;
+            AddGroup(root, "依 ID 給道具", G1Y, G1H, ColGroupA);
+
             var idLabel = UIBuilder.Text(root, "IdLabel", "物品 ID", 22, Color.white, TextAnchor.MiddleLeft);
-            Place(idLabel.rectTransform, 0f, 130f, 120f, 48f);
-            _idInput = UIBuilder.InputField(root, "IdInput", "例：101", 24, 9, ColInputBg);
+            Place(idLabel.rectTransform, 14f, Row1Y, 110f, RowH);
+            _idInput = UIBuilder.InputField(root, "IdInput", "例：201", 24, 9, ColInputBg);
             _idInput.contentType = InputField.ContentType.IntegerNumber;   // 只准整數
-            Place((RectTransform)_idInput.transform, 130f, 130f, 220f, 48f);
+            Place((RectTransform)_idInput.transform, 129f, Row1Y, 180f, RowH);
 
-            // 數量
             var countLabel = UIBuilder.Text(root, "CountLabel", "數量", 22, Color.white, TextAnchor.MiddleLeft);
-            Place(countLabel.rectTransform, 380f, 130f, 90f, 48f);
+            Place(countLabel.rectTransform, 329f, Row1Y, 80f, RowH);
             _countInput = UIBuilder.InputField(root, "CountInput", "例：1", 24, 9, ColInputBg);
             _countInput.contentType = InputField.ContentType.IntegerNumber;
             _countInput.text = "1";
-            Place((RectTransform)_countInput.transform, 470f, 130f, 160f, 48f);
+            Place((RectTransform)_countInput.transform, 414f, Row1Y, 140f, RowH);
 
-            // 確認鈕
             var giveBtn = UIBuilder.Button(root, "GiveBtn", "確認給予", OnClickGive, ColBtn);
-            Place((RectTransform)giveBtn.transform, 0f, 200f, 260f, 58f);
+            Place((RectTransform)giveBtn.transform, 579f, Row1Y, 230f, RowH);
 
-            // 狀態列（本次結果）
+            AddDivider(root, 232f);
+
+            // ── 第二組：一鍵快捷（不用填任何欄位）──
+            const float G2Y = 246f, G2H = 118f;
+            AddGroup(root, "一鍵快捷", G2Y, G2H, ColGroupB);
+
+            var moneyBtn = UIBuilder.Button(root, "MoneyBtn", $"獲得 {CheatMoneyAmount:N0} 元",
+                                            OnClickGiveMoney, ColBtn);
+            Place((RectTransform)moneyBtn.transform, 14f, 288f, 260f, 56f);
+
+            // 狀態列（本次結果）——兩組共用，放在最下面
             _giveStatus = UIBuilder.Text(root, "GiveStatus", "", 22, ColOk, TextAnchor.UpperLeft);
-            Place(_giveStatus.rectTransform, 0f, 276f, 820f, 80f);
+            Place(_giveStatus.rectTransform, 0f, 384f, GroupW, 80f);
+        }
+
+        /// <summary>作弊快捷鈕一次給多少錢。</summary>
+        const int CheatMoneyAmount = 10000;
+
+        // 直接加金錢數字（金錢不是背包道具，所以走 SaveManager，不經過背包/臨時包）。
+        void OnClickGiveMoney()
+        {
+            var sm = Dipan.Save.SaveManager.Instance;
+            if (sm == null || !sm.HasActiveCharacter)
+            {
+                SetGiveStatus("還沒載入角色，現在沒有錢包可以加錢。", false);
+                return;
+            }
+            sm.AddCurrency(CheatMoneyAmount);
+            SetGiveStatus($"已獲得 {CheatMoneyAmount:N0} 元（目前 {sm.Currency:N0}）。", true);
+            AlertPanel.Toast($"作弊：獲得 {CheatMoneyAmount:N0} 元");
         }
 
         void OnClickGive()
@@ -225,7 +259,9 @@ namespace Dipan.UI
                 return;
             }
 
-            int leftover = inv.AddItem(id, count);   // 直接進真背包（不走臨時包）
+            // 走「取得物品的統一入口」：關卡內進臨時包、廣場進真背包，
+            // 而且給 101 銅錢時會自動轉成金錢數字（金錢不再佔背包格）。
+            int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, count) : inv.AddItem(id, count);
             int added = count - leftover;
             string name = string.IsNullOrEmpty(data.Name) ? $"#{id}" : data.Name;
 
@@ -247,6 +283,30 @@ namespace Dipan.UI
         // ───────────────────────── 版面小工具 ─────────────────────────
 
         // 座標映射：把元件錨到父物件左上角、anchoredPosition=(px,-py)（與 SettingsPanel.Place 同慣例）。
+        /// <summary>
+        /// 畫一塊「功能分組」的底板＋小標題。不同功能用不同底色隔開，
+        /// 之後作弊項目變多時才不會糊成一片按鈕海。控制項照樣用 Place 擺在這塊範圍內。
+        /// </summary>
+        void AddGroup(RectTransform root, string title, float y, float h, Color tint)
+        {
+            var bg = UIBuilder.Image(root, $"Group_{title}", null, tint);
+            bg.raycastTarget = false;
+            Place(bg.rectTransform, 0f, y, GroupW, h);
+
+            var t = UIBuilder.Text(root, $"GroupTitle_{title}", title, 20, ColAccent, TextAnchor.MiddleLeft);
+            Place(t.rectTransform, 14f, y + 8f, GroupW - 28f, 26f);
+        }
+
+        void AddDivider(RectTransform root, float y)
+        {
+            var line = UIBuilder.Image(root, "Divider", null, ColDivider);
+            line.raycastTarget = false;
+            Place(line.rectTransform, 0f, y, GroupW, 2f);
+        }
+
+        /// <summary>分組底板寬度（內容區 = FrameW - NavW - 左右內距）。</summary>
+        const float GroupW = FrameW - NavW - Pad * 2f;
+
         void Place(RectTransform rt, float px, float py, float w, float h)
         {
             rt.anchorMin = rt.anchorMax = new Vector2(0f, 1f);
