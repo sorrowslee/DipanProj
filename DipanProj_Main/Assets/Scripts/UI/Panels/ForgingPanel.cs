@@ -502,12 +502,9 @@ namespace Dipan.UI
         // 方框有兩個版本：無鎖鏈（可用的孔／鐵砧）與有鎖鏈（上鎖的孔）。
         // 兩張圖的內容都含兩側尖角，但這裡記的一律是**方形本體**的邊界框（尖角自然凸到方框外，與示意圖一致）；
         // 兩張的畫布尺寸與本體位置都不同，所以各記各的，靠 PlaceArt 對齊到同一個 CellW×CellH。
-        static readonly ArtSpec ArtFrame = new ArtSpec(Dir + "ForgingPanel_ItemFrame", 1360, 1210, 155, 76, 1045, 1084);
+        static readonly ArtSpec ArtFrame = new ArtSpec(Dir + "ForgingPanel_ItemFrame", 1448, 1296, 145, 60, 1153, 1176);
         static readonly ArtSpec ArtFrameLocked = new ArtSpec(Dir + "ForgingPanel_ItemFrameWithChain", 1412, 1302, 109, 65, 1171, 1185);
-        // ⚠ ForgingPanel_Btn 目前**沒有去背**（整張不透明、四周是深灰 40,40,40）。
-        //   下面記的是「看得見的底板」的邊界框（用顏色量的），所以位置與大小是對的，
-        //   但灰底會露出一圈。等重新輸出成透明 PNG 後，這組數字仍然適用（alpha 邊界框幾乎相同）。
-        static readonly ArtSpec ArtBtn = new ArtSpec(CommonDir + "ForgingPanel_Btn", 2416, 676, 8, 66, 2386, 565);
+        static readonly ArtSpec ArtBtn = new ArtSpec(CommonDir + "ForgingPanel_Btn", 2416, 676, 7, 66, 2388, 559);
         static readonly ArtSpec ArtClose = new ArtSpec(CommonDir + "CloseBtn_2", 519, 481, 17, 14, 475, 459);
 
         /// <summary>建一張美術圖（不擋點擊）。載不到就留一個透明的殼，版面不會塌。</summary>
@@ -543,16 +540,29 @@ namespace Dipan.UI
                 UIBuilder.Center(rt, rectW, rectH, centerPx - new Vector2(dx, dy));
         }
 
-        /// <summary>載圖並檢查畫布尺寸是否還跟 ArtSpec 記的一樣（重新輸出圖檔時把靜默偏移變成明確警告）。</summary>
+        /// <summary>
+        /// 載圖並檢查它跟 ArtSpec 記的還對不對得上（重新輸出圖檔時把靜默偏移變成明確警告）。
+        ///
+        /// ⚠ 比的是**畫布比例**而不是像素數。原因：Unity 匯入設定的 `Max Size`（本專案預設 2048）
+        ///   會把超過的圖**等比縮小**，`sprite.rect` 拿到的是縮小後的尺寸——例如 2416×676 的按鈕底板
+        ///   進到遊戲裡是 2048×573。而 PlaceArt 的算式全是比值（fullW/bw、rectW/fullW…），
+        ///   等比縮放完全不影響結果，那種情況報警只是雜訊。
+        ///   真正會出事、也是這裡要抓的，是「重新輸出時畫布比例變了」＝內容在畫布裡的相對位置跑掉。
+        /// </summary>
         static Sprite LoadArt(ArtSpec spec)
         {
             var sp = LoadSprite(spec.path);
             if (sp != null)
             {
                 float w = sp.rect.width, h = sp.rect.height;
-                if (Mathf.Abs(w - spec.fullW) > 1f || Mathf.Abs(h - spec.fullH) > 1f)
-                    Debug.LogWarning($"[ForgingPanel]「{spec.path}」尺寸是 {w}x{h}，但版面表記的是 {spec.fullW}x{spec.fullH}。" +
-                                     "圖重新輸出過了嗎？請重新量它的不透明內容邊界框並更新 ForgingPanel 的 ArtSpec，否則位置與大小會偏掉。");
+                if (w > 0f && h > 0f && spec.fullH > 0f)
+                {
+                    float got = w / h, want = spec.fullW / spec.fullH;
+                    if (Mathf.Abs(got - want) > want * 0.01f)   // 差 1% 以上才算真的換圖了
+                        Debug.LogWarning($"[ForgingPanel]「{spec.path}」的畫布比例對不上：實際 {w}x{h}（{got:F3}），" +
+                                         $"版面表記的是 {spec.fullW}x{spec.fullH}（{want:F3}）。" +
+                                         "圖重新輸出過了嗎？請重新量它的不透明內容邊界框並更新 ForgingPanel 的 ArtSpec，否則位置與大小會偏掉。");
+                }
             }
             return sp;
         }

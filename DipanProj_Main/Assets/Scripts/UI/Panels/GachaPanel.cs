@@ -897,16 +897,28 @@ namespace Dipan.UI
             UIBuilder.Center(img.rectTransform, rectW, rectH, center - new Vector2(dx, dy));
         }
 
-        /// <summary>載圖並檢查尺寸是否還跟 ArtSpec 記的一樣（重新輸出圖檔時把靜默偏移變成明確警告）。</summary>
+        /// <summary>
+        /// 載圖並檢查它跟 ArtSpec 記的還對不對得上（重新輸出圖檔時把靜默偏移變成明確警告）。
+        ///
+        /// ⚠ 比的是**畫布比例**而不是像素數。原因：Unity 匯入設定的 `Max Size`（本專案預設 2048）
+        ///   會把超過的圖**等比縮小**，`sprite.rect` 拿到的是縮小後的尺寸——例如 GachaPanel_StartBtn
+        ///   是 2072x588，進到遊戲裡變 2048x581。而 PlaceArt 的算式全是比值，等比縮放完全不影響結果，
+        ///   那種情況報警只是雜訊（見 readme/PROBLEMS.md D12）。
+        /// </summary>
         static Sprite LoadArt(ArtSpec spec)
         {
             var sp = LoadSprite(spec.path);
             if (sp != null)
             {
                 float w = sp.rect.width, h = sp.rect.height;
-                if (Mathf.Abs(w - spec.fullW) > 1f || Mathf.Abs(h - spec.fullH) > 1f)
-                    Debug.LogWarning($"[GachaPanel] 「{spec.path}」尺寸是 {w}x{h}，但版面表記的是 {spec.fullW}x{spec.fullH}。" +
-                                     "圖重新輸出過了嗎？請重新量它的不透明內容邊界框並更新 GachaPanel 的 ArtSpec，否則位置與大小會偏掉。");
+                if (w > 0f && h > 0f && spec.fullH > 0f)
+                {
+                    float got = w / h, want = spec.fullW / spec.fullH;
+                    if (Mathf.Abs(got - want) > want * 0.01f)   // 差 1% 以上才算真的換圖了
+                        Debug.LogWarning($"[GachaPanel]「{spec.path}」的畫布比例對不上：實際 {w}x{h}（{got:F3}），" +
+                                         $"版面表記的是 {spec.fullW}x{spec.fullH}（{want:F3}）。" +
+                                         "圖重新輸出過了嗎？請重新量它的不透明內容邊界框並更新 GachaPanel 的 ArtSpec，否則位置與大小會偏掉。");
+                }
             }
             return sp;
         }

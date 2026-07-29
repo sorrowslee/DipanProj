@@ -254,6 +254,13 @@
   格子元件那邊的 `if (locked) return;` 保留，但只當「提早收工」，不是唯一防線。
 - **通則**：只要是「共用事件基礎設施 + 個別元件想擋掉某些操作」的結構，擋的地方要在**真正執行動作的那一層**；上游元件的 early-return 常常擋不住框架已經填好的狀態。另外 `OnEndDrag` 的收尾（清 ghost、還原 `blocksRaycasts`）**不要跟著 early-return 一起跳過**，否則狀態會殘留。（2026-07-29 記，見 [FORGING.md](FORGING.md) §4）
 
+### D12. 面板一開就洗版「圖的尺寸跟版面表記的不一樣」，但圖根本沒動過（元凶是匯入設定的 Max Size）
+- **症狀**：開鍛造面板，Console 一次噴七八條 `[ForgingPanel]「UI/Common/ForgingPanel_Btn」尺寸是 2048x573，但版面表記的是 2416x676`。去看檔案，明明就是 2416×676，沒人動過。
+- **原因**：`ArtSpec` 的自檢是拿 `sprite.rect` 跟「PNG 檔案尺寸」比，但 `sprite.rect` 是**匯入之後**的尺寸——`.meta` 的 `maxTextureSize`（本專案預設 **2048**）會把超過的圖**等比縮小**再進遊戲。2416×676 → 2048×573（乘 0.8477）就是這麼來的。
+- **解法**：**改成比「畫布比例」而不是像素數**。`PlaceArt` 的算式全是比值（`fullW/bw`、`rectW/fullW`…），等比縮放完全不影響擺放結果，所以那種情況本來就不該報警；真正要抓的是「重新輸出時畫布比例變了 ＝ 內容在畫布裡的相對位置跑掉」。`ForgingPanel` 與 `GachaPanel` 的 `LoadArt` 都已改成比 `w/h`，差 1% 以上才警告。
+- **附帶提醒**：反過來說，看到這個警告時要先分辨兩種情況——① 只是 Max Size 縮圖（無害，現在不會再報）；② **真的換了圖**（那就要重量內容邊界框、更新 `ArtSpec`）。這次兩種同時發生：`ForgingPanel_Btn` 是①，`ForgingPanel_ItemFrame` 是②（1360×1210 換成了 1448×1296）。
+- **順帶**：`Max Size` 會縮圖也意味著**素材開太大是白費的**。底部長按鈕在畫面上只有 ~240px 寬，卻放了 2416px 的原圖（進遊戲仍是 2048），等於 8~10 倍過取樣。依 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) 的規範（大按鈕 256~512），把這張的 `maxTextureSize` 調到 512 就好，記憶體與載入都省。（2026-07-29 記）
+
 ## E. 效能 / 顯示 (Performance & Display)
 
 ### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順

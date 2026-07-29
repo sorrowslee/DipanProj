@@ -226,8 +226,9 @@
       （想先看解鎖的樣子：設 `Dipan.Inventory.ForgeSockets.DebugCount = 4;`）
 - [ ] **沒有「寶石」這種道具** → 孔就算開了也放不進東西。做出寶石後把 `ForgingPanel.IsGem(ItemData)` 從 `false` 改成
       `d.Category == "Gem"` 之類即可。
-- [ ] **`Resources/UI/Common/ForgingPanel_Btn.png` 沒去背**：整張不透明、四周填深灰 `(40,40,40)`，所以底部兩顆按鈕會露出灰底方塊。
-      重新輸出成透明 PNG 蓋掉即可，程式端的 `ArtSpec` 數字仍然適用（現在記的是用顏色量的內容邊界框）。
+- [x] ~~`ForgingPanel_Btn.png` 沒去背~~ → **已補上透明版**（2026-07-29），`ArtSpec` 已改讀 alpha 邊界框 `(7,66,2388,559)`。
+- [ ] **按鈕底板的 `maxTextureSize` 可以調小**：這張原圖 2416px 寬、畫面上只顯示約 240px，匯入時已被 Max Size 壓到 2048 仍是 8~10 倍過取樣。
+      依 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) 的規範（大按鈕 256~512）改成 512 即可，程式端不用動（見 [PROBLEMS.md](PROBLEMS.md) D12）。
 - [ ] **鍛造結果不進存檔**：鐵砧與孔位都是純記憶體，關面板一律退回背包。等鑲嵌真的會改變裝備屬性時，才需要決定
       「鑲好的寶石存在哪」（大概是 `ItemStack` 上加附加資料，屆時 `InventoryDTO` 要一起改）。
 - [ ] **開啟方式是熱鍵 Y**，之後要改成鐵匠 NPC 的互動點：走 `openPanel` 觸發填 `panelId=forge`
