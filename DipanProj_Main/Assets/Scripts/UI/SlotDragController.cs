@@ -18,9 +18,34 @@ namespace Dipan.UI
         /// <summary>目前正在拖曳的物品 ID（0=沒拖）。面板輪詢它來「拖起某類物品時亮出可放的空欄位」（不用 static 事件，避免關 Domain Reload 殘留）。</summary>
         public static int DraggingItemId { get; private set; }
 
+        /// <summary>
+        /// 「這一格現在被別的介面借走了，不能拖出也不能放進」的查詢鉤子。
+        /// 由需要鎖格子的面板在開啟時掛上、關閉時拆掉（目前唯一的來源是鍛造台：裝備放上鐵砧時
+        /// 不搬移物品，而是把背包來源那一格鎖住，見 ForgeAnvilSlot / readme/FORGING.md）。
+        /// null = 目前沒有任何鎖。
+        ///
+        /// ⚠ **鎖一定要擋在這裡，光在格子元件的 OnBeginDrag 裡 return 是擋不住的**——
+        /// Unity 的 EventSystem 在滑鼠按下時就把 `eventData.pointerDrag` 設成那個格子了，
+        /// 跟我們的 OnBeginDrag 有沒有做事無關；而 <see cref="Drop"/> 是從 pointerDrag 讀來源的，
+        /// 所以「沒有懸浮圖示、但放到別格照樣搬走」。見 readme/PROBLEMS.md。
+        /// </summary>
+        public static System.Func<ISlotView, bool> IsSlotLocked;
+
+        /// <summary>這一格是不是被鎖住了（沒掛鉤子就一律 false）。</summary>
+        public static bool Locked(ISlotView v) => v != null && IsSlotLocked != null && IsSlotLocked(v);
+
+        /// <summary>Play 模式 static 殘留保險（本專案關掉了 Domain Reload，見 PROBLEMS I3）。</summary>
+        public static void ResetForPlayMode()
+        {
+            IsSlotLocked = null;
+            _src = null;
+            DraggingItemId = 0;
+            if (_ghost != null) { Object.Destroy(_ghost); _ghost = null; }
+        }
+
         public static void Begin(ISlotView view, PointerEventData e)
         {
-            if (view == null || !InventoryActions.HasItem(view)) { _src = null; DraggingItemId = 0; return; }
+            if (view == null || Locked(view) || !InventoryActions.HasItem(view)) { _src = null; DraggingItemId = 0; return; }
             _src = view;
             DraggingItemId = InventoryActions.ItemIdOf(view);
 
@@ -61,8 +86,12 @@ namespace Dipan.UI
 
         public static void Drop(ISlotView target, PointerEventData e)
         {
+            // 沒有經過 Begin（來源被鎖住、或那一格根本沒東西）就不成立這次搬運。
+            // 不能只信 e.pointerDrag——它是 EventSystem 在按下時就填好的，跟我們有沒有真的開始拖曳無關。
+            if (_src == null) return;
             var src = e.pointerDrag != null ? e.pointerDrag.GetComponent<ISlotView>() : _src;
             if (src == null || target == null || src == target) return;
+            if (Locked(src) || Locked(target)) return;   // 被借走的格子既不能拖出、也不能收進
             InventoryActions.Resolve(src, target);
         }
     }

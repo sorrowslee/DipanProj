@@ -3,10 +3,10 @@ using UnityEngine;
 namespace Dipan.UI
 {
     /// <summary>
-    /// 倉庫／背包開關與並排協調器（跨場景常駐，開場自動生成、零接線）。
-    /// - K：開/關倉庫。B：開/關背包。
-    /// - 只開其中一個 → 該面板置中；兩個都開 → 倉庫左、背包右（並排），方便互搬。
-    /// 見 readme/STORAGE.md。
+    /// 倉庫／背包／鍛造開關與並排協調器（跨場景常駐，開場自動生成、零接線）。
+    /// - K：開/關倉庫。B：開/關背包。Y：開/關鍛造（暫用熱鍵，之後改由鐵匠 NPC 互動開啟）。
+    /// - 只開其中一個 → 該面板置中；與背包同時開 → 另一個面板靠左、背包靠右（並排），方便互搬／互拖。
+    /// 見 readme/STORAGE.md、FORGING.md。
     /// </summary>
     public class StorageBagCoordinator : MonoBehaviour
     {
@@ -14,6 +14,7 @@ namespace Dipan.UI
 
         public KeyCode storageKey = KeyCode.K;
         public KeyCode bagKey = KeyCode.B;
+        public KeyCode forgeKey = KeyCode.Y;   // TODO(NPC)：鐵匠做好後改走互動點，這顆熱鍵可拿掉
 
         void Awake()
         {
@@ -27,22 +28,26 @@ namespace Dipan.UI
             var ui = UIManager.Instance;
             if (ui == null) return;
 
-            // 新手教學強制階段：鎖住背包/倉庫快捷鍵，避免玩家亂開打斷引導。
-            // 例外：佛燈教學的「按 B 開/關背包」步驟會放行 B 鍵（AllowBag），此時仍鎖倉庫 K。
+            // 新手教學強制階段：鎖住背包/倉庫/鍛造快捷鍵，避免玩家亂開打斷引導。
+            // 例外：佛燈教學的「按 B 開/關背包」步驟會放行 B 鍵（AllowBag），此時仍鎖倉庫 K 與鍛造 Y。
             bool hotkeysFree = !TutorialManager.HardLock;
             if (hotkeysFree && Input.GetKeyDown(storageKey)) ui.Toggle<StoragePanel>();
+            if (hotkeysFree && Input.GetKeyDown(forgeKey)) ui.Toggle<ForgingPanel>();
             if ((hotkeysFree || TutorialManager.AllowBag) && Input.GetKeyDown(bagKey)) ui.Toggle<InventoryPanel>();
 
             // 依當前開啟狀態套用版面（idempotent，每幀套無妨）
             var store = ui.Get<StoragePanel>();
             var bag = ui.Get<InventoryPanel>();
             var scripts = ui.Get<ScriptsPanel>();
+            var forge = ui.Get<ForgingPanel>();
             bool storeOpen = store != null && store.IsOpen;
             bool bagOpen = bag != null && bag.IsOpen;
             bool scriptsOpen = scripts != null && scripts.IsOpen;
-            // 背包在「倉庫」或「傳送門」任一開著時都靠右並排（讓左邊留給倉庫/傳送門）。
-            bool bagPaired = bagOpen && (storeOpen || scriptsOpen);
+            bool forgeOpen = forge != null && forge.IsOpen;
+            // 背包在「倉庫」「傳送門」「鍛造」任一開著時都靠右並排（讓左邊留給那個面板）。
+            bool bagPaired = bagOpen && (storeOpen || scriptsOpen || forgeOpen);
             if (storeOpen) store.SetPairedLayout(storeOpen && bagOpen);
+            if (forgeOpen) forge.SetPairedLayout(bagOpen);
             if (bagOpen) bag.SetPairedLayout(bagPaired);
         }
     }

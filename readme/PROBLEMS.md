@@ -241,6 +241,19 @@
   ```
   同類還有 `Button.rectTransform`（見 D6）、`Image.sprite = Texture2D`、`Transform.position` 當 `RectTransform.anchoredPosition` 用。（2026-07-28 記）
 
+### D11. 把格子「鎖起來」只在 `OnBeginDrag` 裡 return，結果東西照樣被拖走（沒有懸浮圖示，但真的搬了）
+- **症狀**：鍛造台把裝備放上鐵砧後，背包來源那一格應該鎖住不能動。格子元件的 `OnBeginDrag` 明明已經 `if (locked) return;`，實測卻還是「拖得動」——把它拖到別格放開，東西真的換位置了（只是拖曳過程中沒有跟著游標的半透明圖示）。
+- **原因**：**Unity 的 EventSystem 在滑鼠按下時就把 `eventData.pointerDrag` 設成那個格子了**，跟我們的 `OnBeginDrag` 有沒有做事完全無關。而共用的 `SlotDragController.Drop` 是這樣拿來源的：
+  ```csharp
+  var src = e.pointerDrag != null ? e.pointerDrag.GetComponent<ISlotView>() : _src;
+  ```
+  → 就算 `Begin` 從沒被呼叫（`_src` 是 null、也沒建 ghost），放開時 `Drop` 仍從 `pointerDrag` 撿回那個被鎖的來源並執行 `InventoryActions.Resolve`。所以症狀才是「看起來沒在拖、卻真的搬走了」。
+- **解法**：**鎖要擋在共用拖放層，不能只擋在格子元件。** `SlotDragController` 新增
+  ① `_src == null` 就直接 return（沒經過 `Begin` 的拖曳一律不成立）；
+  ② 一個 `IsSlotLocked` 查詢鉤子（面板開啟時掛、關閉時拆），`Begin`／`Drop` 各自檢查來源與目標。
+  格子元件那邊的 `if (locked) return;` 保留，但只當「提早收工」，不是唯一防線。
+- **通則**：只要是「共用事件基礎設施 + 個別元件想擋掉某些操作」的結構，擋的地方要在**真正執行動作的那一層**；上游元件的 early-return 常常擋不住框架已經填好的狀態。另外 `OnEndDrag` 的收尾（清 ghost、還原 `blocksRaycasts`）**不要跟著 early-return 一起跳過**，否則狀態會殘留。（2026-07-29 記，見 [FORGING.md](FORGING.md) §4）
+
 ## E. 效能 / 顯示 (Performance & Display)
 
 ### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順

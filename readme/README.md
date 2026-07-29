@@ -42,6 +42,7 @@
 | [BOTTOM_HUD.md](BOTTOM_HUD.md) | 底部操控列 HUD（燃燈佛框）＋ 左HP/右MP 液體血球（著色器液體、搖晃、懸停數字、暗場景調色）；取代舊左上角 HudPanel | 改底部 HUD、血球外觀/顏色/亮度/搖晃、血瓶槽位置 |
 | [INVENTORY.md](INVENTORY.md) | 背包系統（InventorySystem 資料層 + InventoryPanel、ItemTable.csv、icon 規格、格子座標） | 改背包、物品、裝備欄、加 icon |
 | [STORAGE.md](STORAGE.md) | 倉庫系統（StorageSystem + IItemGrid、倉庫+背包並排面板、點擊/拖放搬運、每角色獨立、存檔接線） | 改倉庫、做搬運 UI、套倉庫圖 |
+| [FORGING.md](FORGING.md) | 鍛造介面（Y 鍵開；鐵砧中央放武器/裝備、左右 6 個鑲嵌孔依裝備孔位數解鎖、底部兩顆按鈕尚未接功能；重用 ISlotView/SlotDragController 拖放地基） | 改鍛造介面、做鑲嵌/拆裝備、接鐵匠 NPC、加裝備孔位數 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
 | [GACHA_SYSTEM.md](GACHA_SYSTEM.md) | **祭壇抽選系統**（邪佛廣場走到祭壇按 F 抽選：四層資料架構讓「武器/裝備/血統/道具」大項可隨時增刪、打通關卡解鎖新內容進池、老虎機表演＋十連結算面板；**金錢改成獨立數字不再是背包道具**、血統藥劑一次性換外型；新觸發 `openPanel`／`unlockRoll`、新條件「最低/最高完成關卡數」＋「條件不成立時」） | 加/改抽選大項或池內容、放新祭壇、改抽選介面表演、動金錢或血統 |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
@@ -80,3 +81,4 @@
 - **做到一半得擱置、或某功能暫時缺一塊**時，記到 [TODO.md](TODO.md)（缺口清單），別讓半成品的暫缺資訊散落。
 *2026-07-27：文件地圖補上先前漏收的 CORE_LOOP_DESIGN / PERF_QUALITY_AUDIT / PROPS_IMAGEGEN_LIST 三份。*
 *2026-07-28：新增 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)（祭壇抽選系統）。*
+*2026-07-29：新增 [FORGING.md](FORGING.md)（鍛造介面）。*

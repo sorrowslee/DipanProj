@@ -11,3 +11,10 @@ id,cn,en
 1008,按 F 撿起藥水,Press F to pick up the potion
 1009,點一下藥水，放進藥水格,Click the potion to place it in the potion slot
 1010,按 1 喝下藥水,Press 1 to drink the potion
+# ── 鍛造介面（4001–4099）──
+4001,鍛造,Forge
+4002,移除鑲嵌,Remove Gems
+4003,拆除裝備,Dismantle
+4004,這個功能還沒做好,This feature is not ready yet
+4005,只能放入武器或裝備,Only weapons and equipment can be placed here
+4006,鍛造台只認得背包裡的東西，請先放進背包,The anvil only accepts items from your bag

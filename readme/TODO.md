@@ -209,3 +209,29 @@
 - [ ] 三座祭壇的 **`panelId` 要重點一次**——編輯器的循環按鈕舊 bug（見 [PROBLEMS.md](PROBLEMS.md) C9）讓它們實際存的是空字串。同時 `最低完成關卡數` 也要重填 `1`（欄位從 `requireClears` 改名成 `requireClearsMin`，舊的鍵已經是死資料）。
 - [ ] `邪佛對話` 設 **`最高完成關卡數=0` ＋ `條件不成立時=跳過這顆繼續`**；`初入場景對話` 設 **`最高完成關卡數=0`**。
 - [ ] 確認 `給紅嫁衣劇本` 這顆 trigger 還需不需要（第 2 周目起的門要改走「放劇本進傳送門」那條路，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §4 的連帶待辦）。
+
+---
+
+## 鍛造介面 (ForgingPanel) — 2026-07-29 建立
+
+版面與拖放已完成（按 **Y** 開啟，強制連背包並排；從背包把武器／裝備拖到鐵砧中央那一格）。
+完整說明見 [FORGING.md](FORGING.md)。程式檔：`Assets/Scripts/UI/Panels/ForgingPanel.cs`、
+`Assets/Scripts/UI/ForgeSlotWidget.cs`、`Assets/Scripts/Inventory/ForgeSlotGrid.cs`／`ForgeSocketGrid.cs`／`ForgeSockets.cs`。
+
+尚缺 / 待補：
+
+- [ ] **兩顆按鈕沒有功能**：「移除鑲嵌」「拆除裝備」按下去只跳「這個功能還沒做好」toast，事件刻意還沒接。
+- [ ] **裝備沒有「孔位數」屬性** → 六個鑲嵌孔永遠全鎖。解鎖鏈路已經做好，接法：`ItemTable.csv` 加一欄 `SocketCount`(0~6)
+      → `ItemData` 加欄位、`ItemDatabase` 解析 → 把 `ForgeSockets.Of()` 改成讀它。**面板端一行都不用改。**
+      （想先看解鎖的樣子：設 `Dipan.Inventory.ForgeSockets.DebugCount = 4;`）
+- [ ] **沒有「寶石」這種道具** → 孔就算開了也放不進東西。做出寶石後把 `ForgingPanel.IsGem(ItemData)` 從 `false` 改成
+      `d.Category == "Gem"` 之類即可。
+- [ ] **`Resources/UI/Common/ForgingPanel_Btn.png` 沒去背**：整張不透明、四周填深灰 `(40,40,40)`，所以底部兩顆按鈕會露出灰底方塊。
+      重新輸出成透明 PNG 蓋掉即可，程式端的 `ArtSpec` 數字仍然適用（現在記的是用顏色量的內容邊界框）。
+- [ ] **鍛造結果不進存檔**：鐵砧與孔位都是純記憶體，關面板一律退回背包。等鑲嵌真的會改變裝備屬性時，才需要決定
+      「鑲好的寶石存在哪」（大概是 `ItemStack` 上加附加資料，屆時 `InventoryDTO` 要一起改）。
+- [ ] **開啟方式是熱鍵 Y**，之後要改成鐵匠 NPC 的互動點：走 `openPanel` 觸發填 `panelId=forge`
+      （`InteractionManager.BuildKindRegistry()` 已是可註冊的表，參考 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) 的祭壇作法）。
+      接上之後 `StorageBagCoordinator.forgeKey` 可以拿掉。
+- [ ] **座標為量測值**：七個方框、兩顆按鈕、關閉鈕、標題的位置都是照示意圖量的常數（`ForgingPanel.cs` 上方）。
+      實機若有偏移，微調那幾個常數即可（同 InventoryPanel / StoragePanel 的做法）。

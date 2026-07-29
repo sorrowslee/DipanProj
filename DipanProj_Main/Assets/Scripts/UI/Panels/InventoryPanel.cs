@@ -47,6 +47,7 @@ namespace Dipan.UI
         InventorySlotWidget[] _equipSlots;
         PotionSlot[] _potionSlots;
         int _lastDragId = -1;
+        int _lastLockVersion = -1;   // 見 Update()：鍛造台鎖定狀態的輪詢
 
         // ── tooltip ──
         const float TooltipWidth = 460f;
@@ -296,6 +297,7 @@ namespace Dipan.UI
             Redraw();
             RedrawMoney();
             _lastDragId = -1;   // 開背包時重算「可放欄位」高亮
+            _lastLockVersion = ForgingPanel.LockVersion;
         }
 
         protected override void OnClose()
@@ -308,6 +310,10 @@ namespace Dipan.UI
             HideTooltip();
         }
 
+        // 「被別的介面借走」的格子壓黑用的色（見 InventorySlotWidget.locked）。
+        static readonly Color LockedTint = new Color(0.26f, 0.26f, 0.28f, 1f);
+        static readonly Color LockedTextTint = new Color(0.45f, 0.45f, 0.47f, 1f);
+
         void Redraw()
         {
             var inv = InventorySystem.Instance;
@@ -315,11 +321,14 @@ namespace Dipan.UI
             for (int i = 0; i < _gridSlots.Length; i++)
             {
                 var st = inv.GetGrid(i);
+                // 鍛造台把這格的裝備借去放鐵砧了 → 東西還在原位，但鎖起來壓黑（取下才解鎖）。
+                _gridSlots[i].locked = ForgingPanel.IsGridLocked(i);
                 SetSlotVisual(_gridSlots[i], st.ItemId, st.Count);
             }
             for (int i = 0; i < _equipSlots.Length; i++)
             {
                 int id = inv.GetEquipped(_equipSlots[i].equipSlot);
+                _equipSlots[i].locked = ForgingPanel.IsEquipLocked(_equipSlots[i].equipSlot);
                 SetSlotVisual(_equipSlots[i], id, id > 0 ? 1 : 0);
             }
             if (_potionSlots != null)
@@ -340,7 +349,12 @@ namespace Dipan.UI
                 w.icon.sprite = null;
                 w.icon.enabled = false;
             }
-            if (w.count != null) w.count.text = (count > 1) ? count.ToString() : "";
+            w.icon.color = w.locked ? LockedTint : Color.white;
+            if (w.count != null)
+            {
+                w.count.text = (count > 1) ? count.ToString() : "";
+                w.count.color = w.locked ? LockedTextTint : Color.white;
+            }
         }
 
         // ── 互動 ──
@@ -356,6 +370,8 @@ namespace Dipan.UI
                 var clickedData = clickedId > 0 ? inv.GetData(clickedId) : null;
                 if (portal != null && clickedData != null && clickedData.IsScript)
                     InventoryActions.QuickMoveGrid(w, portal);  // 傳送門開著：點劇本 → 送進傳送門方框
+                else if (ForgingPanel.IsForgeOpen && clickedData != null && clickedData.IsEquippable)
+                    ForgingPanel.TryPlaceFromGrid(w.index);     // 鍛造開著：點武器/裝備 → 放上鐵砧（借放，物品留在原位）
                 else if (store != null)
                     InventoryActions.QuickMoveGrid(w, store);   // 倉庫開著：點一下送進倉庫當前分頁
                 else if (clickedData != null && clickedData.IsBloodline)
@@ -447,6 +463,14 @@ namespace Dipan.UI
             if (_tooltip != null && _tooltip.gameObject.activeSelf) PositionTooltip();
             int drag = SlotDragController.DraggingItemId;
             if (drag != _lastDragId) { _lastDragId = drag; UpdateDropHighlights(drag); }
+
+            // 東西放上／取下鐵砧時**不會動到背包資料**（是借放不是搬移），所以不會觸發 OnChanged。
+            // 靠鍛造台的版本號輪詢來重畫「哪一格被鎖住壓黑」。
+            if (ForgingPanel.LockVersion != _lastLockVersion)
+            {
+                _lastLockVersion = ForgingPanel.LockVersion;
+                Redraw();
+            }
         }
 
         // 拖起某類物品時，把「該類物品能放、且空著的專用欄」亮黃光（裝備欄/藥水格）。放開時 itemId=0 → 全部關掉。
