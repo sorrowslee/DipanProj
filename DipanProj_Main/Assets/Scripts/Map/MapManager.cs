@@ -340,10 +340,19 @@ public class MapManager : MonoBehaviour
 
         Debug.Log($"[MapManager] 進入地圖 #{row.id}「{row.name}」(module={row.module})，落點={pos}。");
 
-        // 進邪佛廣場（大廳）= 存檔檢查點：標記已抵達廣場（下次改中央出生）＋自動存檔。
-        if (isHub && SaveManager.Instance != null)
+        // 進 Main module 的圖（開場山道 13/14、初始洞窟 11、邪佛廣場 12）= 存檔檢查點：
+        // 記下「玩家現在在哪」，讓「繼續遊戲」能接回開場流程，而不是永遠被丟到廣場。
+        // **關卡（其他 module）刻意不記**——關卡是 extraction 模型（臨時包純記憶體、離開歸零），
+        // 記了會讓重開遊戲回到一個東西都不見的關卡裡。所以這兩欄永遠是最後一次待在 Main 的位置。
+        if (SaveManager.Instance != null && row.module == SaveConstants.HubModule)
         {
-            SaveManager.Instance.HubIntroSpawnDone = true;
+            SaveManager.Instance.RecordLastLocation(row.id, entrance);
+
+            // 廣場另外標記「已抵達過」（決定下次的落點是洞穴出口還是中央）。
+            if (isHub) SaveManager.Instance.HubIntroSpawnDone = true;
+
+            // 這幾張圖一輪只會經過一次，直接落地寫檔比較保險（否則靠 dirty 自動存/離開遊戲才寫，
+            // 玩家在山道劇情中途直接關掉視窗就可能沒存到，回來又被丟回廣場）。
             SaveManager.Instance.SaveNow();
         }
     }

@@ -26,7 +26,11 @@ namespace Dipan.UI
         const float DisplayHeight = 660f;   // 彈窗在畫面上的高度（CanvasScaler 參考單位）
 
         // ── 版面座標（背板原圖像素，左上為原點、填中心點；實機微調這裡）──
-        const float MsgCx = 724f, MsgCy = 540f, MsgW = 960f, MsgH = 210f;   // 訊息文字（上方內襯）
+        // 訊息文字：擺在背板「上半塊木頭內襯」的正中央。內襯的可用範圍約 x 185~1265、y 360~715，
+        // 這裡取 1040×320 留一點邊。字級走 best-fit（MsgFontMax→MsgFontMin 自動縮），
+        // 訊息太長時是**整段縮小**而不是硬換行擠成醜的斷句；要指定斷句就在 LanguageTable 用 \n。
+        const float MsgCx = 725f, MsgCy = 528f, MsgW = 1040f, MsgH = 320f;
+        const int MsgFontMax = 64, MsgFontMin = 34;
         const float BtnW = 300f, BtnH = 200f, BtnY = 798f;                  // 兩顆鈕共用寬高與 y
         const float OkCx = 548f, NoCx = 900f;                                // OK 左、No 右
         const float BtnIconSize = 120f;                                      // 勾/叉 icon 大小
@@ -64,7 +68,12 @@ namespace Dipan.UI
             bg.raycastTarget = true;
 
             // 訊息文字（上方內襯）
-            _msg = UIBuilder.Text(_frame, "Msg", "", 64, new Color(0.95f, 0.93f, 0.85f), TextAnchor.MiddleCenter);
+            _msg = UIBuilder.Text(_frame, "Msg", "", MsgFontMax, new Color(0.95f, 0.93f, 0.85f), TextAnchor.MiddleCenter);
+            _msg.resizeTextForBestFit = true;          // 長訊息整段縮小，不會擠出框外或斷在奇怪的地方
+            _msg.resizeTextMinSize = MsgFontMin;
+            _msg.resizeTextMaxSize = MsgFontMax;
+            _msg.lineSpacing = 1.15f;
+            _msg.verticalOverflow = VerticalWrapMode.Truncate;   // best-fit 要能算高度，不能設 Overflow
             Place(UIBuilder.Rect(_msg), MsgCx, MsgCy, MsgW, MsgH);
 
             // 確定（✓）/ 取消（✗）：LongBtn 當底 + 勾/叉 icon

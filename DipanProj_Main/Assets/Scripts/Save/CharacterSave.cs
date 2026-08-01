@@ -70,6 +70,15 @@ namespace Dipan.Save
         // ── 場景旗標 ──
         public bool hubIntroSpawnDone = false;                      // 是否已由開場鏈首次抵達邪佛廣場（決定出生點：洞穴出口/中央）
 
+        // ── 上次所在位置（「繼續遊戲」要回到哪）──
+        // ⚠ 只記 HubModule（Main：開場山道 13/14、初始洞窟 11、邪佛廣場 12）的地圖，**關卡一律不記**。
+        // 理由：關卡採 extraction 模型（RunProgress 純記憶體、通關才落袋、死亡/離開歸零），
+        // 若記了關卡位置，重開遊戲會回到一個臨時包已經消失的關卡裡，等於破壞那個設計。
+        // 所以這兩欄的值永遠是「最後一次待在 Main 的位置」；在關卡中離開＝回到進關卡前的廣場。
+        // 缺欄/0（schema v2 以前的舊存檔）= 沒有記錄 → 退回邪佛廣場中央，行為與改動前一致。
+        public int lastMapId = 0;
+        public string lastEntrance = null;
+
         // ── 其他劇情/狀態旗標（彈性擴充，免改結構）──
         public Dictionary<string, string> flags = new Dictionary<string, string>();
     }

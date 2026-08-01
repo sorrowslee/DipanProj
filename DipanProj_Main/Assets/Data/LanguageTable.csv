@@ -18,3 +18,13 @@ id,cn,en
 4004,這個功能還沒做好,This feature is not ready yet
 4005,只能放入武器或裝備,Only weapons and equipment can be placed here
 4006,鍛造台只認得背包裡的東西，請先放進背包,The anvil only accepts items from your bag
+# ── 選擇存檔畫面（5001–5099）──
+5001,選擇存檔,Select Save
+5002,欄位,Slot
+5003,空欄位,Empty Slot
+5004,新建遊戲,New Game
+5005,進入遊戲,Enter Game
+5006,刪除角色,Delete Character
+5007,確定要刪除這個角色嗎？\n刪除後無法復原。,Delete this character?\nThis cannot be undone.
+5008,{0}周目,Cycle {0}
+5009,存檔損毀,Save Corrupted

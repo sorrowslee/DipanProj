@@ -381,6 +381,26 @@ namespace Dipan.Save
             set { if (_current != null && _current.progress.hubIntroSpawnDone != value) { _current.progress.hubIntroSpawnDone = value; MarkDirty(); } }
         }
 
+        /// <summary>上次所在的地圖（只會是 Main module 的圖；0 = 沒有記錄）。給「繼續遊戲」決定落點用。</summary>
+        public int LastMapId => _current != null ? _current.progress.lastMapId : 0;
+
+        /// <summary>上次所在地圖的落點名（可能為 null＝用該圖的 playerSpawn）。</summary>
+        public string LastEntrance => _current != null ? _current.progress.lastEntrance : null;
+
+        /// <summary>
+        /// 記下「玩家現在在哪」。由 MapManager 在進入 <b>Main module</b> 的地圖時呼叫；關卡不呼叫。
+        /// 值沒變就不寫（避免每次換圖都把存檔標成 dirty）。
+        /// </summary>
+        public void RecordLastLocation(int mapId, string entrance)
+        {
+            if (_current == null || mapId <= 0) return;
+            var p = _current.progress;
+            if (p.lastMapId == mapId && p.lastEntrance == entrance) return;
+            p.lastMapId = mapId;
+            p.lastEntrance = entrance;
+            MarkDirty();
+        }
+
         /// <summary>
         /// 標記某關卡（module）為已通關。idempotent：重複通關同一關不會重覆計數。
         /// 由各關卡的「達成目標」trigger 呼叫。回傳 true 代表這是「第一次」通關（進度 +1）。

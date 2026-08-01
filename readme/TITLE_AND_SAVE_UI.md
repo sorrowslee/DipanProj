@@ -44,7 +44,7 @@
 | `Assets/Scripts/Flow/ScreenFader.cs` | 全螢幕黑幕淡入/淡出（跨場景常駐、`sortingOrder` 30000 蓋在所有 UI 上、用 unscaledTime 因過場可能暫停）。`ScreenFader.Ensure().FadeTo(alpha,dur)`。用於切場景時先蓋黑再切，遮掉選單淡出/場景切換的破綻。 |
 | `Assets/Scripts/UI/Panels/TitlePanel.cs` | 標題畫面（Window 層、全螢幕佔位）：標題圖（`Resources/UI/TitlePanel/TitlePanel_TW`，3:1）＋中間偏右佛陀動畫（`Resources/UI/TitlePanel/BuddhaTitle/BuddhaTitle_01..NN`，自動偵測幀數、按開始才播一次、用 unscaledTime 因暫停中）＋開始遊戲鈕（圖 `Resources/UI/Common/StartGameBtn`＋程式補字）→**動畫播完再多停 `BuddhaEndHold` 秒才**開存讀檔畫面（無圖則退回文字/直接開）。播放中鎖按鈕防重複、回標題自動重置回第一幀。位置/大小常數在檔案上方（`BuddhaFps`/`BuddhaOffset`/`BuddhaDisplaySize`/`TextGroupX`/`TitleWidth`/`TitleY`/`StartBtnWidth`/`StartBtnY`）。 |
 | `Assets/Scripts/UI/TitleFireFx.cs` | **標題火焰特效**（UI 端、用 unscaledTime 因面板暫停）：① 全螢幕持續落火（火星/帶尾火條飄落閃爍，`UiFallingEmber`）② 標題燃燒（背後脈動火光＋沿標題往上竄、柔邊高斯羽化＋寬度抖動的火舌，`UiRisingFlame`）。**不是**用 MapsTable 火雨（那是世界端 SpriteRenderer、綁相機/deltaTime，暫停中不動且會被 UI 蓋掉）——改在 Canvas 上重做、複用火雨的程序生成佔位圖 `SceneEffectSprites`。由 `TitlePanel` 以 `EnableFireFx` 開關、`Init(emberRoot,titleRect,titleGlow)` 啟動。密度/大小/速度常數在 `TitleFireFx` 上方（`EmbersPerSecond`/`FlamesPerSecond`/`EmberFall*`/`TitleGlowAlpha` 等）。（曾試做佛陀兩肩蒸騰濃煙〔照搬 `SceneFxEmitter` fbm 煙塊〕，2026-07-03 決定不放、已移除。） |
-| `Assets/Scripts/UI/Panels/SaveSlotPanel.cs` | 三欄存讀檔畫面：卡片顯示周目/完成關卡/上次遊玩；新建/繼續/覆蓋（ConfirmPopup）/刪除。 |
+| `Assets/Scripts/UI/Panels/SaveSlotPanel.cs` | 三欄存讀檔畫面。**2026-08-01 換上正式素材**：滿版底圖＋三張卡片框；空欄＝「空欄位」＋新建遊戲，有檔＝角色 idle 圖／圓台／周目／裝備中的武器 icon ＋ 進入遊戲／刪除角色（ConfirmPopup 再問一次）。見 §4.5。 |
 | `Assets/Scripts/Save/SaveManager.cs` | **改**：`SuppressAutoLoad`；槽位 API（`GetSlotProfile`/`SlotOccupied`/`StartNewGameInSlot`/`LoadSlot`/`DeleteSlot`）；`ReincarnateInPlace(carryIds)`（in-place 輪迴）；`CreateCharacter` 帶 slotIndex。 |
 | `Assets/Scripts/Save/SaveConstants.cs` | **改**：`SlotCount=3`、`HubEntranceCaveExit/Center`、`IntroSceneName`、`MainSceneName`。 |
 | `Assets/Scripts/Save/ProfileRoster.cs` / `CharacterSave.cs` | **改**：加 `slotIndex`。 |
@@ -96,15 +96,57 @@
 
 ---
 
+## 4.5 正式素材版面（2026-08-01）
+
+工程版的純色佔位卡片已換成美術素材。**版面座標全部寫在「底圖原生像素空間」（1672×941），整個 frame 等比放大到蓋滿畫面**——與 `InventoryPanel` / `ForgingPanel` / `GachaPanel` 同一套作法；透明留白的補償沿用 `ArtSpec` + `PlaceArt()`（重出圖時畫布比例變了會出警告，不會靜默跑位，見 [PROBLEMS.md](PROBLEMS.md) D12）。
+
+**素材**（`Assets/Resources/`）
+
+| 圖 | 畫布 | 內容邊界框 | 用途 |
+|---|---|---|---|
+| `UI/SelectSavePanel/SelectSavePanel_Bg` | 1672×941 | 整張 | 滿版背景（佛殿）＝版面座標系本身 |
+| `UI/SelectSavePanel/SelectSavePanel_Frame` | 692×886 | 24,10,639,862 | 一張卡片的外框。**頂端「欄位」紅底牌與背後的圓形佛像浮雕都畫在這張圖裡**，程式只疊字 |
+| `UI/SelectSavePanel/SelectSavePanel_ActorBase` | 612×408 | 112,156,385,135 | 角色腳下的圓台 |
+| `UI/Common/SelectSavePanel_Btn` | 914×273 | 19,35,865,209 | 按鈕底板（只有一張圖、沒有按下版 → 用 `ColorTint` 做回饋，同 `CloseBtn_2`） |
+
+**卡片內容**
+
+- **空欄**：中央「空欄位」＋一顆置中的「新建遊戲」。
+- **有檔**：左半＝圓台 → 角色；右半＝「一周目」＋武器 icon；下方兩顆並排的「進入遊戲」「刪除角色」。
+  （曾試過在角色後面鋪一張方形底板 `SelectSavePanel_ActorBg`，實機看起來跟卡片框自帶的圓形浮雕打架、視覺上是歪的，**2026-08-01 決定拿掉**；角色直接站在浮雕前面。）
+- **周目用中文數字**（`CjkNumber()`：1→一、23→二十三，>99 退回阿拉伯數字）。
+- 中日韓字串會自動逐字加空格（`Spaced()`，符合本作 UI 排版習慣）；含英數的字串不套，所以英文版不會被拆散。
+
+**角色圖怎麼來**
+
+1. 讀該欄存檔的周目旗標 `血統` → [`BloodlineTable`](GACHA_SYSTEM.md) 的 `SpriteFolder`；沒喝過血統藥劑就是 `Base`。
+2. `PlayerSpriteLibrary.Instance.GetFrames(<血統>, "idle", 1f)[0]` ＝ 該血統 idle 的第一幀（走地圖素材管線，不佔 Resources）。
+3. 用 `TryGetVisibleBox()` 的**不透明像素邊界框**正規化：不同血統的圖留白不一樣，直接用整張圖會忽大忽小、腳也踩不準圓台。程式讓「可見內容」剛好 `ActorH` 高、底部對齊 `ActorFeetDy`。
+4. 該血統沒有 idle 圖 → 印 Warning 並退回 `Base`；連 `Base` 都載不到 → 只畫圓台、不畫角色（版面不會塌）。
+
+素材是 `idle_right`（角色朝右）。要讓角色面向另一邊，改 `ActorFlipX = true` 即可（偏移量會跟著鏡射）。
+
+**武器 icon** 取該欄存檔 `inventory.equipment["Weapon"]` 的道具 id → `ItemTable` 的 `IconPath`（＝背包裡看到的那張 icon）。空手就不畫。
+
+> ⚠ 這個畫面**不會載入存檔到遊戲裡**。為了拿外型與武器，它用 `SaveSystem.LoadCharacter()` 直接從磁碟**偷看一眼**該角色的 `character.json`，不動 `SaveManager.Current`、不觸發 `ApplyToSystems`。真正的載入仍然是玩家按「進入遊戲」時走 `GameFlowManager.ContinueGame(slot)`。
+
+**移除的東西**：舊版的「覆蓋（新建）」與畫面底部的「返回」鈕都拿掉了（照示意圖）。要重開一欄就先「刪除角色」再「新建遊戲」；返回標題按 **ESC**。卡片上也不再顯示「完成 N 關」與「上次遊玩時間」（`CharacterProfile` 仍有這兩筆資料，要顯示隨時可加回來）。
+
+**字串**走 `Language.GetText`，`LanguageTable.csv` 的 **5001–5099「選擇存檔」段**。表還沒就緒時會退回硬寫的中文（不會變成一排 `[cn:5001]`）。
+
+**版面常數**都在 `SaveSlotPanel.cs` 上方，實機若有偏移微調即可：卡片 `CardCy`/`CardPitch`/`CardW`/`CardH`；卡內元件一律寫成「相對卡片中心的偏移」（`HeadDy`/`EmptyDy`/`ActorBaseDx,Dy,W`/`ActorDx,ActorFeetDy,ActorH`/`CycleDx,Dy`/`WeaponDx,Dy,H`/`BtnDy`/`BtnSingleW`/`BtnPairW,BtnPairDx`），所以三張卡片共用同一組數字。
+
+---
+
 ## 5. 實機驗證步驟
 
 1. 開 Unity 等編譯，Console 無紅錯（新程式都在預設 `Assembly-CSharp`）。
 2. 進 Play：應出現 **標題畫面**（不再直接進關卡）。按「開始遊戲」→ 三欄存讀檔畫面。
-3. **新建**：點空欄「新建遊戲」→（沒加 Intro）直接進邪佛廣場，玩家在洞穴出口；Console 有 `已存檔`（進廳自動存）。回標題再看該欄 → 顯示「周目 1・完成 0 關・上次遊玩 …」。
-4. **繼續**：點該欄「繼續」→ 進邪佛廣場，這次玩家在**中央**（`hubIntroSpawnDone` 已 true）。
-5. **完成關卡**（暫時用程式/測試呼叫）：`SaveManager.Instance.MarkModuleCleared("RedBridalGown")` → 回廳存檔 → 存讀檔畫面該欄顯示「完成 1 關」；再呼叫同一 module 不會 +1。
-6. **覆蓋**：對有檔的欄按「覆蓋」→ ConfirmPopup 問 → 確定 → 該欄變回周目 1、完成 0。
-7. **刪除**：按「刪除（測試）」→ 確定 → 卡片變空欄。
+3. **新建**：點空欄「新建遊戲」→（沒加 Intro）直接進邪佛廣場，玩家在洞穴出口；Console 有 `已存檔`（進廳自動存）。回標題再看該欄 → 卡片變成「角色圖＋一周目＋武器 icon」。
+4. **繼續**：點該欄「進入遊戲」→ 進邪佛廣場，這次玩家在**中央**（`hubIntroSpawnDone` 已 true）。
+5. **角色圖**：卡片上的角色＝該存檔血統的 `idle` 第一幀，腳要踩在圓台上；喝過血統藥劑的存檔應該換成該血統的外型。
+6. **武器 icon**：把武器裝上／卸下再回標題，卡片右邊的 icon 要跟著出現／消失。
+7. **刪除**：按「刪除角色」→ ConfirmPopup 問 → 確定 → 卡片變空欄。
 8. **三欄獨立**：三欄各自新建、各自不同進度，互不影響。
 
 ---
@@ -125,10 +167,42 @@
 ## 7. 這一輪未做 / 待補
 
 - 「遊戲中回標題」鈕（要放進既有 [設定面板](UI_SYSTEM.md) `SettingsPanel`）——依先前討論，之後再放。
-- 正式建名輸入框（目前新建用預設名「存檔N」；`UIBuilder.InputField` 已可用）。
-- 正式素材（標題圖、卡片框、按鈕）替換佔位視覺。
+- 正式建名輸入框（目前新建用預設名「存檔N」；`UIBuilder.InputField` 已可用）。卡片上也還沒有地方顯示角色名。
+- ~~正式素材（卡片框、按鈕）替換佔位視覺~~ → **已完成（2026-08-01，見 §4.5）**；標題畫面 `TitlePanel` 的素材另計。
 - 輪迴選物 UI 與邪佛戰／最終關卡的流程接線（見 §6）。
 
 ---
 
 *建立於 2026-07-03：標題／三欄存讀檔 UI ＋ GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標）＋ SaveManager 槽位與 in-place 輪迴 API。佔位視覺，待 Unity 實機驗證與換素材。*
+
+*2026-08-01：存讀檔畫面換上正式素材（滿版底圖＋卡片框＋角色 idle 圖／圓台／方形底板＋武器 icon＋周目中文數字），移除「覆蓋」與「返回」鈕，刪除角色改走 ConfirmPopup 二次確認，字串進 `LanguageTable.csv` 5001–5099 段。見 §4.5。*
+
+---
+
+## 「繼續遊戲」回到上次的位置（2026-08-01，schema v3）
+
+**原本的問題**：`GameFlowManager.ContinueGame` 的落點是**寫死**的 `GoToMap(HubMapId, "center")`，完全不看存檔進度。
+而按「新建遊戲」的當下 `CreateCharacter()` 就已經把角色寫進磁碟了，所以「新建 → 看到開場第一句對話 → 關掉 → 重開」
+會直接被丟到邪佛廣場，**開場山道劇情、墜落、初始洞窟的睜眼醒來三段全部被跳過**。
+存檔裡跟「走到哪」有關的原本只有 `hubIntroSpawnDone` 一個布林，而且只用來決定廣場的落點。
+
+**作法**：`ProgressDTO` 新增 `lastMapId` / `lastEntrance`，記「上次待在哪」。
+
+- **只記 `HubModule`（Main）的地圖**：開場山道 13/14、初始洞窟 11、邪佛廣場 12。由 `MapManager.PlaceAndSetup`
+  在 `row.module == SaveConstants.HubModule` 時呼叫 `SaveManager.RecordLastLocation(row.id, entrance)`。
+- **關卡（其他 module）刻意不記**。關卡是 extraction 模型（`RunProgress` 純記憶體、通關才落袋、死亡/離開歸零），
+  記了會讓重開遊戲回到一個東西都不見的關卡裡。所以這兩欄的值永遠是「最後一次待在 Main 的位置」，
+  在關卡中離開＝回到進關卡前的廣場，正好符合設計。
+- 這幾張圖一輪只經過一次，所以記完直接 `SaveNow()` 落地（不靠 dirty 自動存），
+  否則玩家在山道劇情中途直接關掉視窗就可能沒存到。
+- `ContinueGame` 改讀 `LastMapId`/`LastEntrance`；**`mapId <= 0`（v2 以前的舊存檔）→ 退回廣場中央**，行為與改動前一致。
+  `GoToHubRoutine` 泛化成 `GoToMapRoutine(mapId, entrance)`，回廳的路徑不變。
+- schema **v2 → v3**：純新增欄位，Newtonsoft 對缺欄給型別預設（0 / null），`Migrate()` 不需要新增搬資料的程式碼。
+
+**行為**：山道播到一半離開 → 回山道**重播那一段**（cutscene 是 `autoStartOnEnter`，本來就會重播）；
+洞窟離開 → 回洞窟（`EnterEffect=1` 的睜眼醒來會再播一次，這是刻意不特別處理的）；
+廣場或關卡中離開 → 回廣場；輪迴後 `progress` 整個換掉 → 兩欄歸零 → 回廣場。
+
+**動到的檔**：`Save/CharacterSave.cs`（ProgressDTO 兩個新欄）、`Save/SaveConstants.cs`（版本號 3）、
+`Save/SaveManager.cs`（`LastMapId`/`LastEntrance`/`RecordLastLocation`）、`Map/MapManager.cs`（PlaceAndSetup 記錄）、
+`Flow/GameFlowManager.cs`（`ContinueGame` + `GoToMapRoutine`）。

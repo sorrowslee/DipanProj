@@ -441,3 +441,33 @@ static int CarryCountForCycle(int cycle);// = min(cycle, MaxCarryOnReincarnate)
 - 進度「階段」判定（可進關卡／邪佛要求對決／已破最終關）：由 `ClearedModuleCount` + `LevelsToUnlockBoss` 及 boss/final module 旗標推導，待邪佛戰與抽關卡系統成形再接。
 
 *更新於 2026-07-03：schema v2 進度層——周目=generation、完成關卡=clearedModules（去重）、金錢、出生點旗標；`SaveManager` 進度 API；roster 帶完成關卡數。UI 與流程為下一輪。*
+
+---
+
+## 「繼續遊戲」回到上次的位置（2026-08-01，schema v3）
+
+**原本的問題**：`GameFlowManager.ContinueGame` 的落點是**寫死**的 `GoToMap(HubMapId, "center")`，完全不看存檔進度。
+而按「新建遊戲」的當下 `CreateCharacter()` 就已經把角色寫進磁碟了，所以「新建 → 看到開場第一句對話 → 關掉 → 重開」
+會直接被丟到邪佛廣場，**開場山道劇情、墜落、初始洞窟的睜眼醒來三段全部被跳過**。
+存檔裡跟「走到哪」有關的原本只有 `hubIntroSpawnDone` 一個布林，而且只用來決定廣場的落點。
+
+**作法**：`ProgressDTO` 新增 `lastMapId` / `lastEntrance`，記「上次待在哪」。
+
+- **只記 `HubModule`（Main）的地圖**：開場山道 13/14、初始洞窟 11、邪佛廣場 12。由 `MapManager.PlaceAndSetup`
+  在 `row.module == SaveConstants.HubModule` 時呼叫 `SaveManager.RecordLastLocation(row.id, entrance)`。
+- **關卡（其他 module）刻意不記**。關卡是 extraction 模型（`RunProgress` 純記憶體、通關才落袋、死亡/離開歸零），
+  記了會讓重開遊戲回到一個東西都不見的關卡裡。所以這兩欄的值永遠是「最後一次待在 Main 的位置」，
+  在關卡中離開＝回到進關卡前的廣場，正好符合設計。
+- 這幾張圖一輪只經過一次，所以記完直接 `SaveNow()` 落地（不靠 dirty 自動存），
+  否則玩家在山道劇情中途直接關掉視窗就可能沒存到。
+- `ContinueGame` 改讀 `LastMapId`/`LastEntrance`；**`mapId <= 0`（v2 以前的舊存檔）→ 退回廣場中央**，行為與改動前一致。
+  `GoToHubRoutine` 泛化成 `GoToMapRoutine(mapId, entrance)`，回廳的路徑不變。
+- schema **v2 → v3**：純新增欄位，Newtonsoft 對缺欄給型別預設（0 / null），`Migrate()` 不需要新增搬資料的程式碼。
+
+**行為**：山道播到一半離開 → 回山道**重播那一段**（cutscene 是 `autoStartOnEnter`，本來就會重播）；
+洞窟離開 → 回洞窟（`EnterEffect=1` 的睜眼醒來會再播一次，這是刻意不特別處理的）；
+廣場或關卡中離開 → 回廣場；輪迴後 `progress` 整個換掉 → 兩欄歸零 → 回廣場。
+
+**動到的檔**：`Save/CharacterSave.cs`（ProgressDTO 兩個新欄）、`Save/SaveConstants.cs`（版本號 3）、
+`Save/SaveManager.cs`（`LastMapId`/`LastEntrance`/`RecordLastLocation`）、`Map/MapManager.cs`（PlaceAndSetup 記錄）、
+`Flow/GameFlowManager.cs`（`ContinueGame` + `GoToMapRoutine`）。

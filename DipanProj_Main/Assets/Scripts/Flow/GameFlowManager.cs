@@ -135,8 +135,21 @@ namespace Dipan.Flow
             }
             CloseMenus();
             InGame = true;
-            MapManager.SuppressAutoStart = true;   // 由本流程明確帶進廣場，避免自動進 Main_Cave 打架
-            StartCoroutine(GoToHubRoutine(SaveConstants.HubEntranceCenter));
+            MapManager.SuppressAutoStart = true;   // 由本流程明確帶圖，避免自動進 Main_Cave 打架
+
+            // 回到「上次待在的 Main 地圖」：開場山道播到一半就離開 → 回山道重播；洞窟離開 → 回洞窟；
+            // 廣場或關卡中離開 → 回廣場。沒有記錄（v2 以前的舊存檔、或資料異常）→ 退回廣場中央。
+            int mapId = sm.LastMapId;
+            string entrance = sm.LastEntrance;
+            if (mapId <= 0)
+            {
+                mapId = SaveConstants.HubMapId;
+                entrance = SaveConstants.HubEntranceCenter;
+                Debug.Log("[GameFlow] 存檔沒有上次位置的記錄（舊存檔？），回邪佛廣場中央。");
+            }
+            else Debug.Log($"[GameFlow] 繼續遊戲 → 回到上次所在的地圖 #{mapId}（落點 {entrance ?? "預設"}）。");
+
+            StartCoroutine(GoToMapRoutine(mapId, entrance));
         }
 
         /// <summary>刪除某欄存檔（測試用）。</summary>
@@ -320,7 +333,10 @@ namespace Dipan.Flow
         }
 
         /// <summary>確保在 MainScene → 等 MapManager 就緒 → 進邪佛廣場。</summary>
-        IEnumerator GoToHubRoutine(string entrance)
+        IEnumerator GoToHubRoutine(string entrance) => GoToMapRoutine(SaveConstants.HubMapId, entrance);
+
+        /// <summary>確保在 MainScene、等 MapManager 就緒，然後帶玩家進指定地圖。</summary>
+        IEnumerator GoToMapRoutine(int mapId, string entrance)
         {
             if (SceneManager.GetActiveScene().name != SaveConstants.MainSceneName)
                 yield return StartCoroutine(LoadSceneRoutine(SaveConstants.MainSceneName));
@@ -333,9 +349,9 @@ namespace Dipan.Flow
             }
 
             if (MapManager.Instance != null)
-                MapManager.Instance.GoToMap(SaveConstants.HubMapId, entrance);
+                MapManager.Instance.GoToMap(mapId, entrance);
             else
-                Debug.LogError("[GameFlow] 等不到 MapManager，無法進邪佛廣場（確認 MainScene 裡有 MapManager）。");
+                Debug.LogError($"[GameFlow] 等不到 MapManager，無法進地圖 #{mapId}（確認 MainScene 裡有 MapManager）。");
         }
     }
 

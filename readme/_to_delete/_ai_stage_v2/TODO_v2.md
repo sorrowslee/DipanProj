@@ -236,28 +236,3 @@
       接上之後 `StorageBagCoordinator.forgeKey` 可以拿掉。
 - [ ] **座標為量測值**：七個方框、兩顆按鈕、關閉鈕、標題的位置都是照示意圖量的常數（`ForgingPanel.cs` 上方）。
       實機若有偏移，微調那幾個常數即可（同 InventoryPanel / StoragePanel 的做法）。
-
----
-
-## 選擇存檔畫面（SaveSlotPanel，2026-08-01 換上正式素材後）
-
-見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) §4.5。版面與資料都通了，剩下的是內容與微調：
-
-- [ ] **卡片上沒有角色名**：`CharacterProfile.name` 有資料，但示意圖沒有這個欄位所以沒放。等正式建名輸入框做出來
-      （目前新建一律用預設名「存檔N」）再一起決定要不要顯示、放哪。
-- [ ] **「覆蓋（新建）」已移除**：現在要重開一欄必須先「刪除角色」再「新建遊戲」。如果實際玩起來覺得多一步很煩，
-      再決定是要把覆蓋加回來，還是在刪除的 ConfirmPopup 上多一顆「直接重開」。
-- [ ] **「完成 N 關」「上次遊玩時間」不再顯示**：資料都還在 roster（`clearedModuleCount` / `lastPlayedUtc`），
-      純粹是照示意圖精簡掉。之後若想要，卡片右半邊「一周目」下方還有空間。
-- [ ] **角色朝向**：素材是 `idle_right`，目前直接用（`ActorFlipX = false`）。實機看起來若該面向另一邊，
-      把 `ActorFlipX` 改 `true` 即可（偏移量會跟著鏡射，不用改別的常數）。
-- [ ] **只有 Base 血統可驗**：`Characters/SequenceImage/` 目前只有 `Base`。血統換外型的分支（`BloodlineTable.SpriteFolder`）
-      程式已接，但要等真的多一個血統資料夾（例 `Vampire`）才測得到。目前三個血統的 `SpriteFolder` 都填 `Base`
-      （見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) 的缺口清單），所以喝了藥劑這裡也不會變。
-- [ ] **素材的 `maxTextureSize`**：`SelectSavePanel_Bg` 是 1672px 寬的滿版底圖沒問題，但
-      `SelectSavePanel_Btn`（914×273，畫面上只顯示約 200~300px 寬）與 `SelectSavePanel_Frame`（692×886 → 顯示約 426 寬）
-      都有過取樣空間，依 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) 的規範可調小，程式端不用動。
-- [ ] **座標為量測值**：卡片位置與卡內所有元件的偏移都是照示意圖量出來的常數（`SaveSlotPanel.cs` 上方）。
-      卡內元件一律寫成「相對卡片中心的偏移」，三張卡片共用同一組數字，實機有偏移微調那一組即可。
-- [ ] **非 16:9 螢幕**：底圖是 16:9，程式用 cover（取 `max(寬比, 高比)`）放大並在後面鋪一層深色底。
-      超寬螢幕上左右會被裁掉一些背景（卡片本身留有足夠邊界不會被切），實機確認一下就好。
