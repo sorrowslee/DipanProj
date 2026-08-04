@@ -33,6 +33,7 @@ namespace Dipan.Inventory
         public int HealMp;            // 藥劑：喝下回復的魔力（0 = 不回魔）
         public float LightRadius;     // 發光半徑（世界單位）：>0＝此裝備「裝在身上」時發光照亮周遭；0/空＝不發光。取所有裝備欄最大值畫光圈。
         public int BloodlineID;       // 血統藥劑：對應 BloodlineTable 的 Id（喝下去改變本世外型與數值）；0 = 不是血統藥劑
+        public int GemID;             // 能力珠：對應 GemTable 的 GemID（決定它給的是哪個能力）；0 = 不是能力珠
         public Sprite Icon;           // 由 ItemDatabase 從 Resources 載入
 
         public bool IsEquippable => EquipSlot != EquipSlot.None;
@@ -46,5 +47,11 @@ namespace Dipan.Inventory
         /// 刻意不可裝備（EquipSlot=None）也不算 Potion——它不進 HUD 藥水格，而是在背包裡點一下喝掉。
         /// </summary>
         public bool IsBloodline => BloodlineID > 0;
+        /// <summary>
+        /// 是不是「能力珠」（可鑲進裝備孔位、給該角色一項配方能力）。
+        /// 刻意不可裝備——它不占裝備欄，而是鑲進裝備的孔裡。每一顆有自己的等級（1~3），所以不可疊。
+        /// 見 readme/GEM_SOCKET.md。
+        /// </summary>
+        public bool IsGem => GemID > 0;
     }
 }

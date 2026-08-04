@@ -30,6 +30,11 @@ public class PlayerController : MonoBehaviour, IDamageable
     private WeaponManager _weaponManager;
     private Dipan.Inventory.InventorySystem _inventory;
     private int _lastEquippedWeaponItemId = -1;
+
+    /// <summary>玩家的能力容器：身上所有裝備與鑲嵌珠累加出來的加成（見 readme/GEM_SOCKET.md）。</summary>
+    private readonly PlayerAbilities _abilities = new PlayerAbilities();
+    /// <summary>玩家目前的能力總表（給 UI / 除錯讀）。</summary>
+    public PlayerAbilities Abilities => _abilities;
     private GroundEffectManager _groundEffectManager;
     private VfxManager _vfxManager;
     private HitReactionHandler _hitReaction;
@@ -175,6 +180,12 @@ public class PlayerController : MonoBehaviour, IDamageable
             Debug.LogError("WeaponManager not found in scene!");
         }
 
+        // 能力容器：武器的實際性能 = 武器表基底 + 身上所有裝備/鑲嵌給的能力。
+        // 掛成 WeaponManager 的解析器後，八種發射分支（含雷射與佛光）全都自動吃到，不必逐一改。
+        // 只作用在「玩家目前的武器」這條路，怪物走 GetWeapon 拿原始資料、不受影響。
+        // 見 readme/GEM_SOCKET.md。
+        WeaponManager.AbilityResolver = _abilities.Resolve;
+
         // 背包橋接：裝備武器欄的武器 → 切到該武器。**武器來源只有這一條**（E 鍵循環切換已於 2026-07-27 移除）。
         _inventory = Dipan.Inventory.InventorySystem.Instance;
         _inventory.OnChanged += OnInventoryChanged;
@@ -313,6 +324,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         CancelCharge();
         if (_inventory != null) _inventory.OnChanged -= OnInventoryChanged;
         if (_stats != null) _stats.OnDeath -= Die;
+        // 解析器是 static，玩家消失就要拆掉，否則下一次 Play（關掉 Domain Reload 時）會殘留指向死掉的物件。
+        WeaponManager.AbilityResolver = null;
     }
 
     // 背包武器欄變動時呼叫：裝備哪把武器就切到哪把（用該物品的 WeaponID 對應 WeaponTable）。
@@ -322,19 +335,40 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         if (_weaponManager == null || _inventory == null) return;
         int itemId = _inventory.GetEquipped(Dipan.Inventory.EquipSlot.Weapon);
-        if (itemId == _lastEquippedWeaponItemId) return;   // 武器欄沒變（只是別處變動）就略過
+
+        // 「武器欄沒變」不代表能力沒變——玩家可能只是換了鑲嵌的珠子（物品 ID 完全一樣）。
+        // 所以除了比武器 ID，還要比背包的裝備版本號（裝備欄變動或鑲嵌被改動時會 +1）。
+        bool weaponChanged = itemId != _lastEquippedWeaponItemId;
+        bool loadoutChanged = _inventory.LoadoutVersion != _abilities.BuiltVersion;
+        if (!weaponChanged && !loadoutChanged) return;
+
         _lastEquippedWeaponItemId = itemId;
 
-        var data = itemId > 0 ? _inventory.GetData(itemId) : null;
-        int weaponId = (data != null && data.WeaponID > 0) ? data.WeaponID : 0;   // 0 = 沒有武器
-        _weaponManager.SwitchWeapon(weaponId);
+        // 先把身上所有裝備與珠子累加成一份能力表，WeaponManager 解析武器時才吃得到。
+        if (loadoutChanged) _abilities.Rebuild(_inventory);
 
-        // 卸下當下若正放著持續型武器或集氣中，立刻收乾淨（不等下一幀 HandleFiring 的 guard）。
-        if (weaponId == 0)
+        if (weaponChanged)
         {
+            var data = itemId > 0 ? _inventory.GetData(itemId) : null;
+            int weaponId = (data != null && data.WeaponID > 0) ? data.WeaponID : 0;   // 0 = 沒有武器
+            _weaponManager.SwitchWeapon(weaponId);
+
+            // 卸下當下若正放著持續型武器或集氣中，立刻收乾淨（不等下一幀 HandleFiring 的 guard）。
+            if (weaponId == 0)
+            {
+                ClearActiveBeams();
+                ClearActiveAura();
+                if (_isCharging) CancelCharge();
+            }
+        }
+        else
+        {
+            // 只有鑲嵌變了：重新解析一次目前武器。
+            _weaponManager.RefreshLoadout();
+            // 光束的參數（穿透/反彈/射程…）是啟動時一次性寫進去的，之後不會重讀 →
+            // 正放著雷射/佛光時要先收掉，下一幀按著不放會用新參數重建。
             ClearActiveBeams();
             ClearActiveAura();
-            if (_isCharging) CancelCharge();
         }
     }
 

@@ -69,9 +69,8 @@ namespace Dipan.UI
         {
             var st = Container != null ? Container.GetAt(Index) : ItemStack.Empty;
             if (st.IsEmpty) { _icon.enabled = false; _count.text = ""; return; }
-            var d = Container.GetData(st.ItemId);
-            _icon.sprite = d != null ? d.Icon : null;
-            _icon.enabled = _icon.sprite != null;
+            // 珠子是「珠身＋能力符號」兩層，一律走 ItemIcons（見 readme/GEM_SOCKET.md）
+            ItemIcons.Apply(_icon, st);
             _count.text = st.Count > 1 ? st.Count.ToString() : "";
         }
 

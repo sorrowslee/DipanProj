@@ -70,6 +70,58 @@ public class RecipeEntry
     public bool IsChargeMode = false;
     // 集氣時間縮減百分比：30 = 減少 30%；-20 = 延長 20%。CSV 可填 30% / -20%，留空 = 0。
     public float ChargeTimeReductionPercent = 0f;
+
+    /// <summary>
+    /// 深拷貝一份配方（連同 <see cref="Data"/>）。
+    ///
+    /// ⚠ **為什麼一定要拷貝**：RecipeManager 在 Awake 時每個配方只 new 一次，之後
+    /// 所有引用它的武器（含怪物的武器、以及把它當 SubRecipeID 的母配方）拿到的都是**同一個物件**。
+    /// 玩家的鑲嵌加成如果就地改欄位，會同時改到怪物身上，而且永久累積到重開遊戲為止。
+    /// 所以能力容器一律「拷貝一份 → 在拷貝上套加成 → 交給玩家用」。見 readme/GEM_SOCKET.md。
+    ///
+    /// 子配方（<see cref="SubRecipe"/> / <see cref="ProjectileData.SubProjectileData"/>）維持共用參照——
+    /// 玩家的加成刻意不往下傳給分裂出來的子彈；哪天要傳，在這裡多拷一層即可。
+    /// </summary>
+    public RecipeEntry Clone()
+    {
+        var c = (RecipeEntry)MemberwiseClone();   // 全欄位淺拷貝（值型別欄位天生獨立）
+        c.Data = ClonePd(Data);
+        return c;
+    }
+
+    /// <summary>深拷貝一份 ProjectileData（子配方維持共用參照，理由同 <see cref="Clone"/>）。</summary>
+    public static ProjectileData ClonePd(ProjectileData src)
+    {
+        if (src == null) return null;
+        return new ProjectileData
+        {
+            Speed = src.Speed,
+            Radius = src.Radius,
+            LifeTime = src.LifeTime,
+            RotationSpeed = src.RotationSpeed,
+            FireInterval = src.FireInterval,
+            PierceCount = src.PierceCount,
+            HasBounce = src.HasBounce,
+            MaxBounces = src.MaxBounces,
+            HasHoming = src.HasHoming,
+            HomingTurnSpeed = src.HomingTurnSpeed,
+            HasSplit = src.HasSplit,
+            Timing = src.Timing,
+            SplitCount = src.SplitCount,
+            SpreadAngle = src.SpreadAngle,
+            SubProjectileData = src.SubProjectileData,   // 刻意共用（見 Clone 的說明）
+            IsOrbital = src.IsOrbital,
+            OrbitalRadius = src.OrbitalRadius,
+            OrbitalCount = src.OrbitalCount,
+            IsParabolic = src.IsParabolic,
+            ArcHeight = src.ArcHeight,
+            LandingScatterRadius = src.LandingScatterRadius,
+            IsLaser = src.IsLaser,
+            DotInterval = src.DotInterval,
+            BeamRange = src.BeamRange,
+            TrailStep = src.TrailStep,
+        };
+    }
 }
 
 public class RecipeManager : MonoBehaviour

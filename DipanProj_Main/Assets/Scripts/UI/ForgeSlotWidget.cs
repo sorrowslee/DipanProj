@@ -139,9 +139,8 @@ namespace Dipan.UI
                 if (_icon != null) _icon.enabled = false;
                 return;
             }
-            var d = Container.GetData(st.ItemId);
-            _icon.sprite = d != null ? d.Icon : null;
-            _icon.enabled = _icon.sprite != null;
+            // 珠子是「珠身＋能力符號」兩層，一律走 ItemIcons（見 readme/GEM_SOCKET.md）
+            ItemIcons.Apply(_icon, st);
         }
 
         /// <summary>拖曳中把「這格收得下」亮起來（面板統一呼叫；itemId=0 代表沒在拖，關掉高亮）。</summary>

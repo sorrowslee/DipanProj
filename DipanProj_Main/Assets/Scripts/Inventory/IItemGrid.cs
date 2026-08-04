@@ -21,8 +21,14 @@ namespace Dipan.Inventory
         /// <summary>直接設定某格（拖放交換用）。會觸發 OnChanged。</summary>
         void SetAt(int index, ItemStack stack);
 
-        /// <summary>加入物品（先疊堆再放空格）。回傳放不下的剩餘數量。</summary>
+        /// <summary>加入物品（先疊堆再放空格）。回傳放不下的剩餘數量。⚠ 不帶實例資料，需要孔位/等級的物品請走 ItemManager。</summary>
         int AddItem(int itemId, int count);
+
+        /// <summary>
+        /// 放入一個「已經存在的」ItemStack（實例資料原封不動帶著走）。回傳放不下的剩餘數量。
+        /// 跨容器搬運、退回背包一律走這條，才不會把鑲嵌與珠子等級洗掉。
+        /// </summary>
+        int AddStack(ItemStack stack);
 
         /// <summary>移除某格的物品。</summary>
         bool RemoveAt(int index, int count);

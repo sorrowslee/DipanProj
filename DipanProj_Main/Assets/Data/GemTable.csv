@@ -1,0 +1,18 @@
+GemID,Name,Field,Target,Lv1,Lv2,Lv3,Icon,BaseColor,Note
+# 能力珠定義表。一種珠子一列，三個等級共用同一列（珠子最多強化三次）。
+# Field  ＝ 要改的欄位名，**原文照抄 RecipeTable / WeaponTable 的欄位名**，這樣同一個功能兩邊叫同一個名字。
+# Target ＝ 這個欄位在哪一層：Recipe（配方/子彈行為）／Weapon（武器數值）／Player（角色屬性，效果尚未接）。
+# Icon      ＝ 珠子上疊的能力符號檔名後半段（gemIcon_<這裡>），放 UI/Icons/Items/gems/gemIcons/。
+# BaseColor ＝ 珠身顏色（gemBase_<這裡>_lv1~3），放 UI/Icons/Items/gems/gemBase/。
+#             **留空就自動推導**：Recipe/Weapon → red（技能珠）、Player → blue（屬性珠）。
+#             想把屬性珠再細分（藍=生命、黃=防禦）才需要填。
+# 數值可填固定值（1）或百分比（10% / -20%）。百分比會累加後乘上基礎值。
+# 疊加規則是「各來源各自查表得到數值後相加」，不是等級相加 → 表永遠只需要三欄。見 readme/GEM_SOCKET.md。
+1,反彈,MaxBounces,Recipe,1,2,5,bounce,,反彈次數。會自動打開反彈開關，原本不反彈的武器鑲上去也能反彈（預設對牆）
+2,穿透,PierceCount,Recipe,1,2,5,pierce,,穿透數。原本就是無限穿透（-1）的武器不受影響
+3,迅捷,Speed,Recipe,10%,20%,50%,speed,,子彈飛行速度。註：拋物線武器的 Speed 語意是飛行秒數，加了會變慢
+4,銳利,Damage,Weapon,1,2,5,damage,,武器傷害
+5,追蹤,HomingTurnSpeed,Recipe,60,120,300,homing,,追蹤轉向速度。會自動打開追蹤
+6,分裂,SpreadCount,Recipe,1,1,2,split,,分裂／散射數量。會自動打開分裂
+7,巨彈,BulletScale,Weapon,10%,20%,50%,scale,,子彈視覺大小
+8,疾發,FireInterval,Recipe,-10%,-20%,-40%,rapid,,發射間隔（負值＝更快）。程式有下限保護，不會被減到 0

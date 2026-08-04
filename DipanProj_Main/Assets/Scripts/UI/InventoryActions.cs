@@ -7,19 +7,23 @@ namespace Dipan.UI
     /// 物品搬運規則（與 UI 無關的純邏輯）：給「來源格」與「目標格」就執行正確的搬運/裝卸。
     /// 涵蓋 格↔格（同/跨容器：放入/合併/交換）、格↔裝備欄（裝備/卸下/交換）。
     /// 所有操作走各容器 / InventorySystem 的 API，自動觸發 OnChanged 讓 UI 重繪。見 readme/STORAGE.md。
+    ///
+    /// ⚠ 這裡的搬運一律是**移動**（整份 ItemStack 含實例資料搬過去、來源清空），
+    /// 絕對不要只搬 itemId——那會讓裝備的鑲嵌與珠子的等級憑空消失。見 readme/GEM_SOCKET.md。
     /// </summary>
     public static class InventoryActions
     {
-        public static int ItemIdOf(ISlotView v)
+        public static int ItemIdOf(ISlotView v) => StackOf(v).ItemId;
+
+        /// <summary>取某個格子/裝備欄的完整內容（含實例資料）。</summary>
+        public static ItemStack StackOf(ISlotView v)
         {
-            if (v == null) return 0;
-            if (v.IsEquip) return InventorySystem.Instance.GetEquipped(v.Equip);
-            return v.Grid != null ? v.Grid.GetAt(v.GridIndex).ItemId : 0;
+            if (v == null) return ItemStack.Empty;
+            if (v.IsEquip) return InventorySystem.Instance.GetEquippedStack(v.Equip);
+            return v.Grid != null ? v.Grid.GetAt(v.GridIndex) : ItemStack.Empty;
         }
 
         public static bool HasItem(ISlotView v) => ItemIdOf(v) > 0;
-
-        static ItemStack One(int id) => new ItemStack { ItemId = id, Count = 1 };
 
         /// <summary>拖放：把 src 放到 dst（依兩者是「格」或「裝備欄」決定行為）。</summary>
         public static void Resolve(ISlotView src, ISlotView dst)
@@ -48,7 +52,9 @@ namespace Dipan.UI
                 src.Grid.SetAt(src.GridIndex, ItemStack.Empty);
                 return;
             }
-            if (b.ItemId == a.ItemId)   // 合併
+            // 合併：只有「兩邊都沒有實例資料」的一般可疊道具才合併。
+            // 有實例的（裝備、能力珠）就算 ID 相同也是不同的兩件，合併會弄丟其中一件的內容。
+            if (b.ItemId == a.ItemId && !a.HasInst && !b.HasInst)
             {
                 var d = dst.Grid.GetData(b.ItemId);
                 int max = Mathf.Max(1, d != null ? d.MaxStack : 1);
@@ -61,7 +67,7 @@ namespace Dipan.UI
                 }
                 return;
             }
-            // 不同物品 → 交換
+            // 不同物品（或任一邊有實例）→ 交換
             dst.Grid.SetAt(dst.GridIndex, a);
             src.Grid.SetAt(src.GridIndex, b);
         }
@@ -85,23 +91,23 @@ namespace Dipan.UI
             if (d == null || !d.IsEquippable) return;
             var inv = InventorySystem.Instance;
             var target = d.EquipSlot;
-            int prev = inv.GetEquipped(target);
-            inv.SetEquipped(target, st.ItemId);
-            src.Grid.SetAt(src.GridIndex, prev > 0 ? One(prev) : ItemStack.Empty);
+            var prev = inv.GetEquippedStack(target);
+            inv.SetEquippedStack(target, st);
+            src.Grid.SetAt(src.GridIndex, prev.IsEmpty ? ItemStack.Empty : prev);
         }
 
         // ── 裝備欄 → 格（卸下到該格；該格有相容裝備則交換，否則只在空格放下）──
         static void EquipToGrid(ISlotView src, ISlotView dst)
         {
             var inv = InventorySystem.Instance;
-            int id = inv.GetEquipped(src.Equip);
-            if (id <= 0) return;
+            var cur = inv.GetEquippedStack(src.Equip);
+            if (cur.IsEmpty) return;
 
             var b = dst.Grid.GetAt(dst.GridIndex);
             if (b.IsEmpty)
             {
-                dst.Grid.SetAt(dst.GridIndex, One(id));
-                inv.SetEquipped(src.Equip, 0);
+                dst.Grid.SetAt(dst.GridIndex, cur);
+                inv.SetEquippedStack(src.Equip, ItemStack.Empty);
                 return;
             }
             // 目標格是相容裝備 → 交換穿戴
@@ -110,8 +116,8 @@ namespace Dipan.UI
                 var bd = dst.Grid.GetData(b.ItemId);
                 if (bd != null && bd.EquipSlot == src.Equip)
                 {
-                    inv.SetEquipped(src.Equip, b.ItemId);
-                    dst.Grid.SetAt(dst.GridIndex, One(id));
+                    inv.SetEquippedStack(src.Equip, b);
+                    dst.Grid.SetAt(dst.GridIndex, cur);
                 }
             }
             // 其他情形（被不可裝備物品占住）→ 忽略
@@ -123,6 +129,15 @@ namespace Dipan.UI
             if (slot == null || slot.Grid == null || other == null) return false;
             var st = slot.Grid.GetAt(slot.GridIndex);
             if (st.IsEmpty) return false;
+
+            // 有實例的物品：整份搬過去（不能拆、不能只搬 id），成功才清來源。
+            if (st.HasInst)
+            {
+                if (other.AddStack(st) > 0) return false;
+                slot.Grid.SetAt(slot.GridIndex, ItemStack.Empty);
+                return true;
+            }
+
             int remaining = other.AddItem(st.ItemId, st.Count);
             int moved = st.Count - remaining;
             if (moved > 0) slot.Grid.RemoveAt(slot.GridIndex, moved);

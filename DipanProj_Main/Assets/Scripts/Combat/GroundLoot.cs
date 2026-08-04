@@ -12,6 +12,17 @@ public class GroundLoot : MonoBehaviour
     public int Count { get; private set; }
     public string DisplayName { get; private set; }
 
+    /// <summary>
+    /// 這一件專屬的資料（孔位/珠子等級）；null = 一般可疊道具。
+    /// **東西掉在地上的那一刻就已經決定了**——玩家撿起來拿到的就是標籤上寫的那一把，不會重骰。
+    /// 見 readme/GEM_SOCKET.md。
+    /// </summary>
+    public Dipan.Inventory.ItemInstance Inst { get; private set; }
+
+    /// <summary>把這一件包成可以直接放進背包/臨時包的 ItemStack。</summary>
+    public Dipan.Inventory.ItemStack ToStack()
+        => new Dipan.Inventory.ItemStack { ItemId = ItemId, Count = Count, Inst = Inst };
+
     /// <summary>對應 RunProgress 的掉落物記錄 id（&gt;0 = 本趟關卡登記過、撿取/更新要回寫）；0 = 未登記（廣場溢出等）。</summary>
     public int RunDropId;
 
@@ -32,19 +43,25 @@ public class GroundLoot : MonoBehaviour
     TextMesh _labelTm, _labelShadowTm;
     float _labelWorldY;   // 標籤世界 Y（icon 上緣 + 間距）；掉落物不移動，算一次即可
 
-    /// <summary>初始化外觀與資料。worldSize = 圖在世界中的目標大小（依 sprite 實際尺寸換算縮放，與 PPU 無關）。</summary>
-    public void Init(int itemId, int count, string displayName, Sprite icon, float worldSize,
+    /// <summary>
+    /// 初始化外觀與資料。worldSize = 圖在世界中的目標大小（依 sprite 實際尺寸換算縮放，與 PPU 無關）。
+    /// 圖示一律走 <see cref="Dipan.UI.ItemIcons"/>——能力珠是「珠身（依等級）＋能力符號」兩層，
+    /// 所以地上就看得出是幾級的什麼珠（見 readme/GEM_SOCKET.md）。
+    /// </summary>
+    public void Init(Dipan.Inventory.ItemStack stack, string displayName, float worldSize,
                      string sortingLayerName, int sortingOrder)
     {
-        ItemId = itemId;
-        Count = count;
+        ItemId = stack.ItemId;
+        Count = stack.Count;
+        Inst = stack.Inst;
         DisplayName = displayName;
 
         _sr = gameObject.GetComponent<SpriteRenderer>();
         if (_sr == null) _sr = gameObject.AddComponent<SpriteRenderer>();
-        _sr.sprite = icon;
         _sr.sortingLayerName = sortingLayerName;
         _sr.sortingOrder = sortingOrder;
+        Dipan.UI.ItemIcons.Apply(_sr, stack, sortingLayerName, sortingOrder);
+        Sprite icon = _sr.sprite;
 
         // 依 sprite 實際世界尺寸縮放到 worldSize（取較長邊），讓不同 icon 在地上大小一致。
         float drawnHeight = worldSize;
@@ -74,8 +91,18 @@ public class GroundLoot : MonoBehaviour
         if (_labelGo != null) _labelGo.SetActive(visible);
     }
 
-    // 「名稱」或「名稱x數量」（只有 1 個時不加 x1）。
-    string LabelText() => Count > 1 ? $"{DisplayName}x{Count}" : DisplayName;
+    // 「名稱」或「名稱x數量」（只有 1 個時不加 x1）；有孔的裝備會在後面標出孔數，
+    // 讓玩家在地上就看得出「這把是 6 孔的」——這是打寶的即時回饋。
+    string LabelText()
+    {
+        string t = Count > 1 ? $"{DisplayName}x{Count}" : DisplayName;
+        if (Inst != null)
+        {
+            if (Inst.HasSockets && Inst.UnlockedCount > 0) t += $" ({Inst.UnlockedCount}孔)";
+            else if (Inst.level > 0) t += $" Lv{Inst.level}";
+        }
+        return t;
+    }
 
     // 名稱標籤：獨立世界 GameObject（不掛在被縮放的 icon 底下，字級才不隨 icon 大小變動）。掉落物不移動，位置算一次。
     void BuildLabel()

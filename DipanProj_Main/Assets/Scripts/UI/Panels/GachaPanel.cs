@@ -378,11 +378,11 @@ namespace Dipan.UI
                     var cell = UIBuilder.Create($"Sum{i}", _summaryGrid);
                     UIBuilder.Center(UIBuilder.Rect(cell), cellW, cellH, new Vector2(x, y));
 
-                    var icon = UIBuilder.Image(cell.transform, "Icon", d != null ? d.Icon : null, Color.white);
+                    var icon = UIBuilder.Image(cell.transform, "Icon", null, Color.white);
                     icon.preserveAspect = true;
                     icon.raycastTarget = false;
-                    icon.enabled = d != null && d.Icon != null;
                     UIBuilder.Center(icon.rectTransform, iconS, iconS, new Vector2(0f, cellH * 0.14f));
+                    ItemIcons.Apply(icon, id);
 
                     if (count[id] > 1)
                     {
@@ -605,10 +605,8 @@ namespace Dipan.UI
             var inv = InventorySystem.Instance;
             for (int i = 0; i < StripCells; i++)
             {
-                var d = inv != null ? inv.GetData(_contents[i]) : null;
                 if (_cellIcons[i] == null) continue;
-                _cellIcons[i].sprite = d != null ? d.Icon : null;
-                _cellIcons[i].enabled = d != null && d.Icon != null;
+                ItemIcons.Apply(_cellIcons[i], _contents[i]);
             }
         }
 
@@ -761,8 +759,7 @@ namespace Dipan.UI
 
             if (_resultIcon != null)
             {
-                _resultIcon.sprite = d != null ? d.Icon : null;
-                _resultIcon.enabled = d != null && d.Icon != null;
+                ItemIcons.Apply(_resultIcon, itemId);
             }
             if (_resultName != null)
             {
@@ -818,11 +815,11 @@ namespace Dipan.UI
             bgImg.color = new Color(0.10f, 0.08f, 0.10f, 0.85f);
             bgImg.raycastTarget = false;
 
-            var icon = UIBuilder.Image(cell.transform, "Icon", d != null ? d.Icon : null, Color.white);
+            var icon = UIBuilder.Image(cell.transform, "Icon", null, Color.white);
             icon.preserveAspect = true;
             icon.raycastTarget = false;
-            icon.enabled = d != null && d.Icon != null;
             UIBuilder.Center(icon.rectTransform, ResultCell - 10f, ResultCell - 10f, Vector2.zero);
+            ItemIcons.Apply(icon, itemId);
 
             int n = _resultRow.childCount;
             float totalW = n * ResultCell + (n - 1) * ResultGap;

@@ -334,25 +334,63 @@ namespace Dipan.Save
         /// </summary>
         public void ReincarnateInPlace(IList<int> carryItemIds)
         {
+            // 只給了物品 ID 的舊呼叫端：先從背包裡把「真的那一件」找出來，這樣帶過去的裝備
+            // 才會保留孔位與鑲嵌（否則會變成一件重新骰孔的白板）。見 readme/GEM_SOCKET.md。
+            var picked = new List<Dipan.Inventory.ItemStack>();
+            if (carryItemIds != null)
+                foreach (int id in carryItemIds)
+                {
+                    if (id <= 0) continue;
+                    picked.Add(FindOwnedStack(id));
+                }
+            ReincarnateInPlace(picked);
+        }
+
+        /// <summary>
+        /// 輪迴（帶入指定的「那幾件」）。與上面的多載差別在於它收的是完整的 ItemStack——
+        /// 孔位與鑲嵌會原封不動帶到下一輪。輪迴選物 UI 做好後應該直接呼叫這一版。
+        /// </summary>
+        public void ReincarnateInPlace(IList<Dipan.Inventory.ItemStack> carryItems)
+        {
             if (_current == null) return;
 
             int leavingCycle = _current.generation;                 // 要離開的周目
             int allowed = CarryCountForCycle(leavingCycle);         // 這次可帶幾件
-            var carried = new List<int>();
-            if (carryItemIds != null)
-                for (int i = 0; i < carryItemIds.Count && carried.Count < allowed; i++)
-                    if (carryItemIds[i] > 0) carried.Add(carryItemIds[i]);
+            var carried = new List<Dipan.Inventory.ItemStack>();
+            if (carryItems != null)
+                for (int i = 0; i < carryItems.Count && carried.Count < allowed; i++)
+                    if (!carryItems[i].IsEmpty) carried.Add(carryItems[i]);
+
+            var carriedIds = new List<int>();
+            foreach (var st in carried) carriedIds.Add(st.ItemId);
 
             // 重置：周目 +1、屬性/進度全新（記錄本代帶入物品），背包清空後塞回帶入物品。倉庫保留不動。
             _current.generation = leavingCycle + 1;
             _current.stats = new StatsDTO();
-            _current.progress = new ProgressDTO { inheritedItems = new List<int>(carried) };
+            _current.progress = new ProgressDTO { inheritedItems = carriedIds };
 
             Inv.RestoreState(null);                                 // 清空背包/裝備
-            foreach (int id in carried) Inv.AddItem(id, 1);         // 帶入物品（吃堆疊規則）
+            foreach (var st in carried) Inv.AddStack(st);           // 帶入物品（含孔位與鑲嵌）
 
             SaveNow();
             Debug.Log($"[SaveManager] 輪迴 → 第 {_current.generation} 周目（帶入 {carried.Count} 件），進度已重置。");
+        }
+
+        /// <summary>從背包格或裝備欄找出這個 itemId 實際持有的那一件（含實例）；找不到就回一件全新的。</summary>
+        Dipan.Inventory.ItemStack FindOwnedStack(int itemId)
+        {
+            var inv = Inv;
+            if (inv != null)
+            {
+                for (int i = 0; i < Dipan.Inventory.InventorySystem.GridCount; i++)
+                {
+                    var st = inv.GetGrid(i);
+                    if (st.ItemId == itemId) return st;
+                }
+                foreach (var kv in inv.EquippedItems())
+                    if (kv.Value.ItemId == itemId) return kv.Value;
+            }
+            return Dipan.Inventory.ItemManager.Create(itemId, 1);
         }
 
         // ───────────── 進度 API（周目 / 完成關卡 / 金錢 / 出生點旗標）─────────────

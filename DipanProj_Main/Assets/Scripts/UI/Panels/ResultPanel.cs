@@ -133,9 +133,12 @@ namespace Dipan.UI
         public static void Show(bool win, bool showTitle, string module, string displayName)
             => Show(win, showTitle, module, displayName, null);
 
-        /// <summary>開啟結算畫面並在獎勵區顯示這趟落袋的臨時包內容（rewards＝(itemId, count)；null/空＝顯示「無」）。</summary>
+        /// <summary>
+        /// 開啟結算畫面並在獎勵區顯示這趟落袋的臨時包內容（null/空＝顯示「無」）。
+        /// rewards 是完整的 ItemStack，所以有孔的裝備會在圖示下方標出孔數。
+        /// </summary>
         public static void Show(bool win, bool showTitle, string module, string displayName,
-                                IList<KeyValuePair<int, int>> rewards)
+                                IList<ItemStack> rewards)
         {
             var p = UIManager.Instance?.Open<ResultPanel>();
             p?.Setup(win, showTitle, module, displayName);
@@ -143,7 +146,7 @@ namespace Dipan.UI
         }
 
         /// <summary>把過關落袋的道具鋪進獎勵區（圖示＋×數量、置中排列、自動換行）。空 → 顯示大「無」字。</summary>
-        void PopulateRewards(IList<KeyValuePair<int, int>> rewards)
+        void PopulateRewards(IList<ItemStack> rewards)
         {
             if (_rewardsArea == null) return;
 
@@ -163,7 +166,7 @@ namespace Dipan.UI
                 for (int i = 0; i < n; i++)
                 {
                     var kv = rewards[i];
-                    var data = inv != null ? inv.GetData(kv.Key) : null;
+                    var data = inv != null ? inv.GetData(kv.ItemId) : null;
                     int row = i / perRow, col = i % perRow;
                     int rowCount = Mathf.Min(perRow, n - row * perRow);
                     float totalW = rowCount * cell + (rowCount - 1) * gap;
@@ -171,16 +174,23 @@ namespace Dipan.UI
                     float y = (rows - 1) * rowH * 0.5f - row * rowH;
 
                     // 圖示
-                    var icon = UIBuilder.Image(_rewardsArea, $"Reward{i}", data != null ? data.Icon : null, Color.white);
+                    var icon = UIBuilder.Image(_rewardsArea, $"Reward{i}", null, Color.white);
                     icon.raycastTarget = false;
+                    icon.preserveAspect = true;
                     var irt = icon.rectTransform;
                     irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
                     irt.sizeDelta = new Vector2(iconSize, iconSize);
                     irt.anchoredPosition = new Vector2(x, y + 12f);
-                    if (data == null || data.Icon == null) icon.enabled = false;
+                    ItemIcons.Apply(icon, kv);   // 珠子會連能力符號一起畫（見 readme/GEM_SOCKET.md）
 
-                    // ×數量
-                    var ct = UIBuilder.Text(_rewardsArea, $"RewardCnt{i}", $"×{kv.Value}", 30,
+                    // ×數量（有孔的裝備改標孔數，讓玩家一眼看到這趟打到什麼好貨）
+                    string label = $"×{kv.Count}";
+                    if (kv.Inst != null)
+                    {
+                        if (kv.Inst.HasSockets && kv.Inst.UnlockedCount > 0) label = $"{kv.Inst.UnlockedCount} 孔";
+                        else if (kv.Inst.level > 0) label = $"Lv{kv.Inst.level}";
+                    }
+                    var ct = UIBuilder.Text(_rewardsArea, $"RewardCnt{i}", label, 30,
                         new Color(0.96f, 0.90f, 0.66f, 1f), TextAnchor.MiddleCenter);
                     var crt = ct.rectTransform;
                     crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);

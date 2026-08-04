@@ -53,7 +53,13 @@ public class RunProgress : MonoBehaviour
     public string RunModule { get; private set; }
 
     // 臨時包：itemId → 數量（金錢也是道具 101）。無容量上限（併入真背包時才受背包格數限制）。
+    // ⚠ 只裝「可疊的一般道具」——裝備與能力珠每一件都有自己的孔位/等級，不能用「ID + 數量」表示，
+    //    它們放在下面的 _tempInstanced，一件一筆。見 readme/GEM_SOCKET.md。
     readonly Dictionary<int, int> _temp = new Dictionary<int, int>();
+
+    // 臨時包（有實例的部分）：裝備、能力珠…一件一筆，含孔位與珠子等級。
+    // 這樣玩家在關卡中途按 F8 或打開結算就看得到「這把是 6 孔的」——掉落當下就已經決定好了。
+    readonly List<ItemStack> _tempInstanced = new List<ItemStack>();
 
     /// <summary>一筆躺在地上、還沒被撿走的掉落物（換圖回來要在原座標重放）。</summary>
     public class GroundDrop
@@ -62,6 +68,8 @@ public class RunProgress : MonoBehaviour
         public int itemId;
         public int count;
         public float x, y;  // 世界座標（已散開後的實際落點）
+        /// <summary>這一件專屬的資料（孔位/珠子等級）；null = 一般可疊道具。掉在地上時就已經決定了。</summary>
+        public ItemInstance inst;
     }
 
     // 每張地圖一筆記錄（只在本趟有效）。
@@ -115,6 +123,7 @@ public class RunProgress : MonoBehaviour
     public void BeginRun(string module)
     {
         _temp.Clear();
+        _tempInstanced.Clear();
         _maps.Clear();
         _nextDropId = 1;
         RunActive = true;
@@ -125,8 +134,9 @@ public class RunProgress : MonoBehaviour
     /// <summary>死亡/主動返回：臨時包與進度全部丟棄（這趟零收穫）。</summary>
     public void EndRunDiscard()
     {
-        int lost = _temp.Count;
+        int lost = _temp.Count + _tempInstanced.Count;
         _temp.Clear();
+        _tempInstanced.Clear();
         _maps.Clear();
         RunActive = false;
         RunModule = null;
@@ -135,33 +145,31 @@ public class RunProgress : MonoBehaviour
 
     /// <summary>
     /// 過關結算：把臨時包整包併入真背包（InventorySystem），清空臨時包與進度，結束這趟。
-    /// 回傳併入前的內容快照（itemId, count）供結算畫面顯示。
+    /// 回傳併入前的內容快照供結算畫面顯示（含每一件的孔位/鑲嵌，所以結算畫面能標「6 孔」）。
     /// </summary>
-    public List<KeyValuePair<int, int>> SettleIntoBag()
+    public List<ItemStack> SettleIntoBag()
     {
-        var snapshot = new List<KeyValuePair<int, int>>();
-        foreach (var kv in _temp) snapshot.Add(kv);
-        // 金錢/銅錢排前面，看起來順（可選）。
-        snapshot.Sort((a, b) => a.Key.CompareTo(b.Key));
+        var snapshot = TempSnapshot();
 
         var inv = InventorySystem.Instance;
         var sm = Dipan.Save.SaveManager.Instance;
-        foreach (var kv in snapshot)
+        foreach (var st in snapshot)
         {
             // 金錢走錢包（獨立數字），不佔背包格、也不會因為背包滿而掉。
-            if (kv.Key == MoneyItemId)
+            if (st.ItemId == MoneyItemId)
             {
-                if (sm != null) sm.AddCurrency(kv.Value);
-                else Debug.LogWarning($"[RunProgress] 沒有 SaveManager，結算的金錢 {kv.Value} 無處可放。");
+                if (sm != null) sm.AddCurrency(st.Count);
+                else Debug.LogWarning($"[RunProgress] 沒有 SaveManager，結算的金錢 {st.Count} 無處可放。");
                 continue;
             }
             if (inv == null) continue;
-            int leftover = inv.AddItem(kv.Key, kv.Value);
+            int leftover = inv.AddStack(st);
             if (leftover > 0)
-                Debug.LogWarning($"[RunProgress] 結算時背包已滿，道具 {kv.Key} ×{leftover} 無法放入（暫時捨棄）。");
+                Debug.LogWarning($"[RunProgress] 結算時背包已滿，道具 {st.ItemId} ×{leftover} 無法放入（暫時捨棄）。");
         }
 
         _temp.Clear();
+        _tempInstanced.Clear();
         _maps.Clear();
         RunActive = false;
         RunModule = null;
@@ -171,34 +179,76 @@ public class RunProgress : MonoBehaviour
     // ───────────────────────── 取得物品（關卡內→臨時包；廣場→真背包）─────────────────────────
 
     /// <summary>
-    /// 給玩家 itemId×count：關卡內進臨時包（無上限，恆回 0）；廣場走真背包 InventorySystem.AddItem（回傳放不下的剩餘）。
+    /// 給玩家 itemId×count：關卡內進臨時包（無上限，恆回 0）；廣場走真背包（回傳放不下的剩餘）。
     /// giveItem trigger、拾取點、地上掉落物撿取都走這裡，統一「在關卡內就進臨時包」的規則。
+    ///
+    /// 需要實例資料的物品（裝備、能力珠）會在這裡先經 <see cref="ItemManager"/> 產生完整的一件——
+    /// 所以孔數與珠子等級在「取得的當下」就決定好了，不是等到結算才骰。
     /// </summary>
     public int GiveItem(int itemId, int count)
     {
         if (count <= 0) return 0;
+
+        var inv0 = InventorySystem.Instance;
+        var d = inv0 != null ? inv0.GetData(itemId) : null;
+        if (d != null && ItemManager.NeedsInstance(d))
+        {
+            int left = 0;
+            for (int i = 0; i < count; i++) left += GiveStack(ItemManager.Create(itemId, 1));
+            return left;
+        }
+
+        return GiveStack(new ItemStack { ItemId = itemId, Count = count, Inst = null });
+    }
+
+    /// <summary>
+    /// 把一個「已經存在的」ItemStack 交給玩家（不重新產生實例）。
+    /// 地上掉落物撿取走這條——地上那一件的孔數是掉落當下就決定的，撿起來不能重骰。
+    /// </summary>
+    public int GiveStack(ItemStack st)
+    {
+        if (st.IsEmpty) return 0;
+
         if (RunActive)
         {
-            _temp.TryGetValue(itemId, out int c);
-            _temp[itemId] = c + count;
+            if (st.HasInst) _tempInstanced.Add(st);
+            else
+            {
+                _temp.TryGetValue(st.ItemId, out int c);
+                _temp[st.ItemId] = c + st.Count;
+            }
             return 0;
         }
+
         // 金錢不進背包（改成獨立數字顯示在背包下方）。這裡是「取得物品的統一入口」，
         // 所以攔在這一層，掉落物、觸發鏈 giveItem、抽選發獎…全部自動適用。
-        if (itemId == MoneyItemId)
+        if (st.ItemId == MoneyItemId)
         {
             var sm = Dipan.Save.SaveManager.Instance;
-            if (sm != null) { sm.AddCurrency(count); return 0; }
+            if (sm != null) { sm.AddCurrency(st.Count); return 0; }
             Debug.LogWarning("[RunProgress] 沒有 SaveManager，金錢無處可放（本次遊玩不會保存）。");
-            return count;
+            return st.Count;
         }
 
         var inv = InventorySystem.Instance;
-        return inv != null ? inv.AddItem(itemId, count) : count;
+        return inv != null ? inv.AddStack(st) : st.Count;
     }
 
-    /// <summary>臨時包內容（唯讀，除錯疊層/結算用）。</summary>
+    /// <summary>臨時包目前內容的快照（可疊的合併成一筆、有實例的一件一筆，依物品 ID 排序）。</summary>
+    public List<ItemStack> TempSnapshot()
+    {
+        var list = new List<ItemStack>();
+        foreach (var kv in _temp) list.Add(new ItemStack { ItemId = kv.Key, Count = kv.Value, Inst = null });
+        list.AddRange(_tempInstanced);
+        list.Sort((a, b) => a.ItemId.CompareTo(b.ItemId));
+        return list;
+    }
+
+    /// <summary>臨時包裡可疊道具的部分（唯讀）。完整內容請用 <see cref="TempSnapshot"/>。</summary>
     public IReadOnlyDictionary<int, int> TempItems => _temp;
+
+    /// <summary>臨時包目前有幾筆（可疊的算一筆、有實例的一件一筆）。</summary>
+    public int TempCount => _temp.Count + _tempInstanced.Count;
 
     // ───────────────────────── 怪物：已清出生點 ─────────────────────────
 
@@ -238,12 +288,15 @@ public class RunProgress : MonoBehaviour
 
     // ───────────────────────── 地上掉落物（沒撿的留原地）─────────────────────────
 
-    /// <summary>登記一筆地上掉落物，回傳 dropId（≥1）。非 run 期間回 0（不登記，例如廣場背包溢出的掉落）。</summary>
-    public int RegisterGroundDrop(int mapId, int itemId, int count, Vector2 pos)
+    /// <summary>
+    /// 登記一筆地上掉落物，回傳 dropId（≥1）。非 run 期間回 0（不登記，例如廣場背包溢出的掉落）。
+    /// inst = 這一件的實例資料（孔位/珠子等級），換圖回來重放時原封不動放回去。
+    /// </summary>
+    public int RegisterGroundDrop(int mapId, int itemId, int count, Vector2 pos, ItemInstance inst = null)
     {
         if (!RunActive || count <= 0) return 0;
         int id = _nextDropId++;
-        Rec(mapId).drops[id] = new GroundDrop { id = id, itemId = itemId, count = count, x = pos.x, y = pos.y };
+        Rec(mapId).drops[id] = new GroundDrop { id = id, itemId = itemId, count = count, x = pos.x, y = pos.y, inst = inst };
         return id;
     }
 
@@ -285,7 +338,7 @@ public class RunProgress : MonoBehaviour
         if (!_showDebug) return;
 
         const float w = 320f;
-        float h = 96f + _temp.Count * 22f;
+        float h = 96f + TempCount * 22f;
         var rect = new Rect(12f, 12f, w, h);
         GUI.color = new Color(0f, 0f, 0f, 0.72f);
         GUI.DrawTexture(rect, Texture2D.whiteTexture);
@@ -298,17 +351,27 @@ public class RunProgress : MonoBehaviour
             RunActive ? $"關卡中：{RunModule}" : "不在關卡內（進真背包）", style); y += 22f;
 
         var inv = InventorySystem.Instance;
-        if (_temp.Count == 0)
+        var snap = TempSnapshot();
+        if (snap.Count == 0)
         {
             GUI.Label(new Rect(24f, y, w - 24f, 22f), "（空）", style); y += 22f;
         }
         else
         {
-            foreach (var kv in _temp)
+            foreach (var st in snap)
             {
-                var d = inv != null ? inv.GetData(kv.Key) : null;
-                string nm = d != null ? d.Name : $"#{kv.Key}";
-                GUI.Label(new Rect(24f, y, w - 24f, 22f), $"{nm} ×{kv.Value}", style);
+                var d = inv != null ? inv.GetData(st.ItemId) : null;
+                string nm = d != null ? d.Name : $"#{st.ItemId}";
+                // 有孔的裝備順便標出「幾孔／鑲了幾顆」，中途按 F8 就看得到這趟打到什麼好貨。
+                string extra = "";
+                if (st.Inst != null)
+                {
+                    if (st.Inst.HasSockets && st.Inst.UnlockedCount > 0)
+                        extra = $"  <color=#FFD479>({st.Inst.UnlockedCount}孔 / 鑲{st.Inst.GemCount})</color>";
+                    else if (st.Inst.level > 0)
+                        extra = $"  <color=#8FD3FF>Lv{st.Inst.level}</color>";
+                }
+                GUI.Label(new Rect(24f, y, w - 24f, 22f), $"{nm} ×{st.Count}{extra}", style);
                 y += 22f;
             }
         }

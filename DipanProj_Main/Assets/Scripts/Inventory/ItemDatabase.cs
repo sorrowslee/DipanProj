@@ -94,6 +94,8 @@ namespace Dipan.Inventory
                                       System.Globalization.CultureInfo.InvariantCulture, out float lr)) ? lr : 0f;
                 string bloodStr = Field(v, 15);   // 血統藥劑 → BloodlineTable 的 Id（選填欄；舊表沒這欄 → "" → 0）
                 d.BloodlineID = int.TryParse(bloodStr, out int bid) ? bid : 0;
+                string gemStr = Field(v, 16);     // 能力珠 → GemTable 的 GemID（選填欄；舊表沒這欄 → "" → 0）
+                d.GemID = int.TryParse(gemStr, out int gid) ? gid : 0;
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

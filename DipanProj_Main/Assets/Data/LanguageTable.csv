@@ -28,3 +28,9 @@ id,cn,en
 5007,確定要刪除這個角色嗎？\n刪除後無法復原。,Delete this character?\nThis cannot be undone.
 5008,{0}周目,Cycle {0}
 5009,存檔損毀,Save Corrupted
+4007,強化裝備,Upgrade
+4008,這個孔只能鑲能力珠,Only ability gems fit in a socket
+4009,請先把裝備放上鐵砧,Place an item on the anvil first
+4010,這件裝備上沒有鑲嵌,This item has no gems socketed
+4011,背包空位不夠，無法取下全部鑲嵌,Not enough bag space to remove all gems
+4012,已取下 {0} 顆能力珠,Removed {0} gem(s)

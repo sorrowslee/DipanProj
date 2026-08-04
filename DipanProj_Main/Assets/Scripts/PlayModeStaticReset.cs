@@ -74,6 +74,12 @@ public static class PlayModeStaticReset
         Dipan.Gacha.BloodlineTable.ResetForPlayMode();
         Dipan.Gacha.BloodlineSystem.ResetForPlayMode();
 
+        // 能力珠鑲嵌（見 readme/GEM_SOCKET.md）
+        Dipan.Inventory.ItemManager.ResetForPlayMode();   // 能力珠定義表快取（GemTable）
+        Dipan.Inventory.ForgeSockets.ResetForPlayMode();  // 孔位除錯覆寫（DebugCount）
+        WeaponManager.ResetForPlayMode();                 // 玩家專屬的武器解析器（static 委派，會指向上一輪的玩家）
+        Dipan.UI.ItemIcons.ResetForPlayMode();            // 珠子疊圖的 Sprite 快取（字典型快取，容器不會變 null）
+
         // 發光物登記表：清上一輪殘留（AtmosphereController 取最近發光地上物靠它）。
         LightSource.ClearAll();
     }

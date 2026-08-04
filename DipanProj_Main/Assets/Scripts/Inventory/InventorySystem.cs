@@ -4,13 +4,27 @@ using UnityEngine;
 
 namespace Dipan.Inventory
 {
-    /// <summary>背包格內容：物品 ID + 數量。ItemId &lt;= 0 視為空格。</summary>
+    /// <summary>
+    /// 背包格內容：物品 ID + 數量 + （可選的）這一件專屬的實例資料。
+    ///
+    /// <see cref="Inst"/> 是**參照型別**，所以搬運一律用「移動」語意（放到新位置後把舊位置清空），
+    /// 絕對不要把同一個 ItemStack 同時留在兩個地方——那會讓兩格共用同一份鑲嵌。
+    /// 有實例的物品一律 Count = 1、且不與任何東西合併堆疊。見 readme/GEM_SOCKET.md。
+    /// </summary>
     public struct ItemStack
     {
         public int ItemId;
         public int Count;
+        /// <summary>這一件專屬的資料（孔位/珠子等級…）；null = 一般可疊道具，沒有實例概念。</summary>
+        public ItemInstance Inst;
+
         public bool IsEmpty => ItemId <= 0 || Count <= 0;
-        public static ItemStack Empty => new ItemStack { ItemId = 0, Count = 0 };
+        /// <summary>有沒有實例資料（有的話就不能疊、不能合併）。</summary>
+        public bool HasInst => Inst != null;
+        public static ItemStack Empty => new ItemStack { ItemId = 0, Count = 0, Inst = null };
+
+        /// <summary>複製一份（實例也深拷貝）。只有在「真的要多出一件」時才用，一般搬運不要用。</summary>
+        public ItemStack DeepClone() => new ItemStack { ItemId = ItemId, Count = Count, Inst = Inst?.Clone() };
     }
 
     /// <summary>
@@ -48,11 +62,24 @@ namespace Dipan.Inventory
         public ItemDatabase Db { get; private set; }
 
         ItemStack[] _grid;
-        Dictionary<EquipSlot, int> _equip;   // 裝備欄 → 物品 ID（0 = 空）
-        int[] _potionSlots;                  // 藥水格綁定（長度 = PotionSlotCount）；跟背包一起存檔
+        Dictionary<EquipSlot, ItemStack> _equip;   // 裝備欄 → 那一件（含實例資料）
+        int[] _potionSlots;                        // 藥水格綁定（長度 = PotionSlotCount）；跟背包一起存檔
 
         /// <summary>任何變動（加/減/移動/裝/卸）後觸發，UI 用來重繪。</summary>
         public event Action OnChanged;
+
+        /// <summary>
+        /// 「玩家身上的能力可能變了」的版本號：裝備欄變動、或任何裝備的鑲嵌被改動時 +1。
+        /// 能力容器靠它判斷要不要重算——因為「換了珠子但沒換武器」時物品 ID 完全沒變，光比 ID 會漏掉。
+        /// </summary>
+        public int LoadoutVersion { get; private set; }
+
+        /// <summary>鑲嵌被改動時由鍛造介面呼叫，讓能力容器知道要重算。</summary>
+        public void NotifyLoadoutChanged()
+        {
+            LoadoutVersion++;
+            Raise();
+        }
 
         void Awake()
         {
@@ -71,7 +98,7 @@ namespace Dipan.Inventory
             if (provider != null && provider.itemCSV != null) Db.LoadFromTextAsset(provider.itemCSV);
             else Db.LoadFromResources();
             _grid = new ItemStack[GridCount];
-            _equip = new Dictionary<EquipSlot, int>();
+            _equip = new Dictionary<EquipSlot, ItemStack>();
             _potionSlots = new int[PotionSlotCount];
         }
 
@@ -81,13 +108,36 @@ namespace Dipan.Inventory
 
         public ItemData GetData(int itemId) => Db != null ? Db.Get(itemId) : null;
         public ItemStack GetGrid(int index) => (index >= 0 && index < GridCount) ? _grid[index] : ItemStack.Empty;
-        public int GetEquipped(EquipSlot slot) => (_equip != null && _equip.TryGetValue(slot, out var id)) ? id : 0;
 
-        /// <summary>直接設定某裝備欄的物品 ID（0 = 清空）。拖放/跨容器裝備用；會觸發 OnChanged（裝備↔武器連動靠它）。</summary>
+        /// <summary>裝備欄裡那一件的物品 ID（0 = 空）。要連實例一起拿請用 <see cref="GetEquippedStack"/>。</summary>
+        public int GetEquipped(EquipSlot slot) => GetEquippedStack(slot).ItemId;
+
+        /// <summary>裝備欄裡那一件（含孔位/鑲嵌資料）。空欄回 Empty。</summary>
+        public ItemStack GetEquippedStack(EquipSlot slot)
+            => (_equip != null && _equip.TryGetValue(slot, out var st)) ? st : ItemStack.Empty;
+
+        /// <summary>裝備欄裡那一件的實例資料（沒有就回 null）。</summary>
+        public ItemInstance GetEquippedInstance(EquipSlot slot) => GetEquippedStack(slot).Inst;
+
+        /// <summary>
+        /// 直接設定某裝備欄的物品 ID（0 = 清空）。
+        /// ⚠ 這條路**不帶實例資料**（等於一件沒有孔的裸裝），只給「憑空指定裝備」的舊呼叫端與測試用；
+        /// 正常的裝/卸/交換請走 <see cref="SetEquippedStack"/>，否則玩家的鑲嵌會憑空消失。
+        /// </summary>
         public void SetEquipped(EquipSlot slot, int itemId)
         {
             if (slot == EquipSlot.None) return;
-            _equip[slot] = Mathf.Max(0, itemId);
+            if (itemId <= 0) { SetEquippedStack(slot, ItemStack.Empty); return; }
+            SetEquippedStack(slot, new ItemStack { ItemId = itemId, Count = 1, Inst = null });
+        }
+
+        /// <summary>設定某裝備欄的內容（含實例資料）。裝/卸/交換一律走這條。</summary>
+        public void SetEquippedStack(EquipSlot slot, ItemStack st)
+        {
+            if (slot == EquipSlot.None) return;
+            if (st.IsEmpty) _equip.Remove(slot);
+            else { st.Count = 1; _equip[slot] = st; }
+            LoadoutVersion++;
             Raise();
         }
 
@@ -103,31 +153,54 @@ namespace Dipan.Inventory
         }
         public bool MoveWithin(int from, int to) => MoveGrid(from, to);
 
-        /// <summary>整理道具格（重整鈕用）：合併同物品堆、依物品 ID 排序、往前壓實（不動裝備欄）。</summary>
+        /// <summary>某物品的實際堆疊上限；有實例資料的一律 1（兩件的實例不同，疊在一起就分不出來了）。</summary>
+        public int MaxStackOf(int itemId)
+        {
+            var d = GetData(itemId);
+            if (d == null) return 1;
+            if (Dipan.Inventory.ItemManager.NeedsInstance(d)) return 1;
+            return Mathf.Max(1, d.MaxStack);
+        }
+
+        /// <summary>
+        /// 整理道具格（重整鈕用）：合併同物品堆、依物品 ID 排序、往前壓實（不動裝備欄）。
+        /// ⚠ 有實例資料的物品（裝備、能力珠）**一件一格搬過去、不加總合併**，否則鑲嵌與珠子等級會被洗掉。
+        /// </summary>
         public void SortGrid()
         {
-            var totals = new Dictionary<int, int>();
-            var order = new List<int>();
+            var totals = new Dictionary<int, int>();   // 可疊物：itemId → 總數
+            var order = new List<int>();               // 出現過的 itemId（之後排序）
+            var instanced = new List<ItemStack>();     // 有實例的：一件一筆，原封不動搬
+
             for (int i = 0; i < GridCount; i++)
             {
                 if (_grid[i].IsEmpty) continue;
+                if (_grid[i].HasInst) { instanced.Add(_grid[i]); continue; }
                 int id = _grid[i].ItemId;
                 if (!totals.ContainsKey(id)) { totals[id] = 0; order.Add(id); }
                 totals[id] += _grid[i].Count;
             }
             order.Sort();
+            instanced.Sort((a, b) => a.ItemId.CompareTo(b.ItemId));
 
             for (int i = 0; i < GridCount; i++) _grid[i] = ItemStack.Empty;
             int slot = 0;
+
+            // 有實例的排前面（裝備/珠子通常是玩家最在意的東西）
+            foreach (var st in instanced)
+            {
+                if (slot >= GridCount) break;
+                _grid[slot++] = st;
+            }
+
             foreach (int id in order)
             {
-                var d = GetData(id);
-                int max = Mathf.Max(1, d != null ? d.MaxStack : 1);
+                int max = MaxStackOf(id);
                 int remain = totals[id];
                 while (remain > 0 && slot < GridCount)
                 {
                     int put = Mathf.Min(max, remain);
-                    _grid[slot++] = new ItemStack { ItemId = id, Count = put };
+                    _grid[slot++] = new ItemStack { ItemId = id, Count = put, Inst = null };
                     remain -= put;
                 }
             }
@@ -141,7 +214,7 @@ namespace Dipan.Inventory
                     if (!_grid[i].IsEmpty) return true;
             if (_equip != null)
                 foreach (var kv in _equip)
-                    if (kv.Value > 0) return true;
+                    if (kv.Value.ItemId > 0) return true;
             return false;
         }
 
@@ -164,23 +237,47 @@ namespace Dipan.Inventory
             if (Has(itemId)) return true;
             if (_equip != null)
                 foreach (var kv in _equip)
-                    if (kv.Value == itemId) return true;
+                    if (kv.Value.ItemId == itemId) return true;
             return false;
+        }
+
+        /// <summary>背包還有幾個空格（「移除鑲嵌前先確認放不放得下」用）。</summary>
+        public int FreeSlotCount()
+        {
+            if (_grid == null) return 0;
+            int n = 0;
+            for (int i = 0; i < GridCount; i++) if (_grid[i].IsEmpty) n++;
+            return n;
         }
 
         // ───────────── 操作 ─────────────
 
-        /// <summary>加入物品（先疊到既有同物品堆、再放空格）。回傳「放不下的剩餘數量」（0 = 全放進去）。</summary>
+        /// <summary>
+        /// 加入物品（先疊到既有同物品堆、再放空格）。回傳「放不下的剩餘數量」（0 = 全放進去）。
+        /// ⚠ 這條路**不會產生實例資料**——需要孔位/等級的物品請走
+        /// <see cref="ItemManager.Give"/> 或 <see cref="ItemManager.Create"/> 再用 <see cref="AddStack"/>。
+        /// </summary>
         public int AddItem(int itemId, int count = 1)
         {
             var d = GetData(itemId);
             if (d == null || count <= 0) return count;
+
+            // 需要實例的物品從這條路進來 = 呼叫端漏走工廠。幫它補一份，並提醒。
+            if (ItemManager.NeedsInstance(d))
+            {
+                int left = 0;
+                for (int i = 0; i < count; i++)
+                    left += AddStack(ItemManager.Create(itemId, 1));
+                return left;
+            }
+
             int max = Mathf.Max(1, d.MaxStack);
 
             if (max > 1)
             {
                 for (int i = 0; i < GridCount && count > 0; i++)
                 {
+                    if (_grid[i].HasInst) continue;                       // 有實例的絕不合併
                     if (_grid[i].ItemId == itemId && _grid[i].Count < max)
                     {
                         int add = Mathf.Min(max - _grid[i].Count, count);
@@ -195,13 +292,33 @@ namespace Dipan.Inventory
                 if (_grid[i].IsEmpty)
                 {
                     int add = Mathf.Min(max, count);
-                    _grid[i] = new ItemStack { ItemId = itemId, Count = add };
+                    _grid[i] = new ItemStack { ItemId = itemId, Count = add, Inst = null };
                     count -= add;
                 }
             }
 
             Raise();
             return count;   // 剩餘（背包滿了沒放完）
+        }
+
+        /// <summary>
+        /// 把一個「已經存在的」ItemStack 放進背包（實例資料原封不動帶著走）。
+        /// 掉落物撿取、關卡結算落袋、鍛造退回背包都走這條。回傳放不下的剩餘數量。
+        /// </summary>
+        public int AddStack(ItemStack st)
+        {
+            if (st.IsEmpty) return 0;
+            if (!st.HasInst) return AddItem(st.ItemId, st.Count);   // 沒有實例 → 照一般疊堆規則
+
+            for (int i = 0; i < GridCount; i++)
+            {
+                if (!_grid[i].IsEmpty) continue;
+                st.Count = 1;
+                _grid[i] = st;
+                Raise();
+                return 0;
+            }
+            return st.Count;   // 沒空格
         }
 
         /// <summary>移除某格的物品。</summary>
@@ -212,6 +329,17 @@ namespace Dipan.Inventory
             if (_grid[gridIndex].Count <= 0) _grid[gridIndex] = ItemStack.Empty;
             Raise();
             return true;
+        }
+
+        /// <summary>取走某格的整份內容（含實例），該格清空。給鑲嵌這類「把東西搬到別處」的操作用。</summary>
+        public ItemStack TakeAt(int gridIndex)
+        {
+            if (gridIndex < 0 || gridIndex >= GridCount) return ItemStack.Empty;
+            var st = _grid[gridIndex];
+            if (st.IsEmpty) return ItemStack.Empty;
+            _grid[gridIndex] = ItemStack.Empty;
+            Raise();
+            return st;
         }
 
         /// <summary>依物品 ID 移除 count 個（跨堆扣除，供喝藥/消耗用）。回傳沒扣到的剩餘。</summary>
@@ -263,7 +391,7 @@ namespace Dipan.Inventory
             return true;
         }
 
-        /// <summary>把某道具格的可裝備物品裝到對應裝備欄（原本裝著的換回該格）。</summary>
+        /// <summary>把某道具格的可裝備物品裝到對應裝備欄（原本裝著的換回該格）。實例資料兩邊都帶著走。</summary>
         public bool EquipFromGrid(int gridIndex)
         {
             if (gridIndex < 0 || gridIndex >= GridCount) return false;
@@ -273,29 +401,40 @@ namespace Dipan.Inventory
             if (d == null || !d.IsEquippable) return false;
 
             var slot = d.EquipSlot;
-            int prev = GetEquipped(slot);
-            _equip[slot] = st.ItemId;
-            _grid[gridIndex] = (prev > 0) ? new ItemStack { ItemId = prev, Count = 1 } : ItemStack.Empty;
+            var prev = GetEquippedStack(slot);
+            st.Count = 1;
+            _equip[slot] = st;
+            _grid[gridIndex] = prev.IsEmpty ? ItemStack.Empty : prev;
+            LoadoutVersion++;
             Raise();
             return true;
         }
 
-        /// <summary>把裝備欄的物品卸回第一個空道具格（背包滿則失敗）。</summary>
+        /// <summary>把裝備欄的物品卸回第一個空道具格（背包滿則失敗）。實例資料跟著回背包。</summary>
         public bool Unequip(EquipSlot slot)
         {
-            int id = GetEquipped(slot);
-            if (id <= 0) return false;
+            var st = GetEquippedStack(slot);
+            if (st.IsEmpty) return false;
             for (int i = 0; i < GridCount; i++)
             {
                 if (_grid[i].IsEmpty)
                 {
-                    _grid[i] = new ItemStack { ItemId = id, Count = 1 };
-                    _equip[slot] = 0;
+                    _grid[i] = st;
+                    _equip.Remove(slot);
+                    LoadoutVersion++;
                     Raise();
                     return true;
                 }
             }
             return false;   // 沒有空格
+        }
+
+        /// <summary>逐一走訪所有「裝備中」的欄位（能力容器重算時用）。</summary>
+        public IEnumerable<KeyValuePair<EquipSlot, ItemStack>> EquippedItems()
+        {
+            if (_equip == null) yield break;
+            foreach (var kv in _equip)
+                if (kv.Value.ItemId > 0) yield return kv;
         }
 
         // ───────────── 存檔快照（純資料、不碰檔案）─────────────
@@ -310,11 +449,22 @@ namespace Dipan.Inventory
                 for (int i = 0; i < GridCount; i++)
                 {
                     if (_grid[i].IsEmpty) continue;
-                    dto.grid.Add(new GridSlotDTO { slot = i, itemId = _grid[i].ItemId, count = _grid[i].Count });
+                    dto.grid.Add(new GridSlotDTO
+                    {
+                        slot = i,
+                        itemId = _grid[i].ItemId,
+                        count = _grid[i].Count,
+                        inst = _grid[i].Inst,
+                    });
                 }
             if (_equip != null)
                 foreach (var kv in _equip)
-                    if (kv.Value > 0) dto.equipment[kv.Key.ToString()] = kv.Value;
+                {
+                    if (kv.Value.ItemId <= 0) continue;
+                    string key = kv.Key.ToString();
+                    dto.equipment[key] = kv.Value.ItemId;          // 舊欄位：保留給只想知道「裝了什麼」的讀者（例如存檔選擇畫面）
+                    if (kv.Value.Inst != null) dto.equipmentInst[key] = kv.Value.Inst;
+                }
             dto.potionSlots = (int[])_potionSlots.Clone();
             return dto;
         }
@@ -337,11 +487,15 @@ namespace Dipan.Inventory
                         if (s == null || s.itemId <= 0 || s.count <= 0) continue;
                         var d = GetData(s.itemId);
                         if (d == null) { Debug.LogWarning($"[InventorySystem] 還原跳過未知物品 ID {s.itemId}"); continue; }
-                        int count = Mathf.Min(s.count, Mathf.Max(1, d.MaxStack));
+
+                        var inst = NormalizeInstance(d, s.inst);
+                        int count = inst != null ? 1 : Mathf.Min(s.count, Mathf.Max(1, d.MaxStack));
+                        var st = new ItemStack { ItemId = s.itemId, Count = count, Inst = inst };
+
                         if (s.slot >= 0 && s.slot < GridCount && _grid[s.slot].IsEmpty)
-                            _grid[s.slot] = new ItemStack { ItemId = s.itemId, Count = count };
+                            _grid[s.slot] = st;
                         else
-                            AddItem(s.itemId, count);   // 格子越界/被占（例如改過背包尺寸）→ 找空位塞回
+                            AddStack(st);   // 格子越界/被占（例如改過背包尺寸）→ 找空位塞回
                     }
 
                 if (dto.equipment != null)
@@ -349,8 +503,12 @@ namespace Dipan.Inventory
                     {
                         if (kv.Value <= 0) continue;
                         if (!System.Enum.TryParse(kv.Key, true, out EquipSlot slot) || slot == EquipSlot.None) continue;
-                        if (GetData(kv.Value) == null) { Debug.LogWarning($"[InventorySystem] 還原跳過未知裝備 ID {kv.Value}"); continue; }
-                        _equip[slot] = kv.Value;
+                        var d = GetData(kv.Value);
+                        if (d == null) { Debug.LogWarning($"[InventorySystem] 還原跳過未知裝備 ID {kv.Value}"); continue; }
+
+                        ItemInstance inst = null;
+                        if (dto.equipmentInst != null) dto.equipmentInst.TryGetValue(kv.Key, out inst);
+                        _equip[slot] = new ItemStack { ItemId = kv.Value, Count = 1, Inst = NormalizeInstance(d, inst) };
                     }
             }
 
@@ -360,7 +518,32 @@ namespace Dipan.Inventory
                 _potionSlots[i] = GetData(id) != null ? id : 0;   // 綁定的藥若已不在物品表 → 清空
             }
 
+            LoadoutVersion++;
             Raise();
+        }
+
+        /// <summary>
+        /// 把讀回來的實例資料修成「符合現在物品定義」的樣子：
+        /// 需要實例卻缺 → 現場補一份（舊存檔/開發期改表的相容處理）；不需要實例卻有 → 丟掉。
+        /// 孔位數量對不上（改過 SocketMax）也在這裡補齊。
+        /// </summary>
+        ItemInstance NormalizeInstance(ItemData d, ItemInstance inst)
+        {
+            if (d == null) return null;
+            if (!ItemManager.NeedsInstance(d)) return null;
+
+            if (inst == null) return ItemManager.CreateInstance(d);
+
+            if (d.IsGem && inst.level <= 0) inst.level = 1;
+            if (d.IsEquippable)
+            {
+                if (inst.sockets == null) inst.sockets = new List<SocketSlot>();
+                while (inst.sockets.Count < ItemInstance.SocketMax) inst.sockets.Add(new SocketSlot());
+                while (inst.sockets.Count > ItemInstance.SocketMax) inst.sockets.RemoveAt(inst.sockets.Count - 1);
+                for (int i = 0; i < inst.sockets.Count; i++)
+                    if (inst.sockets[i] == null) inst.sockets[i] = new SocketSlot();
+            }
+            return inst;
         }
     }
 }

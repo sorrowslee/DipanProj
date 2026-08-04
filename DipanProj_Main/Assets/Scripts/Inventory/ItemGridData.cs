@@ -45,11 +45,20 @@ namespace Dipan.Inventory
         {
             var d = GetData(itemId);
             if (d == null || count <= 0) return count;
+
+            // 需要實例的物品（裝備、能力珠）不能用「只有 id + 數量」的方式生出來 → 走工廠補齊實例。
+            if (ItemManager.NeedsInstance(d))
+            {
+                int left = 0;
+                for (int i = 0; i < count; i++) left += AddStack(ItemManager.Create(itemId, 1));
+                return left;
+            }
+
             int max = Mathf.Max(1, d.MaxStack);
 
             if (max > 1)
                 for (int i = 0; i < Capacity && count > 0; i++)
-                    if (_grid[i].ItemId == itemId && _grid[i].Count < max)
+                    if (!_grid[i].HasInst && _grid[i].ItemId == itemId && _grid[i].Count < max)
                     {
                         int add = Mathf.Min(max - _grid[i].Count, count);
                         _grid[i].Count += add; count -= add;
@@ -59,12 +68,29 @@ namespace Dipan.Inventory
                 if (_grid[i].IsEmpty)
                 {
                     int add = Mathf.Min(max, count);
-                    _grid[i] = new ItemStack { ItemId = itemId, Count = add };
+                    _grid[i] = new ItemStack { ItemId = itemId, Count = add, Inst = null };
                     count -= add;
                 }
 
             Raise();
             return count;
+        }
+
+        /// <summary>放入一個已經存在的 ItemStack（實例資料原封不動帶著走）。回傳放不下的剩餘數量。</summary>
+        public int AddStack(ItemStack st)
+        {
+            if (st.IsEmpty) return 0;
+            if (!st.HasInst) return AddItem(st.ItemId, st.Count);
+
+            for (int i = 0; i < Capacity; i++)
+            {
+                if (!_grid[i].IsEmpty) continue;
+                st.Count = 1;
+                _grid[i] = st;
+                Raise();
+                return 0;
+            }
+            return st.Count;
         }
 
         public bool RemoveAt(int index, int count)
@@ -97,21 +123,30 @@ namespace Dipan.Inventory
         /// </summary>
         public void Sort()
         {
-            // 1) 蒐集所有物品數量
+            // 1) 蒐集所有物品數量。⚠ 有實例資料的（裝備、能力珠）一件一筆原封不動搬，不加總合併，
+            //    否則鑲嵌內容與珠子等級會被洗掉。
             var totals = new Dictionary<int, int>();
             var order = new List<int>();
+            var instanced = new List<ItemStack>();
             for (int i = 0; i < Capacity; i++)
             {
                 if (_grid[i].IsEmpty) continue;
+                if (_grid[i].HasInst) { instanced.Add(_grid[i]); continue; }
                 int id = _grid[i].ItemId;
                 if (!totals.ContainsKey(id)) { totals[id] = 0; order.Add(id); }
                 totals[id] += _grid[i].Count;
             }
             order.Sort();   // 依 ID 由小到大
+            instanced.Sort((a, b) => a.ItemId.CompareTo(b.ItemId));
 
             // 2) 清空後依排序重新放（合併到 MaxStack 上限）
             _grid = new ItemStack[Capacity];
             int slot = 0;
+            foreach (var st in instanced)
+            {
+                if (slot >= Capacity) break;
+                _grid[slot++] = st;
+            }
             foreach (int id in order)
             {
                 var d = GetData(id);
@@ -120,7 +155,7 @@ namespace Dipan.Inventory
                 while (remain > 0 && slot < Capacity)
                 {
                     int put = Mathf.Min(max, remain);
-                    _grid[slot++] = new ItemStack { ItemId = id, Count = put };
+                    _grid[slot++] = new ItemStack { ItemId = id, Count = put, Inst = null };
                     remain -= put;
                 }
             }
@@ -134,7 +169,13 @@ namespace Dipan.Inventory
             for (int i = 0; i < Capacity; i++)
             {
                 if (_grid[i].IsEmpty) continue;
-                dto.grid.Add(new GridSlotDTO { slot = i, itemId = _grid[i].ItemId, count = _grid[i].Count });
+                dto.grid.Add(new GridSlotDTO
+                {
+                    slot = i,
+                    itemId = _grid[i].ItemId,
+                    count = _grid[i].Count,
+                    inst = _grid[i].Inst,
+                });
             }
             return dto;
         }
@@ -149,11 +190,17 @@ namespace Dipan.Inventory
                     if (s == null || s.itemId <= 0 || s.count <= 0) continue;
                     var d = GetData(s.itemId);
                     if (d == null) { Debug.LogWarning($"[ItemGridData] 還原跳過未知物品 ID {s.itemId}"); continue; }
-                    int count = Mathf.Min(s.count, Mathf.Max(1, d.MaxStack));
+
+                    var inst = s.inst;
+                    if (ItemManager.NeedsInstance(d) && inst == null) inst = ItemManager.CreateInstance(d);
+                    else if (!ItemManager.NeedsInstance(d)) inst = null;
+
+                    int count = inst != null ? 1 : Mathf.Min(s.count, Mathf.Max(1, d.MaxStack));
+                    var st = new ItemStack { ItemId = s.itemId, Count = count, Inst = inst };
                     if (s.slot >= 0 && s.slot < Capacity && _grid[s.slot].IsEmpty)
-                        _grid[s.slot] = new ItemStack { ItemId = s.itemId, Count = count };
+                        _grid[s.slot] = st;
                     else
-                        AddItem(s.itemId, count);
+                        AddStack(st);
                 }
             Raise();
         }

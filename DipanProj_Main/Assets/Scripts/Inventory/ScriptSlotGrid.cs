@@ -29,9 +29,21 @@ namespace Dipan.Inventory
             // 只有「劇本」且方框是空的才收得下 1 件；其餘全數退回。
             var d = GetData(itemId);
             if (d == null || !d.IsScript || !_cell.IsEmpty || count <= 0) return count;
-            _cell = new ItemStack { ItemId = itemId, Count = 1 };
+            _cell = new ItemStack { ItemId = itemId, Count = 1, Inst = null };
             OnChanged?.Invoke();
             return count - 1;
+        }
+
+        /// <summary>放入一個已經存在的 ItemStack（劇本沒有實例資料，但介面要求實作）。</summary>
+        public int AddStack(ItemStack stack)
+        {
+            if (stack.IsEmpty) return 0;
+            var d = GetData(stack.ItemId);
+            if (d == null || !d.IsScript || !_cell.IsEmpty) return stack.Count;
+            stack.Count = 1;
+            _cell = stack;
+            OnChanged?.Invoke();
+            return 0;
         }
 
         public bool RemoveAt(int index, int count)

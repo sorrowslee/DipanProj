@@ -36,6 +36,24 @@ public class WeaponManager : MonoBehaviour
         RefreshCurrentWeapon();
     }
 
+    /// <summary>
+    /// 「玩家專屬」的武器解析器：把武器表上的原始資料 → 套上玩家身上所有裝備/鑲嵌給的能力 → 回傳一份拷貝。
+    /// 由 PlayerController 在 Start 掛上（見 <see cref="PlayerAbilities"/>）。
+    ///
+    /// ⚠ 只作用在 <see cref="GetCurrentWeapon"/> 這條路——<see cref="GetWeapon"/> 一律回原始資料，
+    /// 所以怪物（MonsterWeaponUser 走 GetWeapon）不會吃到玩家的鑲嵌加成。
+    /// </summary>
+    public static System.Func<WeaponData, WeaponData> AbilityResolver;
+
+    /// <summary>關掉 Domain Reload 後 static 不會歸零，進 Play 時由 PlayModeStaticReset 呼叫。</summary>
+    public static void ResetForPlayMode() => AbilityResolver = null;
+
+    /// <summary>
+    /// 鑲嵌內容變了但武器沒換時呼叫，重新解析一次目前武器。
+    /// （只比武器 ID 會漏掉這種情況——珠子換了，ID 完全沒變。）
+    /// </summary>
+    public void RefreshLoadout() => RefreshCurrentWeapon();
+
     // 註：原本這裡有 SwitchToPreviousWeapon()（E 鍵循環切換整張武器表），
     // 已於 2026-07-27 移除——武器一律由背包武器欄決定，不再有繞過裝備的切換途徑。
 
@@ -59,7 +77,10 @@ public class WeaponManager : MonoBehaviour
 
     private void RefreshCurrentWeapon()
     {
-        _currentWeapon = GetWeapon(CurrentWeaponID);
+        var baseWeapon = GetWeapon(CurrentWeaponID);
+        // 玩家的能力容器在這裡把「表格資料」解析成「這個角色現在實際的武器」。
+        // 沒掛解析器（例如編輯器測試場景）就照原樣用，行為與加入鑲嵌系統前一致。
+        _currentWeapon = (AbilityResolver != null && baseWeapon != null) ? AbilityResolver(baseWeapon) : baseWeapon;
     }
 
     private void LoadWeapons()

@@ -240,7 +240,7 @@ namespace Dipan.Flow
 
             // 臨時包結算：過關＝整包併入真背包並清空、拿到內容快照顯示；死亡/返回＝整包丟棄（這趟零收穫）。
             // 見 readme/CORE_LOOP_DESIGN.md §6、RunProgress。
-            List<KeyValuePair<int, int>> rewards = null;
+            List<Dipan.Inventory.ItemStack> rewards = null;
             if (RunProgress.Exists)
             {
                 if (kind == LevelEndKind.Clear) rewards = RunProgress.Instance.SettleIntoBag();

@@ -328,12 +328,21 @@ public class InteractionManager : MonoBehaviour
     /// 關卡 run 內會登記進 RunProgress（沒撿的換圖回來原地重放）。</summary>
     public GroundLoot DropLoot(int itemId, int count, Vector2 pos)
     {
-        var loot = CreateLoot(itemId, count, Scatter(pos));
+        // 掉落＝憑空產生一件新東西 → 一律走工廠，孔數/珠子等級在**掉在地上的那一刻**就決定好。
+        var st = ItemManager.Create(itemId, count);
+        return DropStack(st, pos);
+    }
+
+    /// <summary>把一個「已經存在的」ItemStack 掉在 pos（背包滿溢出、拆解產物…都走這條，不重新骰實例）。</summary>
+    public GroundLoot DropStack(ItemStack st, Vector2 pos)
+    {
+        if (st.IsEmpty) return null;
+        var loot = CreateLoot(st.ItemId, st.Count, Scatter(pos), st.Inst);
         if (loot != null && RunProgress.Exists && RunProgress.Instance.RunActive)
         {
             int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
             loot.RunDropId = RunProgress.Instance.RegisterGroundDrop(
-                mapId, itemId, count, loot.transform.position);
+                mapId, st.ItemId, st.Count, loot.transform.position, st.Inst);
         }
         return loot;
     }
@@ -346,13 +355,14 @@ public class InteractionManager : MonoBehaviour
         for (int i = 0; i < drops.Count; i++)
         {
             var d = drops[i];
-            var loot = CreateLoot(d.itemId, d.count, new Vector2(d.x, d.y));   // 用原座標、不散開
+            // 重放的是「同一件」——實例資料原封不動帶回去，孔數不會變。
+            var loot = CreateLoot(d.itemId, d.count, new Vector2(d.x, d.y), d.inst);   // 用原座標、不散開
             if (loot != null) loot.RunDropId = d.id;
         }
     }
 
     /// <summary>純建立一個地上掉落物件（不散開、不登記進度）。DropLoot 與 RestoreGroundDrops 共用。</summary>
-    GroundLoot CreateLoot(int itemId, int count, Vector2 spawnPos)
+    GroundLoot CreateLoot(int itemId, int count, Vector2 spawnPos, ItemInstance inst = null)
     {
         if (count <= 0) return null;
         var inv = InventorySystem.Instance;
@@ -366,7 +376,8 @@ public class InteractionManager : MonoBehaviour
         var go = new GameObject($"GroundLoot_{data.Name}");
         go.transform.position = new Vector3(spawnPos.x, spawnPos.y, 0f);
         var loot = go.AddComponent<GroundLoot>();
-        loot.Init(itemId, count, data.Name, data.Icon, lootWorldSize, sortingLayerName, sortingOrder);
+        loot.Init(new ItemStack { ItemId = itemId, Count = count, Inst = inst },
+                  data.Name, lootWorldSize, sortingLayerName, sortingOrder);
         _loot.Add(loot);
         return loot;
     }
@@ -579,7 +590,8 @@ public class InteractionManager : MonoBehaviour
     {
         if (loot == null) return;
 
-        int leftover = GiveToPlayer(loot.ItemId, loot.Count);
+        // ⚠ 撿的是「地上那一件」，不是重新生一件——所以走 GiveStack 把實例原封不動帶走。
+        int leftover = RunProgress.Instance.GiveStack(loot.ToStack());
         int added = loot.Count - leftover;
 
         if (added <= 0) { AlertPanel.Toast("背包已滿"); return; }
@@ -606,9 +618,25 @@ public class InteractionManager : MonoBehaviour
         // toRealBag＝直接進真背包（起始/教學道具，如佛燈：撿了要能當場開背包裝備、死亡也不丟）；否則走既有規則（關卡內臨時包/廣場真背包）。
         // toRealBag 是給起始/教學道具用的「直接進真背包」捷徑，但金錢例外：
         // 金錢是獨立數字、不佔背包格，一律回到統一入口處理。
-        int leftover = (pt.toRealBag && pt.itemId != RunProgress.MoneyItemId)
-            ? (InventorySystem.Instance != null ? InventorySystem.Instance.AddItem(pt.itemId, pt.count) : pt.count)
-            : GiveToPlayer(pt.itemId, pt.count);
+        // 拾取點＝憑空產生一件新東西 → 走工廠，需要孔位/等級的物品會在這裡骰好（每一件各自骰）。
+        bool toReal = pt.toRealBag && pt.itemId != RunProgress.MoneyItemId;
+        var inv0 = InventorySystem.Instance;
+        var d0 = inv0 != null ? inv0.GetData(pt.itemId) : null;
+        int leftover = 0;
+        if (d0 != null && ItemManager.NeedsInstance(d0))
+        {
+            for (int i = 0; i < pt.count; i++)
+            {
+                var one = ItemManager.Create(pt.itemId, 1);
+                leftover += toReal ? (inv0 != null ? inv0.AddStack(one) : 1)
+                                   : RunProgress.Instance.GiveStack(one);
+            }
+        }
+        else
+        {
+            leftover = toReal ? (inv0 != null ? inv0.AddItem(pt.itemId, pt.count) : pt.count)
+                              : GiveToPlayer(pt.itemId, pt.count);
+        }
         int added = pt.count - leftover;
 
         if (added > 0)

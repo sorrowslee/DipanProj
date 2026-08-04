@@ -14,12 +14,15 @@ namespace Dipan.UI
     /// 內容：
     /// - 鐵砧中央一格：玩家從背包拖武器／裝備上來。**這是「借放」不是「搬移」**——物品一直留在背包原位，
     ///   鐵砧只記住它在哪一格，背包那一格會被鎖起來壓黑；左鍵點鐵砧即可取下解鎖（見 ForgeAnvilSlot）。
-    /// - 左三右三共 6 個鑲嵌孔（ForgeSocketGrid）：依台面上那件裝備的孔位數開啟，其餘蓋鎖鏈。
-    ///   現在裝備還沒有孔位屬性（ForgeSockets.Of 一律回 0）→ 六孔全鎖，功能鏈路已通、等資料接上。
-    /// - 左下「移除鑲嵌」、右下「拆除裝備」：**尚未接功能**，按了只跳提示。
+    /// - 左三右三共 6 個鑲嵌孔（ForgeSocketGrid）：**直接讀寫台面上那件裝備的實例資料**，
+    ///   所以珠子一拖進孔就已經鑲上去了，沒有「提交」這個步驟，關掉面板也不會消失。
+    ///   孔位是物品產生時隨機骰的（孔數 0~6、**位置不連續**），沒開的孔蓋鎖鏈。
+    /// - 底部三顆按鈕（左到右）：「強化裝備」「拆除裝備」**尚未接功能**、「移除鑲嵌」把珠子全數退回背包
+    ///   （動作前會先確認背包空位夠，不夠就整個不做）。
+    ///   ⚠ 珠子的強化**不在這個面板**——之後走「鑲嵌珠強化石」道具，在背包裡對珠子使用。
     ///
-    /// 開啟時強制把背包一起開（並排，方便拖曳），關閉時把台上與孔上的東西退回背包再關背包——
-    /// 這一套與傳送門 ScriptsPanel 完全同源。見 readme/FORGING.md。
+    /// 開啟時強制把背包一起開（並排，方便拖曳）——這一套與傳送門 ScriptsPanel 完全同源。
+    /// 見 readme/FORGING.md 與 readme/GEM_SOCKET.md。
     /// </summary>
     public class ForgingPanel : UIPanel
     {
@@ -36,6 +39,8 @@ namespace Dipan.UI
         // ── 語言表 id（LanguageTable.csv 的 4001–4099「鍛造介面」段）──
         const int TxtTitle = 4001, TxtRemoveGem = 4002, TxtDismantle = 4003;
         const int TxtNotYet = 4004, TxtOnlyEquip = 4005, TxtNeedInBag = 4006;
+        const int TxtUpgrade = 4007, TxtOnlyGem = 4008, TxtNoAnvil = 4009;
+        const int TxtNoGems = 4010, TxtBagFull = 4011, TxtGemsRemoved = 4012;
 
         // ───────── 底圖原生座標（量自示意圖，1536×1024；左上為原點、y 向下）─────────
         const float BgW = 1536f, BgH = 1024f;
@@ -48,9 +53,10 @@ namespace Dipan.UI
         // 鐵砧中央那一格
         const float AnvilCx = 768f, AnvilCy = 502f, AnvilW = 232f, AnvilH = 240f;
 
-        // 兩顆長按鈕（左：移除鑲嵌／右：拆除裝備）
-        const float BtnCy = 893f, BtnW = 386f;
-        const float BtnLeftCx = 465f, BtnRightCx = 1068f;
+        // 三顆長按鈕（由左到右：強化裝備／拆除裝備／移除鑲嵌）
+        // 版面「方案 B」：按鈕縮窄到 340，三顆平均分佈、彼此間隔 138px，比原本兩顆時透氣。
+        const float BtnCy = 893f, BtnW = 340f;
+        const float BtnCx1 = 290f, BtnCx2 = 768f, BtnCx3 = 1246f;
 
         // 關閉鈕與標題
         const float CloseCx = 1355f, CloseCy = 103f, CloseW = 88f;
@@ -167,6 +173,8 @@ namespace Dipan.UI
                 Place(w.Rt, SocketCenter(i), CellW, CellH);
                 w.SetFrameArt(socketFrames[i, 0], socketFrames[i, 1]);
                 w.Accepts = IsGem;
+                // 拖錯東西進孔位要有回饋（原本只有鐵砧有，孔位漏了 → 玩家會以為是卡住）。
+                w.Rejected = () => AlertPanel.Toast(Language.GetText(TxtOnlyGem));
                 w.Entered = ShowTooltip; w.Exited = _ => HideTooltip();
                 w.Bind(_sockets, i);
                 w.Locked = true;
@@ -187,9 +195,10 @@ namespace Dipan.UI
             _anvilSlot.Clicked = TakeOffAnvil;
             _anvilSlot.Bind(_anvil, 0);
 
-            // 兩顆按鈕（功能未接，先跳提示）
-            MakeLongButton("RemoveGemBtn", Language.GetText(TxtRemoveGem), BtnLeftCx, OnRemoveGemPressed);
-            MakeLongButton("DismantleBtn", Language.GetText(TxtDismantle), BtnRightCx, OnDismantlePressed);
+            // 三顆按鈕（由左到右：強化裝備／拆除裝備／移除鑲嵌）。前兩顆功能未接，先跳提示。
+            MakeLongButton("UpgradeBtn", Language.GetText(TxtUpgrade), BtnCx1, OnUpgradePressed);
+            MakeLongButton("DismantleBtn", Language.GetText(TxtDismantle), BtnCx2, OnDismantlePressed);
+            MakeLongButton("RemoveGemBtn", Language.GetText(TxtRemoveGem), BtnCx3, OnRemoveGemPressed);
 
             BuildCloseButton();
             BuildTitle();
@@ -320,18 +329,11 @@ namespace Dipan.UI
 
             // 鐵砧只是借放（物品一直在背包原位），所以關面板只要取下＝解鎖那一格，沒有東西要退回。
             _anvil.Clear();
-            // 鑲嵌孔則是真的收著東西 → 一律退回背包，別弄丟。
-            ReturnSocketsToBag();
+            // 鑲嵌孔也不需要退回任何東西——珠子一拖進孔就已經鑲在那件裝備身上了（孔位面板直接讀寫
+            // 那一件的實例資料），關面板只是解除綁定。見 readme/GEM_SOCKET.md。
+            _sockets.Bind(null);
 
             UIManager.Instance?.Close<InventoryPanel>();
-        }
-
-        void ReturnSocketsToBag()
-        {
-            var inv = InventorySystem.Instance;
-            if (inv == null) return;
-            foreach (var st in _sockets.TakeAll())
-                if (!st.IsEmpty) inv.AddItem(st.ItemId, st.Count);
         }
 
         // ───────────────────────── 鐵砧：放上／取下 ─────────────────────────
@@ -389,23 +391,10 @@ namespace Dipan.UI
             if (_anvilSlot != null) _anvilSlot.Refresh();
             LockVersion++;   // 讓背包知道要重畫「哪一格被鎖住壓黑」（放上鐵砧不會動到背包資料）
 
-            int want = _anvil.SocketCount;                  // 現在 ForgeSockets.Of 一律回 0 ＝ 全鎖
-            if (want < _sockets.UnlockedCount) ReturnClosingSockets(want);
-            _sockets.UnlockedCount = want;
+            // 把孔位面板綁到台面上那一件的實例上——之後拖珠子進孔就是直接鑲在它身上。
+            // 台面空著就解除綁定（六個孔全鎖）。孔位是隨機位置開的，所以不是「前 N 個」。
+            _sockets.Bind(_anvil.Instance);
             RefreshSockets();
-        }
-
-        /// <summary>孔位變少（換了孔比較少的裝備／把裝備拿下來）時，把被關掉那幾孔的東西退回背包。</summary>
-        void ReturnClosingSockets(int newUnlocked)
-        {
-            var inv = InventorySystem.Instance;
-            for (int i = newUnlocked; i < ForgeSockets.MaxSockets; i++)
-            {
-                var st = _sockets.GetAt(i);
-                if (st.IsEmpty) continue;
-                _sockets.RemoveAt(i, st.Count);
-                if (inv != null) inv.AddItem(st.ItemId, st.Count);
-            }
         }
 
         void RefreshSockets()
@@ -425,16 +414,44 @@ namespace Dipan.UI
             foreach (var w in _socketSlots) if (w != null) w.SetDropHighlight(itemId);
         }
 
-        /// <summary>
-        /// 什麼算「寶石」——目前遊戲裡還沒有這種道具，所以一律回 false（孔位就算開了也放不進東西）。
-        /// 將來做出寶石時，把判斷換成 <c>d.Category == "Gem"</c> 之類即可，其餘完全不用動。
-        /// </summary>
-        static bool IsGem(ItemData d) => false;
+        /// <summary>什麼算「能力珠」——ItemTable 的 GemID 欄有填（指向 GemTable 的一列）就是。</summary>
+        static bool IsGem(ItemData d) => d != null && d.IsGem;
 
-        // ───────────────────────── 兩顆按鈕（功能未接）─────────────────────────
+        // ───────────────────────── 三顆按鈕 ─────────────────────────
 
-        void OnRemoveGemPressed() => AlertPanel.Toast(Language.GetText(TxtNotYet));
+        /// <summary>強化裝備：之後做（裝備本身也能強化三次）。珠子的強化不在這裡，走「鑲嵌珠強化石」道具。</summary>
+        void OnUpgradePressed() => AlertPanel.Toast(Language.GetText(TxtNotYet));
+
+        /// <summary>拆除裝備：之後做（把裝備分解成材料/珠子）。</summary>
         void OnDismantlePressed() => AlertPanel.Toast(Language.GetText(TxtNotYet));
+
+        /// <summary>
+        /// 移除鑲嵌：把台面上那件裝備的珠子**全部**卸下來還回背包，玩家再自己重新鑲。
+        /// 珠子強化到幾級，拆下來就還是幾級（實例原封不動搬回去）。
+        /// ⚠ 動作前先確認背包空格夠——不夠就整個不做，免得拆到一半珠子沒地方放而憑空消失。
+        /// </summary>
+        void OnRemoveGemPressed()
+        {
+            if (_anvil.IsEmpty) { AlertPanel.Toast(Language.GetText(TxtNoAnvil)); return; }
+
+            int gems = _sockets.GemCount;
+            if (gems <= 0) { AlertPanel.Toast(Language.GetText(TxtNoGems)); return; }
+
+            var inv = InventorySystem.Instance;
+            if (inv == null) return;
+            if (inv.FreeSlotCount() < gems)
+            {
+                AlertPanel.Toast(Language.GetText(TxtBagFull));
+                return;
+            }
+
+            foreach (var st in _sockets.TakeAll())
+                if (!st.IsEmpty && inv.AddStack(st) > 0)
+                    Debug.LogError($"[ForgingPanel] 事先算過空格夠，卻仍有珠子放不進背包（itemId={st.ItemId}）。");
+
+            RefreshSockets();
+            AlertPanel.Toast(string.Format(Language.GetText(TxtGemsRemoved), gems));
+        }
 
         // ───────────────────────── tooltip ─────────────────────────
 

@@ -118,6 +118,7 @@ namespace Dipan.UI
             // 每呼叫一次就多一個左側導覽鈕；第一個分頁預設顯示。
             // 之後要加「加錢」「回滿血」「無敵」「解鎖關卡」等都照這樣加一行 + 一個 Build 方法。
             AddSection("給道具", BuildGiveItemSection);
+            AddSection("鑲嵌", BuildSocketSection);
 
             ShowSection(0);
         }
@@ -214,6 +215,122 @@ namespace Dipan.UI
             // 狀態列（本次結果）——兩組共用，放在最下面
             _giveStatus = UIBuilder.Text(root, "GiveStatus", "", 22, ColOk, TextAnchor.UpperLeft);
             Place(_giveStatus.rectTransform, 0f, 384f, GroupW, 80f);
+        }
+
+        // ───────────────────────── 分頁：鑲嵌（能力珠測試）─────────────────────────
+        //
+        // 孔數與珠子等級平常是隨機骰的（見 RandomRules），要驗證極端組合很花時間，
+        // 所以這裡提供直接指定的捷徑。見 readme/GEM_SOCKET.md。
+
+        InputField _socketInput;
+        Text _socketStatus;
+
+        void BuildSocketSection(RectTransform root)
+        {
+            var head = UIBuilder.Text(root, "Head", "鑲嵌測試", 28, ColAccent, TextAnchor.UpperLeft);
+            Place(head.rectTransform, 0f, 0f, 600f, 40f);
+
+            var hint = UIBuilder.Text(root, "Hint",
+                "孔數與珠子等級平常是隨機的；這裡可以直接指定，方便驗證極端組合。",
+                18, new Color(1f, 1f, 1f, 0.6f), TextAnchor.UpperLeft);
+            Place(hint.rectTransform, 0f, 46f, GroupW, 30f);
+
+            // ── 第一組：改裝備中武器的孔數 ──
+            const float G1Y = 92f, G1H = 124f, Row1Y = 136f, RowH = 48f;
+            AddGroup(root, "改「裝備中武器」的孔數", G1Y, G1H, ColGroupA);
+
+            var lbl = UIBuilder.Text(root, "SockLabel", "孔數 0~6", 22, Color.white, TextAnchor.MiddleLeft);
+            Place(lbl.rectTransform, 14f, Row1Y, 130f, RowH);
+            _socketInput = UIBuilder.InputField(root, "SockInput", "例：6", 24, 1, ColInputBg);
+            _socketInput.contentType = InputField.ContentType.IntegerNumber;
+            _socketInput.text = "6";
+            Place((RectTransform)_socketInput.transform, 149f, Row1Y, 120f, RowH);
+
+            var applyBtn = UIBuilder.Button(root, "SockBtn", "重開孔位（隨機位置）", OnClickReroll, ColBtn);
+            Place((RectTransform)applyBtn.transform, 289f, Row1Y, 300f, RowH);
+
+            AddDivider(root, 232f);
+
+            // ── 第二組：一鍵給滿等能力珠 ──
+            const float G2Y = 246f, G2H = 118f;
+            AddGroup(root, "一鍵快捷", G2Y, G2H, ColGroupB);
+
+            var gemBtn = UIBuilder.Button(root, "GemBtn", "每種能力珠各給一顆（Lv3）", OnClickGiveGems, ColBtn);
+            Place((RectTransform)gemBtn.transform, 14f, 288f, 360f, 56f);
+
+            var armorBtn = UIBuilder.Button(root, "ArmorBtn", "給測試護身符＋戒指", OnClickGiveArmor, ColBtn);
+            Place((RectTransform)armorBtn.transform, 389f, 288f, 300f, 56f);
+
+            _socketStatus = UIBuilder.Text(root, "SockStatus", "", 22, ColOk, TextAnchor.UpperLeft);
+            Place(_socketStatus.rectTransform, 0f, 384f, GroupW, 80f);
+        }
+
+        void SetSocketStatus(string msg, bool ok)
+        {
+            if (_socketStatus == null) return;
+            _socketStatus.text = msg;
+            _socketStatus.color = ok ? ColOk : ColErr;
+        }
+
+        // 把「目前裝備中的武器」重開孔位（位置一樣是隨機挑的）。已鑲的珠子會先退回背包，避免憑空消失。
+        void OnClickReroll()
+        {
+            var inv = Dipan.Inventory.InventorySystem.Instance;
+            if (inv == null) { SetSocketStatus("找不到背包系統。", false); return; }
+
+            var st = inv.GetEquippedStack(Dipan.Inventory.EquipSlot.Weapon);
+            if (st.IsEmpty) { SetSocketStatus("武器欄是空的，請先裝備一把武器。", false); return; }
+
+            int n = 6;
+            if (!string.IsNullOrEmpty(_socketInput?.text) && !int.TryParse(_socketInput.text, out n)) n = 6;
+            n = Mathf.Clamp(n, 0, Dipan.Inventory.ItemInstance.SocketMax);
+
+            if (st.Inst != null && st.Inst.HasSockets)
+                for (int i = 0; i < st.Inst.sockets.Count; i++)
+                {
+                    var g = st.Inst.TakeGem(i);
+                    if (g != null) inv.AddStack(Dipan.Inventory.ItemManager.FromGemRef(g));
+                }
+
+            st.Inst = Dipan.Inventory.ItemInstance.FromSocketLayout(Dipan.Rules.RandomRules.LayoutFor(n));
+            inv.SetEquippedStack(Dipan.Inventory.EquipSlot.Weapon, st);
+
+            var d = inv.GetData(st.ItemId);
+            SetSocketStatus($"「{(d != null ? d.Name : st.ItemId.ToString())}」已改成 {n} 孔（位置隨機）。", true);
+            AlertPanel.Toast($"作弊：武器改成 {n} 孔");
+        }
+
+        // 每一種能力珠各給一顆滿等的，方便一次驗證所有能力。
+        void OnClickGiveGems()
+        {
+            var inv = Dipan.Inventory.InventorySystem.Instance;
+            if (inv == null) { SetSocketStatus("找不到背包系統。", false); return; }
+
+            int given = 0, full = 0;
+            foreach (var kv in inv.Db.Items)
+            {
+                if (kv.Value == null || !kv.Value.IsGem) continue;
+                var st = Dipan.Inventory.ItemManager.CreateGem(kv.Key, 3);
+                if (st.IsEmpty) continue;
+                if (inv.AddStack(st) > 0) full++; else given++;
+            }
+            SetSocketStatus(full > 0 ? $"給了 {given} 顆能力珠（Lv3），{full} 顆因背包已滿放不下。"
+                                     : $"給了 {given} 顆能力珠（Lv3）。", full == 0);
+            AlertPanel.Toast($"作弊：能力珠 ×{given}");
+        }
+
+        // 測試用防具（護身符/戒指）——驗證「珠子鑲在別的裝備上也會加到武器身上」。
+        void OnClickGiveArmor()
+        {
+            var inv = Dipan.Inventory.InventorySystem.Instance;
+            if (inv == null) { SetSocketStatus("找不到背包系統。", false); return; }
+            int ok = 0;
+            foreach (int id in new[] { 501, 502 })
+            {
+                if (inv.GetData(id) == null) continue;
+                if (inv.AddStack(Dipan.Inventory.ItemManager.Create(id, 1)) == 0) ok++;
+            }
+            SetSocketStatus(ok > 0 ? $"已給予 {ok} 件測試防具。" : "背包已滿或物品表裡沒有 501/502。", ok > 0);
         }
 
         /// <summary>作弊快捷鈕一次給多少錢。</summary>

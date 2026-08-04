@@ -323,33 +323,24 @@ namespace Dipan.UI
                 var st = inv.GetGrid(i);
                 // 鍛造台把這格的裝備借去放鐵砧了 → 東西還在原位，但鎖起來壓黑（取下才解鎖）。
                 _gridSlots[i].locked = ForgingPanel.IsGridLocked(i);
-                SetSlotVisual(_gridSlots[i], st.ItemId, st.Count);
+                SetSlotVisual(_gridSlots[i], st, st.Count);
             }
             for (int i = 0; i < _equipSlots.Length; i++)
             {
                 int id = inv.GetEquipped(_equipSlots[i].equipSlot);
                 _equipSlots[i].locked = ForgingPanel.IsEquipLocked(_equipSlots[i].equipSlot);
-                SetSlotVisual(_equipSlots[i], id, id > 0 ? 1 : 0);
+                SetSlotVisual(_equipSlots[i], inv.GetEquippedStack(_equipSlots[i].equipSlot), id > 0 ? 1 : 0);
             }
             if (_potionSlots != null)
                 for (int i = 0; i < _potionSlots.Length; i++)
                     if (_potionSlots[i] != null) _potionSlots[i].Refresh();
         }
 
-        void SetSlotVisual(InventorySlotWidget w, int itemId, int count)
+        void SetSlotVisual(InventorySlotWidget w, ItemStack st, int count)
         {
-            var d = (itemId > 0) ? InventorySystem.Instance.GetData(itemId) : null;
-            if (d != null && d.Icon != null)
-            {
-                w.icon.sprite = d.Icon;
-                w.icon.enabled = true;
-            }
-            else
-            {
-                w.icon.sprite = null;
-                w.icon.enabled = false;
-            }
+            // 珠子是「珠身（依等級）＋能力符號」兩層，一律走 ItemIcons（見 readme/GEM_SOCKET.md）
             w.icon.color = w.locked ? LockedTint : Color.white;
+            ItemIcons.Apply(w.icon, st);
             if (w.count != null)
             {
                 w.count.text = (count > 1) ? count.ToString() : "";
@@ -416,10 +407,10 @@ namespace Dipan.UI
             }
 
             var inv = InventorySystem.Instance;
-            int id = (w.kind == InventorySlotWidget.Kind.Grid)
-                ? inv.GetGrid(w.index).ItemId
-                : inv.GetEquipped(w.equipSlot);
-            ShowTooltip(id);
+            var st = (w.kind == InventorySlotWidget.Kind.Grid)
+                ? inv.GetGrid(w.index)
+                : inv.GetEquippedStack(w.equipSlot);
+            ShowTooltip(st);
         }
 
         void OnSlotExit(InventorySlotWidget w)
@@ -437,20 +428,70 @@ namespace Dipan.UI
 
         // ── tooltip ──
 
-        void ShowTooltip(int itemId)
+        void ShowTooltip(int itemId) => ShowTooltip(new ItemStack { ItemId = itemId, Count = 1, Inst = null });
+
+        void ShowTooltip(ItemStack st)
         {
-            var d = (itemId > 0) ? InventorySystem.Instance.GetData(itemId) : null;
+            var d = (st.ItemId > 0) ? InventorySystem.Instance.GetData(st.ItemId) : null;
             if (d == null) { HideTooltip(); return; }
 
-            _tipName.text = d.Name;
-            _tipStats.text = d.TipStats;
-            _tipStats.gameObject.SetActive(!string.IsNullOrEmpty(d.TipStats));
+            // 名稱後面標出「這一件」的資訊——孔數／珠子等級是每一件各自不同的，表格裡查不到。
+            string title = d.Name;
+            if (st.Inst != null)
+            {
+                if (st.Inst.HasSockets && st.Inst.UnlockedCount > 0)
+                    title += $"（{st.Inst.UnlockedCount} 孔）";
+                else if (st.Inst.level > 0)
+                    title += $"  Lv{st.Inst.level}";
+            }
+            _tipName.text = title;
+
+            _tipStats.text = BuildTipStats(d, st.Inst);
+            _tipStats.gameObject.SetActive(!string.IsNullOrEmpty(_tipStats.text));
             _tipLore.text = d.TipLore;
             _tipLore.gameObject.SetActive(!string.IsNullOrEmpty(d.TipLore));
 
             _tooltip.gameObject.SetActive(true);
             _tooltip.SetAsLastSibling();
             PositionTooltip();
+        }
+
+        /// <summary>
+        /// tooltip 上半：表格寫死的說明 ＋「這一件」的鑲嵌內容。
+        /// 能力珠會顯示它這一級實際給多少（直接查 GemTable，不用另外維護一份文案）。
+        /// </summary>
+        static string BuildTipStats(ItemData d, ItemInstance inst)
+        {
+            var sb = new System.Text.StringBuilder(d.TipStats ?? "");
+
+            // 能力珠：這一顆這一級給多少
+            if (d.IsGem && inst != null)
+            {
+                var gd = ItemManager.Gems.Get(d.GemID);
+                if (gd != null)
+                {
+                    if (sb.Length > 0) sb.Append('\n');
+                    float v = gd.ValueAt(inst.level);
+                    string val = gd.IsPercent ? $"{(v >= 0 ? "+" : "")}{(v * 100f):0.#}%" : $"{(v >= 0 ? "+" : "")}{v:0.##}";
+                    sb.Append($"Lv{inst.level}：{gd.Name} {val}");
+                }
+            }
+
+            // 裝備：列出目前鑲了什麼
+            if (inst != null && inst.HasSockets && inst.UnlockedCount > 0)
+            {
+                if (sb.Length > 0) sb.Append('\n');
+                sb.Append($"鑲嵌 {inst.GemCount}/{inst.UnlockedCount}");
+                var inv = InventorySystem.Instance;
+                for (int i = 0; i < inst.sockets.Count; i++)
+                {
+                    var g = inst.GemAt(i);
+                    if (g == null) continue;
+                    var gemItem = inv != null ? inv.GetData(g.itemId) : null;
+                    sb.Append('\n').Append("　・").Append(gemItem != null ? gemItem.Name : $"#{g.itemId}").Append(" Lv").Append(g.level);
+                }
+            }
+            return sb.ToString();
         }
 
         void HideTooltip()

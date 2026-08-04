@@ -25,6 +25,7 @@ namespace Dipan.Inventory
         int _gridIndex = -1;
         EquipSlot _equip = EquipSlot.None;
         int _itemId;
+        ItemInstance _inst;   // 放上去那一刻的實例參照，用來判斷「來源那一格還是不是同一件」
 
         public SourceKind Kind => _kind;
         /// <summary>來源是背包道具格時的索引（其餘為 -1）。</summary>
@@ -36,8 +37,23 @@ namespace Dipan.Inventory
         public int ItemId => IsEmpty ? 0 : _itemId;
         public ItemData Data => GetData(ItemId);
 
+        /// <summary>
+        /// 台面上那一件的實例資料（孔位/鑲嵌）。
+        /// ⚠ 這是**背包／裝備欄那一格上的同一個物件參照**，不是複本——所以鑲嵌孔面板直接改它
+        /// 就等於改到本體，不需要另外「提交」，存檔時自然跟著那一件寫出去。
+        /// </summary>
+        public ItemInstance Instance
+        {
+            get
+            {
+                var inv = InventorySystem.Instance;
+                if (inv == null || IsEmpty) return null;
+                return _kind == SourceKind.Grid ? inv.GetGrid(_gridIndex).Inst : inv.GetEquippedStack(_equip).Inst;
+            }
+        }
+
         /// <summary>台面上這件的孔位數（沒東西＝0）。</summary>
-        public int SocketCount => IsEmpty ? 0 : ForgeSockets.Of(Data);
+        public int SocketCount => IsEmpty ? 0 : ForgeSockets.CountOf(Instance);
 
         public event Action OnChanged;
 
@@ -48,11 +64,11 @@ namespace Dipan.Inventory
         {
             var inv = InventorySystem.Instance;
             if (inv == null) return false;
-            int id = inv.GetGrid(index).ItemId;
-            var d = GetData(id);
+            var st = inv.GetGrid(index);
+            var d = GetData(st.ItemId);
             if (d == null || !d.IsEquippable) return false;
             if (_kind == SourceKind.Grid && _gridIndex == index) return false;   // 已經是這一格
-            _kind = SourceKind.Grid; _gridIndex = index; _equip = EquipSlot.None; _itemId = id;
+            _kind = SourceKind.Grid; _gridIndex = index; _equip = EquipSlot.None; _itemId = st.ItemId; _inst = st.Inst;
             OnChanged?.Invoke();
             return true;
         }
@@ -62,11 +78,11 @@ namespace Dipan.Inventory
         {
             var inv = InventorySystem.Instance;
             if (inv == null || slot == EquipSlot.None) return false;
-            int id = inv.GetEquipped(slot);
-            var d = GetData(id);
+            var st = inv.GetEquippedStack(slot);
+            var d = GetData(st.ItemId);
             if (d == null || !d.IsEquippable) return false;
             if (_kind == SourceKind.Equip && _equip == slot) return false;
-            _kind = SourceKind.Equip; _equip = slot; _gridIndex = -1; _itemId = id;
+            _kind = SourceKind.Equip; _equip = slot; _gridIndex = -1; _itemId = st.ItemId; _inst = st.Inst;
             OnChanged?.Invoke();
             return true;
         }
@@ -75,7 +91,7 @@ namespace Dipan.Inventory
         public bool Clear()
         {
             if (IsEmpty) return false;
-            _kind = SourceKind.None; _gridIndex = -1; _equip = EquipSlot.None; _itemId = 0;
+            _kind = SourceKind.None; _gridIndex = -1; _equip = EquipSlot.None; _itemId = 0; _inst = null;
             OnChanged?.Invoke();
             return true;
         }
@@ -89,8 +105,10 @@ namespace Dipan.Inventory
             if (IsEmpty) return;
             var inv = InventorySystem.Instance;
             if (inv == null) { Clear(); return; }
-            int now = _kind == SourceKind.Grid ? inv.GetGrid(_gridIndex).ItemId : inv.GetEquipped(_equip);
-            if (now != _itemId) Clear();
+            var now = _kind == SourceKind.Grid ? inv.GetGrid(_gridIndex) : inv.GetEquippedStack(_equip);
+            // 比物品 ID **也比實例參照**：同一個 ID 的另一件（不同孔數/不同鑲嵌）被搬到這一格時，
+            // 光比 ID 會誤判成「還是原來那件」，孔位面板就會綁到錯的裝備上。
+            if (now.ItemId != _itemId || (_inst != null && !ReferenceEquals(now.Inst, _inst))) Clear();
         }
 
         /// <summary>某個背包道具格是不是正被鐵砧借走（背包用它決定要不要鎖住／壓黑那一格）。</summary>
@@ -105,13 +123,16 @@ namespace Dipan.Inventory
         public int Capacity => 1;
 
         public ItemStack GetAt(int index) =>
-            (index == 0 && !IsEmpty) ? new ItemStack { ItemId = _itemId, Count = 1 } : ItemStack.Empty;
+            (index == 0 && !IsEmpty) ? new ItemStack { ItemId = _itemId, Count = 1, Inst = Instance } : ItemStack.Empty;
 
         /// <summary>刻意不做事：鐵砧不持有物品。放上鐵砧請走 PlaceFromGrid / PlaceFromEquip。</summary>
         public void SetAt(int index, ItemStack stack) { }
 
         /// <summary>刻意不做事，理由同 <see cref="SetAt"/>。回傳 count ＝ 一件都收不下。</summary>
         public int AddItem(int itemId, int count) => count;
+
+        /// <summary>刻意不做事，理由同 <see cref="SetAt"/>。回傳 count ＝ 一件都收不下。</summary>
+        public int AddStack(ItemStack stack) => stack.Count;
 
         public bool RemoveAt(int index, int count) => index == 0 && Clear();
 

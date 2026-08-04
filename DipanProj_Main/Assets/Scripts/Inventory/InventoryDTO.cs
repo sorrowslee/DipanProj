@@ -12,13 +12,25 @@ namespace Dipan.Inventory
         public int slot;     // 0..GridCount-1
         public int itemId;
         public int count;
+        /// <summary>
+        /// 這一件專屬的資料（孔位/鑲的珠子/珠子等級…）；null = 一般可疊道具。
+        /// 之後裝備要多屬性就是在 <see cref="ItemInstance"/> 加欄位，這裡不用動。
+        /// </summary>
+        public ItemInstance inst;
     }
 
     /// <summary>背包快照：稀疏的道具格 + 裝備欄（slot 列舉名 → 物品 ID）。</summary>
     public class InventoryDTO
     {
         public List<GridSlotDTO> grid = new List<GridSlotDTO>();
+        /// <summary>裝備欄：slot 列舉名 → 物品 ID。</summary>
         public Dictionary<string, int> equipment = new Dictionary<string, int>();
+        /// <summary>
+        /// 裝備欄的實例資料：slot 列舉名 → 那一件的孔位/鑲嵌。
+        /// 刻意與 <see cref="equipment"/> 分開兩個欄位而不是改它的型別——這樣既有的讀取端
+        /// （例如存檔選擇畫面只想知道「裝了哪把武器」好畫 icon）完全不用改。
+        /// </summary>
+        public Dictionary<string, ItemInstance> equipmentInst = new Dictionary<string, ItemInstance>();
         public int[] potionSlots;   // 藥水格綁定（長度 = PotionSlotCount）；跟背包一起存檔
     }
 

@@ -1,4 +1,4 @@
-ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,WeaponID,TargetMapId,TargetEntrance,HealHp,HealMp,LightRadius,BloodlineID
+ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,WeaponID,TargetMapId,TargetEntrance,HealHp,HealMp,LightRadius,BloodlineID,GemID
 1,三分裂追蹤飛劍,Weapon,Weapon,UI/Icons/Equipment/weapon_sword,1,飛劍,傷害 1　發射時三分裂、會追蹤敵人,三道寒光鎖魂，避無可避。,1,,,,
 2,五分裂反彈彎刀,Weapon,Weapon,UI/Icons/Equipment/weapon_scimitar,1,彎刀,傷害 2　五分裂散射、撞牆反彈,刀光亂舞，連牆角的影子都不放過。,2,,,,
 3,火焰環繞彈,Weapon,Weapon,UI/Icons/Equipment/weapon_skullStaff,1,骷髏權杖,傷害 2　召出環繞自身的火焰彈,權杖低語，亡者之火繞身而行。,3,,,,
@@ -26,3 +26,13 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 302,血統藥劑・幽靈,Bloodline,None,UI/Icons/Items/positions/item_hpPosition_s,1,一次性的血統藥劑,喝下永久改變本世血統：移速 +35%、最大生命 -20、傷害 +10%,瓶底沉著一縷不肯散的白霧，像有人在裡面呼吸。,,,,,,,3
 201,小回血瓶,Potion,None,UI/Icons/Items/positions/item_hpPosition_s,99,回復少量生命,回復生命 10,飲下一口，暖流自喉頭漫入四肢。,,,,10,0
 202,小回魔瓶,Potion,None,UI/Icons/Items/positions/item_mpPosition_s,99,回復少量魔力,回復魔力 10,吞一口冷冽，識海重新泛起微光。,,,,0,10
+401,反彈珠,Gem,None,,1,能力珠・反彈,鑲進裝備的孔位　賦予子彈「撞牆反彈」,石心有一道摺痕，光走到那裡就會轉彎。,,,,,,,,1
+402,穿透珠,Gem,None,,1,能力珠・穿透,鑲進裝備的孔位　賦予子彈「穿透敵人」,磨得極薄，薄到能從人與人之間穿過去。,,,,,,,,2
+403,迅捷珠,Gem,None,,1,能力珠・迅捷,鑲進裝備的孔位　提升子彈飛行速度,握在手裡是涼的，鬆手那一瞬卻燙。,,,,,,,,3
+404,銳利珠,Gem,None,,1,能力珠・銳利,鑲進裝備的孔位　提升武器傷害,稜角從未被時間磨圓，反而更利了。,,,,,,,,4
+405,追蹤珠,Gem,None,,1,能力珠・追蹤,鑲進裝備的孔位　賦予子彈「追蹤敵人」,它總是朝著某個方向微微偏轉，那裡有活物。,,,,,,,,5
+406,分裂珠,Gem,None,,1,能力珠・分裂,鑲進裝備的孔位　增加分裂／散射數量,裂了，但每一塊都還在自己發著光。,,,,,,,,6
+407,巨彈珠,Gem,None,,1,能力珠・巨彈,鑲進裝備的孔位　放大子彈,越看越覺得它其實比你的手還大。,,,,,,,,7
+408,疾發珠,Gem,None,,1,能力珠・疾發,鑲進裝備的孔位　縮短發射間隔,心跳聲貼著它，越跳越快。,,,,,,,,8
+501,護身符・金剛,Armor,Amulet,UI/Icons/Equipment/weapon_bronzeMirror,1,測試用護身符,鑲嵌用裝備　驗證跨裝備能力疊加,鏡面朝內，照的是自己的心魔。,,,,,,
+502,戒指・流光,Armor,Ring,UI/Icons/Equipment/weapon_talisman,1,測試用戒指,鑲嵌用裝備　驗證跨裝備能力疊加,環上有一圈磨損，像被誰戴了很久很久。,,,,,,
