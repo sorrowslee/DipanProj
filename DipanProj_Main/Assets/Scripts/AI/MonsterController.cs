@@ -109,9 +109,13 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     static VfxManager _vfx;                       // 全場唯一，快取共用（仿 DestructibleObject）
 
     [Header("Run / 關卡進度")]
-    [Tooltip("本張地圖唯一的出生點 key（由 MapLoader 依 monsterSpawn 區域 id + 格座標產生）。有值＝地圖出生的怪，" +
-             "死亡時記進 RunProgress『已清』（本趟不再重生）並掉寶；空＝召喚物等，不記進度、不掉寶。")]
+    [Tooltip("本張地圖唯一的出生點 key（由 MapLoader 依 monsterSpawn 區域 id + 格座標產生）。有值＝一次性地圖出生的怪，" +
+             "死亡時記進 RunProgress『已清』（本趟不再重生）；空＝召喚物、或「重複產生」的出生點，不記進度。")]
     public string SpawnKey;
+
+    [Tooltip("死亡時掉寶（銅錢＋機率藥）。由 MonsterSpawner 設定：一次性出生點＝true；重複產生的出生點＝true（但不記進度）；" +
+             "召喚物＝false（防無限刷）。")]
+    public bool DropsLoot;
 
     [Header("Loot / 暫定掉寶（正式掉寶公式之後換；數值可調）")]
     [Tooltip("必掉金錢（銅錢）數量下限。")] public int lootMoneyMin = 1;
@@ -500,16 +504,19 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 死亡寫旗標（資料驅動）：例「殺了家人→killedFamily→新娘生氣分支」。旗標為空＝不寫。
         if (!string.IsNullOrEmpty(DeathFlag)) TriggerChain.SetFlag(DeathFlag);
 
-        // 關卡進度＋掉寶：只對「地圖出生的敵怪」(有 SpawnKey) 且在關卡 run 內處理。
-        //   ‧ 記進 RunProgress『已清』→ 本趟換圖回來不再重生（Boss 也走這條，死了不復生）。
-        //   ‧ 掉寶：必掉銅錢＋機率掉藥，掉在屍體位置、按 F 撿進臨時包（見 DropRunLoot）。
-        // 召喚物（無 SpawnKey）不記、不掉，避免無限刷。
-        if (Faction == MonsterFaction.Enemy && !string.IsNullOrEmpty(SpawnKey)
-            && RunProgress.Exists && RunProgress.Instance.RunActive)
+        // 關卡進度＋掉寶：只對「地圖出生的敵怪」且在關卡 run 內處理。兩件事刻意分開判斷：
+        //   ‧ 記進 RunProgress『已清』(有 SpawnKey)→ 本趟換圖回來不再重生（Boss 也走這條，死了不復生）。
+        //     「重複產生」的出生點刻意不給 SpawnKey——不然第一波死光後就永遠不再生了。
+        //   ‧ 掉寶 (DropsLoot)：必掉銅錢＋機率掉藥，掉在屍體位置、按 F 撿進臨時包（見 DropRunLoot）。
+        // 召喚物兩者都沒有，避免無限刷。
+        if (Faction == MonsterFaction.Enemy && RunProgress.Exists && RunProgress.Instance.RunActive)
         {
-            int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
-            RunProgress.Instance.MarkSpawnKilled(mapId, SpawnKey);
-            DropRunLoot();
+            if (!string.IsNullOrEmpty(SpawnKey))
+            {
+                int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+                RunProgress.Instance.MarkSpawnKilled(mapId, SpawnKey);
+            }
+            if (DropsLoot) DropRunLoot();
         }
 
         // 死亡特效（VfxTable 的 DeathVfxId）：獨立 GameObject，不受怪物銷毀影響。

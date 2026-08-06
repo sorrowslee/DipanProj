@@ -756,6 +756,24 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/Future/Background/Stage_Arena",
+      "path": "Modules/Future/Background/Stage_Arena.png",
+      "category": "Background",
+      "module": "Future",
+      "pixelSize": 1448,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/Future/Background/Stage_Arena2",
+      "path": "Modules/Future/Background/Stage_Arena2.png",
+      "category": "Background",
+      "module": "Future",
+      "pixelSize": 1448,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/Future/Monsters/SequenceImage/SkeletonGeneral/idle",
       "path": "Modules/Future/Monsters/SequenceImage/SkeletonGeneral/idle/Skeleton General-iso_idle_right_01.png",
       "category": "Monsters",

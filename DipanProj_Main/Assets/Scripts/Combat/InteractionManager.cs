@@ -36,6 +36,7 @@ public class InteractionManager : MonoBehaviour
     public int markerStarCount = 5;
     public Color pickupMarkerColor = new Color(1f, 0.92f, 0.45f, 1f);   // 拾取點：金黃星
     public Color dramaMarkerColor = new Color(0.72f, 0.5f, 1f, 1f);     // 劇情點：紫星
+    public Color switchMarkerColor = new Color(0.45f, 1f, 0.85f, 1f);   // 開關/機關：青綠星
     public int markerSortingOrder = 20;   // 高於角色，星星浮在空中
 
     static InteractionManager _instance;
@@ -97,6 +98,13 @@ public class InteractionManager : MonoBehaviour
     static string SeenKey(RepeatMode m, string id)
         => (m == RepeatMode.Life ? TriggerChain.LifePrefix : "") + "已觸發:" + id;
 
+    // 開關「已經跑過一次鏈（setFlag/next）」的自動旗標。刻意用旗標而不是記憶體集合——
+    // 記憶體集合換圖就清空，玩家「開→關→去隔壁房→回來→再開」會把整條鏈重播一次。
+    // 前綴強制「關卡單次」範圍：這是程式產生的 key、作者沒辦法在旗標登記表登記它，
+    // 不加前綴會落到預設的「周目」而寫進存檔 → 之後整個周目按幾次都不會再跑鏈（機關型開關就壞了）。
+    // 加了之後每次進新 module 歸零＝「每趟關卡可以再跑一次鏈」，與 toggleFlag 建議的範圍一致。
+    static string SwitchFiredKey(string id) => TriggerChain.LevelPrefix + "已開關:" + id;
+
     /// <summary>一個地圖編輯器放置的互動點（拾取點或劇情點）。</summary>
     class InteractPoint
     {
@@ -112,6 +120,10 @@ public class InteractionManager : MonoBehaviour
         public bool autoTrigger;        // Type 2（頭像對話）：碰到自動觸發、不顯示「按 F」提示
         // portal（傳送門互動）
         public string portalTeleport;   // 要開哪一個 teleport 區域（傳給 ScriptsPanel）
+        // switch（開關/機關）
+        public string toggleFlag;       // 按 F 要切換的旗標名（開→關→開…）
+        public string tipOff, tipOn;    // 提示後綴：旗標未成立時 / 已成立時（例「開始」／「暫停」）
+        public bool affectsOthers;      // 這張圖有別的 trigger/地上物在看這個旗標 → 切換後要重建互動點
         // openPanel（靠近按 F 開某個 UI；祭壇抽選用這個）
         public string panelId;          // 要開哪個面板（見 OpenPanelPoint 的分派）
         public string panelArg;         // 傳給面板的參數（祭壇＝抽選池代號）
@@ -127,6 +139,7 @@ public class InteractionManager : MonoBehaviour
     readonly List<GroundLoot> _loot = new List<GroundLoot>();
     readonly List<InteractPoint> _points = new List<InteractPoint>();
     readonly HashSet<string> _consumed = new HashSet<string>();  // 本次停留已消耗的點（重建互動點時不復活）
+    readonly HashSet<string> _switchWarned = new HashSet<string>();  // 開關的設定防呆警告：同一顆只印一次，別隨每次重建洗版
     Dictionary<string, InteractKind> _kinds;                     // typeId → 互動型別定義（BuildPoints 時建，每幀查）
     MapData _lastMap; string _lastPickupT, _lastDramaT;          // RebuildPoints 用
     Transform _player;
@@ -145,6 +158,7 @@ public class InteractionManager : MonoBehaviour
     public void SetupInteractPoints(MapData map, string pickupTypeId, string dramaTypeId)
     {
         _consumed.Clear();   // 換圖 = 新的一次停留（當次停留記憶重置；永久化屬 Phase 2）
+        _switchWarned.Clear();
         _lastMap = map; _lastPickupT = pickupTypeId; _lastDramaT = dramaTypeId;
         BuildPoints();
     }
@@ -247,6 +261,54 @@ public class InteractionManager : MonoBehaviour
                 },
                 Tip = pt => string.IsNullOrEmpty(pt.name) ? $"按 {interactKey} 鍵" : $"按 {interactKey} 鍵{pt.name}",
                 Activate = OpenPanelPoint,
+            },
+
+            // ── 開關／機關：靠近按 F，切換一個旗標（開→關→開…），不開任何面板 ──
+            // 誰在看這個旗標由對方決定：怪物出生點的「條件旗標」、地上物的 appearFlag／disappearFlag、
+            // 其他 trigger 的條件旗標…都行。第一次開啟時還會跑自己的「完成寫旗標／接續觸發」（當一般機關用）。
+            new InteractKind
+            {
+                TypeId = TriggerChain.TypeSwitch,
+                MarkerColor = switchMarkerColor,
+                Setup = (pt, r) =>
+                {
+                    pt.toggleFlag = r.GetString("toggleFlag").Trim();
+                    if (pt.toggleFlag.Length == 0)
+                    {
+                        Debug.LogWarning($"[InteractionManager] 開關「{r.name}」沒填切換旗標，略過。");
+                        return false;
+                    }
+                    pt.tipOff = r.GetString("tipOff").Trim();
+                    pt.tipOn = r.GetString("tipOn").Trim();
+                    if (pt.tipOff.Length == 0) pt.tipOff = "開始";
+                    // 「已啟動時的提示」留空＝按下去就不能再關（一次性開關）；此時走 repeat 的一般消耗流程。
+                    // 一次性開關而旗標已經成立（存檔帶回來、或被別的鏈設過）→ 不建點，
+                    // 否則會留一顆沒有提示、按了也沒反應的死星星。
+                    if (pt.tipOn.Length == 0 && TriggerChain.FlagTrue(pt.toggleFlag)) return false;
+
+                    // 這張圖有沒有別的互動點在看這個旗標（別顆 trigger 的條件旗標）。
+                    // 有才需要在按下去之後重建互動點——重建會把全圖星星砍掉重生（閃爍相位歸零），
+                    // 而主用途「開關 → 怪物出生點」完全不需要（出生點是每幀自己輪詢旗標的）。
+                    pt.affectsOthers = FlagWatchedByOthers(map, r.id, pt.toggleFlag);
+
+                    // 防呆：切換旗標若同時被某顆「觀察旗標變動」監聽，取消再成立會被當成又一次首次成立 → 那條鏈會重跑。
+                    if (map?.TriggerLayer?.regions != null)
+                        foreach (var other in map.TriggerLayer.regions)
+                            if (other != null && other.GetString("fireOnFlag").Trim() == pt.toggleFlag)
+                            {
+                                if (_switchWarned.Add(r.id))   // 每次重建都會重跑 Setup，同一顆只唸一次
+                                    Debug.LogWarning($"[InteractionManager] 開關「{r.name}」的切換旗標「{pt.toggleFlag}」" +
+                                                     $"同時被「{other.name}」(觀察旗標變動) 監聽——每次重新開啟都會再觸發它一次。" +
+                                                     "請改用另一個旗標，見 readme/TRIGGER_CHAIN.md §3.6。");
+                                break;
+                            }
+                    return true;
+                },
+                // 提示文字跟著旗標狀態走：未啟動顯示「按 F 鍵開始」、已啟動顯示「按 F 鍵暫停」。
+                Tip = pt => TriggerChain.FlagTrue(pt.toggleFlag)
+                            ? (string.IsNullOrEmpty(pt.tipOn) ? null : $"按 {interactKey} 鍵{pt.tipOn}")
+                            : $"按 {interactKey} 鍵{pt.tipOff}",
+                Activate = SwitchPoint,
             },
         };
 
@@ -524,6 +586,69 @@ public class InteractionManager : MonoBehaviour
                                  "可用值目前只有 gacha；要加新的請到 InteractionManager.OpenPanelPoint 補一個 case。");
                 break;
         }
+    }
+
+    // 開關／機關：切換「切換旗標」的成立狀態。
+    //   ‧ 第一次切成「開」時，順便跑一次自己的鏈（完成寫旗標／接續觸發），這樣它也能當一般機關用（開門、播對話…）。
+    //   ‧ 之後的每一次切換只動旗標，不再重跑鏈——不然「暫停→恢復」會把後面的劇情重播一次。
+    //   ‧ 有填「已啟動時的提示」＝可反覆切換的開關（互動點不消耗）；留空＝一次性開關，走 repeat 的一般消耗流程。
+    void SwitchPoint(InteractPoint pt)
+    {
+        if (pt == null) return;
+
+        bool on = TriggerChain.FlagTrue(pt.toggleFlag);
+        if (on)
+        {
+            if (string.IsNullOrEmpty(pt.tipOn))
+            {
+                // 一次性開關而旗標已成立（在建點之後被別的鏈設起來的）→ 這顆已經沒用了，重建把它清掉。
+                if (MapManager.Instance != null) MapManager.Instance.RefreshTriggers();
+                return;
+            }
+            TriggerChain.ClearFlag(pt.toggleFlag);
+        }
+        else TriggerChain.SetFlag(pt.toggleFlag);
+
+        // ⚠ 順序很重要：先消耗自己，再跑鏈。反過來的話 OnCompleted 內的 setFlag 會同步觸發 RefreshTriggers
+        // → 互動點整批重建（此時本點還沒進 _consumed，於是被原樣建回來＋長出新星星），
+        // 之後的 ConsumePoint 拿的是舊實例，新的那顆就變成一顆按不動的死星星（同 CollectPickup 的寫法）。
+        if (string.IsNullOrEmpty(pt.tipOn))                    // 一次性開關：按完就收掉星星與提示
+        {
+            MarkRepeatSeen(pt);                                // 重複規則「每周目/永久」才有效的自動旗標
+            ConsumePoint(pt);
+        }
+        else HideTip();                                        // 可切換：提示下一幀會依新狀態重新顯示
+
+        // 第一次開啟才跑自己的鏈（setFlag/next）；之後的「暫停→恢復」只動旗標，不然後面的劇情會重播。
+        string firedKey = SwitchFiredKey(pt.id);
+        if (!on && !TriggerChain.FlagTrue(firedKey))
+        {
+            TriggerChain.SetFlag(firedKey);
+            TriggerChain.OnCompleted(pt.region);
+        }
+
+        // 旗標變了 → 只有「這張圖真的有東西在看它」時才重建互動點（重建＝全圖星星砍掉重生，
+        // 反覆按的開關會很明顯）。SetFlag/ClearFlag 本身不重建，OnCompleted 也只在填了 setFlag 時才重建。
+        if (pt.affectsOthers && MapManager.Instance != null) MapManager.Instance.RefreshTriggers();
+    }
+
+    /// <summary>
+    /// 這張圖有沒有「別的互動點」在看某個旗標（別顆 trigger 的條件旗標 `requireFlag`，可能帶 "!" 否定前綴）。
+    /// 給開關判斷「切換之後要不要重建互動點」用——不用重建就別重建，重建會把全圖星星砍掉重生（閃爍相位歸零）。
+    /// 刻意只看 `requireFlag`：`RefreshTriggers` 就只重建互動點，其他看旗標的東西都不靠它——
+    /// 地上物的出現/消失是 `MapObjectRevealer` 走事件、出生點的條件是每幀輪詢 `TriggerChain.IsActive`、傳送點是每幀動態判定。
+    /// </summary>
+    static bool FlagWatchedByOthers(MapData map, string selfId, string flag)
+    {
+        if (map?.TriggerLayer?.regions == null || string.IsNullOrEmpty(flag)) return false;
+        foreach (var r in map.TriggerLayer.regions)
+        {
+            if (r == null || r.id == selfId) continue;
+            string req = r.GetString("requireFlag").Trim();
+            if (req.StartsWith("!")) req = req.Substring(1).Trim();   // 「沒有這個旗標」也是在看它
+            if (req == flag) return true;
+        }
+        return false;
     }
 
     // 依名字找同地圖的一個 trigger region（給傳送門互動點查它連動的傳送點狀態用）。

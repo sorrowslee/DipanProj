@@ -50,10 +50,20 @@ namespace DipanMapEditor.Data
                 typeId = "monsterSpawn", displayName = "怪物出生點", color = "#FF5555",
                 paramSchema = new List<TriggerParam>
                 {
-                    new TriggerParam { key = "monsterId", type = ParamType.String },
+                    // 怪物 id：填單一 id（例 5），或填多個以 '|' 分隔（例 5|7|9）＝每隻各自從中隨機挑一種生。
+                    new TriggerParam { key = "monsterId", type = ParamType.String, label = "怪物id('|'分隔)" },
                     // 死亡觸發旗標：這個出生點生的怪死亡時把此旗標設為 true（給觸發鏈 requireFlag 用，例：殺家人→killedFamily）。
                     // isFlagRef＝用旗標登記表選（輸入 id→確認），不手打。每個出生點各自設定；空＝不寫。
                     new TriggerParam { key = "deathFlag", type = ParamType.String, label = "死亡觸發旗標", isFlagRef = true },
+                    // 重複產生：留空/0＝進圖生一次（原行為）；填秒數＝每隔這麼久生一波（一波＝這個區域每格各生一隻）。
+                    // ⚠ 重複產生的怪「不記關卡進度」（殺光會再補），但照常掉寶；靠下面的同時存在上限節制。
+                    new TriggerParam { key = "spawnInterval", type = ParamType.Float, label = "重複間隔秒" },
+                    // 同時存在上限：這個出生點生的怪還活著幾隻 ≥ 上限時，那一波就少生/不生（死了才補）。留空＝10。
+                    new TriggerParam { key = "maxAlive", type = ParamType.Int, label = "同時存在上限" },
+                    // 「什麼時候才開始生」不另外開欄位——直接用下方的**通用條件欄位**：
+                    //   條件旗標＝持續判定（旗標取消就暫停、恢復就繼續，配「開關(按F)」用這個）；
+                    //   初始停用＋解鎖旗標＝一次性解鎖（要靠鏈 Activate，解鎖後不會再關）；
+                    //   周目／道具／完成關卡數條件也一併有效。見 readme/TRIGGER_CHAIN.md §3.5。
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -193,6 +203,21 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "panelId", type = ParamType.String, label = "面板", options = new[] { "gacha" } },
                     new TriggerParam { key = "arg",     type = ParamType.String, label = "參數(抽選池代號)" },   // gacha＝GachaPoolTable.csv 的 PoolId，例：weapon / armor / blood / item
                     new TriggerParam { key = "tipName", type = ParamType.String, label = "提示文字後綴(選填)" },  // 例填「抽選」→ 顯示「按 F 鍵抽選」；留空只顯示「按 F 鍵」
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 位置型：玩家走到這幾格附近按 F ＝ 切換一個旗標（開→關→開…），不開任何面板、不給任何東西。
+                // 誰在看這個旗標由對方決定：怪物出生點的「條件旗標」、地上物的 appearFlag/disappearFlag、
+                // 其他 trigger 的條件旗標…都行。第一次開啟時還會跑自己的「完成寫旗標／接續觸發」，所以也能當一般機關用。
+                // ⚠ 開關本身的圖是**地上物**（拉桿/石碑/按鈕），感應格要畫在它前方玩家站得到的地板（同祭壇，見 PROBLEMS K1）。
+                typeId = "switch", displayName = "開關(按F)", color = "#4DD9C0",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "toggleFlag", type = ParamType.String, label = "切換旗標", isFlagRef = true },
+                    new TriggerParam { key = "tipOff",     type = ParamType.String, label = "未啟動提示" },   // 留空＝「開始」→ 顯示「按 F 鍵開始」
+                    // 已啟動時的提示：**留空＝一次性開關**（按下去就收掉、不能再關）；有填＝可反覆切換（例「暫停」）。
+                    new TriggerParam { key = "tipOn",      type = ParamType.String, label = "已啟動提示" },
                 }
             });
             set.types.Add(new TriggerTypeDef

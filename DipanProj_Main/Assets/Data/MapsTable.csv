@@ -6,10 +6,12 @@ ID,Name,Module,Path,IsLevelStart,MapMode,Atmosphere(1正常/2幽暗+打光/3噩�
 5,RedBridalGown_ShrineHall,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_ShrineHall.dipanmap,0,2,2,0,,
 6,RedBridalGown_BridalRoom,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_BridalRoom.dipanmap,0,2,2,0,,
 7,RedBridalGown_Courtyard,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Courtyard.dipanmap,0,2,2,0,,
-8,RedBridalGown_LivingRoom2,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_LivingRoom2.dipanmap,1,2,1,0,,
+8,RedBridalGown_LivingRoom2,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_LivingRoom2.dipanmap,1,2,2,0,,
 9,RedBridalGown_Study,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_Study.dipanmap,0,2,2,0,,
 10,RedBridalGown_TreeDemon,RedBridalGown,Modules/RedBridalGown/Maps/RedBridalGown_TreeDemon.dipanmap,0,2,14,0,,
 11,Main_Cave,Main,Main/Maps/Main_Cave.dipanmap,0,2,1,0,1,1
 12,Main_Square,Main,Main/Maps/Main_Square.dipanmap,0,2,5,1,,1
 13,Main_InitialForest1,Main,Main/Maps/Main_InitialForest1.dipanmap,1,2,1,0,,1
 14,Main_InitialForest2,Main,Main/Maps/Main_InitialForest2.dipanmap,0,2,1,0,,1
+15,Future_Arena,Future,Modules/Future/Maps/Future_Arena.dipanmap,1,2,1,0,,0
+16,Future_Arena2,Future,Modules/Future/Maps/Future_Arena2.dipanmap,0,2,1,0,,0

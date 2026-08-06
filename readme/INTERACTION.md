@@ -15,8 +15,9 @@
 | **道具拾取點** | 編輯器 `pickup` trigger（`itemId` + `count`） | 金黃星星 | `itemId×count` 進背包；滿了溢出的掉成地上掉落物 |
 | **劇情觸發點** | 編輯器 `drama` trigger（`dramaId`） | 紫色星星 | 開啟劇情介面（見 [DRAMA.md](DRAMA.md)） |
 | **地上掉落物** | 程式 `DropLoot()`（拾取溢出、未來怪物掉落） | 道具 icon 縮小放地上 | 撿回背包（部分撿取：吃得下多少算多少） |
+| **開關／機關** | 編輯器 `switch` trigger（`toggleFlag`＋兩個提示欄） | 青綠星星 | **切換一個旗標**（開→關→開…），不開任何面板、不給任何東西。誰在看這個旗標由對方決定（怪物出生點與其他 trigger 的「條件旗標」、地上物 appearFlag/disappearFlag…）。詳見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.6 |
 
-**提示文字**：拾取＝「按 F 鍵拾取 ＜道具名＞」、劇情＝「按 F 鍵」。
+**提示文字**：拾取＝「按 F 鍵拾取 ＜道具名＞」、劇情＝「按 F 鍵」、開關＝依旗標狀態在「按 F 鍵開始／按 F 鍵暫停」之間切換（兩段文字可在編輯器改）。
 
 > 注意：拾取點與**劇情 Type 1（大圖+文字）**是**靠近按 F 觸發**。早期拾取點曾做成「踩到自動撿」，後改為與掉落物一致的「按 F」。
 > **例外：劇情 Type 2（頭像對話）改成「碰到自動觸發」**（踏進區域 `dramaTouchRadius` 內就播，不需按鍵）——觸發方式依該 dramaId 在 DramaTable 的 `Type`，由 `InteractPoint.autoTrigger` 標記，見 [DRAMA.md](DRAMA.md)。

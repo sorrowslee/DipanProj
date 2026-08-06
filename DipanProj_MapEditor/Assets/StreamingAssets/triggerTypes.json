@@ -97,7 +97,8 @@
           "isFlagRef": false,
           "flagNegatable": false,
           "isScreenEffectRef": false,
-          "isPortalList": false
+          "isPortalList": false,
+          "label": "怪物id('|'分隔)"
         },
         {
           "key": "deathFlag",
@@ -105,6 +106,26 @@
           "label": "死亡觸發旗標",
           "boolDefault": false,
           "isFlagRef": true,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "spawnInterval",
+          "type": "Float",
+          "label": "重複間隔秒",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "maxAlive",
+          "type": "Int",
+          "label": "同時存在上限",
+          "boolDefault": false,
+          "isFlagRef": false,
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false
@@ -583,6 +604,43 @@
           "key": "entry",
           "type": "String",
           "label": "物品id('|'分隔)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
+      "typeId": "switch",
+      "displayName": "開關(按F)",
+      "color": "#4DD9C0",
+      "params": [
+        {
+          "key": "toggleFlag",
+          "type": "String",
+          "label": "切換旗標",
+          "boolDefault": false,
+          "isFlagRef": true,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "tipOff",
+          "type": "String",
+          "label": "未啟動提示",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "tipOn",
+          "type": "String",
+          "label": "已啟動提示",
           "boolDefault": false,
           "isFlagRef": false,
           "flagNegatable": false,

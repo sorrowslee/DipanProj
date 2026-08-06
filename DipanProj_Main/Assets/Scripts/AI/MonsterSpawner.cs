@@ -155,7 +155,12 @@ public class MonsterSpawner : MonoBehaviour
     /// <summary>依 ID 取怪物配方資料（找不到回 null、不印錯誤）。給 BossIntroPanel 等 UI 端查 DisplayName / PortraitPath 用。</summary>
     public MonsterData GetData(int id) => _monsterDatabase.Find(m => m.ID == id);
 
-    public GameObject SpawnMonster(int id, Vector2 position, string deathFlag = null, MonsterFaction faction = MonsterFaction.Enemy, string spawnKey = null)
+    /// <summary>
+    /// 生一隻怪。
+    /// <paramref name="spawnKey"/>：地圖一次性出生點的唯一 key（有值＝死亡時記進 RunProgress『已清』，本趟不再重生）；召喚物與「重複產生」的出生點留空。
+    /// <paramref name="dropsLoot"/>：死亡是否掉寶。留 null＝沿用舊語意（有 spawnKey 才掉）；重複產生的出生點明確傳 true（不記進度但照常掉寶）。
+    /// </summary>
+    public GameObject SpawnMonster(int id, Vector2 position, string deathFlag = null, MonsterFaction faction = MonsterFaction.Enemy, string spawnKey = null, bool? dropsLoot = null)
     {
         MonsterData data = _monsterDatabase.Find(m => m.ID == id);
         if (data == null)
@@ -201,7 +206,9 @@ public class MonsterSpawner : MonoBehaviour
         controller.Faction = faction;       // 陣營：決定追誰/打誰/在哪層（在 Start 之前設好，contact/目標選擇才讀得到）
         if (faction == MonsterFaction.PlayerAlly) controller.SetBrain(new AllyBrain());   // 玩家召喚物＝聰明跟班（跟玩家+打敵怪）
         controller.DeathFlag = deathFlag;   // 出生點 trigger 的「死亡觸發旗標」；此擺放專屬，空＝不寫旗標
-        controller.SpawnKey = spawnKey;     // 關卡進度用：本張地圖唯一的出生點 key（有值＝地圖出生怪，死了記進度＋掉寶）。見 RunProgress
+        controller.SpawnKey = spawnKey;     // 關卡進度用：本張地圖唯一的出生點 key（有值＝一次性地圖出生怪，死了記進度）。見 RunProgress
+        // 掉寶與「記不記進度」拆開：一次性出生點兩者都有；重複產生的出生點只掉寶不記進度；召喚物兩者都沒有（防無限刷）。
+        controller.DropsLoot = dropsLoot ?? !string.IsNullOrEmpty(spawnKey);
 
         // 🟢 初始面向設定：根據主角位置決定面向
         SetInitialOrientation(go);

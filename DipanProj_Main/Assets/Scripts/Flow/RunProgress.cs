@@ -184,8 +184,12 @@ public class RunProgress : MonoBehaviour
     ///
     /// 需要實例資料的物品（裝備、能力珠）會在這裡先經 <see cref="ItemManager"/> 產生完整的一件——
     /// 所以孔數與珠子等級在「取得的當下」就決定好了，不是等到結算才骰。
+    ///
+    /// <paramref name="toRealBag"/>＝true：**跳過臨時包、直接進真背包**（關卡內也一樣）。給「不屬於這趟關卡收穫」
+    /// 的來源用——作弊面板、起始/教學道具（拾取點的 toRealBag 欄）。這類東西進臨時包的話死亡就歸零，
+    /// 而且要通關才落袋，完全不是使用者要的。金錢仍照舊轉成錢包數字（不佔背包格）。
     /// </summary>
-    public int GiveItem(int itemId, int count)
+    public int GiveItem(int itemId, int count, bool toRealBag = false)
     {
         if (count <= 0) return 0;
 
@@ -194,22 +198,23 @@ public class RunProgress : MonoBehaviour
         if (d != null && ItemManager.NeedsInstance(d))
         {
             int left = 0;
-            for (int i = 0; i < count; i++) left += GiveStack(ItemManager.Create(itemId, 1));
+            for (int i = 0; i < count; i++) left += GiveStack(ItemManager.Create(itemId, 1), toRealBag);
             return left;
         }
 
-        return GiveStack(new ItemStack { ItemId = itemId, Count = count, Inst = null });
+        return GiveStack(new ItemStack { ItemId = itemId, Count = count, Inst = null }, toRealBag);
     }
 
     /// <summary>
     /// 把一個「已經存在的」ItemStack 交給玩家（不重新產生實例）。
     /// 地上掉落物撿取走這條——地上那一件的孔數是掉落當下就決定的，撿起來不能重骰。
+    /// <paramref name="toRealBag"/>＝true 時跳過臨時包直接進真背包（見 <see cref="GiveItem"/>）。
     /// </summary>
-    public int GiveStack(ItemStack st)
+    public int GiveStack(ItemStack st, bool toRealBag = false)
     {
         if (st.IsEmpty) return 0;
 
-        if (RunActive)
+        if (RunActive && !toRealBag)
         {
             if (st.HasInst) _tempInstanced.Add(st);
             else

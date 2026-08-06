@@ -55,6 +55,22 @@
       "IsLife": true,
       "IsLevel": false,
       "ScopeLabel": "永久"
+    },
+    {
+      "id": 8,
+      "name": "startBornMonster_arena1",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 9,
+      "name": "startBornMonster_arena2",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
     }
   ]
 }

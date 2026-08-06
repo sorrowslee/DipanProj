@@ -10,8 +10,8 @@ using UnityEditor;
 /// 原理：`AfterAssembliesLoaded`（早於 GameFlowBootstrap 的 BeforeSceneLoad）先關掉
 /// <see cref="Dipan.Flow.GameFlowManager.TitleFlowEnabled"/>，再依選擇覆寫 MapManager 開機目標：
 ///  - **module**（紅嫁衣／初始洞窟）→ 進該關**首張地圖**（<see cref="MapManager.DevStartModuleOverride"/>）。
-///  - **地圖 id**（邪佛廣場）→ 直接進**指定地圖**（<see cref="MapManager.DevStartMapId"/>）；因為廣場是 Main 模組的
-///    map 12、非首圖，用 module 進不了它。
+///  - **地圖 id**（邪佛廣場、競技場）→ 直接進**指定地圖**（<see cref="MapManager.DevStartMapId"/>）；因為廣場是 Main 模組的
+///    map 12、非首圖，用 module 進不了它。競技場走通用的 <c>map:&lt;id&gt;</c> 目標字串，**加新的測試地圖只要加一顆 id 常數＋兩個 MenuItem**。
 /// 都**不動場景序列化的 `MapManager.startModule`（＝Main）**，所以「關閉」後正式開場鏈照舊。狀態存 EditorPrefs（只影響本機）。
 ///
 /// 另外：只要選了任一目標（含廣場），就打開 <see cref="Dipan.Save.SaveManager.DevFreshCharacter"/>——
@@ -37,7 +37,13 @@ public static class DevQuickStart
     const string ItemCave  = Root + "/初始洞窟 (Main_Cave)";
     const string ItemHub   = Root + "/邪佛廣場-初始 (Main_Square)";
     const string ItemHub1  = Root + "/邪佛廣場-1關後 (Main_Square)";
+    const string ItemArena  = Root + "/競技場1 (Future_Arena)";
+    const string ItemArena2 = Root + "/競技場2 (Future_Arena2)";
     const string ItemOff   = Root + "/關閉（走正式標題流程）";
+
+    // 「map:<id>」型目標用的地圖 id（MapsTable.csv）。加新的測試地圖只要在這裡加一顆常數＋兩個 MenuItem，不用動 Apply()。
+    const int ArenaMapId  = 15;   // Future_Arena（Future module 首圖）
+    const int Arena2MapId = 16;   // Future_Arena2
 
     static string Cur => EditorPrefs.GetString(PrefKey, "");
 
@@ -72,6 +78,14 @@ public static class DevQuickStart
                 Debug.Log("[DevQuickStart] 測試模式：直接進邪佛廣場（初始，完成 0 關）。要走正式流程：選單 → 關閉。");
             }
         }
+        else if (t.StartsWith("map:") && int.TryParse(t.Substring(4), out int devMapId))
+        {
+            // 通用「直接進某張地圖 id」：給非模組首圖的測試地圖用（競技場 2 就是這種）。
+            // 走的是 GoToMap → LoadMapInternal，所以跨 module 的預載與 RunProgress.OnEnterModule 都照常跑
+            // ——Future 是關卡 module（不是 Main），因此臨時包／掉寶／關卡進度在競技場裡都會正常運作。
+            MapManager.DevStartMapId = devMapId;
+            Debug.Log($"[DevQuickStart] 測試模式：直接進地圖 id {devMapId}。要走正式流程：選單 → 關閉。");
+        }
         else
         {
             MapManager.DevStartModuleOverride = t;   // 進該 module 的首張地圖
@@ -79,18 +93,26 @@ public static class DevQuickStart
         }
     }
 
-    [MenuItem(ItemRed)]   static void SetRed()   => Set("RedBridalGown");
-    [MenuItem(ItemCave)]  static void SetCave()  => Set("Main");
-    [MenuItem(ItemHub)]   static void SetHub()   => Set("Hub");
-    [MenuItem(ItemHub1)]  static void SetHub1()  => Set("Hub1");
-    [MenuItem(ItemOff)]   static void SetOff()   => Set("");
+    // priority 一律用 1000 起跳：**Unity 是拿子選單內各項的 priority 決定「測試」這個子選單在 Project Tools 裡的位置**，
+    // 填小數字會把整個「測試」擠到選單上方（Build=0、Sync Map Assets=20、Split=40、Save=200…）。
+    // 不指定 priority 時的預設值就是 1000，所以維持 1000+ 才會像原本那樣排在**最下面**。
+    // 同一段內依數字排序，數字差 ≥11 會自動畫一條分隔線（關卡 → 競技場 → 關閉）。
+    [MenuItem(ItemRed, false, 1000)]   static void SetRed()    => Set("RedBridalGown");
+    [MenuItem(ItemCave, false, 1001)]   static void SetCave()   => Set("Main");
+    [MenuItem(ItemHub, false, 1002)]   static void SetHub()    => Set("Hub");
+    [MenuItem(ItemHub1, false, 1003)]   static void SetHub1()   => Set("Hub1");
+    [MenuItem(ItemArena, false, 1020)]  static void SetArena()  => Set($"map:{ArenaMapId}");
+    [MenuItem(ItemArena2, false, 1021)]  static void SetArena2() => Set($"map:{Arena2MapId}");
+    [MenuItem(ItemOff, false, 1040)]  static void SetOff()    => Set("");
 
     // 驗證函式：順便在選單項打勾，讓你一眼看到目前選了哪個。
-    [MenuItem(ItemRed, true)]   static bool VRed()   { Menu.SetChecked(ItemRed,   Cur == "RedBridalGown"); return true; }
-    [MenuItem(ItemCave, true)]  static bool VCave()  { Menu.SetChecked(ItemCave,  Cur == "Main"); return true; }
-    [MenuItem(ItemHub, true)]   static bool VHub()   { Menu.SetChecked(ItemHub,   Cur == "Hub"); return true; }
-    [MenuItem(ItemHub1, true)]  static bool VHub1()  { Menu.SetChecked(ItemHub1,  Cur == "Hub1"); return true; }
-    [MenuItem(ItemOff, true)]   static bool VOff()   { Menu.SetChecked(ItemOff,  string.IsNullOrEmpty(Cur)); return true; }
+    [MenuItem(ItemRed, true, 1000)]    static bool VRed()    { Menu.SetChecked(ItemRed,    Cur == "RedBridalGown"); return true; }
+    [MenuItem(ItemCave, true, 1001)]   static bool VCave()   { Menu.SetChecked(ItemCave,   Cur == "Main"); return true; }
+    [MenuItem(ItemHub, true, 1002)]    static bool VHub()    { Menu.SetChecked(ItemHub,    Cur == "Hub"); return true; }
+    [MenuItem(ItemHub1, true, 1003)]   static bool VHub1()   { Menu.SetChecked(ItemHub1,   Cur == "Hub1"); return true; }
+    [MenuItem(ItemArena, true, 1020)] static bool VArena()  { Menu.SetChecked(ItemArena,  Cur == $"map:{ArenaMapId}"); return true; }
+    [MenuItem(ItemArena2, true, 1021)]static bool VArena2() { Menu.SetChecked(ItemArena2, Cur == $"map:{Arena2MapId}"); return true; }
+    [MenuItem(ItemOff, true, 1040)]   static bool VOff()    { Menu.SetChecked(ItemOff,   string.IsNullOrEmpty(Cur)); return true; }
 
     static void Set(string target)
     {

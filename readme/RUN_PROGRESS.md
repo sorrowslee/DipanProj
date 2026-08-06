@@ -93,9 +93,14 @@ RunProgress.IsLevelModule(module)  ==  module != SaveConstants.HubModule   // Hu
 RunProgress.Instance.GiveItem(itemId, count)
 //  關卡內 → 進臨時包，無容量上限，恆回 0
 //  廣場   → InventorySystem.AddItem，回傳放不下的剩餘
+
+RunProgress.Instance.GiveItem(itemId, count, toRealBag: true)
+//  一律直接進真背包（關卡內也一樣），跳過臨時包
 ```
 
 呼叫者：`TriggerChain` 的 `giveItem` 動作、`InteractionManager` 的拾取點與地上掉落物撿取。**新增任何給物品的來源，一律走這裡**，不要自己呼叫 `InventorySystem.AddItem`。
+
+**`toRealBag`（2026-08-06 加）**：給「**不屬於這趟關卡收穫**」的來源用——目前是**作弊面板的「給道具」**，以及拾取點的 `toRealBag` 欄（起始／教學道具，如佛燈）。這類東西進臨時包會有兩個症狀：死亡歸零、要通關才落袋，於是「在關卡裡用作弊給自己一把武器來測」會變成東西給了背包卻空的（實際踩過）。走統一入口而不是直接 `AddItem`，是為了保留另外兩件事：需要實例的物品（裝備／能力珠）會先經 `ItemManager` 骰好孔位；銅錢 101 會自動轉成金錢數字。
 
 金錢就是道具：**銅錢 = ItemTable ID 101**（`RunProgress.MoneyItemId`），掉落／臨時包／結算全部把它當一般道具處理。
 

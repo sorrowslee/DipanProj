@@ -13,7 +13,7 @@ namespace Dipan.UI
     /// （見 <see cref="OnBuild"/> 裡「＝＝＝ 如何新增一個作弊分頁 ＝＝＝」的說明）。
     ///
     /// 目前分頁：
-    ///   1.「給道具」：填入物品 ID + 數量 → 按確認 → 走 RunProgress.GiveItem（關卡內進臨時包、廣場進真背包；
+    ///   1.「給道具」：填入物品 ID + 數量 → 按確認 → 走 RunProgress.GiveItem(toRealBag:true)（**一律直接進真背包**，
     ///      給 101 銅錢會轉成金錢數字）。
     ///
     /// 風格對齊專案：全程式建構、零 prefab / Inspector 接線（同 SettingsPanel / InventoryPanel）。
@@ -376,9 +376,13 @@ namespace Dipan.UI
                 return;
             }
 
-            // 走「取得物品的統一入口」：關卡內進臨時包、廣場進真背包，
-            // 而且給 101 銅錢時會自動轉成金錢數字（金錢不再佔背包格）。
-            int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, count) : inv.AddItem(id, count);
+            // 走「取得物品的統一入口」，但**指定直接進真背包**（toRealBag）：
+            // 作弊給的東西不是「這趟關卡的收穫」，進臨時包的話死亡就歸零、要通關才落袋，
+            // 測試時（尤其在競技場裡調裝備）等於東西給了卻看不到，所以一律跳過臨時包。
+            // 走統一入口是為了保留另外兩件事：需要實例的物品（裝備/能力珠）會經 ItemManager 骰好孔位，
+            // 給 101 銅錢會自動轉成金錢數字（不佔背包格）。
+            int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, count, toRealBag: true)
+                                              : inv.AddItem(id, count);
             int added = count - leftover;
             string name = string.IsNullOrEmpty(data.Name) ? $"#{id}" : data.Name;
 

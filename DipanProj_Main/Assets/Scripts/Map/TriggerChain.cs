@@ -51,13 +51,14 @@ public static class TriggerChain
     public const string TypePortal = "portal";           // 傳送門互動（靠近按 F 開 ScriptsPanel）
     public const string TypeOpenPanel = "openPanel";     // 開啟 UI 面板（靠近按 F）：panelId 指定要開哪個面板、arg 傳參數。祭壇抽選＝panelId=gacha、arg=池代號
     public const string TypeCamZone = "camZone";
+    public const string TypeSwitch = "switch";           // 開關/機關（靠近按 F）：不開任何面板，只切換「切換旗標」＋跑鏈
     public const string TypePlayerSpawn = "playerSpawn";
     public const string TypeMonsterSpawn = "monsterSpawn";
 
     static readonly HashSet<string> PositionTypes = new HashSet<string>
     {
         TypeTeleport, TypePickup, TypeCutscene, TypePortal, TypeOpenPanel,
-        TypeCamZone, TypePlayerSpawn, TypeMonsterSpawn,
+        TypeCamZone, TypePlayerSpawn, TypeMonsterSpawn, TypeSwitch,
     };
 
     // 通用欄位 key
@@ -732,12 +733,20 @@ public static class TriggerChain
     // 無 SaveManager（單場景測試）時，周目退回記憶體 _memFlags；關卡單次一律走 _levelFlags（行為一致）。
     public const string LifePrefix = "永久:";
 
+    /// <summary>
+    /// 前綴：強制「關卡單次」範圍（只在記憶體、進新 module 就清）。與 <see cref="LifePrefix"/> 對稱。
+    /// 給**程式產生的自動旗標**用——那種 key 作者看不到、也沒辦法在旗標登記表登記，
+    /// 沒有前綴就會落到預設的「周目」而寫進存檔（例：互動點的「已開關:&lt;id&gt;」需要每趟關卡重算）。
+    /// </summary>
+    public const string LevelPrefix = "關卡:";
+
     enum FlagScope { Cycle, Life, Level }
 
     // 回傳（範圍, 去掉前綴的存檔用 key）。
     static (FlagScope scope, string name) Resolve(string key)
     {
         if (key.StartsWith(LifePrefix)) return (FlagScope.Life, key.Substring(LifePrefix.Length));
+        if (key.StartsWith(LevelPrefix)) return (FlagScope.Level, key.Substring(LevelPrefix.Length));
         if (FlagRegistry.IsLevel(key)) return (FlagScope.Level, key);
         return (FlagRegistry.IsLife(key) ? FlagScope.Life : FlagScope.Cycle, key);
     }
@@ -807,6 +816,26 @@ public static class TriggerChain
             string key = !string.IsNullOrEmpty(r.name) ? r.name : r.id;
             TriggerChainRunner.NextFrame(() => Activate(key));
         }
+    }
+
+    /// <summary>
+    /// 把旗標「取消成立」（三種範圍都支援，與 <see cref="SetFlag"/> 對稱）。
+    /// 給「可切換的開關」用（開關 trigger：按一次開、再按一次關）——一般劇情流程仍是只寫不清。
+    /// ⚠ 不會觸發 <see cref="OnFlagFirstSet"/>／fireOnFlag（那是「首次成立」專用）；
+    ///   之後再 SetFlag 一次會被視為「又一次首次成立」而重跑 fireOnFlag，所以**別對接了 fireOnFlag 的旗標用它**。
+    /// </summary>
+    public static void ClearFlag(string key)
+    {
+        if (string.IsNullOrEmpty(key)) return;
+        var (scope, name) = Resolve(key);
+        if (scope == FlagScope.Level) { _levelFlags.Remove(name); return; }   // 關卡單次：只在記憶體
+        var sm = SaveManager.Instance;
+        if (sm != null)
+        {
+            // SaveManager 的旗標是「值 == 1 才算成立」，所以寫 "0" 就是取消（不留孤兒 key 的差異可忽略）。
+            if (scope == FlagScope.Life) sm.SetLifetimeFlag(name, "0"); else sm.SetFlag(name, "0");
+        }
+        else _memFlags[key] = "0";
     }
 
     /// <summary>清掉所有「關卡單次」旗標。由 MapManager 在進入新 module（換關卡）時呼叫——所以每次進關這類旗標重算。</summary>

@@ -111,6 +111,11 @@
 - **原因**：改用 `Physics2D.OverlapCircle`/`OverlapCircleNonAlloc` 找敵對目標。專案全域 **`queriesStartInColliders = 0`（false）**（`ProjectSettings/Physics2DSettings.asset`），這會讓 overlap/cast 查詢**略過「重疊在查詢起點」的 collider**。兩隻怪深度重疊時，各自的中心可能落在對方 collider 內 → 被對方的查詢排除；因兩者大小/相對位置不同，常常變成「一方抓得到、另一方抓不到」的不對稱漏抓。（同一個雷/同雷射砲口貼身怪打不到，PlayerController 有註解、記於本檔他處。）
 - **解法**：接觸/貼身傷害**別用 OverlapCircle 找目標**。改維護一份全場怪物登記表（`MonsterController.Active`，OnEnable/OnDisable 進出），逐一用 **`Physics2D.Distance(colA, colB)`** 判重疊——它是兩個 collider 的直接距離運算，**不受 `queriesStartInColliders` 影響**（這也是原本「敵人打玩家」一直穩定的原因，那段本來就用 `Physics2D.Distance`）。玩家目標用 tag 找、怪物目標用登記表濾陣營。**通則**：本專案任何「貼身/重疊」判定優先用 `Physics2D.Distance` 或既有目標清單，不要用 OverlapCircle 當唯一偵測。（2026-07-09 記）
 
+### B8. 掛在 MapRoot 下的「每幀做事」元件，跨 module 換圖時會多活好幾秒（東西會跟到下一張圖）
+- **症狀**：做「怪物出生點每隔 N 秒生一波」時，離開關卡回廣場，**上一張圖的怪會出現在邪佛廣場**，位置還是舊圖的世界座標（可能卡在牆裡）。明明元件掛在 `MapRoot` 下、換圖會隨之銷毀。
+- **原因**：「掛在 MapRoot 下＝換圖自動停」這個直覺**只對同 module 的房間互跳成立**（那條路徑是同一幀跑完 `ClearTransientGameplay()` ＋ `LoadMap()`）。跨 module 是協程、橫跨好幾秒：開讀取頁（`LoadingPanel` 刻意 `PausesGame=false`，所以 **`timeScale` 還是 1、`Update` 照跑、`Time.deltaTime` 照走**）→ 停留 `loadingScreenHoldSeconds`（預設 2 秒）→ `ClearTransientGameplay()` 清光場上的怪 → 分幀預載素材（可達數秒）→ **最後**才 `Teardown()` 銷毀舊 MapRoot。中間那一大段舊元件都還活著；而它生出來的怪是 `Instantiate` 到場景根、**不在 MapRoot 底下**，於是躲過那一次清場，一路跟到新地圖。
+- **解法**：這類元件的 `Update` 開頭一律加載入中 guard —— `if (MapManager.Instance != null && MapManager.Instance.IsLoading) return;`（`MapMonsterRespawner` 就是這樣做的，另外也擋 `GameFlowManager.IsEndingLevel`，避免過關倒數／死亡等待那兩段「不暫停」的時間還在冒怪）。**通則：不要用「物件掛在 MapRoot 下」當作『換圖就會停』的保證，讀取頁不暫停遊戲。**（2026-08-06 記）
+
 ## C. 地圖編輯器 / 素材同步
 
 ### C6. 從 `DipanProj_MapEditor/Effects` 複製 PNG 到遊戲後，VFX／動畫子彈完全隱形，Console 報 `Animation sprite not found`

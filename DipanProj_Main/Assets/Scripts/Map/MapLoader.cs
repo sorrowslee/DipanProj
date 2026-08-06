@@ -72,6 +72,7 @@ public class MapLoader : MonoBehaviour
     Transform _root;
     int _envLayer;
     MapObjectRevealer _revealer;   // 本圖「靠旗標中途現身」的地上物顯現管理器（掛物件根下，換圖隨 MapRoot 銷毀）
+    MapMonsterRespawner _respawner;   // 本圖「重複產生」的怪物出生點計時器（同上，掛 MapRoot 下，換圖隨之銷毀）
     int _blockerLayer;
 
     public MapData Map => _map;
@@ -239,6 +240,7 @@ public class MapLoader : MonoBehaviour
             _root = null;
         }
         _revealer = null;   // 隨 MapRoot 一起銷毀了，清引用
+        _respawner = null;  // 同上（不清的話換圖後會拿到已銷毀的元件，重複產生的出生點就失效了）
     }
 
     /// <summary>地圖檔路徑解析：先 StreamingAssets/MapAssets，再（編輯器）GameAssets。</summary>
@@ -735,8 +737,10 @@ public class MapLoader : MonoBehaviour
                 }
             }
 
+            // monsterId 可填單一 id（例 5），也可填多個以 '|' 分隔（例 5|7|9）＝從中隨機挑一個生（沿用專案慣例，同 SummonIds/scriptIds）。
             string idStr = r.GetString("monsterId");
-            if (!int.TryParse(idStr, out int monsterId))
+            int[] monsterIds = ParseMonsterIds(idStr);
+            if (monsterIds.Length == 0)
             {
                 Debug.LogWarning($"[MapLoader] 怪物出生點「{r.name}」的 monsterId 無效:\"{idStr}\",略過。");
                 continue;
@@ -744,12 +748,54 @@ public class MapLoader : MonoBehaviour
 
             string deathFlag = r.GetString("deathFlag");   // 出生點「死亡觸發旗標」；此區域每隻怪死都會寫，空＝不寫
 
+            // 交給 MapMonsterRespawner 的兩種情況（可並用）：
+            //   ‧ 重複產生：spawnInterval > 0＝每隔 N 秒生一波（一波＝每格各一隻）。
+            //   ‧ 有條件：填了觸發鏈通用條件（條件旗標／初始停用…）＝條件不成立前不生（一次性出生點也走這條，成立時生一波就結束）。
+            float interval = r.GetFloat("spawnInterval", 0f);
+            // 「什麼時候才開始生」直接沿用觸發鏈的**通用條件欄位**（條件旗標／初始停用＋解鎖旗標／周目／道具／完成關卡數），
+            // 出生點不另外開一套自己的條件欄位——兩套長得很像的條件並存只會讓人填錯（實際踩過）。
+            // 只在「真的有填條件」時才交給 MapMonsterRespawner 逐幀判定，其餘 99% 的出生點維持原本的即時生成路徑。
+            bool gated = HasChainCondition(r);
+            WarnBadSpawnConditions(r);
+            if (interval > 0f || gated)
+            {
+                var points = new List<Vector2>();
+                // 一次性（interval<=0）仍要記 RunProgress『已清』，所以要帶 spawnKey；重複產生刻意留 null。
+                var keys = interval > 0f ? null : new List<string>();
+                foreach (var c in r.cells)
+                {
+                    if (c == null || c.Length < 2) continue;
+                    points.Add(MapCoords.CellCenter(c[0], c[1], _map));
+                    keys?.Add($"{r.id}#{c[0]},{c[1]}");
+                }
+                if (points.Count == 0) continue;
+
+                if (_respawner == null)
+                {
+                    // 一定要掛在 MapRoot 下（換圖隨之銷毀）。掛到 MapLoader 自己身上的話不會被銷毀，
+                    // 會變成「換圖後還在生上一張圖的怪」。_root 正常情況不會是 null（SpawnMonsters 在建圖後才呼叫）。
+                    if (_root == null) { Debug.LogError("[MapLoader] MapRoot 還沒建好，重複產生/等旗標的出生點略過。"); continue; }
+                    var go = new GameObject("MonsterRespawner");
+                    go.transform.SetParent(_root, false);
+                    _respawner = go.AddComponent<MapMonsterRespawner>();
+                }
+                int maxAlive = r.GetInt("maxAlive", 0);   // 留空/0 = 用保險預設（見 MapMonsterRespawner.DefaultMaxAlive）
+                spawned += _respawner.Register(spawner, monsterIds, points, keys, deathFlag, gated ? r : null,
+                                               interval, maxAlive, mapId, r.name);
+                continue;
+            }
+
+            // 一次性、進圖就生（原行為）：每格生一隻，死了記進度、本趟換圖回來不再重生。
             foreach (var c in r.cells)
             {
                 if (c == null || c.Length < 2) continue;
                 // 本張地圖唯一的出生點 key（區域 id + 格座標）；用來記「這格的怪已清、本趟不再生」。
                 string spawnKey = $"{r.id}#{c[0]},{c[1]}";
                 if (runActive && RunProgress.Instance.IsSpawnKilled(mapId, spawnKey)) continue;   // 已清 → 不重生
+                // 填多個 id 時用 spawnKey 做「穩定挑選」而非每次亂骰：同一格在同一趟關卡換圖來回不會突然變成另一種怪。
+                int monsterId = monsterIds.Length == 1
+                              ? monsterIds[0]
+                              : monsterIds[(int)(StableHash(spawnKey) % (uint)monsterIds.Length)];
                 spawner.SpawnMonster(monsterId, MapCoords.CellCenter(c[0], c[1], _map), deathFlag,
                                      MonsterFaction.Enemy, spawnKey);
                 spawned++;
@@ -757,6 +803,75 @@ public class MapLoader : MonoBehaviour
         }
 
         if (spawned > 0) Debug.Log($"[MapLoader] 依地圖出生點生成 {spawned} 隻怪物。");
+    }
+
+    /// <summary>
+    /// 這顆 trigger 有沒有填任何「會擋住它」的觸發鏈通用條件。
+    /// 有填 → 出生點交給 <see cref="MapMonsterRespawner"/> 逐幀查 <see cref="TriggerChain.IsActive"/>（條件取消就暫停、恢復就繼續）；
+    /// 沒填 → 走原本的即時生成路徑（也避免在 TriggerChain.Setup 之前就去查它的狀態，見 MapManager.PlaceAndSetup 的呼叫順序）。
+    /// </summary>
+    static bool HasChainCondition(TriggerRegion r)
+    {
+        if (r == null) return false;
+        if (r.GetBool("startDisabled")) return true;   // 初始停用：要等鏈 Activate 才解鎖
+        foreach (var k in ChainConditionKeys)
+            if (r.GetString(k).Trim().Length > 0) return true;
+        return false;
+    }
+
+    /// <summary>
+    /// 對怪物出生點常見的兩種「填了卻不會如預期運作」的組合出聲警告。
+    /// 這類欄位是**每種 trigger 都會顯示**的通用欄位，出生點又不是全部都吃得到，靜默無效最難查（實際踩過一次）。
+    /// </summary>
+    static void WarnBadSpawnConditions(TriggerRegion r)
+    {
+        // ① 初始停用 ＋ 條件旗標：語意互斥。初始停用要靠鏈 Activate 解鎖，但 Activate 會先查條件旗標、
+        //    不成立就整條鏈中止 → EnableRegion 永遠跑不到，這顆出生點會變成「永遠不生」。
+        if (r.GetBool("startDisabled") && r.GetString("requireFlag").Trim().Length > 0)
+        {
+            Debug.LogWarning($"[MapLoader] 怪物出生點「{r.name}」同時填了「初始停用」與「條件旗標」——這兩個語意互斥，結果是**永遠不會生怪**。" +
+                             "要「按開關才開始／再按一次暫停」請只填條件旗標（取消勾選初始停用）；" +
+                             "要「某事件後才開始、之後不再關」才用初始停用＋鏈解鎖。見 readme/TRIGGER_CHAIN.md §3.5。");
+        }
+
+        // ② 重複規則：出生點不看它（一次性語意由 RunProgress『已清』決定）。填了不會報錯也不會生效。
+        if (r.GetString("repeat").Trim().Length > 0)
+        {
+            Debug.LogWarning($"[MapLoader] 怪物出生點「{r.name}」填了「重複規則」，但**出生點不看這欄**（不會有任何效果）。" +
+                             "「殺掉後本趟不再重生」是 RunProgress 自動處理的；要控制「什麼時候才開始生」請用條件欄位。" +
+                             "見 readme/TRIGGER_CHAIN.md §3.5。");
+        }
+    }
+
+    // TriggerChain.RequirementMet 會判定的條件欄位（enableFlag 不列：它只是「解鎖時要寫的旗標名」，本身不擋人；
+    // repeat/onBlocked 也不列：出生點不看它們，改由上面的 WarnBadSpawnConditions 出聲）。
+    static readonly string[] ChainConditionKeys =
+    {
+        "requireFlag", "requireCycleMin", "requireCycleMax", "requireItem",
+        "requireClearsMin", "requireClearsMax",
+    };
+
+    /// <summary>解析 monsterId 欄：單一 id（"5"）或 '|' 分隔的多個 id（"5|7|9"）。無效值略過，全無效回空陣列。</summary>
+    static int[] ParseMonsterIds(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return new int[0];
+        var list = new List<int>();
+        foreach (var part in raw.Split('|'))
+        {
+            string t = part.Trim();                       // CSV/參數值常帶空白，一律 Trim（見 readme/PROBLEMS F4）
+            if (t.Length == 0) continue;
+            if (int.TryParse(t, out int id)) list.Add(id);
+            else Debug.LogWarning($"[MapLoader] 怪物出生點的 monsterId 有無效項:\"{t}\"，略過這一項。");
+        }
+        return list.ToArray();
+    }
+
+    /// <summary>字串穩定雜湊（FNV-1a）。不用 string.GetHashCode——那個不保證跨執行/跨平台一致。</summary>
+    static uint StableHash(string s)
+    {
+        uint h = 2166136261u;
+        for (int i = 0; i < s.Length; i++) { h ^= s[i]; h *= 16777619u; }
+        return h;
     }
 
     // ---- 相機置中對齊地圖 ----
