@@ -15,6 +15,7 @@
 - **啟動**：`onEnter`「進場觸發-新手教學」（gate `!tutorialHpPosition`）接 `drama`「新手教學-邪佛提示拾取藥水」（dramaId 21）。drama **關閉時**廣播 `新手教學-邪佛提示拾取藥水` → `BeginPotionTutorial`（`PotionStartTrig`）。
 - **撿取**：pickup「新手教學-hp藥水拾取點」（`itemId=201`、`count=2`、`toRealBag=true`）。走到可撿範圍→定住只能按 F；撿完廣播 `新手教學-hp藥水拾取點`（`PotionPickupTrig`）+ `setFlag=tutorialHpPosition`。
 - **放進藥水格**：`AllowBag` 放行 B 開背包 → 手指指 HP 藥水格（`FindGridSlotRect(201)`）＋遮罩只放行它 → **左鍵**點一下 → `InventoryPanel.OnSlotClicked` 對藥水呼叫 `AutoPlacePotion`（空位優先＝左格＝鍵 1）→ 偵測 `GetPotionSlot(0)==201` → 提示按 B 關背包。
+  > 2026-08-07 背包改成雙頁籤＋分頁後，**藥水在「消耗品」頁籤**。`FindGridSlotRect` 會自動切到正確的頁籤與頁數再回傳格子，手指照樣指得到（同 [WOODSHED_LAMP_TUTORIAL.md](WOODSHED_LAMP_TUTORIAL.md) 的說明）。
 - **強制喝藥**（`PotionDrink`）：關背包後 `StartPotionDrink` **解除全鎖**（否則藥水熱鍵被 `IsGameplayInputBlocked` 擋）**但改上 `DrinkOnly=true`＝鎖移動、只放行按 1**。記下當前瓶數 `_potionBaseline`；`TickPotionDrink` 偵測瓶數下降（喝了一瓶）→ 解鎖、`TriggerChain.Activate("新手教學結束開啟傳送點")` 開三個傳送點、完成。
 
 > **為什麼喝藥要用 `DrinkOnly` 而不是 `SetExternalHold`**：`PotionHotkeys` 開頭 `if (UIManager.IsGameplayInputBlocked) return;`——`SetExternalHold(true)` 會把按 1 一起擋掉。所以比照佛燈點亮那步的 `FireOnly`，做一個「鎖移動、但不擋熱鍵」的 `DrinkOnly`（`PlayerController.Update` 讀它把 `_moveInput` 歸零、不開火；`PotionHotkeys` 因 `IsGameplayInputBlocked` 為 false 照常運作）。

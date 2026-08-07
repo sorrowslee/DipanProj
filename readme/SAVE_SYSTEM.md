@@ -125,7 +125,7 @@
 ```
 
 設計要點：
-- **稀疏存格**：63 格大多是空的，只存非空格省空間、也對「之後背包格數變動」較有韌性（還原時超出新格數的格子走 `AddItem` 溢位處理，見 §6）。
+- **稀疏存格**：80 格（裝備包 40 + 消耗品包 40，2026-08-07 起）大多是空的，只存非空格省空間、也對「之後背包格數變動」較有韌性（還原時對不上的格子走 `AddStack` 找正確那一包的空位，見 §6）。
 - **`mapStates` 預留**：[MAP_SYSTEM.md](MAP_SYSTEM.md) 的 `MapManager` 持有 `Dictionary<int mapId, MapState>`（怪死了沒、撿過什麼、地上掉落物…）。Phase 2 做存檔永久化時，就把它序列化進這個欄位，**不必另開存檔系統**。
 - **`generation` / `progress.inheritedItemId`**：轉生機制的紀錄（見 §5）。
 - **校驗碼不放在這份 JSON 裡**：放 sidecar `character.sig`，讓 `character.json` 保持乾淨可讀（見 §4.2）。
@@ -215,7 +215,8 @@ public void RestoreState(InventoryDTO dto);
 
 - 某 `itemId` 在現行 `ItemTable` 找不到（物品被移除/改號）→ **跳過該格 + 記 log**，不要讓整份存檔解析失敗。
 - `count` 還原時**夾到該物品的 `MaxStack`**（表上限若調小了，避免超疊）。
-- 背包格數（`Columns`/`Rows`）若未來改變：用 `slot` 索引還原，超出新 `GridCount` 的格子改走 `AddItem` 找空位塞回（塞不下就溢位處理/提示）。
+- 背包格數（`EquipBagCount` / `ItemBagCount`）若未來改變：用 `slot` 索引還原，**格號越界、被占、或所在的包跟這件東西該去的包對不上**時，改走 `AddStack` 丟進正確那一包（塞不下就溢位處理/提示）。
+  > **2026-08-07 的分包遷移**：背包從「一包 63 格」改成「裝備包 40 + 消耗品包 40」（同一條扁平陣列切成兩段）。舊存檔載入時每一格都會過一次「這個格號所在的包 == 這件東西該去的包？」的檢查，對不上就重新分配——**物品與鑲嵌都不會掉，只有排列順序被重排一次**，Console 會印出重排了幾件。分包規則的唯一判斷點是 `InventorySystem.BagFor`（可裝備 → 裝備包，其餘 → 消耗品包）。見 [INVENTORY.md](INVENTORY.md)。
 - **紀律：物品 ID 一旦上線就不要回收或重新編號**（同 [MAP_SYSTEM.md](MAP_SYSTEM.md) 對地圖 `ID` 的要求）。
 
 ### 6.3 儲藏箱（將來）

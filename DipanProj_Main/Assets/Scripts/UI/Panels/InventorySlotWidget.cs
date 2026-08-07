@@ -35,8 +35,12 @@ namespace Dipan.UI
         /// </summary>
         public bool locked;
 
-        /// <summary>這一格現在是不是不能操作（即時查詢，不只看慢一拍的 <see cref="locked"/> 旗標）。</summary>
-        bool Blocked => locked || SlotDragController.Locked(this);
+        /// <summary>
+        /// 這一格現在是不是不能操作（即時查詢，不只看慢一拍的 <see cref="locked"/> 旗標）。
+        /// index &lt; 0 = 這一頁多出來、沒有對應到任何背包格的空位；一定要擋掉，
+        /// 否則拖東西放上去會「目標寫不進去、來源卻被清空」＝物品憑空消失。
+        /// </summary>
+        bool Blocked => locked || index < 0 || SlotDragController.Locked(this);
 
         public Action<InventorySlotWidget> Clicked;
         public Action<InventorySlotWidget> RightClicked;

@@ -14,6 +14,7 @@
 - **啟動**：一進圖 `onEnter`「進場觸發-觸發邪佛對話」（gate `!tutorialBuddleLight`）接 `drama`「新手教學-邪佛對話」（dramaId 20）。**這顆 drama「關閉」時**廣播 `TriggerChain.OnTriggerFired("新手教學-邪佛對話")`，`TutorialManager` 收到就開始（`LampStartTrig` 就是這個名字；gate 於 `LampDoneFlag`，做過就不跑）。
 - **撿取**：pickup 觸發點名 **`柴房佛燈拾取`**（`itemId=8`）。走到可撿範圍 → `SetExternalHold` 定住玩家、`AllowInteract` 放行按 F。撿完 pickup 廣播 `柴房佛燈拾取` → 進裝備步驟；pickup 的 `setFlag=tutorialBuddleLight` 同時讓地上物消失、解鎖傳送點。
 - **裝備**：`AllowBag` 放行 B 鍵開背包（`HardLock` 仍鎖倉庫 K）→ `InventoryPanel.FindGridSlotRect(8)` 手指指佛燈格＋`TutorialBlockerPanel` 只放行它 → 點一下 → `InventorySystem.GetEquipped(Weapon)==8` 偵測到裝上 → 提示按 B 關背包。
+  > 2026-08-07 背包改成雙頁籤＋分頁後，**佛燈（武器）在「裝備」頁籤**。`FindGridSlotRect` 已改成「找不到就自動切到那件東西所在的頁籤與頁數」，所以手指照樣指得到；而且背包的格子物件是**只建一頁 20 個重複使用**、切頁只重綁編號不重建，`TutorialBlockerPanel.LockTo` 鎖的 GameObject 不會失效。動這兩個地方時務必保持這個行為。
 - **強制點亮**（`LampLight`）：關背包後 `StartLampLight` **解除全鎖**（`SetExternalHold(false)`，否則連開火都被擋）**但改上 `FireOnly=true`＝鎖移動、只放行開火**——玩家走不掉、只能按住左鍵/空白鍵點燈。`TickLampLight` 讀 `PlayerController.IsAuraActive`（佛光光環開著）**持續 0.35 秒**（避免手滑一下就過）→ 解除 `FireOnly`、寫 `LampDoneFlag`、完成。之後玩家自由，可走去（已解鎖的）傳送點。
 
 ## ⚠️ 新手教學「寫死清單」（改動前必看，集中在 `TutorialManager.cs` 上方常數）

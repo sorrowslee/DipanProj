@@ -32,7 +32,9 @@ namespace Dipan.UI
         // ── 擺位 ──
         const float FrameScale = 0.72f;
         const float SoloX = 0f;          // 單獨開啟：置中
-        const float PairLeftX = -420f;   // 與背包並排：左移（與 InventoryPanel.PairRightX 對稱，盡量靠近不重疊）
+        // 與背包並排：左移。值是用「看得見的美術」算的（底圖 1122 裡不透明內容是 x 52~1070，
+        // 左右各約 52px 透明留白），讓兩邊美術中間只留約 40 單位的縫。見 InventoryPanel.PairRightX 的註解。
+        const float PairLeftX = -416f;
 
         Sprite _cellNormal, _cellPressed;
         Sprite[] _cellNum;
@@ -48,7 +50,7 @@ namespace Dipan.UI
 
         // hover 高亮 + tooltip（行為比照背包）
         const float TooltipWidth = 460f;
-        Image _highlight;
+        RectTransform _highlight;   // hover 外框（與背包同一套，見 UI/SlotOutline.cs）
         RectTransform _tooltip;
         Text _tipName, _tipStats, _tipLore;
 
@@ -107,9 +109,8 @@ namespace Dipan.UI
 
             _storeHolder = MakeHolder(_frame, "StoreGrid", GridX0, GridY0);
 
-            // hover 高亮（重用一個，移入時貼到該格後方）
-            _highlight = UIBuilder.Image(_frame, "Highlight", null, new Color(1f, 0.82f, 0.3f, 0.22f));
-            _highlight.raycastTarget = false;
+            // hover 外框（重用一個，移入時貼到該格）。細線而不是整片上色——理由見 UI/SlotOutline.cs。
+            _highlight = SlotOutline.Create(_frame, "HoverOutline", new Color(1f, 0.88f, 0.55f, 0.85f), 3.5f);
             _highlight.gameObject.SetActive(false);
 
             BuildTooltip();
@@ -169,9 +170,9 @@ namespace Dipan.UI
         // ── hover：高亮 + tooltip（比照背包）──
         public void HoverEnter(ItemSlotWidget slot)
         {
-            _highlight.transform.SetParent(slot.transform, false);
-            UIBuilder.Stretch(_highlight.rectTransform);
-            _highlight.transform.SetAsFirstSibling();
+            _highlight.SetParent(slot.transform, false);
+            UIBuilder.Stretch(_highlight);
+            _highlight.SetAsFirstSibling();
             _highlight.gameObject.SetActive(true);
             ShowTooltip(slot.Container.GetAt(slot.Index).ItemId);
         }
@@ -186,7 +187,7 @@ namespace Dipan.UI
         {
             if (_highlight == null) return;
             _highlight.gameObject.SetActive(false);
-            _highlight.transform.SetParent(_frame, false);
+            _highlight.SetParent(_frame, false);
         }
 
         void ShowTooltip(int itemId)

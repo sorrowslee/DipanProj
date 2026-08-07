@@ -46,14 +46,23 @@ namespace Dipan.UI
             var w = go.AddComponent<ItemSlotWidget>();
             w._bg = bg;
 
+            // icon 改成固定尺寸（不是四邊拉伸）——IconFit 只處理固定尺寸的 icon，
+            // 這裡設的是**內容框**，實際大小由 IconFit 依不透明內容反推。見 UI/IconFit.cs。
             var icon = UIBuilder.Image(go.transform, "Icon", null, Color.white);
-            UIBuilder.Stretch(icon.rectTransform, 6, 6, 6, 6);
+            var irt = icon.rectTransform;
+            irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
+            irt.anchoredPosition = Vector2.zero;
+            irt.sizeDelta = new Vector2(size * 0.84f, size * 0.82f);
             icon.raycastTarget = false; icon.preserveAspect = true; icon.enabled = false;
             w._icon = icon;
 
-            var count = UIBuilder.Text(go.transform, "Count", "", 16, Color.white, TextAnchor.LowerRight);
-            UIBuilder.Stretch(count.rectTransform, 2, 4, 2, 2);
+            int countSize = Mathf.RoundToInt(Mathf.Clamp(size * 0.26f, 14f, 26f));
+            var count = UIBuilder.Text(go.transform, "Count", "", countSize, Color.white, TextAnchor.LowerRight);
+            UIBuilder.Stretch(count.rectTransform, 0, 4, 0, 3);
             count.raycastTarget = false;
+            var sh = count.gameObject.AddComponent<Shadow>();
+            sh.effectColor = new Color(0f, 0f, 0f, 0.85f);
+            sh.effectDistance = new Vector2(2f, -2f);
             w._count = count;
 
             return w;

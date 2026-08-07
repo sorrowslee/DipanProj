@@ -47,11 +47,9 @@ namespace Dipan.UI
                 InventorySystem.Instance.SetPotionSlot(index, 0);
                 id = 0; d = null; have = 0;
             }
-            if (icon != null)
-            {
-                icon.sprite = d != null ? d.Icon : null;
-                icon.enabled = d != null && d.Icon != null;
-            }
+            // 一律走 ItemIcons（畫物品圖示的唯一入口）——那裡面會做 IconFit 正規化，
+            // 直接讀 d.Icon 的話留白多的藥水圖會小得很誇張。見 UI/IconFit.cs。
+            ItemIcons.Apply(icon, id);
             if (count != null) count.text = have > 0 ? have.ToString() : "";
         }
 

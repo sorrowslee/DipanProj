@@ -70,7 +70,9 @@ namespace Dipan.UI
         [Tooltip("面板顯示高度（CanvasScaler 參考單位，1080 為滿版）。1536×1024 的圖，636 高 ≈ 954 寬。")]
         public float displayHeight = 636f;
 
-        const float PairLeftX = -483f;   // 與背包並排：靠左（背包 SetPairedLayout(true) 會靠右）
+        // 與背包並排：靠左（背包 SetPairedLayout(true) 會靠右）。同樣用「看得見的美術」算
+        // （底圖 1536 裡不透明內容是 x 127~1408，左右各約 127px 透明留白）。見 InventoryPanel.PairRightX。
+        const float PairLeftX = -447f;
         const float SoloX = 0f;
 
         // ───────── 資料 ─────────
@@ -439,7 +441,8 @@ namespace Dipan.UI
 
             var inv = InventorySystem.Instance;
             if (inv == null) return;
-            if (inv.FreeSlotCount() < gems)
+            // 珠子不可裝備 → 依分包規則會回到消耗品包，所以要算那一包的空格（不是兩包相加）。
+            if (inv.FreeSlotCount(Dipan.Inventory.BagKind.Item) < gems)
             {
                 AlertPanel.Toast(Language.GetText(TxtBagFull));
                 return;

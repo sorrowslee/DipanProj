@@ -114,6 +114,11 @@ namespace Dipan.UI
             target.sprite = baseSp;
             target.enabled = baseSp != null;
 
+            // 正規化：不同 icon 的透明留白差很多（量過的 30 張裡，內容佔長邊從 41% 到 100%），
+            // 不處理的話同一個格子畫出來會差快 2.5 倍。見 IconFit 的說明。
+            // ⚠ 一定要在下面算疊圖之前做——疊圖的大小與偏移是以 target.rect 為基準的。
+            IconFit.Fit(target);
+
             var overlay = itemId > 0 ? OverlayOf(itemId) : null;
             var child = FindOverlay(target);
 
@@ -128,6 +133,9 @@ namespace Dipan.UI
             child.sprite = overlay;
             child.color = target.color;   // 跟著底圖一起壓黑（被鐵砧借走時背包會壓黑那一格）
 
+            // 疊圖**不另外正規化**：符號與珠身的相對比例是量出來的（符號 = 整張圖的 55%），
+            // 兩者又都以 target.rect 為基準，所以底圖被 IconFit 放大時符號會同倍率跟著放大，
+            // 疊合關係完全不變（單獨正規化符號反而會破壞這個比例）。
             var rt = child.rectTransform;
             var prt = target.rectTransform;
             float w = prt.rect.width, h = prt.rect.height;

@@ -37,8 +37,12 @@ namespace Dipan.UI
             bg.raycastTarget = true;
 
             var w = go.AddComponent<ScriptSlotWidget>();
+            // 固定尺寸（不是四邊拉伸）——IconFit 只處理固定尺寸的 icon；這裡設的是內容框。
             var icon = UIBuilder.Image(go.transform, "Icon", null, Color.white);
-            UIBuilder.Stretch(icon.rectTransform, 8, 8, 8, 8);
+            var irt = icon.rectTransform;
+            irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
+            irt.anchoredPosition = Vector2.zero;
+            irt.sizeDelta = new Vector2(size * 0.84f, size * 0.82f);
             icon.raycastTarget = false; icon.preserveAspect = true; icon.enabled = false;
             w._icon = icon;
             return w;
@@ -53,10 +57,7 @@ namespace Dipan.UI
         public void Refresh()
         {
             var st = Container != null ? Container.GetAt(Index) : ItemStack.Empty;
-            if (st.IsEmpty) { _icon.enabled = false; return; }
-            var d = Container.GetData(st.ItemId);
-            _icon.sprite = d != null ? d.Icon : null;
-            _icon.enabled = _icon.sprite != null;
+            ItemIcons.Apply(_icon, st);   // 走唯一入口：含 IconFit 正規化（見 UI/IconFit.cs）
         }
 
         // 拖出（把劇本拖回背包）——當作來源。

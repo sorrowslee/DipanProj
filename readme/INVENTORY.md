@@ -8,6 +8,9 @@
 >
 > **2026-07-28 更新**：⚠️ **金錢不再是背包道具**——銅錢（101）改成存檔裡的一個數字，背包底部銅錢 icon 後面直接顯示總額（見下方「金錢」一節）。`ItemTable.csv` 新增 **`BloodlineID`** 欄（>0 ＝ 這是血統藥劑，喝下去換外型、本世只能用一次；見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5）。
 
+>
+> **2026-08-07 大改版**：換上新背景 `inventoryPanel_Bg.png`（**1254×1254 正方形**），道具區改成 **5×4 一頁 ＋ 上方兩個頁籤（裝備 / 消耗品）＋ 底部翻頁**。道具格由「一包 63 格」改成 **裝備包 40 + 消耗品包 40**，分包規則只有一條：**穿得上裝備欄的進裝備包，其餘全部進消耗品包**。見下方「分包與分頁」一節。
+
 背包＝建在 UI 底層框架上的第一個面板。嚴守**資料層 / 呈現層分離**：`InventorySystem`（純資料、有什麼/加減/裝卸、發事件）與 `InventoryPanel`（只訂閱事件繪圖、操作回呼資料層）。背景用整張示意圖當底、不拆圖,只在上面疊互動格子放 icon。
 
 ---
@@ -23,20 +26,118 @@
 
 ---
 
-## 背景與格子座標（量自 `inventoryPanelBG.png`，**1126×1397**）
+## 分包與分頁（2026-08-07）
 
-背景圖：`Resources/UI/InventoryPanel/inventoryPanelBG.png`。座標都在**背景原圖像素空間**（左上為原點、y 向下）；整個 `Frame` 等比縮放塞進畫面（預設顯示高 1040 參考單位），格子座標因此不必隨解析度改。
+道具格是**一條扁平陣列切成兩段**：前 40 格 = 裝備包、後 40 格 = 消耗品包。之所以不做成兩個獨立容器，是因為「鍛造台鎖住哪一格」「存檔的格位」「新手教學要指哪一格」全都用同一個**格子編號**在對話——切段能讓那些地方一行都不用改。
 
-> ⚠️ **座標一定要對準真正的背景圖尺寸**：2026-07-16 一度用到「舊快取的 1133×1388」量座標，整套被平移＋縮放 → 武器格黃光偏大、藥水格完全沒對準。已對真正的 `1126×1397` 重量（邊緣偵測＋疊圖目視驗證）。**改背景圖務必重量**（`BgW/BgH` 與下表全部）。
+| 概念 | 位置 | 說明 |
+|---|---|---|
+| 容量 | `InventorySystem.EquipBagCount` / `ItemBagCount` | 目前各 40。**要加格只改這兩個常數**，介面會自動多分幾頁 |
+| 一頁幾格 | `InventorySystem.PageSlots` | 20（介面 5×4）。`PagesOf(bag)` 由容量除出來 |
+| 分包規則 | `InventorySystem.BagFor(ItemData)` | **唯一的判斷點**：`d.IsEquippable` → 裝備包，其餘 → 消耗品包。要改分類只改這個方法 |
+| 誰在哪一包 | `BagOf(gridIndex)` / `BagStart(bag)` / `BagCount(bag)` | 全是 static，格子編號 ↔ 分包的換算 |
+
+被歸到**消耗品包**的東西包含：藥水、材料、劇本、血統藥劑、**能力珠**（珠子不可裝備，所以不在裝備包；2026-08-07 與作者確認過）。
+
+**重整鈕只整理「目前看到的那一包」**（`SortBag(bag)`），排序規則：
+
+- 裝備包：武器 → 盔甲 → 手套 → 鞋子 → 護身符 → 戒指（`SortEquipOrder`），同類再依物品 ID
+- 消耗品包：藥水 → 其他，同類再依物品 ID
+
+有實例資料的物品（裝備、能力珠）**一件一格搬過去、絕不合併**，否則鑲嵌與珠子等級會被洗掉。
+
+**幾條為了防止物品消失而存在的規則**（改動時不要拿掉）：
+
+- `MoveGrid(from,to)` **跨包一律拒絕**——不然裝備會被搬進消耗品包，之後永遠排序不到正確位置。
+- 真的跨包時（例：背包停在消耗品頁、從倉庫拖一把劍進來），由 `InventoryActions.Resolve` 攔下來改走 `AddStack`「丟進它該去的那一包」，**不是拒收**——拒收的寫法會讓來源被清空而物品消失（見 [PROBLEMS.md](PROBLEMS.md) 與 [STORAGE.md](STORAGE.md)）。
+- 一頁的格子若超出該包容量（容量不是 20 的整數倍時會發生），那些格子直接 `SetActive(false)`，而不是留一個 index 越界的格子在那裡。
+- `Unequip` 只找**裝備包**的空格；鍛造「移除鑲嵌」前算空位要算**消耗品包**（`FreeSlotCount(BagKind.Item)`）。
+
+**舊存檔遷移**：`RestoreState` 會檢查每一格「這個格號所在的包，跟這件東西該去的包是不是同一個」，對不上就改用 `AddStack` 丟進正確的那一包。物品與鑲嵌都不會掉，只有排列順序被重排一次（Console 會印出重排了幾件）。
+
+---
+
+## 背景與格子座標（量自 `inventoryPanel_Bg.png`，**1254×1254**）
+
+背景圖：`Resources/UI/InventoryPanel/inventoryPanel_Bg.png`。座標都在**背景原圖像素空間**（左上為原點、y 向下）；整個 `Frame` 等比縮放塞進畫面（預設顯示高 900 參考單位，正方形所以寬也是 900），格子座標因此不必隨解析度改。
+
+> ⚠️ **座標一定要對準真正的背景圖尺寸**：2026-07-16 一度用到「舊快取的 1133×1388」量座標，整套被平移＋縮放 → 武器格黃光偏大、藥水格完全沒對準。**改背景圖務必重量**（`BgW/BgH` 與下表全部）。
 
 | 區域 | 參數（`InventoryPanel.cs` 最上方常數） |
 |---|---|
-| 道具格 7×9 | 左 `GridLeft=464`、橫距 `GridPitchX=79.4`；頂 `GridTop=261`、縱距 `GridPitchY=85.9`。格 (c,r) 中心 = `(464+(c+0.5)*79.4, 261+(r+0.5)*85.9)`；icon `70px` |
-| 裝備欄 6 格 | 左欄 `x=152`、右欄 `x=304`；三列 `y=379 / 632 / 884`；格框 `104×162`、icon `100px`。順序：左上武器·右上胸甲·左中鞋子·右中手套·左下護身符·右下戒指 |
-| 藥水格 2 格 | 左欄最下方，中心 `x=241 / 334`、`y=1067`；格框 `72×72`、icon `64px`。左＝鍵1、右＝鍵2（見下方「藥水系統」） |
-| 重整鈕（整理道具格） | 中心 `RefreshCx/RefreshCy=443/1210`、`RefreshSize=90`。做成透明按鈕蓋在底部方孔錢幣上（不覆蓋美術、hover 輕微 tint），按下呼叫 `InventorySystem.SortGrid()` |
+| 道具格 5×4（一頁） | 格心 x `GridCx = 403 / 513.4 / 623.8 / 734.2 / 844.6`、y `GridCy = 467 / 577 / 687 / 797`；格框 `95×92` |
+| 裝備欄 6 格 | 順序**照背景圖畫的剪影**：左欄由上到下 = 武器 / 手套 / 鞋子，右欄 = 盔甲 / 護身符 / 戒指。三排方框大小不同，所以中心與寬高都逐格列在 `EquipCx/EquipCy/EquipBoxW/EquipBoxH/EquipIconSize`（上排 `220×258`、中下排約 `173×230`） |
+| 藥水格 2 格 | 面板最下方突出的兩格，中心 `x=534 / 717`、`y=1098`；格框 `132×172`。左＝鍵1、右＝鍵2 |
+| icon 與數量字 | **沒有逐格常數**：內容框 = 格框 × `IconFillX/IconFillY`（0.84 / 0.82），實際大小由 `IconFit` 依每張圖的不透明內容反推（見上一節）；數量字級 = `min(寬,高) × 0.26` 夾 18~30 |
+| 頁籤 2 個 | 中心 `x=499 / 749`、`y=338`；plaque 內容寬 `248`、命中框 `248×74`；圖示高 `54` |
+| 底列（都在 `BarCy=939`） | 重整鈕 `x=410`（內容寬 190）／上一頁 `x=551`／頁碼 `x=627`／下一頁 `x=703`（三者內容高 66、命中框 58×70）／金錢 `x=812`、`y=937`、框 `108×46` |
 
-> 座標映射 `Place(rt, px, py, w, h)`：錨到 frame 左上角、`pivot=(0.5,0.5)`、`anchoredPosition=(px,-py)`、`sizeDelta=(w,h)`。裝備欄/藥水格的黃色高亮（`dropHi`）就是拉伸貼滿各自的格框。
+**頁碼只顯示「現在第幾頁」**，不顯示總頁數；還有沒有下一頁由箭頭亮不亮表達。
+
+**金錢靠左對齊**（`TextAnchor.MiddleLeft` + `resizeTextForBestFit`）擺在牌子前段。文字框右界必須停在 **x≈866 之前**——背景圖從 x≈878 開始畫錢幣，壓過去就疊在錢幣上。長數字不會撐出框：bestFit 會自動縮字級（實測 `999,999,999` 約在 20 級、`999,999,999,999` 約在 15 級就塞得下，都高於下限 14）。
+
+### 並排位置（與倉庫 / 鍛造 / 傳送門同開時）
+
+⚠️ **並排的 X 要用「看得見的美術」算，不能用整張圖的寬度**。這幾張底圖四周都有大片透明留白：背包 1254 裡真正不透明的是 x 57~1198（左右各 ~57px）、倉庫 1122 裡是 x 52~1070、鍛造 1536 裡是 x 127~1408。第一版用整張圖寬度去排，結果兩個面板中間空出一大塊、背包又被推到快出畫面。
+
+現在的算法是「讓兩邊**看得見的美術**中間只留約 40 單位的縫、整組置中」，得到：`InventoryPanel.PairRightX = 400`、`StoragePanel.PairLeftX = -416`、`ForgingPanel.PairLeftX = -447`。
+
+另外 `InventoryPanel.PairedX()` 會**夾住不讓美術超出畫面右緣**：CanvasScaler 用 `MatchWidthOrHeight = 0.5`，**畫面越窄（非 16:9）可用的參考寬度就越小**（作者的視窗約 1.49 比例 → 參考寬只有 ~1756 而不是 1920），固定值在窄視窗會把背包右半邊切掉。
+
+> 座標映射 `Place(rt, px, py, w, h)`：錨到 frame 左上角、`pivot=(0.5,0.5)`、`anchoredPosition=(px,-py)`、`sizeDelta=(w,h)`。hover 外框與「可放這格」提示都是拉伸貼滿各自的格框（見下一節）。
+
+### 兩種格子提示：hover ＝ 描邊、可放這格 ＝ 呼吸的框
+
+| | 長相 | 什麼時候出現 | 貼在哪 |
+|---|---|---|---|
+| hover | **一圈靜止的細金框**（`SlotOutline`，不填滿），寬 3.5、色 `(1, 0.88, 0.55, 0.85)` | 滑鼠移過**任何**格子 | 道具格、裝備欄、倉庫格 |
+| 可放這格 | **會呼吸的亮金外框**（α 在 0.40↔1.00 之間，速度 4.2）＋ 很淡的固定底光 `(1, 0.85, 0.40, 0.07)` | 拖著東西時 | 裝備欄、藥水格 |
+
+原本兩者都是「整片鋪滿的黃色」、只差 0.08 的 alpha —— 玩家分不出來，拖曳提示等於白做；而且新背景的裝備欄是舊版面積的 3.4 倍、一個道具格的 6.5 倍，同一片顏色在大格子上就變成一大塊黃色看板（[PROBLEMS.md](PROBLEMS.md) **E11**：本專案是 Linear 色彩空間，`α=0.22` 疊在近黑底上看起來等於 Gamma 的 `α≈0.45`）。
+
+**兩個實作上的地雷**：
+
+- 「可放這格」是**一個容器**（底光 Image ＋ 外框子物件），開關一定要用 `SetActive`。**只關 `Image.enabled` 沒用**——外框是子物件，父物件的 Image 被關掉子物件照樣會畫出來。
+- 呼吸用 `Time.unscaledTime`。背包會把遊戲暫停（`timeScale = 0`），用一般 `Time.time` 會整個停住不動。
+
+會動的刻意是**外框**而不是底光：底光只要一強，大格子又會退回「一片黃色看板」。要完全拿掉底光就把 `DropHiColor` 的 α 設 0。
+
+### 物品 icon 的大小正規化（`UI/IconFit.cs`）
+
+**格子裡的 icon 一律「不透明內容塞滿內容框」，不是「整張圖塞滿格子」。**
+
+原因：物品 icon 的透明留白差非常多——2026-08-07 量過 30 張，內容佔長邊從 **41%**（`item_hpPosition_s` 500×500 裡只有 146×206）到 **100%**（`weapon_sword` 整張畫滿）。不處理的話同一個格子畫出來，藥水只有劍的 2.4 分之一（作者實機第一眼就看出來了）。
+
+做法：`IconFit` 用 `Sprite.vertices`（Tight 網格的頂點）算出不透明內容的外接框，再反推 Image 的 `sizeDelta` 與偏移。**不需要貼圖開 Read/Write**，也不必為每張圖手寫常數、換圖不用重量——這是它跟下面那套手動 ArtSpec 最大的差別（面板零件圖只有固定幾張、位置又各自不同，手寫常數比較準；物品 icon 會一直加，只能自動）。
+
+呼叫端要知道的三件事：
+
+1. 你設的 `sizeDelta` 語意是**內容框**（看得見的那塊會塞滿它），不是整張圖多大。背包這邊統一用 `格框 × IconFillX/IconFillY`（0.84 / 0.82），所以**不再有逐格的 icon 尺寸常數**。
+2. **只處理固定尺寸的 icon**（`anchorMin == anchorMax`）。四邊拉伸型的會被跳過、維持原行為——所以倉庫格與劇本方框的 icon 已改成固定尺寸。
+3. 留白多的圖，Image 的 rect 會被放大到**比格子還大**（藥水在 95×92 的格子裡 rect 是 183×183），多出來的全是透明。icon 是 `raycastTarget=false` 不影響點擊，但**之後若要在格子加 `Mask`／`RectMask2D` 要記得這件事**。
+
+生效範圍：掛在 `ItemIcons.Apply`（畫物品圖示的唯一入口）裡，所以背包格／裝備欄／藥水格／倉庫／鍛造鐵砧與孔位／過關結算／抽選面板／底部 HUD 藥水／傳送門劇本方框全部一起生效。**新增畫 icon 的地方一律走 `ItemIcons.Apply`，不要直接讀 `data.Icon`**（否則珠子只剩空白珠身、而且大小又會不一致）。
+
+**數量文字**也一併規範：字級由格子大小算（`min(寬,高) × 0.26`，夾在 18~30），並加深色陰影，壓在 icon 亮處才看得清楚。見 `InventoryPanel.MakeCountText`。
+
+### 零件素材與 ArtSpec（**換圖必讀**）
+
+背景圖只畫了裝備格、格網、金錢牌、藥水格；**頁籤／重整鈕／左右箭頭／頁碼框是獨立 PNG，由程式疊上去**。這些 AI 產的素材都是「內容只佔中間一塊、四周整片透明」，uGUI 對齊的是整張圖，直接照原圖擺一定偏掉（[PROBLEMS.md](PROBLEMS.md) E9）。所以沿用抽選／鍛造那一套：把每張圖**不透明內容的邊界框**量出來寫成 `Art` 常數，`PlaceArt()` 反推 Image 要多大、中心放哪。
+
+| 檔名（`Resources/UI/InventoryPanel/`） | 原圖 | 不透明邊界框 (x, y, w, h) | 用途 |
+|---|---|---|---|
+| `inventoryPanel_Bg` | 1254×1254 | — | 面板底圖 |
+| `inventoryPanel_Cell_Selected` | 867×288 | 26, 34, 803, 244 | 頁籤（選中，紫色） |
+| `inventoryPanel_Cell_UnSelected` | 822×278 | 24, 36, 776, 227 | 頁籤（未選中） |
+| `inventoryPanel_Cell_EquipmentIcom` | 555×449 | 20, 35, 507, 402 | 裝備頁籤圖示 |
+| `inventoryPanel_Cell_ItemIcom` | 482×518 | 69, 46, 349, 453 | 消耗品頁籤圖示 |
+| `inventoryPanel_Cell_RefreshButton` | 866×288 | 22, 5, 822, 270 | 重整鈕 |
+| `inventoryPanel_Cell_PageButton_Right` | 500×500 | 80, 32, 350, 435 | 下一頁；**上一頁直接鏡像同一張**（`PlaceArt(..., mirror:true)`，不另外出圖） |
+| `inventoryPanel_Cell_PageNum_Bg` | 500×500 | 18, 35, 464, 424 | 頁碼底框 |
+
+**素材圖本身 `raycastTarget=false`，點擊全靠疊在上面的透明按鈕**（`MakeGhostButton`）——這樣美術照樣完整露出，只用輕微 tint 當 hover / 按下的回饋。透明按鈕一定要在素材圖**之後**建立，否則收不到點擊。
+
+> Max Size：底圖 1254（長邊 ≥1000）→ 2048；其餘零件圖 → 512。規則見 `Editor/UIAssetRules.cs`，既有檔案用選單工具批次修。
 
 ---
 
@@ -86,13 +187,14 @@
 
 ## 資料層 `InventorySystem`（純資料、跨場景常駐單例）
 
-- 持有 63 道具格（`ItemStack[]`）+ 6 裝備欄（`Dictionary<EquipSlot,int>`）；懶漢單例,第一次存取自動建立 + `DontDestroyOnLoad`（換地圖物品延續）。
+- 持有 **80 道具格**（`ItemStack[]`，前 40 裝備包 + 後 40 消耗品包，見上方「分包與分頁」）+ 6 裝備欄 + 2 藥水格綁定；懶漢單例,第一次存取自動建立 + `DontDestroyOnLoad`（換地圖物品延續）。
 - **不含任何 UI**——任何變動觸發 `event Action OnChanged`,UI 訂閱重繪。
 - API：`AddItem(id,count)`（先疊堆再放空格,回傳放不下的剩餘）、`RemoveAt`、`MoveGrid(from,to)`、`EquipFromGrid(index)`、`Unequip(slot)`、`GetGrid/GetEquipped/GetData/HasAnyItem`。
 - **（2026-06-23 新增）**：
   - 實作 **`IItemGrid`**（`Capacity/GetAt/SetAt/MoveWithin/DisplayName`），讓背包道具格能與倉庫共用搬運/拖放程式（見 [STORAGE.md](STORAGE.md)）。
   - `SetEquipped(slot,itemId)`：直接設定某裝備欄（拖放裝備/跨容器用，會觸發 OnChanged → 裝備↔武器連動）。
-  - `SortGrid()`：整理道具格（合併同物品＋依 ID 排序＋壓實，不動裝備欄；重整鈕用）。
+  - `SortBag(bag)`：整理**單一一包**（合併同物品＋依規定順序排序＋壓實，不動裝備欄、不動另一包；重整鈕用）。`SortGrid()` = 兩包都整理，留給不分包的舊呼叫端。
+  - `AddItem` / `AddStack` **會自動判斷丟進哪一包**（倉庫點擊送過來、掉落物落袋、觸發鏈給道具都走這條）。
   - `CaptureState()/RestoreState(InventoryDTO)`：存檔快照（純資料、不碰檔案；由 `SaveManager` 呼叫，見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md)）。
 
 ---
@@ -100,13 +202,16 @@
 ## 呈現層 `InventoryPanel`（繼承 `UIPanel`）
 
 - 旗標：`Window` 層、`PausesGame=true`、`BlocksGameplayInput=true`、`ShowBackdrop=true`、ESC 可關。
-- `OnBuild` 建一次：frame＋背景＋6 裝備欄＋63 道具格（各是透明命中區 `Image` + 子 icon + 子數量 + `InventorySlotWidget`）＋共用高亮＋**重整鈕**。
-- `OnOpen` 訂閱 `OnChanged` 並 `Redraw()`；`OnClose` 退訂。`Redraw` 從 `InventorySystem` 讀資料設每格 icon/數量。
+- `OnBuild` 建一次：frame＋背景＋6 裝備欄＋**一頁 20 個道具格**（各是透明命中區 `Image` + 子 icon + 子數量 + `InventorySlotWidget`）＋頁籤/底列素材＋共用高亮＋透明命中按鈕。
+- **格子只建一頁並重複使用**：切頁籤/翻頁時只重新綁定 `index`、**不重建物件**。這點很重要——新手教學會鎖定某一格的 GameObject，重建會讓它指到已銷毀的物件。
+- `OnOpen` 訂閱 `OnChanged` 並回到上次停留的頁籤與頁數；`OnClose` 退訂。`Redraw` 依「目前這一包的第幾頁」換算出每格的扁平索引再讀資料。
+- **每個頁籤各自記住停在第幾頁**（`_pageOf`）；箭頭在第一頁/最後一頁會變暗且不可按（不循環）。
 - **互動**：
   - 移入 → 高亮該格 + 浮動 tooltip（名稱/功能/劇情）。
   - **點擊**：倉庫沒開時，點道具格的可裝備物品 → 裝備（原裝的換回該格）、點裝備欄 → 卸回第一個空格；**倉庫開著時**，點道具格 → 整堆送到倉庫當前分頁（見 [STORAGE.md](STORAGE.md)）。
   - **拖放**（透過共用 `SlotDragController`）：格內重排/合併/交換、拖到裝備欄＝裝備、拖去倉庫＝存放（含裝備）。
-  - **重整鈕**：整理道具格。
+  - **重整鈕**：整理**目前這個頁籤**那一包（`SortBag`）。
+  - **頁籤**：切換裝備包 / 消耗品包。**左右箭頭**：翻頁；中間顯示 `目前頁/總頁數`。
   - **血統藥劑**（`BloodlineID > 0`）：點下去先跳 `ConfirmPopup` 確認（**這輩子只能喝一次**），確認後 `TryDrinkBloodline` 換外型＋套屬性、消耗藥劑。已經喝過（周目旗標 `血統` 成立）則直接提示不能再喝。見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5。
   - **與倉庫並排**：倉庫＋背包同開時各自左右移（`StorageBagCoordinator` 控；背包右移位置 `PairRightX`）。
 - **tooltip**：移到物品上跳出浮動說明（掛在 panel root、不受 frame 縮放、跟著游標、近右邊自動翻到左側、不擋 hover）。三段：**名稱（粗體金）**＋ **`TipStats`（正楷）**＋ **`TipLore`（斜體）**;高度由 `VerticalLayoutGroup + ContentSizeFitter` 自動撐開,空欄自動隱藏該段。
@@ -120,6 +225,10 @@
 - **武器欄是武器的唯一來源**（2026-07-27 起）:裝備哪把就用哪把、**卸下就沒有武器**（空手時按攻擊完全沒反應）。原本的 E 鍵循環切換已移除,不再有「當前武器與裝備欄不一致」的情況。
 - 邊界:`InventorySystem` 仍是純資料層、不認識戰鬥;由 `PlayerController`（既有戰鬥整合點,本就持有 `WeaponManager`）做連結。
 
+### 給新手教學用的 `FindGridSlotRect(itemId)`
+
+教學要「手指指向背包裡那一格」，但那件東西可能在另一個頁籤或另一頁。所以這個方法**會自動切到該物品所在的頁籤與頁數**再回傳格子：先掃目前這一頁（最常見、順便避免每幀重切頁），沒有才掃全背包並切過去。動這個方法時務必保持這個行為，否則柴房佛燈／儲藏室藥水／傳送門劇本三段教學的手指會指向沒顯示出來的格子。
+
 ### 相關檔案
 
 - `Assets/Scripts/Inventory/ItemData.cs`（ItemData + EquipSlot 列舉）
@@ -130,7 +239,7 @@
 - `Assets/Scripts/UI/Panels/InventorySlotWidget.cs`（格子互動元件，已實作 `ISlotView` + 拖放）
 - `Assets/Scripts/UI/InventoryLauncher.cs`（**已停用／no-op**：2026-07-22 起新角色初始背包保持**完全空**，不再自動塞測試物品。開關鍵 B 已移到 `StorageBagCoordinator`。此元件留著不做事，可從場景移除；要臨時塞測試裝備就在 `Start()` 自行 `InventorySystem.Instance.AddItem(id)`，或還原 git 舊版種子碼。）
 - 共用搬運（與倉庫同套，見 [STORAGE.md](STORAGE.md)）：`UI/ISlotView.cs`、`UI/SlotDragController.cs`、`UI/InventoryActions.cs`、`UI/StorageBagCoordinator.cs`
-- `Assets/Data/ItemTable.csv`（與其他資料表同位置）、`Assets/Resources/UI/InventoryPanel/inventoryPanelBG.png`、`Assets/Resources/UI/Icons/...`
+- `Assets/Data/ItemTable.csv`（與其他資料表同位置）、`Assets/Resources/UI/InventoryPanel/inventoryPanel_Bg.png` ＋ 七張 `inventoryPanel_Cell_*.png` 零件圖、`Assets/Resources/UI/Icons/...`
 
 ---
 
@@ -146,7 +255,9 @@
 - 綁定存在 `InventorySystem`（`GetPotionSlot/SetPotionSlot`，跟背包一起存檔，`InventoryDTO.potionSlots`）。**只記種類、不動背包內容**（不走搬移邏輯）；往格外拖＝解綁清空。
 - 使用（喝）由常駐 `PotionHotkeys` 在遊戲中按 1/2 觸發（見 [BOTTOM_HUD.md](BOTTOM_HUD.md)）。
 
-**拖曳時的「可放欄位」黃色高亮（`dropHi`）**：拖起某類物品 → 把「該類能放、且**空著**的專用欄」亮黃光（拖裝備亮對應的空裝備欄、拖藥劑亮空的藥水格），放開時全關。判斷靠 `SlotDragController.DraggingItemId`（全域拖曳中的物品 ID，輪詢式、避開 Domain Reload 殘留），面板 `UpdateDropHighlights` 更新。**拖曳中不做 hover 高亮**（改用這個）。
+**拖曳時的「可放這格」提示（`dropHi`）**：拖起某類物品 → 把「該類能放、且**空著**的專用欄」亮起來（拖裝備亮對應的空裝備欄、拖藥劑亮空的藥水格），放開時全關。判斷靠 `SlotDragController.DraggingItemId`（全域拖曳中的物品 ID，輪詢式、避開 Domain Reload 殘留），面板 `UpdateDropHighlights` 更新。**拖曳中不做 hover 高亮**（改用這個）。
+
+長相與兩個實作地雷見上方「兩種格子提示」一節——重點是它現在是**容器（底光 ＋ 外框子物件）**，開關一定要 `SetActive`，只關 `Image.enabled` 子物件照樣會畫。
 
 **丟錯格自動歸位（`InventoryActions`）**：
 
@@ -185,3 +296,7 @@
 *2026-06-23 更新：接入共用 slot 拖放/搬運系統（與倉庫互拖、含裝備）；新增重整鈕（SortGrid）；移除底部名稱列；資料層加 IItemGrid / SetEquipped / SortGrid / Capture·RestoreState。見 [STORAGE.md](STORAGE.md)、[SAVE_SYSTEM.md](SAVE_SYSTEM.md)。*
 *2026-07-16 更新：藥水系統（Potion 分類、背包兩格藥水格綁定種類、按 1/2 喝、喝藥特效）；拖曳可放欄位黃色高亮 + 丟錯格自動歸位 + 右鍵藥水快放；版面座標重量到新背景 1126×1397（修正高亮偏位）；底部 HUD 血瓶槽鏡像顯示背包藥水（見 [BOTTOM_HUD.md](BOTTOM_HUD.md)）；ItemTable 加 TargetMapId/TargetEntrance/HealHp/HealMp 欄。*
 *2026-07-28 更新：**金錢改成存檔數字、不再是背包道具**（背包底部銅錢 icon 後顯示總額，訂閱 `SaveManager.OnCurrencyChanged`；掉落端仍給道具 101，由 `RunProgress.GiveItem`/`SettleIntoBag` 轉呼叫 `AddCurrency`；`SweepMoneyIntoWallet` 遷移舊存檔）；ItemTable 加 `BloodlineID` 欄＋血統藥劑 301/302，背包點血統藥劑＝確認後換外型。見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)。*
+*2026-08-07 大改版：換新背景 `inventoryPanel_Bg.png`（1254×1254 正方形）；道具區改 **5×4 一頁 + 頁籤（裝備/消耗品）+ 底部翻頁**；道具格由 63 格一包改成 **裝備包 40 + 消耗品包 40**（分包規則只有 `BagFor` 一處：可裝備 → 裝備包、其餘 → 消耗品包，能力珠算消耗品）；重整鈕改成只整理當前頁籤那一包，裝備包依 武器/盔甲/手套/鞋子/護身符/戒指、消耗品包依 藥水/其他；裝備欄順序改成左欄 武器/手套/鞋子、右欄 盔甲/護身符/戒指（照背景圖剪影）；金錢改靠右對齊；頁籤/重整/箭頭/頁碼是獨立 PNG 用 ArtSpec 疊上去（左箭頭鏡像右箭頭）；`FindGridSlotRect` 會自動切頁籤與頁數給新手教學用；跨包拖放改成「丟進正確的那一包」而不是拒收；舊存檔會依分類重排一次（不掉東西）。*
+*2026-08-07 微調（實機第一次跑完的回饋）：裝備欄 icon 放大到方框的 ~8 成（`178 / 148 / 142`，原本 `132 / 116`），道具格 icon `74→80`、藥水格 icon `92→108`；頁碼改成只顯示「現在第幾頁」不顯示總頁數；金錢改**靠左**對齊、框縮成 `108×46`（右界 866，錢幣圖從 878 開始）；並排位置改用「看得見的美術」重算（背包 `480→400`、倉庫 `-420→-416`、鍛造 `-483→-447`），並加上畫面右緣的夾制避免窄視窗被切掉。*
+*2026-08-07 再微調（實機看到藥水 icon 特別小）：新增 `UI/IconFit.cs` + `IconFitBox`，把物品 icon 改成「不透明內容塞滿內容框」的自動正規化（量過的 30 張 icon 內容佔比從 41% 到 100%，不處理會差 2.4 倍），掛在 `ItemIcons.Apply` 這個唯一入口所以全專案一起生效；背包因此**移除逐格的 icon 尺寸常數**，改成格框 × `IconFillX/IconFillY`；倉庫格與傳送門劇本方框的 icon 從「四邊拉伸」改成固定尺寸（拉伸型不吃正規化）；藥水格、底部 HUD 藥水、劇本方框原本直接讀 `data.Icon`，改成一律走 `ItemIcons.Apply`；數量文字字級改成依格子大小算並加深色陰影。記進 [PROBLEMS.md](PROBLEMS.md) E10。*
+*2026-08-07 再微調（作者問「為什麼滑鼠移過去整格變黃」）：查出那是 **hover 高亮**不是拖曳提示，兩者當時都是整片鋪滿的黃色、只差 0.08 alpha，加上新裝備欄面積是舊版 3.4 倍、又是 Linear 色彩空間（`α=0.22` 實際看起來像 `0.45`，見 [PROBLEMS.md](PROBLEMS.md) E11），所以變成一大塊黃色看板。改法：新增 `UI/SlotOutline.cs`，hover 改成**只描邊不填滿**（背包與倉庫共用）；「可放這格」改成**會呼吸的亮金外框＋很淡底光**，兩種提示一眼分得出來。*

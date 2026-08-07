@@ -31,6 +31,16 @@
 | `ItemSlotWidget.cs` | 通用格子（倉庫頁與任何 `IItemGrid` 用），實作 `ISlotView`＋點擊/拖放/hover。 |
 | `StorageBagCoordinator.cs` | 開場自動生成：K 開倉庫、B 開背包；只開一個置中、兩個都開並排（呼叫各面板 `SetPairedLayout`）。 |
 
+### 共用視覺元件（2026-08-07）
+
+| 檔案（`Assets/Scripts/UI/`） | 角色 |
+|---|---|
+| `ItemIcons.cs` | **畫物品圖示的唯一入口**（背包/倉庫/鍛造/結算/抽選/HUD/地上掉落物）。處理能力珠的兩層疊圖，並在裡面呼叫 `IconFit`。**不要繞過它直接讀 `data.Icon`**。 |
+| `IconFit.cs` ＋ `IconFitBox.cs` | **icon 大小正規化**：用 `Sprite.vertices`（Tight 網格頂點）量出不透明內容的外接框，反推 Image 的大小與偏移，讓「看得見的那塊」塞滿呼叫端給的內容框。不需要貼圖開 Read/Write。`IconFitBox` 是掛在 icon 上的小元件，記住呼叫端最初給的框（否則每次重算會越畫越大）。 |
+| `SlotOutline.cs` | **格子外框高亮**：四條細線圍一圈、不填滿。錨點各貼一邊，所以貼滿任何大小的格子都成立、線粗不變。背包與倉庫的 hover 高亮、以及「可放這格」的呼吸外框都用它。 |
+
+> 這兩個都是為了同一類問題而生：**AI 產的素材四周留白比例天差地遠、而 uGUI 對齊的是整張圖**（[PROBLEMS.md](PROBLEMS.md) E9/E10），以及**本專案是 Linear 色彩空間、大面積半透明比直覺重一倍**（[PROBLEMS.md](PROBLEMS.md) E11）。
+
 ---
 
 ## 怎麼開關 UI
@@ -125,9 +135,11 @@ public class InventoryPanel : UIPanel
 - `ItemTable.csv` + `InventorySystem`（純資料層，CSV 驅動，仿 WeaponTable）。
 - `InventoryPanel`（繼承 `UIPanel`，依使用者提供的設計圖 + 拆分小圖以 UIBuilder 建構）。
 - ✅ 拖放（共用 `SlotDragController`）、✅ tooltip（背包/倉庫各建一份，浮動跟游標）——已完成。
-- 待補：格子堆疊分割、HUD（血條/武器/金錢，走 `HUD` 層、不暫停不擋輸入）、（可選）把 tooltip 抽成共用元件。
+- ✅ HUD（血球/藥水槽，走 `HUD` 層）——已完成，見 [BOTTOM_HUD.md](BOTTOM_HUD.md)。
+- 待補：格子堆疊分割、（可選）把 tooltip 抽成共用元件（背包/倉庫/鍛造各有一份幾乎一樣的）。
 
 ---
 
 *建立於 2026-06-22：UI 底層框架（uGUI + code-driven，多場景常駐，視面板而定的暫停/輸入閘門）。背包為下一階段，建在本框架上。*
 *2026-06-23 更新：加 `UIBuilder.InputField`；新增「共用 slot 拖放/搬運系統」(ISlotView/SlotDragController/InventoryActions/StorageBagCoordinator) 供背包與倉庫互拖；共用遮罩改為鋪在所有視窗最底層（支援並排視窗、不疊加）。見 [STORAGE.md](STORAGE.md)、[INVENTORY.md](INVENTORY.md)。*
+*2026-08-07 更新：新增三個共用視覺元件——`IconFit`＋`IconFitBox`（物品 icon 依不透明內容自動正規化大小）與 `SlotOutline`（格子外框高亮，取代整片上色）。兩者都掛在既有的單一入口上（`ItemIcons.Apply` / 各面板的 hover），所以一次改全部生效。另記：**本專案是 Linear 色彩空間**，寫 UI 的半透明數值時要知道「亮色疊暗底比直覺重一倍、暗色疊亮畫面比直覺淡一倍」，見 [PROBLEMS.md](PROBLEMS.md) E11。*

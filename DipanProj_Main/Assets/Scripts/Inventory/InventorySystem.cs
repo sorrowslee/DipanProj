@@ -28,18 +28,51 @@ namespace Dipan.Inventory
     }
 
     /// <summary>
+    /// 背包分包。**分包規則只有一條：穿得上裝備欄的 → 裝備包，其餘全部 → 消耗品包。**
+    /// 規則本體在 <see cref="InventorySystem.BagFor"/>，只有那一個地方判斷，不要在別處重寫一份。
+    /// </summary>
+    public enum BagKind
+    {
+        /// <summary>裝備包（武器/盔甲/手套/鞋子/護身符/戒指）。</summary>
+        Equip = 0,
+        /// <summary>消耗品包（藥水、材料、劇本、血統藥劑、能力珠…）。</summary>
+        Item = 1,
+    }
+
+    /// <summary>
     /// 背包資料層（純資料、跨場景常駐單例）。**不含任何 UI**——UI 透過 OnChanged 事件訂閱重繪、操作時呼叫本類別 API。
     /// 這守住專案的解耦紀律：資料層與呈現層分離（同「彈道不算傷害」「GroundEffect 資料 vs 視覺」）。
     ///
-    /// 持有：7x9=63 個道具格 + 6 個裝備欄。玩家換地圖時物品延續（DontDestroyOnLoad）。
-    /// 懶漢單例：第一次存取 Instance 就自動建立，零手動接線。
+    /// 【格子結構】道具格是**一條扁平陣列切成兩段**：前段 = 裝備包、後段 = 消耗品包。
+    /// 之所以不做成兩個獨立容器，是因為「鍛造台鎖住哪一格」「存檔的格位」「新手教學找格子」
+    /// 全都用同一個格子編號在對話，切段能讓那些地方一行都不用改。要加格改
+    /// <see cref="EquipBagCount"/> / <see cref="ItemBagCount"/> 即可，介面會自動多分幾頁。
+    ///
+    /// 另外持有 6 個裝備欄與 2 個藥水格。玩家換地圖時物品延續（DontDestroyOnLoad）。
+    /// 懶漢單例：第一次存取 Instance 就自動建立，零手動接線。見 readme/INVENTORY.md。
     /// </summary>
     public class InventorySystem : MonoBehaviour, IItemGrid
     {
-        public const int Columns = 7;
-        public const int Rows = 9;
-        public const int GridCount = Columns * Rows;
+        // ═══════════════ 容量（要加格就改這裡；兩包各自獨立，改一邊不影響另一邊）═══════════════
+
+        /// <summary>裝備包格數。</summary>
+        public const int EquipBagCount = 40;
+        /// <summary>消耗品包格數。</summary>
+        public const int ItemBagCount = 40;
+        /// <summary>道具格總數（＝兩包相加）。存檔與鍛造鎖定用的格子編號都是這個範圍內的「扁平索引」。</summary>
+        public const int GridCount = EquipBagCount + ItemBagCount;
+
+        /// <summary>介面一頁顯示幾格（5x4）。放在資料層是為了讓「容量 → 幾頁」這件事只有一種算法。</summary>
+        public const int PageSlots = 20;
+
         public const int PotionSlotCount = 2;   // 藥水格數（要加格改這裡）
+
+        /// <summary>重整鈕在裝備包的排序：武器 → 盔甲 → 手套 → 鞋子 → 護身符 → 戒指。</summary>
+        static readonly EquipSlot[] SortEquipOrder =
+        {
+            EquipSlot.Weapon, EquipSlot.Chest, EquipSlot.Gloves,
+            EquipSlot.Boots,  EquipSlot.Amulet, EquipSlot.Ring,
+        };
 
         static InventorySystem _instance;
         public static InventorySystem Instance
@@ -104,7 +137,30 @@ namespace Dipan.Inventory
 
         void Raise() => OnChanged?.Invoke();
 
-        // ───────────── 查詢 ─────────────
+        // ═══════════════ 分包（唯一的分類規則在這裡）═══════════════
+
+        /// <summary>某一包的第一個格子編號。</summary>
+        public static int BagStart(BagKind bag) => bag == BagKind.Equip ? 0 : EquipBagCount;
+
+        /// <summary>某一包有幾格。</summary>
+        public static int BagCount(BagKind bag) => bag == BagKind.Equip ? EquipBagCount : ItemBagCount;
+
+        /// <summary>這個格子編號屬於哪一包。</summary>
+        public static BagKind BagOf(int gridIndex) => gridIndex < EquipBagCount ? BagKind.Equip : BagKind.Item;
+
+        /// <summary>某一包要分成幾頁（依 <see cref="PageSlots"/>）。</summary>
+        public static int PagesOf(BagKind bag) => Mathf.Max(1, Mathf.CeilToInt(BagCount(bag) / (float)PageSlots));
+
+        /// <summary>
+        /// **分包規則本體**：穿得上裝備欄的進裝備包，其餘（藥水/材料/劇本/血統藥劑/能力珠…）進消耗品包。
+        /// 要改分類就只改這一個方法。
+        /// </summary>
+        public static BagKind BagFor(ItemData d) => (d != null && d.IsEquippable) ? BagKind.Equip : BagKind.Item;
+
+        /// <summary>這個物品該待在哪一包（查不到物品定義時當消耗品）。</summary>
+        public BagKind BagForItem(int itemId) => BagFor(GetData(itemId));
+
+        // ═══════════════ 查詢 ═══════════════
 
         public ItemData GetData(int itemId) => Db != null ? Db.Get(itemId) : null;
         public ItemStack GetGrid(int index) => (index >= 0 && index < GridCount) ? _grid[index] : ItemStack.Empty;
@@ -141,7 +197,11 @@ namespace Dipan.Inventory
             Raise();
         }
 
-        // ───────────── IItemGrid（讓背包與倉庫共用搬運/UI 程式）─────────────
+        // ═══════════════ IItemGrid（讓背包與倉庫共用搬運/UI 程式）═══════════════
+        //
+        // 注意：本類別當 IItemGrid 用時，索引是「跨兩包的扁平索引」；
+        // 而 AddItem / AddStack 會依物品分類自動丟進正確的那一包（倉庫點擊送過來就是走這條）。
+
         public string DisplayName => "背包";
         public int Capacity => GridCount;
         public ItemStack GetAt(int index) => GetGrid(index);
@@ -163,48 +223,68 @@ namespace Dipan.Inventory
         }
 
         /// <summary>
-        /// 整理道具格（重整鈕用）：合併同物品堆、依物品 ID 排序、往前壓實（不動裝備欄）。
+        /// 整理**單一一包**（重整鈕用）：合併同物品堆、依規定順序排序、往前壓實（不動裝備欄、不動另一包）。
+        /// 排序順序：裝備包＝武器/盔甲/手套/鞋子/護身符/戒指；消耗品包＝藥水/其他（同類再依物品 ID）。
         /// ⚠ 有實例資料的物品（裝備、能力珠）**一件一格搬過去、不加總合併**，否則鑲嵌與珠子等級會被洗掉。
         /// </summary>
-        public void SortGrid()
+        public void SortBag(BagKind bag)
         {
+            int start = BagStart(bag), count = BagCount(bag);
             var totals = new Dictionary<int, int>();   // 可疊物：itemId → 總數
-            var order = new List<int>();               // 出現過的 itemId（之後排序）
-            var instanced = new List<ItemStack>();     // 有實例的：一件一筆，原封不動搬
+            var units = new List<ItemStack>();         // 最後要寫回去的「一格一筆」
 
-            for (int i = 0; i < GridCount; i++)
+            for (int i = start; i < start + count; i++)
             {
-                if (_grid[i].IsEmpty) continue;
-                if (_grid[i].HasInst) { instanced.Add(_grid[i]); continue; }
-                int id = _grid[i].ItemId;
-                if (!totals.ContainsKey(id)) { totals[id] = 0; order.Add(id); }
-                totals[id] += _grid[i].Count;
-            }
-            order.Sort();
-            instanced.Sort((a, b) => a.ItemId.CompareTo(b.ItemId));
-
-            for (int i = 0; i < GridCount; i++) _grid[i] = ItemStack.Empty;
-            int slot = 0;
-
-            // 有實例的排前面（裝備/珠子通常是玩家最在意的東西）
-            foreach (var st in instanced)
-            {
-                if (slot >= GridCount) break;
-                _grid[slot++] = st;
+                var st = _grid[i];
+                if (st.IsEmpty) continue;
+                if (st.HasInst) { units.Add(st); continue; }   // 有實例的原封不動
+                if (!totals.ContainsKey(st.ItemId)) totals[st.ItemId] = 0;
+                totals[st.ItemId] += st.Count;
             }
 
-            foreach (int id in order)
+            foreach (var kv in totals)
             {
-                int max = MaxStackOf(id);
-                int remain = totals[id];
-                while (remain > 0 && slot < GridCount)
+                int max = MaxStackOf(kv.Key), remain = kv.Value;
+                while (remain > 0)
                 {
                     int put = Mathf.Min(max, remain);
-                    _grid[slot++] = new ItemStack { ItemId = id, Count = put, Inst = null };
+                    units.Add(new ItemStack { ItemId = kv.Key, Count = put, Inst = null });
                     remain -= put;
                 }
             }
+
+            units.Sort((a, b) =>
+            {
+                int ra = SortRank(bag, a.ItemId), rb = SortRank(bag, b.ItemId);
+                if (ra != rb) return ra.CompareTo(rb);
+                if (a.ItemId != b.ItemId) return a.ItemId.CompareTo(b.ItemId);
+                return b.Count.CompareTo(a.Count);   // 同一種：滿的那堆排前面
+            });
+
+            for (int i = start; i < start + count; i++) _grid[i] = ItemStack.Empty;
+            for (int i = 0; i < units.Count && i < count; i++) _grid[start + i] = units[i];
             Raise();
+        }
+
+        /// <summary>排序分組編號（數字小的排前面）。</summary>
+        int SortRank(BagKind bag, int itemId)
+        {
+            var d = GetData(itemId);
+            if (bag == BagKind.Equip)
+            {
+                if (d == null) return 99;
+                for (int i = 0; i < SortEquipOrder.Length; i++)
+                    if (d.EquipSlot == SortEquipOrder[i]) return i;
+                return 90;   // 不該出現在裝備包的東西一律排最後
+            }
+            return (d != null && d.IsPotion) ? 0 : 1;   // 消耗品包：藥水 → 其他
+        }
+
+        /// <summary>整理兩包（給不分包的舊呼叫端用；介面上的重整鈕只整理當前頁籤那一包）。</summary>
+        public void SortGrid()
+        {
+            SortBag(BagKind.Equip);
+            SortBag(BagKind.Item);
         }
 
         public bool HasAnyItem()
@@ -218,7 +298,7 @@ namespace Dipan.Inventory
             return false;
         }
 
-        /// <summary>背包內某 itemId 的總數量（加總所有堆）。只算背包格，不含裝備欄。供觸發鏈條件（道具條件 requireItem）用。</summary>
+        /// <summary>背包內某 itemId 的總數量（加總所有堆、兩包都算）。不含裝備欄。供觸發鏈條件（道具條件 requireItem）用。</summary>
         public int CountOf(int itemId)
         {
             if (itemId <= 0 || _grid == null) return 0;
@@ -241,19 +321,22 @@ namespace Dipan.Inventory
             return false;
         }
 
-        /// <summary>背包還有幾個空格（「移除鑲嵌前先確認放不放得下」用）。</summary>
-        public int FreeSlotCount()
+        /// <summary>指定那一包還有幾個空格。</summary>
+        public int FreeSlotCount(BagKind bag)
         {
             if (_grid == null) return 0;
-            int n = 0;
-            for (int i = 0; i < GridCount; i++) if (_grid[i].IsEmpty) n++;
+            int start = BagStart(bag), count = BagCount(bag), n = 0;
+            for (int i = start; i < start + count; i++) if (_grid[i].IsEmpty) n++;
             return n;
         }
 
-        // ───────────── 操作 ─────────────
+        /// <summary>兩包合計還有幾個空格。⚠ 要判斷「某類東西放不放得下」請用有分包參數的多載。</summary>
+        public int FreeSlotCount() => FreeSlotCount(BagKind.Equip) + FreeSlotCount(BagKind.Item);
+
+        // ═══════════════ 操作 ═══════════════
 
         /// <summary>
-        /// 加入物品（先疊到既有同物品堆、再放空格）。回傳「放不下的剩餘數量」（0 = 全放進去）。
+        /// 加入物品（自動丟進它該去的那一包：先疊到既有同物品堆、再放空格）。回傳「放不下的剩餘數量」（0 = 全放進去）。
         /// ⚠ 這條路**不會產生實例資料**——需要孔位/等級的物品請走
         /// <see cref="ItemManager.Give"/> 或 <see cref="ItemManager.Create"/> 再用 <see cref="AddStack"/>。
         /// </summary>
@@ -271,11 +354,13 @@ namespace Dipan.Inventory
                 return left;
             }
 
+            var bag = BagFor(d);
+            int start = BagStart(bag), cap = BagCount(bag);
             int max = Mathf.Max(1, d.MaxStack);
 
             if (max > 1)
             {
-                for (int i = 0; i < GridCount && count > 0; i++)
+                for (int i = start; i < start + cap && count > 0; i++)
                 {
                     if (_grid[i].HasInst) continue;                       // 有實例的絕不合併
                     if (_grid[i].ItemId == itemId && _grid[i].Count < max)
@@ -287,7 +372,7 @@ namespace Dipan.Inventory
                 }
             }
 
-            for (int i = 0; i < GridCount && count > 0; i++)
+            for (int i = start; i < start + cap && count > 0; i++)
             {
                 if (_grid[i].IsEmpty)
                 {
@@ -298,19 +383,21 @@ namespace Dipan.Inventory
             }
 
             Raise();
-            return count;   // 剩餘（背包滿了沒放完）
+            return count;   // 剩餘（那一包滿了沒放完）
         }
 
         /// <summary>
-        /// 把一個「已經存在的」ItemStack 放進背包（實例資料原封不動帶著走）。
-        /// 掉落物撿取、關卡結算落袋、鍛造退回背包都走這條。回傳放不下的剩餘數量。
+        /// 把一個「已經存在的」ItemStack 放進背包（自動分包，實例資料原封不動帶著走）。
+        /// 掉落物撿取、關卡結算落袋、倉庫搬回、鍛造退回背包都走這條。回傳放不下的剩餘數量。
         /// </summary>
         public int AddStack(ItemStack st)
         {
             if (st.IsEmpty) return 0;
             if (!st.HasInst) return AddItem(st.ItemId, st.Count);   // 沒有實例 → 照一般疊堆規則
 
-            for (int i = 0; i < GridCount; i++)
+            var bag = BagForItem(st.ItemId);
+            int start = BagStart(bag), cap = BagCount(bag);
+            for (int i = start; i < start + cap; i++)
             {
                 if (!_grid[i].IsEmpty) continue;
                 st.Count = 1;
@@ -318,7 +405,7 @@ namespace Dipan.Inventory
                 Raise();
                 return 0;
             }
-            return st.Count;   // 沒空格
+            return st.Count;   // 那一包沒空格
         }
 
         /// <summary>移除某格的物品。</summary>
@@ -342,7 +429,7 @@ namespace Dipan.Inventory
             return st;
         }
 
-        /// <summary>依物品 ID 移除 count 個（跨堆扣除，供喝藥/消耗用）。回傳沒扣到的剩餘。</summary>
+        /// <summary>依物品 ID 移除 count 個（跨堆跨包扣除，供喝藥/消耗用）。回傳沒扣到的剩餘。</summary>
         public int RemoveItem(int itemId, int count = 1)
         {
             if (itemId <= 0 || count <= 0 || _grid == null) return count;
@@ -380,10 +467,16 @@ namespace Dipan.Inventory
             _potionSlots[0] = itemId; Raise();
         }
 
-        /// <summary>交換兩個道具格（拖放重排用）。</summary>
+        /// <summary>
+        /// 交換兩個道具格（拖放重排用）。
+        /// ⚠ **跨包一律拒絕**——不然裝備會被搬進消耗品包，之後就再也排序不到正確位置。
+        /// 介面上一次只看得到一包，所以正常操作不會走到這裡；真的跨包時由
+        /// <see cref="InventoryActions"/> 改用「丟進正確的那一包」處理。
+        /// </summary>
         public bool MoveGrid(int from, int to)
         {
             if (from < 0 || to < 0 || from >= GridCount || to >= GridCount || from == to) return false;
+            if (BagOf(from) != BagOf(to)) return false;
             var tmp = _grid[from];
             _grid[from] = _grid[to];
             _grid[to] = tmp;
@@ -404,18 +497,30 @@ namespace Dipan.Inventory
             var prev = GetEquippedStack(slot);
             st.Count = 1;
             _equip[slot] = st;
-            _grid[gridIndex] = prev.IsEmpty ? ItemStack.Empty : prev;
+
+            // 正常情況這一格就在裝備包裡，換下來的舊裝備直接放回原位；
+            // 萬一來源格不在裝備包（例如手改過的存檔），就改丟進正確的那一包，別把裝備留在消耗品包。
+            if (prev.IsEmpty || BagOf(gridIndex) == BagKind.Equip)
+            {
+                _grid[gridIndex] = prev.IsEmpty ? ItemStack.Empty : prev;
+            }
+            else
+            {
+                _grid[gridIndex] = ItemStack.Empty;
+                if (AddStack(prev) > 0) _grid[gridIndex] = prev;   // 真的放不下就退回原位，別讓它消失
+            }
             LoadoutVersion++;
             Raise();
             return true;
         }
 
-        /// <summary>把裝備欄的物品卸回第一個空道具格（背包滿則失敗）。實例資料跟著回背包。</summary>
+        /// <summary>把裝備欄的物品卸回**裝備包**第一個空格（裝備包滿則失敗）。實例資料跟著回背包。</summary>
         public bool Unequip(EquipSlot slot)
         {
             var st = GetEquippedStack(slot);
             if (st.IsEmpty) return false;
-            for (int i = 0; i < GridCount; i++)
+            int start = BagStart(BagKind.Equip), cap = BagCount(BagKind.Equip);
+            for (int i = start; i < start + cap; i++)
             {
                 if (_grid[i].IsEmpty)
                 {
@@ -426,7 +531,7 @@ namespace Dipan.Inventory
                     return true;
                 }
             }
-            return false;   // 沒有空格
+            return false;   // 裝備包沒有空格
         }
 
         /// <summary>逐一走訪所有「裝備中」的欄位（能力容器重算時用）。</summary>
@@ -437,7 +542,7 @@ namespace Dipan.Inventory
                 if (kv.Value.ItemId > 0) yield return kv;
         }
 
-        // ───────────── 存檔快照（純資料、不碰檔案）─────────────
+        // ═══════════════ 存檔快照（純資料、不碰檔案）═══════════════
         // SaveManager 在存檔時呼叫 CaptureState、載入角色時呼叫 RestoreState。
         // 本類別完全不知道有「檔案」，維持資料層與持久化層的解耦（見 readme/SAVE_SYSTEM.md §6.1）。
 
@@ -472,6 +577,10 @@ namespace Dipan.Inventory
         /// <summary>
         /// 用 DTO 還原背包/裝備。對找不到的物品 ID 跳過、count 夾到 MaxStack，最後 Raise 一次讓 UI 重繪。
         /// 跨改版安全：物品表移除某 ID 時，舊存檔的該格會被略過而不是整份炸掉。
+        ///
+        /// **分包遷移**：格子編號落在錯誤的那一包時（例如背包改成雙包之前的舊存檔、或改過容量），
+        /// 不硬塞回原格號，改用 <see cref="AddStack"/> 丟進它該去的那一包——物品與鑲嵌都不會掉，
+        /// 只是排列順序會被重排一次。
         /// </summary>
         public void RestoreState(InventoryDTO dto)
         {
@@ -481,6 +590,7 @@ namespace Dipan.Inventory
 
             if (dto != null)
             {
+                int migrated = 0;
                 if (dto.grid != null)
                     foreach (var s in dto.grid)
                     {
@@ -492,11 +602,14 @@ namespace Dipan.Inventory
                         int count = inst != null ? 1 : Mathf.Min(s.count, Mathf.Max(1, d.MaxStack));
                         var st = new ItemStack { ItemId = s.itemId, Count = count, Inst = inst };
 
-                        if (s.slot >= 0 && s.slot < GridCount && _grid[s.slot].IsEmpty)
-                            _grid[s.slot] = st;
-                        else
-                            AddStack(st);   // 格子越界/被占（例如改過背包尺寸）→ 找空位塞回
+                        bool slotOk = s.slot >= 0 && s.slot < GridCount
+                                      && BagOf(s.slot) == BagFor(d)
+                                      && _grid[s.slot].IsEmpty;
+                        if (slotOk) _grid[s.slot] = st;
+                        else { AddStack(st); migrated++; }   // 格號越界/被占/分錯包 → 找正確那一包的空位塞回
                     }
+                if (migrated > 0)
+                    Debug.Log($"[InventorySystem] 讀檔時有 {migrated} 件物品依分類重新分配到裝備包/消耗品包（內容與鑲嵌不變，只有排列順序改變）。");
 
                 if (dto.equipment != null)
                     foreach (var kv in dto.equipment)

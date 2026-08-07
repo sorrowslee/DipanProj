@@ -85,6 +85,7 @@ Diablo 風的底部操控列：整條石雕框（燃燈佛、法輪、血瓶槽�
 
 - **資料來源**：`InventorySystem.GetPotionSlot(0/1)` = 綁定的藥劑**種類 ID**（跟背包一起存檔）。左格＝索引 0＝鍵 **1**、右格＝索引 1＝鍵 **2**，與背包藥水格一一對應。
 - **顯示**：每格畫該藥水 icon ＋背包剩餘數量（`CountOf`）；訂閱 `InventorySystem.OnChanged`，設定/更換/喝掉/歸零時即時同步（某種類用完 → 該格自動清空）。實作在 `BottomHudPanel.MakePotionDisplay/RefreshPotions`。
+  > ⚠ **icon 一律走 `ItemIcons.Apply`，不要直接讀 `data.Icon`**（2026-08-07 改）。那裡面會做大小正規化（`UI/IconFit.cs`）——物品 icon 的透明留白差很多（量過的 30 張從 41% 到 100%），直接讀 `data.Icon` 的話留白多的藥水圖會小得很誇張。見 [INVENTORY.md](INVENTORY.md)、[PROBLEMS.md](PROBLEMS.md) E10。
 - **喝**：由自動生成的常駐 `PotionHotkeys` 在遊戲中（非開背包/暫停）按 1/2 觸發：套效果（`HealHp/HealMp`）＋扣背包一瓶＋在玩家身上播喝藥特效（`PlayerController.PlayDrinkPotionVfx`，隨玩家外型大小縮放，見 [VFX.md](VFX.md)）。滿血/滿魔也照喝照扣。
 - **邊界**：HUD 這兩格是唯讀顯示、不放互動元件（不攔截點擊）。
 

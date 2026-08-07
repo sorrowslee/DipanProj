@@ -38,9 +38,9 @@
 | [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md) | 主遊戲端地圖載入器(MapLoader)、素材同步、Unity 接線 | 動地圖載入、牆/可走/出生點、素材同步 |
 | [MAP_SYSTEM.md](MAP_SYSTEM.md) | 多圖串接（MapsTable／傳送點／MapManager）＋地圖狀態持久化概念 | 串接關卡多張地圖、傳送點、規劃狀態持久化 |
 | [DESTRUCTIBLE_OBJECTS.md](DESTRUCTIBLE_OBJECTS.md) | 可破壞地上物 + 破壞特效(VfxTable ID 5) | 改地上物破壞、換破壞特效 |
-| [UI_SYSTEM.md](UI_SYSTEM.md) | UI 底層框架（uGUI + 全程式建構、多場景常駐、UIManager/UIPanel/UIBuilder、暫停與輸入閘門） | 做任何 UI（背包/設定/HUD…）、加新面板前 |
+| [UI_SYSTEM.md](UI_SYSTEM.md) | UI 底層框架（uGUI + 全程式建構、多場景常駐、UIManager/UIPanel/UIBuilder、暫停與輸入閘門、共用拖放與視覺元件 IconFit/SlotOutline） | 做任何 UI（背包/設定/HUD…）、加新面板前 |
 | [BOTTOM_HUD.md](BOTTOM_HUD.md) | 底部操控列 HUD（燃燈佛框）＋ 左HP/右MP 液體血球（著色器液體、搖晃、懸停數字、暗場景調色）；取代舊左上角 HudPanel | 改底部 HUD、血球外觀/顏色/亮度/搖晃、血瓶槽位置 |
-| [INVENTORY.md](INVENTORY.md) | 背包系統（InventorySystem 資料層 + InventoryPanel、ItemTable.csv、icon 規格、格子座標） | 改背包、物品、裝備欄、加 icon |
+| [INVENTORY.md](INVENTORY.md) | 背包系統（InventorySystem 資料層 + InventoryPanel、**裝備包/消耗品包雙頁籤＋分頁**、ItemTable.csv、icon 規格與**自動正規化**、格子座標） | 改背包、物品、裝備欄、加 icon、動格子提示 |
 | [STORAGE.md](STORAGE.md) | 倉庫系統（StorageSystem + IItemGrid、倉庫+背包並排面板、點擊/拖放搬運、每角色獨立、存檔接線） | 改倉庫、做搬運 UI、套倉庫圖 |
 | [GEM_SOCKET.md](GEM_SOCKET.md) | **能力珠鑲嵌系統**（物品實例：表格只是模板、玩家手上那一件另外存；能力容器：攻擊讀容器不讀武器表；GemTable 一種珠子一列；ItemManager 唯一工廠骰孔數/等級；RandomRules 全遊戲機率） | **動武器/裝備/背包/掉落/存檔之前**；加能力珠、改鑲嵌、調孔數機率 |
 | [FORGING.md](FORGING.md) | 鍛造介面（Y 鍵開；鐵砧中央放武器/裝備、左右 6 個鑲嵌孔依裝備孔位數解鎖、底部兩顆按鈕尚未接功能；重用 ISlotView/SlotDragController 拖放地基） | 改鍛造介面、做鑲嵌/拆裝備、接鐵匠 NPC、加裝備孔位數 |

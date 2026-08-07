@@ -31,10 +31,41 @@ namespace Dipan.UI
             if (src == null || dst == null || src == dst) return;
             if (!HasItem(src)) return;
 
+            // ★ 目標是背包格，但這件東西該待的那一包不是目標那一格所在的包
+            //   （例：背包停在「消耗品」頁時，從倉庫拖一把劍進來）。
+            //   不硬塞——硬塞會讓裝備混進消耗品包、之後永遠排序不到正確位置；
+            //   改成「丟進它自己該去的那一包」，玩家切過去就看得到。
+            if (!dst.IsEquip && dst.Grid is InventorySystem invDst
+                && (src.IsEquip || !ReferenceEquals(src.Grid, dst.Grid)))
+            {
+                var incoming = StackOf(src);
+                if (invDst.BagForItem(incoming.ItemId) != InventorySystem.BagOf(dst.GridIndex))
+                {
+                    DropIntoInventory(src, invDst);
+                    return;
+                }
+            }
+
             if (!src.IsEquip && !dst.IsEquip) { GridToGrid(src, dst); return; }
             if (!src.IsEquip && dst.IsEquip) { GridToEquip(src, dst); return; }
             if (src.IsEquip && !dst.IsEquip) { EquipToGrid(src, dst); return; }
             // 裝備欄→裝備欄：忽略
+        }
+
+        /// <summary>
+        /// 把來源那一件丟進背包（由 <see cref="InventorySystem.AddStack"/> 決定進哪一包）。
+        /// 放不下就整個不動——寧可玩家覺得「怎麼放不進去」，也不要東西不見。
+        /// </summary>
+        static void DropIntoInventory(ISlotView src, InventorySystem inv)
+        {
+            if (src.IsEquip)
+            {
+                var cur = inv.GetEquippedStack(src.Equip);
+                if (cur.IsEmpty) return;
+                if (inv.AddStack(cur) == 0) inv.SetEquippedStack(src.Equip, ItemStack.Empty);
+                return;
+            }
+            QuickMoveGrid(src, inv);
         }
 
         // ── 格 ↔ 格（含跨容器）──

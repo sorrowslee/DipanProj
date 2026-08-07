@@ -158,7 +158,7 @@ namespace Dipan.UI
                 var cnt  = _potionCounts[i];
                 if (icon != null)
                 {
-                    icon.sprite  = d != null ? d.Icon : null;
+                    Dipan.UI.ItemIcons.Apply(icon, id);   // 走唯一入口：含 IconFit 正規化（見 UI/IconFit.cs）
                     icon.enabled = d != null && d.Icon != null && have > 0;
                 }
                 if (cnt != null) cnt.text = have > 0 ? have.ToString() : "";

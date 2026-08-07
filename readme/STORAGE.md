@@ -32,6 +32,8 @@
 資料層  IItemGrid（介面）──┬─ InventorySystem（背包，既有）+ 6 裝備欄
                           └─ ItemGridData ── StorageSystem 持有 5 個（5 分頁）
 共用 UI  ISlotView ── ItemSlotWidget（倉庫格）/ InventorySlotWidget（背包格、裝備欄）
+         SlotOutline ── hover 外框（背包與倉庫共用）
+         IconFit    ── 物品 icon 大小正規化（掛在 ItemIcons.Apply 裡，兩邊自動生效）
          SlotDragController（拖曳+ghost，跨面板互通） + InventoryActions（轉移規則）
 面板     StoragePanel（倉庫，單開置中/並排左移） + InventoryPanel（真背包，既有）
          StorageBagCoordinator（K/B 開關 + 並排版面）
@@ -67,7 +69,8 @@
 底層為共用系統：`ISlotView`（所有格子的抽象）＋ `SlotDragController`（拖曳，跨面板互通）＋ `InventoryActions`（轉移規則）。
 
 - **互通前提**：**兩個介面都開著**才能互搬。單開倉庫只能整理/瀏覽（點擊不會把東西丟去背包）；單開背包維持原本裝備/卸下。
-- **hover**：倉庫與背包**行為一致**——滑過格子有黃色高亮 + 浮動 tooltip（名稱/功能/劇情）。
+- **hover**：倉庫與背包**行為一致**——滑過格子有**金色細外框**（`SlotOutline`，只描邊不填滿）＋ 浮動 tooltip（名稱/功能/劇情）。
+  > 2026-08-07 之前是「整片鋪滿的半透明黃色」，在大格子上會變成一大塊黃色看板（本專案是 Linear 色彩空間，半透明比直覺重一倍，見 [PROBLEMS.md](PROBLEMS.md) E11）。改成描邊之後跟格子大小脫鉤，也才跟「拖曳時可放這格」的提示分得開。
 - **點擊**：
   - 倉庫格（背包也開著時）→ 整堆送到背包；背包道具格（倉庫也開著時）→ 整堆送到倉庫當前分頁；對側滿了只送塞得下的部分。
   - 背包道具格（倉庫沒開）→ 維持原本「點可裝備物品 = 裝備」；裝備欄 → 卸回背包。
@@ -89,11 +92,12 @@
 UI 已接真素材；座標依底圖量測填好。若實機看頁籤/按鈕/格網有偏移，調對應常數（皆為**底圖原生像素、左上原點、填中心點**；往上＝調小 Y、往右＝調大 X）：
 
 - 倉庫（`StoragePanel.cs` 上方）：`GridX0/GridY0/CellW/CellH`（格網）、`TabCx/TabCy/TabW/TabH`（頁籤）、`RefreshCx/RefreshCy/RefreshSize`（重整鈕）、`FrameScale/SoloX/PairLeftX`（縮放與擺位）。
-- 背包（`InventoryPanel.cs`）：`RefreshCx/RefreshCy/RefreshSize`（重整鈕，沿用倉庫那組 Refresh 素材）、`PairRightX`（與倉庫並排時右移量）。
+- 背包（`InventoryPanel.cs`）：整組版面常數見 [INVENTORY.md](INVENTORY.md)；並排相關的是 `PairRightX`。
+  > ⚠ **並排的 X 要用「看得見的美術」算，不能用整張圖的寬度**：這幾張底圖四周都有大片透明留白（倉庫 1122 裡內容是 x 52~1070、背包 1254 裡是 57~1198、鍛造 1536 裡是 127~1408）。2026-08-07 重算過一次，現值是 倉庫 `-416` / 背包 `400` / 鍛造 `-447`（讓兩邊可見美術中間留約 40 單位、整組置中）。另外 CanvasScaler 是 `MatchWidthOrHeight=0.5`，**畫面比例越窄可用參考寬度越小**，所以背包那邊有一道「不讓美術超出畫面右緣」的夾制（`InventoryPanel.PairedX()`）。
 
 > 重整鈕的精準對位：用看圖工具開該面板底圖 PNG，把游標移到目標徽章中心讀出像素 (x,y)，直接填進 `RefreshCx/RefreshCy`（程式用同一套座標，所見即所得）。每頁格數改 `StorageSystem.DefaultCols/DefaultRows`。icon 規格沿用背包（256×256 透明 PNG）。
 
-> 排序鈕行為：倉庫鈕排序**當前分頁**（`ItemGridData.Sort`）；背包鈕排序**道具格**（`InventorySystem.SortGrid`，不動裝備欄）。規則皆為「合併同物品＋依物品 ID」。
+> 排序鈕行為：倉庫鈕排序**當前分頁**（`ItemGridData.Sort`，合併同物品＋依物品 ID）；背包鈕排序**當前頁籤那一包**（`InventorySystem.SortBag`——裝備包依 武器/盔甲/手套/鞋子/護身符/戒指、消耗品包依 藥水/其他，不動裝備欄）。背包從 2026-08-07 起分成裝備包與消耗品包兩包，見 [INVENTORY.md](INVENTORY.md)。
 
 ## 6. 怎麼測
 
@@ -110,9 +114,11 @@ UI 已接真素材；座標依底圖量測填好。若實機看頁籤/按鈕/格
 - 排序規則細化（目前：合併同物品＋依 ID；之後可加分類優先、稀有度等，改 `ItemGridData.Sort()`）。
 - 「靠近倉庫才能開」的世界互動（取代測試用的 K 鍵）。
 - 數量拆分（按住搬一半／指定數量）、右鍵快速搬運。
-- 背包底圖目前是既有 `inventoryPanelBG`；若要與倉庫風格更統一可再換圖。
+- 背包底圖 2026-08-07 已換成 `inventoryPanel_Bg`（1254×1254 正方形，含頁籤與分頁）；倉庫底圖還是舊的一套，若要風格統一可再換圖。
 - 分頁命名/分類（例如每頁一個用途）；多倉庫（不同地點各一組分頁）資料已可擴充。
 
 ---
 
 *建立於 2026-06-23：倉庫 5 分頁資料層、存檔、真素材 UI、切頁、排序完成；並導入「共用 slot 拖放/搬運系統」(ISlotView + SlotDragController + InventoryActions)，背包(含裝備欄)與倉庫可點擊/拖放互搬；StorageBagCoordinator 管 K/B 與單開置中 / 並排左右。待實機校準座標。*
+
+*2026-08-07 更新：倉庫格的 icon 從「四邊拉伸」改成**固定尺寸**（`IconFit` 只處理固定尺寸的 icon，拉伸型會被跳過），數量字級改成依格子大小算並加深色陰影；hover 高亮從整片上色改成 `SlotOutline` 細外框（與背包共用）；並排位置改用「看得見的美術」重算成 `PairLeftX = -416`。背包端的分包（裝備包/消耗品包）與分頁見 [INVENTORY.md](INVENTORY.md)——倉庫搬過去的東西會由 `InventorySystem.AddStack` 自動分到正確的那一包，倉庫這邊不用改。*
