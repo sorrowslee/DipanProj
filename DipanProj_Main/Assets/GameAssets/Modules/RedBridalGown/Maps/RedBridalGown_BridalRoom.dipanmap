@@ -278,5 +278,55 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "lights": [
+    {
+      "id": "083aadd8",
+      "name": "",
+      "x": 3.044693,
+      "y": -1.25698328,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "bf702c67",
+      "name": "",
+      "x": 6.26256943,
+      "y": -2.64245868,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "3d4cde3f",
+      "name": "",
+      "x": 12.2067041,
+      "y": -2.64245844,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "58b78e42",
+      "name": "",
+      "x": 15.4245825,
+      "y": -1.34636784,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    }
+  ]
 }

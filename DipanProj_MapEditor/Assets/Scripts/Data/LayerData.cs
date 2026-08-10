@@ -89,8 +89,21 @@ namespace DipanMapEditor.Data
         // 遊戲端：進圖時旗標已成立＝根本不生此物件；旗標中途成立＝由 MapObjectRevealer 立即銷毀。
         // 搭配觸發鏈 setFlag 用（例：pickup 撿起佛燈 → setFlag → 佛燈地上物消失）。
         public string disappearFlag = "";
-        // 發光半徑（世界單位）：>0＝這個地上物擺在原地時發光照亮周遭（火把/香爐/地上的佛燈…）。0/空＝不發光。
+        // ── 照明（火把/燈籠/香爐/地上的佛燈…）──
+        // 遊戲端由 MapLoader 掛 LightSource，AtmosphereController 每幀取最近的 12 盞餵給氛圍 shader（多光源）。
+        // 只有「暗氛圍地圖（2 幽暗/3 噩夢/9 深海恐怖）」或「MapsTable 環境亮度<100 的地圖」看得到效果。
+        // 發光半徑（世界單位）：>0＝這個地上物擺在原地時發光照亮周遭。0/空＝不發光（以下欄位一律忽略）。
         public float lightRadius = 0f;
+        // 亮度倍率：1＝標準；<1 微光（快熄的燭火）；>1 刺眼（爐火）。缺欄＝1。
+        public float lightIntensity = 1f;
+        // 光色（6 碼 16 進位 RRGGBB，不含 #）。空/無效＝預設暖橘（火把）。
+        public string lightColor = "";
+        // 搖晃強度：0＝完全不動（電燈/月光）；1＝標準燭火；2＝狂亂火焰。缺欄＝1。
+        public float lightFlicker = 1f;
+        // 搖晃速度倍率：小＝油燈慢慢晃；大＝營火急促跳動。缺欄＝1。
+        public float lightFlickerSpeed = 1f;
+        // 邊緣柔和度＝內圈(全亮)半徑佔外圈的比例 0~1。小＝瀰漫柔邊；大＝邊緣硬（聚光燈）。缺欄＝0.46。
+        public float lightSoftness = 0.46f;
     }
 
     /// <summary>一塊 trigger 區域：型別 + 名稱 + 格集合 + 參數（依 TriggerType schema）。</summary>

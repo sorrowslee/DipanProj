@@ -115,6 +115,7 @@ public class MapLoader : MonoBehaviour
         if (buildWalls || buildBlockers) BuildCellColliders();
         if (buildTeleportMarkers) BuildTeleportMarkers();
         BuildSceneFx();
+        BuildMapLights();
         if (fitCameraToMap) FitCamera();
 
         Debug.Log($"[MapLoader] 載入完成：{_map.name}（{_map.width}×{_map.height}, module={_map.module}）");
@@ -157,6 +158,7 @@ public class MapLoader : MonoBehaviour
 
         if (buildTeleportMarkers) BuildTeleportMarkers();
         BuildSceneFx();
+        BuildMapLights();
         if (fitCameraToMap) FitCamera();   // MapManager 會關掉此旗標；保留以相容 loadOnAwake
 
         LastLoadOk = true;
@@ -490,9 +492,64 @@ public class MapLoader : MonoBehaviour
         if (disappearGated && _revealer != null)
             _revealer.RegisterDisappear(inst.disappearFlag, go);
 
-        // 發光地上物（火把/香爐/地上的佛燈…）：掛 LightSource，AtmosphereController 在暗氛圍下拿來當光圈中心。
+        // 發光地上物（火把/燈籠/香爐/地上的佛燈…）：掛 LightSource，AtmosphereController 每幀取最近的幾盞照亮畫面。
+        // 編輯器地上物面板的「照明」那一組欄位原樣轉進元件；光色是 6 碼 16 進位字串，解不出來就用預設暖橘。
         if (inst.lightRadius > 0f)
-            go.AddComponent<LightSource>().radius = inst.lightRadius;
+        {
+            var light = go.AddComponent<LightSource>();
+            light.radius       = inst.lightRadius;
+            light.intensity    = inst.lightIntensity > 0f ? inst.lightIntensity : 1f;
+            light.flicker      = Mathf.Max(0f, inst.lightFlicker);
+            light.flickerSpeed = inst.lightFlickerSpeed > 0f ? inst.lightFlickerSpeed : 1f;
+            light.softness     = Mathf.Clamp01(inst.lightSoftness > 0f ? inst.lightSoftness : 0.46f);
+            light.color        = ParseLightColor(inst.lightColor);
+        }
+    }
+
+    /// <summary>把編輯器存的 6 碼 16 進位光色（RRGGBB，不含 #）轉成 Color；空/無效＝預設暖橘。</summary>
+    static Color ParseLightColor(string hex)
+    {
+        if (string.IsNullOrWhiteSpace(hex)) return LightSource.DefaultWarm;
+        string s = hex.Trim().TrimStart('#');
+        return ColorUtility.TryParseHtmlString("#" + s, out var c) ? c : LightSource.DefaultWarm;
+    }
+
+    // ---- 獨立光源（不綁地上物的照明點；由編輯器「照明」分頁放置，存在 map.lights）----
+
+    /// <summary>
+    /// 把 map.lights 逐個生成空物件並掛 <see cref="LightSource"/>。
+    /// 這些光源**沒有任何外觀**——火炬/燈籠的圖本來就畫在背景裡，這裡只補「會發光」這件事。
+    /// 掛在地圖 root 底下，換圖拆 _root 時一併清掉（LightSource 的 OnDisable 會自動退出登記表）。
+    /// </summary>
+    void BuildMapLights()
+    {
+        if (_map?.lights == null || _map.lights.Count == 0) return;
+
+        var root = new GameObject("MapLights");
+        root.transform.SetParent(_root, false);
+
+        int n = 0;
+        foreach (var li in _map.lights)
+        {
+            if (li == null || li.radius <= 0f) continue;
+
+            var go = new GameObject(string.IsNullOrWhiteSpace(li.name) ? "Light" : ("Light_" + li.name));
+            go.transform.SetParent(root.transform, false);
+            go.transform.position = new Vector3(li.x, li.y, 0f);
+
+            var light = go.AddComponent<LightSource>();
+            light.radius       = li.radius;
+            light.intensity    = li.intensity > 0f ? li.intensity : 1f;
+            light.flicker      = Mathf.Max(0f, li.flicker);
+            light.flickerSpeed = li.flickerSpeed > 0f ? li.flickerSpeed : 1f;
+            light.softness     = Mathf.Clamp01(li.softness > 0f ? li.softness : 0.46f);
+            light.color        = ParseLightColor(li.color);
+            n++;
+        }
+
+        // 這張圖有放燈、但氛圍不吃照明時提醒一聲——否則會出現「燈明明放了卻完全沒效果」的靜默失效。
+        // （吃照明的是 Atmosphere 2/3/9，以及 Atmosphere=1 但 MapsTable 環境亮度 <100 的地圖。）
+        if (n > 0) Debug.Log($"[MapLoader] 獨立光源 {n} 盞。若畫面沒有變化，檢查這張圖的 Atmosphere 與 EnvBright（見 readme/ATMOSPHERE.md）。");
     }
 
     // ---- 場景特效（可放置的粒子特效，煙/火/冰/毒…；由編輯器 map.sceneFx 放置，SceneFxTable 定義外觀）----

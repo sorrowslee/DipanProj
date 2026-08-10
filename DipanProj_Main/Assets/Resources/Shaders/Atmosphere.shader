@@ -14,7 +14,10 @@
 //  13 = 大雨（細密雨點往下落）
 //  14 = 陰森森林鬼霧（畫面偏暗、陰綠冷調 + 漂移黑霧雲塊、偶爾飄來一陣濃霧）
 //  15 = 電視雜訊（雪花噪點 + 掃描線 + 滾動同步條 + 偶發水平撕裂 + 灰調閃爍）
-// 提燈光圈（type 2/3/9）半徑由控制器的 _InnerR / _OuterR 餵入並做油燈式呼吸；
+// 照明（type 1 環境壓暗 / 2 / 3 / 9 用）：多光源，由 AtmosphereController 每幀餵入
+//   _LightData[i] = (viewport.x, viewport.y, 外圈半徑, 內圈半徑)、_LightTint[i] = (r, g, b, 亮度)、_LightCount = 實際盞數。
+//   每盞的油燈式呼吸在 CPU 端各自算好才餵進來（每盞不同相位），shader 只負責疊合。
+//   MAX_LIGHTS 必須與 AtmosphereController.MaxLights 一致。
 // UV 位移：熱浪（4/5/6）、水下折射（7/8/9）、山頂風吹拂（10/11）——皆以滾動正弦位移取樣 UV（_Time 驅動，無需貼圖）。
 // 風絲/雨絲共用 windStreak（雜湊打散的不規則短截線）：風絲斜向（rot2）、雨絲近垂直（rot2 約 1.4 rad）。
 Shader "Custom/Atmosphere"
@@ -22,11 +25,9 @@ Shader "Custom/Atmosphere"
     Properties
     {
         [HideInInspector] _MainTex ("Texture", 2D) = "white" {}
-        _PlayerPos ("Player Viewport", Vector) = (0.5, 0.5, 0, 0)
         _Aspect ("Aspect (w/h)", Float) = 1.777
-        _InnerR ("Inner Radius", Float) = 0.13
-        _OuterR ("Outer Radius", Float) = 0.28
-        _Mode ("Mode (2..6,7..9 ocean,10 snow,11 gale,12 drizzle,13 rain,14 ghostFog,15 tvNoise)", Float) = 2
+        _EnvDark ("Env Darken (0..1, type 1)", Float) = 0
+        _Mode ("Mode (1 normal+dark,2..6,7..9 ocean,10 snow,11 gale,12 drizzle,13 rain,14 ghostFog,15 tvNoise)", Float) = 2
     }
     SubShader
     {
@@ -43,8 +44,13 @@ Shader "Custom/Atmosphere"
             #include "UnityCG.cginc"
 
             sampler2D _MainTex;
-            float4 _PlayerPos;
-            float _Aspect, _InnerR, _OuterR, _Mode;
+            float _Aspect, _Mode, _EnvDark;
+
+            // ── 多光源（同框上限；與 AtmosphereController.MaxLights 一致）──
+            #define MAX_LIGHTS 12
+            float4 _LightData[MAX_LIGHTS];   // xy = viewport 位置, z = 外圈半徑, w = 內圈半徑
+            float4 _LightTint[MAX_LIGHTS];   // rgb = 光色, a = 亮度
+            float  _LightCount;              // 實際盞數（0 = 沒有任何光源）
 
             static const float VigStart = 0.45;
             static const float VigEnd   = 0.95;
@@ -116,17 +122,48 @@ Shader "Custom/Atmosphere"
                 }
                 fixed4 col = tex2D(_MainTex, uv);
 
-                // 提燈光圈係數 v（恐怖型別用）：近玩家=1、遠處=0
-                float2 d = i.uv - _PlayerPos.xy;
-                d.x *= _Aspect;
-                float v = 1.0 - smoothstep(_InnerR, _OuterR, length(d));
+                // ── 照明係數 v（0=全暗處、1=光心）與光色偏移 lightShift ──
+                // 多盞燈用 screen 疊合（v + vi − v·vi）：兩圈交界自然變亮、不會像 max 那樣出現硬邊。
+                // 顏色先以「亮度加權」累積，再除以總量得到平均色，最後做亮度歸一 → 只染色不改亮度。
+                // [loop] 避免展開 12 次（本 shader 已把 15 種氛圍攤平，指令數吃緊，展開容易撞編譯上限＝洋紅）。
+                float v = 0.0;
+                float3 tintAcc = 0.0;
+                int lightCount = (int)_LightCount;
+                [loop]
+                for (int li = 0; li < MAX_LIGHTS; li++)
+                {
+                    if (li >= lightCount) break;
+                    float2 dl = i.uv - _LightData[li].xy;
+                    dl.x *= _Aspect;
+                    float vi = 1.0 - smoothstep(_LightData[li].w, _LightData[li].z, length(dl));
+                    vi = saturate(vi * _LightTint[li].a);          // 乘上該盞的亮度
+                    tintAcc += _LightTint[li].rgb * vi;
+                    v = v + vi - v * vi;                            // screen 疊合
+                }
+                v = saturate(v);
+
+                // 光色 → 亮度歸一的色偏（只改色相、不改明暗），且只在被照到的地方生效。
+                float3 avgTint = tintAcc / max(v, 0.001);
+                float tintLum = max(dot(avgTint, float3(0.299, 0.587, 0.114)), 0.001);
+                float3 lightShift = lerp(float3(1.0, 1.0, 1.0), avgTint / tintLum, 0.65 * v);
 
                 // 暈影
                 float2 vc = i.uv - 0.5;
                 vc.x *= _Aspect;
                 float vig = saturate(1.0 - smoothstep(VigStart, VigEnd, length(vc)) * VigDark);
 
-                if (_Mode > 14.5)
+                if (_Mode < 1.5)
+                {
+                    // ── type 1：正常 + 環境壓暗（只有 MapsTable 的「環境亮度」<100 才會走到這裡）──
+                    // 整張圖壓暗到指定亮度，場上的燈把周圍照回原亮度；沒有燈的地方就維持壓暗。
+                    // 用途：室內走廊/地窖這種「不到幽暗等級、但想讓火把有存在感」的場景。
+                    col.rgb *= lerp(1.0 - _EnvDark, 1.0, v);
+                    col.rgb *= lightShift;
+                    // 暈影跟著壓暗量出現（環境亮度 100 時完全不會走到這個分支，故不影響既有地圖）。
+                    col.rgb *= lerp(1.0, vig, _EnvDark);
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 14.5)
                 {
                     // ── type 15：電視雜訊（雪花 + 掃描線 + 滾動同步條 + 灰調閃爍；撕裂在取樣前）──
                     float t = _Time.y;
@@ -251,7 +288,8 @@ Shader "Custom/Atmosphere"
                 else if (_Mode > 8.5)
                 {
                     // ── type 9：深海 + 恐怖（潛水燈光圈）──
-                    col.rgb *= lerp(0.04, 1.0, v);                    // 周邊近全黑、只剩玩家一圈
+                    col.rgb *= lerp(0.04, 1.0, v);                    // 周邊近全黑、只剩光源一圈
+                    col.rgb *= lightShift;                            // 光源自己的顏色
                     float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
                     col.rgb = lerp(col.rgb, lum.xxx, 0.50);           // 去飽和
                     col.rgb *= float3(0.32, 0.52, 0.80);             // 冷深藍
@@ -334,6 +372,7 @@ Shader "Custom/Atmosphere"
                     float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
                     col.rgb = lerp(col.rgb, lum.xxx, 0.55);
                     col.rgb *= float3(0.78, 0.86, 1.02) * 0.82;
+                    col.rgb *= lightShift;                            // 光源自己的顏色（鬼火照出來就是青綠）
                 }
                 else
                 {
@@ -345,6 +384,7 @@ Shader "Custom/Atmosphere"
                     col.rgb = lerp(col.rgb, lum.xxx, desat);
                     float3 tint = lerp(float3(0.72, 0.84, 1.05), float3(1.06, 0.98, 0.84), v);
                     col.rgb *= tint * 0.85;
+                    col.rgb *= lightShift;                            // 光源自己的顏色
                 }
 
                 return col;

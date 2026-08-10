@@ -46,7 +46,74 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
-          "lightRadius": 0.0
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/light_red_lantern_2",
+          "x": 6.031063,
+          "y": -1.508492,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -1.508492,
+          "zOrder": 0,
+          "hp": 1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
+        },
+        {
+          "assetId": "Modules/RedBridalGown/Environment/light_red_lantern_2",
+          "x": 10.207304,
+          "y": -1.508492,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.0,
+          "scaleY": 1.0,
+          "sortKey": -1.508492,
+          "zOrder": 0,
+          "hp": 1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         }
       ]
     },
@@ -239,5 +306,31 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "lights": [
+    {
+      "id": "b2f8405f",
+      "name": "",
+      "x": 6.06452,
+      "y": -1.5340414,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "3f053068",
+      "name": "",
+      "x": 10.1858788,
+      "y": -1.56727874,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    }
+  ]
 }

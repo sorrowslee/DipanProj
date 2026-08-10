@@ -37,7 +37,21 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
-          "breakFlag": ""
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/furniture_round_stool",
@@ -54,7 +68,21 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
-          "breakFlag": ""
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/furniture_round_stool",
@@ -71,7 +99,21 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
-          "breakFlag": ""
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/kitchen_stove_1",
@@ -88,7 +130,21 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
-          "breakFlag": ""
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/kitchen_water_bucket",
@@ -105,7 +161,21 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
-          "breakFlag": ""
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/container_bamboo_basket",
@@ -122,7 +192,21 @@
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
-          "breakFlag": ""
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         }
       ]
     },
@@ -261,5 +345,31 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "lights": [
+    {
+      "id": "dc8d2a48",
+      "name": "",
+      "x": 2.75418949,
+      "y": -1.61452508,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "e2d24912",
+      "name": "",
+      "x": 14.2402239,
+      "y": -1.61452556,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    }
+  ]
 }

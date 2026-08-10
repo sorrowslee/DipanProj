@@ -27,6 +27,10 @@ namespace Dipan.MapRuntime
         // 場景特效（可放置的粒子特效；編輯器放、遊戲端依 SceneFxTable 生成）。缺欄＝空清單。
         public List<SceneFxInstance> sceneFx = new List<SceneFxInstance>();
 
+        // 獨立光源（不綁地上物的照明點；編輯器「照明」分頁放）。缺欄＝空清單（舊地圖行為不變）。
+        // 給「火炬/燈籠已經畫在背景圖裡」的情況：不必把它們從背景拆成地上物，把光源點放到火焰中心就會發光。
+        public List<LightInstance> lights = new List<LightInstance>();
+
         /// <summary>劇情演出（半演出半漫畫的過場）；null＝此圖無演出。目前一張圖最多一段。</summary>
         public Cutscene cutscene = null;
 
@@ -113,9 +117,41 @@ namespace Dipan.MapRuntime
         // 進圖時旗標已成立＝根本不生此物件；旗標於關卡中途成立＝由 MapObjectRevealer 立即銷毀。
         // 搭配觸發鏈 setFlag 用（例：pickup 撿起佛燈 → setFlag → 佛燈地上物消失）。
         public string disappearFlag = "";
-        // 發光半徑（世界單位）：>0＝這個地上物「擺在原地」時發光照亮周遭（火把/香爐/地上的佛燈…）。0/空＝不發光。
-        // 由 MapLoader 掛 LightSource；AtmosphereController 在暗氛圍下以它為光圈中心（玩家沒發光裝時取最近的）。
+        // ── 照明（火把/燈籠/香爐/地上的佛燈…）──
+        // 由 MapLoader 掛 LightSource；AtmosphereController 每幀取最近的 N 盞餵給氛圍 shader（多光源）。
+        // 只有「暗氛圍地圖（2 幽暗/3 噩夢/9 深海恐怖）」或「MapsTable 環境亮度<100 的地圖」看得到效果。
+        // 發光半徑（世界單位）：>0＝這個地上物擺在原地時發光照亮周遭。0/空＝不發光（以下欄位一律忽略）。
         public float lightRadius = 0f;
+        // 亮度倍率：1＝標準；<1 微光（快熄的燭火）；>1 刺眼（爐火）。缺欄＝1。
+        public float lightIntensity = 1f;
+        // 光色（6 碼 16 進位 RRGGBB，不含 #）。空/無效＝預設暖橘（火把）。例：FFC785 暖橘、CFE4FF 冷月、7CFFB0 鬼火綠。
+        public string lightColor = "";
+        // 搖晃強度：0＝完全不動（電燈/月光）；1＝標準燭火；2＝狂亂火焰。缺欄＝1。
+        public float lightFlicker = 1f;
+        // 搖晃速度倍率：小＝油燈慢慢晃；大＝營火急促跳動。缺欄＝1。
+        public float lightFlickerSpeed = 1f;
+        // 邊緣柔和度＝內圈(全亮)半徑佔外圈的比例 0~1。小＝瀰漫柔邊；大＝範圍內均勻、邊緣硬（聚光燈）。缺欄＝0.46。
+        public float lightSoftness = 0.46f;
+    }
+
+    /// <summary>
+    /// 獨立光源實例（編輯器「照明」分頁放置，不綁任何地上物）。座標為世界座標。
+    /// 用途：火炬／燈籠這類**已經畫在背景圖裡**的照明物——不必為了發光把它們從背景拆成地上物，
+    /// 把光源點放到火焰中心即可。遊戲端由 MapLoader 生一個空物件掛 <c>LightSource</c>。
+    /// 另一條路是地上物自己的「發光半徑」（見 ObjectInstance 的照明六欄），適合本身就是可撿/可破壞物件的燈
+    /// （例：柴房地上的佛燈，撿走光就跟著消失）。兩者最後都變成 LightSource，餵進同一份光源清單。
+    /// </summary>
+    public class LightInstance
+    {
+        public string id;
+        public string name = "";        // 好認的名字，只給編輯器清單顯示，遊戲端不讀
+        public float x, y;              // 世界座標
+        public float radius = 3f;       // 發光半徑（世界單位）
+        public float intensity = 1f;    // 亮度倍率
+        public string color = "";       // 光色 6 碼 16 進位 RRGGBB（空＝預設暖橘）
+        public float flicker = 1f;      // 搖晃強度（0＝完全不動）
+        public float flickerSpeed = 1f; // 搖晃速度倍率
+        public float softness = 0.46f;  // 邊緣柔和度＝內圈佔外圈的比例
     }
 
     /// <summary>場景特效實例（編輯器放置、遊戲端依 SceneFxTable 的 fxId 生成粒子）。座標為世界座標。</summary>

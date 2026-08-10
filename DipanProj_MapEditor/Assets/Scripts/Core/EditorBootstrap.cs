@@ -43,6 +43,10 @@ namespace DipanMapEditor.Core
             if (cam.GetComponent<WalkableOverlay>() == null) cam.gameObject.AddComponent<WalkableOverlay>();
             if (cam.GetComponent<TriggerOverlay>() == null) cam.gameObject.AddComponent<TriggerOverlay>();
             if (cam.GetComponent<ObjectSelectionOverlay>() == null) cam.gameObject.AddComponent<ObjectSelectionOverlay>();
+            // 照明光圈參考線（畫每盞燈的照射範圍與把手；編輯器不跑後處理，沒這圈線等於盲填半徑）
+            if (cam.GetComponent<LightOverlay>() == null) cam.gameObject.AddComponent<LightOverlay>();
+            // 照明預覽（把場景壓暗、讓燈照回來，看接近遊戲的實際效果；按「照明預覽」開關）
+            if (cam.GetComponent<LightPreview>() == null) cam.gameObject.AddComponent<LightPreview>();
             if (cam.GetComponent<SceneFxOverlay>() == null) cam.gameObject.AddComponent<SceneFxOverlay>();
             if (cam.GetComponent<CutsceneOverlay>() == null) cam.gameObject.AddComponent<CutsceneOverlay>();
             if (cam.GetComponent<TileBrushPreview>() == null) cam.gameObject.AddComponent<TileBrushPreview>();
@@ -133,6 +137,14 @@ namespace DipanMapEditor.Core
                 var sfxGO = new GameObject("SceneFxController");
                 sfxGO.transform.SetParent(transform, false);
                 sfxGO.AddComponent<SceneFxController>();
+            }
+
+            // 8b-2. 照明控制（不綁地上物的獨立光源）
+            if (FindObjectOfType<LightController>() == null)
+            {
+                var lightGO = new GameObject("LightController");
+                lightGO.transform.SetParent(transform, false);
+                lightGO.AddComponent<LightController>();
             }
 
             // 8c. 劇情演出控制

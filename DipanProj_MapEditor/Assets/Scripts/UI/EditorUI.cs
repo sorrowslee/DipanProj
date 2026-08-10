@@ -37,6 +37,8 @@ namespace DipanMapEditor.UI
         string _objXBuf = "", _objYBuf = "", _objHpBuf = "", _objFpsBuf = "";
         string _objAppearDelayBuf = "";
         string _objLightBuf = "";   // 發光半徑輸入暫存
+        // 照明細項的輸入暫存（亮度／搖晃強度／搖晃速度／邊緣柔和度／光色）。與發光半徑同一套「聚焦中才不覆寫」的寫法。
+        string _objLightIntBuf = "", _objLightFlkBuf = "", _objLightSpdBuf = "", _objLightSofBuf = "", _objLightColBuf = "";
         Vector2 _objInspScroll;
         DipanMapEditor.Core.ObjectView _objView;
         string _objAppearBuf = "";   // 出現條件「完成 N 關」輸入暫存
@@ -114,6 +116,12 @@ namespace DipanMapEditor.UI
         BottomUiOverlay _bottomUi;   // 「顯示底部ui」參考層
         Tools.ObjectController _objCtl;
         Tools.SceneFxController _sfxCtl;
+        Tools.LightController _lightCtl;
+        LightPreview _lightPrev;     // 照明預覽（壓暗＋燈照回來）
+        // 照明面板：清單捲動位置＋選取中那盞的數字輸入暫存（切換選取時重新同步）
+        Vector2 _lightScroll;
+        Data.LightInstance _lightBufFor;
+        string _liRadBuf = "", _liIntBuf = "", _liFlkBuf = "", _liSpdBuf = "", _liSofBuf = "", _liColBuf = "", _liNameBuf = "";
         EffectPreviewUI _preview;   // 特效預覽器（懶建立）
         Vector2 _sfxScroll;
         // 場景特效數字欄的文字緩衝（讓使用者可清空/自由編輯；空或無效 = 套預設）。切換選取時重新同步。
@@ -206,6 +214,18 @@ namespace DipanMapEditor.UI
             return _sfxCtl;
         }
 
+        Tools.LightController LightCtl()
+        {
+            if (_lightCtl == null) _lightCtl = FindObjectOfType<Tools.LightController>();
+            return _lightCtl;
+        }
+
+        LightPreview LightPrev()
+        {
+            if (_lightPrev == null) _lightPrev = FindObjectOfType<LightPreview>();
+            return _lightPrev;
+        }
+
         Tools.CutsceneController CsCtl()
         {
             if (_csCtl == null) _csCtl = FindObjectOfType<Tools.CutsceneController>();
@@ -256,6 +276,10 @@ namespace DipanMapEditor.UI
             else if (CurrentTool == EditTool.SceneFx)
             {
                 DrawSceneFxPanel();
+            }
+            else if (CurrentTool == EditTool.Light)
+            {
+                DrawLightPanel();
             }
             else if (CurrentTool == EditTool.Cutscene)
             {
@@ -316,6 +340,19 @@ namespace DipanMapEditor.UI
                     else _statusMsg = "找不到底部 UI 圖：請先執行 選單 DipanMapEditor→同步素材（全部 module）";
                 }
             }
+
+            // 照明預覽：把場景壓暗、讓場上的燈照回來，看接近遊戲的實際效果。放在頂部列而不是照明面板裡，
+            // 是因為它是「檢視模式」——擺地上物、畫地磚時也會想開著看氣氛。開關狀態記在 PlayerPrefs。
+            var lp = LightPrev();
+            GUI.color = (lp != null && lp.Enabled) ? Color.cyan : Color.white;
+            if (GUILayout.Button("照明預覽", GUILayout.Width(80)) && lp != null)
+            {
+                lp.Toggle();
+                _statusMsg = lp.Enabled
+                    ? $"照明預覽開啟（環境亮度 {lp.EnvBright}）——到「照明」面板可調亮度"
+                    : "照明預覽關閉";
+            }
+            GUI.color = Color.white;
             GUI.color = Color.white;
 
             GUILayout.Space(12);
@@ -334,6 +371,8 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("旗標", GUILayout.Width(50))) { if (CurrentTool == EditTool.EffectPreview) CurrentTool = EditTool.TilePaint; _showFlags = true; _flagMsg = ""; }
             GUI.color = CurrentTool == EditTool.SceneFx ? Color.cyan : Color.white;
             if (GUILayout.Button("場景特效", GUILayout.Width(80))) CurrentTool = EditTool.SceneFx;
+            GUI.color = CurrentTool == EditTool.Light ? Color.cyan : Color.white;
+            if (GUILayout.Button("照明", GUILayout.Width(50))) CurrentTool = EditTool.Light;
             GUI.color = CurrentTool == EditTool.Cutscene ? Color.cyan : Color.white;
             if (GUILayout.Button("劇情", GUILayout.Width(50))) CurrentTool = EditTool.Cutscene;
             GUI.color = CurrentTool == EditTool.EffectPreview ? Color.cyan : Color.white;
@@ -818,8 +857,9 @@ namespace DipanMapEditor.UI
                 GUILayout.EndHorizontal();
             }
 
-            // ── 發光半徑（世界單位）：>0＝這個地上物擺在原地時發光照亮周遭（火把/香爐/地上的佛燈…）。0＝不發光。
-            //    在「暗氛圍」地圖(幽暗/噩夢)才看得到效果；玩家沒發光裝時，以最近的發光地上物為光圈中心。
+            // ── 照明（火把/燈籠/香爐/地上的佛燈…）──
+            //    發光半徑 >0 才會展開其餘選項。在「暗氛圍」地圖(幽暗/噩夢/深海恐怖)、
+            //    或 MapsTable「環境亮度」<100 的地圖上才看得到效果；同框最多 12 盞。
             {
                 bool editingLight = GUI.GetNameOfFocusedControl() == "objLight";
                 if (!editingLight) _objLightBuf = sel.lightRadius.ToString("0.##");
@@ -835,6 +875,53 @@ namespace DipanMapEditor.UI
                 {
                     _objLightBuf = sl;
                     if (float.TryParse(sl, out var vl) && vl >= 0f) sel.lightRadius = vl;
+                }
+
+                // 發光半徑 >0 才展開照明細項（不發光的地上物不用被這些欄位洗版）。
+                if (sel.lightRadius > 0f)
+                {
+                    // 一鍵套用常見燈種：先按這個，再微調底下欄位。
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("燈種預設", GUILayout.Width(64));
+                    if (GUILayout.Button("火把", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "FFC785", 1.0f, 1.0f, 1.0f, 0.46f); }
+                    if (GUILayout.Button("燭火", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "FFD9A0", 0.7f, 1.4f, 1.6f, 0.30f); }
+                    if (GUILayout.Button("燈籠", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "FFB05A", 1.0f, 0.5f, 0.6f, 0.55f); }
+                    GUILayout.EndHorizontal();
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Space(64);
+                    if (GUILayout.Button("鬼火", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "7CFFB0", 0.8f, 1.8f, 0.35f, 0.25f); }
+                    if (GUILayout.Button("月光", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "CFE4FF", 0.9f, 0.0f, 1.0f, 0.40f); }
+                    if (GUILayout.Button("爐火", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "FF8A3D", 1.5f, 1.2f, 0.9f, 0.60f); }
+                    GUILayout.EndHorizontal();
+
+                    // 亮度：1=標準、<1 微光、>1 刺眼。
+                    LightNumField("亮度", "objLightInt", ref _objLightIntBuf,
+                                  () => sel.lightIntensity, x => sel.lightIntensity = x, 0.1f, 0f, "倍（1=標準）");
+                    // 搖晃強度：0=完全不動（電燈/月光）、1=標準燭火、2=狂亂火焰。
+                    LightNumField("搖晃強度", "objLightFlk", ref _objLightFlkBuf,
+                                  () => sel.lightFlicker, x => sel.lightFlicker = x, 0.1f, 0f, "（0=不晃）");
+                    // 搖晃速度：小=油燈慢晃、大=營火急促跳動。
+                    LightNumField("搖晃速度", "objLightSpd", ref _objLightSpdBuf,
+                                  () => sel.lightFlickerSpeed, x => sel.lightFlickerSpeed = x, 0.1f, 0.01f, "倍（1=標準）");
+                    // 邊緣柔和度：小=瀰漫柔邊、大=範圍內均勻邊緣硬（聚光燈）。
+                    LightNumField("邊緣柔和", "objLightSof", ref _objLightSofBuf,
+                                  () => sel.lightSoftness, x => sel.lightSoftness = Mathf.Clamp01(x), 0.05f, 0f, "（小=柔 大=硬）");
+
+                    // 光色：6 碼 16 進位 RRGGBB（不含 #）。空＝預設暖橘。右邊畫一塊實際顏色方便確認。
+                    bool editingCol = GUI.GetNameOfFocusedControl() == "objLightCol";
+                    if (!editingCol) _objLightColBuf = sel.lightColor ?? "";
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("光色 RGB", GUILayout.Width(64));
+                    GUI.SetNextControlName("objLightCol");
+                    string sc = GUILayout.TextField(_objLightColBuf ?? "", GUILayout.Width(70));
+                    var swatch = GUILayoutUtility.GetRect(22f, 16f, GUILayout.Width(22));
+                    var prevCol = GUI.color;
+                    GUI.color = ParseHexColor(sel.lightColor);
+                    GUI.DrawTexture(swatch, Texture2D.whiteTexture);
+                    GUI.color = prevCol;
+                    GUILayout.Label("空=暖橘", GUILayout.Width(60));
+                    GUILayout.EndHorizontal();
+                    if (editingCol && sc != _objLightColBuf) { _objLightColBuf = sc; sel.lightColor = sc.Trim().TrimStart('#'); }
                 }
             }
 
@@ -948,6 +1035,61 @@ namespace DipanMapEditor.UI
             GUILayout.EndHorizontal();
             if (GUILayout.Button("取消選取")) ctl.Deselect();
             GUILayout.EndArea();
+        }
+
+        // ================= 照明欄位的小工具（地上物面板用） =================
+
+        /// <summary>套用一種燈種預設（光色／亮度／搖晃強度／搖晃速度／邊緣柔和度）。發光半徑不動，由使用者自己定範圍。</summary>
+        static void ApplyLightPreset(ObjectInstance sel, string hex, float intensity, float flicker, float speed, float softness)
+        {
+            sel.lightColor = hex;
+            sel.lightIntensity = intensity;
+            sel.lightFlicker = flicker;
+            sel.lightFlickerSpeed = speed;
+            sel.lightSoftness = softness;
+        }
+
+        /// <summary>套用燈種預設到「獨立光源」（欄位名與地上物的照明欄不同，所以另開一個多載）。發光半徑不動。</summary>
+        static void ApplyLightPreset(LightInstance sel, string hex, float intensity, float flicker, float speed, float softness)
+        {
+            sel.color = hex;
+            sel.intensity = intensity;
+            sel.flicker = flicker;
+            sel.flickerSpeed = speed;
+            sel.softness = softness;
+        }
+
+        /// <summary>
+        /// 照明用的「－ 數字 ＋」一列。與發光半徑同一套寫法：聚焦中才吃使用者輸入，沒聚焦時把現值灌回暫存，
+        /// 這樣可以自由清空重打，也不會被舊值蓋回去。
+        /// </summary>
+        void LightNumField(string label, string ctrlName, ref string buf,
+                           System.Func<float> get, System.Action<float> set, float step, float min, string suffix)
+        {
+            bool editing = GUI.GetNameOfFocusedControl() == ctrlName;
+            if (!editing) buf = get().ToString("0.##");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label(label, GUILayout.Width(64));
+            if (GUILayout.Button("－", GUILayout.Width(24))) { UndoManager.Push(); set(Mathf.Max(min, get() - step)); buf = get().ToString("0.##"); }
+            GUI.SetNextControlName(ctrlName);
+            string s = GUILayout.TextField(buf ?? "", GUILayout.Width(56));
+            if (GUILayout.Button("＋", GUILayout.Width(24))) { UndoManager.Push(); set(get() + step); buf = get().ToString("0.##"); }
+            GUILayout.Label(suffix, GUILayout.Width(96));
+            GUILayout.EndHorizontal();
+            if (editing && s != buf)
+            {
+                buf = s;
+                if (float.TryParse(s, out var v) && v >= min) set(v);
+            }
+        }
+
+        /// <summary>6 碼 16 進位 RRGGBB（可含 #）→ Color；空/無效回預設暖橘（與遊戲端 LightSource.DefaultWarm 一致）。</summary>
+        static Color ParseHexColor(string hex)
+        {
+            var warm = new Color(1.00f, 0.78f, 0.52f, 1f);
+            if (string.IsNullOrWhiteSpace(hex)) return warm;
+            string s = hex.Trim().TrimStart('#');
+            return ColorUtility.TryParseHtmlString("#" + s, out var c) ? c : warm;
         }
 
         // ---- 可走/不可走筆刷面板 ----
@@ -1505,6 +1647,168 @@ namespace DipanMapEditor.UI
         // 空字串/無效 → 回傳預設值（存進資料時就是預設，符合「沒填就給預設」）。
         static int ParseIntOr(string s, int def) => int.TryParse(s, out int v) ? v : def;
         static float ParseFloatOr(string s, float def) => float.TryParse(s, out float v) ? v : def;
+
+        // ================= 照明面板（獨立光源，不綁地上物） =================
+
+        void DrawLightPanel()
+        {
+            var map = MapSession.Instance?.Map;
+            var ctl = LightCtl();
+            if (map == null || ctl == null) return;
+            if (map.lights == null) map.lights = new List<Data.LightInstance>();
+
+            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            GUILayout.BeginArea(rect, GUI.skin.box);
+            _lightScroll = GUILayout.BeginScrollView(_lightScroll);
+
+            GUILayout.Label("照明（獨立光源）");
+            GUILayout.Label("給已經畫在背景圖裡的火炬/燈籠：\n把光源點放到火焰中心就會發光，\n不必把圖拆成地上物。");
+            GUILayout.Label("放好後直接用滑鼠拖曳就能移動。");
+
+            // ── 預覽（把場景壓暗、讓燈照回來）──
+            var lp = LightPrev();
+            if (lp != null)
+            {
+                GUILayout.Space(4);
+                GUILayout.Label("── 預覽 ──");
+                GUI.color = lp.Enabled ? Color.cyan : Color.white;
+                if (GUILayout.Button(lp.Enabled ? "照明預覽：開" : "照明預覽：關")) lp.Toggle();
+                GUI.color = Color.white;
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("環境亮度", GUILayout.Width(64));
+                int nb = Mathf.RoundToInt(GUILayout.HorizontalSlider(lp.EnvBright, 0f, 100f, GUILayout.Width(110)));
+                GUILayout.Label(lp.EnvBright.ToString(), GUILayout.Width(30));
+                GUILayout.EndHorizontal();
+                if (nb != lp.EnvBright) lp.SetEnvBright(nb);
+                GUILayout.Label("調到滿意後，把這個數字填進主專案\nAssets/Data/MapsTable.csv 這張圖那列的\n『EnvBright』欄，遊戲裡才會一樣暗。\n（100=不壓暗；45≈昏暗室內）");
+
+                // 遊戲同框上限是 12 盞，預覽最多畫 32——畫面內超過 12 時遊戲會丟掉最遠的，先在這裡示警。
+                if (lp.Enabled && lp.OnScreenCount > LightPreview.GameMaxLights)
+                {
+                    GUI.color = new Color(1f, 0.75f, 0.3f);
+                    GUILayout.Label($"⚠ 畫面內有 {lp.OnScreenCount} 盞，遊戲同框\n上限 {LightPreview.GameMaxLights} 盞，離玩家最遠的會被\n丟掉。預覽比遊戲亮屬正常。");
+                    GUI.color = Color.white;
+                }
+                GUILayout.Label("※ 預覽只模擬「壓暗＋照亮＋光色」。\n遊戲的幽暗/噩夢氛圍還會去飽和、\n加冷色調，實際更陰沉。");
+            }
+
+            GUILayout.Space(6);
+            if (GUILayout.Button("＋ 新增光源")) ctl.NewLight();
+
+            GUILayout.Space(6);
+            GUILayout.Label($"光源清單（{map.lights.Count}）");
+            Data.LightInstance toDelete = null;
+            for (int i = 0; i < map.lights.Count; i++)
+            {
+                var l = map.lights[i];
+                if (l == null) continue;
+                GUILayout.BeginHorizontal();
+                GUI.color = (l == ctl.Selected) ? Color.cyan : Color.white;
+                string label = string.IsNullOrWhiteSpace(l.name) ? ("燈 " + (i + 1)) : l.name;
+                if (GUILayout.Button(label, GUILayout.Width(120))) ctl.Select(l);
+                // 小色塊：一眼看出這盞是暖橘還是鬼火綠
+                var sw = GUILayoutUtility.GetRect(18f, 16f, GUILayout.Width(18));
+                var pc = GUI.color;
+                GUI.color = ParseHexColor(l.color);
+                GUI.DrawTexture(sw, Texture2D.whiteTexture);
+                GUI.color = pc;
+                if (GUILayout.Button("刪", GUILayout.Width(32))) toDelete = l;
+                GUILayout.EndHorizontal();
+            }
+            GUI.color = Color.white;
+            if (toDelete != null) { ctl.Select(toDelete); ctl.DeleteSelected(); }
+
+            var sel = ctl.Selected;
+            if (sel != null)
+            {
+                GUILayout.Space(8);
+                GUILayout.Label("── 編輯光源 ──");
+
+                GUILayout.BeginHorizontal();
+                GUI.color = ctl.Placing ? Color.green : Color.white;
+                if (GUILayout.Button("放置位置")) ctl.BeginPlace();
+                GUI.color = Color.white;
+                if (GUILayout.Button("複製一盞")) ctl.DuplicateSelected();
+                GUILayout.EndHorizontal();
+                GUILayout.Label(ctl.Placing
+                    ? "→ 現在到畫布上點一下放置"
+                    : "（直接拖曳畫布上的燈就能移動；\n「放置位置」是要精準重放時用）");
+                GUILayout.Label($"位置 ({sel.x:0.0}, {sel.y:0.0})");
+
+                // 切換到不同光源時，把輸入暫存重新灌成該盞的現值
+                if (_lightBufFor != sel)
+                {
+                    _lightBufFor = sel;
+                    _liRadBuf = sel.radius.ToString("0.##");
+                    _liIntBuf = sel.intensity.ToString("0.##");
+                    _liFlkBuf = sel.flicker.ToString("0.##");
+                    _liSpdBuf = sel.flickerSpeed.ToString("0.##");
+                    _liSofBuf = sel.softness.ToString("0.##");
+                    _liColBuf = sel.color ?? "";
+                    _liNameBuf = sel.name ?? "";
+                }
+
+                // 名字：只給編輯器清單看，方便在一堆燈裡認出「大廳左火炬」
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("名稱", GUILayout.Width(64));
+                bool editingName = GUI.GetNameOfFocusedControl() == "liName";
+                if (!editingName) _liNameBuf = sel.name ?? "";
+                GUI.SetNextControlName("liName");
+                string sn = GUILayout.TextField(_liNameBuf ?? "", GUILayout.Width(140));
+                GUILayout.EndHorizontal();
+                if (editingName && sn != _liNameBuf) { _liNameBuf = sn; sel.name = sn; }
+
+                GUILayout.Space(4);
+                GUILayout.Label("燈種預設（不動發光半徑）");
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("火把", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "FFC785", 1.0f, 1.0f, 1.0f, 0.46f); _lightBufFor = null; }
+                if (GUILayout.Button("燭火", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "FFD9A0", 0.7f, 1.4f, 1.6f, 0.30f); _lightBufFor = null; }
+                if (GUILayout.Button("燈籠", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "FFB05A", 1.0f, 0.5f, 0.6f, 0.55f); _lightBufFor = null; }
+                GUILayout.EndHorizontal();
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("鬼火", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "7CFFB0", 0.8f, 1.8f, 0.35f, 0.25f); _lightBufFor = null; }
+                if (GUILayout.Button("月光", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "CFE4FF", 0.9f, 0.0f, 1.0f, 0.40f); _lightBufFor = null; }
+                if (GUILayout.Button("爐火", GUILayout.Width(46))) { UndoManager.Push(); ApplyLightPreset(sel, "FF8A3D", 1.5f, 1.2f, 0.9f, 0.60f); _lightBufFor = null; }
+                GUILayout.EndHorizontal();
+
+                GUILayout.Space(4);
+                LightNumField("發光半徑", "liRad", ref _liRadBuf,
+                              () => sel.radius, x => sel.radius = x, 0.5f, 0.1f, "格");
+                LightNumField("亮度", "liInt", ref _liIntBuf,
+                              () => sel.intensity, x => sel.intensity = x, 0.1f, 0f, "倍（1=標準）");
+                LightNumField("搖晃強度", "liFlk", ref _liFlkBuf,
+                              () => sel.flicker, x => sel.flicker = x, 0.1f, 0f, "（0=不晃）");
+                LightNumField("搖晃速度", "liSpd", ref _liSpdBuf,
+                              () => sel.flickerSpeed, x => sel.flickerSpeed = x, 0.1f, 0.01f, "倍（1=標準）");
+                LightNumField("邊緣柔和", "liSof", ref _liSofBuf,
+                              () => sel.softness, x => sel.softness = Mathf.Clamp01(x), 0.05f, 0f, "（小=柔 大=硬）");
+
+                // 光色：6 碼 16 進位 RRGGBB（不含 #）。空＝預設暖橘。
+                bool editingCol = GUI.GetNameOfFocusedControl() == "liCol";
+                if (!editingCol) _liColBuf = sel.color ?? "";
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("光色 RGB", GUILayout.Width(64));
+                GUI.SetNextControlName("liCol");
+                string sc = GUILayout.TextField(_liColBuf ?? "", GUILayout.Width(70));
+                var swatch = GUILayoutUtility.GetRect(22f, 16f, GUILayout.Width(22));
+                var prevCol = GUI.color;
+                GUI.color = ParseHexColor(sel.color);
+                GUI.DrawTexture(swatch, Texture2D.whiteTexture);
+                GUI.color = prevCol;
+                GUILayout.Label("空=暖橘", GUILayout.Width(60));
+                GUILayout.EndHorizontal();
+                if (editingCol && sc != _liColBuf) { _liColBuf = sc; sel.color = sc.Trim().TrimStart('#'); }
+            }
+            else
+            {
+                GUILayout.Space(8);
+                GUILayout.Label("按「＋ 新增光源」建立，\n或直接點畫布上的燈來選取。");
+            }
+
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
 
         void DrawNewDialog()
         {

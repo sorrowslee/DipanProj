@@ -166,5 +166,31 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "lights": [
+    {
+      "id": "635fb4fc",
+      "name": "",
+      "x": 2.533905,
+      "y": -1.88283241,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "FFB05A",
+      "flicker": 0.5,
+      "flickerSpeed": 0.6,
+      "softness": 0.55
+    },
+    {
+      "id": "0c2cde44",
+      "name": "",
+      "x": 15.15322,
+      "y": -1.79012847,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    }
+  ]
 }

@@ -23,6 +23,11 @@ using UnityEngine;
 ///   禁用時按左鍵／空白鍵完全沒反應——不發射、不扣 MP、不擺攻擊動作、也不轉身面向滑鼠。
 ///   用在劇情用地圖（開場山道、初始洞窟）與邪佛廣場這種「亂放武器很奇怪」的大廳。
 ///   只擋玩家發射，移動／互動／背包／喝藥一律正常，怪物用武器也不受影響。
+/// - EnvBright = **環境亮度** 0~100（留空 / 缺欄 = 100，完全不壓暗，與舊行為相同）。
+///   只在 Atmosphere = 1（正常）時生效：把整張圖壓暗到這個亮度，場上的燈（火把/燈籠，見 LightSource）
+///   再把周圍照回來。用途是「不到幽暗等級、但想讓火把有存在感」的室內走廊/地窖。
+///   例：100 = 白天室外；70 = 陰天/傍晚；45 = 昏暗室內（火把明顯）；25 = 只靠火把看得見路。
+///   Atmosphere >= 2 時忽略此欄（那些氛圍的暗度由氛圍本身定義）。見 readme/ATMOSPHERE.md。
 /// 見 readme/MAP_SYSTEM.md。
 /// </summary>
 public class MapTableRow
@@ -37,6 +42,7 @@ public class MapTableRow
     public int sceneEffect = 0; // 場景特效：0 = 無；1 = 火雨（見 SceneEffectController，預設 0）
     public int enterEffect = 0; // 進場一次性全螢幕過場＝ScreenFxTable 的 id：0=無 / 1=睜眼醒來 / 2=破幻術 / 3=馬賽克清晰（與劇情 screenFx 共用同一份 id；預設 0）
     public bool noWeapon = false; // 禁止玩家使用武器：0/空 = 可用（預設）；1 = 禁用（劇情地圖、大廳）
+    public int envBright = 100;   // 環境亮度 0~100：只在 atmosphere==1 生效，把整張圖壓暗、讓場上的燈照回來（100/空 = 不壓暗）
 }
 
 public class MapTable : MonoBehaviour
@@ -120,6 +126,10 @@ public class MapTable : MonoBehaviour
             bool noWeapon = false;
             if (v.Length >= 10 && int.TryParse(v[9].Trim(), out int nw)) noWeapon = nw != 0;
 
+            // EnvBright 第 11 欄為新增、向下相容：缺欄 / 留空 / 無法解析都退回預設 100（不壓暗＝舊行為）。
+            int envBright = 100;
+            if (v.Length >= 11 && int.TryParse(v[10].Trim(), out int eb)) envBright = Mathf.Clamp(eb, 0, 100);
+
             var row = new MapTableRow
             {
                 id = id,
@@ -132,6 +142,7 @@ public class MapTable : MonoBehaviour
                 sceneEffect = sceneEffect,
                 enterEffect = enterEffect,
                 noWeapon = noWeapon,
+                envBright = envBright,
             };
 
             if (_byId.ContainsKey(id))

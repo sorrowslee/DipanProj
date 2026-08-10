@@ -51,6 +51,13 @@ namespace DipanMapEditor.Data
         /// <summary>場景特效（可放置的粒子特效，煙/火/冰/毒…）；獨立於圖層，直接掛在地圖上。</summary>
         public List<SceneFxInstance> sceneFx = new List<SceneFxInstance>();
 
+        /// <summary>
+        /// 獨立光源（不綁地上物的照明點）；獨立於圖層，直接掛在地圖上。
+        /// 給「火炬/燈籠已經畫在背景圖裡」的情況：不必把它們從背景拆成地上物，把光源點放到火焰中心就會發光。
+        /// 舊地圖沒有這個欄位 → 反序列化後是空清單，行為與以前相同。
+        /// </summary>
+        public List<LightInstance> lights = new List<LightInstance>();
+
         /// <summary>劇情演出（半演出半漫畫的過場）；null＝此圖無演出。目前一張圖最多一段。</summary>
         public Cutscene cutscene = null;
 

@@ -213,5 +213,139 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "lights": [
+    {
+      "id": "88ef7847",
+      "name": "",
+      "x": 2.1284914,
+      "y": -1.03351927,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "f033c947",
+      "name": "",
+      "x": 1.90502834,
+      "y": -2.66480446,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "c5f23fdb",
+      "name": "",
+      "x": 1.18994379,
+      "y": -5.01117325,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "37a4a686",
+      "name": "",
+      "x": 1.05586576,
+      "y": -7.46927357,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "9f0d7b7a",
+      "name": "",
+      "x": 7.51396656,
+      "y": -8.988827,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "5e3317b5",
+      "name": "",
+      "x": 10.3072624,
+      "y": -8.96648,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "984d65f2",
+      "name": "",
+      "x": 16.8994427,
+      "y": -7.491619,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "c4d4837f",
+      "name": "",
+      "x": 16.72067,
+      "y": -4.96648,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "e16d1fdb",
+      "name": "",
+      "x": 15.7597761,
+      "y": -1.10055828,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "21613162",
+      "name": "",
+      "x": 10.5307264,
+      "y": -0.96648,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "8e1c2e48",
+      "name": "",
+      "x": 7.178772,
+      "y": -1.01117277,
+      "radius": 2.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    }
+  ]
 }

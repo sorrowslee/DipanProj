@@ -137,5 +137,44 @@
         }
       ]
     }
+  ],
+  "sceneFx": [],
+  "lights": [
+    {
+      "id": "a93b0280",
+      "name": "",
+      "x": 2.77653646,
+      "y": -1.48044682,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "c3043bc9",
+      "name": "",
+      "x": 2.217877,
+      "y": -7.178771,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "201b2c9e",
+      "name": "",
+      "x": 14.865922,
+      "y": -1.48044682,
+      "radius": 3.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    }
   ]
 }
