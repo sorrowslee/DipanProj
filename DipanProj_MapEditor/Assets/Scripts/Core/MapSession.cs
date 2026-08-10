@@ -8,7 +8,7 @@ namespace DipanMapEditor.Core
 {
     /// <summary>
     /// 編輯器全域狀態：當前地圖、素材目錄、trigger 類型、當前檔路徑。
-    /// 其他系統（相機、格線、Tilemap、UI）透過事件回應地圖切換/變更。
+    /// 其他系統（相機、格線、背景、UI）透過事件回應地圖切換/變更。
     /// </summary>
     public class MapSession : MonoBehaviour
     {
@@ -120,8 +120,6 @@ namespace DipanMapEditor.Core
 
             // 遊戲層 tile：移除超出新範圍者
             var game = Map.GameLayer;
-            if (game?.tiles != null)
-                game.tiles.RemoveAll(t => t.x >= newWidth || t.y >= newHeight);
 
             // 物件以世界座標自由擺放，超出範圍不強制刪（保留，使用者自理）
 

@@ -14,7 +14,7 @@ namespace Dipan.MapRuntime
     /// ② <c>DipanProj_Main/Tools/sync_map_assets.sh</c> 的 <c>CATS=(...)</c>（獨立的 shell/python 實作，改不動它時至少要記得同步）。</para>
     ///
     /// <para><b>編輯器專案不在此列</b>：<c>DipanProj_MapEditor</c> 的 <c>AssetSyncTool</c> 只同步
-    /// <see cref="Environment"/> / <see cref="Tiles"/> / <see cref="Background"/> ——這是<b>刻意</b>的，
+    /// <see cref="Environment"/> / <see cref="Background"/> ——這是<b>刻意</b>的，
     /// 因為 <see cref="Drama"/> / <see cref="Talk"/> 是遊戲端的劇情大圖與對話立繪，
     /// 地圖編輯器的素材調色盤用不到。<b>不要「順手幫它補上」。</b></para>
     /// </summary>
@@ -22,8 +22,6 @@ namespace Dipan.MapRuntime
     {
         /// <summary>地上物（直接放的單張＝靜態物件；子資料夾＝一個動畫地上物，多幀收成一筆）。</summary>
         public const string Environment = "Environment";
-        /// <summary>地磚。</summary>
-        public const string Tiles = "Tiles";
         /// <summary>背景大圖。</summary>
         public const string Background = "Background";
         /// <summary>劇情大圖（DramaPanel 的 Type 1）。</summary>
@@ -32,7 +30,7 @@ namespace Dipan.MapRuntime
         public const string Talk = "Talk";
 
         /// <summary>會被掃描並收進 catalog 的分類（順序不影響行為）。</summary>
-        public static readonly string[] All = { Environment, Tiles, Background, Drama, Talk };
+        public static readonly string[] All = { Environment, Background, Drama, Talk };
 
         /// <summary>
         /// 這個分類是否要<b>遞迴</b>收子資料夾裡的 PNG。

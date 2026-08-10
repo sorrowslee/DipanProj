@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 同步地圖素材到主遊戲的 StreamingAssets，供 runtime MapLoader 載入。
 #
-# 從 Assets/GameAssets/{Main,Modules/<關卡>} 底下，只拿 Environment/ Tiles/ Background/ Drama/ Talk/
+# 從 Assets/GameAssets/{Main,Modules/<關卡>} 底下，只拿 Environment/ Background/ Drama/ Talk/
 # 這幾個資料夾的 PNG，依原相對路徑複製進 Assets/StreamingAssets/MapAssets/（無條件覆蓋），
 # 並生成 catalog.json（id / path / category / module / pixelSize / ppu）。
 #
@@ -22,7 +22,7 @@ PPU=256
 #    ① Assets/Scripts/Map/MapAssetCategories.cs 的 All（MapIO 與 MapAssetSyncTool 共用那一份）
 #    ② 這一行
 #    漏改不會報錯、只會靜默少同步（見 readme/PROBLEMS.md C1/C3/C5/I4/F16）。
-CATS=(Environment Tiles Background Drama Talk)
+CATS=(Environment Background Drama Talk)
 
 python3 - "$SRC_ROOT" "$DST_ROOT" "$ONLY_MODULE" "$PPU" "${CATS[@]}" <<'PY'
 import os, sys, json, shutil, struct

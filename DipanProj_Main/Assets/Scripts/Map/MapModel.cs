@@ -64,7 +64,6 @@ namespace Dipan.MapRuntime
         public bool locked = false;
 
         // Game payload
-        public List<TilePlacement> tiles;
         public List<ObjectInstance> objects;
 
         // Walkable payload：每列一字串，'1' = 不可走、'0' = 可走。
@@ -72,13 +71,6 @@ namespace Dipan.MapRuntime
 
         // Trigger payload
         public List<TriggerRegion> regions;
-    }
-
-    public class TilePlacement
-    {
-        public int x;
-        public int y;
-        public string tileId;   // "catalogId#index"
     }
 
     public class ObjectInstance

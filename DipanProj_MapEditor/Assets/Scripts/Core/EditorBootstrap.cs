@@ -5,7 +5,7 @@ using DipanMapEditor.Tools;
 namespace DipanMapEditor.Core
 {
     /// <summary>
-    /// 一鍵組裝整個編輯器場景：相機、格線、Tilemap、狀態、UI。
+    /// 一鍵組裝整個編輯器場景：相機、格線、背景、狀態、UI。
     /// 使用方式：空場景放一個空物件、掛上本元件、按 Play（或打包執行）即可。
     /// 全部由程式建立，無需手動接線。
     /// </summary>
@@ -39,6 +39,8 @@ namespace DipanMapEditor.Core
             camT.position = new Vector3(0, 0, -10);
 
             if (cam.GetComponent<EditorCamera>() == null) cam.gameObject.AddComponent<EditorCamera>();
+            // 場景讓位：把 Camera.rect 縮到「扣掉工具列/面板/狀態列」的中央區域，面板才不會蓋住地圖
+            if (cam.GetComponent<EditorViewport>() == null) cam.gameObject.AddComponent<EditorViewport>();
             if (cam.GetComponent<GridRenderer>() == null) cam.gameObject.AddComponent<GridRenderer>();
             if (cam.GetComponent<WalkableOverlay>() == null) cam.gameObject.AddComponent<WalkableOverlay>();
             if (cam.GetComponent<TriggerOverlay>() == null) cam.gameObject.AddComponent<TriggerOverlay>();
@@ -49,15 +51,6 @@ namespace DipanMapEditor.Core
             if (cam.GetComponent<LightPreview>() == null) cam.gameObject.AddComponent<LightPreview>();
             if (cam.GetComponent<SceneFxOverlay>() == null) cam.gameObject.AddComponent<SceneFxOverlay>();
             if (cam.GetComponent<CutsceneOverlay>() == null) cam.gameObject.AddComponent<CutsceneOverlay>();
-            if (cam.GetComponent<TileBrushPreview>() == null) cam.gameObject.AddComponent<TileBrushPreview>();
-
-            // 3. Tilemap 視圖容器
-            if (FindObjectOfType<TilemapView>() == null)
-            {
-                var tvGO = new GameObject("TilemapView");
-                tvGO.transform.SetParent(transform, false);
-                tvGO.AddComponent<TilemapView>();
-            }
 
             // 3a. 背景圖渲染（最底層）
             if (FindObjectOfType<BackgroundView>() == null)
@@ -97,14 +90,6 @@ namespace DipanMapEditor.Core
                 var uiGO = new GameObject("EditorUI");
                 uiGO.transform.SetParent(transform, false);
                 uiGO.AddComponent<EditorUI>();
-            }
-
-            // 5. 筆刷輸入控制（地磚）
-            if (FindObjectOfType<PaintController>() == null)
-            {
-                var paintGO = new GameObject("PaintController");
-                paintGO.transform.SetParent(transform, false);
-                paintGO.AddComponent<PaintController>();
             }
 
             // 6. 地上物輸入控制

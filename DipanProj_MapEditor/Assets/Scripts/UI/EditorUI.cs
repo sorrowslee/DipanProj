@@ -15,13 +15,17 @@ namespace DipanMapEditor.UI
     public class EditorUI : MonoBehaviour
     {
         const int TileNativePx = 256;
-        const float TopBarH = 30f;
-        const float PaletteW = 240f;
+        // ── 版面尺寸（B 案：左側工具列 + 中央場景 + 右側屬性面板 + 底部狀態列）──
+        // 場景由 EditorViewport 依 ViewportRect 縮 Camera.rect，所以面板是「排在旁邊」而不是「蓋在上面」。
+        const float TopBarH = 34f;     // 頂部列：檔案與檢視操作
+        const float RailW = 76f;       // 左側垂直工具列（垂直空間充足，之後再加工具也不會擠爆）
+        const float StatusH = 26f;     // 底部狀態列：地圖資訊與狀態訊息
+        const float PaletteW = 240f;   // 右側屬性面板
         const float Thumb = 48f;
         const float InspectorW = 360f;
         const float InspectorH = 470f;
 
-        public EditTool CurrentTool { get; private set; } = EditTool.TilePaint;
+        public EditTool CurrentTool { get; private set; } = EditTool.Object;
         public string SelectedObjectAssetId { get; private set; }
 
         /// <summary>可走工具的當前筆刷狀態字元（'0' 可走 / '1' 牆 / '2' 水）。</summary>
@@ -117,6 +121,7 @@ namespace DipanMapEditor.UI
         Tools.ObjectController _objCtl;
         Tools.SceneFxController _sfxCtl;
         Tools.LightController _lightCtl;
+        EditTool _toolBeforePreview = EditTool.Object;   // 進特效預覽器前停在哪個工具，離開時退回這個
         LightPreview _lightPrev;     // 照明預覽（壓暗＋燈照回來）
         // 照明面板：清單捲動位置＋選取中那盞的數字輸入暫存（切換選取時重新同步）
         Vector2 _lightScroll;
@@ -150,16 +155,6 @@ namespace DipanMapEditor.UI
         string _tileSize = "1";
         string _width = "18";
         string _height = "10";
-
-        // 地磚多選（block stamp）：選取範圍以 tileset 的格座標表示
-        string _blockId;       // 來源 tileset catalog id
-        int _blockCols;        // 該 tileset 的欄數
-        int _blockC0, _blockR0, _blockC1, _blockR1;
-        bool _blockDragging;
-        bool _tileBrushCleared;   // ESC 清掉地磚筆刷後，不再自動選回第一塊
-
-        /// <summary>ESC 退出地磚筆刷：清掉選取、且不自動選回（直到使用者再點一塊）。</summary>
-        public void ClearTileBrush() { _blockId = null; _tileBrushCleared = true; }
 
         void Start()
         {
@@ -238,12 +233,31 @@ namespace DipanMapEditor.UI
             return _previewCtl;
         }
 
-        // ---- 供 PaintController 查詢：指標是否壓在 UI 面板上 ----
+        // ---- 版面計算（面板位置與場景可視區的唯一真相）----
+
+        /// <summary>右側屬性面板的位置。所有工具的面板共用，夾在頂部列與底部狀態列之間。</summary>
+        static Rect PanelRect =>
+            new Rect(Screen.width - PaletteW, TopBarH, PaletteW,
+                     Mathf.Max(1f, Screen.height - TopBarH - StatusH));
+
+        /// <summary>
+        /// 中央可視區（GUI 座標，左上原點）＝場景實際該畫出來的範圍。
+        /// <see cref="Core.EditorViewport"/> 會把它換算成 Camera.rect，
+        /// 這樣場景不會被面板蓋住，聚焦/縮放也自動以這塊為準（Camera.aspect 會跟著變）。
+        /// </summary>
+        public static Rect ViewportRect =>
+            new Rect(RailW, TopBarH,
+                     Mathf.Max(1f, Screen.width - RailW - PaletteW),
+                     Mathf.Max(1f, Screen.height - TopBarH - StatusH));
+
+        // ---- 供各工具查詢：指標是否壓在 UI 面板上 ----
         public bool IsPointerOverUI(Vector3 mousePos)
         {
             float ty = Screen.height - mousePos.y;          // 轉成左上原點 Y
             if (ty <= TopBarH) return true;                 // 頂部列
-            if (mousePos.x >= Screen.width - PaletteW) return true; // 右側調色盤
+            if (mousePos.x <= RailW) return true;           // 左側工具列
+            if (ty >= Screen.height - StatusH) return true; // 底部狀態列
+            if (mousePos.x >= Screen.width - PaletteW) return true; // 右側屬性面板
             if (_showNew && CenteredRect(420, 380).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showSave && CenteredRect(460, 210).Contains(new Vector2(mousePos.x, ty))) return true;
             if (_showLoad && CenteredRect(460, 340).Contains(new Vector2(mousePos.x, ty))) return true;
@@ -252,14 +266,16 @@ namespace DipanMapEditor.UI
             if (_showScreenFx && CenteredRect(560, 360).Contains(new Vector2(mousePos.x, ty))) return true;
             if (CurrentTool == EditTool.EffectPreview) return true; // 預覽器佔滿畫面，不編輯地圖
             if (CurrentTool == EditTool.Object && ObjCtl()?.Selected != null
-                && mousePos.x <= InspectorW && ty >= Screen.height - InspectorH)
-                return true;                                // 物件選取面板
+                && mousePos.x <= RailW + InspectorW && ty >= Screen.height - StatusH - InspectorH)
+                return true;                                // 物件選取面板（已往右讓開工具列）
             return false;
         }
 
         void OnGUI()
         {
             DrawTopBar();
+            DrawToolRail();
+            DrawStatusBar();
             if (CurrentTool == EditTool.Object)
             {
                 DrawObjectPalette();
@@ -288,11 +304,11 @@ namespace DipanMapEditor.UI
             else if (CurrentTool == EditTool.EffectPreview)
             {
                 if (_preview == null) _preview = new EffectPreviewUI();
-                _preview.Draw(new Rect(0, TopBarH, Screen.width, Screen.height - TopBarH));
-            }
-            else
-            {
-                DrawPalette();
+                var pvRect = new Rect(RailW, TopBarH, Screen.width - RailW, Screen.height - TopBarH - StatusH);
+                _preview.Draw(pvRect);
+                // 關閉鈕畫在預覽器之後 → 疊在它上面。預覽器佔滿整塊可視區，沒有出口的話只能靠切別的工具離開。
+                if (GUI.Button(new Rect(pvRect.xMax - 96f, pvRect.y + 6f, 88f, 24f), "✕ 關閉"))
+                    CurrentTool = _toolBeforePreview;
             }
             if (_showNew) DrawNewDialog();
             if (_showSave) DrawSaveDialog();
@@ -353,45 +369,74 @@ namespace DipanMapEditor.UI
                     : "照明預覽關閉";
             }
             GUI.color = Color.white;
-            GUI.color = Color.white;
 
             GUILayout.Space(12);
-            // 工具切換
-            GUI.color = CurrentTool == EditTool.TilePaint ? Color.cyan : Color.white;
-            if (GUILayout.Button("畫", GUILayout.Width(40))) CurrentTool = EditTool.TilePaint;
-            GUI.color = CurrentTool == EditTool.Erase ? Color.cyan : Color.white;
-            if (GUILayout.Button("擦", GUILayout.Width(40))) CurrentTool = EditTool.Erase;
-            GUI.color = CurrentTool == EditTool.Object ? Color.cyan : Color.white;
-            if (GUILayout.Button("物件", GUILayout.Width(50))) CurrentTool = EditTool.Object;
-            GUI.color = CurrentTool == EditTool.Walkable ? Color.cyan : Color.white;
-            if (GUILayout.Button("可走", GUILayout.Width(50))) CurrentTool = EditTool.Walkable;
-            GUI.color = CurrentTool == EditTool.Trigger ? Color.cyan : Color.white;
-            if (GUILayout.Button("Trigger", GUILayout.Width(70))) { CurrentTool = EditTool.Trigger; TriggerPaintMode = true; }
-            GUI.color = Color.white;   // 旗標不是工具，永遠白（否則會沿用上一顆 Trigger 的 cyan 而看起來被選取）
-            if (GUILayout.Button("旗標", GUILayout.Width(50))) { if (CurrentTool == EditTool.EffectPreview) CurrentTool = EditTool.TilePaint; _showFlags = true; _flagMsg = ""; }
-            GUI.color = CurrentTool == EditTool.SceneFx ? Color.cyan : Color.white;
-            if (GUILayout.Button("場景特效", GUILayout.Width(80))) CurrentTool = EditTool.SceneFx;
-            GUI.color = CurrentTool == EditTool.Light ? Color.cyan : Color.white;
-            if (GUILayout.Button("照明", GUILayout.Width(50))) CurrentTool = EditTool.Light;
-            GUI.color = CurrentTool == EditTool.Cutscene ? Color.cyan : Color.white;
-            if (GUILayout.Button("劇情", GUILayout.Width(50))) CurrentTool = EditTool.Cutscene;
-            GUI.color = CurrentTool == EditTool.EffectPreview ? Color.cyan : Color.white;
-            if (GUILayout.Button("特效預覽器", GUILayout.Width(90)))
+            // 旗標不是工具（開的是彈窗），特效預覽器是佔滿畫面的獨立模式（不編輯地圖）——
+            // 兩者都不屬於左側工具列，留在頂部列。
+            if (GUILayout.Button("旗標", GUILayout.Width(50)))
             {
-                CurrentTool = EditTool.EffectPreview;
-                _showNew = _showSave = _showLoad = _showBg = _showFlags = _showScreenFx = false; // 開預覽器就收起所有彈窗（含新建地圖）
+                if (CurrentTool == EditTool.EffectPreview) CurrentTool = _toolBeforePreview;
+                _showFlags = true; _flagMsg = "";
+            }
+            // 特效預覽器：可切換——已經在預覽器裡就按同一顆退出，回到進來前的工具。
+            GUI.color = CurrentTool == EditTool.EffectPreview ? Color.cyan : Color.white;
+            if (GUILayout.Button(CurrentTool == EditTool.EffectPreview ? "關閉預覽器" : "特效預覽器", GUILayout.Width(90)))
+            {
+                if (CurrentTool == EditTool.EffectPreview) CurrentTool = _toolBeforePreview;
+                else
+                {
+                    _toolBeforePreview = CurrentTool;
+                    CurrentTool = EditTool.EffectPreview;
+                    _showNew = _showSave = _showLoad = _showBg = _showFlags = _showScreenFx = false; // 開預覽器就收起所有彈窗（含新建地圖）
+                }
             }
             GUI.color = Color.white;
 
-            GUILayout.Space(12);
+            // 地圖資訊與狀態訊息移到底部狀態列（原本夾在按鈕中間，長度不固定，是把頂部列擠爆的主因之一）
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+            GUILayout.EndArea();
+        }
+
+        // ---- 左側垂直工具列 ----
+        // 工具從橫排改成直排：垂直空間幾乎用不完，之後再加工具也不會像橫排那樣往螢幕外擠。
+        void DrawToolRail()
+        {
+            GUILayout.BeginArea(new Rect(0, TopBarH, RailW, Screen.height - TopBarH - StatusH), GUI.skin.box);
+            GUILayout.Space(4);
+            RailButton("物件", EditTool.Object);
+            RailButton("可走", EditTool.Walkable);
+            RailButton("Trigger", EditTool.Trigger);
+            GUILayout.Space(10);
+            RailButton("場景特效", EditTool.SceneFx);
+            RailButton("照明", EditTool.Light);
+            RailButton("劇情", EditTool.Cutscene);
+            GUILayout.EndArea();
+        }
+
+        void RailButton(string label, EditTool tool)
+        {
+            GUI.color = CurrentTool == tool ? Color.cyan : Color.white;
+            if (GUILayout.Button(label, GUILayout.Width(66), GUILayout.Height(32)))
+            {
+                CurrentTool = tool;
+                if (tool == EditTool.Trigger) TriggerPaintMode = true;   // 沿用舊行為：切到 Trigger 就進塗格模式
+            }
+            GUI.color = Color.white;
+        }
+
+        // ---- 底部狀態列 ----
+        void DrawStatusBar()
+        {
+            GUILayout.BeginArea(new Rect(0, Screen.height - StatusH, Screen.width, StatusH), GUI.skin.box);
+            GUILayout.BeginHorizontal();
             var map = MapSession.Instance?.Map;
             if (map != null)
                 GUILayout.Label($"地圖：{map.name}　|　module：{map.module}　|　{map.width}×{map.height} 格　|　tile {map.tileSize}");
             else
                 GUILayout.Label("尚無地圖，請按「新建地圖」");
-
             GUILayout.FlexibleSpace();
-            if (!string.IsNullOrEmpty(_statusMsg)) GUILayout.Label(_statusMsg);
+            if (!string.IsNullOrEmpty(_statusMsg)) { GUILayout.Label(_statusMsg); GUILayout.Space(16); }
             GUILayout.Label("左鍵畫/擦　中鍵·右鍵平移　滾輪縮放");
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
@@ -402,7 +447,7 @@ namespace DipanMapEditor.UI
         /// <summary>對話框互斥：開其中一個就關掉其他。</summary>
         void OpenDialog(bool newDlg = false, bool saveDlg = false, bool loadDlg = false, bool bgDlg = false)
         {
-            if (CurrentTool == EditTool.EffectPreview) CurrentTool = EditTool.TilePaint; // 從預覽器點「新建/存/讀/背景」→ 先離開預覽器
+            if (CurrentTool == EditTool.EffectPreview) CurrentTool = _toolBeforePreview; // 從預覽器點「新建/存/讀/背景」→ 先離開預覽器
             _showNew = newDlg;
             _showSave = saveDlg;
             _showLoad = loadDlg;
@@ -511,119 +556,11 @@ namespace DipanMapEditor.UI
                 ObjCtl()?.Deselect();
                 CurrentRegion = null;
                 _triggerType = null;
-                _blockId = null; _objects = null;
+                _objects = null;
                 _statusMsg = $"已讀入：{Path.GetFileName(path)}";
             }
             else _statusMsg = $"讀檔失敗：{Path.GetFileName(path)}";
             OpenDialog();   // 關掉所有對話框（含開機殘留的新建對話框）
-        }
-
-        // ---- 地磚調色盤（依拼接圖原始格狀排列，可拖曳框選整塊） ----
-
-        public bool HasTileBrush => !string.IsNullOrEmpty(_blockId) && _blockCols > 0;
-        public int TileBrushW => Mathf.Abs(_blockC1 - _blockC0) + 1;
-        public int TileBrushH => Mathf.Abs(_blockR1 - _blockR0) + 1;
-        public string TileBrushAt(int dx, int dy)
-        {
-            int cmin = Mathf.Min(_blockC0, _blockC1), rmin = Mathf.Min(_blockR0, _blockR1);
-            int idx = (rmin + dy) * _blockCols + (cmin + dx);
-            return $"{_blockId}#{idx}";
-        }
-
-        List<CatalogItem> TilesetItems()
-        {
-            var list = new List<CatalogItem>();
-            var cat = MapSession.Instance?.Catalog;
-            string module = MapSession.Instance?.Map?.module ?? "";
-            if (cat == null) return list;
-            foreach (var it in cat.items)
-                if (TilesetService.IsTilesetCategory(it.category) && (it.module == "Main" || it.module == module))
-                    list.Add(it);
-            return list;
-        }
-
-        bool InTileSelection(int c, int r)
-        {
-            int cmin = Mathf.Min(_blockC0, _blockC1), cmax = Mathf.Max(_blockC0, _blockC1);
-            int rmin = Mathf.Min(_blockR0, _blockR1), rmax = Mathf.Max(_blockR0, _blockR1);
-            return c >= cmin && c <= cmax && r >= rmin && r <= rmax;
-        }
-
-        void DrawPalette()
-        {
-            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
-            GUILayout.BeginArea(rect, GUI.skin.box);
-
-            GUILayout.Label("地磚調色盤");
-            GUILayout.Label(HasTileBrush ? $"選取：{Short(_blockId)} {TileBrushW}×{TileBrushH}" : "未選取");
-            GUILayout.Label("在地磚上左鍵拖曳框選多格，\n再到地圖上點/拖一次貼整塊。");
-            GUILayout.Space(4);
-
-            var tilesets = TilesetItems();
-            if (tilesets.Count == 0)
-            {
-                GUILayout.Label("沒有可畫的地磚。\n請把地磚 texture 放進關卡的\nTiles 資料夾，再同步素材。");
-                GUILayout.EndArea();
-                return;
-            }
-
-            // 預設選取（或選取的 tileset 不在當前清單時重設）；ESC 清過就不自動選回
-            if (!_tileBrushCleared && (string.IsNullOrEmpty(_blockId) || tilesets.FindIndex(it => it.id == _blockId) < 0))
-                SelectTileBlockDefault(tilesets[0]);
-
-            var e = Event.current;
-
-            foreach (var item in tilesets)
-            {
-                var tex = SpriteCache.GetTexture(item);
-                if (tex == null) continue;
-                int cols = Mathf.Max(1, tex.width / TileNativePx);
-                int rows = Mathf.Max(1, tex.height / TileNativePx);
-                float cell = Thumb;
-
-                GUILayout.Label(Short(item.id));
-                Rect area = GUILayoutUtility.GetRect(cols * cell, rows * cell,
-                    GUILayout.Width(cols * cell), GUILayout.Height(rows * cell));
-
-                for (int r = 0; r < rows; r++)
-                    for (int c = 0; c < cols; c++)
-                    {
-                        Rect cr = new Rect(area.x + c * cell, area.y + r * cell, cell - 1, cell - 1);
-                        var tc = new Rect((float)c / cols, 1f - (float)(r + 1) / rows, 1f / cols, 1f / rows);
-                        if (e.type == EventType.Repaint) GUI.DrawTextureWithTexCoords(cr, tex, tc);
-                        if (item.id == _blockId && InTileSelection(c, r)) DrawBorder(cr, Color.cyan);
-                    }
-
-                // 拖曳框選（限本 tileset 範圍）
-                if (e.button == 0 && (e.type == EventType.MouseDown || e.type == EventType.MouseDrag)
-                    && area.Contains(e.mousePosition))
-                {
-                    int c = Mathf.Clamp((int)((e.mousePosition.x - area.x) / cell), 0, cols - 1);
-                    int r = Mathf.Clamp((int)((e.mousePosition.y - area.y) / cell), 0, rows - 1);
-                    if (e.type == EventType.MouseDown)
-                    {
-                        _blockId = item.id; _blockCols = cols;
-                        _blockC0 = _blockC1 = c; _blockR0 = _blockR1 = r;
-                        _blockDragging = true; _tileBrushCleared = false; e.Use();
-                    }
-                    else if (_blockDragging && _blockId == item.id)
-                    {
-                        _blockC1 = c; _blockR1 = r; e.Use();
-                    }
-                }
-            }
-
-            if (e.type == EventType.MouseUp && e.button == 0) _blockDragging = false;
-
-            GUILayout.EndArea();
-        }
-
-        void SelectTileBlockDefault(CatalogItem item)
-        {
-            var tex = SpriteCache.GetTexture(item);
-            _blockId = item.id;
-            _blockCols = tex != null ? Mathf.Max(1, tex.width / TileNativePx) : 1;
-            _blockC0 = _blockR0 = _blockC1 = _blockR1 = 0;
         }
 
         static void DrawBorder(Rect r, Color color)
@@ -658,7 +595,7 @@ namespace DipanMapEditor.UI
             bool repaint = Event.current.type == EventType.Repaint;
             if (repaint) _hoverObj = null;
 
-            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            var rect = PanelRect;
             GUILayout.BeginArea(rect, GUI.skin.box);
 
             GUILayout.Label($"地上物（{_objects.Count}）");
@@ -736,8 +673,8 @@ namespace DipanMapEditor.UI
             var sel = ctl.Selected;
             if (sel == null) return;
 
-            float h = Mathf.Min(InspectorH, Screen.height - TopBarH - 8f);
-            var rect = new Rect(0, Screen.height - h, InspectorW, h);
+            float h = Mathf.Min(InspectorH, Screen.height - TopBarH - StatusH - 8f);
+            var rect = new Rect(RailW, Screen.height - StatusH - h, InspectorW, h);
             GUILayout.BeginArea(rect, GUI.skin.box);
             GUILayout.Label($"選取：{Short(sel.assetId)}　縮放 {sel.scaleX:0.00}　角度 {sel.rot:0}°　層 {sel.zOrder}");
 
@@ -1024,7 +961,7 @@ namespace DipanMapEditor.UI
         // 多選時的精簡面板：只給整組操作（複製全部／刪除全部／取消）。單物件的座標/翻轉/縮放等仍需回到單選才顯示。
         void DrawMultiObjectInspector(DipanMapEditor.Tools.ObjectController ctl)
         {
-            var rect = new Rect(0, Screen.height - 132, InspectorW, 132);
+            var rect = new Rect(RailW, Screen.height - StatusH - 132, InspectorW, 132);
             GUILayout.BeginArea(rect, GUI.skin.box);
             GUILayout.Label($"已選 {ctl.SelectionCount} 個地上物");
             GUILayout.Label("Cmd＋點＝加選／取消　Ctrl＋拖＝一起移動");
@@ -1097,7 +1034,7 @@ namespace DipanMapEditor.UI
         void DrawWalkablePanel()
         {
             var map = MapSession.Instance?.Map;
-            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            var rect = PanelRect;
             GUILayout.BeginArea(rect, GUI.skin.box);
 
             GUILayout.Label("可走 / 牆 / 水");
@@ -1163,7 +1100,7 @@ namespace DipanMapEditor.UI
             if (CurrentRegion != null && !regions.Contains(CurrentRegion)) CurrentRegion = null;
             if (string.IsNullOrEmpty(_triggerType) && types.types.Count > 0) _triggerType = types.types[0].typeId;
 
-            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            var rect = PanelRect;
             GUILayout.BeginArea(rect, GUI.skin.box);
             _trigScroll = GUILayout.BeginScrollView(_trigScroll);
 
@@ -1553,7 +1490,7 @@ namespace DipanMapEditor.UI
             var ctl = SfxCtl();
             if (map == null || ctl == null) return;
 
-            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            var rect = PanelRect;
             GUILayout.BeginArea(rect, GUI.skin.box);
             _sfxScroll = GUILayout.BeginScrollView(_sfxScroll);
 
@@ -1657,7 +1594,7 @@ namespace DipanMapEditor.UI
             if (map == null || ctl == null) return;
             if (map.lights == null) map.lights = new List<Data.LightInstance>();
 
-            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            var rect = PanelRect;
             GUILayout.BeginArea(rect, GUI.skin.box);
             _lightScroll = GUILayout.BeginScrollView(_lightScroll);
 
@@ -1916,7 +1853,7 @@ namespace DipanMapEditor.UI
             var ctl = CsCtl();
             if (map == null || ctl == null) return;
 
-            var rect = new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH);
+            var rect = PanelRect;
             GUILayout.BeginArea(rect, GUI.skin.box);
             _csScroll = GUILayout.BeginScrollView(_csScroll);
 

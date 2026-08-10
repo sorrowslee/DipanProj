@@ -1,5 +1,22 @@
 # 目前進度 (Current Progress)
 
+* [x] **移除地磚（tile）系統 ＋ 特效預覽器補關閉鈕**（2026-08-10，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：作者說「這專案基本不走 tile 路線了」，要拔掉「畫」「擦」與相關功能，但要求**先確認是否真的完全不需要、拔掉會不會出事**。
+  **先驗證再動手**，三條證據都指向可以安全拔：① 掃過全部 69 個 `.dipanmap`（含 build 副本），**`tiles` 總數為 0**——沒有任何一張地圖放過地磚，地面全靠背景圖＋地上物；② `GameAssets/Main/Tiles/` 與 `GameAssets/Modules/RedBridalGown/Tiles/` **原始素材夾是空的**，StreamingAssets 裡那 3 張 `tile1~3.png` 是舊同步留下的殘骸，最新的 catalog 已經沒有 `Tiles` 分類；③ 程式面完全隔離，唯一的跨界只有素材分類白名單。
+  **關鍵是把 `tileSize` 和 `tiles` 分清楚**：`tiles` 是放下去的地磚（要拔），`tileSize` 是「一格等於幾個世界單位」——可走層子格、地上物座標、鏡頭框景、A* 導航格全都靠它，**動了會整個專案錯位**。查引用時特意把兩者分開列，確認 `tileSize` 在 20 個檔案有用到、一個都不能碰。另外 `GroundEffectInstance` 也有一個 `BuildTiles()`，那是地面特效鋪格用的**同名巧合**，不是地磚系統。
+  **拔除範圍**：工具列舉 `TilePaint`/`Erase`；`PaintController`／`TilemapView`／`TileBrushPreview`／`TilesetService` 四支整檔；EditorUI 的地磚調色盤整段（約 4700 字元，含 `HasTileBrush`/`TileBrushAt`/`TilesetItems`/`DrawPalette`/`SelectTileBlockDefault`）與筆刷狀態欄位；資料層 `TilePlacement` 與 `LayerData.tiles`（**兩個專案都要**，是雙專案鏡像的資料類別）；`MapCoords` 只給 TilemapView 用的 `ToTilemapCell`/`FromTilemapCell`；遊戲端 `MapLoader.BuildTiles()` 與 `buildTiles` 旗標；`MapSession` resize 時裁地磚的邏輯；`M0SelfTest` 放地磚的驗證。**素材白名單也一併移除 `Tiles`**——`MapAssetCategories.All` ＋ 主專案 `sync_map_assets.sh` 的 `CATS` ＋ 編輯器 `sync_assets.sh` 的 `copy_flat`，正是 [PROBLEMS.md](PROBLEMS.md) C8 說的「分類要改多處」那條線，這次是反過來走一遍。
+  **`.dipanmap` 相容性零風險**：Newtonsoft 預設忽略 JSON 裡多出來的屬性，舊檔的 `"tiles": []` 讀進來直接被跳過，存檔時不再寫出。因為實際 tiles 數是 0，連「資料遺失」的可能性都沒有。
+  **預設工具改成「物件」**（原本是 `TilePaint`，拔掉後會指向不存在的列舉值）；離開特效預覽器時原本也是退回 `TilePaint`，改成**退回進來前停的那個工具**（新增 `_toolBeforePreview`）。
+  **特效預覽器的關閉鈕**（作者回報「打開後找不到地方關，只能點其他頁籤」）：做了兩個出口——① 頂部那顆按鈕改成可切換，在預覽器裡會顯示「關閉預覽器」；② 預覽器右上角疊一顆「✕ 關閉」（**畫在 `_preview.Draw()` 之後**，IMGUI 後畫的蓋在上面）。兩者都退回進來前的工具，不會像以前那樣被丟回地磚工具。
+  **⚠ 被移除的四支檔案搬到 `DipanProj_MapEditor/_to_delete/tile-system/`**——橋接器不允許刪檔，而且**不能留在 `Assets/` 底下**（Unity 照樣會編譯，會因為找不到 `TilePlacement` 而整包編不過），所以搬到 Assets 外面。作者確認後自行刪除該資料夾即可。
+
+* [x] **地圖編輯器版面重整：左側工具列＋底部狀態列＋相機讓位**（2026-08-10，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：作者貼圖回報「照明的選項被擠到外面去了」，並說「之前就覺得這個介面不太友善」。**先量再改**：頂部列是單一橫排，18 顆按鈕加起來約 1160px，中間還夾了一條長度不固定的地圖資訊 label（`地圖：… | module：… | 18×10 格 | tile 1`）——IMGUI 的固定寬 `GUILayout.Button` 不會縮，超出區域就直接畫到畫面外，所以照明／劇情／特效預覽器整排掉出螢幕。**這半年已經發生兩次**（加場景特效一次、加照明一次），是結構問題不是偶發。
+  **診斷時把兩個問題分開**：① 按鈕溢出＝排版問題；② **右側面板用 `GUILayout.BeginArea` 直接蓋在場景上**，地圖右緣永遠有 240px 看不到、擺東西得一直平移鏡頭＝結構問題。做了三個版面方案的 HTML mockup 讓作者比較（現況／兩列止血／左側工具列＋相機讓位／再加可收合），作者選了中間那個。
+  **核心改動是「相機讓位」**：新增 `Core/EditorViewport.cs`，把 `Camera.rect` 縮到「扣掉左側工具列、右側面板、頂部列、底部狀態列」的中央區域，面板從此是**排在旁邊**而不是蓋在上面。Unity 會自動連帶處理三件事，所以其他程式一行都不用改：`Camera.aspect` 變成可視區比例 → 聚焦（`FrameMap`）自動以可視區為準；`ScreenToWorldPoint` 會考慮 `pixelRect` → 塗格/放置/拖曳的滑鼠座標自動正確；`OnPostRender` 的 GL 參考線也一併被限制在可視區內。
+  **⚠ 踩到的坑：`Camera.rect` 以外的區域不會被相機清除**，會殘留上一幀畫面，而 IMGUI 的 box 底圖是半透明的蓋不住。解法是另外生一台「只負責清背景」的相機（`cullingMask = 0`、`clearFlags = SolidColor`、rect 全螢幕、depth 比主相機低 100），主相機改成只清深度。那台相機刻意**不掛 MainCamera tag**——全專案的工具都用 `Camera.main` 或 `GetComponent<Camera>()` 取相機（查過 20 處），不掛 tag 就不會被誤抓。
+  **版面**：工具（畫/擦/物件/可走/Trigger/場景特效/照明/劇情）從橫排改成**左側垂直工具列**（`RailW=76`）——垂直空間幾乎用不完，之後再加工具也不會重演這次的溢出；頂部列只留檔案與檢視操作，加上**旗標**（開的是彈窗、不是工具）與**特效預覽器**（佔滿畫面的獨立模式）；地圖資訊與狀態訊息移到**底部狀態列**。頂部列從約 1160px 降到約 740px。
+  **順手收斂一個技術債**：右側面板的 rect 原本在 7 個地方各寫一份 `new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH)`，改版面時等於要改 7 次、漏一個就有面板蓋到狀態列。全部收斂成單一 `PanelRect` 屬性，`ViewportRect` 也放在同一處當「版面唯一真相」供 `EditorViewport` 取用。地上物選取面板（左下角）與多選面板同步往右讓開工具列、往上讓開狀態列，`IsPointerOverUI` 補上這兩塊新的 UI 區域（漏掉的話點工具列會連帶在地圖上塗一筆）。
+  **這次刻意沒做**（作者選「專心做版面」）：數字鍵切工具、面板改可折疊分區、工具列改圖示。可收合／可拖曳寬度的面板（C 案）也留著，等版面用一陣子有感覺再說。
+
 * [x] **地圖編輯器加上「照明預覽」與拖曳光源（順便修掉自己造成的回歸）**（2026-08-10，見 [ATMOSPHERE.md](ATMOSPHERE.md)）：作者實測獨立光源「效果不錯，但在編輯器上完全看不到效果」，提三點：① 放完要能立刻看到實際狀況並隨參數變動 ② 要能像拖地上物一樣拖曳 ③ 編輯器要有壓暗效果、不用跟遊戲 shader 一模一樣。
   **先講踩到的坑**：查接線時發現 `EditorBootstrap` 裡 **`LightOverlay` 的註冊行不見了**——是我自己上一輪弄掉的。做獨立光源那次，我從 `/mnt/user-data/uploads` 的**舊快照**複製 `EditorBootstrap.cs` 到工作目錄，那份是「加 LightOverlay 之前」的版本；在它上面加完 LightController 就整份覆蓋回去，等於把 LightOverlay 那行還原了。所以作者連光圈參考線都沒看到，不只是沒有明暗。**教訓正是既有工作慣例寫過的那條「確認檔案用 device_bash 別信 staged 快照」——但我只用在『讀來確認』，沒用在『複製來當編輯基底』**，而後者才是真正會造成回歸的路徑。之後凡是要再次編輯已經送出去的檔案，一律重新 stage 取得當下版本。
   **② 拖曳**：`LightController` 加拖曳狀態機。兩個刻意的細節：位移用「**按下當時的滑鼠世界座標 → 現在的滑鼠世界座標**」算，而不是把燈心貼到滑鼠——否則點到把手邊緣時燈會瞬移一段，手感很差（照抄 `ObjectController` 的 `_dragStart` 做法）；**Undo 只在「真的移動了」的第一幀推一筆**，而且推之前先把座標還原成拖曳起點，快照才會是「拖之前」的樣子（純點選不該產生一筆 Undo，每幀推一筆則會讓 Undo 堆爆掉）。把手在 `LightOverlay` 畫成圓＋十字，**大小與 `PickNearest` 的 `pickR` 綁在同一個式子**（`max(0.4, tileSize×0.5)`）——兩邊不一致就會出現「看得到卻抓不到」這種最難查的錯位。

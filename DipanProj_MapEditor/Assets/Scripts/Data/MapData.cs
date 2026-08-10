@@ -91,7 +91,6 @@ namespace DipanMapEditor.Data
             map.layers.Add(new LayerData
             {
                 id = "game-1", name = "遊戲圖層", type = LayerType.Game,
-                tiles = new List<TilePlacement>(),
                 objects = new List<ObjectInstance>(),
             });
 

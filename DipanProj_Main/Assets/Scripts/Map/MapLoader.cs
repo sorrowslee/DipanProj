@@ -40,7 +40,6 @@ public class MapLoader : MonoBehaviour
 
     [Header("開關")]
     public bool buildBackground = true;
-    public bool buildTiles = true;
     public bool buildObjects = true;
     public bool addObjectColliders = true;
     public bool buildWalls = true;
@@ -110,7 +109,6 @@ public class MapLoader : MonoBehaviour
 
         BuildRoot();
         if (buildBackground) BuildBackground();
-        if (buildTiles) BuildTiles();
         if (buildObjects) BuildObjects();
         if (buildWalls || buildBlockers) BuildCellColliders();
         if (buildTeleportMarkers) BuildTeleportMarkers();
@@ -142,7 +140,6 @@ public class MapLoader : MonoBehaviour
         onProgress?.Invoke(0.1f);
         yield return null;
 
-        if (buildTiles) BuildTiles();
         onProgress?.Invoke(0.2f);
         yield return null;
 
@@ -288,42 +285,6 @@ public class MapLoader : MonoBehaviour
         if (size.x > 0f && size.y > 0f)
             go.transform.localScale = new Vector3(w / size.x, h / size.y, 1f);
         go.transform.position = new Vector3(_map.origin.x + w / 2f, _map.origin.y - h / 2f, 0f);
-    }
-
-    // ---- 地磚（本圖為空，但完整支援）----
-    void BuildTiles()
-    {
-        var layer = _map.GameLayer;
-        if (layer?.tiles == null || layer.tiles.Count == 0) return;
-
-        var gridGO = new GameObject("Tiles_Grid");
-        gridGO.transform.SetParent(_root, false);
-        var grid = gridGO.AddComponent<Grid>();
-        grid.cellSize = new Vector3(_map.tileSize, _map.tileSize, 0f);
-        float bottom = _map.origin.y - _map.height * _map.tileSize;
-        grid.transform.position = new Vector3(_map.origin.x, bottom, 0f);
-
-        var tmGO = new GameObject("Tilemap");
-        tmGO.transform.SetParent(gridGO.transform, false);
-        var tilemap = tmGO.AddComponent<Tilemap>();
-        var renderer = tmGO.AddComponent<TilemapRenderer>();
-        renderer.sortingOrder = 0;
-
-        var tileCache = new Dictionary<string, Tile>();
-        foreach (var t in layer.tiles)
-        {
-            if (string.IsNullOrEmpty(t.tileId)) continue;
-            if (!tileCache.TryGetValue(t.tileId, out var tile))
-            {
-                var sprite = _sprites.ResolveTileSprite(t.tileId, _catalog, _map.tileSize);
-                if (sprite == null) { Debug.LogWarning($"[MapLoader] tile sprite 找不到：{t.tileId}"); continue; }
-                tile = ScriptableObject.CreateInstance<Tile>();
-                tile.sprite = sprite;
-                tile.colliderType = Tile.ColliderType.None;
-                tileCache[t.tileId] = tile;
-            }
-            tilemap.SetTile(MapCoords.ToTilemapCell(t.x, t.y, _map.height), tile);
-        }
     }
 
     // ---- 地上物 ----

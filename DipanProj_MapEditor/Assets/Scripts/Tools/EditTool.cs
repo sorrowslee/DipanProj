@@ -1,10 +1,12 @@
 namespace DipanMapEditor.Tools
 {
-    /// <summary>當前編輯工具。後續會再擴充 trigger。</summary>
+    /// <summary>
+    /// 當前編輯工具。
+    /// 2026-08-10 移除 TilePaint／Erase：本專案的地面一律用整張背景圖 ＋ 地上物，不走地磚路線
+    /// （全部 .dipanmap 的 tiles 數量實測為 0，Tiles/ 原始素材夾也是空的）。
+    /// </summary>
     public enum EditTool
     {
-        TilePaint,  // 畫地磚
-        Erase,      // 擦地磚
         Object,     // 地上物：放置/選取/翻轉/縮放/移動
         Walkable,   // 可走/不可走筆刷
         Trigger,    // Trigger 區域：類型/區域/塗格/參數

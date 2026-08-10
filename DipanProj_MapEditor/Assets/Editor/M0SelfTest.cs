@@ -23,8 +23,7 @@ namespace DipanMapEditor.EditorTools
             // 1. 建空白地圖（預設一個螢幕 18x10、可走層全不可走）
             var map = MapData.CreateBlank("SelfTest", "RedBridalGown", 1f, 18, 10);
 
-            // 放一塊 tile、一個物件、一個傳送點 trigger，測三層 payload
-            map.GameLayer.tiles.Add(new TilePlacement { x = 3, y = 5, tileId = "Modules/RedBridalGown/Tiles/Floor_0" });
+            // 放一個物件、一個傳送點 trigger，測各層 payload
             map.GameLayer.objects.Add(new ObjectInstance
             {
                 assetId = "Modules/RedBridalGown/Prefabs/Table",
@@ -52,7 +51,6 @@ namespace DipanMapEditor.EditorTools
                 loaded.layers.Count == 3 &&
                 loaded.WalkableLayer.blocked.Count == 10 &&
                 loaded.WalkableLayer.blocked[0] == new string('1', 18) &&
-                loaded.GameLayer.tiles.Count == 1 &&
                 loaded.GameLayer.objects.Count == 1 &&
                 loaded.GameLayer.objects[0].flipX &&
                 loaded.TriggerLayer.regions.Count == 1 &&

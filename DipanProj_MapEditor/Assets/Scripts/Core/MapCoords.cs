@@ -73,15 +73,5 @@ namespace DipanMapEditor.Core
         public static bool InBoundsFine(int fx, int fy, MapData map)
             => fx >= 0 && fy >= 0 && fx < map.FineWidth && fy < map.FineHeight;
 
-        /// <summary>
-        /// 地圖格 (gx,gy)（左上原點、y 往下）→ Unity Tilemap cell（左下原點、y 往上）。
-        /// 搭配 TilemapView 把 Grid 物件擺在地圖左下角。
-        /// </summary>
-        public static Vector3Int ToTilemapCell(int gx, int gy, int height)
-            => new Vector3Int(gx, height - 1 - gy, 0);
-
-        /// <summary>Tilemap cell → 地圖格。</summary>
-        public static Vector2Int FromTilemapCell(Vector3Int cell, int height)
-            => new Vector2Int(cell.x, height - 1 - cell.y);
     }
 }

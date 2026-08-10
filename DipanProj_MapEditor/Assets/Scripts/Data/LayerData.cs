@@ -28,7 +28,6 @@ namespace DipanMapEditor.Data
 
         // ---- Game payload ----
         /// <summary>格對齊的 tile（地板/牆壁）。</summary>
-        public List<TilePlacement> tiles;
         /// <summary>自由變換的物件（家具等）。</summary>
         public List<ObjectInstance> objects;
 
@@ -42,14 +41,6 @@ namespace DipanMapEditor.Data
         // ---- Trigger payload ----
         /// <summary>Trigger 區域，允許重疊、同型多塊（以 name 區分）。</summary>
         public List<TriggerRegion> regions;
-    }
-
-    /// <summary>單一格 tile 放置：格座標 + 素材 ID（字串，對應 catalog）。</summary>
-    public class TilePlacement
-    {
-        public int x;
-        public int y;
-        public string tileId;
     }
 
     /// <summary>自由變換的物件實例：位置（世界單位）、翻轉、縮放、Y-sort。</summary>

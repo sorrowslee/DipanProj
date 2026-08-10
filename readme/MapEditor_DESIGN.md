@@ -6,6 +6,59 @@
 
 ---
 
+> ### ⚠️ 地磚系統已移除（2026-08-10）
+> 本專案的地面一律用**整張背景圖 ＋ 地上物**，不走地磚路線。
+> 移除前實測：全部 `.dipanmap` 的 `tiles` 數量為 **0**、`GameAssets/**/Tiles/` 原始素材夾是空的。
+>
+> 已拿掉：工具「畫」「擦」（`EditTool.TilePaint` / `Erase`）、地磚調色盤、`PaintController`、
+> `TilemapView`、`TileBrushPreview`、`TilesetService`、資料層 `TilePlacement` 與 `LayerData.tiles`（兩個專案）、
+> 遊戲端 `MapLoader.BuildTiles()`、素材白名單的 `Tiles` 分類（`MapAssetCategories.All` ＋ 兩支 sync 腳本）。
+> 被移除的檔案搬到 `DipanProj_MapEditor/_to_delete/tile-system/`（橋接器不能刪檔，需自行刪除）。
+>
+> **`tileSize` 不是地磚系統**，它是「一格等於幾個世界單位」，可走層、地上物座標、鏡頭、A* 全都靠它，**必須保留**。
+>
+> 下面文件中提到地磚／`Tiles/`／畫擦工具的段落屬於歷史記錄，未逐段刪除。
+
+## 版面（2026-08-10 重整）
+
+```
+┌──────────────────────────────────────────────────────────┐
+│ 頂部列 34px：新建/存檔/讀檔 · 聚焦/刷新素材/背景 · 顯示底部ui/照明預覽 · 旗標/特效預覽器 │
+├──────┬────────────────────────────────────┬──────────────┤
+│ 左側  │                                    │  右側屬性面板  │
+│ 工具列 │        場景（Camera.rect 只畫這塊）      │   240px      │
+│ 76px  │                                    │  PanelRect   │
+├──────┴────────────────────────────────────┴──────────────┤
+│ 底部狀態列 26px：地圖名 / module / 尺寸 ‧‧‧ 狀態訊息 ‧ 操作提示    │
+└──────────────────────────────────────────────────────────┘
+```
+
+**版面尺寸的唯一真相在 `EditorUI`**：`TopBarH` / `RailW` / `StatusH` / `PaletteW` 四個常數，
+加上兩個算好的矩形——`PanelRect`（所有右側面板共用）與 `ViewportRect`（場景可視區）。
+**新增面板時一律用 `PanelRect`，不要自己寫座標**（以前 7 個面板各寫一份，改版面要改 7 次）。
+
+### 為什麼工具在左側而不是頂部
+
+頂部橫排每加一個工具就往右擠一格，2026 年已經溢出兩次（加場景特效、加照明），
+第二次直接把三顆按鈕擠到螢幕外。垂直排列的空間幾乎用不完，是結構上的解法而非止血。
+
+### 相機讓位（`Core/EditorViewport.cs`）
+
+面板以前是 `GUILayout.BeginArea` **蓋在**場景上，地圖右緣永遠有 240px 看不到。
+現在把 `Camera.rect` 縮到 `ViewportRect`，面板變成排在旁邊。Unity 自動連帶處理：
+
+- `Camera.aspect` → 可視區比例，聚焦 `FrameMap` 自動正確
+- `Camera.ScreenToWorldPoint` → 考慮 `pixelRect`，塗格/放置/拖曳座標自動正確
+- `OnPostRender` 的 GL 參考線 → 一併限制在可視區內
+
+> ⚠ **`Camera.rect` 以外不會被清除**，會殘留上一幀畫面（IMGUI 的 box 底圖是半透明的，蓋不住）。
+> 所以另外生一台只負責清背景的相機：`cullingMask = 0`、`clearFlags = SolidColor`、rect 全螢幕、
+> depth 比主相機低 100，主相機改成只清深度。
+> 那台相機**刻意不掛 MainCamera tag** —— 全專案工具都用 `Camera.main` 取相機，掛了就會抓錯。
+
+> ⚠ 加新的 UI 區域時記得同步 `IsPointerOverUI`，漏掉的話點 UI 會連帶在地圖上畫一筆。
+
+
 ## 0. 定案決策
 
 | 項目 | 決定 |

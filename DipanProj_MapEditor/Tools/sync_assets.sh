@@ -151,7 +151,6 @@ copy_environment() {
 copy_module() {
   local base="$1" prefix="$2" module="$3"
   copy_environment "$base" "$prefix" "$module"
-  copy_flat "$base/Tiles"      "$prefix/Tiles"      "$module" "Tiles"
   copy_flat "$base/Background"  "$prefix/Background"  "$module" "Background"
 }
 
