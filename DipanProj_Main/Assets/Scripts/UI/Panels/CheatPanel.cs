@@ -14,7 +14,8 @@ namespace Dipan.UI
     ///
     /// 目前分頁：
     ///   1.「給道具」：填入物品 ID + 數量 → 按確認 → 走 RunProgress.GiveItem(toRealBag:true)（**一律直接進真背包**，
-    ///      給 101 銅錢會轉成金錢數字）。
+    ///      給 101 銅錢會轉成金錢數字）。另有一鍵快捷：給錢、**取得所有武器（每種一把）**。
+    ///   2.「鑲嵌」：改裝備中武器的孔數、每種能力珠各給一顆 Lv3、給測試防具。
     ///
     /// 風格對齊專案：全程式建構、零 prefab / Inspector 接線（同 SettingsPanel / InventoryPanel）。
     /// 開啟時暫停遊戲 + 擋輸入（方便打字），ESC 或右上 X 關閉。
@@ -177,7 +178,7 @@ namespace Dipan.UI
             Place(head.rectTransform, 0f, 0f, 600f, 40f);
 
             var hint = UIBuilder.Text(root, "Hint",
-                "物品 ID 見 Assets/Data/ItemTable.csv（例：201 回血藥）。",
+                "物品 ID 見 Assets/Data/ItemTable.csv（例：201 回血藥）。下方一鍵快捷不用填欄位。",
                 18, new Color(1f, 1f, 1f, 0.6f), TextAnchor.UpperLeft);
             Place(hint.rectTransform, 0f, 46f, GroupW, 30f);
 
@@ -211,6 +212,10 @@ namespace Dipan.UI
             var moneyBtn = UIBuilder.Button(root, "MoneyBtn", $"獲得 {CheatMoneyAmount:N0} 元",
                                             OnClickGiveMoney, ColBtn);
             Place((RectTransform)moneyBtn.transform, 14f, 288f, 260f, 56f);
+
+            var allWeaponBtn = UIBuilder.Button(root, "AllWeaponBtn", "取得所有武器（每種一把）",
+                                                OnClickGiveAllWeapons, ColBtn);
+            Place((RectTransform)allWeaponBtn.transform, 289f, 288f, 330f, 56f);
 
             // 狀態列（本次結果）——兩組共用，放在最下面
             _giveStatus = UIBuilder.Text(root, "GiveStatus", "", 22, ColOk, TextAnchor.UpperLeft);
@@ -348,6 +353,57 @@ namespace Dipan.UI
             sm.AddCurrency(CheatMoneyAmount);
             SetGiveStatus($"已獲得 {CheatMoneyAmount:N0} 元（目前 {sm.Currency:N0}）。", true);
             AlertPanel.Toast($"作弊：獲得 {CheatMoneyAmount:N0} 元");
+        }
+
+        /// <summary>
+        /// 一鍵取得所有武器：物品表裡**每一種武器各給一把**，背包滿了就停在那裡。
+        /// 試各種武器手感時不用一顆一顆填 ID。
+        ///
+        /// 【兩個刻意的決定】
+        /// ① **來源是「物品表」不是「武器表」**——背包裝的是物品，武器表的一列要有對應的物品才拿得到。
+        ///    武器表裡有些是怪物/Boss 專用（例：紅嫁衣的「召喚家人」），本來就沒有給玩家的物品，
+        ///    所以從物品表這一側列舉才不會給出一堆玩家根本裝不上的東西。
+        /// ② **判斷用 `EquipSlot == Weapon`，不是 `WeaponID > 0`**——劇本道具「劇本-紅嫁衣」(104)
+        ///    也填了 WeaponID（它要指定關卡用的武器），但它不是武器、裝不上武器欄。用 WeaponID 判斷會誤給。
+        ///
+        /// 已經有的（背包裡或身上穿著的）會跳過，所以連按幾次都不會塞出一堆重複的。
+        /// 要重骰孔位請用「鑲嵌」分頁的「重開孔位」，不是重複給武器。
+        /// </summary>
+        void OnClickGiveAllWeapons()
+        {
+            var inv = InventorySystem.Instance;
+            if (inv == null) { SetGiveStatus("找不到背包系統（InventorySystem）。", false); return; }
+            if (inv.Db == null) { SetGiveStatus("物品表還沒載入。", false); return; }
+
+            // 先收集再排序：Dictionary 的走訪順序不保證，不排的話每次按背包裡的排列都不一樣。
+            var ids = new List<int>();
+            foreach (var kv in inv.Db.Items)
+                if (kv.Value != null && kv.Value.EquipSlot == EquipSlot.Weapon) ids.Add(kv.Key);
+            ids.Sort();
+
+            if (ids.Count == 0)
+            {
+                SetGiveStatus("物品表裡沒有任何武器（EquipSlot = Weapon）。", false);
+                return;
+            }
+
+            int given = 0, already = 0, full = 0;
+            foreach (int id in ids)
+            {
+                if (inv.HasAnywhere(id)) { already++; continue; }
+                // 一定要走 ItemManager.Create——武器需要實例資料（孔位要現場骰），
+                // 直接 AddItem(id) 會拿到一把沒有孔的裸裝。見 readme/GEM_SOCKET.md。
+                if (inv.AddStack(ItemManager.Create(id, 1)) > 0) full++;
+                else given++;
+            }
+
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"物品表共 {ids.Count} 把武器：新給 {given} 把");
+            if (already > 0) sb.Append($"、已經有 {already} 把（跳過）");
+            if (full > 0) sb.Append($"、{full} 把因裝備包已滿放不下");
+            sb.Append('。');
+            SetGiveStatus(sb.ToString(), full == 0);
+            AlertPanel.Toast(given > 0 ? $"作弊：武器 ×{given}" : "作弊：武器已經都有了");
         }
 
         void OnClickGive()
