@@ -20,8 +20,39 @@
       "visible": true,
       "opacity": 1.0,
       "locked": false,
-      "tiles": [],
-      "objects": []
+      "objects": [
+        {
+          "assetId": "Modules/RedBridalGown/Environment/structure_well",
+          "x": 3.24153,
+          "y": -7.203228,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 1.44945908,
+          "scaleY": 1.44945908,
+          "sortKey": -7.203228,
+          "zOrder": 0,
+          "hp": -1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
+        }
+      ]
     },
     {
       "id": "walk",
@@ -163,7 +194,7 @@
         },
         {
           "id": "d7d2381b",
-          "name": "怪物出生點1",
+          "name": "怪物出生點1-小男孩",
           "typeId": "monsterSpawn",
           "cells": [
             [
@@ -178,7 +209,7 @@
         },
         {
           "id": "9cb22c0f",
-          "name": "怪物出生點2",
+          "name": "怪物出生點2-狗",
           "typeId": "monsterSpawn",
           "cells": [
             [
@@ -197,7 +228,7 @@
         },
         {
           "id": "1289aa6e",
-          "name": "怪物出生點3",
+          "name": "怪物出生點3-小女孩",
           "typeId": "monsterSpawn",
           "cells": [
             [
@@ -208,6 +239,23 @@
           "params": {
             "monsterId": "7",
             "deathFlag": "killedFamily"
+          }
+        },
+        {
+          "id": "311990f4",
+          "name": "怪物出生點4-小胖孩",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              12,
+              7
+            ]
+          ],
+          "params": {
+            "monsterId": "4",
+            "deathFlag": "killedFamily",
+            "spawnInterval": "",
+            "maxAlive": ""
           }
         }
       ]
