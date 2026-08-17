@@ -7,13 +7,13 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 6,6,????,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,1,妳看起來是一個善良的人，謝謝你沒有傷害我的家人,,,,,,
 7,6,????,Modules/RedBridalGown/Talk/redBridalGown_cry,Actor_Fear,1,我被一個可怕的存在控制，祂抓了我所有的家人，逼我就範,,,,,,
 8,6,????,Modules/RedBridalGown/Talk/redBridalGown_fear,Actor_Fear,1,大俠，快跑，祂.....祂要來了,,,,,,
-9,2,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,你必須證明自己,1.1,,-130,,,
-10,2,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,收下這個吧,1.1,,-130,,,
-11,3,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Fear,1,你終於來了，到我面前來,1.1,,-130,,,
-12,4,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,去完成你的天命吧,1.1,,-130,,,
-13,4,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,現在，通過這扇門,1.1,,-130,,,
-14,5,主角,Actor_Hurt,,1,痛痛痛痛痛死我了,1.1,,-130,,,
-15,5,主角,Actor_Fear,,1,這裡是哪裡?我怎麼會在這?,1.1,,-130,,,
+9,2,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,你必須證明自己,1.1,-130,-130,,,
+10,2,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,收下這個吧,1.1,-130,-130,,,
+11,3,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Fear,1,你終於來了，到我面前來,1.1,-130,-130,,,
+12,4,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,去完成你的天命吧,1.1,-130,-130,,,
+13,4,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,現在，通過這扇門,1.1,-130,-130,,,
+14,5,主角,Actor_Hurt,,1,痛痛痛痛痛死我了,1.1,-130,-130,,,
+15,5,主角,Actor_Fear,,1,這裡是哪裡?我怎麼會在這?,1.1,-130,-130,,,
 16,7,主角,,Actor_Fear,2,這是怎麼樣? 發生什麼事? 房子呢? 怎麼消失了?,,,,,,
 17,7,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious,Actor_Fear,1,哼，那女人竟然敢放過獵物，看我不好好修理她,,,-50,,,
 18,7,榕樹妖,Modules/RedBridalGown/Talk/treeFace_crazy,Actor_Fear,1,現在，你還是乖乖化為我的氣血吧，成為我的養分，死後魂魄也要為我所用，哈哈哈,,,-50,,,
@@ -35,9 +35,9 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 33,17,主角,Actor_Fear,Main/Talk/Girl/Girl_Fear,1,危險啊~~,,,,,,
 34,18,主角,Actor_Normal,Main/Talk/Girl/Girl_Smile,1,真的很危險，小妹妹下次要注意安全唷,,,,,,-50
 35,18,主角,Actor_Normal,Main/Talk/Girl/Girl_Smile,2,好，我知道了，謝謝大哥哥,,,,,,-50
-36,19,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,這裡就是你證明己身之處，此地充滿妖孽，非常危險,1.1,,-130,,,-50
-37,19,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,吾贈汝佛燈一盞，汝好自為之,1.1,,-130,,,-50
-38,20,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,怕你沒命，最後再幫你一次，去那邊撿點保命的小東西,1.1,,-130,,,-50
+36,19,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,這裡就是你證明己身之處，此地充滿妖孽，非常危險,1.1,-130,-130,,,-50
+37,19,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,吾贈汝佛燈一盞，汝好自為之,1.1,-130,-130,,,-50
+38,20,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,怕你沒命，最後再幫你一次，去那邊撿點保命的小東西,1.1,-130,-130,,,-50
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,
 ,,,,,,,,,,,,
