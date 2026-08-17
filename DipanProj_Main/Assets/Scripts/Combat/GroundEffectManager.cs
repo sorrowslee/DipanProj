@@ -100,6 +100,24 @@ public class GroundEffectManager : MonoBehaviour
                 data.SingleSprite = isGlow || mode.Equals("Single", System.StringComparison.OrdinalIgnoreCase);
             }
 
+            // 背景旋轉符號（第 12 欄）：留空 = 沒有這一層。與 RenderMode 完全無關，三種模式都能掛。
+            // 在這裡就把圖載好（同 AniPath 的做法），生成特效時不必再碰 Resources。
+            data.SigilPath = (v.Length >= 12) ? v[11].Trim() : string.Empty;
+            if (!string.IsNullOrEmpty(data.SigilPath))
+            {
+                data.SigilSprite = Resources.Load<Sprite>(data.SigilPath);
+                if (data.SigilSprite == null)
+                {
+                    // 最常見原因：PNG 的 Texture Type 不是 Sprite，或路徑打錯／不在 Resources 底下。
+                    Debug.LogWarning($"Ground effect sigil sprite not found at '{data.SigilPath}' for effect '{data.Name}'（檢查圖是否匯入為 Sprite 類型）。");
+                }
+            }
+
+            // 發光半徑（第 13 欄）：留空 / <=0 = 不發光。> 0 時特效會掛 LightSource 真的照亮暗場景。
+            data.LightRadius = (v.Length >= 13 && !string.IsNullOrWhiteSpace(v[12]))
+                ? float.Parse(v[12].Trim())
+                : 0f;
+
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)
             {
                 var sprites = new Sprite[data.AniNumber];

@@ -23,7 +23,7 @@
 | [SHADOW.md](SHADOW.md) | 角色腳下橢圓影子（BlobShadow，程序生成、自動跟隨、玩家與怪物自動掛） | 改影子外觀/大小、給新角色加影子 |
 | [CHARACTER_SETUP.md](CHARACTER_SETUP.md) | 主角外型：**已改走路線 B（程式逐格動畫、血統換外型）**——Characters/SequenceImage/<血統>/idle·walk·dead、`Bloodline` 欄/`SetBloodline`；下半為舊 Animator 流程（已取代，存參考） | 換主角外型、加血統、加死亡動畫 |
 | [ANIMATOR_ADD_STATE.md](ANIMATOR_ADD_STATE.md) | Animator 新增一個狀態的速查（做 clip→加狀態→參數連線→程式觸發→清垃圾，單張/序列圖皆有） | 給角色加新動畫狀態（死亡/攻擊/受傷…） |
-| [GROUND_EFFECT.md](GROUND_EFFECT.md) | 地面特效鏈式觸發 AOE ＋ 拋物線型武器 | 改地面特效、拋物線、AOE |
+| [GROUND_EFFECT.md](GROUND_EFFECT.md) | 地面特效鏈式觸發 AOE ＋ 拋物線型武器 ＋ **背景旋轉符號層（SigilPath，可在任何地面特效的圓上疊一張自轉的法陣／符文，目前無人使用、備用中）** | 改地面特效、拋物線、AOE、想給某個特效加旋轉符號 |
 | [LASER.md](LASER.md) | 雷射光束系統 ＋ 雷射外型（BeamStyle 種類／調色盤） | 改雷射、加雷射種類或顏色 |
 | [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md) | Pack 4 像素雷射素材拆解、平鋪折線渲染、無限延伸／反射與武器「鏡界折光」 | 改像素雷射、反射上限或擴充 Pack 4 顏色／造型 |
 | [VFX.md](VFX.md) | 一次性特效：發射特效（玩家身上）＋ 擊中特效（命中點），VfxTable 原語 | 加／改發射或擊中特效 |
@@ -70,6 +70,7 @@
 | [CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) | **核心迴圈企劃**（設計意圖，非程式規格）：輪迴為主軸、access／power 兩軸分離、邪佛「3新+1舊」四選一與業障回響、正常 3 輪／上限 4 輪破邪佛、帶物 min(周目,7)、20 關深/標準分層、關卡內收穫「通關才落袋、死亡歸零」 | 想確認玩法方向與已拍板的規則；做任何影響經濟/關卡選擇/輪迴節奏的功能前 |
 | [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) | 效能與畫質稽核（2026-07-05 四大根因與修正：Rigidbody2D Interpolate、60Hz 物理、地圖貼圖 Bilinear+mipmap、UI maxTextureSize；素材尺寸規範） | 排查卡頓/畫面粗糙、訂素材尺寸前 |
 | [PROPS_IMAGEGEN_LIST.md](PROPS_IMAGEGEN_LIST.md) | 地上物產圖清單（A 家具 12／B 裝飾儀式 12／C 庭院 6／D 廚房 7／E 儲藏 6／F 柴房 4／G 場景大物 2，共 49 件，各附提示詞與 credits 估算） | 要產一批地上物素材時挑清單、估成本 |
+| [FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md) | **墮落佛光實驗存檔**（2026-08-17 試過紫色佛光／旋轉卍字／拿掉照明，全部退回原狀；素材存 `readme/variants/`、機制留在 CSV 欄位，附「怎麼再開回來」）＋ 三條疊色通則摘要 | 想把佛光改色/加符號、動照明範圍、或**疊任何發光效果**之前 |
 | [PROBLEMS.md](PROBLEMS.md) | **踩坑記錄與解法**(症狀→原因→解法) | **第一次看文件時必看**；遇到怪問題、或要把新坑記下來時 |
 | [TODO.md](TODO.md) | **待補清單**：目前先做到能動但還缺一塊、或暫時做不到之後再補的項目 | 想知道哪些是半成品/暫缺；做到一半得擱置時把缺口記這裡 |
 
@@ -84,3 +85,4 @@
 *2026-07-28：新增 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)（祭壇抽選系統）。*
 *2026-07-29：新增 [FORGING.md](FORGING.md)（鍛造介面）。*
 *2026-08-03：新增 [GEM_SOCKET.md](GEM_SOCKET.md)（能力珠鑲嵌／物品實例／能力容器）。*
+*2026-08-17：[GROUND_EFFECT.md](GROUND_EFFECT.md) 新增「背景旋轉符號層（SigilPath）」與「發光半徑（LightRadius）」兩節；[PROBLEMS.md](PROBLEMS.md) 新增 E12（加色圖層的 `_Intensity` 不等於實際亮度）、E13（兩個發光圖層疊同位置是零和的）。**要疊任何發光圖層之前先讀這兩則。**新增 [FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md)（墮落佛光實驗存檔：留下的素材放哪、怎麼再開回來）。*

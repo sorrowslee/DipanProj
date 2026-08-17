@@ -53,6 +53,84 @@
 * **範例**：武器 10「佛光」`Damage=1, RecipeID=21`；配方 21「佛光」`IsAura=1, GroundEffectID=2`（其餘彈道欄位填 0 / None，不發射子彈）；GroundEffect 2「佛光」`Radius=1.2, Duration=-1, DamageInterval=0.3, RenderMode=Glow, AniPath=GroundEffect/buddhaLight/buddhaLight`。
 * **調整方向**：圈變大（讓快怪更難貼到玩家）→ GroundEffect 2 的 `Radius`（初始 1.2，約籠罩玩家全身）；傷害變高 → 武器 10 的 `Damage`；傷害更密 → GroundEffect 2 的 `DamageInterval` 調小；圈更亮/更淡 → 換 `buddhaLight_01.png`、調底亮度 `AuraIntensity`、或明滅範圍 `FlickerMinAlpha`/`FlickerMaxAlpha`；明滅快慢/呼吸幅度 → `GroundEffectInstance.cs` 上方常數（`ScalePulse` 等）。
 
+## 發光半徑（LightRadius）—— 讓地面特效真的照亮暗場景
+
+`GroundEffectTable` 第 13 欄。留空 / `<= 0` ＝不發光；`> 0` 時特效生成的當下會在自己身上掛一顆 `LightSource`，成為場上的一盞燈。
+
+> ⚠️ **這跟「畫一張發光的圖」完全是兩回事。**
+> `RenderMode=Glow` 只是把那張圖畫亮，**不會讓周圍的地圖從黑暗中顯現**。真正照亮暗場景（`Atmosphere=2 幽暗` 那類）的是 `AtmosphereController` 的光源系統，而它收光源的唯一管道就是 `LightSource` 的靜態登記表。
+> 想要「這個特效能照路」，就得填這一欄。
+
+**生死自動**：`LightSource` 在 `OnEnable` 登記、`OnDisable` 退出，而物件銷毀前 Unity 一定會先呼叫 `OnDisable` → 特效消失的瞬間光就熄，不需要任何手動清理。`AtmosphereController` 一行都不用改。
+
+**光跟著特效走**：`LightSource` 掛在特效本體上，所以像佛光那種每幀跟隨玩家的特效，光自然也跟著玩家。
+
+**其餘參數**（亮度／搖晃／柔和度）不進 CSV，用 `LightSource` 的預設暖橘，要調改 `GroundEffectInstance.cs` 的 `EffectLightIntensity` / `EffectLightFlicker` / `EffectLightSoftness`。
+
+**注意同框上限**：`AtmosphereController.MaxLights = 12`。會發光的地面特效會跟場上的火把／燈籠搶名額（排序鍵是「距離 − 半徑」，跟著玩家的特效距離 0，一定排得進去）。
+
+### 現況：這一欄全表留空（2026-08-17）
+
+玩家的照明目前仍走**原本的提燈**——`ItemTable` 8 佛光的 `LightRadius = 3.5`，裝備著就恆亮，與開不開火無關。本節這一欄**沒有任何一列在用**。
+
+曾經試過「清空提燈、改由佛光的 `LightRadius` 提供，變成開火才有光」，測完覺得不好退回了。經過與怎麼再開起來見 **[FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md)**。
+
+⚠️ 兩者**不要同時開**，否則會變成「常亮的提燈」＋「開火時再多一盞」兩層光疊在一起。
+
+**一個待決事項**：裝備的照明是取「最大值」不是累加（`AtmosphereController.PlayerEquippedLightRadius()`：`if (d.LightRadius > max) max = d.LightRadius`）。若要做「多件發光裝備疊加照明範圍」，得先改成累加。
+
+
+## 背景旋轉符號層（SigilPath）
+
+在地面特效的圓上再疊一張**緩緩自轉的符號**（法陣／符文／卍字…）。**與 `RenderMode` 無關**——`Tile` / `Single` / `Glow` 三種模式都能掛，想要明滅發光卻不要符號就把欄位留空。
+
+> 📌 **現況（2026-08-17）：機制完成，但目前沒有任何一列使用它**（`SigilPath` 全表留空）。
+> 當初是為了「墮落佛光」做的，最後決定佛光回到原本的暖金光圈，這一層就閒置備用。
+> 要啟用只要在 `GroundEffectTable` 那一列填圖路徑，**程式一行都不用動**。
+> 完整經過與「怎麼把卍字開回來」見 **[FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md)**。
+
+### 怎麼用
+1. 準備一張**白色去背 PNG**（染色才會準），放進 `Resources/` 底下任一處，Texture Type 設為 **Sprite**
+2. `GroundEffectTable.csv` 該列的第 12 欄 `SigilPath` 填路徑（相對 Resources、不含副檔名），例：`InitialStory/Manji`
+3. 外觀參數在 `GroundEffectInstance.cs` 上方那組 `Sigil*` 常數
+
+### 資料流
+```
+WeaponTable → RecipeTable(IsAura 等) → GroundEffectID → GroundEffectTable.SigilPath
+```
+符號綁在**最底層的「那張圓」**，不是綁武器類型。所以兩把武器就算都是 `IsAura`，只要指向不同的 GroundEffect 列，一個有符號一個沒有。
+（第一版曾把它寫死在 `RenderMode=Glow` 分支裡，等於汙染了 Glow 的語意——以後任何想要明滅發光的特效都會被迫吃到一個佛教符號。已改成獨立欄位。）
+
+### 參數（`GroundEffectInstance.cs`）
+| 常數 | 預設 | 說明 |
+|---|---|---|
+| `SigilRadiusMul` | 0.95 | 符號直徑 = 特效直徑 × 此倍率。**綁 `Radius`**，改 CSV 的 `Radius` 符號自動跟著變 |
+| `SigilRotateSpeed` | 32 | 度/秒，正 = 逆時針左旋。一圈約 11 秒（沿用開場墜落 `IntroFallController.ManjiRotateSpeed`） |
+| `SigilColor` | (0.16, 0.05, 0.26) | 深紫近黑。**這是剪影的顏色，不是發光的顏色**（見下） |
+| `SigilAlpha` | 0.85 | alpha 混合下＝**覆蓋率**，1 = 完全遮住地板 |
+| `SigilBreathe` / `SigilBreatheHz` | 0.02 / 0.42 | 呼吸幅度與速度。**刻意不與本體明滅（1.1）同步**：燈火是搖曳的火，符號是常駐的法，同步閃會顯得廉價 |
+
+### ⭐ 三個反直覺、但別改回去的設計
+1. **符號走 alpha 混合，本體走加色——刻意不一樣。**
+   符號與本體同位置、同色相、同時出現時，如果兩個都靠「比較亮」被看見，就是**零和的**：本體調亮符號消失、符號調實本體消失，調 alpha 永遠跳不出這個循環（實際調了三輪才想通）。
+   解法是換維度：**符號吃光（暗剪影）、本體發光**。所以 `BuildSigil` **刻意不指定材質**，用預設的 `Sprites-Default`（alpha 混合）。接回 `AuraGlow` 就退回互相洗掉的狀態。
+   附帶結論：**加色（`Blend One One`）永遠做不出「不透明」**，它只讓底下變亮、遮不住東西。要實心就必須 alpha 混合。
+2. **排序是 `order + 1`（蓋在本體之上），不是 -1。**
+   暗剪影畫在加色光的**下面**會被光直接填亮而消失，要吃光就得蓋在光上面。仍遠低於玩家：`AuraYSortBias` 0.3 × `MapDepthSort.SortScale` 100 = 低玩家 30 階，+1 翻不過去。統一在 `SetTilesSortingOrder` 內處理，Glow 與非 Glow 兩條路都涵蓋。
+3. **符號 renderer 絕對不能加進 `_tileRenderers`。**
+   那個清單每幀被 `TickAnimation` 換 sprite、被 `SetTilesSortingOrder` 統一排序——加進去會被本體的動畫幀蓋掉，也會跟本體同層而失去分層效果。
+
+### 算大小要扣掉圖的透明留白
+倍率是套在**整張圖**上，不是筆畫上。以 `Manji.png` 為例：
+- 筆畫外接框只佔圖寬的 **71%**
+- 佛光貼圖的可見圓大約到半徑 **0.80**（亮度衰減到中心的 20%）
+- 所以筆畫實際半徑 = `Radius × 倍率 × 0.71`，要 ≤ `Radius × 0.80` 才落在圓內 → **倍率上限約 1.13**
+
+### 載入
+符號圖在 `GroundEffectManager` **載表時就 `Resources.Load<Sprite>` 好**存進 `GroundEffectData.SigilSprite`，生成特效時不再碰 Resources。**沒有 static 快取**，所以與「已關閉 Domain Reload」那組坑（[PROBLEMS.md](PROBLEMS.md) I8）無關。載不到只印一則 Warning 並略過這一層，不影響特效本體。
+圖在 `Resources/` 底下，**不需要跑 Sync Map Assets**（那是給 `GameAssets` 的地圖素材管線用的）。
+
+
 ## 執行單元
 * `GroundEffectManager`（場景單例，掛在主物件上）：CSV 載入、序列圖預載、`Spawn(id, position)` / `Spawn(id, position, damageOverride)` API
 * `GroundEffectInstance`（掛在 Prefab 上）：採 **真實圓形掃描（aligned scanline）**渲染——以原點為中心掃整數網格 `(i, j)`，當 `(i*TileSize)² + (j*TileSize)² ≤ Radius²` 就放一個 tile，嚴格對齊網格、上下左右對稱。每個 tile 動態 `AddComponent<SpriteRenderer>` 並繼承 prefab 範本的排序設定，動畫由父物件統一切幀同步顯示。**鋪面範圍嚴格貼齊 Radius**（與 `OverlapCircleAll` 傷害判定一致）。圓滑度取決於解析度：`R / TileSize ≥ 4` 才看得出明顯圓形，例如 `R=1.5、TileSize=0.3` ≈ 81 顆呈圓形；`R=1.5、TileSize=1` 只有 3×3 = 9 顆是 resolution 限制。實際 tile 數 > 500 時會在 Console 印一次 LogWarning，但仍照生成
