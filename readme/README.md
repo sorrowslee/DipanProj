@@ -46,7 +46,7 @@
 | [FORGING.md](FORGING.md) | 鍛造介面（Y 鍵開；鐵砧中央放武器/裝備、左右 6 個鑲嵌孔依裝備孔位數解鎖、底部兩顆按鈕尚未接功能；重用 ISlotView/SlotDragController 拖放地基） | 改鍛造介面、做鑲嵌/拆裝備、接鐵匠 NPC、加裝備孔位數 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
 | [GACHA_SYSTEM.md](GACHA_SYSTEM.md) | **祭壇抽選系統**（邪佛廣場走到祭壇按 F 抽選：四層資料架構讓「武器/裝備/血統/道具」大項可隨時增刪、打通關卡解鎖新內容進池、老虎機表演＋十連結算面板；**金錢改成獨立數字不再是背包道具**、血統藥劑一次性換外型；新觸發 `openPanel`／`unlockRoll`、新條件「最低/最高完成關卡數」＋「條件不成立時」） | 加/改抽選大項或池內容、放新祭壇、改抽選介面表演、動金錢或血統 |
-| [BLOODLINE.md](BLOODLINE.md) | **血統系統**（系列＝三階段：殭屍→毛殭→旱魃；表A 系列表＋表B 血統表、系列起始藥劑一世一次不可逆、進階藥劑全系列通用且必須逐階、SpriteFolder 同時決定序列圖與立繪、輪迴歸零回人類；⚠ 五屬性只存不套用） | 加/改血統或系列、動血統藥劑、換角色外型與立繪、做變身演出 |
+| [BLOODLINE.md](BLOODLINE.md) | **血統系統**（系列＝三階段：殭屍→毛殭→旱魃；表A 系列表＋表B 血統表、系列起始藥劑一世一次不可逆、進階藥劑全系列通用且必須逐階、SpriteFolder 同時決定序列圖與立繪、輪迴歸零回人類；**`BodyScale` 體型倍率＝腳底錨點放大、純視覺**；**變身演出已完成**：倒下→天雷→煙霧→換裝→爬起；⚠ 五屬性只存不套用）<br>**也是玩家可見身體幾何的正典**（`FeetWorldPos` / `BodyCenterWorldPos` / `VisibleBodyHeight`） | 加/改血統或系列、動血統藥劑、換角色外型與立繪、改變身演出、**要定位或縮放任何「掛在玩家身上」的特效** |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
 | [LOCALIZATION.md](LOCALIZATION.md) | 多語系／語言表（`Language.GetText(id)` 唯一取用入口、`LanguageTable.csv` id,cn,en、LanguageTableProvider、預設中文支援英文、id 分段慣例） | 加/改玩家可見字串、切語言、做多語系前 |
 | [WOODSHED_LAMP_TUTORIAL.md](WOODSHED_LAMP_TUTORIAL.md) | 柴房佛燈強制新手教學（紅嫁衣第一間房：撿佛燈→裝備→強制點亮的 phase 狀態機；地上物 disappearFlag、pickup toRealBag、FireOnly 鎖移動只放行開火、PlayerController.IsAuraActive） | 改柴房教學流程、教學寫死清單、地圖佈置/傳送門門檻 |

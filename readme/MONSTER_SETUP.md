@@ -80,6 +80,10 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 route B 怪物的碰撞框是一個**貼合 sprite 不透明像素的 `BoxCollider2D`**（不是整張畫布、也不是「以最大邊為半徑的圓」）——所以**圖的透明空白邊不會撐大碰撞範圍**。瘦長的鬼魂只有看得到的身體那塊會被碰到，不會「離很遠就被判定到」。
 
 - 取代表幀（idle 第一幀）的不透明範圍算出 box（沿用家具用的 `MapSpriteLoader.GetAlphaLocalBox`），會隨怪物 `Scale` 一起縮放、和畫面上的圖對齊。
+  - `GetAlphaLocalBox` 回傳的 `LocalBox` 在 2026-08-18 加了 **`canvas`** 欄（整張畫布的世界尺寸）。
+    **要算「可見內容佔畫布的比例」一定要除它，不能假設畫布是 256px**——玩家的腳底錨點 pivot 就靠它
+    （見 [BLOODLINE.md](BLOODLINE.md) §2）。目前所有角色圖剛好都是 256×256，漏除會**靜默算對**，
+    哪天丟一張 512px 的進來才會爆。怪物這邊只用 `size`/`offset`，不受影響。
 - **整體大小** → 調 CSV 的 `Scale`。**碰撞鬆緊**（box 比可見範圍外擴多少）→ 調 `MonsterController.HitboxPadding`（預設 0.2 世界單位）。
 - 牆壁阻擋、子彈命中、接觸傷害（`EnemyContactDamage` 的幾何判定）全部共用這個 box。
 

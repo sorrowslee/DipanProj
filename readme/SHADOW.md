@@ -11,7 +11,7 @@
 * 元件 `Assets/Scripts/BlobShadow.cs`：掛在角色上即可。玩家由 `PlayerController.Start`、怪物由 `MonsterController.Start` 各自 `AddComponent<BlobShadow>()`（已接好）。
 * 影子是**獨立 GameObject**（不是角色的子物件）——避免被角色的 `flipX` 翻轉或 `localScale` 縮放二次影響；每幀 `LateUpdate` 把影子移到角色腳下。角色銷毀時 `OnDestroy` 自動清掉影子。
 * 影子圖是**程序生成的柔邊圓**（中心實、邊緣淡的 alpha 貼圖，白色靠 `SpriteRenderer.color` 染成黑半透明），整個遊戲**共用一張**（static 快取）。零 prefab、零美術。
-* 大小依角色 sprite 的世界寬度自動算（`bounds.size.x × WidthFactor`），縱向壓扁成橢圓。排序設在角色 `sortingOrder` 之下一階（畫在角色腳下、地面之上）。
+* 大小依角色的**不透明像素寬度**自動算（`TryGetVisibleFraction` 掃 alpha；貼圖不可讀時才退回整張 `bounds.size.x`），縱向壓扁成橢圓。腳底位置同理取不透明區的下緣，不是畫布底。排序設在角色 `sortingOrder` 之下一階（畫在角色腳下、地面之上）。
 
 ## 可調參數（`BlobShadow` Inspector / 程式預設）
 
@@ -33,9 +33,16 @@
 if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
 ```
 
+## 尺寸何時重算（2026-08-18）
+
+* 影子大小在 `Start` 量一次，之後**由呼叫端主動 `BlobShadow.Refresh()`** 重量。
+* 目前唯一的呼叫點是 `PlayerController.RefreshBodyScaledVisuals()`——換血統／改體型倍率時觸發。
+  不重量的話，換成 1.5 倍體型的血統後腳下會頂著一塊明顯偏小的影子。
+* **刻意不每幀更新**：重量要掃一次 alpha 像素，每幀做太貴。角色顯示大小只有在換外型時才會變，
+  改成「事件驅動」剛好。之後若做出「跳躍時影子變小」這種需求，再叫一次 `Refresh()` 即可。
+
 ## 限制 / 之後可加
 
-* 影子大小在 `Start` 算一次（用站立幀的 sprite 寬度）；若角色動畫尺寸變化很大，影子不會跟著縮放。需要的話可改成每幀更新。
 * 目前是固定橢圓；之後若要「跳躍時影子變小、離地拉開」之類，可在 `BlobShadow` 依角色狀態調 scale / 位置。
 * 大型可破壞地上物（家具）目前**沒有**影子（只角色有）；要的話也可掛 `BlobShadow`。
 

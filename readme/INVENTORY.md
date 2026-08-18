@@ -6,7 +6,9 @@
 >
 > **2026-07-16 更新**：新增**藥水系統**（藥劑分類、背包兩格藥水格綁定種類、按 1/2 喝、喝藥特效）；拖曳可放的專用欄位**黃色高亮**＋丟錯格**自動歸位**＋**右鍵藥水快放**；版面座標**重量**到新背景 `1126×1397`（原本用到舊快取尺寸導致高亮偏位）；底部 HUD 血瓶槽**鏡像顯示**背包藥水（見 [BOTTOM_HUD.md](BOTTOM_HUD.md)）。
 >
-> **2026-07-28 更新**：⚠️ **金錢不再是背包道具**——銅錢（101）改成存檔裡的一個數字，背包底部銅錢 icon 後面直接顯示總額（見下方「金錢」一節）。`ItemTable.csv` 新增 **`BloodlineID`** 欄（>0 ＝ 這是血統藥劑，喝下去換外型、本世只能用一次；見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5）。
+> **2026-07-28 更新**：⚠️ **金錢不再是背包道具**——銅錢（101）改成存檔裡的一個數字，背包底部銅錢 icon 後面直接顯示總額（見下方「金錢」一節）。`ItemTable.csv` 新增 **`BloodlineID`** 欄。
+>
+> **2026-08-18 更新**：`ItemTable.csv` 再新增第 18 欄 **`BloodlineUpgrade`**（血統進階藥劑的目標階數，全系列通用）。血統藥劑的道具列全面改版（301 殭屍 / 310 中階 / 311 高階，舊的野魂 302 幽靈已刪）。**血統的規則正典從 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5 移到 [BLOODLINE.md](BLOODLINE.md)。**
 
 >
 > **2026-08-07 大改版**：換上新背景 `inventoryPanel_Bg.png`（**1254×1254 正方形**），道具區改成 **5×4 一頁 ＋ 上方兩個頁籤（裝備 / 消耗品）＋ 底部翻頁**。道具格由「一包 63 格」改成 **裝備包 40 + 消耗品包 40**，分包規則只有一條：**穿得上裝備欄的進裝備包，其餘全部進消耗品包**。見下方「分包與分頁」一節。
@@ -163,13 +165,20 @@
 | `TargetEntrance` | 目的地落點名（空 = 目標圖預設出生點） |
 | `HealHp` | **藥劑**：喝下回復的生命（`0` = 不回血） |
 | `HealMp` | **藥劑**：喝下回復的魔力（`0` = 不回魔） |
-| `BloodlineID` | **血統藥劑**：`>0` ＝ 這是血統藥劑，對應 `BloodlineTable.csv` 的血統 ID（喝下去主角換外型＋屬性，**本世只能用一次**）；`0`/空 = 不是血統藥劑。程式端另有 `ItemData.IsBloodline`。見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5 |
+| `BloodlineID` | **系列起始藥劑**（第 16 欄 / index 15）：`>0` ＝ 對應 `BloodlineTable.csv` 的血統 Id，慣例上是某個系列的第一階。喝下去決定本世走哪一個血統系列，**一世一次、不可逆、不能改吃別系列**。程式端 `ItemData.IsBloodlineStarter` |
+| `GemID` | **能力珠**（第 17 欄 / index 16）：對應 `GemTable` 的 GemID。見 [GEM_SOCKET.md](GEM_SOCKET.md) |
+| `BloodlineUpgrade` | **血統進階藥劑**（第 18 欄 / index 17）：值 = 目標階數（`2` 中階、`3` 高階）。**全系列通用**——不指定血統、只指定階數，實際變成哪一種由 `BloodlineSeriesTable.csv` 決定。程式端 `ItemData.IsBloodlineUpgrade` |
+
+> `IsBloodline` = 起始或進階任一（UI 用這個決定要不要走喝藥流程）。
+> **血統的完整規則、兩張表、逐階限制一律以 [BLOODLINE.md](BLOODLINE.md) 為準**，這裡只記欄位。
 
 內容（會持續增加）：**武器**（ItemTable ID 與 `WeaponID` 同號對應 `WeaponTable`，`EquipSlot=Weapon`）＋雜物（`101~103`：銅錢/卷軸/符紙）＋**藥水**（`201` 小回血瓶、`202` 小回魔瓶：`Category=Potion`、`HealHp/HealMp=10`、`MaxStack=99`）。分類欄 `Category` 目前用到 `Weapon`、`Currency/Material`、**`Potion`（藥劑，可拖到藥水格、按數字鍵喝）**。武器 icon 在 `UI/Icons/Equipment/`，其餘在 `UI/Icons/Items/`。
 
 > **CSV 寫法**：欄位內含逗號的長文字請用雙引號包覆,例如 `"傷害 5，直線飛行"`;引號內要放一個雙引號就寫 `""`。需要換行就在文字裡寫 `\n`(會被轉成換行)。`ItemDatabase` 用支援引號的解析器讀取。
 
-**2026-07-28 追加的列**：`301` 血統藥劑・野魂（`BloodlineID=2`）、`302` 血統藥劑・幽靈（`BloodlineID=3`）。
+**血統藥劑三列**（2026-08-18 改版；舊的 `301` 野魂 / `302` 幽靈**已刪除**）：
+`301` 血統藥劑・殭屍（`BloodlineID=10`，系列起始）、`310` 血統進階藥劑・中階（`BloodlineUpgrade=2`）、
+`311` 血統進階藥劑・高階（`BloodlineUpgrade=3`）。見 [BLOODLINE.md](BLOODLINE.md) §3。
 
 ---
 
@@ -212,7 +221,7 @@
   - **拖放**（透過共用 `SlotDragController`）：格內重排/合併/交換、拖到裝備欄＝裝備、拖去倉庫＝存放（含裝備）。
   - **重整鈕**：整理**目前這個頁籤**那一包（`SortBag`）。
   - **頁籤**：切換裝備包 / 消耗品包。**左右箭頭**：翻頁；中間顯示 `目前頁/總頁數`。
-  - **血統藥劑**（`BloodlineID > 0`）：點下去先跳 `ConfirmPopup` 確認（**這輩子只能喝一次**），確認後 `TryDrinkBloodline` 換外型＋套屬性、消耗藥劑。已經喝過（周目旗標 `血統` 成立）則直接提示不能再喝。見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5。
+  - **血統藥劑**（`ItemData.IsBloodline`，**含進階藥劑**）：左鍵與右鍵行為一致。流程是 `BloodlineSystem.Plan(itemId)` → **不能喝就在按鍵當下 Toast 出理由**（不要先跳確認視窗、按完才發現沒反應）→ 能喝才 `ConfirmPopup` → `TryDrink`（成功與失敗的訊息都由它回傳）。**面板刻意不懂任何血統規則**，改規則不用回頭動 UI。⚠ 喝下去只換外型與體型、**不套任何屬性**。見 [BLOODLINE.md](BLOODLINE.md) §4。
   - **與倉庫並排**：倉庫＋背包同開時各自左右移（`StorageBagCoordinator` 控；背包右移位置 `PairRightX`）。
 - **tooltip**：移到物品上跳出浮動說明（掛在 panel root、不受 frame 縮放、跟著游標、近右邊自動翻到左側、不擋 hover）。三段：**名稱（粗體金）**＋ **`TipStats`（正楷）**＋ **`TipLore`（斜體）**;高度由 `VerticalLayoutGroup + ContentSizeFitter` 自動撐開,空欄自動隱藏該段。
 

@@ -172,9 +172,9 @@ icon 都在 `Resources/UI/Icons/Items/positions/bloodline/`：`bloodline_Jiangsh
 
 ```
 BloodlineSeriesTable.cs   表A + 反查索引（血統 Id → 系列/階段）
-BloodlineTable.cs         表B（外型 + 五屬性）
-BloodlineSystem.cs        執行期系統：查詢、Plan/TryDrink、套用外型
-BloodlineTransformFx.cs   變身演出的呼叫點（目前空實作）
+BloodlineTable.cs         表B（外型 + 體型倍率 + 五屬性）
+BloodlineSystem.cs        執行期系統：查詢、Plan/TryDrink、套用外型與體型
+BloodlineTransformFx.cs   變身演出（§5）＋ 協程宿主 BloodlineTransformFxRunner
 GachaTableProvider.cs     兩張表的 TextAsset 由它持有（場景 GameManagers 上）
 ```
 
@@ -207,8 +207,12 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 `BloodlineSystem` 是常駐單例、自動生成、零接線，每幀比對「存檔裡的血統」與「已套用的血統」，
 不一致才動作——所以不管存檔載入、換圖、玩家物件重建的順序如何，最後都會收斂到正確狀態。
 
-`ApplyTo()` 現在只做一件事：**必要時 `pc.SetBloodline(def.SpriteFolder)`**。
-屬性刻意什麼都不做（見開頭的警告）；技能只印一則 log（技能系統不存在）。
+`ApplyTo()` 現在只做一件事：**必要時 `pc.SetBloodline(def.SpriteFolder, def.BodyScale)`**。
+五屬性刻意什麼都不做（見開頭的警告）；技能只印一則 log（技能系統不存在）。
+
+> ⚠ 「必要時」的判斷**必須同時比對外型資料夾與體型倍率**
+> （`pc.Bloodline != def.SpriteFolder || !Mathf.Approximately(pc.BodyScale, def.BodyScale)`）。
+> 只比資料夾名的話，調完 CSV 的 `BodyScale` 重新載入會發現沒反應。
 
 ### 存檔
 
@@ -266,9 +270,10 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
   煙霧散開前那一段會露出新外型的頭尾。
 - 煙霧與電弧的覆蓋高度 = `max(目前實際畫出來的高度, 站立高度 × 體型倍率)`；
   前者反映當下姿勢（趴著時比較矮），後者保證換成更大的血統仍蓋得住。
-- **雷擊點是「可見圖的底部中心」＝角色腳下站的位置**（`SpriteRenderer.bounds` 的 `center.x` / `min.y`）。
-  ⚠ **不要用 `transform.position`**——玩家的 sprite 是以 transform 為**中心**畫的，拿它當擊中點，
-  電柱會停在胸口／肩膀高度（實測就是這個症狀）。煙霧與電弧則對齊 `bounds.center`（身體可見中心）。
+- **位置一律走 §2「位置要用哪個座標」那三個屬性**：雷擊點用 `PlayerController.FeetWorldPos`
+  （對準腳），煙霧與電弧用 `BodyCenterWorldPos`（罩住身體），覆蓋高度用 `VisibleBodyHeight`。
+  ⚠ **不要用 `transform.position`**（那是畫布中心，拿它當擊中點電柱會停在胸口／肩膀高度，實測症狀），
+  也**不要自己讀 `SpriteRenderer.bounds`**（含不含透明留白沒有保證）。詳見 [PROBLEMS.md](PROBLEMS.md) **E14**。
 
 ### 重用的既有機制（都是這次順便補上的通用能力）
 
@@ -280,7 +285,9 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | 中止表演 | `PlayerAnimator.CancelPose()` | 演出被外力打斷時解掉趴姿，否則角色永遠定格。 |
 | 螢幕震動 | `MapCameraController.AddShake(秒, 振幅)` / `StopShake()` | **必須做在 MapCameraController 裡**——相機位置每幀由它獨佔寫入，另外掛震屏元件會互相蓋掉。偏移在 `LateUpdate` 最末端、`SmoothDamp` 之後才疊（先疊會被平滑吃掉，變成軟軟地飄一下）。 |
 | 全螢幕閃光 | `ScreenFader.Flash(color, in, out)` / `ClearFlash()` | 與黑幕分開的獨立 Image + CanvasGroup，永不擋點擊。 |
-| 具名輸入鎖 | `UIManager.SetExternalHold(owner, block, pause)` | 見 PROBLEMS **D13**。 |
+| 具名輸入鎖 | `UIManager.SetExternalHold(owner, block, pause)` | 見 PROBLEMS **D13**。舊的兩參數多載共用一個預設 key，**新程式一律帶 owner**。 |
+| 影子重量 | `BlobShadow.Refresh()` | 影子只在 `Start` 量一次；換外型／改體型後要重量，否則會停在舊尺寸。 |
+| 地面特效半徑倍率 | `GroundEffectManager.Spawn(…, radiusScale)` / `GroundEffectInstance.SetRadiusScale()` | **視覺與傷害一起**縮放（`visualScale` 只縮視覺，畫面會騙人）。見 [GROUND_EFFECT.md](GROUND_EFFECT.md)。 |
 
 ### ⚠ 四個踩過的坑（改這段演出前必讀）
 
@@ -330,6 +337,9 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 - 只有殭屍一個系列；吸血鬼系列已有 icon（`bloodline_Vampire.png`）但無序列圖與立繪
 - 變身演出**沒有音效**（專案還沒有音訊系統）——雷擊與煙爆是這個遊戲裡最該有聲音的兩個瞬間，音訊系統做好後第一個要補的就是這裡
 - 抽選面板的字串仍是 `const string`，未走語言表（全 GachaPanel 的既有問題）
+- **`BodyScale` 不影響碰撞框**（刻意；動 hitbox 會改手感）。體型差距若拉大到影響判讀要再處理
+- **佛光的傷害半徑會跟著體型放大**：半徑 ×1.5 ＝ 面積 ×2.25，而每拍傷害不變 ⇒ 大體型血統的佛光 DPS 實質更高。這是「看到的就是打得到的」帶來的必然結果，做平衡時記得
+- `BodyScale` 目前的數字（殭屍 1／毛殭 1.5／旱魃 1.2）是憑印象給的，要實機看過再定；改 CSV 即時生效
 
 ---
 

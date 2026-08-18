@@ -17,6 +17,17 @@
 * **環繞群組生命週期**：每顆環繞彈的個別 `LifeTime` 會被 `PlayerController` 覆寫為 `-1`（不自動超時），改由 `_orbitalGroupExpireTime = Time.time + recipe.LifeTime` 統一管理；`Update()` 偵測到群組到期時呼叫 `ClearActiveOrbitalBullets()` 一次銷毀整組，確保所有環繞彈一起出現一起消失，不會因單顆事件錯位。`recipe.LifeTime < 0` 時群組永不到期。
 * **傷害串接**：`HandleBulletHit` 方法接收命中事件，使用 `WeaponData.Damage` 計算傷害（不再寫死數值）。
 * **翻轉邏輯**：攻擊時依滑鼠方向翻轉，移動時依移動方向翻轉，`isFacingRightByDefault` 控制圖片原始朝向。
+* **外型與體型**（2026-08-18）：`SetBloodline(folder, bodyScale)` 換血統外型與體型倍率；
+  `BodyScale` 是**純視覺**（不動碰撞框、不動數值），顯示高度 = `CharacterWorldHeight × BodyScale`
+  ＝ `ScaledCharacterHeight`。見 [CHARACTER_SETUP.md](CHARACTER_SETUP.md) 與 [BLOODLINE.md](BLOODLINE.md) §2。
+* **可見身體幾何**：`VisibleBodyHeight` / `FeetWorldPos` / `BodyCenterWorldPos`。
+  **要定位或縮放「掛在玩家身上」的特效一律用這三個**——`transform.position` 是畫布中心不是身體中心，
+  `SpriteRenderer.bounds` 含不含透明留白也沒有保證。見 [PROBLEMS.md](PROBLEMS.md) **E14**。
+* **`RefreshBodyScaledVisuals()`**：體型改變後把「還活著且依身體大小」的東西重新對齊
+  （腳下影子、佛光光環、集氣光圈）。⚠ **之後再加這類「持續掛在玩家身上」的效果，記得在這裡補一行**，
+  否則它會停在舊尺寸。
+* **`IsDead`**（公開唯讀）：給演出類系統判斷「該中止了」。演出期間玩家常是被鎖住不能閃避的，
+  死了還繼續演會變成屍體爬起來（血統變身踩過，見 [BLOODLINE.md](BLOODLINE.md) §5）。
 
 ## 怪物 AI 系統 (Monster AI)
 
@@ -65,7 +76,11 @@
 |------|------|
 | `InvincibleTimeMs` | 受擊後無敵時間（毫秒），0 表示無無敵時間 |
 | `KnockbackThreshold` | 觸發擊退的最低傷害值，單次傷害 ≥ 此值才會擊退 |
-| `KnockbackPercent` | 擊退距離，以角色圖片世界寬度的百分比計算（例如 50 = 圖寬的 50%） |
+| `KnockbackPercent` | 擊退距離，以角色圖片世界寬度的百分比計算（例如 50 = 圖寬的 50%）。**玩家端會先除以 `WidthScaleCompensation`** |
+| `WidthScaleCompensation` | 擊退用的「圖寬」補償倍率（預設 1 = 不補償）。**玩家**由 `SetBloodline` 填入 `BodyScale` 除回去——不補償的話 1.5 倍體型的角色會被擊退 1.5 倍遠，血統體型就不再是純視覺了。**怪物不用管**：牠們的顯示大小本來就代表體型差異，大隻的被擊退得遠是合理的 |
+
+> ⚠ 這一欄是「角色可以有多種顯示大小」帶出來的——**任何拿角色圖尺寸去算的『數值』，
+> 在引入體型倍率之後都要重新檢查一遍**。通則見 [PROBLEMS.md](PROBLEMS.md) **E14**。
 
 ### MonsterData.csv 新增欄位
 
@@ -86,5 +101,5 @@
 
 ### 擊退方向
 * 怪物被子彈擊中時：方向為子彈位置 → 怪物位置（推離子彈）。
-* 玩家被怪物接觸時：方向由未來的接觸傷害系統提供（預留介面）。
+* 玩家被怪物接觸時：方向由 `EnemyContactDamage` 提供（接觸傷害**已實作**，見 [COMBAT.md](COMBAT.md)；此處原本寫「預留介面」已過時）。
 *2026-07-27 更正：初始武器與 E 鍵切換的敘述已過時（強制指派最高 ID 與 `SwitchToPreviousWeapon` 皆已移除）。*

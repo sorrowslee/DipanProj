@@ -60,7 +60,14 @@
 
 ## 2. 開啟方式與版面
 
-- **K**：開/關倉庫。**B**：開/關背包。由 `StorageBagCoordinator`（開場自動生成）統一處理。
+- **K**：開/關倉庫。**B**：開/關背包。**Y**：開/關鍛造。由 `StorageBagCoordinator`（開場自動生成）統一處理。
+- **兩種情況這三個熱鍵會被鎖住**：
+  1. 教學強制階段 `TutorialManager.HardLock`（佛燈教學的 B 走 `AllowBag` 例外放行）。
+  2. 血統變身演出中 `BloodlineTransformFxRunner.IsPlaying`——這三個面板都 `PausesGame=true`，
+     開下去 `timeScale` 歸零，會把吃 `Time.deltaTime` 的演出整段凍在半空中
+     （見 [PROBLEMS.md](PROBLEMS.md) **D14**）。
+  ⚠ **不能改成查 `IsGameplayInputBlocked`**：背包開著時它本來就是 true，那樣按 B 會關不掉背包。
+  ⚠ **之後新增「會暫停遊戲」的面板熱鍵，記得一起吃這兩個鎖。**
 - **只開倉庫** → 倉庫置中。**只開背包** → 背包置中。**兩個都開** → 倉庫左、背包右（並排），方便互搬。
 - 倉庫開著時按 B 叫出背包並排；再按 B 收背包、倉庫回中。
 

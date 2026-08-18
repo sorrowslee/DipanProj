@@ -113,6 +113,18 @@ public class InventoryPanel : UIPanel
 ## 設計重點
 
 - **暫停 / 輸入閘門「視面板而定」**：每個面板自己宣告 `PausesGame` / `BlocksGameplayInput`，UIManager 統合——任一開啟面板要求就生效，全部關掉才解除（`Recompute()`）。
+- **非面板系統的外部 hold（`SetExternalHold`）**：過場、演出、教學這種「不是面板但要鎖輸入/暫停」的系統，
+  掛需求用 `UIManager.SetExternalHold(owner, block, pause)`，與面板的需求一起參與 `Recompute`（任一要求就生效），
+  所以**不會被載入頁關閉時的重算覆蓋掉**（直接設 `Time.timeScale` 就會被蓋，這是本作法的重點）。
+  - **一定要用帶 `owner` 的多載。** 舊的兩參數多載共用一個預設 key——兩個生命週期重疊的系統一起用，
+    先解除的那個會把另一個還在生效的鎖一起清掉（實際踩過，見 [PROBLEMS.md](PROBLEMS.md) **D13**）。
+  - 解除是 `SetExternalHold(owner, false, false)`＝只移除**自己那一份**。
+  - ⚠ **現況**：目前只有 `BloodlineTransformFxRunner` 用了具名版；`TutorialManager` / `CutsceneDirector` /
+    `EyeOpenController` / `IllusionShatterController` / `GameFlowManager` / `TriggerChain` / `MapManager`
+    **仍全部共用預設 key**。也就是互踩問題只在「新系統 vs 舊系統」之間解掉了，舊系統彼此之間還是會踩。
+    之後動到那幾支時順手把 owner 補上。
+  - ⚠ `pause` 要不要開，取決於**演出本身吃哪種時間**：用 `Time.deltaTime` 的（玩家動畫、`VfxInstance`、
+    雷柱）暫停就會整段凍住，這時 `pause` 必須是 `false`（見 [PROBLEMS.md](PROBLEMS.md) **D14**）。
 - **輸入閘門怎麼接到玩家**：`PlayerController.Update` 開頭查一次 `UIManager.IsGameplayInputBlocked`，為真就清掉移動輸入並 return（最小侵入，沒有重構玩家的 input）。**任何之後要在開 UI 時停手的系統，都查這個靜態旗標即可。**
 - **多場景**：UIManager + 分層 Canvas 由 bootstrap 建一次、`DontDestroyOnLoad` 跨場景存活；切場景時自動關掉非常駐面板（實例仍快取重用）。現在是單場景、未來加場景，底層不用改。
 - **解耦邊界（沿用專案紀律）**：UI 是**純呈現層**，不直接抓遊戲邏輯。資料層與呈現層分開——背包應有 `InventorySystem`（純資料：有什麼、加減、發 `OnChanged` 事件）；`InventoryPanel` 只訂閱事件重繪、操作時回呼 `InventorySystem`。這跟「彈道不算傷害」「GroundEffect 資料 vs 視覺」是同一套設計哲學。
@@ -143,3 +155,4 @@ public class InventoryPanel : UIPanel
 *建立於 2026-06-22：UI 底層框架（uGUI + code-driven，多場景常駐，視面板而定的暫停/輸入閘門）。背包為下一階段，建在本框架上。*
 *2026-06-23 更新：加 `UIBuilder.InputField`；新增「共用 slot 拖放/搬運系統」(ISlotView/SlotDragController/InventoryActions/StorageBagCoordinator) 供背包與倉庫互拖；共用遮罩改為鋪在所有視窗最底層（支援並排視窗、不疊加）。見 [STORAGE.md](STORAGE.md)、[INVENTORY.md](INVENTORY.md)。*
 *2026-08-07 更新：新增三個共用視覺元件——`IconFit`＋`IconFitBox`（物品 icon 依不透明內容自動正規化大小）與 `SlotOutline`（格子外框高亮，取代整片上色）。兩者都掛在既有的單一入口上（`ItemIcons.Apply` / 各面板的 hover），所以一次改全部生效。另記：**本專案是 Linear 色彩空間**，寫 UI 的半透明數值時要知道「亮色疊暗底比直覺重一倍、暗色疊亮畫面比直覺淡一倍」，見 [PROBLEMS.md](PROBLEMS.md) E11。*
+*2026-08-18 更新：`SetExternalHold` 改成**具名持有者**（`Dictionary<owner, (block,pause)>`），舊的兩參數多載保留、共用一個預設 key，既有呼叫端行為不變。見上面「非面板系統的外部 hold」與 [PROBLEMS.md](PROBLEMS.md) D13/D14。*

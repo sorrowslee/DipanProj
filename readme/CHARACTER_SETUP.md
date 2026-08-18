@@ -18,16 +18,49 @@
 > `Base` = 預設初始外型。檔名數字**補零**、依檔名排序＝播放順序（超過 9 張用兩位數）。同一血統所有幀建議**相同像素尺寸**（不然切狀態會忽大忽小）。
 >
 > **換外型**：把新血統資料夾（例 `Vampire/idle`、`Vampire/walk`）放好 → 跑 `Project Tools → Sync Map Assets` →
-> 在 `Player` 的 `PlayerController` 把 **`Bloodline`** 設成 `Vampire`（或程式呼叫 `PlayerController.SetBloodline("Vampire")`）。沒有 `dead/` 就不會演死亡動畫（防呆）。
+> 在 `Player` 的 `PlayerController` 把 **`Bloodline`** 設成 `Vampire`（或程式呼叫
+> `PlayerController.SetBloodline("Vampire", bodyScale)`）。沒有 `dead/` 就不會演死亡動畫（防呆）。
+> ⚠ **第二個參數是體型倍率、有預設值 1**——漏傳不會編譯錯，但會把 `BodyScale` 靜默重設成 1，
+> 換血統後體型跑掉、影子與佛光圈跟著錯。實務上這支由 `BloodlineSystem` 統一呼叫，不要自己叫。
 >
 > **狀態**：idle/walk 循環、dead 一次性定格（死亡時觸發、不循環）。走路 fps 跟移動速度連動（防腳滑），同怪物。
 > 相關程式：`Assets/Scripts/PlayerAnimator.cs`、`PlayerSpriteLibrary.cs`、`PlayerController.cs`（`Bloodline` 欄 + `SetBloodline`）。機制細節同 [MONSTER_SETUP.md](MONSTER_SETUP.md)。
 >
-> **dead 幀一圖兩用（2026-07-07）**：`dead/` 除了死亡，還被「睜眼醒來」進場拿去**倒播＝爬起**（趴地→站立，零新素材）：
-> `PlayerAnimator.HoldLyingPose()`（定格 dead 最後一幀）＋ `PlayerAnimator.PlayWakeUp(onDone)`（倒播、播完回 idle），
-> 表演中一般 `SetState` 被忽略（真死 Dead 例外）。所以畫 dead 序列時**順播是倒下、倒播要能當爬起**（首幀＝站立、末幀＝完全趴平，中間別夾只適合單向的幀，例如噴血）。見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) §1.5。
+> **dead 幀一圖三用（2026-07-07 起，2026-08-18 擴充）**：`dead/` 除了死亡，還被拿去演「趴下」與「爬起」：
 >
-> **碰撞框**：玩家碰撞框維持原本 prefab 上的設定（不像怪物那樣自動依圖貼合）——換血統若大小差很多，自行在 `Player` 上微調 collider。
+> | API | 用途 |
+> |---|---|
+> | `PlayerAnimator.PlayFallDown(onDone, fpsMul)` | **正播**＝倒下，播完**轉成趴地定格**（不是回 idle）。血統變身用 |
+> | `PlayerAnimator.HoldLyingPose()` | 直接定格在 dead 最後一幀（進場「睜眼醒來」用） |
+> | `PlayerAnimator.PlayWakeUp(onDone, fpsMul)` | **倒播**＝爬起，播完回 idle |
+> | `PlayerAnimator.RefreshLyingPose()` | 趴地期間換了外型後重新定幀（**換血統後必叫**，否則角色會站著定格） |
+> | `PlayerAnimator.CancelPose()` | 中止表演回 idle（演出被打斷時收尾用） |
+>
+> 表演期間（`IsWakeUpBusy`）一般 `SetState` 全部被忽略，所以 `HandleVisuals` 每幀塞的 idle/walk 蓋不掉趴姿；
+> 真死 `Dead` 例外（會打斷表演）。
+>
+> ⚠ 所以畫 dead 序列時 **「順播是倒下、倒播要能當爬起」已經不是建議而是硬需求**——
+> 首幀＝站立、末幀＝完全趴平，中間別夾只適合單向的幀（例如噴血）。
+> 見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) §1.5 與 [BLOODLINE.md](BLOODLINE.md) §5。
+>
+> **顯示高度與體型倍率（2026-08-18）**：`PlayerAnimator.Setup` 會依 **idle 的可見像素高度**把每個血統
+> 正規化到同一個世界高度，所以不同來源、不同留白的圖進來都一樣高——基準是
+> `PlayerController.CharacterWorldHeight`（1.95）× **`BodyScale`**（血統表的體型倍率，Base = 1）。
+>
+> 但正規化**只看高度、不看體積與姿勢**：瘦長挺立的圖在同高度下就是比橫向壯碩的圖看起來小一號。
+> `BodyScale` 就是拿來用眼睛校正那個落差的旋鈕。它是**純視覺**——不動碰撞框、不動戰鬥數值。
+>
+> **放大是以「可見腳底」為錨點往上長**，不是置中放大（置中會讓腳往下沉、像陷進地板）。
+> 實作是 `PlayerSpriteLibrary.ApplyFootPivot` 依倍率倒推 sprite 的 pivot、就地 `Sprite.Create` 重建；
+> **`BodyScale = 1` 時直接回傳原陣列、連 Sprite 都不重建**，所以不放大的血統是位元級零影響。
+> ⚠ 刻意**不動 `MapSpriteLoader` 的預設 pivot**——那支是怪物／地上物／背景共用的。
+>
+> **要定位或縮放「掛在玩家身上」的特效**，用 `PlayerController` 的 `VisibleBodyHeight` /
+> `FeetWorldPos` / `BodyCenterWorldPos`，**不要用 `transform.position`（那是畫布中心）、
+> 也不要自己讀 `SpriteRenderer.bounds`**。完整說明見 [BLOODLINE.md](BLOODLINE.md) §2 與
+> [PROBLEMS.md](PROBLEMS.md) **E14**。
+
+> **碰撞框**：玩家碰撞框維持原本 prefab 上的設定（不像怪物那樣自動依圖貼合）——換血統若大小差很多，自行在 `Player` 上微調 collider。**`BodyScale` 不會放大碰撞框**（刻意；動 hitbox 會改手感）。
 
 把一張「站立圖」+ 一張「走路序列圖」設定成「站著會待機、移動會走路」的主角。
 本文件記錄完整流程，方便日後**換主角**時照做，不必重新摸索。

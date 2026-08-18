@@ -163,12 +163,15 @@ API：`SaveManager.UnlockRollEntry / GetUnlockedRollEntries / IsRollEntryUnlocke
 理由：血統的數值只有血統用得到，塞進 ItemTable 會讓其他 99% 的道具多出一堆空欄。
 這是專案既有模式的複製（`ItemTable.WeaponID → WeaponTable`）。
 
-`BloodlineTable.csv` 欄位：`Id, Key, DisplayName, SpriteFolder, MaxHpAdd, MoveSpeedMul,
-OutgoingDamageBonusPercent, SkillId, Note`。血統要加什麼數值就在這張表加欄。
+> ⚠️ **本小節的欄位清單已過時（2026-08-18）**，正典見 [BLOODLINE.md](BLOODLINE.md) §2。
+> 現在的欄位是 `Id, Key, DisplayName, SpriteFolder, BodyScale, WalkSpeed, Strength, Agility,
+> Magic, Vitality, SkillId, Note`——舊的 `MaxHpAdd / MoveSpeedMul / OutgoingDamageBonusPercent`
+> 三個數值欄**已移除**，改成五個「只存不套用」的角色屬性＋一個體型倍率。
+> `SpriteFolder` 也不再全是 `Base`（殭屍系列素材已到位）。
 
 - `Id=1` 固定保留給「人類（初始外型）」
-- ⚠ `SpriteFolder` 目前**全填 `Base`**，因為只有這一組素材。填了不存在的資料夾，
-  角色會找不到外型圖**只剩影子**。各血統的 `idle/walk/dead` 幀做好、跑過 Sync 之後再改這欄。
+- ⚠ 填了不存在的 `SpriteFolder` 資料夾，角色會找不到外型圖**只剩影子**；加了新資料夾一定要跑
+  `Project Tools → Sync Map Assets`
 - `SkillId` 是預留欄，**技能系統目前不存在**，填了只會印一則提示
 
 ### 5.2 「本世已定型」旗標放哪
@@ -185,11 +188,14 @@ OutgoingDamageBonusPercent, SkillId, Note`。血統要加什麼數值就在這�
 `BloodlineSystem`（常駐單例、自動生成、零接線）每幀比對「存檔裡的血統」與「已套用的血統」，
 不一致才動作——所以不管存檔載入、換圖、玩家物件重建的順序如何，最後都會收斂到正確狀態。
 
-套用內容：移速倍率、最大生命加減、傷害加成（**用加減差額**而非賦值，避免蓋掉別的來源）、
-外型 `SetBloodline`。所有數值都從「第一次看到這個玩家時記下的原始值」算起，
-反覆套用不會越疊越大。
+> ⚠️ **本小節的「套用內容」已過時（2026-08-18）**，正典見 [BLOODLINE.md](BLOODLINE.md) §4。
 
-喝藥入口：背包面板左鍵/右鍵點血統藥劑 → `ConfirmPopup` 確認 → `BloodlineSystem.TryDrink`。
+套用內容：**只有外型與體型**（`pc.SetBloodline(def.SpriteFolder, def.BodyScale)`）。
+舊版會套移速倍率／最大生命／傷害加成，那是屬性系統還沒有時的權宜做法，**已全部移除**——
+現在血統不改變任何戰鬥數值，表B 的五個屬性只存不套用。
+
+喝藥入口：背包面板左鍵/右鍵點血統藥劑（**含進階藥劑**）→ `BloodlineSystem.Plan`
+（不能喝就當場 Toast 理由）→ `ConfirmPopup` 確認 → `BloodlineSystem.TryDrink`。
 
 ---
 

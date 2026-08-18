@@ -140,6 +140,9 @@
 ### 機制（全在主遊戲側 `PlayerController.ShootSkyStrike` / `StrikeAt`）
 * **落點**：滑鼠所在世界座標。`SpreadCount > 1` 時以「玩家→滑鼠」為基準軸、在 `±SpreadAngle/2` 扇形上、與滑鼠等距分佈出 N 個落點（同拋物線的扇形落點）。
 * **視覺**：九霄雷獄由 `SegmentedLightningColumn` 生成——start 作鏡頭外雷首，依鏡頭頂端到落點距離動態鋪 N 節 tileable loop，保持等寬一路打到地面；不使用會收細的 end。地面另播 WeaponTable `HitEffectID` 的大型爆炸。
+  * **2026-08-18 起這支是「通用雷柱」**：`Spawn(impact, cam, Style, scale, fps, duration)` 的 `Style` 可指定素材路徑／張數／排序層，`SegmentedLightningColumn.SkyStrike` 是九霄雷獄的預設外觀。**舊的無 `Style` 簽章保留、武器行為零改變。** 血統變身的天雷就是換一組 `Style` 重用同一套拼接邏輯（見 [BLOODLINE.md](BLOODLINE.md) §5）。
+  * Sprite 快取改成**以路徑前綴為鍵的字典**，讓多種外觀各自快取、互不干擾；`ResetForPlayMode()` 已註冊 `PlayModeStaticReset`（陣列型 static 快取的坑，見 [PROBLEMS.md](PROBLEMS.md) I8——字典包陣列同樣適用）。
+  * ⚠ **「不使用 end」是刻意的**：end 那兩張是「快消散的細電光」，接在擊中點會突然收細。血統變身用的那組素材實測 `end` 就是 `start` 倒過來的同兩張圖，同樣不用。
 * **圓形 AOE**：落點以 `BlastRadius`（留空＝預設 1.2）半徑 `OverlapCircleAll(Enemy|Env)`，對範圍內 `IDamageable`（**怪與可破壞家具都吃**）以**武器 `Damage`** 結算一次。
 * **可選殘留**：`GroundEffectID > 0` 時在落點生成一團地面特效（焦痕/殘電/燃燒…）。
 * 目標搜尋與傷害都不碰彈道系統（守住邊界）。

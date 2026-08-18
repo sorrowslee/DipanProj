@@ -50,6 +50,17 @@
 
 集氣特效不採固定尺寸。每次生成藍光或切換紅光時，會讀取角色當下 `SpriteRenderer.bounds.size.y` 的實際世界高度，將特效最終高度調整為角色的 `1.15` 倍，因此會比角色大一點，並能跟隨不同血統、動畫尺寸與角色縮放。若當下無法取得 Renderer 尺寸，才退回 `CharacterWorldHeight`。
 
+**2026-08-18 兩項調整**（血統體型倍率帶出來的）：
+
+- **位置改對齊 `PlayerController.BodyCenterWorldPos`**（可見身體中心），不再釘 `transform.position`。
+  transform 是畫布中心，體型放大後（腳底錨點）身體整個往上長，釘在 transform 的光圈會沉到小腿附近。
+- **體型改變時直接砍掉、下一幀重生**：`RefreshBodyScaledVisuals()` 把 `_chargeVfx` 銷毀即可，
+  集氣迴圈每幀都會檢查「`_chargeVfx == null` 就補一顆」，重生時自然吃到新體型、也會自己挑對藍光/紅光。
+
+> ⚠ 集氣光圈是**目前唯一還在讀 `SpriteRenderer.bounds` 量高度**的殘留（只量高、不定位，所以還能用）。
+> [PROBLEMS.md](PROBLEMS.md) **E14** 的通則是「別拿 bounds 當可見身體」——日後要動這段時，
+> 改走 `PlayerController.VisibleBodyHeight`。
+
 ## 轉場與暫停
 
 主遊戲的房間／關卡切換由 `MapManager` 在同一個 Unity Scene 內重建地圖，玩家物件本身會保留。換圖清場仍會刪除舊地圖的所有 `VfxInstance`，但不再清除 `PlayerController` 的集氣進度、完成狀態與集氣武器快照。

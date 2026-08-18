@@ -11,8 +11,11 @@ using UnityEngine.SceneManagement;
 /// 視覺全在 <c>Resources/Shaders/Mosaic.shader</c>（_Progress 0→1：粗格→細格→原圖）。
 ///
 /// ★ 與睜眼／破幻術不同：本控制器**不自行暫停遊戲、不鎖輸入**。
-///   因為它主要用在劇情內，而劇情已經用 SetExternalHold 鎖了輸入；SetExternalHold 是布林設定（非計數），
-///   若這裡再自行 hold、播完解除，會把劇情的鎖一起解掉。所以暫停/鎖輸入交給呼叫端（劇情 lockInput）。
+///   因為它主要用在劇情內，而劇情已經用 SetExternalHold 鎖了輸入；若這裡再用**舊的兩參數多載**
+///   自行 hold、播完解除，會把劇情的鎖一起解掉（那個多載共用一個預設持有者）。
+///   所以暫停/鎖輸入交給呼叫端（劇情 lockInput）。
+///   （2026-08-18：SetExternalHold 已支援具名持有者 SetExternalHold(owner, block, pause)，
+///    要改成自行 hold 的話帶 owner 就安全了。見 readme/PROBLEMS.md D13。）
 ///   HUD 層的隱藏/復原一樣由 ScreenFxPlayer 統一處理，本控制器不碰。
 /// </summary>
 [DisallowMultipleComponent]

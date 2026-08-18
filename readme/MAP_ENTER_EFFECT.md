@@ -38,7 +38,9 @@
 - ⚠️ 破幻術的 id 從 1 改成 2；既有 `RedBridalGown_BridalRoom.dipanmap` 的 `playScreenFx` effectId 已一併改為 2。
 
 ### 馬賽克清晰（id 3）
-像素馬賽克格由粗到細慢慢收斂成清晰畫面（`_Progress` 0→1）。shader＝`Resources/Shaders/Mosaic.shader`、控制器＝`MosaicController`。與睜眼／破幻術不同，**它不自行暫停/鎖輸入**（`SetExternalHold` 是布林非計數，若在劇情內自行 hold 會把劇情的鎖一起解掉），暫停/鎖輸入交給呼叫端（劇情 `lockInput`）。典型用法：山道劇情亮起後、進場觸發對話前放一格 `screenFx=3`。
+像素馬賽克格由粗到細慢慢收斂成清晰畫面（`_Progress` 0→1）。shader＝`Resources/Shaders/Mosaic.shader`、控制器＝`MosaicController`。與睜眼／破幻術不同，**它不自行暫停/鎖輸入**，暫停/鎖輸入交給呼叫端（劇情 `lockInput`）。
+（原因：它用的是 `SetExternalHold` 的**舊兩參數多載**，那個共用一個預設 key，在劇情內自行 hold 會把劇情的鎖一起解掉。
+2026-08-18 起 `SetExternalHold` 已支援**具名持有者**，要改成自行 hold 的話帶 owner 就安全了——見 [PROBLEMS.md](PROBLEMS.md) D13。）典型用法：山道劇情亮起後、進場觸發對話前放一格 `screenFx=3`。
 
 ---
 

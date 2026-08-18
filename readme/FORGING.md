@@ -181,7 +181,7 @@ SlotDragController  ──►  InventoryActions.Resolve  ──►  IItemGrid �
 
 ## 5. 開關與並排
 
-- **Y**：`StorageBagCoordinator` 開/關（`forgeKey`）。新手教學強制階段（`TutorialManager.HardLock`）會鎖住。
+- **Y**：`StorageBagCoordinator` 開/關（`forgeKey`）。兩種情況會被鎖住：新手教學強制階段（`TutorialManager.HardLock`）、血統變身演出中（`BloodlineTransformFxRunner.IsPlaying`——本面板 `PausesGame=true`，開下去會把演出凍住，見 [PROBLEMS.md](PROBLEMS.md) D14）。細節見 [STORAGE.md](STORAGE.md)。
 - `ForgingPanel.OnOpen` **強制把背包一起開**（沒有背包就沒東西可拖），並排由 `StorageBagCoordinator` 統一擺：
   鍛造靠左、背包靠右。
 - `OnClose` 會把鐵砧**取下**（只是解鎖，沒有東西要退回），孔上的東西則退回背包，再把背包關掉。
