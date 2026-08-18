@@ -96,6 +96,8 @@ namespace Dipan.Inventory
                 d.BloodlineID = int.TryParse(bloodStr, out int bid) ? bid : 0;
                 string gemStr = Field(v, 16);     // 能力珠 → GemTable 的 GemID（選填欄；舊表沒這欄 → "" → 0）
                 d.GemID = int.TryParse(gemStr, out int gid) ? gid : 0;
+                string upStr = Field(v, 17);      // 血統進階藥劑的目標階數（選填欄；舊表沒這欄 → "" → 0）
+                d.BloodlineUpgrade = int.TryParse(upStr, out int bup) ? bup : 0;
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

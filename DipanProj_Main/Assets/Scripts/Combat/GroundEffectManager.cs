@@ -30,7 +30,15 @@ public class GroundEffectManager : MonoBehaviour
     /// &lt; 0（預設）= 用 GroundEffectTable 的 Damage；&ge; 0 = 改用此值
     /// （佛光等「載體型」特效把武器表 Damage 餵進來）。
     /// </param>
-    public GroundEffectInstance Spawn(int id, Vector2 position, float damageOverride = -1f, float visualScale = 1f)
+    /// <param name="visualScale">
+    /// 純視覺縮放（直接設 localScale）。**不影響傷害判定**——判定走 OverlapCircle(Radius)。
+    /// 想讓「看到的＝打得到的」請改用 <paramref name="radiusScale"/>。
+    /// </param>
+    /// <param name="radiusScale">
+    /// 半徑倍率：**視覺與傷害一起**縮放，兩者永遠一致。佛光這種跟著玩家的光環用它接體型倍率。
+    /// </param>
+    public GroundEffectInstance Spawn(int id, Vector2 position, float damageOverride = -1f,
+                                      float visualScale = 1f, float radiusScale = 1f)
     {
         if (GroundEffectPrefab == null)
         {
@@ -50,7 +58,7 @@ public class GroundEffectManager : MonoBehaviour
             return null;
         }
 
-        instance.Initialize(data, EnemyLayer | EnvironmentLayer, damageOverride);
+        instance.Initialize(data, EnemyLayer | EnvironmentLayer, damageOverride, radiusScale);
         if (visualScale > 0f && !Mathf.Approximately(visualScale, 1f))
             go.transform.localScale = Vector3.one * visualScale;
         return instance;

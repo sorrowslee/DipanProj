@@ -49,6 +49,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     private bool _continuousFireWasActive;   // 持續武器（雷射/佛光）攻擊動作只在「開始放的那一下」擺一次，用這個記上一幀狀態
     private float _contManaTimer = 0f;     // 持續型武器（雷射/佛光）的每秒耗魔計時器
     private bool _isDead = false;
+    /// <summary>玩家是否已死（死亡動畫定格中、所有操作被鎖）。給演出類系統判斷「該中止了」。</summary>
+    public bool IsDead => _isDead;
     private readonly List<BulletInstance> _activeOrbitalBullets = new List<BulletInstance>();
     private float _orbitalGroupExpireTime = -1f;
 
@@ -112,6 +114,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     [Header("外型 (路線 B：程式逐格動畫，血統換外型)")]
     [Tooltip("對應 GameAssets/Main/Characters/SequenceImage/<Bloodline>/。Base = 預設初始外型；之後由血統/存檔系統呼叫 SetBloodline 切換")]
     public string Bloodline = "Base";
+    [Tooltip("體型倍率（以人類 Base 為 1）。由血統表的 BodyScale 欄推進來。" +
+             "只影響角色圖的大小、以及『依身體大小』的特效範圍（佛光光環、集氣光圈…）；" +
+             "不動碰撞框、不動任何戰鬥數值（擊退距離有特別補償回去）。")]
+    public float BodyScale = 1f;
     [Tooltip("idle/walk/dead 的逐格播放幀率（留空走預設 12）")]
     public float PlayerAnimFPS = 12f;
     [Tooltip("角色站立顯示高度（世界單位）。預設 1.95 ≈ 舊 500px 尺寸；系統依 idle 可見高度自動換算縮放，" +
@@ -140,7 +146,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_animator != null) _animator.enabled = false;
         _playerAnim = GetComponent<PlayerAnimator>();
         if (_playerAnim == null) _playerAnim = gameObject.AddComponent<PlayerAnimator>();
-        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed, CharacterWorldHeight);
+        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed, ScaledCharacterHeight, BodyScale);
 
         // HP/MP 數值層：每次進遊戲都以 Inspector 值滿血滿魔初始化（HP/MP 刻意不存檔，方便測試）。見 readme/COMBAT.md §7。
         _stats = gameObject.GetComponent<CombatStats>();
@@ -476,7 +482,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             if (_chargeVfx == null)
                 SpawnChargeVfx(_chargeReady ? ChargeReadyVfxId : ChargeBlueVfxId);
             if (_chargeVfx != null)
-                _chargeVfx.transform.position = transform.position;
+                _chargeVfx.transform.position = BodyCenterWorldPos;
             return;
         }
 
@@ -494,7 +500,9 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         float characterHeight = _spriteRenderer != null ? _spriteRenderer.bounds.size.y : CharacterWorldHeight;
         if (characterHeight <= 0.01f) characterHeight = CharacterWorldHeight > 0f ? CharacterWorldHeight : 1.95f;
-        _chargeVfx = _vfxManager.SpawnLoopSizedToHeight(vfxId, transform.position,
+        // 對齊可見身體中心而不是 transform（那是畫布中心）：體型放大後身體整個往上長，
+        // 釘在 transform 的話光圈會沉到小腿附近。BodyScale=1 時兩者只差 1~2 公分，等於沒變。
+        _chargeVfx = _vfxManager.SpawnLoopSizedToHeight(vfxId, BodyCenterWorldPos,
             characterHeight * ChargeVfxHeightRatio, -1f);
     }
 
@@ -507,7 +515,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_vfxManager == null) return;
         float characterHeight = _spriteRenderer != null ? _spriteRenderer.bounds.size.y : CharacterWorldHeight;
         if (characterHeight <= 0.01f) characterHeight = CharacterWorldHeight > 0f ? CharacterWorldHeight : 1.95f;
-        var vfx = _vfxManager.SpawnLoopSizedToHeight(DrinkPotionVfxId, transform.position,
+        var vfx = _vfxManager.SpawnLoopSizedToHeight(DrinkPotionVfxId, BodyCenterWorldPos,
             characterHeight * DrinkPotionVfxHeightRatio, DrinkPotionVfxLifeSeconds);
         if (vfx != null) vfx.transform.SetParent(transform, true);   // 跟著玩家移動
     }
@@ -576,7 +584,11 @@ public class PlayerController : MonoBehaviour, IDamageable
             // 魔力：啟動佛光先扣一次；不夠就不生成
             if (!DrainContinuousMana(weapon, true)) return;
             // 傷害走武器表 Damage（餵進 GroundEffectInstance 的 damageOverride）。佛光圓用 Duration=-1（永久，由本控制器管理生死）。
-            _activeAura = _groundEffectManager.Spawn(auraId, transform.position, weapon.Damage);
+            // 半徑乘上體型倍率：佛光是「籠罩己身」的光環，身體變大 1.5 倍而圈不變的話，
+            // 光暈會比身體還窄、縮在肚子上（血統二階實測就是這個症狀）。
+            // 用 radiusScale 而不是 visualScale——後者只放大視覺、傷害仍是原半徑，畫面會騙人。
+            _activeAura = _groundEffectManager.Spawn(auraId, BodyCenterWorldPos, weapon.Damage,
+                                                     1f, BodyScale);
             _activeAuraWeapon = weapon;
             // 發射特效（可選）：佛光在按下瞬間播一次（持續存在期間不每幀重播）
             TrySpawnFireEffect(weapon, AimDirectionToMouse());
@@ -590,8 +602,10 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         // 每幀把佛光移到玩家身上：GroundEffectInstance 的 tile／單圖是子物件、傷害每拍即時讀 transform.position，
         // 所以只要移動 transform，「視覺圈」與「傷害圈」就會一起跟著玩家（GroundEffect 本身零改動）。
+        // 對齊「可見身體中心」而不是 transform：transform 是畫布中心，體型放大後（腳底錨點）
+        // 身體會整個往上長，光環還釘在 transform 的話會掉到小腿附近。
         if (_activeAura != null)
-            _activeAura.transform.position = transform.position;
+            _activeAura.transform.position = BodyCenterWorldPos;
     }
 
     private void ClearActiveAura()
@@ -1802,13 +1816,86 @@ public class PlayerController : MonoBehaviour, IDamageable
     public CombatStats Stats => _stats;
 
     /// <summary>
-    /// 切換血統外型（路線 B）。傳入血統名（＝ GameAssets/Main/Characters/SequenceImage/&lt;名&gt; 資料夾名），
-    /// 重新載入 idle/walk/dead 並立即套用。之後接「血統／存檔系統」時呼叫此方法即可換外型，零改其他程式。
+    /// 切換血統外型與體型（路線 B）。傳入血統名（＝ GameAssets/Main/Characters/SequenceImage/&lt;名&gt; 資料夾名），
+    /// 重新載入 idle/walk/dead/attack 並立即套用。由 BloodlineSystem 推進來，PlayerController 自己不查血統表。
     /// </summary>
-    public void SetBloodline(string bloodline)
+    /// <param name="bodyScale">
+    /// 體型倍率（Base = 1）。**只改角色圖畫多大與「依身體大小」的特效範圍，不動碰撞框、不動數值**
+    /// （擊退距離本來會被圖寬帶著跑，這裡有補償回去）。
+    /// </param>
+    public void SetBloodline(string bloodline, float bodyScale = 1f)
     {
         Bloodline = bloodline;
+        BodyScale = bodyScale > 0.01f ? bodyScale : 1f;
         if (_playerAnim == null) _playerAnim = gameObject.AddComponent<PlayerAnimator>();
-        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed, CharacterWorldHeight);
+        _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed, ScaledCharacterHeight, BodyScale);
+        // 擊退距離是「角色圖寬 × 百分比」算的，而圖寬會跟著體型倍率變大——
+        // 不補償的話 1.5 倍體型會被擊退 1.5 倍遠，BodyScale 就不再是純視覺了。
+        if (_hitReaction != null) _hitReaction.WidthScaleCompensation = BodyScale;
+
+        RefreshBodyScaledVisuals();
+    }
+
+    /// <summary>
+    /// 體型（<see cref="BodyScale"/>）改變後，把所有「依身體大小」而且**還活著**的東西重新對齊。
+    ///
+    /// 為什麼需要這支：多數特效是「生成當下讀 SpriteRenderer.bounds」，所以下次生成自然就跟上了；
+    /// 但有三種東西會撐過體型變更——腳下影子（只在 Start 量一次）、佛光光環、集氣光圈——
+    /// 不同步的話會停在舊尺寸。**之後再加這類「持續掛在玩家身上的效果」，記得在這裡補一行。**
+    /// </summary>
+    public void RefreshBodyScaledVisuals()
+    {
+        var shadow = GetComponent<BlobShadow>();
+        if (shadow != null) shadow.Refresh();
+
+        // 佛光光環：半徑跟著體型（視覺與傷害一起）。
+        if (_activeAura != null) _activeAura.SetRadiusScale(BodyScale);
+
+        // 集氣光圈：直接砍掉就好。集氣迴圈每幀都會檢查「_chargeVfx == null 就補一顆」，
+        // 下一幀自然會用新的體型重生，也會自己挑對藍光/紅光（不必在這裡判斷集氣完成沒）。
+        if (_chargeVfx != null)
+        {
+            Destroy(_chargeVfx.gameObject);
+            _chargeVfx = null;
+        }
+    }
+
+    /// <summary>套過體型倍率後的角色顯示高度（世界單位）。特效要「蓋住玩家」時用這個當基準。</summary>
+    public float ScaledCharacterHeight => CharacterWorldHeight * (BodyScale > 0.01f ? BodyScale : 1f);
+
+    // ── 可見身體的幾何（給「要蓋住玩家 / 要對準腳下」的特效用）──
+    // ⚠ 別自己去讀 SpriteRenderer.bounds：那個含不含四周透明留白，取決於 sprite 的 mesh 型別，
+    //   在這條「執行期 Sprite.Create」的管線上並不保證。這裡是 PlayerAnimator 從縮放參數解析算出來的，永遠精確。
+
+    /// <summary>目前姿勢下「可見身體」的高度（世界單位）。趴著時比站著矮。</summary>
+    public float VisibleBodyHeight
+    {
+        get
+        {
+            float h = _playerAnim != null ? _playerAnim.VisibleHeight : 0f;
+            return h > 0.01f ? h : ScaledCharacterHeight;
+        }
+    }
+
+    /// <summary>角色腳下站的位置（可見身體的底部中心）。雷擊、落點這類要「對準腳」的用它。</summary>
+    public Vector2 FeetWorldPos
+    {
+        get
+        {
+            Vector3 p = transform.position;
+            float dy = _playerAnim != null ? _playerAnim.FeetOffsetY : 0f;
+            return new Vector2(p.x, p.y + dy);
+        }
+    }
+
+    /// <summary>可見身體的中心。要「罩住身體」的光環/煙霧對齊這裡，而不是 transform（那是畫布中心）。</summary>
+    public Vector2 BodyCenterWorldPos
+    {
+        get
+        {
+            Vector3 p = transform.position;
+            float dy = _playerAnim != null ? _playerAnim.BodyCenterOffsetY : 0f;
+            return new Vector2(p.x, p.y + dy);
+        }
     }
 }

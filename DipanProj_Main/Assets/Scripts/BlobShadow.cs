@@ -32,25 +32,7 @@ public class BlobShadow : MonoBehaviour
         _charSr = GetComponent<SpriteRenderer>();
         if (_charSr == null) _charSr = GetComponentInChildren<SpriteRenderer>();
 
-        // 依角色「可見（不透明）像素」的世界寬度與腳底決定影子大小/位置。
-        // ⚠ 不能用整張 sprite bounds：AutoSprite 等圖角色只佔畫布一小塊（四周透明），整張寬會讓影子過大、
-        // 腳底落在透明區下緣讓影子偏低。先抓不透明像素範圍；texture 不可讀（舊 Animator 圖）則退回整張 bounds。
-        float charWidth = 1f;
-        float footWorldY = transform.position.y - 0.5f;
-        if (_charSr != null && _charSr.sprite != null)
-        {
-            Bounds b = _charSr.bounds;   // 世界 AABB（已含 transform 縮放與翻轉，寬高不受 flip 影響）
-            charWidth = b.size.x;
-            footWorldY = b.min.y;
-            if (TryGetVisibleFraction(_charSr.sprite, out float widthFrac, out float bottomFrac))
-            {
-                charWidth = b.size.x * widthFrac;              // 只取不透明寬度
-                footWorldY = b.min.y + b.size.y * bottomFrac;  // 腳底 = 不透明區下緣（非畫布底）
-            }
-        }
-        float width = charWidth * WidthFactor;
-        float height = width * HeightRatio;
-        _footOffsetY = (footWorldY - transform.position.y) - VerticalOffset;
+        Measure(out float width, out float height);
 
         _shadowGo = new GameObject(gameObject.name + "_Shadow");
         var sr = _shadowGo.AddComponent<SpriteRenderer>();
@@ -68,6 +50,49 @@ public class BlobShadow : MonoBehaviour
         // 共用 sprite 的 native 尺寸 = 1 世界單位（PPU=邊長），故 localScale 直接 = 目標世界大小
         _shadowGo.transform.localScale = new Vector3(width, height, 1f);
 
+        UpdateShadowPosition();
+    }
+
+    /// <summary>
+    /// 依角色「可見（不透明）像素」量出影子的寬高與腳底位移（順便寫進 <c>_footOffsetY</c>）。
+    ///
+    /// ⚠ 不能用整張 sprite bounds：AutoSprite 等圖角色只佔畫布一小塊（四周透明），整張寬會讓影子過大、
+    /// 腳底落在透明區下緣讓影子偏低。先抓不透明像素範圍；texture 不可讀（舊 Animator 圖）則退回整張 bounds。
+    /// </summary>
+    void Measure(out float width, out float height)
+    {
+        float charWidth = 1f;
+        float footWorldY = transform.position.y - 0.5f;
+        if (_charSr != null && _charSr.sprite != null)
+        {
+            Bounds b = _charSr.bounds;   // 世界 AABB（已含 transform 縮放與翻轉，寬高不受 flip 影響）
+            charWidth = b.size.x;
+            footWorldY = b.min.y;
+            if (TryGetVisibleFraction(_charSr.sprite, out float widthFrac, out float bottomFrac))
+            {
+                charWidth = b.size.x * widthFrac;              // 只取不透明寬度
+                footWorldY = b.min.y + b.size.y * bottomFrac;  // 腳底 = 不透明區下緣（非畫布底）
+            }
+        }
+        width = charWidth * WidthFactor;
+        height = width * HeightRatio;
+        _footOffsetY = (footWorldY - transform.position.y) - VerticalOffset;
+    }
+
+    /// <summary>
+    /// 角色的顯示大小變了之後重新量一次（例如血統換外型／改體型倍率）。
+    /// 不叫的話影子會停在舊尺寸——換成 1.5 倍體型的血統時，腳下會頂著一塊明顯偏小的影子。
+    /// </summary>
+    public void Refresh()
+    {
+        if (_shadowGo == null) return;
+        if (_charSr == null)
+        {
+            _charSr = GetComponent<SpriteRenderer>();
+            if (_charSr == null) _charSr = GetComponentInChildren<SpriteRenderer>();
+        }
+        Measure(out float width, out float height);
+        _shadowGo.transform.localScale = new Vector3(width, height, 1f);
         UpdateShadowPosition();
     }
 

@@ -66,13 +66,16 @@ public static class PlayModeStaticReset
         Dipan.UI.SlotDragController.ResetForPlayMode();   // 拖放層的鎖定鉤子＋殘留的拖曳狀態
         SceneFxTable.ResetForPlayMode();
         ScreenFxTable.ResetForPlayMode();
+        SegmentedLightningColumn.ResetForPlayMode();   // 拼接雷柱的 Sprite 快取（字典型，容器不會變 null）
 
-        // 抽選系統的資料表（池登記表／各池基本表／血統表）＋血統系統的單例。
-        // 三張表都是「provider 提供 TextAsset、載一次就快取」，殘留的話 provider 接好也不重載。
+        // 抽選系統的資料表（池登記表／各池基本表／血統表／血統系列表）＋血統系統的單例。
+        // 四張表都是「provider 提供 TextAsset、載一次就快取」，殘留的話 provider 接好也不重載。
         Dipan.Gacha.GachaPoolTable.ResetForPlayMode();
         Dipan.Gacha.GachaRollTable.ResetForPlayMode();
         Dipan.Gacha.BloodlineTable.ResetForPlayMode();
+        Dipan.Gacha.BloodlineSeriesTable.ResetForPlayMode();   // 血統系列表（表A：系列 → 三階段的反查索引）
         Dipan.Gacha.BloodlineSystem.ResetForPlayMode();
+        Dipan.Gacha.BloodlineTransformFxRunner.ResetForPlayMode();   // 變身演出的 IsPlaying（殘留會鎖死背包熱鍵）
 
         // 能力珠鑲嵌（見 readme/GEM_SOCKET.md）
         Dipan.Inventory.ItemManager.ResetForPlayMode();   // 能力珠定義表快取（GemTable）

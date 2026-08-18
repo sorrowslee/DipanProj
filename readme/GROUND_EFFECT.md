@@ -138,3 +138,26 @@ WeaponTable → RecipeTable(IsAura 等) → GroundEffectID → GroundEffectTable
   * **地板型（tile 火/毒、靜態單圖）**：固定 `GroundEffectSortingOrder = 8`——**高於「可走地上物」(`MapLoader.WalkableObjectSortingOrder = 5`)、低於角色與一般（不可走）地上物（Y 排序帶）**。效果：火在**可踩的石板/地毯（可走物）之上**燃燒、卻在**祭壇/柱子（不可走立體物）與角色之下**。這正好用地上物的「可走與否」自動分了「火該在其上或其下」，不必逐一判斷。（曾試整團依中心 Y 進 Y 排序帶，但單一排序值會讓大範圍 AOE 後方 tile 也蓋過地上物，已改回固定值。）
   * **佛光（`RenderMode = Glow`，跟著玩家的光環）**：例外——依**中心 Y（跟著玩家）每幀進 Y 排序帶**（`ApplyAuraYSort`，帶小幅 `AuraYSortBias` 讓玩家畫在光環之上）。所以玩家走到祭壇**前面**時光環也在前、走到**後面**時被祭壇擋——和玩家同進退，而不是壓在地板層被祭壇一律蓋住。單張圖、無大範圍 tile 問題。（見 `MapDepthSort` / [PROBLEMS.md](PROBLEMS.md) 排序相關。）
 * 同一目標的 DOT 限流靠 `HitReactionHandler.IsInvincible`，地面特效本身不維護命中表
+
+## 半徑倍率（per-instance，2026-08-18）
+
+`GroundEffectManager.Spawn(id, pos, damageOverride, visualScale, **radiusScale**)` 的第 5 個參數。
+
+| 參數 | 影響 |
+|---|---|
+| `visualScale` | 只設 `transform.localScale` → **純視覺**，傷害仍走表格的 `Radius`。看得到不一定打得到 |
+| `radiusScale` | **視覺與傷害一起**縮放（`GroundEffectInstance.Radius = _data.Radius × 倍率`），兩者永遠一致 |
+
+要「看到的就是打得到的」一律用 `radiusScale`。目前唯一的使用者是**佛光**——它是「籠罩己身」的光環，
+半徑接血統的體型倍率（見 [BLOODLINE.md](BLOODLINE.md)）；身體變大 1.5 倍而圈不變的話，
+光暈會比身體還窄、縮在肚子上。
+
+`SetRadiusScale(倍率)` 可以中途改：視覺整組重建、傷害下一拍就吃到新半徑。給「跟著玩家的光環」在玩家
+體型改變時同步用。
+
+> ⚠ **絕對不要就地改 `_data.Radius`。** `_data` 是 GroundEffectTable 的一列，**全遊戲共用同一個物件**，
+> 改了會污染之後所有用到這個特效的地方（同 RecipeTable 共用配方的坑，見 [GEM_SOCKET.md](GEM_SOCKET.md)）。
+> 倍率一律存在 instance 上，所有讀半徑的地方走 `Radius` 屬性。
+>
+> ⚠ `RebuildVisuals()` **刻意不重建 `BuildLight()`**：那支是 `AddComponent<LightSource>()` 加在自己身上
+> （不是子物件），再叫一次會變成兩盞燈；而且發光半徑走 `LightRadius` 欄、不吃倍率，本來就不用重建。

@@ -81,3 +81,16 @@
 3. 在 `VfxTable.csv` 加一列、在 `WeaponTable.csv` 對應武器填 `FireEffectID` / `HitEffectID` 即可，不需動程式。
 
 > 加新特效 = `VfxTable` 多一列 ＋ 武器表填編號，零改程式。這套原語日後也可餵給「怪物死亡煙、撿道具閃光」等需求。
+
+## 血統變身用的特效（2026-08-18）
+
+| ID | 名稱 | 素材 | Loop | SortingOrder | 備註 |
+|---|---|---|---|---|---|
+| 30 | 變身煙塵 | `VfxEffects/TransformSmoke/`（10 幀） | 0（播完自毀） | 22100 | 放大到玩家身高 ×1.6 蓋住趴著的玩家，換裝就藏在這一瞬 |
+| 31 | 變身環繞電弧 | `VfxEffects/TransformAura/`（22 幀） | 1，`Duration=-1` | 22050 | **無限循環、生死由程式控**（`BloodlineTransformFxRunner` 負責 Destroy），掛在玩家 transform 下跟著移動 |
+
+變身用的雷柱**不在這張表裡**——它是「頂端 + 可平鋪身體」的多段組合，走 `SegmentedLightningColumn`
+（與九霄雷獄同一套邏輯、只是換 `Style` 指定素材路徑），素材在 `VfxEffects/TransformLightning/{Start,Loop}/`。
+完整說明見 [BLOODLINE.md](BLOODLINE.md) §5。
+
+⚠ id 31 這種 `Duration=-1` 的循環特效**一定要有人負責 Destroy**，漏了就會變成永遠掛在玩家身上的裝飾。

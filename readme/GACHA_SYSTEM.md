@@ -149,6 +149,12 @@ API：`SaveManager.UnlockRollEntry / GetUnlockedRollEntries / IsRollEntryUnlocke
 
 ## 5. 血統（一次性藥劑）
 
+> ⚠ **2026-08-18 起，血統系統已擴充成「系列＝三階段」並獨立成一份文件：[BLOODLINE.md](BLOODLINE.md)。**
+> 本節保留的是「血統藥劑怎麼被抽出來」這一段（抽選池的部分仍然正確）；
+> **血統本身的規則、兩張表、進階藥劑、外型與立繪切換，一律以 [BLOODLINE.md](BLOODLINE.md) 為準。**
+> 本節以下關於「本世只能喝一次」「BloodlineTable 的欄位」「SpriteFolder 全是 Base」的描述**已經過時**：
+> 現在起始藥劑一世一次、但可以再喝全系列通用的進階藥劑逐階往上；表B 的數值欄已換成五個「只存不套用」的屬性。
+
 ### 5.1 為什麼分兩張表
 
 血統藥劑是 `ItemTable` 的一列（`Category=Bloodline`、新欄位 **`BloodlineID`**），
@@ -385,9 +391,9 @@ Resources/UI/ClearStagePanel/*                  十連結算沿用過關結算�
 - 面板字串目前是 `GachaPanel` 上方的 `const string`，正式多語系時改走 `Language.GetText`（見 [LOCALIZATION.md](LOCALIZATION.md)）
 - `BaseArmorRoll.csv` 是空的（ItemTable 沒有防具）
 - 血統的 `SkillId` 欄留著但技能系統不存在
-- 血統的 `SpriteFolder` 全是 `Base`（等各血統素材）
+- ~~血統的 `SpriteFolder` 全是 `Base`~~ → **已解**（2026-08-18，殭屍系列素材到位，見 [BLOODLINE.md](BLOODLINE.md)）
 - `rockSlate_blood` / `rockSlate_item` 兩張石板圖還不存在（目前只有 weapon / armor / script）
-- 血統藥劑的 icon 暫時借用回血/回魔瓶的圖
+- ~~血統藥劑的 icon 暫時借用回血/回魔瓶的圖~~ → 起始藥劑已換成專屬 icon；**進階藥劑的 icon 尚未到位**（見 [TODO.md](TODO.md)）
 - 抽選面板素材有大量透明邊，貼圖記憶體約是需要的 4 倍（見 §7.2）
 - 殿堂背景是 4:3，16:9 畫布下兩側各留 240 由同色底補（見 §7.25）；日後若想真正鋪滿，要嘛請美術出一張 16:9 的，要嘛把左右兩塊做成九宮格拉伸
 - `openPanel` 的 `next` 不會觸發（見 §6.1）

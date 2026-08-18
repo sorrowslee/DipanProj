@@ -15,6 +15,16 @@ public class HitReactionHandler : MonoBehaviour
     private float _knockbackThreshold;
     private float _knockbackPercent;
 
+    /// <summary>
+    /// 擊退距離用的「圖寬」補償倍率（預設 1 = 不補償）。
+    ///
+    /// 擊退距離是「角色圖寬 × 百分比」算的，所以只要角色被畫大，擊退就會跟著變遠。
+    /// 玩家的血統體型倍率（<c>PlayerController.BodyScale</c>）刻意定義成**純視覺**，
+    /// 所以那邊會把倍率填進這裡除掉，讓 1.5 倍體型的角色被擊退的距離跟 1 倍一樣。
+    /// 怪物不用管（牠們的顯示大小本來就代表體型差異，擊退跟著變遠是合理的）。
+    /// </summary>
+    public float WidthScaleCompensation = 1f;
+
     public bool IsInvincible { get; private set; }
     public bool IsKnockedBack { get; private set; }
 
@@ -104,6 +114,7 @@ public class HitReactionHandler : MonoBehaviour
 
         float spriteWidth = _spriteRenderer.sprite.bounds.size.x;
         float worldWidth = spriteWidth * Mathf.Abs(transform.lossyScale.x);
+        if (WidthScaleCompensation > 0.01f) worldWidth /= WidthScaleCompensation;   // 見欄位說明
         float knockbackDistance = worldWidth * (_knockbackPercent / 100f);
 
         // 怪物現在是 trigger（無硬碰撞），擊退不會被牆擋 → 會飛穿牆再被 A* 拉回來。這裡用物理射線偵測「真正的牆」，

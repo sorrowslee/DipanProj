@@ -34,3 +34,19 @@ id,cn,en
 4010,這件裝備上沒有鑲嵌,This item has no gems socketed
 4011,背包空位不夠，無法取下全部鑲嵌,Not enough bag space to remove all gems
 4012,已取下 {0} 顆能力珠,Removed {0} gem(s)
+# ── 血統系統（2001–2099）──
+2001,這不是血統藥劑,This is not a bloodline elixir
+2002,你的血脈已定為「{0}」，這一世不能再改變,"Your bloodline is set to ""{0}"" and cannot change this life"
+2003,這瓶藥劑的血統在血統表找不到,This elixir's bloodline is missing from the bloodline table
+2004,背包裡沒有這瓶藥劑,You do not have that elixir
+2005,還沒載入角色，現在不能喝,No character loaded yet
+2006,你尚未覺醒任何血脈，無法進階,You have not awakened a bloodline yet
+2007,你的血脈不屬於任何系列，無法進階,Your bloodline belongs to no lineage and cannot advance
+2008,血脈尚未成熟，需先進階為「{0}」,"Your bloodline is not ready. Advance to ""{0}"" first"
+2009,你的血脈已在此之上,Your bloodline is already beyond this
+2010,你的血脈已至頂點,Your bloodline has reached its peak
+2011,喝下「{0}」？\n血統一世只能決定一次，喝下去就不能反悔。,"Drink ""{0}""?\nYour bloodline is chosen once per life and cannot be undone."
+2012,喝下「{0}」？\n你的血脈將從「{1}」進為「{2}」，無法還原。,"Drink ""{0}""?\nYour bloodline will advance from ""{1}"" to ""{2}"". This cannot be undone."
+2013,血脈已定：{0},Bloodline set: {0}
+2014,血脈進化：{0},Bloodline advanced: {0}
+2015,無法飲用,Cannot drink this

@@ -32,7 +32,16 @@ namespace Dipan.UI
         readonly List<UIPanel> _stack = new List<UIPanel>();                            // 視窗/彈窗堆疊順序
 
         bool _inputBlocked;
-        bool _extBlock, _extPause;   // 非面板系統（如進場睜眼過場）要求的擋輸入/暫停
+
+        // 非面板系統（進場睜眼過場、鏡頭聚焦、教學、變身演出…）要求的擋輸入/暫停。
+        // ⚠ 這裡是「具名持有者」而不是單一組布林：多個系統可能同時掛需求，
+        //    單一組布林的話「後解除的那一個」會把還在生效中的另一個一起清掉。
+        //    實際踩過的例子：血統變身演出中玩家被打死 → 死亡流程也掛了 hold →
+        //    演出結束時解除，把死亡流程的鎖一起清掉，玩家在結算等待期間又能走能打。
+        //    用預設 key 的舊多載維持既有呼叫端的行為不變（它們本來就共用一組旗標）。
+        const string DefaultHoldOwner = "__legacy__";
+        readonly Dictionary<string, (bool block, bool pause)> _extHolds =
+            new Dictionary<string, (bool block, bool pause)>();
 
         /// <summary>遊戲輸入是否該被 UI 擋住（給 PlayerController 等查詢）。無 UIManager 時恆為 false。</summary>
         public static bool IsGameplayInputBlocked => Instance != null && Instance._inputBlocked;
@@ -40,11 +49,22 @@ namespace Dipan.UI
         /// <summary>
         /// 給非面板的系統掛「擋輸入 / 暫停」需求（例如進場睜眼過場：播放中暫停＋不能操作，播完解除）。
         /// 與面板的需求一起參與 Recompute（任一要求就生效），所以不會被載入頁關閉時的重算覆蓋掉。
+        ///
+        /// 這個多載用共用的預設持有者（維持既有呼叫端的行為）。**新程式請用帶 owner 的多載**，
+        /// 否則會與其他同樣沒帶 owner 的系統互相踩掉需求。
         /// </summary>
         public void SetExternalHold(bool block, bool pause)
+            => SetExternalHold(DefaultHoldOwner, block, pause);
+
+        /// <summary>
+        /// 具名版：只影響自己這一份需求，解除時不會動到別人掛的。
+        /// </summary>
+        /// <param name="owner">持有者識別字串（用類別名即可，同一個系統前後要一致）。</param>
+        public void SetExternalHold(string owner, bool block, bool pause)
         {
-            _extBlock = block;
-            _extPause = pause;
+            if (string.IsNullOrEmpty(owner)) owner = DefaultHoldOwner;
+            if (!block && !pause) _extHolds.Remove(owner);
+            else _extHolds[owner] = (block, pause);
             Recompute();
         }
 
@@ -232,8 +252,13 @@ namespace Dipan.UI
                 if (p.BlocksGameplayInput) block = true;
                 if (p.PausesGame) pause = true;
             }
-            _inputBlocked = block || _extBlock;
-            Time.timeScale = (pause || _extPause) ? 0f : 1f;
+            foreach (var h in _extHolds.Values)
+            {
+                if (h.block) block = true;
+                if (h.pause) pause = true;
+            }
+            _inputBlocked = block;
+            Time.timeScale = pause ? 0f : 1f;
         }
 
         /// <summary>

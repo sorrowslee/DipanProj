@@ -32,8 +32,9 @@ namespace Dipan.Inventory
         public int HealHp;            // 藥劑：喝下回復的生命（0 = 不回血）
         public int HealMp;            // 藥劑：喝下回復的魔力（0 = 不回魔）
         public float LightRadius;     // 發光半徑（世界單位）：>0＝此裝備「裝在身上」時發光照亮周遭；0/空＝不發光。取所有裝備欄最大值畫光圈。
-        public int BloodlineID;       // 血統藥劑：對應 BloodlineTable 的 Id（喝下去改變本世外型與數值）；0 = 不是血統藥劑
+        public int BloodlineID;       // 系列起始藥劑：對應 BloodlineTable 的 Id（慣例是某系列第一階）；0 = 不是起始藥劑
         public int GemID;             // 能力珠：對應 GemTable 的 GemID（決定它給的是哪個能力）；0 = 不是能力珠
+        public int BloodlineUpgrade;  // 血統進階藥劑：目標階數（2 = 中階、3 = 高階）。全系列通用；0 = 不是進階藥劑
         public Sprite Icon;           // 由 ItemDatabase 從 Resources 載入
 
         public bool IsEquippable => EquipSlot != EquipSlot.None;
@@ -43,10 +44,20 @@ namespace Dipan.Inventory
         /// <summary>是不是「藥劑」（可拖到 HUD 藥水格、按數字鍵使用）。</summary>
         public bool IsPotion => Category == "Potion";
         /// <summary>
-        /// 是不是「血統藥劑」（一次性消耗道具：喝下去永久改變本世外型與數值，本世只能喝一次）。
-        /// 刻意不可裝備（EquipSlot=None）也不算 Potion——它不進 HUD 藥水格，而是在背包裡點一下喝掉。
+        /// 是不是「系列起始藥劑」（決定本世走哪一個血統系列，本世只能喝一次、不可逆）。
+        /// BloodlineID 指到 BloodlineTable 的某一列，慣例上是該系列的第一階。
         /// </summary>
-        public bool IsBloodline => BloodlineID > 0;
+        public bool IsBloodlineStarter => BloodlineID > 0;
+        /// <summary>
+        /// 是不是「血統進階藥劑」（把目前系列往上推一階）。**全系列通用**，所以它不指定血統，
+        /// 只指定目標階數（2 = 中階、3 = 高階）；實際會變成哪一種血統由 BloodlineSeriesTable 決定。
+        /// </summary>
+        public bool IsBloodlineUpgrade => BloodlineUpgrade > 0;
+        /// <summary>
+        /// 是不是「血統藥劑」（起始或進階都算）。一次性消耗道具，在背包裡點一下（左鍵或右鍵）喝掉。
+        /// 刻意不可裝備（EquipSlot=None）也不算 Potion——它不進 HUD 藥水格。
+        /// </summary>
+        public bool IsBloodline => IsBloodlineStarter || IsBloodlineUpgrade;
         /// <summary>
         /// 是不是「能力珠」（可鑲進裝備孔位、給該角色一項配方能力）。
         /// 刻意不可裝備——它不占裝備欄，而是鑲進裝備的孔裡。每一顆有自己的等級（1~3），所以不可疊。

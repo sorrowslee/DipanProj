@@ -54,7 +54,11 @@ namespace Dipan.MapRuntime
         readonly Dictionary<string, Sprite> _sprites = new Dictionary<string, Sprite>();
         readonly Dictionary<string, LocalBox> _alphaBoxes = new Dictionary<string, LocalBox>();
 
-        public struct LocalBox { public bool ok; public Vector2 size; public Vector2 offset; }
+        /// <summary>
+        /// 不透明像素的貼合框（世界單位）。<c>canvas</c> = 整張畫布的世界尺寸——
+        /// 要算「可見內容佔畫布的比例」時**一定要除它**，不能假設畫布是 256px。
+        /// </summary>
+        public struct LocalBox { public bool ok; public Vector2 size; public Vector2 offset; public Vector2 canvas; }
 
         public MapSpriteLoader(string assetRoot) { _assetRoot = assetRoot; }
 
@@ -223,6 +227,7 @@ namespace Dipan.MapRuntime
                 ok = true,
                 size = new Vector2((maxX - minX + 1) / ppu, (maxY - minY + 1) / ppu),
                 offset = new Vector2((centerPxX - w * 0.5f) / ppu, (centerPxY - h * 0.5f) / ppu),
+                canvas = new Vector2(w / ppu, h / ppu),
             };
             _alphaBoxes[key] = box;
             return box;

@@ -266,6 +266,20 @@
 - **附帶提醒**：反過來說，看到這個警告時要先分辨兩種情況——① 只是 Max Size 縮圖（無害，現在不會再報）；② **真的換了圖**（那就要重量內容邊界框、更新 `ArtSpec`）。這次兩種同時發生：`ForgingPanel_Btn` 是①，`ForgingPanel_ItemFrame` 是②（1360×1210 換成了 1448×1296）。
 - **順帶**：`Max Size` 會縮圖也意味著**素材開太大是白費的**。底部長按鈕在畫面上只有 ~240px 寬，卻放了 2416px 的原圖（進遊戲仍是 2048），等於 8~10 倍過取樣。依 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) 的規範（大按鈕 256~512），把這張的 `maxTextureSize` 調到 512 就好，記憶體與載入都省。（2026-07-29 記）
 
+
+### D13. 兩個過場/演出同時進行時，先結束的那個把還在生效中的輸入鎖一起解掉（玩家在不該能動的時候能動）
+
+- **症狀**：血統變身演出（約 6 秒、期間玩家被鎖住不能閃避）中途被怪打死 → 死亡流程 `GameFlowManager.EndLevel` 也掛了自己的輸入鎖，接著變身演出跑完、解除鎖 → **死亡結算等待期間玩家又能走能打**。反過來也會發生：死亡流程先解鎖，把演出的鎖清掉。
+- **原因**：`UIManager.SetExternalHold(block, pause)` 舊版是**單一組布林**（`_extBlock` / `_extPause`），沒有「誰掛的」概念，所以任何一方呼叫 `SetExternalHold(false, false)` 都會把全部人的需求一起清空。這與面板的需求不同——面板是逐一列舉 `_panels` 重算的，天生就是「任一要求就生效」。
+- **解法**：`_extBlock`/`_extPause` 改成 **`Dictionary<string, (bool block, bool pause)>` 具名持有者**，`Recompute` 一併 OR 進去。舊的兩參數多載保留、內部用一個共用的預設 key（既有呼叫端行為完全不變，它們本來就共用同一組旗標）。**新程式一律用具名版** `SetExternalHold("我的系統名", true, false)`。
+- **通則**：只要一個全域狀態可能被「兩個生命週期重疊的系統」同時要求，就不能用單一組布林——不是改計數器就是改持有者表。這個 bug 的可怕之處是它只在「兩件事剛好重疊」時才出現，平常測一百次都不會遇到。
+
+### D14. 演出播到一半整個凍住不動，20 秒後結果才「跳」出來（元凶是某個 `PausesGame` 的面板）
+
+- **症狀**：血統變身演出播到一半玩家按了 `B`（背包），畫面整個凍結——玩家趴著、電弧停在半空、雷柱不動；等很久之後新外型才突然 pop 出來。
+- **原因**：兩件事湊在一起。① `InventoryPanel` / `StoragePanel` / `ForgingPanel` 都是 `PausesGame => true`，一開就 `Time.timeScale = 0`。② 演出用到的東西——`PlayerAnimator.Update`、`VfxInstance.Update`、`SegmentedLightningColumn.Update`、以及演出協程自己的等待——**全部吃 `Time.deltaTime`**，timeScale 歸零就整組停擺。最後是 `BloodlineSystem` 的逾時保險絲（用 `unscaledTime`）先到期，強制把外型套上去，所以看起來是「卡住很久然後結果直接跳出來」。
+- **解法**：兩層。① 演出開頭 `UIManager.CloseAll()` 關掉已開的面板；② **演出期間鎖住會暫停遊戲的熱鍵**——`StorageBagCoordinator` 查 `BloodlineTransformFxRunner.IsPlaying`。⚠ 不能改成查 `IsGameplayInputBlocked`，因為背包開著時它本來就是 true，那樣按 `B` 會關不掉背包。
+- **通則**：**做任何「跨數秒、吃 `Time.deltaTime` 的演出」之前，先問「這段期間玩家能不能開出一個 `PausesGame` 的面板」。** 能的話就得擋。另外，演出自己的「逾時保險絲」一定要用 `unscaledDeltaTime`，否則連保險絲都會被凍住（保險絲的意義就是在事情出錯時仍能跑）。
 ## E. 效能 / 顯示 (Performance & Display)
 
 ### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順
@@ -375,6 +389,20 @@
 
 ---
 
+
+### E14. 角色「可以變大」之後，所有靠 `transform.position` 或 `SpriteRenderer.bounds` 定位／定大小的東西全部要重驗
+
+- **症狀**：血統二階體型 1.5 倍之後，佛光光環縮在肚子上、雷擊劈到肩膀而不是腳、集氣光圈沉到小腿、被打時被擊退得比一階遠。
+- **原因**：三個平常成立、角色一變大就同時失效的**隱含假設**。
+  1. **`transform.position` ≒ 身體中心**。玩家 sprite 是置中 pivot，所以 transform 一直約等於身體中心，大家就直接拿它當「角色在哪」。改成腳底錨點放大之後，身體整個往上長，transform 變成「腳踝附近」——釘在 transform 上的光環、光圈全部會沉下去。
+  2. **`SpriteRenderer.bounds` ≒ 可見身體**。bounds 含不含四周透明留白，取決於 sprite 的 mesh 型別（Tight／FullRect），在「執行期 `Sprite.Create`」這條管線上**沒有保證**。拿它當「腳在哪」會偏低、當「多高」會偏大。
+  3. **寫死的世界半徑就是「剛好」**。佛光的 `Radius=1.2` 對 1.95 高的角色剛好罩住，對 2.92 高的就變成比身體還窄——它從來沒看過身體，只是以前身體只有一種高度。
+- **解法**：
+  - 幾何**不要用 bounds 猜**，改從縮放參數解析算：`PlayerAnimator` 在 `Setup` 時把各動作的「可見高」與「可見腳底相對 transform 的位移」算好存起來，`PlayerController` 對外提供 `VisibleBodyHeight` / `FeetWorldPos` / `BodyCenterWorldPos`。要蓋住身體的用 `BodyCenterWorldPos`，要對準腳的用 `FeetWorldPos`。
+  - 會**撐過體型變更**的持續型效果（影子、佛光光環、集氣光圈）集中在 `PlayerController.RefreshBodyScaledVisuals()` 重新對齊；**之後再加這類效果記得在那裡補一行**。
+  - 寫死半徑的地面特效改成支援 **per-instance 半徑倍率**（`GroundEffectInstance.Radius = _data.Radius × _radiusScale`）。⚠ 絕對不要就地改 `_data.Radius`——那是 GroundEffectTable 的一列、**全遊戲共用同一個物件**（同 RecipeTable 共用配方的坑）。
+  - 被圖寬帶著跑的**數值**要補償回去：擊退距離是「角色圖寬 × 百分比」，圖變大就退更遠；`HitReactionHandler.WidthScaleCompensation` 把體型倍率除掉，維持「體型是視覺、不動數值」。
+- **通則**：**引入「同一個角色會有多種顯示大小」這件事，等於把所有寫死的世界單位常數都變成可疑的。** 動手前先全專案搜一遍 `transform.position`（特效生成處）、`bounds`、以及任何以世界單位寫死的半徑／偏移，逐一問「這個數字是不是預設角色只有一種大小」。
 ## F. 戰鬥 / 傷害 (Combat)
 
 > 系統說明見 [COMBAT.md](COMBAT.md)。

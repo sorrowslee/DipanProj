@@ -175,6 +175,57 @@ public class MapCameraController : MonoBehaviour
             _cam.transform.position = Vector3.SmoothDamp(cur, desired, ref _vel, followSmoothTime);
         else
             _cam.transform.position = desired;
+
+        // 4) 震動：最後才疊上去。
+        // ⚠ 順序很重要——必須在 SmoothDamp 之後。若把偏移加進 desired 再 SmoothDamp，
+        //   平滑會把高頻抖動整個吃掉，看起來只是鏡頭「軟軟地飄一下」而不是震。
+        //   也因為不寫回 _vel / desired，震完自然回到正確位置，不會累積漂移。
+        Vector3 shake = ConsumeShakeOffset();
+        if (shake != Vector3.zero) _cam.transform.position += shake;
+    }
+
+    // ---- 震動（擊中衝擊感）----
+    // ⚠ 震動一定要做在這支元件裡，不能另外掛一個「震屏元件」：
+    //    相機位置每幀由本元件的 LateUpdate 獨佔寫入，另一個元件也寫 transform.position 會互相蓋掉
+    //    （誰先跑取決於 Script Execution Order，是個抓不到的隨機 bug）。
+    //    這裡的做法是：算完基準位置後，最後再疊一個衰減中的隨機偏移上去。
+    float _shakeTimeLeft;
+    float _shakeDuration;
+    float _shakeAmplitude;   // 世界單位
+
+    /// <summary>
+    /// 讓鏡頭震動一下（擊中、爆炸之類的衝擊感）。振幅線性衰減到 0。
+    /// 重複呼叫取「較強的那一次」，不累加——連續呼叫時不會震到飛出去。
+    /// </summary>
+    /// <param name="duration">秒數（用 unscaled 計時，暫停中也會衰減完）。</param>
+    /// <param name="amplitude">最大偏移（世界單位）。0.15 約是一格的 1/7，已經很明顯。</param>
+    public void AddShake(float duration, float amplitude)
+    {
+        duration = Mathf.Max(0f, duration);
+        amplitude = Mathf.Max(0f, amplitude);
+        if (duration <= 0f || amplitude <= 0f) return;
+        // 只有「比目前更強」的震動才取代，較弱的直接忽略。
+        // 刻意不做「延長時間但保留舊振幅」那種合併——衰減係數是 timeLeft/duration，
+        // 中途把 timeLeft 拉長會讓已經衰減掉的震動整個彈回滿強度（看起來像抖到一半又暴衝一次）。
+        if (amplitude < _shakeAmplitude) return;
+        _shakeAmplitude = amplitude;
+        _shakeDuration = duration;
+        _shakeTimeLeft = duration;
+    }
+
+    /// <summary>立刻停止震動（演出被打斷時用，避免鏡頭停在偏移位置）。</summary>
+    public void StopShake() { _shakeTimeLeft = 0f; _shakeAmplitude = 0f; }
+
+    /// <summary>算出這一幀要疊加的震動偏移，並推進衰減。沒在震時回 zero。</summary>
+    Vector3 ConsumeShakeOffset()
+    {
+        if (_shakeTimeLeft <= 0f || _shakeAmplitude <= 0f) return Vector3.zero;
+        // 用 unscaledDeltaTime：演出可能在暫停狀態下播（見 readme/PROBLEMS.md 的過場慣例）。
+        _shakeTimeLeft -= Time.unscaledDeltaTime;
+        if (_shakeTimeLeft <= 0f) { _shakeTimeLeft = 0f; _shakeAmplitude = 0f; return Vector3.zero; }
+        float k = _shakeDuration > 0.0001f ? (_shakeTimeLeft / _shakeDuration) : 0f;   // 線性衰減
+        float a = _shakeAmplitude * k;
+        return new Vector3(Random.Range(-a, a), Random.Range(-a, a), 0f);
     }
 
     // ---- 把鏡頭「對準某個世界座標」，設 null 還原成跟隨玩家 ----

@@ -1,4 +1,4 @@
-ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,WeaponID,TargetMapId,TargetEntrance,HealHp,HealMp,LightRadius,BloodlineID,GemID
+ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,WeaponID,TargetMapId,TargetEntrance,HealHp,HealMp,LightRadius,BloodlineID,GemID,BloodlineUpgrade
 1,三分裂追蹤飛劍,Weapon,Weapon,UI/Icons/Equipment/weapon_sword,1,飛劍,傷害 1　發射時三分裂、會追蹤敵人,三道寒光鎖魂，避無可避。,1,,,,
 2,五分裂反彈彎刀,Weapon,Weapon,UI/Icons/Equipment/weapon_scimitar,1,彎刀,傷害 2　五分裂散射、撞牆反彈,刀光亂舞，連牆角的影子都不放過。,2,,,,
 3,火焰環繞彈,Weapon,Weapon,UI/Icons/Equipment/weapon_skullStaff,1,骷髏權杖,傷害 2　召出環繞自身的火焰彈,權杖低語，亡者之火繞身而行。,3,,,,
@@ -22,8 +22,9 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 102,卷軸,Material,None,UI/Icons/Items/item_reel,99,神秘的卷軸,合成材料,紙頁泛黃，唯一能辨認的是一個「歸」字。,,,,,
 103,符紙,Consumable,None,UI/Icons/Items/item_talismanPaper,99,驅邪的符紙,消耗品　使用後短暫驅邪,貼上門楣的第七夜，符紙無火自燃。,,,,,
 104,劇本-紅嫁衣,Consumable,None,UI/Icons/Items/scripts/Script_RedBridalGown,1,劇本,邪佛給你的劇本,一夜之間，風雲變色,1,1,,,
-301,血統藥劑・野魂,Bloodline,None,UI/Icons/Items/positions/item_mpPosition_s,1,一次性的血統藥劑,喝下永久改變本世血統：移速 +20%、最大生命 -10,腥氣沖鼻。喝下去的那一刻，就再也回不去了。,,,,,,,2
-302,血統藥劑・幽靈,Bloodline,None,UI/Icons/Items/positions/item_hpPosition_s,1,一次性的血統藥劑,喝下永久改變本世血統：移速 +35%、最大生命 -20、傷害 +10%,瓶底沉著一縷不肯散的白霧，像有人在裡面呼吸。,,,,,,,3
+301,血統藥劑・殭屍,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Jiangshi,1,一次性的血統藥劑,喝下覺醒「殭屍」血脈　本世不可更改系列,屍氣自瓶口漫出。喝下去的那一刻，就再也回不去了。,,,,,,,10
+310,血統進階藥劑・中階,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_lvup_middle,9,推進血脈至第二階,把目前的血脈推進到第二階　需先覺醒血脈,濃稠得幾乎不流動。血在裡面，還記得自己曾經是誰。,,,,,,,,,2
+311,血統進階藥劑・高階,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_lvup_high,9,推進血脈至第三階,把目前的血脈推進到第三階　需先進階至第二階,瓶身冰得燙手。再往下一步，就不是人能回頭的地方了。,,,,,,,,,3
 201,小回血瓶,Potion,None,UI/Icons/Items/positions/item_hpPosition_s,99,回復少量生命,回復生命 10,飲下一口，暖流自喉頭漫入四肢。,,,,10,0
 202,小回魔瓶,Potion,None,UI/Icons/Items/positions/item_mpPosition_s,99,回復少量魔力,回復魔力 10,吞一口冷冽，識海重新泛起微光。,,,,0,10
 401,反彈珠,Gem,None,,1,能力珠・反彈,鑲進裝備的孔位　賦予子彈「撞牆反彈」,石心有一道摺痕，光走到那裡就會轉彎。,,,,,,,,1

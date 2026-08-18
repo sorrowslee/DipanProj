@@ -5,6 +5,15 @@ public class GroundEffectInstance : MonoBehaviour
 {
     private GroundEffectData _data;
     private LayerMask _damageMask;   // 怪物 + 環境(可破壞地上物)
+
+    // ── 半徑倍率（per-instance）──
+    // ⚠ 絕對不要改 _data.Radius：_data 是 GroundEffectTable 的一列，**全遊戲共用同一個物件**，
+    //   就地改會污染之後所有用到這個特效的地方（同 RecipeTable 共用配方的坑，見 readme/GEM_SOCKET.md）。
+    //   所以倍率獨立存在 instance 上，所有讀半徑的地方一律走 Radius 屬性。
+    private float _radiusScale = 1f;
+
+    /// <summary>這一顆實際的作用半徑＝表格半徑 × 倍率。**視覺與傷害判定都用這個**，兩者永遠一致。</summary>
+    public float Radius => _data != null ? _data.Radius * _radiusScale : 0f;
     private SpriteRenderer _templateRenderer;
     private readonly List<SpriteRenderer> _tileRenderers = new List<SpriteRenderer>();
 
@@ -70,11 +79,17 @@ public class GroundEffectInstance : MonoBehaviour
     /// &lt; 0（預設）= 用 GroundEffectTable 的 Damage；&ge; 0 = 改用此值結算傷害
     /// （佛光等「載體型」特效把武器表 Damage 餵進來，讓同一張圓的傷害可隨武器調整）。
     /// </param>
-    public void Initialize(GroundEffectData data, LayerMask damageMask, float damageOverride = -1f)
+    /// <param name="radiusScale">
+    /// 半徑倍率（1 = 照表）。**視覺與傷害一起縮放**，不會出現「看得到卻打不到」。
+    /// 佛光這種「跟著玩家的光環」用它接血統體型倍率（見 readme/BLOODLINE.md）。
+    /// </param>
+    public void Initialize(GroundEffectData data, LayerMask damageMask, float damageOverride = -1f,
+                           float radiusScale = 1f)
     {
         _data = data;
         _damageMask = damageMask;
         _damageOverride = damageOverride;
+        _radiusScale = radiusScale > 0.01f ? radiusScale : 1f;
 
         // Prefab 上的 SpriteRenderer 只當 sortingLayer / order / material 的範本，
         // 自身不顯示任何圖（由動態產生的 tile 子物件負責繪製）。
@@ -111,6 +126,40 @@ public class GroundEffectInstance : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 中途改半徑倍率：把已經生出來的視覺整組重建（傷害判定下一拍就自動吃到新半徑）。
+    /// 給「跟著玩家的光環」在玩家體型改變時同步用；倍率沒變就什麼都不做。
+    /// </summary>
+    public void SetRadiusScale(float radiusScale)
+    {
+        float v = radiusScale > 0.01f ? radiusScale : 1f;
+        if (Mathf.Approximately(v, _radiusScale)) return;
+        _radiusScale = v;
+        RebuildVisuals();
+    }
+
+    /// <summary>依目前的半徑重建視覺子物件（tile／單圖／背景符號）。</summary>
+    private void RebuildVisuals()
+    {
+        if (_data == null) return;
+        // 這些子物件全都是這支自己生的，整組砍掉重來最單純也最不會漏。
+        // （Destroy 會延到幀末，但 _tileRenderers 已清空，動畫與排序只會碰到新生的那批。）
+        for (int i = transform.childCount - 1; i >= 0; i--) Destroy(transform.GetChild(i).gameObject);
+        _tileRenderers.Clear();
+        _sigilRenderer = null;
+        _sigilBaseScale = Vector3.one;
+        // Glow 模式每次 BuildSingleSprite 會 new 一顆 Material；不先銷毀舊的就是每重建一次漏一顆。
+        if (_glowMat != null) { Destroy(_glowMat); _glowMat = null; }
+        _glowRenderer = null;
+
+        BuildTiles();
+        BuildSigil();
+        // ⚠ 刻意不重建 BuildLight：它是 AddComponent<LightSource>() 加在**自己身上**（不是子物件），
+        //   再叫一次會多掛一顆變成兩盞燈。而且發光半徑走 _data.LightRadius、不吃倍率，本來就不用重建。
+        if (_data.GlowFlicker) ApplyAuraYSort();
+        else SetTilesSortingOrder(GroundEffectSortingOrder);
+    }
+
     private const int TileCountWarnThreshold = 500;
 
     /// <summary>
@@ -124,7 +173,7 @@ public class GroundEffectInstance : MonoBehaviour
     {
         if (_data == null) return;
         if (_data.AnimationSprites == null || _data.AnimationSprites.Length == 0) return;
-        if (_data.Radius <= 0f) return;
+        if (Radius <= 0f) return;
 
         // 單圖模式：只放一張 sprite，整張縮放到直徑 = 2*Radius（佛光等柔和發光圓暈）。
         if (_data.SingleSprite)
@@ -134,7 +183,7 @@ public class GroundEffectInstance : MonoBehaviour
         }
 
         float tileSize = _data.TileSize > 0f ? _data.TileSize : 1f;
-        float radius = _data.Radius;
+        float radius = Radius;
         float radiusSqr = radius * radius;
         int maxOffset = Mathf.CeilToInt(radius / tileSize);
         Sprite firstFrame = _data.AnimationSprites[0];
@@ -189,7 +238,7 @@ public class GroundEffectInstance : MonoBehaviour
 
         // sprite 在 localScale=1 時的世界寬度；縮放到直徑 = 2*Radius
         float spriteWorld = firstFrame.bounds.size.x;
-        float scale = spriteWorld > 1e-5f ? (2f * _data.Radius) / spriteWorld : 1f;
+        float scale = spriteWorld > 1e-5f ? (2f * Radius) / spriteWorld : 1f;
         go.transform.localScale = new Vector3(scale, scale, 1f);
 
         var sr = go.AddComponent<SpriteRenderer>();
@@ -230,7 +279,7 @@ public class GroundEffectInstance : MonoBehaviour
     /// </summary>
     private void BuildSigil()
     {
-        if (_data == null || _data.Radius <= 0f) return;
+        if (_data == null || Radius <= 0f) return;
 
         Sprite sigil = _data.SigilSprite;
         if (sigil == null) return;   // 欄位留空、或圖載不到 → 沒有這一層，不影響特效本體
@@ -241,7 +290,7 @@ public class GroundEffectInstance : MonoBehaviour
 
         float spriteWorld = sigil.bounds.size.x;
         float scale = spriteWorld > 1e-5f
-            ? (2f * _data.Radius * SigilRadiusMul) / spriteWorld
+            ? (2f * Radius * SigilRadiusMul) / spriteWorld
             : 1f;
         go.transform.localScale = new Vector3(scale, scale, 1f);
 
@@ -424,10 +473,10 @@ public class GroundEffectInstance : MonoBehaviour
     {
         // 傷害值：damageOverride >= 0 時改用它（佛光以武器表 Damage 結算），否則用表格 Damage。
         float damage = _damageOverride >= 0f ? _damageOverride : _data.Damage;
-        if (damage <= 0f || _data.Radius <= 0f) return;
+        if (damage <= 0f || Radius <= 0f) return;
 
         Vector2 center = transform.position;
-        Collider2D[] hits = Physics2D.OverlapCircleAll(center, _data.Radius, _damageMask);
+        Collider2D[] hits = Physics2D.OverlapCircleAll(center, Radius, _damageMask);
         for (int i = 0; i < hits.Length; i++)
         {
             Collider2D col = hits[i];
@@ -454,6 +503,6 @@ public class GroundEffectInstance : MonoBehaviour
     {
         if (_data == null) return;
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, _data.Radius);
+        Gizmos.DrawWireSphere(transform.position, Radius);
     }
 }

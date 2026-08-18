@@ -20,8 +20,11 @@ namespace Dipan.Gacha
         [Tooltip("把 Assets/Data/ 底下所有 BaseXxxRoll.csv 拖進來（一個大項一張）")]
         public TextAsset[] rollTableCSVs;
 
-        [Tooltip("把 Assets/Data/BloodlineTable.csv 拖進來")]
+        [Tooltip("把 Assets/Data/BloodlineTable.csv 拖進來（表B：每種血統的外型與屬性）")]
         public TextAsset bloodlineTableCSV;
+
+        [Tooltip("把 Assets/Data/BloodlineSeriesTable.csv 拖進來（表A：系列 → 三個階段）")]
+        public TextAsset bloodlineSeriesTableCSV;
 
         // ── 靜態表的取用入口（找不到 provider 時回 null，各表會自己印指引警告）──
 
@@ -40,6 +43,11 @@ namespace Dipan.Gacha
         public static TextAsset BloodlineTableCsv
         {
             get { var p = Find(); return p != null ? p.bloodlineTableCSV : null; }
+        }
+
+        public static TextAsset BloodlineSeriesTableCsv
+        {
+            get { var p = Find(); return p != null ? p.bloodlineSeriesTableCSV : null; }
         }
     }
 }

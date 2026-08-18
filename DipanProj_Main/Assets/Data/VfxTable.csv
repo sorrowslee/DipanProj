@@ -21,3 +21,5 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 27,集氣中藍光,VfxEffects/ChargeUpBlue/ChargeUpBlue,16,16,1.6,1,-1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 28,集氣完成紅光,VfxEffects/ChargeUpRed/ChargeUpRed,16,16,1.6,1,-1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 29,使用藥劑,VfxEffects/UsePosition/status_sparkling_001,24,30,1,1,-1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+30,變身煙塵,VfxEffects/TransformSmoke/symmetrical_smoke_burst_001,10,15,1,0,,22100,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+31,變身環繞電弧,VfxEffects/TransformAura/fx3_lightning_aura,22,20,1,1,-1,22050,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

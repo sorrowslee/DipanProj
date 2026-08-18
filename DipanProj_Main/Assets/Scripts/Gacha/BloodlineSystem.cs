@@ -1,18 +1,28 @@
 using UnityEngine;
 using Dipan.Inventory;
 using Dipan.Save;
+using Dipan.Localization;
 
 namespace Dipan.Gacha
 {
     /// <summary>
-    /// 血統的執行期系統：把「本世血統」套到玩家身上（外型 ＋ 數值），並處理喝血統藥劑。
+    /// 血統的執行期系統：把「本世血統」套到玩家身上，並處理喝血統藥劑（含系列起始與逐階進階）。
     ///
-    /// 規則（拍板的設計，見 readme）：
-    ///   1. 血統藥劑是**一次性消耗道具**：喝下去永久改變本世外型與數值。
-    ///   2. **本世只能喝一次**。喝過之後再拿到任何血統藥劑都不能再喝（會提示「你的血脈已定」）。
-    ///   3. **輪迴後回到人類外型**。但血統藥劑本身是道具，可以被輪迴帶物選中留到下一世再喝——
-    ///      所以「已定型」旗標刻意存在 progress.flags（周目層），ReincarnateInPlace 換掉整個 progress
+    /// 規則（拍板的設計，見 readme/BLOODLINE.md）：
+    ///   1. 血統分「系列」，一個系列有三階（例：殭屍 → 毛殭 → 旱魃）。系列與階段的對應在
+    ///      <see cref="BloodlineSeriesTable"/>（表A）；每一階長什麼樣、數值多少在 <see cref="BloodlineTable"/>（表B）。
+    ///   2. **系列起始藥劑**（ItemTable 的 BloodlineID 指到某系列第一階）：本世只能喝一次，
+    ///      喝完就鎖死系列，不能再改吃別的系列。
+    ///   3. **血統進階藥劑**（ItemTable 的 BloodlineUpgrade = 目標階數）：**全系列通用**，
+    ///      沿著目前系列往上走一階。必須逐階——第 1 階的人不能直接喝高階藥劑。
+    ///   4. **輪迴後回到人類**。血統藥劑本身是道具，可以被輪迴帶物選中留到下一世再喝——
+    ///      所以「本世血統」刻意存在 progress.flags（周目層），ReincarnateInPlace 換掉整個 progress
     ///      時自動失效，不需要任何額外的重置程式碼。
+    ///
+    /// ⚠ **血統目前不改變任何遊戲數值**。表B 的五個屬性（行走速度/力量/敏捷/魔力/體力）
+    ///   只是概念值、沒有任何一處會讀。換血統在體感上只有外型與立繪會變，這是預期行為。
+    ///   （舊版這裡會套 MaxHpAdd / MoveSpeedMul / 傷害加成，那是屬性系統還沒有時的權宜做法，
+    ///     已於 2026-08-18 拿掉，避免之後與真正的屬性系統打架。）
     ///
     /// 生命週期：常駐單例、自動生成、零接線（同 UIBootstrap / VfxManager 的風格）。
     /// 每幀比對「存檔裡的血統」與「已套用的血統」，不一致才動作——所以不管存檔載入、換圖、
@@ -37,10 +47,20 @@ namespace Dipan.Gacha
         // ── 已套用的狀態（跟玩家物件綁；玩家換了就重來）──
         PlayerController _pc;
         int _appliedId = -1;
-        float _baseMoveSpeed;
-        float _baseMaxHealth;
-        float _appliedDamageBonus;   // 目前這個血統貢獻了多少傷害加成（換血統時用差額還原，不蓋掉別人寫的）
-        bool _baseCaptured;
+
+        /// <summary>
+        /// 變身演出進行中。演出期間停止收斂——不然 Update 會搶在煙霧散開前就把外型換掉，
+        /// 玩家會先看到新造型再看到煙霧。
+        /// </summary>
+        bool _transforming;
+        float _transformStartedAt;
+
+        /// <summary>
+        /// 變身演出的保險絲（秒）。超過就強制解除，避免特效寫錯時血統永遠套不上去。
+        /// 20 秒是「正常演出約 6 秒 ＋ 最壞情況（倒下/爬起各逾時 6 秒）」再留餘裕算出來的，
+        /// 調快演出節奏時不用跟著動，但如果之後把演出加長到 15 秒以上，這裡要一起調大。
+        /// </summary>
+        const float TransformTimeout = 20f;
 
         void Awake()
         {
@@ -51,6 +71,16 @@ namespace Dipan.Gacha
 
         void Update()
         {
+            if (_transforming)
+            {
+                // 保險絲：演出應該自己呼叫 onFinished。萬一之後接的特效漏叫（或中途換場景被打斷），
+                // 這裡強制解除，否則血統會永遠停在舊外型而且完全沒有錯誤訊息。
+                if (Time.unscaledTime - _transformStartedAt <= TransformTimeout) return;
+                Debug.LogWarning("[BloodlineSystem] 變身演出超過 " + TransformTimeout +
+                                 " 秒沒有結束，強制解除。檢查 BloodlineTransformFx.Play 是否有呼叫 onFinished。");
+                _transforming = false;
+            }
+
             // 玩家還沒生出來（載入中、標題畫面）→ 等。
             if (_pc == null)
             {
@@ -59,8 +89,6 @@ namespace Dipan.Gacha
                 _pc = go.GetComponent<PlayerController>();
                 if (_pc == null) return;
                 _appliedId = -1;              // 新的玩家物件 → 重新套一次
-                _baseCaptured = false;
-                _appliedDamageBonus = 0f;     // 新玩家的加成從 0 起算
             }
 
             int want = CurrentBloodlineId;
@@ -70,116 +98,304 @@ namespace Dipan.Gacha
 
         // ───────────────────────── 對外查詢 ─────────────────────────
 
-        /// <summary>本世血統 Id（沒喝過任何藥劑 = 人類）。存在周目旗標，輪迴自動失效。</summary>
-        public static int CurrentBloodlineId
+        /// <summary>
+        /// 存檔旗標裡記著的血統 Id（沒喝過 = 0）。**不驗證它在不在表B**，只有內部用。
+        /// </summary>
+        static int StoredBloodlineId
         {
             get
             {
                 var sm = SaveManager.Instance;
                 string v = sm != null ? sm.GetFlagValue(GachaConstants.BloodlineFlagKey) : null;
                 if (!string.IsNullOrEmpty(v) && int.TryParse(v, out int id) && id > 0) return id;
+                return 0;
+            }
+        }
+
+        /// <summary>
+        /// 本世血統 Id（沒喝過任何藥劑 = 人類）。存在周目旗標，輪迴自動失效。
+        ///
+        /// ⚠ 存的 Id 在表B 找不到時**當成人類**。這是給舊存檔的救生艇：
+        /// 血統表刪過列（2026-08-18 移除了野魂/幽靈），舊角色身上還記著已經不存在的 Id，
+        /// 若照實回報會變成「已定型成一個不存在的血統」——起始藥劑喝不了（說你已定為「人類」，自相矛盾）、
+        /// 進階藥劑也喝不了（找不到所屬系列），本世血統徹底卡死只能靠輪迴。
+        /// 當成未定型就能重新選一次。
+        ///
+        /// 表還沒載好時 Get 也會回 null → 暫時回報人類，等表載好下一幀自然收斂（Update 是收斂式的）。
+        /// 這段期間也喝不了藥（Plan 一樣查得到 null 會擋下），所以不會有「趁表沒載好偷喝第二瓶」的漏洞。
+        /// </summary>
+        public static int CurrentBloodlineId
+        {
+            get
+            {
+                int id = StoredBloodlineId;
+                if (id > 0 && BloodlineTable.Get(id) != null) return id;
                 return BloodlineTable.HumanId;
             }
         }
 
-        /// <summary>本世是否已經定型（喝過血統藥劑了）。定型後任何血統藥劑都不能再喝。</summary>
+        /// <summary>
+        /// 本世是否已經選定系列（喝過系列起始藥劑了）。選定後不能再吃別的系列。
+        /// 判斷與 <see cref="CurrentBloodlineId"/> 一致：存的 Id 在表B 找不到 = 未定型（見上面的理由）。
+        /// </summary>
         public static bool IsFixedThisCycle
         {
             get
             {
-                var sm = SaveManager.Instance;
-                if (sm == null) return false;
-                return !string.IsNullOrEmpty(sm.GetFlagValue(GachaConstants.BloodlineFlagKey));
+                int id = StoredBloodlineId;
+                return id > 0 && BloodlineTable.Get(id) != null;
             }
         }
 
         /// <summary>本世血統的名字（給 UI 顯示）。</summary>
-        public static string CurrentDisplayName
+        public static string CurrentDisplayName => BloodlineTable.NameOf(CurrentBloodlineId);
+
+        /// <summary>本世血統所屬的系列；還是人類（或表A 沒登記）時回 null。</summary>
+        public static BloodlineSeriesDef CurrentSeries
         {
             get
             {
-                var d = BloodlineTable.Get(CurrentBloodlineId);
-                return d != null ? d.DisplayName : "人類";
+                BloodlineSeriesTable.TryLocate(CurrentBloodlineId, out var s, out _);
+                return s;
             }
         }
 
-        // ───────────────────────── 喝藥 ─────────────────────────
+        /// <summary>本世血統在系列裡的第幾階（1-based）；還是人類時回 0。</summary>
+        public static int CurrentStage
+        {
+            get
+            {
+                BloodlineSeriesTable.TryLocate(CurrentBloodlineId, out _, out int stage);
+                return stage;
+            }
+        }
+
+        // ───────────────────────── 喝藥：規劃 ─────────────────────────
 
         /// <summary>
-        /// 喝下一瓶血統藥劑（背包裡的某個道具 id）。成功回 true。
-        /// 失敗原因放 <paramref name="reason"/>（呼叫端拿去 Toast）。
+        /// 「喝這瓶藥會發生什麼事」的規劃結果。
+        /// UI 端拿它做三件事：擋下不能喝的（顯示 <see cref="Reason"/>）、
+        /// 顯示確認視窗文案（<see cref="ConfirmText"/>）、成功後的 Toast（<see cref="DoneText"/>）。
         /// </summary>
-        public static bool TryDrink(int itemId, out string reason)
+        public struct DrinkPlan
         {
-            reason = null;
+            public bool Ok;
+            public string Reason;        // Ok=false 時的說明（直接拿去 Toast）
+            public string ConfirmText;   // 確認視窗文案
+            public string DoneText;      // 成功後的 Toast
+            public int TargetBloodlineId;
+        }
+
+        // 多語系 id（2001–2099 = 血統系統）。用 Txt() 帶 fallback，語言表還沒補也不會變成 [lang:xxxx]。
+        const int TxtNotBloodline = 2001;
+        const int TxtAlreadyFixed = 2002;
+        const int TxtNotInTable = 2003;
+        const int TxtNoneInBag = 2004;
+        const int TxtNoCharacter = 2005;
+        const int TxtNotAwakened = 2006;
+        const int TxtNoSeries = 2007;
+        const int TxtNotMature = 2008;
+        const int TxtAlreadyBeyond = 2009;
+        const int TxtAtPeak = 2010;
+        const int TxtConfirmStarter = 2011;
+        const int TxtConfirmUpgrade = 2012;
+        const int TxtDoneStarter = 2013;
+        const int TxtDoneUpgrade = 2014;
+        const int TxtCannotDrink = 2015;
+
+        static string Txt(int id, string fallback)
+        {
+            string s = null;
+            try { s = Language.GetText(id); } catch { }
+            if (string.IsNullOrEmpty(s) || s.StartsWith("[")) return fallback;
+            return s;
+        }
+
+        /// <summary>
+        /// 規劃「喝下這個道具」會發生什麼，但**不改變任何狀態**。
+        /// UI 在右鍵當下就呼叫它——不能喝的直接說明理由，不要讓玩家按完確認才發現沒反應。
+        /// </summary>
+        public static DrinkPlan Plan(int itemId)
+        {
+            var plan = new DrinkPlan { Ok = false };
+
             var inv = InventorySystem.Instance;
             var data = inv != null ? inv.GetData(itemId) : null;
             if (data == null || !data.IsBloodline)
             {
-                reason = "這不是血統藥劑";
-                return false;
-            }
-            var def = BloodlineTable.Get(data.BloodlineID);
-            if (def == null)
-            {
-                reason = "這瓶藥劑的血統在血統表找不到";
-                Debug.LogWarning($"[BloodlineSystem] 道具 {itemId}「{data.Name}」的 BloodlineID={data.BloodlineID} 在 BloodlineTable.csv 找不到。");
-                return false;
-            }
-            if (IsFixedThisCycle)
-            {
-                reason = $"你的血脈已定為「{CurrentDisplayName}」，這一世不能再改變";
-                return false;
+                plan.Reason = Txt(TxtNotBloodline, "這不是血統藥劑");
+                return plan;
             }
             if (inv.CountOf(itemId) <= 0)
             {
-                reason = "背包裡沒有這瓶藥劑";
-                return false;
+                plan.Reason = Txt(TxtNoneInBag, "背包裡沒有這瓶藥劑");
+                return plan;
             }
 
-            // ⚠ 一定要先確認「寫得進存檔」再扣藥劑。
+            // ⚠ 一定要先確認「寫得進存檔」才讓玩家喝。
             // SaveManager.SetFlag 在沒有 active character 時是直接 return 的（不是丟例外），
-            // 所以「有 SaveManager 但還沒載入角色」時若先扣再寫，會變成：藥劑消失 → 效果套上去 →
+            // 所以「有 SaveManager 但還沒載入角色」時若照喝，會變成：藥劑消失 → 效果套上去 →
             // 下一幀 Update 讀回存檔發現還是人類 → 立刻還原。玩家看到「喝了、閃一下、變回去、藥沒了」。
             var sm = SaveManager.Instance;
             if (sm == null || !sm.HasActiveCharacter)
             {
-                reason = "還沒載入角色，現在不能喝";
-                Debug.LogWarning("[BloodlineSystem] 沒有 SaveManager 或尚未載入角色，血統無法保存，拒絕飲用（避免藥劑白白消失）。");
+                plan.Reason = Txt(TxtNoCharacter, "還沒載入角色，現在不能喝");
+                return plan;
+            }
+
+            return data.IsBloodlineUpgrade ? PlanUpgrade(data) : PlanStarter(data);
+        }
+
+        /// <summary>系列起始藥劑：本世還沒定型才能喝。</summary>
+        static DrinkPlan PlanStarter(ItemData data)
+        {
+            var plan = new DrinkPlan { Ok = false };
+
+            var def = BloodlineTable.Get(data.BloodlineID);
+            if (def == null)
+            {
+                plan.Reason = Txt(TxtNotInTable, "這瓶藥劑的血統在血統表找不到");
+                Debug.LogWarning($"[BloodlineSystem] 道具 {data.ID}「{data.Name}」的 BloodlineID={data.BloodlineID} " +
+                                 "在 BloodlineTable.csv 找不到。");
+                return plan;
+            }
+            if (IsFixedThisCycle)
+            {
+                plan.Reason = string.Format(Txt(TxtAlreadyFixed, "你的血脈已定為「{0}」，這一世不能再改變"),
+                                            CurrentDisplayName);
+                return plan;
+            }
+
+            plan.Ok = true;
+            plan.TargetBloodlineId = def.Id;
+            plan.ConfirmText = string.Format(
+                Txt(TxtConfirmStarter, "喝下「{0}」？\n血統一世只能決定一次，喝下去就不能反悔。"), data.Name);
+            plan.DoneText = string.Format(Txt(TxtDoneStarter, "血脈已定：{0}"), def.DisplayName);
+            return plan;
+        }
+
+        /// <summary>
+        /// 進階藥劑：全系列通用，只認「目標階數」。必須逐階，且不能倒退。
+        /// </summary>
+        static DrinkPlan PlanUpgrade(ItemData data)
+        {
+            var plan = new DrinkPlan { Ok = false };
+            int targetStage = data.BloodlineUpgrade;
+
+            if (!IsFixedThisCycle)
+            {
+                plan.Reason = Txt(TxtNotAwakened, "你尚未覺醒任何血脈，無法進階");
+                return plan;
+            }
+
+            int currentId = CurrentBloodlineId;
+            if (!BloodlineSeriesTable.TryLocate(currentId, out var series, out int currentStage))
+            {
+                // 已定型、但目前的血統不隸屬任何系列（表A 沒登記）→ 資料問題，不是玩家的錯，說清楚。
+                plan.Reason = Txt(TxtNoSeries, "你的血脈不屬於任何系列，無法進階");
+                Debug.LogWarning($"[BloodlineSystem] 血統 id {currentId} 在 BloodlineSeriesTable.csv 找不到所屬系列，" +
+                                 "進階被擋下。請確認表A 有登記它。");
+                return plan;
+            }
+
+            if (currentStage >= series.StageCount)
+            {
+                plan.Reason = Txt(TxtAtPeak, "你的血脈已至頂點");
+                return plan;
+            }
+            if (targetStage <= currentStage)
+            {
+                plan.Reason = Txt(TxtAlreadyBeyond, "你的血脈已在此之上");
+                return plan;
+            }
+            if (targetStage > currentStage + 1)
+            {
+                // 逐階規則：第 1 階不能直接喝高階藥劑。訊息要指出「還缺哪一階」，不要只說不行。
+                int needStage = currentStage + 1;
+                string needName = BloodlineTable.NameOf(series.IdOfStage(needStage), $"第 {needStage} 階");
+                plan.Reason = string.Format(Txt(TxtNotMature, "血脈尚未成熟，需先進階為「{0}」"), needName);
+                return plan;
+            }
+
+            int nextId = series.IdOfStage(targetStage);
+            var nextDef = BloodlineTable.Get(nextId);
+            if (nextId <= 0 || nextDef == null)
+            {
+                plan.Reason = Txt(TxtNotInTable, "這瓶藥劑的血統在血統表找不到");
+                Debug.LogWarning($"[BloodlineSystem] 系列「{series.DisplayName}」第 {targetStage} 階的血統 id={nextId} " +
+                                 "在 BloodlineTable.csv 找不到。");
+                return plan;
+            }
+
+            plan.Ok = true;
+            plan.TargetBloodlineId = nextId;
+            plan.ConfirmText = string.Format(
+                Txt(TxtConfirmUpgrade, "喝下「{0}」？\n你的血脈將從「{1}」進為「{2}」，無法還原。"),
+                data.Name, BloodlineTable.NameOf(currentId), nextDef.DisplayName);
+            plan.DoneText = string.Format(Txt(TxtDoneUpgrade, "血脈進化：{0}"), nextDef.DisplayName);
+            return plan;
+        }
+
+        // ───────────────────────── 喝藥：執行 ─────────────────────────
+
+        /// <summary>
+        /// 真的喝下去。成功回 true。
+        ///
+        /// <paramref name="message"/> **成功與失敗都會填**：成功是「血脈已定：殭屍」這種回饋，
+        /// 失敗是擋下的理由。呼叫端直接拿去 Toast 就好，不要自己記成功文案——
+        /// 內部會重新 <see cref="Plan"/> 一次（確認視窗開著的期間狀態可能變了），
+        /// 所以真正發生的事情可能和 UI 幾秒前算出來的不一樣。
+        /// </summary>
+        public static bool TryDrink(int itemId, out string message)
+        {
+            var plan = Plan(itemId);
+            if (!plan.Ok)
+            {
+                message = plan.Reason ?? Txt(TxtCannotDrink, "無法飲用");
                 return false;
             }
 
-            sm.SetFlag(GachaConstants.BloodlineFlagKey, def.Id.ToString());
+            message = plan.DoneText;
+            var inv = InventorySystem.Instance;
+            var sm = SaveManager.Instance;
+
+            int fromId = CurrentBloodlineId;
+            int toId = plan.TargetBloodlineId;
+
+            sm.SetFlag(GachaConstants.BloodlineFlagKey, toId.ToString());
             inv.RemoveItem(itemId, 1);
 
             // 立刻套用（不等 Update 那一幀，讓喝下去的回饋是即時的）。
-            if (_instance != null && _instance._pc != null) _instance.ApplyTo(_instance._pc, def.Id);
+            // 走 PlayTransform 是為了讓「閃電＋煙霧」之後能夾在中間換裝——現在是空實作，等同瞬間換。
+            if (_instance != null) _instance.PlayTransform(fromId, toId);
 
-            Debug.Log($"[BloodlineSystem] 血統定型：{def.DisplayName}（id {def.Id}）");
+            Debug.Log($"[BloodlineSystem] 血統變更：{BloodlineTable.NameOf(fromId)} → {BloodlineTable.NameOf(toId)}（id {toId}）");
             return true;
         }
 
         // ───────────────────────── 套用 ─────────────────────────
 
+        /// <summary>喝藥造成的血統變更：走變身演出，演出中途才換外型。</summary>
+        void PlayTransform(int fromId, int toId)
+        {
+            if (_pc == null)
+            {
+                // 玩家還沒生出來（理論上喝不到藥，但保險）：不演出，讓 Update 之後自己收斂。
+                _appliedId = -1;
+                return;
+            }
+
+            _transforming = true;
+            _transformStartedAt = Time.unscaledTime;
+            BloodlineTransformFx.Play(
+                _pc, BloodlineTable.Get(fromId), BloodlineTable.Get(toId),
+                onSwap: () => ApplyTo(_pc, toId),
+                onFinished: () => _transforming = false);
+        }
+
         void ApplyTo(PlayerController pc, int bloodlineId)
         {
             if (pc == null) return;
-            var stats = pc.GetComponent<CombatStats>();
-
-            // ⚠ CombatStats 還沒就緒就先 return，等下一幀再來。
-            // 不能在這裡「stats 為 null 就把 _baseMaxHealth 記成 0」——那會永久鎖成 0，
-            // 之後每次套用都把玩家最大生命設成 max(1, 0 + MaxHpAdd)，人類就是 1 點血，
-            // 一碰就死而且完全沒有錯誤訊息。
-            if (stats == null) return;
-
-            // 第一次看到這個玩家物件時記下「原始值」，之後所有血統效果都從原始值算起，
-            // 避免反覆套用時倍率越乘越大。
-            if (!_baseCaptured)
-            {
-                _baseMoveSpeed = pc.MoveSpeed;
-                _baseMaxHealth = stats.MaxHealth;
-                _baseCaptured = true;
-            }
 
             var def = BloodlineTable.Get(bloodlineId);
             if (def == null)
@@ -190,23 +406,18 @@ namespace Dipan.Gacha
                 return;
             }
 
-            // 1) 數值：一律「原始值 + 血統修正」，所以換血統/重載存檔都不會疊加。
-            pc.MoveSpeed = _baseMoveSpeed * def.MoveSpeedMul;
+            // 1) 外型與體型：SpriteFolder 留空就不動外型（避免填了不存在的資料夾害角色只剩影子）。
+            //    這一行同時決定對話立繪——DramaTalkDatabase 是拿 pc.Bloodline 去組
+            //    Characters/Talk/<血統>/<情緒>，所以序列圖與立繪的資料夾必須同名。
+            //    ⚠ 體型倍率也要比對：同一個外型資料夾但 BodyScale 被改過（調表後重新載入）也要重跑 Setup，
+            //      只比資料夾名的話改 CSV 不會生效。
+            if (!string.IsNullOrEmpty(def.SpriteFolder)
+                && (pc.Bloodline != def.SpriteFolder || !Mathf.Approximately(pc.BodyScale, def.BodyScale)))
+                pc.SetBloodline(def.SpriteFolder, def.BodyScale);
 
-            float newMax = Mathf.Max(1f, _baseMaxHealth + def.MaxHpAdd);
-            float newHp = Mathf.Clamp(stats.Health, 1f, newMax);
-            stats.Restore(newMax, newHp, stats.MaxMana, stats.Mana);
-
-            // 傷害加成用「加減差額」而不是直接賦值——這個欄位之後會有別的來源（裝備/buff/料理），
-            // 直接賦值會在每次套用血統時把別人寫的加成整個蓋掉。
-            stats.OutgoingDamageBonusPercent += def.OutgoingDamageBonusPercent - _appliedDamageBonus;
-            _appliedDamageBonus = def.OutgoingDamageBonusPercent;
-
-            // 2) 外型：SpriteFolder 留空就不動外型（避免填了不存在的資料夾害角色只剩影子）。
-            //    SetBloodline 內部會用新的 MoveSpeed 重新 Setup 動畫（走路動畫速度跟移動速度連動），
-            //    所以一定要先改完 MoveSpeed 再呼叫。
-            if (!string.IsNullOrEmpty(def.SpriteFolder) && pc.Bloodline != def.SpriteFolder)
-                pc.SetBloodline(def.SpriteFolder);
+            // 2) 屬性：⚠ 刻意什麼都不做。表B 的五個屬性目前只存不套用（沒有角色屬性系統）。
+            //    等屬性系統做好，套用點就在這裡；在那之前不要偷偷改 CombatStats 或 MoveSpeed，
+            //    否則會跟未來的屬性系統變成兩套來源打架（舊版就是這樣，已拿掉）。
 
             // 3) 技能：預留欄位，技能系統還沒做。
             if (def.SkillId > 0)

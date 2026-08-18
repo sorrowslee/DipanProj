@@ -46,6 +46,7 @@
 | [FORGING.md](FORGING.md) | 鍛造介面（Y 鍵開；鐵砧中央放武器/裝備、左右 6 個鑲嵌孔依裝備孔位數解鎖、底部兩顆按鈕尚未接功能；重用 ISlotView/SlotDragController 拖放地基） | 改鍛造介面、做鑲嵌/拆裝備、接鐵匠 NPC、加裝備孔位數 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
 | [GACHA_SYSTEM.md](GACHA_SYSTEM.md) | **祭壇抽選系統**（邪佛廣場走到祭壇按 F 抽選：四層資料架構讓「武器/裝備/血統/道具」大項可隨時增刪、打通關卡解鎖新內容進池、老虎機表演＋十連結算面板；**金錢改成獨立數字不再是背包道具**、血統藥劑一次性換外型；新觸發 `openPanel`／`unlockRoll`、新條件「最低/最高完成關卡數」＋「條件不成立時」） | 加/改抽選大項或池內容、放新祭壇、改抽選介面表演、動金錢或血統 |
+| [BLOODLINE.md](BLOODLINE.md) | **血統系統**（系列＝三階段：殭屍→毛殭→旱魃；表A 系列表＋表B 血統表、系列起始藥劑一世一次不可逆、進階藥劑全系列通用且必須逐階、SpriteFolder 同時決定序列圖與立繪、輪迴歸零回人類；⚠ 五屬性只存不套用） | 加/改血統或系列、動血統藥劑、換角色外型與立繪、做變身演出 |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
 | [LOCALIZATION.md](LOCALIZATION.md) | 多語系／語言表（`Language.GetText(id)` 唯一取用入口、`LanguageTable.csv` id,cn,en、LanguageTableProvider、預設中文支援英文、id 分段慣例） | 加/改玩家可見字串、切語言、做多語系前 |
 | [WOODSHED_LAMP_TUTORIAL.md](WOODSHED_LAMP_TUTORIAL.md) | 柴房佛燈強制新手教學（紅嫁衣第一間房：撿佛燈→裝備→強制點亮的 phase 狀態機；地上物 disappearFlag、pickup toRealBag、FireOnly 鎖移動只放行開火、PlayerController.IsAuraActive） | 改柴房教學流程、教學寫死清單、地圖佈置/傳送門門檻 |
@@ -86,3 +87,6 @@
 *2026-07-29：新增 [FORGING.md](FORGING.md)（鍛造介面）。*
 *2026-08-03：新增 [GEM_SOCKET.md](GEM_SOCKET.md)（能力珠鑲嵌／物品實例／能力容器）。*
 *2026-08-17：[GROUND_EFFECT.md](GROUND_EFFECT.md) 新增「背景旋轉符號層（SigilPath）」與「發光半徑（LightRadius）」兩節；[PROBLEMS.md](PROBLEMS.md) 新增 E12（加色圖層的 `_Intensity` 不等於實際亮度）、E13（兩個發光圖層疊同位置是零和的）。**要疊任何發光圖層之前先讀這兩則。**新增 [FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md)（墮落佛光實驗存檔：留下的素材放哪、怎麼再開回來）。*
+*2026-08-18：新增 [BLOODLINE.md](BLOODLINE.md)（血統系統：系列三階段、兩張表、逐階進階藥劑）。血統表移除舊的 MaxHpAdd/MoveSpeedMul/傷害加成三欄，改成五個「只存不套用」的角色屬性——**現階段換血統只變外型與立繪，戰力完全不變，這是預期行為**。*
+*2026-08-18：血統變身演出完成（[BLOODLINE.md](BLOODLINE.md) §5）。順帶補上四個通用能力：`PlayerAnimator.PlayFallDown`（倒下並趴地定格）、`MapCameraController.AddShake`（螢幕震動）、`ScreenFader.Flash`（全螢幕閃光）、`UIManager.SetExternalHold(owner, …)`（**具名**輸入鎖）。**做任何跨數秒的演出前先讀 [PROBLEMS.md](PROBLEMS.md) D13/D14**（輸入鎖互踩、被 PausesGame 面板凍住）。*
+*2026-08-18：血統表加 `BodyScale` 體型倍率（[BLOODLINE.md](BLOODLINE.md) §2），角色放大改成**以腳底為錨點往上長**；佛光圈支援 per-instance 半徑倍率（[GROUND_EFFECT.md](GROUND_EFFECT.md)）。**要定位／縮放任何「掛在玩家身上」的特效前，先讀 [PROBLEMS.md](PROBLEMS.md) E14**——別再用 `transform.position` 當身體中心、別用 `SpriteRenderer.bounds` 當可見身體，改用 `PlayerController` 的 `FeetWorldPos` / `BodyCenterWorldPos` / `VisibleBodyHeight`。*

@@ -593,7 +593,7 @@ namespace Dipan.UI
                 else if (store != null)
                     InventoryActions.QuickMoveGrid(w, store);   // 倉庫開著：點一下送進倉庫當前分頁
                 else if (clickedData != null && clickedData.IsBloodline)
-                    TryDrinkBloodline(clickedId, clickedData);   // 血統藥劑：左鍵＝喝（不可逆，先跳確認）
+                    TryDrinkBloodline(clickedId);   // 血統藥劑：左鍵＝喝（不可逆，先跳確認）
                 else if (clickedData != null && clickedData.IsPotion)
                     inv.AutoPlacePotion(clickedId);              // 藥水：左鍵自動進藥水格（與裝備左鍵自動裝備同邏輯；空位優先＝左格＝鍵1）
                 else
@@ -823,36 +823,42 @@ namespace Dipan.UI
             }
         }
 
-        // 右鍵背包格裡的藥水 → 依規則自動放進藥水格（空位優先、滿了取代1號）。
+        // 右鍵背包格：血統藥劑 → 喝（不能喝的當場說明理由）；一般藥水 → 依規則自動放進藥水格
+        // （空位優先、滿了取代1號）。左鍵走 OnSlotClicked，兩邊對血統藥劑的行為刻意一致。
         void OnSlotRightClicked(InventorySlotWidget w)
         {
             if (w == null || w.kind != InventorySlotWidget.Kind.Grid || w.index < 0) return;
             var inv = InventorySystem.Instance;
             int id = inv.GetGrid(w.index).ItemId;
             var d = id > 0 ? inv.GetData(id) : null;
-            if (d != null && d.IsBloodline) TryDrinkBloodline(id, d);
+            if (d != null && d.IsBloodline) TryDrinkBloodline(id);
             else if (d != null && d.IsPotion) inv.AutoPlacePotion(id);
         }
 
         /// <summary>
-        /// 喝血統藥劑：一次性、不可逆（喝下去永久改變本世外型與數值，本世不能再喝第二瓶），
-        /// 所以一定先跳確認彈窗。已定型時直接擋下並說明——不要讓玩家點了才發現沒反應。
-        /// 輪迴後會自動回到未定型狀態（旗標存在周目層），所以留著的藥劑下一世還能喝。
+        /// 喝血統藥劑（系列起始藥劑與進階藥劑共用這一條）：一次性、不可逆，所以一定先跳確認彈窗。
+        ///
+        /// 這個面板刻意不懂任何血統規則——「能不能喝」「確認視窗要寫什麼」「成功後說什麼」
+        /// 全部由 BloodlineSystem.Plan 算好，這裡只負責顯示。之後改規則不用回頭動 UI。
+        ///
+        /// ⚠ 不能喝的時候**在按下左/右鍵的當下就擋掉並說明理由**，不要先跳確認視窗、按完才發現沒反應
+        ///   （例：還在第一階卻拿到高階藥劑，會直接告訴玩家要先進階為「毛殭」）。
         /// </summary>
-        void TryDrinkBloodline(int itemId, Dipan.Inventory.ItemData d)
+        void TryDrinkBloodline(int itemId)
         {
-            if (Dipan.Gacha.BloodlineSystem.IsFixedThisCycle)
+            var plan = Dipan.Gacha.BloodlineSystem.Plan(itemId);
+            if (!plan.Ok)
             {
-                AlertPanel.Toast($"你的血脈已定為「{Dipan.Gacha.BloodlineSystem.CurrentDisplayName}」，這一世不能再改變");
+                AlertPanel.Toast(plan.Reason ?? "無法飲用");
                 return;
             }
-            string name = d != null ? d.Name : $"#{itemId}";
-            ConfirmPopup.Show($"喝下「{name}」？\n血統一世只能決定一次，喝下去就不能反悔。", () =>
+
+            ConfirmPopup.Show(plan.ConfirmText, () =>
             {
-                if (Dipan.Gacha.BloodlineSystem.TryDrink(itemId, out string reason))
-                    AlertPanel.Toast($"血脈已定：{Dipan.Gacha.BloodlineSystem.CurrentDisplayName}");
-                else
-                    AlertPanel.Toast(reason ?? "無法飲用");
+                // 這裡刻意不重用上面算好的 plan——確認視窗開著的期間狀態可能變了（東西被搬走／被喝掉），
+                // TryDrink 內部會自己重新規劃一次，成功與失敗的訊息都由它回傳，直接顯示就好。
+                Dipan.Gacha.BloodlineSystem.TryDrink(itemId, out string message);
+                AlertPanel.Toast(message);
             });
         }
 

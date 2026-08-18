@@ -1,24 +1,47 @@
-Id,Key,DisplayName,SpriteFolder,MaxHpAdd,MoveSpeedMul,OutgoingDamageBonusPercent,SkillId,Note
+Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vitality,SkillId,Note
 # ─────────────────────────────────────────────────────────────────────────────
-# 血統表。血統藥劑（ItemTable 的 BloodlineID 欄）指到這裡的 Id。
+# 血統表（表B）。一列 = 一種血統（= 某個系列的某一階，或「人類」）。
 #
-# 為什麼要分兩張表：血統的數值／技能只有血統用得到，塞進 ItemTable 會讓其他 99% 的道具多出一堆空欄。
-# 這是專案既有的模式（武器道具 ItemTable.WeaponID → WeaponTable），照抄。
-# 血統之後要加什麼數值，就在這張表加欄，不影響 ItemTable，也不影響其他三個抽選池。
+# 血統藥劑（ItemTable 的 BloodlineID 欄）指到這裡的 Id。
+# 「這個血統屬於哪個系列、在第幾階」查 BloodlineSeriesTable.csv（表A），這裡不重複記。
+#
+# ⚠⚠ 五個屬性目前「只存數值、完全不套用」⚠⚠
+#    遊戲裡還沒有角色屬性系統（力量/敏捷/魔力/體力 沒有任何一處會讀它們），
+#    這些數字純粹是先把管線接通、讓「表A 查得到表B 的數值」這條路可用。
+#    數值本身是佔位用的概念值，之後屬性系統做好再一起校平衡。
+#    → 現階段換血統，遊戲體感上**只有外型與立繪會變**，戰力完全不變，這是預期行為。
+#
+#    （舊版這裡有 MaxHpAdd / MoveSpeedMul / OutgoingDamageBonusPercent 三個會真的生效的欄位，
+#      那也是沒實裝屬性系統時的權宜概念，已於 2026-08-18 移除，避免兩套數值打架。）
 #
 # 欄位說明：
-#   Id            血統 ID（唯一）。1 固定保留給「人類（初始外型）」。
-#   Key           程式用的英文代號（除錯訊息用）。
+#   Id            血統 Id（唯一）。1 固定保留給「人類（初始外型）」。
+#                 系列成員的 Id 慣例見表A：一個系列一個十位段。
+#   Key           程式用英文代號（除錯訊息用）。
 #   DisplayName   玩家看得到的名字。
-#   SpriteFolder  外型資料夾名，對應 GameAssets/Main/Characters/SequenceImage/<這一欄>/。
-#                 ⚠ 目前只有 Base 這組素材，所以全部先填 Base——填了不存在的資料夾，
-#                   角色會找不到外型圖變成只剩影子。等各血統的 idle/walk/dead 幀做好、
-#                   跑過 Sync Map Assets 之後，再把這一欄改成該資料夾名。
-#   MaxHpAdd      最大生命加減（絕對值，可為負）。留空 = 0。
-#   MoveSpeedMul  移動速度倍率。留空 = 1。
-#   OutgoingDamageBonusPercent  造成傷害加成百分比（接 CombatStats 既有的加成掛勾）。留空 = 0。
-#   SkillId       預留：血統附帶的技能。⚠ 技能系統目前還不存在，填了只會印一則提示，不會有效果。
+#   BodyScale     體型倍率（以人類 Base 為 1）。留空/≤0 = 1。
+#                 ⚠ 這一欄是**純視覺**的：它只改「角色圖畫多大」（PlayerController.CharacterWorldHeight
+#                   乘上它，再交給 PlayerAnimator 換算每張圖的縮放），**不動碰撞框、不動任何數值**。
+#                 為什麼需要它：引擎本來就會把每個血統的 idle 可見高度正規化成同一個世界高度，
+#                   所以四組素材「量出來」其實高度差不多（Base 193px / 殭屍 174 / 毛殭 197 / 旱魃 175）；
+#                   但正規化只看高度不看體積與姿勢，瘦長挺立的圖看起來就是比橫向壯碩的圖小一號。
+#                   這一欄就是拿來「用眼睛校正」那個落差的，調到看順眼為止即可。
+#                 變身演出的煙霧與電弧會自動跟著這個倍率放大（取變身前後較大的那一個），不必另外調。
+#   SpriteFolder  外型資料夾名，同時決定兩件事：
+#                   ・動作序列圖 GameAssets/Main/Characters/SequenceImage/<這一欄>/{idle,walk,dead,attack}/
+#                   ・對話立繪   GameAssets/Main/Characters/Talk/<這一欄>/<情緒>.png
+#                 兩邊資料夾必須同名。留空 = 不換外型。
+#                 ⚠ 加了新資料夾一定要跑 Project Tools → Sync Map Assets，
+#                   否則執行期載不到圖，角色會變成只剩影子。
+#   WalkSpeed     行走速度（概念值，未套用）
+#   Strength      力量    （概念值，未套用）
+#   Agility       敏捷    （概念值，未套用）
+#   Magic         魔力    （概念值，未套用）
+#   Vitality      體力    （概念值，未套用）
+#   SkillId       預留：血統附帶的技能。⚠ 技能系統目前還不存在，填了只會印一則提示。
+#   Note          備註（程式不讀）。
 # ─────────────────────────────────────────────────────────────────────────────
-1,Human,人類,Base,0,1,0,,初始外型。輪迴後回到這個狀態
-2,WildSoul,野魂,Base,-10,1.2,0,,移動快但體弱
-3,Ghost,幽靈,Base,-20,1.35,10,,打贏紅嫁衣後解鎖
+1,Human,人類,Base,1,5,5,5,1,1,,初始外型（最基礎數值）。輪迴後回到這個狀態
+10,Jiangshi,殭屍,Jiangshi,1,10,20,10,5,20,,殭屍系列 第一階
+11,Maojiang,毛殭,Maojiang,1.5,10,40,15,15,40,,殭屍系列 第二階
+12,Hanba,旱魃,Hanba,1.2,10,60,25,30,60,,殭屍系列 第三階
