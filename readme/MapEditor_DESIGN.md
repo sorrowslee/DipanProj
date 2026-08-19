@@ -241,7 +241,9 @@ DipanProj_MapEditor/
 ```
 
 - **tileId 格式**：`<catalogId>#<index>`，index = 拼接圖切格後的序號（左上往右、再往下，row-major）。
-- **objects**：自由變換；渲染 sortingOrder = `1000000 + zOrder*10000 + round(-sortKey*100)`（zOrder 為主、Y-sort 為輔；恆在地磚之上）。
+- **objects**：自由變換；渲染 sortingOrder = `7000 + clamp(zOrder,-1,1)*6000 + clamp(round(-sortKey*100), 0, 5999)`（zOrder 為主、Y-sort 為輔）。**zOrder 只能是 -1 / 0 / +1**。
+  > ⚠ 2026-08-18 改過：舊公式是 `1000000 + zOrder*10000 + …`，靠 16-bit 溢位繞回。那在 `zOrder=1` 時會讓地上物的排序值跑到 21960~31960，在主遊戲那邊**壓在所有表演層之上**（傷害數字、特效、離場卍字全被一個燭台蓋住）。見 [PROBLEMS.md](PROBLEMS.md) **E15**。
+  > 這條公式在 `DipanProj_MapEditor/Assets/Scripts/Core/ObjectView.cs` 與主遊戲的 `MapDepthSort.cs` 各有一份，**是鏡像，改一邊要兩邊一起改**。全遊戲的排序層配置表寫在 `MapDepthSort.cs` 檔頭。
 - **objects 出現條件**：`appearAfterClears`（完成 N 關後才出現，0／缺欄＝一律出現）＋ `appearScope`（`cycle`＝每周目重算〔本周目完成數〕、`lifetime`＝曾達到過就永久出現）。遊戲端 `MapLoader` **進圖當下**依「完成關卡數」判定，未達則不生此物件（連碰撞都沒有）；判定來源見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md) §14。
 - **walkable**：`blocked` 三態子格位元圖，每列一字串。解析度 = 子格（列數 = height×walkSubdiv、每列長度 = width×walkSubdiv）；`'0'`=可走、`'1'`=牆(擋＋反彈子彈)、`'2'`=水/坑(擋腳、子彈穿過)；初始全 1(牆)。範圍外視為牆。牆/水都直接畫在此層，**不再用 environment trigger**。
 - **trigger regions**：每塊 = `cells`（[x,y] 集合）+ `name` + `typeId` + `params`（**值目前以字串存**，未來 loader 依 schema 轉型）。允許重疊、同型多塊。

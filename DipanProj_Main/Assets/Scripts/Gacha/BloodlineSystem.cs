@@ -49,18 +49,44 @@ namespace Dipan.Gacha
         int _appliedId = -1;
 
         /// <summary>
-        /// 變身演出進行中。演出期間停止收斂——不然 Update 會搶在煙霧散開前就把外型換掉，
+        /// 變身表演進行中（世界演出 ＋ 立繪揭示面板，兩段合起來算一段）。
+        /// 表演期間停止收斂——不然 Update 會搶在煙霧散開前就把外型換掉，
         /// 玩家會先看到新造型再看到煙霧。
         /// </summary>
         bool _transforming;
         float _transformStartedAt;
 
         /// <summary>
-        /// 變身演出的保險絲（秒）。超過就強制解除，避免特效寫錯時血統永遠套不上去。
-        /// 20 秒是「正常演出約 6 秒 ＋ 最壞情況（倒下/爬起各逾時 6 秒）」再留餘裕算出來的，
-        /// 調快演出節奏時不用跟著動，但如果之後把演出加長到 15 秒以上，這裡要一起調大。
+        /// 表演期間掛在 UIManager 的具名 external hold。
+        ///
+        /// ⚠ <b>為什麼要一個「橫跨兩段」的鎖，而不是讓兩段各自鎖自己。</b>
+        /// 世界演出（<c>BloodlineTransformFxRunner</c>）和立繪面板（<c>BloodlineIntroPanel</c>）
+        /// 是接力的：前者 finally 先 <c>ReleaseHold()</c> 再回呼，後者要延一幀才開得起來
+        /// （避免 OnClose 重入，見 PROBLEMS D8）。中間那一兩幀若沒有人壓著，
+        /// <c>timeScale</c> 會彈回 1、玩家可動、怪物動一下——會看得出來卡一格。
+        /// 所以這裡從喝下去的那一刻壓到面板關閉為止，全程不放手。
+        ///
+        /// ⚠ 一定要用**具名**版：玩家若在這段期間死掉，死亡流程也會掛 hold，
+        /// 共用預設持有者的話兩邊會互相清掉對方的鎖（見 PROBLEMS D13）。
         /// </summary>
-        const float TransformTimeout = 20f;
+        const string PerformanceHoldOwner = "BloodlinePerformance";
+
+        /// <summary>
+        /// 變身表演的保險絲（秒）。超過就強制解除，避免特效寫錯時血統永遠套不上去、
+        /// 或是 hold 沒放導致玩家整場不能動。
+        /// 30 秒＝「正常世界演出約 6 秒 ＋ 立繪面板約 4 秒 ＋ 最壞情況（倒下/爬起各逾時 6 秒）」再留餘裕。
+        /// 調節奏時不用跟著動，但如果之後把整段加長到 25 秒以上，這裡要一起調大。
+        /// </summary>
+        const float TransformTimeout = 30f;
+
+        /// <summary>
+        /// 變身表演進行中（世界演出或立繪面板任一段）。給「會暫停遊戲的東西」查詢用——
+        /// 目前是 <c>StorageBagCoordinator</c> 的背包/倉庫/鍛造熱鍵：那三個面板都會蓋在表演上面。
+        /// </summary>
+        public static bool IsPerforming
+            => (_instance != null && _instance._transforming)
+            || BloodlineTransformFxRunner.IsPlaying
+            || Dipan.UI.BloodlineIntroPanel.IsShowing;
 
         void Awake()
         {
@@ -73,12 +99,14 @@ namespace Dipan.Gacha
         {
             if (_transforming)
             {
-                // 保險絲：演出應該自己呼叫 onFinished。萬一之後接的特效漏叫（或中途換場景被打斷），
-                // 這裡強制解除，否則血統會永遠停在舊外型而且完全沒有錯誤訊息。
+                // 保險絲：表演應該自己走到 FinishPerformance。萬一哪一段漏叫回呼（或中途換場景被打斷），
+                // 這裡強制解除，否則血統會永遠停在舊外型、而且 external hold 不會放
+                // ＝玩家整場不能動，完全沒有錯誤訊息。
                 if (Time.unscaledTime - _transformStartedAt <= TransformTimeout) return;
-                Debug.LogWarning("[BloodlineSystem] 變身演出超過 " + TransformTimeout +
-                                 " 秒沒有結束，強制解除。檢查 BloodlineTransformFx.Play 是否有呼叫 onFinished。");
-                _transforming = false;
+                Debug.LogWarning("[BloodlineSystem] 變身表演超過 " + TransformTimeout +
+                                 " 秒沒有結束，強制解除。檢查 BloodlineTransformFx.Play 的 onFinished " +
+                                 "與 BloodlineIntroPanel.Show 的 onFinished 是否都有被呼叫。");
+                FinishPerformance();
             }
 
             // 玩家還沒生出來（載入中、標題畫面）→ 等。
@@ -375,7 +403,12 @@ namespace Dipan.Gacha
 
         // ───────────────────────── 套用 ─────────────────────────
 
-        /// <summary>喝藥造成的血統變更：走變身演出，演出中途才換外型。</summary>
+        /// <summary>
+        /// 喝藥造成的血統變更：完整的兩段表演。
+        ///   ① 世界演出（<c>BloodlineTransformFxRunner</c>）：倒下 → 天雷 → 煙霧裡換外型 → 爬起。
+        ///   ② 立繪揭示（<c>BloodlineIntroPanel</c>）：舊立繪斑駁剝落 → 新立繪浮現 ＋ 血統名。
+        /// 兩段之間由 <see cref="PerformanceHoldOwner"/> 這個 hold 接住，中間不會有一幀鬆手。
+        /// </summary>
         void PlayTransform(int fromId, int toId)
         {
             if (_pc == null)
@@ -385,12 +418,64 @@ namespace Dipan.Gacha
                 return;
             }
 
+            // 表演中不再起第二段（理論上進不來：表演期間遊戲暫停、面板全關、操作鎖住）。
+            // 真的重入的話兩個 runner 會互搶 PlayerAnimator 的表演回呼與 static 的 IsPlaying，
+            // 症狀是角色卡在趴姿、鎖不解。旗標已經寫進存檔了，交給 Update 收斂即可。
+            if (_transforming)
+            {
+                Debug.LogWarning("[BloodlineSystem] 變身表演還沒結束又收到一次變更，略過演出直接收斂。");
+                _appliedId = -1;
+                return;
+            }
+
             _transforming = true;
             _transformStartedAt = Time.unscaledTime;
+
+            // 從這一刻壓到立繪面板關掉為止。世界演出與面板各自也會鎖自己那一段，
+            // 這一層是為了接住兩段之間的縫（見 PerformanceHoldOwner 的說明）。
+            var ui = Dipan.UI.UIManager.Instance;
+            if (ui != null) ui.SetExternalHold(PerformanceHoldOwner, true, true);
+
+            var fromDef = BloodlineTable.Get(fromId);
+            var toDef = BloodlineTable.Get(toId);
+
             BloodlineTransformFx.Play(
-                _pc, BloodlineTable.Get(fromId), BloodlineTable.Get(toId),
+                _pc, fromDef, toDef,
                 onSwap: () => ApplyTo(_pc, toId),
-                onFinished: () => _transforming = false);
+                onFinished: () => ShowIntro(fromDef, toDef, toId));
+        }
+
+        /// <summary>世界演出結束 → 開立繪揭示面板。面板收掉才真正還玩家自由。</summary>
+        void ShowIntro(BloodlineDef fromDef, BloodlineDef toDef, int toId)
+        {
+            // 玩家死了／不見了就別演立繪了：死亡流程接著要開結算畫面，兩個模態面板疊在一起會打架。
+            // （現在整段是暫停播的，演出中被打死幾乎不可能，但換場景/例外仍會走到這裡。）
+            if (_pc == null || _pc.IsDead) { FinishPerformance(); return; }
+
+            Dipan.UI.BloodlineIntroPanel.Show(
+                fromDef != null ? fromDef.SpriteFolder : null,
+                toDef != null ? toDef.SpriteFolder : null,
+                BloodlineTable.NameOf(toId),
+                FinishPerformance);
+        }
+
+        /// <summary>
+        /// 整段表演結束：解除收斂鎖與 external hold。
+        /// **可以重複呼叫**（正常路徑走一次、保險絲可能再走一次），第二次以後什麼都不做。
+        /// </summary>
+        void FinishPerformance()
+        {
+            if (!_transforming) return;
+            _transforming = false;
+            var ui = Dipan.UI.UIManager.Instance;
+            if (ui != null) ui.SetExternalHold(PerformanceHoldOwner, false, false);
+        }
+
+        void OnDestroy()
+        {
+            // 理論上不會發生（本元件與 UIManager 都是 DontDestroyOnLoad），但萬一被外力銷毀，
+            // 沒放的 hold 會讓玩家永遠不能動而且完全沒有錯誤訊息。
+            if (_instance == this) FinishPerformance();
         }
 
         void ApplyTo(PlayerController pc, int bloodlineId)

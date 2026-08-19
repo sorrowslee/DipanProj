@@ -30,13 +30,16 @@ namespace Dipan.UI
 
             // 新手教學強制階段：鎖住背包/倉庫/鍛造快捷鍵，避免玩家亂開打斷引導。
             // 例外：佛燈教學的「按 B 開/關背包」步驟會放行 B 鍵（AllowBag），此時仍鎖倉庫 K 與鍛造 Y。
-            // 血統變身演出期間也要鎖：這三個面板都是 PausesGame=true，開下去 timeScale 歸零，
-            // 而演出（玩家動畫／VfxInstance／雷柱）全部吃 Time.deltaTime，會整段凍在半空中。
-            bool hotkeysFree = !TutorialManager.HardLock
-                            && !Dipan.Gacha.BloodlineTransformFxRunner.IsPlaying;
+            //
+            // 血統變身表演期間也要鎖（世界演出 + 立繪揭示面板兩段都算）：這三個面板會整片蓋在表演上面，
+            // 而且是 Window 層、關掉時會把表演的視線打斷。IsPerforming 就是這兩段的單一真相。
+            // ⚠ 這裡刻意**不用** IsGameplayInputBlocked：背包自己開著就會讓它為真，
+            //    那樣一來按 B 就關不掉背包了。
+            bool performing = Dipan.Gacha.BloodlineSystem.IsPerforming;
+            bool hotkeysFree = !TutorialManager.HardLock && !performing;
             if (hotkeysFree && Input.GetKeyDown(storageKey)) ui.Toggle<StoragePanel>();
             if (hotkeysFree && Input.GetKeyDown(forgeKey)) ui.Toggle<ForgingPanel>();
-            if ((hotkeysFree || (TutorialManager.AllowBag && !Dipan.Gacha.BloodlineTransformFxRunner.IsPlaying))
+            if ((hotkeysFree || (TutorialManager.AllowBag && !performing))
                 && Input.GetKeyDown(bagKey)) ui.Toggle<InventoryPanel>();
 
             // 依當前開啟狀態套用版面（idempotent，每幀套無妨）

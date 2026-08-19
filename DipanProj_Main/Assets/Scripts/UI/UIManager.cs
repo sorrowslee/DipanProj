@@ -125,9 +125,16 @@ namespace Dipan.UI
                     // 有視窗開著 → 關閉最上層（若該面板允許 ESC 關閉）。
                     if (top.CloseOnEscape) Close(top);
                 }
-                else if (_escapeRootPanel != null)
+                else if (_escapeRootPanel != null && !_inputBlocked)
                 {
                     // 沒有任何視窗 → 開啟根面板（例如設定）。同一分支，不會關掉又重開。
+                    //
+                    // ⚠ `!_inputBlocked` 這個條件是必要的：走到這個分支代表「沒有任何入堆疊的視窗開著」，
+                    //    但輸入仍可能被**非面板**的系統鎖著——過場、教學、Boss 開戰資訊、血統變身表演。
+                    //    那些演出都是刻意不可跳過的，少了這個條件，玩家按 ESC 就能在演出上面疊一個
+                    //    PausesGame 的設定面板（不入堆疊的 Overlay 演出面板不會被 TopStackPanel 看到），
+                    //    最糟的情況是把整段演出凍在半空中（見 readme/PROBLEMS.md D14 同一家族）。
+                    //    背包等視窗開著時輸入也是被擋的，但那會走上面那一個分支，不受影響。
                     Open(_escapeRootPanel);
                 }
             }

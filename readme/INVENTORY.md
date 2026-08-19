@@ -208,6 +208,45 @@
 
 ---
 
+## 左鍵 vs 右鍵（**全遊戲的鐵則**，2026-08-19 拍板）
+
+> **左鍵＝搬移／裝備／綁定，永遠不消耗任何東西。**
+> **右鍵＝使用，這是全遊戲唯一會消耗道具的滑鼠操作。**
+
+為什麼要立這條規則：原本「使用」散在三個地方各寫一份——背包左鍵、背包右鍵、藥水熱鍵。
+結果就出現了**沒人打算做、但兩邊都寫了**的行為：**左鍵點血統藥劑會直接喝掉**，
+而血統是本世不可逆的，等於一次誤點就定終身（作者實測回報）。
+現在收攏成單一入口 `Inventory/ItemUse.cs`，三個呼叫端都走它。
+
+| 操作 | 做什麼 | 會不會消耗 |
+|---|---|---|
+| **左鍵**背包格 | 傳送門開著＝送劇本進去／鍛造開著＝放上鐵砧／倉庫開著＝送進倉庫／藥水＝綁定到快捷格／可裝備物＝穿上 | **不會** |
+| **左鍵**裝備格 | 卸下 | 不會 |
+| **左鍵**倉庫格 | 送回背包 | 不會 |
+| **右鍵**背包格 | **使用**：回血回魔藥劑＝當場喝掉；血統藥劑＝跳確認視窗後喝 | **會** |
+| **右鍵**其他地方 | 沒有動作（倉庫裡的東西要先拿回背包才能用） | — |
+| **拖曳** | 搬移。**只有左鍵能拖**（擋在 `SlotDragController.Begin`） | 不會 |
+| **數字鍵 1／2** | 喝快捷格綁定的藥水（走同一支 `ItemUse`） | 會 |
+
+**左鍵點一件「只能使用」的東西（血統藥劑、能力珠、材料）＝安靜地什麼都不做。**
+刻意不 Toast「請按右鍵」——那條規則只需要學一次，每次點都念會很煩。
+
+### 加一種「可以使用」的新道具
+
+只要動 `Inventory/ItemUse.cs` 三個地方，三個呼叫端（背包右鍵、藥水熱鍵、未來任何入口）自動支援：
+
+1. `IsUsable(ItemData)` — 加上你的判斷（右鍵按下去會不會有事）。
+2. `PlanUse(itemId)` — **純計算**：能不能用／不能用的理由／要不要先跳確認視窗。不改任何狀態。
+3. `TryUse(itemId, out message)` — 真的用下去。成功失敗都填 `message`，UI 有字才 Toast。
+
+⚠ 兩個容易踩的點：
+- **`Plan.Reason` 留空 = 「這東西根本沒有使用行為」**，UI 會安靜地不做事。
+  真的有理由要講（例：階段不對）才填字，否則玩家會被「無法使用」洗版。
+- **會消耗的東西，效果要先確認套得上去、再扣。** 反過來寫的話玩家會遇到
+  「藥沒了、血沒回、也沒訊息」（`DrinkPotion` 就是為此先查 `LivePlayerStats()`）。
+
+---
+
 ## 呈現層 `InventoryPanel`（繼承 `UIPanel`）
 
 - 旗標：`Window` 層、`PausesGame=true`、`BlocksGameplayInput=true`、`ShowBackdrop=true`、ESC 可關。
@@ -217,11 +256,12 @@
 - **每個頁籤各自記住停在第幾頁**（`_pageOf`）；箭頭在第一頁/最後一頁會變暗且不可按（不循環）。
 - **互動**：
   - 移入 → 高亮該格 + 浮動 tooltip（名稱/功能/劇情）。
-  - **點擊**：倉庫沒開時，點道具格的可裝備物品 → 裝備（原裝的換回該格）、點裝備欄 → 卸回第一個空格；**倉庫開著時**，點道具格 → 整堆送到倉庫當前分頁（見 [STORAGE.md](STORAGE.md)）。
+  - **左鍵**：倉庫沒開時，點道具格的可裝備物品 → 裝備（原裝的換回該格）、點裝備欄 → 卸回第一個空格；**倉庫開著時**，點道具格 → 整堆送到倉庫當前分頁（見 [STORAGE.md](STORAGE.md)）。**左鍵永遠不會使用/消耗任何東西**，見上面「左鍵 vs 右鍵」。
+  - **右鍵**：使用這件道具（`OnSlotRightClicked` → `ItemUse.PlanUse`／`TryUse`）。這是全遊戲唯一的使用入口。
   - **拖放**（透過共用 `SlotDragController`）：格內重排/合併/交換、拖到裝備欄＝裝備、拖去倉庫＝存放（含裝備）。
   - **重整鈕**：整理**目前這個頁籤**那一包（`SortBag`）。
   - **頁籤**：切換裝備包 / 消耗品包。**左右箭頭**：翻頁；中間顯示 `目前頁/總頁數`。
-  - **血統藥劑**（`ItemData.IsBloodline`，**含進階藥劑**）：左鍵與右鍵行為一致。流程是 `BloodlineSystem.Plan(itemId)` → **不能喝就在按鍵當下 Toast 出理由**（不要先跳確認視窗、按完才發現沒反應）→ 能喝才 `ConfirmPopup` → `TryDrink`（成功與失敗的訊息都由它回傳）。**面板刻意不懂任何血統規則**，改規則不用回頭動 UI。⚠ 喝下去只換外型與體型、**不套任何屬性**。見 [BLOODLINE.md](BLOODLINE.md) §4。
+  - **血統藥劑**（`ItemData.IsBloodline`，**含進階藥劑**）：**只有右鍵會喝，左鍵完全沒有動作**（2026-08-19 改；之前左鍵也會喝，是誤點就定終身的地雷）。流程是 `ItemUse.PlanUse` → `BloodlineSystem.Plan(itemId)` → **不能喝就在按鍵當下 Toast 出理由**（不要先跳確認視窗、按完才發現沒反應）→ 能喝才 `ConfirmPopup` → `ItemUse.TryUse` → `TryDrink`（成功與失敗的訊息都由它回傳）。**面板刻意不懂任何血統規則**，改規則不用回頭動 UI。⚠ 喝下去只換外型與體型、**不套任何屬性**。見 [BLOODLINE.md](BLOODLINE.md) §4。
   - **與倉庫並排**：倉庫＋背包同開時各自左右移（`StorageBagCoordinator` 控；背包右移位置 `PairRightX`）。
 - **tooltip**：移到物品上跳出浮動說明（掛在 panel root、不受 frame 縮放、跟著游標、近右邊自動翻到左側、不擋 hover）。三段：**名稱（粗體金）**＋ **`TipStats`（正楷）**＋ **`TipLore`（斜體）**;高度由 `VerticalLayoutGroup + ContentSizeFitter` 自動撐開,空欄自動隱藏該段。
 
@@ -274,9 +314,18 @@
 - 裝備丟到藥水格 → 自動裝到正確裝備欄（`EquipToCorrectSlot`）。
 - 丟到一般道具格 → 就是單純重排/搬移（不特別處理）。
 
-**左鍵/右鍵藥水快放**：在道具格對藥劑按**左鍵**（2026-07-22 起，與裝備左鍵自動裝備一致；路徑在 `InventoryPanel.OnSlotClicked` 對 `IsPotion` 分流）或**右鍵**，都會自動放進藥水格（`InventorySystem.AutoPlacePotion`）：有空位優先放**最小索引**（1 號優先於 2 號）；全滿則取代 0 號；已綁在某格則不動。也可直接**拖曳**到藥水格。可延伸到 N 格（`PotionSlotCount`）。`InventorySlotWidget` 依左/右鍵分流。
+**左鍵＝綁定快捷格、右鍵＝當場喝掉**（2026-08-19 分家；在那之前左右鍵都是綁定）：
 
-**相關檔案**：`UI/PotionSlot.cs`、`UI/PotionHotkeys.cs`、`Inventory/InventorySystem.cs`（`GetPotionSlot/SetPotionSlot/AutoPlacePotion/PotionSlotCount`）、`Inventory/InventoryDTO.cs`（`potionSlots` 存檔）、`UI/InventoryActions.cs`（`EquipToCorrectSlot`）、`UI/Panels/InventorySlotWidget.cs`（右鍵分流＋`dropHi`）、`UI/Panels/InventoryPanel.cs`（`UpdateDropHighlights`）。喝藥特效見 [VFX.md](VFX.md)。
+- **左鍵**（`InventoryPanel.OnSlotClicked` 對 `IsPotion` 分流）→ `InventorySystem.AutoPlacePotion`：
+  有空位優先放**最小索引**（1 號優先於 2 號）；全滿則取代 0 號；已綁在某格則不動。
+  也可直接**拖曳**到藥水格。可延伸到 N 格（`PotionSlotCount`）。**不消耗。**
+- **右鍵**（`OnSlotRightClicked` → `ItemUse`）→ **當場喝掉一瓶**，與按數字鍵 1／2 是同一段程式。
+
+⚠ 右鍵喝的時候背包是開著的，而背包 `PausesGame=true` → `timeScale=0`。
+所以 `PlayerController.PlayDrinkPotionVfx` 生出來的特效**一定要 `Unscaled = true`**，
+不然連按五下會得到五個定格在第 0 幀、永遠不消失的特效疊在玩家身上（同 [PROBLEMS.md](PROBLEMS.md) **D15** 那一家）。
+
+**相關檔案**：`Inventory/ItemUse.cs`（**使用的唯一入口**）、`UI/PotionSlot.cs`、`UI/PotionHotkeys.cs`（只負責「哪顆鍵對哪一格」，消耗邏輯不在這裡）、`Inventory/InventorySystem.cs`（`GetPotionSlot/SetPotionSlot/AutoPlacePotion/PotionSlotCount`）、`Inventory/InventoryDTO.cs`（`potionSlots` 存檔）、`UI/InventoryActions.cs`（`EquipToCorrectSlot`）、`UI/Panels/InventorySlotWidget.cs`（右鍵分流＋`dropHi`）、`UI/Panels/InventoryPanel.cs`（`UpdateDropHighlights`）。喝藥特效見 [VFX.md](VFX.md)。
 
 ---
 
@@ -295,7 +344,9 @@
 
 - ✅ **拖放重排 / 跨格搬移**（已做，透過共用 `SlotDragController`）。
 - ✅ **存檔串接**（已做，`CaptureState/RestoreState` → 角色存檔，見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md)）。
-- tooltip 上半改由**裝備實際屬性組字**(取代目前純讀 `TipStats`);右鍵快速使用/卸下、堆疊分割（按住搬一半）、稀有度底色、排序規則細化、搜尋。
+- tooltip 上半改由**裝備實際屬性組字**(取代目前純讀 `TipStats`);堆疊分割（按住搬一半）、稀有度底色、排序規則細化、搜尋。
+- **右鍵喝藥水不擋「已經滿血滿魔」**——與熱鍵 1／2 一致（刻意），但右鍵比熱鍵更容易誤點，之後可考慮在滿的時候擋下並說明。
+- **快捷格（HUD 兩個血瓶槽 / 背包裡的藥水格）沒有點擊處理**，右鍵它不會喝。要不要補成「右鍵快捷格＝喝」還沒決定。
 - ✅ **撿道具/掉落物系統接 `AddItem`**（已做，見 [INTERACTION.md](INTERACTION.md)：拾取點 + 地上掉落物，靠近按 F）。
 - （可選）背包浮動 tooltip 目前各面板各建一份（背包、倉庫各有），日後可抽成共用元件。
 

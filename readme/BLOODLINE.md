@@ -168,6 +168,13 @@ icon 都在 `Resources/UI/Icons/Items/positions/bloodline/`：`bloodline_Jiangsh
 
 ---
 
+> ⚠ **喝的方式只有一種：在背包裡對藥劑按滑鼠右鍵**（會先跳確認視窗）。
+> **左鍵完全沒有動作**——2026-08-19 之前左鍵也會喝，那是誤點就定終身的地雷，已移除。
+> 全遊戲的「左鍵搬移／右鍵使用」鐵則見 [INVENTORY.md](INVENTORY.md)，
+> 使用的唯一入口是 `Inventory/ItemUse.cs`（血統只是它的其中一個分支）。
+
+---
+
 ## 4. 程式結構
 
 ```
@@ -228,15 +235,52 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 
 ---
 
-## 5. 變身演出（閃電 + 煙霧）
+## 5. 變身表演（世界演出 → 立繪揭示）
+
+喝下藥劑之後是**兩段接力的表演**，中間沒有間隙：
+
+1. **世界演出**（`BloodlineTransformFx.Play()`）：倒下 → 天雷 → 煙霧裡換外型 → 爬起。約 6 秒。
+2. **立繪揭示**（`BloodlineIntroPanel`）：舊立繪斑駁剝落 → 新立繪浮現 ＋ 血統名。約 4 秒。
 
 `BloodlineTransformFx.Play()` → 自建一個協程宿主 `BloodlineTransformFxRunner`（照 `LevelExitManjiController` 的樣板，跑完自毀）。
 
-### 時間軸（總長約 6 秒）
+### ⚠ 全程遊戲是暫停的（`timeScale = 0`）
+
+**這是刻意的，而且是整段表演最重要的一個前提。** 表演期間玩家被鎖住不能閃避，
+不凍住世界的話怪物會照打、玩家可能在變身途中被打死（那會變成「屍體爬起來」，
+而且死亡流程和演出的輸入鎖會打架）。
+
+代價是**每一個計時器都必須換成 unscaled**。漏掉任何一項，那一項就會整段凍在第一格：
+
+| 元件 | 開關 |
+|---|---|
+| 玩家倒下／趴地／爬起 | `PlayerAnimator.UnscaledPose`（只影響姿勢表演，走路待機仍吃 `Time.deltaTime`） |
+| 煙塵、環繞電弧 | `VfxInstance.Unscaled` |
+| 拼接雷柱 | `SegmentedLightningColumn.Unscaled` |
+| 演出協程的等待 | `BloodlineTransformFxRunner.Wait()`（直接寫死 unscaled） |
+| 立繪面板 | 整支面板本來就全 unscaled（同 `BossIntroPanel` 慣例） |
+| 螢幕震動、白閃 | **本來就是 unscaled**，不用動 |
+
+這幾個 `Unscaled` 旗標**預設都是 false**，所以一般戰鬥特效的行為完全沒變。
+
+> 2026-08-19 之前是反過來的：`SetExternalHold` 的 pause 傳 `false`、全部吃 `Time.deltaTime`。
+> 那時的註解會告訴你「pause 必須是 false」——那句話現在是錯的，見 [PROBLEMS.md](PROBLEMS.md) **D15**。
+
+### 橫跨兩段的輸入鎖
+
+世界演出與立繪面板**各自也會鎖自己那一段**，但真正保證「中間不會有一幀鬆手」的是
+`BloodlineSystem` 掛的具名 hold `"BloodlinePerformance"`——從 `TryDrink` 成功的那一刻，
+一路壓到立繪面板淡出結束為止。
+
+為什麼需要這一層：世界演出的 `finally` 是**先 `ReleaseHold()` 再回呼**，而面板要延一幀才開得起來
+（避免 `OnClose` 重入，見 PROBLEMS D8）。中間那一兩幀若沒人壓著，`timeScale` 會彈回 1、
+玩家可動、怪物動一下——會看得出來卡一格。
+
+### 時間軸：世界演出（約 6 秒）
 
 | 時間 | 事件 |
 |---|---|
-| 0.00s | 關掉所有面板 → 掛輸入鎖 |
+| 0.00s | 關掉所有面板 → 掛輸入鎖 **＋ 暫停遊戲**（之後全程 unscaled 計時） |
 | 0.00s | 玩家 `dead` **正向**播放，倒下（25 幀 @12fps ≈ 2.08s） |
 | 2.08s | 趴地定格；雷柱從畫面外生成 |
 | 2.20s | **擊中**：螢幕震動 0.25s + 白閃（0.05 進 / 0.20 退） |
@@ -245,7 +289,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | 2.95s | 煙塵播完消散，露出新外貌 |
 | 2.95s | 電弧殘留繼續繞 0.60s |
 | 3.75s | 倒播 `dead`，爬起來（≈ 2.08s） |
-| 5.83s | 解鎖，新血統站定 |
+| 5.83s | 世界演出結束 → **交棒給立繪揭示面板**（暫停不解除） |
 
 **節奏與外觀常數全部集中在 `BloodlineTransformFxRunner` 檔頭**，要調快慢改那幾個數字就好。
 
@@ -253,14 +297,33 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 
 | 用途 | 位置 | 幀數 | 來源包 |
 |---|---|---|---|
-| 雷柱（頂端） | `Resources/VfxEffects/TransformLightning/Start/Start_01~02` | 2 | Super Pixel Fantasy FX Pack 2 |
-| 雷柱（身體，tileable） | `Resources/VfxEffects/TransformLightning/Loop/Loop_01~08` | 8 | 同上 |
+| 雷柱（**整根都用這個**，tileable） | `Resources/VfxEffects/TransformLightning/Loop/Loop_01~08` | 8 | Super Pixel Fantasy FX Pack 2 |
+| ~~雷柱頂端雷首~~（**未使用**，留著備用） | `Resources/VfxEffects/TransformLightning/Start/Start_01~02` | 2 | 同上 |
 | 煙塵 | `Resources/VfxEffects/TransformSmoke/`（VfxTable **30**） | 10 | Smoke Bursts |
 | 環繞電弧 | `Resources/VfxEffects/TransformAura/`（VfxTable **31**） | 22 | Super Pixel Effects Pack 3 |
 
 原始素材包保留在 `DipanProj_Main/血統特效/`（**在 Assets 外面**，不會被 Unity 匯入）。
 
-**雷柱刻意不用 `end` 那兩張**：實測 `end` 與 `start` 是同兩張圖反過來，而且是「快消散的細電光」——既有的九霄雷獄早就註記過「end 會突然收細」，所以照它的做法：頂端 `start`、中間 `loop` 一路延伸到玩家身上。想改回來的話素材還在原始包裡。
+**雷柱三段素材一個都沒用到頂端，整根都是 `loop`**（2026-08-18 實測後改的）：
+
+- `end` 不用：實測它與 `start` 是**同兩張圖反過來**，而且是「快消散的細電光」。既有的九霄雷獄早就註記過
+  「end 會突然收細」。
+- `start`（雷首）**也不用**——這是實機看過才發現的。量出來的數字說明一切：
+
+  | | 不透明像素 | **接縫處的邊緣寬度** |
+  |---|---|---|
+  | `Start` | 193 / 428 | **1~2 px** |
+  | `Loop` | 1262~2039 | **5~17 px** |
+
+  一根 1~2px 的髮絲接在 5~17px 的粗電柱上頭，接縫非常明顯。**還有第二個原因**：`capFrame` 的算式是
+  `floor(elapsed × fps × 0.35)`，雷首只有 2 張、約 0.15 秒就播到底然後**整段凍住**，
+  底下的 loop 卻在跑 8 幀循環——變成一根靜止的髮絲蓋在閃爍的柱子上。
+
+  純 loop 沒有這兩個問題：loop 本身**上下貫穿、可平鋪**，疊起來零接縫；而柱頂本來就延伸到畫面外
+  （`topY` 取視窗上緣再往上 12%），所以也不會看到「斷頭」。
+
+  素材都還留在 `Resources/VfxEffects/TransformLightning/Start/`，想試回來只要把 `LightningStyle`
+  的第一個參數填回路徑、第三個參數填 2 即可。**九霄雷獄維持原樣**（它節奏短、雷首多半落在畫面外）。
 
 排序層：雷柱 22000 < 電弧 22050 < 煙塵 22100（煙要蓋在最上面，才藏得住換裝那一刻）。⚠ 都必須 ≤ 32767，見 PROBLEMS E4。
 
@@ -288,19 +351,88 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | 具名輸入鎖 | `UIManager.SetExternalHold(owner, block, pause)` | 見 PROBLEMS **D13**。舊的兩參數多載共用一個預設 key，**新程式一律帶 owner**。 |
 | 影子重量 | `BlobShadow.Refresh()` | 影子只在 `Start` 量一次；換外型／改體型後要重量，否則會停在舊尺寸。 |
 | 地面特效半徑倍率 | `GroundEffectManager.Spawn(…, radiusScale)` / `GroundEffectInstance.SetRadiusScale()` | **視覺與傷害一起**縮放（`visualScale` 只縮視覺，畫面會騙人）。見 [GROUND_EFFECT.md](GROUND_EFFECT.md)。 |
+| 暫停中仍會動的特效 | `VfxInstance.Unscaled` / `SegmentedLightningColumn.Unscaled` | 兩個都預設 `false`＝行為零改變。`Spawn` 都會回傳實體，生出來直接設旗標即可，不用改任何簽章。 |
+| 暫停中仍會動的姿勢動畫 | `PlayerAnimator.UnscaledPose` | 只影響倒下／趴地／爬起三段；走路待機仍吃遊戲時間（暫停時本來就該停）。 |
+| ESC 不會插進演出 | `UIManager` 的 ESC 分支加 `!_inputBlocked` | 沒有入堆疊視窗、但輸入被非面板系統鎖住時（過場／教學／演出），ESC 不再開設定面板。**這是全域行為，也保護了 `BossIntroPanel` 與各種過場。** |
 
 ### ⚠ 四個踩過的坑（改這段演出前必讀）
 
-1. **喝藥當下遊戲是暫停的。** 確認視窗關掉後背包還開著，而背包 `PausesGame=true` → `timeScale=0`；而玩家動畫、`VfxInstance`、雷柱**全部吃 `Time.deltaTime`**，整段演出會凍住。所以開頭一定要 `CloseAll()`，且 `SetExternalHold` 的 **pause 必須是 false**。
+1. **暫停播放 ⇒ 每一個計時器都必須是 unscaled。** 見上面那張表。開頭仍然要 `CloseAll()`——背包若開著會整片蓋在演出上面。
 2. **換裝會把趴姿打回站姿。** `SetBloodline` 內部重跑 `PlayerAnimator.Setup`，把 sprite 換成新血統的 idle 第 0 幀；但趴地定格旗標還在、`Update` 直接 return 不再更新 → **角色站著定格**。所以 `onSwap` 之後一定要 `RefreshLyingPose()`。
 3. **玩家可能在演出中被打死**（演出期間他是被鎖住不能閃避的）。`Alive()` 有查 `PlayerController.IsDead`，死了就中止；而且輸入鎖用**具名持有者**，不會和死亡流程互相清掉對方的鎖（PROBLEMS D13）。
-4. **演出期間玩家還是按得到 `B`/`K`/`Y`。** 那三個面板都會暫停遊戲 → 演出凍住。`StorageBagCoordinator` 查 `BloodlineTransformFxRunner.IsPlaying` 擋掉（PROBLEMS D14）。
+4. **表演期間玩家還是按得到 `B`/`K`/`Y`，也按得到 `ESC`。** 那三個面板會整片蓋在表演上面。`StorageBagCoordinator` 查 **`BloodlineSystem.IsPerforming`**（＝世界演出 ∪ 立繪面板，兩段的單一真相）擋掉；`ESC` 則由 `UIManager` 那邊擋——沒有任何入堆疊的視窗開著、但輸入被非面板系統鎖住時，ESC 不再開設定面板（順便也保護了 `BossIntroPanel` 與各種過場）。⚠ 兩處都**不能**改查 `IsGameplayInputBlocked` 的原始值當熱鍵條件，背包開著時它本來就是 true，那樣 `B` 會關不掉背包（PROBLEMS D14）。
+
+### 收尾：血統揭示面板 `BloodlineIntroPanel`
+
+爬起來之後開的 UI 表演，讓玩家看清楚自己變成了什麼。**不可跳過**（刻意沒有任何按鍵捷徑）。
+
+| 時間 | 事件 |
+|---|---|
+| 0.00s | 壓黑遮罩 ＋ 破碎框底版隨面板淡入，框內是**變身前**的血統立繪 |
+| 1.00s | 舊立繪開始斑駁剝落（`_Cutoff` 0→1，暗紅燒蝕邊） |
+| 1.12s | 新血統立繪同步從空白浮現（`_Cutoff` 1→0，**不同亂數種子**＝破法不一樣） |
+| 1.25s | 姓名底版從下方飄上來（ease-out） |
+| 1.85s | 血統名在牌匾上浮現（扭曲抖動 → 復原＋淡入，借 `NameWarpEffect`） |
+| 2.65s | 停 1 秒讓玩家看清楚 |
+| 3.65s | 自己淡出 0.4 秒 → **淡完才** Close → 才解除暫停 |
+
+**資料來源全部是既有管線，沒有新的載圖程式**：
+
+| 東西 | 來源 |
+|---|---|
+| 立繪 | `DramaTalkDatabase.ResolvePortrait("Actor_normal", 血統資料夾)`＝ Talk 立繪同一條 catalog 管線 |
+| 血統名 | `BloodlineTable.NameOf(id)` |
+| 破碎框底版 | `Resources/UI/BloodlinePanel/BloodlinePanel_Bg`（1024×1536） |
+| 姓名底版 | `Resources/UI/BloodlinePanel/BloodlinePanel_NameBg`（866×288＝比例 3.007，**血統專用的淺色石碑**） |
+| 毛筆字型 | `Fonts/Bakudai/Bakudai-Bold`（同 BossIntroPanel／GachaPanel／ForgingPanel） |
+
+**斑駁溶解著色器** `Resources/Shaders/BloodlineDissolve.shader`：uGUI 材質，hash 值噪 2 個八度
+（粗塊決定哪一片先掉、細粒讓邊緣毛躁），**不吃任何貼圖**。單一參數 `_Cutoff` 同時做正反兩個方向，
+所以兩張立繪各掛一份材質、各推自己的數字就好，不需要 invert 開關。
+著色器載不到時面板會**退化成整張圖的 alpha 淡入淡出**，表演節奏一模一樣。
+
+⚠ **三個要知道的點**（改這支面板前必讀）：
+
+1. **收尾淡出是面板自己做的，不是交給 `UIPanel` 的淡出。** `UIPanel.DoClose()` 是「先叫 `OnClose`、
+   **再**開始淡出」，把解鎖掛在 `OnClose` 上的話，暫停會在畫面還有八成不透明度時就解除——
+   玩家等於在一片幾乎全黑的遮罩後面被丟回戰場。所以流程是「自己淡到全透明 → 才 Close
+   （此時 `FadeDuration` 回 0，立刻收）→ 才回呼」。見 [PROBLEMS.md](PROBLEMS.md) **D16**。
+2. **立繪比例不保證一致。** `Base` 是 1122×1402（比例 0.80），殭屍三階都是 1024×1536（0.667）。
+   所以立繪一律「**等比縮到框內的 `PortraitBox` 並靠下對齊**」，不能照高度縮——照高度縮的話
+   Base 會比破碎框還寬、直接撐出框外。哪天把 Base 重畫成 1024×1536 就能拿掉這個顧慮。
+3. **兩張立繪各自一份 `Material`。** `_Cutoff` 是材質參數，共用一份的話兩張會一起溶解。
+   材質是 instance 欄位 ＋ `HideAndDontSave`，隨面板生滅（關掉 Domain Reload 後 static 快取
+   會拿到上一輪已銷毀的物件，見 PROBLEMS I 系）。
+4. **姓名石碑是淺色的 ⇒ 字必須是深色。** `NameColor` 預設深血紅 `(0.30, 0.035, 0.035)`，
+   **不是** `BossIntroPanel` 那個暖金色（那張牌匾是深色的）。連帶地，石碑圖萬一載不到，
+   後備的純色底也刻意是**淺石色**而不是半透明黑——墊深色底的話字會整個看不見。
+   字型仍然是全專案共用的毛筆字 `Fonts/Bakudai/Bakudai-Bold`。
+
+**版面預設值**（1920×1080 參考解析度；都可在 Inspector 調）：
+
+| 欄位 | 值 | 說明 |
+|---|---|---|
+| `FrameHeight` / `FrameY` | 880 / +30 | 破碎框（寬依原圖比例＝587） |
+| `PortraitBox` | (0.78, 0.73) | 立繪等比縮到「框寬 ×0.78、框高 ×0.73」之內 |
+| `PortraitBottomInset` | 0.16 | 立繪底邊距框底 ＝ 框高 ×0.16（141px）。**要比石碑高，否則下半身會被蓋住** |
+| `PlateW` / `PlateH` | 360 / 120 | 石碑（維持 866:288 ＝ 3.007 的比例，改寬要同步改高） |
+| `PlateYFromFrameBottom` | 105 | 石碑中心距框底 105px ⇒ 正好壓在框的下緣裡 |
+| `NameArea` | (0.20, 0.22, 0.60, 0.56) | 字在石碑上的區域，避開左右尖刺與上下中央的裝飾 |
+| `NameFontSize` | 56 | |
+
+實際算過三個血統：殭屍／毛殭 428×642（框頂留白 11%），Base 458×572（留白 19%，因為它比較寬）。
+
+**調表演**：所有節奏／版面／溶解參數都是 `public` 欄位。Play 模式中在 Hierarchy 選
+`[UIManager] → Layer_Overlay → BloodlineIntroPanel`（第一次播過後才存在）即可即時調，
+重新喝一次藥立刻套用。⚠ Play 模式調的值退出後不會保存，調到滿意要回填程式碼的預設值。
 
 ### 保險絲
 
 - `WaitPose` 等表演結束的三個出口：完成 / `IsWakeUpBusy` 變 false（表演被打斷）/ 逾時 6 秒。逾時計時用 **unscaled**，否則 timeScale=0 時連保險絲都凍住。
-- `BloodlineSystem.TransformTimeout = 20f`：演出漏叫 `onFinished` 時強制解除收斂鎖。正常演出約 6 秒、最壞（兩段各逾時）約 14 秒，所以 20 秒。**之後若把演出加長到 15 秒以上，這裡要一起調大。**
-- `BloodlineTransformFxRunner.IsPlaying` 是 static，已註冊 `PlayModeStaticReset`——殘留會讓下一次 Play 的背包熱鍵全部按不出來。
+- `BloodlineSystem.TransformTimeout = 30f`：任一段漏叫回呼時強制解除收斂鎖**與 external hold**（後者更要緊：沒放的話玩家整場不能動而且沒有任何錯誤訊息）。正常世界演出約 6 秒 ＋ 立繪面板約 4 秒，最壞（倒下/爬起各逾時 6 秒）約 22 秒，所以 30 秒。**之後若把整段加長到 25 秒以上，這裡要一起調大。**
+- `BloodlineTransformFxRunner.IsPlaying` 與 `BloodlineIntroPanel.IsShowing` 都是 static，**兩個都已註冊 `PlayModeStaticReset`**——殘留會讓下一次 Play 的背包熱鍵全部按不出來。
+- `BloodlineSystem.FinishPerformance()` 是 **idempotent** 的（正常路徑一次、保險絲可能再一次）。
+- 立繪面板的 `OnDestroy` 也會保底放行回呼（退出 Play／被外力銷毀時走不到 `OnClose`）。
 
 ## 6. 多語系
 
@@ -332,10 +464,12 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 ## 8. 目前缺口
 
 - **五個屬性只存不套用**，等角色屬性系統（見 §2 的警告）
-- **玩家沒地方看自己的血統與階段**——之後跟角色資訊面板一起做。目前只有喝藥當下的 Toast
+- **玩家沒地方「事後」查自己的血統與階段**——喝下去當下有立繪揭示面板，但之後就沒地方看了。等角色資訊面板
 - `SkillId` 仍是死欄（技能系統不存在）
 - 只有殭屍一個系列；吸血鬼系列已有 icon（`bloodline_Vampire.png`）但無序列圖與立繪
-- 變身演出**沒有音效**（專案還沒有音訊系統）——雷擊與煙爆是這個遊戲裡最該有聲音的兩個瞬間，音訊系統做好後第一個要補的就是這裡
+- 變身表演**沒有音效**（專案還沒有音訊系統）——雷擊、煙爆、立繪剝落是這個遊戲裡最該有聲音的三個瞬間，音訊系統做好後第一個要補的就是這裡
+- **`Talk/Base/normal.png` 是 1122×1402，與其他三張（1024×1536）比例不同**。立繪揭示面板已用「等比縮到框內、靠下對齊」吸收掉，但第一次喝藥（人類 → 殭屍）那一幕人類會比殭屍小一圈。重畫成 1024×1536 就完全對齊
+- 立繪揭示只用 `normal` 表情。之後若想讓不同血統用不同表情（例如旱魃用 `proud`），把 `BloodlineIntroPanel.PortraitEmotion` 改成從表B 讀一個新欄位即可
 - 抽選面板的字串仍是 `const string`，未走語言表（全 GachaPanel 的既有問題）
 - **`BodyScale` 不影響碰撞框**（刻意；動 hitbox 會改手感）。體型差距若拉大到影響判讀要再處理
 - **佛光的傷害半徑會跟著體型放大**：半徑 ×1.5 ＝ 面積 ×2.25，而每拍傷害不變 ⇒ 大體型血統的佛光 DPS 實質更高。這是「看到的就是打得到的」帶來的必然結果，做平衡時記得

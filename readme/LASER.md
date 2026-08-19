@@ -143,6 +143,7 @@
   * **2026-08-18 起這支是「通用雷柱」**：`Spawn(impact, cam, Style, scale, fps, duration)` 的 `Style` 可指定素材路徑／張數／排序層，`SegmentedLightningColumn.SkyStrike` 是九霄雷獄的預設外觀。**舊的無 `Style` 簽章保留、武器行為零改變。** 血統變身的天雷就是換一組 `Style` 重用同一套拼接邏輯（見 [BLOODLINE.md](BLOODLINE.md) §5）。
   * Sprite 快取改成**以路徑前綴為鍵的字典**，讓多種外觀各自快取、互不干擾；`ResetForPlayMode()` 已註冊 `PlayModeStaticReset`（陣列型 static 快取的坑，見 [PROBLEMS.md](PROBLEMS.md) I8——字典包陣列同樣適用）。
   * ⚠ **「不使用 end」是刻意的**：end 那兩張是「快消散的細電光」，接在擊中點會突然收細。血統變身用的那組素材實測 `end` 就是 `start` 倒過來的同兩張圖，同樣不用。
+  * **`Style` 的雷首（start）可以留空 ＝ 整根都用 loop**（`Style.HasCap`）。⚠ **雷首與 loop 的粗細差太多就別接**——血統變身那組實測雷首邊緣只有 1~2px、loop 是 5~17px，接起來是髮絲頂粗柱；而且雷首張數少、`capFrame` 會讓它提早播完定格，底下 loop 還在循環，變成靜止的頭配閃爍的身體。loop 本身上下貫穿可平鋪，純 loop 零接縫，柱頂又在畫面外，不會斷頭。**九霄雷獄維持接雷首**（節奏短、雷首多半落在畫面外）。
 * **圓形 AOE**：落點以 `BlastRadius`（留空＝預設 1.2）半徑 `OverlapCircleAll(Enemy|Env)`，對範圍內 `IDamageable`（**怪與可破壞家具都吃**）以**武器 `Damage`** 結算一次。
 * **可選殘留**：`GroundEffectID > 0` 時在落點生成一團地面特效（焦痕/殘電/燃燒…）。
 * 目標搜尋與傷害都不碰彈道系統（守住邊界）。

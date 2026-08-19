@@ -41,7 +41,10 @@ namespace Dipan.Inventory
         public bool Stackable => MaxStack > 1;
         /// <summary>是不是「劇本」（可放進傳送門選關卡的道具）＝有指定目的地關卡。</summary>
         public bool IsScript => TargetMapId > 0;
-        /// <summary>是不是「藥劑」（可拖到 HUD 藥水格、按數字鍵使用）。</summary>
+        /// <summary>
+        /// 是不是「藥劑」（可拖到 HUD 藥水格、按數字鍵 1／2 喝）。
+        /// 在背包裡：**左鍵＝綁定到快捷格（不消耗）、右鍵＝當場喝掉**。
+        /// </summary>
         public bool IsPotion => Category == "Potion";
         /// <summary>
         /// 是不是「系列起始藥劑」（決定本世走哪一個血統系列，本世只能喝一次、不可逆）。
@@ -54,7 +57,9 @@ namespace Dipan.Inventory
         /// </summary>
         public bool IsBloodlineUpgrade => BloodlineUpgrade > 0;
         /// <summary>
-        /// 是不是「血統藥劑」（起始或進階都算）。一次性消耗道具，在背包裡點一下（左鍵或右鍵）喝掉。
+        /// 是不是「血統藥劑」（起始或進階都算）。一次性消耗道具，在背包裡對它**按右鍵**喝掉
+        /// （會先跳確認視窗，因為本世不可逆）。**左鍵不會喝**——左鍵一律只做不消耗的事，
+        /// 見 <c>InventoryPanel.OnSlotClicked</c> 與 <c>ItemUse</c>。
         /// 刻意不可裝備（EquipSlot=None）也不算 Potion——它不進 HUD 藥水格。
         /// </summary>
         public bool IsBloodline => IsBloodlineStarter || IsBloodlineUpgrade;

@@ -57,11 +57,15 @@ namespace Dipan.UI
 
         // 被借走的格子只保留 hover（還是看得到 tooltip，玩家才知道那是什麼），點擊/拖曳/收放全部擋掉。
         // 拖曳的最終把關在 SlotDragController（只有那裡擋得住 e.pointerDrag），這裡只是提早收工。
+        //
+        // ⚠ 左右鍵**分別列舉**，不要寫成 `else`：中鍵、側鍵在 Unity 都會進 OnPointerClick，
+        //    用 else 的話它們會被當成左鍵（＝搬移/裝備）觸發，是個沒人測得到的意外操作。
+        //    左鍵＝搬移/裝備/綁定（不消耗），右鍵＝使用（會消耗）——這條界線見 InventoryPanel。
         public void OnPointerClick(PointerEventData e)
         {
             if (Blocked) return;
             if (e.button == PointerEventData.InputButton.Right) RightClicked?.Invoke(this);
-            else Clicked?.Invoke(this);
+            else if (e.button == PointerEventData.InputButton.Left) Clicked?.Invoke(this);
         }
         public void OnPointerEnter(PointerEventData e) => Entered?.Invoke(this);
         public void OnPointerExit(PointerEventData e) => Exited?.Invoke(this);

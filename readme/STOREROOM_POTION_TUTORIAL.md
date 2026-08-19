@@ -45,4 +45,5 @@
 
 - 共用：pickup `toRealBag`、地上物/互動點手指（`FindGridSlotRect`、`TryGetPickupWorld`、`PlayerNearPickup`）、四個教學面板、`Language.GetText`。
 - 新增 **`TutorialManager.DrinkOnly` ＋ `PlayerController` 分支**：鎖移動、不開火、放行藥水熱鍵。做「強制喝一次藥」用（`FireOnly` 的藥水版）。
-- **藥水左鍵綁定**（2026-07-22 改）：`InventoryPanel.OnSlotClicked` 對藥水改呼叫 `AutoPlacePotion`，讓藥水跟裝備一樣「左鍵點＝自動進格」（不再只有右鍵/拖曳）。見 [INVENTORY.md](INVENTORY.md)。
+- **藥水左鍵綁定**（2026-07-22 改）：`InventoryPanel.OnSlotClicked` 對藥水改呼叫 `AutoPlacePotion`，讓藥水跟裝備一樣「左鍵點＝自動進格」。見 [INVENTORY.md](INVENTORY.md)。
+- ⚠ **右鍵現在會直接喝掉**（2026-08-19 起，見 [INVENTORY.md](INVENTORY.md) 的「左鍵 vs 右鍵」）。教學這一步教的是**左鍵綁定**，玩家若在那一步右鍵把唯一一瓶喝掉，教學會卡在等一個永遠不會發生的條件（`GetPotionSlot(i)==201`）。所以 `InventoryPanel.OnSlotRightClicked` 開頭有 `if (TutorialManager.HardLock) return;`——`HardLock` 在「開背包 → 點藥水格 → 關背包」整段都是 true，正好蓋住這個窗口。**動教學的鎖旗標時記得這條依賴。**

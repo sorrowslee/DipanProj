@@ -27,6 +27,17 @@ public class VfxInstance : MonoBehaviour
     /// <summary>目前這格圖在世界空間的顯示邊界（含 scale）。給「以特效當外觀的攻擊物」把碰撞框對齊可見範圍。</summary>
     public Bounds WorldBounds => _renderer != null ? _renderer.bounds : new Bounds(transform.position, Vector3.zero);
 
+    /// <summary>
+    /// 用不受 <c>Time.timeScale</c> 影響的時間推進動畫與壽命。
+    /// 給「遊戲暫停期間仍然要播」的演出用——目前是血統變身（整段 timeScale=0，見
+    /// <c>Dipan.Gacha.BloodlineTransformFxRunner</c>）。**預設 false**＝跟著遊戲時間，暫停就凍住，
+    /// 一般戰鬥特效維持原本行為。呼叫端在 Spawn 之後直接設這個旗標即可（Spawn 都會回傳實體）。
+    /// </summary>
+    public bool Unscaled;
+
+    /// <summary>本幀要推進多少秒（依 <see cref="Unscaled"/> 二選一）。</summary>
+    float Dt => Unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
+
     public void Initialize(VfxData data, SpriteRenderer renderer)
     {
         _data = data;
@@ -77,13 +88,19 @@ public class VfxInstance : MonoBehaviour
 
     IEnumerator FlashRoutine(float intensity, int count, float dur)
     {
+        // ⚠ 等待也要跟著 Unscaled 走。用死的 WaitForSeconds 的話，遊戲一暫停這個協程就再也不會恢復：
+        //    白光定格在全白、_flashCo 永遠不歸 null（下一次 Flash 會去 Stop 一個已經死掉的協程）。
         for (int i = 0; i < count; i++)
         {
-            SetFlash(intensity); yield return new WaitForSeconds(dur);
-            SetFlash(0f);        yield return new WaitForSeconds(dur);
+            SetFlash(intensity); yield return Hold(dur);
+            SetFlash(0f);        yield return Hold(dur);
         }
         _flashCo = null;
     }
+
+    /// <summary>等 seconds 秒，依 <see cref="Unscaled"/> 決定要不要吃 timeScale。</summary>
+    object Hold(float seconds)
+        => Unscaled ? (object)new WaitForSecondsRealtime(seconds) : new WaitForSeconds(seconds);
 
     void SetFlash(float a)
     {
@@ -103,7 +120,7 @@ public class VfxInstance : MonoBehaviour
         // 靜態單張或沒給 FPS：無動畫可播，用壽命計時顯示後銷毀
         if (last <= 0 || frameDuration <= 0f)
         {
-            _lifeRemaining -= Time.deltaTime;
+            _lifeRemaining -= Dt;
             if (_lifeRemaining <= 0f) Destroy(gameObject);
             return;
         }
@@ -111,7 +128,7 @@ public class VfxInstance : MonoBehaviour
         if (_data.Loop)
         {
             // 循環：繞回播放；撐滿 Duration 秒才銷毀
-            _animTimer += Time.deltaTime;
+            _animTimer += Dt;
             while (_animTimer >= frameDuration)
             {
                 _animTimer -= frameDuration;
@@ -120,7 +137,7 @@ public class VfxInstance : MonoBehaviour
             }
             if (!_infiniteLife)
             {
-                _lifeRemaining -= Time.deltaTime;
+                _lifeRemaining -= Dt;
                 if (_lifeRemaining <= 0f) Destroy(gameObject);
             }
             return;
@@ -128,7 +145,7 @@ public class VfxInstance : MonoBehaviour
 
         // 一次性：每一格顯示滿一個 frameDuration 才前進；播到最後一幀、再撐滿一個 frameDuration 後才銷毀。
         // 銷毀完全由「動畫播到哪」決定，與子彈飛行速度無關 → 保證完整播完每一格。
-        _animTimer += Time.deltaTime;
+        _animTimer += Dt;
         while (_animTimer >= frameDuration)
         {
             _animTimer -= frameDuration;

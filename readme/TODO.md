@@ -345,15 +345,23 @@
 **功能缺口：**
 
 - [x] ~~變身演出（閃電＋煙霧）~~ → **已做**（2026-08-18，見 [BLOODLINE.md](BLOODLINE.md) §5）：倒下 → 天雷 → 煙霧＋電弧 →（煙裡換裝）→ 爬起，約 6 秒。
+- [x] ~~變身時遊戲不暫停、怪物照打~~ → **已改成全程暫停**（2026-08-19，見 [PROBLEMS.md](PROBLEMS.md) **D15**）。演出鏈上所有計時器改吃 unscaled（三個 `Unscaled` 旗標＋協程的 `Wait`）。
+- [x] ~~喝完藥沒有「你變成了什麼」的揭示~~ → **已做 `BloodlineIntroPanel`**（2026-08-19，見 [BLOODLINE.md](BLOODLINE.md) §5）：舊立繪斑駁剝落 → 新立繪浮現 ＋ 姓名牌飄入。
+- [ ] **進 Unity 後第一次跑要確認 `BloodlineDissolve.shader` 有被匯入**（新檔，Unity 需要重新編譯著色器）。載不到不會壞——面板會退化成 alpha 淡入淡出並在 Console 印一則警告——但那就看不到斑駁效果了。
+- [ ] **立繪揭示面板的版面要實機確認**：預設值已依作者給的示意圖算過並用 Python 合成驗證過（見 BLOODLINE.md §5 的版面表），但螢幕上看還是可能要微調。Play 模式中在 `[UIManager] → Layer_Overlay → BloodlineIntroPanel` 直接拉 `底版顯示高度` / `立繪可用區` / `立繪底邊距離` / `姓名底版中心高度` / `名字區域`，重喝一次即時生效；**調完記得回填程式碼預設值**（Play 模式的值不會保存）。
+- [ ] **姓名石碑用的是 `BloodlinePanel_NameBg`（866×288 淺色石碑），不是 boss 那張深色牌匾。** 因此 `NameColor` 是深血紅——**日後若換回深色底版，字色一定要同步改回亮色**，否則字會整個看不見。
+- [ ] **`Talk/Base/normal.png` 比例與其他三張不同**（1122×1402 vs 1024×1536）。面板已用「等比縮到框內、靠下對齊」吸收，但第一次喝藥（人類 → 殭屍）那一幕人類會比殭屍小一圈。重畫成 1024×1536 就完全對齊。
+- [ ] **只用 `normal` 表情**。想讓不同血統用不同表情（例如旱魃用 `proud`），把 `BloodlineIntroPanel.PortraitEmotion` 改成從表B 讀一個新欄位即可。
+- [ ] **「只能在邪佛廣場喝血統藥劑」這個方案沒做**（2026-08-19 評估過）。實作成本是 `BloodlineSystem.Plan()` 開頭一行 `CurrentMapId != SaveConstants.HubMapId` ＋ 一句語言表文字，而且三種藥劑目前**只從廣場祭壇抽得到**、對玩家零摩擦。純粹是設計決定：若之後想讓血統藥劑從 boss 掉落，這條限制會變成「得先打完那關帶回廣場」，要一起想。
 - [ ] **體型倍率不影響碰撞框**：1.5 倍體型的角色 hitbox 跟 1 倍一樣大。目前刻意保留（動 hitbox 會改手感），但若之後體型差距拉大到影響判讀就要一起處理。
 - [ ] **佛光的傷害半徑會跟著體型放大**（作者拍板「看到的就是打得到的」）。半徑 ×1.5 等於面積 ×2.25，而每拍傷害不變 ⇒ 大體型血統的佛光 DPS 實質更高。目前唯一走 `radiusScale` 的就是佛光，之後做平衡時記得這條。
 - [ ] **新增「持續掛在玩家身上」的效果時，記得在 `PlayerController.RefreshBodyScaledVisuals()` 補一行**，否則體型改變後它會停在舊尺寸（影子、佛光光環、集氣光圈都是這樣接的）。相關通則見 [PROBLEMS.md](PROBLEMS.md) E14。
 - [ ] **`BodyScale` 的數值要實機看過再定**：目前殭屍 1／毛殭 1.5／旱魃 1.2 是憑印象給的。素材量出來的可見高其實差不多（Base 193px／殭屍 174／毛殭 197／旱魃 175），差別在姿勢與可見寬，所以只能用眼睛調。改 CSV 即時生效，不用改程式。
-- [ ] **變身演出沒有音效**（專案還沒有音訊系統）。雷擊與煙爆是這遊戲裡最該有聲音的兩個瞬間，音訊系統做好後第一個補這裡。呼叫點在 `BloodlineTransformFxRunner` 的階段 ③ 與 ④。
+- [ ] **變身表演沒有音效**（專案還沒有音訊系統）。雷擊、煙爆、立繪剝落是這遊戲裡最該有聲音的三個瞬間，音訊系統做好後第一個補這裡。呼叫點在 `BloodlineTransformFxRunner` 的階段 ③ ④，以及 `BloodlineIntroPanel` 的溶解起點。
 - [ ] **實機看過再調節奏**：總長約 6 秒，其中倒下與爬起各佔 2.08 秒（dead 25 幀 @12fps）。常數在 `BloodlineTransformFxRunner` 檔頭，覺得拖就把 `FallFpsMul` / `WakeFpsMul` 調大。
 - [ ] **煙塵放大後可能偏糊**（64px 像素圖放大到玩家身高 ×1.6 的必然）。想改成「沿身體撒 3~4 顆、錯開時間」的話：`SmokeBurstCount` 調 3、`SmokeHeightRatio` 調回 0.9，流程一行不用改。
 - [ ] **五個屬性只存不套用**（行走速度/力量/敏捷/魔力/體力）。等角色屬性系統。套用點就在 `BloodlineSystem.ApplyTo()` 的第 2 段註解處。⚠ 在屬性系統做好之前**不要偷偷改 `CombatStats` 或 `MoveSpeed`**——舊版就是這樣搞出兩套來源，已經拿掉一次了。
-- [ ] **玩家沒地方看自己的血統與階段**。目前只有喝藥當下的 Toast。之後跟角色資訊面板一起做（`BloodlineSystem.CurrentDisplayName` / `CurrentSeries` / `CurrentStage` 都已備好）。
+- [ ] **玩家沒地方「事後」查自己的血統與階段**。喝下去當下有立繪揭示面板，但之後就沒地方看了。之後跟角色資訊面板一起做（`BloodlineSystem.CurrentDisplayName` / `CurrentSeries` / `CurrentStage` 都已備好）。
 - [ ] **`SkillId` 仍是死欄**（技能系統不存在，填了只印一則 log）。
 - [ ] **只有殭屍一個系列**。吸血鬼系列已有藥劑 icon（`bloodline_Vampire.png`）但沒有序列圖與立繪。加新系列的步驟見 [BLOODLINE.md](BLOODLINE.md) §7（進階藥劑不用動，程式碼一行不用改）。
 

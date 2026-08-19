@@ -576,6 +576,18 @@ namespace Dipan.UI
 
         // ═══════════════ 互動 ═══════════════
 
+        /// <summary>
+        /// **左鍵背包格 = 搬移／裝備／綁定，永遠不會「使用」任何東西。**
+        ///
+        /// ⚠ 這條界線是刻意的（2026-08-19 作者拍板）：左鍵做的事**一律不消耗道具**，
+        /// 所以誤點永遠不會造成損失；真正會消耗的「使用」全部集中在右鍵
+        /// （<see cref="OnSlotRightClicked"/> → <see cref="ItemUse"/>）。
+        /// 在這裡加分支前先確認它不會消耗東西——原本這裡有一條「左鍵＝喝血統藥劑」，
+        /// 而血統是**本世不可逆**的，等於一次誤點就定終身。
+        ///
+        /// 沒有任何分支命中就**安靜地什麼都不做**（例：左鍵點血統藥劑、能力珠、材料）。
+        /// 刻意不 Toast「請按右鍵」——那條規則只需要學一次，每次點都念會很煩。
+        /// </summary>
         void OnSlotClicked(InventorySlotWidget w)
         {
             var inv = InventorySystem.Instance;
@@ -592,16 +604,14 @@ namespace Dipan.UI
                     ForgingPanel.TryPlaceFromGrid(w.index);     // 鍛造開著：點武器/裝備 → 放上鐵砧（借放，物品留在原位）
                 else if (store != null)
                     InventoryActions.QuickMoveGrid(w, store);   // 倉庫開著：點一下送進倉庫當前分頁
-                else if (clickedData != null && clickedData.IsBloodline)
-                    TryDrinkBloodline(clickedId);   // 血統藥劑：左鍵＝喝（不可逆，先跳確認）
                 else if (clickedData != null && clickedData.IsPotion)
-                    inv.AutoPlacePotion(clickedId);              // 藥水：左鍵自動進藥水格（與裝備左鍵自動裝備同邏輯；空位優先＝左格＝鍵1）
-                else
+                    inv.AutoPlacePotion(clickedId);              // 藥水：綁定到快捷格（**不是喝掉**；空位優先＝左格＝鍵1）
+                else if (clickedData != null && clickedData.IsEquippable)
                     inv.EquipFromGrid(w.index);                  // 可裝備物品：左鍵自動裝備
             }
             else
             {
-                inv.Unequip(w.equipSlot);
+                inv.Unequip(w.equipSlot);                        // 裝備格左鍵 = 卸下
             }
         }
 
@@ -823,43 +833,60 @@ namespace Dipan.UI
             }
         }
 
-        // 右鍵背包格：血統藥劑 → 喝（不能喝的當場說明理由）；一般藥水 → 依規則自動放進藥水格
-        // （空位優先、滿了取代1號）。左鍵走 OnSlotClicked，兩邊對血統藥劑的行為刻意一致。
+        /// <summary>
+        /// **右鍵背包格 = 使用這件道具。這是全遊戲唯一的「使用」入口**
+        ///（藥水的快捷格熱鍵 1／2 最後也是走進同一支 <see cref="ItemUse"/>）。
+        ///
+        /// 本面板刻意**不懂任何道具規則**——「這東西能不能用」「不能用的理由」「要不要先跳確認視窗」
+        /// 全部由 <see cref="ItemUse.PlanUse"/> 算好，這裡只負責顯示。加新的可用道具不用回頭動 UI。
+        ///
+        /// 三種結果：
+        /// <list type="bullet">
+        /// <item>能用、要確認（血統藥劑不可逆）→ 跳 <see cref="ConfirmPopup"/>，按下去才真的用。</item>
+        /// <item>能用、不用確認（回血回魔藥劑）→ 當場喝掉。</item>
+        /// <item>不能用 → <c>Reason</c> 有字就 Toast 說明；<b>沒字代表這東西根本沒有使用行為</b>
+        ///   （武器、材料、能力珠…），此時**安靜地什麼都不做**，不要跳「無法使用」之類的廢話。</item>
+        /// </list>
+        ///
+        /// ⚠ 不能用的時候是**在按下右鍵的當下就擋掉並說明理由**，不會先跳確認視窗、按完才發現沒反應
+        ///   （例：還在第一階卻拿到高階藥劑，會直接告訴玩家要先進階為「毛殭」）。
+        /// ⚠ 教學強制階段（<c>TutorialManager.HardLock</c>）不放行使用——教學正在教「左鍵把藥水
+        ///   放進快捷格」，玩家若在那一步右鍵把唯一一瓶喝掉，教學會等一個永遠不會發生的條件。
+        /// </summary>
         void OnSlotRightClicked(InventorySlotWidget w)
         {
             if (w == null || w.kind != InventorySlotWidget.Kind.Grid || w.index < 0) return;
+            if (TutorialManager.HardLock) return;
+
             var inv = InventorySystem.Instance;
             int id = inv.GetGrid(w.index).ItemId;
-            var d = id > 0 ? inv.GetData(id) : null;
-            if (d != null && d.IsBloodline) TryDrinkBloodline(id);
-            else if (d != null && d.IsPotion) inv.AutoPlacePotion(id);
-        }
+            if (id <= 0) return;
 
-        /// <summary>
-        /// 喝血統藥劑（系列起始藥劑與進階藥劑共用這一條）：一次性、不可逆，所以一定先跳確認彈窗。
-        ///
-        /// 這個面板刻意不懂任何血統規則——「能不能喝」「確認視窗要寫什麼」「成功後說什麼」
-        /// 全部由 BloodlineSystem.Plan 算好，這裡只負責顯示。之後改規則不用回頭動 UI。
-        ///
-        /// ⚠ 不能喝的時候**在按下左/右鍵的當下就擋掉並說明理由**，不要先跳確認視窗、按完才發現沒反應
-        ///   （例：還在第一階卻拿到高階藥劑，會直接告訴玩家要先進階為「毛殭」）。
-        /// </summary>
-        void TryDrinkBloodline(int itemId)
-        {
-            var plan = Dipan.Gacha.BloodlineSystem.Plan(itemId);
+            var plan = ItemUse.PlanUse(id);
             if (!plan.Ok)
             {
-                AlertPanel.Toast(plan.Reason ?? "無法飲用");
+                if (!string.IsNullOrEmpty(plan.Reason)) AlertPanel.Toast(plan.Reason);
                 return;
             }
 
-            ConfirmPopup.Show(plan.ConfirmText, () =>
+            if (!string.IsNullOrEmpty(plan.ConfirmText))
             {
-                // 這裡刻意不重用上面算好的 plan——確認視窗開著的期間狀態可能變了（東西被搬走／被喝掉），
-                // TryDrink 內部會自己重新規劃一次，成功與失敗的訊息都由它回傳，直接顯示就好。
-                Dipan.Gacha.BloodlineSystem.TryDrink(itemId, out string message);
-                AlertPanel.Toast(message);
-            });
+                ConfirmPopup.Show(plan.ConfirmText, () => UseItem(id));
+                return;
+            }
+            UseItem(id);
+        }
+
+        /// <summary>
+        /// 真的用下去並回報結果。
+        /// ⚠ 刻意不重用外面算好的 <see cref="ItemUse.Plan"/>——確認視窗開著的期間狀態可能變了
+        /// （東西被搬走／被喝掉／血統被別的途徑改掉），<see cref="ItemUse.TryUse"/> 內部會自己重新規劃一次，
+        /// 成功與失敗的訊息都由它回傳，有字就直接顯示。
+        /// </summary>
+        static void UseItem(int itemId)
+        {
+            ItemUse.TryUse(itemId, out string message);
+            if (!string.IsNullOrEmpty(message)) AlertPanel.Toast(message);
         }
 
         /// <summary>tooltip 跟著游標；游標在右半邊就翻到左側顯示，避免超出畫面。</summary>

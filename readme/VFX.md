@@ -94,3 +94,14 @@
 完整說明見 [BLOODLINE.md](BLOODLINE.md) §5。
 
 ⚠ id 31 這種 `Duration=-1` 的循環特效**一定要有人負責 Destroy**，漏了就會變成永遠掛在玩家身上的裝飾。
+
+### `VfxInstance.Unscaled`（2026-08-19）
+
+`VfxInstance` 多了一個 **預設 `false`** 的 `Unscaled` 旗標：打開之後動畫推進、壽命倒數、
+受擊白光的等待全部改吃 `Time.unscaledDeltaTime`／`WaitForSecondsRealtime`。
+
+給「**遊戲暫停期間仍然要播**」的演出用——目前是血統變身（整段 `timeScale = 0`）。
+`Spawn` 系列本來就會回傳實體，所以生出來直接 `inst.Unscaled = true` 即可，**不用改任何簽章**，
+一般戰鬥特效行為零改變（暫停時本來就該停）。
+
+同樣的旗標 `SegmentedLightningColumn` 也有一份。詳見 [PROBLEMS.md](PROBLEMS.md) **D15**。

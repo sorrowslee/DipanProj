@@ -517,7 +517,14 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (characterHeight <= 0.01f) characterHeight = CharacterWorldHeight > 0f ? CharacterWorldHeight : 1.95f;
         var vfx = _vfxManager.SpawnLoopSizedToHeight(DrinkPotionVfxId, BodyCenterWorldPos,
             characterHeight * DrinkPotionVfxHeightRatio, DrinkPotionVfxLifeSeconds);
-        if (vfx != null) vfx.transform.SetParent(transform, true);   // 跟著玩家移動
+        if (vfx != null)
+        {
+            // ⚠ 一定要 unscaled：喝藥現在也可以「在背包裡對藥水按右鍵」觸發，而背包 PausesGame=true
+            //    → timeScale=0。吃 Time.deltaTime 的話動畫與壽命都不會前進，連按五下就是五個定格在
+            //    第 0 幀、永遠不消失的特效疊在玩家身上，關掉背包才一起播完（同 PROBLEMS D15 那一家）。
+            vfx.Unscaled = true;
+            vfx.transform.SetParent(transform, true);   // 跟著玩家移動
+        }
     }
 
     private static float GetChargeRequiredSeconds(WeaponData weapon)

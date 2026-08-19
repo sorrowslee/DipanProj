@@ -10,9 +10,15 @@ namespace DipanMapEditor.Core
     /// </summary>
     public class ObjectView : MonoBehaviour
     {
-        const int SortBase = 1000000;  // 大基底，確保即使往後移仍排在 Tilemap(0) 之上
-        const int BandStep = 10000;    // 一個 zOrder 層級 = 跨過整個 Y-sort 範圍
+        // ⚠ 與主遊戲的 MapDepthSort 是**鏡像**，改一邊要兩邊一起改（雙專案共用同一套排序語意）。
+        //   2026-08-18 拿掉了舊的 base 1,000,000 繞回寫法：那個只有 zOrder=0 時安全，
+        //   zOrder=1 繞回後會落在 21960~31960，在主遊戲那邊正好壓在所有表演層之上
+        //   （傷害數字、特效、卍字全被一個燭台蓋住）。見 readme/PROBLEMS.md E15。
+        const int SortBase = 7000;     // zOrder=0 那一層的起點
+        const int BandStep = 6000;     // 每階 zOrder 的寬度，同時是 Y 貢獻的上限（= 地圖最高 60 世界單位）
         const float SortScale = 100f;
+        const int MinZOrder = -1;
+        const int MaxZOrder = 1;
 
         readonly Dictionary<ObjectInstance, SpriteRenderer> _renderers = new Dictionary<ObjectInstance, SpriteRenderer>();
         Transform _root;
@@ -147,8 +153,11 @@ namespace DipanMapEditor.Core
                 (inst.flipX ? -1f : 1f) * inst.scaleX,
                 (inst.flipY ? -1f : 1f) * inst.scaleY, 1f);
             sr.transform.rotation = Quaternion.Euler(0, 0, inst.rot);
-            // 先比 zOrder 層級（每層跨整個 Y-sort 範圍），同層內再依 sortKey 做 Y-sort
-            sr.sortingOrder = SortBase + inst.zOrder * BandStep + Mathf.RoundToInt(-inst.sortKey * SortScale);
+            // 先比 zOrder 層級（每層跨整個 Y-sort 範圍），同層內再依 sortKey 做 Y-sort。
+            // Y 的貢獻夾在 [0, BandStep-1]：保證「zOrder 大的永遠在前面」，也保證整帶不外溢。
+            int z = Mathf.Clamp(inst.zOrder, MinZOrder, MaxZOrder);
+            int y = Mathf.Clamp(Mathf.RoundToInt(-inst.sortKey * SortScale), 0, BandStep - 1);
+            sr.sortingOrder = SortBase + z * BandStep + y;
         }
 
         public void Remove(ObjectInstance inst)

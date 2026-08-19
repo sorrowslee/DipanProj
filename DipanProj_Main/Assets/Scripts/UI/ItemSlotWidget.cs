@@ -83,8 +83,13 @@ namespace Dipan.UI
             _count.text = st.Count > 1 ? st.Count.ToString() : "";
         }
 
+        // ⚠ **只收左鍵。** 全遊戲的約定是「左鍵＝搬移，右鍵＝使用」（見 InventoryPanel）。
+        //    這裡的 HandleClick 是「一鍵送回背包」＝搬移，所以右鍵不該觸發它；
+        //    而倉庫裡的東西刻意**不能直接使用**（要先拿回背包），所以右鍵在這裡就是沒有動作。
+        //    原本這裡完全沒判斷按鍵，右鍵也會搬——那會讓「右鍵＝使用」這條規則在倉庫破功。
         public void OnPointerClick(PointerEventData e)
         {
+            if (e.button != PointerEventData.InputButton.Left) return;
             if (_owner != null && !Container.GetAt(Index).IsEmpty) _owner.HandleClick(this);
         }
 

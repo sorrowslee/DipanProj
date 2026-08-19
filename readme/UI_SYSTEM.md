@@ -95,6 +95,13 @@ public class InventoryPanel : UIPanel
 | `KeepOpenOnSceneChange` | `false` | 切 Unity 場景時是否保留開啟 |
 | `FadeDuration` | `0.12` | 淡入淡出秒數（unscaled，暫停時仍會播） |
 
+⚠ **`FadeDuration` 的淡出跟「面板關閉」不同步。** `DoClose()` 的順序是
+`IsOpen=false` → `OnClose()` → **才**開始淡出。所以掛在 `OnClose` 的收尾動作
+（解除暫停、放行回呼）是在**淡出開始的那一刻**執行，不是淡完。
+如果你的面板是「消失前玩家不該恢復控制」的表演，就得自己在 `Update` 裡淡
+（`BloodlineIntroPanel` 的做法：自己淡到全透明 → `FadeDuration` 此時回 0 → 才 Close）。
+見 [PROBLEMS.md](PROBLEMS.md) **D16**。
+
 ---
 
 ## 防連點工具（`UIPanel` 提供，opt-in）
@@ -119,10 +126,23 @@ public class InventoryPanel : UIPanel
   - **一定要用帶 `owner` 的多載。** 舊的兩參數多載共用一個預設 key——兩個生命週期重疊的系統一起用，
     先解除的那個會把另一個還在生效的鎖一起清掉（實際踩過，見 [PROBLEMS.md](PROBLEMS.md) **D13**）。
   - 解除是 `SetExternalHold(owner, false, false)`＝只移除**自己那一份**。
-  - ⚠ **現況**：目前只有 `BloodlineTransformFxRunner` 用了具名版；`TutorialManager` / `CutsceneDirector` /
+  - ⚠ **現況**：目前只有 `BloodlineTransformFxRunner`（`"BloodlineTransformFx"`）與
+    `BloodlineSystem`（`"BloodlinePerformance"`）用了具名版；`TutorialManager` / `CutsceneDirector` /
     `EyeOpenController` / `IllusionShatterController` / `GameFlowManager` / `TriggerChain` / `MapManager`
     **仍全部共用預設 key**。也就是互踩問題只在「新系統 vs 舊系統」之間解掉了，舊系統彼此之間還是會踩。
     之後動到那幾支時順手把 owner 補上。
+  - **接力型的表演要有一個「橫跨全程」的 hold**。血統變身是「世界演出 → 立繪面板」兩段接力，
+    前一段的 `finally` 先解鎖、後一段延一幀才開，中間那一兩幀若沒人壓著就會解除暫停一瞬間。
+    做法是讓上層（`BloodlineSystem`）自己掛一份從頭壓到尾，兩段各自的 hold 照舊不動——
+    `Recompute` 是 OR，多壓一層不會有副作用。
+
+### ESC 只在「真的沒有東西在進行」時才開設定面板
+
+`UIManager.Update` 的 ESC 有兩個分支：有入堆疊的視窗 → 關最上層；沒有 → 開 `_escapeRootPanel`（設定）。
+第二個分支加了 **`!_inputBlocked`** 這個條件。原因是 Overlay 層的演出面板（`BossIntroPanel`、
+`BloodlineIntroPanel`）**不入堆疊**，`TopStackPanel()` 看不到它們，於是會落進第二個分支——
+玩家按 ESC 就能在不可跳過的演出上面疊一個設定面板。過場、教學這類「非面板但鎖著輸入」的狀態同理。
+背包等視窗開著時輸入也是被擋的，但那會走第一個分支，不受影響。
   - ⚠ `pause` 要不要開，取決於**演出本身吃哪種時間**：用 `Time.deltaTime` 的（玩家動畫、`VfxInstance`、
     雷柱）暫停就會整段凍住，這時 `pause` 必須是 `false`（見 [PROBLEMS.md](PROBLEMS.md) **D14**）。
 - **輸入閘門怎麼接到玩家**：`PlayerController.Update` 開頭查一次 `UIManager.IsGameplayInputBlocked`，為真就清掉移動輸入並 return（最小侵入，沒有重構玩家的 input）。**任何之後要在開 UI 時停手的系統，都查這個靜態旗標即可。**

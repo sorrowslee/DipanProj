@@ -183,6 +183,21 @@ public class PlayerAnimator : MonoBehaviour
     }
 
     /// <summary>
+    /// 「姿勢表演」（倒下／趴地／爬起）改用不受 <c>Time.timeScale</c> 影響的時間推進。
+    ///
+    /// 給**暫停播放**的演出用：血統變身全程 <c>timeScale=0</c>，不切成 unscaled 的話
+    /// 角色會倒到一半凍住、整段演出停擺（見 <c>Dipan.Gacha.BloodlineTransformFxRunner</c>）。
+    ///
+    /// ⚠ 只影響姿勢表演這三段。一般走路/待機/攻擊動畫**仍然吃 <c>Time.deltaTime</c>**——
+    /// 那些在遊戲暫停時本來就該停（背包開著角色還在原地踏步很怪）。
+    /// 由演出的持有者負責開關（開頭設 true、收尾 finally 設回 false）。
+    /// </summary>
+    [System.NonSerialized] public bool UnscaledPose;
+
+    /// <summary>姿勢表演本幀要推進多少秒（依 <see cref="UnscaledPose"/> 二選一）。</summary>
+    float PoseDt => UnscaledPose ? Time.unscaledDeltaTime : Time.deltaTime;
+
+    /// <summary>
     /// 中止目前的表演（倒下／趴地／爬起），角色回 Idle。表演的回呼**不會**被觸發。
     /// 給演出被外力打斷時收尾用——不叫的話 <c>_lyingHold</c> 會一直是 true、
     /// <c>IsWakeUpBusy</c> 恆真、SetState 全被忽略，角色會永遠定格在趴姿。
@@ -295,13 +310,14 @@ public class PlayerAnimator : MonoBehaviour
         if (!_hasAny) return;
 
         // 甦醒表演：倒下＝正播 dead（播完轉趴地定格）；趴地定格＝什麼都不做（sprite 已定在倒地幀）；
-        // 爬起＝倒播 dead。三者都用 Time.deltaTime，所以演出期間 timeScale 必須維持 1。
+        // 爬起＝倒播 dead。三者走 PoseDt——預設等同 Time.deltaTime，但演出方把 UnscaledPose 設 true
+        // 之後就改吃 unscaled，讓「遊戲暫停播的演出」（血統變身）不會凍住。
         if (_fallPlaying)
         {
             if (_dead == null || _dead.Length == 0) { FinishFallDown(); return; }   // 該血統沒有倒地素材
             float fallDur = PoseFrameDuration;
             if (fallDur <= 0f) { FinishFallDown(); return; }
-            _timer += Time.deltaTime;
+            _timer += PoseDt;
             while (_timer >= fallDur)
             {
                 _timer -= fallDur;
@@ -316,7 +332,7 @@ public class PlayerAnimator : MonoBehaviour
         {
             float dur = PoseFrameDuration;
             if (dur <= 0f) { CancelWakeUp(invokeDone: true); return; }
-            _timer += Time.deltaTime;
+            _timer += PoseDt;
             while (_timer >= dur)
             {
                 _timer -= dur;

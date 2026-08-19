@@ -26,18 +26,31 @@ public sealed class SegmentedLightningColumn : MonoBehaviour
     /// <summary>一組雷柱外觀（素材路徑 + 張數 + 排序層）。加新外觀＝多做一個 static readonly。</summary>
     public sealed class Style
     {
+        /// <summary>頂端「雷首」的素材前綴。**留空 = 不用雷首，整根都用 loop**（見 <see cref="HasCap"/>）。</summary>
         public readonly string StartPrefix;
         public readonly string LoopPrefix;
         public readonly int StartFrames;
         public readonly int LoopFrames;
         public readonly int SortingOrder;
 
+        /// <summary>
+        /// 這組外觀要不要頂端雷首。
+        ///
+        /// ⚠ **雷首與 loop 的粗細差太多就別用。** 這一套素材的雷首是「尚未成形的細電光」，
+        /// 邊緣只有 1~2px 寬，而 loop 的邊緣是 5~17px——接在一起是一根髮絲頂著一根粗電柱，
+        /// 接縫非常明顯。而且雷首只有 2 張、`capFrame` 的算式會讓它在 0.15 秒左右就播完定格，
+        /// 底下的 loop 卻還在跑 8 幀循環，變成「靜止的髮絲蓋在閃爍的柱子上」。
+        /// 血統變身用的那組因此**不接雷首**；九霄雷獄維持原樣（它的節奏短、雷首多半在畫面外）。
+        /// </summary>
+        public bool HasCap => !string.IsNullOrEmpty(StartPrefix) && StartFrames > 0;
+
+        /// <param name="startPrefix">頂端雷首素材；**留空 = 整根都用 loop**。</param>
         public Style(string startPrefix, string loopPrefix, int startFrames, int loopFrames,
                      int sortingOrder = DefaultSortingOrder)
         {
             StartPrefix = startPrefix;
             LoopPrefix = loopPrefix;
-            StartFrames = Mathf.Max(1, startFrames);
+            StartFrames = Mathf.Max(0, startFrames);
             LoopFrames = Mathf.Max(1, loopFrames);
             // ⚠ sortingOrder 實為 16-bit，超過 32767 會溢位變負數整個看不到（見 readme/PROBLEMS.md E4）。
             SortingOrder = Mathf.Clamp(sortingOrder, -32768, 32767);
@@ -49,6 +62,13 @@ public sealed class SegmentedLightningColumn : MonoBehaviour
 
     // 以「路徑前綴」為鍵的 Sprite 快取，讓多種外觀各自快取、互不干擾。
     static readonly Dictionary<string, Sprite[]> _cache = new Dictionary<string, Sprite[]>();
+
+    /// <summary>
+    /// 用不受 <c>Time.timeScale</c> 影響的時間推進動畫與壽命。
+    /// 給「遊戲暫停期間仍然要播」的演出用（血統變身整段 timeScale=0）。
+    /// **預設 false**＝跟著遊戲時間，九霄雷獄維持原本行為。Spawn 會回傳實體，設完即可。
+    /// </summary>
+    public bool Unscaled;
 
     readonly List<SpriteRenderer> _loops = new List<SpriteRenderer>();
     SpriteRenderer _startRenderer;
@@ -71,12 +91,12 @@ public sealed class SegmentedLightningColumn : MonoBehaviour
         float scale = DefaultScale, float fps = DefaultFps, float duration = DefaultDuration)
     {
         if (style == null) style = SkyStrike;
-        var start = EnsureLoaded(style.StartPrefix, style.StartFrames);
+        var start = style.HasCap ? EnsureLoaded(style.StartPrefix, style.StartFrames) : null;
         var loop = EnsureLoaded(style.LoopPrefix, style.LoopFrames);
 
         // 用 IsStale 而非「陣列 == null」：Load() 永遠回傳非 null 陣列（即使每格 Resources.Load 都失敗），
         // 舊守衛攔不到「陣列在但元素全 null」，會一路走到底下取 _loop[0].bounds 而丟 NullReference。
-        if (camera == null || IsStale(start) || IsStale(loop))
+        if (camera == null || IsStale(loop) || (style.HasCap && IsStale(start)))
         {
             Debug.LogWarning($"分段雷柱素材未完整載入（{style.LoopPrefix}），略過雷柱視覺。");
             return null;
@@ -127,9 +147,12 @@ public sealed class SegmentedLightningColumn : MonoBehaviour
         float segmentHeight = length / segmentCount;
         float scaleY = segmentHeight / nativeHeight;
 
+        bool hasCap = _start != null && _start.Length > 0;
         for (int i = 0; i < segmentCount; i++)
         {
-            bool top = i == segmentCount - 1;
+            // 沒有雷首時整根都用 loop——loop 本身上下貫穿、可平鋪，所以純 loop 疊起來完全無接縫，
+            // 而且柱子頂端本來就延伸到畫面外（topY 取視窗上緣再往上 12%），不會看到「斷頭」。
+            bool top = hasCap && i == segmentCount - 1;
             Sprite sprite = top ? _start[0] : _loop[0];
             var segment = new GameObject(top ? "Start" : $"Loop_{i}");
             segment.transform.SetParent(transform, false);
@@ -146,10 +169,13 @@ public sealed class SegmentedLightningColumn : MonoBehaviour
 
     void Update()
     {
-        _elapsed += Time.deltaTime;
+        _elapsed += Unscaled ? Time.unscaledDeltaTime : Time.deltaTime;
         int loopFrame = Mathf.FloorToInt(_elapsed * _fps) % _loop.Length;
-        int capFrame = Mathf.Min(_start.Length - 1, Mathf.FloorToInt(_elapsed * _fps * 0.35f));
-        if (_startRenderer != null) _startRenderer.sprite = _start[capFrame];
+        if (_startRenderer != null && _start != null && _start.Length > 0)
+        {
+            int capFrame = Mathf.Min(_start.Length - 1, Mathf.FloorToInt(_elapsed * _fps * 0.35f));
+            _startRenderer.sprite = _start[capFrame];
+        }
         for (int i = 0; i < _loops.Count; i++)
             if (_loops[i] != null) _loops[i].sprite = _loop[loopFrame];
 

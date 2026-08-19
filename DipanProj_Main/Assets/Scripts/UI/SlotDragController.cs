@@ -45,6 +45,11 @@ namespace Dipan.UI
 
         public static void Begin(ISlotView view, PointerEventData e)
         {
+            // ⚠ **只有左鍵能拖。** 全遊戲的約定是「左鍵＝搬移、右鍵＝使用」（見 InventoryPanel）。
+            //    不擋的話右鍵按住稍微移動一下就變成搬移（Unity 的 ProcessDrag 不分按鍵），
+            //    而右鍵原地放開卻是「使用」——同一個手勢差幾像素就是兩種結果，玩家無從預期。
+            //    擋在這裡是因為五個格子元件（背包/倉庫/鍛造/劇本/藥水格）都經過這一支。
+            if (e != null && e.button != PointerEventData.InputButton.Left) { _src = null; DraggingItemId = 0; return; }
             if (view == null || Locked(view) || !InventoryActions.HasItem(view)) { _src = null; DraggingItemId = 0; return; }
             _src = view;
             DraggingItemId = InventoryActions.ItemIdOf(view);

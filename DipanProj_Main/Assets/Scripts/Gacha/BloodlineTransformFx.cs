@@ -11,7 +11,7 @@ namespace Dipan.Gacha
     ///
     /// 時間軸（常數在 <see cref="BloodlineTransformFxRunner"/> 檔頭，要調節奏改那裡）：
     /// <code>
-    /// 0.00s  關背包 → 鎖操作
+    /// 0.00s  關所有面板 → 鎖操作 ＋ 暫停遊戲（timeScale=0，之後全程 unscaled 計時）
     /// 0.00s  玩家 dead 正向播放，倒下 ─────────── 約 2.1s
     /// 2.08s  趴地定格；閃電柱從畫面外生成
     /// 2.20s  【擊中】螢幕震動 + 白閃
@@ -21,14 +21,22 @@ namespace Dipan.Gacha
     /// 2.95s  電弧殘留繼續繞 ──────────────── 0.6s
     /// 3.55s  電弧淡出
     /// 3.75s  倒播 dead，爬起來 ─────────────── 約 2.1s
-    /// 5.83s  解鎖，新血統站定
+    /// 5.83s  演出結束 → 交棒給 BloodlineIntroPanel（立繪揭示）
     /// </code>
+    ///
+    /// <b>整段演出在遊戲暫停下播放</b>（<c>timeScale = 0</c>）。這樣怪物不會在玩家被鎖住不能閃避的
+    /// 六秒裡把他打死，也和接在後面的 <c>BloodlineIntroPanel</c> 連成同一段凍結時間、中間沒有空窗。
+    /// 真正橫跨兩段的鎖由 <c>BloodlineSystem</c> 持有，本檔只負責自己這一段。
     ///
     /// ⚠ <b>三個踩過的坑</b>（改這個檔之前先讀）：
     /// <list type="number">
-    /// <item><b>喝藥當下遊戲是暫停的。</b>確認視窗關掉後背包還開著，而背包 PausesGame=true
-    ///   → Time.timeScale = 0。而玩家動畫、VfxInstance、雷柱**全部吃 Time.deltaTime**，
-    ///   整段演出會凍住不動。所以開頭一定要先關背包，且 SetExternalHold 的 pause 必須是 false。</item>
+    /// <item><b>暫停播放 ⇒ 每一個計時器都必須是 unscaled。</b>
+    ///   （2026-08-19 之前是反過來的：pause 傳 false、全部吃 <c>Time.deltaTime</c>，
+    ///   代價就是怪物照打。改成暫停之後，下面每一項都得跟著換，漏掉哪一項那一項就整段凍在第一格：
+    ///   玩家姿勢動畫 <c>PlayerAnimator.UnscaledPose</c>、煙塵與電弧 <c>VfxInstance.Unscaled</c>、
+    ///   雷柱 <c>SegmentedLightningColumn.Unscaled</c>、本檔的 <c>Wait()</c>。
+    ///   螢幕震動與白閃本來就是 unscaled，不用動。）
+    ///   開頭仍然要 <c>CloseAll()</c>——背包若開著會整片蓋在演出上面。</item>
     /// <item><b>換裝會把趴姿打回站姿。</b>SetBloodline 內部重跑 PlayerAnimator.Setup，
     ///   把 sprite 換成新血統的 idle 第 0 幀；但趴地定格旗標還在、Update 直接 return 不再更新
     ///   → 角色站著定格。所以 onSwap 之後一定要 RefreshLyingPose()。</item>
@@ -129,19 +137,29 @@ namespace Dipan.Gacha
         const int SmokeVfxId = 30;
         const int AuraVfxId = 31;
 
-        /// <summary>變身雷柱的素材（與九霄雷獄同一套拼接邏輯，只是換外觀）。</summary>
+        /// <summary>
+        /// 變身雷柱的素材（與九霄雷獄同一套拼接邏輯，只是換外觀）。
+        ///
+        /// ⚠ **刻意不接頂端雷首（`Start`），整根都用 loop。** 這組素材的雷首是「尚未成形的細電光」，
+        /// 邊緣只有 1~2px，而 loop 的邊緣是 5~17px——接在一起就是一根髮絲頂著一根粗電柱，接縫很明顯；
+        /// 而且雷首只有 2 張、0.15 秒就播完定格，底下 loop 還在跑 8 幀循環，變成靜止的髮絲蓋在閃爍的柱子上。
+        /// loop 本身上下貫穿可平鋪，純 loop 疊起來零接縫，柱頂又延伸到畫面外，不會看到斷頭。
+        /// （`end` 同理不用：實測它就是 `start` 倒過來的同兩張圖。素材都還留著，想試隨時填回來。）
+        /// </summary>
         static readonly SegmentedLightningColumn.Style LightningStyle =
             new SegmentedLightningColumn.Style(
-                "VfxEffects/TransformLightning/Start/Start",
+                null,                                        // 不用雷首
                 "VfxEffects/TransformLightning/Loop/Loop",
-                2, 8, 22000);
+                0, 8, 22000);
 
         // ══════════ 執行期 ══════════
 
         /// <summary>
-        /// 演出進行中。給「會暫停遊戲的東西」查詢用——目前是 <c>StorageBagCoordinator</c> 的
-        /// 背包/倉庫/鍛造熱鍵：那三個面板都 PausesGame=true，演出期間開下去 timeScale 歸零，
-        /// 而演出全部吃 Time.deltaTime，會整段凍在半空中。
+        /// 世界演出進行中（不含後面的立繪面板）。
+        ///
+        /// 一般查詢請用 <c>BloodlineSystem.IsPerforming</c>——那個把「世界演出＋立繪揭示」
+        /// 兩段合起來算，是熱鍵封鎖該看的單一真相。本旗標只代表這一段，
+        /// 給需要精確區分兩段的地方用。
         /// </summary>
         public static bool IsPlaying { get; private set; }
 
@@ -193,14 +211,17 @@ namespace Dipan.Gacha
 
             try
             {
-                // ── 坑 1：先把背包（PausesGame=true）關掉，否則 timeScale=0，整段演出凍住 ──
-                // 玩家動畫 / VfxInstance / 雷柱全部吃 Time.deltaTime。
+                // ── 關掉所有面板（背包還開著會整片蓋在演出上），然後鎖操作＋暫停遊戲 ──
+                // pause=true 是刻意的：演出期間玩家不能閃避，不凍住世界的話怪物會把他打死。
+                // 代價是「所有計時器都要 unscaled」——見檔頭坑 1，下面每一個 Unscaled 旗標都是為此而設。
                 if (UIManager.Instance != null)
                 {
                     UIManager.Instance.CloseAll();
-                    UIManager.Instance.SetExternalHold(HoldOwner, true, false);   // pause 必須 false
+                    UIManager.Instance.SetExternalHold(HoldOwner, true, true);
                     _held = true;
                 }
+                // 玩家的倒下／趴地／爬起改吃 unscaled，否則 timeScale=0 時角色會倒到一半凍住。
+                if (anim != null) anim.UnscaledPose = true;
 
                 // 特效要「始終蓋得住玩家」→ 取**變身前後較大的那個體型**當基準。
                 // 只用變身前的話，換成更大的血統時煙霧散開前那一段會露出新外型的頭尾。
@@ -223,8 +244,11 @@ namespace Dipan.Gacha
                 // transform 是 sprite 的中心，直接拿它當擊中點的話電柱會停在胸口/肩膀高度。
                 Vector2 impact = FootPoint();
                 if (cam != null)
-                    SegmentedLightningColumn.Spawn(impact, cam, LightningStyle,
+                {
+                    var bolt = SegmentedLightningColumn.Spawn(impact, cam, LightningStyle,
                         LightningScale * BodyScaleFactor, LightningFps, LightningDuration);
+                    if (bolt != null) bolt.Unscaled = true;   // 演出期間 timeScale=0，不設的話雷柱定格在第一幀
+                }
                 yield return Wait(LightningLeadIn);
                 if (!Alive()) { _interrupted = true; yield break; }
 
@@ -239,7 +263,11 @@ namespace Dipan.Gacha
                 {
                     Vector2 p = BodyCenter();
                     _aura = vfx.SpawnLoopSizedToHeight(AuraVfxId, p, charH * AuraHeightRatio, -1f);
-                    if (_aura != null) _aura.transform.SetParent(_pc.transform, true);   // 跟著玩家
+                    if (_aura != null)
+                    {
+                        _aura.Unscaled = true;                          // 演出期間 timeScale=0，不設就定格
+                        _aura.transform.SetParent(_pc.transform, true); // 跟著玩家
+                    }
                     StartCoroutine(SpawnSmoke(vfx, charH));
                 }
 
@@ -273,6 +301,8 @@ namespace Dipan.Gacha
                 // 被中止時要把趴姿解掉。不解的話 _lyingHold 一直是 true → IsWakeUpBusy 恆真 →
                 // SetState 全被忽略 → 角色永遠定格在趴姿，而且完全沒有錯誤訊息。
                 if (_interrupted && anim != null) anim.CancelPose();
+                // 姿勢動畫還給遊戲時間。漏還的話之後任何暫停（開背包）中角色都會繼續倒地/爬起動畫。
+                if (anim != null) anim.UnscaledPose = false;
                 ReleaseHold();
                 var cb = _onFinished; _onFinished = null;
                 cb?.Invoke();
@@ -309,7 +339,7 @@ namespace Dipan.Gacha
             if (SmokeBurstCount <= 1)
             {
                 if (_pc != null)
-                    vfx.SpawnSizedToHeight(SmokeVfxId, BodyCenter(), charH * SmokeHeightRatio);
+                    MarkUnscaled(vfx.SpawnSizedToHeight(SmokeVfxId, BodyCenter(), charH * SmokeHeightRatio));
                 yield break;
             }
 
@@ -321,9 +351,16 @@ namespace Dipan.Gacha
                 float t = SmokeBurstCount == 1 ? 0f : (i / (float)(SmokeBurstCount - 1)) * 2f - 1f;
                 Vector2 p = BodyCenter()
                           + new Vector2(t * spread, UnityEngine.Random.Range(-0.15f, 0.15f) * charH);
-                vfx.SpawnSizedToHeight(SmokeVfxId, p, charH * SmokeHeightRatio);
+                MarkUnscaled(vfx.SpawnSizedToHeight(SmokeVfxId, p, charH * SmokeHeightRatio));
                 yield return Wait(SmokeBurstStagger);
             }
+        }
+
+        /// <summary>演出期間 timeScale=0，特效不切 unscaled 就會定格在第一幀。</summary>
+        static VfxInstance MarkUnscaled(VfxInstance v)
+        {
+            if (v != null) v.Unscaled = true;
+            return v;
         }
 
         /// <summary>換外型（只會生效一次）。⚠ 坑 2：換完一定要把趴姿重新定回去。</summary>
@@ -347,15 +384,15 @@ namespace Dipan.Gacha
         bool Alive() => _pc != null && this != null && !_pc.IsDead;
 
         /// <summary>
-        /// 等待 seconds 秒。用 <c>Time.deltaTime</c> 而不是 unscaled——因為這段演出要跟
-        /// 玩家動畫 / VfxInstance / 雷柱（它們全都吃 deltaTime）保持同一條時間軸。
-        /// 開頭已經確保 timeScale=1，所以兩者實際等價；一致比較不會出錯。
+        /// 等待 seconds 秒。**一定要 unscaled**——整段演出跑在 <c>timeScale = 0</c> 底下，
+        /// 用 <c>Time.deltaTime</c> 的話這個迴圈永遠不會前進，演出會停在第一個 Wait 上。
+        /// 動畫／特效那邊也各自切成 unscaled（見檔頭坑 1），四者共用同一條時間軸。
         /// </summary>
         static IEnumerator Wait(float seconds)
         {
             if (seconds <= 0f) yield break;
             float t = 0f;
-            while (t < seconds) { t += Time.deltaTime; yield return null; }
+            while (t < seconds) { t += Time.unscaledDeltaTime; yield return null; }
         }
 
         // ══════════ 幾何助手 ══════════
@@ -402,7 +439,11 @@ namespace Dipan.Gacha
             if (_aura != null) { Destroy(_aura.gameObject); _aura = null; }
             if (_camCtrl != null) _camCtrl.StopShake();
             ScreenFader.ClearFlash();
-            if (_anim != null) _anim.CancelPose();   // 沒收尾就被銷毀 → 角色會永遠定格在趴姿
+            if (_anim != null)
+            {
+                _anim.CancelPose();          // 沒收尾就被銷毀 → 角色會永遠定格在趴姿
+                _anim.UnscaledPose = false;  // 姿勢動畫還給遊戲時間
+            }
             ReleaseHold();
             var cb = _onFinished; _onFinished = null;
             cb?.Invoke();
