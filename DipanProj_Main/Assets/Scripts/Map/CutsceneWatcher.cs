@@ -22,6 +22,7 @@ public class CutsceneWatcher : MonoBehaviour
     string _typeId = "cutscene";
 
     readonly Dictionary<long, TriggerRegion> _cells = new Dictionary<long, TriggerRegion>();
+    HitReactionHandler _playerHit;
     bool _armed;
     bool _fired;                 // 一次性：觸發過就不再觸發（即使走回去）
     bool _running;               // 表演進行中
@@ -40,6 +41,7 @@ public class CutsceneWatcher : MonoBehaviour
         _manager = manager;
         _tunnel = tunnel;
         _video = video;
+        _playerHit = player != null ? player.GetComponent<HitReactionHandler>() : null;
 
         _cells.Clear();
         if (map?.TriggerLayer?.regions != null)
@@ -66,6 +68,10 @@ public class CutsceneWatcher : MonoBehaviour
 
         // 觸發鏈：停用中或 requireFlag 不成立的過場點，踩到視同沒踩（每幀動態判定）。見 TriggerChain。
         if (on && !TriggerChain.IsActive(region)) on = false;
+
+        // 非自主位移（目前只有擊退）把人推到過場點上：不觸發，而且**解除武裝**（同 TeleportWatcher 的處理）。
+        // 過場是一次性的（_fired），被擊退誤觸的代價比傳送更高——白白播掉一段只能看一次的演出。
+        if (on && _playerHit != null && _playerHit.IsKnockedBack) { _armed = false; return; }
 
         if (!_armed)
         {

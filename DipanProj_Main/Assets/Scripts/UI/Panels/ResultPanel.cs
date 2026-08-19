@@ -22,7 +22,10 @@ namespace Dipan.UI
         public override bool CloseOnEscape => false;
         public override bool InStack => false;
 
-        const string ArtDir = "UI/ClearStagePanel/";
+        const string ArtDir  = "UI/ClearStagePanel/";   // 純美術：底版、獎勵框、按鈕底
+        // 圖片型文字（字畫在圖裡）一律走 UI/Texts/，實際檔案在 UI/Texts/<語言>/ 底下，
+        // 由 LoadSprite → LocalizedArt.ResolveExisting 依當前語言解析。見 readme/LOCALIZATION.md。
+        const string TextDir = "UI/Texts/";
         static readonly Color LoseTitleColor = new Color(0.82f, 0.20f, 0.20f, 1f);
         static readonly Color SubtitleColor  = new Color(0.94f, 0.80f, 0.42f, 1f);   // 金
 
@@ -43,8 +46,8 @@ namespace Dipan.UI
             dim.raycastTarget = false;
 
             // 標題：過關用「通關結算」圖、死亡用「死亡結算」圖；兩者皆缺圖時退回文字。（往上提，避免壓到關卡名）
-            _titleImg = MakeArt("Title", LoadSprite(ArtDir + "ClearStagePanel_Title"), 760f, new Vector2(0f, 422f));
-            _titleDeadImg = MakeArt("TitleDead", LoadSprite(ArtDir + "ClearStagePanel_DeadTitle"), 760f, new Vector2(0f, 422f));
+            _titleImg = MakeArt("Title", LoadSprite(TextDir + "ClearStagePanel_Title"), 760f, new Vector2(0f, 422f));
+            _titleDeadImg = MakeArt("TitleDead", LoadSprite(TextDir + "ClearStagePanel_DeadTitle"), 760f, new Vector2(0f, 422f));
             _titleLoseText = MakeText("TitleLose", "殞命", 88, LoseTitleColor, new Vector2(0f, 422f), new Vector2(1200f, 150f));
             _titleLoseText.fontStyle = FontStyle.Bold;
 
@@ -60,7 +63,7 @@ namespace Dipan.UI
 
             // 「獲得獎勵」標頭（紅底 + 字，疊在框的上緣）——跟著提高一點
             MakeArt("GainBanner", LoadSprite(ArtDir + "ClearStagePanel_GainItemBg"), 440f, new Vector2(0f, 195f));
-            MakeArt("GainText", LoadSprite(ArtDir + "ClearStagePanel_GainItemText"), 300f, new Vector2(0f, 195f));
+            MakeArt("GainText", LoadSprite(TextDir + "ClearStagePanel_GainItemText"), 300f, new Vector2(0f, 195f));
 
             // 獎勵格容器（留空，之後往這塞獎勵）
             var areaGo = UIBuilder.Create("RewardsArea", transform);
@@ -78,7 +81,7 @@ namespace Dipan.UI
             brt.sizeDelta = new Vector2(440f, 110f);
             brt.anchoredPosition = new Vector2(0f, -430f);
 
-            var retSp = LoadSprite(ArtDir + "ClearStagePanel_ReturnText");
+            var retSp = LoadSprite(TextDir + "ClearStagePanel_ReturnText");
             var retTxt = UIBuilder.Image(btn.transform, "ReturnText", retSp, Color.white);
             retTxt.raycastTarget = false;
             var rtxt = retTxt.rectTransform;
@@ -118,6 +121,10 @@ namespace Dipan.UI
         // Resources 載圖：優先 Sprite；匯入型別是 Texture 就自己 Create；都失敗回 null（呼叫端隱藏該圖）。
         static Sprite LoadSprite(string path)
         {
+            // ⚠ UI/Texts/ 底下的是「圖片型文字」：實際檔案在 UI/Texts/<語言>/ 裡，
+            //    這裡改寫成當前語言的路徑，缺當前語言就退回母版（繁中）。見 Localization/LocalizedArt。
+            path = Dipan.Localization.LocalizedArt.ResolveExisting(path);
+
             var sp = Resources.Load<Sprite>(path);
             if (sp != null) return sp;
             var tex = Resources.Load<Texture2D>(path);

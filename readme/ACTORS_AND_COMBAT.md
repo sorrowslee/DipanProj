@@ -103,3 +103,43 @@
 * 怪物被子彈擊中時：方向為子彈位置 → 怪物位置（推離子彈）。
 * 玩家被怪物接觸時：方向由 `EnemyContactDamage` 提供（接觸傷害**已實作**，見 [COMBAT.md](COMBAT.md)；此處原本寫「預留介面」已過時）。
 *2026-07-27 更正：初始武器與 E 鍵切換的敘述已過時（強制指派最高 ID 與 `SwitchToPreviousWeapon` 皆已移除）。*
+
+---
+
+## 移動平滑化（沿牆滑動 ＋ 角落校正）— 2026-08-19
+
+`PlayerController.FixedUpdate` 原本只有一行 `_rb.velocity = 輸入 × 速度`，撞牆完全交給 Box2D。
+物理上正確，但有兩個具體症狀：
+
+1. **單軸輸入撞垂直面時切線分量是 0 → 完全停住。** 只按「右」撞到屏風的角，就算右下明明通得過，也得自己再按「下」。
+2. **每個 FixedUpdate 無條件覆寫 velocity**，把 solver 上一步算出的「被牆修正過的切向速度」丟掉 → 斜推牆是在牆上抖，不是乾淨地滑。
+
+再加上地上物碰撞改成貼合圖形之後（[PROBLEMS.md](PROBLEMS.md) B9），斜的表面是**階梯狀**的，圓形玩家沿著走會一階一階頓。
+
+### 現在的做法
+
+`ResolveMoveVelocity(desired)` 夾在輸入與 velocity 之間，**沒撞到東西就原樣回傳**（絕大多數幀只花一次 cast）：
+
+1. **沿牆滑動**：撞到就把速度投影到牆面切線；切線分量 > 25% 才算「斜推牆」。會再確認滑動方向本身也通
+   （凹角時 A 面的切線正好指向 B 面，不檢查會讓速度逐幀互換）。
+2. **角落校正**：切線幾乎為 0 = 正面撞上 → 往左右各試探一次，**只有一側通得過才輕推**。
+   兩側都不通 = 真的是牆，照常卡住；兩側都通 = 窄障礙，交給玩家自己決定繞哪邊。
+3. **零摩擦材質**：玩家原本沒有 PhysicsMaterial2D，吃 Unity 預設 friction 0.4，貼牆會被拖慢。
+   用程式建一份 `HideAndDontSave` 的共用材質，Rigidbody 與 collider 兩邊都指。
+
+### ⚠ 動這段之前一定要知道的
+
+**探測圓必須比實際碰撞圓小一點**（`ProbeInset = 0.05`，並把縮掉的量補回探測距離）。
+專案全域 `queriesStartInColliders = false`，而**整張地圖的牆是同一顆 CompositeCollider2D**——
+玩家一貼上牆，用等大的圓從圓心射出去時起點就算重疊，**那顆 composite 會被整片忽略**，
+探測回報「前方淨空」→ 這兩個功能正好在最該生效的那一刻靜默失效，而且因為接觸間隙只有 0.01，
+還會逐幀時有時無、比完全不作用更難查。**專案在怪物那邊已經踩過同一個坑**
+（`AI/MonsterActuator.cs` 的 `DirectClear`：「圓一碰到牆就會因 queriesStartInColliders=false 整片被忽略而誤判暢通」）。
+
+其他要點：
+- **探測只吃 Environment / Water**。`queriesHitTriggers` 是開的，而怪物碰撞框全是 isTrigger——
+  不過濾的話玩家會把怪物當成牆自動繞開，那是「自動閃避」不是移動平滑化。
+- **擊退期間不介入**：`FixedUpdate` 在 `IsKnockedBack` 本來就 early return。
+- `CornerMaxNudge` 的幾何意義是「**能修正的最大卡進去深度**」，不是「能繞過多寬的障礙」——
+  要完全繞過半寬 w 的障礙需要橫移（半徑 + w），不在這個功能的範圍。
+- 全部參數（含總開關 `SmoothMovement`）都開在 Inspector；出事把總開關關掉就完全回到舊行為。

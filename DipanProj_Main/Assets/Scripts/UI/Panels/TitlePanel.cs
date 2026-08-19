@@ -34,12 +34,16 @@ namespace Dipan.UI
         const float TextGroupX = -380f;
 
         // ───────────── 標題圖 / 開始鈕圖（正式素材，皆 3:1）─────────────
-        const string TitleImagePath    = "UI/TitlePanel/TitlePanel_TW"; // 標題圖（Resources 下、不含副檔名）
+        // 標題圖：圖片型文字，實際檔案在 UI/Texts/<語言>/TitlePanel_Title
+        // （繁中＝燃燈劫、英文＝Burning Lamp: Rebirth of Ruin）。**兩邊同名**，靠資料夾分語言。
+        const string TitleImagePath    = "UI/Texts/TitlePanel_Title";
         const string StartBtnImagePath = "UI/Common/StartGameBtn";      // 開始鈕圖（無字，字由程式補）
         const float  TitleWidth    = 820f;   // 標題圖寬（高 = 寬 / 3）
         const float  TitleY        = 140f;   // 標題圖 Y（相對畫面中心）
         const float  StartBtnWidth = 460f;   // 開始鈕寬（高 = 寬 / 3）
         const float  StartBtnY     = -150f;  // 開始鈕 Y
+
+        const int TxtStartGame = 6001;   // 「開始遊戲」（LanguageTable 標題畫面段 6001–6099）
 
         // ───────────── 火焰特效 ─────────────
         const bool EnableFireFx = true;      // 全螢幕落火 ＋ 標題燃燒（見 TitleFireFx）
@@ -99,7 +103,7 @@ namespace Dipan.UI
 
             // 開始遊戲鈕：用正式按鈕圖（3:1、無字），文字由程式補在圖上。
             var btnSprite = UIBuilder.LoadSprite(StartBtnImagePath);
-            _startBtn = UIBuilder.Button(transform, "StartButton", "開 始 遊 戲", OnStart,
+            _startBtn = UIBuilder.Button(transform, "StartButton", Dipan.Localization.Language.GetText(TxtStartGame), OnStart,
                 bgColor: Color.white, bgSprite: btnSprite);
             var startImg = _startBtn.GetComponent<Image>();
             startImg.preserveAspect = true;

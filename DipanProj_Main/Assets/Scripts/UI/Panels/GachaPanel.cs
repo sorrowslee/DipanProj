@@ -42,7 +42,8 @@ namespace Dipan.UI
         // ── 素材路徑 ──
         const string Dir = "UI/GachaPanel/";
         const string CommonDir = "UI/Common/";
-        const string ClearDir = "UI/ClearStagePanel/";   // 十連結算沿用過關結算的框與牌匾
+        const string ClearDir = "UI/ClearStagePanel/";   // 十連結算沿用過關結算的框與牌匾（純美術）
+        const string TextDir  = "UI/Texts/";             // 圖片型文字（依語言解析，見 LocalizedArt）
         const string TitleFontPath = "Fonts/Bakudai/Bakudai-Bold";   // 毛筆字（同 BossIntroPanel 姓名牌）
 
         // ── 顯示字串（正式多語系時改走 Dipan.Localization.Language.GetText）──
@@ -315,8 +316,10 @@ namespace Dipan.UI
             PlaceArt(MakeArt(rootGo.transform, "Frame", ArtSumFrame), ArtSumFrame, SumFrameH, new Vector2(0f, SumFrameY));
             PlaceArt(MakeArt(rootGo.transform, "Banner", ArtSumBanner), ArtSumBanner,
                      SumBannerW / ArtSumBanner.Aspect, new Vector2(0f, SumBannerY));
-            PlaceArt(MakeArt(rootGo.transform, "BannerText", ArtSumTitle), ArtSumTitle,
-                     SumTitleW / ArtSumTitle.Aspect, new Vector2(0f, SumBannerY));
+            // 「獲得獎勵」是圖片型文字 → 內容框不能用寫死的，要照實際載到的那一版重新量（見 MeasuredSpec）。
+            var bannerText = MakeArt(rootGo.transform, "BannerText", ArtSumTitle);
+            var sumTitleSpec = MeasuredSpec(ArtSumTitle, bannerText.sprite);
+            PlaceArt(bannerText, sumTitleSpec, SumTitleW / sumTitleSpec.Aspect, new Vector2(0f, SumBannerY));
 
             var gridGo = UIBuilder.Create("Grid", rootGo.transform);
             _summaryGrid = UIBuilder.Rect(gridGo);
@@ -862,7 +865,10 @@ namespace Dipan.UI
         // 十連結算沿用過關結算的美術（同一套視覺語言，不用另外做圖）
         static readonly ArtSpec ArtSumFrame = new ArtSpec(ClearDir + "ClearStagePanel_ItemBg",       2244, 701,  73,  75, 2097, 550);
         static readonly ArtSpec ArtSumBanner = new ArtSpec(ClearDir + "ClearStagePanel_GainItemBg",  1000, 250,  80,  37,  852, 152);
-        static readonly ArtSpec ArtSumTitle = new ArtSpec(ClearDir + "ClearStagePanel_GainItemText",  866, 288, 179,  80,  508, 116);
+        // ⚠ **這一張是圖片型文字**，後面四個數字只對繁中版成立（每種語言的字寬高都不一樣）。
+        //   實際擺放時會用 MeasuredSpec 依載到的 sprite 重新量一次，所以這裡的數字只是後備值。
+        //   見 readme/LOCALIZATION.md。
+        static readonly ArtSpec ArtSumTitle = new ArtSpec(TextDir + "ClearStagePanel_GainItemText",   866, 288, 179,  80,  508, 116);
         static readonly ArtSpec ArtSumBtn   = new ArtSpec(ClearDir + "ClearStagePanel_ReturnBtn",   1000, 250, 169,  33,  660, 197);
 
         /// <summary>建一張美術圖（不擋點擊）。載不到就留一個透明的殼，版面不會塌。</summary>
@@ -878,6 +884,35 @@ namespace Dipan.UI
         /// 把圖擺好，讓「不透明內容」剛好是 contentH 高、落在 center 這個位置（寬度依內容比例自動算）。
         /// 方框會比 contentH 大（因為要把透明邊也算進去），位置也會補償內容在畫布中的偏移。
         /// </summary>
+        /// <summary>
+        /// 用**實際載到的 sprite** 重新量內容框，覆寫 <see cref="ArtSpec"/> 裡寫死的那四個數字。
+        ///
+        /// 只給 <c>UI/Texts/</c> 底下的**圖片型文字**用。那些圖每種語言的字寬高、留白都不一樣
+        /// （實測：「獲得獎勵」繁中版的字佔畫布寬 64%、英文版 REWARDS 佔 69%），
+        /// 寫死的數字只對母版成立，換語言就會被擺歪、縮錯——而 <see cref="LoadArt"/> 的檢查
+        /// 只比畫布比例，兩版畫布都接近 3:1 時**完全不會警告**。
+        ///
+        /// ⚠ 其他圖**不要**套這個：它們的四個數字是人工量、依美術判斷微調過的
+        /// （alpha 門檻、要不要含外發光），自動量會蓋掉那些調整。
+        /// </summary>
+        static ArtSpec MeasuredSpec(ArtSpec spec, Sprite sp)
+        {
+            if (sp == null) return spec;
+            if (!spec.path.StartsWith(Dipan.Localization.LocalizedArt.Root, System.StringComparison.Ordinal))
+                return spec;
+
+            var c = IconFit.ContentPx(sp);                 // 相對 sprite rect 左下角的像素
+            float fw = sp.rect.width, fh = sp.rect.height;
+            if (c.width < 1f || c.height < 1f || fw < 1f || fh < 1f) return spec;
+
+            // 量出來幾乎等於整張畫布 = 這張圖的 Mesh Type 不是 Tight（ContentPx 量不到東西，退回整張）。
+            // 那個結果比寫死的數字更差，所以維持原 spec。
+            if (c.width >= fw * 0.99f && c.height >= fh * 0.99f) return spec;
+
+            // ArtSpec 的 by 以「左上」為原點，ContentPx 以左下 → 換算。
+            return new ArtSpec(spec.path, fw, fh, c.x, fh - (c.y + c.height), c.width, c.height);
+        }
+
         static void PlaceArt(Image img, ArtSpec spec, float contentH, Vector2 center)
         {
             float contentW = contentH * spec.Aspect;
@@ -925,6 +960,10 @@ namespace Dipan.UI
         // Resources 載圖：優先 Sprite；匯入型別是 Texture 就自己 Create；都失敗回 null。
         static Sprite LoadSprite(string path)
         {
+            // ⚠ UI/Texts/ 底下的是「圖片型文字」：實際檔案在 UI/Texts/<語言>/ 裡，
+            //    這裡改寫成當前語言的路徑，缺當前語言就退回母版（繁中）。見 Localization/LocalizedArt。
+            path = Dipan.Localization.LocalizedArt.ResolveExisting(path);
+
             var sp = Resources.Load<Sprite>(path);
             if (sp != null) return sp;
             var tex = Resources.Load<Texture2D>(path);

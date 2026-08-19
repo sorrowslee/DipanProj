@@ -368,7 +368,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 
 | 時間 | 事件 |
 |---|---|
-| 0.00s | 壓黑遮罩 ＋ 破碎框底版隨面板淡入，框內是**變身前**的血統立繪 |
+| 0.00s | 壓黑遮罩 ＋ 破碎框底版 ＋ 頂端標題「血統轉換」隨面板淡入，框內是**變身前**的血統立繪 |
 | 1.00s | 舊立繪開始斑駁剝落（`_Cutoff` 0→1，暗紅燒蝕邊） |
 | 1.12s | 新血統立繪同步從空白浮現（`_Cutoff` 1→0，**不同亂數種子**＝破法不一樣） |
 | 1.25s | 姓名底版從下方飄上來（ease-out） |
@@ -384,6 +384,15 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | 血統名 | `BloodlineTable.NameOf(id)` |
 | 破碎框底版 | `Resources/UI/BloodlinePanel/BloodlinePanel_Bg`（1024×1536） |
 | 姓名底版 | `Resources/UI/BloodlinePanel/BloodlinePanel_NameBg`（866×288＝比例 3.007，**血統專用的淺色石碑**） |
+| 頂端標題「血統轉換」 | **`Resources/UI/Texts/BloodlinePanel_Title`**（866×288，與石碑同比例） |
+
+⚠ **標題不在 `UI/BloodlinePanel/`，在共用的 `UI/Texts/`。** 那是全專案「**圖片型文字**」的資料夾。
+凡是「畫成圖的字」都放那裡；純美術的框、石碑、按鈕底不算（不隨語言變，留在各自的面板資料夾）。
+
+實體檔案在 **`UI/Texts/tw/BloodlinePanel_Title`**（英文版之後放 `UI/Texts/en/`，**同名**）。
+程式裡的 `標題圖` 欄位寫的是**邏輯路徑** `UI/Texts/BloodlinePanel_Title`，
+由 `UIBuilder.LoadSprite` → `LocalizedArt.ResolveExisting` 換成當前語言，缺圖退回繁中。
+見 [LOCALIZATION.md](LOCALIZATION.md) §圖片型文字。
 | 毛筆字型 | `Fonts/Bakudai/Bakudai-Bold`（同 BossIntroPanel／GachaPanel／ForgingPanel） |
 
 **斑駁溶解著色器** `Resources/Shaders/BloodlineDissolve.shader`：uGUI 材質，hash 值噪 2 個八度
@@ -413,14 +422,20 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | 欄位 | 值 | 說明 |
 |---|---|---|
 | `FrameHeight` / `FrameY` | 880 / +30 | 破碎框（寬依原圖比例＝587） |
-| `PortraitBox` | (0.78, 0.73) | 立繪等比縮到「框寬 ×0.78、框高 ×0.73」之內 |
-| `PortraitBottomInset` | 0.16 | 立繪底邊距框底 ＝ 框高 ×0.16（141px）。**要比石碑高，否則下半身會被蓋住** |
+| `TitleW` | 370 | 標題（高依原圖比例＝123） |
+| `TitleYFromFrameTop` | 78 | 標題中心距框**頂**邊 78px ⇒ 底邊落在距框頂 140px |
+| `PortraitBox` | (0.78, 0.70) | 立繪等比縮到「框寬 ×0.78、框高 ×0.70」之內 |
+| `PortraitBottomInset` | 0.13 | 立繪底邊距框底 ＝ 框高 ×0.13（114px）。石碑上緣在 165px，所以石碑會蓋住立繪最下面約 50px（與示意圖一致） |
 | `PlateW` / `PlateH` | 360 / 120 | 石碑（維持 866:288 ＝ 3.007 的比例，改寬要同步改高） |
 | `PlateYFromFrameBottom` | 105 | 石碑中心距框底 105px ⇒ 正好壓在框的下緣裡 |
 | `NameArea` | (0.20, 0.22, 0.60, 0.56) | 字在石碑上的區域，避開左右尖刺與上下中央的裝飾 |
 | `NameFontSize` | 56 | |
 
-實際算過三個血統：殭屍／毛殭 428×642（框頂留白 11%），Base 458×572（留白 19%，因為它比較寬）。
+⚠ **標題和立繪在搶同一塊空間**：`立繪頭頂距框頂 = 框高 − PortraitBottomInset×框高 − 立繪高`，
+而 `標題底邊距框頂 = TitleYFromFrameTop + 標題高 ÷ 2`。前者要大於後者，否則標題會壓在角色頭上。
+目前算下來是 **150 vs 140，留 10 的餘裕**——調大 `PortraitBox.y` 或調小 `TitleYFromFrameTop` 之前先算一下。
+
+實際算過：殭屍／毛殭 411×616（頭頂距框頂 150），Base 458×572（距框頂 194，因為它比較寬、被寬度卡住）。
 
 **調表演**：所有節奏／版面／溶解參數都是 `public` 欄位。Play 模式中在 Hierarchy 選
 `[UIManager] → Layer_Overlay → BloodlineIntroPanel`（第一次播過後才存在）即可即時調，

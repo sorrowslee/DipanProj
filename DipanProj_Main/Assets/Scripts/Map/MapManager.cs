@@ -397,12 +397,18 @@ public class MapManager : MonoBehaviour
             Physics2D.SyncTransforms();
             if (Physics2D.OverlapCircle(pos, SpawnProbeRadius, mask) == null) return pos;
 
+            // 候選點一律限制在地圖範圍內。這是第二道防線：萬一物理世界裡混進了不該有的東西
+            // （例如換圖同一幀舊地圖的碰撞還沒被銷毀），往外找有可能一路找到地圖外面去，
+            // 那比原本卡住還糟——玩家會出現在牆外、什麼都碰不到。寧可找不到也不要出界。
+            Rect bounds = MapCoords.WorldBounds(mapLoader.Map);
+
             for (float d = SpawnSearchStep; d <= SpawnSearchMaxRadius; d += SpawnSearchStep)
             {
                 for (int i = 0; i < SpawnSearchDirs; i++)
                 {
                     float a = i * Mathf.PI * 2f / SpawnSearchDirs;
                     Vector2 c = pos + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * d;
+                    if (!InsideMap(c, bounds)) continue;
                     if (Physics2D.OverlapCircle(c, SpawnProbeRadius, mask) != null) continue;
 
                     Debug.LogWarning($"[MapManager] 落點 {pos} 被地上物/牆擋住，已挪到 {c}（相距 {d:0.00} 格）。" +
@@ -417,6 +423,11 @@ public class MapManager : MonoBehaviour
         }
         finally { Physics2D.queriesStartInColliders = prevQuery; }
     }
+
+    /// <summary>候選落點是否在地圖範圍內（留一個身體半徑的邊距，免得貼著邊界）。</summary>
+    static bool InsideMap(Vector2 p, Rect b)
+        => p.x >= b.xMin + SpawnProbeRadius && p.x <= b.xMax - SpawnProbeRadius
+        && p.y >= b.yMin + SpawnProbeRadius && p.y <= b.yMax - SpawnProbeRadius;
 
     /// <summary>玩家保留並移動：沒有就生一次（透過 MainSpawner），有就移到落點。</summary>
     void PlacePlayer(Vector2 pos)

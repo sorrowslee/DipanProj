@@ -78,6 +78,7 @@ public static class PlayModeStaticReset
         Dipan.Gacha.BloodlineSystem.ResetForPlayMode();
         Dipan.Gacha.BloodlineTransformFxRunner.ResetForPlayMode();   // 變身演出的 IsPlaying（殘留會鎖死背包熱鍵）
         Dipan.UI.BloodlineIntroPanel.ResetForPlayMode();             // 立繪揭示面板的 IsShowing（同上，殘留一樣鎖死熱鍵）
+        Dipan.Localization.LocalizedArt.ResetForPlayMode();          // 「缺某語言的圖」只警告一次的名單（不清的話下一輪 Play 就不再提醒）
 
         // 能力珠鑲嵌（見 readme/GEM_SOCKET.md）
         Dipan.Inventory.ItemManager.ResetForPlayMode();   // 能力珠定義表快取（GemTable）

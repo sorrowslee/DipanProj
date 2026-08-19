@@ -53,6 +53,10 @@ namespace Dipan.UI
         static Sprite Load(string path)
         {
             if (string.IsNullOrEmpty(path)) return null;
+            // 理論上道具 icon 不會是「圖片型文字」，但還是先解析一次語言路徑再進快取——
+            // ⚠ 重點是**快取要用解析後的路徑當 key**。用解析前的邏輯路徑當 key 的話，
+            //   切語言之後會直接命中上一個語言的那張圖（Sprite 還活著，連重載的機會都沒有）。
+            path = Dipan.Localization.LocalizedArt.ResolveExisting(path);
             // 注意：這是「陣列/集合型的 UnityEngine.Object 快取」——停止 Play 後容器不會變 null、
             // 但裡面的 Sprite 會被銷毀。所以一定要在 PlayModeStaticReset 清掉（見該檔的說明）。
             if (_cache.TryGetValue(path, out var sp) && sp != null) return sp;

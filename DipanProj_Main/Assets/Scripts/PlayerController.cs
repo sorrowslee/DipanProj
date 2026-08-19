@@ -171,6 +171,10 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 依腳底 Y 動態排序，和地上物一起正確交錯遮蔽（見 MapDepthSort / YSortByFeet）。
         if (GetComponent<YSortByFeet>() == null) gameObject.AddComponent<YSortByFeet>();
 
+        // 移動平滑化（沿牆滑動＋角落校正）與零摩擦材質的一次性準備。
+        // 放在這裡是因為它要讀 transform.localScale（上面才剛設成 PlayerScale）與碰撞元件。
+        SetupMoveProbe();
+
         // 走路動畫速度跟著實際移動速度（避免腳滑；見 readme/CHARACTER_SETUP.md）。
         // ReferenceSpeed = 正常移動速度(MoveSpeed) → 正常走就是 1×（動畫滿幀最順）；
         // 只有實際速度低於正常時（之後的減速 debuff／類比半推）動畫才按比例變慢。
@@ -627,10 +631,164 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_isDead) return;   // 死亡後不再被輸入推動
 
         if (_hitReaction != null && _hitReaction.IsKnockedBack)
-            return;
+            return;   // 擊退期間完全交給物理，移動平滑化也不介入
 
-        _rb.velocity = _moveInput * MoveSpeed;
+        _rb.velocity = ResolveMoveVelocity(_moveInput * MoveSpeed);
     }
+
+    // ==================== 移動平滑化（沿牆滑動 ＋ 角落校正）====================
+    //
+    // 為什麼需要：原本這裡只有 `_rb.velocity = 輸入 × 速度`，撞牆完全交給 Box2D。物理上正確，
+    // 但有兩個具體症狀：
+    //   ① **單軸輸入撞垂直面時切線分量是 0 → 完全停住**。只按「右」撞到屏風的角，就算右下明明通得過，
+    //      也得自己再按「下」才過得去。
+    //   ② **每個 FixedUpdate 無條件覆寫 velocity**，把 solver 上一步算出的「被牆修正過的切向速度」丟掉，
+    //      所以斜推牆是在牆上抖，而不是乾淨地滑過去。
+    // 另外地上物碰撞改成貼合圖形後（見 readme/PROBLEMS.md B9），斜的表面是**階梯狀**的，
+    // 圓形玩家沿著走會一階一階頓——角落校正剛好也解掉這個（每階只有 tileSize/subdiv 高）。
+    //
+    // 設計原則是**保守**：只在「一側通、另一側不通」時才介入。正對一面長牆時兩側都不通 → 照常卡住，
+    // 不會變成「按右結果角色自己往下走一大段」的自動駕駛。
+
+    [Header("移動平滑化")]
+    [Tooltip("總開關。關掉＝完全回到舊行為（只有一行 velocity、撞牆全交給物理）。出事時的緊急退路。")]
+    public bool SmoothMovement = true;
+    [Tooltip("沿牆滑動：斜推牆時把速度投影到牆面切線，而不是每幀重新塞入完整斜向速度（那會在牆上抖）。")]
+    public bool WallSlide = true;
+    [Tooltip("沿牆滑動時是否保持原速。開＝貼著牆走不會變慢（多數動作遊戲的做法）；關＝只保留切線分量（較寫實但偏鈍）。")]
+    public bool WallSlideKeepSpeed = true;
+    [Tooltip("角落校正：正面撞上時，若『只有一側通得過』就輕輕推過去。兩側都通或都不通一律不介入。")]
+    public bool CornerCorrection = true;
+    [Tooltip("角落校正能修正的最大『卡進去深度』（世界單位）。玩家的碰撞圓陷進轉角超過這個深度就不再幫忙，" +
+             "因為那時他其實已經大半個身體在障礙物後面了。建議 0.3（約玩家直徑的 1/3，動作遊戲的常見值），" +
+             "也足以跨過貼合碰撞的階梯（每階只有 tileSize/子格解析度 高）。")]
+    [Range(0.05f, 1f)] public float CornerMaxNudge = 0.3f;
+    [Tooltip("角落校正的橫移速度 = 當前移動速度 × 此比例。太大會有『被系統帶著走』的感覺。")]
+    [Range(0.1f, 1f)] public float CornerNudgeRatio = 0.6f;
+
+    // ⚠ **探測圓一定要比實際碰撞圓小一點**，這是這整段最容易錯的地方：
+    //    專案全域 `queriesStartInColliders = false`，而**整張地圖的牆是同一顆 CompositeCollider2D**
+    //    （MapLoader.BuildCompositeFromCells）。玩家一貼上牆，用「等大的圓」從圓心射出去時起點就算重疊，
+    //    **那顆 composite 會被整片忽略**，探測回報「前方淨空」→ 沿牆滑動與角落校正正好在最該生效的那一刻靜默失效，
+    //    而且因為接觸間隙只有 0.01，還會逐幀時有時無、比完全不作用更難查。
+    //    專案在怪物那邊已經踩過同一個坑並留了註解（AI/MonsterActuator.cs 的 DirectClear：
+    //    「圓一碰到牆就會因 queriesStartInColliders=false 整片被忽略而誤判暢通」）。
+    //    這裡的解法是把探測圓縮 ProbeInset，再把縮掉的量補回探測距離。
+    const float ProbeInset = 0.05f;         // 探測圓比實際碰撞圓小這麼多（要大於 contactOffset 0.01）
+    const float ProbeLookAhead = 0.06f;     // 多探一點點，讓修正在真的貼死之前就接手
+    const float TangentKeepRatio = 0.25f;   // 切線分量保留超過此比例才算「斜推牆」→ 沿牆滑動；否則視為正面撞上
+
+    int _moveBlockMask;         // 只探測會擋腳的層：Environment / Water
+    float _probeRadius;         // 探測圓半徑（＝玩家碰撞圓世界半徑 − ProbeInset，理由見上）
+    Vector2 _probeOffset;       // 碰撞圓相對 transform 的世界偏移
+
+    static PhysicsMaterial2D _frictionlessMat;
+
+    /// <summary>
+    /// 讀出玩家碰撞圓的實際半徑/偏移、準備探測用的 layer mask，並把摩擦力設成 0。由 Start 呼叫。
+    ///
+    /// <para>⚠ 探測**只能**吃 Environment/Water：專案的 `queriesHitTriggers` 是開的，而怪物的碰撞框
+    /// 全是 isTrigger（見 readme/MONSTER_SETUP.md）。不過濾的話玩家會把怪物當成牆自動繞開，
+    /// 那就變成「自動閃避」而不是移動平滑化了。</para>
+    ///
+    /// <para>零摩擦材質：玩家原本沒有 PhysicsMaterial2D，吃 Unity 預設的 friction 0.4，
+    /// 貼著牆走會被摩擦拖慢。用程式建一份共用材質而不是做成 asset——省一個檔案與 GUID，
+    /// 而且「玩家不該有摩擦力」這件事寫在程式裡比藏在 Inspector 裡好找。</para>
+    /// </summary>
+    void SetupMoveProbe()
+    {
+        _moveBlockMask = LayerMask.GetMask("Environment", "Water");
+
+        var cc = GetComponent<CircleCollider2D>();
+        float s = Mathf.Abs(transform.lossyScale.x);
+        float r;
+        if (cc != null)
+        {
+            r = cc.radius * s;
+            _probeOffset = cc.offset * s;
+        }
+        else
+        {
+            // 後備：用任一 collider 的包圍盒短邊當半徑。形狀換掉時至少不會整個失效。
+            var any = GetComponent<Collider2D>();
+            r = any != null ? Mathf.Min(any.bounds.extents.x, any.bounds.extents.y) : 0.4f;
+            _probeOffset = Vector2.zero;
+            Debug.LogWarning("[PlayerController] 找不到 CircleCollider2D，移動平滑化改用包圍盒估半徑。" +
+                             "之後若把玩家碰撞換成別的形狀，記得回來調整 SetupMoveProbe。");
+        }
+        _probeRadius = Mathf.Max(0.05f, r - ProbeInset);
+
+        // HideAndDontSave：換場景不會被清掉、也不會混進場景階層。
+        // 被清掉時 `== null` 對已銷毀的 UnityEngine.Object 會成立，所以這裡會自動重建
+        //（Domain Reload 已關，static 會跨 Play 存活；單一物件的 static 快取是安全的那一類，見 readme/PROBLEMS.md I8）。
+        if (_frictionlessMat == null)
+            _frictionlessMat = new PhysicsMaterial2D("PlayerFrictionless")
+            { friction = 0f, bounciness = 0f, hideFlags = HideFlags.HideAndDontSave };
+        // Rigidbody 與 collider 兩邊都指：執行期換材質不保證影響「已建立的接觸配對」，
+        // 兩邊都設可以避免只有其中一邊生效。玩家 prefab 原本兩邊都是空的，不會覆蓋任何既有設定。
+        if (_rb != null) _rb.sharedMaterial = _frictionlessMat;
+        if (cc != null) cc.sharedMaterial = _frictionlessMat;
+    }
+
+    /// <summary>
+    /// 把「想要的速度」修成「撞到東西時仍然順的速度」。沒撞到東西就原樣回傳（絕大多數幀走這條，只花一次 cast）。
+    /// </summary>
+    Vector2 ResolveMoveVelocity(Vector2 desired)
+    {
+        if (!SmoothMovement || _rb == null || _moveBlockMask == 0) return desired;
+        float speed = desired.magnitude;
+        if (speed < 0.0001f) return desired;
+
+        Vector2 dir = desired / speed;
+        // 探測距離要把「探測圓縮掉的量」補回來，否則縮圓等於整體少探 ProbeInset。
+        float step = speed * Time.fixedDeltaTime + ProbeInset + ProbeLookAhead;
+
+        var hit = Probe(_rb.position, dir, step);
+        if (hit.collider == null) return desired;
+
+        // ① 沿牆滑動：把速度投影到牆面切線。斜推牆時切線分量夠大就走這條。
+        if (WallSlide)
+        {
+            Vector2 slid = desired - Vector2.Dot(desired, hit.normal) * hit.normal;
+            // 滑動方向本身也要通——凹角（L 形轉角）時 A 面的切線正好指向 B 面，
+            // 不檢查的話速度會在兩個面的切線之間逐幀互換（位置被 solver 壓住不會抖，
+            // 但讀 velocity 的動畫速度會在角落抽動）。
+            if (slid.magnitude > speed * TangentKeepRatio
+                && Probe(_rb.position, slid.normalized, step).collider == null)
+                return WallSlideKeepSpeed ? slid.normalized * speed : slid;
+        }
+
+        // ② 角落校正：正面撞上（切線幾乎為 0）。往左右各試探一次，**只有一側通得過才推**。
+        //    兩側都不通 = 真的是一面牆，就該卡住；兩側都通 = 前方是個窄障礙（兩邊繞都行），
+        //    交給玩家自己決定繞哪邊，系統不介入。
+        //    ⚠ CornerMaxNudge 的幾何意義是「能修正的最大卡進去深度」：碰撞圓陷進轉角超過它就不再幫忙。
+        //      不是「能繞過多寬的障礙」——要完全繞過一個半寬 w 的障礙需要橫移 (半徑 + w)，那不在這個功能的範圍。
+        if (!CornerCorrection) return desired;
+
+        Vector2 perp = new Vector2(-dir.y, dir.x);
+        bool plus = SideClear(dir, perp, step);
+        bool minus = SideClear(dir, -perp, step);
+        if (plus == minus) return desired;
+
+        // 用當前 speed 而不是 MoveSpeed：之後若有減速 debuff 或類比半推，
+        // 用 MoveSpeed 會讓角落校正變成加速器（總速度超過玩家實際該有的速度）。
+        Vector2 nudge = (plus ? perp : -perp) * (speed * CornerNudgeRatio);
+        // 保留原本的前進意圖（會被牆吸收），再加上橫移；總速度夾住免得斜著跑比直走快。
+        return Vector2.ClampMagnitude(desired + nudge, speed);
+    }
+
+    /// <summary>往 side 偏移 CornerMaxNudge 之後前方是否就通了（且橫移本身沒被擋）。</summary>
+    bool SideClear(Vector2 dir, Vector2 side, float step)
+    {
+        // 橫移本身被擋（距離同樣補回 ProbeInset）
+        if (Probe(_rb.position, side, CornerMaxNudge + ProbeInset).collider != null) return false;
+        // 偏移後前方要通
+        return Probe(_rb.position + side * CornerMaxNudge, dir, step).collider == null;
+    }
+
+    /// <summary>用玩家碰撞圓的實際大小做一次 CircleCast（只看會擋腳的層）。</summary>
+    RaycastHit2D Probe(Vector2 from, Vector2 dir, float dist)
+        => Physics2D.CircleCast(from + _probeOffset, _probeRadius, dir, dist, _moveBlockMask);
 
     // pressed = 這一幀是否「剛按下」攻擊（決定要不要跳技能提示，如召喚已達上限；連按/連射不重複洗版）。
     // 回傳是否「真的發射出去」：魔力不足／召喚已滿 → false（CD 中此函式不會被呼叫）。用來決定要不要擺攻擊動作。

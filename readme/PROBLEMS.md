@@ -142,6 +142,27 @@
 - **怎麼快速確認**：效能面板 **P → C** 打開碰撞疊層，看玩家的黃圈是不是壓在綠色（地上物）裡面。
 - **通則**：**「退回預設值」型的後備路徑要能自我檢查。** 「找不到就放地圖中心」看起來很安全，但它把一個資料缺口變成了一個隨機的物理 bug；而且因為它只印 Warning 不擋人，缺口可以存在好幾個月都沒人發現。（2026-08-19 記）
 
+### B11. 一進新房間就被彈回上一張圖（被怪擊退到傳送點上）
+- **症狀**：從書房往上走進客廳2，畫面有一瞬間過去了，然後又退回書房。
+- **原因**：**被擊退算成「踩到傳送點」**。`TeleportWatcher` 的落地防抖是「著陸時未武裝 → 玩家離開所有傳送格才武裝 → 之後再踩才觸發」，這在「玩家自己走」的前提下是對的。但客廳2 的怪物就站在落點旁邊：玩家一進門走離傳送格（武裝）→ 還沒看清楚就被怪打、擊退**推回傳送格** → 判定成「踩到」→ 又被送回書房。
+- **解法**：`TeleportWatcher` / `CutsceneWatcher` 都加上「**非自主位移不算踩到**」——玩家 `HitReactionHandler.IsKnockedBack` 為真時踩到觸發點，不觸發，**而且解除武裝**。
+  ⚠ **只是「跳過這一幀」是不夠的**：擊退結束時玩家還站在那格上，下一幀照樣觸發，只是延後 0.x 秒。解除武裝＝要玩家自己走出去再走回來，正好複用既有的落地防抖語意。
+- **過場點（cutscene）比傳送更該防**：它是一次性的（`_fired`），被擊退誤觸等於白白播掉一段只能看一次的演出。
+- **鏡頭區（CameraZoneWatcher）刻意不處理**：被擊退進鏡頭區只是鏡頭跟著變，離開就還原，無害。
+- **通則**：**「玩家不是自己走過去的，就不該觸發位置型事件。」** 之後若加拉扯／吹飛／輸送帶之類的非自主位移，記得一起加進 `TeleportWatcher.IsPushedAround()`。
+- **順帶一提**：這件事**不該用「把怪物挪遠一點」或「調低怪物可見範圍」來修**——前者只是降低機率（其他地圖照樣會踩到），後者是拿全域戰鬥參數解一個局部擺放問題。挪怪物值得做，但那是關卡體驗的理由（玩家一進門還沒看清楚就挨打本身就不好），不是修這個 bug 的手段。（2026-08-19 記）
+
+### B12. 換房後玩家被丟到地圖外面 ／ 換圖那一幀的物理查詢會查到「上一張地圖的牆」
+- **症狀**：書房 ↔ 客廳2 互走，回到書房時玩家被放在傳送點上方、完全動不了。Console：`落點 (9.00, -1.50) 被地上物/牆擋住，已挪到 (9.00, 0.50)`——而 **(9, 0.5) 在地圖外面**（地圖 y 範圍是 0 ~ -10）。書房那個位置實際上是空的（可走層算過，半徑 0.4 的圓一個牆子格都沒碰到）。
+- **原因**：**`Destroy()` 延到幀尾才生效，而「同 module 房間互跳」整段在同一幀跑完。**
+  `MapManager.LoadMapRoutine` 的 else 分支（同 module）走的是**同步版** `mapLoader.LoadMap(row.path)`：`Teardown()` → 建新圖 → `ResolveSpawnPos()` 全在同一幀。`Teardown` 只呼叫 `Destroy(_root.gameObject)`，物件要等**幀尾**才真的消失 ⇒ 那段時間裡**舊地圖與新地圖的碰撞體同時存在於物理世界**。
+  於是落點防呆在書房查 (9,-1.5)，查到的是**還沒被銷毀的客廳2 的牆**（客廳2 只有 10 格寬，(9,-1.5) 在它的座標系裡整片是牆），判定「被擋住」→ 往外找 → 每個候選點都同時被兩張地圖的幾何檢查 → 一路找到兩張圖之外才「乾淨」。
+  **跨 module 換圖不會中**：那條路走協程、中間有 `yield`，舊碰撞早就銷毀了。所以症狀只在同 module 房間互跳出現，很容易誤判成別的原因。
+- **解法（兩道）**：
+  1. **根因**：`MapLoader.Teardown()` 在 `Destroy` 之前先 `_root.gameObject.SetActive(false)`。**停用是立即生效的**，碰撞體當下就退出物理世界。這也一併保護了任何「換圖後立刻做物理查詢」的程式（例如 `MapNavGrid` 用 `OverlapCircle` 建障礙格）。
+  2. **防護**：`MapManager.FreeSpotNear` 的候選落點一律**限制在地圖範圍內**（`MapCoords.WorldBounds`）。寧可找不到空位也不要把玩家丟到牆外——那比原本卡住還糟。
+- **通則**：**`Destroy()` 不是「馬上不見」。** 只要在同一幀內「拆掉舊東西 → 建新東西 → 做物理查詢」，中間就一定要 `SetActive(false)`（或 `DestroyImmediate`），否則查到的是兩份世界疊在一起，而且完全靜默。（2026-08-19 記）
+
 ## C. 地圖編輯器 / 素材同步
 
 ### C6. 從 `DipanProj_MapEditor/Effects` 複製 PNG 到遊戲後，VFX／動畫子彈完全隱形，Console 報 `Animation sprite not found`
@@ -340,6 +361,19 @@
   - 立一條**全遊戲的鐵則**：**左鍵＝搬移／裝備／綁定（永不消耗），右鍵＝使用（唯一會消耗的滑鼠操作）**。左鍵那條 if/else 階梯裡從此不准出現任何會消耗東西的分支。
   - 三個把關點一起補齊，不然規則會在別的地方漏水：`InventorySlotWidget` 左右鍵**分別列舉**（不要 `else`）、倉庫的 `ItemSlotWidget` 改成只收左鍵、`SlotDragController.Begin` 只允許左鍵開始拖曳（否則右鍵按住稍微移動就變搬移，同一個手勢差幾像素兩種結果）。
 - **通則**：**「兩邊行為刻意一致」是一個要重構的訊號，不是一個可以寫在註解裡的設計。** 只要一件會改變狀態的事有兩個以上的入口，它們就會分岔——不是今天，是下一次有人只改了其中一邊的時候。順帶一提，這次的分岔還不是「行為不同」，而是「**兩邊都能做一件本來只該有一個入口的事**」，這種更難發現：功能看起來完全正常，只是多了一條沒人打算開的門。
+
+### D18. 改了預設值卻沒生效——因為 `ResetForPlayMode` 裡還寫死了第二份
+
+- **症狀**：想臨時測英文版，把 `Language.Current` 的初始值從 `Lang.CN` 改成 `Lang.EN`，進 Play **畫面還是中文**。改對了、也重編譯了，就是沒反應。
+- **原因**：`Language.ResetForPlayMode()` 裡有一行 `Current = Lang.CN;`（為了防「上一輪切成英文的殘留帶到下一輪」而加的，本身是對的）。而 `PlayModeStaticReset` 在每次進 Play 最早期就會呼叫它 ⇒ **欄位初始值在那一瞬間就被覆蓋掉**。等於同一個「預設語言」被寫死在兩個地方，改其中一個永遠無效。
+- **解法**：抽成一個常數，兩邊都讀它。
+  ```csharp
+  public const Lang DefaultLanguage = Lang.CN;   // 要改預設語言只改這裡
+  public static Lang Current = DefaultLanguage;
+  ...
+  ResetForPlayMode() { …; Current = DefaultLanguage; }
+  ```
+- **通則**：**關掉 Domain Reload 之後寫的每一個 `ResetForPlayMode`，都是「這個 static 的初始值」的第二個副本。** 只要它把值寫死，欄位初始值就永遠是死的。凡是 reset 要還原成某個預設，那個預設一定要是常數、不能各寫各的——否則下一個人（或三天後的自己）會盯著一行明明改對的程式碼懷疑人生。這其實就是 **D17** 那條「同一件事不要有兩個入口」在 static 初始化上的變形。
 
 ## E. 效能 / 顯示 (Performance & Display)
 
@@ -632,6 +666,14 @@
 - **解法**：兩層。**① 程式即時保底**：`HandleVisuals` 在施法視窗（`_skillCastAnimUntil`／`NotifySkillCast`）內若沒有 attack 幀，退回播**走路**當出手表演（只在該 0.6s，平常靜止仍 idle、不回到原地踏步），且原地施法時用 `MoveSpeed` 餵走路 fps 讓節奏正常。**② 治本**：跑 `Project Tools → Sync Map Assets` 把 `RedBridalGown/attack`（及其他怪的 attack）推進 StreamingAssets，`Has(Attack)` 變 true 後就自動改播真正的攻擊動畫（程式已接好、零改動）。**通則**：怪的 `attack`（或任何新動作葉資料夾）加了圖，一定要重跑一次 Sync，否則遊戲端 `Has` 抓不到、靜默退回其他狀態、不報錯，很難察覺。（2026-07-13 記，見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)、[MONSTER_SETUP.md](MONSTER_SETUP.md)）
 
 ---
+
+### F17. 用「和碰撞圓等大的圓」做前方探測，一貼上牆就探不到（沿牆滑動/角落校正靜默失效）
+- **症狀**：寫了「撞牆就沿牆滑」「轉角自動推一把」，實機卻幾乎不會觸發；偶爾生效偶爾不生效，找不到規律。
+- **原因**：專案全域 **`queriesStartInColliders = false`**，而 **整張地圖的牆是同一顆 `CompositeCollider2D`**（`MapLoader.BuildCompositeFromCells`）。玩家一貼上牆，用**等大的圓**從圓心射出去時「起點重疊」成立，**那顆 composite 會被整片忽略**，探測回報「前方淨空」→ 修正邏輯正好在最該生效的那一刻失效。接觸間隙只有 `contactOffset = 0.01`，所以還會逐幀時有時無。
+  更糟的是**牆和地上物是不同的 collider**：貼著屏風、左邊是牆時，屏風被起點重疊吞掉、牆沒有 → 兩側探測結果不對稱 → 角落校正可能往錯的方向推。
+- **解法**：**探測圓要比實際碰撞圓小**（`PlayerController.ProbeInset = 0.05`，要大於 contactOffset），並把縮掉的量補回探測距離。`PlayerController.SetupMoveProbe` 就是這樣算 `_probeRadius` 的。
+- **這個坑專案踩過兩次**：怪物那邊早就有註解——`AI/MonsterActuator.cs` 的 `DirectClear`：「用細射線（非圓）：牆是單一 CompositeCollider2D，圓一碰到牆就會因 queriesStartInColliders=false 整片被忽略而誤判暢通」。同一家族還有 **B7**（貼身重疊時 `OverlapCircle` 漏抓，解法是改用 `Physics2D.Distance`）。
+- **通則**：**在這個專案裡，任何「從角色身上射出去」的圓形查詢都要先想一次 `queriesStartInColliders`。** 要嘛縮小查詢形狀、要嘛改用細射線、要嘛改用 `Physics2D.Distance`／既有登記表。（2026-08-19 記）
 
 ## H. 流程 / 存讀檔 (Game Flow & Save UI)
 

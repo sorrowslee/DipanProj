@@ -63,6 +63,14 @@
 | `Assets/Data/ItemTable.csv` | 劇本道具（104 紅嫁衣；`TargetMapId` 指目的地關卡） |
 | `Resources/UI/SelectScriptPanel/`、`Resources/UI/Texts/` | 框/鈕/示意圖/關卡名/領取字 素材 |
 
+> **`Resources/UI/Texts/` 是全專案「圖片型文字」的共用資料夾**，不是本面板專屬。
+> 凡是「畫成圖的字」都放那裡；純美術的框、按鈕底、面板底圖不算（不隨語言變，留在各自的面板資料夾）。
+>
+> ⚠ **實體路徑帶語言資料夾**：`UI/Texts/tw/Text_Gain`、`UI/Texts/en/Text_Gain`（**同名**，不加尾綴）。
+> 上表寫的 `UI/Texts/Text_Gain` 是**邏輯路徑**——程式照這樣寫就好，
+> `LoadSprite` 會經 `LocalizedArt.ResolveExisting` 換成當前語言，缺圖退回繁中。
+> 見 [LOCALIZATION.md](LOCALIZATION.md) §圖片型文字。
+
 **Unity/編輯器接線**：Unity 匯入新腳本 → 重開地圖編輯器 → 在 `Main_Square` 把原本給紅嫁衣劇本的 `giveItem` 換成 `selectScript`（`scriptIds=104`、`specialIds=104`，接回原鏈位置）→ `Sync Map Assets`。
 
 ---

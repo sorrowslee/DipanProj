@@ -200,6 +200,9 @@ namespace Dipan.UI
         public static Sprite LoadSprite(string resourcesPath)
         {
             if (string.IsNullOrEmpty(resourcesPath)) return null;
+            // ⚠ UI/Texts/ 底下的是「圖片型文字」：實際檔案在 UI/Texts/<語言>/ 裡，
+            //    這裡改寫成當前語言的路徑，缺當前語言就退回母版（繁中）。見 Localization/LocalizedArt。
+            resourcesPath = Dipan.Localization.LocalizedArt.ResolveExisting(resourcesPath);
             var s = Resources.Load<Sprite>(resourcesPath);
             if (s == null) Debug.LogWarning($"[UIBuilder] 找不到 Sprite：Resources/{resourcesPath}");
             return s;

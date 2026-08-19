@@ -104,10 +104,39 @@ namespace Dipan.UI
             BuildLayers();
             EnsureEventSystem();
             SceneManager.activeSceneChanged += OnActiveSceneChanged;
+            Dipan.Localization.Language.OnLanguageChanged += OnLanguageChanged;
+        }
+
+        /// <summary>
+        /// 切語言 → **把所有快取的面板整個丟掉**，下次開啟時重建。
+        ///
+        /// 為什麼要這麼粗暴：面板是「建一次、之後只顯示/隱藏」（見 <see cref="GetOrCreate"/>），
+        /// 而「畫成圖的字」是在 OnBuild 當下載進 Image 的。不重建的話，切了語言之後
+        /// 字串會變、圖不會變——最糟的是**同一張卡上英文的關卡名配中文的「領取」鈕**
+        /// （因為有些圖是每次重畫時載、有些是 OnBuild 載一次）。半套比全舊還難看也難查。
+        ///
+        /// ⚠ 延一幀再做：切語言通常是從設定面板的按鈕觸發的，而這一輪會把設定面板本身也銷毀掉，
+        ///   同幀做會在事件處理中途把自己拆了。延一幀讓呼叫端先返回。
+        /// ⚠ 副作用：切語言會關掉當時開著的面板（包含設定面板本身）。這是刻意的取捨——
+        ///   語言是罕見的一次性操作，換來的是「畫面上不會有兩種語言並存」。
+        /// </summary>
+        void OnLanguageChanged()
+        {
+            TriggerChainRunner.NextFrame(() =>
+            {
+                if (Instance != this) return;
+                CloseAll();
+                foreach (var p in _panels.Values)
+                    if (p != null) Destroy(p.gameObject);
+                _panels.Clear();
+                _stack.Clear();
+                Recompute();
+            });
         }
 
         void OnDestroy()
         {
+            Dipan.Localization.Language.OnLanguageChanged -= OnLanguageChanged;
             if (Instance == this)
             {
                 SceneManager.activeSceneChanged -= OnActiveSceneChanged;

@@ -266,6 +266,16 @@ public class MapLoader : MonoBehaviour
     {
         if (_root != null)
         {
+            // ⚠ **先 SetActive(false) 再 Destroy**：Unity 的 Destroy 是**延到幀尾**才生效，
+            //   而「同 module 房間互跳」走的是同步版 LoadMap、整段在同一幀跑完
+            //   （見 MapManager.LoadMapRoutine 的 else 分支）。不先停用的話，
+            //   接下來那一段時間裡**舊地圖與新地圖的碰撞體同時存在於物理世界**，
+            //   任何在換圖後立刻做的物理查詢都會查到上一張圖的牆——而且座標系還是新圖的，
+            //   查出來的結果毫無意義又完全靜默。
+            //   實際踩過：MapManager 的落點防呆在書房查 (9,-1.5) 查到了客廳2 的牆，
+            //   把玩家一路挪到地圖外面（見 readme/PROBLEMS.md **B12**）。
+            //   SetActive(false) 是**立即**生效的，碰撞體當下就退出物理世界。
+            _root.gameObject.SetActive(false);
             Destroy(_root.gameObject);
             _root = null;
         }

@@ -589,6 +589,10 @@ namespace Dipan.UI
 
         static Sprite LoadSprite(string path)
         {
+            // UI/Texts/ 底下的是「圖片型文字」：實際檔案在 UI/Texts/<語言>/ 裡，
+            // 這裡解析成當前語言的路徑，缺當前語言就退回母版（繁中）。見 Localization/LocalizedArt。
+            path = Dipan.Localization.LocalizedArt.ResolveExisting(path);
+
             var sp = Resources.Load<Sprite>(path);
             if (sp != null) return sp;
             var tex = Resources.Load<Texture2D>(path);

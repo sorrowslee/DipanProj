@@ -8,6 +8,10 @@ using Dipan.MapRuntime;
 /// 落地防抖（必要）：傳送著陸後玩家就站在目標傳送點上，若立刻判定會被彈回。
 /// 故每次 Setup 後「未武裝」，等玩家離開所有 teleport 格才武裝；之後再踩才觸發。
 /// 由 MapManager 在每次換圖後 Setup（重建格表、重置防抖）。見 readme/MAP_SYSTEM.md。
+///
+/// <para><b>非自主位移不算「踩到」</b>：被怪物擊退推到傳送點上時不觸發，並且**解除武裝**
+/// —— 要玩家自己走出去再走回來才算數。實際踩過：進客廳2 時怪物就站在落點旁邊，
+/// 玩家還沒看清楚就被擊退回傳送點 → 立刻又被送回書房。見 readme/PROBLEMS.md **B11**。</para>
 /// </summary>
 public class TeleportWatcher : MonoBehaviour
 {
@@ -17,6 +21,7 @@ public class TeleportWatcher : MonoBehaviour
     string _teleportTypeId = "teleport";
 
     readonly Dictionary<long, TriggerRegion> _cells = new Dictionary<long, TriggerRegion>();
+    HitReactionHandler _playerHit;
     bool _armed;
 
     public void Setup(MapData map, string teleportTypeId, Transform player, MapManager manager)
@@ -25,6 +30,7 @@ public class TeleportWatcher : MonoBehaviour
         _teleportTypeId = teleportTypeId;
         _player = player;
         _manager = manager;
+        _playerHit = player != null ? player.GetComponent<HitReactionHandler>() : null;
 
         _cells.Clear();
         if (map?.TriggerLayer?.regions != null)
@@ -50,6 +56,11 @@ public class TeleportWatcher : MonoBehaviour
         // 觸發鏈：停用中（startDisabled 未解鎖）或 requireFlag 不成立的傳送點，踩到視同沒踩（不消耗武裝）。
         // 每幀動態判定 → 被鏈解鎖的瞬間即可生效，不必重建格表。見 TriggerChain。
         if (onTeleport && !TriggerChain.IsActive(region)) onTeleport = false;
+
+        // 非自主位移（目前只有擊退）把人推到傳送點上：不觸發，而且**解除武裝**。
+        // ⚠ 只是「跳過這一幀」是不夠的——擊退結束時玩家還站在那格上，下一幀照樣觸發，只是延後 0.x 秒。
+        //   解除武裝＝要玩家自己走出去再走回來，與上面的「著陸防抖」是同一套語意，直接複用。
+        if (onTeleport && IsPushedAround()) { _armed = false; return; }
 
         if (!_armed)
         {
@@ -78,6 +89,12 @@ public class TeleportWatcher : MonoBehaviour
         }
         _manager.GoToMap(targetMapId, targetEntrance);
     }
+
+    /// <summary>
+    /// 玩家目前是不是「被推著動」而不是自己走。之後若加拉扯／吹飛／輸送帶之類的位移，一併加進來——
+    /// 規則是「**玩家不是自己走過去的，就不該觸發位置型事件**」。
+    /// </summary>
+    bool IsPushedAround() => _playerHit != null && _playerHit.IsKnockedBack;
 
     static long Key(int x, int y) => ((long)(uint)x << 32) | (uint)y;
 }

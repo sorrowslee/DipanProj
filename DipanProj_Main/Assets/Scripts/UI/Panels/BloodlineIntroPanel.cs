@@ -9,7 +9,8 @@ namespace Dipan.UI
     ///
     /// 表演時間軸（全程遊戲暫停、一律 unscaled 時間，同 <see cref="BossIntroPanel"/> 慣例）：
     /// <code>
-    /// t=0                        壓黑遮罩＋破碎框底版隨面板淡入，框內是**變身前**的血統立繪
+    /// t=0                        壓黑遮罩＋破碎框底版＋頂端標題「血統轉換」隨面板淡入，
+    ///                            框內是**變身前**的血統立繪
     /// t=OldHoldSeconds           舊立繪開始斑駁剝落（_Cutoff 0→1，暗紅燒蝕邊）
     ///   ＋NewDelay               新血統立繪同步從空白浮現（_Cutoff 1→0，不同種子＝破法不同）
     ///   ＋PlateDelay             姓名底版從下方飄上來（ease-out）
@@ -23,8 +24,14 @@ namespace Dipan.UI
     /// 資料來源：立繪走 Talk 立繪同一條 catalog 管線
     /// （<c>DramaTalkDatabase.ResolvePortrait("Actor_normal", 血統資料夾)</c>），零新載圖程式；
     /// 血統名由呼叫端傳入（<c>BloodlineTable.NameOf</c>）。
-    /// 兩張底圖都是血統專用的：破碎框 <c>Resources/UI/BloodlinePanel/BloodlinePanel_Bg</c>（1024×1536）、
-    /// 姓名石碑 <c>Resources/UI/BloodlinePanel/BloodlinePanel_NameBg</c>（866×288）。
+    /// 兩張純美術底圖在 <c>Resources/UI/BloodlinePanel/</c>：破碎框 <c>BloodlinePanel_Bg</c>（1024×1536）、
+    /// 姓名石碑 <c>BloodlinePanel_NameBg</c>（866×288）。
+    ///
+    /// 頂端標題「血統轉換」是**圖片型文字**，所以放在全專案共用的
+    /// <c>Resources/UI/Texts/BloodlinePanel_Title</c>（866×288，與石碑同比例）——
+    /// 與 <c>SelectScriptPanel</c> 的 <c>Text_Gain</c>／<c>Text_StageName_&lt;module&gt;</c> 同一個資料夾。
+    /// **凡是「畫成圖的字」都要放那裡**，之後做多語系時只換那一個資料夾就好，
+    /// 不必翻遍各面板自己的素材夾。（純美術的框、石碑、按鈕底不算，那些不隨語言變。）
     /// 字型則是全專案共用的毛筆字 <c>Fonts/Bakudai/Bakudai-Bold</c>。
     ///
     /// ⚠ <b>四個要知道的點</b>：
@@ -117,10 +124,17 @@ namespace Dipan.UI
         public float FrameHeight = 880f;
         [Tooltip("底版中心相對畫面中心的垂直位移（+上）")]
         public float FrameY = 30f;
+        [Tooltip("標題「血統轉換」圖（Resources 路徑，不含副檔名）。原圖 866×288，與姓名石碑同一套比例。"
+               + "⚠ 這是「圖片型文字」，一律放 UI/Texts/——之後要做多語系時只換那一個資料夾")]
+        public string TitleSpritePath = "UI/Texts/BloodlinePanel_Title";
+        [Tooltip("標題顯示寬（高依原圖比例＝寬 ÷ 3.007）")]
+        public float TitleW = 370f;
+        [Tooltip("標題中心距破碎框**頂邊**的距離（往下為正）")]
+        public float TitleYFromFrameTop = 78f;
         [Tooltip("立繪可用區佔底版的比例（寬, 高）。立繪等比縮到這個框內、靠下對齊")]
-        public Vector2 PortraitBox = new Vector2(0.78f, 0.73f);
+        public Vector2 PortraitBox = new Vector2(0.78f, 0.70f);
         [Tooltip("立繪底邊距破碎框底邊的距離，佔框高度的比例。要比姓名底版高，否則下半身會被石碑蓋住")]
-        public float PortraitBottomInset = 0.16f;
+        public float PortraitBottomInset = 0.13f;
         [Tooltip("姓名底版圖（Resources 路徑，不含副檔名）。血統專用的淺色石碑，原圖 866×288")]
         public string PlateSpritePath = "UI/BloodlinePanel/BloodlinePanel_NameBg";
         [Tooltip("姓名底版顯示寬（原圖 866×288＝比例 3.007，改寬記得同步改高）")]
@@ -143,7 +157,7 @@ namespace Dipan.UI
         const string ShaderPath = "Shaders/BloodlineDissolve";
         const string PortraitEmotion = "Actor_normal";   // 揭示用的是 normal.png
 
-        Image _dim, _frame, _oldPortrait, _newPortrait, _plate;
+        Image _dim, _frame, _oldPortrait, _newPortrait, _plate, _title;
         Text _name;
         NameWarpEffect _warp;
         Material _oldMat, _newMat;      // instance 欄位：兩張立繪各自的 _Cutoff 不能共用
@@ -184,7 +198,7 @@ namespace Dipan.UI
         }
 
         // OnBuild 只建骨架；尺寸/座標/圖/材質參數全部在每次 Begin 重算（Inspector 調完重觸發就生效）。
-        // 疊層順序（先建=最底）：壓黑 → 破碎框底版 →（框的子物件）新立繪 → 舊立繪 → 姓名底版 → 名字。
+        // 疊層順序（先建=最底）：壓黑 → 破碎框底版 →（框的子物件）新立繪 → 舊立繪 → 姓名底版 → 名字 → 標題。
         protected override void OnBuild()
         {
             _dim = UIBuilder.SolidPanel(transform, "Dim", new Color(0f, 0f, 0f, 0.72f));
@@ -211,6 +225,15 @@ namespace Dipan.UI
             _name.fontStyle = FontStyle.Bold;
             _name.raycastTarget = false;
             _warp = _name.gameObject.AddComponent<NameWarpEffect>();   // 借 BossIntroPanel 的頂點扭曲特效
+
+            // 標題「血統轉換」。**最後建＝畫在最上層**，蓋過立繪的頭頂而不是被它壓住。
+            // 從頭到尾都在（不做進場動畫）：它是「接下來要發生什麼」的標頭，
+            // 開場就該讀得到，而不是等演到一半才出現。隨面板的 CanvasGroup 一起淡入淡出。
+            _title = UIBuilder.Image(transform, "Title", null);
+            _title.raycastTarget = false;
+            _title.enabled = false;
+            var trt = _title.rectTransform;
+            trt.anchorMin = trt.anchorMax = trt.pivot = new Vector2(0.5f, 0.5f);
 
             _dissolveShader = Resources.Load<Shader>(ShaderPath);
             if (_dissolveShader == null)
@@ -264,7 +287,23 @@ namespace Dipan.UI
             _frame.rectTransform.sizeDelta = new Vector2(fw, fh);
             _frame.rectTransform.anchoredPosition = new Vector2(0f, FrameY);
 
+            // ── 標題：貼在破碎框頂端，高度依原圖比例 ──
+            // 素材在 UI/Texts/（圖片型文字的共用資料夾），不在 UI/BloodlinePanel/——見檔頭說明。
+            var titleSp = UIBuilder.LoadSprite(TitleSpritePath);
+            _title.sprite = titleSp;
+            _title.enabled = titleSp != null;
+            if (titleSp != null)
+            {
+                float tw = Mathf.Max(1f, TitleW);
+                float th = tw / Mathf.Max(0.0001f, Aspect(titleSp, 3.007f));
+                _title.rectTransform.sizeDelta = new Vector2(tw, th);
+                _title.rectTransform.anchoredPosition = new Vector2(0f, FrameY + fh * 0.5f - TitleYFromFrameTop);
+            }
+
             // ── 立繪版面：等比縮到 PortraitBox 內、靠下對齊 ──
+            // ⚠ 這裡的高度上限（PortraitBox.y）與 PortraitBottomInset 是**跟標題搶空間**的：
+            //    立繪頭頂 = 框高 − 底邊距離 − 立繪高，標題底邊 = TitleYFromFrameTop + 標題高的一半。
+            //    前者要大於後者，不然標題會壓在角色頭上。目前算下來頭頂距框頂 150、標題底邊 140，留 10 的餘裕。
             // ⚠ 不能照高度縮：Base 是 1122×1402（比例 0.80）、殭屍三階是 1024×1536（0.667），
             //   照高度縮的話 Base 會比框還寬、直接撐出破碎框外面。
             Vector2 box = new Vector2(fw * Mathf.Clamp01(PortraitBox.x), fh * Mathf.Clamp01(PortraitBox.y));

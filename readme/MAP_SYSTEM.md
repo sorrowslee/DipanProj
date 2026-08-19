@@ -315,3 +315,36 @@ ID, Name,   Module,        Path,                                                
 
 *2026-07-27 更正：**Phase 2 早已於 2026-07-18 完成**（commit `4aa7659`「加入關卡儲存機制」），實作為獨立單例 `RunProgress` 而非草案的 `MapManager.MapState`。本文件先前一直寫著「之後實作」，§0 分期表、§5、§5.3/5.4、§7 開放問題、§8 里程碑均已更正；完整規格見 [RUN_PROGRESS.md](RUN_PROGRESS.md)。*
 *2026-07-27：欄位表補上 `SceneEffect` / `EnterEffect`（實作早就有、表一直沒補）與新增的 `NoWeapon`；`Atmosphere` 範圍由 1~11 更正為 1~15。*
+
+---
+
+## 位置型觸發的兩道防護（2026-08-19）
+
+`TeleportWatcher`（傳送）與 `CutsceneWatcher`（穿隧道過場）都是「每幀比對玩家所在格」的位置型觸發，各有兩道防護：
+
+1. **落地防抖**：每次 `Setup` 後「未武裝」，等玩家**離開所有觸發格**才武裝。
+   不然傳送著陸時人就站在目標傳送點上，會立刻被彈回去。
+2. **非自主位移不算踩到**（新）：玩家 `HitReactionHandler.IsKnockedBack` 為真時踩到觸發點，
+   **不觸發，而且解除武裝**——要玩家自己走出去再走回來才算數。
+
+⚠ 第 2 點**只做「跳過這一幀」是不夠的**：擊退結束時玩家還站在那格上，下一幀照樣觸發、只是延後 0.x 秒。
+必須解除武裝，正好複用第 1 點的語意。實際踩過的情境見 [PROBLEMS.md](PROBLEMS.md) **B11**。
+
+**通則：玩家不是自己走過去的，就不該觸發位置型事件。**
+之後若加拉扯／吹飛／輸送帶之類的非自主位移，記得一起加進 `TeleportWatcher.IsPushedAround()`。
+
+`CameraZoneWatcher` 刻意不做第 2 點——被擊退進鏡頭區只是鏡頭跟著變、離開就還原，無害。
+
+---
+
+## ⚠ 換圖那一幀的物理世界（2026-08-19）
+
+**同 module 房間互跳走的是同步版 `MapLoader.LoadMap`，`Teardown()` → 建新圖 → 放玩家全在同一幀跑完。**
+而 Unity 的 `Destroy()` **延到幀尾**才生效——所以如果不特別處理，那段時間裡**舊地圖與新地圖的碰撞體會同時存在於物理世界**，
+而且座標系是新圖的，任何物理查詢查出來的結果毫無意義又完全靜默。
+
+現在 `MapLoader.Teardown()` 會**先 `SetActive(false)` 再 `Destroy`**（停用是立即生效的）。
+**在換圖後立刻做物理查詢的程式都依賴這件事**（`MapManager.FreeSpotNear` 的落點防呆、`MapNavGrid` 用 `OverlapCircle` 建障礙格…），
+動 `Teardown` 時不要把那一行拿掉。踩坑記錄見 [PROBLEMS.md](PROBLEMS.md) **B12**。
+
+跨 module 換圖走協程、中間有 `yield`，舊碰撞早就銷毀了——**所以這類 bug 只在同 module 房間互跳出現**，很容易誤判成別的原因。
