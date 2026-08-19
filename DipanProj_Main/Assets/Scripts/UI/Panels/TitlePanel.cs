@@ -46,7 +46,9 @@ namespace Dipan.UI
         const int TxtStartGame = 6001;   // 「開始遊戲」（LanguageTable 標題畫面段 6001–6099）
 
         // ───────────── 火焰特效 ─────────────
-        const bool EnableFireFx = true;      // 全螢幕落火 ＋ 標題燃燒（見 TitleFireFx）
+        // ⚠ static readonly 不是 const：這是個「關掉試試看」的開關，const 的話一改成 false
+        //   整段火焰程式就會被判定為 unreachable（CS0162）。同 SaveSlotPanel.ActorFlipX。
+        static readonly bool EnableFireFx = true;   // 全螢幕落火 ＋ 標題燃燒（見 TitleFireFx）
 
         Sprite[] _buddhaFrames;
         Image _buddha;

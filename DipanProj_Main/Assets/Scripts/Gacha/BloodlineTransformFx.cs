@@ -124,8 +124,15 @@ namespace Dipan.Gacha
         /// 調成 3、<see cref="SmokeHeightRatio"/> 調回 0.9 左右即可，不必改流程。
         /// </remarks>
         const float SmokeHeightRatio = 1.6f;
-        /// <summary>煙塵顆數。1 = 單顆放大（目前採用）；>1 = 沿身體撒開、每顆延遲 SmokeBurstStagger。</summary>
-        const int SmokeBurstCount = 1;
+        /// <summary>
+        /// 煙塵顆數。1 = 單顆放大（目前採用）；>1 = 沿身體撒開、每顆延遲 SmokeBurstStagger。
+        ///
+        /// ⚠ **刻意用 <c>static readonly</c> 而不是 <c>const</c>。** 用 const 的話它是編譯期常數，
+        /// 編譯器會判定 <c>SpawnSmoke</c> 裡「多顆模式」那一整段永遠走不到 → CS0162 unreachable code 警告。
+        /// 那段是**留著隨時可切換的替代做法**（見 SmokeHeightRatio 的說明），不是死碼，不該為了消警告刪掉；
+        /// 改成 static readonly 就兩全：值一樣、行為一樣、那段照樣編譯（不會爛掉），也沒有警告。
+        /// </summary>
+        static readonly int SmokeBurstCount = 1;
         const float SmokeBurstStagger = 0.08f;
         /// <summary>多顆模式下，散佈的水平半徑（相對玩家可見高度的比例）。</summary>
         const float SmokeSpreadRatio = 0.45f;

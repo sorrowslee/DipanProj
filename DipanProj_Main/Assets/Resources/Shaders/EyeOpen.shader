@@ -35,19 +35,28 @@ Shader "Custom/EyeOpen"
             float _Open, _Bright, _Blur, _Aspect, _Feather;
 
             // 八方向 + 中心的圓盤模糊（半徑 r，UV 單位）。r=0 時等同直接取樣。
+            //
+            // ⚠ **單一出口，不要用「if (r<=0) return ...;」提早 return。**
+            //    著色器編譯器對「函式裡有條件式 return」會報
+            //    `use of potentially uninitialized variable (blurSample)`——它把回傳值當成一個
+            //    以函式為名的隱含變數，證明不了每條路徑都寫過。那是假警告（兩條路都有 return），
+            //    但每次建置都會跳兩次，很吵。改成先算好中心取樣、需要才疊模糊，就只有一個 return。
             fixed3 blurSample(float2 uv, float r)
             {
-                if (r <= 0.00001) return tex2D(_MainTex, uv).rgb;
-                const float k = 0.70710678; // 1/sqrt(2)，對角方向
-                fixed3 c = tex2D(_MainTex, uv).rgb * 0.28;
-                c += tex2D(_MainTex, uv + float2( r, 0)).rgb * 0.09;
-                c += tex2D(_MainTex, uv + float2(-r, 0)).rgb * 0.09;
-                c += tex2D(_MainTex, uv + float2( 0, r)).rgb * 0.09;
-                c += tex2D(_MainTex, uv + float2( 0,-r)).rgb * 0.09;
-                c += tex2D(_MainTex, uv + float2( r*k,  r*k)).rgb * 0.09;
-                c += tex2D(_MainTex, uv + float2(-r*k,  r*k)).rgb * 0.09;
-                c += tex2D(_MainTex, uv + float2( r*k, -r*k)).rgb * 0.09;
-                c += tex2D(_MainTex, uv + float2(-r*k, -r*k)).rgb * 0.09;
+                fixed3 c = tex2D(_MainTex, uv).rgb;   // r 太小就直接是答案
+                if (r > 0.00001)
+                {
+                    const float k = 0.70710678; // 1/sqrt(2)，對角方向
+                    c *= 0.28;
+                    c += tex2D(_MainTex, uv + float2( r, 0)).rgb * 0.09;
+                    c += tex2D(_MainTex, uv + float2(-r, 0)).rgb * 0.09;
+                    c += tex2D(_MainTex, uv + float2( 0, r)).rgb * 0.09;
+                    c += tex2D(_MainTex, uv + float2( 0,-r)).rgb * 0.09;
+                    c += tex2D(_MainTex, uv + float2( r*k,  r*k)).rgb * 0.09;
+                    c += tex2D(_MainTex, uv + float2(-r*k,  r*k)).rgb * 0.09;
+                    c += tex2D(_MainTex, uv + float2( r*k, -r*k)).rgb * 0.09;
+                    c += tex2D(_MainTex, uv + float2(-r*k, -r*k)).rgb * 0.09;
+                }
                 return c;
             }
 

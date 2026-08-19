@@ -71,7 +71,9 @@ namespace Dipan.UI
         // 角色區（左半邊）。角色直接站在卡片框自帶的圓形浮雕前，不另外鋪底板。
         const float ActorBaseDx = -95f, ActorBaseDy = 136f, ActorBaseW = 160f;  // 腳下圓台（左緣要離卡片內框線 ≥20）
         const float ActorDx = -102f, ActorFeetDy = 130f, ActorH = 200f;       // 角色（ActorH＝不透明內容的高度）
-        const bool ActorFlipX = false;                    // 素材是 idle_right；要讓角色面向另一邊就改 true
+        // ⚠ static readonly 不是 const：const 會讓編譯器判定 if (ActorFlipX) 那段永遠走不到（CS0162），
+        //   但那是預留給「素材換成面向另一邊」時用的開關，不是死碼。
+        static readonly bool ActorFlipX = false;          // 素材是 idle_right；要讓角色面向另一邊就改 true
 
         // 資訊區（右半邊）
         const float CycleDx = 112f, CycleDy = -83f;       // 「一周目」

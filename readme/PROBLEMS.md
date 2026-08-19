@@ -375,6 +375,31 @@
   ```
 - **通則**：**關掉 Domain Reload 之後寫的每一個 `ResetForPlayMode`，都是「這個 static 的初始值」的第二個副本。** 只要它把值寫死，欄位初始值就永遠是死的。凡是 reset 要還原成某個預設，那個預設一定要是常數、不能各寫各的——否則下一個人（或三天後的自己）會盯著一行明明改對的程式碼懷疑人生。這其實就是 **D17** 那條「同一件事不要有兩個入口」在 static 初始化上的變形。
 
+### D19. 為了消除警告而刪掉「留著隨時可切換」的程式碼——`const` 開關造成的 CS0162
+
+- **症狀**：建置時跳 `warning CS0162: Unreachable code detected`，指到的那段程式明明是刻意留著的替代做法（例如「煙塵改成撒 3~4 顆」「角色素材翻面」「關掉火焰特效」）。
+- **原因**：那些開關寫成 `const bool` / `const int`。**const 是編譯期常數**，所以 `if (SmokeBurstCount <= 1)` 在編譯時就被判定恆真，另一條分支變成 unreachable。危險的是這個警告會誘導人「把用不到的程式刪掉」——但那段不是死碼，是**下次要調表現時直接改一個數字就能切換的備援路徑**，刪了就得重寫。
+- **解法**：把開關從 `const` 改成 `static readonly`。值一樣、行為一樣、效能差異可忽略，但編譯器不再把它當編譯期常數 ⇒ 兩條分支都會編譯（**不會爛掉**）、也沒有警告。
+  ```csharp
+  static readonly int  SmokeBurstCount = 1;    // BloodlineTransformFxRunner
+  static readonly bool ActorFlipX      = false; // SaveSlotPanel
+  static readonly bool EnableFireFx    = true;  // TitlePanel
+  ```
+- **通則**：**`const` 是給「這輩子都不會變的事實」用的**（陣列長度、表格欄位索引、數學常數）。凡是「之後可能想改改看」的旋鈕與開關，一律 `static readonly`——否則你會在某次建置被警告推著去刪掉自己刻意留的後路。判準很簡單：**這個值我未來會不會為了調整而改它？會的話就不要 const。**
+
+### D20. 著色器警告 `use of potentially uninitialized variable (<函式名>)`——條件式 return 的假警告
+
+- **症狀**：`Shader warning in 'Custom/EyeOpen': use of potentially uninitialized variable (blurSample)`。點名的是**函式名**不是變數名，而且那個函式每一條路徑明明都有 return。
+- **原因**：著色器編譯器把回傳值當成一個「以函式為名的隱含變數」。函式裡有**提早 return**（`if (r <= 0.00001) return tex2D(...);` 後面還有一段最後才 `return c;`）時，它證明不了每條路徑都寫過那個隱含變數 → 報這個警告。**是假警告**，但每次建置都會跳。
+- **解法**：改成**單一出口**——先算好預設值，需要時才在 `if` 裡覆蓋，最後只有一個 `return`。
+  ```hlsl
+  fixed3 c = tex2D(_MainTex, uv).rgb;   // r 太小就直接是答案
+  if (r > 0.00001) { c *= 0.28; c += …; }
+  return c;
+  ```
+- ⚠ 改寫時**要驗權重總和沒變**（這裡是 `0.28 + 8×0.09 = 1.0`），否則畫面亮度會悄悄跑掉。
+- **通則**：HLSL/Cg 的函式盡量寫成單一出口。C# 那邊「提早 return 減少巢狀」是好習慣，但在著色器裡會換來這個雜訊警告，而雜訊警告最大的成本是**讓人開始忽略警告視窗**。
+
 ## E. 效能 / 顯示 (Performance & Display)
 
 ### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順
