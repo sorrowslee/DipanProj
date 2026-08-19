@@ -53,6 +53,7 @@ namespace Dipan.MapRuntime
         readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         readonly Dictionary<string, Sprite> _sprites = new Dictionary<string, Sprite>();
         readonly Dictionary<string, LocalBox> _alphaBoxes = new Dictionary<string, LocalBox>();
+        readonly Dictionary<string, FootprintMask> _footprints = new Dictionary<string, FootprintMask>();
 
         /// <summary>
         /// 不透明像素的貼合框（世界單位）。<c>canvas</c> = 整張畫布的世界尺寸——
@@ -231,6 +232,47 @@ namespace Dipan.MapRuntime
             };
             _alphaBoxes[key] = box;
             return box;
+        }
+
+        /// <summary>
+        /// 取這個素材的「佔位遮罩」（給地上物碰撞貼合圖形用），解析度 = subdiv。取不到回 null。
+        ///
+        /// <para><b>永遠走同一條計算路徑</b>：先取得 <see cref="ObjectFootprint.BakeSubdiv"/> 解析度的遮罩
+        /// —— catalog 烘好的直接用（<c>Project Tools → Sync Map Assets</c> 產生），沒有就**當場掃一次貼圖** ——
+        /// 再降取樣到要求的解析度。烘與退路因此是<b>字面上相同的計算</b>，不會因為「這台機器有沒有烘過」
+        /// 而得到不同的擋路範圍。</para>
+        ///
+        /// <para><b>不可以改成「拿不到烘焙就直接在目標解析度 Scan」</b>：`Downsample` 是 OR
+        /// （4 顆子格有 1 顆實心就算擋），跟「整格算覆蓋率」的 `Scan` 結果差 10~38%。
+        /// 混用會變成有烘/沒烘的機器擋路範圍不一樣，而且完全靜默——見 <see cref="ObjectFootprint.Downsample"/> 的警告。</para>
+        ///
+        /// <para>退路一定要留：catalog 有四個產生器，其中兩支 shell 版不會烘遮罩（見 <see cref="MapAssetCategories"/>），
+        /// 沒有退路的話用 shell 同步過的專案會整批地上物不擋路——這種「靜默壞掉」正是本專案最貴的坑。</para>
+        ///
+        /// <para>結果（含 null）都會快取：null 代表「這張圖沒有可用遮罩」，不需要每個擺放重掃一次。</para>
+        /// </summary>
+        public FootprintMask GetFootprint(CatalogItem item, int subdiv)
+        {
+            if (item == null) return null;
+            subdiv = ObjectFootprint.SnapSubdiv(subdiv);   // 收斂成 BakeSubdiv 的因數（1/2/4/8），見該函式說明
+            string key = $"{item.id}|fp|{subdiv}";
+            if (_footprints.TryGetValue(key, out var cached)) return cached;
+
+            // ① 先拿到「烘焙解析度」的那一份（正典）。烘好的就用，沒有就當場掃。
+            var full = item.footprint;
+            if (full == null || !full.Ok || full.subdiv != ObjectFootprint.BakeSubdiv)
+            {
+                var tex = GetTexture(item);
+                full = tex != null
+                    ? ObjectFootprint.Scan(tex, ObjectFootprint.BakeSubdiv, ObjectFootprint.DefaultCoverage)
+                    : null;
+            }
+
+            // ② 再降到要求的解析度（相同就原樣回）。
+            var m = (full == null || full.subdiv == subdiv) ? full : ObjectFootprint.Downsample(full, subdiv);
+
+            _footprints[key] = m;
+            return m;
         }
     }
 }

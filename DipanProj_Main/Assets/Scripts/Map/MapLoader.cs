@@ -50,7 +50,38 @@ public class MapLoader : MonoBehaviour
     // 預設關閉：由 MapManager 驅動。打開 = 不靠 MapManager，Awake 直接建 mapPath（建圖測試用，不生玩家）。
     public bool loadOnAwake = false;
 
-    [Header("地上物碰撞框微調（1=貼合不透明像素）")]
+    // ⚠ Inspector 的標籤是 Unity 從英文欄位名自動生成的，看不到底下的中文註解，
+    //   所以三個欄位的中文名寫進 Header、細節寫進 Tooltip（滑鼠移上去會顯示）。
+    [Header("地上物碰撞：貼合圖形（Subdiv＝子格解析度｜Fill Threshold＝實心判定門檻｜Scale＝整體內縮）")]
+    [Tooltip("子格解析度。碰撞格大小 = tileSize / 這個值，愈大愈貼合、碰撞條數也愈多。\n" +
+             "只有 1/2/4/8 有意義（其餘會往下收斂，填 6 等於 4）。\n" +
+             "遮罩一律烘在 8，所以改這個不必重跑 Sync Map Assets。")]
+    // 子格解析度：碰撞格大小 = tileSize / 這個值。愈大愈貼合、碰撞條數也愈多。
+    // 遮罩烘在 8（見 ObjectFootprint.BakeSubdiv），這裡填 <= 8 會自動降取樣，**改這個不必重跑同步**
+    // （烘焙端一律用 BakeSubdiv，所以同步時間與這個值完全無關）。
+    // ⚠ 只有 1/2/4/8 有意義：其餘會被 ObjectFootprint.SnapSubdiv 往下收斂（填 6 等於 4），
+    //   原因見該函式（Downsample 要整除、且 256/subdiv 是整數除法，非因數會讓形狀往右下漂）。
+    //
+    // 實測全 16 張地圖的碰撞條總數：subdiv 4 = 2435 條、subdiv 8 = 4412 條。
+    // 一般房間只是 30~60 → 100~140（牆本來就 324 條在跑，這量級無感）；
+    // 其中 2047/3511 條集中在邪佛廣場，全部來自那 288 個共用同一張圖的教徒——
+    // 那張圖若嫌重，調解析度不如直接把教徒勾「可穿越」（碰撞歸零），比較精準。
+    [Range(1, 8)] public int objectColliderSubdiv = 8;
+
+    [Tooltip("實心判定門檻。遮罩「填滿率」高過這個值 = 這張圖本來就是實心方塊，改用單一方框（省一顆 Composite）。\n" +
+             "設 1 = 一律逐格貼合；設 0 = 一律單框（＝回到改版前的舊行為，出事時的緊急退路）。\n" +
+             "注意填滿率會隨解析度變：同一個書架 subdiv 4 是 1.00（走單框）、subdiv 8 是 0.82（走貼合）。")]
+    // 遮罩「填滿率」高於此值 = 這張圖本來就是實心方塊，改用單一方框（省一顆 Composite，形狀幾乎無差）。
+    // 設 1 = 一律逐格貼合；設 0 = 一律單框（回到舊行為）。
+    // ⚠ 填滿率會隨解析度變：同一個書架在 subdiv 4 是 1.00（→單框，看起來就是一大塊方形），
+    //   在 subdiv 8 掉到 0.82（→逐格貼合）。全專案走單框的物件 subdiv 4 有 15 個、subdiv 8 只剩 3 個，
+    //   所以「換解析度」的視覺差異有一半其實來自這條捷徑的翻面，不只是格子變細。
+    [Range(0f, 1f)] public float objectSolidFillThreshold = 0.9f;
+
+    [Tooltip("整體內縮。以物件中心等比縮整個碰撞形狀，1 = 照圖形，調小 = 整圈往內收、玩家更好走。\n" +
+             "縮的是整個形狀（size 與 offset 同乘），相鄰碰撞條仍相接、不會裂出縫。")]
+    // 整體縮放碰撞形狀（以物件中心為基準等比縮）。1 = 照圖形；調小 = 整圈往內收，玩家更好走。
+    // 對「貼合」與「單框」兩條路都有效；縮的是整個形狀，相鄰碰撞條仍相接，不會裂出縫。
     [Range(0.1f, 1f)] public float objectColliderScale = 1f;
 
     [Header("地上物可破壞")]
@@ -403,22 +434,10 @@ public class MapLoader : MonoBehaviour
         go.transform.rotation = Quaternion.Euler(0, 0, inst.rot);
 
         // walkable = true：不設碰撞、不擋路（走不走由地圖可走層判定；例：木板/地毯）。因此也不掛可破壞。
-        BoxCollider2D col = null;
+        // 碰撞一律建在 go 本身（不開子物件）——命中判定有兩種寫法（GetComponent 與 GetComponentInParent，
+        // 見 PlayerController），碰撞若掛在子物件上，GetComponent 那幾條路會找不到 DestructibleObject ⇒ 打不壞。
         if (addObjectColliders && !inst.walkable && !inst.passThrough)
-        {
-            var box = _sprites.GetAlphaLocalBox(item, _map.tileSize);
-            col = go.AddComponent<BoxCollider2D>();
-            if (box.ok)
-            {
-                col.size = box.size * objectColliderScale;
-                col.offset = box.offset;
-            }
-            else
-            {
-                col.size = sprite.bounds.size;   // 後備：整張圖外框
-                col.offset = Vector2.zero;
-            }
-        }
+            BuildObjectCollision(go, item, sprite);
 
         // 榕樹妖的臉：掛控制器（發招換 crazy 臉、死亡燃燒演出）。載入 crazy 變體 sprite 交給它。
         bool isBanyanFace = !string.IsNullOrEmpty(inst.assetId) && inst.assetId.Contains("treeFace");
@@ -441,11 +460,14 @@ public class MapLoader : MonoBehaviour
         }
 
         // 靠旗標中途現身：先關掉顯示與碰撞、登記給 revealer；旗標成立時再現身（延遲/淡入/動畫起播）。
+        // 碰撞一律取「這個物件身上的全部 Collider2D」再交出去——貼合圖形後一個物件可能有很多顆
+        // （Composite + 一堆 usedByComposite 的 box），只開關其中一顆會出現「東西還沒現身卻已經擋路」。
         if (hidden && _revealer != null)
         {
             sr.enabled = false;
-            if (col != null) col.enabled = false;
-            _revealer.RegisterHidden(inst.appearFlag, go, sr, col, anim,
+            var cols = go.GetComponents<Collider2D>();
+            for (int i = 0; i < cols.Length; i++) cols[i].enabled = false;
+            _revealer.RegisterHidden(inst.appearFlag, go, sr, cols, anim,
                                      inst.appearDelaySeconds, inst.appearFade);
         }
 
@@ -465,6 +487,114 @@ public class MapLoader : MonoBehaviour
             light.softness     = Mathf.Clamp01(inst.lightSoftness > 0f ? inst.lightSoftness : 0.46f);
             light.color        = ParseLightColor(inst.lightColor);
         }
+    }
+
+    /// <summary>
+    /// 建一個地上物的碰撞，**貼合圖形**：把素材切成子格，只有「有畫東西」的格子才擋路
+    /// （屏風的簍空、燈籠桿兩側、椅腳之間都會通）。回傳主要碰撞元件（取不到遮罩時可能為 null）。
+    ///
+    /// <para><b>為什麼不用單一方框</b>：舊做法拿「整張圖不透明像素的外接矩形」，只能縮框不能挖洞，
+    /// 圖上明明透明的地方照樣擋路，把素材邊切掉也救不了。詳見 <see cref="Dipan.MapRuntime.FootprintMask"/>。</para>
+    ///
+    /// <para><b>為什麼要 CompositeCollider2D</b>：一堆小方框排在一起會留下「內部接縫」，
+    /// 圓形的玩家貼著表面滑動時會在接縫上拿到一瞬間的斜法線而卡住（子彈反彈方向也會亂跳）。
+    /// Composite 會把相鄰方框併成單一多邊形外框，接縫消失——**牆本來就是這樣做的**（見 BuildCompositeFromCells）。</para>
+    ///
+    /// <para>三條路：① 遮罩取不到 → 退回舊的單一 alpha 外接矩形；
+    /// ② 遮罩幾乎填滿（<see cref="objectSolidFillThreshold"/>）→ 也用單框，形狀差不多但省一顆 Composite；
+    /// ③ 其餘 → 同一列連續格併成一條 box，全部 usedByComposite 交給 Composite 合併。</para>
+    ///
+    /// <para>座標一律用**本地空間**（相對 sprite 中心），位置/縮放/翻轉交給物件自己的 transform 處理，
+    /// 與舊的單框做法完全一致，因此擺放端的行為（含 flipX/flipY）不需要另外處理。</para>
+    /// </summary>
+    Collider2D BuildObjectCollision(GameObject go, CatalogItem item, Sprite sprite)
+    {
+        float shrink = Mathf.Clamp(objectColliderScale, 0.1f, 1f);
+        var mask = _sprites.GetFootprint(item, objectColliderSubdiv);   // 內部會 SnapSubdiv 收斂成 1/2/4/8
+
+        // ① / ②：沒有遮罩，或這張圖本來就近乎實心 → 單一方框（＝舊行為）。
+        if (mask == null || !mask.Ok || ObjectFootprint.FillRatio(mask) >= objectSolidFillThreshold)
+            return AddAlphaBoxCollider(go, item, sprite, shrink);
+
+        // ③ 逐格貼合。遮罩以「整張畫布的左上角」為錨點往右下鋪。
+        // 畫布尺寸取 GetAlphaLocalBox 的 canvas（由貼圖寬高算出、已快取），不用 sprite.bounds——
+        // Sprite.Create 預設是 Tight mesh，bounds 不保證等於整張畫布，用錯會讓整個碰撞形狀偏移。
+        // 先把「同一列連續的擋路格」收成一條條 run，全部算完再建元件——
+        // 這樣「一條都沒有」時可以乾淨地退回單框，不必事後 Destroy 已建好的 Composite。
+        var abox = _sprites.GetAlphaLocalBox(item, _map.tileSize);
+        Vector2 canvas = abox.ok ? abox.canvas : (Vector2)sprite.bounds.size;
+        float cellSize = _map.tileSize / mask.subdiv;
+        float left = -canvas.x * 0.5f;
+        float top = canvas.y * 0.5f;
+
+        _runBuf.Clear();
+        for (int cy = 0; cy < mask.rows; cy++)
+        {
+            int runStart = -1;
+            for (int cx = 0; cx <= mask.cols; cx++)   // 多跑一格，讓最後一段也能收尾
+            {
+                bool solid = cx < mask.cols && mask.At(cx, cy);
+                if (solid) { if (runStart < 0) runStart = cx; continue; }
+                if (runStart < 0) continue;
+                _runBuf.Add(new Vector3Int(runStart, cy, cx - runStart));   // (起始欄, 列, 長度)
+                runStart = -1;
+            }
+        }
+
+        if (_runBuf.Count == 0)   // 理論上不會（Scan 全透明會回 null），保險用
+            return AddAlphaBoxCollider(go, item, sprite, shrink);
+
+        var rb = go.AddComponent<Rigidbody2D>();   // 必須在 Composite 之前加，否則 Unity 會自動補一顆 Dynamic 的
+        rb.bodyType = RigidbodyType2D.Static;
+
+        var composite = go.AddComponent<CompositeCollider2D>();
+        composite.geometryType = CompositeCollider2D.GeometryType.Polygons;
+        composite.generationType = CompositeCollider2D.GenerationType.Manual;   // 之後開關 collider 不會觸發重算
+
+        for (int i = 0; i < _runBuf.Count; i++)
+        {
+            int x0 = _runBuf[i].x, cy = _runBuf[i].y, count = _runBuf[i].z;
+
+            // 距畫布左上角的距離（本地單位）。最右一欄／最下一列是被截短的
+            // （cols = ceil(圖寬/格寬)，例：355px @ subdiv8 → 12 欄 × 0.125 = 1.5 > 畫布 1.387），
+            // 不夾回畫布邊界的話右邊與下邊會多出最多 0.11 格的隱形牆，而且形狀左右不對稱
+            // ——正是這次要修掉的那種「看起來沒東西卻走不過去」。
+            float xa = x0 * cellSize;
+            float xb = Mathf.Min((x0 + count) * cellSize, canvas.x);
+            float ya = cy * cellSize;
+            float yb = Mathf.Min((cy + 1) * cellSize, canvas.y);
+            if (xb <= xa || yb <= ya) continue;   // 整條都在畫布外（理論上不會，遮罩那邊已擋掉）
+
+            var box = go.AddComponent<BoxCollider2D>();
+            box.usedByComposite = true;
+            // 整個形狀以物件中心等比內縮：size 與 offset 同乘 shrink，相鄰段仍相接、不會裂出縫。
+            box.size = new Vector2(xb - xa, yb - ya) * shrink;
+            box.offset = new Vector2(left + (xa + xb) * 0.5f, top - (ya + yb) * 0.5f) * shrink;
+        }
+
+        composite.GenerateGeometry();
+        return composite;
+    }
+
+    // 建碰撞時的暫存（避免每個地上物都配置一個 List）。(x=起始欄, y=列, z=長度)
+    readonly List<Vector3Int> _runBuf = new List<Vector3Int>();
+
+    /// <summary>舊行為：一顆貼合「不透明像素外接矩形」的方框。遮罩取不到、或圖近乎實心時使用。</summary>
+    BoxCollider2D AddAlphaBoxCollider(GameObject go, CatalogItem item, Sprite sprite, float shrink)
+    {
+        var b = _sprites.GetAlphaLocalBox(item, _map.tileSize);
+        var col = go.AddComponent<BoxCollider2D>();
+        if (b.ok)
+        {
+            col.size = b.size * shrink;
+            col.offset = b.offset * shrink;
+        }
+        else
+        {
+            col.size = sprite.bounds.size * shrink;   // 後備：整張圖外框
+            col.offset = Vector2.zero;
+        }
+        return col;
     }
 
     /// <summary>把編輯器存的 6 碼 16 進位光色（RRGGBB，不含 #）轉成 Color；空/無效＝預設暖橘。</summary>

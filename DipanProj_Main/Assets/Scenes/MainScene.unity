@@ -4542,6 +4542,8 @@ MonoBehaviour:
   buildTeleportMarkers: 1
   fitCameraToMap: 1
   loadOnAwake: 0
+  objectColliderSubdiv: 4
+  objectSolidFillThreshold: 0.9
   objectColliderScale: 1
   objectsDestructible: 1
   objectMaxHP: 20

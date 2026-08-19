@@ -358,13 +358,64 @@ public class MapManager : MonoBehaviour
         }
     }
 
-    /// <summary>落點解析：具名落點 → playerSpawn → 地圖中心。</summary>
+    /// <summary>落點解析：具名落點 → playerSpawn → 地圖中心。三條路都會再過一次「挪開障礙物」防呆。</summary>
     Vector2 ResolveSpawnPos(string entrance)
     {
-        if (!string.IsNullOrEmpty(entrance) && mapLoader.TryGetEntrance(entrance, out var p)) return p;
-        if (mapLoader.TryGetPlayerSpawn(out var sp)) return sp;
-        Debug.LogWarning("[MapManager] 找不到傳送落點與玩家出生點，玩家放在地圖中心。");
-        return MapCoords.WorldCenter(mapLoader.Map);
+        if (!string.IsNullOrEmpty(entrance) && mapLoader.TryGetEntrance(entrance, out var p)) return FreeSpotNear(p);
+        if (mapLoader.TryGetPlayerSpawn(out var sp)) return FreeSpotNear(sp);
+        Debug.LogWarning($"[MapManager] 地圖「{mapLoader.Map?.name}」找不到傳送落點也沒有玩家出生點，" +
+                         "只能退回地圖中心——**地圖中心很可能正好在家具或牆裡**。請在地圖編輯器補一個「玩家出生點」。");
+        return FreeSpotNear(MapCoords.WorldCenter(mapLoader.Map));
+    }
+
+    // ---- 落點防呆：把玩家挪到最近的可站位置 ----
+    // 實際踩過：紅嫁衣書房沒有放「玩家出生點」，落點退回地圖中心 (9,-5)，而那裡正好在中央書架的碰撞裡，
+    // 玩家一進場就卡在書架中間動不了。原本這裡只印一則 Warning 就把玩家丟進去，
+    // 而且訊息沒提「中心可能在牆裡」，所以症狀看起來像別的東西（例如誤以為是碰撞解析度改壞了）。
+    const float SpawnProbeRadius = 0.4f;      // ≈ 玩家碰撞圓的世界半徑（0.5 × PlayerScale 0.8）
+    const float SpawnSearchStep = 0.25f;      // 往外找的每一圈間距（格）
+    const float SpawnSearchMaxRadius = 4f;    // 最多找幾格；再遠就不是「挪一下」而是地圖真的有問題
+    const int SpawnSearchDirs = 16;           // 每圈試幾個方向
+
+    /// <summary>
+    /// 若落點被 Environment/Water 擋住，往外螺旋找最近的空位；沒被擋就原樣回傳。
+    /// 找不到空位時印 Error 並回原點（寧可卡住也不要把玩家丟到地圖外面）。
+    /// </summary>
+    Vector2 FreeSpotNear(Vector2 pos)
+    {
+        int mask = LayerMask.GetMask(mapLoader.environmentLayerName, mapLoader.blockerLayerName);
+        if (mask == 0) return pos;   // layer 名稱設錯就不做防呆，維持原行為
+
+        // ⚠ 專案全域 queriesStartInColliders = false（見 readme/PROBLEMS.md B7），
+        //    那會讓 overlap 查詢**略過「重疊在查詢起點」的 collider**——而這裡要問的正好就是
+        //    「這個點是不是在東西裡面」，不打開就會永遠回答「沒被擋」。用完立刻還原。
+        //    另外 autoSyncTransforms 也是 false，碰撞剛建好要先手動同步一次才查得到。
+        bool prevQuery = Physics2D.queriesStartInColliders;
+        Physics2D.queriesStartInColliders = true;
+        try
+        {
+            Physics2D.SyncTransforms();
+            if (Physics2D.OverlapCircle(pos, SpawnProbeRadius, mask) == null) return pos;
+
+            for (float d = SpawnSearchStep; d <= SpawnSearchMaxRadius; d += SpawnSearchStep)
+            {
+                for (int i = 0; i < SpawnSearchDirs; i++)
+                {
+                    float a = i * Mathf.PI * 2f / SpawnSearchDirs;
+                    Vector2 c = pos + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * d;
+                    if (Physics2D.OverlapCircle(c, SpawnProbeRadius, mask) != null) continue;
+
+                    Debug.LogWarning($"[MapManager] 落點 {pos} 被地上物/牆擋住，已挪到 {c}（相距 {d:0.00} 格）。" +
+                                     "多半是這張地圖沒放「玩家出生點」而退回了地圖中心——建議去地圖編輯器補一個。");
+                    return c;
+                }
+            }
+
+            Debug.LogError($"[MapManager] 落點 {pos} 被擋住，且 {SpawnSearchMaxRadius} 格內找不到空位，玩家會卡住。" +
+                           "請在地圖編輯器補「玩家出生點」，或檢查該處的地上物碰撞（效能面板 P → C 可以看碰撞範圍）。");
+            return pos;
+        }
+        finally { Physics2D.queriesStartInColliders = prevQuery; }
     }
 
     /// <summary>玩家保留並移動：沒有就生一次（透過 MainSpawner），有就移到落點。</summary>

@@ -18,7 +18,7 @@ public class MapObjectRevealer : MonoBehaviour
     {
         public GameObject go;
         public SpriteRenderer sr;
-        public Collider2D col;
+        public Collider2D[] cols;        // 一個地上物可能有很多顆（碰撞貼合圖形後 = Composite + 一堆 box）
         public AnimatedMapObject anim;   // 可為 null（非動畫物件）
         public float delay;
         public bool fade;
@@ -33,14 +33,19 @@ public class MapObjectRevealer : MonoBehaviour
     void OnEnable()  { TriggerChain.OnFlagFirstSet += OnFlagFirstSet; }
     void OnDisable() { TriggerChain.OnFlagFirstSet -= OnFlagFirstSet; }
 
-    /// <summary>登記一個「先藏起來、等旗標現身」的地上物。由 MapLoader 在建物件時呼叫。</summary>
-    public void RegisterHidden(string flag, GameObject go, SpriteRenderer sr, Collider2D col,
+    /// <summary>
+    /// 登記一個「先藏起來、等旗標現身」的地上物。由 MapLoader 在建物件時呼叫。
+    /// <para><c>cols</c> 收<b>整組</b>碰撞而不是單一顆：地上物碰撞改成貼合圖形後，一個物件身上會有
+    /// 一顆 CompositeCollider2D 加上一堆 usedByComposite 的 BoxCollider2D。只開關其中一顆的話，
+    /// 會出現「東西還沒現身、路卻已經被擋住」或反過來，而且不會有任何錯誤訊息。</para>
+    /// </summary>
+    public void RegisterHidden(string flag, GameObject go, SpriteRenderer sr, Collider2D[] cols,
                                AnimatedMapObject anim, float delaySeconds, bool fade)
     {
         if (string.IsNullOrEmpty(flag) || go == null) return;
         string key = flag.Trim();
         if (!_byFlag.TryGetValue(key, out var list)) { list = new List<Hidden>(); _byFlag[key] = list; }
-        list.Add(new Hidden { go = go, sr = sr, col = col, anim = anim, delay = delaySeconds, fade = fade });
+        list.Add(new Hidden { go = go, sr = sr, cols = cols, anim = anim, delay = delaySeconds, fade = fade });
     }
 
     /// <summary>登記一個「等旗標成立就消失（銷毀）」的地上物。由 MapLoader 在建物件時呼叫（disappearFlag）。</summary>
@@ -79,7 +84,9 @@ public class MapObjectRevealer : MonoBehaviour
         // 淡入時先把 alpha 設 0，避免開啟當幀閃一下全不透明。
         if (h.fade && h.sr != null) { var c = h.sr.color; c.a = 0f; h.sr.color = c; }
 
-        if (h.col != null) h.col.enabled = true;
+        if (h.cols != null)
+            for (int i = 0; i < h.cols.Length; i++)
+                if (h.cols[i] != null) h.cols[i].enabled = true;
         if (h.sr != null)  h.sr.enabled = true;
         if (h.anim != null) h.anim.PlayFromStart();    // 動畫一出現就從第0幀播（播一次的停最後一幀）
 

@@ -73,6 +73,8 @@ public static class MapAssetSyncTool
                         module = module,
                         pixelSize = ReadPngWidth(png),
                         ppu = PPU,
+                        // 只有 Environment（＝會被擺到地圖上的地上物）需要佔位遮罩；背景/劇情大圖/立繪不擋路。
+                        footprint = cat == MapAssetCategories.Environment ? BakeFootprint(png) : null,
                     });
                 }
 
@@ -113,6 +115,36 @@ public static class MapAssetSyncTool
     }
 
     /// <summary>
+    /// 掃一張 PNG 產生「佔位遮罩」（碰撞貼合圖形用），寫進 catalog 讓遊戲不必每次載入重算。
+    ///
+    /// <para>刻意呼叫 runtime 的 <see cref="ObjectFootprint.Scan"/> 而不是在這裡另寫一份：
+    /// 遊戲端在 catalog 沒有遮罩時會當場掃（<see cref="MapSpriteLoader.GetFootprint"/>），
+    /// 兩條路必須產出完全一樣的形狀，否則會變成「同一個物件在有烘/沒烘的機器上擋路範圍不一樣」。
+    /// 註：<c>Tools/sync_map_assets.sh</c>（shell 版同步）不會烘遮罩，遊戲端靠退路照樣正確、只是載入慢一點。</para>
+    ///
+    /// <para>失敗（讀不到/全透明）回 null——catalog 省略該欄，遊戲端自動走退路，不會壞。</para>
+    /// </summary>
+    static FootprintMask BakeFootprint(string pngPath)
+    {
+        Texture2D tex = null;
+        try
+        {
+            tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            if (!tex.LoadImage(File.ReadAllBytes(pngPath))) return null;
+            return ObjectFootprint.Scan(tex, ObjectFootprint.BakeSubdiv, ObjectFootprint.DefaultCoverage);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"[SyncMapAssets] 佔位遮罩掃描失敗（該素材改由遊戲端當場掃）：{pngPath}\n{e.Message}");
+            return null;
+        }
+        finally
+        {
+            if (tex != null) Object.DestroyImmediate(tex);
+        }
+    }
+
+    /// <summary>
     /// 同步後印出「每個分類收了幾筆」的摘要。
     ///
     /// <para><b>為什麼要這個</b>：同步漏檔是本專案最常見也最難查的坑——漏了不會報錯，
@@ -129,6 +161,7 @@ public static class MapAssetSyncTool
         var byCat = new Dictionary<string, int>();
         var animByCat = new Dictionary<string, int>();
         var byModule = new Dictionary<string, int>();
+        int envCount = 0, fpCount = 0;   // 地上物筆數 / 其中烘到佔位遮罩的筆數
 
         foreach (var it in catalog.items)
         {
@@ -139,6 +172,11 @@ public static class MapAssetSyncTool
             byCat.TryGetValue(c, out int n); byCat[c] = n + 1;
             byModule.TryGetValue(m, out int mn); byModule[m] = mn + 1;
             if (it.IsAnimated) { animByCat.TryGetValue(c, out int an); animByCat[c] = an + 1; }
+            if (it.category == MapAssetCategories.Environment)
+            {
+                envCount++;
+                if (it.footprint != null && it.footprint.Ok) fpCount++;
+            }
         }
 
         var sb = new System.Text.StringBuilder();
@@ -151,6 +189,9 @@ public static class MapAssetSyncTool
         }
         sb.Append("\n  module：");
         foreach (var kv in byModule) sb.Append($"\n    {kv.Key} = {kv.Value} 筆");
+        // 佔位遮罩：地上物碰撞貼合圖形用。沒烘到的會由遊戲端當場掃（結果一樣、載入慢一點），
+        // 但整批 0 通常代表 ObjectFootprint 出了問題，值得看一眼。
+        sb.Append($"\n  佔位遮罩：{fpCount}/{envCount} 筆地上物已烘（沒烘到的遊戲端會當場掃）");
 
         // 白名單裡「一筆都沒收到」的分類 → 多半是資料夾名打錯或整包漏放，值得看一眼。
         var missing = new List<string>();
@@ -254,6 +295,8 @@ public static class MapAssetSyncTool
                 module = module,
                 pixelSize = ReadPngWidth(frameFiles[0]),
                 ppu = PPU,
+                // 第一幀 = sprite 與碰撞的取樣來源（見 path 註解），佔位遮罩也跟著取第一幀。
+                footprint = BakeFootprint(frameFiles[0]),
             };
             if (framesRel.Count >= 2)
             {
@@ -327,6 +370,8 @@ public static class MapAssetSyncTool
                 module = module,
                 pixelSize = ReadPngWidth(frameFiles[0]),
                 ppu = PPU,
+                // 刻意不烘佔位遮罩：角色/怪物的碰撞不是走地上物那條路（見 MonsterController / Player.prefab），
+                // 而且序列圖資料夾數量很多，烘了只是白白撐大 catalog。
             };
             if (framesRel.Count >= 2)
             {

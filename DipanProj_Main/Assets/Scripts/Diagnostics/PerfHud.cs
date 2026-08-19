@@ -84,6 +84,7 @@ namespace Dipan.Diagnostics
                 if (Input.GetKeyDown(KeyCode.V)) CycleVSync();
                 if (Input.GetKeyDown(KeyCode.T)) CycleTarget();
                 if (Input.GetKeyDown(KeyCode.F)) MapSpriteLoader.ToggleSceneFilterMode();
+                if (Input.GetKeyDown(KeyCode.C)) CollisionDebugOverlay.Toggle();
             }
 
             // 用 unscaled，暫停（Time.timeScale=0）時也能量測
@@ -214,7 +215,7 @@ namespace Dipan.Diagnostics
             float w = 380f;
             var content = new GUIContent(text);
             float contentH = _label.CalcHeight(content, w);
-            const float ctrlRowH = 58f;   // 控制鈕（兩列：VSync/FPS ＋ 場景濾波）的高度
+            const float ctrlRowH = 82f;   // 控制鈕（三列：VSync/FPS ＋ 場景濾波 ＋ 碰撞範圍）的高度
             float h = Mathf.Min(contentH + 18f + ctrlRowH, Screen.height - 16f);
             GUILayout.BeginArea(new Rect(10, 10, w, h), _box);
 
@@ -227,6 +228,14 @@ namespace Dipan.Diagnostics
             // 場景貼圖濾波即時切換（比較大螢幕上「柔化 vs 硬像素」用）
             if (GUILayout.Button("場景濾波(F): " + SceneFilterName(), _btn))
                 MapSpriteLoader.ToggleSceneFilterMode();
+
+            // 碰撞可視化：把實際生成的碰撞形狀畫出來（排查「看起來能走卻走不過去」）。
+            // 綠＝地上物、紅＝牆、藍＝水/坑、黃＝玩家、橘＝怪物。**綠與紅是兩套獨立系統**：
+            // 地上物的擋路範圍不在可走層上，塗可走層改不動綠色的部分（見 readme/PROBLEMS.md B9）。
+            if (GUILayout.Button("碰撞範圍(C): " + (CollisionDebugOverlay.Enabled ? "顯示" : "隱藏"), _btn))
+                CollisionDebugOverlay.Toggle();
+            if (CollisionDebugOverlay.Enabled)
+                GUILayout.Label("綠=地上物 紅=牆 藍=水/坑 黃=玩家 橘=怪物", _label);
 
             GUILayout.Label(content, _label);
             GUILayout.EndArea();

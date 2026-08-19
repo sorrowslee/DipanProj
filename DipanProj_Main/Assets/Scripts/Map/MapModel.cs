@@ -217,6 +217,12 @@ namespace Dipan.MapRuntime
         public int frameCount = 1;          // 1（或缺欄）= 靜態單張；>1 = 動畫物件。
         public List<string> frames;         // 各幀相對路徑（依序，含第一幀）；靜態 = null。
 
+        // ---- 地上物佔位遮罩（讓碰撞貼合圖形、透明處不擋路）----
+        // 由 Project Tools → Sync Map Assets 烘進來（只烘 Environment 分類；動畫物件取第一幀）。
+        // 缺欄 = null：MapSpriteLoader 會當場掃一次當退路，結果相同、只是載入慢一點
+        // （shell 版同步腳本不會烘，所以這條退路一定會被用到）。見 FootprintMask / ObjectFootprint。
+        public FootprintMask footprint;
+
         [JsonIgnore] public bool IsAnimated => frameCount > 1 && frames != null && frames.Count > 1;
     }
 }

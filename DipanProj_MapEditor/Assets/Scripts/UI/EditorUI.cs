@@ -711,6 +711,16 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("放大")) { UndoManager.Push(); ctl.ScaleBy(1.1f); }
             if (GUILayout.Button("旋轉 15°")) { UndoManager.Push(); ctl.Rotate(15f); }
             GUILayout.EndHorizontal();
+            // 「層」：+1 的實際語意是「**永遠畫在角色前面、完全不參與 Y 排序**」（排序帶 13000~18999，
+            // 玩家永遠在 0 層的 7000~12999），設在大型落地家具上會造成「玩家站在它前面、頭還是被蓋住」。
+            // 它只適合「放在別的東西上面、玩家永遠站不到它前面」的小型桌上物（花瓶/香爐/燭台）。
+            // 原本只在面板最上面那行小小顯示「層 N」，很容易漏看，所以這裡獨立一行、寫出語意並上色。
+            // 場景上另有常駐標示（見 ObjectSelectionOverlay）。詳見 readme/PROBLEMS.md E16。
+            var _zPrevCol = GUI.color;
+            if (sel.zOrder > 0) GUI.color = new Color(1f, 0.62f, 0.2f);
+            else if (sel.zOrder < 0) GUI.color = new Color(0.5f, 0.75f, 1f);
+            GUILayout.Label(ZOrderText(sel.zOrder));
+            GUI.color = _zPrevCol;
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("上移層")) { UndoManager.Push(); ctl.RaiseZ(); }
             if (GUILayout.Button("下移層")) { UndoManager.Push(); ctl.LowerZ(); }
@@ -1835,6 +1845,17 @@ namespace DipanMapEditor.UI
             return float.TryParse(_tileSize, out tileSize) && tileSize > 0
                 && int.TryParse(_width, out width) && width > 0
                 && int.TryParse(_height, out height) && height > 0;
+        }
+        /// <summary>
+        /// 「層」的顯示文字。**寫出語意而不只是數字**——「層 +1」不是「稍微前面一點」，
+        /// 而是「整層跳到玩家之上、完全退出 Y 排序」，只看數字不會知道這件事。
+        /// 見 readme/PROBLEMS.md E16。
+        /// </summary>
+        static string ZOrderText(int z)
+        {
+            if (z > 0) return "層 +" + z + "　⚠ 永遠蓋住角色（只適合桌上的小東西）";
+            if (z < 0) return "層 " + z + "　永遠被其他地上物蓋住";
+            return "層 0　正常 Y 排序（走到前面就蓋住它）";
         }
 
         static string Short(string id)

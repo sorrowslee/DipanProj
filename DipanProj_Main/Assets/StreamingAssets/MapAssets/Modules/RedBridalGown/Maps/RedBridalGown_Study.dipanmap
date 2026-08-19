@@ -186,7 +186,7 @@
           "scaleX": 1.43496442,
           "scaleY": 1.43496442,
           "sortKey": -2.64317131,
-          "zOrder": 1,
+          "zOrder": 0,
           "hp": 1,
           "animFps": 8.0,
           "pingPong": false,
