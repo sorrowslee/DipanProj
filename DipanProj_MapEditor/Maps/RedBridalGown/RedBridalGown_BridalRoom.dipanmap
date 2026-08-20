@@ -253,7 +253,11 @@
           "params": {
             "entranceId": "BridalRoom_west",
             "targetMapId": "5",
-            "targetEntrance": "ShrineHall_east"
+            "targetEntrance": "ShrineHall_east",
+            "markerX": 1.50741458,
+            "markerY": -6.040177,
+            "markerW": 1.2,
+            "markerH": 2.2
           }
         },
         {
@@ -269,7 +273,11 @@
           "params": {
             "entranceId": "BridalRoom_south",
             "targetMapId": "8",
-            "targetEntrance": "LivingRoom2_north"
+            "targetEntrance": "LivingRoom2_north",
+            "markerX": 9.277404,
+            "markerY": -8.504199,
+            "markerW": 1.2,
+            "markerH": 1.2
           }
         },
         {

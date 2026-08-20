@@ -240,7 +240,10 @@ public class MapLoader : MonoBehaviour
         {
             if (r.typeId != teleportTypeId) continue;
             if (r.GetString("entranceId") != entranceId) continue;
-            return RegionCenter(r, out center);
+            // 落點＝傳送點錨點（沒設才退回格子平均中心）。錨點可能落在門的位置（牆上），
+            // 但 MapManager.ResolveSpawnPos 外面包了 FreeSpotNear——被牆/家具擋住會自動推到最近的可站處，
+            // 所以「落在門上」是安全的，而且推出來的位置就是門前那塊地板。
+            return TeleportAnchor.TryCenter(r, _map, out center);
         }
         return false;
     }
@@ -820,11 +823,8 @@ public class MapLoader : MonoBehaviour
         {
             if (r.typeId != teleportTypeId) continue;
             if (!r.GetBool("showMarker", true)) continue;   // 傳送點勾掉「使用傳送點外型」→ 不生外型（預設顯示）
-            // 外型位置：優先用「視覺錨點」markerX/markerY（編輯器點放的精準世界座標）；沒設才退回格子平均中心。
-            Vector2 center;
-            if (r.Params != null && r.Params.ContainsKey("markerX") && r.Params.ContainsKey("markerY"))
-                center = new Vector2(r.GetFloat("markerX"), r.GetFloat("markerY"));
-            else if (!RegionCenter(r, out center)) continue;
+            // 外型位置＝錨點（＝踩踏區中心＝落點，三者同一個點）；沒設錨點的舊傳送點退回格子平均中心。
+            if (!TeleportAnchor.TryCenter(r, _map, out Vector2 center)) continue;
             var inst = _vfx.Spawn(teleportVfxId, center, 0f);
             if (inst != null)
             {

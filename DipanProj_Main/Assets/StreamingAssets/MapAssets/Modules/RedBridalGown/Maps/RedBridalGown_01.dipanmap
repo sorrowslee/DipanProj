@@ -184,7 +184,11 @@
             "targetY": "",
             "entranceId": "1_south",
             "targetMapId": "2",
-            "targetEntrance": "2_north"
+            "targetEntrance": "2_north",
+            "markerX": 8.5,
+            "markerY": -9.5,
+            "markerW": 3.2,
+            "markerH": 1.2
           }
         },
         {
@@ -254,7 +258,11 @@
           "params": {
             "entranceId": "1_east",
             "targetMapId": "3",
-            "targetEntrance": "3_west"
+            "targetEntrance": "3_west",
+            "markerX": 15.5,
+            "markerY": -6.0,
+            "markerW": 1.2,
+            "markerH": 2.2
           }
         }
       ]

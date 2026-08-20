@@ -9508,7 +9508,11 @@
             "entranceId": "caveExit",
             "targetMapId": "",
             "targetEntrance": "",
-            "showMarker": false
+            "showMarker": false,
+            "markerX": 45.0,
+            "markerY": -43.5,
+            "markerW": 2.2,
+            "markerH": 1.2
           }
         },
         {
@@ -9529,7 +9533,11 @@
             "entranceId": "center",
             "targetMapId": "",
             "targetEntrance": "",
-            "showMarker": false
+            "showMarker": false,
+            "markerX": 45.0,
+            "markerY": -28.5,
+            "markerW": 2.2,
+            "markerH": 1.2
           }
         },
         {
@@ -9693,7 +9701,11 @@
             "showMarker": false,
             "linkedFx": "2d656e16",
             "startDisabled": true,
-            "enableFlag": ""
+            "enableFlag": "",
+            "markerX": 51.0,
+            "markerY": -19.5,
+            "markerW": 2.2,
+            "markerH": 1.2
           }
         },
         {

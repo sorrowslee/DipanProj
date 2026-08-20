@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Dipan.MapRuntime;
 
 namespace Dipan.Diagnostics
 {
@@ -49,6 +50,7 @@ namespace Dipan.Diagnostics
         static readonly Color BlockerColor = new Color(0.35f, 0.60f, 1.00f);   // 水/坑（可走層 '2'）
         static readonly Color PlayerColor  = new Color(1.00f, 0.85f, 0.20f);   // 玩家
         static readonly Color EnemyColor   = new Color(1.00f, 0.55f, 0.15f);   // 怪物
+        static readonly Color TeleportColor = new Color(0.30f, 1.00f, 0.55f);   // 傳送點踩踏矩形
         const float FillAlpha = 0.25f;
         const float LineAlpha = 0.95f;
 
@@ -160,7 +162,100 @@ namespace Dipan.Diagnostics
                 DrawCollider(col, min, max);
             }
 
+            DrawTeleportZones();
+
             GL.PopMatrix();
+        }
+
+        /// <summary>
+        /// 傳送點的**踩踏矩形**（青綠）＋錨點十字。
+        ///
+        /// <para>沒有它就沒辦法回答「我明明站在光盤上為什麼不傳送」——傳送點自從改成
+        /// <see cref="TeleportAnchor"/> 的點模式後，觸發區是一個**遊戲裡完全看不見的矩形**，
+        /// 判定點是<b>黃色碰撞圓的圓心</b>（＝<c>transform.position</c>，物理與可走層都用它），
+        /// 不是黃色十字標的腳底——兩者差將近一整格。把三者一起畫出來，
+        /// 「圓心有沒有在青綠框裡」一眼就有答案。</para>
+        ///
+        /// <para>被觸發鏈停用中的傳送點畫成虛淡色——那種「框對了卻不會傳」是另一種原因。</para>
+        /// 舊的格子模式傳送點不畫（它的觸發區＝畫得出來的格子，本來就看得到）。
+        /// </summary>
+        void DrawTeleportZones()
+        {
+            var mgr = MapManager.Instance;
+            var map = mgr != null && mgr.mapLoader != null ? mgr.mapLoader.Map : null;
+            var regions = map?.TriggerLayer?.regions;
+            if (regions == null) return;
+
+            string typeId = mgr.mapLoader.teleportTypeId;
+            for (int i = 0; i < regions.Count; i++)
+            {
+                var r = regions[i];
+                if (r == null || r.typeId != typeId) continue;
+                if (!TeleportAnchor.TryTouchRect(r, out Rect rect)) continue;
+
+                bool active = TriggerChain.IsActive(r);
+                Color tint = active ? TeleportColor : new Color(TeleportColor.r, TeleportColor.g, TeleportColor.b, 0.35f);
+                FillRectWorld(rect, new Color(tint.r, tint.g, tint.b, active ? FillAlpha : FillAlpha * 0.4f));
+                OutlineRect(new Vector2(rect.xMin, rect.yMin), new Vector2(rect.xMax, rect.yMax), tint);
+                DrawCross(rect.center, 0.18f, new Color(tint.r, tint.g, tint.b, LineAlpha));
+            }
+        }
+
+        /// <summary>
+        /// 傳送點診斷讀數：玩家腳底座標、最近的傳送點踩踏矩形、以及「腳底在不在裡面」。
+        /// 畫面上有框還不夠——框對了卻不觸發時，得看得到「判定當下用的是哪個座標」。
+        /// </summary>
+        void OnGUI()
+        {
+            if (!Enabled) return;
+            var mgr = MapManager.Instance;
+            var map = mgr != null && mgr.mapLoader != null ? mgr.mapLoader.Map : null;
+            var regions = map?.TriggerLayer?.regions;
+            if (regions == null) return;
+
+            var pgo = GameObject.FindGameObjectWithTag("Player");
+            var pc = pgo != null ? pgo.GetComponent<PlayerController>() : null;
+            // 傳送點的判定點＝ transform.position（＝碰撞圓心，物理與可走層都用它）。
+            // 腳底只是參考：兩者差將近一整格，那個落差正是「牆邊的東西看起來碰到了卻沒反應」的來源。
+            string feetTxt = pgo != null
+                ? $"判定點 ({pgo.transform.position.x:F2}, {pgo.transform.position.y:F2})"
+                  + (pc != null ? $"　腳底 ({pc.FeetWorldPos.x:F2}, {pc.FeetWorldPos.y:F2})　落差 {pc.FeetWorldPos.y - pgo.transform.position.y:F2}" : "")
+                : "⚠ 找不到玩家";
+
+            // 最近的傳送點
+            string near = "（此圖沒有點模式傳送點）";
+            if (pgo != null)
+            {
+                Vector2 probe = pgo.transform.position;
+                float best = float.MaxValue;
+                for (int i = 0; i < regions.Count; i++)
+                {
+                    var r = regions[i];
+                    if (r == null || r.typeId != mgr.mapLoader.teleportTypeId) continue;
+                    if (!TeleportAnchor.TryTouchRect(r, out Rect rect)) continue;
+                    float d = Vector2.Distance(probe, rect.center);
+                    if (d >= best) continue;
+                    best = d;
+                    near = $"最近：{r.name}　框 x[{rect.xMin:F2},{rect.xMax:F2}] y[{rect.yMin:F2},{rect.yMax:F2}]"
+                         + $"　判定點在框內={(rect.Contains(probe) ? "是" : "否")}　啟用={(TriggerChain.IsActive(r) ? "是" : "否")}";
+                }
+            }
+
+            var st = new GUIStyle(GUI.skin.label) { fontSize = 13, richText = false };
+            st.normal.textColor = new Color(0.3f, 1f, 0.55f);
+            GUI.Label(new Rect(12f, Screen.height - 46f, Screen.width - 24f, 20f), feetTxt, st);
+            GUI.Label(new Rect(12f, Screen.height - 26f, Screen.width - 24f, 20f), near, st);
+        }
+
+        void FillRectWorld(Rect rect, Color c)
+        {
+            GL.Begin(GL.QUADS);
+            GL.Color(c);
+            GL.Vertex3(rect.xMin, rect.yMin, 0f);
+            GL.Vertex3(rect.xMax, rect.yMin, 0f);
+            GL.Vertex3(rect.xMax, rect.yMax, 0f);
+            GL.Vertex3(rect.xMin, rect.yMax, 0f);
+            GL.End();
         }
 
         void DrawCollider(Collider2D col, Vector2 viewMin, Vector2 viewMax)

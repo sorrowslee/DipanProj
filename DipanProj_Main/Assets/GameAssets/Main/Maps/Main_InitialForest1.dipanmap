@@ -112,7 +112,11 @@
             "targetMapId": "14",
             "targetEntrance": "",
             "showMarker": true,
-            "linkedFx": ""
+            "linkedFx": "",
+            "markerX": 10.0,
+            "markerY": -0.5,
+            "markerW": 2.2,
+            "markerH": 1.2
           }
         },
         {

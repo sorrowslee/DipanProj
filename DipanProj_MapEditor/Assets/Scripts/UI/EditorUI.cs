@@ -123,6 +123,7 @@ namespace DipanMapEditor.UI
         Tools.LightController _lightCtl;
         EditTool _toolBeforePreview = EditTool.Object;   // 進特效預覽器前停在哪個工具，離開時退回這個
         LightPreview _lightPrev;     // 照明預覽（壓暗＋燈照回來）
+        Preview.TeleportMarkerPreview _tpPrev;   // 傳送點對位預覽（畫出真的傳送點特效、可直接拖曳）
         // 照明面板：清單捲動位置＋選取中那盞的數字輸入暫存（切換選取時重新同步）
         Vector2 _lightScroll;
         Data.LightInstance _lightBufFor;
@@ -220,6 +221,15 @@ namespace DipanMapEditor.UI
             if (_lightPrev == null) _lightPrev = FindObjectOfType<LightPreview>();
             return _lightPrev;
         }
+
+        Preview.TeleportMarkerPreview TpPrev()
+        {
+            if (_tpPrev == null) _tpPrev = FindObjectOfType<Preview.TeleportMarkerPreview>();
+            return _tpPrev;
+        }
+
+        /// <summary>傳送點對位模式是否開著（TriggerController 據此決定要不要吃掉拖曳）。</summary>
+        public bool TeleportAlignActive => TpPrev() != null && TpPrev().Enabled;
 
         Tools.CutsceneController CsCtl()
         {
@@ -340,6 +350,7 @@ namespace DipanMapEditor.UI
             {
                 MapSession.Instance?.ReloadCatalog();
                 SpriteCache.Clear();
+                Preview.TeleportMarkerPreview.ClearCache();   // 傳送點外型改了(VfxTable/PNG)也一起重讀
                 _objects = null;
             }
             if (GUILayout.Button("背景", GUILayout.Width(50)) && MapSession.Instance?.Map != null) OpenDialog(bgDlg: true);
@@ -367,6 +378,19 @@ namespace DipanMapEditor.UI
                 _statusMsg = lp.Enabled
                     ? $"照明預覽開啟（環境亮度 {lp.EnvBright}）——到「照明」面板可調亮度"
                     : "照明預覽關閉";
+            }
+
+            // 傳送點對位：把遊戲真正的傳送點特效畫在畫布上（同尺寸、同幀率），Trigger 工具下可直接拖曳對齊門。
+            // 門的美術畫在背景圖裡、資料裡沒有門的位置，所以外型只能人工對 —— 這個模式讓你「看著對」而不是猜座標。
+            var tp = TpPrev();
+            GUI.color = (tp != null && tp.Enabled) ? Color.cyan : Color.white;
+            if (GUILayout.Button("傳送點對位", GUILayout.Width(90)) && tp != null)
+            {
+                tp.Toggle();
+                if (tp.Enabled) CurrentTool = EditTool.Trigger;   // 開了就切到 Trigger 工具，直接可以拖
+                _statusMsg = tp.Enabled
+                    ? "傳送點對位開啟：直接拖曳畫布上的傳送點外型即可對齊門（半透明＝該點勾掉了「使用傳送點外型」）"
+                    : "傳送點對位關閉";
             }
             GUI.color = Color.white;
 
@@ -1136,7 +1160,10 @@ namespace DipanMapEditor.UI
             {
                 GUILayout.BeginHorizontal();
                 GUI.color = (r == CurrentRegion) ? Color.cyan : Color.white;
-                if (GUILayout.Button($"{r.name}（{r.cells.Count}格）", GUILayout.Width(160))) { CurrentRegion = r; TriggerPaintMode = true; TriggerNewRegionPerStroke = false; }
+                // 點模式的傳送點不靠格子觸發，顯示「點」而不是格數（顯示 0 格會讓人以為壞了）。
+                string sizeTag = (r.typeId == "teleport" && Preview.TeleportMarkerPreview.HasAnchor(r))
+                    ? "點" : $"{r.cells.Count}格";
+                if (GUILayout.Button($"{r.name}（{sizeTag}）", GUILayout.Width(160))) { CurrentRegion = r; TriggerPaintMode = true; TriggerNewRegionPerStroke = false; }
                 GUI.color = Color.white;
                 if (GUILayout.Button("刪", GUILayout.Width(36))) toDelete = r;
                 GUILayout.EndHorizontal();
@@ -1205,20 +1232,33 @@ namespace DipanMapEditor.UI
             GUILayout.EndArea();
         }
 
-        // 傳送點「外型位置」小面板：狀態 + 點放 + 回到中心（預覽黃十字由 TriggerOverlay 畫）。
+        // 傳送點「錨點」小面板：錨點＝外型位置＝踩踏區中心＝落點（三者同一個點）。
+        // 沒設錨點的舊傳送點仍走格子模式（見主專案 TeleportAnchor）。
         void DrawTeleportMarkerAnchor()
         {
             var r = CurrentRegion;
             GUILayout.Space(4);
-            GUILayout.Label("── 外型位置（傳送點特效）──");
-            bool has = r.Params != null && r.Params.ContainsKey("markerX") && r.Params.ContainsKey("markerY");
+            GUILayout.Label("── 錨點（外型＋踩踏＋落點）──");
+            bool has = Preview.TeleportMarkerPreview.HasAnchor(r);
             if (has)
             {
                 float.TryParse(r.Params["markerX"].ToString(), out float mx);
                 float.TryParse(r.Params["markerY"].ToString(), out float my);
-                GUILayout.Label($"目前：自訂 ({mx:F2}, {my:F2})");
+                GUILayout.Label($"點模式 ({mx:F2}, {my:F2})");
             }
-            else GUILayout.Label("目前：跟隨格子平均中心");
+            else GUILayout.Label("<b>格子模式</b>（舊）：踩格子觸發", new GUIStyle(GUI.skin.label) { richText = true });
+
+            // 踩踏矩形（玩家腳底進到這裡就傳送）。可在畫布拖右下角把手改，也可在這裡打數字。
+            var size = Preview.TeleportMarkerPreview.TouchSize(r);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("踩踏 寬", GUILayout.Width(46));
+            string wBuf = GUILayout.TextField(size.x.ToString("F2"), GUILayout.Width(46));
+            GUILayout.Label("高", GUILayout.Width(18));
+            string hBuf = GUILayout.TextField(size.y.ToString("F2"), GUILayout.Width(46));
+            GUILayout.EndHorizontal();
+            if (float.TryParse(wBuf, out float nw) && float.TryParse(hBuf, out float nh)
+                && (!Mathf.Approximately(nw, size.x) || !Mathf.Approximately(nh, size.y)))
+                Preview.TeleportMarkerPreview.SetSize(r, nw, nh);
             GUILayout.BeginHorizontal();
             GUI.color = MarkerPlaceActive ? Color.cyan : Color.white;
             if (GUILayout.Button(MarkerPlaceActive ? "點門正中央…(Esc取消)" : "設定外型位置")) MarkerPlaceActive = !MarkerPlaceActive;
@@ -1226,12 +1266,22 @@ namespace DipanMapEditor.UI
             if (GUILayout.Button("回到中心") && r.Params != null)
             {
                 UndoManager.Push();
-                r.Params.Remove("markerX");
-                r.Params.Remove("markerY");
+                Preview.TeleportMarkerPreview.ResetMarker(r);
                 MarkerPlaceActive = false;
             }
             GUILayout.EndHorizontal();
-            GUILayout.Label("黃十字＝特效實際落點、藍格＝踩踏功能區。\n按「設定外型位置」再點門正中央即可對齊。");
+
+            // 對位模式：把真的傳送點特效畫出來直接拖 —— 比「設定外型位置→點一下」快，也不用猜。
+            var tpp = TpPrev();
+            GUI.color = (tpp != null && tpp.Enabled) ? Color.cyan : Color.white;
+            if (GUILayout.Button(tpp != null && tpp.Enabled ? "對位模式：開（可直接拖）" : "開啟對位模式（推薦）") && tpp != null)
+            {
+                tpp.Toggle();
+                MarkerPlaceActive = false;
+            }
+            GUI.color = Color.white;
+            GUILayout.Label("開「對位模式」→ 拖光盤搬位置、拖\n右下角綠把手改踩踏大小。\n綠框＝玩家<b>腳底</b>進去就傳送。",
+                            new GUIStyle(GUI.skin.label) { richText = true, wordWrap = true });
         }
 
         /// <summary>供 TriggerController 在開始畫時呼叫：沒有當前區域就依選取的類型自動建一個。</summary>

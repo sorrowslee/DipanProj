@@ -46,11 +46,16 @@ namespace DipanMapEditor.Core
             float ox = map.origin.x;
             float oy = map.origin.y;
             var current = _ui.CurrentRegion;
+            // 對位模式：傳送點的格子改成「只畫邊框、不填色」。
+            // ⚠ 這個疊加層是 OnPostRender 的 GL，**畫在所有 sprite 之後**，填了色一定會蓋住外型動畫，
+            // 調 alpha 也只是變成一層藍紗——唯一乾淨的做法是那幾格不要填。
+            bool alignAll = _ui.TeleportAlignActive;
 
             GL.PushMatrix();
             GL.Begin(GL.QUADS);
             foreach (var region in layer.regions)
             {
+                if (alignAll && region.typeId == "teleport") continue;   // 對位模式：改畫邊框（見下方 LINES）
                 var def = session.TriggerTypes.Find(region.typeId);
                 string hex = def != null ? def.color : "#FFFFFF";
                 Color col = TriggerOps.ParseColor(hex, region == current ? CurrentAlpha : NormalAlpha);
@@ -69,20 +74,70 @@ namespace DipanMapEditor.Core
             GL.End();
             GL.PopMatrix();
 
-            // 選取中的傳送點：畫「外型位置」預覽（黃十字＝特效實際落點；藍格＝踩踏功能區）。給對齊門用。
-            if (current != null && current.typeId == "teleport" && TryMarkerPos(current, map, out Vector2 mp))
+            // 傳送點「外型位置」預覽（黃十字＝特效實際落點；藍格＝踩踏功能區）。給對齊門用。
+            // 平時只畫選取中的那一顆；開了「傳送點對位」模式就整張圖每顆都畫 —— 光盤是柔邊的，
+            // 沒有這個十字看不出正中心在哪。
+            if (alignAll || (current != null && current.typeId == "teleport"))
             {
                 _mat.SetPass(0);
                 GL.PushMatrix();
                 GL.Begin(GL.LINES);
-                GL.Color(new Color(1f, 0.92f, 0.2f, 0.95f));
-                float rr = ts * 0.38f;
-                GL.Vertex3(mp.x - rr, mp.y, 0); GL.Vertex3(mp.x + rr, mp.y, 0);
-                GL.Vertex3(mp.x, mp.y - rr, 0); GL.Vertex3(mp.x, mp.y + rr, 0);
-                GL.Vertex3(mp.x - rr, mp.y, 0); GL.Vertex3(mp.x, mp.y + rr, 0);
-                GL.Vertex3(mp.x, mp.y + rr, 0); GL.Vertex3(mp.x + rr, mp.y, 0);
-                GL.Vertex3(mp.x + rr, mp.y, 0); GL.Vertex3(mp.x, mp.y - rr, 0);
-                GL.Vertex3(mp.x, mp.y - rr, 0); GL.Vertex3(mp.x - rr, mp.y, 0);
+                foreach (var region in layer.regions)
+                {
+                    if (region == null || region.typeId != "teleport") continue;
+                    if (!alignAll && region != current) continue;
+
+                    // 對位模式下沒填色，改用區域色畫每一格的外框，踩踏功能區照樣看得見。
+                    if (alignAll)
+                    {
+                        var tdef = session.TriggerTypes.Find(region.typeId);
+                        GL.Color(TriggerOps.ParseColor(tdef != null ? tdef.color : "#FFFFFF",
+                                                       region == current ? 0.95f : 0.6f));
+                        foreach (var c in region.cells)
+                        {
+                            if (c == null || c.Length < 2) continue;
+                            float bx0 = ox + c[0] * ts, by0 = oy - c[1] * ts;
+                            float bx1 = bx0 + ts, by1 = by0 - ts;
+                            GL.Vertex3(bx0, by0, 0); GL.Vertex3(bx1, by0, 0);
+                            GL.Vertex3(bx1, by0, 0); GL.Vertex3(bx1, by1, 0);
+                            GL.Vertex3(bx1, by1, 0); GL.Vertex3(bx0, by1, 0);
+                            GL.Vertex3(bx0, by1, 0); GL.Vertex3(bx0, by0, 0);
+                        }
+                    }
+
+                    // 踩踏矩形（玩家腳底進到這裡就傳送）＋ 右下角「改大小」把手。
+                    // 這是傳送點真正會生效的範圍，畫出來才不會又變成「看得到的跟會傳送的是兩回事」。
+                    if (DipanMapEditor.Preview.TeleportMarkerPreview.TryTouchRect(region, map, out Rect tr))
+                    {
+                        GL.Color(region == current
+                            ? new Color(0.3f, 1f, 0.5f, 0.95f)     // 選取中：亮綠
+                            : new Color(0.3f, 1f, 0.5f, 0.55f));   // 其餘：淡綠
+                        GL.Vertex3(tr.xMin, tr.yMax, 0); GL.Vertex3(tr.xMax, tr.yMax, 0);
+                        GL.Vertex3(tr.xMax, tr.yMax, 0); GL.Vertex3(tr.xMax, tr.yMin, 0);
+                        GL.Vertex3(tr.xMax, tr.yMin, 0); GL.Vertex3(tr.xMin, tr.yMin, 0);
+                        GL.Vertex3(tr.xMin, tr.yMin, 0); GL.Vertex3(tr.xMin, tr.yMax, 0);
+
+                        float hs = DipanMapEditor.Preview.TeleportMarkerPreview.HandleSize * 0.5f;
+                        float hx = tr.xMax, hy = tr.yMin;
+                        GL.Vertex3(hx - hs, hy + hs, 0); GL.Vertex3(hx + hs, hy + hs, 0);
+                        GL.Vertex3(hx + hs, hy + hs, 0); GL.Vertex3(hx + hs, hy - hs, 0);
+                        GL.Vertex3(hx + hs, hy - hs, 0); GL.Vertex3(hx - hs, hy - hs, 0);
+                        GL.Vertex3(hx - hs, hy - hs, 0); GL.Vertex3(hx - hs, hy + hs, 0);
+                        GL.Vertex3(hx - hs, hy - hs, 0); GL.Vertex3(hx + hs, hy + hs, 0);   // 對角線＝「這是把手不是框」
+                    }
+
+                    if (!TryMarkerPos(region, map, out Vector2 mp)) continue;
+                    GL.Color(region == current
+                        ? new Color(1f, 0.92f, 0.2f, 0.95f)      // 選取中：亮黃
+                        : new Color(1f, 0.92f, 0.2f, 0.5f));     // 其餘：淡黃
+                    float rr = ts * 0.38f;
+                    GL.Vertex3(mp.x - rr, mp.y, 0); GL.Vertex3(mp.x + rr, mp.y, 0);
+                    GL.Vertex3(mp.x, mp.y - rr, 0); GL.Vertex3(mp.x, mp.y + rr, 0);
+                    GL.Vertex3(mp.x - rr, mp.y, 0); GL.Vertex3(mp.x, mp.y + rr, 0);
+                    GL.Vertex3(mp.x, mp.y + rr, 0); GL.Vertex3(mp.x + rr, mp.y, 0);
+                    GL.Vertex3(mp.x + rr, mp.y, 0); GL.Vertex3(mp.x, mp.y - rr, 0);
+                    GL.Vertex3(mp.x, mp.y - rr, 0); GL.Vertex3(mp.x - rr, mp.y, 0);
+                }
                 GL.End();
                 GL.PopMatrix();
             }

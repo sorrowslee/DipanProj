@@ -148,6 +148,14 @@ namespace DipanMapEditor.Core
                 pvGO.AddComponent<DipanMapEditor.Preview.CutscenePreview>();
             }
 
+            // 8e. 傳送點對位預覽（把遊戲真正的傳送點特效畫在畫布上，可直接拖曳定位；預設關，頂部列「傳送點對位」開）
+            if (FindObjectOfType<DipanMapEditor.Preview.TeleportMarkerPreview>() == null)
+            {
+                var tpGO = new GameObject("TeleportMarkerPreview");
+                tpGO.transform.SetParent(transform, false);
+                tpGO.AddComponent<DipanMapEditor.Preview.TeleportMarkerPreview>();
+            }
+
             // 9. Undo 熱鍵（Cmd/Ctrl+Z）
             if (FindObjectOfType<UndoHotkey>() == null)
             {

@@ -366,18 +366,18 @@
           "typeId": "teleport",
           "cells": [
             [
-              1,
+              2,
               5
-            ],
-            [
-              1,
-              6
             ]
           ],
           "params": {
             "entranceId": "Study_west",
             "targetMapId": "7",
-            "targetEntrance": "Courtyard_east2"
+            "targetEntrance": "Courtyard_east2",
+            "markerX": 2.32329226,
+            "markerY": -5.709282,
+            "markerW": 1.32,
+            "markerH": 1.06
           }
         },
         {
@@ -397,7 +397,11 @@
           "params": {
             "entranceId": "Study_north",
             "targetMapId": "8",
-            "targetEntrance": "LivingRoom2_south"
+            "targetEntrance": "LivingRoom2_south",
+            "markerX": 8.735202,
+            "markerY": -1.66164613,
+            "markerW": 1.59,
+            "markerH": 1.02
           }
         }
       ]

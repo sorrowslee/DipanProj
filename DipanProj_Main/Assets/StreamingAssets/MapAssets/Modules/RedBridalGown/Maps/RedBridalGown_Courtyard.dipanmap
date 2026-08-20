@@ -125,7 +125,11 @@
           "params": {
             "entranceId": "Courtyard_west1",
             "targetMapId": "3",
-            "targetEntrance": "Kitchen_east"
+            "targetEntrance": "Kitchen_east",
+            "markerX": 2.96637487,
+            "markerY": -2.68301225,
+            "markerW": 1.2,
+            "markerH": 1.2
           }
         },
         {
@@ -141,7 +145,11 @@
           "params": {
             "entranceId": "Courtyard_west2",
             "targetMapId": "2",
-            "targetEntrance": "Storeroom_east"
+            "targetEntrance": "Storeroom_east",
+            "markerX": 2.92854643,
+            "markerY": -5.104028,
+            "markerW": 1.2,
+            "markerH": 1.2
           }
         },
         {
@@ -157,7 +165,11 @@
           "params": {
             "entranceId": "Courtyard_east1",
             "targetMapId": "8",
-            "targetEntrance": "LivingRoom2_west"
+            "targetEntrance": "LivingRoom2_west",
+            "markerX": 15.3929949,
+            "markerY": -4.9338007,
+            "markerW": 1.2,
+            "markerH": 1.2
           }
         },
         {
@@ -173,7 +185,11 @@
           "params": {
             "entranceId": "Courtyard_north",
             "targetMapId": "5",
-            "targetEntrance": "ShrineHall_south"
+            "targetEntrance": "ShrineHall_south",
+            "markerX": 8.905429,
+            "markerY": -1.64273214,
+            "markerW": 1.2,
+            "markerH": 1.2
           }
         },
         {
@@ -189,7 +205,11 @@
           "params": {
             "entranceId": "Courtyard_east2",
             "targetMapId": "9",
-            "targetEntrance": "Study_west"
+            "targetEntrance": "Study_west",
+            "markerX": 15.5443077,
+            "markerY": -7.41155863,
+            "markerW": 1.2,
+            "markerH": 1.2
           }
         },
         {
