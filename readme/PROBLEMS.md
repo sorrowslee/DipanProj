@@ -8,6 +8,25 @@
 
 每則用同一個格式:**症狀 / 原因 / 解法**。
 
+
+## 分類索引（找特定編號一律用「搜尋」，例如搜 `E11`）
+
+| 代號 | 分類 | 編號範圍與備註 |
+|---|---|---|
+| A | 打包與部署 (Build & Deploy) | A1~A10（A3、A9 已淘汰，原文封存、存根在原位） |
+| B | 地圖載入 (Map Loader) | B1~B13 |
+| C | 地圖編輯器 / 素材同步 | C1~C9（⚠ C6/C7 排在 C1 前面） |
+| D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D20 |
+| E | 效能 / 顯示 (Performance & Display) | E1~E17 |
+| F | 戰鬥 / 傷害 (Combat) | F1~F17（⚠ G 章整段插在 F3 與 F4 之間） |
+| G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G5（位置在 F3 之後） |
+| H | 流程 / 存讀檔 (Game Flow & Save UI) | H1 |
+| I | 開發環境 / 工具（Cowork 橋接器） | I1~I9 |
+| J | 螢幕特效 / 進場過場 (Screen FX) | J1~J2 |
+| K | 互動 / 拾取 (Interaction & Pickup) | K1~K2 |
+
+> ⚠ 編號**不保證依閱讀順序遞增**（歷史造成，維持現狀）。新增條目：放進所屬分類、編號接該分類目前最大號；**永不重編號、永不重用舊編號**——全專案文件與 PROGRESS 大量引用這些編號。條目淘汰時整則原文搬 [archive/PROBLEMS-archive.md](archive/PROBLEMS-archive.md) 並在原位留存根（規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)）。
+
 ---
 
 ## A. 打包與部署 (Build & Deploy)
@@ -22,10 +41,8 @@
 - **原因**:這台 Mac 沒裝(或裝不完整)**Windows Build Support (Mono)** 模組,且必須對「正在開這專案的那個 Unity 版本」安裝。
 - **解法**:Unity Hub → Installs → 對 `2022.3.62f3` Add Modules → 勾 **Windows Build Support (Mono)** → **完全關閉再重開** Unity。`BuildScript` 現在會先檢查,沒裝就擋下並提示。
 
-### A3. 部署 `git push` 失敗 / `fatal: not a git repository`（⚠️ 已淘汰情境）
-> **2026-07-03 起部署改用 itch.io + butler，build 不再進 git，本坑不再發生。新流程見 [DEPLOY.md](DEPLOY.md)。** 以下保留存查。
-- **症狀**:打包成功但推送失敗;或 stderr 出現 `not a git repository`、`non-fast-forward`。
-- **原因**:`DipanProj_Deploy` 還不是 git repo;或本地 main 落後遠端;或從 Unity GUI 啟動的程序拿不到 git 憑證/SSH key。
+### A3. 部署 `git push` 失敗 / `fatal: not a git repository`（⚠️ 已淘汰情境，原文已封存）
+> **2026-07-03 起部署改用 itch.io + butler，build 不再進 git，本坑不再發生**（新流程見 [DEPLOY.md](DEPLOY.md)）。原文照錄於 [archive/PROBLEMS-archive.md](archive/PROBLEMS-archive.md)。編號 A3 保留、永不重用。
 
 ### A4. Windows 端「檔案都在、還是跳 Data folder not found」
 - **症狀**:`exe` 與 `DipanProject_Data` 看起來都在,仍報錯。
@@ -52,14 +69,8 @@
 - **原因**:批次模式 + Personal 授權的**正常現象**,與打包成敗無關。
 - **解法**:忽略。真正的失敗看 BuildStep 與 `_Data` 是否完整。
 
-### A9. `git push` 被拒：`File ...resources.assets.resS ... exceeds GitHub's 100 MB limit`（⚠️ 已淘汰情境）
-> **根治：2026-07-03 起部署改用 itch.io + butler，build 產物不再進 git，就沒有 GitHub 100MB 單檔限制的問題了（見 [DEPLOY.md](DEPLOY.md)）。** 以下的「壓縮 build 貼圖」仍可作為縮小 build 體積的一般參考。
-- **症狀**:Build and Deploy 後 push，GitHub 退回，說某個檔（通常 `*_Data/resources.assets.resS`）超過 100MB。
-- **原因**:`resources.assets.resS` 是 Unity 烘進 build 的「資源資料流」——**凡是放在 `Assets/Resources/` 的貼圖都會進這個檔，且在 build 內展開成大尺寸**（接近未壓縮）。本專案 `Resources/InitialStory`（開場漫畫＋墜落大圖）＋ `Resources/UI`（大張面板底圖）疊起來就破百 MB。
-- **解法（治本）**:把那批大圖的**匯入設定**壓小——選取 `Resources/InitialStory`（及 UI 大底圖）→ Inspector：`Max Size` 設 1024（或留 2048）＋勾 **Use Crunch Compression**（或 `Compression = Normal`）＋取消 **Generate Mip Maps** → Apply → 重新 Build。觀念：
-  - `Max Size`/壓縮改的是「**匯入後的版本**」（存在 Library，編輯器與 build 都用它），**不動原始 PNG**；build 裡裝的是這份處理版（原始 PNG 不會被打進遊戲），所以 build 變小，且**編輯器與 build 解析度一致**。
-  - 開場圖走 `Resources.Load` → **吃**匯入設定；地圖素材在 `StreamingAssets`、用 raw bytes 載 → **不吃**匯入設定（原樣複製進 build，要縮得改檔案本身）。
-- **解法（治標）**:Deploy repo 改用 Git LFS 追 `*.resS *.assets *.bundle`（遠端 pull 的機器也要裝 LFS）。
+### A9. `git push` 被拒：`File ... exceeds GitHub's 100 MB limit`（⚠️ 已淘汰情境，原文已封存）
+> **2026-07-03 起部署改用 itch.io + butler，build 產物不再進 git，本坑不再發生**（見 [DEPLOY.md](DEPLOY.md)）。原文照錄於 [archive/PROBLEMS-archive.md](archive/PROBLEMS-archive.md)——其中「壓縮 build 貼圖」（Max Size／Crunch、`Resources.Load` 吃匯入設定而 `StreamingAssets` 不吃）仍是縮小 build 體積的有效一般參考。編號 A9 保留、永不重用。
 
 ### A10. build 開機直接播漫畫、墜落後全黑（或反過來：完全看不到開場）— 場景順序
 > **2026-07-03 更新**：加了「標題流程」後，開機**場景 0 改成 `MainScene`**（不再是 Intro）。以下依新設計。

@@ -4,6 +4,11 @@
 >
 > 「目前先做到能動、但還缺一塊」或「暫時做不到、之後再補」的項目集中記在這裡。
 > 每補完一項就打勾或移除；新的暫缺項隨手往這裡加。各系統的完整規劃放對應主題文件，這裡只放「缺口」。
+>
+> **本檔慣例**（維護規則詳見 [DOCS_GUIDE.md](DOCS_GUIDE.md)）：
+> - 依「功能模組＋建立日期」分節；**新節一律加在檔案尾端（檔尾＝最新）**。
+> - 單項完成打勾 `[x]` 留在節內當脈絡；**整節全部完成時，整節原文照錄搬到
+>   [archive/TODO-done.md](archive/TODO-done.md)**（沒有這個檔就建一個），別讓已完成的節堆在正檔。
 
 ---
 
@@ -51,7 +56,7 @@
 - [x] `Resources/UI` 全部 39 張貼圖 Compression 改 None（去糊）。
 - [x] `Assets/Editor/UITextureImportSettings.cs`：新 UI 圖自動套不壓縮預設。
 - [x] `MapSpriteLoader.SceneFilterMode` 場景濾波可切換，PerfHud（P）加「場景濾波(F)」按鈕/F 鍵即時切。
-- [x] **場景方向定案：採 `FilterMode.Point`（硬像素）為預設**；Bilinear 保留作比較。
+- [x] 場景濾波定案：~~2026-07-01 曾採 `FilterMode.Point`~~ → **2026-07-05 效能稽核後改為 `Bilinear` + mipmap 為預設**（實測現碼 `MapSpriteLoader.SceneFilterMode = FilterMode.Bilinear`；理由與量測見 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md)，遊戲中按 P→F 可切回 Point 對比）。
 - [ ] （選配，之後有需要再做）想更清晰時照 [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) 把場景源圖重產得更細緻（顆粒更小）。
 - [ ] 回家實體螢幕最終確認 UI 清爽度（遠端桌面看不準，會重壓縮串流）。
 
@@ -535,3 +540,14 @@
    觸發條件很窄（前方被地形擋 ＋ 只有一側通 ＋ 那一側剛好有怪），而且橫移只有 0.6 倍速。
    **刻意不把怪物層加進探測**——那會變成「自動閃避」，是比這個更大的平衡問題。
 3. **貼牆移動略快**（零摩擦 ＋ 沿牆保持原速），在牆邊風箏怪會稍微好做一點。量很小。
+
+---
+
+## 來自舊 ROADMAP 的殘餘點子 — 2026-08-21 封存 ROADMAP.md 時萃取
+
+舊 [ROADMAP.md](archive/ROADMAP.md)（2026 年 6 月前的規劃）已封存：六大項裡，武器組合已被「CSV 配方／武器表＋能力珠鑲嵌」實質取代（見 [GEM_SOCKET.md](GEM_SOCKET.md)）、玩家接觸傷害已完成（見 [COMBAT.md](COMBAT.md)）、佛像與隧道的場景機制已由核心迴圈與過場系統涵蓋（見 [CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md)）。以下幾點**封存時未逐一對程式碼確認完成度**，留在這裡待確認或待做：
+
+- [ ] **BrainType 字串比對改列舉或工廠模式**（怪物 AI；Brain 模組框架已有，見 [BOSS_MODULE.md](BOSS_MODULE.md)，此條只剩「字串比對防呆」的部分——F 段曾有 BrainType 沒 Trim 的坑）。
+- [ ] **更多彈道行為擴充**：透過 `IBulletBehavior` 實作追蹤彈、蛇行彈、延遲爆炸等軌跡（追蹤彈 `HomingTurnSpeed` 已有，其餘待確認）。
+- [ ] **地面特效 `OnSpawn` / `OnDeath` 觸發時機**（需在 `BulletInstance` 增設生成／銷毀事件鉤子）與**可疊加／不可疊加策略**（同一格只能有一團火）——現況見 [GROUND_EFFECT.md](GROUND_EFFECT.md)，做之前先確認是否已被涵蓋。
+

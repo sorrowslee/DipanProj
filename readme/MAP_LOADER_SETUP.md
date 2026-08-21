@@ -52,13 +52,13 @@
 - 走到牆邊/家具會被擋住;對牆和家具開槍會反彈/穿透(看武器配方)。
 - Console 出現 `[MapLoader] 載入完成：RedBridalGown_01...`。
 
-## 已知首版限制(非 bug,之後再處理)
+## 已知首版限制（⚠ 多數其後已解決，逐條標註現況；2026-08-21 更新）
 
-- **家具永遠畫在玩家之上**:家具用編輯器的高 sortingOrder,玩家還沒納入 Y-sort,所以站在家具前也會被蓋住。動態角色的 Y-sort 是下一步。
-- **可破壞家具**:目前家具是實心 Environment(擋路＋反彈),還不會被打爆。每個家具已是獨立 GameObject,之後加 `Destructible`(HP)元件 + 在 `PlayerController.HandleBulletHit` 對 Environment 上有 Destructible 的目標扣血即可,Destroy 後路自動開。
+- ~~**家具永遠畫在玩家之上**~~ → **已解決**：玩家與怪物已納入 Y-sort（`MapDepthSort.cs`，全遊戲排序帶配置表在該檔檔頭；見 [PROBLEMS.md](PROBLEMS.md) **E15**）。
+- ~~**可破壞家具**~~ → **已完成**：地上物可設 `hp`（-1=不可摧毀），打爆會播破壞特效、路自動開。見 [DESTRUCTIBLE_OBJECTS.md](DESTRUCTIBLE_OBJECTS.md)。
 - **牆/水 = 可走層三態子格**(2026-06-25 起,取代舊的 environment trigger 牆模型):可走層改成**三態子格位元圖**,解析度 = 每個 tile 切 `walkSubdiv`×`walkSubdiv` 子格(新地圖預設 4×4,可細膩描邊)。每子格 `'0'`=可走、`'1'`=牆(擋＋反彈,Environment layer)、`'2'`=水/坑(只擋腳、子彈穿過,`Water` layer)。碰撞盒大小 = `tileSize / walkSubdiv`,由 `MapLoader.BuildCellColliders` 直接讀位元圖生成。牆/水**直接在「可走」工具裡塗**,不再需要 environment trigger。
   - **environment 牆 trigger 已徹底移除**(2026-06-25):舊的「環境/牆」trigger 類型已從編輯器(triggerTypes.json + TriggerType.cs 預設)、那顆「依不可走格建立牆 trigger」便利按鈕、以及遊戲端的 legacy 牆模型全部移除。牆/水改成單一可走層三態,不再有「bitmap ＋ trigger 兩層」的疊層。既有 RedBridalGown 地圖已用 `migrate_walksubdiv.py` 一次性無損轉檔(env trigger 的牆→`'1'`、不可走非牆→`'2'`),不需手動重做。
-  - **編輯器**:在「可走」工具面板用三個筆刷(可走綠/牆紅/水藍)直接塗子格,並可選筆刷大小(1/2/4/8 子格)。見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)。
+  - **編輯器**:在「可走」工具面板用三個筆刷(可走綠/牆紅/水藍)直接塗子格,並可選筆刷大小(1~128 子格共 8 檔：1/2/4/8/16/32/64/128)。見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md) §4.4。
 - **水塘/深坑**:用 `Blocker Layer Name` 指定的 layer(預設 `Water`)。新模型下「不可走但非 environment」自動就是它;要讓它生效,需到 `Project Settings → Physics 2D` 把 `Player↔Water`、`Enemy↔Water` 的碰撞矩陣打勾(沒設 layer 會略過並警告)。
 
 ## 地上物碰撞：貼合圖形（2026-08-19）

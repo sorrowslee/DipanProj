@@ -1,6 +1,69 @@
-## Imported Claude Cowork project instructions
+# 燃燈劫 (Project Dipankara) — AI Agent 指南
 
-燃燈劫遊戲專案
+本檔是這個 repo 的 **AI 工作契約**：只放「每次動工都要遵守的常駐規則」與指路。
+細節一律住在 `readme/` 的主題文件裡，**這裡不貼內文、只指過去**——文件架構與維護規則見
+[readme/DOCS_GUIDE.md](readme/DOCS_GUIDE.md)。動工前先把本檔看完。
+
+---
+
+## 專案是什麼
+
+《**燃燈劫**》（英文 Burning Lamp: Rebirth of Ruin）：Unity 2D 俯視角動作恐怖遊戲（目標上架 Steam；
+Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完成，玩法高度 **CSV 資料驅動**。
+
+倉庫內有三塊：
+
+| 目錄 | 角色 |
+|---|---|
+| `DipanProj_Main/` | 主遊戲 Unity 專案 |
+| `DipanProj_MapEditor/` | 地圖編輯器 Unity 專案（產 `.dipanmap`，素材經 Sync Map Assets 同步） |
+| `BallisticsSystem/` | 彈道模組 `Sorrows.Ballistics`（與主遊戲解耦） |
+
+模組邊界、Layer／Tag／碰撞矩陣、美術資源架構：[readme/ARCHITECTURE.md](readme/ARCHITECTURE.md)。
+
+---
+
+## 常駐鐵則
+
+- **CSV 資料驅動優先**：大多數玩法擴充是「在 CSV 加一列＋既有系統參數」就能做到；動程式前先確認不能用資料解決。CSV 表統一放 `Assets/Data/`＋provider 載入。
+- **玩家可見字串一律走 `Language.GetText(id)`**（`LanguageTable.csv`），不准硬寫；「畫成圖的字」放 `Resources/UI/Texts/<語言>/`（同名不同資料夾）。詳見 [readme/LOCALIZATION.md](readme/LOCALIZATION.md)。
+- **左鍵＝搬移／裝備／綁定，永遠不消耗；右鍵＝使用**——右鍵是全遊戲唯一會消耗道具的滑鼠操作。「使用道具」唯一入口是 `Inventory/ItemUse.cs`（見 PROBLEMS **D17**）。
+- **git 由作者自己掌控**：AI 不主動 commit／開分支／merge／push，除非作者該次明確要求（講一次做一次）。唯讀查詢一律加 `--no-optional-locks`（如 `git --no-optional-locks status --short`）——Cowork 橋接器刪不掉 `index.lock`，留下會擋住作者（見 PROBLEMS **I** 段）。
+- **固定 sortingOrder 的排序層配置表寫在 `Assets/Scripts/Map/MapDepthSort.cs` 檔頭**；地圖編輯器 `ObjectView.cs` 有鏡像——**改一邊要兩邊一起改**。
+- **溝通、註解、文件一律繁體中文**；跟作者提 Unity Inspector 上的欄位時要給**英文標籤**（Inspector 標籤是自動生成的英文，給中文他找不到）。
+- 做完事情**一定要記錄**（見下方「記錄工作流」）——這個專案的文件是接手的命脈。
+
+---
+
+## 動工前必讀路由表（血淚換來的，跳過會重踩）
+
+| 要動的東西 | 先讀 |
+|---|---|
+| 任何 UI 半透明／alpha 值 | PROBLEMS **E11**（Linear 色彩空間：疊色比直覺重/淡一倍，附診斷公式） |
+| 疊任何發光圖層／光暈／改佛光 | PROBLEMS **E12/E13** ＋ [readme/FALLEN_BUDDHA_LIGHT.md](readme/FALLEN_BUDDHA_LIGHT.md)（兩個發光層疊同位置是零和；`_Intensity` ≠ 實際亮度） |
+| 掛在玩家身上的特效（定位／縮放） | PROBLEMS **E14**——用 `PlayerController.FeetWorldPos` / `BodyCenterWorldPos` / `VisibleBodyHeight`，別用 `transform.position` 當身體中心、別用 `SpriteRenderer.bounds` 當可見身體 |
+| 跨數秒的演出／輸入鎖 | PROBLEMS **D13/D14**（輸入鎖要用具名 `SetExternalHold(owner,…)`；吃 `Time.deltaTime` 的演出會被任何 `PausesGame` 面板凍住） |
+| 地上物擋路／可走層／「看起來能走卻走不過去」 | PROBLEMS **B9** ＋ [readme/MAP_LOADER_SETUP.md](readme/MAP_LOADER_SETUP.md)——**擋路碰撞與可走層是兩份獨立的真相**，塗可走層對地上物零作用 |
+| 「玩家碰到了沒」的位置判定 | PROBLEMS **B13**——判定對齊碰撞（`transform.position`），特效對齊視覺（腳底）；診斷用碰撞疊層（遊戲中 **P → C**） |
+| 武器／裝備／背包／掉落／存檔 | [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md)（表格只是模板、物品實例、能力容器）＋ [readme/INVENTORY.md](readme/INVENTORY.md) |
+| 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |
+| 發光／亮度／光圈／環境亮度 | [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)＋[readme/SCENE_EFFECT.md](readme/SCENE_EFFECT.md)（同框 12 盞上限寫死在兩處） |
+| 產任何圖片素材 | [readme/AI_IMAGE_GEN_GUIDE.md](readme/AI_IMAGE_GEN_GUIDE.md) |
+| 第一次接觸專案／遇到怪問題 | [readme/PROBLEMS.md](readme/PROBLEMS.md)（檔頭有分類索引；踩過的坑幾乎都在裡面） |
+
+---
+
+## 文件地圖與記錄工作流
+
+- **文件總覽（主題文件地圖）**：[readme/README.md](readme/README.md)。依任務挑相關的讀，不必全讀。
+- **做完事情記錄三件套**（格式與封存規則見 [readme/DOCS_GUIDE.md](readme/DOCS_GUIDE.md)）：
+  - 完成了什麼 → `readme/PROGRESS.md`（**倒序、最新加最上面**；重點記「為什麼難、試過什麼不行、通則」）。
+  - 踩到新坑 → `readme/PROBLEMS.md`（症狀→原因→解法；編號接該分類最大號、**永不重編**）。
+  - 半成品／暫缺 → `readme/TODO.md`（**新節加檔尾**）。
+  - 改動讓某主題文件過期 → **同一次改動裡把它改對**，不要留給下一個人。
+- `readme/archive/` 是封存區：**非當前真相、不作開發依據**，只用來查歷史脈絡。
+
+---
 
 ## ChatGPT / Codex 專用規則
 

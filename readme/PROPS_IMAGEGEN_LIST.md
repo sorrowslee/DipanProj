@@ -1,5 +1,10 @@
 # 地上物產圖清單（紅嫁衣／冥婚恐怖風）
 
+> ⚠️ **本清單只有提示詞規格，沒有「已產出／待產」的進度標記**（2026-08-21 標註）。
+> 哪些地上物已經產好、進了 `GameAssets/`，以實際素材資料夾與 `catalog.json` 為準；
+> 要照清單產圖前先對一遍，避免重複產。產圖流程一律先讀 [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md)。
+
+
 > 來源：10 張示意圖（中式冥婚 × 暗黑恐怖、俯視角）。本清單只列**地上物（場景物件）**，牆壁、地板、背景山霧不產。
 > 每條提示詞固定含使用者指定字串：`Pixel art 2D top-down RPG, intricate detailed crisp pixel art, dark fantasy horror`。
 > 共用尾綴：`plain flat grey background, single object centered, top-down view, no glow, no motion effects, isolated game asset`（純底便於本地去背）。

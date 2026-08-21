@@ -20,7 +20,7 @@ Intro 場景之後也可長成「標題畫面 / 新遊戲 vs 繼續 / 選角」�
 
 1. `File → New Scene`，存成 `Assets/Scenes/Intro.unity`。
 2. 場景保留預設的 Main Camera；新增一個空物件 `[IntroFall]`，掛上 **`IntroFallController`**（立繪欄位留空會自動從 Resources 載）。
-3. **Intro 與 `MainScene` 兩個場景都要在 build 裡，Intro 排第 0 個**（`BuildScript.cs` 的 `options.scenes` 已設好；只放 MainScene 會直接從遊戲場景開始、沒有開場）。
+3. **Intro 與 `MainScene` 兩個場景都要在 build 裡，且 `MainScene` 排第 0、`Intro` 第二**（2026-07-03 加入標題流程後開機要停在標題；`BuildScript.cs` 的 `options.scenes` 已如此設定。排錯順序的症狀與原因見 [PROBLEMS.md](PROBLEMS.md) **A10**。本檔早期寫「Intro 排第 0」已過時，2026-08-21 修正）。
 4. 按 Play：一進場景自動播墜落 → 播完自動載 `MainScene`（落在 Tutorial_Cave，見 [MAP_SYSTEM.md](MAP_SYSTEM.md)；由 `MapManager.startModule = Tutorial` 決定）。
 
 > 不需要手動接 Canvas：控制器在 `Awake` 自己建一整套 Screen-Space Overlay Canvas 與所有圖層。

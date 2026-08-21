@@ -1,28 +1,7 @@
-# 待辦事項與未來規劃 (Next Steps & Roadmap)
+# ROADMAP（已封存）
 
-> 返回 [文件總覽](README.md)
-
-1. **武器組合系統 (Weapon Loadout System)**：
-   * 武器外觀（Prefab）與彈道功能（Behavior）分離，兩者獨立定義。
-   * 玩家可自由將外觀 + 多個彈道功能組合成一把武器（招式）。
-   * 支援從大廳帶入房間，並在房間內自由調整組合。
-
-2. **AI 狀態機擴充**：
-   * 根據 CSV 傳入的 `BrainType`，動態賦予怪物不同行為模式（巡邏 Patrol、逃跑 RunAway、遠程攻擊）。
-   * 將 BrainType 字串比對改為更安全的列舉或工廠模式。
-
-3. **玩家接觸傷害系統**：
-   * 怪物接觸玩家時觸發 `PlayerController.TakeDamage()`（介面已就緒）。
-   * 受擊反應（閃爍、擊退、無敵）由 `HitReactionHandler` 自動處理。
-   * 玩家受擊參數待建立 CSV 表格驅動。
-
-4. **場景與關卡機制**：
-   * 實作佛像與隧道入口的場景互動與邪惡能量的視覺/機制表現。
-
-5. **更多彈道行為擴充**：
-   * 透過 `IBulletBehavior` 實作追蹤彈、蛇行彈、延遲爆炸等軌跡。
-
-6. **地面特效擴充**：
-   * 補完 `OnSpawn` / `OnDeath` 觸發時機（需要在 `BulletInstance` 增設生成事件與銷毀事件鉤子）。
-   * 視需求加入「武器表直接引用地面特效」的純地面型武器（不發射彈直接放置 AOE）。
-   * 地面特效可疊加 / 不可疊加策略（例如同一格只能有一團火）。
+> **本檔已於 2026-08-21 封存**：內容大半已完成或被超越，原文照錄搬到
+> [archive/ROADMAP.md](archive/ROADMAP.md)；殘餘待確認的點子已萃取進 [TODO.md](TODO.md) 檔尾。
+> 「下一步」現在看 **TODO.md（檔尾＝最新）＋ [CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md)**。
+>
+> （Cowork 橋接器不能刪檔，所以留下這個轉址存根——**作者可直接把本檔刪掉**，不影響任何連結。）

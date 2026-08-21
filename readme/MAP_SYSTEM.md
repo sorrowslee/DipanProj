@@ -51,8 +51,10 @@
 | `SceneEffect` | 0/1 | **場景特效（世界端）**。`0` 無；`1` 火雨。**留空 / 缺欄 = 預設 0。** 詳見 [SCENE_EFFECT.md](SCENE_EFFECT.md)。 |
 | `EnterEffect` | 整數 | **進場一次性全螢幕過場**＝ `ScreenFxTable` 的 id（`0` 無 / `1` 睜眼醒來 / `2` 破幻術 / `3` 馬賽克清晰…），與劇情 `screenFx` 步驟共用同一份 id → 同 id 同效果。**留空 / 缺欄 = 預設 0。** 詳見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md)。 |
 | `NoWeapon` | 0/1 | **這張地圖禁止玩家使用武器**。`0` 可用；`1` 禁用。**留空 / 缺欄 = 預設 0（可用）。** 禁用時按左鍵／空白鍵**完全沒反應**——不發射、不扣 MP、不擺攻擊動作、也不轉身面向滑鼠；移動／互動按 F／背包／喝藥一律正常，怪物用武器也不受影響。用在劇情用地圖與「亂放武器很奇怪」的大廳。目前填 1 的是 `Main_Cave`(11)、`Main_Square`(12)、`Main_InitialForest1`(13)、`Main_InitialForest2`(14)。⚠️ **別填在新手教學的地圖上**——柴房佛燈教學要玩家實際開火點亮佛燈，禁用會卡死（見 [WOODSHED_LAMP_TUTORIAL.md](WOODSHED_LAMP_TUTORIAL.md)）。實作：`MapTable` 讀第 10 欄 → `MapManager.WeaponDisabled` → `PlayerController.CanFire` → `HandleFiring` 的 guard。 |
+| `EnvBright` | 0~100 | **環境亮度**（第 11 欄）。**只在 `Atmosphere=1` 時生效**：把整張圖壓暗到該亮度、再讓場上的燈照回來。**留空 / 缺欄 = 100 = 完全不壓暗（舊地圖零行為變化）。** 詳見 [ATMOSPHERE.md](ATMOSPHERE.md)、[SCENE_EFFECT.md](SCENE_EFFECT.md) 相關照明節。 |
 
 **規則**
+- **欄位順序一律以 `MapsTable.csv` 檔頭為準**（CSV 檔頭本身就寫了每欄的取值說明）；文件若與 CSV 不一致，是文件錯。
 - `ID` 全域唯一整數（不要每個關卡各自從 1 編號），傳送點只存一個 int 最單純。
 - 每個 `Module` 恰好一張 `IsLevelStart = 1`（驗證工具會檢查）。
 - `Main` 之類的共用/大廳地圖也可登記在此表（`Module` 填 `Main`）。

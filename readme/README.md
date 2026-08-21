@@ -31,8 +31,7 @@
 | [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md) | Effects 全庫審閱、特效武器化原則、已實作武器與下一批候選 | 從特效庫設計／擴充武器、查新武器素材來源 |
 | [CHARGE_MODE.md](CHARGE_MODE.md) | RecipeTable 集氣模式：按住／放開流程、3 秒倍率、藍紅集氣特效與持續武器互斥規則 | 啟用集氣武器、調整集氣倍率／特效或排查輸入互斥 |
 | [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) | RecipeTable 每個欄位的詳細用法、填寫規則與組合範例 | 填配方表細節時的查詢手冊 |
-| [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（做過什麼、怎麼演進） | 想了解歷史脈絡 |
-| [ROADMAP.md](ROADMAP.md) | 待辦與未來規劃 | 規劃下一步 |
+| [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（**倒序，最新在最上**；較舊條目原文封存在 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭有逐條索引） | 想了解歷史脈絡 |
 | [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) | 產圖流程與規範 | **任何產圖前** |
 | [MapEditor_DESIGN.md](MapEditor_DESIGN.md) | 地圖編輯器設計與 `.dipanmap` 格式 | 改編輯器、看地圖格式 |
 | [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md) | 主遊戲端地圖載入器(MapLoader)、素材同步、Unity 接線 | 動地圖載入、牆/可走/出生點、素材同步 |
@@ -74,23 +73,14 @@
 | [FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md) | **墮落佛光實驗存檔**（2026-08-17 試過紫色佛光／旋轉卍字／拿掉照明，全部退回原狀；素材存 `readme/variants/`、機制留在 CSV 欄位，附「怎麼再開回來」）＋ 三條疊色通則摘要 | 想把佛光改色/加符號、動照明範圍、或**疊任何發光效果**之前 |
 | [PROBLEMS.md](PROBLEMS.md) | **踩坑記錄與解法**(症狀→原因→解法) | **第一次看文件時必看**；遇到怪問題、或要把新坑記下來時 |
 | [TODO.md](TODO.md) | **待補清單**：目前先做到能動但還缺一塊、或暫時做不到之後再補的項目 | 想知道哪些是半成品/暫缺；做到一半得擱置時把缺口記這裡 |
+| [DOCS_GUIDE.md](DOCS_GUIDE.md) | **文件維護規範**：各文件職責分工、新內容該寫哪的決策樹、真相階層、PROGRESS 記錄格式、封存規則 | **要新增/修改任何文件前**；不確定「這內容該寫哪」時 |
+| [archive/](archive/README.md) | **封存區**：不再代表現況的文件與搬出來的歷史條目（原文照錄，**不作開發依據**） | 查歷史脈絡、找被封存的舊條目 |
 
 ## 給接手 AI 的提示
+- **先讀專案根目錄的 [AGENTS.md](../AGENTS.md)**：常駐鐵則與「動工前必讀」路由表都在那裡，本頁只是文件地圖。
 - 這些文件是把原本單一大 README 拆開的；**依當前任務挑相關的讀**即可，不必全讀。
 - **第一次接觸這專案時，先讀 [PROBLEMS.md](PROBLEMS.md)**：裡面是實際踩過的坑與解法，能省下大量重複除錯。
 - **遇到新的坑、或解掉一個非顯而易見的問題後，務必到 [PROBLEMS.md](PROBLEMS.md) 新增一則**（格式：症狀 → 原因 → 解法），讓後面的人/AI 不必重踩。
 - 跨模組／邊界相關的改動，先讀 [ARCHITECTURE.md](ARCHITECTURE.md) 的「解耦原則與邊界規範」。
 - 大多數玩法擴充是「在 CSV 加一列 ＋ 既有系統參數」就能做到；動程式前先確認不能用資料驅動解決。
 - **做到一半得擱置、或某功能暫時缺一塊**時，記到 [TODO.md](TODO.md)（缺口清單），別讓半成品的暫缺資訊散落。
-*2026-07-27：文件地圖補上先前漏收的 CORE_LOOP_DESIGN / PERF_QUALITY_AUDIT / PROPS_IMAGEGEN_LIST 三份。*
-*2026-07-28：新增 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)（祭壇抽選系統）。*
-*2026-07-29：新增 [FORGING.md](FORGING.md)（鍛造介面）。*
-*2026-08-03：新增 [GEM_SOCKET.md](GEM_SOCKET.md)（能力珠鑲嵌／物品實例／能力容器）。*
-*2026-08-17：[GROUND_EFFECT.md](GROUND_EFFECT.md) 新增「背景旋轉符號層（SigilPath）」與「發光半徑（LightRadius）」兩節；[PROBLEMS.md](PROBLEMS.md) 新增 E12（加色圖層的 `_Intensity` 不等於實際亮度）、E13（兩個發光圖層疊同位置是零和的）。**要疊任何發光圖層之前先讀這兩則。**新增 [FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md)（墮落佛光實驗存檔：留下的素材放哪、怎麼再開回來）。*
-*2026-08-18：新增 [BLOODLINE.md](BLOODLINE.md)（血統系統：系列三階段、兩張表、逐階進階藥劑）。血統表移除舊的 MaxHpAdd/MoveSpeedMul/傷害加成三欄，改成五個「只存不套用」的角色屬性——**現階段換血統只變外型與立繪，戰力完全不變，這是預期行為**。*
-*2026-08-18：血統變身演出完成（[BLOODLINE.md](BLOODLINE.md) §5）。順帶補上四個通用能力：`PlayerAnimator.PlayFallDown`（倒下並趴地定格）、`MapCameraController.AddShake`（螢幕震動）、`ScreenFader.Flash`（全螢幕閃光）、`UIManager.SetExternalHold(owner, …)`（**具名**輸入鎖）。**做任何跨數秒的演出前先讀 [PROBLEMS.md](PROBLEMS.md) D13/D14**（輸入鎖互踩、被 PausesGame 面板凍住）。*
-*2026-08-18：血統表加 `BodyScale` 體型倍率（[BLOODLINE.md](BLOODLINE.md) §2），角色放大改成**以腳底為錨點往上長**；佛光圈支援 per-instance 半徑倍率（[GROUND_EFFECT.md](GROUND_EFFECT.md)）。**要定位／縮放任何「掛在玩家身上」的特效前，先讀 [PROBLEMS.md](PROBLEMS.md) E14**——別再用 `transform.position` 當身體中心、別用 `SpriteRenderer.bounds` 當可見身體，改用 `PlayerController` 的 `FeetWorldPos` / `BodyCenterWorldPos` / `VisibleBodyHeight`。*
-*2026-08-18：修掉「表演層被地上物蓋住」——`MapDepthSort` 拿掉 16-bit 繞回寫法（[PROBLEMS.md](PROBLEMS.md) **E15**）。**全遊戲的排序層配置表現在寫在 `Assets/Scripts/Map/MapDepthSort.cs` 檔頭**，要加任何新的固定 sortingOrder 先看那張表。地圖編輯器 `ObjectView.cs` 有鏡像，改一邊要兩邊一起改。*
-*2026-08-19：地上物碰撞改成**貼合圖形**（透明處不再擋路）——遮罩在 `Sync Map Assets` 烘進 catalog，遊戲端讀不到會當場掃。**動地上物擋路範圍、可走層、或覺得「明明看起來能走卻走不過去」之前，先讀 [PROBLEMS.md](PROBLEMS.md) B9 與 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md) 的「地上物碰撞」一節**——擋路範圍與可走層是兩份獨立的真相，塗可走層對地上物零作用。*
-*2026-08-20：傳送點外型對位改成**編輯器裡所見即所得**——頂部列「傳送點對位」鈕會把遊戲真正的傳送點特效畫在畫布上、整張圖一次全顯示、直接拖曳定位（見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md) §4.5）。**門的美術畫在背景圖裡，資料裡沒有門的位置，所以外型對齊無法自動化**——要自動就得先把門從背景拆成地上物。遊戲端零改動。*
-*2026-08-20：**傳送點改成「一個點」**——`markerX/markerY` 錨點同時是外型位置、踩踏區中心與傳送落點，`markerW/markerH` 是踩踏矩形，判定點是 `transform.position`（正典 `Map/TeleportAnchor.cs`）。舊的格子模式保留相容，28 個傳送點已全數轉換。**動任何「玩家碰到了沒」的判定之前先讀 [PROBLEMS.md](PROBLEMS.md) B13**——這次試過改用腳底 `FeetWorldPos`，結果牆邊的觸發區結構上不可能被碰到；判定要對齊碰撞、特效才對齊視覺。診斷用碰撞疊層（遊戲中按 P 再按 C，會畫出踩踏矩形與判定點讀數）。*

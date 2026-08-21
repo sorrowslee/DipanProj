@@ -2,7 +2,7 @@
 
 > 燃燈計畫的 2D 地圖編輯器。本文件記錄**已實作完成**的編輯器（M0–M6 + 多輪打磨）。
 > 路徑：與 `DipanProj_Main`、`BallisticsSystem` 同層級的 `DipanProj_MapEditor/`。
-> 狀態：編輯器功能完整可用。**主遊戲端 runtime 載入器（讀 .dipanmap 把關卡跑起來）為下一階段，尚未開始。**
+> 狀態：編輯器功能完整可用。**主遊戲端 runtime 載入器早已上線**（見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)；本檔早期寫的「尚未開始」已過時，2026-08-21 修正）。
 
 ---
 
@@ -67,7 +67,7 @@
 | UI | 自製 **IMGUI**（`OnGUI`）面板 + GL 疊加；整個場景由程式組裝，幾乎不需手動接線 |
 | 素材管線 | **PNG sprite + 字串 ID 目錄**；前置同步把 PNG + 自動生成的 catalog 拷進 `StreamingAssets`，runtime 載入；完全不碰 prefab / .asset / .meta / GUID |
 | 物件擺放 | **自由變換**（任意位置 + 水平/垂直翻轉 + 縮放 + 旋轉 + 手動圖層 z-order） |
-| 本次範圍 | **只做編輯器**；主遊戲 runtime MapLoader 留待後續（輸出格式已設計成 loader-ready） |
+| 本次範圍 | **只做編輯器**（當時的定案；主遊戲 MapLoader 其後已完成，見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)） |
 | Tile 尺寸 | 預設 **1 世界單位 = 256px**（依主專案 Grid CellSize 1×1、PPU 256 推得）；新建檔時可改 |
 | 畫布尺寸 | 新建時以 **tile 格數**設定（旁標 px 換算）；預設 = **一個螢幕 = 18×10 格**；建好後可改尺寸，**左上角錨定、右/下邊增減** |
 | 畫布外觀 | **純黑底**：沒鋪 tile 的地方＝黑（＝不可玩範圍），與參考遊戲一致；淡格線為編輯輔助 |
@@ -234,7 +234,10 @@ DipanProj_MapEditor/
       "id": "trig", "name": "Trigger", "type": "Trigger",
       "regions": [ { "id": "a1b2c3d4", "name": "傳送點1", "typeId": "teleport",
                      "cells": [[10,2],[10,3]],
-                     "params": { "targetMap": "Hall", "targetX": "5", "targetY": "5" } } ]
+                     "params": { "entranceId": "door1", "targetMapId": "2", "targetEntrance": "hallDoor" } } ]
+      // ⚠ 範例僅示意格式；各 trigger 型別「現在有哪些參數」的正典是編輯器 Data/TriggerType.cs
+      //（teleport 目前是 entranceId/targetMapId/targetEntrance/showMarker/linkedFx，
+      //  另有 markerX/markerY 錨點（2026-08-20 起），見 §4.5 與 MAP_SYSTEM.md §3.3）
     }
   ]
 }
@@ -253,7 +256,7 @@ DipanProj_MapEditor/
 ```jsonc
 { "types": [
   { "typeId": "teleport",     "displayName": "傳送點",     "color": "#33AAFF",
-    "params": [ { "key": "targetMap", "type": "String" }, { "key": "targetX", "type": "Float" }, { "key": "targetY", "type": "Float" } ] },
+    "params": [ { "key": "entranceId", "type": "String" }, { "key": "targetMapId", "type": "Int" }, { "key": "targetEntrance", "type": "String" } ] },
   { "typeId": "pickup",       "displayName": "道具拾取點", "color": "#FFCC33",
     "params": [ { "key": "itemId", "type": "String" } ] },
   { "typeId": "playerSpawn",  "displayName": "玩家出生點", "color": "#33FF88", "params": [] },
@@ -262,10 +265,10 @@ DipanProj_MapEditor/
 ] }
 ```
 
-- 存於 `StreamingAssets/triggerTypes.json`（進版控、不被素材同步覆蓋）；首次找不到時由 `TriggerTypeSet.Defaults()` 生成上述內建四種。
+- 存於 `StreamingAssets/triggerTypes.json`（進版控、不被素材同步覆蓋）；首次找不到時由 `TriggerTypeSet.Defaults()` 生成內建預設。⚠ **上例只是示意**——內建型別早已不只四種（2026-08-21 時點共 23 種：drama/cutscene/giveItem/teleportTo/camZone/openPanel/onEnter/clearLevel…），**正典是編輯器 `Data/TriggerType.cs` 與 §4.5**。
 - 新增一種 trigger 筆刷 = 加一筆定義（含參數 schema）。`ParamType` = `String / Int / Float / Bool`。
 - **出生點即 trigger 類型**：怪物出生點只帶 `monsterId`，不需要圖。
-- 對應的遊戲行為（傳送/拾取/生怪）由**未來主遊戲端**實作。
+- 對應的遊戲行為（傳送/拾取/生怪…）由主遊戲端實作（`MapLoader` 與觸發鏈，見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)、[TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)）。
 
 ### 3.3 素材目錄 `catalog.json`（同步生成，git 忽略）
 
@@ -441,7 +444,7 @@ DipanProj_MapEditor/
 | M4 | 可走/不可走筆刷 + 疊加 | ✅ 完成 |
 | M5 | Trigger 類型 + 區域塗刷 + 參數 | ✅ 完成 |
 | M6 | 存檔/讀檔 + Undo + 黑底 | ✅ 完成 |
-| 後續 | **主遊戲 runtime MapLoader（讀 .dipanmap 重建關卡）** | ⏳ 未開始（下一階段） |
+| 後續 | **主遊戲 runtime MapLoader（讀 .dipanmap 重建關卡）** | ✅ 已完成（見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)） |
 
 ---
 

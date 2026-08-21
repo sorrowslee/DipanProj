@@ -1,0 +1,531 @@
+# PROGRESS 封存區（歷史條目原文照錄）
+
+> 由 [../PROGRESS.md](../PROGRESS.md) 依大小封存規則搬入（規則見 [../DOCS_GUIDE.md](../DOCS_GUIDE.md)）。
+> 條目內容**原文一字未改**；本檔**正序（最舊在最上）**。2026-08-21 第一次搬入時，原檔為
+> 兩段式（前段倒序＋後段正序），本檔已統一為正序，僅調整條目排列順序、內容不變。
+> ⚠ 條目內的相對連結（如 `PROBLEMS.md`、`LASER.md`）是以**原位置 `readme/` 為基準**寫的，封存後差一層目錄——查閱時自行對應到 `../<檔名>`，不改原文。
+> 這些是**當時的紀錄快照**：內文描述的機制可能已被後續開發改掉，現狀一律以主題文件與程式碼為準。
+
+## 逐條索引（專案初期 ~ 2026-08-17，共 160 條；無日期者為最早期）
+
+- （早期）確立無限恐怖風格的 2D 世界觀與隧道設定。
+- （早期）完成主遊戲與彈道系統的模組解耦，建立明確邊界規範。
+- （早期）實作 CSV 資料驅動的子彈配方系統（支援反彈、扇形分裂、穿透、自轉）。
+- （早期）解決子彈高頻率生成時的事件訂閱同步問題（Pre-subscribe 模式）。
+- （早期）解決子彈起點在 Collider 內部時偵測不到的問題（CheckSpawnOverlap）。
+- （早期）修正彈道系統所有硬編碼 Layer 編號，改由主遊戲傳入 LayerMask。
+- （早期）實作怪物基礎追擊 AI，完成「射擊 → 命中 → 扣血 → 死亡」的完整 Core Loop。
+- （早期）優化 MonsterSensor，快取玩家參考，移除每幀 FindGameObjectWithTag 的效能開銷。
+- （早期）規劃 Physics Layer Collision Matrix，解決怪物互卡、怪物推擠玩家的問題。
+- （早期）規劃並建立「主資源包 + 場景模組包」的美術目錄架構，完成教學場景地磚的 Tilemap 基礎設定。
+- （早期）資料驅動的怪物生成系統（CSV 讀取，動態生成對應數值怪物）。
+- （早期）完成 CSV 驅動的配方與武器雙表系統（RecipeTable + WeaponTable），取代 Scriptable…
+- （早期）實作 RecipeManager（配方載入、SubRecipeID 二次解析、BounceTarget 語意化）。
+- （早期）實作 WeaponManager（武器載入、RecipeID 關聯、PrefabMapping 子彈 Prefab 管理…
+- （早期）重構 PlayerController 串接武器系統，傷害數值改由武器表驅動。
+- （早期）實作通用受擊反應系統（HitReactionHandler）：白光閃爍、擊退位移、無敵時間。
+- （早期）MonsterData.csv 新增受擊反應欄位（InvincibleTimeMs, KnockbackThreshol…
+- （早期）PlayerController 新增 TakeDamage 介面與寫死的受擊反應參數，預留未來接觸傷害使用。
+- （早期）實作武器序列圖動畫系統：WeaponTable.csv 新增 WeaponAniPath / WeaponAniNumb…
+- （早期）擴充 BallisticsEngine.Spawn API 支援 Sprite[] 動畫參數，BulletInstanc…
+- （早期）實作環繞型彈道系統（OrbitalBehavior）：RecipeTable.csv 新增 IsOrbital / Or…
+- （早期）環繞彈與穿透（繼續環繞）、反彈（脫軌飛出）、分裂、追蹤等行為完全相容。
+- （早期）RecipeTable.csv 新增 BlockedByEnvironment 欄位，可讓配方（特別是環繞彈）穿過地形障…
+- （早期）環繞彈引入「群組生命週期」：個別子彈 LifeTime 覆寫為 -1，由 PlayerController 統一在 re…
+- （早期）實作地面特效鏈式觸發系統：新增 GroundEffectTable.csv、GroundEffectManager / …
+- （早期）地面特效改為 tile 鋪面渲染：GroundEffectTable 新增 TileSize 欄位，圓形範圍內每格放一張…
+- （早期）地面特效鋪面演進：先試「金字塔（菱形）」演算法但實機呈現過於菱角分明，最終改回「真實圓形掃描」——`(i*TileSiz…
+- （早期）修正子彈命中時用「當下武器」造成的跨武器污染：PlayerController 改用 lambda closure 把發…
+- （早期）地面特效新增 `GroundEffectHitTarget` 欄位（`Enemy` / `Environment` / …
+- （早期）實作拋物線型彈道（`IsParabolic`）：新增 `ParabolicBehavior`（接管移動、Collisio…
+- （早期）拋物線進階：`Speed` 欄位語意改為「飛行時間（秒）」（固定時間抵達，與距離無關，多顆同時落地）；支援 `Sprea…
+- （早期）實作持續掃射型雷射光束（`IsLaser`）：新增獨立 `LaserBeam` 核心元件（line-march 把追蹤/…
+- （早期）雷射完全複用既有配方：吃 `PierceCount`（穿透）、`HomingTurnSpeed`（追蹤彎曲，賣點）、`B…
+- （早期）雷射打磨與除錯（一輪實機調校）
+- （早期）雷射外型「種類化」與全參數化（見 [LASER.md](LASER.md)）：外觀改由 `BeamStyle`（種類編號…
+- （早期）新增火焰噴射器（雷射的「火焰外觀模式」，見 [LASER.md](LASER.md)）：火焰噴射器本質是雷射（按住掃射 …
+- （早期）新增「軌跡特效」機制，並以此重做地刺武器（讓地刺吃滿 RecipeTable 行為，見 [BALLISTICS.md](…
+- （早期）~~地刺波 `IsGroundWave`（地表特效版）~~：已移除——改用上述「軌跡特效」做法，因為地表特效不會飛、無法…
+- （早期）拋物線武器新增落地殺傷半徑（`BlastRadius`，見 [GROUND_EFFECT.md](GROUND_EFFE…
+- （早期）實作一次性特效系統（VFX，見 [VFX.md](VFX.md)）：新增 `VfxTable.csv` + `VfxMa…
+- （早期）VFX 打磨（見 [VFX.md](VFX.md)）：① VfxTable 新增 per-effect `Sorting…
+- （早期）除錯（軌跡/分裂相關）
+- （早期）武器切換調整（見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)）：初始武器改…
+- （早期）新增佛光型武器（`IsAura`，見 [GROUND_EFFECT.md](GROUND_EFFECT.md)）：以玩家…
+- （早期）GroundEffect 新增單圖渲染模式（`GroundEffectTable` 加 `RenderMode` 欄，`…
+- （早期）新增連鎖閃電武器（`IsChain`，見 [LASER.md](LASER.md)）：點一下（吃 `FireInterv…
+- （早期）連鎖閃電除錯 ＋ 吃散射/追蹤（見 [LASER.md](LASER.md)）：① 修「打地上物卻打不壞」——目標搜尋原…
+- （早期）新增命中迸發子武器 `SubWeaponOnHit`（見 [RECIPE_DESCRIBE.md](RECIPE_DES…
+- 2026-06-22｜地圖相機模式
+- 2026-06-22｜動畫地上物
+- 2026-06-22｜牆 = 「環境/牆」(environment) trigger
+- 2026-06-23｜道具拾取系統
+- 2026-06-23｜ItemTable.csv 搬到 `Assets/Data/`
+- 2026-06-23｜劇情系統
+- 2026-06-24｜效能診斷面板 PerfHud
+- 2026-06-24｜設定面板
+- 2026-06-24｜劇情 Type 2＝頭像對話
+- 2026-06-25｜可走層改三態子格細分
+- 2026-06-30｜牆碰撞橫向合併
+- 2026-06-30｜編輯器「可走」工具強化
+- 2026-06-30｜動畫地上物乒乓播放
+- 2026-06-30｜地圖載入改「分幀＋載入頁」
+- 2026-06-30｜過場影片跳過閃爍修正
+- 2026-06-30｜場景特效框架＋火雨
+- 2026-07-01｜大螢幕畫質修正：UI 去壓縮＋場景濾波
+- 2026-07-02｜可放置場景特效系統 SceneFx
+- 2026-07-02｜鏡頭區 camZone trigger
+- 2026-07-02｜地上物「可走」勾選
+- 2026-07-02｜傳送點「使用傳送點外型」開關
+- 2026-07-02｜資源載入改「module 級預載」
+- 2026-07-03｜存檔進度層 schema v2
+- 2026-07-03｜標題畫面＋三欄存讀檔 UI＋總流程
+- 2026-07-03｜進場一次性效果系統＋睜眼醒來
+- 2026-07-03｜標題畫面美術＋佛陀動畫＋火焰特效
+- 2026-07-03｜部署改用 itch.io + butler
+- 2026-07-03｜標題流程 build 開機場景修正 + 新建過場黑幕
+- 2026-07-03｜角色 Y 排序
+- 2026-07-03｜排序續修：地面特效與飛行戰鬥視覺不再被地上物蓋住
+- 2026-07-03｜地面特效排序改「用可走與否分上下」＋拋物線 NaN 防呆
+- 2026-07-05｜效能與畫質診斷＋修正
+- 2026-07-05｜觸發鏈系統：trigger 接 trigger
+- 2026-07-05｜觸發鏈實裝與週邊修正
+- 2026-07-06｜旗標系統中度收斂＋旗標管理器
+- 2026-07-06｜傳送門「放劇本開門」hub ＋ 強制新手教學
+- 2026-07-07｜鏡頭聚焦 trigger
+- 2026-07-07｜修「對話接對話」關閉當幀重入卡死
+- 2026-07-08｜穿隧道洞口光暈改 shader
+- 2026-07-08｜走隧道「點左鍵」閃爍提示
+- 2026-07-08｜玩家提示圖 trigger
+- 2026-07-07｜進場觸發 trigger
+- 2026-07-07｜睜眼醒來連動玩家「趴地→起身」
+- 2026-07-09｜殺怪／破壞觸發旗標
+- 2026-07-09｜旗標管理器改依 id 由小到大排序
+- 2026-07-09｜重複規則選項「每次進場」改名「關卡單次」
+- 2026-07-09｜測試快捷「直接進某關卡／地圖」DevQuickStart
+- 2026-07-09｜Play 模式加速 ＋ static 殘留保險
+- 2026-07-09｜破幻術轉場
+- 2026-07-09｜破幻術泛化成「播放螢幕特效」＋新增「關卡單次」旗標範圍
+- 2026-07-09｜「Sync Map Assets」補上同步 flags.json
+- 2026-07-09｜togglePortal 開關傳送點鏈動作
+- 2026-07-09｜特效預覽器「匯出換色版」檔名改 2 位補零
+- 2026-07-09｜召喚型武器接玩家側
+- 2026-07-09｜召喚陣營制（玩家召喚=友軍、怪物召喚=敵人）＋玩家御靈水晶可裝備
+- 2026-07-09｜修召喚陣營兩坑：友軍打不到敵怪 ＋ 召喚物過傳送點消失
+- 2026-07-09｜主角攻擊動畫接線
+- 2026-07-09｜修 boss 不逃跑不召喚（BrainType 沒 Trim）＋ 記錄怪打怪傷害忽勝忽敗
+- 2026-07-09｜修召喚三問題：怪打怪傷害、友軍跟隨、御靈水晶消失
+- 2026-07-09｜重修「怪打怪傷害」為系統機制（第一擊必互換）＋攻速資料化
+- 2026-07-10｜召喚特效（邊播特效邊生怪）＋施放冷卻統一提示
+- 2026-07-10｜召喚特效跟著怪物大小
+- 2026-07-10｜怪物障礙迴避＋感測範圍說明
+- 2026-07-10｜修召喚出生在牆裡＋怪物避障凍結
+- 2026-07-10｜怪物尋徑改全域 A*
+- 2026-07-10｜榕樹妖 boss 戰鬥模組
+- 2026-07-12｜Boss 開戰資訊表演
+- 2026-07-10｜榕樹妖 boss：死亡整棵樹燃燒演出 ＋ boss 死亡回收招式 ＋ 手感調整
+- 2026-07-13｜修「怪物原地踏步」＋召喚施法動作復原
+- 2026-07-13｜地上物「出現條件（完成 N 關後才出現）」＋地上物多選/框選
+- 2026-07-13｜特效庫武器化定案
+- 2026-07-13｜武器集氣模式
+- 2026-07-13｜Pack 4 像素反射雷射
+- 2026-07-16｜底部 HUD 血球＋藥水系統
+- 2026-07-18｜傳送點外型「精準視覺錨點」＋編輯器點放預覽
+- 2026-07-18｜載入頁進度條改用美術素材
+- 2026-07-18｜地上物新增「可穿越(passThrough)」＝無碰撞但照常 Y-sort
+- 2026-07-18｜榕樹妖地刺：生成安全內縮＋橫掃 5→3 排＋大地刺補可走驗證
+- 2026-07-18｜關卡儲存機制：關卡進度與臨時包 `RunProgress`
+- 2026-07-20｜劇情演出編輯器（Cutscene）
+- 2026-07-23｜作弊面板
+- 2026-07-27｜技術債清理：陣列型 static 快取修正＋素材同步白名單收斂＋CSV 工具
+- 2026-07-27｜沒裝備武器就不能攻擊＋移除 E 鍵切換
+- 2026-07-27｜地圖級「禁用武器」開關（MapsTable 新增 `NoWeapon` 欄）
+- 2026-07-27｜對話防連點
+- 2026-07-27｜劇情跳過改成「只有開發階段能用」＋修掉「按 ESC 莫名播爬起動畫」
+- 2026-07-27｜清掉開場改用劇情編輯器後不再使用的漫畫素材
+- 2026-07-28｜測試工具：直接進關卡加「邪佛廣場-1關後」＋作弊面板加「給 10000 元」
+- 2026-07-28｜觸發鏈新增 `openPanel`／`unlockRoll` ＋「最低/最高完成關卡數」條件 ＋「條件不成立時」分支
+- 2026-07-28｜抽選介面套上正式美術＋十連結算畫面
+- 2026-07-28｜血統做成一次性藥劑（`BloodlineID` 欄 + BloodlineSystem）
+- 2026-07-28｜金錢不再是背包道具，改成獨立數字
+- 2026-07-28｜祭壇抽選系統（GACHA）
+- 2026-07-29｜鍛造介面（ForgingPanel，Y 鍵開啟）
+- 2026-08-01｜存讀檔畫面換上正式素材（SaveSlotPanel）
+- 2026-08-01｜「繼續遊戲」回到上次所在的地圖（schema v3）
+- 2026-08-03｜能力珠鑲嵌系統：物品實例 ＋ 能力容器
+- 2026-08-04｜能力珠的圖示做成「兩層疊合」＋ UI 貼圖匯入規則與批次工具
+- 2026-08-06｜怪物出生點加「重複產生」與「怪物 id 陣列」
+- 2026-08-06｜新增「開關(按F)」trigger ＋ 怪物出生點「啟動旗標」
+- 2026-08-06｜推翻上一則：出生點的「啟動旗標」拿掉，改吃觸發鏈的通用條件欄位
+- 2026-08-06｜作弊面板給的道具跑進臨時包
+- 2026-08-07｜背包介面重製：新美術 ＋ 裝備/消耗品雙頁籤 ＋ 分頁
+- 2026-08-07｜物品 icon 大小自動正規化（IconFit）
+- 2026-08-07｜背包的格子提示重做：hover 改描邊、拖曳提示改呼吸外框（順便挖出 Linear 色彩空間的坑）
+- 2026-08-10｜場景照明：單光源升級成多光源，火把/燈籠可調亮度、光色、搖晃
+- 2026-08-10｜照明補上「獨立光源」：不綁地上物，直接放一個點就會發光
+- 2026-08-10｜地圖編輯器加上「照明預覽」與拖曳光源（順便修掉自己造成的回歸）
+- 2026-08-10｜地圖編輯器版面重整：左側工具列＋底部狀態列＋相機讓位
+- 2026-08-10｜移除地磚（tile）系統 ＋ 特效預覽器補關閉鈕
+- 2026-08-07｜作弊面板加「取得所有武器」一鍵鈕
+- 2026-08-17｜地面特效兩個新欄位（SigilPath 背景旋轉符號／LightRadius 發光半徑）＋ 佛光視覺實驗三連（最後全部還…
+
+---
+
+* [x] 確立無限恐怖風格的 2D 世界觀與隧道設定。
+
+* [x] 完成主遊戲與彈道系統的模組解耦，建立明確邊界規範。
+
+* [x] 實作 CSV 資料驅動的子彈配方系統（支援反彈、扇形分裂、穿透、自轉）。
+
+* [x] 解決子彈高頻率生成時的事件訂閱同步問題（Pre-subscribe 模式）。
+
+* [x] 解決子彈起點在 Collider 內部時偵測不到的問題（CheckSpawnOverlap）。
+
+* [x] 修正彈道系統所有硬編碼 Layer 編號，改由主遊戲傳入 LayerMask。
+
+* [x] 實作怪物基礎追擊 AI，完成「射擊 → 命中 → 扣血 → 死亡」的完整 Core Loop。
+
+* [x] 優化 MonsterSensor，快取玩家參考，移除每幀 FindGameObjectWithTag 的效能開銷。
+
+* [x] 規劃 Physics Layer Collision Matrix，解決怪物互卡、怪物推擠玩家的問題。
+
+* [x] 規劃並建立「主資源包 + 場景模組包」的美術目錄架構，完成教學場景地磚的 Tilemap 基礎設定。
+
+* [x] 資料驅動的怪物生成系統（CSV 讀取，動態生成對應數值怪物）。
+
+* [x] 完成 CSV 驅動的配方與武器雙表系統（RecipeTable + WeaponTable），取代 ScriptableObject 配方。
+
+* [x] 實作 RecipeManager（配方載入、SubRecipeID 二次解析、BounceTarget 語意化）。
+
+* [x] 實作 WeaponManager（武器載入、RecipeID 關聯、PrefabMapping 子彈 Prefab 管理）。
+
+* [x] 重構 PlayerController 串接武器系統，傷害數值改由武器表驅動。
+
+* [x] 實作通用受擊反應系統（HitReactionHandler）：白光閃爍、擊退位移、無敵時間。
+
+* [x] MonsterData.csv 新增受擊反應欄位（InvincibleTimeMs, KnockbackThreshold, KnockbackPercent）。
+
+* [x] PlayerController 新增 TakeDamage 介面與寫死的受擊反應參數，預留未來接觸傷害使用。
+
+* [x] 實作武器序列圖動畫系統：WeaponTable.csv 新增 WeaponAniPath / WeaponAniNumber / AnimFPS 欄位，支援多張 PNG 序列圖自動載入與循環播放。
+
+* [x] 擴充 BallisticsEngine.Spawn API 支援 Sprite[] 動畫參數，BulletInstance 內建動畫播放邏輯，分裂彈自動繼承動畫。
+
+* [x] 實作環繞型彈道系統（OrbitalBehavior）：RecipeTable.csv 新增 IsOrbital / OrbitalRadius / OrbitalCount 欄位，子彈以玩家為圓心環繞飛行。
+
+* [x] 環繞彈與穿透（繼續環繞）、反彈（脫軌飛出）、分裂、追蹤等行為完全相容。
+
+* [x] RecipeTable.csv 新增 BlockedByEnvironment 欄位，可讓配方（特別是環繞彈）穿過地形障礙物不被銷毀；PlayerController 抽出 ResolvePierceableLayers 對所有武器路徑通用。
+
+* [x] 環繞彈引入「群組生命週期」：個別子彈 LifeTime 覆寫為 -1，由 PlayerController 統一在 recipe.LifeTime 秒後一次銷毀整組，確保同生同死。
+
+* [x] 實作地面特效鏈式觸發系統：新增 GroundEffectTable.csv、GroundEffectManager / GroundEffectInstance，RecipeTable 新增 GroundEffectID + GroundEffectTrigger 欄位，子彈命中怪物時可在命中點生成停留型 AOE（單次爆裂或週期 DOT，循環動畫）。
+
+* [x] 地面特效改為 tile 鋪面渲染：GroundEffectTable 新增 TileSize 欄位，圓形範圍內每格放一張同步動畫的 sprite；傷害仍以整圓 OverlapCircle 一次計算。
+
+* [x] 地面特效鋪面演進：先試「金字塔（菱形）」演算法但實機呈現過於菱角分明，最終改回「真實圓形掃描」——`(i*TileSize)² + (j*TileSize)² ≤ Radius²` 才保留 tile，圓滑度由 `R / TileSize` 解析度決定（建議 ≥ 4），實際 tile 數 > 500 時印 LogWarning 但仍照生成。
+
+* [x] 修正子彈命中時用「當下武器」造成的跨武器污染：PlayerController 改用 lambda closure 把發射當下的 WeaponData 鎖在 callback，舊子彈不會誤用新武器的 Damage / GroundEffectID。
+
+* [x] 地面特效新增 `GroundEffectHitTarget` 欄位（`Enemy` / `Environment` / `Any`）：與 `BounceTarget` 獨立，可分別設定子彈打到怪物 / 障礙物 / 任一目標時才釋放地面特效，預設 `Enemy` 沿用首版行為。
+
+* [x] 實作拋物線型彈道（`IsParabolic`）：新增 `ParabolicBehavior`（接管移動、CollisionMask=0、視覺假高度），`RecipeTable` 新增 3 欄（IsParabolic / ArcHeight / LaunchSource），`GroundEffectHitTarget` 加上 `Ground` 列舉值；抵達目標落地時透過 `BulletInstance.OnGroundLanded` 事件觸發 `Ground` 過濾的地面特效；支援「玩家位置」與「攝影機視野外隨機方向」兩種發射來源。
+
+* [x] 拋物線進階：`Speed` 欄位語意改為「飛行時間（秒）」（固定時間抵達，與距離無關，多顆同時落地）；支援 `SpreadCount` / `SpreadAngle` 一發多顆的扇形分裂（不需要 `SplitTiming`，獨立分支）；新增 `LandingScatterRadius` 落點隨機半徑欄位，多顆炸彈各自在自己的扇形目標附近圓盤內均勻隨機落點，避免堆疊。
+
+* [x] 實作持續掃射型雷射光束（`IsLaser`）：新增獨立 `LaserBeam` 核心元件（line-march 把追蹤/反彈/穿透/射程收斂進同一迴圈）、`Custom/AdditiveBeam` 加色 shader、`BallisticsEngine.SpawnBeam` 純程式建構工廠；`RecipeTable` 新增 `IsLaser` / `dotInterval` / `BeamRange`，`WeaponTable` 新增 `BeamTexturePath` / `BeamColor` / `BeamWidth` / `ScrollSpeed`（行為與外觀分表，換素材即換風格）。
+
+* [x] 雷射完全複用既有配方：吃 `PierceCount`（穿透）、`HomingTurnSpeed`（追蹤彎曲，賣點）、`BounceTarget` + `MaxBounces`（反彈折線）、`SpreadCount` / `SpreadAngle`（一發多道）、`SplitTiming=OnHit` + `SubRecipeID`（命中分裂，節流綁 dotInterval）；傷害走武器表 `Damage` 以 DOT 節拍結算並吃怪物無敵時間。`PlayerController` 加持續光束生命週期（按住維持、放開/切武器銷毀整組）。
+
+* [x] 雷射打磨與除錯（一輪實機調校）：
+  * **命中寬度所見即所得**：改用 `Radius = BeamWidth/2`，視覺與命中共用一欄。
+  * **修穿牆飛出場外**：牆用細射線 `Raycast`、敵人用粗圓 `CircleCastAll` 分開偵測（厚圓在掠射角漏抓薄牆是元凶）。
+  * **修貼身怪打不到**：本專案 `queriesStartInColliders=false` 會讓砲口 cast 忽略起點重疊的怪，砲口加一次 `OverlapCircle` 補抓（不動全域設定）。
+  * **渲染改自繪 mesh**：徹底解決 `LineRenderer` 轉角的兩難（圓角→反彈離牆遠／不圓角→某段被擠扁變細），每段獨立四邊形、轉角依夾角延伸重疊 → 緊貼牆反彈又全程等寬；端帽平頭交給光暈收尾，亮核不凸出頭尾。
+  * **雷射質感**：`beam_core` 貼圖加沿長度的能量波帶（配 `ScrollSpeed` 做出一波一波流動）、shader 加白熱核心 + 微脈動（顏色與亮度分離，波動在核心也看得到）。
+
+* [x] 雷射外型「種類化」與全參數化（見 [LASER.md](LASER.md)）：外觀改由 `BeamStyle`（種類編號 1~10）+ `BeamColor`（顏色編號 1~10）+ `BeamWidth` 三欄驅動，使用者只填編號；外型細節（截面/波帶/流動/白核/脈動/雜訊）全部參數化進 `Custom/AdditiveBeam` shader（**不再需要貼圖**），10 種風格集中定義於 `BeamStyleLibrary`，光暈分離出 `Custom/AdditiveGlow`。含「鏡光（古鏡）」種類；`BeamStyle × BeamColor` 正交 = 100 種組合。**加第 11 種 = `BeamStyleLibrary` 多一組數字，零產圖**。
+
+* [x] 新增火焰噴射器（雷射的「火焰外觀模式」，見 [LASER.md](LASER.md)）：火焰噴射器本質是雷射（按住掃射 + 持續 DOT），只換外觀。`LaserBeam` 加 `DrawBeam` 旗標（false = 不畫光束 mesh/光暈、只算幾何與命中）+ 開放唯讀 `Points` 路徑；`BallisticsEngine.SpawnBeam` 加 `drawBeam` 參數。雷射武器 `TrailEffectID > 0` 時進火焰模式：`PlayerController` 沿 `beam.Points` 每隔 `TrailStep` 維護一排循環火焰 Vfx、每幀重新定位（跟著掃）。`VfxInstance` 新增「`Loop=1` + `Duration=-1` = 無限循環（外部管理生死）」。復用 `TrailEffectID`/`TrailStep`（與地刺同欄位，載體換成光束）。範例：武器「火焰噴射器」→ 配方 20(IsLaser, dotInterval 0.2, BeamRange 5, TrailStep 0.5) → Vfx 4「火球」(FireBall, Loop=1, Duration=-1)。
+
+* [x] 新增「軌跡特效」機制，並以此重做地刺武器（讓地刺吃滿 RecipeTable 行為，見 [BALLISTICS.md](BALLISTICS.md) 的 `OnTrailPoint`）：`BulletInstance` 新增 `TrailStep` + 通用事件 `OnTrailPoint`（每飛 TrailStep 距離回報一次經過點，彈道系統不知種的是什麼），`BallisticsEngine.Spawn` 接 `onTrailPoint` 並傳遞給分裂子彈，無圖子彈自動隱形。`RecipeTable` 加 `TrailStep`、`WeaponTable` 加 `TrailEffectID`（引用 VfxTable）。**地刺 = 一顆隱形的正常子彈，沿路每隔 TrailStep 種一根尖刺 Vfx**——因此自動繼承反彈/分裂/穿透/追蹤/散射全部行為（子彈反彈→刺軌跡折、分裂→刺分岔、追蹤→刺蛇行），傷害走武器 Damage（正常命中），不再用地表傷害。
+
+* [x] ~~地刺波 `IsGroundWave`（地表特效版）~~：已移除——改用上述「軌跡特效」做法，因為地表特效不會飛、無法吃 RecipeTable 行為。`GroundWaveEmitter` / `GroundEffectManager.SpawnWave` 一併刪除；earthSpik 從 GroundEffectTable 搬到 VfxTable。範例：武器「地裂刺」→ 配方 19「地刺」(隱形穿透彈, TrailStep=1.5) → Vfx 3「地刺」(earthSpik)。
+
+* [x] 拋物線武器新增落地殺傷半徑（`BlastRadius`，見 [GROUND_EFFECT.md](GROUND_EFFECT.md)）：`RecipeTable` 加第 30 欄 `BlastRadius`，存於 `RecipeEntry`（主遊戲側、不碰彈道系統）。拋物線彈落地時 `PlayerController.HandleParabolicLanded` 以 `Physics2D.OverlapCircleAll` 對 `EnemyLayer` 做一次性 AOE、以**武器表 Damage** 結算（吃怪物無敵時間、擊退由爆心朝外）。與地面特效**獨立可並存**（炸傷一次 ＋ 留火延燒）。炸彈武器（5/6）Damage 0→5、配方 12/13 BlastRadius=1.5。
+
+* [x] 實作一次性特效系統（VFX，見 [VFX.md](VFX.md)）：新增 `VfxTable.csv` + `VfxManager` / `VfxData` / `VfxInstance`（仿 GroundEffect 三件套但砍掉 tile / 傷害 / DOT，單一 SpriteRenderer 播一輪自毀，免 prefab、Manager 自建 GameObject）。`WeaponTable` 新增 `FireEffectID`（發射特效，玩家身上朝瞄準方向）/ `HitEffectID`（擊中特效，命中點）兩欄——外觀掛武器表、不污染配方行為。串接四個既有觸發點（`Shoot` / `UpdateLaser` 按下 / `HandleBulletHit` / `HandleParabolicLanded` / `HandleBeamTick`），皆讀發射快照武器；擊中首版統一一種、不分表面（怪/牆/地共用）。與彈道系統完全分離，可複用為未來死亡煙、撿道具閃光等。
+
+* [x] VFX 打磨（見 [VFX.md](VFX.md)）：① VfxTable 新增 per-effect `SortingOrder` 欄——留空用 VfxManager 全域、填了用自己的（地刺填 <10 畫在角色腳下、爆炸留空維持上層，**改一個不影響其他特效**）。② 一次性動畫改「**逐格完整播完才銷毀**」——銷毀由動畫進度驅動（不再用獨立壽命計時、也不再繞回第一幀），不管 AnimFPS 多慢都保證每一格播完，與子彈/光束速度無關。③ 新增 `Loop=1 + Duration=-1 = 無限循環`（外部管理生死，給火焰噴射器的火焰柱用）。④ 火焰柱第一根不種在角色身上、改從前方 `TrailStep` 起（命中判定不受影響，仍由雷射砲口 OverlapCircle 補抓貼身怪）。
+
+* [x] 除錯（軌跡/分裂相關）：
+  * **修 `HomingTurnSpeed` 沒擋空白**：`RecipeManager` 解析第 14 欄時 `float.Parse("")` 會拋 FormatException、**中斷整個配方載入**（症狀：後面的配方全部沒載入、武器找不到配方）。補上「留空就跳過」守衛，符合文件「0 或留空 = 不追蹤」。這是長期潛藏 bug，既有配方剛好都填 0 才沒爆。
+  * **修分裂子彈被誤清成隱形**：加「軌跡/隱形子彈」時，`Internal_Create` 對「沒給圖」一律清空 sprite，連「複製母彈而來、本帶圖」的分裂子彈也被清掉 → 所有分裂武器整排消失。改成 `hideIfNoSprite` 只在**初始發射**套用，分裂子彈（`Internal_SpawnSplit`）保留複製來的圖。
+
+* [x] 武器切換調整（見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)）：初始武器改為**武器表最後一號（最高 ID）**；按 `E` 改為**往前切**（`SwitchToPreviousWeapon`：往較小 ID、到最低再繞回最高）。
+
+* [x] 新增佛光型武器（`IsAura`，見 [GROUND_EFFECT.md](GROUND_EFFECT.md)）：以玩家為圓心、按住維持一個**圓形 AOE 光暈**，圓內怪物持續受傷（手持佛光的籠罩感）。**做法＝「一個會跟著玩家移動的 GroundEffect」**，不發射任何子彈、**完全不碰彈道系統**（旗標存主遊戲側 `RecipeEntry.IsAura`）。關鍵：`GroundEffectInstance` 的視覺是子物件、傷害每拍即時讀 `transform.position`，所以 `PlayerController.UpdateAura` 每幀把 instance 移到玩家身上，視覺圈與傷害圈就一起跟著走（GroundEffect 本體零改動）。生命週期仿雷射群組（按住維持、放開/切武器 `ClearActiveAura` 銷毀）。圓的半徑/節拍/外觀走配方 `GroundEffectID` 指向的 `GroundEffectTable`，傷害走武器表 `Damage`（透過新增的 `damageOverride` 餵入）。
+
+* [x] GroundEffect 新增**單圖渲染模式**（`GroundEffectTable` 加 `RenderMode` 欄，`Single` = 放一張縮放到直徑 `2*Radius` 的發光圓暈，給佛光那種柔和光暈用；留空 = 既有 tile 鋪滿，火堆/毒霧不受影響）＋ `Spawn(id, pos, damageOverride)` 多載（`>=0` 時改用此值結算傷害）。佛光圖 `Resources/GroundEffect/buddhaLight/buddhaLight_01.png`（暗琥珀佛燈色、純圓盤、半透明 RGBA，刻意壓低不透明度避免遮住下方怪物；初始 `Radius=1.2` 約籠罩玩家全身）。
+
+* [x] 新增連鎖閃電武器（`IsChain`，見 [LASER.md](LASER.md)）：點一下（吃 `FireInterval`）朝滑鼠射出，命中首怪後在 `ChainRadius` 內逐跳到最近的怪、跳 `ChainCount`（= `MaxBounces` 欄）次，每跳吃滿武器表 `Damage`。**目標搜尋＋傷害全在主遊戲側 `PlayerController.ShootChain`**（守住「彈道系統不算傷害」邊界）；視覺複用雷射的折線 mesh——`LaserBeam` 新增**靜態折線模式** `SetStaticPath(pts, life)`（餵入算好的折線、不 march、不回報傷害，短命淡出後自毀）＋ `BallisticsEngine.SpawnChainVisual` 工廠。外觀走武器表 `BeamStyle`/`BeamColor`/`BeamWidth`（閃電風格填 7），主遊戲在每段間插入鋸齒抖動點做出電弧感。第一段射程沿用 `BeamRange` 欄、撞牆就停（閃電不穿牆）。
+
+* [x] 連鎖閃電除錯 ＋ 吃散射/追蹤（見 [LASER.md](LASER.md)）：① 修「打地上物卻打不壞」——目標搜尋原本只搜 `EnemyLayer`，改成 `EnemyLayer | EnvLayer` 再用 `IDamageable` 過濾（純牆無 IDamageable 自動排除、不浪費跳躍），符合「任何能造成傷害的武器都能破壞地上物」（記在 [PROBLEMS.md](PROBLEMS.md) B4）。② 吃 `SpreadCount`/`SpreadAngle` = 一發多道扇形連鎖（`ShootChain` 迴圈 + `CastOneChain`）；③ 吃 `HomingTurnSpeed` = 首目標自動鎖定（aim-assist，`FindNearestInCone`，半角=HomingTurnSpeed 上限180，180=鎖最近任意方向）。
+
+* [x] 新增**命中迸發子武器** `SubWeaponOnHit`（見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)）：子彈命中時在命中點生成「**武器表上指定 ID** 的武器」一發，子武器**自帶外型/傷害/追蹤**（解決 SubRecipeID 只能仿母武器外型的限制——根因是 SubRecipeID 指配方無外型、且彈道層與武器系統解耦只能複製母彈）。在主遊戲側 `PlayerController.HandleBulletHit → TryTriggerSubWeapon → SpawnSubWeaponAt` 實作（彈道層不變）；`RecipeEntry` 加 `SubWeaponOnHit`（武器 ID）+ `SubWeaponHitTarget`（`Enemy`/`Environment`/`All`）。迸發方向取命中面法線往外，吃子武器自己整套配方（散射/追蹤…）。範例：武器 13「蜂巢」配方 24 `SubWeaponOnHit=2, All` → 打到牆/怪迸出武器 2（3 分裂追蹤飛劍）＝ 3 把追蹤飛劍（飛劍圖、非炸彈圖）。
+
+* [x] 地圖相機模式（2026-06-22，見 [MAP_SYSTEM.md](MAP_SYSTEM.md)）：`MapsTable.csv` 新增 `MapMode` 欄（1=整張地圖縮放、2=鏡頭跟隨，預設 2）。`MapManager` 載圖後依模式套用相機（新增 `MapCameraController`，仿 TeleportWatcher 自掛）：跟隨模式固定縮放（角色正常大小）＋鏡頭跟玩家並夾在地圖邊界內。**門檻保護**：寬或高超過門檻（預設 18/10 格）才跟隨，現有適中地圖即使填 2 也維持整張地圖、觀感不變。
+
+* [x] 動畫地上物（多張圖做成一個物件，2026-06-22，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)、[DESTRUCTIBLE_OBJECTS.md](DESTRUCTIBLE_OBJECTS.md)）：`Environment/` 下的**子資料夾 = 一個動畫物件**，同步收成一筆 catalog item（`frameCount`/`frames`，依檔名排序）。**FPS 每實例可調**（`.dipanmap` 的 `objects[].animFps`，編輯器選取面板設定）。編輯器即時循環預覽；遊戲端 `MapLoader` 掛 `AnimatedMapObject` 原地循環播，碰撞框/血量/可破壞沿用第一幀。四個 catalog 產生器（編輯器 `sync_assets.sh`/`AssetSyncTool.cs`、遊戲端 `MapAssetSyncTool.cs`/`MapIO.BuildFromGameAssets`）一致處理子資料夾（見 [PROBLEMS.md](PROBLEMS.md) C1）。
+
+* [x] 牆 = 「環境/牆」(environment) trigger（2026-06-22，見 [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)）：牆與可走刻意分開（深坑/水池 = 不可走但子彈穿過）。`MapLoader.BuildCellColliders` 改成**有 environment 區域時：牆 = environment 格、不可走且非 environment = 水塘/深坑**；**沒有 environment 區域時退回舊模型**（不可走=牆、bulletPass=水塘），既有地圖不受影響。編輯器加便利按鈕「依不可走格建立牆 trigger」：一鍵把所有不可走格刷成 environment 區域，建立後切 Trigger 工具（減格）方便挖掉水池格。
+
+* [x] 道具拾取系統（2026-06-23，見 [INTERACTION.md](INTERACTION.md)）：編輯器 `pickup` trigger 加 `count` 欄；遊戲端新增「靠近按 **F** 撿取」一條龍——`InteractionManager`（最近目標→提示→F）＋ `GroundLoot`（地上掉落物，背包滿溢出的掉腳下）＋ `InteractMarker`（純程式畫五角星、閃爍標示觸發點）＋ `PickupTipPanel`（跟隨提示）＋ `AlertPanel`（中央 toast，不暫停/不遮罩、2 秒淡出）。背包 `AddItem` 回傳的「放不下剩餘」剛好做「滿了掉地上」。一次性消耗、當次停留記憶（換圖重建，永久化屬 Phase 2）。
+
+* [x] ItemTable.csv 搬到 `Assets/Data/`（2026-06-23，見 [INVENTORY.md](INVENTORY.md)）：與其他資料表同位置；載入改為比照各表的「拖 TextAsset」——新增 `ItemTableProvider`（場景元件持 CSV 參照），`InventorySystem` 載入時 `FindObjectOfType` 取用、退回 Resources 後備。`ItemDatabase` 拆 `LoadFromTextAsset`（主）/`LoadFromResources`（後備）。
+
+* [x] 劇情系統（2026-06-23，見 [DRAMA.md](DRAMA.md)）：編輯器預設 trigger 加 `drama`「劇情觸發點」（紫色、`dramaId` 欄）。互動複用拾取那套（靠近按 **F**、星星標示——劇情點＝紫星、提示改「按 F 鍵」、一次性消耗），故把 `LootManager` 一般化改名 `InteractionManager`（管掉落物＋拾取點＋劇情點）、`PickupMarker`→`InteractMarker`。新增 `DramaTable.csv`（`Assets/Data`，ID/ImagePath/Text）＋ `DramaData`/`DramaDatabase`/`DramaTableProvider`（同 ItemTable 載入慣例），以及 `DramaPanel`（模態：暫停＋半透明黑遮罩＋大圖+文字、ESC/點任意處關閉）。`DramaPanel.Show(dramaId)` 由 InteractionManager 在按 F 時呼叫。
+
+* [x] 效能診斷面板 PerfHud（2026-06-24，見 [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md)）：排查「Windows build 幀數低、Mac/編輯器卻順」。`Assets/Scripts/Diagnostics/PerfHud.cs`（開場自動生成、按 **P** 開關）顯示 FPS/幀時/最差幀、CPU·GPU ms（`FrameTimingManager`，已開 `enableFrameTimingStats`）+ 瓶頸判斷、顯示卡/API/解析度/刷新率/VSync/記憶體，面板上可即時切 VSync(V)/目標幀率(T)。**結論：不是效能問題**——GPU 一幀 ~1.5ms，FPS 被 VSync 鎖在遠端 ATEN 4K HDMI 線路的 ~60Hz（Mac 是 120Hz 才覺得差），記在 [PROBLEMS.md](PROBLEMS.md) E1。
+
+* [x] 設定面板（2026-06-24，見 [TODO.md](TODO.md)）：`SettingsPanel`（背板 `SettingPanelBG` + 兩條音量 slider 可拖曳〔未接音訊〕 + 右上關閉鈕 + 底部離開遊戲鈕＋門 icon）、`ConfirmPopup`（離開確認彈窗，真素材：`PopupPanelBG` + LongBtn + 勾/叉 icon）、`SettingsLauncher`。**按 ESC 開設定**：`UIManager` 加「ESC 根面板」機制（`SetEscapeRootPanel<T>`，同一分支處理「有視窗→關最上層／沒視窗→開設定」，不會關了又重開），另保留 O 備用鍵。音量持久化/實際音訊/畫面設定選單列入 TODO。
+
+* [x] 劇情 Type 2＝頭像對話（2026-06-24，見 [DRAMA.md](DRAMA.md)）：`DramaTable.csv` 尾加 `Type`（1 大圖+文字 / 2 頭像對話，留空=1）、`TalkGroup` 欄。新增 `DramaTalkTable.csv`（流水號/群組/姓名/頭像路徑/位置 1左2右/對話）＋ `DramaTalkData`/`DramaTalkDatabase`（依群組分組、組內依流水號排序）/`DramaTalkTableProvider`/`DramaTalkController`，以及 `TalkPanel`（底部對話框 `DramaPanelBG` + 姓名牌匾 `DramaPanelNameBG`〔擺立繪對側〕 + 立繪〔站姿、排對話框後方被框蓋住、依 Side 左右〕 + 文字、點擊/空白/Enter 換頁、半透明黑遮罩）。**頭像走地圖素材管線**（放 `GameAssets/Modules/<module>/Talk/`、`AvatarPath`=catalog id、`DramaTalkDatabase.ResolveAvatars` 載入）——`Talk` 已加進三處同步分類白名單（`MapAssetSyncTool.cs`/`MapIO.cs`/`sync_map_assets.sh`，記在 [PROBLEMS.md](PROBLEMS.md) C3）。`InteractionManager.TriggerDrama` 依 `Type` 分支：**Type 1＝靠近按 F（放紫星）、Type 2＝碰到自動觸發（`dramaTouchRadius`、不放星星）**。
+
+* [x] 可走層改三態子格細分（2026-06-25，分支 `feat/cellSmaller`，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)、[MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md)）：解決「格子太大、可走/不可走判定不夠細」。地圖格式新增 `walkSubdiv`（新地圖預設 4＝每 tile 切 4×4 子格）；可走層 `blocked` 從「tile 解析度 2 態」改成**子格解析度三態**：`'0'` 可走 / `'1'` 牆(擋＋反彈子彈) / `'2'` 水/坑(擋腳、子彈穿過)。碰撞盒大小 = `tileSize/walkSubdiv`。**牆/水直接在編輯器「可走」工具用三筆刷(綠/紅/藍)塗、可選筆刷大小(1/2/4/8 子格)**；地磚/物件/trigger 維持 tile 解析度不動。**徹底移除舊的 environment 牆 trigger**（triggerTypes.json/`TriggerType.cs` 預設/「依不可走格建立牆」按鈕/遊戲端 legacy 牆模型全砍），牆/水單一欄位三選一、不再有「bitmap＋trigger」疊層。新增 `MapCoords` 子格座標(`Fine*`)、`WalkableOps` 三態讀寫。既有 11 張 RedBridalGown 地圖以 `migrate_walksubdiv.py` 一次性無損轉檔（env 牆→`'1'`、不可走非牆→`'2'`，每格展開 N×N；編輯器 Maps/、GameAssets、StreamingAssets 三處）。
+
+* [x] 牆碰撞橫向合併（2026-06-30，見 [PROBLEMS.md](PROBLEMS.md) B6）：`MapLoader.BuildCompositeFromCells` 原本「一個牆子格＝一個 `BoxCollider2D`」，大地圖（放大後外圍整片被塗成牆）會逐一加數萬個 collider＋`GenerateGeometry` 而卡數十秒。改成**同列連續牆格 run-length 合併成一條長 box** 再餵 `CompositeCollider2D`；因 composite 本來就把相鄰 box 併成外框，物理外形與 `hit.normal` 完全一致、零行為變化。實測某 90×50 圖 65,856 子格 → 324 條 box（約 203×）。
+
+* [x] 編輯器「可走」工具強化（2026-06-30，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：新建地圖初始全是牆、要塗大片可走很慢 → ① 筆刷尺寸從 `{1,2,4,8}` 擴成 `{1,2,4,8,16,32,64,128}`（每列 4 顆排版）；② 新增「整張地圖」一鍵鈕「全部改可走（綠）／全部改牆（紅）」（`WalkableOps.FillAll`，含 Undo）。
+
+* [x] 動畫地上物乒乓播放（2026-06-30，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：AI 產的循環圖首尾常接不順、播到第二輪會跳一下。`AnimatedMapObject` 加**乒乓模式**（0→N-1→0 來回，端點各停一幀＝接縫消失，不用改圖）；`ObjectInstance` 加 `pingPong` 欄（遊戲＋編輯器雙方），編輯器物件面板加「循環／乒乓」切換、預覽即時反映、複製會帶。預設循環、向下相容。乒乓會「正放再倒放」，適合佛像呼吸/發光等氛圍動畫；方向性動畫維持循環。
+
+* [x] 地圖載入改「分幀＋載入頁」（2026-06-30，見 [RESOURCE_LOADING.md](RESOURCE_LOADING.md)）：原本 `MapManager` 同步建圖（背景/地磚/逐張載地上物/牆/怪擠在一幀）→ 進場/換圖凍住。新增 `MapLoader.LoadMapRoutine`（地上物每幀建 `objectsPerFrame` 個、回報進度、`LastLoadOk`）＋ `LoadingPanel`（Overlay 層、依關卡 `Resources/Loading/<module>.png` 顯示、進度條、鎖輸入不暫停）＋ `MapManager.LoadMapRoutine`（開頁→停留 `loadingScreenHoldSeconds` 秒→清場→分幀載→放玩家/怪→關頁，`_loading` 擋重入）。首次進場與每次換關都走同一套。
+
+* [x] 過場影片跳過閃爍修正（2026-06-30，見 [CUTSCENE_TUNNEL.md](CUTSCENE_TUNNEL.md)）：跳過影片時「影片關掉→又閃一下→才真正關閉」。原因＝黑幕淡入蓋住後只 `Pause` 影片、`_video` RawImage 還開著，接著黑幕淡出又露出暫停的最後一幀。修法：轉全黑時 `_video.enabled = false`，淡出只剩黑底、乾淨過渡。
+
+* [x] 場景特效框架＋火雨（2026-06-30，見 [SCENE_EFFECT.md](SCENE_EFFECT.md)）：新增**地圖級世界端**特效系統（`MapsTable.csv` 第 8 欄 `SceneEffect`、`SceneEffectController` 仿 `AtmosphereController` 自動生成/常駐/載圖套用/換圖清殘留）。第一個效果**火雨**：仿「火焰拋擲彈」拋物線，從畫面外上方拋火球進相機可視範圍、落地播火光，**純表演不傷人**，火球/火光用程式生成佔位素材（之後可換真素材）。曾試以 Atmosphere mode 16 做「天空紅漩渦」，因 45° 俯視看不到天空、概念不成立而移除。火球 `sortingOrder` 一度填 2,000,000 溢位繞回負數而看不到，改 30000（記在 [PROBLEMS.md](PROBLEMS.md) E4）。
+
+* [x] 大螢幕畫質修正：UI 去壓縮＋場景濾波（2026-07-01，見 [PROBLEMS.md](PROBLEMS.md) G2/G3）：排查「小視窗/遠端看還好、回家實體大螢幕覺得 UI 糊、場景粗糙」。① UI 糊＝`Resources/UI` 貼圖被 Compressed＋Bilinear 放大露塊狀髒點 → 全部 39 張改 Compression None，並加 `Assets/Editor/UITextureImportSettings.cs`（`AssetPostprocessor`，未來丟進 `Resources/UI` 的新圖首次匯入自動套 不壓縮/關 Mipmap/Sprite/MaxSize≥2048）。② 場景粗糙＝固定世界單位放大＋Point 非整數縮放毛邊＋AI 像素風源圖顆粒；`MapSpriteLoader` 加可切換 `SceneFilterMode`（`SetSceneFilterMode` 即時重套已載入貼圖），PerfHud（P）加「場景濾波(F)」按鈕/F 鍵現場比對，**定案採 `FilterMode.Point` 為預設**，Bilinear 保留比較。評估後未採 Pixel Perfect Camera（與 zoom/整張地圖/平滑跟隨/混雜 PPU 衝突，且美術是 AI 點陣圖）。附帶結論：**遠端桌面不能驗收畫質**（會重壓縮串流）。
+
+* [x] 可放置場景特效系統 SceneFx（2026-07-02，見 [SCENE_EFFECT.md](SCENE_EFFECT.md)、[MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：把「綁在 MapLoader 的佛陀煙霧 hack」演進成通用、可在編輯器逐個放置的粒子特效。編輯器新增「場景特效」分頁（新增特效、放置綠起點/紅終點、填參數）；資料存 `.dipanmap` 的 `sceneFx` 清單（`SceneFxInstance`：fxId/起終點/bulge/w/h/loop/intermittent/interval，兩專案 MapData 皆加）；外觀走 `Assets/Resources/Data/SceneFxTable.csv`（欄含 `Kind`）。兩種 kind：**stream**（`SceneFxEmitter`，弧線粒子流，煙/火/冰/毒；濃煙用花椰菜狀雜訊粒子＋自轉＋高密度）與 **portal**（`PortalFx`，起/終點＝矩形對角的平穩發光漸層光幕）。遊戲端 `MapLoader.BuildSceneFx` 依 kind 生成、換圖清除；舊 `SmokeEmitter`/`smokeObjectIds` hack 移除。**編輯器即時預覽**：每個特效旁「顯示/隱藏」跑與遊戲同一套程式（`SceneFxEmitter`/`PortalFx`/`SceneFxTable` 複製到編輯器 `Scripts/Preview`＋`Resources/Data`），移動點/改參數即時重建、刪除即移除。坑：`sortingOrder` 16-bit，傳送門要高於門的地上物（用 20000）才不被蓋住（見 [PROBLEMS.md](PROBLEMS.md) E4）。
+
+* [x] 鏡頭區 camZone trigger（2026-07-02，見 [MAP_SYSTEM.md](MAP_SYSTEM.md) §2.2）：新增 trigger 類型「鏡頭區」，玩家踩進拉遠/位移相機、離開還原（給「走到佛像腳下拉遠看全貌」）。參數 `zoom`（>1 拉遠）/`offsetX`/`offsetY`。`CameraZoneWatcher`（MapManager 自掛）偵測進出，`MapCameraController` 加 `SetCameraZone/ClearCameraZone`＋平滑過渡（`zoneTransitionTime`），疊加在正常相機之上、換圖還原。`TriggerRegion` 加 `GetFloat`。
+
+* [x] 地上物「可走」勾選（2026-07-02，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md) §4.3）：物件面板加「可走」勾選（`ObjectInstance.walkable`，兩專案皆加），預設不勾。勾選＝該地上物**不設碰撞、不擋路、不掛可破壞，且畫在角色下方**（sortingOrder 5 < 角色 10；否則像木板會壓在角色身上），走不走交給地圖可走層那格判定（例：木板/地毯可踩上去、角色走其上）。`MapLoader.BuildOneObject` 依此跳過 collider 與 `DestructibleObject`、並改用低排序。向下相容（舊物件預設不可走）。
+
+* [x] 傳送點「使用傳送點外型」開關（2026-07-02，見 [MAP_SYSTEM.md](MAP_SYSTEM.md) §3.1/3.3）：傳送點 trigger 加 Bool 參數 `showMarker`（面板顯示「使用傳送點外型」），**預設打勾＝顯示**；取消＝`BuildTeleportMarkers` 跳過該點不生外型（給「放了自己的傳送門 SceneFx / 隱形傳送點」用）。遊戲端 `TriggerRegion.GetBool`（找不到/空＝顯示，向下相容）。順手讓編輯器 `TriggerParam` 支援中文 `label` 與 `boolDefault`（新建區域 Bool 預設值）；`CreateRegion`/`DrawParamField` 配合。
+
+* [x] 資源載入改「module 級預載」（2026-07-02，見 [RESOURCE_LOADING.md](RESOURCE_LOADING.md)）：修正「同 module 房間互跳也彈讀取頁」的怪現象。`MapManager` 記 `_loadedModule`，`LoadMapRoutine` 分兩路：**跨 module**（進大地圖/回 Main/首次）＝讀取頁＋`MapLoader.PreloadModuleRoutine`（把該 module＋Main 的 catalog 圖一次解碼快取）＋分幀建圖；**同 module 房間互跳**＝資源已快取，同步 `LoadMap` 快速建圖、**不出讀取頁**。共用收尾抽成 `PlaceAndSetup`。記憶體取捨：預載常駐不自動釋放；怪物貼圖仍走 `MonsterSpriteLibrary` 首次出現才載（未納入預載）。
+
+* [x] 存檔進度層 schema v2（2026-07-03，見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md) §14）：把玩家遊戲進度接進統一角色存檔。**周目（大進度）= `generation`**、**完成關卡數（小進度）= `progress.clearedModules` 去重數**（「關卡」= MapsTable 的一個 `Module`，如 `RedBridalGown`）。`ProgressDTO` 新增 `clearedModules`/`unlockedModules`/`inheritedItems`/`hubIntroSpawnDone`＋`stats.currency`；`SaveManager` 開放進度 API（`MarkModuleCleared` idempotent、`ClearedModuleCount`、`Cycle`、`Currency`/`AddCurrency`/`TrySpendCurrency`、`HubIntroSpawnDone`、`CarryCountForCycle`）；`CharacterProfile` 加 `clearedModuleCount`/`slotIndex` 讓存讀檔 UI 只讀 `profiles.json` 就能畫卡片。設定常數（`HubMapId=12`、`SlotCount=3`、`MaxCarryOnReincarnate=7`、`LevelsToUnlockBoss=7`、Hub 落點名 `caveExit`/`center`）集中在 `SaveConstants`，關卡數量要改就改這裡。v1→v2 只補欄位、無資料搬遷。
+
+* [x] 標題畫面＋三欄存讀檔 UI＋總流程（2026-07-03，見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md)）：把「一 Play 就跳進關卡」改成 **標題（`TitlePanel`，主標《燃燈劫》/副標 Burning Lamp: Rebirth of Ruin）→ 三欄存讀檔（`SaveSlotPanel`）→ 玩家選擇**。新增 `GameFlowManager`（＋開機 bootstrap，仿 SaveManager/UIManager 全程式建構）：開機把 `SaveManager.SuppressAutoLoad`／`MapManager.SuppressAutoStart` 設 true 改由流程驅動；**新建**（在該欄建角，有 Intro 就播開場鏈、沒有直接進廣場）／**繼續**（載該欄→進廣場中央）／**覆蓋**（`ConfirmPopup` 先問→重建）／**刪除**（測試用，先問）。**一欄＝一條獨立進度線＝一個角色**（`slotIndex`）。**進邪佛廣場（Map 12）= 自動存檔點**：踏進就存＋設 `hubIntroSpawnDone`；出生點由旗標決定（首次洞穴出口 `caveExit`、之後中央 `center`，`MapManager.PlaceAndSetup` 覆寫落點）。**輪迴資料層** `SaveManager.ReincarnateInPlace(carryIds)`：同欄位 `generation`+1、進度全歸零、帶入 `min(周目,7)` 件（0/負略過）、旗標重置、倉庫不動。UI 為佔位視覺（純色＋內建字型），待換素材。修一坑：開機抑制旗標整場有效導致「墜落動畫後 MainScene 全黑」——新建走開場鏈分支要把 `SuppressAutoStart` 設回 false 交還既有流程（記在 [PROBLEMS.md](PROBLEMS.md) H1）。
+
+* [x] 進場一次性效果系統＋睜眼醒來（2026-07-03，見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md)）：新增一種**進圖時播一次就結束**的螢幕後處理過場，語意是「一次性事件」而非「持續狀態」，故獨立於持續性的 Atmosphere（螢幕氛圍）／SceneEffect（世界特效）。第一個效果「睜眼醒來」用在初始洞窟 Main_Cave（承接墜落昏迷）：全黑→眼皮杏眼狀裂開→沉重眨一下→模糊轉清晰＋亮度回正＋暗角收斂→完全睜開、移除。`Resources/Shaders/EyeOpen.shader`（`_Open` 眼皮遮罩／`_Blur` 圓盤模糊／`_Bright` 亮度暗角）＋`Assets/Scripts/MapFx/EyeOpenController.cs`（自生成單例、3 條 AnimationCurve 驅動時間軸、眨眼藏在 open 曲線、`EyeOpenBlit` OnRenderImage 掛 Camera.main 播完停用，仿 AtmosphereController）。資料驅動：`MapsTable.csv` 加第 9 欄 `EnterEffect`（0 無／1 睜眼，向下相容），`MapManager.PlaceAndSetup` 進圖時 `ApplyMapEnterEffect(row.enterEffect)`；Main_Cave（11）已填 1。開頭「全黑停一下」剛好蓋過 LoadingPanel 收尾、交接無縫。節奏/眨眼/模糊皆可調（controller 的 duration/maxBlur/曲線）。
+
+* [x] 標題畫面美術＋佛陀動畫＋火焰特效（2026-07-03，見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md)）：把 `TitlePanel` 從純色佔位換成正式視覺。**① 佛陀開場動畫**：中間偏右放 `Resources/UI/TitlePanel/BuddhaTitle/BuddhaTitle_01..NN`（自動偵測幀數、程式逐格播、用 unscaledTime 因面板暫停）；**按下開始才播一次 → 播完再多停 `BuddhaEndHold`（預設 1 秒）→ 才開 `SaveSlotPanel`**（無幀則直接開）；播放中鎖按鈕防重複、回標題自動重置回第一幀。**② 正式素材置換**：標題圖（3:1）取代文字主副標（⚠ 2026-08-19 起搬到 `Resources/UI/Texts/<語言>/TitlePanel_Title`）；開始鈕改用 `Resources/UI/Common/StartGameBtn`（無字圖）＋程式補「開始遊戲」字；文字群往左（`TextGroupX`）與偏右的佛陀錯開。找不到圖會退回文字/佔位。**③ 標題火焰特效** `Assets/Scripts/UI/TitleFireFx.cs`（UI 端、unscaledTime）：全螢幕持續落火（`UiFallingEmber`）＋標題燃燒（背後脈動火光＋柔邊高斯羽化＋寬度抖動的火舌 `UiRisingFlame`）。**刻意不直接用 MapsTable 火雨**——那是世界端 SpriteRenderer、綁 `Camera.main`/`deltaTime`，面板暫停中不動、且會被不透明 UI 蓋掉；改在 Canvas 上重做、複用火雨的程序生成佔位圖 `SceneEffectSprites`。位置/大小/節奏全在 `TitlePanel`／`TitleFireFx` 上方常數。曾另做「佛陀兩肩蒸騰濃煙」（照搬 `SceneFxEmitter` 的 fbm 花椰菜煙塊做法，因乾淨柔光圓不像煙），評估後**決定不放、已移除**。
+
+* [x] 部署改用 itch.io + butler（2026-07-03，見 [DEPLOY.md](DEPLOY.md)）：淘汰「build 進 git → 推 GitHub → PC `git pull`」的舊流程——git 存整包大二進位 build 必然撞 GitHub 100MB 單檔上限（`.resS` 已 176MB）又讓 repo 歷史無限膨脹。改用 itch 官方 `butler`：位元組級**差分上傳**、無大小限制、有版本、免費。`deploy_only.sh` 從「rsync + git push」改成 `butler push Builds/Windows_Test sorrowslee/dipan:windows`（帶日期版本、排除 Burst 除錯資料夾）；`BuildScript.cs` 拿掉「打包前對齊遠端 git」步；PC 端改用 **itch app** 自動增量更新＋一鍵 Launch，取代 `pull_and_run.bat`。舊 `update_deploy.sh`／`BUILD_AND_DEPLOY.md` 已刪，`DipanProj_Deploy` git repo 退休。踩坑：`broth.itch.ovh`（butler 下載主機）在 HiNet DNS 解不到 → 改從 `itchio.itch.io/butler` 瀏覽器下載繞開（記在 [DEPLOY.md](DEPLOY.md) 疑難排解）。
+
+* [x] 標題流程 build 開機場景修正 + 新建過場黑幕（2026-07-03）：① build 場景 0 從 `Intro` 改成 `MainScene`（`BuildScript.cs` 的 `options.scenes` 順序，Windows/Mac 都改）——加了標題流程後開機要停在 MainScene 顯示標題，Intro 只在「新建」時載入；順序錯會「開機直接播漫畫＋墜落後全黑」（同 H1 根因，記在 [PROBLEMS.md](PROBLEMS.md) A10）。② 新建有開場改走 `GameFlowManager.NewGameIntroRoutine`＋新增可重用 `ScreenFader`（`Assets/Scripts/Flow/ScreenFader.cs`，跨場景常駐黑幕、`sortingOrder` 30000、unscaledTime）：先蓋黑→關選單→載 Intro→淡出，修掉「按新建後標題面板閃一下才進漫畫」。
+
+* [x] 角色 Y 排序（修「人物被較上面的地上物遮蔽」，2026-07-03）：地上物本來就依放置 Y 排序，但玩家/怪物是**固定 `sortingOrder`（10）**、沒進 Y 排序帶，於是永遠被非可走地上物蓋住。抽出單一公式 `MapDepthSort.Order(worldY, zOrder)`（＝既有地上物公式 `1,000,000 - Y*100`，靠 16-bit 繞回落在同一帶）；`MapLoader` 地上物改用它、新增 `YSortByFeet`（每幀依腳底 Y 覆寫 sortingOrder，玩家/怪物在各自 `Start` 自動掛，仿 BlobShadow）→ 角色與地上物依 Y 正確交錯遮蔽。連帶把會被「角色進帶」蓋掉的表演層抬到帶之上：`DamageNumberManager.SortingOrder` 600→24000、`VfxManager.SortingOrder`（擊中/發射特效預設）100→22000（均 16-bit 安全；地刺等「腳下」特效仍在 VfxTable 自填低值不受影響）。占位排序基準 `YSortByFeet.FeetYOffset` 可微調角色被遮的高低。
+
+* [x] 排序續修：地面特效與飛行戰鬥視覺不再被地上物蓋住（2026-07-03，接上一則）：① **地面特效（GroundEffect，如冰/火 AOE）**原本 template sortingOrder 預設 0（地磚層）→ 被所有地上物蓋住。改成 `GroundEffectInstance.ApplyDepthSorting()` 依「中心 Y」進 Y 排序帶（`MapDepthSort`，含小幅 `YSortBias` 讓站在上面的角色仍畫在其上），移動型（跟玩家的佛光）每幀 Y 變動就重算。② **飛行戰鬥視覺抬到地上物之上以維持可讀性**：子彈 `Bullet.prefab` sortingOrder 10→22000、雷射 `LaserBeam` 光束/光暈 50/55/60→`BeamSortingOrder(22000)`＋5/+10。分工：地面 AOE＝floor 效果走 Y 排序（前方地上物該擋就擋）；子彈/雷射/擊中特效＝飛行/命中視覺畫在環境之上（看得清自己的攻擊）。
+
+* [x] 地面特效排序改「用可走與否分上下」＋拋物線 NaN 防呆（2026-07-03，接上）：① 上一步把地面特效整團依中心 Y 進 Y 排序帶，實測大範圍 AOE 只有單一排序值 → 後方 tile 也蓋過地上物（火燒到祭壇上）。改為**固定 `GroundEffectSortingOrder = 8`＝高於可走地上物(5)、低於角色/一般地上物**：火在**可走石板/地毯之上**、在**祭壇/柱子與角色之下**——正好用地上物既有的「可走與否」自動分「火在其上或其下」，不必逐一判斷（見 [GROUND_EFFECT.md](GROUND_EFFECT.md)）。② 修拋物線/火焰拋擲彈的 `transform.position ... NaN` 洗版：`ShootParabolic` 清洗滑鼠世界座標（NaN/Inf→退回玩家前方）＋`BulletInstance` 加安全網（位移非有限就銷毀該彈），記在 [PROBLEMS.md](PROBLEMS.md) F3。③ **佛光例外**：`RenderMode=Glow` 的佛光是「跟著玩家的光環」，改為依中心 Y 每幀進 Y 排序帶（`ApplyAuraYSort`）＝和玩家同進退（玩家在祭壇前光環在前、在後被擋），不像地板火固定壓在低層被祭壇一律蓋住。
+
+* [x] 效能與畫質診斷＋修正（2026-07-05，見 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md)、[PROBLEMS.md](PROBLEMS.md) E5~E7）：針對「fps 正常仍不順、PC build 畫面粗糙、UI 髒」做整輪調查與修正。**① 卡頓（已驗證有感）**：物理 50Hz（Fixed Timestep 0.02）×60Hz 螢幕拍頻＋Player/Monster Rigidbody2D 內插全關 → 角色每秒約 10 次微跳動，與 fps 無關；修法＝兩 prefab 開 `Interpolate`＋Fixed Timestep 改 `0.016666668`（60Hz）。**② 世界畫質**：地圖素材 256px/格在 1080p 只顯示 108px/格（0.42x 縮小），Point 濾波縮小取樣會亂丟像素產生噪點與移動閃爍（Mac Retina 編輯器看不出來、解析度愈低愈慘）；修法＝`MapSpriteLoader` 預設改 Bilinear＋`mipChain: true`（LoadImage 自動生 mipmap，記憶體 +33%），按 F 仍可切回 Point 對比。另查明 Main_Square 特別粗糙主因是 Atmosphere=5 的熱浪扭曲表演（曾試改低頻大波、作者偏好原觀感故還原，僅屬觀感選擇非 bug）。**③ UI 顆粒**：icon 原圖 256~500px 塞進 45~70px 格子（5~10 倍縮小、無 mipmap）；修法＝29 張小 icon meta `maxTextureSize`→128、6 張中型按鈕→512、全部開 mipmap，PNG 檔不動、風格不用換。**④ 制定素材尺寸規範**（PERF_QUALITY_AUDIT.md §4）：世界內素材＝佔幾格×256px、UI＝顯示尺寸×2；並確認 VSync 應保持開啟（KVM 60Hz 下 fps>60 顯示不出來，參 E1）。
+
+* [x] 觸發鏈系統：trigger 接 trigger（2026-07-05，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)）：任何 trigger 完成後可用通用欄位 `next` 啟動同圖另一個 trigger，無限接續（對話→給物品→開門→傳送…）。**① 新動作型 trigger**（不綁位置、被鏈到立即執行）：`giveItem`（直接進背包＋toast，不用按 F）、`teleportTo`（直接換圖，不用踩傳送點）。**② 位置型解鎖**：`startDisabled` 初始停用＋被鏈啟動＝解鎖；`enableFlag` 旗標讓解鎖狀態跨存讀檔記住；teleport 加 `linkedFx` 連動場景特效（傳送門綠幕停用時隱藏、解鎖時亮）。**③ 條件旗標**：`requireFlag`（支援 `!` 否定，例 `!killedFamily`）/`setFlag`，存進角色存檔 progress.flags（SaveManager.GetFlag/SetFlag 新 API）。主遊戲端：新增 `TriggerChain` 靜態管理器（MapManager.SetupWatcher 先 Setup、RefreshTriggers 重建互動點）；teleport/cutscene watcher 每幀動態查 IsActive（解鎖即生效）；InteractionManager 建點時過濾＋`_consumed` 集合防重建復活；DramaPanel/TalkPanel OnClose 通知鏈「對話完成」。編輯器端：trigger 面板新增「觸發鏈/條件（通用）」欄位組（所有類型都有）、giveItem/teleportTo 兩種新類型（TriggerType.cs + triggerTypes.json）、場景特效面板顯示 id 供 linkedFx 參照。
+
+* [x] 觸發鏈實裝與週邊修正（2026-07-05，接同日觸發鏈系統，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)）：**① camZone 入鏈**——「完成」=鏡頭拉伸到位（`MapCameraController.ZoneSettled` 2% 容差）才觸發 next；zoom 留空的 camZone = 隱形踩踏鏈起點；每次進區觸發一次、一次性靠下一節點 requireFlag。**② 邪佛大廳事件鏈實裝**（Main_Square）：`邪佛全貌`(camZone)→`邪佛對話`(drama id3、requireFlag=!hallGateOpen 防重複)→`給紅嫁衣劇本`(giveItem 104)→`劇本開門`(teleport startDisabled+enableFlag=hallGateOpen+linkedFx=綠幕)。新道具 104 劇本-紅嫁衣（ItemTable + icon）。**③ Talk 素材同步改遞迴**——NPC 立繪可放 `Talk/<NPC>/` 子資料夾（三處同步一致，[PROBLEMS.md](PROBLEMS.md) C5；另 C4 記編輯器素材半套、E8 記傳送門光幕 PPU 坑）。**④ 對話立繪微調**——DramaTalkTable 表尾六個選填欄（Left/Right 的 Scale/OffsetX/OffsetY），立繪框寬度改依圖片實際比例自動算（非主角比例的 NPC 圖不再被壓進固定框）。**待辦**：紅嫁衣「沒殺家人→榕樹妖」分支未實作，接手步驟寫在 TRIGGER_CHAIN.md §7（唯一要寫程式的是 MonsterData 加 DeathFlag 欄＋Die() 寫旗標）。
+
+* [x] 旗標系統中度收斂＋旗標管理器（2026-07-06，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §2.5）：整套只留「一種旗標」，差在活多久——名字加 `永久:` 前綴或登記為 life＝跨輪迴（存 `CharacterSave.lifetimeFlags`），否則週目（存 `progress.flags`、輪迴清）。新增 `repeat`（重複規則四模式：每次進場/每次/每周目/永久）、`requireItem`（`itemId`＝須有、`!itemId`＝須無）、`requireCycleMax/Min`（周目上下限）等具名條件欄，全 AND 結算。存檔加終身旗標區、`InventorySystem.CountOf`。**編輯器旗標管理器**：旗標登記表（`flags.json`，id/name/scope）＋管理器 UI；三個旗標欄（條件/完成寫/解鎖）改成「填 id→確認→鎖成名字→刪除清空」的選擇法，不再手打。
+
+* [x] 傳送門「放劇本開門」hub ＋ 強制新手教學（2026-07-06，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §4.9/§4.95）：邪佛給劇本後，靠近傳送門按 F 開 `ScriptsPanel`（強制連背包並排）→ 把劇本拖進單格方框→按鈕開對應傳送點（**目的地＝劇本 `ItemTable.TargetMapId` 決定，天生 hub**；劇本不消耗、留背包，只輪迴才移除）。`portal` 互動 trigger（`linkTeleport` 指向要解鎖的傳送點）＋按鈕 `TriggerChain.OpenPortal`（設目的地覆寫＋解鎖亮綠幕）。**強制新手教學** `TutorialManager`（一次性、寫死）：找邪佛手指→走到門邊定住只能按 F→遮罩＋手指指劇本（只能點）→劇本入框→手指指開啟鈕→按下開門→結束寫 `永久:tutorialPortalDone`。通用元件：`GuideFingerPanel`（指引手指，世界/UI 兩模式）、`TutorialDimPanel`（黑幕：整片全黑／中央留洞）、`TutorialBlockerPanel`（只放行指定元件可點）、`TutorialHintPanel`（上方大字）。傳送門綠幕改用 ScreenSpaceOverlay UI 覆蓋層繪製（免疫氛圍後處理壓暗，見 [PROBLEMS.md](PROBLEMS.md) E8）；黑幕中央洞改用「上下左右四塊實心黑」框出（程序生成圓洞貼圖某些環境不顯示）。
+
+* [x] 鏡頭聚焦 trigger（把新手教學的運鏡改成資料驅動，2026-07-07，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3/§4.95）：新增動作型 trigger **`cameraFocus` 鏡頭聚焦**（被 `next` 串到時飄鏡頭到自己那格中心＋壓黑幕、停留、再拉回，表演完才接 next；參數 `holdSeconds`、`dim`＝中央留洞/整片全黑/無）。`MapCameraController.PlayFocus` 協程做運鏡序列、`TriggerChain.ExecuteCameraFocus` 掛黑幕＋定住玩家。**移除** `TutorialManager` 原本「背包一有劇本就飄鏡頭」的寫死流程，改由地圖上的對話鏈驅動（`給劇本→叫玩家去傳送門(對話)→鏡頭聚焦`），好處是可在給劇本後先補幾句引導對話、對話結束才飄鏡頭，不再「鏡頭已對著門卻跳獲得道具」。編輯器加 `cameraFocus` 類型（TriggerType.cs + triggerTypes.json）。
+
+* [x] 修「對話接對話」關閉當幀重入卡死（2026-07-07，見 [PROBLEMS.md](PROBLEMS.md) D8）：觸發鏈把對話串對話時，前一段對話在 `OnClose` 裡**同步**接鏈又去開新對話 = 重入，導致「正在關的面板把剛開的新面板關掉、`IsOpen` 殘留 true」→ `UIManager` 持續暫停＋擋輸入但面板已停用 → 玩家永久卡死、看不到新對話。解法：新增常駐 `TriggerChainRunner.NextFrame(Action)`，`TriggerChain.NotifyDramaClosed` 改成**延後一幀**接鏈，等舊面板關乾淨再開新的。通則：別在模態面板 `OnClose` 裡同步開另一個模態面板。
+
+* [x] 穿隧道洞口光暈改 shader（2026-07-08，見 [CUTSCENE_TUNNEL.md](CUTSCENE_TUNNEL.md) §2.2）：原本洞口外圈的光是烘進 `MakeTunnelMouth` 貼圖的一圈均勻柔暈（`MouthHalo`），太厚、像刻意的粗邊。改成洞口貼圖只留乾淨亮拱門＋柔邊，外圈光由新 shader `Custom/TunnelMouthGlow`（`Resources/Shaders/`，加法混合的全螢幕光暈）生成：由洞口中心徑向柔和遞減（無硬邊）＋放射光束（角度 fbm、沿半徑不變）＋霧感（低頻 fbm），`_Anim` 餵 `unscaledTime` 微微流動（暫停中也動）。`TunnelWalkController` 加一層 `Glow` Image（黑底之上、洞口之下）、每幀餵參數，暴露 `GlowColor/RayStrength/RaySharp/RayFreq/Haze/Spread/RadiusFrac/CenterYFrac/AnimSpeed` 可調，`MouthHalo`/`MouthHaloWidth` 停用。**光暈完全跟著洞口等比縮放**（半徑/散開/圓心位移都乘當前洞口大小 `_exitCur`，`GlowSpread` 改為「相對洞口大小」的比例）——修掉「洞口放大、光暈沒跟著放大」的問題；**圓心用 `GlowCenterYFrac` 往下對齊拱門視覺中心**（拱門在貼圖裡偏下），修掉「縮小半徑只蓋得到洞口上半」的問題。
+
+* [x] 走隧道「點左鍵」閃爍提示（2026-07-08，見 [CUTSCENE_TUNNEL.md](CUTSCENE_TUNNEL.md) §2.2）：走隧道靠空白鍵或左鍵前進，故走隧道期間在畫面右下角顯示 `Guide_MouseLeft` 提示圖並閃爍（頻率同新手教學 `PlayerHintPanel`＝3.3），收尾時收起、畫在洞口之上白光之下。`TunnelWalkController` 直接畫在隧道自己的 canvas 上（隧道是全螢幕過場、沒有世界玩家可掛，與 `playerHint` trigger 各自獨立），欄位 `HintImage`/`HintHeight`/`HintPos` 可調。
+
+* [x] 玩家提示圖 trigger（移動教學，資料驅動，2026-07-08，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3/§4.95）：新增動作型 trigger **`playerHint` 玩家提示**（被 `next` 串到時在玩家頭上左上／右上各擺一張提示圖、指定張閃爍，到收起時機自動收才接 next；參數 `leftImage`/`rightImage`＝檔名、`flashLeft`/`flashRight`、`hideOn`＝移動/攻擊/任意鍵）。`PlayerHintPanel`（跟隨玩家、閃爍、三種收起判斷）＋`TriggerChain.ExecutePlayerHint`。第一個用途：醒來對話（DramaTable 6）後接 `playerHint`＝**移動教學**（左 `Guide_Wasd` 不閃＋右 `Guide_Press` 閃、收起=移動）；攻擊教學之後放 `Guide_MouseLeft` 照抄。「只出現一次」用通用旗標欄（完成寫 `永久:xxx`＋條件 `!永久:xxx`），不寫死。左右槽 XY 位移是面板常數（編輯器只選左右）。編輯器加 `playerHint` 類型（TriggerType.cs + triggerTypes.json）。
+
+* [x] 進場觸發 trigger（一進地圖自動觸發，2026-07-07，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3/§4）：新增 trigger 類型 **`onEnter` 進場觸發(自動)**——進入地圖、載入完全結束後自動觸發，**不用玩家踩、不塗格子**（編輯器用「＋ 手動新增空區域」建 0 格節點、從區域清單選取設參數）。純鏈起點：自己不做事，靠 `next` 接要做的事（典型＝接 0 格 drama 節點「一進房間就播對話」）。參數 `delaySeconds` 延遲秒數；通用條件（旗標/周目/道具）與 `repeat` 重複規則全可用（`每周目`/`永久` 用與互動點同一套「已觸發:id」自動旗標，`TriggerChain.RepeatAllows/MarkRepeatSeen`）。點火時機由 `MapManager.FireEnterTriggersRoutine` 統一排程：載入頁關閉→**自動等進場效果（睜眼）播完**→等延遲→依區域清單順序點火，前一顆的鏈開了對話會等對話關閉才點下一顆；期間換圖中止。編輯器加類型（TriggerType.cs + triggerTypes.json）、`EyeOpenController` 加 `IsPlaying`、`TriggerChain` 加 `TypeOnEnter`/`DramaPending`。
+
+* [x] 睜眼醒來連動玩家「趴地→起身」（2026-07-07，見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) §1.5）：EnterEffect=1（睜眼）的地圖，玩家進圖即定格在 `dead` 逐格幀的最後一幀（趴地），睜眼播完後**倒播 dead＝爬起**（零新素材，起身＝死亡動畫倒轉），回 idle 恢復操作後才點火進場觸發（甦醒對話等玩家站起來才開始）。`PlayerAnimator` 加 `HoldLyingPose()`/`PlayWakeUp(onDone)`/`IsWakeUpBusy`（表演中忽略 `SetState`，真死 Dead 例外會打斷）；`MapManager.PlaceAndSetup` 只記需求（`_wakeUpWanted`），趴地與起身都在 `FireEnterTriggersRoutine` 執行——**玩家第一次生成時 `PlayerAnimator.Setup` 在 `Start()` 才載幀，同幀更早的 PlaceAndSetup 拿不到 dead 圖**（記在 [PROBLEMS.md](PROBLEMS.md) G5），協程開跑時已載好、且睜眼開頭全黑蓋住趴下瞬間。起身期間 `SetExternalHold(true,false)` 定住輸入不暫停；血統沒 `dead/` 圖自動跳過。
+
+* [x] 殺怪／破壞觸發旗標（資料驅動、綁擺放，2026-07-09，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7、[MONSTER_SETUP.md](MONSTER_SETUP.md)、[DESTRUCTIBLE_OBJECTS.md](DESTRUCTIBLE_OBJECTS.md)）：判斷「有沒有殺某怪／打破某物」→ 寫旗標 → 接觸發鏈 `requireFlag`（例：紅嫁衣關殺家人→`killedFamily`→新娘生氣分支）。刻意**綁在編輯器的擺放**而非 CSV 怪物種類，可讓同種怪在不同地方死寫不同旗標、全在編輯器編。怪物出生點 trigger 加「死亡觸發旗標」欄（`deathFlag`，isFlagRef 從旗標登記表選）；地上物選取面板加「破壞旗標」欄（`ObjectInstance.breakFlag`，只可破壞物件有效）。遊戲端：`MonsterController.Die()`／`DestructibleObject.Die()` 呼叫 `TriggerChain.SetFlag`；`MapLoader.SpawnMonstersFromMap` 讀 `deathFlag` 傳給 `MonsterSpawner.SpawnMonster`→`MonsterController.DeathFlag`，`BuildOneObject` 把 `inst.breakFlag` 傳給 `DestructibleObject.Configure`。編輯器端把旗標選擇欄抽成共用 `EditorUI.DrawFlagFieldCore`（trigger 參數與物件面板共用）、`ObjectController` 複製帶 `breakFlag`、`ObjectInstance`/`MapModel` 兩專案各加欄。**紅嫁衣分支**：偵測機制已完備，待作者在編輯器建 `killedFamily`（周目）、家人怪出生點填它、新娘房拉兩條 drama 分支（生氣打王／感謝→teleportTo 榕樹妖 map10）；兩場頭目戰 AI／技能另做。
+
+* [x] 旗標管理器改依 id 由小到大排序（2026-07-09）：原本 `FlagRegistryStore.Save` 存檔前 `SortByName()` 依名稱字母排 → 一按「儲存」畫面上的清單就重排跳位。改成 `FlagRegistry.SortById()`（依 id），`Save` 與 `Load` 都套 → 存檔順序穩定、開管理器一律 id 順序、新增的排最後不跳。id 不變、遊戲端用名字／id 查表，行為不受影響。
+
+* [x] 重複規則選項「每次進場」改名「關卡單次」（2026-07-09，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §2.5.1）：預設選項字面改成更貼切的「關卡單次」（進這張圖只觸發一次、離圖重進才會再有）。純標籤：`InteractionManager.ParseRepeat` 本來就「非 每次/每周目/永久 → 預設 Visit」，改字不影響行為；另補明確 `case "關卡單次"`（舊值「每次進場」保留相容）。同步改 `TriggerType.cs`/`triggerTypes.json` 選項、相關註解與文件。
+
+* [x] 測試快捷「直接進某關卡／地圖」DevQuickStart（Editor-only，2026-07-09，見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) §3）：反覆測單一關卡不必走「標題→讀檔→廣場→開傳送門」。選單 `Project Tools/測試/直接進關卡` 一鍵切 紅嫁衣／初始洞窟／邪佛廣場／關閉（有勾示意）。`Assets/Editor/DevQuickStart.cs`（不進 build）在 `AfterAssembliesLoaded` 關掉 `GameFlowManager.TitleFlowEnabled`，再用 `MapManager.DevStartModuleOverride`（進 module 首圖）或 `DevStartMapId`（直接進某地圖，如廣場 map12＝非首圖）覆寫開機目標——**不動場景序列化的 `startModule`（＝Main）**，關閉即恢復正式流程。`MapManager.Start` 依覆寫決定 `StartLevel`/`GoToMap`（首次載圖 `PlaceAndSetup`→`PlacePlayer` 會生玩家）。
+
+* [x] Play 模式加速 ＋ static 殘留保險（2026-07-09，見 [PROBLEMS.md](PROBLEMS.md) I2/I3）：開發時按 Play 到跑起來很慢——`EditorSettings` 的 **Enter Play Mode Options 開啟**（`m_EnterPlayModeOptionsEnabled: 1`，選項 3＝Domain/Scene reload 都停用）→ 進 Play 幾乎瞬間。代價是關掉 Domain Reload 後 C# static 不自動歸零，上一輪殘留讓「第二次以後 Play」出錯（黑畫面、重複觸發、**角色只剩影子**）。新增 `Assets/Scripts/PlayModeStaticReset.cs`（`[RuntimeInitializeOnLoadMethod(SubsystemRegistration)]` 每次進 Play 最早期統一重置）：抑制/流程旗標（`MapManager.SuppressAutoStart`／`SaveManager.SuppressAutoLoad`／`GameFlowManager.TitleFlowEnabled`／Dev 覆寫）、`TriggerChain.ResetForPlayMode()`（清集合＋static 事件 `OnTriggerFired`）、`FlagRegistry.Reload()`，以及**四個素材庫懶漢單例** `PlayerSpriteLibrary`/`MonsterSpriteLibrary`/`DramaDatabase`/`DramaTalkDatabase` 的 `ResetForPlayMode()`（它們快取 runtime 載入的 Sprite，第二次 Play 會回傳被銷毀的 sprite → 角色/怪物只剩影子、劇情圖/立繪空白）。另加 `MapManager.DevLoadingHoldSecondsOverride`＋DevQuickStart 在編輯器把載入頁停留 2 秒歸零（build 維持）。**以上全只影響編輯器，打包版不受影響**（Editor-only 腳本不進 build；`PlayModeStaticReset` 在 build 中是重設「已是預設值」的 no-op）。
+
+* [x] 破幻術轉場（幻境崩碎回歸現實，2026-07-09，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3/§7、[MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) 附節）：紅嫁衣「沒殺家人→對話完→傳去榕樹妖」這段加轉場特效——玩家親眼看到婚境龜裂崩碎、收尾全白，再無縫接跨關載入頁。刻意**做成觸發鏈動作 `illusionBreak` 而非 MapsTable `EnterEffect`**：EnterEffect 綁地圖、在目標圖載完才播（只吃得到新場景）、每次進圖都播；破幻術要的是「崩的是舊幻境、只在這劇情節點播一次」，故由劇本在還在紅嫁衣場景時接鏈播放。新增 `Assets/Scripts/MapFx/IllusionShatterController.cs`（仿 `EyeOpenController`：自生成常駐單例、曲線驅動 `_Progress`/`_Crack`、`unscaled` 時間、blit 掛主相機、`SetExternalHold(true,true)` 暫停擋操作；`Play(onDone, duration)` 播完才回呼，回呼裡先接鏈開載入頁再停 blit＝不閃回幻境）＋ `Resources/Shaders/IllusionShatter.shader`（IQ 兩趟 voronoi 玻璃裂紋＋碎塊依 cell 亂數方向/相位錯開崩落＋色散翻轉＋露白光＋收尾全白）。`TriggerChain` 加 `TypeIllusionBreak`／`ExecuteIllusionBreak`（`duration` 選填）；編輯器加 `illusionBreak` 類型（TriggerType.cs + triggerTypes.json）。串法：`紅嫁衣對話(requireFlag=!killedFamily)→next=破幻術(illusionBreak)→next=送去榕樹妖(teleportTo map10)`。目前是**程序版**（崩碎層＝當前畫面剝暖色濾鏡的複本，露白光）；要真的紅嫁衣畫面崩到榕樹妖畫面得改 capture 版（換圖前抓截圖餵 shader），可後續升級。**只影響開發＋純新增，打包版正常。** 待作者：填紅嫁衣對話（DramaTable/DramaTalkTable）、在最終房間擺這三顆 trigger、Unity 內微調崩碎節奏。
+
+* [x] 破幻術泛化成「播放螢幕特效」＋新增「關卡單次」旗標範圍（2026-07-09，接上則；見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §2.5/§3/§7、[MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) 附節）：依作者回饋改兩件事。**① 別為每種特效加 trigger 型別**：把專用的 `illusionBreak` trigger 泛化成通用 `playScreenFx`（播放螢幕特效(鏈動作)），填一個 `effectId`；遊戲端新增 `Assets/Scripts/MapFx/ScreenFxPlayer.cs` 依 id 分派（**id 1＝破幻術**→`IllusionShatterController`），以後加特效只動「shader＋控制器＋`ScreenFxPlayer` 一個 case＋編輯器清單」，不再長 trigger 型別。編輯器 `effectId` 欄旁加「**螢幕特效表**」按鈕（`isScreenEffectRef`）開參照彈窗（`EditorUI.ScreenFxCatalog` 列出可填 id、可點填入），解決「不知道能填什麼」。破幻術 shader／控制器沿用不變。命名用「螢幕特效」而非「場景特效」以免和世界端 `SceneEffect`/`SceneFx` 混。**② 新增第三種旗標範圍「關卡單次」**（`killedFamily` 該用這種）：只存記憶體 `TriggerChain._levelFlags`、**不進存檔**、**每次進新 module 由 `MapManager` 呼叫 `TriggerChain.ClearLevelFlags` 歸零**（同 module 房間互跳不清）——所以判的是「這一趟關卡有沒有殺家人」，周目旗標會殘留到下趟就錯。編輯器旗標管理器切換鈕改 3 段循環（周目→永久→關卡單次，`FlagDef.CycleScope`）；兩專案 `FlagRegistry` 各加 `level`/`IsLevel`；`TriggerChain.Resolve` 改三向、`FlagTrue`/`SetFlag`/`ResetForPlayMode` 一併處理。串法更新：`紅嫁衣對話(!killedFamily)→playScreenFx(effectId=1)→teleportTo map10`；`killedFamily` 設關卡單次。**純開發向＋資料驅動，打包版正常。**
+
+* [x] 「Sync Map Assets」補上同步 flags.json（2026-07-09，見 [PROBLEMS.md](PROBLEMS.md) I4）：`MapAssetSyncTool` 原本只同步地圖與美術，從沒複製 `flags.json` → 編輯器改的旗標範圍（如 killedFamily 改關卡單次）在遊戲端不生效、退回當周目讀到存檔殘留值。加 `PullFlagsFromEditor`：把 `DipanProj_MapEditor/flags.json` 複製進 `StreamingAssets/MapAssets/`。修完要重跑一次 Sync 才會推進遊戲。
+
+* [x] togglePortal 開關傳送點鏈動作（可隱藏可復原，2026-07-09，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3）：Boss 房/最終關需要「進門就把傳送門封起來、不讓玩家中途落跑」，且為後續關卡編輯保留「可復原」。新增動作型 trigger **`togglePortal`**（`target`＝傳送點名稱、`show`＝顯示解鎖/隱藏封鎖，預設隱藏）：`show=false`＝`DisableRegion`（加停用集＋隱藏視覺，執行期狀態不寫存檔）、`show=true`＝既有 `EnableRegion`（解鎖＋寫 enableFlag）。**視覺兩條一起管**——`ApplyTeleportVisual` 同時開關 `linkedFx` 綠幕與 `showMarker` 傳送點外型，看起來真的消失/出現（非只擋踩踏）。為此 `MapLoader` 新增 `TeleportMarkerById`（region id→marker）並經 `MapManager` 傳進 `TriggerChain.Setup`；`Setup` 的初始 startDisabled 也改用 `ApplyTeleportVisual`（外型跟著初始狀態）。註：「一開始就封、打贏才開」用既有 `startDisabled`+`enableFlag`+解鎖即可，本動作專給「本來看得到、中途才封」。編輯器加 `togglePortal` 型別（TriggerType.cs + triggerTypes.json）。**純新增，打包版正常。** ／ 追加：`target` 支援**多筆**——編輯器新增 `isPortalList` 參數旗標，`DrawPortalListField` 把該欄畫成多欄、按「＋」加欄「−」刪欄，存成逗號分隔字串；`ExecuteTogglePortal` 改 `Split(',')` 逐一開關（單筆＝無逗號，向下相容）。可一次封/開多個門。修：`DrawPortalListField` 存回時原本會**過濾空欄**，導致按「＋」加的空欄當幀就被濾掉、看似沒反應——改成讀寫都保留空欄（尾逗號留著、遊戲端讀時 Trim 後略過空的），「＋」加欄才會存活可填。（已測試 OK）
+
+* [x] 特效預覽器「匯出換色版」檔名改 2 位補零（2026-07-09，見 [EFFECT_LIBRARY.md](EFFECT_LIBRARY.md)）：`EffectRecolor.ExportColorSet` 原本輸出 `_001.png`（3 位），與遊戲 `VfxManager` 的 `_{i:D2}`（`_01`…）不合、每次都要手動改名。改 `string.Format` 的 `{1:000}`→`{1:00}`（流水號仍 `i+1` 由 1 起算），匯出即 `_01.png`，可直接丟進遊戲免改名。（原色庫 `Effects/` 那邊仍是 `organize_bundle.py` 的 3 位命名，直接複製才需改名——文件已註明分兩種情況。）
+
+* [x] 召喚型武器接玩家側（測試用，2026-07-09，見 [BOSS_MODULE.md](BOSS_MODULE.md) §3）：把召喚核心抽成擁有者無關的共用靜態 `SummonSystem.Cast(owner,originPos,recipe,aliveTracker)`，`MonsterWeaponUser`(boss) 與 `PlayerController.Shoot`(玩家) 共用。玩家 Shoot 在 BulletPrefab 守衛前先攔 `IsSummon`（耗魔→發射特效→Cast→FireInterval 節流；按住左鍵依冷卻重複召喚）。測試武器＝13「御靈水晶」(RecipeID→27：召喚 ZhaYu、FireInterval 1.5、上限 3、半徑 1.5；ZhaYu 任何地圖都有圖故免 Sync 即可測)。**注意**：召喚出的是敵人(Enemy 層、ChaseBrain 追玩家)，此版只驗證管線對玩家也通；玩家召喚=友軍(faction/友軍 AI)屬下一步。純新增，打包版正常。
+
+* [x] 召喚陣營制（玩家召喚=友軍、怪物召喚=敵人）＋玩家御靈水晶可裝備（2026-07-09，見 [BOSS_MODULE.md](BOSS_MODULE.md) §4）：**① 新 Ally 層(8)**（TagManager）給玩家召喚的協戰怪，玩家子彈(打 Enemy 層)天生打不到自己的召喚物、召喚物也不推玩家；碰撞用 `FactionLayers` 於進場前 `Physics2D.IgnoreLayerCollision` 設定（Ally 穿 Player/Enemy/Ally、只被 Environment 擋，**免動 DynamicsManager 矩陣**）。**② `MonsterFaction`{Enemy,PlayerAlly}**：`MonsterController.Faction` 決定追誰(Enemy→玩家/PlayerAlly→最近敵怪 `FindNearestEnemy`)、接觸傷害打誰(`EnemyContactDamage` 改陣營制 hostileMask，Enemy 打 Player\|Ally、Ally 打 Enemy，統一 OverlapCircle+Distance+CombatSystem)、在哪層。`SummonSystem.Cast`/`MonsterSpawner.SpawnMonster` 加 faction 參數；玩家 Shoot 傳 PlayerAlly、boss MonsterWeaponUser 傳 Enemy。**③ 御靈水晶可裝備**：ItemTable 加物品 13(WeaponID 13、icon weapon_crystal)、InventoryLauncher 預設物品欄改塞 1~13。純新增/向下相容，打包版正常。
+
+* [x] 修召喚陣營兩坑：友軍打不到敵怪 ＋ 召喚物過傳送點消失（2026-07-09，見 [BOSS_MODULE.md](BOSS_MODULE.md) §4、[PROBLEMS.md](PROBLEMS.md) B7）：**① 接觸傷害不對稱（友軍撞敵怪不掉血）**＝根因是接觸偵測改用了 `OverlapCircle`，撞上專案全域 `queriesStartInColliders=false`（貼身重疊漏抓、且因大小位置不同而不對稱）。改成維護 `MonsterController.Active` 全場登記表(OnEnable/OnDisable)＋逐一 `Physics2D.Distance` 判重疊（不受該設定影響，同敵人打玩家原本的穩定做法）；`EnemyContactDamage` 與友軍找目標 `FindNearestEnemy` 都改走登記表、移除 OverlapCircle。PlayModeStaticReset 清登記表。**② 召喚物過傳送點消失**＝換圖清場 `DestroyAllOfType<MonsterController>` 把友軍也砍了。改成清場**跳過 PlayerAlly**、`PlaceAndSetup` 放好玩家後 `RepositionPlayerAllies` 把存活友軍移到新落點附近（黃金角散開）。純改動，打包版正常。
+
+* [x] 主角攻擊動畫接線（2026-07-09，見 [CHARACTER_SETUP.md](CHARACTER_SETUP.md)）：主角血統資料夾新增 `attack/` 子資料夾即可播攻擊動畫。**① `PlayerAnimator`**：Attack 從「預留一次性」改為**可循環**（`IsLooping` 加入 Attack）。**② `PlayerController.HandleVisuals`**：按住開火(空白/左鍵)時優先播 `attack`（放開後再撐 `AttackAnimLinger`=0.12s 才回移動狀態，單擊也看得到、連射不閃）；沒有 attack 圖的血統 `Has(Attack)=false` 自動退回 Walk/Idle，行為不變。Base 已放 25 幀 cast。**需跑 `Project Tools → Sync Map Assets`** 才會把 attack 幀＋catalog 推進 StreamingAssets 生效。fps 沿用 PlayerAnimFPS。
+
+* [x] 修 boss 不逃跑不召喚（BrainType 沒 Trim）＋ 記錄怪打怪傷害忽勝忽敗（2026-07-09，見 [PROBLEMS.md](PROBLEMS.md) F4/F5）：**① 已修**——`MonsterSpawner.LoadMonsterData` 的 `BrainType`/`Weapon` 加 `.Trim()`；CSV 值帶前導空白（" RedBridalGown"）害 switch 對不上、掉回 default=ChaseBrain（其他怪 default 也是 Chase 才一直沒露餡）。修後紅嫁衣才會走 `RedBridalGownBrain`（逃跑＋召喚）。**② 已記未修（待作者調數值）**——召喚物 vs 敵怪對打忽勝忽敗＝接觸傷害每幀結算＋怪 InvincibleTimeMs=0＋HP≤ContactDamage 幾乎一擊斃命 → 勝負看 Update 順序。解法：給互毆的怪 InvincibleTimeMs>0(節流) ＋ 平衡 HP/ContactDamage，詳見 F5。
+
+* [x] 修召喚三問題：怪打怪傷害、友軍跟隨、御靈水晶消失（2026-07-09，見 [PROBLEMS.md](PROBLEMS.md) F5/D9、[BOSS_MODULE.md](BOSS_MODULE.md)）：**① 怪打怪忽勝忽敗**＝接觸傷害每幀結算＋一擊斃命 → `EnemyContactDamage` 加「同攻擊者對同目標重擊冷卻 0.5s」(攻擊速率化，不再看 Update 順序) ＋ 測試怪 1~12 調 HP12/ContactDamage4(非一擊死，看得到互毆)。**② 友軍不跟玩家**＝原本只追敵怪、沒敵怪就發呆 → 新增 `AllyBrain`（沒敵怪跟玩家 FollowNear 2.2、有敵怪 AggroRange 7 內去打），`MonsterContext` 加 `Enemy` 欄、`MonsterController` 雙目標(Player 跟隨+Enemy 攻擊)＋面向敵怪、`MonsterSpawner` 對 PlayerAlly 掛 AllyBrain。**③ 御靈水晶常從背包消失**＝SaveManager 開場 RestoreState 先清空再還原「舊角色存檔(沒有新武器)」、而 InventoryLauncher『全空才塞』跑在其後→跳過。改成 InventoryLauncher『缺就補』(＋`InventorySystem.HasAnywhere` 含裝備欄)。純新增/資料調整，打包版正常。
+
+* [x] 重修「怪打怪傷害」為系統機制（第一擊必互換）＋攻速資料化（2026-07-09，見 [PROBLEMS.md](PROBLEMS.md) F5、[COMBAT.md](COMBAT.md)）：推翻前一版「加冷卻＋偷調數值」的錯誤修法（會逼作者每隻怪自己算數值、且沒解決根本的單邊挨打）。**① 致死延後銷毀**：`MonsterController.Die()` 只標記 `_isDead`、真正 `Destroy` 延到本幀 `LateUpdate` → 殺死一隻怪的那幀牠自己的 `EnemyContactDamage` 仍執行一次＝**死也能還手** ⇒ 不管 Update 順序/攻速差，接觸第一下一定雙方互換傷害（玻璃大炮不能無傷輾壓）。**② 攻速資料化**：新增 `MonsterData.AttackInterval` 欄（秒/越小越快/空 0.5），`EnemyContactDamage` 每隻怪各自用；第一擊互換與攻速分離。**③ 還原**先前偷調的 HP/ContactDamage（ZhaYu HP10、幽靈 HP3、接觸 10）。純機制＋資料欄，公平性由系統保證、數值交回作者。
+
+* [x] 召喚特效（邊播特效邊生怪）＋施放冷卻統一提示（2026-07-10，見 [VFX.md](VFX.md)、[BOSS_MODULE.md](BOSS_MODULE.md) §3、[RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)）：① **召喚特效**：召喚型武器（`IsSummon`）可在**武器表**填 `SummonEffectID`（引用 VfxTable，與 FireEffectID/HitEffectID 同放武器表），施放時在**每個生怪點播一次特效、同一幀就生怪（邊播邊出現）**。`SummonSystem.Cast` 加 `summonVfxId` 參數（>0 時 `VfxManager.Spawn` 播特效＋同幀 `SpawnMonster`）＋ `HasRoom` 查空位；`WeaponData`/`WeaponManager` 加欄解析；`PlayerController.Shoot`（玩家 PlayerAlly）與 `MonsterWeaponUser.TrySummon`（boss Enemy）各傳武器的 `SummonEffectID`。資料：武器 14（紅嫁衣召喚）、13（御靈水晶）填 VfxTable 10「招喚怪物」。② **施放冷卻統一**：所有離散武器（一般/拋物/連鎖/雷擊/環繞/召喚）冷卻中「按下」攻擊 → 不動作、不扣魔、跳中央 toast「技能正在冷卻中」（`PlayerController.HandleFiring` 的 `_fireTimer` 閘門加 `ShowCooldownAlert`，節流 0.4s、用既有 `AlertPanel.Toast`）；並修召喚「達同時上限時扣了魔卻沒生怪」＝扣魔/進冷卻前先 `HasRoom` 確認有空位；召喚已達上限時按攻擊另跳「召喚數已達上限」提示（與冷卻提示共用 `ShowSkillAlert` 節流）。另：**攻擊動作只在真的發射出去才擺**——`Shoot` 改回傳「是否真的發射」，`HandleFiring` 只在回 true 時設 `_attackAnimUntil`；`HandleVisuals` 不再看按鍵、改看「發射成功 or 雷射/佛光在放」，所以 CD 中／召喚已滿／魔力不足時角色不再空擺攻擊姿勢。雷射/佛光為按住持續型、無單發冷卻，維持原路徑。純新增/資料，打包版正常。
+
+* [x] 召喚特效跟著怪物大小（2026-07-10，見 [VFX.md](VFX.md)）：召喚特效原本固定大小（puff 64px@PPU100＝0.64 世界單位），配上大怪不成比例（怪高＝`CharacterWorldHeight` 1.95 × Scale）。`VfxManager` 新增 `SpawnSizedToHeight(id,pos,targetHeight)`＋`Spawn` 加 `extraScale` 參數；`SummonSystem.Cast` 改「先生怪 → 讀該怪可見高度（`MonsterController.CharacterWorldHeight` × transform.Scale，同幀已就緒）→ 把特效縮放到該高度」。`VfxTable` 該列 `Scale` 對召喚特效改當「相對怪物高度的倍率」（id 10 由 3 改 1.3＝比怪大 30% 包住牠）。大怪大特效、小怪小特效，仍在生怪同一幀。純新增，打包版正常。
+
+* [x] 怪物障礙迴避＋感測範圍說明（2026-07-10，見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)）：怪物原本 `MonsterActuator.MoveTowards` 直線衝向玩家，遇牆/地上物就被物理擋住卡住。改成局部避障：`CircleCast` 往前（`AvoidLookahead`=1.5）探自身半身寬（`AvoidProbeScale`=0.9）的圓，被擋就往兩側逐步加大角度（18~155°、帶側向遲滯 `_avoidSign`）找最接近原方向的暢通方向滑過去（貼牆繞行、鑽窄縫），一整圈都堵死才 Stop。查 `Environment`＋`Water` 層。`ChaseBrain`/`AllyBrain` 自動吃到；**紅嫁衣 boss 逃跑刻意 `AvoidObstacles=false`** 維持原「被卡住讓玩家追上」設計。另釐清 **`DetectionRange`＝世界單位＝地圖格數**（tileSize=1）：紅嫁衣房間 18×10 格、對角≈20.6，要全房看到玩家設 ≥21（一般怪預設 10、boss 30）。純新增/資料，打包版正常。
+
+* [x] 修召喚出生在牆裡＋怪物避障凍結（2026-07-10，見 [PROBLEMS.md](PROBLEMS.md) F7/F8、[ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)）：① **召喚避牆**：`SummonSystem.FindSpawnPos` 在 `SummonRadius` 環上取點時用 `Physics2D.OverlapCircle(0.35, Environment|Water)` 驗證，撞牆就換角度/往內縮，都不行退回施放者腳下——怪不再出生在牆裡。② **避障不凍住＋解卡**：`SteerAround` 一整圈被擋時改回傳 desired（不再回 zero→Stop）；`MonsterActuator.UpdateStuck` 偵測「想動卻沒位移>0.25s」→ 側滑 0.4s 脫困、換邊。修掉「怪追一追凍在空地」。避障探測參數順手放寬（Lookahead 1.5→1.2、ProbeScale 0.9→0.75，更會鑽縫）。純新增/技術修正，打包版正常。
+
+* [x] 怪物尋徑改全域 A*（2026-07-10，見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)）：局部避障繞不出大障礙（怪離玩家很近卻卡在牆另一邊），改成真 A*。新增 `Scripts/AI/MapNavGrid.cs`（單例）：每次載圖 `MapManager.PlaceAndSetup` → `MapNavGrid.EnsureBuilt(MapCoords.WorldBounds)` 用 `Physics2D.OverlapCircle` 逐格（CellSize 0.5、AgentRadius 0.4 淨空）掃 `Environment`＋`Water` 建可走格（**牆＋地上物自動含**）；`TryFindPath` 八方向 A*（min-heap＋不穿牆角）＋視線平滑（string pulling）出少數航點。`MonsterActuator.MoveTowards` 改：直線可達就直走（細射線判定）、否則跟 A* 路徑（0.35s 重算）、卡住 0.3s 自動側滑解卡、永不凍住；沒 nav 退回舊局部避障。boss 逃跑維持 `AvoidObstacles=false` 走直線。純新增，打包版正常（限制：破壞家具開路後格不即時重建）。
+
+* [x] 榕樹妖 boss 戰鬥模組（地刺／三階段／三大絕，2026-07-10，見 [BOSS_MODULE.md](BOSS_MODULE.md) §6、[PROBLEMS.md](PROBLEMS.md) F14）：與紅嫁衣相反的 boss——本體＝**無圖隱形樹**、不可直接打，用**地刺**攻擊，玩家閃地刺並**打冒出的地刺反傷本體**。新增 `Scripts/AI/BossSpike.cs`（地刺攻擊實體：箭頭預警 VfxTable13→冒出 VfxTable11→危險窗開 Enemy 層 trigger＋`EnemyContactDamage` 連續扣血、實作 `IDamageable` 把傷害轉本體＋特效閃白光→收回自毀）＋ `Behaviors/BanyanTreeBrain.cs`（讀 `HealthFraction` 切三階段：>50% 慢少、50~20% 加量加速、<20% 只放大絕）。**三大絕隨機輪流**（橫掃推進浪／畫面中央放大版大地刺 scale2.24／狂亂 20 根隨機地刺），且**同一招最多連兩次、第三次強制換**。**地刺受傷範圍＝貼齊可見圖的 base-anchored 框**（讀 `VfxInstance.WorldBounds`、框底對齊地刺基座往上長、寬×0.75 高×0.60；因地刺圖從底部往上長、實體只在下半，不能用置中固定框，見 F14）；所有地刺共用同規則。附**除錯紅框** `BossSpike.DebugDrawHitbox`（LineRenderer 畫在 Game View 對照調整，預設 false）。資料：MonsterData.csv 第 14 列 BanyanTree（HP100/不動/接觸0/DetectionRange40）、地圖 `RedBridalGown_TreeDemon.dipanmap`（只有下半可走）。待辦：換臉（vicious↔crazy）、測完關 ForcePhase/除錯 log、實機微調難度。純新增，打包版正常。
+
+* [x] Boss 開戰資訊表演（bossIntro 鏈動作＋BossIntroPanel，2026-07-12，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3）：開戰表演「暫停 → 壓黑底版＋血色暈影淡入、上下電影黑邊滑入 → 中央播 VfxTable 14『警告』特效（播滿 WarnSeconds 消失）→ 左滑入 boss 頭像（Talk 立繪）、右滑入空白姓名牌匾（專屬圖 Resources/UI/BossIntroPanel/BossIntroPanelNameBG）→ 名字以扭曲抖動的半透明毛筆字漸漸復原＋淡入浮現（NameWarpEffect 頂點特效）→ 停留、淡出、接 next」，**不可跳過**（無任何按鍵/點擊捷徑）。**① 新動作型 trigger `bossIntro`**（`monsterId`＋選填 `warnVfxId`）：`TriggerChain.ExecuteBossIntro`，NextFrame 開面板避 D8 重入、表演完才接 next；編輯器 `TriggerTypeSet.Defaults()` 同步加型別（TriggerTypeStore 自動補進舊 triggerTypes.json）。**② `MonsterData.csv` 加 `DisplayName`／`PortraitPath` 兩欄**（`Name` 是程式鍵＝動畫資料夾索引不能顯示用；PortraitPath＝Talk 立繪 catalog id，複用 `DramaTalkDatabase.ResolvePortrait` 管線零新載圖程式）；`MonsterSpawner` 解析（Trim，F4）＋新增 `GetData(id)` 公開查詢。已填紅嫁衣（redBridalGown_angry）與榕樹妖（treeFace_vicious）。**③ `BossIntroPanel`**（UIPanel，Overlay/PausesGame/擋輸入/ESC 不誤關）：警告序列幀借 VfxManager 已載好的 sprites 在 UI 端 **unscaled** 逐格播（世界端 Spawn 會被暫停凍住）；壓迫感配件每項可關（壓黑底版 DimAlpha／電影黑邊 LetterboxHeight／血色暈影 VignetteAlpha＝程序生成漸層+Perlin 呼吸／名字扭曲 NameWarpAmount·Speed）；**節奏/版面全是 public 欄位**（Play 模式選 [UIManager]/Layer_Overlay/BossIntroPanel 即時調、重觸發套用；定案回填程式碼預設值）；資料缺哪塊就略過哪塊不擋流程。**④ 字體**：引入**莫大毛筆**（Bakudai Bold，SIL OFL，`Resources/Fonts/Bakudai/` 含授權檔；原始包 169MB 移到專案根 `FontsSource/`——Resources 底下的檔案**不論有無用到都會全數打包進 build**，別把整包字體 repo 放進去）；只用在 boss 姓名牌（`NameFontPath` 欄，字級 108），全 UI 其他文字維持內建字型；`UIBuilder` 新增通用 `LoadFont(path)`（載不到警告＋退回預設）。臨時測試熱鍵 BossIntroDebugHotkey（按 L 播表演）已於調校完成後移除。純新增/資料，表演參數已由作者實機調校定案。
+
+* [x] 榕樹妖 boss：死亡整棵樹燃燒演出 ＋ boss 死亡回收招式 ＋ 手感調整（2026-07-10，見 [BOSS_MODULE.md](BOSS_MODULE.md) §6.6/§6.7）：① **第三招大絕「狂亂地刺」**（`SpikeStorm`）＝一次隨機灑一大票一般地刺，與橫掃浪/大地刺三招隨機輪流，且「同一招最多連兩次、第三次強制換」（`_lastUlt`/`_ultRepeat`）。② **死亡演出**（新增 `Assets/Scripts/AI/BanyanBossFace.cs`，MapLoader 依 assetId 掛在臉地上物、並把臉改不可破壞）：boss 死 → 臉起火 1 秒 → 臉消失 → 各地陸續起火、間隔越點越短（越冒越多）、用網格鋪滿整棵樹範圍、**無限循環永不熄滅**（VfxTable 16 紅色鬼火 + `VfxManager.SpawnLoop` Duration<0）；不設固定上限（火點數＝範圍÷`FireSpacing`，現約 53 個）。原「發招換 crazy 臉」因兩張素材搭不上**決定不換臉**，管線保留停用。③ ⭐ **boss 死亡→招式立刻回收**（`MonsterController.Die` 同幀）：榕樹妖的地刺（`BossSpike._active` 登記表 + `BossSpike.CancelAll()`，連預警箭頭/地刺特效一起收，含排隊未冒的）；召喚型 boss 的召喚分身（`MonsterWeaponUser.RecallSummons()`，通用，紅嫁衣家人幽靈適用）——boss 死了招式不再傷人。④ 地刺受傷範圍改 base-anchored 貼齊可見圖（見 [PROBLEMS.md](PROBLEMS.md) F14）、階段切換血量資料化（`P2_HpEnter`/`P3_HpEnter`）、大地刺縮到 80%(2.24)、狂亂 20 根、附除錯紅框 `DebugDrawHitbox`。純新增/資料，打包版正常。
+
+* [x] 修「怪物原地踏步」＋召喚施法動作復原（2026-07-13，見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)、[PROBLEMS.md](PROBLEMS.md) F15/F16）：紅嫁衣等 boss 在玩家沒靠近時「一直播走路動畫卻沒真的移動」（原地踏步）。**① 走路/發呆改看『實際位移』**：`MonsterController.HandleVisuals` 原本用指令速度 `_rb.velocity.magnitude` 判斷是否在動——但所有怪的碰撞框都是 trigger（走 A* 導航、不做硬碰撞），逃跑被卡在牆角/A* 目標點不可達而原地微調時，velocity 仍被每幀設成滿的 `MoveSpeed`、實際位置卻幾乎沒變 → 誤播走路。改成每幀量 `transform.position` 的實際位移速度（加指數平滑 tau 0.08 吃單幀抖動；玩家/怪物 Rigidbody2D 已開 Interpolate 故量測穩定），超過 `MoveAnimThreshold`（新增欄位，預設 0.12 世界單位/秒）才走路、否則發呆；此速度也餵給 `MonsterAnimator.SetState` 讓走路 fps 跟真實移動連動。通用修正、對所有怪生效。**② 召喚施法動作復原**：改①後發現紅嫁衣召喚時的「施法動作」其實一直是**走路動畫在頂替**——她的 `attack` 幀從沒同步進 StreamingAssets（`Has(Attack)=false`），施法時的 Attack 請求被 `Has` 擋掉、掉回走路，而她那時剛好被卡在角落播走路；改①讓她原地變 idle 後施法動作就消失了。修法：**施法視窗（`NotifySkillCast` 的 `SkillCastAnimSeconds` 0.6s）內若沒有 attack 幀，退回播走路當出手表演**（只在該 0.6s、平常靜止仍 idle，不回到原地踏步），且原地施法時用 `MoveSpeed` 餵走路 fps 讓節奏正常。之後只要把紅嫁衣的 `attack` 幀 `Project Tools → Sync Map Assets` 進 StreamingAssets，就會自動改播真正的攻擊動畫（程式已接好、零改動）。純程式修正，打包版正常。
+
+* [x] 地上物「出現條件（完成 N 關後才出現）」＋地上物多選/框選（2026-07-13，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md) §3.1/§4.3/§5、[SAVE_SYSTEM.md](SAVE_SYSTEM.md) §14）：兩個地圖編輯器功能。**① 出現條件（進度門檻）**：地上物加兩個每實例欄位 `appearAfterClears`（完成 N 關後才出現，0＝一開始就有）＋ `appearScope`（`cycle`＝每周目重算〔本周目完成數〕／`lifetime`＝曾達到過就永久），編輯器選取面板可填、複製會帶。遊戲端 `MapLoader.BuildOneObject` **進圖當下**判定：cycle 看 `SaveManager.ClearedModuleCount`、lifetime 看新增的跨輪迴高水位 `LifetimeMaxClears`；未達則整個不生（連碰撞都沒有）。沒 SaveManager（編輯器直測）一律照常出現。存檔加頂層 `CharacterSave.lifetimeMaxClears`（同 `lifetimeFlags` 放頂層＝輪迴不重置，`MarkModuleCleared` 更新、載檔取 max 補冷啟動）。兩邊 `ObjectInstance`（編輯器 `LayerData.cs`／遊戲 `MapModel.cs`）同步加欄，舊地圖缺欄＝0/cycle 向下相容。**② 地上物多選＋框選**（`ObjectController` 單選改一組 `_selection`）：**Cmd＋點**＝加選/取消、**空白處左鍵拖方框**＝框選（碰到就選）、單純左鍵點一個＝只選它、點空白＝清空；**複製**＝每個各複製一份、選取換成新複本（可接著一起搬）；**Ctrl＋拖**＝整組一起移動（多選關磁吸避免亂跳、單選保留磁吸）。選取疊加 `ObjectSelectionOverlay` 畫全部選取外框＋黃色框選矩形；選取面板 `EditorUI` 多選顯示精簡版（已選 N 個＋複製/刪除/取消）、單選維持完整面板。整組移動/複製/刪除各一步 Undo。**純編輯器＋存檔欄位，不影響現有打包遊戲行為。**
+
+* [x] 特效庫武器化定案（2026-07-13，見 [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md)）：審閱 398 套動畫／2,421 組變體，最終保留血月鬼爪、虛空吞口、九霄雷獄、幽影突、冰封法陣、死字咒六把；新增泛用 `IsMelee`、`IsGroundCast`、`IsDash`、`UseSegmentedSkyStrike`。九霄雷獄以 start 雷首＋動態 N 節等寬 tileable loop 從鏡頭外鋪到落點，接大型環形爆炸。未入選測試武器及其專屬素材／表列已清除，舊落雷武器 ID 10 亦已移除；`IsSkyStrike` 底層由九霄雷獄繼續使用。Unity 2022.3.62f3 驗證副本乾淨匯入與編譯通過。
+
+* [x] 武器集氣模式（2026-07-13，見 [CHARGE_MODE.md](CHARGE_MODE.md)）：RecipeTable 新增預設 false 的 `集氣模式` 與百分比 `集氣時間縮減`；空白鍵／滑鼠左鍵按住集氣、放開施放，完成後傷害 ×3、視覺 ×2。匯入 `scifi_charge_up_003` 藍／紅各 16 幀作集氣中／完成提示，特效高度依角色當下實際高度調整為 1.15 倍；雷射、佛光等持續輸入武器在載入時強制互斥。換地圖與暫停／阻擋操作 UI 會凍結並保留集氣，恢復後若按鍵仍按住便延續，遭清場的光圈會自動重建。Unity 2022.3.62f3 乾淨匯入與編譯通過。
+
+* [x] Pack 4 像素反射雷射（2026-07-13，見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)）：研究 A／B 兩套 origin／center／impact 與六色變體，選用 A 組藍色 loop 製作武器 29「鏡界折光」。新增 `PixelBeamSet` 與 `PixelLaserBeamVisual`，將中心段沿 ray-march 反射折線平鋪、在轉折補撞擊火花；Recipe 42 用 `BeamRange=-1` 延伸射程，反射則完全服從 `BounceTarget=Environment, MaxBounces=3`。追蹤、散射、穿透與 DOT 均沿用既有雷射配方管線。
+
+* [x] 底部 HUD 血球＋藥水系統（2026-07-16，見 [BOTTOM_HUD.md](BOTTOM_HUD.md)、[INVENTORY.md](INVENTORY.md)）：底部操控列以自繪著色器畫 HP/MP 液體血球（阻尼彈簧搖晃、暗場景調色、去描邊）取代舊左上血條。新增**藥水系統**——藥劑分類（`201` 小回血瓶／`202` 小回魔瓶，`HealHp/HealMp`、`MaxStack=99`），背包兩格藥水格綁定「種類」、按 1/2 喝並播喝藥特效，底部 HUD 兩格**鏡像顯示**（訂閱 `OnChanged` 即時同步）。互動加：拖曳可放欄位黃色高亮、丟錯格自動歸位、右鍵藥水快放。修正背包版面座標到真正背景 `1126×1397`（原本用到舊快取 1133×1388 導致高亮偏位），並修液體球著色器 `ZTest Always → [unity_GUIZTestMode]`（原本會穿透蓋住背包／黑幕）。
+
+* [x] 傳送點外型「精準視覺錨點」＋編輯器點放預覽（2026-07-18，見 [MAP_SYSTEM.md](MAP_SYSTEM.md)、[MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：傳送點外型特效原本放在 trigger 格子的「幾何平均中心」(`RegionCenter`)，而格子以整格塗、平均常落在半格上，跟獨立精準擺放的門美術對不準。**解法**：傳送點 `Params` 可存精準世界座標 `markerX/markerY`（有→外型放那、無→退回格子中心，向下相容）。主遊戲 `MapLoader.BuildTeleportMarkers` 讀它。**編輯器**：Trigger 面板加「── 外型位置 ──」（`EditorUI.DrawTeleportMarkerAnchor`）＝「設定外型位置」(按下後 `TriggerController` 下一次點畫布設 markerX/markerY，仿 SceneFx 點放)＋「回到中心」；`TriggerOverlay` 對選取的傳送點畫**黃十字**＝外型實際落點（所見即所得，對齊門免進遊戲試）。只動視覺、踩踏功能格子與玩家落點不變。純新增/向下相容，兩專案都改、需各自重編譯。
+
+* [x] 載入頁進度條改用美術素材（2026-07-18，見 [RESOURCE_LOADING.md](RESOURCE_LOADING.md)）：`LoadingPanel` 底部進度條由簡易純色條換成美術素材（`Resources/UI/LoadingBarPanel/`：底框蓮花吊飾＋深色軌道、金色填充、金色端蓋）。**① 兩張素材沒畫在對齊位置**（底框軌道 y[52,120]、金色填充 y[78,180]）＝1:1 疊會太粗又掉出框；改成把填充**垂直壓成軌道高(×0.667)＋頂端對齊**才落進軌道。**② 進度用 RectMask2D 遮罩裁切金填充**：可見右緣＝遮罩寬度、金色端蓋放在同一個寬度上 → 端蓋一定黏在金條尾巴（別用 Image.Filled，裁切邊會跟算出的端蓋對不上）。**③ 文字**「載入中…XX%」用預設字型＋燙金漸層（新增 `UIVerticalGradient` BaseMeshEffect）＋暗描邊，錨在畫面底部中央。版面常數（BarWidth/BarBottomMargin/PercentGap）可調。`SetModule`/`SetProgress` 介面沿用、MapManager 不用改。純改動，打包版正常。
+
+* [x] 地上物新增「可穿越(passThrough)」＝無碰撞但照常 Y-sort（2026-07-18，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：榕樹妖結局的鬼魂地上物彼此遮蔽亂掉（小孩頭被大人身體蓋）。**根因**：鬼魂全被勾「可走(walkable)」→ 拿固定低排序(5)、**完全沒進 Y-sort**（彼此用建立順序疊、也被玩家蓋）；不是排序鍵(中心 vs 腳底)問題（實測相同）。walkable 原是給「木板/地毯」這種踩得上去、畫在角色腳下的地板物，把「無碰撞」和「固定低排序」綁在一起，缺「無碰撞＋照 Y-sort」的組合。**解法**：`ObjectInstance` 新增 `passThrough`（兩專案 `MapModel.cs`／`LayerData.cs`）＝不生碰撞框、不掛可破壞，但排序照一般地上物走 `MapDepthSort`（依 Y 和角色/彼此正確交錯）。`MapLoader` 碰撞/可破壞條件加 `&& !inst.passThrough`（排序不動，walkable=false 自然走 Y-sort）。編輯器 `EditorUI` 物件面板加「可穿越」勾選＋清乾淨「可走」標籤、兩勾互斥、breakFlag 條件排除。站立的鬼魂/煙/光用「可穿越」，地板類仍用「可走」。純新增/向下相容，打包版正常。
+
+* [x] 榕樹妖地刺：生成安全內縮＋橫掃 5→3 排＋大地刺補可走驗證（2026-07-18，見 [BOSS_MODULE.md](BOSS_MODULE.md) §6.4/§6.8）：場地縮小（加了底部 HUD、可走範圍變小）後地刺會冒在貼著 HUD／左右血魔球的邊緣。**① 生成安全內縮 `SpawnBounds`**＝可走區(`MapNavGrid.WalkableBounds`)再往內縮（`SpawnEdgeInset`0.5 上/左/右、`SpawnBottomInset`1.0 底部 HUD 側），隨機灑/橫掃/大地刺全走它 → 地刺不再貼 HUD 冒。**② 橫掃 `Sweep_TotalRows` 5→3**（仍每次隨機挑 2 排），縮小場地下三排都落在可走內、更分明。**③ `GiantSpike`（大地刺）補遵循可走**：原本用相機中心不檢查可走，改成夾進內縮框＋`IsWalkableWorld` 驗證。查因：`RandomVolley`/`RowSweep` 本來就有透過 nav grid 檢查、對不準的其實是可走區塗到貼 HUD＋GiantSpike 沒檢查。常數都在 `BanyanTreeBrain.cs`。純程式/常數，打包版正常。
+
+* [x] **關卡儲存機制：關卡進度與臨時包 `RunProgress`**（2026-07-18，見 [RUN_PROGRESS.md](RUN_PROGRESS.md)）：**[MAP_SYSTEM.md](MAP_SYSTEM.md) 講的「Phase 2 地圖狀態持久化」落地**，但落點與草案不同——不是掛在 `MapManager` 上的 `MapState`，而是獨立的常駐單例 `RunProgress`，把「一趟關卡」的臨時包與地圖狀態收在一起。**① 四種進度記錄（per-map、限本趟）**：`killedSpawns` 已清出生點（key＝區域 id + 格座標）／`consumedTriggers` 已取或已觸發（key＝trigger 區域 id）／`destroyedObjects` 已破壞地上物（key＝`obj#清單索引`，解掉「地上物沒有穩定 ID」這個 Phase 2 前置）／`drops` 地上未撿掉落物（原座標重放、支援部分撿取回寫）。載圖時由 `MapLoader` 跳過重生、`MapManager` 呼叫 `InteractionManager.RestoreGroundDrops` 重放。**② 臨時包**：關卡內取得的道具/金錢（金錢＝銅錢道具 101）先進臨時包，過關 `SettleIntoBag()` 併入真背包並把快照交給 `ResultPanel` 顯示獎勵，死亡/返回 `EndRunDiscard()` 整包丟棄——[CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) §6 的打寶模型到位。**③ 生命週期看 module**：`Main`（廣場/教學）不算關卡、東西直接進真背包；進不同關卡 module 才 `BeginRun` 重置，**同 module 房間互跳完全延續**。**④ 統一入口** `RunProgress.GiveItem(itemId,count)`（`giveItem` trigger／拾取點／地上掉落物都走它）。**⑤ 暫定掉寶**：地圖出生的敵怪死亡必掉銅錢 1~5、35% 機率掉一瓶藥（201/202），召喚物不掉不記（防無限刷）。**⑥ 工程介面**：按 **F8** 開除錯疊層看臨時包內容。純記憶體、不寫存檔（沒過關的收穫本來就歸零）。
+
+* [x] **劇情演出編輯器（Cutscene）**（2026-07-20，見 [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md)）：在地圖編輯器裡排一段「半演出半漫畫」的**地圖內過場**——演員自己走位、說話、運鏡、插入置中漫畫格、淡黑、播螢幕特效，最後交棒到下一張圖或墜落動畫，全部資料驅動存在 `.dipanmap` 的 `cutscene` 欄。**編輯器端**：新 `EditTool.Cutscene`「劇情」分頁（演員／步驟增刪排序、點畫布放座標）、`CutsceneController`、GL 疊層 `CutsceneOverlay`（演員起點方框＋朝向線＋走位折線＋步驟紫十字）、**編輯器內預覽 `CutscenePreview`**（移植版 A* 走位，`dialogue`/`camera`/`screenFx` 用等秒數佔位）。**遊戲端**：`CutsceneDirector` 協程排程器＋`CutsceneActor`（npc 走路線 B 逐格動畫；`player` 直接接管場上玩家、停用 `PlayerController` 改掛臨時 `MonsterActuator`，結束一定還原）。13 種步驟型別 `move/face/dialogue/wait/camera/cameraFollow/comic/fade/spawn/despawn/screenFx/setFlag/end`，兩種並行開關 `parallelNext`（同時開始、整組做完才往下）與 `background`（丟背景、主線立刻往下）。`MapManager` 載圖後 `MaybeAutoStart`，且**進場觸發 `onEnter` 會等演出演完才點火**（避免對話互相蓋掉）。目前用在開場山道 `Main_InitialForest1/2`（13/14，尾段 `end=fall` 接墜落）與初始洞窟 `Main_Cave`(11)。⚠️ 與 `cutscene` **trigger**（穿隧道播影片，見 [CUTSCENE_TUNNEL.md](CUTSCENE_TUNNEL.md)）名字撞了但是兩套東西。
+
+* [x] 作弊面板（2026-07-23，測試工具，尚無專屬文件）：`CheatPanel` + `CheatLauncher`，預設按 **L** 開/關。左側分頁導覽＋右側內容區的可擴充版面，目前只有「給道具」分頁（填物品 ID＋數量 → 直接 `InventorySystem.AddItem` 進**真背包**，不走臨時包）。開啟時暫停遊戲＋擋輸入（方便打字），ESC／右上 X 關閉。全程式建構、零 prefab（同 `SettingsPanel`／`InventoryPanel` 風格），程式註解內附「如何新增一個作弊分頁」。純新增測試工具，不影響正式流程。
+
+* [x] 技術債清理：陣列型 static 快取修正＋素材同步白名單收斂＋CSV 工具（2026-07-27，見 [PROBLEMS.md](PROBLEMS.md) I8/C8）：從 PROBLEMS.md 盤點出的隱患，一次處理掉四項。**① 修一顆會發作的 bug**：`SegmentedLightningColumn`（九霄雷獄落雷柱）的 `Sprite[]` static 快取只判 `arr == null`，但**陣列本身永遠不會變 null**（被銷毀的是元素）→ 關掉 Domain Reload 後第二次 Play 拿到一整包已銷毀的 Sprite、雷柱不見。改用 `IsStale()`（判 null／長度 0／首元素已銷毀）。順帶修掉同一支的既有隱患——`Load()` 永遠回傳非 null 陣列，導致「素材未完整載入」的守衛從來攔不到、素材真缺時直接 NullReference，守衛也改用 `IsStale`。並在 `PlayModeStaticReset.cs` 檔頭寫入通則：**陣列／集合型的 UnityEngine.Object 快取不適用 `== null` 自動重建**。**② 素材同步白名單收斂**：「哪些分類要同步」原本在遊戲端寫三次（`MapIO`／`MapAssetSyncTool`／`sync_map_assets.sh`），新增 `Assets/Scripts/Map/MapAssetCategories.cs` 當單一來源（`All` ＋ `IsRecursive()`），兩支 C# 改為引用，改分類從 3 處變 2 處（shell 版仍獨立，該行上方加了提醒註解）。連帶把「動畫地上物」的觸發開關 `cat == "Environment"` 也換成常數——留字面值的話將來改名會讓動畫地上物**整批靜默消失**。編輯器端 `AssetSyncTool` 加註解標明「只有三類是刻意的，別順手補 Drama/Talk」。**③ Sync 摘要**：`Project Tools → Sync Map Assets` 跑完印出各分類收了幾筆、其中幾筆多幀動畫、各 module 幾筆，某分類掛零跳 Warning——讓 F16 那種靜默漏檔一眼可見。**④ 新增 `Assets/Scripts/Data/CsvUtil.cs`**（純新增、零呼叫）：把 `ItemDatabase` 已驗證的引號解析抽成共用 `SplitLine()`＋`Field/FieldInt/FieldFloat/FieldBool` 防呆取值，**既有 13 處 CSV 解析一行未改**（避免無法編譯驗證的大規模重構），之後遇到「這欄需要能打逗號」時再逐張遷移。已實機驗證：Console 無錯、Sync 摘要正常、動畫地上物/立繪/劇情圖正常、落雷柱連續兩次 Play 皆正常。
+
+* [x] **沒裝備武器就不能攻擊＋移除 E 鍵切換**（2026-07-27，見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)、[RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)）：**取代本檔上方 2026-06 那筆「初始武器＝最高 ID／E 鍵往前切」的舊行為。** 原本玩家空手也能攻擊，根因有兩個：① `WeaponManager.Start()` 強制把 `CurrentWeaponID` 設成武器表最高 ID（專案最早期為了方便測試）；② `PlayerController.OnInventoryChanged` 裡寫著「卸下時保留當前武器」。**改法**：`CurrentWeaponID` 預設 `0`＝無武器（連 `MainScene` 序列化的值也一併改成 0，否則場景值會蓋掉程式預設）、`Start()` 不再指派、`GetWeapon(id<=0)` 安靜回 null（無武器是正常狀態不是錯誤）、卸下改為 `SwitchWeapon(0)` 並立刻清掉光束/佛光/集氣。**關鍵是 `HandleFiring()` 開頭一道 `weapon == null` 的 guard**——放在所有分支之前，一處就擋掉雷射／佛光／集氣／離散全部發射路徑，不必逐條改：不發射、不扣魔（耗魔全在 `Shoot`/`UpdateLaser`/`UpdateAura` 內）、不擺攻擊動作（離散靠 `_attackAnimUntil`、持續型靠 `HandleVisuals` 的 `_activeBeams`/`_activeAura`，前者走不到、後者已清空），連「按左鍵轉身面向滑鼠」也一併擋掉。刻意**不跳提示** toast——需求是完全沒反應，且開場劇情到柴房撿佛燈前玩家本來就空手，提示會一路蹦在那段刻意乾淨的畫面上。**同時移除 E 鍵循環切換**（`SwitchToPreviousWeapon`），武器一律由背包武器欄決定，不再有繞過裝備的途徑。**順手修掉一個既有競爭條件**：舊 `Start()` 的覆寫若晚於 `PlayerController.Start`，會把背包指定的武器蓋掉。已確認柴房佛燈教學不受影響（phase 順序是撿→**裝備**→點亮，`FireOnly` 期間必定已裝備佛燈）、讀檔還原正確（`RestoreState` 結尾 `Raise()` ＋ `PlayerController` 訂閱後的初始同步兩條路都會走到 `OnInventoryChanged`）。
+
+* [x] **地圖級「禁用武器」開關（MapsTable 新增 `NoWeapon` 欄）**（2026-07-27，見 [MAP_SYSTEM.md](MAP_SYSTEM.md)）：劇情用地圖與邪佛廣場不該讓玩家開火（玩家理論上還沒武器，但不能排除用 bug 取得；廣場亂放武器畫面也很怪）。**做成資料驅動而非寫死地圖 id**，之後任何特殊劇情地圖都能直接用。`MapsTable.csv` 加**第 10 欄 `NoWeapon`**（`0` 可用 / `1` 禁用 / **空＝0**，沿用 `SceneEffect`／`EnterEffect` 的「空＝無此特性」慣例，現有 10 列紅嫁衣地圖一個字都不用改、維持 9 欄）。目前填 1 的是 `Main_Cave`(11)、`Main_Square`(12)、`Main_InitialForest1`(13)、`Main_InitialForest2`(14)。**實作只動三處**：`MapTable` 加欄位與第 10 欄解析（缺欄/留空/解析失敗都退回 0）→ `MapManager.PlaceAndSetup` 記進 `WeaponDisabled`（與 `Atmosphere`／`SceneEffect` 同一段、同一個模式）→ `PlayerController` 新增 `CanFire` 屬性（「有裝備武器 ＋ 這張圖沒禁用」的單一判斷），把前一筆剛加的 `weapon == null` guard 換成 `!CanFire`，**其餘一行都不用動**——雷射／佛光／集氣／離散、攻擊動畫、MP 全部自動涵蓋；「按攻擊鍵轉身面向滑鼠」也共用同一個 `CanFire`，確保兩處判斷永遠一致。**只擋玩家發射**：移動、互動按 F、背包、喝藥一律正常，`MonsterWeaponUser`（怪物用武器）走獨立管線不受影響。**確認過三個潛在副作用都不存在**：① 提燈光圈靠「裝備的 `LightRadius`」不靠佛光武器，且這四張圖 Atmosphere 是 1/5/1/1、本來就不打光；② 編輯器專案不讀 `MapsTable.csv`（全專案只有一份、只在遊戲端），不需雙專案同步；③ 怪物武器管線獨立。⚠️ **別把 `NoWeapon=1` 填在新手教學地圖**——柴房佛燈教學要玩家實際開火點亮佛燈，禁用會卡死。順帶補齊 [MAP_SYSTEM.md](MAP_SYSTEM.md) 欄位表裡一直沒補的 `SceneEffect`／`EnterEffect` 兩列，並把 `Atmosphere` 範圍由 1~11 更正為 1~15。
+
+* [x] **對話防連點**（2026-07-27，見 [DRAMA.md](DRAMA.md)「防連點」、[UI_SYSTEM.md](UI_SYSTEM.md)）：劇情對話時猛按左鍵／空白鍵會一次跳掉好幾句，有時**立繪都還沒顯示出來就被跳過**。**作法**：把「前進／關閉一次」節流成每 **0.5 秒**最多一次，**並且面板剛開啟時也先擋一次冷卻**——後者才是「立繪來不及出現」的真正解方（否則上一句的連點慣性會直接吃掉新開的那一句）。**工具做在 `UIPanel` 基底**（純新增，不改任何既有面板行為）：`InputCooldown`(0.5) 常數＋`BlockInputFor(seconds)`（`OnOpen` 呼叫）＋`TryConsumeInput(cooldown)`（入口呼叫，冷卻中回 false 就 return）。**刻意做成 opt-in**：基底不自動套用，否則背包／設定那種要連續操作的面板會變鈍。一律用 `Time.unscaledTime`——對話面板 `PausesGame=true`，用 `Time.time` 會永遠卡在冷卻裡。**套用兩處**：`TalkPanel` 放在 `Next()` 內一處（鍵盤與整片點擊鈕都經過它，兩個入口一次涵蓋）、`DramaPanel` 放在整片關閉鈕的 callback。**ESC 不受節流**（走 `UIManager.CloseOnEscape`，那是明確的「我要跳過」意圖）。序章開場漫畫的翻頁是獨立實作、不走 `UIPanel`，維持原樣。要調節奏改 `UIPanel.InputCooldown` 或個別面板傳自訂秒數。
+
+* [x] **劇情跳過改成「只有開發階段能用」＋修掉「按 ESC 莫名播爬起動畫」**（2026-07-27，見 [DRAMA.md](DRAMA.md)、[CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md)）：作者從未要求過「ESC 可跳過整段劇情」，正式版也不希望玩家這樣跳掉所有劇情。**兩個回報其實是同一個根因**——ESC 同一下會被兩處讀到：① `UIManager` 因 `TalkPanel/DramaPanel.CloseOnEscape=true` 關掉對話；② `CutsceneDirector` 因 `skippable=true` 設 `_skip`，**中止剩餘步驟後仍會跳到最後的 `end` 執行交棒**。所以在 `Main_InitialForest2`（`end='fall'`）按 ESC ＝ 直接跳完整段開場 → 墜落 → 回 `MainScene` 進初始洞窟(11) → 洞窟 `EnterEffect=1` 觸發「趴地→爬起」，看起來像「按 ESC 就莫名播爬起動畫」，其實是一路交棒過去的正常結果（點左鍵只結束當前那句、後面步驟照演，所以不會發生）。**解法**：新增 `Assets/Scripts/DevSkip.cs`（`Allowed => Application.isEditor || Debug.isDebugBuild`），套用在 `CutsceneDirector` 的 ESC 略過與 `TalkPanel`／`DramaPanel` 的 `CloseOnEscape`。**沿用專案既有慣例**——`IntroComicController`／`IntroFallController` 本來就各自有同義的 `AllowSkip`，只是沒套到對話與劇情演出上；用執行期判斷而非 `#if UNITY_EDITOR`，讓 Development Build 仍可跳過、方便測後段流程。**確認打包後不會卡死**：對話播完 `ShowCurrent()` 會自動關閉、`DramaPanel` 整片點擊鈕照常可用、`CutsceneDirector` 的 `_skip` 恆 false 時步驟正常跑完；ESC 失效也不會誤開設定面板（`UIManager` 的 ESC 是「有視窗且允許才關」，不會 fall through）。其他面板（背包/設定/確認彈窗/存讀檔）的 ESC 一律不受影響。**仍待決定**：`VideoPlayerOverlay` 的 `AllowSkip` 是 Inspector 上的 public bool、目前打包後玩家可跳過過場影片，是唯一沒有開發/正式區分的跳過入口。
+
+* [x] 清掉開場改用劇情編輯器後不再使用的漫畫素材（2026-07-27）：開場表演從「三張整頁漫畫＋鏡頭導讀」改成劇情演出編輯器之後，`Resources/InitialStory/` 裡只有 **`Page_01` / `Page_02` / `Page_03`** 真的沒人用了（連同 `.DS_Store` 一起刪，共約 7.6MB）。判定依據四層都查過：① 程式裡只出現在 `IntroComicController.BuildDefaultPages()` 的**預設排版**，而該預設只在 `Pages` 為空時才用，`Intro` 場景已有序列化清單所以永遠走不到；② 場景裡那三頁的 `Fullscreen` 都是 0；③ Intro 場景現在**唯一**進入點是 `CutsceneDirector` 的 `end='fall'`，此時 `FallTailOnly=true` → `Pages.FindAll(pg => pg.Fullscreen)` 把三張全濾掉；④ GUID 零引用、StreamingAssets 無副本、CSV 無引用。**其餘 14 張全部還在用，不能刪**：`SeeButterFly`/`Dangerous`/`Notice`/`HoldHand`/`Thanks`/`Rest`/`Break` 七張是**新劇情演出**（`Main_InitialForest2` 的 `comic` 步驟）在用；`Story_13~15`（Fullscreen=1，墜落尾段會播）、`Story_ActorFall_Front`/`_Side`、`Story_RockWall` 是墜落動畫在用；**`Manji` 最不能刪**——除了開場，`LevelExitManjiController` 每次過關／死亡的卍字離場特效都會載它。
+
+* [x] **測試工具：直接進關卡加「邪佛廣場-1關後」＋作弊面板加「給 10000 元」**（2026-07-28）：抽選祭壇要求至少通過一關，但 `Project Tools/測試/直接進關卡` 原本只有一個「邪佛廣場」＝全新存檔、`clearedModules` 是空的，測不到祭壇。改成兩個入口——**邪佛廣場-初始**（原本的）與**邪佛廣場-1關後**（`DevQuickStart.PreClearedModule="RedBridalGown"`，開場預先塞一筆完成紀錄）。同一機制順便讓 `TutorialManager` 在 `ClearedModuleCount > 0` 時不再啟動新手教學。作弊面板加「獲得 10000 元」按鈕（免得每次打 101 + 10000），並把面板依功能用**分隔線＋不同色塊底版**分組（第一列＝道具 ID／數量／確認給予，第二列＝給錢）。
+
+* [x] **觸發鏈新增 `openPanel`／`unlockRoll` ＋「最低/最高完成關卡數」條件 ＋「條件不成立時」分支**（2026-07-28，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)、[GACHA_SYSTEM.md](GACHA_SYSTEM.md) §6）：祭壇需要「地上物是圖、互動是觸發」兩件事分開——地圖上擺祭壇圖當地上物，另外畫一顆 `openPanel` 觸發（位置型、靠近按 F）填 `panelId=gacha`＋`poolId`。順手做了兩個通用條件 `requireClearsMin`／`requireClearsMax`（完成關卡數門檻，`requireClearsScope` 決定算本周目還是終身），因為祭壇設定「至少通過一關才開放」。**過程中抓到一個真的遊戲 bug**：邪佛初始對話的守門條件是 `requireCycleMax=1` ＋ `requireItem=!104`，打完紅嫁衣後劇本被消耗掉、周目還是 1 → 兩個條件同時又成立 → **初始對話與新手教學會重播**。加 `requireClearsMax=0` 可以擋住，但擋掉鏈中間那顆會把後面「給紅嫁衣劇本」一起吞掉 → 玩家永遠拿不到劇本、軟鎖，所以另加通用欄位 `onBlocked`（`中止整條鏈`(預設)／`跳過這顆繼續`）。編輯器端 `InteractionManager` 也順手把寫死的 `enum PointKind` 改成**可註冊的 `InteractKind` 表**，之後加互動型別不用再改三處 switch。
+
+* [x] **抽選介面套上正式美術＋十連結算畫面**（2026-07-28，見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §7）：先以工程版面做出可玩流程，作者補上素材後整個換掉。素材放 `Resources/UI/GachaPanel/`（機台/標題/金錢條/中選框/啟動 icon）＋ `Resources/UI/Common/GachaPanel_StartBtn.png`。**素材是 AI 產的「整張畫布輸出」**（1536×1024 裡只有中間一塊有東西），所以程式端建了一張 `ArtSpec` 量測表（每張圖的畫布尺寸＋內容 alpha 邊框），`PlaceArt()` 反推 RectTransform 尺寸與偏移，讓「內容框」而不是「整張圖」對齊版面；載入時比對 sprite 實際尺寸，重出圖尺寸變了會**出警告**而不是默默跑位。版面**以機台圖為錨**（機台高 840，直欄視窗與格距都是機台圖的比例常數），所以之後換機台圖只要改一組數字。表演：中選框在轉動時上下抖動、減速停止、單抽中獎走**「舞台」特寫**（整個機台壓暗 80%、icon 放大到 186×180、下方描邊名稱）；十連抽完（含中途 skip）跳**結算面板**，用過關結算的 `ClearStagePanel_ItemBg.png` 當底，重複的合併顯示 ×N。抽選面板**刻意不能用 ESC 關**（`CloseOnEscape=false`），一定要按關閉鈕。
+
+* [x] **血統做成一次性藥劑（`BloodlineID` 欄 + BloodlineSystem）**（2026-07-28，見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §5）：作者拍板「血統是消耗道具、喝下去主角**徹底改變外型**、**本世只能用一次**，輪迴後回到人類」。所以不新增裝備欄，只在 `ItemTable.csv` 加一欄 `BloodlineID`（>0＝這是血統藥劑），另開 `BloodlineTable.csv` 放血統本身的資料（`Key/DisplayName/SpriteFolder/MaxHpAdd/MoveSpeedMul/OutgoingDamageBonusPercent/SkillId`）——兩張表分開是因為「藥劑」與「血統」生命週期不同：藥劑會被喝掉，血統要跟著角色一路到輪迴。「本世已定型」用**周目範圍**的旗標 `血統` 記，輪迴自動清空 → 回人類。`BloodlineSystem` 每幀比對「存檔上的血統」與「已套用的血統」，不一致就換外型並補差值屬性。新增藥劑 301（野魂）／302（幽靈）。
+
+* [x] **金錢不再是背包道具，改成獨立數字**（2026-07-28，見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §4、[INVENTORY.md](INVENTORY.md)）：抽選要花錢，銅錢（道具 101）若還是可疊道具，背包很快被錢塞滿、而且「有幾格 99 顆」根本無法當貨幣算。改成**存檔裡的一個整數**（`SaveManager` 既有的 currency），背包面板底部銅錢 icon 後面直接顯示總額（`OnCurrencyChanged` 事件即時刷新）。**掉落端不動**——怪物/寶箱照樣「掉道具 101」，由 `RunProgress.GiveItem` 與結算落袋 `SettleIntoBag` 在入口處轉呼叫 `SaveManager.AddCurrency`，所以既有的掉落表、觸發 `giveItem(101)` 全部不用改。另加安全網 `SweepMoneyIntoWallet()`（`ApplyToSystems` 時掃背包，把舊存檔裡殘留的 101 收進錢包），`ItemTable` 的 101 那一列**要保留**（toast 名稱與 icon 還靠它）。`StorageLauncher` 不再開場塞 500 銅錢。
+
+* [x] **祭壇抽選系統（GACHA）**（2026-07-28，見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)）：核心迴圈的「取得」那一半——玩家在邪佛廣場走到祭壇按 F 開抽選面板，單抽／十連，老虎機直欄捲動 → 減速 → 中選格定住 → 中獎特寫。**整套設計成「大項可以隨時增刪」**：作者明說武器之後可能併進裝備、也可能再開新類，所以刻意**不做成 trigger 型別**（`triggerTypes.json` 是 merge-only，加了拿不掉），改成四層——① `GachaPoolTable.csv` 是大項登記表（`PoolId,DisplayName,BaseTable,SlateSprite,CostSingle,CostMulti,MultiCount,CostItemId`），刪一列＝這個大項消失；② 每個大項一張 `BaseXxxRoll.csv` 基礎表（`ItemId,Weight,MinCycle,RequireFlag`）；③ 存檔的 `unlockedRollEntries` 記「打關解鎖了什麼」；④ 祭壇本身只是地圖上的 `openPanel` 觸發填 `panelId=gacha`＋`poolId=weapon`。**實際候選＝基礎表 ∪ 已解鎖**，所以「打贏紅嫁衣 → 幽靈血統進池」「打贏榕樹妖 → 地刺戢進池」只要在 boss 死亡鏈上接一顆 `unlockRoll(poolId, itemId)`，零程式。新程式集中在 `Assets/Scripts/Gacha/`（`GachaPoolTable`／`GachaRollTable`／`GachaTableProvider`／`BloodlineTable`／`BloodlineSystem`／`GachaService`）＋ `UI/Panels/GachaPanel.cs`。
+
+* [x] **鍛造介面（ForgingPanel，Y 鍵開啟）**（2026-07-29，見 [FORGING.md](FORGING.md)）：鐵匠鋪的鍛造台：中央鐵砧一格放武器／裝備、左右各三個鑲嵌孔放寶石。**這一版做到「版面＋拖放」為止**——兩顆按鈕（移除鑲嵌／拆除裝備）與鑲嵌本身的功能都還沒接。**整套重用既有的拖放地基、沒有另寫一份搬運邏輯**：`ForgeSlotWidget` 實作 `ISlotView` → `SlotDragController` → `InventoryActions.Resolve`，所以背包↔鍛造台的拖放天生互通（同背包↔倉庫、背包↔傳送門）。資料層兩個容器：`ForgeSlotGrid`（容量 1，只收 `IsEquippable`）與 `ForgeSocketGrid`（容量 6，帶 `UnlockedCount` 解鎖數）；**「只收武器／裝備」的把關刻意放在 UI 端的 `OnDrop`**——跨容器拖放走 `SetAt`（先塞目標再清來源），若在 `SetAt` 拒收會讓來源被清空造成物品消失（同 `ScriptSlotGrid` 的註解）。**鑲嵌孔的解鎖鏈路已經打通、只差資料**：孔位數只從 `ForgeSockets.Of(ItemData)` 這一個 seam 查，現在固定回 0 ＝ 六孔全鎖（蓋鎖鏈圖）；將來 `ItemTable` 加 `SocketCount` 欄位後只要改那個函式，面板端一行都不用動（孔位變少時 `ReturnClosingSockets` 會把東西退回背包）。開啟時**強制把背包一起開**並排（鍛造靠左、背包靠右），關閉時把台上與孔上的東西全退回背包再關背包——與傳送門 `ScriptsPanel` 同源；玩家單獨關掉背包時鍛造也會跟著收。版面沿用 `InventoryPanel` 的「一張底圖 ＋ 疊格子、座標在底圖原生像素空間」作法（底圖 1536×1024、`displayHeight` 636），方框／鎖鏈／按鈕／關閉鈕則沿用 `GachaPanel` 的 `ArtSpec` 透明邊補償（重出圖尺寸變了會出警告、不會靜默跑位）。熱鍵 **Y** 掛在 `StorageBagCoordinator`（教學強制階段會鎖），**之後要改成鐵匠 NPC 的 `openPanel` 互動點**。字串進 `LanguageTable.csv` 的 4001–4099 段。⚠️ `ForgingPanel_Btn.png` 目前沒去背（整張不透明、四周深灰 40,40,40），按鈕會露出灰底方塊，等重出透明版即可，程式不用改。
+
+* [x] **存讀檔畫面換上正式素材（SaveSlotPanel）**（2026-08-01，見 [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) §4.5）：三欄存讀檔從工程版的純色方塊換成美術版面。**沿用專案既有的兩套地基、沒有新發明**：版面是「一張滿版底圖（`SelectSavePanel_Bg`，1672×941）＋座標寫在底圖原生像素空間、整個 frame 等比放大蓋滿畫面」（同 `InventoryPanel`／`ForgingPanel`），透明留白補償用 `ArtSpec` + `PlaceArt()`（同 `GachaPanel`，重出圖畫布比例變了會出警告而不是靜默跑位）。卡片外框 `SelectSavePanel_Frame` **本身就含頂端「欄位」紅底牌與背後的圓形佛像浮雕**，程式只負責疊字與互動元件。**有存檔時**左半邊放圓台 `SelectSavePanel_ActorBase` → 角色圖（曾試著在角色後面鋪方形底板 `SelectSavePanel_ActorBg`，實機看跟卡片框自帶的圓形浮雕打架、視覺上是歪的，當天就拿掉了），右半邊放「一周目」（`CjkNumber()` 轉中文數字）與該角色**武器欄裝備中**的武器 icon（取 `ItemTable.IconPath`，即背包裡那張）。**角色圖來源**：讀該欄存檔的周目旗標 `血統` → `BloodlineTable.SpriteFolder` → `PlayerSpriteLibrary.GetFrames(<血統>,"idle")` 的第一幀，沒喝過血統藥劑就是 `Base`；並用 `TryGetVisibleBox()` 的**不透明像素邊界框**正規化，讓不同血統的留白差異不會使角色忽大忽小、腳一定踩在圓台上（同 `MonsterSetup`／`BossSpike` 用 base-anchored 貼齊框的思路，見 [PROBLEMS.md](PROBLEMS.md) F14）。**關鍵取捨：這個畫面不載入存檔**——為了拿外型與武器，用 `SaveSystem.LoadCharacter()` 直接從磁碟偷看一眼該角色的 `character.json`，不動 `SaveManager.Current`、不觸發 `ApplyToSystems`；真正的載入仍然是按「進入遊戲」時走 `GameFlowManager.ContinueGame(slot)`。**版面精簡**（依作者示意圖）：拿掉「覆蓋（新建）」與畫面底部的「返回」鈕（要重開先刪角色再新建、返回標題按 ESC），卡片也不再顯示「完成 N 關」與「上次遊玩時間」（資料還在 `CharacterProfile`，要顯示隨時能加回來）；「刪除角色」沿用既有的 `ConfirmPopup` 做二次確認。按鈕底板只有一張圖（沒有按下版）→ 用 `ColorTint` 做回饋，同 `CloseBtn_2` 的處理。字串全走 `Language.GetText`，`LanguageTable.csv` 新增 **5001–5099「選擇存檔」段**，並在取字時對 `[cn:id]` 佔位做退回硬寫中文的保險（標題畫面比其他面板更早出現，provider 未就緒時不會變成一排編號）。
+
+* [x] **「繼續遊戲」回到上次所在的地圖（schema v3）**（2026-08-01，見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md)）：測試時發現「新建角色 → 看到開場第一句對話 → 關掉 → 重開該角色」會直接出現在邪佛廣場，**開場山道劇情、墜落、初始洞窟睜眼醒來三段全部被跳過**。查下去是這個功能從來沒做過——`ContinueGame` 的落點寫死 `GoToMap(HubMapId, "center")`，完全不看存檔；而按「新建遊戲」的當下 `CreateCharacter()` 就已經把角色寫進磁碟，所以那一欄早就有檔了。存檔裡跟「走到哪」有關的原本只有 `hubIntroSpawnDone` 一個布林，而且只用來決定廣場落點。**作法**：`ProgressDTO` 加 `lastMapId`/`lastEntrance`，由 `MapManager.PlaceAndSetup` 在 **Main module 的圖**（山道 13/14、洞窟 11、廣場 12）呼叫 `SaveManager.RecordLastLocation()` 並立刻 `SaveNow()`（這幾張一輪只經過一次，直接落地比較保險）。**關卡刻意不記**——關卡是 extraction 模型（`RunProgress` 純記憶體、離開歸零），記了會讓重開遊戲回到一個東西都不見的關卡裡；所以這兩欄永遠是「最後一次待在 Main 的位置」，在關卡中離開＝回到進關卡前的廣場，正好符合設計。`ContinueGame` 改讀它，`mapId <= 0`（舊存檔）退回廣場中央，`GoToHubRoutine` 泛化成 `GoToMapRoutine(mapId, entrance)`。schema v2→v3 是純新增欄位，`Migrate()` 不需要搬資料。
+
+* [x] **能力珠鑲嵌系統：物品實例 ＋ 能力容器**（2026-08-03，見 [GEM_SOCKET.md](GEM_SOCKET.md)）：整個遊戲的戰力核心，開發前與作者來回討論了五輪才動工。**核心觀念是「CSV 表只是模板、玩家手上那一件另外存」**——同一把武器 ID 掉落兩次可能一把 2 孔、一把 5 孔而且開的位置還不一樣，這種「每一件都不同」的資訊在只有 `{物品ID, 數量}` 的資料結構裡無處可放。所以 `ItemStack` 加了一個 `ItemInstance`（等級／孔位／鑲的珠子），跟著背包格與裝備欄一起存檔；之後裝備要多屬性（附魔、耐久、詞綴…）就在 `ItemInstance` 加欄位，Newtonsoft 對缺欄給預設值 → 舊存檔不用寫遷移。**能力生效走「能力容器」而不是直接讀武器表**（作者一開始就規劃的方向）：換裝備或改鑲嵌時把「武器基底 + 所有裝備內建能力 + 所有珠子」累加成一份修正表，套到武器配方的**深拷貝**上。這一手同時解掉一個大地雷——`RecipeManager` 每個配方只 `new` 一次，同 RecipeID 的所有武器、**怪物**、以及把它當 `SubRecipeID` 的母配方拿到的都是同一個物件，就地改欄位會污染怪物且永久累積到重開遊戲；拷貝後玩家用自己那份、怪物走 `GetWeapon` 拿原始資料，天生隔離。注入點選在 `WeaponManager.AbilityResolver`（`RefreshCurrentWeapon` 呼叫），**八種發射分支含雷射與佛光全部自動吃到，一個分支都沒改**。**疊加是「數值相加」不是「等級相加」**：每個來源各自查 GemTable 得到數值再全部相加（武器內建 Lv3 5 次 + 6 顆 Lv3 珠各 5 次 + 護身符 5 + 戒指 5 = 45 次），所以表永遠只需要 Lv1~Lv3 三欄、不會有「Lv18 查不到表」的問題；**能力刻意沒有上限**，玩家可以全塞反彈換取極端 build。資料面：`ItemTable.csv` 加第 17 欄 `GemID`（仿既有的 `BloodlineID → BloodlineTable` 慣例）、新開 `GemTable.csv`（一種珠子一列、`Field` 欄**原文照抄 RecipeTable/WeaponTable 的欄位名**，避免同一個功能兩邊命名不一致）。**產生規則收斂到 `ItemManager` 這個唯一工廠**：裝備骰孔數 0~6（**隨機位置**，不是前 N 個）、珠子骰等級 1~3，所以怪物掉落／觸發鏈 giveItem／拾取點／祭壇抽選／作弊面板全部自動吃到同一套規則。**孔數在「東西掉在地上的那一刻」就決定**（作者要求：玩家中途看臨時包發現一把 6 孔武器會更想拚過關），因此臨時包、地上掉落物、跨換圖重放、結算畫面全部改成傳完整的 `ItemStack`；地上標籤與 F8 疊層都會標「(5孔)」。所有機率集中在新的 `RandomRules`（作者要求寫在程式裡：機率設定太多、用表記錄不完），依周目的權重覆寫表已預留。鍛造介面這邊，**孔位面板直接讀寫鐵砧上那件裝備的 `ItemInstance`** → 珠子一拖進孔就鑲上去了，沒有「提交」步驟、關面板也不會消失、存檔自然帶著走；底部改成三顆按鈕（強化裝備／拆除裝備／移除鑲嵌，前兩顆待做），「移除鑲嵌」動作前會先確認背包空位夠。順手修掉兩個既有缺陷：關面板退回背包時 `AddItem` 的回傳值被丟棄（背包滿珠子會**直接消失**）、孔位拖錯東西沒有任何提示。⚠️ 三個容易踩的連動規則寫在 `PlayerAbilities`：反彈光加次數沒用（要同時開 `HasBounce` 並把 `BounceTarget` 從 `None` 設成 `Environment`）、穿透的 `-1` 是無限不能直接 +1、拋物線武器的 `Speed` 語意是「飛行秒數」。**平衡用的數值上限尚未討論**，目前只擋住會讓遊戲當掉的下限（發射間隔 0.02 秒、飛行速度 0.05、DOT 節拍 0.02、單次子彈數 64）。
+
+* [x] **能力珠的圖示做成「兩層疊合」＋ UI 貼圖匯入規則與批次工具**（2026-08-04，見 [GEM_SOCKET.md](GEM_SOCKET.md) §6.5）：作者畫的珠子素材是**珠身與能力符號分開兩張**（珠身還有 lv1~lv3 三種外型，讓玩家從外觀就分得出等級），但專案所有繪製點都假設「一個物品 ＝ 一張 Sprite」。評估過三條路：**A** 執行期把兩張合成一張並快取（繪製點零改動，但要 RenderTexture 疊圖再 ReadPixels，這個環境無法驗證）、**B** 兩層繪製 + 共用 helper、**C** 用編輯器工具預先合成 24 張成品圖（程式零改動，但多一個「改了 icon 要記得重跑」的手動步驟——正是 [PROBLEMS.md](PROBLEMS.md) C 類反覆踩的坑）。**選 B**：繪製點數得出來就 6 處、記憶體最省（3+8＝11 張來源，而不是 24 張成品），而且之後要再加一層（稀有度外框、附魔光暈）很自然。新增 `UI/ItemIcons.cs` 當**畫物品圖示的唯一入口**（uGUI 與世界端各一個多載，內部自動管理疊圖子物件），已接上背包格/裝備欄、倉庫格、鍛造鐵砧與孔位、過關結算獎勵、抽選面板(4 處)、地上掉落物。**鐵則：不要再直接讀 `data.Icon`**——那裡的珠子會變成一顆看不出是什麼能力的空白珠子而且不報錯。資料面 `GemTable.csv` 加 `Icon`／`BaseColor` 兩欄，路徑由程式組出來，所以珠子的 `ItemTable.IconPath` 是**空的**；`BaseColor` 留空會依 `Target` 自動推導（Recipe/Weapon → red 技能珠、Player → blue 屬性珠），作者說之後藍/黃珠要用在角色屬性（加血量一類）。**疊圖的 ArtSpec 是量出來的**：符號縮到 55%（原圖符號 428px 寬、比珠子本體 325px 還寬，1:1 疊會蓋掉整顆珠子還突出邊界），三級各自往上 8/24/14（500px 空間）——因為**三級的紅球中心高度不一樣**，lv2 底下多了底座把球往上推 24px，符號要對齊紅球而不是畫布，否則 lv2 的箭頭會偏低壓在底座上。8 種符號當天補齊後重新驗證，55% 在三個等級都不爆框，數字不用調。**順手把 UI 貼圖的匯入設定訂成規則並做成工具**：原本 `UITextureImportSettings` 只在「第一次匯入」時套用（刻意的，否則會蓋掉 Inspector 上的手動微調），所以**既有的圖永遠不會被修正**；而 UI 貼圖一律「不壓縮」（避免 BC 壓縮露出塊狀髒點，見 [PROBLEMS.md](PROBLEMS.md) G2）代表**尺寸直接等於記憶體**，一張 500×500 未壓縮 RGBA ≈ 1MB，11 張珠子圖就 11MB。現在規則收斂到 `Editor/UIAssetRules.cs` 單一來源（道具 icon → 256、長邊 ≥1000 的滿版底圖 → 2048 不縮、其他 → 512），postprocessor 與新的選單工具 `Editor/UIAssetAudit.cs` 共用同一份；工具分「檢查」（只印報告：目前→建議、估算記憶體、還會標『原圖遠大於需要，建議重出圖』）與「套用建議值」（跳確認後才改，原始 PNG 不動）兩個選單。
+
+* [x] **怪物出生點加「重複產生」與「怪物 id 陣列」**（2026-08-06，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.5）：原本 `monsterSpawn` 只能「進圖時每格生一隻」，要做「撐住 N 秒」「boss 戰期間一直來雜兵」這類房間就得手動塗一大片格子。現在多兩個欄位：**重複間隔秒**（留空＝原本的一次性，填秒數＝每隔 N 秒生一波、一波仍是「每格各一隻」，塗格語意完全不變）與**同時存在上限**（留空＝10 的保險預設）。怪物 id 欄同時支援 `5|7|9` 這種 `|` 分隔陣列＝隨機挑一種（沿用 `SummonIds`／`scriptIds` 的專案慣例，單一 id 照舊）。**最關鍵的一個決定是「重複產生的怪不記 RunProgress『已清』」**——一次性出生點靠 `SpawnKey` 記「這格的怪死了、本趟不再重生」，重複模式若照記，第一波死光後這個出生點就永遠不再生、功能等於沒做。但掉寶原本跟 `SpawnKey` 綁在同一個 if 裡（有 key 才掉、召喚物不掉以防無限刷），所以把**「記不記進度」與「掉不掉寶」拆成兩個獨立判斷**（`MonsterController.SpawnKey` / 新的 `DropsLoot`），重複產生的怪走「不記進度但照常掉寶」，召喚物維持兩者皆無。⚠️ 這代表**重複產生的房間可以刷錢**，與核心迴圈「關卡一次性、不可無限刷」有張力，靠「同時存在上限壓低＋間隔拉長＋只用在有出口壓力的房間」節制（已寫進文件警語）。實作上新增 `MapMonsterRespawner`（掛 `MapRoot` 下，換圖隨之銷毀＝自動停；用有縮放的 `Time.deltaTime`，開背包/對話暫停時不會偷偷累積；每波先清掉已死參照再依上限決定生幾隻），`MapLoader.SpawnMonstersFromMap` 只負責解析與分派。多 id 的挑選刻意分兩種：重複模式每隻重新亂數挑；一次性模式用**格座標的穩定雜湊**（FNV-1a，不用 `string.GetHashCode` 因為它不保證跨執行一致）——否則同一趟關卡換圖來回，沒殺掉的那隻會突然變成另一種怪。另外踩到一個不直覺的地方：「掛在 MapRoot 下＝換圖會自動停」只對同 module 房間互跳成立，跨 module 換圖是協程、讀取頁又刻意不暫停（`timeScale` 仍是 1），中間好幾秒舊元件還在跑，生出來的怪會躲過清場跟到下一張圖，所以 `Update` 要自己擋 `MapManager.IsLoading` 與 `GameFlowManager.IsEndingLevel`（已記進 [PROBLEMS.md](PROBLEMS.md) B8）。編輯器端只動 schema（`TriggerType.cs` 的內建預設 ＋ `triggerTypes.json`），`TriggerTypeStore.Load` 的合併機制會自動幫既有 json 補上新欄位，**舊地圖不用改、不填就是原本的行為**。順手把兩張測試競技場（`Future_Arena` 15／`Future_Arena2` 16）加進 `Project Tools/測試/直接進關卡` 選單：`DevQuickStart` 的目標字串多支援通用的 `map:<id>` 型（原本只有寫死的 `Hub`/`Hub1` 走地圖 id），之後再加測試地圖只要加一顆 id 常數＋兩個 MenuItem。同時修掉 `MapsTable.csv` 那兩列的兩個錯：Path 少了 `Modules/` 前綴（載不到圖）、`NoWeapon` 誤填 1（競技場裡不能攻擊）。
+
+* [x] **新增「開關(按F)」trigger ＋ 怪物出生點「啟動旗標」**（2026-08-06，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.5～3.6）：競技場測試時的實際需求——進圖要先花時間整理裝備，希望「走到拉桿按 F 才開始湧怪、想停下來再按一次」。現況有兩個缺口：**沒有任何「純按 F 跑觸發鏈」的 trigger**（`pickup` 會給道具、`drama` 會開對話面板、`openPanel` 會開 UI，三個都會多做一件不想要的事），而且**怪物出生點完全不吃啟用條件**（`MapLoader` 直接掃區域生怪，從來沒查過 `TriggerChain.IsActive`）。**開關這邊**新增位置型 `switch`：靠近出現青綠星星，按 F 就把「切換旗標」翻成成立／取消，自己不做任何事——做什麼由「誰在看這個旗標」決定（出生點的啟動旗標、地上物的 appearFlag/disappearFlag、其他 trigger 的條件旗標…）；第一次開啟時會跑一次自己的 setFlag/next，所以也能當一般機關（開門、播對話）用。因為互動系統前陣子已重構成「可註冊的互動型別表」，這筆只花了表裡加一筆＋一個 `SwitchPoint`。順帶補上兩個對稱的基礎設施：`TriggerChain.ClearFlag`（與 `SetFlag` 對稱、三種範圍都支援）與 `LevelPrefix`（`關卡:` 前綴，與 `永久:` 對稱，強制「關卡單次」範圍——給程式產生、作者沒辦法在旗標登記表登記的自動旗標用；開關的「已跑過鏈」旗標就是靠它每趟關卡歸零，不加的話會落到預設的周目、寫進存檔，之後整個周目再也不跑鏈）——**取消旗標刻意不觸發 `OnFlagFirstSet`／`fireOnFlag`**，但也因此「取消後再成立」會被當成又一次首次成立，所以文件明寫：別把接了 `fireOnFlag` 的旗標拿來當開關的切換旗標。**出生點這邊**做成**持續判定而不是一次性事件**：`MapMonsterRespawner` 每幀判定要不要生，條件取消就停在原地（計時器不累積）、重新成立就繼續——「暫停/恢復」因此不用任何額外狀態，兩邊只靠一個旗標溝通。一次性出生點若有條件擋著也改走 respawner（條件成立時生一波就結束），這條路徑仍帶 `spawnKey`，所以照常記 RunProgress『已清』＋掉寶，語意跟原本一致。
+  ⚠️ **這一段當天稍後被推翻、重做過一次，見下一則**：最初是另開一個專屬的 `startFlag`「啟動旗標」欄，理由是「不想動共用的啟用判定路徑」，且以為通用欄位只有「解鎖後永久有效」的語意、做不出可反覆切換的暫停（實際上 `requireFlag` 是每次都重算的持續判定，做得到）。
+
+* [x] **推翻上一則：出生點的「啟動旗標」拿掉，改吃觸發鏈的通用條件欄位**（2026-08-06，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.5）：功能做完當天作者第一次實際配置競技場，就把旗標填到**通用的「條件旗標＋初始停用」**去了——因為那兩欄本來就顯示在每一顆 trigger 的參數下方，看起來理所當然會生效；而出生點其實不吃通用欄位，於是靜默無效、一進圖就生怪，完全沒有訊息可查。作者的評語是「既然已經有通用的條件旗標，為什麼還要加一個自己用的？這樣各式各樣的條件旗標未來越來越多，會越來越容易填錯」——這個判斷是對的，**同一件事給兩個入口、而且兩個長得幾乎一樣，就是在製造 bug**。所以把 `startFlag` 整個移除，改讓 `monsterSpawn` 走 `TriggerChain.IsActive(region)`：條件旗標／初始停用＋解鎖旗標／周目上下限／道具／完成關卡數一次全部支援。原本擔心的「通用欄位做不出可切換的暫停」是誤判——`requireFlag` 每次都重算，取消就停、恢復就繼續，正是要的行為；而 `startDisabled` 則是另一種語意（一次性解鎖），兩者剛好對應「可暫停」與「開了就不再關」兩種需求，都用得上。**回歸風險是零**：全專案 12 顆出生點只有這顆填了通用欄位，其餘 11 顆條件全空 → `HasChainCondition` 回 false → 走原本進圖直接生完的路徑，一行行為都沒變。實作上只有「有填條件」的出生點才交給 respawner 逐幀判定，**而且連第一波都交給 `Update`**——因為 `MapManager.PlaceAndSetup` 的順序是 `SpawnMonsters()` → `SetupWatcher()`（`TriggerChain.Setup` 在後），載圖當下去查 `IsActive` 會讀到**上一張地圖**的停用集合，只勾「初始停用」的出生點會被誤判成可以生、當場生一波（初始停用被靜默忽略一次，最難查的那種）。順手把同一類「填了卻靜默無效」的坑補上 Console 警告：**初始停用＋條件旗標同時填**（語意互斥→永遠不生怪）、**重複規則填在出生點上**（出生點不看那欄）。
+
+* [x] **作弊面板給的道具跑進臨時包**（2026-08-06，見 [RUN_PROGRESS.md](RUN_PROGRESS.md) §6）：在關卡裡（競技場測試時）用 L 開作弊面板給自己道具，背包卻是空的。原因是「給道具」走 `RunProgress.GiveItem`——那是**取得物品的統一入口**，規則是「關卡內一律進臨時包」，而臨時包要**通關才落袋、死亡歸零**，所以東西確實給了、只是玩家看不到也用不到。作法是給 `GiveItem`／`GiveStack` 加一個 `toRealBag` 參數（預設 false＝維持原規則），作弊面板傳 true。**刻意不改成直接呼叫 `InventorySystem.AddItem`**——那會繞過統一入口的另外兩件事：需要實例的物品（裝備／能力珠）要先經 `ItemManager` 骰孔位，銅錢 101 要轉成金錢數字而不是佔一格背包。順帶一提拾取點本來就有同名的 `toRealBag` 欄（佛燈那類教學道具在用），只是它自己在 `InteractionManager` 裡另外寫了一份邏輯，這次沒動它（動了會改到金錢的分支行為）。
+
+* [x] **背包介面重製：新美術 ＋ 裝備/消耗品雙頁籤 ＋ 分頁**（2026-08-07，見 [INVENTORY.md](INVENTORY.md)）：作者畫好一整套新背包素材（1254×1254 正方形底圖，以及頁籤/重整鈕/箭頭/頁碼四種零件圖），要把原本「7×9 一整包 63 格」改成「上方兩個頁籤（裝備 / 消耗品）、中央 5×4 一頁、底部左右箭頭翻頁」，兩包**各 40 格 = 各 2 頁**，且日後容量可能再加、要能自動多分頁。**資料層的關鍵決定是「不做成兩個獨立容器，而是把同一條扁平陣列切成兩段」**（前 40 裝備包、後 40 消耗品包）——因為「鍛造台鎖住哪一格」「存檔的格位」「新手教學要指哪一格」全都用同一個格子編號在對話，切段讓 `ForgeAnvilSlot`／`ForgingPanel.IsGridLocked`／`SaveManager.FindOwnedStack`／`GridSlotDTO.slot` 一行都不用改；要加格只改 `EquipBagCount`／`ItemBagCount` 兩個常數，`PagesOf()` 自動算出幾頁。**分包規則刻意只有一處**（`InventorySystem.BagFor`：`IsEquippable` → 裝備包、其餘 → 消耗品包），呼應前一週「同一件事不要給兩個入口」的教訓；能力珠不可裝備，與作者確認後歸消耗品包。`AddItem`／`AddStack` 自動路由，所以倉庫點擊搬運、掉落物落袋、觸發鏈給道具全部不用改。**三個「防止物品消失」的護欄**：① `MoveGrid` 跨包一律拒絕（不然裝備混進消耗品包就永遠排序不到正確位置）；② 真的跨包時（背包停在消耗品頁、從倉庫拖一把劍進來）由 `InventoryActions.Resolve` 攔下改走 `AddStack` 丟進正確那一包，**不是在 `SetAt` 拒收**——拒收的寫法會「先塞目標再清來源」而讓東西不見（[STORAGE.md](STORAGE.md) 記過的坑）；③ 一頁若有超出容量的多餘格子直接 `SetActive(false)`，並在 `InventorySlotWidget.Blocked` 加上 `index < 0`，不留 index 越界的格子。**舊存檔遷移**在 `RestoreState` 裡：格號所在的包與物品該去的包對不上就改用 `AddStack`，物品與鑲嵌都不掉、只有排列順序重排一次（會印 Log 說明重排幾件）。介面端：格子**只建一頁 20 個並重複使用**，切頁籤/翻頁只重綁 `index` 不重建物件——新手教學的 `TutorialBlockerPanel.LockTo` 鎖的是 GameObject，重建會讓它指到已銷毀的物件；`FindGridSlotRect(itemId)` 改成**會自動切到那件東西所在的頁籤與頁數**（先掃當前頁避免每幀重切），柴房佛燈（裝備包）／儲藏室藥水與傳送門劇本（消耗品包）三段教學才指得到。零件素材沿用抽選／鍛造那套 **ArtSpec**（量不透明邊界框、`PlaceArt` 反推方框），因為這批圖四周有大片透明留白（箭頭圖 500×500 但內容只有 350×435），直接照原圖擺會整個偏；**左箭頭直接鏡像右箭頭**那張圖，不另外出圖。素材圖一律 `raycastTarget=false`，點擊全靠疊在上面的透明按鈕（美術完整露出、只用 tint 做 hover 回饋），順序上透明按鈕一定要建在素材圖之後。其他：重整鈕改成**只整理當前頁籤那一包**（裝備包依 武器/盔甲/手套/鞋子/護身符/戒指、消耗品包依 藥水/其他），裝備欄順序改成左欄 武器/手套/鞋子、右欄 盔甲/護身符/戒指（照新底圖畫的剪影，與舊版左中放鞋子不同），金錢改**靠右對齊**收在底圖畫好的錢幣左邊（`resizeTextForBestFit` 防爆框），面板顯示高度 1040→900（正方形，與倉庫並排時 `PairRightX` 420→480，倉庫與鍛造的位置不動），七張零件圖的 Max Size 依 `UIAssetRules` 由 2048 改成 512。
+  **同日實機跑完後的微調**：① 裝備欄 icon 放大到方框的約 8 成（`178/148/142`，原本 `132/116`）——素材四周本來就有透明留白，給小了在遊戲裡看起來只有格子一半大；道具格 `74→80`、藥水格 `92→108` 一起調。② 頁碼只顯示「現在第幾頁」，總頁數由箭頭亮不亮表達。③ 金錢改**靠左**對齊擺在牌子前段，框縮成 `108×46`（右界 866，背景圖從 878 開始畫錢幣），長數字靠 bestFit 縮字級不會壓到錢幣。④ **並排位置改用「看得見的美術」重算**——這幾張底圖四周都有大片透明留白（背包左右各 ~57px、倉庫 ~52px、鍛造 ~127px），第一版拿整張圖寬度去排，結果中間空出一大塊、背包還被推到快出畫面；改成「兩邊可見美術中間留 40 單位、整組置中」後是 背包 400 / 倉庫 -416 / 鍛造 -447。⑤ 順帶發現一個容易忽略的事：CanvasScaler 用 `MatchWidthOrHeight=0.5`，**畫面比例越窄，可用的參考寬度就越小**（作者的視窗約 1.49 比例 → 參考寬只有 ~1756 而不是 1920），所以固定的並排 X 在窄視窗會把面板切掉一半；`InventoryPanel.PairedX()` 因此加了「夾住不超出畫面右緣」的保護。
+
+* [x] **物品 icon 大小自動正規化（IconFit）**（2026-08-07，見 [INVENTORY.md](INVENTORY.md)、[PROBLEMS.md](PROBLEMS.md) E10）：背包做好後實機一看，同一個格子裡藥水的 icon 明顯比別的小一截。量過 `Resources/UI/Icons/` 全部 30 張才發現根因——**不透明內容佔長邊的比例從 41% 到 100%**（`item_hpPosition_s` 是 500×500 畫布裡只有 146×206，`weapon_sword` 整張畫滿），uGUI 對齊的是整張圖，所以留白多的那張看起來就小 2.4 倍；`preserveAspect` 完全幫不上忙（它只管整張圖的長寬比）。這其實是 [PROBLEMS.md](PROBLEMS.md) **E9 的物品 icon 版**，但 E9 那套「量一次寫成 ArtSpec 常數表」在這裡不適用——**物品 icon 會一直加**，每加一張就要記得回來量、記得更新表，正是 C 類反覆踩的「改了要記得同步」。所以改成**執行期自動量**：新增 `UI/IconFit.cs`，用 `Sprite.vertices`（Tight 網格的頂點）取內容外接框，反推 Image 的 `sizeDelta` 與偏移，讓看得見的那塊正好塞滿呼叫端給的內容框。**關鍵是這條路不需要貼圖開 Read/Write**——開了會多一份 CPU 記憶體，而且新圖還得記得勾，等於把同一個坑換個地方挖；前提只是 icon 的匯入設定是 Mesh Type = Tight（`spriteMeshType: 1`，專案預設就是），萬一哪張是 Full Rect 就自動退回「不縮放」、行為與以前相同。掛在 `ItemIcons.Apply`（畫物品圖示的唯一入口）裡，所以背包格／裝備欄／藥水格／倉庫／鍛造鐵砧與孔位／過關結算／抽選面板／底部 HUD／傳送門劇本方框**一次全部生效**——這正是 08-04 把繪製收斂成單一入口換來的紅利。順帶處理三件事：① 呼叫端的 `sizeDelta` 語意變成「內容框」，背包因此**刪掉所有逐格的 icon 尺寸常數**，改成格框 × `IconFillX/IconFillY`（0.84/0.82）；② `IconFit` 只處理固定尺寸的 icon（`anchorMin==anchorMax`），拉伸型會被跳過，所以把倉庫格與劇本方框的 icon 從四邊拉伸改成固定尺寸；③ 藥水格、底部 HUD 藥水、劇本方框原本各自直接讀 `data.Icon`（繞過唯一入口），一併改成走 `ItemIcons.Apply`。另外把數量文字也規範化：字級改成依格子大小算（`min(寬,高)×0.26` 夾 18~30）並加深色陰影，壓在 icon 亮處才看得清楚。⚠ 已知副作用：留白多的圖，Image 的 rect 會被放大到比格子還大（藥水在 95×92 的格子裡 rect 是 183×183），多出來的全是透明、icon 又是 `raycastTarget=false` 所以不影響點擊，但**之後若要在格子加 `Mask`／`RectMask2D` 要記得這件事**。驗算：正規化後 30 張 icon 的可見長邊全部落在 75.4~79.8（框是 79.8×75.4），沒有一張溢出方框；正規化前是 31.1~75.4。
+
+* [x] **背包的格子提示重做：hover 改描邊、拖曳提示改呼吸外框（順便挖出 Linear 色彩空間的坑）**（2026-08-07，見 [INVENTORY.md](INVENTORY.md)、[PROBLEMS.md](PROBLEMS.md) E11）：作者問「滑鼠移到盔甲欄上整格變成一大塊黃色，這不是拖曳時才該有的提示嗎？」——**先查再改**。量了截圖那塊黃色是 RGB(128, 110, 56)，比對三種可能：只有 hover（α=0.22）預測 (129,106,41)、只有拖曳提示（α=0.30）預測 (148,122,46)、兩層都亮（α=0.454）預測 (178,147,55)。**第一個吻合**，所以確定是 hover 高亮、而且沒有兩層疊在一起。但關鍵是「為什麼 α=0.22 會看起來這麼重」——因為**專案是 Linear 色彩空間**（`m_ActiveColorSpace: 1`），亮色疊暗底時比 Gamma 直覺重很多：同一組值 Gamma 是 RGB(73,62,32)、Linear 是 RGB(129,106,41)，**等於看起來像 α≈0.45**。再乘上新裝備欄是舊版的 3.4 倍面積（104×162 → 221×258，也是一個道具格的 6.5 倍），就從「微微發亮」變成「一大塊黃色看板」。順帶暴露一個設計問題：hover(0.22) 與拖曳提示(0.30) **RGB 完全相同、只差 0.08 alpha**，玩家根本分不出來，拖曳提示形同虛設。改法：新增 `UI/SlotOutline.cs`（四條細線圍一圈，錨點各貼一邊所以貼滿任何大小的格子都成立、線粗不變；左右兩條上下內縮一個線粗避免四角疊兩層變亮）；**hover 改成只描邊不填滿**——格子再大也只是一圈線，跟面積徹底脫鉤，背包與倉庫共用同一套；**「可放這格」改成會呼吸的亮金外框（α 0.40↔1.00）＋ 很淡的固定底光（0.07）**，讓會動的是外框而不是底光（底光一強又會退回一片黃看板）。兩個實作地雷寫進文件：① 拖曳提示現在是「底光 ＋ 外框子物件」的容器，開關**一定要用 SetActive**，只關 `Image.enabled` 的話子物件照樣會畫；② 呼吸要用 `Time.unscaledTime`，背包把遊戲暫停（timeScale=0）時 `Time.time` 是停的。最後把全專案 67 筆寫死的半透明顏色掃過一遍、算出各自的「等效 alpha」交給作者判斷，**刻意沒有一次全改**——那些值當初都是看畫面調到順眼的，本來就已經是 Linear 下對的值，真正會出事的只有「同一個數值後來被套到大很多的區塊」這一種；其中最值得回頭看的是 `UIManager.backdropColor`（0.60 → 等效只有 0.34，開視窗時背景其實沒那麼暗）與文字陰影（0.85 → 等效 0.58）。
+
+* [x] **場景照明：單光源升級成多光源，火把/燈籠可調亮度、光色、搖晃**（2026-08-10，見 [ATMOSPHERE.md](ATMOSPHERE.md)）：作者想在場景裡放火炬、燈籠這種照明物並且真的會發光，先問「原本的『場景特效』能不能沿用」。**先查再做**——查完結論是不能，但也不用從零開始。`SceneFxTable.csv` 那套（煙/火/冰/毒/傳送門）是**粒子發射器**，欄位是每秒噴幾顆、壽命、大小、亂流，它能讓火把上面有火焰，但完全不會照亮周遭，拿來做照明是錯的工具。真正貼近的東西其實已經存在：地圖編輯器的地上物面板早就有「**發光半徑**」欄，`MapLoader` 會依它掛 `LightSource`、`AtmosphereController` 拿去當光圈中心。所以這次的工作不是「做一個照明系統」，而是**把既有的照明地基從單光源解開**。原本卡在三個地方：① `LightSource.Nearest()` 只回最近的一個、shader 也只有一組 `_PlayerPos/_InnerR/_OuterR`（程式碼註解自己寫了「多光同框需改 shader，之後再說」），所以**一整排火炬只有離玩家最近那支會亮**；② 只有暗氛圍（2 幽暗/3 噩夢/9 深海恐怖）吃照明，`Atmosphere=1` 是 passthrough，白天室外的火把完全是死的；③ 只有半徑一個參數，沒有亮度與顏色，而搖晃是**全域共用一組** Perlin 呼吸 → 全場的燈同步明滅，看起來很假。
+  **技術路線在兩案之間選了 A**：A＝後處理 shader 陣列（`SetVectorArray` 餵最近 N 盞，shader 內迴圈疊合）；B＝光照圖 RenderTexture（每盞燈畫成 additive quad 到獨立貼圖再當遮罩）。B 的表現力明顯高一階——光源數量無上限、每盞可用不同形狀的光暈貼圖（火焰狀、窗格狀）、之後要做「光被牆擋住」也是它——但要多一張 RT、架構複雜一階。選 A 是因為改動集中在兩個檔、一次 blit 效能最好、最快看得到畫面，**而且欄位設計成 B 也吃得下**：六個欄位（半徑/亮度/光色/搖晃強度/搖晃速度/邊緣柔和）在 B 案下語意完全相同，將來換底層不用回頭重擺地圖。
+  **實作要點**：`LightSource` 從「只有 radius 的標記」長成完整的一盞燈（六個欄位 ＋ **每盞自己的亂數種子**），`Breathe(t)` 回這一瞬間的搖晃倍率、同時作用在半徑與亮度上（火焰變大時也變亮，比只縮放半徑自然）；`CollectNearest` 的排序鍵刻意用「**距離 − 半徑**」而不是純距離——遠處一盞大燈的光圈可能仍照到畫面，不該被近處的小燭火擠掉。shader 端多盞用 **screen 疊合**（`v + vi − v·vi`）而不是 `max`，兩圈交界才會自然變亮、不出現硬邊；顏色以亮度加權平均後做**亮度歸一**再套用，所以鬼火照出來是青綠、火把是暖橘，但**換色不會順帶改變明暗**（不歸一的話換成暗色系的光會整片變暗，等於顏色和亮度兩個旋鈕黏在一起）。迴圈加了 `[loop]` **刻意不讓它展開**——這支 shader 已經把 15 種氛圍攤平在同一個 pixel shader、註解明講指令數吃緊才拉到 `target 3.5`，展開 12 次很可能撞編譯上限，那就是 [PROBLEMS.md](PROBLEMS.md) **E3 的全螢幕洋紅**。
+  **「環境亮度」是為了解上面第②點**：`MapsTable.csv` 加第 11 欄 `EnvBright`（0~100，**留空/缺欄＝100＝完全不壓暗，舊地圖零行為變化**），只在 `Atmosphere=1` 時生效，把整張圖壓暗到該亮度、再讓場上的燈照回來。刻意**不讓它影響 `Atmosphere>=2`**——那些氛圍的暗度是氛圍本身的定義，讓兩個旋鈕相乘只會讓既有地圖不好調又有回歸風險。它的價值在於「不到幽暗等級、但想讓火把有存在感」的室內走廊/地窖：比起直接設成 `Atmosphere=2`，它不去飽和、不加冷色調，美術原本的顏色都在。
+  **編輯器端**：地上物面板在「發光半徑 > 0」時才展開照明細項（不發光的地上物不該被這些欄位洗版），並給六顆**燈種預設**鈕（火把/燭火/燈籠/鬼火/月光/爐火）一鍵套好五個欄位、**但不動發光半徑**（範圍是每個場景各自的事，不該被預設覆蓋）。另外新增 `Core/LightOverlay.cs`：編輯器不跑氛圍後處理，光的實際效果只有進遊戲才看得到，**沒有視覺回饋等於盲填數字**，所以在地上物工具下把每盞燈畫成兩個同心圓（外圈＝照得到的範圍、內圈＝全亮範圍＝邊緣柔和度），圈的顏色就是該盞燈的光色。
+  **刻意沒做**：光被牆擋住（需要 B 案或額外的遮蔽圖）、非圓形的光暈形狀（同上）、獨立於地上物的「純光源」放置分頁（跟作者確認後決定先靠地上物欄位涵蓋，火把圖本身自帶光最直覺、既有地圖零遷移）。**同框 12 盞是 `AtmosphereController.MaxLights` 與 shader `MAX_LIGHTS` 兩邊寫死的常數，改一邊一定要改另一邊**——這是這次留下最容易踩的一顆雷。
+
+* [x] **照明補上「獨立光源」：不綁地上物，直接放一個點就會發光**（2026-08-10，見 [ATMOSPHERE.md](ATMOSPHERE.md)）：多光源做完當天作者回報**方向搞錯了**——「我想的是不需要地上物的光源，因為現在很多火炬或是燈籠是直接畫在背景的，如果要有地上物，我就得再把這些圖拆出來做成地上物」。這是我問「放置方式」時把它列成選項二（獨立照明分頁）、作者選了選項一（擴充地上物欄位）的結果；**選項描述沒有點出「你的火炬到底畫在哪裡」這個決定性前提**，所以那次選擇是在資訊不足下做的。教訓是**問選項時要問到「你現在的素材長什麼樣」，而不是只問「你想怎麼放」**——後者聽起來合理但答案取決於前者。
+  **好消息是底層不用動**：上一則已經把光源清單、shader 陣列、六個參數欄位、每盞獨立的搖晃相位全部做好，這次只是**再接一個資料來源進同一份清單**。新增 `LightInstance`（id/name/x,y ＋ 半徑/亮度/光色/搖晃強度/搖晃速度/邊緣柔和）掛在 `MapData.lights`，與 `sceneFx` 平行、獨立於三層圖層；遊戲端 `MapLoader.BuildMapLights()` 逐個生一個**沒有任何外觀的空物件**掛 `LightSource`（火炬的圖本來就在背景裡，這裡只補「會發光」這件事），掛在地圖 root 底下所以換圖自動清、`LightSource.OnDisable` 自動退出登記表。`.dipanmap` 是整包 `MapData` 直上 Newtonsoft、沒有欄位白名單，所以 `lights` **自動進存檔也自動進 Undo 快照**，舊地圖缺這個欄位就是空清單、零遷移。
+  **編輯器新增「照明」工具**（頂部工具列，在「場景特效」右邊）：操作刻意與場景特效一致（＋新增 → 選取 → 放置位置 → 點畫布），但多做三件針對「擺一整排火炬」的事：① **新增完直接進放置模式**，點一下就定位，不用再按一次按鈕；② 新的光源生在**目前鏡頭中心**而不是地圖中心（大地圖時生在地圖中心會找不到）；③ 加「**複製一盞**」鈕，把所有參數原樣複製並直接進放置模式——一排同款火炬只要調好第一盞，其餘都是點兩下。另外**點畫布上的燈可以直接選取**（不用回清單找），可點半徑與畫面上的中心十字大小一致。
+  **`LightOverlay` 擴充成兩種燈都畫**：獨立光源在「照明」工具下顯示（外圈＝照射範圍、內圈＝全亮範圍、**加中心十字**——光源本身沒有圖，沒有十字不知道該點到哪裡），地上物的燈在「地上物」工具下顯示；照明工具下也會把地上物的燈畫成暗一點的圈，排整個房間的照明時才看得到全貌。**兩種燈刻意不同時亮在同一個工具下**，不然一堆圈疊在一起分不清哪個是哪個。
+  **順手修掉一個設計瑕疵**：上一則寫的 `LightNumField` 第一個參數 `sel` 從頭到尾沒被用到（欄位存取全走 `Func`/`Action`），這次要給 `LightInstance` 共用時才發現——直接拿掉那個參數，兩種燈共用同一個方法；`ApplyLightPreset` 因為兩邊欄位名不同（`lightColor` vs `color`）所以開了一個多載。
+  **兩條路並存、不擇一**：獨立光源是擺場景照明的主力；地上物自帶的燈保留給「這盞燈本身是個能互動的東西」——例如柴房地上的佛燈，**撿走時光要跟著消失**，那是綁在物件生死上才做得到的。差別只在「光要不要跟著某個物件的生死」。
+  **刻意沒做**：光源的「點亮旗標」（`enableFlag`：火把要被點燃才亮）——地上物那邊已經有 `appearFlag`/`disappearFlag` 的成熟模式，獨立光源要做等於再拉一套平行的旗標接線，等真的有「點火把開門」這種關卡設計時再一次做完整比較好，現在加只是憑空多一個沒人用的欄位。
+
+* [x] **地圖編輯器加上「照明預覽」與拖曳光源（順便修掉自己造成的回歸）**（2026-08-10，見 [ATMOSPHERE.md](ATMOSPHERE.md)）：作者實測獨立光源「效果不錯，但在編輯器上完全看不到效果」，提三點：① 放完要能立刻看到實際狀況並隨參數變動 ② 要能像拖地上物一樣拖曳 ③ 編輯器要有壓暗效果、不用跟遊戲 shader 一模一樣。
+  **先講踩到的坑**：查接線時發現 `EditorBootstrap` 裡 **`LightOverlay` 的註冊行不見了**——是我自己上一輪弄掉的。做獨立光源那次，我從 `/mnt/user-data/uploads` 的**舊快照**複製 `EditorBootstrap.cs` 到工作目錄，那份是「加 LightOverlay 之前」的版本；在它上面加完 LightController 就整份覆蓋回去，等於把 LightOverlay 那行還原了。所以作者連光圈參考線都沒看到，不只是沒有明暗。**教訓正是既有工作慣例寫過的那條「確認檔案用 device_bash 別信 staged 快照」——但我只用在『讀來確認』，沒用在『複製來當編輯基底』**，而後者才是真正會造成回歸的路徑。之後凡是要再次編輯已經送出去的檔案，一律重新 stage 取得當下版本。
+  **② 拖曳**：`LightController` 加拖曳狀態機。兩個刻意的細節：位移用「**按下當時的滑鼠世界座標 → 現在的滑鼠世界座標**」算，而不是把燈心貼到滑鼠——否則點到把手邊緣時燈會瞬移一段，手感很差（照抄 `ObjectController` 的 `_dragStart` 做法）；**Undo 只在「真的移動了」的第一幀推一筆**，而且推之前先把座標還原成拖曳起點，快照才會是「拖之前」的樣子（純點選不該產生一筆 Undo，每幀推一筆則會讓 Undo 堆爆掉）。把手在 `LightOverlay` 畫成圓＋十字，**大小與 `PickNearest` 的 `pickR` 綁在同一個式子**（`max(0.4, tileSize×0.5)`）——兩邊不一致就會出現「看得到卻抓不到」這種最難查的錯位。
+  **①③ 預覽**：新增 `Core/LightPreview.cs` ＋ `Resources/Shaders/EditorLightPreview.shader`。**關鍵決定是「畫一張蓋滿視野的四邊形」而不是相機後處理（`OnRenderImage`）**——編輯器的參考線（光圈、選取框、格線）全畫在 `OnPostRender`，那是在相機算繪之後、後處理之前，用後處理會把參考線一起壓暗看不清；改成四邊形參與正常算繪，`OnPostRender` 的線就蓋在它上面維持清楚。混合模式用 **相乘（`Blend DstColor Zero`）**，輸出 `lerp(1−環境壓暗, 1, 光照量) × 光色偏移`——這剛好與遊戲端 type 1 分支**完全同一條式子**，所以明暗是真的一致而不是「差不多」。座標改用**世界空間**（四邊形的片段直接拿得到世界座標），半徑就是「格」，不必像遊戲端做 orthographicSize 換算，縮放/平移自動正確。`sortingOrder` 用 **32766**：本專案 sortingOrder 實質是 16-bit（[SCENE_EFFECT.md](SCENE_EFFECT.md) 記過），大基底會繞回負值被背景蓋住；32767 留給「顯示底部ui」參考層，那是對位用的不該被壓暗。搖晃曲線照抄遊戲端，種子以光源物件為 key 快取——**不能每幀重算或用 Random**，否則拖曳/改參數時相位被重設會一直抖。
+  **開關放在頂部工具列而不是照明面板**，因為它是「檢視模式」：擺地上物、畫地磚時也會想開著看氣氛；狀態與亮度都記在 PlayerPrefs。**預覽環境亮度是編輯器本地的滑桿、刻意不存進 `.dipanmap`**——那個值的正身是主專案 `MapsTable.csv` 的 `EnvBright` 欄（編輯器根本讀不到 MapsTable），所以面板直接寫「調到滿意後把這個數字填進 EnvBright」，讓滑桿當試色盤而不是第二個真相來源。
+  **順手做了一個之前想不到的檢查**：預覽最多畫 32 盞、遊戲同框上限 12 盞，所以面板會算「**光圈有碰到畫面的盞數**」，超過 12 就出示警告說明遊戲會丟掉最遠的、預覽比遊戲亮屬正常。這比「地圖總盞數超過 12 就警告」精確——30 支火把散在整座城堡完全沒問題，會出事的是**同時擠在一個畫面裡**。
+  **明講的差異**：預覽只模擬「壓暗＋照亮＋光色」，遊戲的幽暗/噩夢氛圍還會去飽和、加冷色調，實際更陰沉；面板上也寫了這句，免得之後照著預覽調完進遊戲覺得「怎麼不一樣」。
+
+* [x] **地圖編輯器版面重整：左側工具列＋底部狀態列＋相機讓位**（2026-08-10，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：作者貼圖回報「照明的選項被擠到外面去了」，並說「之前就覺得這個介面不太友善」。**先量再改**：頂部列是單一橫排，18 顆按鈕加起來約 1160px，中間還夾了一條長度不固定的地圖資訊 label（`地圖：… | module：… | 18×10 格 | tile 1`）——IMGUI 的固定寬 `GUILayout.Button` 不會縮，超出區域就直接畫到畫面外，所以照明／劇情／特效預覽器整排掉出螢幕。**這半年已經發生兩次**（加場景特效一次、加照明一次），是結構問題不是偶發。
+  **診斷時把兩個問題分開**：① 按鈕溢出＝排版問題；② **右側面板用 `GUILayout.BeginArea` 直接蓋在場景上**，地圖右緣永遠有 240px 看不到、擺東西得一直平移鏡頭＝結構問題。做了三個版面方案的 HTML mockup 讓作者比較（現況／兩列止血／左側工具列＋相機讓位／再加可收合），作者選了中間那個。
+  **核心改動是「相機讓位」**：新增 `Core/EditorViewport.cs`，把 `Camera.rect` 縮到「扣掉左側工具列、右側面板、頂部列、底部狀態列」的中央區域，面板從此是**排在旁邊**而不是蓋在上面。Unity 會自動連帶處理三件事，所以其他程式一行都不用改：`Camera.aspect` 變成可視區比例 → 聚焦（`FrameMap`）自動以可視區為準；`ScreenToWorldPoint` 會考慮 `pixelRect` → 塗格/放置/拖曳的滑鼠座標自動正確；`OnPostRender` 的 GL 參考線也一併被限制在可視區內。
+  **⚠ 踩到的坑：`Camera.rect` 以外的區域不會被相機清除**，會殘留上一幀畫面，而 IMGUI 的 box 底圖是半透明的蓋不住。解法是另外生一台「只負責清背景」的相機（`cullingMask = 0`、`clearFlags = SolidColor`、rect 全螢幕、depth 比主相機低 100），主相機改成只清深度。那台相機刻意**不掛 MainCamera tag**——全專案的工具都用 `Camera.main` 或 `GetComponent<Camera>()` 取相機（查過 20 處），不掛 tag 就不會被誤抓。
+  **版面**：工具（畫/擦/物件/可走/Trigger/場景特效/照明/劇情）從橫排改成**左側垂直工具列**（`RailW=76`）——垂直空間幾乎用不完，之後再加工具也不會重演這次的溢出；頂部列只留檔案與檢視操作，加上**旗標**（開的是彈窗、不是工具）與**特效預覽器**（佔滿畫面的獨立模式）；地圖資訊與狀態訊息移到**底部狀態列**。頂部列從約 1160px 降到約 740px。
+  **順手收斂一個技術債**：右側面板的 rect 原本在 7 個地方各寫一份 `new Rect(Screen.width - PaletteW, TopBarH, PaletteW, Screen.height - TopBarH)`，改版面時等於要改 7 次、漏一個就有面板蓋到狀態列。全部收斂成單一 `PanelRect` 屬性，`ViewportRect` 也放在同一處當「版面唯一真相」供 `EditorViewport` 取用。地上物選取面板（左下角）與多選面板同步往右讓開工具列、往上讓開狀態列，`IsPointerOverUI` 補上這兩塊新的 UI 區域（漏掉的話點工具列會連帶在地圖上塗一筆）。
+  **這次刻意沒做**（作者選「專心做版面」）：數字鍵切工具、面板改可折疊分區、工具列改圖示。可收合／可拖曳寬度的面板（C 案）也留著，等版面用一陣子有感覺再說。
+
+* [x] **移除地磚（tile）系統 ＋ 特效預覽器補關閉鈕**（2026-08-10，見 [MapEditor_DESIGN.md](MapEditor_DESIGN.md)）：作者說「這專案基本不走 tile 路線了」，要拔掉「畫」「擦」與相關功能，但要求**先確認是否真的完全不需要、拔掉會不會出事**。
+  **先驗證再動手**，三條證據都指向可以安全拔：① 掃過全部 69 個 `.dipanmap`（含 build 副本），**`tiles` 總數為 0**——沒有任何一張地圖放過地磚，地面全靠背景圖＋地上物；② `GameAssets/Main/Tiles/` 與 `GameAssets/Modules/RedBridalGown/Tiles/` **原始素材夾是空的**，StreamingAssets 裡那 3 張 `tile1~3.png` 是舊同步留下的殘骸，最新的 catalog 已經沒有 `Tiles` 分類；③ 程式面完全隔離，唯一的跨界只有素材分類白名單。
+  **關鍵是把 `tileSize` 和 `tiles` 分清楚**：`tiles` 是放下去的地磚（要拔），`tileSize` 是「一格等於幾個世界單位」——可走層子格、地上物座標、鏡頭框景、A* 導航格全都靠它，**動了會整個專案錯位**。查引用時特意把兩者分開列，確認 `tileSize` 在 20 個檔案有用到、一個都不能碰。另外 `GroundEffectInstance` 也有一個 `BuildTiles()`，那是地面特效鋪格用的**同名巧合**，不是地磚系統。
+  **拔除範圍**：工具列舉 `TilePaint`/`Erase`；`PaintController`／`TilemapView`／`TileBrushPreview`／`TilesetService` 四支整檔；EditorUI 的地磚調色盤整段（約 4700 字元，含 `HasTileBrush`/`TileBrushAt`/`TilesetItems`/`DrawPalette`/`SelectTileBlockDefault`）與筆刷狀態欄位；資料層 `TilePlacement` 與 `LayerData.tiles`（**兩個專案都要**，是雙專案鏡像的資料類別）；`MapCoords` 只給 TilemapView 用的 `ToTilemapCell`/`FromTilemapCell`；遊戲端 `MapLoader.BuildTiles()` 與 `buildTiles` 旗標；`MapSession` resize 時裁地磚的邏輯；`M0SelfTest` 放地磚的驗證。**素材白名單也一併移除 `Tiles`**——`MapAssetCategories.All` ＋ 主專案 `sync_map_assets.sh` 的 `CATS` ＋ 編輯器 `sync_assets.sh` 的 `copy_flat`，正是 [PROBLEMS.md](PROBLEMS.md) C8 說的「分類要改多處」那條線，這次是反過來走一遍。
+  **`.dipanmap` 相容性零風險**：Newtonsoft 預設忽略 JSON 裡多出來的屬性，舊檔的 `"tiles": []` 讀進來直接被跳過，存檔時不再寫出。因為實際 tiles 數是 0，連「資料遺失」的可能性都沒有。
+  **預設工具改成「物件」**（原本是 `TilePaint`，拔掉後會指向不存在的列舉值）；離開特效預覽器時原本也是退回 `TilePaint`，改成**退回進來前停的那個工具**（新增 `_toolBeforePreview`）。
+  **特效預覽器的關閉鈕**（作者回報「打開後找不到地方關，只能點其他頁籤」）：做了兩個出口——① 頂部那顆按鈕改成可切換，在預覽器裡會顯示「關閉預覽器」；② 預覽器右上角疊一顆「✕ 關閉」（**畫在 `_preview.Draw()` 之後**，IMGUI 後畫的蓋在上面）。兩者都退回進來前的工具，不會像以前那樣被丟回地磚工具。
+  **⚠ 被移除的四支檔案搬到 `DipanProj_MapEditor/_to_delete/tile-system/`**——橋接器不允許刪檔，而且**不能留在 `Assets/` 底下**（Unity 照樣會編譯，會因為找不到 `TilePlacement` 而整包編不過），所以搬到 Assets 外面。作者確認後自行刪除該資料夾即可。
+
+* [x] **作弊面板加「取得所有武器」一鍵鈕**（2026-08-07）：測試各種武器手感時要一顆一顆填 ID 太慢，加一顆按鈕把所有武器一次給進背包（背包滿了就停）。放在「給道具」分頁的「一鍵快捷」那一組，跟「獲得 10,000 元」並排。**兩個刻意的決定**：① **來源是物品表而不是武器表**——背包裝的是「物品」，武器表的一列要有對應的物品才拿得到；`WeaponTable.csv` 目前有 20 把，其中 id 14「紅嫁衣召喚家人」是 Boss 專用、沒有給玩家的物品，從物品表這一側列舉才不會給出玩家根本裝不上的東西（實際會拿到 **19** 把）。② **判斷用 `EquipSlot == Weapon` 而不是 `WeaponID > 0`**——劇本道具「劇本-紅嫁衣」(104) 也填了 `WeaponID`（它要指定關卡用的武器），但它不是武器、裝不上武器欄，用 `WeaponID` 判斷會誤給。另外：**已經有的（背包裡或身上穿著的）會跳過**，連按幾次都不會塞出一堆重複的（要重骰孔位請用「鑲嵌」分頁的「重開孔位」）；給的時候走 `ItemManager.Create` 而不是 `AddItem`，武器需要實例資料、孔位要現場骰，直接 `AddItem` 會拿到一把沒有孔的裸裝（見 [GEM_SOCKET.md](GEM_SOCKET.md)）；ID 先收集再排序才給，因為 `Dictionary` 的走訪順序不保證，不排的話每次按背包裡的排列都不一樣。狀態列會分開回報「新給幾把 / 已經有幾把 / 幾把因裝備包已滿放不下」。之後若要讓某把怪物武器也能被玩家拿到，只要在 `ItemTable.csv` 補一列（`EquipSlot=Weapon` ＋ 對應的 `WeaponID`），這顆鈕會自動涵蓋、不用改程式。
+
+* [x] **地面特效兩個新欄位（SigilPath 背景旋轉符號／LightRadius 發光半徑）＋ 佛光視覺實驗三連（最後全部還原）**（2026-08-17，見 [FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md)、[GROUND_EFFECT.md](GROUND_EFFECT.md)、[PROBLEMS.md](PROBLEMS.md) E12/E13）：起點是一個視覺抱怨——裝備佛光時畫面上有**兩個同心同色的圓**，外圈是 `ItemTable` 的 `LightRadius=3.5`（AtmosphereController 提燈光圈，暖色 1.00/0.78/0.52），內圈是 GroundEffect 2 的 `Radius=1.2` 光環（貼圖平均色 172/136/79），色相幾乎相同、只差半徑 2.9 倍，看起來像同一件事畫了兩次；**真正的元兇是兩圓之間那段空白暗環**。<br>**試過三個方向**：① 內圈換紫＋改名「墮落佛光」（敘事有據：DramaTalkTable 第 37 列邪佛親口說「吾贈汝佛燈一盞」，燈本來就是邪佛給的）→ ② 空白環補一個緩緩旋轉的卍字（沿用開場墜落的 `Resources/InitialStory/Manji.png`）→ ③ 卍字改 alpha 混合的暗紫剪影、縮進圓內。另外獨立試了 ④ 拿掉照明、只靠佛光那張發光的圖照路。**四項最後全部還原**，`ItemTable`／`WeaponTable`／`buddhaLight_01.png` 現在與 git 完全一致。<br>**留下來的東西**：GroundEffectTable **第 12 欄 `SigilPath`**（在特效的圓上疊一張自轉的符號，與 RenderMode 無關）與 **第 13 欄 `LightRadius`**（特效存在期間掛一顆 `LightSource` 真的照亮暗場景，接在現成的登記表上、`AtmosphereController` 零改動），兩欄目前**全表留空**；紫色貼圖兩版與換色腳本存在 `readme/variants/`（**刻意不放 `Resources/` 底下**，那裡的圖會無條件烘進 build，見 PROBLEMS A9）；怎麼再開回來寫在 [FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md)。<br>**三條疊色通則**（已進 PROBLEMS E12/E13）：① **加色圖層的 `_Intensity` 不等於實際亮度**——貼圖自身 alpha 會先乘一刀（佛光圖中心 alpha 只有 0.549、卍字白圖是 1.0，結果 1.4 對 0.85 實際完全打平）；② **兩個都靠「比較亮」被看見的圖層疊同位置是零和的**，調 alpha 永遠無解，要一層發光、一層吃光（暗剪影還必須蓋在光的上面）；③ **加色永遠做不出「不透明」**，要實心就得換 alpha 混合。附帶：加色的紫疊在暖光池上會變粉紅；**別拿自己合成的暗場景估疊色參數**，要拿實機截圖量地板亮度。<br>**一個架構教訓**：卍字第一版寫死在 `RenderMode=Glow` 分支裡，被一句「我之後做無形力場，那個卍字還會出現嗎？」問破——那等於把符號綁在比武器類型低兩層的「渲染模式」上，汙染了 Glow 的語意。改成獨立 CSV 欄位後才乾淨。**「只有一個使用者，先寫死」在這個專案通常是錯的。**
