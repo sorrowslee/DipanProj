@@ -17,6 +17,11 @@
 > ```
 > `Base` = 預設初始外型。檔名數字**補零**、依檔名排序＝播放順序（超過 9 張用兩位數）。同一血統所有幀建議**相同像素尺寸**（不然切狀態會忽大忽小）。
 >
+> **拿到的是「一張大序列圖」而不是單張幀？** 用 `Project Tools → Split Sprite Sheet` 系列工具切（每格 256×256）：
+> 單張模式選檔就地切；「整包就地切割」選角色資料夾、遞迴把各動作資料夾裡的 sheet 一鍵全切成幀；
+> 「切到檔名子資料夾」把 `idle.png/walk.png/…` 直接切成 `idle/`、`walk/` 資料夾結構。幀名自動符合本檔命名慣例（`前綴_01` 起兩位數）。
+
+>
 > **換外型**：把新血統資料夾（例 `Vampire/idle`、`Vampire/walk`）放好 → 跑 `Project Tools → Sync Map Assets` →
 > 在 `Player` 的 `PlayerController` 把 **`Bloodline`** 設成 `Vampire`（或程式呼叫
 > `PlayerController.SetBloodline("Vampire", bodyScale)`）。沒有 `dead/` 就不會演死亡動畫（防呆）。
