@@ -23,6 +23,7 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 103,符紙,Consumable,None,UI/Icons/Items/item_talismanPaper,99,驅邪的符紙,消耗品　使用後短暫驅邪,貼上門楣的第七夜，符紙無火自燃。,,,,,
 104,劇本-紅嫁衣,Consumable,None,UI/Icons/Items/scripts/Script_RedBridalGown,1,劇本,邪佛給你的劇本,一夜之間，風雲變色,1,1,,,
 301,血統藥劑・殭屍,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Jiangshi,1,一次性的血統藥劑,喝下覺醒「殭屍」血脈　本世不可更改系列,屍氣自瓶口漫出。喝下去的那一刻，就再也回不去了。,,,,,,,10
+302,血統藥劑・夜裔,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Nightborn,1,一次性的血統藥劑,喝下覺醒「夜裔」血脈　本世不可更改系列,初嘗是鐵鏽，回甘是長夜。喝下去的那一刻，太陽就與你無關了。,,,,,,,20
 310,血統進階藥劑・中階,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_lvup_middle,9,推進血脈至第二階,把目前的血脈推進到第二階　需先覺醒血脈,濃稠得幾乎不流動。血在裡面，還記得自己曾經是誰。,,,,,,,,,2
 311,血統進階藥劑・高階,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_lvup_high,9,推進血脈至第三階,把目前的血脈推進到第三階　需先進階至第二階,瓶身冰得燙手。再往下一步，就不是人能回頭的地方了。,,,,,,,,,3
 201,小回血瓶,Potion,None,UI/Icons/Items/positions/item_hpPosition_s,99,回復少量生命,回復生命 10,飲下一口，暖流自喉頭漫入四肢。,,,,10,0

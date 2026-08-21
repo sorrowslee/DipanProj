@@ -57,7 +57,7 @@
 **立繪路徑兩種寫法**（`LeftAvatarPath` / `RightAvatarPath` 皆可）：
 
 1. **catalog id**：相對 `GameAssets/` 的路徑、不含副檔名（例 `Modules/RedBridalGown/Talk/redBridalGown`）——每關專屬立繪，走地圖素材管線（同劇情大圖）。
-2. **`Actor_<情緒>`**：主角情緒立繪（例 `Actor_Angry`）——依**目前血統**載 `GameAssets/Main/Characters/Talk/<血統>/<情緒>.png`（情緒大小寫不拘）。目前情緒有 `normal`/`happy`/`angry`/`cry`/`fear`/`proud`/`speechless`（未來可增）；血統目前只有 `Base`，將來如 `Vampire`/`Werewolf` 自動切該資料夾。找不到圖 = 那側不顯示（方便人工抓 bug）。
+2. **`Actor_<情緒>`**：主角情緒立繪（例 `Actor_Angry`）——依**目前血統**載 `GameAssets/Main/Characters/Talk/<血統>/<情緒>.png`（情緒大小寫不拘）。目前情緒有 `normal`/`happy`/`angry`/`cry`/`fear`/`proud`/`speechless`（未來可增）；血統資料夾依 `BloodlineTable.SpriteFolder` 自動切換，目前有 `Base`／殭屍三階（`Jiangshi`/`Maojiang`/`Hanba`）／夜裔三階（`Nightborn`/`Crimson Count`/`Cain`）。找不到圖 = 那側不顯示（方便人工抓 bug）。
 
 範例（群組 1 = 單側立繪；群組 2 = 左右對話、聚光側交替）：
 
