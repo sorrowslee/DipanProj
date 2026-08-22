@@ -12,7 +12,11 @@ namespace Dipan.Drama
     public static class DramaTalkController
     {
         /// <summary>播放某對話群組（依流水號由小到大）。groupId 來自 DramaTable Type=2 的 TalkGroup。</summary>
-        public static void Play(int groupId)
+        /// <param name="allowSkip">
+        /// 是否顯示右上角 Skip（略過整組對話）。預設允許；**只有一句的群組不會顯示**（見 TalkPanel.SkipAvailable）。
+        /// 劇情觸發點由編輯器的「可略過」欄決定；劇情演出裡的 dialogue 步驟一律傳 false（演出自己有 Skip）。
+        /// </param>
+        public static void Play(int groupId, bool allowSkip = true)
         {
             var lines = DramaTalkDatabase.Instance.GetGroup(groupId);
             if (lines == null || lines.Count == 0)
@@ -26,7 +30,7 @@ namespace Dipan.Drama
 
             if (UIManager.Instance != null)
             {
-                TalkPanel.Show(lines);
+                TalkPanel.Show(lines, allowSkip);
                 return;
             }
 

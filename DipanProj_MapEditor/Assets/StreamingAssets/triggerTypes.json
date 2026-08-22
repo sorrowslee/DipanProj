@@ -145,6 +145,16 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false
+        },
+        {
+          "key": "canSkip",
+          "type": "Bool",
+          "label": "可略過(顯示Skip)",
+          "boolDefault": true,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
         }
       ]
     },

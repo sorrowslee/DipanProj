@@ -72,6 +72,10 @@ namespace DipanMapEditor.Data
                 paramSchema = new List<TriggerParam>
                 {
                     new TriggerParam { key = "dramaId", type = ParamType.Int },   // 對應 DramaTable.csv 的 ID
+                    // 可略過：頭像對話（DramaTable Type=2）播放時，右上角出現統一樣式的 Skip，按下＝略過整組對話、
+                    // 直接接這個 trigger 的 next（沒有 next 就是關閉）。**只有一句的群組不會出現**（按 Skip 等於按下一句）。
+                    // 預設允許；不想讓玩家跳過的關鍵劇情才取消勾選。
+                    new TriggerParam { key = "canSkip", type = ParamType.Bool, label = "可略過(顯示Skip)", boolDefault = true },
                 }
             });
             set.types.Add(new TriggerTypeDef

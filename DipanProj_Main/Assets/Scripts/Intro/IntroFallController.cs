@@ -87,7 +87,8 @@ namespace Dipan.Intro
         [Header("測試（正式上線可關）")]
         public KeyCode SkipKey = KeyCode.Escape;      // 直接收尾
         // Skip 只在開發階段可用（編輯器 或 Development Build）；正式打包(release build)移除，玩家不能跳過墜落。
-        static bool AllowSkip => Application.isEditor || Debug.isDebugBuild;
+        // 同 IntroComicController：序章整段正式版不給跳，判斷統一收在 DevSkip。
+        static bool AllowSkip => DevSkip.Allowed;
         public KeyCode ReplayKey = KeyCode.R;         // 重播
 
         // 分段邊界（由上面三個秒數推算）

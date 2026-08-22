@@ -38,6 +38,7 @@ namespace Dipan.Cutscene
         bool _hudWasOpen;            // 開演前底部血量 HUD 是不是開著（hideHud 收尾要還原成原樣，不是無條件打開）
         bool _released;              // 全域狀態（輸入鎖/回憶特效/隱藏主角/HUD）是否已還原，避免重複做
         GameObject _comicGo;
+        GameObject _skipGo;          // 右上角 Skip 覆蓋層（skippable 時才建；掛在自己身上，一起被銷毀）
         GameObject _fadeGo;
         UnityEngine.UI.Image _fadeImg;
 
@@ -125,14 +126,55 @@ namespace Dipan.Cutscene
 
         void Update()
         {
-            // ESC 略過整段演出＝**開發用**：中止剩餘步驟後會直接跳到最後的 end 執行交棒
-            // （例如初始森林 2 的 end='fall' 會立刻接墜落→初始洞窟，玩家等於一鍵跳完整段開場）。
-            // 正式打包一律不給用，玩家不能跳過劇情；Development Build 仍可用，方便測後段流程。
-            // 同慣例見 IntroComicController / IntroFallController 的 AllowSkip。
-            if (DevSkip.Allowed && _cs != null && _cs.skippable && !_skip && Input.GetKeyDown(KeyCode.Escape))
-                _skip = true;   // 略過：中止剩餘步驟，直接收尾＋交棒
+            // ESC ＝右上角 Skip 的鍵盤版（同一個開關）。2026-08-22 起 `skippable` 是**玩家可見**的功能，
+            // 不再是開發限定；沒勾「可略過」的演出則 ESC 與 Skip 都不存在。
+            if (SkipOffered && !_skip && Input.GetKeyDown(KeyCode.Escape))
+                RequestSkip();
 
             EnforceHudHidden();
+        }
+
+        /// <summary>
+        /// 略過整段演出。⚠ **語意是「快轉到結局」而不是「停在原地」**——中止剩餘步驟後仍會執行最後的
+        /// <c>end</c> 交棒與 `setFlag`，所以 `end='fall'` 的段落按下去會直接接墜落動畫。
+        /// 這是刻意的（跳過表演、但流程照走），排查時別誤判成 bug；歷史說明見 readme/PROBLEMS.md **J2**。
+        /// </summary>
+        void RequestSkip()
+        {
+            if (_skip) return;
+            _skip = true;
+
+            // 按鈕立刻收掉：不然連點會在收尾的那幾幀重複觸發，也避免它殘留在交棒後的新畫面上。
+            HideSkip();
+
+            // 正在播對話時按 Skip：協程雖然會結束，但面板還開著（模態＋暫停）——不關掉的話
+            // 「跳過」看起來像是沒反應，玩家還得自己把對話點完。
+            if (UIManager.Instance != null)
+            {
+                if (UIManager.Instance.IsOpen<TalkPanel>()) UIManager.Instance.Close<TalkPanel>();
+                if (UIManager.Instance.IsOpen<DramaPanel>()) UIManager.Instance.Close<DramaPanel>();
+            }
+        }
+
+        // 右上角 Skip（全遊戲統一樣式，見 Dipan.UI.SkipButton）。
+        // sortingOrder 5100＝壓在劇情置中漫畫(5000)之上、跨場景黑幕(30000)之下；
+        // 也在對話面板(Window=100)之上，所以播對話時按得到。排序帶見 readme/UI_SYSTEM.md。
+        /// <summary>
+        /// 這段演出現在到底給不給跳：作者勾了「可略過」**且** <see cref="DevSkip.SkipAllowedHere"/>
+        /// （序章整段正式版全程不給跳，初始洞窟起才照一般規則）。Skip 按鈕與 ESC 共用同一個判斷。
+        /// </summary>
+        bool SkipOffered => _cs != null && _cs.skippable && DevSkip.SkipAllowedHere;
+
+        void EnsureSkip()
+        {
+            if (_skipGo != null || !SkipOffered) return;
+            _skipGo = Dipan.UI.SkipButton.CreateOverlay("[CutsceneSkip]", 5100, RequestSkip);
+            _skipGo.transform.SetParent(transform, false);   // 掛在自己身上：演出被硬銷毀時一起消失，不會留在畫面上
+        }
+
+        void HideSkip()
+        {
+            if (_skipGo != null) { Destroy(_skipGo); _skipGo = null; }
         }
 
         /// <summary>
@@ -159,6 +201,8 @@ namespace Dipan.Cutscene
             // 具名持有者（PROBLEMS D13）：劇情現在可以由 playCutscene 在遊戲中途啟動，
             // 而 cameraFocus / MosaicController 之類也會掛 hold；共用預設 key 的話誰先解鎖就把別人的一起解掉。
             if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(HoldOwner, _cs.lockInput, false);
+
+            EnsureSkip();   // 右上角 Skip（只有勾了「可略過」才會出現）
 
             // 回憶特效：整段演出掛著「泛黃老照片＋柔邊暈影」後處理，Cleanup 一定會關掉。
             if (_cs.memoryFx) Dipan.MapFx.MemoryFxController.Begin();
@@ -303,7 +347,9 @@ namespace Dipan.Cutscene
         IEnumerator DialogueStep(CutsceneStep s)
         {
             var data = DramaDatabase.Instance != null ? DramaDatabase.Instance.Get(s.dramaId) : null;
-            if (data != null && data.Type == 2) DramaTalkController.Play(data.TalkGroup);
+            // allowSkip:false —— 演出期間畫面右上角已經有「演出自己的 Skip」，
+            // 對話面板再長一顆會變成兩顆疊在同一個位置，而且兩者語意不同（跳一段對話 vs 跳整段演出）。
+            if (data != null && data.Type == 2) DramaTalkController.Play(data.TalkGroup, allowSkip: false);
             else DramaPanel.Show(s.dramaId);
 
             float t = 0f; bool opened = false;
@@ -460,6 +506,12 @@ namespace Dipan.Cutscene
             if (_released) return;
             _released = true;
 
+            // 視覺殘留（漫畫／黑幕／Skip）也在這裡收——被硬銷毀時 Cleanup 不會跑，
+            // 留下一張全螢幕黑幕或一顆 Skip 卡在畫面上是最糟的失敗方式。
+            HideComic();
+            HideFade();
+            HideSkip();
+
             if (_cs != null && _cs.memoryFx) Dipan.MapFx.MemoryFxController.End();
 
             // 血量 HUD 還原成「開演前的樣子」——不是無條件打開。開場山道(13/14)那種本來就沒 HUD 的圖，
@@ -483,9 +535,7 @@ namespace Dipan.Cutscene
 
         void Cleanup(bool destroyNpcs, bool handoff)
         {
-            HideComic();
-            HideFade();
-            ReleaseGlobals(restorePlayerPosition: !handoff);
+            ReleaseGlobals(restorePlayerPosition: !handoff);   // 漫畫/黑幕/Skip 與全域狀態都在裡面收
 
             foreach (var kv in _actors)
             {

@@ -1958,7 +1958,9 @@ namespace DipanMapEditor.UI
                     ? "　✔ 只播一次（生命週期由該旗標決定）"
                     : "　⚠ 條件與寫入是同一個旗標、但條件是「有」——第一次永遠不會播");
 
-            cs.skippable = GUILayout.Toggle(cs.skippable, "可略過 skippable（僅開發階段有效）");
+            cs.skippable = GUILayout.Toggle(cs.skippable, "可略過（右上角出現 Skip；ESC 同效）");
+            if (cs.skippable)
+                GUILayout.Label("　↳ ⚠ 略過＝快轉到結局：仍會執行 end 交棒與完成寫旗標");
             cs.lockInput = GUILayout.Toggle(cs.lockInput, "演出期間鎖操作 lockInput");
             cs.memoryFx = GUILayout.Toggle(cs.memoryFx, "回憶特效（泛黃＋上下黑邊＋解除場景壓暗）");
             cs.hidePlayer = GUILayout.Toggle(cs.hidePlayer, "演出期間隱藏主角（演完回原位）");

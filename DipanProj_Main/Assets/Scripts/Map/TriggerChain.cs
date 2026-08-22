@@ -658,7 +658,7 @@ public static class TriggerChain
         }
         CompleteAfterDrama(r);
         var dd = Dipan.Drama.DramaDatabase.Instance.Get(dramaId);
-        if (dd != null && dd.Type == 2) Dipan.Drama.DramaTalkController.Play(dd.TalkGroup);
+        if (dd != null && dd.Type == 2) Dipan.Drama.DramaTalkController.Play(dd.TalkGroup, r.GetBool("canSkip", true));
         else Dipan.UI.DramaPanel.Show(dramaId);
         // 面板若沒開成（資料缺），關閉事件不會來 → 鏈停在這，Console 已有各面板的警告可查。
     }

@@ -25,7 +25,8 @@ namespace Dipan.UI
         public override bool ShowBackdrop => true;    // 半透明黑遮罩（UIManager 共用，鋪在對話框+立繪後方，把場景壓暗）
         // ESC 關掉整段對話＝**開發用**，正式打包不給玩家跳過劇情（見 DevSkip）。
         // 關掉後按 ESC 完全沒反應：UIManager 的 ESC 是「有視窗且允許才關」，不會 fall through 去開設定面板。
-        public override bool CloseOnEscape => DevSkip.Allowed;
+        // ESC：開發階段一律可關；正式版則「這段對話允許略過時」也可以（與右上角 Skip 同一個開關，見 SkipAvailable）。
+        public override bool CloseOnEscape => DevSkip.Allowed || SkipAvailable;
 
         // ── 對話框背板原圖尺寸 / 顯示大小 ──
         const float BgW = 2246f, BgH = 828f;
@@ -55,13 +56,25 @@ namespace Dipan.UI
 
         List<DramaTalkData> _lines;
         int _index;
+        bool _allowSkip;
+        Text _skip;
+
+        /// <summary>
+        /// 這段對話現在該不該給「Skip」。兩個條件：
+        ///   ① 呼叫端允許（劇情觸發點的「可略過」欄，預設允許；劇情演出裡的 dialogue 步驟則一律不給——
+        ///      那時畫面上已經有演出自己的 Skip，兩顆會打架）；
+        ///   ② **這個群組不只一句**。只有一句的對話按 Skip 跟按下一句完全一樣，多一顆鈕只是噪音；
+        ///   ③ 這個地方給跳（<see cref="DevSkip.SkipAllowedHere"/>：序章整段正式版全程不給跳）。
+        /// </summary>
+        bool SkipAvailable => _allowSkip && _lines != null && _lines.Count > 1 && DevSkip.SkipAllowedHere;
 
         /// <summary>開啟對話面板並播放一串對話（lines 須已依流水號排序）。</summary>
-        public static void Show(List<DramaTalkData> lines)
+        /// <param name="allowSkip">是否顯示右上角 Skip（只有一句時仍不顯示，見 <see cref="SkipAvailable"/>）。</param>
+        public static void Show(List<DramaTalkData> lines, bool allowSkip = true)
         {
             if (UIManager.Instance == null || lines == null || lines.Count == 0) return;
             var p = UIManager.Instance.Open<TalkPanel>();
-            if (p != null) p.Play(lines);
+            if (p != null) p.Play(lines, allowSkip);
         }
 
         protected override void OnBuild()
@@ -106,13 +119,34 @@ namespace Dipan.UI
             nrt.anchorMin = new Vector2(0.17f, 0.26f);
             nrt.anchorMax = new Vector2(0.83f, 0.83f);
             nrt.offsetMin = nrt.offsetMax = Vector2.zero;
+
+            // 右上角 Skip（全遊戲統一樣式，見 Dipan.UI.SkipButton）。
+            // **建在最後＝排在整片「點擊換下一句」鈕之上**，否則點 Skip 只會換下一句。
+            _skip = SkipButton.Create(transform, SkipAll);
+            _skip.gameObject.SetActive(false);   // 實際要不要顯示由 Play() 依 SkipAvailable 決定
         }
 
-        void Play(List<DramaTalkData> lines)
+        void Play(List<DramaTalkData> lines, bool allowSkip)
         {
             _lines = lines;
             _index = 0;
+            _allowSkip = allowSkip;
+            if (_skip != null) _skip.gameObject.SetActive(SkipAvailable);
             ShowCurrent();
+        }
+
+        /// <summary>
+        /// 略過整段對話：直接關閉面板。**不需要另外接鏈**——`OnClose` 會呼叫
+        /// <c>TriggerChain.NotifyDramaClosed()</c>，那正是「這個劇情點的動作完成」的訊號，
+        /// 所以行為與「一句一句按到最後一句」完全一致：有 next 就接 next，沒有就結束。
+        /// </summary>
+        void SkipAll()
+        {
+            if (!SkipAvailable) return;
+            // 與換頁共用防連點：上一段對話的連點慣性剛好落在 Skip 上就整組被跳掉，那是最糟的誤觸。
+            if (!TryConsumeInput()) return;
+            _index = _lines.Count;          // 標記成已播完（語意清楚，也避免 Update 再進 Next）
+            UIManager.Instance.Close(this);
         }
 
         void ShowCurrent()
@@ -225,6 +259,7 @@ namespace Dipan.UI
         protected override void OnClose()
         {
             _lines = null;
+            if (_skip != null) _skip.gameObject.SetActive(false);
             TriggerChain.NotifyDramaClosed();   // 觸發鏈：對話關閉 = 該劇情點動作完成（無待結鏈時無事）
         }
 

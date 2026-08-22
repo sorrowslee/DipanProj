@@ -8,12 +8,24 @@
 
 ## 編輯器：劇情觸發點 trigger
 
-預設 trigger 多了一種 `drama`「劇情觸發點」（紫色 `#AA66FF`），參數 **`dramaId`(Int)**。在編輯器畫一塊 `drama` 區域、填 `dramaId`，遊戲端就會在該處放**紫色星星**、靠近顯示「按 F 鍵」、按 F 開對應劇情。
+預設 trigger 多了一種 `drama`「劇情觸發點」（紫色 `#AA66FF`），參數 **`dramaId`(Int)** ＋ **`canSkip`(Bool，預設開)**。在編輯器畫一塊 `drama` 區域、填 `dramaId`，遊戲端就會在該處放**紫色星星**、靠近顯示「按 F 鍵」、按 F 開對應劇情。
 
 - 定義在 `DipanProj_MapEditor` 的 `triggerTypes.json` ＋ `TriggerType.cs` 的 `Defaults()`（兩處同步）。
 - runtime 由 `InteractionManager` 讀 `region.GetInt("dramaId")`，不需要 triggerTypes.json。
 - **觸發方式依該 dramaId 在 DramaTable 的 `Type` 而定**：Type 1＝靠近按 F（放紫色星星）；Type 2（頭像對話）＝**碰到自動觸發、且不放星星**（純隱形觸發點，見下方「觸發分支與觸發方式」）。編輯器端不分型別，都只填 `dramaId`。
 - 觸發後一次性消耗（當次停留不再觸發）；✅ **同一趟關卡內跨換圖記憶**（離開房間再回來不會重播），完整離開關卡才重置——與拾取點同模型，見 [INTERACTION.md](INTERACTION.md)、[RUN_PROGRESS.md](RUN_PROGRESS.md)。
+
+### 可略過（`canSkip`，2026-08-22 加）
+
+勾了（**預設就是勾的**）→ 播 Type 2 頭像對話時，畫面右上角出現全遊戲統一樣式的 **Skip**（見 [UI_SYSTEM.md](UI_SYSTEM.md)），按下＝**略過整組對話**。
+
+- **只有一句的群組不會出現 Skip**，即使勾了也一樣——按 Skip 跟按下一句完全同義，多一顆鈕只是噪音。
+- **略過＝關閉面板**，行為與「一句一句點到最後一句」完全相同：`TalkPanel.OnClose` 會呼叫 `TriggerChain.NotifyDramaClosed()`，所以**有 `next` 就接 `next`，沒有就結束**。不需要為 Skip 另外接鏈。
+- **ESC 同效**（`CloseOnEscape` 在允許略過時對玩家也開放；沒開放時仍是開發階段限定，見 `DevSkip`）。
+- **序章整段（初始森林 13/14）正式版一律不顯示**，開發階段照常——見 `DevSkip.SkipAllowedHere`。
+- 與換頁共用防連點（0.5 秒），避免上一段對話的連點慣性剛好落在 Skip 上把整組跳掉。
+- **劇情演出（cutscene）裡的 `dialogue` 步驟一律不顯示這顆 Skip**——那時右上角已經有「演出自己的 Skip」，兩顆疊在同一個位置、語意還不一樣（跳一段對話 vs 跳整段演出）。見 [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md)。
+- Type 1（大圖＋文字）本來就是單頁，不受影響。
 
 ---
 

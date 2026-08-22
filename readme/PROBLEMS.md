@@ -906,6 +906,8 @@
 - **症狀**：初始森林那段開場劇情，按 ESC 略過對話後，主角突然演出「趴地→爬起」；用滑鼠左鍵正常結束對話則不會。看起來像動畫系統出錯或 `PlayerAnimator` 被誤觸發。
 - **原因**：**不是動畫的錯，是一路交棒過去的正常結果。** ESC 同一下被兩處讀到：① `UIManager` 依 `CloseOnEscape` 關掉對話面板；② `CutsceneDirector.Update` 依 `skippable` 設 `_skip=true`。而 `_skip` 的語意是「**中止剩餘步驟，但仍執行最後的 `end` 交棒**」——`Main_InitialForest2` 的 `end` 是 `assetId='fall'`，於是一按 ESC 就：跳完整段劇情 → 接墜落動畫 → 回 `MainScene` 起關到初始洞窟(11) → 洞窟 `MapsTable.EnterEffect=1`（睜眼醒來）→ `ScreenFxTable` 該列 `WakeUpPose=1` → `MapManager.FireEnterTriggersRoutine` 執行 `HoldLyingPose()` + `PlayWakeUp()`。點左鍵不會，是因為左鍵只結束當前那句對話，後面二十幾個步驟照演。
 - **解法**：ESC 略過改成**只有開發階段能用**——新增 `Assets/Scripts/DevSkip.cs`（`Allowed => Application.isEditor || Debug.isDebugBuild`），套在 `CutsceneDirector` 的 ESC 判斷與 `TalkPanel`／`DramaPanel` 的 `CloseOnEscape`。正式打包玩家按 ESC 完全沒反應，也就不會誤觸發交棒。
+- **⚠ 2026-08-22 更新（規則變了，但這一則的教訓沒變）**：劇情演出的「可略過」已改成**玩家可見的正式功能**（右上角統一樣式的 Skip，ESC 同效），不再受 `DevSkip` 限制——現在是**作者用資料開關逐段決定**能不能跳。`DevSkip` 只留給「作者沒開放、但開發時想硬跳」的路徑（對話面板的 ESC）。
+  **「略過＝快轉到結局（仍執行 `end` 交棒與 `setFlag`）」這個語意刻意保留**，因為那正是玩家按 Skip 想要的：跳過表演、流程照走。所以本則的排查通則仍然成立——看到「某個表演莫名其妙被觸發」時，先確認是不是**跳過機制把流程一路推到了別的場景**。
 - **排查通則**：**看到「某個表演莫名其妙被觸發」時，先確認是不是「跳過機制把流程一路推到了別的場景」**，而不是去追那個表演本身的程式。`CutsceneDirector` 的略過「會執行 end 交棒」這點特別違反直覺——它不是「停在原地」，而是「快轉到結局」。（2026-07-27 記）
 
 ### J3. 想加「整段演出都掛著」的全螢幕效果，卻發現 `ScreenFxTable` 那套裝不下

@@ -31,6 +31,18 @@ namespace Dipan.Save
         /// <summary>是否為「開場山道劇情場景」（初始森林 13/14）。這些場景不顯示血球 HUD，初始洞窟(11)起才顯示。</summary>
         public static bool IsIntroCutsceneMap(int mapId) => mapId == NewGameStartMapId || mapId == IntroForestMap2Id;
 
+        /// <summary>
+        /// 是否屬於「序章整段」——**正式版全程不顯示 Skip**（開發階段仍可跳）。
+        /// 範圍＝初始森林 1 → 初始森林 2（含那段演出）→ 墜落動畫 1/2，**初始洞窟(11) 起就回到全遊戲的一般規則**
+        /// （能不能跳由作者在編輯器逐段勾選）。墜落動畫不在地圖上，由 `IntroComicController` / `IntroFallController`
+        /// 自己的 `AllowSkip` 擋（同樣走 <c>DevSkip.Allowed</c>）。
+        ///
+        /// ⚠ **刻意與 <see cref="IsIntroCutsceneMap"/> 分成兩支**，即使目前地圖清單一樣：
+        /// 那支問的是「要不要顯示血球 HUD」，這支問的是「能不能跳過」——兩件不同的事，
+        /// 之後只要有一張圖想「不顯示 HUD 但可以跳」（或反過來），共用一支就會被迫一起改。
+        /// </summary>
+        public static bool IsNoSkipMap(int mapId) => mapId == NewGameStartMapId || mapId == IntroForestMap2Id;
+
         /// <summary>廣場/教學所屬的 module 名。此 module 的地圖（廣場、初始洞窟）不算「關卡」——
         /// 取得的道具直接進真背包、不走臨時包、不做關卡進度持久化。其餘 module 一律視為關卡。見 RunProgress。</summary>
         public const string HubModule = "Main";

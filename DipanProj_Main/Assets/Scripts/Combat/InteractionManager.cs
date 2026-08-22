@@ -788,7 +788,8 @@ public class InteractionManager : MonoBehaviour
 
         var data = DramaDatabase.Instance.Get(pt.dramaId);
         if (data != null && data.Type == 2)
-            DramaTalkController.Play(data.TalkGroup);   // Type 2：頭像對話（開 TalkPanel）
+            // 「可略過」欄（canSkip）：預設允許；只有一句的群組不會顯示 Skip。見 readme/DRAMA.md。
+            DramaTalkController.Play(data.TalkGroup, pt.region == null || pt.region.GetBool("canSkip", true));
         else
             DramaPanel.Show(pt.dramaId);                // Type 1（或找不到資料）：大圖 + 文字（現有）
 

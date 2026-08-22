@@ -103,11 +103,32 @@ public class InventoryPanel : UIPanel
 | 450 / 460 / 500 | TutorialBlockerPanel / TutorialHintPanel / GuideFingerPanel | 面板**自己**用 `overrideSorting` 硬寫，為了蓋過視窗 |
 | **700** | **`System`**（`AlertPanel` 系統訊息 toast） | `UIManager.SystemLayerSortingOrder`。刻意跳號：照 `i*100` 會是 400，反而被上面那三個蓋住 |
 | 1000 / 1100 / 1200 / 1300 / 5000 | Intro 漫畫·墜落 / 漫畫上層 / 穿隧道 / 影片 / 劇情演出 | 全螢幕接管的演出，**在系統訊息之上**（影片播到一半浮出 toast 比訊息被吃掉更糟） |
+| **5100** | **劇情演出的 Skip 覆蓋層**（`CutsceneDirector`） | 要壓在置中漫畫(5000)之上、也要在對話面板(Window=100)之上——**播對話時也得按得到** |
 | 30000 | `ScreenFader` 黑幕 | 蓋過一切 |
 
 - **`System` 層是給「絕對不能被吃掉的回饋」用的**，目前只有 `AlertPanel`。放進去的東西**一律 `raycastTarget = false`**——它蓋在所有視窗之上，會擋掉底下的點擊。
 - 這層是 2026-08-22 加的：`AlertPanel` 原本掛在 `HUD`，於是「開著背包點一個不能用的道具」時提示被背包整個蓋住，玩家看到的是「點了沒反應」（見 [PROBLEMS.md](PROBLEMS.md) **E18**）。
 - ⚠ `ScreenFxPlayer` 播全螢幕特效時會 `SetLayerVisible(HUD, false)`，**只藏 HUD**；系統訊息現在不在 HUD，所以特效期間照樣看得到。若哪天覺得不該，請一併藏 `System`。
+
+### Skip 的統一樣式（`Dipan.UI.SkipButton`）
+
+「跳過這段」的字樣**全遊戲只有一份實作**：右上角、白色粗體 78px、黑外框、無底板（`Assets/Scripts/UI/SkipButton.cs`）。要改外觀就改那一支，不要在呼叫端各改一份。
+
+| 呼叫端 | 什麼時候出現 | 按下去做什麼 |
+|---|---|---|
+| `IntroComicController` / `IntroFallController` | 序章漫畫／墜落，**開發階段限定**（`AllowSkip` → `DevSkip.Allowed`） | 兩段式：漫畫中→跳到墜落；墜落中→結束墜落 |
+| `TalkPanel` | 劇情觸發點勾了「可略過」（預設勾）**且該群組不只一句** | 關閉整組對話 → 接該 trigger 的 `next`。見 [DRAMA.md](DRAMA.md) |
+| `CutsceneDirector` | 該段演出勾了「可略過」（預設勾） | 中止剩餘步驟，**仍執行 `end` 交棒與 `setFlag`**。見 [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) |
+
+**⚠ 唯一的例外：序章整段**（初始森林 1 → 初始森林 2 → 那段演出 → 墜落動畫 1/2）——**正式版全程不顯示 Skip**，開發階段照跳。**初始洞窟(11) 起就回到上面的一般規則**，之後全遊戲一致。
+判斷統一收在 `DevSkip.SkipAllowedHere`（地圖清單＝`SaveConstants.IsNoSkipMap`），三個呼叫端都查它。
+> 為什麼寫在程式裡而不是「把那兩張圖的可略過取消勾選」：取消勾選連**開發時也跳不了**，而反覆測後段流程正是最需要跳的時候。這條規則要的是「正式版不給、開發版給」，那是 `DevSkip` 的語意，資料開關表達不了。
+
+- `Create(parent, onClick, clickable)` 建在既有 canvas 上；`CreateOverlay(name, sortingOrder, onClick)` 自帶 Canvas＋Scaler＋Raycaster（給不是 `UIPanel` 的表演用）。
+- **建在最後一個 sibling**：uGUI 的點擊給最上層，`TalkPanel` 有一片全螢幕「點擊換下一句」鈕，Skip 排在它之前的話按了只會換頁。
+- ⚠ **「能不能跳」由資料決定，不是由 `DevSkip` 決定**（2026-08-22 起）：作者在編輯器逐段勾選的「可略過」是玩家可見的正式功能；`DevSkip` 只留給「作者沒開放、但開發時想硬跳」的路徑。
+
+---
 
 ⚠ **`FadeDuration` 的淡出跟「面板關閉」不同步。** `DoClose()` 的順序是
 `IsOpen=false` → `OnClose()` → **才**開始淡出。所以掛在 `OnClose` 的收尾動作

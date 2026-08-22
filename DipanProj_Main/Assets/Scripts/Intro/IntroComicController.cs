@@ -120,8 +120,10 @@ namespace Dipan.Intro
         Image _sideL, _sideR;             // FillHeightMode 的左右黑邊（蓋在舞台之上、Skip 之下）
         float _stageW = 1920f, _stageH = 1080f;
         Text _skip;
-        // Skip 只在開發階段顯示/可用（編輯器 或 Development Build）；正式打包(release build)自動移除，玩家不能跳過墜落開場。
-        static bool AllowSkip => Application.isEditor || Debug.isDebugBuild;
+        // Skip 只在開發階段顯示/可用；正式打包玩家不能跳過序章。
+        // ⚠ 序章整段（初始森林 1/2 → 這裡的漫畫 → 墜落）是**全遊戲唯一的例外**：正式版全程不給跳。
+        //   一般地圖的規則相反——由作者逐段勾選、玩家可見。判斷收在 DevSkip，別在這裡自己寫一份。
+        static bool AllowSkip => DevSkip.Allowed;
 
         class PageView
         {
@@ -516,29 +518,13 @@ namespace Dipan.Intro
             ((RectTransform)bar.transform).sizeDelta = new Vector2(Mathf.Max(0f, widthPx), 0f);
         }
 
-        // 右上角「Skip」字樣：粗體、放大、無背景、帶外框讓任何底色都看得到。
+        // 右上角「Skip」字樣。**樣式改走全遊戲共用的 Dipan.UI.SkipButton**（見那支的註解）——
+        // 對話面板與地圖內劇情演出用的是同一個外觀，改外觀只要改那一處。
+        // 這裡用 clickable:false：序章自己用滑鼠座標判定（OverSkip），不掛 Button 也不擋底下的點擊。
         void BuildSkip()
         {
             if (_skip != null) return;
-            Font font = null;
-            try { font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); } catch { }
-            if (font == null) { try { font = Resources.GetBuiltinResource<Font>("Arial.ttf"); } catch { } }
-
-            var go = new GameObject("Skip", typeof(RectTransform));
-            go.transform.SetParent(_root, false);
-            var rt = (RectTransform)go.transform;
-            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(1f, 1f);   // 右上角
-            rt.anchoredPosition = new Vector2(-52f, -40f);
-            rt.sizeDelta = new Vector2(380f, 130f);                         // 點擊範圍
-            var t = go.AddComponent<Text>();
-            t.font = font; t.fontSize = 78; t.fontStyle = FontStyle.Bold;
-            t.alignment = TextAnchor.UpperRight;
-            t.color = new Color(1f, 1f, 1f, 0.92f);
-            t.text = "Skip";
-            var outline = go.AddComponent<Outline>();
-            outline.effectColor = new Color(0f, 0f, 0f, 0.85f);
-            outline.effectDistance = new Vector2(3f, -3f);
-            _skip = t;
+            _skip = Dipan.UI.SkipButton.Create(_root, null, clickable: false);
         }
 
         Texture2D LoadTex(string image)
