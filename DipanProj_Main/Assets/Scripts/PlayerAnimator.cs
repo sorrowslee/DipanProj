@@ -5,7 +5,8 @@ using UnityEngine;
 /// 玩家逐格動畫播放器（路線 B：純程式、不用 Unity Animator）。與 <see cref="MonsterAnimator"/> 同模式，
 /// 多了「一次性動作（dead）播完定格」的支援，並用「血統(bloodline)」決定外型。
 ///
-/// 狀態：Idle / Walk / Attack（循環；Attack 攻擊按住時反覆播）、Dead（一次性，播完停在最後一幀）。有圖才會用。
+/// 狀態：Idle / Walk（循環）、Attack / Dead（一次性，播完停在最後一幀）。有圖才會用。
+/// Attack 另外從 <see cref="AttackStartFrame"/>（自動算出的「起手結束幀」）開始播，見 PlayerSpriteLibrary。
 /// 防呆：只有「載得到圖」的狀態才存在（<see cref="Has"/>）；要播沒圖的狀態時自動退回
 /// Dead/Attack→Idle、Walk→Idle；一張圖都沒有就整個不動。
 ///
@@ -30,6 +31,32 @@ public class PlayerAnimator : MonoBehaviour
     float _timer;
     float _currentSpeed;
     bool _oneShotDone;   // 一次性動作（dead/attack）是否已播到最後一幀定格
+    int _attackStart;    // 攻擊的起播幀索引（跳過起手；由 PlayerSpriteLibrary 從圖自動算出）
+
+    /// <summary>
+    /// 攻擊動畫是否要循環播（<b>舊行為</b>）。預設 false＝一次性：從起播幀播到最後一幀後定格，
+    /// 由呼叫端決定何時重播。設 true 會回到 2026-08-22 之前的行為（從第 0 幀無限循環），
+    /// 給 A/B 對比用——由 <c>PlayerController.AttackAnimLegacyMode</c> 設定。
+    /// </summary>
+    [System.NonSerialized] public bool AttackLoops = false;
+
+    /// <summary>攻擊從第幾幀開始播（0 起算）。循環模式（舊行為）恆為 0。</summary>
+    public int AttackStartFrame => AttackLoops ? 0 : _attackStart;
+
+    /// <summary>攻擊動畫正在播（還沒定格在最後一幀）。呼叫端用它判斷「這一次還沒播完」。</summary>
+    public bool IsAttackPlaying => _state == State.Attack && !_oneShotDone;
+
+    /// <summary>
+    /// 攻擊播到最後一幀時要不要**從起播幀再來一次**（而不是定格在最後一幀）。
+    ///
+    /// 由 <c>PlayerController.HandleVisuals</c> **每幀**設定＝「玩家還按著 且 站著不動 且 開了這個選項」。
+    /// 因為是每幀重設，放開的那一刻它就變 false，當次循環播完就定格 → `IsAttackPlaying` 轉 false
+    /// → 呼叫端把畫面交還給 Idle/Walk。**所以「放開後照樣播完這一次」在兩種模式下都成立。**
+    ///
+    /// ⚠ 循環的是「起播幀 → 最後一幀」，不是整段繞回第 0 幀——起手（第 0 幀到起播幀之間）是一次性的，
+    /// 每輪都重播會變成「施法到一半又把手放下」。
+    /// </summary>
+    [System.NonSerialized] public bool AttackRepeats = false;
 
     // ── 甦醒表演（趴地 → 倒播 dead 爬起）：進場「睜眼醒來」用，見 MapManager.FireEnterTriggersRoutine ──
     // 表演期間 SetState 全部忽略（HandleVisuals 每幀塞 Idle/Walk 也蓋不掉趴姿）；Dead 例外（真死打斷表演）。
@@ -109,6 +136,11 @@ public class PlayerAnimator : MonoBehaviour
         CacheGeometry(lib, bloodline, "dead", State.Dead, tileSize, bodyScale);
         CacheGeometry(lib, bloodline, "attack", State.Attack, StateTile(lib, bloodline, "attack", tileSize, idleVis), bodyScale);
 
+        // 攻擊起播幀：跳過「跟站著沒兩樣」的起手。整條規則與門檻見 PlayerSpriteLibrary.ActionStartPeakRatio。
+        _attackStart = (_attack != null && _attack.Length > 0)
+                     ? Mathf.Clamp(lib.GetActionStartFrame(bloodline, "attack"), 0, _attack.Length - 1)
+                     : 0;
+
         if (_idle == null && _walk != null) _idle = _walk;   // 沒給 idle 就用 walk 當待機後備
 
         _hasAny = _idle != null || _walk != null || _dead != null || _attack != null;
@@ -161,9 +193,35 @@ public class PlayerAnimator : MonoBehaviour
         if (s != _state)
         {
             _state = s;
-            _idx = 0; _timer = 0f; _oneShotDone = false;
+            _idx = EntryIndex(s); _timer = 0f; _oneShotDone = false;
             ApplyFrame();
         }
+    }
+
+    /// <summary>進入某狀態時從第幾幀開始。只有 Attack 不是 0（跳過起手），其餘都從頭。</summary>
+    int EntryIndex(State s)
+    {
+        if (s != State.Attack || _attack == null || _attack.Length == 0) return 0;
+        return Mathf.Clamp(AttackStartFrame, 0, _attack.Length - 1);
+    }
+
+    /// <summary>
+    /// 重新播一次攻擊動作（從起播幀開始）。**與 <see cref="SetState"/> 的差別**：SetState 在
+    /// 「已經是 Attack」時什麼都不做（讓動畫繼續往下播），這支則是無條件從頭來——
+    /// 所以「按住不放」不會重播（呼叫端不叫它），「放開再按」才會。
+    ///
+    /// 姿勢表演（倒下／趴地／爬起）進行中不受理，回 false；沒有 attack 圖也回 false。
+    /// </summary>
+    public bool StartAttack()
+    {
+        if (IsWakeUpBusy) return false;
+        if (_attack == null || _attack.Length == 0 || _sr == null) return false;
+        _state = State.Attack;
+        _idx = EntryIndex(State.Attack);
+        _timer = 0f;
+        _oneShotDone = false;
+        ApplyFrame();
+        return true;
     }
 
     // ───────────────────────── 甦醒表演（睜眼醒來：趴地 → 倒播 dead 爬起） ─────────────────────────
@@ -367,6 +425,7 @@ public class PlayerAnimator : MonoBehaviour
             else
             {
                 if (_idx < frames.Length - 1) _idx++;
+                else if (_state == State.Attack && AttackRepeats) _idx = EntryIndex(State.Attack);   // 按住 → 從起播幀再來一次
                 else { _oneShotDone = true; break; }   // 停在最後一幀
             }
         }
@@ -382,8 +441,12 @@ public class PlayerAnimator : MonoBehaviour
         _sr.sprite = frames[_idx];
     }
 
-    // Idle/Walk/Attack 循環播（攻擊按住時 cast 反覆播）；Dead 一次性（播完定格最後一幀）。
-    static bool IsLooping(State s) => s == State.Idle || s == State.Walk || s == State.Attack;
+    // Idle/Walk 循環播；Dead 與 Attack 一次性（播完定格在最後一幀）。
+    // ⚠ Attack 曾經是循環的，那是錯的——實測七組素材的「最後一幀 → 第 1 幀」接縫差異達 23~52%，
+    // 而相鄰幀平均只有 3~20%（只有 Base 是無縫的），也就是說這些攻擊動畫天生有起有收、不是循環動畫，
+    // 硬循環會每播完一輪跳接一次。idle 則全部都是無縫的（接縫 0.4~3%），循環正確。
+    // AttackLoops = true 只保留給 A/B 對比舊行為。
+    bool IsLooping(State s) => s == State.Idle || s == State.Walk || (s == State.Attack && AttackLoops);
 
     State Resolve(State s)
     {

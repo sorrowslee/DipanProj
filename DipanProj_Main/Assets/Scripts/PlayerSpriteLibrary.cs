@@ -172,4 +172,131 @@ public class PlayerSpriteLibrary
         if (box.canvas.y > 0.0001f) canvas = box.canvas;
         return true;
     }
+
+    // ─────────────────── 動作「起播幀」：跳過起手，全血統通用、零設定 ───────────────────
+    //
+    // 【要解決的問題】攻擊動畫是「一發＝一次」的短表演，但每個血統的素材起手長度都不一樣：
+    // 實測 Nightborn / 旱魃 / Base 的第 1 幀就已經是伸手施法的姿勢，Cain 與 Crimson Count
+    // 卻要到第 6~7 幀手才伸出去——前面五、六幀跟站著沒兩樣。以前攻擊姿勢只維持 0.12 秒
+    // （＝12fps 下的 1.4 幀），於是那兩個血統的玩家「永遠只看得到起手」，看起來像攻擊動畫沒播。
+    //
+    // 【規則】起播幀 = 第一個「與站姿的輪廓差異達到該動作**自己峰值** ActionStartPeakRatio」的幀。
+    // 從它開始播，前面的起手直接跳過。
+    //
+    // 【為什麼一定要用「相對自己的峰值」而不是絕對門檻】每個血統的動作幅度差很多——
+    // 實測峰值 Cain 只有 25%、Nightborn 有 86%。任何絕對門檻都會對其中一邊失效：
+    // 門檻設高，Cain 整段都達不到（起播幀退回 0，等於沒修）；門檻設低，Nightborn 的第 1 幀就過關
+    // （沒差，它本來就該從 1 開始）但殭屍那種前段有小動作的會被誤判成「已經開始」。
+    // 相對峰值讓每個血統只跟自己比，所以同一條規則對所有角色都成立。
+    //
+    // 【為什麼不做成 CSV 欄位】那等於每加一個血統就要有人開一次遊戲、逐幀看、填一個數字，
+    // 而這個數字完全可以從圖本身算出來。這裡的作法與地上物碰撞遮罩（PROBLEMS B9）同一個思路：
+    // 「只跟那張圖有關」的資訊就從圖算，不要變成人工維護的資料。
+    //
+    // 【成本】只在 Setup（進場／換血統）第一次查詢時掃一次，之後永久快取。
+    // 掃描降到 PoseGrid×PoseGrid 的佔用格，50 張 256×256 約數毫秒；換血統時遊戲正暫停在煙霧裡，
+    // 進場則有載入頁，兩處都看不到。⚠ 這裡**只有一條計算路徑**（runtime 當場掃），
+    // 沒有 B9 那種「烘焙版 vs 退路版算出不同結果」的風險；日後若真要烘進 catalog，
+    // 記得兩條路要走同一支函式。
+
+    /// <summary>
+    /// 「動作真正開始」的門檻：與站姿的輪廓差異達到該動作自己峰值的這個比例，就算動作已經開始。
+    /// 實測 0.6 是甜蜜點——0.75 會把殭屍砍到只剩 13 幀、毛殭剩 10 幀（那兩組本來就沒問題，等於砍過頭）；
+    /// 0.5 以下則開始把起手的小幅度晃動誤判成動作。**這是全遊戲唯一的一個數字，不是每個血統一個。**
+    /// </summary>
+    public const float ActionStartPeakRatio = 0.6f;
+
+    const int PoseGrid = 64;              // 輪廓比對的取樣格數（整張畫布 → PoseGrid×PoseGrid 佔用格）
+    const byte PoseAlphaThreshold = 10;   // 與 MapSpriteLoader.AlphaThreshold 同值（去背邊當透明）
+
+    readonly Dictionary<string, int> _startFrame = new Dictionary<string, int>();   // "<血統>/<state>" → 起播幀索引
+
+    /// <summary>
+    /// 這個血統這個動作該從第幾幀開始播（0 起算）。算不出來一律回 0＝從頭播，行為與改動前相同。
+    /// 結果快取，同一個血統只會算一次。
+    /// </summary>
+    public int GetActionStartFrame(string bloodline, string state)
+    {
+        string key = Key(bloodline, state);
+        if (_startFrame.TryGetValue(key, out int cached)) return cached;
+        int result = ComputeActionStartFrame(bloodline, state);
+        _startFrame[key] = result;
+        return result;
+    }
+
+    int ComputeActionStartFrame(string bloodline, string state)
+    {
+        if (_loader == null) return 0;
+        if (!_byTail.TryGetValue(Key(bloodline, state), out var act) || act == null || !act.IsAnimated) return 0;
+        if (!_byTail.TryGetValue(Key(bloodline, "idle"), out var idle) || idle == null) return 0;
+
+        var stance = BuildStanceMask(idle);
+        if (stance == null) return 0;
+        int stanceCells = 0;
+        for (int c = 0; c < stance.Length; c++) if (stance[c]) stanceCells++;
+        if (stanceCells <= 0) return 0;
+
+        var diffs = new float[act.frames.Count];
+        float peak = 0f;
+        for (int i = 0; i < act.frames.Count; i++)
+        {
+            var g = BuildPoseMask(_loader.GetFrameTexture(act.frames[i]));
+            if (g == null) continue;
+            int d = 0;
+            for (int c = 0; c < g.Length; c++) if (g[c] != stance[c]) d++;
+            diffs[i] = (float)d / stanceCells;
+            if (diffs[i] > peak) peak = diffs[i];
+        }
+        if (peak <= 0.0001f) return 0;   // 整段都跟站姿一樣（或全部讀不到）→ 別自作聰明，從頭播
+
+        float gate = peak * ActionStartPeakRatio;
+        for (int i = 0; i < diffs.Length; i++)
+            if (diffs[i] >= gate) return i;
+        return 0;
+    }
+
+    /// <summary>
+    /// 「站姿」遮罩：idle 各幀的佔用格取多數決（超過一半的幀都畫了東西的格子才算站姿）。
+    /// 用多數決而不是單取第 1 幀，是因為 idle 本身也在呼吸擺動，單幀會把晃動當成輪廓。
+    /// </summary>
+    bool[] BuildStanceMask(CatalogItem idle)
+    {
+        var votes = new int[PoseGrid * PoseGrid];
+        int used = 0;
+        int n = idle.IsAnimated ? idle.frames.Count : 1;
+        for (int i = 0; i < n; i++)
+        {
+            var g = idle.IsAnimated ? BuildPoseMask(_loader.GetFrameTexture(idle.frames[i]))
+                                    : BuildPoseMask(_loader.GetTexture(idle));
+            if (g == null) continue;
+            used++;
+            for (int c = 0; c < g.Length; c++) if (g[c]) votes[c]++;
+        }
+        if (used == 0) return null;
+        var mask = new bool[PoseGrid * PoseGrid];
+        for (int c = 0; c < mask.Length; c++) mask[c] = votes[c] * 2 > used;
+        return mask;
+    }
+
+    /// <summary>
+    /// 把一張圖降成 PoseGrid×PoseGrid 的佔用格：一格內**只要有一個不透明像素**就算佔用（OR 降取樣）。
+    /// 用 OR 而不是覆蓋率，是因為這裡要偵測的是「手有沒有伸出去」這種細長特徵，
+    /// 算覆蓋率會被細手臂稀釋掉（同 ObjectFootprint.Downsample 的理由）。
+    /// 座標系是畫布相對的，所以 idle 與 attack 就算畫布尺寸不同也對得起來。
+    /// </summary>
+    static bool[] BuildPoseMask(Texture2D tex)
+    {
+        if (tex == null || tex.width <= 0 || tex.height <= 0) return null;
+        var px = tex.GetPixels32();
+        int w = tex.width, h = tex.height;
+        var mask = new bool[PoseGrid * PoseGrid];
+        for (int y = 0; y < h; y++)
+        {
+            int rowBase = y * w;
+            int gRow = (y * PoseGrid / h) * PoseGrid;
+            for (int x = 0; x < w; x++)
+                if (px[rowBase + x].a > PoseAlphaThreshold) mask[gRow + x * PoseGrid / w] = true;
+        }
+        return mask;
+    }
 }

@@ -330,6 +330,23 @@ namespace Dipan.UI
 
         // ───────────────────────── 建構：分層 Canvas / EventSystem / 遮罩 ─────────────────────────
 
+        /// <summary>
+        /// System 層的 sortingOrder。**刻意不照 `i * 100` 排**，因為那會落在 400、被幾個手寫 overrideSorting
+        /// 的面板蓋住。挑 700 是為了卡進一個特定的空檔——全專案目前的排序值：
+        ///
+        /// <code>
+        ///   UIManager 分層  HUD 0 / Window 100 / Popup 200 / Overlay 300
+        ///   手寫覆寫        TutorialBlockerPanel 450、TutorialHintPanel 460、GuideFingerPanel 500
+        ///   ★ System       700  ← 系統訊息：蓋過上面全部
+        ///   全螢幕接管      Intro 漫畫/墜落 1000、漫畫上層 1100、穿隧道 1200、影片 1300、劇情演出 5000
+        ///   黑幕            ScreenFader 30000
+        /// </code>
+        ///
+        /// 也就是「蓋過所有一般 UI 與教學疊層，但**不**蓋過全螢幕接管的演出與黑幕」——
+        /// 過場影片播到一半浮出一行 toast 比訊息被吃掉更糟。改這個值前先把上表看過一遍。
+        /// </summary>
+        const int SystemLayerSortingOrder = 700;
+
         void BuildLayers()
         {
             int n = Enum.GetValues(typeof(UILayer)).Length;
@@ -342,7 +359,10 @@ namespace Dipan.UI
 
                 var canvas = go.AddComponent<Canvas>();
                 canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-                canvas.sortingOrder = i * 100;   // 每層之間留 100 的空檔
+                // 每層之間留 100 的空檔；**System 層刻意跳到 1000**——專案裡有幾個面板為了蓋過視窗，
+                // 自己用 overrideSorting 硬寫了較高的 sortingOrder（TutorialHintPanel 460、GuideFingerPanel 500）。
+                // 照 i*100 排的話 System 只有 400，反而被那些硬寫的值蓋住；系統訊息必須是**字面上的**最上層。
+                canvas.sortingOrder = ((UILayer)i == UILayer.System) ? SystemLayerSortingOrder : i * 100;
 
                 var scaler = go.AddComponent<CanvasScaler>();
                 scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;

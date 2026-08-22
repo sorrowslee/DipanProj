@@ -17,7 +17,7 @@
 | B | 地圖載入 (Map Loader) | B1~B13 |
 | C | 地圖編輯器 / 素材同步 | C1~C9（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D20 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E17 |
+| E | 效能 / 顯示 (Performance & Display) | E1~E18 |
 | F | 戰鬥 / 傷害 (Combat) | F1~F17（⚠ G 章整段插在 F3 與 F4 之間） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G5（位置在 F3 之後） |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1 |
@@ -586,9 +586,17 @@
 - **要真的「浮上來」只有一條路**：另開一台 depth 更高的相機、只渲染該圖層（同主遊戲互動星星的 `InteractOverlay` 作法）。編輯器這邊為了一個對位預覽不值得，就用「不畫」解。
 - **通則**：**`OnPostRender` 的 GL ＝ 最上層，沒有商量餘地。** 在編輯器裡要讓某個 sprite 看得清楚，能做的只有「叫疊加層讓開」或「另開相機」，改 sortingOrder 是白費力氣。（2026-08-20 記）
 
+### E18. 系統提示「跳了等於沒跳」——開著背包操作，訊息被背包蓋住
+- **症狀**：喝過夜裔血統之後，開背包點殭屍血統藥劑，**畫面完全沒反應**；把背包關掉才看到「你的血脈已定為『該隱』，這一世不能再改變」那行提示還停在畫面上。玩家的認知是「這個按鍵壞了」，而不是「有訊息但我沒看到」。
+- **原因**：`AlertPanel`（全遊戲系統訊息 toast 的唯一入口，32 處呼叫 `AlertPanel.Toast`）的 `Layer` 是 `UILayer.HUD`＝sortingOrder 0，而背包是 `UILayer.Window`＝100。**訊息確實跳了，只是畫在背包底下。** toast 顯示 1.6 秒 + 淡出 0.4 秒，玩家關背包時多半已經淡完，於是連「有訊息」都不知道。這不是背包獨有——任何 Window 面板（倉庫、鍛造、抽選、劇本、設定）開著時都一樣，而「操作失敗要給理由」這件事**幾乎都發生在面板開著的時候**，等於系統訊息最需要被看到的場合正好全部失效。
+- **解法**：新增 `UILayer.System`（2026-08-22），`AlertPanel` 改掛這層。sortingOrder **刻意不照 `i * 100` 排**——那會是 400，反而被 `TutorialHintPanel`(460)、`GuideFingerPanel`(500) 這些自己 `overrideSorting` 的面板蓋住；改成 **700**，卡在「蓋過所有一般 UI 與教學疊層」與「不蓋過全螢幕接管的演出（Intro 1000 / 隧道 1200 / 影片 1300 / 劇情 5000）與黑幕（30000）」之間。完整排序表在 [UI_SYSTEM.md](UI_SYSTEM.md)「分層與排序」。
+- **⚠ 放進 System 層的東西一律 `raycastTarget = false`**：它蓋在所有視窗之上，忘記關掉的話會靜默擋住底下面板的點擊——症狀又會變成另一種「點了沒反應」。`AlertPanel` 的底板與文字本來就都是 false（`UIBuilder.Text` 預設關掉），所以這次沒踩到。
+- **通則**：**「回饋能不能被看到」跟「回饋有沒有發出」是兩件事，而前者是分層決定的。** 一個訊息系統掛在會被蓋住的層，等於在最需要它的情境下自動關閉；而且失敗是靜默的——程式看起來完全正常，log 也有，只有玩家看不到。另一條：**這種 bug 的症狀會偽裝成「功能壞了」**，先問「是不是根本沒跳」之前，先確認「是不是跳了但看不到」。
+
 ## F. 戰鬥 / 傷害 (Combat)
 
 > 系統說明見 [COMBAT.md](COMBAT.md)。
+
 
 ### F1. 怪物碰到玩家不扣血(用 OnCollision / IsTouching 偵測接觸完全沒反應)
 - **症狀**:做「怪物接觸玩家就扣血」,用 `OnCollisionEnter2D` / `OnTriggerEnter2D` / `Collider2D.IsTouching` 偵測,但怪物明明貼在玩家身上卻**從不觸發**。
@@ -639,6 +647,13 @@
 - **症狀**：進圖時想讓玩家立刻擺出某個逐格動畫姿勢（如睜眼醒來的趴地定格），第一次生成玩家時完全沒效果；但之後換圖再進（玩家已存在）就正常。
 - **原因**：`PlayerAnimator.Setup`（載入 idle/walk/dead 逐格幀）是在 `PlayerController.Start()` 呼叫的；而 `MapManager.PlaceAndSetup` 在 Instantiate 玩家後**同一幀同步**繼續往下跑——此時只有 `Awake` 執行過、`Start` 還沒跑，幀陣列全是 null，`HoldLyingPose()` 之類查 `_dead` 的 API 判定「沒圖」直接跳過。之後的進圖玩家早已 `Start` 完，所以「只有第一次會壞」，非常隱蔽。
 - **解法**：對「剛生成的物件」要用到其 `Start` 初始化結果時，**至少等一幀**（丟進 coroutine / `TriggerChainRunner.NextFrame`）再下指令。本案把「趴地＋起身」整段搬進 `MapManager.FireEnterTriggersRoutine`（協程，載入頁關閉後才跑，`Start` 必已執行），`PlaceAndSetup` 只記 `_wakeUpWanted` 需求旗標；視覺上趴下前的站姿瞬間被睜眼開頭的全黑（眼皮閉合）蓋住。**通則：Instantiate 後同幀只能依賴 `Awake` 做完的事；依賴 `Start` 的操作要延一幀。**
+
+### G6. 某些血統的攻擊動畫「完全播不出來」，同系列的其他血統卻正常
+- **症狀**：Cain 與 Crimson Count 攻擊時看不到任何攻擊動作（就是站著），同系列的 Nightborn 完全正常。素材、檔名編號、catalog 都查過沒問題。
+- **原因**：**不是那兩組壞掉，是所有血統的攻擊動畫從來都只播得到前兩幀**，那五個「正常」的只是剛好第 1 幀就已經是攻擊姿勢。三件事乘起來：① `PlayerController.AttackAnimLinger = 0.12f`——攻擊姿勢只維持 0.12 秒；② `PlayerAnimFPS = 12`——一幀 0.083 秒，0.12 秒只夠播 **1.4 幀**（全套 25 幀，用到 8%）；③ `PlayerAnimator.SetState` 換狀態時 `_idx = 0`——每發都從第 0 幀重來，永遠推不到後面。於是「看不看得出來」完全由**第 1 幀長什麼樣**決定。量過七組素材的 attack 第 1 幀與 idle 的輪廓差異：Nightborn 85%、旱魃 81%、Base 79%、殭屍 61%、毛殭 54%（第 1 幀就已經是施法姿勢）vs **Crimson Count 20%、Cain 18%**（前 6 幀還在起手，跟站著沒兩樣）。分得乾乾淨淨。**前五組素材湊巧「開頭即定格」，把這個限制遮了好幾個月**，直到有兩組正常做了起手動畫才露餡。
+- **解法**（2026-08-22）：攻擊動畫改成「按下／放開」邊緣驅動的**一次性**播放，並自動跳過起手：`PlayerSpriteLibrary.GetActionStartFrame` 比對 attack 各幀與 idle 站姿的輪廓，取第一個「差異達到該動作**自己峰值** `ActionStartPeakRatio`(0.6)」的幀當起播幀。**一定要用相對自己的峰值、不能用絕對門檻**——各血統動作幅度差很多（峰值 Cain 只有 25%、Nightborn 有 86%），任何絕對門檻都會對其中一邊失效。實測結果：Base/旱魃/Nightborn 起播幀 = 第 1 幀（不受影響）、殭屍/毛殭/Cain = 第 6 幀、Crimson Count = 第 4 幀。細節見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)。
+- **順手查到的兩件事**：① **attack 不是無縫循環**——七組素材的「最後一幀 → 第 1 幀」接縫差異 23~52%，而相鄰幀平均只有 3~20%（只有 Base 是無縫的）；idle 則全部無縫（接縫 0.4~3%）。所以把 attack 當循環播本來就是錯的，它天生有起有收。② `StreamingAssets/.../Base/idle/` 裡有一張殘留的 `idle_01.png`（310×500，其他都是 256×256），`GameAssets` 裡沒有它——**Sync Map Assets 只推新檔、不刪來源已移除的舊檔**。catalog 目前正確地沒收它，但它排序在 `Actor-iso_*` 後面，挑檔規則一變就會變成第 26 幀。
+- **通則**：**「只有某些角色壞掉」常常代表「所有角色都壞掉，只是其他角色的資料剛好蓋住了」。** 在動那兩組素材之前，先問「正常的那幾組為什麼正常」——這次的答案不是「它們是對的」，而是「它們碰巧不會踩到」。
 
 
 ---

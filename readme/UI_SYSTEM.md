@@ -14,7 +14,7 @@
 |---|---|
 | `UIManager.cs` | **大腦**：跨場景常駐單例（`DontDestroyOnLoad`）。開關任何 UI 的唯一入口；管分層 Canvas、視窗堆疊、暫停、輸入閘門、遮罩。 |
 | `UIPanel.cs` | **所有面板的抽象基底**：生命週期 + 面板特性旗標 + 淡入淡出。 |
-| `UILayer.cs` | 分層列舉：`HUD / Window / Popup / Overlay`（各一個 Canvas，sortingOrder 遞增）。 |
+| `UILayer.cs` | 分層列舉：`HUD / Window / Popup / Overlay / System`（各一個 Canvas）。sortingOrder 依序 0 / 100 / 200 / 300，**`System` 例外＝700**（見下方「分層與排序」）。 |
 | `UIBuilder.cs` | **程式建構助手**：`Image / Text / Button / SolidPanel / InputField`（2026-06-23 加 InputField）+ RectTransform 錨點/拉伸 + Resources 載圖 + 內建字型。 |
 | `UIBootstrap.cs` | `RuntimeInitializeOnLoadMethod` 在開場前自動生出 UIManager，零手動接線。 |
 | `Panels/UIDemoPanel.cs` ＋ `UIDemoLauncher.cs` | 測試/範例面板（按 `U` 開關），驗證底層用，背包做好後可刪。 |
@@ -94,6 +94,20 @@ public class InventoryPanel : UIPanel
 | `InStack` | Window/Popup 才 true | 是否納入視窗堆疊（影響 ESC 逐層關閉、最上層判定） |
 | `KeepOpenOnSceneChange` | `false` | 切 Unity 場景時是否保留開啟 |
 | `FadeDuration` | `0.12` | 淡入淡出秒數（unscaled，暫停時仍會播） |
+
+### 分層與排序（要加新層或手寫 sortingOrder 前先看這張表）
+
+| 排序值 | 誰 | 備註 |
+|---|---|---|
+| 0 / 100 / 200 / 300 | `HUD` / `Window` / `Popup` / `Overlay` | `UIManager.BuildLayers` 依 `i * 100` 產生 |
+| 450 / 460 / 500 | TutorialBlockerPanel / TutorialHintPanel / GuideFingerPanel | 面板**自己**用 `overrideSorting` 硬寫，為了蓋過視窗 |
+| **700** | **`System`**（`AlertPanel` 系統訊息 toast） | `UIManager.SystemLayerSortingOrder`。刻意跳號：照 `i*100` 會是 400，反而被上面那三個蓋住 |
+| 1000 / 1100 / 1200 / 1300 / 5000 | Intro 漫畫·墜落 / 漫畫上層 / 穿隧道 / 影片 / 劇情演出 | 全螢幕接管的演出，**在系統訊息之上**（影片播到一半浮出 toast 比訊息被吃掉更糟） |
+| 30000 | `ScreenFader` 黑幕 | 蓋過一切 |
+
+- **`System` 層是給「絕對不能被吃掉的回饋」用的**，目前只有 `AlertPanel`。放進去的東西**一律 `raycastTarget = false`**——它蓋在所有視窗之上，會擋掉底下的點擊。
+- 這層是 2026-08-22 加的：`AlertPanel` 原本掛在 `HUD`，於是「開著背包點一個不能用的道具」時提示被背包整個蓋住，玩家看到的是「點了沒反應」（見 [PROBLEMS.md](PROBLEMS.md) **E18**）。
+- ⚠ `ScreenFxPlayer` 播全螢幕特效時會 `SetLayerVisible(HUD, false)`，**只藏 HUD**；系統訊息現在不在 HUD，所以特效期間照樣看得到。若哪天覺得不該，請一併藏 `System`。
 
 ⚠ **`FadeDuration` 的淡出跟「面板關閉」不同步。** `DoClose()` 的順序是
 `IsOpen=false` → `OnClose()` → **才**開始淡出。所以掛在 `OnClose` 的收尾動作

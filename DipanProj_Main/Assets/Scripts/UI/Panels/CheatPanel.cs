@@ -14,7 +14,7 @@ namespace Dipan.UI
     ///
     /// 目前分頁：
     ///   1.「給道具」：填入物品 ID + 數量 → 按確認 → 走 RunProgress.GiveItem(toRealBag:true)（**一律直接進真背包**，
-    ///      給 101 銅錢會轉成金錢數字）。另有一鍵快捷：給錢、**取得所有武器（每種一把）**。
+    ///      給 101 銅錢會轉成金錢數字）。另有一鍵快捷：給錢、**取得所有武器（每種一把）**、**取得所有血統藥劑（每種一瓶）**。
     ///   2.「鑲嵌」：改裝備中武器的孔數、每種能力珠各給一顆 Lv3、給測試防具。
     ///
     /// 風格對齊專案：全程式建構、零 prefab / Inspector 接線（同 SettingsPanel / InventoryPanel）。
@@ -217,6 +217,10 @@ namespace Dipan.UI
                                                 OnClickGiveAllWeapons, ColBtn);
             Place((RectTransform)allWeaponBtn.transform, 289f, 288f, 330f, 56f);
 
+            var allBloodBtn = UIBuilder.Button(root, "AllBloodBtn", "獲得所有血統藥劑",
+                                               OnClickGiveAllBloodlinePotions, ColBtn);
+            Place((RectTransform)allBloodBtn.transform, 634f, 288f, 330f, 56f);
+
             // 狀態列（本次結果）——兩組共用，放在最下面
             _giveStatus = UIBuilder.Text(root, "GiveStatus", "", 22, ColOk, TextAnchor.UpperLeft);
             Place(_giveStatus.rectTransform, 0f, 384f, GroupW, 80f);
@@ -404,6 +408,53 @@ namespace Dipan.UI
             sb.Append('。');
             SetGiveStatus(sb.ToString(), full == 0);
             AlertPanel.Toast(given > 0 ? $"作弊：武器 ×{given}" : "作弊：武器已經都有了");
+        }
+
+        /// <summary>
+        /// 一鍵取得所有血統藥劑：物品表裡**每一種血統藥劑各給一瓶**。涵蓋兩類，
+        /// 判斷一律走 <see cref="ItemData"/> 的欄位、**不比對名稱前綴**（之後新增藥劑不必回來改這裡）：
+        ///   ① **系列起始藥劑**（`IsBloodlineStarter`，即 CSV 的 `BloodlineID > 0`）：目前 301 殭屍、302 夜裔。
+        ///   ② **進階藥劑**（`IsBloodlineUpgrade`，即 CSV 的 `BloodlineUpgrade > 0`）：310 中階、311 高階，全系列通用。
+        ///
+        /// 每種一瓶（起始藥劑本來就 MaxStack=1）。進階藥劑要更多就連按幾次，或用上面的「依 ID 給道具」。
+        /// 這裡只負責把東西塞進背包：**能不能喝**（起始藥劑一世一次不可逆、進階藥劑必須逐階）
+        /// 由 ItemUse / BloodlineSystem 判定，見 readme/BLOODLINE.md。
+        ///
+        /// 與「取得所有武器」不同，這裡**不跳過已經有的**——藥劑是消耗品，喝掉就沒了，
+        /// 「再按一次補一瓶」比「已經有就不給」實用。
+        /// </summary>
+        void OnClickGiveAllBloodlinePotions()
+        {
+            var inv = InventorySystem.Instance;
+            if (inv == null) { SetGiveStatus("找不到背包系統（InventorySystem）。", false); return; }
+            if (inv.Db == null) { SetGiveStatus("物品表還沒載入。", false); return; }
+
+            // 先收集再排序：Dictionary 的走訪順序不保證，不排的話每次進背包的排列都不一樣。
+            var ids = new List<int>();
+            foreach (var kv in inv.Db.Items)
+                if (kv.Value != null && kv.Value.IsBloodline) ids.Add(kv.Key);
+            ids.Sort();
+
+            if (ids.Count == 0)
+            {
+                SetGiveStatus("物品表裡沒有任何血統藥劑（BloodlineID 與 BloodlineUpgrade 都是 0）。", false);
+                return;
+            }
+
+            int given = 0, full = 0;
+            foreach (int id in ids)
+            {
+                // 與「依 ID 給道具」走同一條路：統一入口 + 指定 toRealBag，
+                // 作弊給的東西不進臨時包（否則死亡歸零、要通關才落袋，測試時等於給了看不到）。
+                int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, 1, toRealBag: true)
+                                                  : inv.AddItem(id, 1);
+                if (leftover > 0) full++;
+                else given++;
+            }
+
+            SetGiveStatus(full > 0 ? $"血統藥劑共 {ids.Count} 種：給了 {given} 瓶，{full} 瓶因消耗品包已滿放不下。"
+                                   : $"血統藥劑共 {ids.Count} 種，每種各給一瓶。", full == 0);
+            AlertPanel.Toast(given > 0 ? $"作弊：血統藥劑 ×{given}" : "背包已滿，血統藥劑放不下");
         }
 
         void OnClickGive()

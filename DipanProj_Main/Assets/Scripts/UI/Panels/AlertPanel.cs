@@ -15,8 +15,12 @@ namespace Dipan.UI
     /// </summary>
     public class AlertPanel : UIPanel
     {
-        // ── HUD toast：不暫停、不擋輸入、不遮罩、ESC 不關、不入堆疊 ──
-        public override UILayer Layer => UILayer.HUD;
+        // ── 系統訊息 toast：不暫停、不擋輸入、不遮罩、ESC 不關、不入堆疊 ──
+        // ⚠ 層是 System 不是 HUD（2026-08-22 改）：掛在 HUD 時會被背包等 Window 面板整個蓋住，
+        //   玩家看到的是「點了沒反應」，關掉背包才發現訊息早就跳完了（見 PROBLEMS E18）。
+        //   System 是字面上的最上層，所以**這裡的每個 Graphic 都必須 raycastTarget = false**
+        //   （底板與文字都已設好），否則會擋掉底下視窗的點擊。
+        public override UILayer Layer => UILayer.System;
         public override bool PausesGame => false;
         public override bool BlocksGameplayInput => false;
         public override bool ShowBackdrop => false;

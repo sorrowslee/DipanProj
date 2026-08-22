@@ -42,10 +42,37 @@ public class PlayerController : MonoBehaviour, IDamageable
     private float _fireTimer = 0f;
     private float _lastSkillAlertTime = -99f;
     private const float SkillAlertMinInterval = 0.4f;   // 技能提示（冷卻中/召喚已滿）最短間隔（秒），避免連點洗版
-    // 攻擊動畫：攻擊(按住開火)時播 attack；放開後再多撐 AttackAnimLinger 秒才回移動狀態
-    // （讓單擊也看得到、連射不閃）。沒有 attack 圖的血統自動略過、維持原本 Walk/Idle。
-    private float _attackAnimUntil = -1f;
-    const float AttackAnimLinger = 0.12f;
+    // ── 攻擊動畫（2026-08-22 改版）────────────────────────────────────────────────
+    // 舊版：每次發射把 _attackAnimUntil 設成「現在 + 0.12 秒」，攻擊姿勢只維持那 0.12 秒。
+    //       12fps 下 0.12 秒 = 1.4 幀 ⇒ **25 幀的攻擊動畫永遠只播得到前兩幀**。
+    //       起手就是站姿的血統（Cain / Crimson Count）因此看起來完全沒有攻擊動作。
+    // 新版：改成「按下／放開」邊緣驅動，動畫該播多久由動畫自己決定：
+    //       ① 真的打出去 → 從起播幀（自動跳過起手，見 PlayerSpriteLibrary）播一次；
+    //       ② 播完還按著 → **定格在最後一幀**（不重播；作者拍板）；
+    //       ③ 中途放開   → 這一次照樣播完，播完才回 Idle/Walk；
+    //       ④ 放開再按   → 才重新播一次。
+    // 沒有 attack 圖的血統 Has(Attack)=false，整段自動略過、維持原本 Walk/Idle。
+    private bool _attackPoseHeld;   // 攻擊姿勢「持有中」：從打出去那一刻到放開開火為止（放開後動畫仍會播完）
+
+    [Header("攻擊動畫")]
+    [Tooltip("移動中完全不播攻擊動作（Move overrides attack pose）。\n" +
+             "false（預設）＝移動中照樣把攻擊動作完整播一次，播完就還給走路（不會定格滑行）。\n" +
+             "true ＝走路優先：移動中一律走路，只有站定開火才看得到攻擊動作。\n" +
+             "2D 單張逐格圖沒辦法上下半身分離，移動與攻擊只能擇一顯示。")]
+    public bool MoveOverridesAttackPose = false;
+
+    [Tooltip("按住開火時，攻擊動畫播完要不要從起播幀再來一次（Repeat attack anim while held）。\n" +
+             "true（目前在試）＝反覆出手，站著按住會一直重複攻擊動作。\n" +
+             "false ＝定格在最後一幀（收勢姿勢維持著不動）。\n" +
+             "兩種都不影響「放開後照樣把這一次播完」。移動中一律不重播（要把畫面還給走路）。")]
+    public bool AttackAnimRepeatWhileHeld = true;
+
+    [Tooltip("回到 2026-08-22 之前的攻擊動畫行為（Legacy attack anim）：0.12 秒姿勢 + 從第 0 幀無限循環。\n" +
+             "只給 A/B 對比用，正式版請維持 false。")]
+    public bool AttackAnimLegacyMode = false;
+
+    private float _attackAnimUntil = -1f;   // 僅 AttackAnimLegacyMode 使用
+    const float AttackAnimLinger = 0.12f;   // 僅 AttackAnimLegacyMode 使用
     private bool _continuousFireWasActive;   // 持續武器（雷射/佛光）攻擊動作只在「開始放的那一下」擺一次，用這個記上一幀狀態
     private float _contManaTimer = 0f;     // 持續型武器（雷射/佛光）的每秒耗魔計時器
     private bool _isDead = false;
@@ -146,6 +173,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_animator != null) _animator.enabled = false;
         _playerAnim = GetComponent<PlayerAnimator>();
         if (_playerAnim == null) _playerAnim = gameObject.AddComponent<PlayerAnimator>();
+        _playerAnim.AttackLoops = AttackAnimLegacyMode;   // 舊行為＝攻擊循環播；新行為＝一次性定格
         _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed, ScaledCharacterHeight, BodyScale);
 
         // HP/MP 數值層：每次進遊戲都以 Inspector 值滿血滿魔初始化（HP/MP 刻意不存檔，方便測試）。見 readme/COMBAT.md §7。
@@ -300,21 +328,58 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_playerAnim == null) return;
 
         // 攻擊動畫「只有真的攻擊出去」才擺：
-        //  ‧ 離散武器：由 HandleFiring 在每次「實際發射成功」時各設一次 _attackAnimUntil（一發一個攻擊動作）。
+        //  ‧ 離散武器：由 HandleFiring 在每次「實際發射成功」時呼叫 TriggerAttackPose()。
         //  ‧ 持續武器（雷射/佛光）：只在「開始放的那一下」（上升緣）擺**一次**；按住的期間不再重擺（後面一直擺很怪）。
         // 這個「持續 vs 離散」的差別天生來自武器的發射模式——持續武器會產生 _activeBeams/_activeAura、離散走 Shoot——
         // 所以不必寫死武器類型，也不必多一個欄位維護；之後任何新的持續型武器只要走同一套光束/佛光機制就自動生效。
         bool continuousFireActive = _activeBeams.Count > 0 || _activeAura != null;
         if (continuousFireActive && !_continuousFireWasActive)
-            _attackAnimUntil = Time.time + AttackAnimLinger;   // 上升緣＝剛開始放 → 擺一次就好
+            TriggerAttackPose();   // 上升緣＝剛開始放 → 擺一次就好
         _continuousFireWasActive = continuousFireActive;
+
+        // 開火以外的路徑也要能解除持有：這兩條進得來但**不會經過 HandleFiring**
+        // （UI 開著、藥水教學），不清的話玩家開背包的瞬間攻擊姿勢會被永久定住。
+        if (_attackPoseHeld && (Dipan.UI.UIManager.IsGameplayInputBlocked || !CanFire))
+            _attackPoseHeld = false;
 
         // 路線 B：攻擊→cast；否則 移動→走路 / 靜止→發呆（死亡時 Update 已提前 return，不會蓋掉 Dead 狀態）。
         // 沒有 attack 圖的血統 Has(Attack)=false，SetState 會自動退回 Idle，等同維持舊行為。
-        if (_playerAnim.Has(PlayerAnimator.State.Attack) && Time.time < _attackAnimUntil)
+        //
+        // 【按住不放的收尾只在站著時成立】站定按住時維持 Attack，播完是「再來一次」還是「定格在最後一幀」
+        // 由 AttackAnimRepeatWhileHeld 決定（兩種都在試，見該欄位）。但**移動中兩種都不套用**：
+        // 2D 單張逐格圖沒辦法上下半身分離，移動中若停在攻擊狀態，「按住開火邊跑」會變成用施法姿勢
+        // 滑過地板——那是這遊戲最常見的操作，不能長那樣。所以移動中只認「這一次還沒播完」：
+        // 動作完整播一次之後就把畫面還給 walk。
+        bool moving = currentSpeed > 0.1f;
+        bool wantAttack = _playerAnim.Has(PlayerAnimator.State.Attack)
+                          && (AttackAnimLegacyMode
+                              ? Time.time < _attackAnimUntil                 // 舊行為：0.12 秒計時器
+                              : (_playerAnim.IsAttackPlaying                 // 這一次還沒播完 → 一定播完
+                                 || (_attackPoseHeld && !moving)));          // 站著按住 → 定格在最後一幀
+        if (MoveOverridesAttackPose && moving) wantAttack = false;
+
+        // 播完還按著要「再來一次」還是「定格」——每幀重設，放開的那一刻就變 false，
+        // 於是當次循環播完會自己定格、把畫面交還給 Idle/Walk（兩種模式的收尾行為一致）。
+        // 移動中一律不重播：那段的規則是「完整播一次就還給走路」。
+        _playerAnim.AttackRepeats = AttackAnimRepeatWhileHeld && _attackPoseHeld && !moving;
+
+        if (wantAttack)
             _playerAnim.SetState(PlayerAnimator.State.Attack, currentSpeed);
         else
             _playerAnim.SetState(currentSpeed > 0.1f ? PlayerAnimator.State.Walk : PlayerAnimator.State.Idle, currentSpeed);
+    }
+
+    /// <summary>
+    /// 擺一次攻擊姿勢（真的發射成功時呼叫）。
+    /// **同一次按壓只會播一次**：`_attackPoseHeld` 為真代表玩家還沒放開，這時再打出去也不重播
+    /// （慢速武器按住連發時，動畫就停在最後一幀不動，這是作者選的行為）。放開再按才會從起播幀重來。
+    /// </summary>
+    private void TriggerAttackPose()
+    {
+        if (AttackAnimLegacyMode) { _attackAnimUntil = Time.time + AttackAnimLinger; return; }
+        if (_attackPoseHeld) return;
+        _attackPoseHeld = true;
+        if (_playerAnim != null) _playerAnim.StartAttack();
     }
 
     // 依「來源圖朝向」把欲面對方向換成 flipX：
@@ -397,10 +462,15 @@ public class PlayerController : MonoBehaviour, IDamageable
         bool firing = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
         bool firePressed = Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
 
+        // 放開開火 → 解除攻擊姿勢的「持有」。⚠ 這只是解除持有，**動畫不會被切斷**：
+        // HandleVisuals 還會看 IsAttackPlaying，所以點一下也一定看得到完整的攻擊動作。
+        // 刻意放在 CanFire 那道 guard **之前**，換武器/進禁武地圖時也要能解開。
+        if (!firing) _attackPoseHeld = false;
+
         // ── 不能開火（沒裝備武器 / 這張地圖禁用武器）：完全不動作 ──
         // 這道 guard 刻意放在所有分支之前，一處就擋掉雷射／佛光／集氣／離散全部發射路徑：
         // 不發射、不扣魔（耗魔都在 Shoot/UpdateLaser/UpdateAura 內）、也不擺攻擊動作
-        // （離散靠下面的 _attackAnimUntil、持續型靠 HandleVisuals 的 _activeBeams/_activeAura，兩者這裡都走不到／已清空）。
+        // （離散靠下面的 TriggerAttackPose、持續型靠 HandleVisuals 的 _activeBeams/_activeAura，兩者這裡都走不到／已清空）。
         if (!CanFire)
         {
             if (_activeBeams.Count > 0) ClearActiveBeams();
@@ -446,7 +516,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (firing && _fireTimer <= 0)
         {
             if (Shoot(firePressed))
-                _attackAnimUntil = Time.time + AttackAnimLinger;   // 真的發射出去才擺攻擊動作
+                TriggerAttackPose();   // 真的發射出去才擺攻擊動作
         }
         else if (_fireTimer > 0f && firePressed)
             ShowSkillAlert("技能正在冷卻中");
@@ -494,7 +564,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         WeaponData releasedWeapon = _chargingWeapon;
         CancelCharge();
         if (releasedWeapon != null && Shoot(true, charged ? CreateChargedWeaponSnapshot(releasedWeapon) : releasedWeapon))
-            _attackAnimUntil = Time.time + AttackAnimLinger;
+            TriggerAttackPose();
     }
 
     private void SpawnChargeVfx(int vfxId)
@@ -1993,6 +2063,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         Bloodline = bloodline;
         BodyScale = bodyScale > 0.01f ? bodyScale : 1f;
         if (_playerAnim == null) _playerAnim = gameObject.AddComponent<PlayerAnimator>();
+        _playerAnim.AttackLoops = AttackAnimLegacyMode;   // 舊行為＝攻擊循環播；新行為＝一次性定格
         _playerAnim.Setup(Bloodline, PlayerAnimFPS, MoveSpeed, ScaledCharacterHeight, BodyScale);
         // 擊退距離是「角色圖寬 × 百分比」算的，而圖寬會跟著體型倍率變大——
         // 不補償的話 1.5 倍體型會被擊退 1.5 倍遠，BodyScale 就不再是純視覺了。
