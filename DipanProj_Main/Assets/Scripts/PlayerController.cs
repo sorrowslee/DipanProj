@@ -55,11 +55,14 @@ public class PlayerController : MonoBehaviour, IDamageable
     private bool _attackPoseHeld;   // 攻擊姿勢「持有中」：從打出去那一刻到放開開火為止（放開後動畫仍會播完）
 
     [Header("攻擊動畫")]
-    [Tooltip("移動中完全不播攻擊動作（Move overrides attack pose）。\n" +
-             "false（預設）＝移動中照樣把攻擊動作完整播一次，播完就還給走路（不會定格滑行）。\n" +
-             "true ＝走路優先：移動中一律走路，只有站定開火才看得到攻擊動作。\n" +
+    // ⚠ 這個欄位是從 `MoveOverridesAttackPose`（預設 false）**改名**來的，不是單純改預設值——
+    //    Unity 已經把舊欄位的 false 序列化進場景/prefab 了，只改程式裡的預設值不會生效（見 PROBLEMS **G4**）。
+    //    換一個新名字＝新的序列化欄位，才會真的吃到這裡的 true。
+    [Tooltip("一開始移動就取消攻擊動作（Cancel attack pose when moving）。\n" +
+             "true（預設）＝走路優先：一移動就立刻切回走路，攻擊動作沒播完也直接砍掉；站定開火才看得到攻擊動作。\n" +
+             "false ＝移動中仍把當次攻擊動作完整播完，播完才還給走路。\n" +
              "2D 單張逐格圖沒辦法上下半身分離，移動與攻擊只能擇一顯示。")]
-    public bool MoveOverridesAttackPose = false;
+    public bool CancelAttackPoseWhenMoving = true;
 
     [Tooltip("按住開火時，攻擊動畫播完要不要從起播幀再來一次（Repeat attack anim while held）。\n" +
              "true（目前在試）＝反覆出手，站著按住會一直重複攻擊動作。\n" +
@@ -345,18 +348,18 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 路線 B：攻擊→cast；否則 移動→走路 / 靜止→發呆（死亡時 Update 已提前 return，不會蓋掉 Dead 狀態）。
         // 沒有 attack 圖的血統 Has(Attack)=false，SetState 會自動退回 Idle，等同維持舊行為。
         //
-        // 【按住不放的收尾只在站著時成立】站定按住時維持 Attack，播完是「再來一次」還是「定格在最後一幀」
-        // 由 AttackAnimRepeatWhileHeld 決定（兩種都在試，見該欄位）。但**移動中兩種都不套用**：
-        // 2D 單張逐格圖沒辦法上下半身分離，移動中若停在攻擊狀態，「按住開火邊跑」會變成用施法姿勢
-        // 滑過地板——那是這遊戲最常見的操作，不能長那樣。所以移動中只認「這一次還沒播完」：
-        // 動作完整播一次之後就把畫面還給 walk。
+        // 【移動優先】2D 單張逐格圖沒辦法上下半身分離，移動與攻擊只能擇一顯示，而**走路贏**：
+        // 一開始移動就立刻切回 walk，當次攻擊動作沒播完也直接砍掉（`CancelAttackPoseWhenMoving`，預設開）。
+        // 不這樣的話「按住開火邊跑」會變成用施法姿勢滑過地板——那是這遊戲最常見的操作。
+        // 站定不動時才輪到攻擊：播完是「再來一次」還是「定格在最後一幀」由 AttackAnimRepeatWhileHeld 決定。
+        // 停下來時若還按著開火，攻擊動作會從起播幀重新擺一次。
         bool moving = currentSpeed > 0.1f;
         bool wantAttack = _playerAnim.Has(PlayerAnimator.State.Attack)
                           && (AttackAnimLegacyMode
                               ? Time.time < _attackAnimUntil                 // 舊行為：0.12 秒計時器
-                              : (_playerAnim.IsAttackPlaying                 // 這一次還沒播完 → 一定播完
-                                 || (_attackPoseHeld && !moving)));          // 站著按住 → 定格在最後一幀
-        if (MoveOverridesAttackPose && moving) wantAttack = false;
+                              : (_playerAnim.IsAttackPlaying                 // 這一次還沒播完 → 播完（站著時）
+                                 || (_attackPoseHeld && !moving)));          // 站著按住 → 維持攻擊狀態
+        if (CancelAttackPoseWhenMoving && moving) wantAttack = false;
 
         // 播完還按著要「再來一次」還是「定格」——每幀重設，放開的那一刻就變 false，
         // 於是當次循環播完會自己定格、把畫面交還給 Idle/Walk（兩種模式的收尾行為一致）。
