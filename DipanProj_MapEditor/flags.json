@@ -71,6 +71,14 @@
       "IsLife": false,
       "IsLevel": true,
       "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 10,
+      "name": "redBridalFatherTalk",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
     }
   ]
 }

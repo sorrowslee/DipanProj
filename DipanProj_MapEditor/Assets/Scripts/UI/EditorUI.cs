@@ -140,7 +140,7 @@ namespace DipanMapEditor.UI
         Vector2 _csScroll;
         CutsceneActor _csActorBufFor;
         CutsceneStep _csStepBufFor;
-        string _csBufDrama, _csBufSeconds, _csBufZoom, _csBufScale, _csBufFps, _csBufSpeed;
+        string _csBufDrama, _csBufLang, _csBufSeconds, _csBufZoom, _csBufScale, _csBufFps, _csBufSpeed;
 
         // 物件調色盤
         List<PlaceableObject> _objects;
@@ -1916,7 +1916,7 @@ namespace DipanMapEditor.UI
 
         // ================= 劇情演出（Cutscene）面板 =================
         static readonly string[] StepTypes =
-            { "move", "face", "dialogue", "wait", "camera", "cameraFollow", "comic", "fade", "spawn", "despawn", "screenFx", "setFlag", "end" };
+            { "move", "face", "dialogue", "bubble", "wait", "camera", "cameraFollow", "comic", "fade", "spawn", "despawn", "screenFx", "setFlag", "end" };
 
         void DrawCutscenePanel()
         {
@@ -1929,7 +1929,7 @@ namespace DipanMapEditor.UI
             _csScroll = GUILayout.BeginScrollView(_csScroll);
 
             GUILayout.Label("劇情演出（半演出半漫畫）");
-            var cs = map.cutscene;
+            var cs = map.MainCutscene;
             if (cs == null)
             {
                 GUILayout.Label("此圖尚無演出。");
@@ -1938,8 +1938,32 @@ namespace DipanMapEditor.UI
             }
 
             cs.autoStartOnEnter = GUILayout.Toggle(cs.autoStartOnEnter, "一進圖自動播 autoStart");
-            cs.skippable = GUILayout.Toggle(cs.skippable, "可略過 skippable");
+            if (!cs.autoStartOnEnter)
+                GUILayout.Label("　↳ 關掉自動播＝改由 trigger「播放劇情(鏈動作)」啟動");
+
+            // 條件旗標／完成寫旗標：與觸發點、地上物出現/消失旗標**完全同一套**——
+            // 輸入旗標 id → 按「確認」→ 從全域 flags.json 撈出名稱並鎖定顯示（含生命週期）。
+            // 只播一次的標準做法：條件＝某旗標「沒有」＋ 完成寫旗標＝同一個旗標。
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("條件旗標", GUILayout.Width(64));
+            DrawFlagFieldCore(cs.requireFlag ?? "", "cutscene/requireFlag", true, v => cs.requireFlag = v);
+            GUILayout.EndHorizontal();
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("完成寫旗標", GUILayout.Width(64));
+            DrawFlagFieldCore(cs.setFlag ?? "", "cutscene/setFlag", false, v => cs.setFlag = v);
+            GUILayout.EndHorizontal();
+            if (!string.IsNullOrEmpty(cs.requireFlag) && !string.IsNullOrEmpty(cs.setFlag)
+                && cs.requireFlag.TrimStart('!') == cs.setFlag)
+                GUILayout.Label(cs.requireFlag.StartsWith("!")
+                    ? "　✔ 只播一次（生命週期由該旗標決定）"
+                    : "　⚠ 條件與寫入是同一個旗標、但條件是「有」——第一次永遠不會播");
+
+            cs.skippable = GUILayout.Toggle(cs.skippable, "可略過 skippable（僅開發階段有效）");
             cs.lockInput = GUILayout.Toggle(cs.lockInput, "演出期間鎖操作 lockInput");
+            cs.memoryFx = GUILayout.Toggle(cs.memoryFx, "回憶特效（泛黃＋上下黑邊＋解除場景壓暗）");
+            cs.hidePlayer = GUILayout.Toggle(cs.hidePlayer, "演出期間隱藏主角（演完回原位）");
+            cs.hideHud = GUILayout.Toggle(cs.hideHud, "演出期間關閉血量HUD（演完恢復）");
+            cs.id = LabeledText("演出id(選填)", cs.id);
             GUILayout.Space(4);
             var pv = PreviewCtl();
             if (pv != null && pv.IsPlaying)
@@ -2053,6 +2077,7 @@ namespace DipanMapEditor.UI
             {
                 _csStepBufFor = s;
                 _csBufDrama = s.dramaId.ToString();
+                _csBufLang = s.langId.ToString();
                 _csBufSeconds = s.seconds.ToString("0.###");
                 _csBufZoom = s.zoom.ToString("0.###");
                 _csBufSpeed = s.speed.ToString("0.###");
@@ -2075,6 +2100,13 @@ namespace DipanMapEditor.UI
                 case "dialogue":
                     _csBufDrama = LabeledText("dramaId(DramaTable)", _csBufDrama); s.dramaId = ParseIntOr(_csBufDrama, 0);
                     GUILayout.Label("（沿用劇情系統，播完才繼續）");
+                    break;
+                case "bubble":
+                    ActorPicker(cs, s, false);
+                    _csBufLang = LabeledText("語言表id(LanguageTable)", _csBufLang); s.langId = ParseIntOr(_csBufLang, 0);
+                    _csBufSeconds = LabeledText("顯示秒數(0=2)", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 0f);
+                    s.background = GUILayout.Toggle(s.background, "背景執行（邊走邊講：主線照跑到下一步）");
+                    GUILayout.Label("（頭上冒對話框，不跳對話視窗；文字寫在 LanguageTable.csv）");
                     break;
                 case "wait":
                     _csBufSeconds = LabeledText("等待秒數", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 1f);
@@ -2178,6 +2210,7 @@ namespace DipanMapEditor.UI
                 case "move": return $"move {s.actorId}";
                 case "face": return $"face {s.actorId} {s.facing}";
                 case "dialogue": return $"對話 #{s.dramaId}";
+                case "bubble": return $"頭上話 {s.actorId} #{s.langId}";
                 case "wait": return $"等 {s.seconds:0.#}s";
                 case "camera": return "運鏡";
                 case "cameraFollow": return $"鏡頭跟 {(string.IsNullOrEmpty(s.actorId) ? "玩家" : s.actorId)}";

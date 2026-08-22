@@ -96,6 +96,17 @@ public class BlobShadow : MonoBehaviour
         UpdateShadowPosition();
     }
 
+    /// <summary>
+    /// 顯示／隱藏影子本體。
+    /// ⚠ 影子是**獨立 GameObject、不是子物件**，所以「把角色整個 SetActive(false)」不會讓影子消失——
+    /// 反而因為本元件的 LateUpdate 也停了，影子會定格留在原地。要隱藏角色一定要一起呼叫這支。
+    /// （劇情演出的「隱藏主角」走 <see cref="Dipan.Cutscene.PlayerVisibility"/>，那裡已經接好。）
+    /// </summary>
+    public void SetVisible(bool on)
+    {
+        if (_shadowGo != null) _shadowGo.SetActive(on);
+    }
+
     void LateUpdate()
     {
         UpdateShadowPosition();

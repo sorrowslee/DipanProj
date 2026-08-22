@@ -28,6 +28,7 @@ namespace DipanMapEditor.IO
             var map = JsonConfig.Deserialize<MapData>(json);
             if (map == null || map.format != "dipanmap")
                 throw new InvalidDataException($"不是有效的 .dipanmap 檔：{path}");
+            map.NormalizeCutscenes();   // 舊檔的單一 cutscene 欄位搬進 cutscenes 清單
             return map;
         }
 

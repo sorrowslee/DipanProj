@@ -154,6 +154,19 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：被觸發鏈（next）啟動時，播這張圖在「劇情」分頁排好的那段演出，演完才接 next。
+                // 用途：劇情演出原本只能「一進圖自動播」，而自動播每次進圖都會重播一次、沒有一次性機制。
+                // 把該段演出的「一進圖自動播」關掉、改放這顆 trigger，就能用觸發鏈的
+                // 條件旗標／重複規則（關卡單次·每次·每周目·永久）／周目上下限 來管這段劇情播不播、播幾次。
+                // 不用玩家踩、純靠鏈驅動；格子畫在角落即可。cutsceneId 留空＝播第一段（目前一張圖只有一段）。
+                typeId = "playCutscene", displayName = "播放劇情(鏈動作)", color = "#FFB0E0",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "cutsceneId", type = ParamType.String, label = "演出id(留空=第一段)" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 動作型：被觸發鏈（next）啟動時，就地播一次性全螢幕過場特效（依 effectId 分派，如 1=破幻術「幻境崩碎回歸現實」），
                 // 暫停＋擋操作、播完才接 next（通常 next = 直接傳送(teleportTo) 把玩家傳去現實地圖，如榕樹妖）。
                 // 不用玩家踩、純靠鏈驅動；格子畫在角落即可。effectId 旁的「螢幕特效表」按鈕可查/填可用的 id。

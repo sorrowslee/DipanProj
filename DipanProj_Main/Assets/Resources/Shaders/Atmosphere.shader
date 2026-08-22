@@ -27,6 +27,7 @@ Shader "Custom/Atmosphere"
         [HideInInspector] _MainTex ("Texture", 2D) = "white" {}
         _Aspect ("Aspect (w/h)", Float) = 1.777
         _EnvDark ("Env Darken (0..1, type 1)", Float) = 0
+        _Bypass ("Bypass (0=full atmosphere, 1=raw picture)", Float) = 0
         _Mode ("Mode (1 normal+dark,2..6,7..9 ocean,10 snow,11 gale,12 drizzle,13 rain,14 ghostFog,15 tvNoise)", Float) = 2
     }
     SubShader
@@ -45,6 +46,10 @@ Shader "Custom/Atmosphere"
 
             sampler2D _MainTex;
             float _Aspect, _Mode, _EnvDark;
+            // 暫時淡出整套氛圍（1＝完全還原原始畫面）。給「回憶演出」用：
+            // 幽暗/噩夢地圖上畫面幾乎全黑，任何乘法式的色調效果都等於失效，
+            // 所以回憶期間把氛圍整個淡掉、讓場景亮回來再套回憶色。見 MemoryFxController。
+            float _Bypass;
 
             // ── 多光源（同框上限；與 AtmosphereController.MaxLights 一致）──
             #define MAX_LIGHTS 12
@@ -385,6 +390,13 @@ Shader "Custom/Atmosphere"
                     float3 tint = lerp(float3(0.72, 0.84, 1.05), float3(1.06, 0.98, 0.84), v);
                     col.rgb *= tint * 0.85;
                     col.rgb *= lightShift;                            // 光源自己的顏色
+                }
+
+                // 氛圍旁通（回憶演出用）：與原始畫面內插。放在最後一行＝不管哪個 mode 都一致地淡掉。
+                if (_Bypass > 0.0001)
+                {
+                    fixed4 raw = tex2D(_MainTex, i.uv);
+                    col.rgb = lerp(col.rgb, raw.rgb, saturate(_Bypass));
                 }
 
                 return col;

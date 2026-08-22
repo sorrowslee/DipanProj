@@ -87,6 +87,10 @@ public static class PlayModeStaticReset
         Dipan.UI.ItemIcons.ResetForPlayMode();            // 珠子疊圖的 Sprite 快取（字典型快取，容器不會變 null）
         Dipan.UI.IconFit.ResetForPlayMode();              // icon 內容邊界框快取（同樣是字典型的 Sprite 快取）
 
+        // 劇情演出「隱藏主角」的開關：殘留成 true 的話，下一輪 Play 的 Hide() 會直接 return
+        // ⇒ 主角再也藏不起來（要重開 Unity 才會好）。同一家族：BloodlineTransformFxRunner.IsPlaying。
+        Dipan.Cutscene.PlayerVisibility.ResetForPlayMode();
+
         // 發光物登記表：清上一輪殘留（AtmosphereController 取最近發光地上物靠它）。
         LightSource.ClearAll();
     }

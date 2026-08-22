@@ -29,6 +29,7 @@ namespace Dipan.MapRuntime
             var map = MapJsonConfig.Deserialize<MapData>(File.ReadAllText(absolutePath));
             if (map == null || map.format != "dipanmap")
                 throw new InvalidDataException($"不是有效的 .dipanmap：{absolutePath}");
+            map.NormalizeCutscenes();   // 舊檔的單一 cutscene 欄位搬進 cutscenes 清單
             return map;
         }
     }

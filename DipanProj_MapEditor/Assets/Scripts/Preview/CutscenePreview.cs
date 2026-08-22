@@ -112,6 +112,9 @@ namespace DipanMapEditor.Preview
                 case "spawn": { var a = Find(s.actorId); if (a != null && a.go != null) a.go.SetActive(true); break; }
                 case "despawn": { var a = Find(s.actorId); if (a != null && a.go != null) a.go.SetActive(false); break; }
                 case "dialogue": _status = $"對話 #{s.dramaId}（遊戲內播放）"; yield return Wait(1.5f); break;
+                // 頭上對話框：預覽只等秒數＋顯示提示（文字在遊戲端的 LanguageTable，編輯器沒有那張表）。
+                case "bubble": _status = $"頭上對話 {s.actorId} 語言表#{s.langId}（遊戲內播放）";
+                    yield return Wait(s.seconds > 0f ? s.seconds : 2f); break;
                 case "comic": yield return ComicStep(s); break;
                 case "fade": yield return FadeStep(s); break;
                 case "screenFx": _status = $"螢幕特效 {s.assetId}（遊戲內播放）"; yield return Wait(s.seconds > 0f ? s.seconds : 1f); break;

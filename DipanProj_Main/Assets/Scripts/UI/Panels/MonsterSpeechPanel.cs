@@ -5,9 +5,15 @@ using UnityEngine.UI;
 namespace Dipan.UI
 {
     /// <summary>
-    /// 怪物頭上對話框（覆蓋層、不擋輸入、不暫停）。**通用元件**：可同時掛多個氣泡，各自跟著一隻怪物的頭頂跑。
-    /// 由 <see cref="MonsterSpeech"/>（掛在怪物上）呼叫 <see cref="Speak"/> 生一個氣泡；顯示 duration 秒後淡出，
-    /// 怪物死亡（IsDead / 物件被銷毀）立即移除。
+    /// 頭上對話框（覆蓋層、不擋輸入、不暫停）。**通用元件**：可同時掛多個氣泡，各自跟著一個目標的頭頂跑。
+    ///
+    /// 兩個呼叫端（同一套美術與定位邏輯）：
+    ///   ‧ **怪物**：<see cref="MonsterSpeech"/>（掛在怪物上）呼叫 <see cref="Speak(MonsterController, string, float)"/>；
+    ///     顯示 duration 秒後淡出，怪物死亡（IsDead / 物件被銷毀）立即移除。
+    ///   ‧ **劇情演員**：劇情演出的 <c>bubble</c> 步驟呼叫 <see cref="Speak(Transform, string, float)"/>，
+    ///     讓話直接冒在演員頭上、不跳對話視窗（見 readme/CUTSCENE_DIRECTOR.md）。
+    ///
+    /// 所以內部**不綁 MonsterController**：氣泡只記一個 <c>Transform</c> 目標 ＋ 一個「還在不在」的判斷委派。
     ///
     /// 底板美術：Resources/UI/InGame/InGame_TalkBg1、InGame_TalkBg2 兩張水墨泡泡，**隨機輪流**（載不到自動退回程序底板）。
     /// 兩張都是「尾巴在底部、預設放在怪物右上」畫的：
@@ -27,7 +33,8 @@ namespace Dipan.UI
 
         // ── 版面常數（1920x1080 基準；要調氣泡大小改這裡）──
         const float BubbleWidth = 336f;     // 氣泡寬（高依原圖比例自動；不拉伸變形）。280×1.2＝336
-        const int MaxFont = 40, MinFont = 22; // 文字 best-fit 上下限（短句大、長句自動縮）；面板放大＋字級上限拉高＝字更清楚
+        const int MaxFont = 40, MinFont = 22; // 字級上下限（短句大、長句自動縮）
+        const float LineHeightRatio = 1.15f;  // 行高 ÷ 字級（估算用；uGUI 內建字體大約是這個比例）
         const float HGap = 12f, VGap = 6f;  // 尾巴尖對到頭頂後，往氣泡本體方向再推一點（讓它偏右上/左上）
         const float FadeIn = 0.12f, FadeOut = 0.3f;
 
@@ -87,7 +94,8 @@ namespace Dipan.UI
         {
             public RectTransform Root;
             public CanvasGroup Cg;
-            public MonsterController Mc;
+            public Transform Target;          // 氣泡跟著誰（怪物 / 劇情演員 / 玩家）
+            public System.Func<bool> Alive;   // 還要不要顯示（怪物＝沒死；null＝只要 Target 還在就顯示）
             public float Spawn;
             public float Duration;
             public bool Below;       // 錨在腳下（true）或頭頂（false）
@@ -107,20 +115,32 @@ namespace Dipan.UI
         {
             if (mc == null || string.IsNullOrEmpty(text)) return;
             var p = UIManager.Instance?.Open<MonsterSpeechPanel>();
-            p?.AddBubble(mc, text, duration);
+            p?.AddBubble(mc.transform, () => mc != null && !mc.IsDead, text, duration);
         }
 
-        void AddBubble(MonsterController mc, string text, float duration)
+        /// <summary>
+        /// 在**任何** Transform 頭上顯示一句話（劇情演員、玩家…）。目標被銷毀就自動移除。
+        /// 頭頂/腳下位置的抓法見 <see cref="HeadWorld"/>：玩家走 PlayerController 的可見身體幾何，
+        /// 其他人優先用 Collider2D，都沒有才退回 SpriteRenderer 的 bounds。
+        /// </summary>
+        public static void Speak(Transform target, string text, float duration)
+        {
+            if (target == null || string.IsNullOrEmpty(text)) return;
+            var p = UIManager.Instance?.Open<MonsterSpeechPanel>();
+            p?.AddBubble(target, null, text, duration);
+        }
+
+        void AddBubble(Transform target, System.Func<bool> alive, string text, float duration)
         {
             if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
 
-            // 同一隻怪若已有氣泡 → 先移除舊的（避免疊字）。
+            // 同一個目標若已有氣泡 → 先移除舊的（避免疊字）。
             for (int i = _bubbles.Count - 1; i >= 0; i--)
-                if (_bubbles[i].Mc == mc) Remove(i);
+                if (_bubbles[i].Target == target) Remove(i);
 
             // 方向（開口這一刻決定）：靠左緣→右上、靠右緣→左上、中間隨機；靠上緣→改腳下。
-            Vector3 head = HeadWorld(mc);
+            Vector3 head = HeadWorld(target);
             Vector3 vp = _cam.WorldToViewportPoint(head);
             bool rightSide = vp.x < LeftEdge ? true : (vp.x > RightEdge ? false : (Random.value < 0.5f));
             bool below = vp.y > TopEdge;
@@ -158,13 +178,14 @@ namespace Dipan.UI
             bgrt.pivot = new Vector2(0.5f, 0.5f);
             bgrt.localScale = new Vector3(rightSide ? 1f : -1f, below ? -1f : 1f, 1f);   // 鏡像
 
-            // 文字（放進奶油內文區；鏡像時同步換到對應那側；best-fit 自動縮放）
-            var txt = UIBuilder.Text(root, "Msg", text, MaxFont, TextColor, TextAnchor.MiddleCenter);
+            // 文字（放進奶油內文區；鏡像時同步換到對應那側）
+            // ⚠ **刻意不用 `resizeTextForBestFit`**，理由見 ComputeFontSize 的註解（同一句話會忽大忽小）。
+            var txt = UIBuilder.Text(root, "Msg", text, ComputeFontSize(text), TextColor, TextAnchor.MiddleCenter);
             txt.raycastTarget = false;
             txt.fontStyle = FontStyle.Bold;   // 加粗，深墨色在奶油底上更清楚
-            txt.resizeTextForBestFit = true;
-            txt.resizeTextMinSize = MinFont;
-            txt.resizeTextMaxSize = MaxFont;
+            txt.resizeTextForBestFit = false;
+            txt.horizontalOverflow = HorizontalWrapMode.Wrap;
+            txt.verticalOverflow = VerticalWrapMode.Overflow;   // 估算若略有偏差，寧可溢出一點也不要被裁掉
             var ol = txt.gameObject.AddComponent<Outline>();
             ol.effectColor = new Color(1f, 1f, 1f, 0.35f);   // 淡淺色描邊，壓在墨邊上也讀得清楚
             ol.effectDistance = new Vector2(1f, -1f);
@@ -180,7 +201,7 @@ namespace Dipan.UI
 
             var b = new Bubble
             {
-                Root = root, Cg = cg, Mc = mc,
+                Root = root, Cg = cg, Target = target, Alive = alive,
                 Spawn = Time.time, Duration = Mathf.Max(0.3f, duration),
                 Below = below,
                 OffsetX = rightSide ? HGap : -HGap,
@@ -188,6 +209,92 @@ namespace Dipan.UI
             };
             _bubbles.Add(b);
             Reposition(b);   // 立刻擺對位置，避免第一幀出現在畫面中央
+        }
+
+        // ───────────────────────── 字級：自己算，不用 best-fit ─────────────────────────
+
+        /// <summary>
+        /// 決定這句話的字級。**同一句話永遠得到同一個字級**，`\n` 只決定「在哪裡斷行」、不影響大小。
+        ///
+        /// ⚠ 為什麼不用 uGUI 的 `resizeTextForBestFit`（原本用的，換掉的理由）：
+        ///   ① **手動換行會讓字變大**：best-fit 是「找一個塞得下的最大字級」，
+        ///      作者把「這個給你吧，就剩兩張了」改寫成「這個給你吧\n就剩兩張了」只是想控制斷句位置，
+        ///      但兩行各 5 個字「塞得下更大的字」，於是同一句話忽然大一號 —— 語意上完全不該有這個差別。
+        ///   ② **抽到不同底板也會不一樣大**：兩張水墨泡泡的奶油內文區大小不同（220×98 vs 200×83），
+        ///      而底板是隨機輪流的 ⇒ 同一句台詞每次講都可能是不同字級。
+        /// 所以改成自己估算：**用固定的參考框**（兩張底板中較小的那個奶油區，這樣兩張都一定塞得下）
+        /// ＋**依總字數估行數**，得到一個只跟「這句話有多長」有關的字級。
+        ///
+        /// 估算方式：中日韓字元寬 ≈ 1 個字級，ASCII/數字 ≈ 0.55；行高 ≈ 字級 × <see cref="LineHeightRatio"/>。
+        /// 手動 `\n` 分出來的每一段各自再依寬度估要佔幾行（所以「手動斷成三行」確實會縮小，那是合理的）。
+        /// 估不準時由 `verticalOverflow = Overflow` 兜底（寧可溢出一點也不要被裁掉）。
+        /// </summary>
+        static int ComputeFontSize(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return MaxFont;
+            GetRefTextBox(out float boxW, out float boxH);
+
+            // 依 \n 切段，量出每段的「全形字寬」總量
+            string[] segs = text.Split('\n');
+            var segLen = new float[segs.Length];
+            for (int i = 0; i < segs.Length; i++)
+            {
+                float w = 0f;
+                foreach (char c in segs[i]) w += CharWidth(c);
+                segLen[i] = w;
+            }
+
+            // 第一輪（只在作者有手動換行時）：**要求每一段都剛好佔一行**，尊重作者排的斷句。
+            // 沒有這一輪的話，字級會被挑到「那一段還要再自動折一次」的大小，
+            // 手動排的「兩行」會變成三行、斷在作者不要的位置——那正是他用 \n 想避免的事。
+            if (segs.Length > 1)
+            {
+                for (int size = MaxFont; size >= MinFont; size--)
+                {
+                    float perLine = boxW / size;
+                    bool allFit = true;
+                    for (int i = 0; i < segLen.Length; i++) if (segLen[i] > perLine) { allFit = false; break; }
+                    if (!allFit) continue;
+                    if (segs.Length * size * LineHeightRatio <= boxH) return size;
+                }
+                // 連 MinFont 都塞不下作者排的行 → 落到第二輪，讓它自動折（總比看不見好）。
+            }
+
+            // 第二輪：允許自動折行，估總共會佔幾行。
+            for (int size = MaxFont; size > MinFont; size--)
+            {
+                float perLine = boxW / size;           // 一行放得下幾個「全形字」
+                if (perLine < 1f) continue;
+                int lines = 0;
+                for (int i = 0; i < segLen.Length; i++)
+                    lines += Mathf.Max(1, Mathf.CeilToInt(segLen[i] / perLine - 0.001f));
+                if (lines * size * LineHeightRatio <= boxH) return size;
+            }
+            return MinFont;
+        }
+
+        /// <summary>字元的概略寬度（以字級為單位）。全形（中日韓、全形標點）算 1，半形拉丁/數字算 0.55。</summary>
+        static float CharWidth(char c) => c < 0x2E80 ? 0.55f : 1f;
+
+        /// <summary>
+        /// 字級估算用的參考框（像素）＝**所有底板的奶油內文區取最小**。
+        /// 用最小的那個，字級才不會因為隨機抽到哪張底板而改變，而且抽到大的那張一定塞得下。
+        /// </summary>
+        static void GetRefTextBox(out float w, out float h)
+        {
+            w = float.MaxValue; h = float.MaxValue;
+            var arts = Arts;
+            for (int i = 0; i < arts.Length; i++)
+            {
+                float aspectH = 433f / 577f;
+                if (arts[i].Sprite != null && arts[i].Sprite.rect.width > 0f)
+                    aspectH = arts[i].Sprite.rect.height / arts[i].Sprite.rect.width;
+                var c = arts[i].Cream;
+                w = Mathf.Min(w, (c.z - c.x) * BubbleWidth);
+                h = Mathf.Min(h, (c.w - c.y) * BubbleWidth * aspectH);
+            }
+            if (w >= float.MaxValue || w <= 1f) w = BubbleWidth * 0.6f;   // 底板全載不到時的後備
+            if (h >= float.MaxValue || h <= 1f) h = BubbleWidth * 0.25f;
         }
 
         // 把文字 RectTransform 貼到底板的「奶油內文區」（鏡像時換到對應那一側，文字本身不翻）。
@@ -218,8 +325,8 @@ namespace Dipan.UI
             {
                 var b = _bubbles[i];
 
-                // 怪物死亡 / 被銷毀 → 立即移除氣泡
-                if (b.Mc == null || b.Mc.IsDead) { Remove(i); continue; }
+                // 目標消失（怪物死亡 / 演員被銷毀）→ 立即移除氣泡
+                if (b.Target == null || (b.Alive != null && !b.Alive())) { Remove(i); continue; }
 
                 float elapsed = now - b.Spawn;
                 if (elapsed >= b.Duration) { Remove(i); continue; }
@@ -235,7 +342,7 @@ namespace Dipan.UI
 
         void Reposition(Bubble b)
         {
-            Vector3 anchorWorld = b.Below ? FeetWorld(b.Mc) : HeadWorld(b.Mc);
+            Vector3 anchorWorld = b.Below ? FeetWorld(b.Target) : HeadWorld(b.Target);
             Vector2 screen = _cam.WorldToScreenPoint(anchorWorld);
             if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(Rect, screen, null, out Vector2 local))
                 return;
@@ -254,19 +361,34 @@ namespace Dipan.UI
             for (int i = _bubbles.Count - 1; i >= 0; i--) Remove(i);
         }
 
-        // 頭頂 / 腳下世界座標：優先用碰撞框上下緣，抓不到就用 transform 加預設高度。
-        static Vector3 HeadWorld(MonsterController mc)
+        // 頭頂 / 腳下世界座標。三段優先序（劇情演員沒有 Collider2D，所以一定要有第三段）：
+        //   ① 玩家 → PlayerController 的可見身體幾何（唯一正確來源，見 readme/PROBLEMS.md E14）
+        //   ② 有 Collider2D → 碰撞框上下緣（怪物走這條，行為與改版前完全一致）
+        //   ③ 只有 SpriteRenderer → 用 bounds（劇情 npc 演員；氣泡錨點對精度要求不高，可接受）
+        static Vector3 HeadWorld(Transform t)
         {
-            var col = mc.GetComponent<Collider2D>();
-            if (col != null) return new Vector3(col.bounds.center.x, col.bounds.max.y, mc.transform.position.z);
-            return mc.transform.position + Vector3.up * 1.2f;
+            var pc = t.GetComponent<PlayerController>();
+            if (pc != null)
+            {
+                Vector2 feet = pc.FeetWorldPos;
+                return new Vector3(feet.x, feet.y + pc.VisibleBodyHeight, t.position.z);
+            }
+            var col = t.GetComponent<Collider2D>();
+            if (col != null) return new Vector3(col.bounds.center.x, col.bounds.max.y, t.position.z);
+            var sr = t.GetComponent<SpriteRenderer>();
+            if (sr != null && sr.sprite != null) return new Vector3(sr.bounds.center.x, sr.bounds.max.y, t.position.z);
+            return t.position + Vector3.up * 1.2f;
         }
 
-        static Vector3 FeetWorld(MonsterController mc)
+        static Vector3 FeetWorld(Transform t)
         {
-            var col = mc.GetComponent<Collider2D>();
-            if (col != null) return new Vector3(col.bounds.center.x, col.bounds.min.y, mc.transform.position.z);
-            return mc.transform.position;
+            var pc = t.GetComponent<PlayerController>();
+            if (pc != null) { Vector2 feet = pc.FeetWorldPos; return new Vector3(feet.x, feet.y, t.position.z); }
+            var col = t.GetComponent<Collider2D>();
+            if (col != null) return new Vector3(col.bounds.center.x, col.bounds.min.y, t.position.z);
+            var sr = t.GetComponent<SpriteRenderer>();
+            if (sr != null && sr.sprite != null) return new Vector3(sr.bounds.center.x, sr.bounds.min.y, t.position.z);
+            return t.position;
         }
 
         // ───────────────────────── 後備底板（載不到美術時用；程序生成圓角矩形）─────────────────────────

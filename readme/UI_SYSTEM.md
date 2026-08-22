@@ -140,10 +140,11 @@ public class InventoryPanel : UIPanel
   - **一定要用帶 `owner` 的多載。** 舊的兩參數多載共用一個預設 key——兩個生命週期重疊的系統一起用，
     先解除的那個會把另一個還在生效的鎖一起清掉（實際踩過，見 [PROBLEMS.md](PROBLEMS.md) **D13**）。
   - 解除是 `SetExternalHold(owner, false, false)`＝只移除**自己那一份**。
-  - ⚠ **現況**：目前只有 `BloodlineTransformFxRunner`（`"BloodlineTransformFx"`）與
-    `BloodlineSystem`（`"BloodlinePerformance"`）用了具名版；`TutorialManager` / `CutsceneDirector` /
-    `EyeOpenController` / `IllusionShatterController` / `GameFlowManager` / `TriggerChain` / `MapManager`
-    **仍全部共用預設 key**。也就是互踩問題只在「新系統 vs 舊系統」之間解掉了，舊系統彼此之間還是會踩。
+  - ⚠ **現況**：已改用具名版的有 `BloodlineTransformFxRunner`（`"BloodlineTransformFx"`）、
+    `BloodlineSystem`（`"BloodlinePerformance"`）、`CutsceneDirector`（`"CutsceneDirector"`，2026-08-22
+    加上——劇情從「只在載圖時自動播」變成也能被 `playCutscene` 在遊戲中途啟動，會和 `cameraFocus`
+    之類的 hold 生命週期重疊）；`TutorialManager` / `EyeOpenController` / `IllusionShatterController` /
+    `GameFlowManager` / `TriggerChain` / `MapManager` **仍共用預設 key**，彼此之間還是會踩。
     之後動到那幾支時順手把 owner 補上。
   - **接力型的表演要有一個「橫跨全程」的 hold**。血統變身是「世界演出 → 立繪面板」兩段接力，
     前一段的 `finally` 先解鎖、後一段延一幀才開，中間那一兩幀若沒人壓著就會解除暫停一瞬間。

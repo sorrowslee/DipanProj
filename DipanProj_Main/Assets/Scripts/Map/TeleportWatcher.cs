@@ -22,6 +22,8 @@ using Dipan.MapRuntime;
 /// 故每次 Setup 後「未武裝」，等玩家離開所有 teleport 格才武裝；之後再踩才觸發。
 /// 由 MapManager 在每次換圖後 Setup（重建格表、重置防抖）。見 readme/MAP_SYSTEM.md。
 ///
+/// <para><b>劇情演出期間一律不觸發、並持續解除武裝</b>（同下面「非自主位移」的道理；見 readme/PROBLEMS.md **B14**）。</para>
+///
 /// <para><b>非自主位移不算「踩到」</b>：被怪物擊退推到傳送點上時不觸發，並且**解除武裝**
 /// —— 要玩家自己走出去再走回來才算數。實際踩過：進客廳2 時怪物就站在落點旁邊，
 /// 玩家還沒看清楚就被擊退回傳送點 → 立刻又被送回書房。見 readme/PROBLEMS.md **B11**。</para>
@@ -67,10 +69,24 @@ public class TeleportWatcher : MonoBehaviour
         _armed = false;   // 著陸時人就站在傳送點上，離開後才武裝（防抖）
     }
 
+    /// <summary>
+    /// 解除武裝：要玩家自己走出去再走回來才算「踩到」。
+    /// 給任何**把玩家搬過去、而不是玩家自己走過去**的程式呼叫（劇情收尾把主角放回原位就是一例）。
+    /// </summary>
+    public void Disarm() => _armed = false;
+
     void Update()
     {
         if (_map == null || _player == null || _manager == null) return;
         if (_cells.Count == 0 && _anchored.Count == 0) return;
+
+        // 劇情演出期間一律不觸發，而且**持續解除武裝**。
+        // 理由與「被擊退不算踩到」（B11）完全相同——演出期間玩家的位置不是他自己走出來的：
+        // 進圖落點常常就在傳送點上（`targetEntrance` 指的就是那顆傳送點的錨點），演出又把玩家鎖在那裡十幾秒，
+        // 收尾還會把他放回開演前的位置（`hidePlayer`）——這幾個動作任何一個被當成「踩到」，
+        // 玩家就會在劇情剛播完的瞬間被送回上一張圖。**持續**解除（而不是只跳過這一幀）是關鍵：
+        // 演出結束時人還站在那顆傳送點上，只跳過一幀的話下一幀照樣觸發。見 readme/PROBLEMS.md **B14**。
+        if (Dipan.Cutscene.CutsceneDirector.IsPlaying) { _armed = false; return; }
 
         var region = FindAt();
         bool onTeleport = region != null;
@@ -109,6 +125,9 @@ public class TeleportWatcher : MonoBehaviour
             Debug.LogWarning($"[TeleportWatcher] 傳送點「{region.name}」未設定 targetMapId，略過。");
             return;
         }
+        // 診斷用（一次換圖一行，與 MapManager 的「進入地圖」同量級）：
+        // 「玩家沒走過去卻被傳走」這類問題，關鍵資訊就是「是哪顆傳送點、玩家當時在哪」。
+        Debug.Log($"[TeleportWatcher] 踩到傳送點「{region.name}」→ 地圖 {targetMapId}（落點 {targetEntrance}）；玩家位置 {(Vector2)_player.position}。");
         _manager.GoToMap(targetMapId, targetEntrance);
     }
 

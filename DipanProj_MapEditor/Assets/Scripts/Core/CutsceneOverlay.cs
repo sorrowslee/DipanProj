@@ -42,7 +42,7 @@ namespace DipanMapEditor.Core
             EnsureRefs();
             if (_ui == null || _ctl == null) return;
             if (_ui.CurrentTool != EditTool.Cutscene) return;
-            var cs = MapSession.Instance.Map.cutscene;
+            var cs = MapSession.Instance.Map.MainCutscene;
             if (cs == null) return;
 
             float r = Mathf.Max(0.15f, MapSession.Instance.Map.tileSize * 0.35f);

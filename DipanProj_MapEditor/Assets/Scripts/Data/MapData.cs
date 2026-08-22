@@ -58,8 +58,31 @@ namespace DipanMapEditor.Data
         /// </summary>
         public List<LightInstance> lights = new List<LightInstance>();
 
-        /// <summary>劇情演出（半演出半漫畫的過場）；null＝此圖無演出。目前一張圖最多一段。</summary>
+        /// <summary>
+        /// 劇情演出（半演出半漫畫的過場）清單；空＝此圖無演出。
+        /// **目前編輯器只編輯/使用第 0 段**（見 <see cref="MainCutscene"/>），但檔案格式先存成清單，
+        /// 之後要做「一張圖多段劇情、各自用旗標管」時不必再動 .dipanmap 格式、舊圖也不用轉檔。
+        /// </summary>
+        public List<Cutscene> cutscenes = new List<Cutscene>();
+
+        /// <summary>
+        /// ⚠ 舊格式相容欄位（2026-08-22 前的 .dipanmap 是單一物件）。**不要直接讀寫它**——
+        /// 讀檔後由 <see cref="NormalizeCutscenes"/> 搬進 <see cref="cutscenes"/> 並清成 null，
+        /// 存檔時因 NullValueHandling.Ignore 不會再寫出去。
+        /// </summary>
         public Cutscene cutscene = null;
+
+        /// <summary>目前這張圖的（第一段）演出；沒有就回 null。編輯器一律走這個。</summary>
+        [JsonIgnore]
+        public Cutscene MainCutscene => (cutscenes != null && cutscenes.Count > 0) ? cutscenes[0] : null;
+
+        /// <summary>讀檔後呼叫：把舊格式的單一 cutscene 搬進 cutscenes 清單（缺兩者＝空清單）。</summary>
+        public void NormalizeCutscenes()
+        {
+            if (cutscenes == null) cutscenes = new List<Cutscene>();
+            if (cutscenes.Count == 0 && cutscene != null) cutscenes.Add(cutscene);
+            cutscene = null;   // 統一真相在 cutscenes，舊欄位永遠不再寫出
+        }
 
         // ---- 便利存取 ----
 

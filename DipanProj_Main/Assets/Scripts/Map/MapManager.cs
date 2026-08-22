@@ -510,6 +510,17 @@ public class MapManager : MonoBehaviour
         if (InteractionManager.Exists) InteractionManager.Instance.RebuildPoints();
     }
 
+    /// <summary>
+    /// 解除「位置型觸發」（傳送點／過場點）的武裝——**任何「用程式把玩家搬過去」之後都要呼叫**。
+    /// 規則是 readme/PROBLEMS.md **B11** 那條：**玩家不是自己走過去的，就不該觸發位置型事件**。
+    /// 目前呼叫者：劇情演出收尾把主角放回開演前的位置（<see cref="Dipan.Cutscene.PlayerVisibility"/>）。
+    /// </summary>
+    public void DisarmPositionTriggers()
+    {
+        if (_watcher != null) _watcher.Disarm();
+        if (_cutscene != null) _cutscene.Disarm();
+    }
+
     void SetupWatcher()
     {
         // 觸發鏈：先重建（計算 startDisabled/enableFlag 的初始啟用狀態、藏綠幕），

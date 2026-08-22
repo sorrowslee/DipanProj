@@ -59,6 +59,9 @@ public class CutsceneWatcher : MonoBehaviour
         _running = false;
     }
 
+    /// <summary>解除武裝（同 TeleportWatcher.Disarm）：要玩家自己走出去再走回來才算踩到。</summary>
+    public void Disarm() => _armed = false;
+
     void Update()
     {
         if (_fired || _running || _map == null || _player == null || _manager == null || _cells.Count == 0) return;
@@ -71,6 +74,9 @@ public class CutsceneWatcher : MonoBehaviour
 
         // 非自主位移（目前只有擊退）把人推到過場點上：不觸發，而且**解除武裝**（同 TeleportWatcher 的處理）。
         // 過場是一次性的（_fired），被擊退誤觸的代價比傳送更高——白白播掉一段只能看一次的演出。
+        // 劇情演出期間一律不觸發並持續解除武裝（同 TeleportWatcher，見 readme/PROBLEMS.md B14）。
+        if (Dipan.Cutscene.CutsceneDirector.IsPlaying) { _armed = false; return; }
+
         if (on && _playerHit != null && _playerHit.IsKnockedBack) { _armed = false; return; }
 
         if (!_armed)

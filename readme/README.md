@@ -55,7 +55,7 @@
 | [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物 |
 | [LEVEL_END_FLOW.md](LEVEL_END_FLOW.md) | 過關/死亡/返回廣場 → 卍字離場特效 → 結算畫面 → 回廣場（clearLevel 觸發＋fireOnFlag＋延時觸發＋倒數＋ResultPanel 美術；EndLevel 三模式） | 改過關/死亡表演、離場特效、結算版面、接 clearLevel |
 | [RUN_PROGRESS.md](RUN_PROGRESS.md) | **關卡進度與臨時包（RunProgress）**：一趟關卡內怪死了不復生／撿過的不再出現／掉落物留原地（跨換圖記憶、離開關卡才重置）＋臨時包「通關才落袋、死亡歸零」＋取得物品統一入口 `GiveItem`＋F8 除錯疊層 | 改怪物重生/拾取記憶/掉落物、做掉寶、動臨時包或結算獎勵、加「給玩家東西」的新來源 |
-| [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) | **劇情演出編輯器**：地圖編輯器「劇情」分頁排一段半演出半漫畫的過場（演員走位/對話/運鏡/置中漫畫/淡黑/螢幕特效/交棒，13 種步驟、`parallelNext` 與 `background` 並行、編輯器內預覽）；資料存 `.dipanmap` 的 `cutscene` | 做/改地圖內的劇情演出、開場山道那類過場；**注意與 CUTSCENE_TUNNEL（穿隧道播影片）是兩套** |
+| [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) | **劇情演出編輯器**：地圖編輯器「劇情」分頁排一段半演出半漫畫的過場（演員走位/對話/**頭上對話框**/運鏡/置中漫畫/淡黑/螢幕特效/交棒，14 種步驟、`parallelNext` 與 `background` 並行、編輯器內預覽）＋**回憶特效**（泛黃＋上下黑邊＋暫時解除場景壓暗）＋**條件旗標/完成寫旗標**（只播一次）＋**隱藏主角/關閉血量HUD**＋**`playCutscene` 鏈動作**；資料存 `.dipanmap` 的 `cutscenes` | 做/改地圖內的劇情演出、開場山道那類過場、要回憶感/頭上對話/用 trigger 觸發劇情；**注意與 CUTSCENE_TUNNEL（穿隧道播影片）是兩套** |
 | [SELECT_SCRIPT.md](SELECT_SCRIPT.md) | 選擇劇本面板（邪佛發牌選關 UI；劇本＝背包道具、selectScript 鏈動作、素材依 module 自動載、特殊裂紋框）＋ ⏳ 從第 2 輪起「系統自動 3新+1舊」發牌的設計與前置缺口 | 改選劇本 UI、接邪佛發牌、做/規劃 3新+1舊 系統發牌 |
 | [DEPLOY.md](DEPLOY.md) | 打包流程（Project Tools 選單、BuildScript 打包＋驗收、場景順序、打包疑難排解） | 打包、build 出錯時 |
 | [ITCH_BUTLER.md](ITCH_BUTLER.md) | **itch.io & butler 手冊**：裝 butler（台灣 DNS 坑）、登入、換機器設定清單、常用指令（`status` 查推送）、PC 用 itch app 取得、費用、itch/butler 疑難排解 | 設定新 Mac、上傳出錯、查推送狀態、**任何 itch/butler 問題** |

@@ -1,54 +1,61 @@
-id,cn,en
-# ── 新手教學：柴房佛燈（1001–1099）──
-1001,走過去，撿起佛燈（靠近按 F）,Walk over and pick up the lamp (get close and press F)
-1002,按 F 撿起佛燈,Press F to pick up the lamp
-1003,按 B 打開背包,Press B to open your bag
-1004,點一下佛燈，裝備它,Click the lamp to equip it
-1005,按 B 關閉背包,Press B to close your bag
-1006,按住左鍵或空白鍵，點亮佛燈,Hold Left-Click or Space to light the lamp
-# ── 新手教學：儲藏室 HP 藥水（1007–1099）──
-1007,走過去，撿起藥水（靠近按 F）,Walk over and pick up the potion (get close and press F)
-1008,按 F 撿起藥水,Press F to pick up the potion
-1009,點一下藥水，放進藥水格,Click the potion to place it in the potion slot
-1010,按 1 喝下藥水,Press 1 to drink the potion
-# ── 鍛造介面（4001–4099）──
-4001,鍛造,Forge
-4002,移除鑲嵌,Remove Gems
-4003,拆除裝備,Dismantle
-4004,這個功能還沒做好,This feature is not ready yet
-4005,只能放入武器或裝備,Only weapons and equipment can be placed here
-4006,鍛造台只認得背包裡的東西，請先放進背包,The anvil only accepts items from your bag
-# ── 選擇存檔畫面（5001–5099）──
-5001,選擇存檔,Select Save
-5002,欄位,Slot
-5003,空欄位,Empty Slot
-5004,新建遊戲,New Game
-5005,進入遊戲,Enter Game
-5006,刪除角色,Delete Character
-5007,確定要刪除這個角色嗎？\n刪除後無法復原。,Delete this character?\nThis cannot be undone.
-5008,{0}周目,Cycle {0}
-5009,存檔損毀,Save Corrupted
-4007,強化裝備,Upgrade
-4008,這個孔只能鑲能力珠,Only ability gems fit in a socket
-4009,請先把裝備放上鐵砧,Place an item on the anvil first
-4010,這件裝備上沒有鑲嵌,This item has no gems socketed
-4011,背包空位不夠，無法取下全部鑲嵌,Not enough bag space to remove all gems
-4012,已取下 {0} 顆能力珠,Removed {0} gem(s)
-# ── 血統系統（2001–2099）──
-2001,這不是血統藥劑,This is not a bloodline elixir
-2002,你的血脈已定為「{0}」，這一世不能再改變,"Your bloodline is set to ""{0}"" and cannot change this life"
-2003,這瓶藥劑的血統在血統表找不到,This elixir's bloodline is missing from the bloodline table
-2004,背包裡沒有這瓶藥劑,You do not have that elixir
-2005,還沒載入角色，現在不能喝,No character loaded yet
-2006,你尚未覺醒任何血脈，無法進階,You have not awakened a bloodline yet
-2007,你的血脈不屬於任何系列，無法進階,Your bloodline belongs to no lineage and cannot advance
-2008,血脈尚未成熟，需先進階為「{0}」,"Your bloodline is not ready. Advance to ""{0}"" first"
-2009,你的血脈已在此之上,Your bloodline is already beyond this
-2010,你的血脈已至頂點,Your bloodline has reached its peak
-2011,喝下「{0}」？\n血統一世只能決定一次，喝下去就不能反悔。,"Drink ""{0}""?\nYour bloodline is chosen once per life and cannot be undone."
-2012,喝下「{0}」？\n你的血脈將從「{1}」進為「{2}」，無法還原。,"Drink ""{0}""?\nYour bloodline will advance from ""{1}"" to ""{2}"". This cannot be undone."
-2013,血脈已定：{0},Bloodline set: {0}
-2014,血脈進化：{0},Bloodline advanced: {0}
-2015,無法飲用,Cannot drink this
-# ── 標題畫面（6001–6099）──
-6001,開 始 遊 戲,START GAME
+id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# ── 新手教學：柴房佛燈（1001–1099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1001,走過去，撿起佛燈（靠近按 F）,Walk over and pick up the lamp (get close and press F),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1002,按 F 撿起佛燈,Press F to pick up the lamp,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1003,按 B 打開背包,Press B to open your bag,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1004,點一下佛燈，裝備它,Click the lamp to equip it,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1005,按 B 關閉背包,Press B to close your bag,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1006,按住左鍵或空白鍵，點亮佛燈,Hold Left-Click or Space to light the lamp,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# ── 新手教學：儲藏室 HP 藥水（1007–1099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1007,走過去，撿起藥水（靠近按 F）,Walk over and pick up the potion (get close and press F),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1008,按 F 撿起藥水,Press F to pick up the potion,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1009,點一下藥水，放進藥水格,Click the potion to place it in the potion slot,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1010,按 1 喝下藥水,Press 1 to drink the potion,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# ── 劇情對話 (2000~4000) ──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1100,道長，請救救小女啊,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1101,我們全家已經不行了\n但小女還有救,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1102,辦法不是沒有\n只是你能接受嗎?,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1103,這個給你吧\n就剩兩張了,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1104,用或是不用\n全看你,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+1105,多謝道長恩賜\n在下感恩不盡,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# ── 鍛造介面（4001–4099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4001,鍛造,Forge,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4002,移除鑲嵌,Remove Gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4003,拆除裝備,Dismantle,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4004,這個功能還沒做好,This feature is not ready yet,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4005,只能放入武器或裝備,Only weapons and equipment can be placed here,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4006,鍛造台只認得背包裡的東西，請先放進背包,The anvil only accepts items from your bag,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# ── 選擇存檔畫面（5001–5099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5001,選擇存檔,Select Save,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5002,欄位,Slot,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5003,空欄位,Empty Slot,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5004,新建遊戲,New Game,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5005,進入遊戲,Enter Game,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5006,刪除角色,Delete Character,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5007,確定要刪除這個角色嗎？\n刪除後無法復原。,Delete this character?\nThis cannot be undone.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5008,{0}周目,Cycle {0},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+5009,存檔損毀,Save Corrupted,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4007,強化裝備,Upgrade,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4008,這個孔只能鑲能力珠,Only ability gems fit in a socket,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4009,請先把裝備放上鐵砧,Place an item on the anvil first,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4010,這件裝備上沒有鑲嵌,This item has no gems socketed,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4011,背包空位不夠，無法取下全部鑲嵌,Not enough bag space to remove all gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4012,已取下 {0} 顆能力珠,Removed {0} gem(s),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# ── 血統系統（2001–2099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2001,這不是血統藥劑,This is not a bloodline elixir,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2002,你的血脈已定為「{0}」，這一世不能再改變,"Your bloodline is set to ""{0}"" and cannot change this life",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2003,這瓶藥劑的血統在血統表找不到,This elixir's bloodline is missing from the bloodline table,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2004,背包裡沒有這瓶藥劑,You do not have that elixir,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2005,還沒載入角色，現在不能喝,No character loaded yet,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2006,你尚未覺醒任何血脈，無法進階,You have not awakened a bloodline yet,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2007,你的血脈不屬於任何系列，無法進階,Your bloodline belongs to no lineage and cannot advance,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2008,血脈尚未成熟，需先進階為「{0}」,"Your bloodline is not ready. Advance to ""{0}"" first",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2009,你的血脈已在此之上,Your bloodline is already beyond this,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2010,你的血脈已至頂點,Your bloodline has reached its peak,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2011,喝下「{0}」？\n血統一世只能決定一次，喝下去就不能反悔。,"Drink ""{0}""?\nYour bloodline is chosen once per life and cannot be undone.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2012,喝下「{0}」？\n你的血脈將從「{1}」進為「{2}」，無法還原。,"Drink ""{0}""?\nYour bloodline will advance from ""{1}"" to ""{2}"". This cannot be undone.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2013,血脈已定：{0},Bloodline set: {0},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2014,血脈進化：{0},Bloodline advanced: {0},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+2015,無法飲用,Cannot drink this,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+# ── 標題畫面（6001–6099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+6001,開 始 遊 戲,START GAME,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

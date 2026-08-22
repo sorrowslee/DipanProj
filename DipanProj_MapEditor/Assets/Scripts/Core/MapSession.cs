@@ -60,6 +60,7 @@ namespace DipanMapEditor.Core
         {
             var map = JsonConfig.Deserialize<MapData>(json);
             if (map == null) return;
+            map.NormalizeCutscenes();
             Map = map;
             OnMapRebuilt?.Invoke(Map);
         }

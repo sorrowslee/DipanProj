@@ -8,13 +8,21 @@ using Dipan.Drama;
 namespace Dipan.Cutscene
 {
     /// <summary>
-    /// 劇情演出排程器：讀 <see cref="MapData.cutscene"/>，用協程依序執行步驟（支援 parallelNext 並行），
-    /// 串接鎖輸入、A* 走位、對話（沿用 DramaTable）、置中漫畫、運鏡、螢幕特效、旗標、結束交棒。
-    /// 由 <see cref="MapManager"/> 在每次載圖完成後呼叫 <see cref="MaybeAutoStart"/>。
+    /// 劇情演出排程器：讀 <see cref="MapData.cutscenes"/>，用協程依序執行步驟（支援 parallelNext 並行），
+    /// 串接鎖輸入、A* 走位、對話（沿用 DramaTable）、頭上對話框、置中漫畫、運鏡、螢幕特效、旗標、結束交棒。
+    ///
+    /// **兩個啟動入口**：
+    ///   ‧ <see cref="MaybeAutoStart"/>：<see cref="MapManager"/> 每次載圖完成後呼叫，autoStartOnEnter=true 才開演。
+    ///   ‧ <see cref="PlayById"/>：觸發鏈的 <c>playCutscene</c> 動作呼叫。把 autoStartOnEnter 關掉、
+    ///     改用 trigger 啟動，就能沿用觸發鏈整套「條件旗標／重複規則（關卡單次·每次·每周目·永久）」來管
+    ///     「這段劇情能不能播、播幾次」——**自動播是沒有一次性機制的，每次進圖都會重播**。
     /// 半演出半漫畫的開場設計見 readme（CUTSCENE_DIRECTOR）。
     /// </summary>
     public class CutsceneDirector : MonoBehaviour
     {
+        /// <summary>輸入鎖的具名持有者（見 PROBLEMS D13：共用預設 key 會互相解鎖）。</summary>
+        const string HoldOwner = "CutsceneDirector";
+
         static CutsceneDirector _active;
 
         /// <summary>目前是否有劇情正在自動演出（給 MapManager 判斷「等劇情演完再點火進場觸發」）。</summary>
@@ -26,18 +34,82 @@ namespace Dipan.Cutscene
         readonly Dictionary<string, CutsceneActor> _actors = new Dictionary<string, CutsceneActor>();
         MapCameraController _cam;
         bool _skip;
+        System.Action _onFinished;   // 由 playCutscene 帶進來：演完（且沒交棒換圖）才接觸發鏈的 next
+        bool _hudWasOpen;            // 開演前底部血量 HUD 是不是開著（hideHud 收尾要還原成原樣，不是無條件打開）
+        bool _released;              // 全域狀態（輸入鎖/回憶特效/隱藏主角/HUD）是否已還原，避免重複做
         GameObject _comicGo;
         GameObject _fadeGo;
         UnityEngine.UI.Image _fadeImg;
 
-        /// <summary>載圖完成後呼叫：此圖有演出且 autoStartOnEnter 就開演。</summary>
+        /// <summary>載圖完成後呼叫：此圖有演出、autoStartOnEnter、且 requireFlag 條件成立就開演。</summary>
         public static void MaybeAutoStart(MapData map, GameObject player)
         {
-            if (map == null || map.cutscene == null) return;
-            var cs = map.cutscene;
-            if (!cs.autoStartOnEnter || cs.steps == null || cs.steps.Count == 0) return;
+            var cs = map?.MainCutscene;
+            if (cs == null || !cs.autoStartOnEnter) return;
+            StartCutscene(cs, map, null);
+        }
 
-            if (_active != null) { Destroy(_active.gameObject); _active = null; }   // 換圖收掉上一個
+        /// <summary>
+        /// 觸發鏈 <c>playCutscene</c> 的入口：播這張圖 id 指定的那段演出（id 留空＝第一段）。
+        /// 演完（且該段沒有 <c>end</c> 交棒換圖）才呼叫 <paramref name="onDone"/> 讓鏈接 next；
+        /// 有交棒換圖時鏈就此結束（同 teleportTo 的慣例）。
+        /// 回傳 false＝沒開演（找不到／沒步驟／已有演出在跑），呼叫端應直接接 next 不要卡住。
+        /// </summary>
+        public static bool PlayById(string id, System.Action onDone)
+        {
+            if (IsPlaying)
+            {
+                Debug.LogWarning($"[Cutscene] playCutscene「{id}」：已經有一段演出在跑，忽略這次啟動（鏈照常往下）。");
+                return false;
+            }
+            var map = MapManager.Instance != null && MapManager.Instance.mapLoader != null
+                ? MapManager.Instance.mapLoader.Map : null;
+            if (map == null) { Debug.LogWarning("[Cutscene] playCutscene：拿不到目前地圖，略過。"); return false; }
+
+            var cs = map.FindCutscene(id);
+            if (cs == null)
+            {
+                Debug.LogWarning($"[Cutscene] playCutscene：這張圖找不到 id=「{id}」的演出" +
+                                 "（留空＝第一段；地圖上要先在編輯器「劇情」分頁建立演出）。");
+                return false;
+            }
+            return StartCutscene(cs, map, onDone);
+        }
+
+        /// <summary>
+        /// 播放條件旗標是否成立（`requireFlag`；前綴 "!" ＝否定，留空＝不檢查）。
+        /// 語意與觸發點的 `requireFlag` 完全一致，走同一支 <see cref="TriggerChain.FlagTrue"/>，
+        /// 生命週期（周目／永久／關卡單次）由全域 flags.json 決定。
+        /// </summary>
+        static bool FlagConditionMet(Dipan.MapRuntime.Cutscene cs)
+        {
+            string req = cs.requireFlag;
+            if (string.IsNullOrWhiteSpace(req)) return true;
+            req = req.Trim();
+            bool neg = req.StartsWith("!");
+            string key = neg ? req.Substring(1).Trim() : req;
+            if (string.IsNullOrEmpty(key)) return true;
+            bool ok = TriggerChain.FlagTrue(key) != neg;
+            if (!ok) Debug.Log($"[Cutscene] 條件旗標「{req}」不成立，這段演出不播。");
+            return ok;
+        }
+
+        /// <summary>實際開演。回傳 false＝這段沒東西可演。</summary>
+        static bool StartCutscene(Dipan.MapRuntime.Cutscene cs, MapData map, System.Action onDone)
+        {
+            if (cs == null || cs.steps == null || cs.steps.Count == 0) return false;
+            if (!FlagConditionMet(cs)) return false;
+
+            // 換圖收掉上一個。⚠ **一定要先同步 ReleaseGlobals 再 Destroy**：
+            // Destroy 延到幀尾才真的執行（見 PROBLEMS B12），舊 director 的 OnDestroy 安全網會在
+            // 「新演出已經把主角藏好、把回憶特效打開」之後才跑 → 當場把新演出的設定全部還原掉。
+            // 先同步釋放，`_released` 就已經是 true，幀尾那次 OnDestroy 變成 no-op。
+            if (_active != null)
+            {
+                _active.ReleaseGlobals(restorePlayerPosition: false);
+                Destroy(_active.gameObject);
+                _active = null;
+            }
             for (int i = 0; i < _standing.Count; i++) if (_standing[i] != null) Destroy(_standing[i]);
             _standing.Clear();
 
@@ -45,8 +117,10 @@ namespace Dipan.Cutscene
             var dir = go.AddComponent<CutsceneDirector>();
             _active = dir;
             dir._cs = cs;
-            dir._tileSize = map.tileSize > 0f ? map.tileSize : 1f;
+            dir._onFinished = onDone;
+            dir._tileSize = map != null && map.tileSize > 0f ? map.tileSize : 1f;
             dir.StartCoroutine(dir.Run());
+            return true;
         }
 
         void Update()
@@ -57,12 +131,57 @@ namespace Dipan.Cutscene
             // 同慣例見 IntroComicController / IntroFallController 的 AllowSkip。
             if (DevSkip.Allowed && _cs != null && _cs.skippable && !_skip && Input.GetKeyDown(KeyCode.Escape))
                 _skip = true;   // 略過：中止剩餘步驟，直接收尾＋交棒
+
+            EnforceHudHidden();
+        }
+
+        /// <summary>
+        /// 維持「演出期間血量 HUD 關著」。**必須每幀重做，不能只在開演時關一次**——
+        /// 血量 HUD 有兩個會主動打開它的來源，而其中一個的時機正好在開演之後：
+        ///   ① <c>MapManager.PlaceAndSetup</c>：在呼叫 MaybeAutoStart **之前**開，所以開演時關掉是有效的；
+        ///   ② <c>PlayerController.Start()</c>：玩家**初次生成**那一幀才跑，而 Unity 的 Start 是在
+        ///      建立它的那支程式跑完之後才呼叫 ⇒ **比 MaybeAutoStart 晚**，會把剛關掉的 HUD 又開回來。
+        /// 症狀就是「勾了關閉血量 HUD 卻還在」，而且只在「進關卡第一張圖（玩家在那裡生成）」才發生，
+        /// 同 module 房間互跳反而正常——極難反推。用每幀維持是最省事也最保險的做法：
+        /// 之後不管誰去開 HUD 都蓋不過演出。
+        /// </summary>
+        void EnforceHudHidden()
+        {
+            if (_cs == null || !_cs.hideHud) return;
+            if (UIManager.Instance == null || !UIManager.Instance.IsOpen<BottomHudPanel>()) return;
+            _hudWasOpen = true;   // 有人想開＝演出結束後本來就該是開著的，記下來給收尾還原
+            UIManager.Instance.Close<BottomHudPanel>();
         }
 
         IEnumerator Run()
         {
             _cam = FindObjectOfType<MapCameraController>();
-            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(_cs.lockInput, false);
+            // 具名持有者（PROBLEMS D13）：劇情現在可以由 playCutscene 在遊戲中途啟動，
+            // 而 cameraFocus / MosaicController 之類也會掛 hold；共用預設 key 的話誰先解鎖就把別人的一起解掉。
+            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(HoldOwner, _cs.lockInput, false);
+
+            // 回憶特效：整段演出掛著「泛黃老照片＋柔邊暈影」後處理，Cleanup 一定會關掉。
+            if (_cs.memoryFx) Dipan.MapFx.MemoryFxController.Begin();
+
+            // 關閉底部血量 HUD：演出常演在畫面下方、會被血球擋住。
+            // ⚠ 只關 BottomHudPanel、不要用 SetLayerVisible(HUD,false) 把整層藏起來——
+            //    頭上對話框（MonsterSpeechPanel）與提示也在 HUD 層，整層藏掉連演員說的話都看不到。
+            //    做法比照 MapManager 對開場山道(13/14)的處理。
+            //    關一次不夠，之後每幀由 EnforceHudHidden 維持（理由見那支的註解）。
+            _hudWasOpen = false;
+            EnforceHudHidden();
+
+            // 隱藏主角：關 SpriteRenderer＋影子＋碰撞（不能直接 SetActive，理由見 PlayerVisibility 註解）。
+            if (_cs.hidePlayer)
+            {
+                bool hasPlayerActor = false;
+                if (_cs.actors != null)
+                    foreach (var a in _cs.actors) if (a != null && a.kind == "player") { hasPlayerActor = true; break; }
+                if (hasPlayerActor)
+                    Debug.LogWarning("[Cutscene] 這段同時勾了「隱藏主角」又放了 player 演員（主角傀儡）——" +
+                                     "主角被藏起來就走不動也看不見，兩者只該選一個。這次以隱藏為準。");
+                PlayerVisibility.Hide();
+            }
 
             BuildActors();
 
@@ -90,9 +209,29 @@ namespace Dipan.Cutscene
             CutsceneStep endStep = null;
             for (int k = steps.Count - 1; k >= 0; k--) if (steps[k].type == "end") { endStep = steps[k]; break; }
 
-            Cleanup(endStep != null);
+            // ⚠ 「有 end 步驟」≠「會換圖」：`end` 的去向留空＝就地收尾、不交棒（見 §3）。
+            //    npc 的銷毀沿用舊語意（有 end 就收掉），但「玩家要不要放回原位」「鏈要不要接 next」
+            //    必須看**真的有沒有交棒**——否則 end 留空的同圖演出會變成「主角不回原位、鏈莫名斷掉」。
+            bool handoff = endStep != null && !string.IsNullOrWhiteSpace(endStep.assetId);
+
+            Cleanup(endStep != null, handoff);
+
+            // 完成寫旗標：被 ESC 略過也算演過了（略過本來就會照走 end 交棒，語意一致）。
+            // 典型用法＝條件填 "!x"、這裡填 "x" ⇒ 這段一輩子/這周目/這趟關卡只播一次（由旗標的生命週期決定）。
+            if (!string.IsNullOrWhiteSpace(_cs.setFlag))
+            {
+                TriggerChain.SetFlag(_cs.setFlag.Trim());
+                // 旗標變了 → 本圖可能有 requireFlag 依賴它的互動點要現身/消失，重建一次（同 TriggerChain.OnCompleted）。
+                if (MapManager.Instance != null) MapManager.Instance.RefreshTriggers();
+            }
+
             if (endStep != null) DoHandoff(endStep.assetId);
             if (_active == this) _active = null;
+
+            // 交棒換圖時鏈就此結束（同 teleportTo 慣例）；沒交棒才把棒子還給觸發鏈接 next。
+            var cont = _onFinished; _onFinished = null;
+            if (!handoff) cont?.Invoke();
+
             Destroy(gameObject);
         }
 
@@ -123,6 +262,7 @@ namespace Dipan.Cutscene
                 case "move": yield return MoveStep(s); break;
                 case "face": { var a = Find(s.actorId); if (a != null) a.Face(s.facing); break; }
                 case "dialogue": yield return DialogueStep(s); break;
+                case "bubble": yield return BubbleStep(s); break;
                 case "wait": yield return WaitUnscaled(s.seconds); break;
                 case "camera": yield return CameraStep(s); break;
                 case "cameraFollow": yield return CameraFollowStep(s); break;
@@ -169,6 +309,24 @@ namespace Dipan.Cutscene
             float t = 0f; bool opened = false;
             while (t < 0.5f) { if (DramaOpen()) { opened = true; break; } t += Time.unscaledDeltaTime; yield return null; }
             if (opened) while (DramaOpen() && !_skip) yield return null;
+        }
+
+        // 頭上對話框：不跳對話視窗，直接在演員頭上冒一個水墨泡泡（沿用怪物說話那套面板與美術）。
+        // 文字走語言表（玩家可見字串一律 Language.GetText，見 AGENTS.md 鐵則）。
+        // 預設「說完才往下」＝擋住 seconds 秒；要「一邊走一邊講」就把這步驟勾 background。
+        IEnumerator BubbleStep(CutsceneStep s)
+        {
+            var a = Find(s.actorId);
+            if (a == null || a.tr == null)
+            {
+                Debug.LogWarning($"[Cutscene] bubble 步驟找不到演員「{s.actorId}」，略過。");
+                yield break;
+            }
+            string text = Dipan.Localization.Language.GetText(s.langId);
+            float dur = s.seconds > 0f ? s.seconds : 2f;
+            a.EnsureVisible();
+            Dipan.UI.MonsterSpeechPanel.Speak(a.tr, text, dur);
+            yield return WaitUnscaled(dur);
         }
 
         static bool DramaOpen()
@@ -287,10 +445,48 @@ namespace Dipan.Cutscene
             if (_comicGo != null) { Destroy(_comicGo); _comicGo = null; }
         }
 
-        void Cleanup(bool destroyNpcs)
+        /// <param name="destroyNpcs">有 end 步驟＝把 npc 演員收掉（沒有就留在原地站著）。</param>
+        /// <param name="handoff">**真的會換圖/換場景**（end 有填去向）。決定主角要不要放回原位。</param>
+        /// <summary>
+        /// 還原這段演出對「全域狀態」動過的手（輸入鎖／回憶特效／隱藏主角／血量 HUD）。冪等，可重複呼叫。
+        ///
+        /// ⚠ **一定要能從 <see cref="OnDestroy"/> 走到這裡**：正常收尾走 <see cref="Cleanup"/>，但演出也可能
+        /// **被直接銷毀而不收尾**——換圖時 <c>StartCutscene</c> 會 <c>Destroy</c> 掉還在跑的上一個 director，
+        /// 協程當場中斷、`Cleanup` 永遠不會執行。漏掉的話玩家會**永遠隱形、畫面永遠泛黃、輸入永遠鎖著**，
+        /// 而且症狀出現在「下一張圖」，跟真正的原因隔了一次換圖，極難反推。
+        /// </summary>
+        void ReleaseGlobals(bool restorePlayerPosition)
+        {
+            if (_released) return;
+            _released = true;
+
+            if (_cs != null && _cs.memoryFx) Dipan.MapFx.MemoryFxController.End();
+
+            // 血量 HUD 還原成「開演前的樣子」——不是無條件打開。開場山道(13/14)那種本來就沒 HUD 的圖，
+            // 無條件 Open 會憑空生出血球。有交棒換圖時也照還原，換圖後 MapManager 會依新地圖再決定一次。
+            if (_cs != null && _cs.hideHud && _hudWasOpen && UIManager.Instance != null
+                && !UIManager.Instance.IsOpen<BottomHudPanel>())
+                UIManager.Instance.Open<BottomHudPanel>();
+
+            // 主角現身：同圖結束 → 放回開演前的位置；有交棒換圖 → 新圖會自己安排落點，不要硬拉回舊座標。
+            if (_cs != null && _cs.hidePlayer) PlayerVisibility.Show(restorePlayerPosition);
+
+            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(HoldOwner, false, false);
+        }
+
+        void OnDestroy()
+        {
+            // 安全網：被中途銷毀（換圖打斷、停止 Play）時，至少要把全域狀態還原。
+            // 位置不還原——會走到這裡多半是換圖，新圖自己會安排落點。
+            ReleaseGlobals(restorePlayerPosition: false);
+        }
+
+        void Cleanup(bool destroyNpcs, bool handoff)
         {
             HideComic();
             HideFade();
+            ReleaseGlobals(restorePlayerPosition: !handoff);
+
             foreach (var kv in _actors)
             {
                 var a = kv.Value;
@@ -302,7 +498,6 @@ namespace Dipan.Cutscene
             _actors.Clear();
             if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
             if (_cam != null) { _cam.SetFocusPoint(null); _cam.ClearCameraZone(); }
-            if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(false, false);
         }
 
         // 結束交棒：assetId 可為 mapId 數字 / "map:12" → MapManager.GoToMap；"scene:名稱" → 載場景。

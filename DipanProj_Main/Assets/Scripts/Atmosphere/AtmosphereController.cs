@@ -50,6 +50,7 @@ public class AtmosphereController : MonoBehaviour
 
     private int _mode = 1;         // 當前氛圍型別（1=正常；2=幽暗；3=噩夢…）。預設 1，等地圖設定。
     private float _envDark = 0f;   // 環境壓暗量 0~1（＝1 − 環境亮度/100）。只在 _mode==1 生效。
+    private float _bypass = 0f;    // 氛圍旁通 0~1（1＝完全還原原始畫面）。見 SetBypass。
 
     private Material _mat;
     private Camera _cam;
@@ -81,6 +82,19 @@ public class AtmosphereController : MonoBehaviour
         if (Instance == null) return;
         Instance._mode = type;
         Instance._envDark = 1f - Mathf.Clamp01(envBright / 100f);
+    }
+
+    /// <summary>
+    /// 暫時淡出整套氛圍（0＝正常、1＝完全還原原始畫面）。**目前唯一呼叫者是回憶演出**
+    /// （<c>Dipan.MapFx.MemoryFxController</c>）：幽暗／噩夢地圖畫面幾乎全黑，任何乘法式的
+    /// 色調效果在那上面都等於失效，所以回憶期間把氛圍整個淡掉、讓場景亮回來再套回憶色。
+    /// 語意也對——回憶不是「現在這個黑房間」，不該有提燈的黑暗感。
+    /// ⚠ 它會連天氣（雨雪風霧）與提燈光圈一起淡掉，這是刻意的。
+    /// </summary>
+    public static void SetBypass(float v)
+    {
+        if (Instance == null) return;
+        Instance._bypass = Mathf.Clamp01(v);
     }
 
     private void Awake()
@@ -149,6 +163,7 @@ public class AtmosphereController : MonoBehaviour
         _blit.Material = _mat;
         _mat.SetFloat("_Mode", _mode);
         _mat.SetFloat("_EnvDark", _envDark);
+        _mat.SetFloat("_Bypass", _bypass);
         _mat.SetFloat("_Aspect", (float)Screen.width / Mathf.Max(1, Screen.height));
 
         int count = BuildLights();
@@ -168,7 +183,8 @@ public class AtmosphereController : MonoBehaviour
         Vector3 from = _player != null ? _player.position : _cam.transform.position;
 
         // ① 玩家身上的發光裝（提燈）：以玩家為心，沿用單光源時代的暖色與呼吸手感。
-        float pr = PlayerEquippedLightRadius();
+        // ⚠ 劇情把主角藏起來時（PlayerVisibility.IsHidden）要一起跳過——否則空地上會浮著一圈沒有主人的光。
+        float pr = Dipan.Cutscene.PlayerVisibility.IsHidden ? 0f : PlayerEquippedLightRadius();
         if (pr > 0f && _player != null)
         {
             float slow = Mathf.PerlinNoise(_seed, t * 0.55f);

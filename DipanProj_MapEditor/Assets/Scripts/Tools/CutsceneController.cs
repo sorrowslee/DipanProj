@@ -50,7 +50,7 @@ namespace DipanMapEditor.Tools
             if (_ui == null) return;
             if (_ui.CurrentTool != EditTool.Cutscene) { Mode = PlaceMode.None; return; }
 
-            var cs = session.Map.cutscene;
+            var cs = session.Map.MainCutscene;
             if (cs == null) { SelectedActor = null; SelectedStep = null; Mode = PlaceMode.None; }
             else
             {
@@ -103,16 +103,21 @@ namespace DipanMapEditor.Tools
         {
             var map = MapSession.Instance?.Map;
             if (map == null) return null;
-            if (map.cutscene == null) { UndoManager.Push(); map.cutscene = new Cutscene(); }
-            return map.cutscene;
+            if (map.MainCutscene == null)
+            {
+                UndoManager.Push();
+                if (map.cutscenes == null) map.cutscenes = new System.Collections.Generic.List<Cutscene>();
+                map.cutscenes.Add(new Cutscene());
+            }
+            return map.MainCutscene;
         }
 
         public void RemoveCutscene()
         {
             var map = MapSession.Instance?.Map;
-            if (map == null || map.cutscene == null) return;
+            if (map == null || map.MainCutscene == null) return;
             UndoManager.Push();
-            map.cutscene = null; SelectedActor = null; SelectedStep = null; Mode = PlaceMode.None;
+            map.cutscenes.Clear(); SelectedActor = null; SelectedStep = null; Mode = PlaceMode.None;
         }
 
         public void NewActor()
@@ -133,7 +138,7 @@ namespace DipanMapEditor.Tools
 
         public void DeleteActor(CutsceneActor a)
         {
-            var cs = MapSession.Instance?.Map?.cutscene; if (cs == null || a == null) return;
+            var cs = MapSession.Instance?.Map?.MainCutscene; if (cs == null || a == null) return;
             UndoManager.Push(); cs.actors.Remove(a);
             if (SelectedActor == a) SelectedActor = null; Mode = PlaceMode.None;
         }
@@ -151,7 +156,7 @@ namespace DipanMapEditor.Tools
 
         public void DeleteStep(CutsceneStep s)
         {
-            var cs = MapSession.Instance?.Map?.cutscene; if (cs == null || s == null) return;
+            var cs = MapSession.Instance?.Map?.MainCutscene; if (cs == null || s == null) return;
             UndoManager.Push(); cs.steps.Remove(s);
             if (SelectedStep == s) SelectedStep = null; Mode = PlaceMode.None;
         }
@@ -161,7 +166,7 @@ namespace DipanMapEditor.Tools
 
         public void MoveStep(CutsceneStep s, int dir)
         {
-            var cs = MapSession.Instance?.Map?.cutscene; if (cs == null || s == null) return;
+            var cs = MapSession.Instance?.Map?.MainCutscene; if (cs == null || s == null) return;
             int i = cs.steps.IndexOf(s); int j = i + dir;
             if (i < 0 || j < 0 || j >= cs.steps.Count) return;
             UndoManager.Push();

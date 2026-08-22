@@ -404,6 +404,23 @@
       ]
     },
     {
+      "typeId": "playCutscene",
+      "displayName": "播放劇情(鏈動作)",
+      "color": "#FFB0E0",
+      "params": [
+        {
+          "key": "cutsceneId",
+          "type": "String",
+          "label": "演出id(留空=第一段)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
       "typeId": "playScreenFx",
       "displayName": "播放螢幕特效(鏈動作)",
       "color": "#D98CFF",

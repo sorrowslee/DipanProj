@@ -31,8 +31,34 @@ namespace Dipan.MapRuntime
         // 給「火炬/燈籠已經畫在背景圖裡」的情況：不必把它們從背景拆成地上物，把光源點放到火焰中心就會發光。
         public List<LightInstance> lights = new List<LightInstance>();
 
-        /// <summary>劇情演出（半演出半漫畫的過場）；null＝此圖無演出。目前一張圖最多一段。</summary>
+        /// <summary>劇情演出清單；空＝此圖無演出。目前一張圖只會有一段，但格式先做成清單（見編輯器端 MapData 註解）。</summary>
+        public List<Cutscene> cutscenes = new List<Cutscene>();
+
+        /// <summary>⚠ 舊格式相容欄位（單一物件）。讀檔後由 <see cref="NormalizeCutscenes"/> 搬進 cutscenes，不要直接讀。</summary>
         public Cutscene cutscene = null;
+
+        /// <summary>（第一段）演出；沒有就回 null。</summary>
+        [JsonIgnore] public Cutscene MainCutscene => (cutscenes != null && cutscenes.Count > 0) ? cutscenes[0] : null;
+
+        /// <summary>依 id 找一段演出；id 留空＝取第一段。找不到回 null。</summary>
+        public Cutscene FindCutscene(string id)
+        {
+            if (cutscenes == null || cutscenes.Count == 0) return null;
+            if (string.IsNullOrWhiteSpace(id)) return cutscenes[0];
+            string want = id.Trim();
+            for (int i = 0; i < cutscenes.Count; i++)
+                if (cutscenes[i] != null && string.Equals(cutscenes[i].id?.Trim(), want, System.StringComparison.OrdinalIgnoreCase))
+                    return cutscenes[i];
+            return null;
+        }
+
+        /// <summary>讀檔後呼叫：把舊格式的單一 cutscene 搬進 cutscenes 清單。</summary>
+        public void NormalizeCutscenes()
+        {
+            if (cutscenes == null) cutscenes = new List<Cutscene>();
+            if (cutscenes.Count == 0 && cutscene != null) cutscenes.Add(cutscene);
+            cutscene = null;
+        }
 
         [JsonIgnore] public int Subdiv => walkSubdiv < 1 ? 1 : walkSubdiv;
         [JsonIgnore] public int FineWidth => width * Subdiv;

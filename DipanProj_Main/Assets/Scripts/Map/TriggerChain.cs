@@ -32,6 +32,7 @@ public static class TriggerChain
     public const string TypeTeleportTo = "teleportTo";
     public const string TypeCameraFocus = "cameraFocus";   // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格中心＋黑幕，停留後拉回，再接 next
     public const string TypePlayerHint = "playerHint";     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，到收起時機（移動/攻擊/任意鍵）自動收，再接 next
+    public const string TypePlayCutscene = "playCutscene"; // 播放劇情演出（鏈動作）：播本圖的一段 cutscene（cutsceneId 留空＝第一段），演完才接 next。搭配該段 autoStart=off，就能用觸發鏈的條件旗標/重複規則管「這段劇情能不能播、播幾次」
     public const string TypePlayScreenFx = "playScreenFx"; // 播放螢幕特效（鏈動作）：就地播一次性全螢幕過場特效（依 effectId，如 1=破幻術）、暫停擋操作，播完再接 next（通常＝teleportTo）
     public const string TypeTogglePortal = "togglePortal"; // 開關傳送點（鏈動作）：把 target 指定的傳送點隱藏封鎖(show=false)或顯示解鎖(show=true)，含外型/綠幕，再接 next。Boss 房封門用
     public const string TypeOnEnter = "onEnter";           // 進場觸發（自動）：進圖載入結束後自動觸發，純鏈起點（0 格、不塗格子），見 MapManager.FireEnterTriggersRoutine
@@ -325,6 +326,7 @@ public static class TriggerChain
             case TypeCameraFocus: ExecuteCameraFocus(r); break;
             case TypePlayerHint: ExecutePlayerHint(r); break;
             case TypePlayScreenFx: ExecutePlayScreenFx(r); break;
+            case TypePlayCutscene: ExecutePlayCutscene(r); break;
             case TypeTogglePortal: ExecuteTogglePortal(r); break;
             case TypeSelectScript: ExecuteSelectScript(r); break;
             case TypeUnlockRoll: ExecuteUnlockRoll(r); break;
@@ -538,6 +540,23 @@ public static class TriggerChain
         int effectId = r.GetInt("effectId", 0);
         float dur = r.GetFloat("duration", -1f);   // 留空 = 用該特效控制器預設總長
         ScreenFxPlayer.Play(effectId, () => OnCompleted(r), dur);   // 未知/為 0 的 id：ScreenFxPlayer 會警告並直接接 next
+    }
+
+    // 播放劇情演出（鏈動作）：播這張圖的一段 cutscene（編輯器「劇情」分頁排的那個），演完才接 next。
+    //
+    // ★ 存在的理由：劇情演出原本**只能「一進圖自動播」**，而自動播沒有任何一次性機制——每次進這張圖都會重播一次。
+    //   把該段的 autoStart 關掉、改由這顆 trigger 啟動之後，整套觸發鏈的守門條件就自動生效：
+    //   `條件旗標`／`重複規則(關卡單次·每次·每周目·永久)`／`周目上下限`／`完成關卡數` 全都能用來管這段劇情。
+    //   典型：走進房間的 camZone → next → playCutscene(重複規則=每周目) → next → 開門。
+    //
+    // cutsceneId 留空＝播第一段（目前一張圖就只有一段；欄位先留著，之後支援多段時直接填 id）。
+    // ⚠ 若該段演出的結尾有 `end` 交棒（換圖/接墜落），鏈就此結束、不會接 next（同 teleportTo 慣例）。
+    static void ExecutePlayCutscene(TriggerRegion r)
+    {
+        string id = r.GetString("cutsceneId");
+        // 開不成（找不到那段/沒步驟/已有演出在跑）→ PlayById 會印警告並回 false，這裡直接接 next 不讓鏈卡死。
+        if (!Dipan.Cutscene.CutsceneDirector.PlayById(id, () => OnCompleted(r)))
+            OnCompleted(r);
     }
 
     // 開關傳送點（鏈動作）：把 target 指定的**一或多個**傳送點隱藏封鎖或顯示解鎖，含外型/綠幕與踩踏功能，立即完成接 next。

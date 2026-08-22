@@ -115,6 +115,12 @@
   ⚠️ 換圖 = 鏈的終點（setFlag 會先寫掉，next 填了也不會執行）。cutscene 同理。
 - **`cameraFocus` 鏡頭聚焦(鏈動作)**：`holdSeconds`（停留秒數，留空=1.6）、`dim`（黑幕樣式：`中央留洞`(預設)／`整片全黑`／`無`）。被鏈啟動時**飄鏡頭到自己那格區域中心＋壓黑幕、停留、再拉回**，全程定住玩家；**表演完才接 next**。聚焦中心＝這個 trigger 畫的格子中心（通常畫在要對準的地方正中一格，例如傳送門中間）。純靠鏈驅動，**玩家踩不觸發**。
   典型用法：`對話 → next → cameraFocus → next → 下一段對話`，讓「講完話 → 鏡頭帶去看目標 → 再講引導詞」的運鏡完全由地圖資料排出來，不用寫程式。
+- **`playCutscene` 播放劇情(鏈動作)**：`cutsceneId`（要播哪一段演出，**留空＝第一段**）。被鏈啟動時播這張圖在編輯器「劇情」分頁排好的那段演出，**演完才接 next**。純靠鏈驅動、玩家踩不觸發，格子畫在地圖角落即可。
+  **為什麼需要它**：劇情演出原本**只能「一進圖自動播」**，而自動播沒有任何一次性機制——`CutsceneDirector.MaybeAutoStart` 不查旗標也不查 `repeat`，**每次進這張圖都會重播一次**。把該段的「一進圖自動播」關掉、改放這顆 trigger 之後，整套守門條件立刻全部可用：`條件旗標`／`重複規則`（關卡單次·每次·每周目·永久）／`周目上下限`／`完成關卡數`／`條件不成立時`。
+  典型用法：`camZone(走進房間) → next → playCutscene(重複規則=每周目) → next → togglePortal(開門)`。
+  ⚠ **該段演出結尾若有 `end` 交棒**（換圖／接墜落），鏈就此結束、**不會接 next**（同 `teleportTo`）。開不成時（找不到那段／沒步驟／已有演出在跑）會印 Warning 並直接接 next，不讓鏈卡死。
+  ⚠ **只要「進圖只播一次」的話不必放這顆 trigger**——2026-08-22 起 Cutscene 自己就有 `條件旗標`／`完成寫旗標`（同一套旗標登記表），勾自動播＋填一組旗標即可，見 [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) §1.5。這顆 trigger 要解決的是**「什麼時候播」**（走到某處、打贏 boss、拿到東西之後），不是「播幾次」。
+  詳見 [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) §2.5。
 - **`playScreenFx` 播放螢幕特效(鏈動作)**：`effectId`（螢幕特效 id，欄旁有「**螢幕特效表**」按鈕可查/填清單）、`duration`（特效秒數，留空＝該特效預設）。被鏈啟動時**就地播一次性全螢幕過場特效**（依 `effectId` 分派，**id 1＝破幻術**「幻境崩碎回歸現實」：voronoi 玻璃裂紋 → 碎塊帶色散翻轉崩落 → 露白光 → 全白），暫停遊戲＋擋操作、**播完才接 next**。純靠鏈驅動、玩家踩不觸發。
   典型用法：`紅嫁衣對話 → next → playScreenFx(effectId=1) → next → teleportTo`（對話完 → 幻境當場崩碎 → 傳去現實榕樹妖）；破幻術收尾全白剛好蓋過跨 module 載入頁。
   程式（**加一種螢幕特效的三個維護點**）：① 寫該特效的 shader＋控制器（仿 `IllusionShatterController`／`EyeOpenController`，提供 `static Play(onDone, duration)`）；② 遊戲端 `ScreenFxPlayer.Play` 加一個 `case`；③ 更新編輯器「螢幕特效表」清單（`EditorUI.ScreenFxCatalog`）＋本檔／MAP_ENTER_EFFECT.md。這樣**加特效只動資料＋控制器、永遠不用再加 trigger 型別**。
