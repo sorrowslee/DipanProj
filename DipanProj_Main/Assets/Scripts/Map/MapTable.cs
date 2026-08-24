@@ -28,6 +28,13 @@ using UnityEngine;
 ///   再把周圍照回來。用途是「不到幽暗等級、但想讓火把有存在感」的室內走廊/地窖。
 ///   例：100 = 白天室外；70 = 陰天/傍晚；45 = 昏暗室內（火把明顯）；25 = 只靠火把看得見路。
 ///   Atmosphere >= 2 時忽略此欄（那些氛圍的暗度由氛圍本身定義）。見 readme/ATMOSPHERE.md。
+/// - SceneTip = **場景說明文字圖的 key**（留空 / 缺欄 = 這張圖不顯示場景說明）。
+///   進圖後會載入 <c>Resources/UI/Texts/SceneTipPanel_Text_&lt;key&gt;</c>（前綴寫死在 SceneTipPanel，
+///   語言資料夾由 LocalizedArt 自動解析），淡入淡出跳一次場景名。
+///   ⚠ **key 不是地圖 Name**：Name 是程式/檔案的內部名（Main_Square），key 是美術命名（BuddhaSquare），
+///   兩者刻意不綁在一起——地圖檔改名時圖不會跟著壞。
+///   ⚠ **同一趟關卡內同一個 key 只顯示一次**（去重用 key 不是地圖 id），所以整個關卡的房間可以
+///   全部填同一個 key：不管玩家先進哪一間都會跳、之後房間互跳都不會再跳。見 readme/SCENE_TIP.md。
 /// 見 readme/MAP_SYSTEM.md。
 /// </summary>
 public class MapTableRow
@@ -43,6 +50,7 @@ public class MapTableRow
     public int enterEffect = 0; // 進場一次性全螢幕過場＝ScreenFxTable 的 id：0=無 / 1=睜眼醒來 / 2=破幻術 / 3=馬賽克清晰（與劇情 screenFx 共用同一份 id；預設 0）
     public bool noWeapon = false; // 禁止玩家使用武器：0/空 = 可用（預設）；1 = 禁用（劇情地圖、大廳）
     public int envBright = 100;   // 環境亮度 0~100：只在 atmosphere==1 生效，把整張圖壓暗、讓場上的燈照回來（100/空 = 不壓暗）
+    public string sceneTip = "";  // 場景說明文字圖 key（空 = 這張圖不顯示場景說明）；圖＝UI/Texts/SceneTipPanel_Text_<key>
 }
 
 public class MapTable : MonoBehaviour
@@ -130,6 +138,10 @@ public class MapTable : MonoBehaviour
             int envBright = 100;
             if (v.Length >= 11 && int.TryParse(v[10].Trim(), out int eb)) envBright = Mathf.Clamp(eb, 0, 100);
 
+            // SceneTip 第 12 欄為新增、向下相容：缺欄 / 留空都 = 不顯示場景說明（舊行為）。
+            // 是最後一欄，所以值會帶著行尾的 \r —— Trim() 一併吃掉（同 name/module 的處理）。
+            string sceneTip = v.Length >= 12 ? v[11].Trim() : "";
+
             var row = new MapTableRow
             {
                 id = id,
@@ -143,6 +155,7 @@ public class MapTable : MonoBehaviour
                 enterEffect = enterEffect,
                 noWeapon = noWeapon,
                 envBright = envBright,
+                sceneTip = sceneTip,
             };
 
             if (_byId.ContainsKey(id))

@@ -39,6 +39,7 @@
 | [DESTRUCTIBLE_OBJECTS.md](DESTRUCTIBLE_OBJECTS.md) | 可破壞地上物 + 破壞特效(VfxTable ID 5) | 改地上物破壞、換破壞特效 |
 | [UI_SYSTEM.md](UI_SYSTEM.md) | UI 底層框架（uGUI + 全程式建構、多場景常駐、UIManager/UIPanel/UIBuilder、暫停與輸入閘門、共用拖放與視覺元件 IconFit/SlotOutline） | 做任何 UI（背包/設定/HUD…）、加新面板前 |
 | [BOTTOM_HUD.md](BOTTOM_HUD.md) | 底部操控列 HUD（燃燈佛框）＋ 左HP/右MP 液體血球（著色器液體、搖晃、懸停數字、暗場景調色）；取代舊左上角 HudPanel | 改底部 HUD、血球外觀/顏色/亮度/搖晃、血瓶槽位置 |
+| [SCENE_TIP.md](SCENE_TIP.md) | **場景說明**（進圖後畫面上方淡入一次場景名＋血紅分隔線，約 2.6 秒、整段暫停遊戲）：MapsTable 的 `SceneTip` 欄填 key → 載 `UI/Texts/SceneTipPanel_Text_<key>`；**同一趟關卡同一個 key 只跳一次**（所以整關房間可全填同一個 key）；掛在 `FireEnterTriggersRoutine` 等過場播完才跳 | 加/改場景名字圖、想讓某張圖跳（或不跳）名字、調字級位置節奏 |
 | [INVENTORY.md](INVENTORY.md) | 背包系統（InventorySystem 資料層 + InventoryPanel、**裝備包/消耗品包雙頁籤＋分頁**、ItemTable.csv、icon 規格與**自動正規化**、格子座標） | 改背包、物品、裝備欄、加 icon、動格子提示 |
 | [STORAGE.md](STORAGE.md) | 倉庫系統（StorageSystem + IItemGrid、倉庫+背包並排面板、點擊/拖放搬運、每角色獨立、存檔接線） | 改倉庫、做搬運 UI、套倉庫圖 |
 | [GEM_SOCKET.md](GEM_SOCKET.md) | **能力珠鑲嵌系統**（物品實例：表格只是模板、玩家手上那一件另外存；能力容器：攻擊讀容器不讀武器表；GemTable 一種珠子一列；ItemManager 唯一工廠骰孔數/等級；RandomRules 全遊戲機率） | **動武器/裝備/背包/掉落/存檔之前**；加能力珠、改鑲嵌、調孔數機率 |

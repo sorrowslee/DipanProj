@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Dipan.MapRuntime;
 using Dipan.UI;
@@ -45,6 +46,10 @@ public class MapManager : MonoBehaviour
     bool _loading;   // 載入進行中：擋掉重入（例如傳送 watcher 在載入期間又觸發）
     string _loadedModule;   // 已進入/預載的大地圖 module；跨 module 才出讀取頁＋預載，同 module 房間互跳不讀取
     bool _wakeUpWanted;   // 本次進圖要演「趴地→起身」（EnterEffect=1 睜眼醒來連動）；FireEnterTriggersRoutine 消化
+    // 本趟關卡已經跳過的場景說明 key（MapsTable 的 SceneTip 欄）。跨 module 進新關卡時清空。
+    // ⚠ 去重用 **key** 不是地圖 id：所以整個關卡的房間可以全填同一個名字——不管玩家先走進哪一間都會跳、
+    //   之後房間互跳都不再跳。純執行期狀態、不進存檔。見 Dipan.UI.SceneTipPanel。
+    readonly HashSet<string> _shownSceneTips = new HashSet<string>();
 
     public int CurrentMapId => _currentMapId;
 
@@ -167,6 +172,9 @@ public class MapManager : MonoBehaviour
             // （同 module 房間互跳走 else 分支、不清，旗標在整趟關卡內延續。）
             TriggerChain.ClearLevelFlags();
 
+            // 場景說明去重清空：跨 module = 新的一趟，所以每次回邪佛廣場、每次進紅嫁衣都會再跳一次名字。
+            _shownSceneTips.Clear();
+
             // 一趟關卡的臨時包/進度：進「非廣場」module = 開新的一趟（重置臨時包與已清怪/已取物/掉落物）；
             // 進廣場/教學則保險清掉殘留。同 module 房間互跳走 else 分支、不呼叫，本趟進度延續。見 RunProgress。
             RunProgress.Instance.OnEnterModule(row.module);
@@ -211,7 +219,7 @@ public class MapManager : MonoBehaviour
         _loading = false;
 
         // 進場觸發（onEnter）：載入完全結束（載入頁已關、玩家已就位）後，自動點火本圖的「進場觸發」點。
-        StartCoroutine(FireEnterTriggersRoutine());
+        StartCoroutine(FireEnterTriggersRoutine(row));
     }
 
     /// <summary>
@@ -222,11 +230,15 @@ public class MapManager : MonoBehaviour
     /// 4) 點火＝OnCompleted：寫完成旗標、啟動接續觸發（next）——它自己不做事，純鏈起點。
     /// 5) 多顆依區域清單順序點火；前一顆若開了對話，等對話關閉才點下一顆（避免兩段對話相撞）。
     /// 期間換圖就中止（新圖會有自己的一輪）。見 readme/TRIGGER_CHAIN.md。
+    ///
+    /// **順帶負責「場景說明」**（MapsTable 的 SceneTip 欄）：掛在同一條等待鏈上，等進場特效與進場劇情
+    /// 都播完、觸發點點火之前跳一次場景名。掛這裡是因為「等過場播完」的邏輯只該有一份。見 readme/SCENE_TIP.md。
     /// </summary>
-    IEnumerator FireEnterTriggersRoutine()
+    IEnumerator FireEnterTriggersRoutine(MapTableRow row)
     {
+        // ⚠ 這裡**不能**因為「沒有觸發層」就提早 return——場景說明也掛在這條等待鏈上（見下方），
+        //   沒有進場觸發點的地圖照樣要跳名字。regions 為 null 的處理留到真的要跑迴圈時。
         var regions = mapLoader != null ? mapLoader.Map?.TriggerLayer?.regions : null;
-        if (regions == null) yield break;
         int mapAtStart = _currentMapId;
 
         // 睜眼醒來連動（1/2）：先趴地定格（此時玩家的 Start 已跑完、dead 幀已載入；睜眼開頭全黑蓋住切換瞬間）。
@@ -259,6 +271,28 @@ public class MapManager : MonoBehaviour
             if (_currentMapId != mapAtStart || _loading) yield break;   // 劇情交棒換圖 → 中止（新圖自有一輪）
             yield return null;
         }
+
+        if (_currentMapId != mapAtStart || _loading) yield break;   // 等待期間換圖 → 中止（別把上一張圖的名字跳在新圖上）
+
+        // 場景說明（MapsTable 的 SceneTip 欄）：等到這裡才跳，所以進場特效（睜眼醒來）與進場自動劇情
+        // 都已經播完，名字不會蓋在過場上。它自己會暫停遊戲＋鎖操作，而且**這裡要等它整段播完（含淡出）**
+        // 才往下點火——不等的話進場對話會直接疊在名字上面（作者實測回報）。
+        // 見 Dipan.UI.SceneTipPanel / readme/SCENE_TIP.md。
+        if (row != null && !string.IsNullOrEmpty(row.sceneTip) && _shownSceneTips.Add(row.sceneTip))
+        {
+            // 沒真的跳出來（多半是還沒畫那張文字圖）就把名額還回去，圖補上之後這一趟再進來還跳得出來。
+            if (SceneTipPanel.Show(row.sceneTip))
+            {
+                Debug.Log($"[MapManager] 場景說明「{row.sceneTip}」。");
+                // ⚠ 等的是 IsPlaying（含淡出）不是 IsOpen——IsOpen 在淡出「開始」時就已經是 false 了。
+                var tip = UIManager.Instance != null ? UIManager.Instance.Get<SceneTipPanel>() : null;
+                while (tip != null && tip.IsPlaying) yield return null;
+                if (_currentMapId != mapAtStart || _loading) yield break;   // 表演期間換圖 → 中止
+            }
+            else _shownSceneTips.Remove(row.sceneTip);
+        }
+
+        if (regions == null) yield break;
 
         foreach (var r in regions)
         {
