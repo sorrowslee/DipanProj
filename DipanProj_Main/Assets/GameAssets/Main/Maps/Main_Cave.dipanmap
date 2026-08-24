@@ -20,7 +20,6 @@
       "visible": true,
       "opacity": 1.0,
       "locked": false,
-      "tiles": [],
       "objects": [
         {
           "assetId": "Main/Environment/Teleport",
@@ -44,7 +43,76 @@
           "playOnce": false,
           "appearFlag": "",
           "appearDelaySeconds": 0.0,
-          "appearFade": false
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
+        },
+        {
+          "assetId": "Main/Environment/Torch1",
+          "x": 4.470583,
+          "y": -2.63237715,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 3.138429,
+          "scaleY": 3.138429,
+          "sortKey": -2.63237715,
+          "zOrder": 0,
+          "hp": -1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
+        },
+        {
+          "assetId": "Main/Environment/Torch1",
+          "x": 13.207654,
+          "y": -2.63237715,
+          "rot": 0.0,
+          "flipX": false,
+          "flipY": false,
+          "scaleX": 3.138429,
+          "scaleY": 3.138429,
+          "sortKey": -2.63237715,
+          "zOrder": 0,
+          "hp": -1,
+          "animFps": 8.0,
+          "pingPong": false,
+          "walkable": false,
+          "passThrough": false,
+          "breakFlag": "",
+          "appearAfterClears": 0,
+          "appearScope": "cycle",
+          "playOnce": false,
+          "appearFlag": "",
+          "appearDelaySeconds": 0.0,
+          "appearFade": false,
+          "disappearFlag": "",
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         }
       ]
     },
@@ -164,5 +232,32 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "lights": [
+    {
+      "id": "c40d42b4",
+      "name": "",
+      "x": 4.46865559,
+      "y": -2.29201269,
+      "radius": 1.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    },
+    {
+      "id": "65c67f92",
+      "name": "",
+      "x": 13.19487,
+      "y": -2.223572,
+      "radius": 1.0,
+      "intensity": 1.0,
+      "color": "",
+      "flicker": 1.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.46
+    }
+  ],
+  "cutscenes": []
 }
