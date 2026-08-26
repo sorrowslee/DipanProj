@@ -17,7 +17,7 @@ public static class SummonSystem
     /// <summary>目前是否還有空位可召喚（未達 SummonMaxAlive）。呼叫端可在扣魔/進冷卻前先問，避免扣了魔卻沒生怪。</summary>
     public static bool HasRoom(RecipeEntry recipe, List<GameObject> aliveTracker)
     {
-        if (recipe == null || !recipe.IsSummon || aliveTracker == null) return false;
+        if (recipe == null || recipe.Mode != WeaponMode.Summon || aliveTracker == null) return false;
         if (recipe.SummonIds == null || recipe.SummonIds.Length == 0) return false;
         aliveTracker.RemoveAll(go => go == null);
         return aliveTracker.Count < recipe.SummonMaxAlive;
@@ -25,7 +25,7 @@ public static class SummonSystem
 
     public static bool Cast(GameObject owner, Vector3 originPos, RecipeEntry recipe, List<GameObject> aliveTracker, MonsterFaction faction, int summonVfxId = 0)
     {
-        if (recipe == null || !recipe.IsSummon || aliveTracker == null) return false;
+        if (recipe == null || recipe.Mode != WeaponMode.Summon || aliveTracker == null) return false;
 
         aliveTracker.RemoveAll(go => go == null);
         if (recipe.SummonIds == null || recipe.SummonIds.Length == 0) return false;

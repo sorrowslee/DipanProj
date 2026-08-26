@@ -18,6 +18,11 @@ using Dipan.Inventory;
 ///   所以 GemTable 永遠只需要 Lv1/Lv2/Lv3 三欄，不會有「Lv18 查不到表」的問題。
 ///   能力**沒有上限**——玩家可以把所有孔都塞反彈，換取極端 build（代價是不會穿透/追蹤/分裂）。
 ///
+/// 【依模式過濾（2026-08-26）】珠子改的欄位對「目前武器的發射模式」無效就**不套用**——
+///   佛光不會反彈、雷射沒有子彈大小、召喚不吃傷害。哪些有效由 <see cref="WeaponModeSpec"/> 決定（單一真相），
+///   鍛造介面的「這顆珠對這把武器沒效果」提示也查同一張表（<see cref="IsGemEffective(WeaponMode, GemData)"/>）。
+///   唯一的例外是「迅捷珠 × 拋物線」：Speed 對拋物線本身無意義，但珠子的 +% 會換算成**縮短飛行秒數**（丟得更快）。
+///
 /// 【為什麼一定要拷貝】配方在整個遊戲裡是共用的單一物件（怪物也讀同一份），
 /// 就地改欄位會污染其他武器與怪物、而且永久累積。見 <see cref="RecipeEntry.Clone"/>。
 ///
@@ -34,9 +39,9 @@ public class PlayerAbilities
         public float Apply(float baseValue) => (baseValue + flat) * (1f + percent);
     }
 
-    readonly Dictionary<string, Mod> _recipe = new Dictionary<string, Mod>();
-    readonly Dictionary<string, Mod> _weapon = new Dictionary<string, Mod>();
-    readonly Dictionary<string, Mod> _player = new Dictionary<string, Mod>();
+    readonly Dictionary<string, Mod> _recipe = new Dictionary<string, Mod>(System.StringComparer.OrdinalIgnoreCase);
+    readonly Dictionary<string, Mod> _weapon = new Dictionary<string, Mod>(System.StringComparer.OrdinalIgnoreCase);
+    readonly Dictionary<string, Mod> _player = new Dictionary<string, Mod>(System.StringComparer.OrdinalIgnoreCase);
 
     /// <summary>最後一次重算時的裝備版本號，用來判斷要不要重算。</summary>
     public int BuiltVersion { get; private set; } = -1;
@@ -46,6 +51,27 @@ public class PlayerAbilities
 
     /// <summary>查某個角色屬性的修正（沒有就回全 0）。</summary>
     public Mod PlayerMod(string field) => _player.TryGetValue(field, out var m) ? m : default;
+
+    // ───────────────────────── 珠子有效性（給 UI 與套用共用）─────────────────────────
+
+    /// <summary>
+    /// 這顆珠子對這個發射模式有沒有效果。屬性珠（Target=Player）一律有效（跟武器無關）。
+    /// 「迅捷 × 拋物線」算有效（換算成縮短飛行秒數）。
+    /// </summary>
+    public static bool IsGemEffective(WeaponMode mode, GemData gem)
+    {
+        if (gem == null || string.IsNullOrEmpty(gem.Field)) return false;
+        if (gem.Target == GemTarget.Player) return true;
+        if (mode == WeaponMode.Parabolic && gem.Field.Equals("Speed", System.StringComparison.OrdinalIgnoreCase)) return true;
+        return WeaponModeSpec.IsEffective(mode, gem.Field);
+    }
+
+    /// <summary>同上，直接吃武器；沒有武器（空手）時回 true（沒東西可以無效）。</summary>
+    public static bool IsGemEffective(WeaponData weapon, GemData gem)
+    {
+        if (weapon == null || weapon.Recipe == null) return true;
+        return IsGemEffective(weapon.Recipe.Mode, gem);
+    }
 
     // ───────────────────────── 重算 ─────────────────────────
 
@@ -115,12 +141,13 @@ public class PlayerAbilities
         if (baseWeapon == null || !HasAny) return baseWeapon;
 
         var w = ShallowCopy(baseWeapon);
+        WeaponMode mode = (w.Recipe != null) ? w.Recipe.Mode : WeaponMode.Normal;
 
-        // ── 武器層欄位 ──
-        w.Damage = Get(_weapon, "Damage").Apply(w.Damage);
-        w.BulletScale = Get(_weapon, "BulletScale").Apply(w.BulletScale);
-        w.BeamWidth = Get(_weapon, "BeamWidth").Apply(w.BeamWidth);
-        w.ManaCost = Mathf.Max(0f, Get(_weapon, "ManaCost").Apply(w.ManaCost));
+        // ── 武器層欄位（只套對此模式有效的）──
+        if (Eff(mode, "Damage")) w.Damage = Get(_weapon, "Damage").Apply(w.Damage);
+        if (Eff(mode, "BulletScale")) w.BulletScale = Get(_weapon, "BulletScale").Apply(w.BulletScale);
+        if (Eff(mode, "BeamWidth")) w.BeamWidth = Get(_weapon, "BeamWidth").Apply(w.BeamWidth);
+        w.ManaCost = Mathf.Max(0f, Get(_weapon, "ManaCost").Apply(w.ManaCost));   // 通用欄
 
         // ── 配方層欄位（一定要在拷貝上動）──
         if (w.Recipe != null && _recipe.Count > 0)
@@ -132,16 +159,20 @@ public class PlayerAbilities
         return w;
     }
 
+    static bool Eff(WeaponMode mode, string field) => WeaponModeSpec.IsEffective(mode, field);
+
     void ApplyToRecipe(RecipeEntry r)
     {
         var d = r.Data;
         if (d == null) return;
+        WeaponMode mode = r.Mode;
 
         // ── 反彈 ──
         // ⚠ 光把次數加上去沒有用：程式判斷「這發會不會反彈」還要看 HasBounce 與 BounceTarget。
         //    原本不反彈的武器鑲上反彈珠，必須把這兩個一起打開，否則等於白鑲。
+        //    連鎖閃電的跳數已改成獨立欄 ChainCount（2026-08-26），反彈珠對連鎖不再有作用。
         var bounce = Get(_recipe, "MaxBounces");
-        if (!bounce.IsZero)
+        if (!bounce.IsZero && Eff(mode, "MaxBounces"))
         {
             d.MaxBounces = Mathf.Max(0, Mathf.RoundToInt(bounce.Apply(d.MaxBounces)));
             if (d.MaxBounces > 0)
@@ -154,12 +185,12 @@ public class PlayerAbilities
         // ── 穿透 ──
         // ⚠ -1 代表「無限穿透」，不能直接 +1（會變成 0 = 不穿透）。已經無限就維持無限。
         var pierce = Get(_recipe, "PierceCount");
-        if (!pierce.IsZero && d.PierceCount >= 0)
+        if (!pierce.IsZero && d.PierceCount >= 0 && Eff(mode, "PierceCount"))
             d.PierceCount = Mathf.Max(0, Mathf.RoundToInt(pierce.Apply(d.PierceCount)));
 
         // ── 追蹤 ──
         var homing = Get(_recipe, "HomingTurnSpeed");
-        if (!homing.IsZero)
+        if (!homing.IsZero && Eff(mode, "HomingTurnSpeed"))
         {
             d.HomingTurnSpeed = Mathf.Max(0f, homing.Apply(d.HomingTurnSpeed));
             if (d.HomingTurnSpeed > 0f) d.HasHoming = true;
@@ -167,39 +198,52 @@ public class PlayerAbilities
 
         // ── 分裂 / 散射 ──
         var split = Get(_recipe, "SpreadCount");
-        if (!split.IsZero)
+        if (!split.IsZero && Eff(mode, "SpreadCount"))
         {
             d.SplitCount = Mathf.Clamp(Mathf.RoundToInt(split.Apply(d.SplitCount)), 1, SafeMaxSpreadCount);
-            if (d.SplitCount > 1) d.HasSplit = true;
+            // 分裂行為（SplitBehavior）只有會飛的子彈用；雷射/拋物線/連鎖/落雷直接讀 SplitCount 當道數/顆數
+            if (d.SplitCount > 1 && (mode == WeaponMode.Normal || mode == WeaponMode.Orbital)) d.HasSplit = true;
         }
-        d.SpreadAngle = Get(_recipe, "SpreadAngle").Apply(d.SpreadAngle);
+        if (Eff(mode, "SpreadAngle")) d.SpreadAngle = Get(_recipe, "SpreadAngle").Apply(d.SpreadAngle);
+
+        // ── 速度 ──
+        // ⚠ 拋物線：Speed 對它無意義，但「迅捷珠」的 +% 換算成縮短飛行秒數（丟得更快）；固定值部分忽略。
+        var speed = Get(_recipe, "Speed");
+        if (!speed.IsZero)
+        {
+            if (mode == WeaponMode.Parabolic)
+                d.FlightTime = Mathf.Max(SafeMinFlightTime, d.FlightTime / Mathf.Max(0.01f, 1f + speed.percent));
+            else if (Eff(mode, "Speed"))
+                d.Speed = Mathf.Max(SafeMinSpeed, speed.Apply(d.Speed));
+        }
+        if (Eff(mode, "FlightTime")) d.FlightTime = Mathf.Max(SafeMinFlightTime, Get(_recipe, "FlightTime").Apply(d.FlightTime));
 
         // ── 一般數值 ──
-        // ⚠ 拋物線武器的 Speed 語意是「飛行秒數」不是速度，所以夾一個下限避免除零。
-        d.Speed = Mathf.Max(SafeMinSpeed, Get(_recipe, "Speed").Apply(d.Speed));
-        d.Radius = Mathf.Max(0.01f, Get(_recipe, "Radius").Apply(d.Radius));
-        if (d.LifeTime >= 0f) d.LifeTime = Mathf.Max(0.05f, Get(_recipe, "LifeTime").Apply(d.LifeTime));
+        if (Eff(mode, "Radius")) d.Radius = Mathf.Max(0.01f, Get(_recipe, "Radius").Apply(d.Radius));
+        if (Eff(mode, "LifeTime") && d.LifeTime >= 0f) d.LifeTime = Mathf.Max(0.05f, Get(_recipe, "LifeTime").Apply(d.LifeTime));
         // ⚠ 發射間隔減到 0 或負數 = 每一幀都發射 → 瞬間卡死，一定要夾下限。
-        d.FireInterval = Mathf.Max(SafeMinFireInterval, Get(_recipe, "FireInterval").Apply(d.FireInterval));
-        d.RotationSpeed = Get(_recipe, "RotationSpeed").Apply(d.RotationSpeed);
-        d.TrailStep = Mathf.Max(0f, Get(_recipe, "TrailStep").Apply(d.TrailStep));
-        d.BeamRange = Get(_recipe, "BeamRange").Apply(d.BeamRange);
+        if (Eff(mode, "FireInterval")) d.FireInterval = Mathf.Max(SafeMinFireInterval, Get(_recipe, "FireInterval").Apply(d.FireInterval));
+        if (Eff(mode, "RotationSpeed")) d.RotationSpeed = Get(_recipe, "RotationSpeed").Apply(d.RotationSpeed);
+        if (Eff(mode, "TrailStep")) d.TrailStep = Mathf.Max(0f, Get(_recipe, "TrailStep").Apply(d.TrailStep));
+        if (Eff(mode, "Range")) d.BeamRange = Get(_recipe, "Range").Apply(d.BeamRange);   // CSV 欄名 Range → ProjectileData.BeamRange
         // ⚠ 傷害節拍同理：0 會變成每幀結算。
-        d.DotInterval = Mathf.Max(SafeMinDotInterval, Get(_recipe, "DotInterval").Apply(d.DotInterval));
-        d.ArcHeight = Get(_recipe, "ArcHeight").Apply(d.ArcHeight);
-        d.OrbitalCount = Mathf.Clamp(Mathf.RoundToInt(Get(_recipe, "OrbitalCount").Apply(d.OrbitalCount)), 1, SafeMaxSpreadCount);
-        d.OrbitalRadius = Mathf.Max(0.1f, Get(_recipe, "OrbitalRadius").Apply(d.OrbitalRadius));
+        if (Eff(mode, "DotInterval")) d.DotInterval = Mathf.Max(SafeMinDotInterval, Get(_recipe, "DotInterval").Apply(d.DotInterval));
+        if (Eff(mode, "ArcHeight")) d.ArcHeight = Get(_recipe, "ArcHeight").Apply(d.ArcHeight);
+        if (Eff(mode, "OrbitalCount")) d.OrbitalCount = Mathf.Clamp(Mathf.RoundToInt(Get(_recipe, "OrbitalCount").Apply(d.OrbitalCount)), 1, SafeMaxSpreadCount);
+        if (Eff(mode, "OrbitalRadius")) d.OrbitalRadius = Mathf.Max(0.1f, Get(_recipe, "OrbitalRadius").Apply(d.OrbitalRadius));
 
         // ── 主遊戲側欄位（掛在 RecipeEntry 上，不在 ProjectileData）──
-        r.BlastRadius = Mathf.Max(0f, Get(_recipe, "BlastRadius").Apply(r.BlastRadius));
-        r.ChainCount = Mathf.Max(0, Mathf.RoundToInt(Get(_recipe, "MaxBounces").Apply(r.ChainCount)));   // 連鎖跳數與反彈共用 MaxBounces 欄
-        r.ChainRadius = Mathf.Max(0.1f, Get(_recipe, "ChainRadius").Apply(r.ChainRadius));
-        r.MeleeAngle = Mathf.Clamp(Get(_recipe, "MeleeAngle").Apply(r.MeleeAngle), 1f, 360f);
-        r.DashDistance = Mathf.Max(0.1f, Get(_recipe, "DashDistance").Apply(r.DashDistance));
-        r.DashWidth = Mathf.Max(0.1f, Get(_recipe, "DashWidth").Apply(r.DashWidth));
-        r.SummonCount = Mathf.Max(1, Mathf.RoundToInt(Get(_recipe, "SummonCount").Apply(r.SummonCount)));
-        r.SummonMaxAlive = Mathf.Max(1, Mathf.RoundToInt(Get(_recipe, "SummonMaxAlive").Apply(r.SummonMaxAlive)));
-        r.SummonRadius = Mathf.Max(0.1f, Get(_recipe, "SummonRadius").Apply(r.SummonRadius));
+        if (Eff(mode, "AreaRadius")) r.AreaRadius = Mathf.Max(0f, Get(_recipe, "AreaRadius").Apply(r.AreaRadius));
+        if (Eff(mode, "ChainCount")) r.ChainCount = Mathf.Max(0, Mathf.RoundToInt(Get(_recipe, "ChainCount").Apply(r.ChainCount)));
+        if (Eff(mode, "ChainRadius")) r.ChainRadius = Mathf.Max(0.1f, Get(_recipe, "ChainRadius").Apply(r.ChainRadius));
+        if (Eff(mode, "AimConeAngle")) r.AimConeAngle = Mathf.Clamp(Get(_recipe, "AimConeAngle").Apply(r.AimConeAngle), 0f, 180f);
+        if (Eff(mode, "SnapRadius")) r.SnapRadius = Mathf.Max(0f, Get(_recipe, "SnapRadius").Apply(r.SnapRadius));
+        if (Eff(mode, "MeleeAngle")) r.MeleeAngle = Mathf.Clamp(Get(_recipe, "MeleeAngle").Apply(r.MeleeAngle), 1f, 360f);
+        if (Eff(mode, "DashDistance")) r.DashDistance = Mathf.Max(0.1f, Get(_recipe, "DashDistance").Apply(r.DashDistance));
+        if (Eff(mode, "DashWidth")) r.DashWidth = Mathf.Max(0.1f, Get(_recipe, "DashWidth").Apply(r.DashWidth));
+        if (Eff(mode, "SummonCount")) r.SummonCount = Mathf.Max(1, Mathf.RoundToInt(Get(_recipe, "SummonCount").Apply(r.SummonCount)));
+        if (Eff(mode, "SummonMaxAlive")) r.SummonMaxAlive = Mathf.Max(1, Mathf.RoundToInt(Get(_recipe, "SummonMaxAlive").Apply(r.SummonMaxAlive)));
+        if (Eff(mode, "SummonRadius")) r.SummonRadius = Mathf.Max(0.1f, Get(_recipe, "SummonRadius").Apply(r.SummonRadius));
     }
 
     // ══════════════════ 安全夾值（不是遊戲平衡，是「會把遊戲弄壞」的下限）══════════════════
@@ -208,8 +252,10 @@ public class PlayerAbilities
 
     /// <summary>發射間隔最低值（秒）。減到 0 = 每幀發射 → 瞬間數千顆子彈。</summary>
     const float SafeMinFireInterval = 0.02f;
-    /// <summary>飛行速度最低值。拋物線武器的 Speed 是「飛行秒數」，0 會除零。</summary>
+    /// <summary>飛行速度最低值。</summary>
     const float SafeMinSpeed = 0.05f;
+    /// <summary>拋物線飛行秒數最低值（0 會除零）。</summary>
+    const float SafeMinFlightTime = 0.05f;
     /// <summary>持續傷害節拍最低值（秒）。</summary>
     const float SafeMinDotInterval = 0.02f;
     /// <summary>單次發射的子彈數上限（分裂/散射/環繞）。純粹是效能保護。</summary>

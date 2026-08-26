@@ -45,6 +45,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 跨數秒的演出／輸入鎖 | PROBLEMS **D13/D14**（輸入鎖要用具名 `SetExternalHold(owner,…)`；吃 `Time.deltaTime` 的演出會被任何 `PausesGame` 面板凍住） |
 | 地上物擋路／可走層／「看起來能走卻走不過去」 | PROBLEMS **B9** ＋ [readme/MAP_LOADER_SETUP.md](readme/MAP_LOADER_SETUP.md)——**擋路碰撞與可走層是兩份獨立的真相**，塗可走層對地上物零作用 |
 | 「玩家碰到了沒」的位置判定 | PROBLEMS **B13**——判定對齊碰撞（`transform.position`），特效對齊視覺（腳底）；診斷用碰撞疊層（遊戲中 **P → C**） |
+| 填／改 RecipeTable、加武器模式或欄位、動能力珠 | [readme/RECIPE_DESCRIBE.md](readme/RECIPE_DESCRIBE.md)（一列一種 `Mode`、模式 × 欄位矩陣）＋ `Assets/Scripts/Weapon/WeaponModeSpec.cs`（單一真相：加欄／加模式只改它）；珠子有效性見 [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md) |
 | 武器／裝備／背包／掉落／存檔 | [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md)（表格只是模板、物品實例、能力容器）＋ [readme/INVENTORY.md](readme/INVENTORY.md) |
 | 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |
 | 發光／亮度／光圈／環境亮度 | [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)＋[readme/SCENE_EFFECT.md](readme/SCENE_EFFECT.md)（同框 12 盞上限寫死在兩處） |

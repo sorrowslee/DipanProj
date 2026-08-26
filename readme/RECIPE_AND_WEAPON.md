@@ -6,44 +6,35 @@
 
 ## 配方表 (RecipeTable.csv)
 定義子彈的飛行行為配方，存放於 `Assets/Data/RecipeTable.csv`。
-彈道系統的 `ProjectileData` 欄位決定了此表的欄位結構。
 
-> 如需查詢每個欄位的詳細用法、填寫規則與組合範例，請參閱 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)。
+> **2026-08-26 大改**：45 欄、依模式分群；一列一種 `Mode`；所有數值欄空白＝預設；`#` 開頭整列＝註解。
+> **每個欄位的意義、預設、各模式吃哪些欄、範例，全部在 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)**，這裡只講程式怎麼讀。
 
-| CSV 欄位 | 對應 ProjectileData | 說明 |
-|----------|-------------------|------|
-| `ID` | — | 配方唯一識別碼 |
-| `Name` | — | 配方名稱 |
-| `Speed` | `Speed` | 飛行速度 |
-| `Radius` | `Radius` | 子彈判定半徑 |
-| `LifeTime` | `LifeTime` | 存活時間（秒）；**-1** = 不因時間銷毀 |
-| `FireInterval` | `FireInterval` | 發射間隔（秒） |
-| `RotationSpeed` | `RotationSpeed` | 自轉速度（度/秒） |
-| `PierceCount` | `PierceCount` | 穿透次數；**-1** = 無限穿透 |
-| `SpreadCount` | `SplitCount` | 散射/分裂數量 |
-| `SpreadAngle` | `SpreadAngle` | 散射/分裂角度 |
-| `SplitTiming` | `Timing` | 分裂時機（OnSpawn / OnHit / OnDeath） |
-| `SubRecipeID` | `SubProjectileData` | 分裂子彈配方 ID（二次解析） |
-| `BounceTarget` | — | 反彈對象（None / Environment / Enemy），由遊戲端映射為 LayerMask |
-| `MaxBounces` | `MaxBounces` | 最大反彈次數 |
-| `HomingTurnSpeed` | `HomingTurnSpeed` | 追蹤轉向速度（度/秒），0 為不追蹤 |
-| `IsOrbital` | `IsOrbital` | 是否為環繞型彈道（1 = 是，留空 = 否） |
-| `OrbitalRadius` | `OrbitalRadius` | 環繞半徑，以玩家為圓心的軌道半徑 |
-| `OrbitalCount` | `OrbitalCount` | 環繞數量，每次發射生成幾顆環繞子彈（每次發射會先清除上一輪同玩家的環繞子彈） |
-| `BlockedByEnvironment` | — | 子彈是否被地形阻擋；留空或 `1` = 會被擋（預設），`0` = 把 `EnvLayer` 加入可穿透層，子彈穿過地形不被銷毀（需搭配 `PierceCount != 0`） |
-| `IsLaser` | `IsLaser` | 是否為持續型雷射光束（1 = 是，留空 = 否；與 IsOrbital / IsParabolic 互斥）；雷射細節見 [LASER.md](LASER.md) |
-| `dotInterval` | `DotInterval` | 雷射傷害節拍（秒）：每 N 秒對當下掃到的目標各結算一次傷害；留空 = 0.5 |
-| `BeamRange` | `BeamRange` | 雷射最大射程（世界單位）；Speed / LifeTime 對光束無意義，改用此欄限制長度；留空 = 20 |
+### 讀表方式（`Dipan.Data.CsvTable`，`Assets/Scripts/Data/CsvTable.cs`）
+- **依表頭名稱取值**：先讀第一列表頭（取括號前的名字，不分大小寫），之後 `row.GetFloat("Range")` 這樣取——欄位可以任意重排、中間插新欄、括號裡的說明隨意改。以前 `v[28]` 這種寫死索引的讀法已全面淘汰（RecipeTable／WeaponTable／GemTable／GroundEffectTable／VfxTable 五張表都換了）。
+- 空白＝fallback、不丟例外；表頭缺必要欄或重複會進 `Errors` 由呼叫端 `LogError`；表頭有程式不認得的欄名會 `LogWarning` 列出（抓打錯字）。
+- 純 C#、不依賴 UnityEngine，可用一般 C# 編譯器跑單元測試（這次大改就是這樣驗的）。
 
-> 地面特效相關欄位（`GroundEffectID` / `GroundEffectTrigger` / `GroundEffectHitTarget`）、拋物線欄位（`IsParabolic` / `ArcHeight` / `LaunchSource` / `LandingScatterRadius` / `BlastRadius` 落地殺傷半徑）、佛光欄位（`IsAura`：跟隨玩家的圓形 AOE）也在 RecipeTable，記在 [GROUND_EFFECT.md](GROUND_EFFECT.md)。離散武器可用 `集氣模式` 啟用按住 3 秒強化施放，詳見 [CHARGE_MODE.md](CHARGE_MODE.md)。
-> 連鎖閃電欄位（`IsChain` / `ChainRadius`）與落雷欄位（`IsSkyStrike` / `UseSegmentedSkyStrike`，目前九霄雷獄使用）記在 [LASER.md](LASER.md)。
-> 命中迸發子武器欄位（`SubWeaponOnHit` 指向**武器表**的武器、`SubWeaponHitTarget` = Enemy/Environment/All）——子武器自帶外型，與只仿母武器外型的 `SubRecipeID` 不同，詳見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)。
-> 軌跡欄位 `TrailStep`（沿路種特效，做地刺類武器）見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 與 [BALLISTICS.md](BALLISTICS.md) 的 `OnTrailPoint`。
+### 規格表（`WeaponModeSpec`，`Assets/Scripts/Weapon/WeaponModeSpec.cs`）——單一真相
+每個欄位的型別／預設／範圍／分組／顯示名，以及**每種 `WeaponMode` 吃哪些欄、哪些必填、欄位在該模式叫什麼**，全寫在這一個檔。三處共用：
+1. **載入檢查**（`RecipeManager`／`WeaponManager`）：無效欄有值 → Warning；必填缺 → Error。
+2. **能力珠有效性**（`PlayerAbilities`／鍛造介面）——見 [GEM_SOCKET.md](GEM_SOCKET.md)。
+3. **武器效果模擬系統**（之後做）：選了 Mode 就知道要顯示哪些欄、產什麼輸入框。
+
+**加新欄或新模式只改這個檔**（`BuildFields` 加欄、`BuildModes` 加模式）＋ `RecipeEntry.FromFields` 讀它 ＋ 發射分支用它。
+
+### `RecipeEntry.FromFields`（`Assets/Scripts/Weapon/RecipeEntry.cs`）——唯一的建構入口
+「欄名 → 原始字串」進、`RecipeEntry` 出。CSV 走它、之後的模擬面板也走它。**對該模式無效的欄在這裡就不讀**（不只是警告），所以表上填錯不可能改變行為。
+彈道系統看得懂的欄位住 `Data`（`ProjectileData`：Speed／Radius／LifeTime／FireInterval／RotationSpeed／PierceCount／Bounce／Homing／Split／Orbital／Parabolic（`FlightTime`）／Laser（`DotInterval`、`BeamRange`＝CSV 的 `Range`）／TrailStep）；主遊戲側自己結算的欄位直接掛在 `RecipeEntry`（`Mode`／`BounceTarget`／`AreaRadius`／`ChainCount`／`ChainRadius`／`AimConeAngle`／`SnapRadius`／`SegmentedColumn`／`GroundEffectID`／`GroundEffectHitTarget`／`SubWeaponOnHit`／`Summon*`／`MeleeAngle`／`Dash*`／`ChargeMode`／`ChargeTimeReduction`／`LaunchSource`／`BlockedByEnvironment`）。
+`ProjectileData.IsOrbital／IsParabolic／IsLaser` 是彈道套件內部的組裝旗標，由 `Mode` 推導，主遊戲不要直接讀它們判模式——一律 `recipe.Mode == WeaponMode.Xxx`。
+
+### `BounceTarget` 映射
+`PlayerController` 在發射時將語意值轉為 `NonBounceLayers`：`Environment` → `EnemyLayer`；`Enemy` → `EnvLayer`；`None` → `EnvLayer | EnemyLayer`。
 
 ## 武器表 (WeaponTable.csv)
 
 `PixelBeamSet` 控制貼圖式雷射外觀：留空沿用 shader 雷射，`A_Blue` 使用 Pack 4 A 組藍色 origin／center／impact 動畫。詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
-定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。
+定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。2026-08-26 起表頭依用途分群（通用／子彈外觀／光束外觀／特效 ID），欄名不變、依名字讀。
 
 | CSV 欄位 | 說明 |
 |----------|------|
@@ -63,7 +54,7 @@
 | `FireEffectID` | 發射特效 ID（引用 `VfxTable`）：發射時在玩家身上播一次、朝瞄準方向；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `HitEffectID` | 擊中特效 ID（引用 `VfxTable`）：子彈／光束命中怪物、障礙物、拋物線落地時在命中點播一次；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `TrailEffectID` | 軌跡特效 ID（引用 `VfxTable`）：沿子彈飛行路徑每隔配方的 `TrailStep` 距離種一個（**地刺類武器**靠這個沿路長出尖刺）；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
-| `SummonEffectID` | 召喚特效 ID（引用 `VfxTable`）：**召喚型武器**（`IsSummon`）施放時在**每個生怪點**播一次，怪物**同一幀一起出現**（邊播特效邊出現）；留空 / 0 = 不播、無特效直接生怪。見 [VFX.md](VFX.md)、[BOSS_MODULE.md](BOSS_MODULE.md) |
+| `SummonEffectID` | 召喚特效 ID（引用 `VfxTable`）：**召喚型武器**（`Mode=Summon`）施放時在**每個生怪點**播一次，怪物**同一幀一起出現**（邊播特效邊出現）；留空 / 0 = 不播、無特效直接生怪。見 [VFX.md](VFX.md)、[BOSS_MODULE.md](BOSS_MODULE.md) |
 
 ## 序列圖動畫設定說明
 
@@ -103,14 +94,15 @@
 設定完成後，無論玩家往哪個方向射擊，武器圖片都會自動旋轉到正確角度，攻擊端永遠指向飛行方向。分裂子彈也會自動繼承此設定。
 
 ## RecipeManager
-* 在 `Awake()` 時從 CSV 載入所有配方，建立 `Dictionary<int, RecipeEntry>` 索引。
-* 二次解析 `SubRecipeID`，將 ID 解析為 `ProjectileData` 物件引用。
-* `BounceTarget` 以語意化字串（None / Environment / Enemy）儲存，由 `PlayerController` 在發射時映射為 `LayerMask`。
+* 在 `Awake()` 時用 `CsvTable` 載入所有配方，每列交給 `RecipeEntry.FromFields`，問題（[Error]/[Warning]）逐條印到 Console（含行號）。
+* 二次解析 `SubRecipeID`，將 ID 解析為 `ProjectileData` 物件引用；會分裂但沒指定子配方的自動補一份「繼承母彈、不再分裂」。
+* `All`（唯讀字典）與 `CreateTransient(fields, problems)`（用欄名字典臨時建一列、不登記）是給武器效果模擬面板的入口。
 
 ## WeaponManager
-* 在 `Start()` 時從 CSV 載入所有武器，透過 `RecipeManager` 解析 `RecipeID` 為 `RecipeEntry` 引用。
+* 在 `Start()` 時用 `CsvTable` 載入所有武器（`BuildWeapon` 依欄名取值），透過 `RecipeManager` 解析 `RecipeID` 為 `RecipeEntry` 引用；武器表欄位也過 `WeaponModeSpec.Validate`（例：召喚武器填了子彈圖會 Warning）。
+* **`SimulationOverride`**：不為 null 時 `GetCurrentWeapon()` 一律回它——武器效果模擬面板靠這個讓所有發射路徑打模擬武器；`All` 與 `CreateTransient` 同 RecipeManager。
 * 使用 `PrefabMapping` 序列化列表模式（與 `MonsterSpawner` 一致），在 Inspector 中拖入子彈 Prefab。
-* 雷射武器額外把 `BeamStyle` / `BeamColor` 編號透過 `BeamStyleLibrary` 解析為外型參數與顏色（見 [LASER.md](LASER.md)）。
+* 雷射／連鎖／非分段落雷武器額外載入光束素材，`BeamStyle` / `BeamColor` 編號透過 `BeamStyleLibrary` 解析為外型參數與顏色（見 [LASER.md](LASER.md)）。
 * **初始沒有武器**：`Start()` 只載表、**不指派任何初始武器**（`CurrentWeaponID = 0` ＝ 無武器，`GetCurrentWeapon()` 回 null）。實際武器由 `PlayerController` 依背包武器欄呼叫 `SwitchWeapon` 決定。（2026-07-27 改；此前這裡會強制設成最高 ID，導致玩家空手也能攻擊，且會蓋掉背包指定的武器。）
 * **沒有循環切換**：`SwitchToPreviousWeapon()`（E 鍵）已於 2026-07-27 移除——武器一律由背包武器欄決定，不再有繞過裝備的切換途徑。`WeaponData` 的欄位另含 `FireEffectID` / `HitEffectID` / `TrailEffectID`（引用 VfxTable，見 [VFX.md](VFX.md)）。
 

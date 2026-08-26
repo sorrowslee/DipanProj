@@ -130,30 +130,29 @@ public class VfxManager : MonoBehaviour
             return;
         }
 
-        string[] lines = VfxCSV.text.Split('\n');
+        // 2026-08-26 起依表頭名稱取值（欄位可重排、# 註解列、空白=預設），見 CsvTable。
+        var table = Dipan.Data.CsvTable.Parse(VfxCSV.text, "VfxTable");
+        table.Require("ID", "Name", "AniPath", "AniNumber", "AnimFPS");
+        foreach (var err in table.Errors) Debug.LogError(err);
 
-        for (int i = 1; i < lines.Length; i++)
+        foreach (var row in table.Rows)
         {
-            if (string.IsNullOrWhiteSpace(lines[i])) continue;
-
-            string[] v = lines[i].Split(',');
-            if (v.Length < 5) continue; // ID, Name, AniPath, AniNumber, AnimFPS 為必要欄位
-
             var data = new VfxData();
-            data.ID = int.Parse(v[0]);
-            data.Name = v[1].Trim();
-            data.AniPath = v[2].Trim();
-            data.AniNumber = !string.IsNullOrWhiteSpace(v[3]) ? int.Parse(v[3].Trim()) : 0;
-            data.AnimFPS = !string.IsNullOrWhiteSpace(v[4]) ? float.Parse(v[4].Trim()) : 0f;
-            data.Scale = (v.Length > 5 && !string.IsNullOrWhiteSpace(v[5])) ? float.Parse(v[5].Trim()) : 1f;
+            data.ID = row.GetInt("ID", 0);
+            if (data.ID <= 0) continue;
+            data.Name = row.Get("Name");
+            data.AniPath = row.Get("AniPath");
+            data.AniNumber = row.GetInt("AniNumber", 0);
+            data.AnimFPS = row.GetFloat("AnimFPS", 0f);
+            data.Scale = row.GetFloat("Scale", 1f);
             if (data.Scale <= 0f) data.Scale = 1f;
-            data.Loop = (v.Length > 6 && !string.IsNullOrWhiteSpace(v[6])) && int.Parse(v[6].Trim()) != 0;
-            data.Duration = (v.Length > 7 && !string.IsNullOrWhiteSpace(v[7])) ? float.Parse(v[7].Trim()) : 0f;
+            data.Loop = row.GetBool("Loop", false);
+            data.Duration = row.GetFloat("Duration", 0f);
             // 留空 = 用 VfxManager 全域 SortingOrder；填了 = 本特效專屬排序（地刺填低於角色的值 → 畫在腳下）
-            if (v.Length > 8 && !string.IsNullOrWhiteSpace(v[8]))
+            if (row.Has("SortingOrder"))
             {
                 data.HasSortingOrder = true;
-                data.SortingOrder = int.Parse(v[8].Trim());
+                data.SortingOrder = row.GetInt("SortingOrder", 0);
             }
 
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)

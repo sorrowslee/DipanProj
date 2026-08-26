@@ -1,10 +1,12 @@
 # 武器集氣模式
 
+> ⚠ **2026-08-26 RecipeTable 大改**：`IsXxx` 旗標已收成一欄 `Mode`、`BeamRange→Range`、`BlastRadius→AreaRadius`、拋物線飛行秒數獨立成 `FlightTime`、連鎖跳數獨立成 `ChainCount`、錐角／吸附半徑獨立成 `AimConeAngle`／`SnapRadius`。本文提到的欄名已同步更新；完整欄位與各模式吃哪些欄以 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 為準。
+
 ## 使用方式
 
-在 `DipanProj_Main/Assets/Data/RecipeTable.csv` 的 `集氣模式` 欄填 `1` 或 `true` 即可啟用；留空、`0` 或 `false` 都視為關閉。欄位省略時預設也是 `false`，舊配方不需要補值。
+在 `DipanProj_Main/Assets/Data/RecipeTable.csv` 的 `ChargeMode`（原「集氣模式」欄） 欄填 `1` 或 `true` 即可啟用；留空、`0` 或 `false` 都視為關閉。欄位省略時預設也是 `false`，舊配方不需要補值。
 
-`集氣時間縮減` 是百分比欄位，留空預設 `0%`：
+`ChargeTimeReduction`（原「集氣時間縮減」欄） 是百分比欄位，留空預設 `0%`：
 
 - `30%`：減少 30%，集氣時間為 `3 × (1 - 0.3) = 2.1` 秒。
 - `-20%`：延長 20%，集氣時間為 `3 × (1 - -0.2) = 3.6` 秒。
@@ -27,10 +29,12 @@
 
 集氣只適用於放開後產生一次施放的離散武器。以下持續輸入模式不能使用：
 
-- `IsLaser = 1`：雷射以及底層走雷射路徑的火焰噴射器。
-- `IsAura = 1`：佛光等按住期間持續存在的光環。
+- `Mode=Laser`：雷射以及底層走雷射路徑的火焰噴射器。
+- `Mode=Aura`：佛光等按住期間持續存在的光環。
 
-若資料列同時開啟 `集氣模式` 與上述任一欄位，`RecipeManager` 會輸出警告並把該配方的集氣模式停用，持續型武器仍按原方式運作。這項防呆放在資料載入層，因此玩家輸入端不會進入互相搶按鍵的狀態。
+這兩種模式在 `WeaponModeSpec` 裡標為持續型（`Continuous`），`ChargeMode` 欄對它們**無效**——`RecipeEntry.FromFields` 根本不讀，載入時印一條「對該模式無效」Warning。
+
+這項防呆放在資料載入層（`WeaponModeSpec.IsEffective`），因此玩家輸入端不會進入互相搶按鍵的狀態。
 
 目前專案其他模式（一般投射物、分裂／反彈／追蹤、拋物線、環繞、連鎖、落雷、定點法陣、近身扇形、突進與召喚）都是單次觸發，可以選擇啟用集氣。
 

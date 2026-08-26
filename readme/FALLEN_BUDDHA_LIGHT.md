@@ -131,10 +131,10 @@ python3 recolor_aura.py \
 
 > 「我之後做無形力場，那個卍字還會出現嗎？」
 
-會。因為卍字綁的是 `RenderMode=Glow`，而那比武器類型 `IsAura` **低了兩層**：
+會。因為卍字綁的是 `RenderMode=Glow`，而那比武器類型 `Mode=Aura` **低了兩層**：
 
 ```
-WeaponTable → RecipeTable(IsAura) → GroundEffectID → GroundEffectTable(RenderMode)
+WeaponTable → RecipeTable(Mode=Aura) → GroundEffectID → GroundEffectTable(RenderMode)
 ```
 
 等於**汙染了 `Glow` 的語意**——它原本只是「加色發光＋明滅」，卻夾帶一個佛教符號，以後任何想要明滅發光的特效都會被迫吃到。改成獨立 CSV 欄位後才乾淨。

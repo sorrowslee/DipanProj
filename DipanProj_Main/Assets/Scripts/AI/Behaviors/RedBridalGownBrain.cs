@@ -7,7 +7,7 @@ using UnityEngine;
 ///  ‧ 躲玩家——玩家靠近就往「反方向」逃（走 A* 尋徑會自動繞牆／家具，和其他怪一樣不做硬碰撞）。
 ///    「讓玩家追得上」不靠被卡住，而是把她的 MonsterData.Speed 調慢即可。
 ///  ‧ 定時召喚家人幽靈當追兵——召喚是一把 WeaponTable 的「召喚武器」，冷卻/名單/數量/同時上限
-///    全走配方（RecipeTable 的 IsSummon 那組欄位），由 <see cref="MonsterWeaponUser"/> 結算。
+///    全走配方（RecipeTable 的 Mode=Summon 那組欄位），由 <see cref="MonsterWeaponUser"/> 結算。
 ///    召喚不綁逃跑狀態、只看冷卻，確保 boss 持續施壓（她速度慢、多半在逃，若綁「安全才召」會幾乎不召）。
 ///
 /// 未來每隻 boss：新增一個 XxxBrain + 在 MonsterController 的 BrainType switch 掛上、CSV 指定 BrainType 即可。

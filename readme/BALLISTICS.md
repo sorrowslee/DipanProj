@@ -1,5 +1,7 @@
 # 彈道系統 (Sorrows.Ballistics)
 
+> ⚠ **2026-08-26 RecipeTable 大改**：`IsXxx` 旗標已收成一欄 `Mode`、`BeamRange→Range`、`BlastRadius→AreaRadius`、拋物線飛行秒數獨立成 `FlightTime`、連鎖跳數獨立成 `ChainCount`、錐角／吸附半徑獨立成 `AimConeAngle`／`SnapRadius`。本文提到的欄名已同步更新；完整欄位與各模式吃哪些欄以 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 為準。
+
 > 返回 [文件總覽](README.md)
 
 獨立的彈道 Package，採用 Data-Driven（資料驅動）與 Strategy Pattern（策略模式）設計。**只管子彈生成／飛行／碰撞／行為，絕不算傷害**（邊界規範見 [ARCHITECTURE.md](ARCHITECTURE.md)）。
@@ -20,7 +22,7 @@
 | `HasBounce` / `MaxBounces` | 是否反彈 / 最大反彈次數 |
 | `HasSplit` / `SplitCount` / `SpreadAngle` / `Timing` | 是否分裂 / 數量 / 角度 / 時機 |
 | `SubProjectileData` | 分裂產生的子彈配方（透過 SubRecipeID 查表解析） |
-| `IsOrbital` / `OrbitalRadius` / `OrbitalCount` | 是否環繞 / 環繞半徑 / 環繞數量 |
+| `Mode=Orbital` / `OrbitalRadius` / `OrbitalCount` | 是否環繞 / 環繞半徑 / 環繞數量 |
 | `TrailStep` | 軌跡點間距（世界單位）；**>0** 時每飛這麼遠觸發一次 `OnTrailPoint`，0 = 無軌跡 |
 
 ## BallisticsEngine（靜態引擎）

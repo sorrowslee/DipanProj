@@ -1,6 +1,12 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Dipan.Data;
 
+/// <summary>
+/// 載入 <c>Assets/Data/WeaponTable.csv</c>、把 RecipeID 解析成 <see cref="RecipeEntry"/> 參照、載入子彈圖／光束素材。
+/// 2026-08-26 起依表頭名稱取值（<see cref="CsvTable"/>），欄位可分群重排；每列走 <see cref="BuildWeapon"/>，
+/// 武器效果模擬面板也用同一條路（<see cref="CreateTransient"/>）。
+/// </summary>
 public class WeaponManager : MonoBehaviour
 {
     public TextAsset WeaponCSV;
@@ -15,6 +21,16 @@ public class WeaponManager : MonoBehaviour
     private List<int> _weaponIDs = new List<int>();   // 載入後排序保留；目前無人讀取（E 鍵循環切換移除後），留著供之後做武器圖鑑/除錯用
     private WeaponData _currentWeapon;
 
+    /// <summary>所有武器（唯讀，原始表格資料）。給武器效果模擬面板「載入既有武器來改」用。</summary>
+    public IReadOnlyDictionary<int, WeaponData> All => _weapons;
+
+    /// <summary>
+    /// **武器效果模擬用的覆蓋**：不為 null 時 <see cref="GetCurrentWeapon"/> 一律回它（不看背包、不套鑲嵌），
+    /// 所以 PlayerController 的全部發射路徑（離散／雷射／佛光／集氣）都會拿模擬武器去打。
+    /// 設回 null 就恢復正常。由模擬面板設定；一般遊戲流程不要碰。
+    /// </summary>
+    public WeaponData SimulationOverride { get; set; }
+
     void Start()
     {
         LoadWeapons();
@@ -27,7 +43,7 @@ public class WeaponManager : MonoBehaviour
 
     public WeaponData GetCurrentWeapon()
     {
-        return _currentWeapon;
+        return SimulationOverride ?? _currentWeapon;
     }
 
     public void SwitchWeapon(int weaponID)
@@ -65,7 +81,7 @@ public class WeaponManager : MonoBehaviour
         if (_weapons.TryGetValue(id, out WeaponData weapon))
             return weapon;
 
-        Debug.LogError($"Weapon ID {id} not found!");
+        Debug.LogError($"[WeaponTable] 找不到武器 ID {id}。");
         return null;
     }
 
@@ -83,104 +99,56 @@ public class WeaponManager : MonoBehaviour
         _currentWeapon = (AbilityResolver != null && baseWeapon != null) ? AbilityResolver(baseWeapon) : baseWeapon;
     }
 
+    /// <summary>
+    /// 用「欄名 → 值」臨時建一把武器（**不會**登記進表；給武器效果模擬面板用）。
+    /// <paramref name="recipe"/> 可以是表裡的配方或 <see cref="RecipeManager.CreateTransient"/> 做出來的臨時配方。
+    /// </summary>
+    public WeaponData CreateTransient(IReadOnlyDictionary<string, string> fields, RecipeEntry recipe, List<string> problems)
+    {
+        var w = BuildWeapon(fields, recipe, problems);
+        LoadVisuals(w);
+        return w;
+    }
+
     private void LoadWeapons()
     {
+        _weapons.Clear(); _recipeToWeapon.Clear(); _weaponIDs.Clear();
         if (WeaponCSV == null)
         {
-            Debug.LogError("Weapon CSV is not assigned!");
+            Debug.LogError("[WeaponTable] Inspector 的 WeaponCSV 沒有指定。");
             return;
         }
-
         if (BulletPrefab == null)
         {
-            Debug.LogError("BulletPrefab is not assigned on WeaponManager!");
+            Debug.LogError("[WeaponTable] WeaponManager 的 BulletPrefab 沒有指定。");
             return;
         }
 
-        string[] lines = WeaponCSV.text.Split('\n');
+        var table = CsvTable.Parse(WeaponCSV.text, "WeaponTable");
+        table.Require("ID", "Name", "Damage", "RecipeID");
+        foreach (var err in table.Errors) Debug.LogError(err);
+        var unknown = table.UnknownColumns(WeaponModeSpec.ColumnNames(FieldTable.Weapon));
+        if (unknown.Count > 0)
+            Debug.LogWarning($"[WeaponTable] 表頭有程式不認得的欄位（會被忽略）：{string.Join(", ", unknown)}。");
 
-        for (int i = 1; i < lines.Length; i++)
+        var problems = new List<string>();
+        foreach (var row in table.Rows)
         {
-            if (string.IsNullOrWhiteSpace(lines[i])) continue;
-
-            string[] v = lines[i].Split(',');
-            if (v.Length < 6) continue;
-
-            var weapon = new WeaponData();
-            weapon.ID = int.Parse(v[0]);
-            weapon.Name = v[1].Trim();
-            weapon.Damage = float.Parse(v[2]);
-            weapon.RecipeID = int.Parse(v[3]);
-            weapon.WeaponSpritePath = v[4].Trim();
-            weapon.SpriteAngleOffset = float.Parse(v[5]);
-
-            weapon.WeaponAniPath = (v.Length > 6) ? v[6].Trim() : "";
-            weapon.WeaponAniNumber = (v.Length > 7 && !string.IsNullOrWhiteSpace(v[7])) ? int.Parse(v[7].Trim()) : 0;
-            weapon.AnimFPS = (v.Length > 8 && !string.IsNullOrWhiteSpace(v[8])) ? float.Parse(v[8].Trim()) : 0f;
-            weapon.BulletScale = (v.Length > 9 && !string.IsNullOrWhiteSpace(v[9])) ? float.Parse(v[9].Trim()) : 1f;
-
-            // 雷射外觀欄位（只填編號；數字定義在 BeamStyleLibrary）
-            int styleId = (v.Length > 10 && !string.IsNullOrWhiteSpace(v[10])) ? int.Parse(v[10].Trim()) : 2;   // 預設 2=標準雷射
-            int colorId = (v.Length > 11 && !string.IsNullOrWhiteSpace(v[11])) ? int.Parse(v[11].Trim()) : 9;   // 預設 9=白
-            weapon.BeamStyle = BeamStyleLibrary.Get(styleId);
-            weapon.BeamColor = BeamStyleLibrary.GetColor(colorId);
-            weapon.BeamWidth = (v.Length > 12 && !string.IsNullOrWhiteSpace(v[12])) ? float.Parse(v[12].Trim()) : 0.5f;
-
-            // 一次性特效 ID（引用 VfxTable）；留空 / 0 = 不觸發
-            weapon.FireEffectID = (v.Length > 13 && !string.IsNullOrWhiteSpace(v[13])) ? int.Parse(v[13].Trim()) : 0;
-            weapon.HitEffectID = (v.Length > 14 && !string.IsNullOrWhiteSpace(v[14])) ? int.Parse(v[14].Trim()) : 0;
-            weapon.TrailEffectID = (v.Length > 15 && !string.IsNullOrWhiteSpace(v[15])) ? int.Parse(v[15].Trim()) : 0;
-
-            // 魔力消耗（第 16 欄）；留空 / 缺欄 = 1（見 readme/COMBAT.md）
-            weapon.ManaCost = (v.Length > 16 && !string.IsNullOrWhiteSpace(v[16])) ? float.Parse(v[16].Trim()) : 1f;
-
-            // 召喚特效 ID（第 17 欄，引用 VfxTable）：召喚型武器在每個生怪點播放，特效播完才生怪；留空 / 0 = 不播、立即生怪
-            weapon.SummonEffectID = (v.Length > 17 && !string.IsNullOrWhiteSpace(v[17])) ? int.Parse(v[17].Trim()) : 0;
-            weapon.PixelBeamSet = (v.Length > 18) ? v[18].Trim() : "";
-
-            weapon.Recipe = RecipeManager.GetRecipe(weapon.RecipeID);
-            weapon.BulletPrefab = BulletPrefab;
-
-            // 雷射／連鎖及「非分段」落雷才需要光束素材；九霄雷獄的分段雷柱自帶 Sprite，不載無用光暈。
-            if (weapon.Recipe != null && weapon.Recipe.Data != null
-                && (weapon.Recipe.Data.IsLaser || weapon.Recipe.IsChain
-                    || (weapon.Recipe.IsSkyStrike && !weapon.Recipe.UseSegmentedSkyStrike)))
-                LoadBeamAssets(weapon);
-
-            if (!string.IsNullOrEmpty(weapon.WeaponAniPath) && weapon.WeaponAniNumber > 0)
+            problems.Clear();
+            int recipeId = row.GetInt("RecipeID", 0);
+            RecipeEntry recipe = (RecipeManager != null) ? RecipeManager.GetRecipe(recipeId) : null;
+            var weapon = BuildWeapon(row.ToDictionary(), recipe, problems);
+            if (weapon.ID <= 0)
             {
-                var sprites = new Sprite[weapon.WeaponAniNumber];
-                bool allLoaded = true;
-                for (int f = 0; f < weapon.WeaponAniNumber; f++)
-                {
-                    string framePath = $"{weapon.WeaponAniPath}_{(f + 1):D2}";
-                    sprites[f] = Resources.Load<Sprite>(framePath);
-                    if (sprites[f] == null)
-                    {
-                        Debug.LogWarning($"Animation sprite not found at '{framePath}' for weapon '{weapon.Name}'.");
-                        allLoaded = false;
-                    }
-                }
-                weapon.WeaponSprites = sprites;
-                weapon.WeaponSprite = (allLoaded && sprites.Length > 0) ? sprites[0] : null;
+                Debug.LogError($"[WeaponTable] 第 {row.Line} 行的 ID 不是正整數，已略過。");
+                continue;
             }
-            else if (weapon.Recipe != null && weapon.Recipe.Data != null && weapon.Recipe.Data.IsLaser)
+            foreach (var p in problems)
             {
-                // 雷射武器使用光束自身視覺（beam_core / 光暈），不需要 WeaponSprite
+                string msg = $"[WeaponTable] 武器 {weapon.ID}「{weapon.Name}」（第 {row.Line} 行）：{p}";
+                if (p.StartsWith("[Error]")) Debug.LogError(msg); else Debug.LogWarning(msg);
             }
-            else if (!string.IsNullOrWhiteSpace(weapon.WeaponSpritePath))
-            {
-                Sprite sprite = Resources.Load<Sprite>(weapon.WeaponSpritePath);
-                if (sprite != null)
-                {
-                    weapon.WeaponSprite = sprite;
-                }
-                else
-                {
-                    Debug.LogWarning($"Weapon sprite not found at Resources path '{weapon.WeaponSpritePath}' for weapon '{weapon.Name}'.");
-                }
-            }
-            // WeaponSpritePath 留空且非動畫 = 隱形子彈（例如地刺，只靠 TrailEffectID 沿路種刺），不需飛行圖
+            LoadVisuals(weapon);
 
             _weapons[weapon.ID] = weapon;
             _weaponIDs.Add(weapon.ID);
@@ -189,7 +157,94 @@ public class WeaponManager : MonoBehaviour
         }
 
         _weaponIDs.Sort();
-        Debug.Log($"Loaded {_weapons.Count} weapons from CSV.");
+        Debug.Log($"[WeaponTable] 載入 {_weapons.Count} 把武器。");
+    }
+
+    /// <summary>從「欄名 → 值」建一把武器的資料（不載圖）。CSV 與模擬面板共用。</summary>
+    private WeaponData BuildWeapon(IReadOnlyDictionary<string, string> f, RecipeEntry recipe, List<string> problems)
+    {
+        string S(string col) => (f != null && f.TryGetValue(col, out var v) && !string.IsNullOrWhiteSpace(v)) ? v.Trim() : "";
+
+        var weapon = new WeaponData();
+        weapon.ID = CsvFieldParse.Int(S("ID"), 0);
+        weapon.Name = S("Name");
+        weapon.Damage = CsvFieldParse.Float(S("Damage"), 1f);
+        weapon.RecipeID = CsvFieldParse.Int(S("RecipeID"), 0);
+        weapon.ManaCost = CsvFieldParse.Float(S("ManaCost"), 1f);   // 留空 = 1（見 readme/COMBAT.md）
+
+        weapon.WeaponSpritePath = S("WeaponSpritePath");
+        weapon.SpriteAngleOffset = CsvFieldParse.Float(S("SpriteAngleOffset"), 0f);
+        weapon.WeaponAniPath = S("WeaponAniPath");
+        weapon.WeaponAniNumber = CsvFieldParse.Int(S("WeaponAniNumber"), 0);
+        weapon.AnimFPS = CsvFieldParse.Float(S("AnimFPS"), 0f);
+        weapon.BulletScale = CsvFieldParse.Float(S("BulletScale"), 1f);
+
+        // 雷射外觀欄位（只填編號；數字定義在 BeamStyleLibrary）
+        int styleId = CsvFieldParse.Int(S("BeamStyle"), 2);   // 預設 2=標準雷射
+        int colorId = CsvFieldParse.Int(S("BeamColor"), 9);   // 預設 9=白
+        weapon.BeamStyle = BeamStyleLibrary.Get(styleId);
+        weapon.BeamColor = BeamStyleLibrary.GetColor(colorId);
+        weapon.BeamWidth = CsvFieldParse.Float(S("BeamWidth"), 0.5f);
+        weapon.PixelBeamSet = S("PixelBeamSet");
+
+        // 一次性特效 ID（引用 VfxTable）；留空 / 0 = 不觸發
+        weapon.FireEffectID = CsvFieldParse.Int(S("FireEffectID"), 0);
+        weapon.HitEffectID = CsvFieldParse.Int(S("HitEffectID"), 0);
+        weapon.TrailEffectID = CsvFieldParse.Int(S("TrailEffectID"), 0);
+        weapon.SummonEffectID = CsvFieldParse.Int(S("SummonEffectID"), 0);
+
+        weapon.Recipe = recipe;
+        weapon.BulletPrefab = BulletPrefab;
+
+        if (recipe == null)
+            problems?.Add($"[Error] RecipeID={weapon.RecipeID} 在 RecipeTable 找不到。");
+        else if (problems != null && f != null)
+            problems.AddRange(WeaponModeSpec.Validate(recipe.Mode, f, FieldTable.Weapon));
+
+        return weapon;
+    }
+
+    /// <summary>依模式載入子彈圖／序列圖／光束素材。</summary>
+    private void LoadVisuals(WeaponData weapon)
+    {
+        var recipe = weapon.Recipe;
+        WeaponMode mode = recipe != null ? recipe.Mode : WeaponMode.Normal;
+
+        // 雷射／連鎖及「非分段」落雷才需要光束素材；九霄雷獄的分段雷柱自帶 Sprite，不載無用光暈。
+        if (mode == WeaponMode.Laser || mode == WeaponMode.Chain
+            || (mode == WeaponMode.SkyStrike && recipe != null && !recipe.SegmentedColumn))
+            LoadBeamAssets(weapon);
+
+        if (!string.IsNullOrEmpty(weapon.WeaponAniPath) && weapon.WeaponAniNumber > 0)
+        {
+            var sprites = new Sprite[weapon.WeaponAniNumber];
+            bool allLoaded = true;
+            for (int fr = 0; fr < weapon.WeaponAniNumber; fr++)
+            {
+                string framePath = $"{weapon.WeaponAniPath}_{(fr + 1):D2}";
+                sprites[fr] = Resources.Load<Sprite>(framePath);
+                if (sprites[fr] == null)
+                {
+                    Debug.LogWarning($"[WeaponTable] 武器「{weapon.Name}」的序列圖 '{framePath}' 找不到。");
+                    allLoaded = false;
+                }
+            }
+            weapon.WeaponSprites = sprites;
+            weapon.WeaponSprite = (allLoaded && sprites.Length > 0) ? sprites[0] : null;
+        }
+        else if (mode == WeaponMode.Laser)
+        {
+            // 雷射武器使用光束自身視覺（beam_core / 光暈），不需要 WeaponSprite
+        }
+        else if (!string.IsNullOrWhiteSpace(weapon.WeaponSpritePath))
+        {
+            Sprite sprite = Resources.Load<Sprite>(weapon.WeaponSpritePath);
+            if (sprite != null)
+                weapon.WeaponSprite = sprite;
+            else
+                Debug.LogWarning($"[WeaponTable] 武器「{weapon.Name}」的子彈圖 Resources 路徑 '{weapon.WeaponSpritePath}' 找不到。");
+        }
+        // WeaponSpritePath 留空且非動畫 = 隱形子彈（例如地刺，只靠 TrailEffectID 沿路種刺），不需飛行圖
     }
 
     // 雷射光暈素材路徑（相對 Resources/，不含副檔名）。光束本體已全參數化，不再需要 beam 貼圖。

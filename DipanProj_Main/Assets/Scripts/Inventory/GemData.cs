@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using UnityEngine;
+using Dipan.Data;
 
 namespace Dipan.Inventory
 {
@@ -95,37 +96,39 @@ namespace Dipan.Inventory
         void LoadFromText(string text)
         {
             _gems.Clear();
-            string[] lines = (text ?? "").Split('\n');
-            for (int i = 1; i < lines.Length; i++)   // 第 0 行是表頭
-            {
-                string line = lines[i].TrimEnd('\r');
-                if (string.IsNullOrWhiteSpace(line)) continue;
-                if (line.TrimStart().StartsWith("#")) continue;   // # 開頭 = 註解列
+            // 2026-08-26 起依表頭名稱取值（欄位可重排、# 註解列、空白=預設），見 CsvTable。
+            var table = CsvTable.Parse(text ?? "", "GemTable");
+            table.Require("GemID", "Name", "Field", "Target", "Lv1", "Lv2", "Lv3");
+            foreach (var err in table.Errors) Debug.LogError(err);
 
-                string[] v = line.Split(',');
-                if (v.Length < 7) continue;
-                if (!int.TryParse(Field(v, 0), out int id)) continue;
+            foreach (var row in table.Rows)
+            {
+                int id = row.GetInt("GemID", 0);
+                if (id <= 0) continue;
 
                 var g = new GemData();
                 g.GemID = id;
-                g.Name = Field(v, 1);
-                g.Field = Field(v, 2);
-                g.Target = ParseTarget(Field(v, 3));
+                g.Name = row.Get("Name");
+                g.Field = row.Get("Field");
+                g.Target = ParseTarget(row.Get("Target"));
                 for (int lv = 0; lv < 3; lv++)
                 {
-                    g.Levels[lv] = ParseValue(Field(v, 4 + lv), out bool pct);
+                    g.Levels[lv] = ParseValue(row.Get("Lv" + (lv + 1)), out bool pct);
                     if (pct) g.IsPercent = true;
                 }
-                g.Icon = Field(v, 7);
-                g.BaseColor = Field(v, 8);
+                g.Icon = row.Get("Icon");
+                g.BaseColor = row.Get("BaseColor");
                 if (string.IsNullOrEmpty(g.BaseColor)) g.BaseColor = DefaultColorFor(g.Target);
-                g.Note = Field(v, 9);
+                g.Note = row.Get("Note");
 
                 if (string.IsNullOrEmpty(g.Field))
                 {
                     Debug.LogWarning($"[GemDatabase] 珠子 {g.GemID} '{g.Name}' 沒填 Field（要改哪個欄位），已略過。");
                     continue;
                 }
+                // Field 必須是 RecipeTable / WeaponTable 真的有的欄名，否則這顆珠子永遠不會生效（而且不會報錯）
+                if (g.Target != GemTarget.Player && WeaponModeSpec.GetField(g.Field) == null)
+                    Debug.LogWarning($"[GemDatabase] 珠子 {g.GemID} '{g.Name}' 的 Field「{g.Field}」不是 RecipeTable/WeaponTable 的欄名，鑲上去不會有效果。可用欄名見 WeaponModeSpec。");
                 _gems[g.GemID] = g;
             }
             Debug.Log($"[GemDatabase] 載入 {_gems.Count} 種能力珠。");
@@ -160,6 +163,5 @@ namespace Dipan.Inventory
             return float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out float f) ? f : 0f;
         }
 
-        static string Field(string[] v, int i) => (i < v.Length && v[i] != null) ? v[i].Trim() : "";
     }
 }

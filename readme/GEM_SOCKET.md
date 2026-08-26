@@ -150,7 +150,7 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
 
 | 在 `ProjectileData`（彈道系統側） | 在 `RecipeEntry`（主遊戲側） |
 |---|---|
-| Speed / Radius / LifeTime / FireInterval / RotationSpeed / PierceCount / MaxBounces / HasBounce / HomingTurnSpeed / SpreadCount / SpreadAngle / OrbitalCount / OrbitalRadius / BeamRange / DotInterval / TrailStep / ArcHeight | BounceTarget / BlastRadius / ChainCount / ChainRadius / MeleeAngle / DashDistance / DashWidth / SummonCount / SummonMaxAlive / SummonRadius / GroundEffectID |
+| Speed / Radius / LifeTime / FireInterval / RotationSpeed / PierceCount / MaxBounces / HasBounce / HomingTurnSpeed / SpreadCount / SpreadAngle / OrbitalCount / OrbitalRadius / BeamRange（CSV 欄名 `Range`） / DotInterval / TrailStep / FlightTime / ArcHeight | Mode / BounceTarget / AreaRadius / ChainCount / ChainRadius / AimConeAngle / SnapRadius / MeleeAngle / DashDistance / DashWidth / SummonCount / SummonMaxAlive / SummonRadius / GroundEffectID |
 
 ### 連動規則（光加數值沒用的欄位）
 
@@ -159,7 +159,14 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
 | **反彈** | 必須同時 `HasBounce = true`；而且 `BounceTarget` 是 `None` 時要設成 `Environment`（對牆反彈），否則等於白鑲 |
 | **穿透** | `-1` 代表**無限穿透**，不能直接 +1（會變成 0 ＝ 不穿透）。已經無限就維持無限 |
 | **追蹤** | 數值 > 0 時要 `HasHoming = true` |
-| **分裂** | 數量 > 1 時要 `HasSplit = true` |
+| **分裂** | 數量 > 1 時要 `HasSplit = true`（只有 Normal／Orbital；雷射／拋物線／連鎖／落雷直接讀 `SplitCount` 當道數） |
+| **迅捷 × 拋物線** | `Speed` 對拋物線無意義，珠子的 +% 換算成**縮短 `FlightTime`**（丟得更快）；固定值部分忽略 |
+
+### 依模式過濾（2026-08-26）
+
+珠子改的欄位對「目前武器的 `Mode`」無效就**不套用**，判斷走 `WeaponModeSpec.IsEffective`（與載入檢查同一份真相）；例：佛光不會反彈、雷射沒有子彈大小、召喚不吃傷害、連鎖閃電的跳數已是獨立欄所以反彈珠對它無效。完整矩陣見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) §4。
+
+**鍛造介面「提示不擋」**（`GemEffectiveness.cs`）：珠子可以鑲在護身符／戒指上跨裝備疊加到當前武器，所以「有沒有效」是**珠子 × 參考武器**——鐵砧上是武器就看那把、是防具就看目前裝備的武器，換武器答案就變，因此**不擋**。做法：拖進孔位時對參考武器無效 → toast（語言表 4013）；孔位上無效的珠子灰顯（`ForgeSlotWidget.Dimmed`）；珠子與鐵砧物品的 tooltip 加一行說明（4014／4015）；背包 tooltip 的鑲嵌清單標「（對目前武器無效）」（4016）。裝備中的武器一換，`InventorySystem.OnChanged` 會讓孔位重畫。
 
 ### 安全夾值（不是平衡，是「會把遊戲弄壞」的下限）
 

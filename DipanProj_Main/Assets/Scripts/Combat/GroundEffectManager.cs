@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Dipan.Data;
 
 public class GroundEffectManager : MonoBehaviour
 {
@@ -72,26 +73,25 @@ public class GroundEffectManager : MonoBehaviour
             return;
         }
 
-        string[] lines = GroundEffectCSV.text.Split('\n');
+        // 2026-08-26 起依表頭名稱取值（欄位可重排、# 註解列、空白=預設），見 CsvTable。
+        var table = CsvTable.Parse(GroundEffectCSV.text, "GroundEffectTable");
+        table.Require("ID", "Name", "Radius", "Duration", "DamageInterval", "Damage", "AniPath");
+        foreach (var err in table.Errors) Debug.LogError(err);
 
-        for (int i = 1; i < lines.Length; i++)
+        foreach (var row in table.Rows)
         {
-            if (string.IsNullOrWhiteSpace(lines[i])) continue;
-
-            string[] v = lines[i].Split(',');
-            if (v.Length < 9) continue;
-
             var data = new GroundEffectData();
-            data.ID = int.Parse(v[0]);
-            data.Name = v[1].Trim();
-            data.Radius = float.Parse(v[2]);
-            data.Duration = float.Parse(v[3]);
-            data.DamageInterval = float.Parse(v[4]);
-            data.Damage = float.Parse(v[5]);
-            data.AniPath = v[6].Trim();
-            data.AniNumber = !string.IsNullOrWhiteSpace(v[7]) ? int.Parse(v[7].Trim()) : 0;
-            data.AnimFPS = !string.IsNullOrWhiteSpace(v[8]) ? float.Parse(v[8].Trim()) : 0f;
-            data.TileSize = (v.Length >= 10 && !string.IsNullOrWhiteSpace(v[9])) ? float.Parse(v[9].Trim()) : 1f;
+            data.ID = row.GetInt("ID", 0);
+            if (data.ID <= 0) continue;
+            data.Name = row.Get("Name");
+            data.Radius = row.GetFloat("Radius", 1f);
+            data.Duration = row.GetFloat("Duration", 1f);
+            data.DamageInterval = row.GetFloat("DamageInterval", 0f);
+            data.Damage = row.GetFloat("Damage", 0f);
+            data.AniPath = row.Get("AniPath");
+            data.AniNumber = row.GetInt("AniNumber", 0);
+            data.AnimFPS = row.GetFloat("AnimFPS", 0f);
+            data.TileSize = row.GetFloat("TileSize", 1f);
             if (data.TileSize <= 0f) data.TileSize = 1f;
 
             // 渲染模式：留空 / Tile = tile 鋪滿（預設）；
@@ -99,18 +99,18 @@ public class GroundEffectManager : MonoBehaviour
             // Glow = 單張 + Custom/AuraGlow 加色發光 + 燈火忽強忽弱明滅 + 微幅呼吸縮放（佛光用）。
             data.SingleSprite = false;
             data.GlowFlicker = false;
-            if (v.Length >= 11 && !string.IsNullOrWhiteSpace(v[10]))
+            string mode = row.Get("RenderMode");
+            if (!string.IsNullOrEmpty(mode))
             {
-                string mode = v[10].Trim();
                 bool isGlow = mode.Equals("Glow", System.StringComparison.OrdinalIgnoreCase);
                 data.GlowFlicker = isGlow;
                 // Glow 蘊含單圖模式
                 data.SingleSprite = isGlow || mode.Equals("Single", System.StringComparison.OrdinalIgnoreCase);
             }
 
-            // 背景旋轉符號（第 12 欄）：留空 = 沒有這一層。與 RenderMode 完全無關，三種模式都能掛。
+            // 背景旋轉符號：留空 = 沒有這一層。與 RenderMode 完全無關，三種模式都能掛。
             // 在這裡就把圖載好（同 AniPath 的做法），生成特效時不必再碰 Resources。
-            data.SigilPath = (v.Length >= 12) ? v[11].Trim() : string.Empty;
+            data.SigilPath = row.Get("SigilPath");
             if (!string.IsNullOrEmpty(data.SigilPath))
             {
                 data.SigilSprite = Resources.Load<Sprite>(data.SigilPath);
@@ -121,10 +121,8 @@ public class GroundEffectManager : MonoBehaviour
                 }
             }
 
-            // 發光半徑（第 13 欄）：留空 / <=0 = 不發光。> 0 時特效會掛 LightSource 真的照亮暗場景。
-            data.LightRadius = (v.Length >= 13 && !string.IsNullOrWhiteSpace(v[12]))
-                ? float.Parse(v[12].Trim())
-                : 0f;
+            // 發光半徑：留空 / <=0 = 不發光。> 0 時特效會掛 LightSource 真的照亮暗場景。
+            data.LightRadius = row.GetFloat("LightRadius", 0f);
 
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)
             {

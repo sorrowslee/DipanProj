@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Dipan.Inventory;
+using Dipan.Localization;
 
 namespace Dipan.UI
 {
@@ -119,6 +120,8 @@ namespace Dipan.UI
 
         // ── tooltip ──
         const float TooltipWidth = 460f;
+        // 語言表：鑲嵌珠對目前武器無效的標記（4016，鍛造介面段）
+        const int TxtGemIneffectiveMark = 4016;
         RectTransform _tooltip;
         Text _tipName, _tipStats, _tipLore;
 
@@ -751,18 +754,21 @@ namespace Dipan.UI
                 }
             }
 
-            // 裝備：列出目前鑲了什麼
+            // 裝備：列出目前鑲了什麼；對參考武器（這件是武器→它自己；防具→目前裝備的武器）沒效果的珠子標出來
             if (inst != null && inst.HasSockets && inst.UnlockedCount > 0)
             {
                 if (sb.Length > 0) sb.Append('\n');
                 sb.Append($"鑲嵌 {inst.GemCount}/{inst.UnlockedCount}");
                 var inv = InventorySystem.Instance;
+                var refW = GemEffectiveness.ReferenceWeapon(d.WeaponID > 0 ? d.ID : 0);
                 for (int i = 0; i < inst.sockets.Count; i++)
                 {
                     var g = inst.GemAt(i);
                     if (g == null) continue;
                     var gemItem = inv != null ? inv.GetData(g.itemId) : null;
                     sb.Append('\n').Append("　・").Append(gemItem != null ? gemItem.Name : $"#{g.itemId}").Append(" Lv").Append(g.level);
+                    if (refW != null && !GemEffectiveness.IsEffective(g, refW))
+                        sb.Append(Language.GetText(TxtGemIneffectiveMark));
                 }
             }
             return sb.ToString();

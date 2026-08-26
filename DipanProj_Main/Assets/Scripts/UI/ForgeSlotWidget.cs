@@ -48,6 +48,18 @@ namespace Dipan.UI
         public Action Clicked;
 
         /// <summary>
+        /// 這一格的內容要不要**灰顯**（例：鑲在孔裡、但對目前武器沒效果的珠子）。null = 永不灰顯。
+        /// 只是視覺提示，不影響拖放——「提示不擋」，見 readme/GEM_SOCKET.md 的鑲嵌有效性一節。
+        /// </summary>
+        public Func<ItemStack, bool> Dimmed;
+
+        /// <summary>東西**成功**拖進本格之後呼叫（帶進來的那一份；走 CustomDrop 的格子不會呼叫）。給面板跳「這顆珠對此武器無效」提示。</summary>
+        public Action<ItemStack> Dropped;
+
+        /// <summary>灰顯時的著色（底圖與珠子符號都會跟著壓暗，ItemIcons 會把疊圖顏色同步成底圖顏色）。</summary>
+        static readonly Color DimTint = new Color(0.42f, 0.38f, 0.38f, 0.95f);
+
+        /// <summary>
         /// 收下時改由呼叫端自己處理（null = 走預設的共用搬運，真的把物品搬進本格的容器）。
         /// 鐵砧設了這個 → 改成「只記住來源、完全不搬動物品」，見 <see cref="ForgeAnvilSlot"/>。
         /// </summary>
@@ -139,6 +151,8 @@ namespace Dipan.UI
                 if (_icon != null) _icon.enabled = false;
                 return;
             }
+            // 灰顯要在 Apply 之前設——ItemIcons 會把疊圖（能力符號）的顏色同步成底圖的顏色
+            if (_icon != null) _icon.color = (Dimmed != null && Dimmed(st)) ? DimTint : Color.white;
             // 珠子是「珠身＋能力符號」兩層，一律走 ItemIcons（見 readme/GEM_SOCKET.md）
             ItemIcons.Apply(_icon, st);
         }
@@ -205,7 +219,16 @@ namespace Dipan.UI
                 return;
             }
             if (CustomDrop != null) CustomDrop(src);          // 鐵砧：只記來源，不搬物品
-            else SlotDragController.Drop(this, e);            // 一般格：走共用搬運
+            else
+            {
+                SlotDragController.Drop(this, e);             // 一般格：走共用搬運
+                // 真的搬進來了才通知（搬運可能因為容器拒收而沒發生）
+                if (Dropped != null && Container != null)
+                {
+                    var now = Container.GetAt(Index);
+                    if (!now.IsEmpty && now.ItemId == id) Dropped(now);
+                }
+            }
         }
     }
 }

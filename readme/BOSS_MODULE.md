@@ -14,7 +14,7 @@
 |---|---|
 | `IMonsterBrain.Think(in MonsterContext)` | 決策機介面。簽名已從舊 `Think(actuator, player)` 升級為傳 **`MonsterContext`**（打包 Self/Actuator/Sensor/Player/DeltaTime）。Brain 要更多能力只往 context 加欄位，不改介面。 |
 | `MonsterContext`（struct） | 每幀決策脈絡。`ChaseBrain` 只讀 Actuator/Player；boss 級 Brain 另讀 `Self` 拿 `WeaponUser` 施放技能。 |
-| `MonsterWeaponUser`（元件，seam） | **怪物「使用一把武器」的統一入口**。`Configure(owner, weaponId)`；Brain 每幀呼叫 `TryUse()`，冷卻（配方 `FireInterval`）與召喚上限都在這裡結算。依配方型別分派：目前實作 `IsSummon`（召喚）；**投射型武器（飛劍/落雷）＝ Phase 2**。 |
+| `MonsterWeaponUser`（元件，seam） | **怪物「使用一把武器」的統一入口**。`Configure(owner, weaponId)`；Brain 每幀呼叫 `TryUse()`，冷卻（配方 `FireInterval`）與召喚上限都在這裡結算。依配方型別分派：目前實作 `Mode=Summon`（召喚）；**投射型武器（飛劍/落雷）＝ Phase 2**。 |
 
 **怪物怎麼拿到武器**：`MonsterData.csv` 的 `Weapon` 欄以前閒置，現在**填 WeaponTable 的武器 ID（數字）**＝這隻怪掛 `MonsterWeaponUser` 用那把武器；填 `Contact`／空／非數字 = 不掛（只近戰接觸傷害）。`MonsterController.Initialize` 依此掛上並 `Configure`。
 
@@ -37,22 +37,22 @@
 
 ## 3. 召喚做成一把武器（表驅動、玩家未來可共用）
 
-召喚是 `RecipeTable` 的一種新型別 `IsSummon`（與雷射/拋物線/連鎖…同層級）。「發射動作」＝呼叫 `MonsterSpawner.SpawnMonster` 生怪。冷卻沿用 `FireInterval`。
+召喚是 `RecipeTable` 的一種新型別 `Mode=Summon`（與雷射/拋物線/連鎖…同層級）。「發射動作」＝呼叫 `MonsterSpawner.SpawnMonster` 生怪。冷卻沿用 `FireInterval`。
 
 **RecipeTable 新增 5 欄**：
 
 | 欄 | 意義 |
 |---|---|
-| `IsSummon` | 1 = 召喚型（不發射子彈） |
+| `Mode=Summon` | 1 = 召喚型（不發射子彈） |
 | `SummonIds` | 可召喚的怪物 ID 池，**用 `|` 分隔**（避開 CSV 逗號），例 `8\|9\|10\|11\|12`；每次隨機抽 |
 | `SummonCount` | 每次召喚幾隻（空=1） |
 | `SummonMaxAlive` | 同一施放者的分身**同時存在上限**，達上限暫停召喚（空=4） |
 | `SummonRadius` | 在施放者周圍多遠的環上生成（空=2） |
 
-**現有資料**：配方 26「召喚-紅嫁衣家人」(`IsSummon=1`, `FireInterval=3` 冷卻, `SummonIds=8|9|10|11|12`, `SummonCount=2`, `SummonMaxAlive=5`, `SummonRadius=2`) ← 武器 14「紅嫁衣召喚」 ← 怪物 13 `Weapon=14`。召喚出的家人幽靈用最基本的 `Chase`（ChaseBrain）追玩家。
+**現有資料**：配方 26「召喚-紅嫁衣家人」(`Mode=Summon`, `FireInterval=3` 冷卻, `SummonIds=8|9|10|11|12`, `SummonCount=2`, `SummonMaxAlive=5`, `SummonRadius=2`) ← 武器 14「紅嫁衣召喚」 ← 怪物 13 `Weapon=14`。召喚出的家人幽靈用最基本的 `Chase`（ChaseBrain）追玩家。
 
-**玩家側已接（2026-07-09，測試用）**：召喚核心抽成擁有者無關的共用靜態 `SummonSystem.Cast(owner, originPos, recipe, aliveTracker)`——`MonsterWeaponUser`（boss）與 `PlayerController.Shoot`（玩家）都呼叫它，各持一份 alive 清單管同時上限。玩家 Shoot 在「需要 BulletPrefab」的守衛**之前**先攔 `IsSummon`：耗魔→播發射特效→`SummonSystem.Cast`→`_fireTimer=FireInterval`（按住左鍵依冷卻重複召喚）。
-- **測試武器＝13 號「御靈水晶」**（RecipeID→27）。配方 27：`IsSummon=1`, `FireInterval=1.5`, `SummonIds=1`（ZhaYu，Main 的怪、**任何地圖都載得到 idle+walk**，故不必先 Sync 就能測）, `SummonCount=1`, `SummonMaxAlive=3`, `SummonRadius=1.5`。切到御靈水晶、按住左鍵即在身邊召喚。要召家人幽靈把 `SummonIds` 改 `8|9|10|11|12`（需在 RedBridalGown 地圖或先 Sync 讓幽靈 walk 幀到位）。
+**玩家側已接（2026-07-09，測試用）**：召喚核心抽成擁有者無關的共用靜態 `SummonSystem.Cast(owner, originPos, recipe, aliveTracker)`——`MonsterWeaponUser`（boss）與 `PlayerController.Shoot`（玩家）都呼叫它，各持一份 alive 清單管同時上限。玩家 Shoot 在「需要 BulletPrefab」的守衛**之前**先攔 `Mode=Summon`：耗魔→播發射特效→`SummonSystem.Cast`→`_fireTimer=FireInterval`（按住左鍵依冷卻重複召喚）。
+- **測試武器＝13 號「御靈水晶」**（RecipeID→27）。配方 27：`Mode=Summon`, `FireInterval=1.5`, `SummonIds=1`（ZhaYu，Main 的怪、**任何地圖都載得到 idle+walk**，故不必先 Sync 就能測）, `SummonCount=1`, `SummonMaxAlive=3`, `SummonRadius=1.5`。切到御靈水晶、按住左鍵即在身邊召喚。要召家人幽靈把 `SummonIds` 改 `8|9|10|11|12`（需在 RedBridalGown 地圖或先 Sync 讓幽靈 walk 幀到位）。
 - **陣營制已完成（2026-07-09）**：召喚帶陣營——**玩家召喚＝`PlayerAlly`（協戰）**、**怪物/boss 召喚＝`Enemy`**。見下 §4。
 - **召喚特效（2026-07-10）**：召喚型武器可在**武器表**填 `SummonEffectID`（引用 VfxTable），施放時在**每個生怪點播特效、同一幀就生怪（邊播邊出現）**（`SummonSystem.Cast`，玩家/boss 共用；扣魔/冷卻前先 `HasRoom` 確認有空位）。武器 14（紅嫁衣召喚）、13（御靈水晶）已填 VfxTable 10「招喚怪物」。留空 / 0 = 不播、立即生怪。見 [VFX.md](VFX.md)。
 

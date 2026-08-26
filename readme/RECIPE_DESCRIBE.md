@@ -1,510 +1,307 @@
 # 配方表 (RecipeTable.csv) 欄位說明與使用教學
 
-本文件詳細說明 `DipanProj_Main/Assets/Data/RecipeTable.csv` 中每個欄位的用途、填寫規則與實際範例。
+> 返回 [文件總覽](README.md) ｜ 雙表架構與程式（RecipeManager／WeaponManager）見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)
+>
+> **2026-08-26 大改**：51 欄的舊表已換成 **45 欄、依模式分群**的新表——10 個 `IsXxx` 旗標收成一欄 **`Mode`**，
+> 借用欄位改成獨立欄，所有數值欄**空白＝預設**。舊表填法對照見文末[遷移對照](#從舊表遷移對照)。
 
 ---
 
-## 欄位總覽
+## 0. 先懂這五件事
 
-| 欄位 | 型別 | 必填 | 說明 |
-|------|------|------|------|
-| ID | 整數 | 是 | 配方唯一識別碼，武器表透過此 ID 引用配方 |
-| Name | 字串 | 是 | 配方名稱，供人閱讀辨識用，程式不使用 |
-| Speed | 小數 | 是 | 子彈飛行速度（單位/秒） |
-| Radius | 小數 | 是 | 子彈碰撞判定半徑，用於 `Physics2D.CircleCast` |
-| LifeTime | 小數 | 是 | 子彈存活時間（秒），超過即自動銷毀；**-1** 表示不因時間銷毀 |
-| FireInterval | 小數 | 是 | 發射間隔（秒），控制射速 |
-| RotationSpeed | 小數 | 是 | 子彈飛行時的自轉速度（度/秒），0 為不旋轉 |
-| PierceCount | 整數 | 是 | 穿透次數，0 為不穿透；**-1** 表示無限穿透（不遞減） |
-| SpreadCount | 整數 | 是 | 散射/分裂數量，1 為不分裂 |
-| SpreadAngle | 小數 | 是 | 散射總角度（度），子彈在此角度範圍內均勻展開 |
-| SplitTiming | 字串 | 否 | 分裂觸發時機，僅在 SpreadCount > 1 時有效 |
-| SubRecipeID | 整數 | 否 | 分裂後子彈使用的配方 ID，空白表示繼承自身屬性 |
-| BounceTarget | 字串 | 是 | 反彈對象，決定子彈碰到什麼會反彈 |
-| MaxBounces | 整數 | 是 | 最大反彈次數，僅在 BounceTarget 非 None 時有效 |
-| HomingTurnSpeed | 小數 | 否 | 追蹤轉向速度（度/秒），0 或留空為不追蹤 |
-| IsOrbital | 整數 | 否 | 是否為環繞型彈道（1 = 是，留空或 0 = 否） |
-| OrbitalRadius | 小數 | 否 | 環繞半徑，僅在 IsOrbital = 1 時有效 |
-| OrbitalCount | 整數 | 否 | 環繞數量，每次發射生成幾顆環繞子彈 |
-| BlockedByEnvironment | 整數 | 否 | 子彈是否會被地形障礙物阻擋（1 或留空 = 會被擋，0 = 穿透地形不被銷毀） |
-| GroundEffectID | 整數 | 否 | 命中時鏈式觸發的地面特效 ID，引用 `GroundEffectTable.csv` 對應列；留空或 0 = 不觸發 |
-| GroundEffectTrigger | 字串 | 否 | 地面特效觸發時機（`OnSpawn` / `OnHit` / `OnDeath`），目前僅實作 `OnHit`；留空 = `OnHit` |
-| GroundEffectHitTarget | 字串 | 否 | 地面特效命中過濾（`Enemy` / `Environment` / `Any` / `Ground`），決定打到哪類 layer 才生成；留空 = `Enemy`，與 BounceTarget 獨立 |
-| IsParabolic | 整數 | 否 | 是否為拋物線型彈道（1 = 是，留空或 0 = 否；與 IsOrbital 互斥） |
-| ArcHeight | 小數 | 否 | 拋物線弧頂的視覺高度（世界單位，假高度），僅在 IsParabolic = 1 時有效 |
-| LaunchSource | 字串 | 否 | 發射來源（`Player` / `Offscreen`），`Offscreen` 從攝影機視野外隨機方向飛入；留空 = `Player` |
-| LandingScatterRadius | 小數 | 否 | 拋物線專用：落點隨機半徑（世界單位）。每顆炸彈的最終落點 = 扇形目標 + `Random.insideUnitCircle * 半徑`；留空或 0 = 不隨機 |
-| IsLaser | 整數 | 否 | 是否為持續型雷射光束（1 = 是，留空或 0 = 否；與 IsOrbital / IsParabolic 互斥） |
-| dotInterval | 小數 | 否 | 雷射專用：傷害節拍（秒）。光束每 N 秒對當下掃到的所有目標各結算一次傷害（傷害值取武器表 Damage）；留空 = 0.5 |
-| BeamRange | 小數 | 否 | 雷射專用：光束最大射程（世界單位）。Speed / LifeTime 對光束無意義，改用此欄位限制長度；留空 = 20 |
-| BlastRadius | 小數 | 否 | 拋物線專用：落地殺傷半徑（世界單位）。留空 / 0 = 落地不傷害；> 0 = 落地瞬間以武器表 Damage 對半徑內怪物炸一次。與地面特效獨立、可並存 |
-| TrailStep | 小數 | 否 | 軌跡點間距（世界單位）：> 0 時子彈每飛這麼遠就沿路種一個特效（搭配武器表 `TrailEffectID`）。子彈反彈/分裂/追蹤後的彎折路徑都會跟著種。地刺武器靠這個沿路長出尖刺。0 或留空 = 無軌跡 |
-| IsAura | 整數 | 否 | 佛光型武器（1 = 是，留空或 0 = 否；與 IsOrbital / IsParabolic / IsLaser 互斥）。不發射子彈，改在玩家身上維持一個「跟著玩家移動」的圓形 AOE（圓的定義走本列 `GroundEffectID`、傷害走武器表 `Damage`）。見 [GROUND_EFFECT.md](GROUND_EFFECT.md) 的佛光章節 |
-| IsChain | 整數 | 否 | 連鎖閃電（1 = 是，留空或 0 = 否；與其他模式互斥）。朝滑鼠射出命中首怪後逐跳。**跳躍次數沿用 `MaxBounces` 欄、第一段射程沿用 `BeamRange` 欄**。見 [LASER.md](LASER.md) 的連鎖閃電章節 |
-| ChainRadius | 小數 | 否 | 連鎖閃電每一跳的搜尋半徑（世界單位）；留空 = 4 |
-| IsSkyStrike | 整數 | 否 | 落雷模式（1 = 是，留空或 0 = 否；與其他模式互斥）。從畫面上緣劈下到滑鼠點，落地以 `BlastRadius` 做圓形 AOE。吃 `SpreadCount`/`SpreadAngle`（多道）與 `HomingTurnSpeed`（落點吸附，當搜尋半徑）。目前由九霄雷獄使用，見 [LASER.md](LASER.md) |
-| SubWeaponOnHit | 整數 | 否 | 命中迸發子武器：子彈命中時在命中點生成「**武器表上指定 ID** 的武器」一發（子武器**自帶外型/傷害/追蹤**）。留空 / 0 = 不觸發。**與 `SubRecipeID` 不同**（見下方說明） |
-| SubWeaponHitTarget | 字串 | 否 | 迸發過濾：`Enemy`（預設）/ `Environment`（牆＋可破壞家具）/ `All`（任一都迸）|
-| 集氣模式 | 布林 | 否 | `1`／`true` 啟用，留空／`0`／`false` 關閉。按住攻擊 3 秒後放開可獲得傷害 ×3、視覺 ×2；與 `IsLaser`、`IsAura` 互斥。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
-| 集氣時間縮減 | 百分比 | 否 | 留空為 `0%`；`30%` 代表縮短 30%（3 秒→2.1 秒），`-20%` 代表延長 20%（3 秒→3.6 秒）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
-
-> 雷射配方可用 `BeamRange=-1` 表示延伸射程；反射仍完全由 `BounceTarget` 與 `MaxBounces` 控制，例如 `Environment + 3` 就只在牆面反射 3 次。詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
+1. **一列一種模式**：`Mode` 欄決定這列是什麼武器（一般子彈／環繞／拋物線／雷射／佛光／連鎖／落雷／召喚／法陣／近戰／突進），**留空＝一般子彈**。一列只能一種，互斥由結構保證，不會再有「兩個旗標都填 1 看程式先判哪個」的事。
+2. **每種模式只吃它那幾欄**：其餘欄位就算填了也**不會被讀**（不只是警告——`RecipeEntry.FromFields` 根本不讀無效欄），Console 會在載入時印 `[RecipeTable] 配方 N：「X」對某模式無效，會被忽略`。哪些欄對哪個模式有效的**唯一真相是程式 `Assets/Scripts/Weapon/WeaponModeSpec.cs`**——本文的表是從它抄出來的；兩者不一致時以程式為準並回來修文件。
+3. **空白＝預設值**：不再有必填的數值欄。每欄的預設寫在下面總覽表；只有「本體必填」（佛光／法陣的 `GroundEffectID`、召喚的 `SummonIds`）缺了會印 Error。
+4. **欄位依名字讀、不依位置**：解析器讀第一列表頭（括號前的名字），所以欄位可以任意重排、中間插新欄；表頭括號裡的說明隨你改。`#` 開頭整列是註解。
+5. **能力珠對模式無效就不套用**：鑲珠子時鍛造介面會提示「這顆對目前武器沒效果」（提示不擋，換把武器就有用），套用時 `PlayerAbilities` 也會跳過。矩陣見[第 4 節](#4-能力珠--模式)。
 
 ---
 
-## 各欄位詳細說明
+## 1. 欄位總覽（依表頭分群）
 
-### ID
-- 配方的唯一編號，不可重複
-- 武器表（WeaponTable.csv）的 `RecipeID` 欄位會引用這個 ID
-- 其他配方的 `SubRecipeID` 也會引用這個 ID
+| 群組 | 欄位 | 型別 | 預設 | 說明 |
+|---|---|---|---|---|
+| **通用** | `ID` | 整數 | — | 配方唯一識別碼，武器表用 `RecipeID` 引用 |
+| | `Name` | 字串 | — | 只給人看，程式不讀 |
+| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`（不分大小寫，也接受中文名） |
+| | `FireInterval` | 小數 | 0.3 | 發射間隔（秒）；Laser／Aura 無效（按住就在）；Summon＝召喚冷卻 |
+| **子彈本體** | `Speed` | 小數 | 15 | 飛行速度（世界單位/秒）；Orbital＝繞圈的切線速度 |
+| | `Radius` | 小數 | 0.1 | 碰撞半徑；Laser 改用武器表 `BeamWidth` |
+| | `LifeTime` | 小數 | 3 | 存活秒數；-1＝不因時間消失；Orbital＝整組到期時間 |
+| | `RotationSpeed` | 小數 | 0 | 自轉（度/秒），純視覺 |
+| | `PierceCount` | 整數 | 0 | 穿透數；0＝碰到就停；-1＝無限穿透 |
+| | `BlockedByEnvironment` | 布林 | 1 | 0＝穿過牆（需 `PierceCount ≠ 0`） |
+| **多發** | `SpreadCount` | 整數 | 1 | 一發幾顆／幾道；1＝不分 |
+| | `SpreadAngle` | 小數 | 0 | 扇形總角度（度） |
+| | `SplitTiming` | 列舉 | OnSpawn | `OnSpawn` 發射時分／`OnHit` 打中才分／`OnDeath` 飛到底才分。**留空＝OnSpawn**（只填 `SpreadCount` 就會分裂）。Laser 只認 `OnHit` |
+| | `SubRecipeID` | 整數 | — | 分裂子彈用的配方；留空＝繼承自身（不再分裂）；SkyStrike＝落點接連鎖的 Chain 配方 |
+| **反彈** | `BounceTarget` | 列舉 | None | `None`／`Environment`（牆）／`Enemy`（怪） |
+| | `MaxBounces` | 整數 | 0 | 最大反彈次數（需 `BounceTarget ≠ None`） |
+| **追蹤** | `HomingTurnSpeed` | 小數 | 0 | 追蹤轉向（度/秒）；0＝不追蹤；90 慢／180 中／360 快；Laser＝光束彎曲速度 |
+| **射程／範圍** | `Range` | 小數 | 20（法陣 8） | Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離 |
+| | `AreaRadius` | 小數 | 0 | Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑 |
+| **命中附加** | `GroundEffectID` | 整數 | 0 | 命中／落地時放一個 `GroundEffectTable` 的特效；**Aura／GroundCast 是本體、必填** |
+| | `GroundEffectHitTarget` | 列舉 | Enemy | `Enemy`／`Environment`／`Any`／`Ground`（Parabolic 落地專用） |
+| | `TrailStep` | 小數 | 0 | >0 時每飛這麼遠沿路種一個武器表 `TrailEffectID` 的特效（地刺、火焰噴射器） |
+| | `SubWeaponOnHit` | 整數 | 0 | 命中時在命中點射出這把**武器表 ID** 的武器 |
+| | `SubWeaponHitTarget` | 列舉 | Enemy | `Enemy`／`Environment`／`All` |
+| **環繞** | `OrbitalRadius` | 小數 | 2 | 軌道半徑 |
+| | `OrbitalCount` | 整數 | 3 | 一輪幾顆 |
+| **拋物線** | `FlightTime` | 小數 | 1 | **飛行秒數**——不論遠近都飛這麼久才落地（原本借用 `Speed`） |
+| | `ArcHeight` | 小數 | 2 | 弧頂視覺高度 |
+| | `LaunchSource` | 列舉 | Player | `Player`／`Offscreen`（從畫面外飛進來） |
+| | `LandingScatterRadius` | 小數 | 0 | 落點隨機半徑 |
+| **雷射** | `DotInterval` | 小數 | 0.5 | 傷害節拍（秒） |
+| **連鎖** | `ChainCount` | 整數 | 0 | 跳躍次數（總命中＝1＋跳數；原本借用 `MaxBounces`） |
+| | `ChainRadius` | 小數 | 4 | 每跳搜尋半徑 |
+| | `AimConeAngle` | 小數 | 0 | 首段鎖定錐半角（度）；0＝要正好瞄到；180＝鎖最近任意方向（原本借用 `HomingTurnSpeed`） |
+| **落雷** | `SnapRadius` | 小數 | 0 | 落點吸附半徑（世界單位）；0＝不吸附（原本借用 `HomingTurnSpeed`） |
+| | `SegmentedColumn` | 布林 | 0 | 1＝從畫面頂鋪到落點的分段雷柱（九霄雷獄）（原 `UseSegmentedSkyStrike`） |
+| **召喚** | `SummonIds` | 整數清單 | — | 可召喚怪物 ID，用 `\|` 分隔，每次隨機抽一個；**必填** |
+| | `SummonCount` | 整數 | 1 | 每次召喚幾隻 |
+| | `SummonMaxAlive` | 整數 | 4 | 同時存在上限 |
+| | `SummonRadius` | 小數 | 2 | 生成半徑 |
+| **近戰** | `MeleeAngle` | 小數 | 100 | 扇形總角度 |
+| **突進** | `DashDistance` | 小數 | 4 | 突進距離 |
+| | `DashWidth` | 小數 | 1 | 掃擊寬度 |
+| **集氣** | `ChargeMode` | 布林 | 0 | 1＝按住 3 秒放開才施放（傷害×3、視覺×2）；Laser／Aura 不可（原「集氣模式」） |
+| | `ChargeTimeReduction` | 百分比 | 0% | `30%` 縮短 30%、`-20%` 延長 20%（原「集氣時間縮減」）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
 
-### Name
-- 純粹供開發者辨識用的名稱
-- 程式不會讀取或顯示這個值，寫中文英文都可以
+---
 
-### Speed（飛行速度）
-- 數值越大，子彈飛越快
-- 建議範圍：5 ~ 100
-- 參考值：10 = 慢速、20 = 一般、40 = 高速
+## 2. 各模式吃哪些欄（模式 × 欄位矩陣）
 
-### Radius（碰撞半徑）
-- 子彈的碰撞判定大小，影響「打不打得到」
-- 數值越大，判定範圍越寬，越容易命中
-- 建議範圍：0.05 ~ 0.5
-- 參考值：0.1 = 標準子彈
+✓＝有效　（空）＝不讀　★＝本體必填　括號＝該模式下的意思
 
-### LifeTime（存活時間）
-- 子彈在場上存活的最大秒數
-- 超過時間後自動銷毀，避免子彈飛出地圖外永遠不消失
-- 設為 **-1**：不因時間銷毀（可與碰撞、分裂等機制搭配）
-- 建議範圍：1 ~ 10（一般子彈）
-- 參考值：3 = 一般用途
+| 欄位 | Normal | Orbital | Parabolic | Laser | Aura | Chain | SkyStrike | Summon | GroundCast | Melee | Dash |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| FireInterval | ✓ | ✓ | ✓ | | | ✓ | ✓ | ✓(冷卻) | ✓ | ✓ | ✓ |
+| Speed | ✓ | ✓(切線) | | | | | | | | | |
+| Radius | ✓ | ✓ | | | | | | | | | |
+| LifeTime | ✓ | ✓(整組) | | | | | | | | | |
+| RotationSpeed | ✓ | ✓ | ✓ | | | | | | | | |
+| PierceCount | ✓ | ✓ | | ✓ | | | | | | | |
+| BlockedByEnvironment | ✓ | ✓ | | ✓ | | | | | | | |
+| SpreadCount／SpreadAngle | ✓ | ✓ | ✓(顆數) | ✓(道數) | | ✓(道數) | ✓(落點數) | | | | |
+| SplitTiming | ✓ | ✓ | | ✓(只認 OnHit) | | | | | | | |
+| SubRecipeID | ✓ | ✓ | | ✓ | | | ✓(接連鎖) | | | | |
+| BounceTarget／MaxBounces | ✓ | ✓ | | ✓ | | | | | | | |
+| HomingTurnSpeed | ✓ | ✓ | | ✓(彎曲) | | | | | | | |
+| Range | | | | ✓(長度) | | ✓(首段) | | | ✓(施放距離) | | |
+| AreaRadius | | | ✓(爆炸) | | | | ✓(AOE) | | | ✓(半徑) | |
+| GroundEffectID | ✓ | ✓ | ✓ | ✓ | ★(本體) | | ✓(留痕) | | ★(本體) | | |
+| GroundEffectHitTarget | ✓ | ✓ | ✓(Ground) | ✓ | | | | | | | |
+| TrailStep | ✓ | ✓ | ✓ | ✓(火焰柱) | | | | | | | |
+| SubWeaponOnHit／HitTarget | ✓ | ✓ | | | | | | | | | |
+| OrbitalRadius／OrbitalCount | | ✓ | | | | | | | | | |
+| FlightTime／ArcHeight／LaunchSource／LandingScatterRadius | | | ✓ | | | | | | | | |
+| DotInterval | | | | ✓ | | | | | | | |
+| ChainCount／ChainRadius／AimConeAngle | | | | | | ✓ | | | | | |
+| SnapRadius／SegmentedColumn | | | | | | | ✓ | | | | |
+| SummonIds★／Count／MaxAlive／Radius | | | | | | | | ✓ | | | |
+| MeleeAngle | | | | | | | | | | ✓ | |
+| DashDistance／DashWidth | | | | | | | | | | | ✓ |
+| ChargeMode／ChargeTimeReduction | ✓ | ✓ | ✓ | | | ✓ | ✓ | | ✓ | ✓ | ✓ |
 
-### FireInterval（發射間隔）
-- 兩次發射之間的最短等待時間（秒）
-- 數值越小，射速越快
-- 參考值：0.1 = 極高射速、0.2 = 快速、0.5 = 中速、1.0 = 慢速
-- 計算射速：每秒發射次數 = 1 / FireInterval（例如 0.2 = 每秒 5 發）
+**武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`BulletScale`）只有 Normal／Orbital／Parabolic；光束外觀（`BeamStyle`／`BeamColor`／`BeamWidth`）是 Laser／Chain／SkyStrike；`PixelBeamSet` 只有 Laser；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
 
-### RotationSpeed（自轉速度）
-- 子彈飛行時繞自身中心旋轉的速度（度/秒）
-- 純視覺效果，不影響飛行軌跡
-- 設為 0 表示不旋轉
-- 參考值：360 = 每秒轉一圈、720 = 每秒轉兩圈
+---
 
-### PierceCount（穿透次數）
-- 子彈可以穿過多少個目標（怪物）而不被銷毀
-- 設為 0：碰到任何目標就銷毀
-- 設為 1：穿過第一個目標，碰到第二個才銷毀
-- 設為 **-1**：無限穿透，每次命中可穿透層目標時都不銷毀且不遞減計數
-- 穿透只作用於 `EnemyLayer`（怪物層），碰到牆壁仍會停下（除非有反彈）
+## 3. 各模式說明與範例
 
-### SpreadCount（散射數量）
-- 控制一次發射產生幾顆子彈
-- 設為 1：正常發射一顆子彈（不分裂）
-- 設為 3：展開成 3 顆子彈（散彈效果）
-- **注意**：當 SpreadCount > 1 時，必須填寫 SplitTiming 欄位
+下面每節列「這個模式怎麼運作、哪幾欄最重要、一列範例（只列有填的欄）」。範例用 `欄=值` 寫法，實際 CSV 就是把值填進對應欄。
 
-### SpreadAngle（散射角度）
-- 散射子彈展開的總角度（度）
-- 子彈會在此角度範圍內均勻分布
-- 例如 SpreadCount=3、SpreadAngle=60：三顆子彈分布在 -30°、0°、+30°
-- 當 SpreadCount = 1 時，此欄位無效
+### Normal 一般子彈（`Mode` 留空）
+會飛、會撞的子彈，全套彈道行為都吃：穿透／反彈／追蹤／分裂／軌跡／命中迸發／命中放地面特效。
+- 分裂：`SpreadCount=3, SpreadAngle=60` 就是一發三顆（`SplitTiming` 留空＝發射時分）。要「打中才炸開」填 `OnHit`、「飛到底才炸開」填 `OnDeath`。`SubRecipeID` 留空時分裂出來的子彈繼承母彈屬性但不再分裂；指向另一個配方可做「先散射再反彈」。
+- 反彈：`BounceTarget=Environment, MaxBounces=3`。
+- 追蹤：`HomingTurnSpeed=180`。
+- 軌跡（地刺）：`TrailStep=1.5` ＋ 武器表 `TrailEffectID`，子彈本身可以是隱形的（武器表不填圖）。反彈／分裂／追蹤的軌跡都會跟著折。
+- 命中迸發：`SubWeaponOnHit=12`（武器表 ID）＋ `SubWeaponHitTarget=All`——打到東西時在命中點射出那把武器（蜂巢→蜜蜂）。與 `SubRecipeID` 的差別見 §3.12。
 
-### SplitTiming（分裂時機）
-- 控制分裂在什麼時候發生
-- 可用的值：
-
-| 值 | 說明 |
-|------|------|
-| `OnSpawn` | 發射時立即分裂，原始子彈消失，展開成多顆子彈 |
-| `OnHit` | 命中目標時分裂，產生額外的子彈 |
-| `OnDeath` | 子彈存活時間結束時分裂 |
-| （空白） | 不分裂，SpreadCount = 1 時留空即可 |
-
-- **OnSpawn** 最常用於散彈（Shotgun）效果
-- **OnHit** 可做出「命中後爆裂」的效果
-- **OnDeath** 可做出「延時炸彈」的效果
-
-### SubRecipeID（分裂子彈配方 ID）
-- 指定分裂後產生的子彈使用哪個配方
-- 留空：分裂子彈繼承父彈的所有屬性（速度、半徑、存活時間等），但不會再次分裂
-- 填寫 ID：分裂子彈使用指定配方的屬性（可以做出「先散射、再反彈」等組合效果）
-
-### BounceTarget（反彈對象）
-- 決定子彈碰到什麼東西會反彈
-
-| 值 | 說明 |
-|------|------|
-| `None` | 不反彈，碰到任何東西都停下或銷毀 |
-| `Environment` | 碰到牆壁/障礙物會反彈，碰到怪物不反彈 |
-| `Enemy` | 碰到怪物會反彈，碰到牆壁不反彈 |
-
-### MaxBounces（最大反彈次數）
-- 子彈最多反彈幾次
-- 僅在 BounceTarget 不是 None 時有效
-- 超過次數後，子彈碰到反彈對象會直接銷毀
-
-### HomingTurnSpeed（追蹤轉向速度）
-- 子彈自動追蹤最近目標的轉向速度（度/秒）
-- 設為 0 或留空表示不追蹤
-- 數值越大，轉向越靈敏
-- 參考值：90 = 慢速追蹤、180 = 一般追蹤、360 = 高速追蹤
-
-### IsOrbital（是否為環繞型彈道）
-- 設為 1：子彈以玩家為圓心環繞飛行
-- 留空或設為 0：一般直線飛行（預設）
-- 每次觸發發射（含依 `FireInterval` 的連射）時，會先清除該玩家上一輪仍在場上的環繞子彈，再重新生成一組
-- 環繞型子彈使用 `Speed` 欄位作為切線速度（繞圈移動速度），半徑越小、Speed 越大，轉得越快
-- **群組生命週期**：同一輪 `OrbitalCount` 顆環繞彈由 `PlayerController` 接管統一銷毀。每顆子彈內部的 `LifeTime` 會被覆寫為 `-1`（不自動超時），改由 `PlayerController` 記錄群組到期時間（= `Time.time + recipe.LifeTime`），時間到時將整組一次 `Destroy`，確保所有環繞彈一起出現、一起消失，不會因單顆子彈的個別事件而錯位
-- 若 `LifeTime` 設為 `-1`，群組就不會自動到期，環繞彈會持續存在直到下一次發射或玩家銷毀時被清掉
-
-### OrbitalRadius（環繞半徑）
-- 子彈繞玩家飛行的軌道半徑
-- 僅在 IsOrbital = 1 時有效
-- 數值越大，軌道越寬
-- 參考值：1 = 緊貼玩家、2 = 一般距離、5 = 遠距離
-
-### OrbitalCount（環繞數量）
-- 每次發射生成幾顆環繞子彈
-- 子彈會等距排列在軌道上（例如 3 顆 = 每隔 120° 一顆）
-- 僅在 IsOrbital = 1 時有效
-
-### BlockedByEnvironment（是否被地形阻擋）
-- 控制子彈碰到地形障礙物（`EnvLayer`）時是否會被銷毀
-- 留空或設為 `1`：會被地形擋下（預設行為，向下相容既有配方）
-- 設為 `0`：地形被加入「可穿透層（PierceableLayers）」，子彈碰到地形不會被銷毀
-- **注意**：此設定「不會被銷毀」的判斷會走穿透邏輯，因此需要 `PierceCount` 為 `-1`（無限穿透）或 `> 0` 才能持續穿過地形；若 `PierceCount = 0`，仍會在第一次命中地形時被銷毀
-- 子彈穿過地形時仍會觸發一次 `OnBulletHitObject` 事件（之後對同一片地形不會再觸發），預留地形擊中特效擴充用
-- 此欄位適用於所有配方，不只環繞彈；最常用於 `IsOrbital = 1` 搭配 `PierceCount = -1` 的環繞武器，讓護盾型彈道不會卡在牆邊
-
-### GroundEffectID（地面特效鏈式觸發）
-- 設為 `0` 或留空：不觸發地面特效（預設）
-- 設為 `> 0` 的整數：對應到 `Assets/Data/GroundEffectTable.csv` 內的同 ID 地面特效，當該配方的子彈命中**符合 `GroundEffectHitTarget` 過濾條件**的目標時，會在命中位置生成該地面特效
-- 地面特效是「主遊戲端」的獨立系統，跟彈道系統分離；位置 = 命中點，傷害、範圍、動畫由 `GroundEffectTable` 自行定義
-- 觸發後子彈本身的傷害、穿透、反彈、分裂等行為**完全不受影響**（地面特效是額外附加效果）
-
-### GroundEffectTrigger（地面特效觸發時機）
-- 與 `GroundEffectID` 搭配使用，留空時預設為 `OnHit`
-- 可用值：
-
-| 值 | 說明 |
-|------|------|
-| `OnHit` | 子彈命中時觸發（首版唯一支援的時機；命中目標還會經 `GroundEffectHitTarget` 過濾） |
-| `OnSpawn` | 子彈生成時觸發（**目前未實作**，填寫會在 Console 印出 Warning） |
-| `OnDeath` | 子彈存活結束時觸發（**目前未實作**，填寫會在 Console 印出 Warning） |
-
-- 注意：`OnHit` 依賴 `BulletInstance` 的「同目標只觸發一次 `OnBulletHitObject`」機制，因此一顆子彈撞同一個物件只會生成一次地面特效；穿透時若打到不同目標會分別觸發。
-
-### GroundEffectHitTarget（地面特效命中過濾）
-- 與 `GroundEffectID` / `GroundEffectTrigger=OnHit` 搭配使用，控制**命中哪一類 layer 的目標**才會觸發地面特效
-- 與 `BounceTarget` 是**獨立**的兩個概念（反彈 vs 觸發地面特效），可自由組合
-- 留空時預設為 `Enemy`（沿用首版只認怪物的行為，向下相容）
-- 可用值：
-
-| 值 | 說明 |
-|------|------|
-| `Enemy`（預設） | 只有打到怪物（`EnemyLayer`）才觸發地面特效；打到牆不會放火 |
-| `Environment` | 只有打到障礙物（`EnvLayer`）才觸發；可做「火油彈封路」之類玩法 |
-| `Any` | 怪物或障礙物都會觸發 |
-| `Ground` | **拋物線專用**：拋物線最終落地（所有彈跳結束）時觸發；非拋物線武器設此值會 no-op |
-
-- 過濾邏輯：`PlayerController.HandleBulletHit` 取得命中目標的 `GameObject.layer`，與 `EnemyLayer` / `EnvLayer` 做位元 AND 比對；拋物線則是 `HandleParabolicLanded` 帶 `hitGround = true` 進來；再依本欄位決定是否呼叫 `GroundEffectManager.Spawn`
-- 傷害結算與此欄位**無關**：傷害仍只發生在怪物上（牆沒有 HP），`Environment` / `Any` 設定下打到牆只會放出地面特效、不會結算傷害
-- 仍受 `BulletInstance` 的「同目標只觸發一次」機制限制，因此一顆子彈撞同一面牆只會放一次地面特效
-
-### IsParabolic / ArcHeight / LaunchSource / LandingScatterRadius / BlastRadius（拋物線型彈道）
-- 啟用條件：`IsParabolic = 1`，與 `IsOrbital` **互斥**（兩個欄位都填 1 時，`ProjectileData.CreateBehaviors` 會把兩個 behavior 都加進去，行為衝突，請避免）
-- 主要設計目的：**作為地面特效的觸發載體**，例如丟炸彈、丟油罐——飛行中不對任何目標造成傷害，落地時觸發 `GroundEffectHitTarget = Ground` 的地面特效
-- **落地殺傷（`BlastRadius`）**：若要讓炸彈「落地當下就炸傷一圈怪」，填 `BlastRadius > 0`，落地瞬間以**武器表 `Damage`** 對半徑內怪物做一次性 AOE（吃怪物無敵時間、擊退由爆心朝外）。與地面特效**獨立**：可只炸傷、可只留火、也可兩者並存。留空 / 0 = 維持「落地不傷害」原行為
-
-#### 行為流程
-1. **發射**：依 `LaunchSource` 決定起點，目標永遠是滑鼠所在的世界座標
-   - `Player`（預設）：從玩家當前位置發射
-   - `Offscreen`：從攝影機 viewport 邊緣外 1 單位的「隨機方向」位置發射飛入；多顆炸彈時每顆都會**獨立重抽**一個視野外起點
-2. **飛行**：`ParabolicBehavior` 在 `OnSpawn` 把 `BulletInstance.CollisionMask` 清成 `0`，整段飛行**不會撞到任何 layer**（也不會觸發 `OnBulletHitObject`）；地面位置由起點線性插值到目標，視覺上額外加 `4 * ArcHeight * t * (1 - t)` 的 Y 偏移製造弧線
-3. **落地**：抵達目標時呼叫 `BulletInstance.RaiseGroundLanded(landPos)`，主遊戲收到後依 `GroundEffectHitTarget` 決定是否生成地面特效，並把 `LifeTime` 設為 0 讓 `BulletInstance` 下一幀清掉
-4. **生命週期**：`LifeTime` 由本行為控制，CSV 的 `LifeTime` 欄位實質上不影響拋物線
-
-#### 欄位對照（與一般彈不同）
-- `Speed`：**飛行時間（秒）**，**不是**速度。`Speed = 1` 代表不論遠近、扇形哪一支，都用 1 秒抵達落點 → 同一發射出去的多顆炸彈會**同時落地**；遠的飛快、近的飛慢，這是預期行為
-- `ArcHeight`：弧頂的「假高度」Y 偏移絕對值（世界單位）。直接寫 `2.5` 就是弧頂上抬 2.5 單位
-- `LaunchSource`：發射來源；`Offscreen` 取攝影機 `orthographicSize` × `aspect` 算 viewport 邊界，從攝影機中心射隨機方向找到出視野的距離 + 1 單位緩衝
-- `LandingScatterRadius`：**落點誤差半徑**（世界單位）。最終落點 = 扇形目標 + `Random.insideUnitCircle * 半徑`（圓盤內均勻分布），多顆炸彈時各自獨立隨機，避免堆疊在同一點。`0` 或留空 = 不隨機
-- `BlastRadius`：**落地殺傷半徑**（世界單位）。`> 0` 時落地瞬間以**武器表 `Damage`** 對半徑內怪物炸一次（多顆炸彈各自在自己落點各炸一圈）。`0` 或留空 = 落地不傷害。Damage = 0 的炸彈即使填了 `BlastRadius` 也不會造成傷害（記得在武器表給 `Damage`）
-- `SpreadCount`：**一發射出幾顆炸彈**。**重要**：拋物線版的分裂不需要 `SplitTiming`，留空也會生效（一般彈仍需要 `SplitTiming` 才會走 SplitBehavior）
-- `SpreadAngle`：扇形總角度（度）。以「玩家 → 滑鼠」為基準軸，N 顆炸彈在 ±SpreadAngle/2 範圍內等角度分布；扇形目標到玩家的距離 = 玩家到滑鼠距離（看起來像一片弧形落點）
-  - `SpreadCount = 3, SpreadAngle = 60`：三個目標分別在 -30° / 0° / +30° 方向、與滑鼠等距的扇形上
-  - `SpreadCount = 1`：單顆，仍會吃 `LandingScatterRadius` 的隨機誤差
-
-#### 與其他欄位的互動
-- `PierceCount` / `BounceTarget` / `MaxBounces`：飛行中不參與 layer 命中，這些欄位**無意義**（即使有 BounceBehavior 也不會被觸發）
-- `RotationSpeed`：仍會旋轉 sprite，做「翻滾炸彈」效果還滿合適
-- `SpriteAngleOffset`：會跟著 velocity 方向轉；但拋物線 velocity 含 Y 高度分量，會在升弧時往上仰、降弧時往下指，看美術風格決定要不要設
-- `IsOrbital`：互斥
-- `SplitTiming` / `SubRecipeID`：拋物線**直接讀 `SpreadCount` / `SpreadAngle`** 自行展扇形，不走 SplitBehavior，因此 `SplitTiming` 留空即可；填了也會被 SplitBehavior 嘗試解析，但因為 OnHit 不會被觸發、OnSpawn 又會額外再炸一輪，**不建議混搭**
-- `GroundEffectHitTarget = Ground`：**標準搭配**，落地放地面特效
-
-#### 範例配方
 ```
-12, 玩家丟出火焰拋物線彈, 1, 0.1, 10, 0.5, 0, 0, 5, 60, , , None, 0, 0, , , , , 1, OnHit, Ground, 1, 2.5, Player, 1.5
+ID=8  Name=3分裂追蹤彈  FireInterval=0.2 Speed=20 Radius=0.1 LifeTime=3 PierceCount=3 SpreadCount=3 SpreadAngle=60 HomingTurnSpeed=180 ChargeMode=1 ChargeTimeReduction=90%
+ID=19 Name=地刺        FireInterval=1 Speed=20 Radius=0.3 LifeTime=10 PierceCount=-1 SpreadCount=3 SpreadAngle=50 BounceTarget=Environment MaxBounces=3 TrailStep=1.5
+ID=24 Name=蜂巢彈      FireInterval=0.6 Speed=12 Radius=0.2 LifeTime=3 RotationSpeed=50 SubWeaponOnHit=12 SubWeaponHitTarget=All
 ```
-固定飛行時間 1 秒，弧高 2.5 單位；一次丟 5 顆，分布在玩家 → 滑鼠方向 ±30° 的扇形上、與滑鼠等距，並在每個扇形目標 1.5 單位半徑內隨機落點。落地後生成地面特效 ID 1（火焰燃燒）。
 
-### TrailStep（軌跡特效 / 地刺類武器）
-- 概念：`TrailStep > 0` 時，子彈每飛這麼遠就沿路「種」一個特效（由武器表 `TrailEffectID` 指定要種什麼）。**這是把「移動的載體」和「視覺」拆開**——載體是一顆正常子彈（吃滿 RecipeTable 行為），視覺是沿路種出的 Vfx。
-- **地刺武器就是這樣做的**：一顆**隱形**（武器表不填飛行圖）的正常子彈，沿路每隔 `TrailStep` 種一根尖刺 Vfx。因為它是正常子彈，所以**自動繼承全部行為**：反彈 → 尖刺軌跡跟著折、分裂 → 尖刺分岔成多條、追蹤 → 尖刺蛇行咬向敵人、散射 → 一次多條尖刺線。
-- 傷害：走**武器表 `Damage`**（子彈正常命中結算，建議 `PierceCount = -1` 讓整條線穿透所有敵人），**不是地表 DOT**。
-- 分裂繼承：分裂出的子彈會繼承父彈的 `OnTrailPoint`（同一個尖刺 Vfx）與 `TrailStep`，所以分岔的每條線都會種刺。
-- 與其他欄位：`Speed`（線推進速度）、`LifeTime`（線多長/多遠 = Speed×LifeTime）、`Radius`（命中寬度）、`BounceTarget`/`MaxBounces`、`HomingTurnSpeed`、`SpreadCount`/`SpreadAngle` 全部適用。`RotationSpeed`（自轉）對「種在地上的刺」沒意義，屬不相干欄位。
-- 範例組合：武器「地裂刺」`RecipeID=19, Damage=3, TrailEffectID=3`（隱形、不填飛行圖）；配方 19 `Speed=16, Radius=0.3, LifeTime=0.6, PierceCount=-1, TrailStep=1.5`；VfxTable ID 3「地刺」= earthSpik 序列圖（`Scale=0.35, Loop=0`）。要加反彈就把配方 19 的 `BounceTarget` 填 `Environment`，尖刺線就會撞牆折射。
+### Orbital 環繞
+一組子彈以玩家為圓心繞圈（護盾）。`Speed`＝切線速度（角速度＝Speed÷OrbitalRadius）、`LifeTime`＝整組到期秒數（-1＝直到下次發射）；每次發射先清掉上一輪。其餘行為同一般子彈（穿透就不消失；反彈 Enemy 會脫軌飛出；分裂 OnHit 碰到怪時炸開）。
 
-### IsAura（佛光型武器）
-- 啟用條件：`IsAura = 1`，與 `IsOrbital` / `IsParabolic` / `IsLaser` 互斥
-- 行為：**不發射任何子彈**，改在玩家身上維持一個「以玩家為圓心、跟著玩家移動」的圓形 AOE 光環（手持佛光、籠罩一圈、圈內怪物持續受傷）
-- 圓的定義（半徑 / 傷害節拍 / 外觀 / 存活）走本列 `GroundEffectID` 指向的 `GroundEffectTable` 列；**該 GroundEffect 必須 `Duration = -1`**（永久，由 `PlayerController` 在按住期間管理、放開/切武器銷毀）
-- 傷害走**武器表 `Damage`**（每 `DamageInterval` 結算一次，吃怪物無敵時間），不是 GroundEffectTable 的 Damage
-- 其餘彈道欄位（Speed / Radius / PierceCount / Bounce / Split…）對佛光無意義，填 0 / None 即可
-- 範例：配方 21「佛光」`IsAura=1, GroundEffectID=2`；武器 10「佛光」`Damage=1`；GroundEffect 2「佛光」`Radius=1.2, Duration=-1, DamageInterval=0.3, RenderMode=Single`。詳見 [GROUND_EFFECT.md](GROUND_EFFECT.md)
+```
+ID=9 Name=火焰環繞彈 Mode=Orbital FireInterval=0.3 Speed=4 Radius=0.1 LifeTime=5 PierceCount=-1 BlockedByEnvironment=0 OrbitalRadius=1.5 OrbitalCount=9
+```
 
-### IsChain / ChainRadius（連鎖閃電）
-- 啟用條件：`IsChain = 1`，與 `IsOrbital` / `IsParabolic` / `IsLaser` / `IsAura` 互斥
-- 行為：點一下（吃 `FireInterval`）朝**滑鼠方向**射出，命中第一隻怪後，在 `ChainRadius` 半徑內逐跳到「還沒打過的最近怪」，跳 `MaxBounces` 次（**總命中數 = 1 + MaxBounces**）；撞牆就停（閃電不穿牆）
-- **欄位複用**：跳躍次數 = `MaxBounces` 欄、第一段射程 = `BeamRange` 欄、外觀（風格/顏色/粗細）= 武器表 `BeamStyle`/`BeamColor`/`BeamWidth`
-- 傷害走**武器表 `Damage`**，每跳一樣（吃怪物無敵時間、也能打可破壞地上物）
-- 目標搜尋與傷害都在主遊戲側結算，`LaserBeam` 只當折線視覺（短命淡出的電弧）
-- 範例：配方 22「連鎖閃電」`IsChain=1, MaxBounces=4, BeamRange=15, ChainRadius=4, FireInterval=0.5`；武器 11「連鎖閃電」`Damage=3, BeamStyle=7(閃電), BeamColor=6(藍), BeamWidth=0.25`。詳見 [LASER.md](LASER.md)
+### Parabolic 拋物線
+丟炸彈：飛行中**不撞任何東西**（碰撞遮罩清 0），抵達目標才「落地」。
+- `FlightTime`＝飛幾秒落地（不論遠近，所以一發多顆會同時落地）。`ArcHeight` 弧頂假高度。`LaunchSource=Offscreen` 從畫面外隨機方向飛進來（多顆各自重抽）。
+- `SpreadCount`／`SpreadAngle`：以「玩家→滑鼠」為軸，N 顆在扇形上、與滑鼠等距（**不需要 `SplitTiming`**）。`LandingScatterRadius` 再給每顆一個隨機落點誤差。
+- 落地：`AreaRadius>0` 以武器 `Damage` 炸一圈（吃怪物無敵時間）；`GroundEffectID` ＋ `GroundEffectHitTarget=Ground` 留一灘火。兩者獨立、可並存。
+- `RotationSpeed` 仍有效（翻滾炸彈）。穿透／反彈／追蹤對它無意義。
 
-### IsSkyStrike（落雷模式；目前九霄雷獄使用）
-- 啟用條件：`IsSkyStrike = 1`，與其他特殊模式互斥
-- 行為：點一下（吃 `FireInterval`）從**畫面上緣外往下劈**到滑鼠所在點，落地以 `BlastRadius`（留空＝1.2）半徑做**圓形 AOE**，對範圍內 `IDamageable`（怪 + 可破壞家具）以**武器 `Damage`** 結算一次
-- **欄位複用**：AOE 半徑 = `BlastRadius`；散射 = `SpreadCount`/`SpreadAngle`；追蹤落點吸附 = `HomingTurnSpeed`；`UseSegmentedSkyStrike=1` 啟用全高分段雷柱。
-- 目前：配方 37「九霄雷獄」`IsSkyStrike=1, UseSegmentedSkyStrike=1, BlastRadius=1.6, FireInterval=0.9`；武器 24 `Damage=8, HitEffectID=26`。詳見 [LASER.md](LASER.md)
+```
+ID=12 Name=玩家丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 FlightTime=1 ArcHeight=2.5 LandingScatterRadius=3 AreaRadius=1.5 GroundEffectID=1 GroundEffectHitTarget=Ground
+ID=13 Name=螢幕外丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 SpreadCount=10 SpreadAngle=60 FlightTime=1 ArcHeight=2.5 LaunchSource=Offscreen LandingScatterRadius=3 AreaRadius=1.5
+```
 
-### SubWeaponOnHit / SubWeaponHitTarget（命中迸發子武器）vs SubRecipeID
-兩個都叫「Sub」，但本質不同，別搞混：
+### Laser 雷射（持續型）
+按住攻擊鍵維持光束，砲口跟玩家、瞄準跟滑鼠；每 `DotInterval` 秒對掃到的目標各結算一次武器 `Damage`。沒有 `FireInterval`、不吃集氣。
+- `Range` 光束長度（`-1`＝無限延伸，見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)）；粗細＝武器表 `BeamWidth`（視覺與命中共用，配方 `Radius` 不用）。
+- `PierceCount`：`-1` 穿到底；`0` 打到第一個就停。`BounceTarget`＋`MaxBounces`：折線反射。`HomingTurnSpeed`：光束中段彎曲咬住最近的敵人。
+- `SpreadCount`／`SpreadAngle`：一發 N 道（每道獨立追蹤／反彈／穿透）。
+- `SplitTiming=OnHit`＋`SubRecipeID`：光束掃到敵人時在命中點生成子彈（節流綁 `DotInterval`）。**只認 `OnHit`**，`OnSpawn`／`OnDeath` 對雷射無意義。
+- `TrailStep`＋武器表 `TrailEffectID`：火焰噴射器模式——不畫光束，沿路徑每隔 `TrailStep` 鋪一根循環火焰。
+- 外觀（種類／顏色／粗細／像素素材）全在武器表。
+
+```
+ID=14 Name=單一雷射追蹤光束 Mode=Laser PierceCount=-1 HomingTurnSpeed=180 Range=18 DotInterval=0.3
+ID=17 Name=三分裂雷射反彈光束 Mode=Laser PierceCount=-1 SpreadCount=3 SpreadAngle=60 BounceTarget=Environment MaxBounces=3 Range=40 DotInterval=0.3
+ID=20 Name=火焰噴射 Mode=Laser PierceCount=-1 SpreadCount=3 SpreadAngle=60 HomingTurnSpeed=180 Range=5 TrailStep=1 DotInterval=0.2
+ID=42 Name=鏡界折光 Mode=Laser PierceCount=-1 BounceTarget=Environment MaxBounces=3 Range=-1 DotInterval=0.2
+```
+
+### Aura 佛光（持續型）
+不發射任何子彈，按住時在玩家身上維持一圈**跟著走**的圓形 AOE。整個圓（半徑／傷害節拍／外觀）由 **`GroundEffectID`（必填）** 指向的 `GroundEffectTable` 列定義，**該列 `Duration` 必須是 -1**（永久，由 `PlayerController` 管生死）；傷害走武器表 `Damage`。其他欄位一律不讀。詳見 [GROUND_EFFECT.md](GROUND_EFFECT.md) 佛光章節、[FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md)。
+
+```
+ID=21 Name=佛光 Mode=Aura GroundEffectID=2
+```
+
+### Chain 連鎖閃電
+點一下朝滑鼠射出，命中第一隻後在 `ChainRadius` 內逐跳到還沒打過的最近怪，跳 `ChainCount` 次（總命中＝1＋跳數）；撞牆就停。每跳一樣的武器 `Damage`（也能打可破壞地上物）。
+- `Range` 首段射程。`AimConeAngle>0`：首段不必正好瞄到，鎖定「以瞄準方向為軸、半角這麼大的錐內最近」的目標；`180`＝任意方向最近。
+- `SpreadCount`／`SpreadAngle`：一發多道，各自獨立連鎖。
+- 外觀＝武器表 `BeamStyle`（7 閃電）／`BeamColor`／`BeamWidth`。
+
+```
+ID=22 Name=連鎖閃電 Mode=Chain FireInterval=0.5 SpreadCount=3 SpreadAngle=60 Range=15 ChainCount=4 ChainRadius=4 AimConeAngle=180
+```
+
+### SkyStrike 落雷
+點一下從畫面上緣劈到滑鼠點，落地以 `AreaRadius`（留空 1.2）做圓形 AOE、武器 `Damage` 結算一次（怪＋可破壞家具）。
+- `SpreadCount`／`SpreadAngle`：多個落點（扇形分佈，同拋物線）。`SnapRadius>0`：落點吸附到該半徑內最近的可傷害目標。
+- `GroundEffectID`：落點留一團地面特效（焦痕／殘電）。
+- `SubRecipeID` 指向一個 **Chain** 配方：落點再接一條連鎖閃電（外觀與傷害用「定義該連鎖配方的那把武器」）。
+- `SegmentedColumn=1`：全高分段雷柱（九霄雷獄）；否則畫閃電折線（需光束素材）。
+
+```
+ID=37 Name=九霄雷獄 Mode=SkyStrike FireInterval=0.9 AreaRadius=1.6 SegmentedColumn=1
+```
+
+### Summon 召喚
+施放時在身邊生怪，不發射子彈。`SummonIds`（必填，`|` 分隔）每次隨機抽一個；`SummonCount` 每次幾隻、`SummonMaxAlive` 同時上限（滿了不施放也不扣魔）、`SummonRadius` 生成環半徑；冷卻用 `FireInterval`。武器 `Damage` 不用；武器表 `SummonEffectID` 在每個生怪點播特效。目前 boss（紅嫁衣）與玩家（御靈水晶）共用，見 [BOSS_MODULE.md](BOSS_MODULE.md)。
+
+```
+ID=27 Name=御靈水晶-召喚雜魚 Mode=Summon FireInterval=1.5 SummonIds=1 SummonCount=1 SummonMaxAlive=1 SummonRadius=1.5
+```
+
+### GroundCast 定點法陣
+點一下在滑鼠位置（距離受 `Range`，留空 8）放一個 `GroundEffectID`（必填）的地面特效；半徑／持續／DOT 節拍／動畫走 `GroundEffectTable`，**單次傷害由武器表 `Damage` 覆寫**（不是 GroundEffectTable 的 Damage）。黑洞、冰陣、死字咒都是這個。
+
+```
+ID=35 Name=虛空吞口 Mode=GroundCast FireInterval=1.2 Range=9 GroundEffectID=3
+```
+
+### Melee 近身扇形
+以自己為圓心、朝滑鼠方向掃一個扇形：`AreaRadius` 半徑（留空 2）、`MeleeAngle` 總角度（留空 100），範圍內的 `IDamageable` 各結算一次武器 `Damage`；`HitEffectID` 只在扇形中心播一次。
+
+```
+ID=34 Name=血月鬼爪 Mode=Melee FireInterval=0.55 AreaRadius=2.1 MeleeAngle=110
+```
+
+### Dash 突進斬
+往瞄準方向衝 `DashDistance`（撞牆提前停），掃過的膠囊區域（寬 `DashWidth`）內各目標受傷一次。
+
+```
+ID=38 Name=幽影突 Mode=Dash FireInterval=0.7 DashDistance=5 DashWidth=1.2
+```
+
+### 3.12 `SubRecipeID` vs `SubWeaponOnHit`（兩個都叫 Sub，別搞混）
 
 | | `SubRecipeID` | `SubWeaponOnHit` |
 |---|---|---|
-| 指向 | **配方**（RecipeTable，只有行為） | **武器**（WeaponTable，自帶外型/傷害） |
-| 外型 | 沒有自己的圖 → **仿母武器外型**（彈道層複製母彈） | **子武器自己的圖/傷害/追蹤** |
-| 觸發 | 配合 `SplitTiming`（OnSpawn/OnHit/OnDeath）由彈道系統分裂 | 子彈命中時，由主遊戲在命中點生成（`SubWeaponHitTarget` 過濾） |
-| 用途 | 「先散射再反彈」這種純行為組合 | 「打到東西迸出一窩**長相不同**的新武器」（蜂巢→蜜蜂） |
+| 指向 | **配方**（只有行為） | **武器**（自帶外型／傷害） |
+| 外型 | 仿母武器 | 子武器自己的圖 |
+| 觸發 | 配合 `SplitTiming` 由彈道系統分裂 | 子彈命中時由主遊戲在命中點生成（`SubWeaponHitTarget` 過濾） |
+| 用途 | 「先散射再反彈」這種純行為組合 | 「打到東西迸出一窩長相不同的新武器」（蜂巢→蜜蜂） |
 
-- `SubWeaponOnHit`：命中時在命中點「發射一發那把子武器」，**吃子武器自己的整套配方**（散射/追蹤/反彈…）。所以子武器若是「3 分裂(OnSpawn)＋追蹤」，就會迸成 3 隻會追蹤、且用**子武器自己的圖**的彈（＝蜜蜂）。
-- `SubWeaponHitTarget`：`Enemy`（只打到敵人才迸，預設）/ `Environment`（打到牆或可破壞家具才迸）/ `All`（任一都迸）。
-- 迸發方向：以命中面**法線**往外噴（沒有法線就用母彈反向），子武器的 `SpreadAngle` 決定散開幅度。
-- 子武器目前只支援「會飛的一般子彈」；指向雷射/環繞/拋物線/連鎖/雷擊會被擋下並印 Warning。
-- 注意別接成循環（A 迸 B、B 又迸 A）。母彈是否被消耗看它自己的 `PierceCount`（0 = 命中即毀，蜂巢就用這個）。
-- **範例（蜂巢 → 蜜蜂）**：
-  - 武器 13「蜂巢」`Damage=2, RecipeID=24`，圖 = `Weapon/single/weapon_honeyComb`，`BulletScale=2`；配方 24「蜂巢彈」`Speed=12, RotationSpeed=30(緩慢自轉), PierceCount=0, SubWeaponOnHit=14, SubWeaponHitTarget=All`。
-  - 武器 14「蜜蜂」`Damage=1, RecipeID=25`，圖 = `Weapon/single/weapon_bee`，`SpriteAngleOffset=-47`（蜜蜂頭朝右上約 47°，順時針轉正讓頭對齊飛行方向），`BulletScale=0.6`；配方 25「蜜蜂彈」`Speed=10(飛劍一半), SpreadCount=3, SpreadAngle=60, SplitTiming=OnSpawn, HomingTurnSpeed=180`。
-  - 效果：丟出緩慢自轉的蜂窩 → 打到牆/怪/家具 → 命中點迸出 3 隻會追蹤的蜜蜂（蜜蜂自己的圖、頭朝飛行方向、速度較慢）。
-  - 想微調：蜜蜂頭朝向不準 → 改武器 14 `SpriteAngleOffset`；蜜蜂太大/太小 → `BulletScale`；蜂窩轉太快/太慢 → 配方 24 `RotationSpeed`；蜜蜂飛太快/慢 → 配方 25 `Speed`。
-
-### GroundEffectTable.csv 欄位（簡述，獨立於本文件）
-- `ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize, RenderMode`
-- `RenderMode`：留空 / `Tile` = tile 鋪滿整個圓（火堆/毒霧，預設）；`Single` = 只放一張縮放到直徑 `2*Radius` 的 sprite（佛光那種柔和發光圓暈，不受 TileSize 影響）
-- `Radius`：AOE 偵測半徑（`Physics2D.OverlapCircle` 用此值），**同時嚴格決定 tile 鋪面範圍**——tile 中心點落在 `Radius` 內才會保留
-- `Duration`：地面特效存活秒數，`-1` = 永久（待外部銷毀）
-- `DamageInterval`：`0` = 生成瞬間單次爆裂、之後不再傷害；`> 0` = 每 N 秒週期 DOT
-- `Damage`：每次傷害的絕對值（不串接武器表 Damage，方便獨立調整）
-- `AniPath / AniNumber / AnimFPS`：序列圖路徑前綴 / 張數 / 播放速度，與 `WeaponTable.csv` 同套規則，存活期間循環播放
-- `TileSize`：單個 tile 的世界尺寸（同時是格子間距），留空或 `<= 0` 預設為 `1`
-- **渲染採真實圓形掃描（aligned scanline）**：
-  - 以原點為中心掃整數網格 `(i, j)`，當 `(i*TileSize)² + (j*TileSize)² ≤ Radius²` 就放一個 tile
-  - 所有 tile 嚴格對齊網格（**無半步偏移**），上下左右對稱
-  - 鋪面範圍與傷害判定都嚴格依 `Radius`，視覺上的圓形邊界 = 傷害的圓形邊界
-  - **解析度決定圓滑度**：建議 `TileSize ≤ Radius / 4`，否則低解析度會看起來偏方塊
-    - 範例 `Radius=1.5, TileSize=1` → 直徑跨 3 顆 → **3×3 = 9 顆**（看起來像方塊，正常現象）
-    - 範例 `Radius=1.5, TileSize=0.5` → 直徑跨 6 顆 → **29 顆**（八邊形，勉強圓）
-    - 範例 `Radius=1.5, TileSize=0.3` → 直徑跨 10 顆 → **~81 顆**（明顯圓形）
-    - 範例 `Radius=1.5, TileSize=0.1` → 直徑跨 30 顆 → **~700 顆**（平滑圓形，會跳 Warning）
-  - **效能保險**：當實際生成的 tile 數 > 500 時，`GroundEffectInstance` 會在 Console 印一次 `LogWarning`，但仍會照數量生成（不自動降級）
-- **準備美術**：建議讓單張 sprite 的世界尺寸 ≈ `TileSize`（例如 `TileSize = 1` 時，PNG 100×100 px、PPU 100，native = 1×1），不然 tiles 會出現重疊或縫隙
-- 同一目標的 DOT 限流靠 `MonsterController` 的 `HitReactionHandler.IsInvincible`（怪物無敵中刷不到傷害）
-
-### 環繞型彈道與其他行為的交互
-
-| 組合 | 效果 |
-|------|------|
-| 環繞 + 穿透 | 碰到怪物不消失，繼續環繞 |
-| 環繞 + 反彈(Enemy) | 碰到怪物後脫軌，以反彈角度飛出 |
-| 環繞 + 反彈 + 追蹤 | 碰到怪物脫軌反彈後，自動追蹤下一個目標 |
-| 環繞 + 分裂(OnHit) | 碰到怪物時分裂出多顆子彈 |
-| 環繞 + 自轉 | 環繞時武器自身旋轉（純視覺效果） |
+- 迸發方向沿命中面法線往外（生成點會沿法線推出去，避免生在牆裡被自己的重疊檢查瞬殺，見 PROBLEMS **B5**）。
+- 子武器只支援 **Normal** 模式；指向其他模式會印 Warning 並不生成。別接成循環（A 迸 B、B 迸 A）。
 
 ---
 
-## 範例配方
+## 4. 能力珠 × 模式
 
-### 基礎直射彈
-最簡單的子彈，直線飛行、碰到東西就停。
+珠子改的欄位對「目前武器的模式」無效時：**鍛造介面提示不擋**（拖進孔位跳一次 toast、孔位上灰顯、tooltip 說明）、**`PlayerAbilities` 套用時跳過**。「目前武器」＝鐵砧上那把（是武器時）或裝備中的武器（珠子鑲在防具上時）。
 
-```
-ID, Name,     Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces
-10, BasicShot,    15,    0.1,        3,          0.3,             0,           0,           1,           0,            ,            , None,                  0
-```
+| 珠子（改的欄位） | Normal | Orbital | Parabolic | Laser | Aura | Chain | SkyStrike | Summon | GroundCast | Melee | Dash |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 反彈 `MaxBounces` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 穿透 `PierceCount` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 迅捷 `Speed` | ✓ | ✓ | ✓（換算成縮短 `FlightTime`） | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 銳利 `Damage` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 追蹤 `HomingTurnSpeed` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 分裂 `SpreadCount` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| 巨彈 `BulletScale` | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 疾發 `FireInterval` | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
-### 散彈（Shotgun）
-一次射出 5 顆子彈，在 90 度扇形內展開。
-
-```
-ID, Name,    Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces
-20, Shotgun5,   12,    0.1,        2,          0.8,             0,           0,           5,          90, OnSpawn,                , None,                  0
-```
-
-### 穿透雷射
-高速、可穿透 3 個目標的直線攻擊。
-
-```
-ID, Name,  Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces
-30, Laser,    60,   0.05,        5,          1.0,             0,           3,           1,           0,            ,            , None,                  0
-```
-
-### 彈跳球
-碰到牆壁反彈，最多彈 5 次。
-
-```
-ID, Name,       Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces
-40, BounceBall,    25,    0.1,        8,          0.5,           360,           0,           1,           0,            ,            , Environment,           5
-```
-
-### 分裂爆彈
-子彈存活時間結束時，分裂成 8 顆散射彈（使用配方 ID=10 的 BasicShot）。
-
-```
-ID, Name,      Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces
-50, TimeBomb,      8,    0.2,      1.5,          2.0,             0,           0,           8,         360, OnDeath,              10, None,                  0
-```
-
-- 這顆子彈飛 1.5 秒後消失，消失瞬間爆開成 8 顆 BasicShot（配方 ID=10）
-- 8 顆子彈在 360 度全方向展開
-- SubRecipeID=10 讓爆開的子彈使用 BasicShot 的屬性
-
-### 連鎖反彈穿透彈
-碰到怪物會反彈，最多彈 3 次，且可穿透 1 個目標。
-
-```
-ID, Name,      Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces
-60, ChainShot,    30,    0.1,        5,          0.4,             0,           1,           1,           0,            ,            , Enemy,                 3
-```
-
-### 環繞護盾
-3 顆子彈以半徑 2 繞玩家旋轉，碰到怪物即消失。
-
-```
-ID, Name,        Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
-90, OrbitalShield,    5,    0.1,        -1,          2.0,             0,           0,           1,           0,            ,            , None,                  0,               0,         1,             2,            3
-```
-
-- Speed=5 控制繞圈速度，LifeTime=-1 讓子彈不因時間消失
-- IsOrbital=1，OrbitalRadius=2，OrbitalCount=3：3 顆等距環繞
-- 碰到怪物造成傷害後消失，按一次攻擊重新召喚 3 顆
-
-### 環繞穿透護盾
-同上，但碰到怪物不消失，持續環繞造成多次傷害。
-
-```
-ID, Name,             Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
-91, OrbitalPierceShield, 5,    0.1,        -1,          2.0,             0,           -1,           1,           0,            ,            , None,                  0,               0,         1,             2,            3
-```
-
-- PierceCount=-1 無限穿透；LifeTime=-1 不因時間消失，持續環繞
-
-### 環繞反彈彈
-環繞時碰到怪物會脫軌反彈飛出，以反彈角度飛走。
-
-```
-ID, Name,          Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces, HomingTurnSpeed, IsOrbital, OrbitalRadius, OrbitalCount
-92, OrbitalBounce,     8,    0.1,        -1,          2.0,             0,           0,           1,           0,            ,            , Enemy,                 3,               0,         1,             2,            3
-```
-
-- BounceTarget=Enemy + MaxBounces=3：碰到怪物後脫軌反彈飛出，最多彈 3 次
+- 反彈珠對連鎖閃電**不再**增加跳數（跳數已是獨立欄 `ChainCount`）——這是拍板的設計，不是漏做。
+- 追蹤珠對連鎖／落雷無效（原本借用 `HomingTurnSpeed` 當錐角／搜尋半徑，會出現「Lv3 追蹤珠＝整張圖吸附」的錯位，已改成獨立欄 `AimConeAngle`／`SnapRadius`）。
+- 要加新珠子：`GemTable.Field` 填 RecipeTable／WeaponTable 的欄名，有效性自動從 `WeaponModeSpec` 推導，**不用另外維護**。填了不存在的欄名載入時會 Warning。
 
 ---
 
-## 常見問題
+## 5. `GroundEffectID` 在各模式的角色（與 GroundEffectTable 的接法）
 
-### Q: SpreadCount > 1 但什麼都射不出來？
-**A:** 確認 `SplitTiming` 欄位有填寫。SpreadCount > 1 時必須指定分裂時機（通常填 `OnSpawn`）。
+| 模式 | 角色 | 傷害來源 | 額外要求 |
+|---|---|---|---|
+| Normal／Orbital／Laser | 命中時附加 | GroundEffectTable 的 `Damage` | `GroundEffectHitTarget` 決定打到什麼才放 |
+| Parabolic | 落地附加 | GroundEffectTable 的 `Damage` | `GroundEffectHitTarget=Ground` |
+| SkyStrike | 落點留痕 | GroundEffectTable 的 `Damage` | — |
+| Aura | **本體（必填）** | **武器表 `Damage`** | 該列 `Duration=-1`、`RenderMode=Glow`/`Single` |
+| GroundCast | **本體（必填）** | **武器表 `Damage`** | — |
 
-### Q: 分裂子彈跟父彈一樣會再分裂，變成無限分裂？
-**A:** 不會。如果 `SubRecipeID` 留空，分裂出的子彈會繼承父彈屬性但不帶分裂行為。如果 `SubRecipeID` 指向另一個有分裂的配方，才會再次分裂（可以用來做多層分裂效果）。
-
-### Q: BounceTarget 設為 Environment，子彈碰到怪物會怎樣？
-**A:** 子彈碰到怪物時會正常觸發命中事件（造成傷害），但不會反彈。如果沒有穿透（PierceCount=0），子彈會在命中後銷毀。若 PierceCount=-1，則可無限穿透怪物。
-
-### Q: 想做散彈 + 反彈的組合效果？
-**A:** 在散彈配方的 `SubRecipeID` 填入一個有反彈的配方 ID。例如：
-
-```
-ID, Name,          Speed, Radius, LifeTime, FireInterval, RotationSpeed, PierceCount, SpreadCount, SpreadAngle, SplitTiming, SubRecipeID, BounceTarget, MaxBounces
-70, BouncePellet,     20,    0.1,        5,          0.3,             0,           0,           1,           0,            ,            , Environment,           3
-80, BounceShot,       20,    0.1,        5,          0.8,             0,           0,           3,          60, OnSpawn,              70, None,                  0
-```
-
-- 武器使用配方 ID=80（BounceShot）
-- 發射時分裂成 3 顆，每顆使用配方 ID=70（BouncePellet）
-- 每顆散彈都能碰牆反彈 3 次
-
-### Q: 環繞彈的 Speed 代表什麼？
-**A:** Speed 在環繞型彈道中代表切線速度（繞圈的移動速度）。角速度 = Speed / OrbitalRadius。例如 Speed=5、OrbitalRadius=2，角速度 = 2.5 rad/s，大約每 2.5 秒轉一圈。
-
-### Q: 環繞彈碰到怪物後，設定反彈會怎樣？
-**A:** 子彈會脫離軌道，以反彈角度飛出去，之後就像普通子彈一樣直線飛行。如果同時有追蹤（HomingTurnSpeed > 0），脫軌後會自動追蹤下一個目標。
-
-### Q: 環繞彈的 LifeTime 怎麼設定？
-**A:** 設為正數則每幀倒數，歸零時銷毀。設為 **-1** 表示不因時間銷毀（可一直環繞直到被其他機制銷毀）。也可用很大的正數（如 9999）近似長時間存在。
+`GroundEffectTable.csv` 欄位（`ID, Name, Radius, Duration, DamageInterval, Damage, AniPath, AniNumber, AnimFPS, TileSize, RenderMode, SigilPath, LightRadius`）與 tile 鋪圓規則見 [GROUND_EFFECT.md](GROUND_EFFECT.md)。
 
 ---
 
-## 雷射光束型武器（IsLaser）詳解
+## 6. 常見問題
 
-雷射是**持續掃射型**武器：按住攻擊鍵時維持一條（或多條）光束，砲口跟著玩家、瞄準跟著滑鼠。它和「會飛的子彈」本質不同（一條當下就存在的線），底層由獨立的 `LaserBeam` 元件用 **line-march（逐段行進）** 每幀重算路徑，但**讀的是 RecipeTable 上同名的既有欄位**，所以對填表者透明。
+**Q：填了 `SpreadCount=3` 卻只射出 1 顆？**
+2026-08-26 起不會了——`SplitTiming` 留空＝發射時分裂。若還是 1 顆，看 Console 有沒有 `[RecipeTable]` 的 Warning（可能 Mode 填錯，或 `SpreadCount` 對該模式無效）。
 
-### 啟用方式
-- `IsLaser = 1`（與 `IsOrbital` / `IsParabolic` 互斥，三者只能擇一）
-- 傷害走武器表 `Damage`，每 `dotInterval` 秒結算一次（會被怪物無敵時間擋掉，屬正常）
-- `BeamRange` 控制最大長度；**光束粗細（視覺 + 命中判定）統一由 WeaponTable 的 `BeamWidth` 控制**（所見即所得），配方 `Radius` 對雷射不生效
-- 外觀（貼圖 / 顏色 / 寬度 / 流動速度）在 **WeaponTable** 設定，不在這裡
+**Q：Console 印「X 對某模式無效，會被忽略」是壞了嗎？**
+沒壞，是提醒你這格填了沒用的東西（值不會被讀）。清掉那格就不印。
 
-### 吃得下的既有欄位（行為複用）
+**Q：我加了一欄，程式要改哪裡？**
+`WeaponModeSpec.BuildFields` 加欄位規格、`BuildModes` 把它加進會吃它的模式、`RecipeEntry.FromFields` 讀它、用到它的發射分支讀 `RecipeEntry`／`ProjectileData`。表頭放哪一群都可以（依名字讀）。
 
-| 欄位 | 對雷射的意義 |
-|------|------|
-| `PierceCount` | 光束穿過幾個敵人才被擋住。`-1` = 穿到底 / 到牆；`0` = 打到第一個就停 |
-| `Radius` | 雷射**不使用**此欄（粗細改由 WeaponTable 的 `BeamWidth` 一欄控制，視覺=命中） |
-| `HomingTurnSpeed` | **追蹤**：光束起始朝滑鼠，中段自然彎曲咬住最近的敵人（賣點）。數值意義與追蹤彈一致 |
-| `BounceTarget` + `MaxBounces` | **反彈**：光束打到可反彈表面會折射，變成多段折線 |
-| `BlockedByEnvironment` | 牆壁擋不擋光束（同既有語意） |
-| `SpreadCount` + `SpreadAngle` | **一發多道**：扇形射出 N 道光束（每道獨立追蹤 / 反彈 / 穿透） |
-| `SplitTiming=OnHit` + `SubRecipeID` | **命中分裂**：光束掃到敵人時在命中點生成 SubRecipeID 子彈，**節流綁在 dotInterval tick**（避免每幀爆量） |
+**Q：想做「散彈＋反彈」？**
+散彈配方 `SpreadCount=3, SpreadAngle=60`，`SubRecipeID` 指向一個有反彈的配方。
 
-### 不生效 / 互斥的欄位
-- `Speed`、`LifeTime`、`FireInterval`：對持續光束無意義（按住就在），填了會被忽略
-- `RotationSpeed`、`SplitTiming=OnSpawn/OnDeath`：對雷射無意義，填了不報錯但不生效
-- `IsOrbital` / `IsParabolic`：與 `IsLaser` 互斥
+**Q：環繞彈的 `Speed` 代表什麼？**
+切線速度。角速度＝Speed÷OrbitalRadius；Speed=5、半徑 2 → 約每 2.5 秒轉一圈。
 
-### 範例
+**Q：能力珠鑲上去沒反應？**
+先看鍛造介面有沒有跳「對目前武器沒效果」——那顆珠對這種模式本來就無效（第 4 節）。換把武器就有用。
 
-```
-ID, Name,         ..., PierceCount, ..., BounceTarget, MaxBounces, HomingTurnSpeed, ..., IsLaser, dotInterval, BeamRange
-14, 雷射追蹤光束, ...,          -1, ..., None,                  0,             180, ...,       1,         0.3,        18
-15, 雷射反彈光束, ...,          -1, ..., Environment,           3,               0, ...,       1,         0.3,        15
-```
+---
 
-- **ID 14**：無限穿透 + 追蹤（180°/s 彎曲）的死光，掃過一排敵人並咬向最近目標，每 0.3 秒一跳傷害
-- **ID 15**：無限穿透 + 牆壁反彈 3 次的光束，可繞角打到掩體後的敵人
+## 從舊表遷移對照
 
-### 常見問題
+| 舊（2026-08-26 前） | 新 |
+|---|---|
+| `IsOrbital=1`／`IsParabolic=1`／`IsLaser=1`／`IsAura=1`／`IsChain=1`／`IsSkyStrike=1`／`IsSummon=1`／`IsGroundCast=1`／`IsMelee=1`／`IsDash=1` | `Mode=Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash` |
+| 拋物線的 `Speed`（＝飛行秒數） | `FlightTime` |
+| 連鎖的 `MaxBounces`（＝跳數） | `ChainCount` |
+| 連鎖的 `HomingTurnSpeed`（＝錐角） | `AimConeAngle` |
+| 落雷的 `HomingTurnSpeed`（＝吸附半徑） | `SnapRadius` |
+| `BeamRange` | `Range` |
+| `BlastRadius` | `AreaRadius` |
+| `UseSegmentedSkyStrike` | `SegmentedColumn` |
+| `集氣模式`／`集氣時間縮減` | `ChargeMode`／`ChargeTimeReduction` |
+| `GroundEffectTrigger`（只實作過 OnHit） | 刪除 |
+| 非子彈模式也得填的 `Radius=0.1, LifeTime=1, SpreadCount=1` 佔位值 | 全部留空 |
+| `SpreadCount>1` 必須填 `SplitTiming` | 留空＝`OnSpawn` |
 
-**Q: 追蹤光束會彎，那它怎麼判定打到誰？**
-A: 光束沿彎曲路徑逐段做 `CircleCast`，路徑上每個敵人都會被記錄，由主遊戲在 tick 時結算傷害。
-
-**Q: 我想做「掃到敵人就放火」的雷射？**
-A: 填 `GroundEffectID` + `GroundEffectTrigger=OnHit` + `GroundEffectHitTarget=Enemy`，光束命中點每跳會釋放地面特效（同樣綁 dotInterval 節流）。
-
-**Q: 想換不同風格的雷射（藍光 / 紅光 / 像素風）？**
-A: 行為配方不動，只改 **WeaponTable** 的 `BeamTexturePath` / `BeamColor` / `BeamWidth` / `ScrollSpeed`。同一份程式 + 同一份配方可換無限種外觀。
+程式側：`RecipeEntry.IsXxx` → `RecipeEntry.Mode == WeaponMode.Xxx`；`BlastRadius` → `AreaRadius`；`IsChargeMode`／`ChargeTimeReductionPercent` → `ChargeMode`／`ChargeTimeReduction`；`ProjectileData.Speed`（拋物線）→ `ProjectileData.FlightTime`。

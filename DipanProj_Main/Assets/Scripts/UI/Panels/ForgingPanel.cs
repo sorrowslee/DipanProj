@@ -41,6 +41,8 @@ namespace Dipan.UI
         const int TxtNotYet = 4004, TxtOnlyEquip = 4005, TxtNeedInBag = 4006;
         const int TxtUpgrade = 4007, TxtOnlyGem = 4008, TxtNoAnvil = 4009;
         const int TxtNoGems = 4010, TxtBagFull = 4011, TxtGemsRemoved = 4012;
+        // 鑲嵌有效性提示（提示不擋）：珠子對參考武器無效時的 toast / tooltip
+        const int TxtGemNoEffect = 4013, TxtGemNoEffectOnWeapon = 4014, TxtIneffectiveGems = 4015;
 
         // ───────── 底圖原生座標（量自示意圖，1536×1024；左上為原點、y 向下）─────────
         const float BgW = 1536f, BgH = 1024f;
@@ -178,6 +180,9 @@ namespace Dipan.UI
                 // 拖錯東西進孔位要有回饋（原本只有鐵砧有，孔位漏了 → 玩家會以為是卡住）。
                 w.Rejected = () => AlertPanel.Toast(Language.GetText(TxtOnlyGem));
                 w.Entered = ShowTooltip; w.Exited = _ => HideTooltip();
+                // 鑲嵌有效性（提示不擋）：對參考武器沒效果的珠子灰顯；剛鑲上去時跳一次 toast
+                w.Dimmed = st => !GemEffectiveness.IsEffective(st, ReferenceWeapon());
+                w.Dropped = OnGemSocketed;
                 w.Bind(_sockets, i);
                 w.Locked = true;
                 _socketSlots[i] = w;
@@ -311,6 +316,8 @@ namespace Dipan.UI
             _sockets.OnChanged += RefreshSockets;
             // 背包內容一變就檢查鐵砧指的來源還在不在（被排序搬走、被消耗、換裝了都會自動取下）。
             if (InventorySystem.Instance != null) InventorySystem.Instance.OnChanged += _anvil.Validate;
+            // 換了裝備中的武器 → 「哪些珠子無效」會變，孔位要重畫灰顯
+            if (InventorySystem.Instance != null) InventorySystem.Instance.OnChanged += RefreshSockets;
             // 把「這一格被鐵砧借走了」告訴共用拖放層。
             // ⚠ 鎖一定要擋在 SlotDragController，光在格子元件的 OnBeginDrag 裡 return 是擋不住的——
             //   EventSystem 在按下時就填好 e.pointerDrag 了，Drop 讀的是它，結果會變成
@@ -325,6 +332,7 @@ namespace Dipan.UI
             _anvil.OnChanged -= OnAnvilChanged;
             _sockets.OnChanged -= RefreshSockets;
             if (InventorySystem.Instance != null) InventorySystem.Instance.OnChanged -= _anvil.Validate;
+            if (InventorySystem.Instance != null) InventorySystem.Instance.OnChanged -= RefreshSockets;
             if (SlotDragController.IsSlotLocked == (System.Func<ISlotView, bool>)IsSlotBorrowed)
                 SlotDragController.IsSlotLocked = null;   // 只拆自己掛上去的那一個
             HideTooltip();
@@ -419,6 +427,24 @@ namespace Dipan.UI
         /// <summary>什麼算「能力珠」——ItemTable 的 GemID 欄有填（指向 GemTable 的一列）就是。</summary>
         static bool IsGem(ItemData d) => d != null && d.IsGem;
 
+        // ───────────────────────── 鑲嵌有效性（提示不擋）─────────────────────────
+
+        /// <summary>
+        /// 珠子有沒有效要看「哪把武器」：鐵砧上是武器就看那把；鐵砧上是防具（珠子跨裝備疊加到當前武器）就看目前裝備的武器。
+        /// 見 readme/GEM_SOCKET.md。
+        /// </summary>
+        WeaponData ReferenceWeapon() => GemEffectiveness.ReferenceWeapon(_anvil.IsEmpty ? 0 : _anvil.ItemId);
+
+        /// <summary>珠子剛鑲進孔位：對參考武器沒效果就跳一次提示（不擋、不退回——換把武器它就有用了）。</summary>
+        void OnGemSocketed(ItemStack gem)
+        {
+            var w = ReferenceWeapon();
+            if (w == null || GemEffectiveness.IsEffective(gem, w)) return;
+            var gd = InventorySystem.Instance != null ? InventorySystem.Instance.GetData(gem.ItemId) : null;
+            string gemName = gd != null ? gd.Name : $"#{gem.ItemId}";
+            AlertPanel.Toast(string.Format(Language.GetText(TxtGemNoEffect), gemName, w.Name));
+        }
+
         // ───────────────────────── 三顆按鈕 ─────────────────────────
 
         /// <summary>強化裝備：之後做（裝備本身也能強化三次）。珠子的強化不在這裡，走「鑲嵌珠強化石」道具。</summary>
@@ -463,7 +489,20 @@ namespace Dipan.UI
             var d = itemId > 0 && InventorySystem.Instance != null ? InventorySystem.Instance.GetData(itemId) : null;
             if (d == null) { HideTooltip(); return; }
             _tipName.text = d.Name;
-            _tipStats.text = d.TipStats; _tipStats.gameObject.SetActive(!string.IsNullOrEmpty(d.TipStats));
+            string stats = d.TipStats ?? "";
+            // 鑲嵌有效性：珠子 → 對參考武器無效就說明；鐵砧上那件 → 列出它身上無效的珠子
+            var refW = ReferenceWeapon();
+            if (refW != null)
+            {
+                if (d.IsGem && !GemEffectiveness.IsEffective(itemId, refW))
+                    stats += (stats.Length > 0 ? "\n" : "") + string.Format(Language.GetText(TxtGemNoEffectOnWeapon), refW.Name);
+                else if (!_anvil.IsEmpty && itemId == _anvil.ItemId)
+                {
+                    string bad = GemEffectiveness.IneffectiveGemNames(_anvil.Instance, refW);
+                    if (bad.Length > 0) stats += (stats.Length > 0 ? "\n" : "") + string.Format(Language.GetText(TxtIneffectiveGems), bad);
+                }
+            }
+            _tipStats.text = stats; _tipStats.gameObject.SetActive(!string.IsNullOrEmpty(stats));
             _tipLore.text = d.TipLore; _tipLore.gameObject.SetActive(!string.IsNullOrEmpty(d.TipLore));
             _tooltip.gameObject.SetActive(true);
             _tooltip.SetAsLastSibling();

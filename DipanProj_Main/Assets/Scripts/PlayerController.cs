@@ -96,7 +96,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private GroundEffectInstance _activeAura;
     private WeaponData _activeAuraWeapon;
 
-    /// <summary>佛光（IsAura）光環目前是否開著（按住左鍵/空白鍵維持中）。供新手教學偵測「玩家真的點亮佛燈」用。</summary>
+    /// <summary>佛光（Mode=Aura）光環目前是否開著（按住左鍵/空白鍵維持中）。供新手教學偵測「玩家真的點亮佛燈」用。</summary>
     public bool IsAuraActive => _activeAura != null;
 
     /// <summary>玩家現在能不能開火。兩個條件：**有裝備武器** ＋ **這張地圖沒禁用武器**（MapsTable 的 NoWeapon 欄）。
@@ -129,7 +129,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private readonly List<GameObject> _summonAlive = new List<GameObject>();
     private const float ChainFlashDuration = 0.16f;
 
-    // 落雷模式：BlastRadius 留空時的預設 AOE 半徑
+    // 落雷模式：AreaRadius 留空時的預設 AOE 半徑
     private const float SkyStrikeDefaultBlast = 1.2f;
     // 雷柱圖以中心為 pivot；落雷時依該 VFX 的實際 Sprite 高度×Scale 自動算半高，讓圖片底部精準對齊落點。
     // 無法讀到素材時才用此舊值後備。
@@ -484,9 +484,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
-        bool isLaser = weapon.Recipe != null
-                       && weapon.Recipe.Data != null && weapon.Recipe.Data.IsLaser;
-        bool isAura = weapon.Recipe != null && weapon.Recipe.IsAura;
+        bool isLaser = weapon.Recipe != null && weapon.Recipe.Mode == WeaponMode.Laser;
+        bool isAura = weapon.Recipe != null && weapon.Recipe.Mode == WeaponMode.Aura;
 
         // 切到非雷射武器、或換了不同雷射武器 → 先清掉舊光束
         if (_activeBeams.Count > 0 && (!isLaser || weapon != _activeBeamWeapon))
@@ -507,7 +506,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
-        if (weapon.Recipe != null && weapon.Recipe.IsChargeMode)
+        if (weapon.Recipe != null && weapon.Recipe.ChargeMode)
         {
             UpdateChargeFiring(weapon, firing, firePressed);
             return;
@@ -607,7 +606,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private static float GetChargeRequiredSeconds(WeaponData weapon)
     {
         float reduction = weapon != null && weapon.Recipe != null
-            ? weapon.Recipe.ChargeTimeReductionPercent
+            ? weapon.Recipe.ChargeTimeReduction
             : 0f;
         return ChargeRequiredSeconds * Mathf.Max(0.01f, 1f - reduction / 100f);
     }
@@ -874,7 +873,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         // 召喚型武器：不發射子彈、不需要 BulletPrefab。耗魔後直接在玩家周圍生怪（與 boss 共用 SummonSystem）。
         // 注意：召喚出的怪目前走敵人 AI（會追玩家）——玩家召喚的「友軍」faction 尚未做，見 readme/BOSS_MODULE.md。
-        if (weapon.Recipe.IsSummon)
+        if (weapon.Recipe.Mode == WeaponMode.Summon)
         {
             // 召喚滿了（達同時上限）就不動作、也不扣魔（避免「扣了魔卻沒生怪」）；剛按下才跳提示。
             if (!SummonSystem.HasRoom(weapon.Recipe, _summonAlive))
@@ -893,9 +892,9 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         ProjectileData recipe = weapon.Recipe.Data;
 
-        if (recipe.IsLaser)
+        if (weapon.Recipe.Mode == WeaponMode.Laser || weapon.Recipe.Mode == WeaponMode.Aura)
         {
-            // 雷射由 HandleFiring → UpdateLaser 持續路徑處理，不走離散發射
+            // 雷射／佛光由 HandleFiring → UpdateLaser / UpdateAura 持續路徑處理，不走離散發射
             return false;
         }
 
@@ -906,37 +905,17 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 發射特效：每次離散發射在玩家身上播一次，朝瞄準方向
         TrySpawnFireEffect(weapon, AimDirectionToMouse());
 
-        if (weapon.Recipe.IsDash)
+        // 發射模式互斥（RecipeTable 的 Mode 欄，見 WeaponMode / WeaponModeSpec）
+        switch (weapon.Recipe.Mode)
         {
-            ShootDash(weapon, recipe);
-        }
-        else if (weapon.Recipe.IsGroundCast)
-        {
-            ShootGroundCast(weapon, recipe);
-        }
-        else if (weapon.Recipe.IsMelee)
-        {
-            ShootMelee(weapon, recipe);
-        }
-        else if (weapon.Recipe.IsSkyStrike)
-        {
-            ShootSkyStrike(weapon, recipe);
-        }
-        else if (weapon.Recipe.IsChain)
-        {
-            ShootChain(weapon, recipe);
-        }
-        else if (recipe.IsOrbital)
-        {
-            ShootOrbital(weapon, recipe);
-        }
-        else if (recipe.IsParabolic)
-        {
-            ShootParabolic(weapon, recipe);
-        }
-        else
-        {
-            ShootNormal(weapon, recipe);
+            case WeaponMode.Dash:       ShootDash(weapon, recipe); break;
+            case WeaponMode.GroundCast: ShootGroundCast(weapon, recipe); break;
+            case WeaponMode.Melee:      ShootMelee(weapon, recipe); break;
+            case WeaponMode.SkyStrike:  ShootSkyStrike(weapon, recipe); break;
+            case WeaponMode.Chain:      ShootChain(weapon, recipe); break;
+            case WeaponMode.Orbital:    ShootOrbital(weapon, recipe); break;
+            case WeaponMode.Parabolic:  ShootParabolic(weapon, recipe); break;
+            default:                    ShootNormal(weapon, recipe); break;
         }
 
         _fireTimer = recipe.FireInterval;
@@ -982,7 +961,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         else transform.position = end;
     }
 
-    // 定點法陣：在滑鼠位置（受 BeamRange 限制）生成 GroundEffect。
+    // 定點法陣：在滑鼠位置（受 Range 限制）生成 GroundEffect。
     // GroundEffect 的半徑／持續時間／DOT 節拍／動畫走表，單次傷害由武器表覆寫，能重用於黑洞、毒霧、雷獄等。
     private void ShootGroundCast(WeaponData weapon, ProjectileData recipe)
     {
@@ -1001,13 +980,13 @@ public class PlayerController : MonoBehaviour, IDamageable
         TrySpawnHitEffect(weapon, target);
     }
 
-    // 近身扇形：以玩家為圓心、瞄準方向為軸，對半徑 BlastRadius／總角 MeleeAngle 內的 IDamageable 各結算一次。
+    // 近身扇形：以玩家為圓心、瞄準方向為軸，對半徑 AreaRadius／總角 MeleeAngle 內的 IDamageable 各結算一次。
     // 視覺只播一次 HitEffect，避免每打到一隻怪就疊一套揮砍動畫。
     private void ShootMelee(WeaponData weapon, ProjectileData recipe)
     {
         Vector2 origin = transform.position;
         Vector2 aim = AimDirectionToMouse();
-        float radius = weapon.Recipe.BlastRadius > 0f ? weapon.Recipe.BlastRadius : 2f;
+        float radius = weapon.Recipe.AreaRadius > 0f ? weapon.Recipe.AreaRadius : 2f;
         float halfAngle = Mathf.Clamp(weapon.Recipe.MeleeAngle, 1f, 360f) * 0.5f;
         float visualAngle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
         Vector2 visualPos = origin + aim * (radius * 0.45f);
@@ -1283,7 +1262,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
             ApplyDamage(target, firedWeapon.Damage, hitDir);
 
-            TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, point, hitEnemy, hitEnv, false);
+            TryTriggerGroundEffect(firedWeapon.Recipe, point, hitEnemy, hitEnv, false);
             TrySpawnHitEffect(firedWeapon, point);
             TrySpawnBeamSplit(firedWeapon, point);
         }
@@ -1538,10 +1517,10 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
     }
 
-    // 放一道連鎖閃電：朝 dir 找首節點（HasHoming 時用扇形錐 aim-assist）→ 逐跳 → 結算傷害 → 畫鋸齒折線。
+    // 放一道連鎖閃電：朝 dir 找首節點（AimConeAngle > 0 時用扇形錐 aim-assist）→ 逐跳 → 結算傷害 → 畫鋸齒折線。
     private void CastOneChain(WeaponData weapon, ProjectileData recipe, Vector2 origin, Vector2 dir)
     {
-        float reach = recipe.BeamRange;                       // 第一段射程（BeamRange 欄）
+        float reach = recipe.BeamRange;                       // 第一段射程（Range 欄）
         float aimR = Mathf.Max(0.1f, weapon.BeamWidth * 0.5f); // 第一段瞄準容差半徑
         int envMask = EnvLayer.value;        // 環境：牆（不可破壞、擋路）+ 可破壞地上物（有 IDamageable）
         int enemyMask = EnemyLayer.value;
@@ -1550,12 +1529,12 @@ public class PlayerController : MonoBehaviour, IDamageable
         var hitSet = new HashSet<int>();   // 首目標搜尋的排除集（此處為空）
         Transform firstTarget = null;
 
-        // 追蹤(aim-assist)：閃電瞬發、不會飛行轉彎，所以「追蹤」對它＝首目標自動鎖定。
-        // HasHoming 時首段不必正好瞄到，改鎖定「以 dir 為軸、半角 = HomingTurnSpeed(上限180) 的扇形錐內、reach 內、最近」的目標。
+        // 首目標自動鎖定(aim-assist)：閃電瞬發、不會飛行轉彎，所以用「錐形鎖定」取代追蹤。
+        // AimConeAngle > 0 時首段不必正好瞄到，改鎖定「以 dir 為軸、半角 = AimConeAngle(上限180) 的扇形錐內、reach 內、最近」的目標。
         // 180 = 錐張滿一圈 = 鎖最近任意方向的目標。（目前不檢查中間有沒有牆遮擋，之後可加。）
-        if (recipe.HasHoming)
+        if (weapon.Recipe.AimConeAngle > 0f)
         {
-            float coneHalf = Mathf.Min(180f, recipe.HomingTurnSpeed);
+            float coneHalf = Mathf.Min(180f, weapon.Recipe.AimConeAngle);
             firstTarget = FindNearestInCone(origin, reach, dir, coneHalf, hitSet, damageableMask);
         }
 
@@ -1702,8 +1681,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         return outp;
     }
 
-    // ── 落雷模式：從畫面上緣外劈下到滑鼠所在點，落地以 BlastRadius 做圓形 AOE ──
-    // 吃 SpreadCount/SpreadAngle（多道落點，仿拋物線扇形分佈）與 HomingTurnSpeed（落點吸附最近怪，當搜尋半徑）。
+    // ── 落雷模式：從畫面上緣外劈下到滑鼠所在點，落地以 AreaRadius 做圓形 AOE ──
+    // 吃 SpreadCount/SpreadAngle（多道落點，仿拋物線扇形分佈）與 SnapRadius（落點吸附最近怪的搜尋半徑）。
     // 目標搜尋與傷害全在主遊戲側；視覺複用 LaserBeam 折線（垂直鋸齒閃電）。
     private void ShootSkyStrike(WeaponData weapon, ProjectileData recipe)
     {
@@ -1735,10 +1714,10 @@ public class PlayerController : MonoBehaviour, IDamageable
             float rad = ang * Mathf.Deg2Rad;
             Vector2 target = player + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * dist;
 
-            // 追蹤(aim-assist)：HasHoming 時把落點吸附到附近最近的可傷害目標（HomingTurnSpeed 當搜尋半徑，世界單位）
-            if (recipe.HasHoming)
+            // 落點吸附：SnapRadius > 0 時把落點吸附到該半徑內最近的可傷害目標（世界單位）
+            if (weapon.Recipe.SnapRadius > 0f)
             {
-                Transform near = FindNearestDamageable(target, recipe.HomingTurnSpeed, _emptyHitSet, dmgMask);
+                Transform near = FindNearestDamageable(target, weapon.Recipe.SnapRadius, _emptyHitSet, dmgMask);
                 if (near != null) target = near.position;
             }
 
@@ -1751,7 +1730,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         // 1) 視覺：sprite 雷柱（HitEffectID 指向的雷擊序列圖）。依實際圖高×表格 Scale 算半高，
         //    所以不同武器能各自調雷柱大小，底部仍會落在 impact。
-        if (weapon.Recipe != null && weapon.Recipe.UseSegmentedSkyStrike)
+        if (weapon.Recipe != null && weapon.Recipe.SegmentedColumn)
         {
             SegmentedLightningColumn.Spawn(impact, Camera.main, 1.5f * weapon.CastVisualScale);
             // 分段雷柱的 HitEffectID 專門留給地面爆炸，不再兼任雷柱本體。
@@ -1770,8 +1749,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             _vfxManager.Spawn(weapon.HitEffectID, impact + Vector2.up * boltOffset, 0f, weapon.CastVisualScale);
         }
 
-        // 3) 圓形 AOE：以 BlastRadius（留空用預設）對範圍內 IDamageable（怪 + 可破壞家具）以武器 Damage 結算一次
-        float radius = (weapon.Recipe != null && weapon.Recipe.BlastRadius > 0f) ? weapon.Recipe.BlastRadius : SkyStrikeDefaultBlast;
+        // 3) 圓形 AOE：以 AreaRadius（留空用預設）對範圍內 IDamageable（怪 + 可破壞家具）以武器 Damage 結算一次
+        float radius = (weapon.Recipe != null && weapon.Recipe.AreaRadius > 0f) ? weapon.Recipe.AreaRadius : SkyStrikeDefaultBlast;
         if (weapon.Damage > 0f)
         {
             Collider2D[] hits = Physics2D.OverlapCircleAll(impact, radius, dmgMask);
@@ -1790,7 +1769,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 5) SubRecipeID → 連鎖：落點接一條連鎖閃電轟擊旁邊的怪（用本武器 Damage/外觀，sub-recipe 的 ChainCount/ChainRadius）。
         //    首目標 = 落點 ChainRadius 內最近的可傷害目標；找到才連，之後逐跳。
         RecipeEntry sub = (weapon.Recipe != null) ? weapon.Recipe.SubRecipe : null;
-        if (sub != null && sub.IsChain)
+        if (sub != null && sub.Mode == WeaponMode.Chain)
         {
             Transform first = FindNearestDamageable(impact, sub.ChainRadius, _emptyHitSet, dmgMask);
             if (first != null)
@@ -1835,7 +1814,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         ApplyDamage(target, firedWeapon.Damage, hitDir);
 
         Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
-        TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, spawnPos, hitEnemy, hitEnv, false);
+        TryTriggerGroundEffect(firedWeapon.Recipe, spawnPos, hitEnemy, hitEnv, false);
         TrySpawnHitEffect(firedWeapon, spawnPos);
         TryTriggerSubWeapon(firedWeapon, bullet, hit, spawnPos, hitEnemy, hitEnv);
     }
@@ -1885,11 +1864,9 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (subRecipe == null) return;
 
         // 子武器只支援「會飛的一般子彈」；特殊型(雷射/環繞/拋物線/連鎖/雷擊)不適合當 OnHit 迸發，先擋掉並提示。
-        if (subRecipe.IsLaser || subRecipe.IsOrbital || subRecipe.IsParabolic
-            || subWeapon.Recipe.IsChain || subWeapon.Recipe.IsSkyStrike
-            || subWeapon.Recipe.IsGroundCast || subWeapon.Recipe.IsMelee || subWeapon.Recipe.IsDash)
+        if (subWeapon.Recipe.Mode != WeaponMode.Normal)
         {
-            Debug.LogWarning($"SubWeaponOnHit 指向的武器 '{subWeapon.Name}' 是特殊型(雷射/環繞/拋物線/連鎖/雷擊)，命中迸發目前只支援一般飛行子彈。");
+            Debug.LogWarning($"SubWeaponOnHit 指向的武器 '{subWeapon.Name}' 是 {WeaponModeSpec.ModeLabel(subWeapon.Recipe.Mode)} 模式，命中迸發目前只支援一般子彈（Normal）。");
             return;
         }
 
@@ -1909,18 +1886,18 @@ public class PlayerController : MonoBehaviour, IDamageable
     private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)
     {
         if (firedWeapon == null) return;
-        // 拋物線最終落地：飛行中不撞怪，落地才以 BlastRadius 做一次性 AOE 殺傷（可選），再觸發地面特效與擊中特效
+        // 拋物線最終落地：飛行中不撞怪，落地才以 AreaRadius 做一次性 AOE 殺傷（可選），再觸發地面特效與擊中特效
         TryApplyParabolicBlast(firedWeapon, landPos);
-        TryTriggerGroundEffect(firedWeapon.Recipe, GroundEffectTrigger.OnHit, landPos, false, false, true);
+        TryTriggerGroundEffect(firedWeapon.Recipe, landPos, false, false, true);
         TrySpawnHitEffect(firedWeapon, landPos);
     }
 
-    // 拋物線落地殺傷：BlastRadius > 0 時，對落點半徑內怪物以武器 Damage 炸一次。
+    // 拋物線落地殺傷：AreaRadius > 0 時，對落點半徑內怪物以武器 Damage 炸一次。
     // 與地面火堆（GroundEffect）獨立——可同時「炸傷一次 ＋ 留一灘火延燒」。傷害只結算在怪物上、吃怪物無敵時間、擊退方向由爆心朝外。
     private void TryApplyParabolicBlast(WeaponData firedWeapon, Vector2 landPos)
     {
         if (firedWeapon == null || firedWeapon.Recipe == null) return;
-        float radius = firedWeapon.Recipe.BlastRadius;
+        float radius = firedWeapon.Recipe.AreaRadius;
         if (radius <= 0f || firedWeapon.Damage <= 0f) return;
 
         // 範圍含怪物與地上物(Environment),兩者都實作 IDamageable
@@ -1934,18 +1911,12 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
     }
 
-    private void TryTriggerGroundEffect(RecipeEntry recipe, GroundEffectTrigger trigger, Vector2 spawnPos, bool hitEnemy, bool hitEnv, bool hitGround)
+    // 命中／落地時附加地面特效（配方 GroundEffectID > 0）。觸發時機固定是「命中」——
+    // 原本的 GroundEffectTrigger 欄從沒實作過 OnSpawn/OnDeath，2026-08-26 隨表格大改移除。
+    private void TryTriggerGroundEffect(RecipeEntry recipe, Vector2 spawnPos, bool hitEnemy, bool hitEnv, bool hitGround)
     {
         if (recipe == null || _groundEffectManager == null) return;
         if (recipe.GroundEffectID <= 0) return;
-        if (recipe.GroundEffectTrigger != trigger) return;
-
-        // 首版只支援 OnHit；OnSpawn / OnDeath 待事件鉤子補完。
-        if (trigger != GroundEffectTrigger.OnHit)
-        {
-            Debug.LogWarning($"GroundEffectTrigger '{trigger}' is not yet implemented; only 'OnHit' is supported in this version.");
-            return;
-        }
 
         // 命中目標 layer 必須符合 GroundEffectHitTarget 設定才觸發
         bool allowed = recipe.GroundEffectHitTarget switch

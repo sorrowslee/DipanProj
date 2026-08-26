@@ -17,16 +17,16 @@
 ## 三種用途共用同一原語
 
 * **發射特效 (`FireEffectID`)**：每次發射在**玩家身上**播一次、朝瞄準方向。離散武器（直射/環繞/拋物線）每次射擊播一次（吃 `FireInterval` 節流）；雷射在**按下瞬間**播一次（持續光束不每幀重播）。
-* **擊中特效 (`HitEffectID`)**：子彈／光束**命中點**播一次。涵蓋打到怪物、障礙物、拋物線落地三種情況（**首版統一一種特效**，不分表面）。雷射的命中特效綁在 `dotInterval` tick，天然節流。
+* **擊中特效 (`HitEffectID`)**：子彈／光束**命中點**播一次。涵蓋打到怪物、障礙物、拋物線落地三種情況（**首版統一一種特效**，不分表面）。雷射的命中特效綁在 `DotInterval` tick，天然節流。
 * **軌跡特效 (`TrailEffectID`)**：沿路徑每隔配方 `TrailStep` 距離鋪一個特效。兩種載體：
   * **子彈**（一般飛行道具）→ 由 `BulletInstance.OnTrailPoint` 觸發，做**地刺類武器**（隱形子彈沿路種尖刺，自動吃滿反彈/分裂/追蹤）。見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 的 `TrailStep`。
-  * **雷射光束**（`IsLaser=1` + `TrailEffectID>0`）→ 沿光束路徑鋪**循環**火焰，做**火焰噴射器**（按住掃射、持續 DOT）。此時火焰 Vfx 須 `Loop=1` + `Duration=-1`（持續循環、由 PlayerController 管理生死）。見 [LASER.md](LASER.md) 的「火焰噴射器」。
+  * **雷射光束**（`Mode=Laser` + `TrailEffectID>0`）→ 沿光束路徑鋪**循環**火焰，做**火焰噴射器**（按住掃射、持續 DOT）。此時火焰 Vfx 須 `Loop=1` + `Duration=-1`（持續循環、由 PlayerController 管理生死）。見 [LASER.md](LASER.md) 的「火焰噴射器」。
 
 三者都引用同一張 `VfxTable.csv`、用同一個 `VfxManager.Spawn(id, position, angle)`。
 
 ## 召喚特效（`SummonEffectID`，武器表；特效播完才生怪）
 
-召喚型武器（`IsSummon`，見 [BOSS_MODULE.md](BOSS_MODULE.md)）可在 **WeaponTable** 填 `SummonEffectID`（引用 `VfxTable`）——施放時在**每個生怪點**播一次特效，怪物**在同一幀一起出現**（邊播特效邊出現；其他三種特效也是即放即忘，這個只是多在生怪點播一顆特效）。
+召喚型武器（`Mode=Summon`，見 [BOSS_MODULE.md](BOSS_MODULE.md)）可在 **WeaponTable** 填 `SummonEffectID`（引用 `VfxTable`）——施放時在**每個生怪點**播一次特效，怪物**在同一幀一起出現**（邊播特效邊出現；其他三種特效也是即放即忘，這個只是多在生怪點播一顆特效）。
 
 * 由 `SummonSystem.Cast` 在每個生怪點 `VfxManager.Spawn` 播特效，並在**同一幀** `SpawnMonster`。
 * 玩家（`PlayerController.Shoot`）與 boss（`MonsterWeaponUser`）召喚**共用** `SummonSystem.Cast`，都吃這一欄。
@@ -70,7 +70,7 @@
 | 發射 | `Shoot`（離散）／`UpdateLaser` 按下時（雷射） | 玩家位置，朝滑鼠 |
 | 擊中-怪/牆 | `HandleBulletHit` | `hit.point` |
 | 擊中-地面 | `HandleParabolicLanded` | 落點 |
-| 擊中-雷射 | `HandleBeamTick`（每 `dotInterval` 一跳） | 每個命中點 |
+| 擊中-雷射 | `HandleBeamTick`（每 `DotInterval` 一跳） | 每個命中點 |
 
 沿用「發射時以 lambda closure 鎖住當下武器」的快照機制，玩家中途切武器不會讓舊子彈誤用新武器的特效（與 GroundEffect 同邏輯）。
 

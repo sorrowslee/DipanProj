@@ -5,7 +5,7 @@
 紅嫁衣關第一間房 **柴房（RedBridalGown_Woodshed, map 1）** 的強制新手教學：
 一進柴房（沒撿過佛燈時）→ 播邪佛對話 → 對話關閉＝教學開始 → 走去撿地上的佛燈（靠近按 F）→ 撿起後佛燈地上物消失、往北的傳送點解鎖 → 提示按 B 開背包 → 手指指佛燈格、只放行它 → 點一下裝上佛燈 → 按 B 關背包 → **強制點亮**（鎖移動、只放行開火）：按住左鍵/空白鍵點亮佛燈 → 完成。做完寫永久旗標，之後（此生）不再強制、佛燈也不再出現。
 
-佛燈＝既有道具/武器 **8「佛光」**（`ItemTable` 8，`WeaponID=8`，`RecipeTable` 21 `IsAura`）。此教學沒有新增任何武器，直接沿用它。
+佛燈＝既有道具/武器 **8「佛光」**（`ItemTable` 8，`WeaponID=8`，`RecipeTable` 21 `Mode=Aura`）。此教學沒有新增任何武器，直接沿用它。
 
 ## 流程與所在程式
 
@@ -48,4 +48,4 @@
 2. **地上物 `lightRadius`**（`ObjectInstance` 新欄位，世界單位）：> 0 時 `MapLoader` 幫它掛 `LightSource`，暗場景下當光圈中心。詳見 [ATMOSPHERE.md](ATMOSPHERE.md)。
 3. **pickup `toRealBag=true`**（`InteractionManager` pickup 參數）：這個拾取點直接進真背包 `InventorySystem`（不走關卡臨時包 `RunProgress`）。給「起始/教學道具」用——關卡內撿了要能**當場開背包裝備**、且**死亡也保留**（佛燈就是靠這個，否則關卡內撿到的東西只進臨時包、通關才落袋，背包 UI 看不到、無法裝備）。
 4. **`TutorialManager.FireOnly` ＋ `PlayerController` 分支**：`FireOnly=true` 時 `PlayerController.Update` 走一條「鎖移動、保留朝向、只放行開火」的分支（`_moveInput=Vector2.zero` 後照常 `HandleFiring`）。用來做「強制玩家開火一次才放行」這種引導，比 `SetExternalHold`（連開火都擋）細一級。
-5. **`PlayerController.IsAuraActive`**：唯讀屬性，佛光（IsAura）光環是否正開著。供教學偵測「玩家真的點亮佛燈」。
+5. **`PlayerController.IsAuraActive`**：唯讀屬性，佛光（Mode=Aura）光環是否正開著。供教學偵測「玩家真的點亮佛燈」。

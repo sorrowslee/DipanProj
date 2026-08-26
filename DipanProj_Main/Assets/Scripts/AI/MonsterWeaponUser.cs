@@ -6,7 +6,7 @@ using UnityEngine;
 /// WeaponTable 的武器 ID，Brain 每幀呼叫 <see cref="TryUse"/> 決定是否施放；冷卻（配方 FireInterval）
 /// 與召喚上限都在這裡結算，Brain 只管「想不想放」。
 ///
-/// 依配方型別分派：目前實作「召喚」(<c>RecipeEntry.IsSummon</c>)；投射型武器（飛劍／落雷…）
+/// 依配方型別分派：目前實作「召喚」(<c>RecipeEntry.Mode == WeaponMode.Summon</c>)；投射型武器（飛劍／落雷…）
 /// 供怪物使用為 Phase 2——待把 PlayerController 的發射管線抽成「不綁玩家」的共用服務後，
 /// 這裡多一個分支呼叫該服務即可（怪物與玩家共用同一套武器系統）。
 ///
@@ -69,7 +69,7 @@ public class MonsterWeaponUser : MonoBehaviour
         RecipeEntry recipe = _weapon.Recipe;
         bool cast = false;
 
-        if (recipe.IsSummon)
+        if (recipe.Mode == WeaponMode.Summon)
             cast = TrySummon(recipe);
         else
             Debug.LogWarning($"[MonsterWeaponUser] 武器 '{_weapon.Name}' 非召喚型；投射型武器供怪物使用為 Phase 2（待發射管線抽出）。");

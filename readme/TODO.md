@@ -548,3 +548,15 @@
 - [ ] **更多彈道行為擴充**：透過 `IBulletBehavior` 實作追蹤彈、蛇行彈、延遲爆炸等軌跡（追蹤彈 `HomingTurnSpeed` 已有，其餘待確認）。
 - [ ] **地面特效 `OnSpawn` / `OnDeath` 觸發時機**（需在 `BulletInstance` 增設生成／銷毀事件鉤子）與**可疊加／不可疊加策略**（同一格只能有一團火）——現況見 [GROUND_EFFECT.md](GROUND_EFFECT.md)，做之前先確認是否已被涵蓋。
 
+---
+
+## RecipeTable 大改後續 — 2026-08-26
+
+大改本身（`Mode` 單欄、依表頭讀、`WeaponModeSpec`、珠子依模式過濾、鍛造提示不擋）已完成，見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)、[PROGRESS.md](PROGRESS.md) 2026-08-26。以下是留下的缺口與下一步：
+
+- [ ] **實機驗證**（Cowork 端開不了 Unity）：Console 應只有「御靈水晶 WeaponSpritePath 對召喚無效」一條 Warning；20 把武器各拿一輪；怪物（紅嫁衣召喚）正常；8 種珠 × 佛光／連鎖／落雷各鑲一次看提示與灰顯；換武器灰顯會變。
+- [ ] **武器效果模擬系統**（作者要的下一階段，做在**遊戲端**不做在地圖編輯器）：新增一張測試地圖（放幾隻靶怪＋可破壞物＋牆）＋仿 L 鍵作弊面板：`Mode` 下拉 → 依 `WeaponModeSpec.EffectiveFields(mode)` 自動長出該模式的輸入欄（型別／預設／範圍都在 `FieldSpec`）→ 組成欄名字典 → `RecipeManager.CreateTransient` ＋ `WeaponManager.CreateTransient` → 設 `WeaponManager.SimulationOverride` → 直接開火。附「載入既有配方來改」（`RecipeManager.All`／`WeaponManager.All`）與「匯出成 CSV 一列到剪貼簿」。掛點都已留好，面板本身零架構改動。
+- [ ] **Aura 的 GroundEffect 交叉檢查**：佛光指到的 `GroundEffectTable` 列必須 `Duration=-1`，目前只在 `UpdateAura` 啟動時檢查 `GroundEffectID>0`，沒檢查 Duration；可在 `GroundEffectManager` 載入後對所有 `Mode=Aura` 配方掃一次。
+- [ ] **御靈水晶（武器 13）的 `WeaponSpritePath`**：召喚模式不用子彈圖，那一格是歷史殘留，載入會印 Warning。要清掉或留著當圖鑑用，作者決定。
+- [ ] **GemTable 的 `Note` 欄**：現在「對哪些模式有效」由程式推導，`Note` 裡手寫的說明（例如「拋物線加了會變慢」）已過時，可改成只寫設計意圖。
+- [ ] 平衡用的能力上限（既有項目，見 [GEM_SOCKET.md](GEM_SOCKET.md) §4）——這次沒動。

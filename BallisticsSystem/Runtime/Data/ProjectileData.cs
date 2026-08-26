@@ -30,6 +30,8 @@ namespace Sorrows.Ballistics
         public int OrbitalCount = 3;
 
         public bool IsParabolic;
+        /// <summary>拋物線專用：飛行秒數——不論遠近都飛這麼久才落地（2026-08-26 起獨立欄位，原本借用 Speed）。</summary>
+        public float FlightTime = 1f;
         public float ArcHeight = 2f;
         /// <summary>拋物線專用：落點隨機半徑（世界單位）。實際落點 = 目標點 + Random.insideUnitCircle * 此半徑。</summary>
         public float LandingScatterRadius = 0f;
@@ -52,8 +54,8 @@ namespace Sorrows.Ballistics
             if (RotationSpeed != 0) list.Add(new RotationBehavior(RotationSpeed));
             if (HasHoming) list.Add(new HomingBehavior(HomingTurnSpeed));
             if (IsOrbital) list.Add(new OrbitalBehavior(OrbitalRadius, Speed));
-            // 拋物線：Speed 欄位重新解讀為「飛行時間（秒）」，Speed=1 表示無論遠近都飛 1 秒抵達
-            if (IsParabolic) list.Add(new ParabolicBehavior(ArcHeight, Speed));
+            // 拋物線：FlightTime = 飛行秒數，不論遠近都飛這麼久才落地（Speed 對拋物線無意義）
+            if (IsParabolic) list.Add(new ParabolicBehavior(ArcHeight, FlightTime));
             return list;
         }
     }

@@ -16,7 +16,7 @@
 | A | 打包與部署 (Build & Deploy) | A1~A10（A3、A9 已淘汰，原文封存、存根在原位） |
 | B | 地圖載入 (Map Loader) | B1~B14 |
 | C | 地圖編輯器 / 素材同步 | C1~C10（⚠ C6/C7 排在 C1 前面） |
-| D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D22 |
+| D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D23 |
 | E | 效能 / 顯示 (Performance & Display) | E1~E20 |
 | F | 戰鬥 / 傷害 (Combat) | F1~F17（⚠ G 章整段插在 F3 與 F4 之間） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G5（位置在 F3 之後） |
@@ -24,6 +24,7 @@
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I9 |
 | J | 螢幕特效 / 進場過場 (Screen FX) | J1~J4 |
 | K | 互動 / 拾取 (Interaction & Pickup) | K1~K2 |
+| L | 資料表 / CSV (Data Tables) | L1~L3 |
 
 > ⚠ 編號**不保證依閱讀順序遞增**（歷史造成，維持現狀）。新增條目：放進所屬分類、編號接該分類目前最大號；**永不重編號、永不重用舊編號**——全專案文件與 PROGRESS 大量引用這些編號。條目淘汰時整則原文搬 [archive/PROBLEMS-archive.md](archive/PROBLEMS-archive.md) 並在原位留存根（規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)）。
 
@@ -459,6 +460,11 @@
   2. `CutsceneDirector` 把「對全域狀態動過的手」收成一支冪等的 `ReleaseGlobals()`，`Cleanup` 與 **`OnDestroy`** 都會走到，被硬銷毀時至少還原得回來。
 - **⚠ 修第 2 點時會踩到 `Destroy()` 的延遲**（同 **B12**）：`StartCutscene` 換演出時若只是 `Destroy(舊 director)`，舊的 `OnDestroy` 會在**幀尾**才跑——那時新演出已經把主角藏好了，安全網當場把它放出來。所以要**先同步呼叫舊的 `ReleaseGlobals()` 再 `Destroy`**，讓幀尾那次變成 no-op。
 - **通則**：**任何「進入某狀態 → 之後要還原」的 static 開關，都要同時回答三個問題**：① Play 停止時誰還原（→ `PlayModeStaticReset`）；② 持有者被硬銷毀時誰還原（→ `OnDestroy` 安全網）；③ 還原的動作跟「下一個持有者開始」的順序誰先誰後（→ `Destroy` 是延遲的，要先同步釋放）。少任何一項，症狀都是「用著用著就壞了、而且不會自己好」。同一家族：`BloodlineTransformFxRunner.IsPlaying`、`BloodlineIntroPanel.IsShowing`、`DamageNumberManager._quitting`。（2026-08-22 記）
+
+### D23. static 欄位依「宣告順序」初始化——共用陣列宣告在後面，前面的靜態建構就拿到 null（`TypeInitializationException`）
+- **症狀**：`WeaponModeSpec` 第一次被碰到就丟 `TypeInitializationException`，內層是 `NullReferenceException`，發生在 `BuildModes()` 裡把 `BulletVisual` 這類共用欄名陣列 `Eff(...)` 進去的那一行。Unity 裡會變成「所有讀配方的東西全部掛掉」。
+- **原因**：C# 的 static 欄位**照原始碼裡的宣告順序**逐一初始化。`_modes = BuildModes()` 宣告在前、`static readonly string[] BulletVisual = {...}` 宣告在後 ⇒ `BuildModes()` 執行時 `BulletVisual` 還是 null。跟 D 段其他 static 坑同一家族，但這條不是「Domain Reload 沒歸零」，是**初始化順序**。
+- **解法**：被靜態建構用到的常數／陣列一律宣告在最前面（`WeaponModeSpec` 檔頭有註解）。更保險的寫法是把它們做成 `static readonly` 屬性或在方法裡就地 `new`。（2026-08-26 記，在 Cowork 用 mono 跑單元測試時抓到，Unity 一次都沒跑過就修掉了。）
 
 ## E. 效能 / 顯示 (Performance & Display)
 
@@ -950,3 +956,24 @@
   ```
   本例正解：`邪佛對話` 設 `最高完成關卡數=0` ＋ `條件不成立時=跳過這顆繼續`，`給紅嫁衣劇本` 保留自己的 `requireItem=!104`（已經有劇本就不重複給）。
 - **通則**：**在鏈中間加條件前，先問「這顆被擋掉時，後面那些還該不該發生」**——想「整段取消」用預設，想「只跳過這一句」一定要同時設 `條件不成立時=跳過這顆繼續`。另外原本條件不成立是靜默的，現在會印一行 log，排查「鏈莫名其妙斷在中間」時先看 Console。（2026-07-28 記）
+
+
+## L. 資料表 / CSV (Data Tables)
+
+### L1. CSV 用「第幾欄」讀值：欄位不能重排、插欄靜默讀錯、每加一欄要人工數索引（2026-08-26 已全面改掉）
+- **症狀**：RecipeTable 長到 51 欄毫無分組、新欄只能接在最後面；文件跟表對不上時沒有任何錯誤；想把雷射欄位挪到一起分群做不到。
+- **原因**：五張表（Recipe／Weapon／Gem／GroundEffect／Vfx）的解析器都是 `v[28]`、`v[42]` 這種寫死索引，加上 `v.Length >= N` 的相容判斷寫了三十幾次。排錯一欄不會報錯，只會**靜默讀到隔壁欄**。
+- **解法**：`Dipan.Data.CsvTable`（`Assets/Scripts/Data/CsvTable.cs`）——讀第一列表頭建「欄名 → 位置」對照（欄名取括號前、不分大小寫），之後 `row.GetFloat("Range")` 依名字取；空白＝fallback；`#` 開頭整列註解；表頭缺必要欄／重複／有不認得的欄名都會印出來。純 C# 不依賴 UnityEngine，可在 Unity 外跑單元測試。**之後任何新表一律用它**，不要再 `Split(',')` 數索引。
+- **通則**：**「靠位置對應」的資料格式，錯了不會報錯只會錯位**；只要資料會被人手改，就要靠名字對應並在載入時把對不上的名字印出來。
+
+### L2. 雷射的 `SpreadCount` 一欄兩用（光束道數＋命中分裂數），`SplitTiming` 對雷射只認 `OnHit`
+- **症狀**：想讓「雷射 `SpreadCount=3` 留空 `SplitTiming` 也分裂」（新規則「留空＝OnSpawn」），結果三分裂雷射的行為跟舊表對不上。
+- **原因**：雷射的「一發幾道」是 `SpawnLaserBeams` 直接讀 `SplitCount` 展開，**不走** `SplitBehavior`；`HasSplit`＋`Timing=OnHit`＋`SubProjectileData` 才會啟動「光束掃到敵人時在命中點生子彈」（`TrySpawnBeamSplit`），而且用的**也是同一個 `SplitCount`** 當分裂數。所以對雷射而言 `SplitTiming=OnSpawn` 從來沒有意義，`OnHit` 才有；拋物線／連鎖／落雷同樣是直接讀 `SplitCount` 當顆數／道數。
+- **解法**：`RecipeEntry.FromFields` 依模式決定 `HasSplit`——Normal／Orbital：`SpreadCount>1` 就分裂（留空＝OnSpawn）；Laser：只有 `SplitTiming=OnHit` 才 `HasSplit`；其他模式一律 false。轉表時雷射列的 `OnSpawn` 全清掉。`WeaponModeSpec` 把 Laser 的 `SplitTiming` 標成「只認 OnHit」。
+- **通則**：**「一欄多義」的欄位在改預設值之前，先把每個模式實際讀它的路徑列出來**——同一個欄名在不同分支走的是完全不同的程式，預設值的改動只對其中一條分支是安全的。
+
+### L3. 借用欄位造成能力珠語意錯位：追蹤珠鑲落雷＝整張圖吸附、迅捷珠鑲炸彈＝變慢（2026-08-26 已改獨立欄）
+- **症狀**：落雷（九霄雷獄）鑲 Lv3 追蹤珠後，任何落點都會吸到地圖上最近的怪；火焰拋擲彈鑲迅捷珠反而飛更久才落地；連鎖閃電鑲反彈珠會多跳。
+- **原因**：落雷借用 `HomingTurnSpeed` 當「吸附搜尋半徑（世界單位）」、連鎖借用它當「錐半角」、拋物線借用 `Speed` 當「飛行秒數」、連鎖借用 `MaxBounces` 當「跳數」。珠子表的 `Field` 只認欄名不認模式，`PlayerAbilities` 又對所有模式無差別套用，於是「+300 度/秒」變成「+300 格半徑」。
+- **解法**：拆成獨立欄 `SnapRadius`／`AimConeAngle`／`FlightTime`／`ChainCount`；`PlayerAbilities` 依 `WeaponModeSpec.IsEffective(mode, field)` 過濾；迅捷 × 拋物線特別處理成「+% 縮短 `FlightTime`」（作者拍板，語意「丟更快」成立）；反彈 × 連鎖拍板為無效。
+- **通則**：**借用欄位省的是一個欄位，賠的是所有「按欄名操作」的系統**（珠子、模擬面板、文件）——只要有第二個系統會按欄名讀寫它，就不能再讓一個名字裝兩種意思。

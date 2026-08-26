@@ -14,11 +14,11 @@
 |---|---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 雙模組解耦、邊界規範、物理設定（Layer／Tag／碰撞矩陣）、美術資源架構 | 動到跨模組、Layer、物理、資源結構前 |
 | [BALLISTICS.md](BALLISTICS.md) | 彈道系統 `Sorrows.Ballistics`：ProjectileData／BallisticsEngine／BulletInstance／行為介面 | 改子彈生成、飛行、碰撞、彈道行為 |
-| [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md) | CSV 雙表（RecipeTable／WeaponTable）、Recipe／WeaponManager、BounceTarget、序列圖、SpriteAngleOffset | 加／改武器、配方、CSV 欄位 |
+| [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md) | CSV 雙表的**程式面**：`CsvTable` 依表頭取值、`WeaponModeSpec` 規格表（單一真相）、`RecipeEntry.FromFields`、Recipe／WeaponManager（含模擬武器覆蓋掛點）、BounceTarget、序列圖、SpriteAngleOffset | 改讀表程式、加新模式／新欄位、接武器效果模擬系統 |
 | [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md) | 玩家控制器、怪物 AI、受擊反應系統（閃爍／擊退／無敵） | 改玩家或怪物行為、受擊反應 |
 | [MONSTER_SETUP.md](MONSTER_SETUP.md) | 怪物量產（route B：程式逐格動畫、地圖素材管線載圖、零 prefab/Animator；idle/walk 必備、attack 可選、防呆；CSV 加 AnimFPS） | 量產新怪、換怪物外觀、加怪物動作動畫 |
 | [MONSTER_SPEECH.md](MONSTER_SPEECH.md) | 怪物頭上對話框（CSV 句子1~4＋血量%門檻、發現玩家後隨機說、boss 頻率兩倍、水墨泡泡底板隨機輪流＋避邊鏡像） | 加/改怪物台詞、調說話頻率、換對話框底板 |
-| [BOSS_MODULE.md](BOSS_MODULE.md) | Boss 戰鬥模組框架（一隻強怪＝一個 Brain 模組：MonsterContext／MonsterWeaponUser seam）＋紅嫁衣女殭屍（逃跑＋召喚）＋召喚做成表驅動武器（RecipeTable IsSummon 五欄） | 做/改 boss 與強怪戰鬥模式、加召喚、讓怪物用武器 |
+| [BOSS_MODULE.md](BOSS_MODULE.md) | Boss 戰鬥模組框架（一隻強怪＝一個 Brain 模組：MonsterContext／MonsterWeaponUser seam）＋紅嫁衣女殭屍（逃跑＋召喚）＋召喚做成表驅動武器（RecipeTable Mode=Summon＋四欄） | 做/改 boss 與強怪戰鬥模式、加召喚、讓怪物用武器 |
 | [COMBAT.md](COMBAT.md) | 戰鬥傷害系統：玩家 HP/MP（CombatStats）、中央傷害結算（DamageInfo/CombatSystem）、武器耗魔（ManaCost）、怪物接觸傷害＋減傷、血/魔 HUD、頭上浮動傷害數字、加成/減傷/DOT 掛勾 | 改傷害結算、加 HP/MP/魔耗、傷害加成/減傷、接觸傷害、血魔條、傷害數字 |
 | [SHADOW.md](SHADOW.md) | 角色腳下橢圓影子（BlobShadow，程序生成、自動跟隨、玩家與怪物自動掛） | 改影子外觀/大小、給新角色加影子 |
 | [CHARACTER_SETUP.md](CHARACTER_SETUP.md) | 主角外型：**已改走路線 B（程式逐格動畫、血統換外型）**——Characters/SequenceImage/<血統>/idle·walk·dead、`Bloodline` 欄/`SetBloodline`；下半為舊 Animator 流程（已取代，存參考） | 換主角外型、加血統、加死亡動畫 |
@@ -30,7 +30,7 @@
 | [EFFECT_LIBRARY.md](EFFECT_LIBRARY.md) | 地圖編輯器端「特效素材庫＋預覽器」：原始包(`allEffects/`)→通用整理腳本(`organize_bundle.py`)→`Effects/`→特效預覽器（瀏覽/換色/匯出）；放 Assets 外、不被 sync、挑好再手動貼進遊戲 | 整理/瀏覽買來的特效包、挑特效貼進遊戲前 |
 | [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md) | Effects 全庫審閱、特效武器化原則、已實作武器與下一批候選 | 從特效庫設計／擴充武器、查新武器素材來源 |
 | [CHARGE_MODE.md](CHARGE_MODE.md) | RecipeTable 集氣模式：按住／放開流程、3 秒倍率、藍紅集氣特效與持續武器互斥規則 | 啟用集氣武器、調整集氣倍率／特效或排查輸入互斥 |
-| [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) | RecipeTable 每個欄位的詳細用法、填寫規則與組合範例 | 填配方表細節時的查詢手冊 |
+| [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) | **RecipeTable 填表手冊**（2026-08-26 新表：一列一種 `Mode`、45 欄分群、空白＝預設；模式 × 欄位矩陣、能力珠 × 模式矩陣、GroundEffectID 在各模式的角色、舊表遷移對照） | 填／改配方表、加新模式或新欄位、想知道某顆珠子對某武器有沒有用 |
 | [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（**倒序，最新在最上**；較舊條目原文封存在 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭有逐條索引） | 想了解歷史脈絡 |
 | [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) | 產圖流程與規範 | **任何產圖前** |
 | [MapEditor_DESIGN.md](MapEditor_DESIGN.md) | 地圖編輯器設計與 `.dipanmap` 格式 | 改編輯器、看地圖格式 |
