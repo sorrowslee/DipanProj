@@ -39,6 +39,11 @@ namespace Sorrows.Ballistics
         private float _trailAccum;
         private Vector2 _trailLastPos;
 
+        /// <summary>發射端額外掛的行為工廠（例：平行彈的 LaneBehavior）。每顆子彈呼叫一次拿新實例；OnSpawn 分裂出的子彈會繼承同一個工廠。NonSerialized：Instantiate 複製母彈時不能帶過去。</summary>
+        [System.NonSerialized] public System.Func<IBulletBehavior> SpawnExtraBehavior;
+        /// <summary>正在跑 OnSpawn（分裂子彈判斷「母彈還在出生點」用）。</summary>
+        [System.NonSerialized] public bool IsSpawning;
+
         public void AddBehavior(IBulletBehavior behavior) => _behaviors.Add(behavior);
         public List<IBulletBehavior> GetBehaviors() => _behaviors;
         public bool HasHit(int instanceId) => _hitObjects.Contains(instanceId);

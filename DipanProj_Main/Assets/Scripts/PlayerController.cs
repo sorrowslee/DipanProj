@@ -1075,6 +1075,32 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
     }
 
+    // ── 平行彈（RecipeTable ParallelCount / ParallelSpacing / ParallelMaxWidth）──
+    /// <summary>一次扣扳機最多生幾顆子彈（平行 × 分裂）；超過就砍平行道數，遊戲不能因為珠子疊太多而卡死。</summary>
+    private const int MaxBulletsPerTrigger = 128;
+    /// <summary>平行彈從玩家位置散開到各自車道要幾秒（LaneBehavior 的側向速度衰減時間）。</summary>
+    private const float ParallelFanOutSeconds = 0.15f;
+    private bool _parallelCapWarned;
+
+    /// <summary>每一道的側向偏移（世界單位、垂直於射向、置中對稱）。總寬超過 ParallelMaxWidth 就壓縮間距；道數 × 每道顆數超過上限就砍道數。</summary>
+    private float[] ParallelOffsets(RecipeEntry r, int bulletsPerLane)
+    {
+        int lanes = Mathf.Clamp(r.ParallelCount, 1, 16);
+        int maxLanes = Mathf.Max(1, MaxBulletsPerTrigger / Mathf.Max(1, bulletsPerLane));
+        if (lanes > maxLanes)
+        {
+            if (!_parallelCapWarned) { _parallelCapWarned = true; Debug.LogWarning($"[平行彈] {r.Name}：{lanes} 道 × 每道 {bulletsPerLane} 顆超過一次扣扳機上限 {MaxBulletsPerTrigger}，砍成 {maxLanes} 道。"); }
+            lanes = maxLanes;
+        }
+        if (lanes <= 1) return new[] { 0f };
+        float spacing = r.ParallelSpacing;
+        float width = spacing * (lanes - 1);
+        if (width > r.ParallelMaxWidth) { width = r.ParallelMaxWidth; spacing = width / (lanes - 1); }
+        var offsets = new float[lanes];
+        for (int i = 0; i < lanes; i++) offsets[i] = -width * 0.5f + spacing * i;
+        return offsets;
+    }
+
     private void ShootNormal(WeaponData weapon, ProjectileData recipe)
     {
         Vector2 fireDirection = AimDirectionToMouse();   // 連擊中鎖方向
@@ -1086,11 +1112,22 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
         WeaponData firedWeapon = weapon;
-        BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
-            collisionMask, pierceableLayers, nonBounceLayers,
-            (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
-            weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-            (b, pos) => TrySpawnTrailEffect(firedWeapon, pos));
+
+        // 平行彈：每一道全從玩家位置出生（不會生在牆裡），掛 LaneBehavior 讓它飛出去 0.15 秒內散開到自己的車道再拉直。
+        // 工廠每顆子彈給一個新實例；OnSpawn 分裂出的子彈會由 BallisticsEngine 繼承同一個工廠（整排一起散開）。
+        int perLane = (recipe.HasSplit && recipe.Timing == SplitTiming.OnSpawn) ? Mathf.Max(1, recipe.SplitCount) : 1;
+        float[] lanes = ParallelOffsets(weapon.Recipe, perLane);
+        Vector2 perp = new Vector2(-fireDirection.y, fireDirection.x);
+        for (int i = 0; i < lanes.Length; i++)
+        {
+            Vector2 lateral = perp * lanes[i];
+            System.Func<IBulletBehavior> lane = lanes[i] != 0f ? () => new LaneBehavior(lateral, ParallelFanOutSeconds) : (System.Func<IBulletBehavior>)null;
+            BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
+                collisionMask, pierceableLayers, nonBounceLayers,
+                (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
+                weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
+                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos), lane);
+        }
     }
 
     private void ClearActiveOrbitalBullets()
@@ -1405,6 +1442,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         int count = Mathf.Max(1, recipe.SplitCount);
         float totalSpreadDeg = recipe.SpreadAngle;
         float scatterRadius = Mathf.Max(0f, recipe.LandingScatterRadius);
+        float[] lanes = ParallelOffsets(weapon.Recipe, count);   // 平行彈：落點沿垂直於射向並排
 
         LaunchSource launchSrc = weapon.Recipe.LaunchSource;
 
@@ -1429,6 +1467,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
         WeaponData firedWeapon = weapon;
 
+        Vector2 basePerp = new Vector2(-baseDir.y, baseDir.x);
+        for (int li = 0; li < lanes.Length; li++)
         for (int i = 0; i < count; i++)
         {
             // 計算扇形角度
@@ -1440,7 +1480,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             }
             float rad = angleDeg * Mathf.Deg2Rad;
             Vector2 spreadDir = new Vector2(Mathf.Cos(rad), Mathf.Sin(rad));
-            Vector2 spreadTarget = fanReference + spreadDir * distance;
+            Vector2 spreadTarget = fanReference + spreadDir * distance + basePerp * lanes[li];
 
             // 落點隨機誤差（圓盤內均勻分布）
             Vector2 scatter = scatterRadius > 0f ? (Vector2)Random.insideUnitCircle * scatterRadius : Vector2.zero;

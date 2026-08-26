@@ -2,7 +2,7 @@
 
 > 返回 [文件總覽](README.md) ｜ 雙表架構與程式（RecipeManager／WeaponManager）見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)
 >
-> **2026-08-26 大改**：51 欄的舊表已換成 **45 欄（同日加連擊 2 欄 → 47）、依模式分群**的新表——10 個 `IsXxx` 旗標收成一欄 **`Mode`**，
+> **2026-08-26 大改**：51 欄的舊表已換成 **45 欄（同日加連擊 2 欄、平行 3 欄 → 50）、依模式分群**的新表——10 個 `IsXxx` 旗標收成一欄 **`Mode`**，
 > 借用欄位改成獨立欄，所有數值欄**空白＝預設**。舊表填法對照見文末[遷移對照](#從舊表遷移對照)。
 
 ---
@@ -70,6 +70,9 @@
 | | `ChargeTimeReduction` | 百分比 | 0% | `30%` 縮短 30%、`-20%` 延長 20%（原「集氣時間縮減」）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
 | **連擊** | `BurstCount` | 整數 | 1 | 扣一次扳機連射幾發（**一份魔力只扣一次**、每發各自分裂）；1＝不連擊；Laser／Aura／Orbital 不可（2026-08-26 新增，見 [3.13](#313-連擊burstcount--burstinterval)） |
 | | `BurstInterval` | 小數 | 0.1 | 連擊每發之間隔幾秒；`FireInterval` 從最後一發算起 |
+| **平行** | `ParallelCount` | 整數 | 1 | 同方向並排幾道；1＝不平行；只有 Normal／Parabolic（2026-08-26 新增，見 [3.14](#314-平行彈parallelcount--parallelspacing--parallelmaxwidth)） |
+| | `ParallelSpacing` | 小數 | 0.45 | 相鄰兩道的距離（世界單位） |
+| | `ParallelMaxWidth` | 小數 | 3 | 整排最寬幾單位；道數多到超過就壓縮間距 |
 
 ---
 
@@ -107,6 +110,7 @@
 | DashDistance／DashWidth | | | | | | | | | | | ✓ |
 | ChargeMode／ChargeTimeReduction | ✓ | ✓ | ✓ | | | ✓ | ✓ | | ✓ | ✓ | ✓ |
 | BurstCount／BurstInterval | ✓ | | ✓ | | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ParallelCount／Spacing／MaxWidth | ✓ | | ✓(落點並排) | | | | | | | | |
 
 **武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`AnimFPS`）只有 Normal／Orbital／Parabolic，`BulletScale`（施放大小）另外也給 Aura／SkyStrike／GroundCast／Melee／Dash（範圍與視覺一起放大）；光束外觀（`BeamStyle`／`BeamColor`／`BeamWidth`）是 Laser／Chain／SkyStrike；`PixelBeamSet` 只有 Laser；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
 
@@ -247,6 +251,20 @@ ID=38 Name=幽影突 Mode=Dash FireInterval=0.7 DashDistance=5 DashWidth=1.2
 - 範例：配方 43「三連擊直線彈」＋武器 30「三連飛劍」（ItemTable 30）——`FireInterval 0.6`、`BurstCount 3`、`BurstInterval 0.08`，扣一次三劍連出、再等 0.6 秒。連擊珠（GemID 26）加發數。
 - 程式：`PlayerController` 的 `_burstRemaining／_burstTimer／_burstWeapon`、`AfterShot()`（冷卻與排程統一在這）、`HandleFiring` 開頭的「連擊進行中」分支。
 
+### 3.14 平行彈（`ParallelCount` ／ `ParallelSpacing` ／ `ParallelMaxWidth`）
+
+**同方向並排 N 道**（弓箭傳說的 Front Arrow）。跟散射不同：散射是扇形攤開、越遠越散；平行是一排等距的直線，遠近一樣寬。只有一般子彈與拋物線吃（拋物線＝落點並排）。
+
+**三個刻意的設計**（都是研究「15 道平行會怎樣」得出的）：
+1. **全部從玩家位置出生、飛出去 0.15 秒內散開拉直**（`LaneBehavior`）：不是真的並排出生。真的並排會生在牆裡被 `CheckSpawnOverlap` 瞬殺（走廊裡射 15 道可能 13 道一出生就沒了）。散開走的是速度向量，彈道系統的 CircleCast 碰撞照常生效，貼牆那幾道會正常撞牆／反彈。畫面上是一個小 V 字瞬間展開成一排。
+2. **總寬鎖定**：`ParallelSpacing × (N−1)` 超過 `ParallelMaxWidth`（預設 3；畫面高 10）就壓縮間距，道數多了就是一堵密實的劍牆，不會半排生在畫面外。
+3. **一次扣扳機總顆數 ≤ 128**（`PlayerController.MaxBulletsPerTrigger`）：平行 × 分裂 × 連擊是相乘的（15×5×5＝375），超過就砍平行道數、印一次 Warning。`ParallelCount` 本身 ≤ 16。
+
+- 每一道各自吃分裂／反彈／追蹤／軌跡：`OnSpawn` 分裂的子彈由 `BallisticsEngine` 繼承母彈的 `LaneBehavior` 工廠（整排一起散開）；`OnHit`／`OnDeath` 分裂發生在遠處，不繼承。
+- 追蹤＋平行：散開的 0.15 秒內追蹤會跟側向速度打架，之後各道各自彎向目標——正常。
+- 範例：配方 45「三道平行直線彈」＋武器 32「三道飛劍」（ItemTable 32）。平行珠（GemID 27）加道數。
+- 程式：`BallisticsSystem/Runtime/Behaviors/LaneBehavior.cs`；`BallisticsEngine.Spawn` 多一個 `extraBehavior` 工廠參數、`BulletInstance.SpawnExtraBehavior`／`IsSpawning`；`PlayerController.ParallelOffsets()`、`ShootNormal`／`ShootParabolic` 多一層迴圈。
+
 ---
 
 ## 4. 能力珠 × 模式
@@ -281,6 +299,7 @@ ID=38 Name=幽影突 Mode=Dash FireInterval=0.7 DashDistance=5 DashWidth=1.2
 | 省魔 `ManaCost` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | 粗束 `BeamWidth` | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ 雷柱 | ✗ | ✗ | ✗ | ✗ |
 | 連擊 `BurstCount` | ✓ | ✗ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 平行 `ParallelCount` | ✓ | ✗ | ✓ 落點並排 | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
 
 - 須彌珠（`BulletScale`，原名巨彈）＝**施放大小**：對非子彈模式是「範圍與視覺一起放大」（所見即所得，不會畫面變大傷害範圍沒變）；雷射／連鎖的粗細是 `BeamWidth`，不吃它。
 - 反彈珠對連鎖閃電**不再**增加跳數（跳數已是獨立欄 `ChainCount`）——這是拍板的設計，不是漏做。

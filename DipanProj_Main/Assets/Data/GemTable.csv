@@ -35,3 +35,4 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Icon,BaseColor,Note
 24,省魔,ManaCost,Weapon,-10%,-20%,-30%,damage,,耗魔（負值＝更省）。通用欄，所有模式都吃
 25,粗束,BeamWidth,Weapon,20%,40%,80%,scale,,雷射／連鎖光束粗細（視覺與命中共用）
 26,連擊,BurstCount,Recipe,1,1,2,rapid,,扣一次扳機連射的發數（一份魔力只扣一次；每發各自分裂）。雷射／佛光／環繞不吃
+27,平行,ParallelCount,Recipe,1,1,2,split,,同方向並排的道數（全從玩家出生、散開再拉直；每道各自分裂）。只有一般子彈與拋物線吃

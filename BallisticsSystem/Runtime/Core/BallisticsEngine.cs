@@ -64,19 +64,23 @@ namespace Sorrows.Ballistics
             return beam;
         }
 
-        public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null)
+        public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null, Func<IBulletBehavior> extraBehavior = null)
         {
             // hideIfNoSprite=true：初始發射時若沒給圖 = 隱形子彈（地刺/火焰噴射器的隱形載體）。
             // 分裂子彈走 Internal_SpawnSplit（hideIfNoSprite=false），保留從母彈複製來的圖、不被清空。
-            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset, scale, animationSprites, animFPS, onTrailPoint, true);
+            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset, scale, animationSprites, animFPS, onTrailPoint, true, extraBehavior);
         }
 
         internal static BulletInstance Internal_SpawnSplit(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Vector3 scale = default, Action<BulletInstance, Vector2> onTrailPoint = null)
         {
-            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, null, 0f, scale, null, 0f, onTrailPoint);
+            // 母彈還在出生點（OnSpawn 分裂）→ 子彈繼承發射端掛的額外行為（平行彈的 LaneBehavior），否則整排只有母彈會散開。
+            // OnHit／OnDeath 分裂發生在遠處，不繼承。
+            var parent = prefab != null ? prefab.GetComponent<BulletInstance>() : null;
+            var inherit = (parent != null && parent.IsSpawning) ? parent.SpawnExtraBehavior : null;
+            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, null, 0f, scale, null, 0f, onTrailPoint, false, inherit);
         }
 
-        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null, bool hideIfNoSprite = false)
+        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null, bool hideIfNoSprite = false, Func<IBulletBehavior> extraBehavior = null)
         {
             GameObject go = UnityEngine.Object.Instantiate(prefab, position, Quaternion.identity);
             BulletInstance instance = go.GetComponent<BulletInstance>();
@@ -130,11 +134,20 @@ namespace Sorrows.Ballistics
                 {
                     instance.AddBehavior(b);
                 }
+                // 發射端額外行為排在配方行為之後：分裂（OnSpawn）先用純前進方向產子彈，平行的側向速度才加上去
+                instance.SpawnExtraBehavior = extraBehavior;
+                if (extraBehavior != null)
+                {
+                    var extra = extraBehavior();
+                    if (extra != null) instance.AddBehavior(extra);
+                }
 
+                instance.IsSpawning = true;
                 foreach (var b in instance.GetBehaviors())
                 {
                     b.OnSpawn(instance);
                 }
+                instance.IsSpawning = false;
 
                 instance.CheckSpawnOverlap();
             }

@@ -249,6 +249,10 @@ public class PlayerAbilities
         // 連擊：珠子加發數；上限 16（一次扣扳機最多 16 發，效能保護）
         if (Eff(mode, "BurstCount")) r.BurstCount = Mathf.Clamp(Mathf.RoundToInt(Get(_recipe, "BurstCount").Apply(r.BurstCount)), 1, SafeMaxBurstCount);
         if (Eff(mode, "BurstInterval")) r.BurstInterval = Mathf.Max(SafeMinBurstInterval, Get(_recipe, "BurstInterval").Apply(r.BurstInterval));
+        // 平行彈：珠子加道數；上限 16。一次扣扳機的總顆數另有 PlayerController.MaxBulletsPerTrigger 守門
+        if (Eff(mode, "ParallelCount")) r.ParallelCount = Mathf.Clamp(Mathf.RoundToInt(Get(_recipe, "ParallelCount").Apply(r.ParallelCount)), 1, SafeMaxParallelCount);
+        if (Eff(mode, "ParallelSpacing")) r.ParallelSpacing = Mathf.Max(0.05f, Get(_recipe, "ParallelSpacing").Apply(r.ParallelSpacing));
+        if (Eff(mode, "ParallelMaxWidth")) r.ParallelMaxWidth = Mathf.Max(0.1f, Get(_recipe, "ParallelMaxWidth").Apply(r.ParallelMaxWidth));
     }
 
     // ══════════════════ 安全夾值（不是遊戲平衡，是「會把遊戲弄壞」的下限）══════════════════
@@ -269,6 +273,8 @@ public class PlayerAbilities
     const int SafeMaxBurstCount = 16;
     /// <summary>連擊每發最短間隔；0 會變成同一幀全射出去。</summary>
     const float SafeMinBurstInterval = 0.02f;
+    /// <summary>平行彈最多幾道。</summary>
+    const int SafeMaxParallelCount = 16;
 
     static Mod Get(Dictionary<string, Mod> table, string field)
         => table.TryGetValue(field, out var m) ? m : default;

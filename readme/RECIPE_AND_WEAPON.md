@@ -7,7 +7,7 @@
 ## 配方表 (RecipeTable.csv)
 定義子彈的飛行行為配方，存放於 `Assets/Data/RecipeTable.csv`。
 
-> **2026-08-26 大改**：45 欄（同日再加連擊 2 欄 → 47）、依模式分群；一列一種 `Mode`；所有數值欄空白＝預設；`#` 開頭整列＝註解。
+> **2026-08-26 大改**：45 欄（同日再加連擊 2 欄、平行 3 欄 → 50）、依模式分群；一列一種 `Mode`；所有數值欄空白＝預設；`#` 開頭整列＝註解。
 > **每個欄位的意義、預設、各模式吃哪些欄、範例，全部在 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)**，這裡只講程式怎麼讀。
 
 ### 讀表方式（`Dipan.Data.CsvTable`，`Assets/Scripts/Data/CsvTable.cs`）

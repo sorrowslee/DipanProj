@@ -24,4 +24,5 @@ ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每�
 28,死字咒,12,41,6,,0,,,,,,,,,,,,
 29,鏡界折光,2,42,2,,0,,,,,,6,0.38,A_Blue,,,,
 30,三連飛劍,1,43,1,Weapon/single/weapon_sword,135,,,,,,,,,,2,,
+32,三道飛劍,1,45,1,Weapon/single/weapon_sword,135,,,,,,,,,,2,,
 31,飛劍-無能力,1,44,1,Weapon/single/weapon_sword,135,,,,,,,,,,,,

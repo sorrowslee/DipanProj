@@ -97,6 +97,7 @@ public static class WeaponModeSpec
     static readonly string[] Charge = { "ChargeMode", "ChargeTimeReduction" };
     static readonly string[] Multi = { "SpreadCount", "SpreadAngle" };
     static readonly string[] Burst = { "BurstCount", "BurstInterval" };
+    static readonly string[] Parallel = { "ParallelCount", "ParallelSpacing", "ParallelMaxWidth" };
 
     static readonly List<FieldSpec> _fields = BuildFields();
     static readonly Dictionary<string, FieldSpec> _fieldByName = IndexFields(_fields);
@@ -274,6 +275,11 @@ public static class WeaponModeSpec
             F(R, "BurstCount",    FieldKind.Int,   "連擊", "連擊發數", "1", 1, 16, "扣一次扳機連射幾發（一份魔力、只扣一次；每發各自分裂）；1＝不連擊；Laser/Aura/Orbital 不可（連擊珠改這欄）"),
             F(R, "BurstInterval", FieldKind.Float, "連擊", "連擊間隔（秒）", "0.1", 0.02f, 5f, "連擊每發之間隔多久；FireInterval 從最後一發算起"),
 
+            // ── 平行彈（同方向並排 N 道；只有一般子彈與拋物線）──
+            F(R, "ParallelCount",    FieldKind.Int,   "平行", "平行道數", "1", 1, 16, "同方向並排幾道（全從玩家出生、飛出去 0.15 秒散開拉直）；1＝不平行；每道各自分裂／反彈／追蹤（平行珠改這欄）"),
+            F(R, "ParallelSpacing",  FieldKind.Float, "平行", "平行間距", "0.45", 0.05f, 5f, "相鄰兩道的距離（世界單位）"),
+            F(R, "ParallelMaxWidth", FieldKind.Float, "平行", "平行總寬上限", "3", 0.1f, 20f, "整排最寬幾單位；道數多到超過就壓縮間距（畫面高 10 單位）"),
+
             // ── WeaponTable：通用 ──
             F(W, "ID",       FieldKind.Int,   "通用", "武器 ID", "", 1, 99999, "與 ItemTable 同號", universal: true),
             F(W, "Name",     FieldKind.Text,  "通用", "武器名稱", "", universal: true),
@@ -327,7 +333,7 @@ public static class WeaponModeSpec
             .Eff("FireInterval", "Speed", "Radius", "LifeTime", "RotationSpeed", "PierceCount", "BlockedByEnvironment")
             .Eff(Multi).Eff("SplitTiming", "SubRecipeID", "BounceTarget", "MaxBounces", "HomingTurnSpeed")
             .Eff("GroundEffectID", "GroundEffectHitTarget", "TrailStep", "SubWeaponOnHit", "SubWeaponHitTarget")
-            .Eff(Charge).Eff(Burst)
+            .Eff(Charge).Eff(Burst).Eff(Parallel)
             .Eff("Damage", "HitEffectID", "TrailEffectID").Eff(BulletVisual);
 
         // 環繞：一般子彈 + 軌道
@@ -343,7 +349,7 @@ public static class WeaponModeSpec
         M(d, WeaponMode.Parabolic, "拋物線", "丟炸彈：飛行中不撞東西，落地才爆炸／放地面特效", bullets: true)
             .Eff("FireInterval", "RotationSpeed").Eff(Multi)
             .Eff("FlightTime", "ArcHeight", "LaunchSource", "LandingScatterRadius", "AreaRadius")
-            .Eff("GroundEffectID", "GroundEffectHitTarget", "TrailStep").Eff(Charge).Eff(Burst)
+            .Eff("GroundEffectID", "GroundEffectHitTarget", "TrailStep").Eff(Charge).Eff(Burst).Eff(Parallel)
             .Eff("Damage", "HitEffectID", "TrailEffectID").Eff(BulletVisual)
             .Lbl("SpreadCount", "一發幾顆").Lbl("AreaRadius", "落地爆炸半徑").Lbl("GroundEffectHitTarget", "地面特效觸發對象（填 Ground）");
 

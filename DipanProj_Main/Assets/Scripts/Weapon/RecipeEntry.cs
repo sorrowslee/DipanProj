@@ -76,6 +76,12 @@ public class RecipeEntry
     public int BurstCount = 1;
     public float BurstInterval = 0.1f;
 
+    // ── 平行彈 ──
+    /// <summary>同方向並排幾道；1＝不平行。全從玩家出生、飛出去前 0.15 秒散開拉直（LaneBehavior）。</summary>
+    public int ParallelCount = 1;
+    public float ParallelSpacing = 0.45f;
+    public float ParallelMaxWidth = 3f;
+
     /// <summary>持續型（按住生效）：Laser / Aura。沒有發射間隔、不吃集氣。</summary>
     public bool IsContinuous => WeaponModeSpec.Get(Mode).Continuous;
 
@@ -213,6 +219,11 @@ public class RecipeEntry
         // ── 連擊（Laser/Aura/Orbital 欄無效 → 保持 1）──
         e.BurstCount = Math.Max(1, In("BurstCount", 1));
         e.BurstInterval = Math.Max(0.02f, Fl("BurstInterval", 0.1f));
+
+        // ── 平行彈（只有 Normal/Parabolic 欄有效 → 其他模式保持 1）──
+        e.ParallelCount = Math.Max(1, In("ParallelCount", 1));
+        e.ParallelSpacing = Math.Max(0.05f, Fl("ParallelSpacing", 0.45f));
+        e.ParallelMaxWidth = Math.Max(0.1f, Fl("ParallelMaxWidth", 3f));
 
         // 規格檢查（必填缺 / 無效卻有填）
         if (fields != null) problems.AddRange(WeaponModeSpec.Validate(mode, fields, FieldTable.Recipe));

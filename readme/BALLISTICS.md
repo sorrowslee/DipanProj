@@ -51,3 +51,7 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `RotationBehavior` | 飛行中持續自轉 |
 | `OrbitalBehavior` | 以指定 Transform 為圓心環繞飛行，穿透時繼續環繞，反彈時脫軌飛出 |
 | `ParabolicBehavior` | 接管移動的拋物線（假高度視覺、飛行中不撞 layer）；見 [GROUND_EFFECT.md](GROUND_EFFECT.md) |
+
+## LaneBehavior（平行彈，2026-08-26）
+
+`Behaviors/LaneBehavior.cs`：出生時加一個側向速度、在 `duration` 秒內線性衰減到 0（側向初速＝2×偏移÷duration）。位移走速度向量，所以 `BulletInstance` 的 CircleCast 碰撞照常。由發射端透過 `BallisticsEngine.Spawn(..., extraBehavior: () => new LaneBehavior(...))` 工廠掛上；`Internal_Create` 把工廠存進 `BulletInstance.SpawnExtraBehavior`，`OnSpawn` 期間（`IsSpawning`）分裂出的子彈由 `Internal_SpawnSplit` 繼承同一個工廠——整排平行彈連同它們的 OnSpawn 分裂一起散開。設計理由與用法見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) §3.14。
