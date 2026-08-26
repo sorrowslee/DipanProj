@@ -32,6 +32,7 @@ public class PlayerAnimator : MonoBehaviour
     float _currentSpeed;
     bool _oneShotDone;   // 一次性動作（dead/attack）是否已播到最後一幀定格
     int _attackStart;    // 攻擊的起播幀索引（跳過起手；由 PlayerSpriteLibrary 從圖自動算出）
+    int _attackEnd = -1;   // 攻擊結束幀（含）＝最大幀＋尾巴；-1＝最後一幀（同上自動算）
 
     /// <summary>
     /// 攻擊動畫是否要循環播（<b>舊行為</b>）。預設 false＝一次性：從起播幀播到最後一幀後定格，
@@ -42,6 +43,9 @@ public class PlayerAnimator : MonoBehaviour
 
     /// <summary>攻擊從第幾幀開始播（0 起算）。循環模式（舊行為）恆為 0。</summary>
     public int AttackStartFrame => AttackLoops ? 0 : _attackStart;
+
+    /// <summary>攻擊播到第幾幀為止（0 起算、含）＝自動算出的「最大幀＋尾巴」；算不出來或循環模式＝最後一幀。後面的幀（AutoSprite 多出來的第二拳等）不播。</summary>
+    public int AttackEndFrame => (AttackLoops || _attack == null || _attack.Length == 0 || _attackEnd < 0) ? Mathf.Max(0, (_attack?.Length ?? 1) - 1) : Mathf.Clamp(_attackEnd, 0, _attack.Length - 1);
 
     /// <summary>攻擊動畫正在播（還沒定格在最後一幀）。呼叫端用它判斷「這一次還沒播完」。</summary>
     public bool IsAttackPlaying => _state == State.Attack && !_oneShotDone;
@@ -140,6 +144,8 @@ public class PlayerAnimator : MonoBehaviour
         _attackStart = (_attack != null && _attack.Length > 0)
                      ? Mathf.Clamp(lib.GetActionStartFrame(bloodline, "attack"), 0, _attack.Length - 1)
                      : 0;
+        // 攻擊結束幀：播到「動作最大幀＋尾巴」就當播完（PlayerSpriteLibrary.ActionEndPeakRatio），-1＝播到最後一幀。
+        _attackEnd = (_attack != null && _attack.Length > 0) ? lib.GetActionEndFrame(bloodline, "attack") : -1;
 
         if (_idle == null && _walk != null) _idle = _walk;   // 沒給 idle 就用 walk 當待機後備
 
@@ -424,9 +430,10 @@ public class PlayerAnimator : MonoBehaviour
             }
             else
             {
-                if (_idx < frames.Length - 1) _idx++;
+                int last = (_state == State.Attack) ? AttackEndFrame : frames.Length - 1;   // Attack 只播到結束幀（最大幀＋尾巴）
+                if (_idx < last) _idx++;
                 else if (_state == State.Attack && AttackRepeats) _idx = EntryIndex(State.Attack);   // 按住 → 從起播幀再來一次
-                else { _oneShotDone = true; break; }   // 停在最後一幀
+                else { _oneShotDone = true; break; }   // 停在結束幀
             }
         }
         ApplyFrame();

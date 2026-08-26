@@ -1104,7 +1104,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private void ShootNormal(WeaponData weapon, ProjectileData recipe)
     {
         Vector2 fireDirection = AimDirectionToMouse();   // 連擊中鎖方向
-        Vector2 spawnPos = (Vector2)transform.position;
+        Vector2 spawnPos = MuzzleWorldPos;   // 出手點（高大血統不會從腹部飛出）
 
         LayerMask collisionMask = EnvLayer | EnemyLayer;
         LayerMask pierceableLayers = ResolvePierceableLayers(weapon.Recipe);
@@ -1171,7 +1171,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         mousePos.z = 0f;
-        Vector2 origin = (Vector2)transform.position;
+        Vector2 origin = MuzzleWorldPos;
         Vector2 baseDir = (Vector2)mousePos - origin;
         baseDir = baseDir.sqrMagnitude > 0.0001f ? baseDir.normalized : Vector2.right;
         float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
@@ -1296,7 +1296,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         _activeBeamWeapon = weapon;
         _beamAngleOffsets.Clear();
 
-        Vector2 origin = (Vector2)transform.position;
+        Vector2 origin = MuzzleWorldPos;
         for (int i = 0; i < count; i++)
         {
             float offset = 0f;
@@ -1447,7 +1447,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         LaunchSource launchSrc = weapon.Recipe.LaunchSource;
 
         // 扇形目標永遠以「玩家 → 滑鼠」為基準，即使 LaunchSource = Offscreen 也以玩家視角來分扇形
-        Vector2 fanReference = (Vector2)transform.position;
+        Vector2 fanReference = MuzzleWorldPos;   // 出手點
         Vector2 baseDir = mouseTarget - fanReference;
         float distance = baseDir.magnitude;
         if (distance < 0.0001f)
@@ -1557,7 +1557,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             float angle = i * (2f * Mathf.PI / count);
             Vector2 offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius;
-            Vector2 spawnPos = (Vector2)transform.position + offset;
+            Vector2 spawnPos = MuzzleWorldPos + offset;   // 環繞圈繞身體中心，不繞腳
             Vector2 tangent = new Vector2(-Mathf.Sin(angle), Mathf.Cos(angle));
 
             BulletInstance bullet = BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, tangent,
@@ -1592,7 +1592,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     // 目標搜尋與傷害全在主遊戲側（守住「彈道系統不算傷害」邊界）；LaserBeam 只當折線視覺（SpawnChainVisual）。
     private void ShootChain(WeaponData weapon, ProjectileData recipe)
     {
-        Vector2 origin = (Vector2)transform.position;
+        Vector2 origin = MuzzleWorldPos;   // 出手點
         Vector2 baseDir = AimDirectionToMouse();   // 連擊中鎖方向
         float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
 
@@ -2038,7 +2038,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private Vector2 AimDirectionToMouse()
     {
         if (_burstAimLocked) return _burstAimDir;
-        Vector2 dir = AimWorldPoint() - (Vector2)transform.position;
+        Vector2 dir = AimWorldPoint() - MuzzleWorldPos;   // 從出手點看向滑鼠，子彈才會真的穿過滑鼠點
         return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.right;
     }
 
@@ -2054,7 +2054,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         if (_vfxManager == null || weapon == null || weapon.FireEffectID <= 0) return;
         float angle = Mathf.Atan2(aimDir.y, aimDir.x) * Mathf.Rad2Deg;
-        _vfxManager.Spawn(weapon.FireEffectID, transform.position, angle, weapon.CastVisualScale);
+        _vfxManager.Spawn(weapon.FireEffectID, MuzzleWorldPos, angle, weapon.CastVisualScale);   // 發射特效跟著出手點
     }
 
     private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos)
@@ -2207,6 +2207,24 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             Vector3 p = transform.position;
             float dy = _playerAnim != null ? _playerAnim.BodyCenterOffsetY : 0f;
+            return new Vector2(p.x, p.y + dy);
+        }
+    }
+
+    /// <summary>武器出手點在可見身高的幾成（0＝腳底、1＝頭頂）。0.5＝身體中心；人類體型時與 transform 幾乎重合，所以殭屍看不出差別。</summary>
+    public const float MuzzleHeightRatio = 0.5f;
+
+    /// <summary>
+    /// 武器出手點：子彈／光束／閃電／環繞圈／發射特效都從這裡出來（可見腳底往上 <see cref="MuzzleHeightRatio"/> × 可見身高）。
+    /// 原本全部釘在 transform——那是人類體型的身體中心；毛殭這種 BodyScale＞1 的血統身體往上長、transform 不動，
+    /// 劍就變成從腹部飛出（作者 2026-08-26 回報）。近戰／突進／法陣的範圍中心仍用 transform（那是「站的位置」，不是出手點）。
+    /// </summary>
+    public Vector2 MuzzleWorldPos
+    {
+        get
+        {
+            Vector3 p = transform.position;
+            float dy = (_playerAnim != null && _playerAnim.VisibleHeight > 0.01f) ? _playerAnim.FeetOffsetY + _playerAnim.VisibleHeight * MuzzleHeightRatio : 0f;
             return new Vector2(p.x, p.y + dy);
         }
     }

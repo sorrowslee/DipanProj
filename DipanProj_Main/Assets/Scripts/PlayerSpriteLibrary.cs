@@ -206,10 +206,22 @@ public class PlayerSpriteLibrary
     /// </summary>
     public const float ActionStartPeakRatio = 0.6f;
 
+    /// <summary>
+    /// 「動作最大幀」的門檻：與站姿的輪廓差異**第一次**達到峰值的這個比例，就當作動作已經到底（出手到底、法杖舉到最高）。
+    /// 攻擊動畫只播到這一幀（＋<see cref="ActionEndTailFrames"/>），後面 AutoSprite 常常多出來的第二拳／手放到別處一律不播。
+    /// 不取嚴格最大值而取「第一次到 90%」：兩拳的圖若第二拳伸得更開，嚴格最大會抓到第二拳。
+    /// 全程式判斷、沒有手填的覆寫（作者拍板：抓歪了重做圖比找幀號快）。
+    /// </summary>
+    public const float ActionEndPeakRatio = 0.9f;
+
+    /// <summary>最大幀之後再多播幾幀當收勢，免得從伸到底直接跳站姿太硬。1＝多一格；0＝到最大幀就停。</summary>
+    public const int ActionEndTailFrames = 1;
+
     const int PoseGrid = 64;              // 輪廓比對的取樣格數（整張畫布 → PoseGrid×PoseGrid 佔用格）
     const byte PoseAlphaThreshold = 10;   // 與 MapSpriteLoader.AlphaThreshold 同值（去背邊當透明）
 
     readonly Dictionary<string, int> _startFrame = new Dictionary<string, int>();   // "<血統>/<state>" → 起播幀索引
+    readonly Dictionary<string, int> _endFrame = new Dictionary<string, int>();     // "<血統>/<state>" → 結束幀索引（最大幀＋尾巴；-1＝算不出來，播到最後一幀）
 
     /// <summary>
     /// 這個血統這個動作該從第幾幀開始播（0 起算）。算不出來一律回 0＝從頭播，行為與改動前相同。
@@ -219,22 +231,50 @@ public class PlayerSpriteLibrary
     {
         string key = Key(bloodline, state);
         if (_startFrame.TryGetValue(key, out int cached)) return cached;
-        int result = ComputeActionStartFrame(bloodline, state);
-        _startFrame[key] = result;
-        return result;
+        ComputeActionRange(bloodline, state, out int start, out int end);
+        _startFrame[key] = start; _endFrame[key] = end;
+        return start;
     }
 
-    int ComputeActionStartFrame(string bloodline, string state)
+    /// <summary>
+    /// 這個血統這個動作該播到第幾幀為止（0 起算、含）：輪廓差異第一次達到峰值 <see cref="ActionEndPeakRatio"/> 的那幀＋<see cref="ActionEndTailFrames"/>。
+    /// 算不出來回 -1＝播到最後一幀（行為與改動前相同）。與起播幀同一次掃描、同一份快取。
+    /// </summary>
+    public int GetActionEndFrame(string bloodline, string state)
     {
-        if (_loader == null) return 0;
+        string key = Key(bloodline, state);
+        if (_endFrame.TryGetValue(key, out int cached)) return cached;
+        ComputeActionRange(bloodline, state, out int start, out int end);
+        _startFrame[key] = start; _endFrame[key] = end;
+        return end;
+    }
+
+    /// <summary>該動作的總幀數（給報表用）；沒圖或單張回 0。</summary>
+    public int GetActionFrameCount(string bloodline, string state)
+    {
         if (!_byTail.TryGetValue(Key(bloodline, state), out var act) || act == null || !act.IsAnimated) return 0;
-        if (!_byTail.TryGetValue(Key(bloodline, "idle"), out var idle) || idle == null) return 0;
+        return act.frames != null ? act.frames.Count : 0;
+    }
+
+    /// <summary>所有有 attack 圖的血統名（小寫），給編輯器報表用。</summary>
+    public IEnumerable<string> BloodlinesWith(string state)
+    {
+        string suffix = "/" + (state ?? "").Trim().ToLowerInvariant();
+        foreach (var k in _byTail.Keys) if (k.EndsWith(suffix)) yield return k.Substring(0, k.Length - suffix.Length);
+    }
+
+    void ComputeActionRange(string bloodline, string state, out int start, out int end)
+    {
+        start = 0; end = -1;
+        if (_loader == null) return;
+        if (!_byTail.TryGetValue(Key(bloodline, state), out var act) || act == null || !act.IsAnimated) return;
+        if (!_byTail.TryGetValue(Key(bloodline, "idle"), out var idle) || idle == null) return;
 
         var stance = BuildStanceMask(idle);
-        if (stance == null) return 0;
+        if (stance == null) return;
         int stanceCells = 0;
         for (int c = 0; c < stance.Length; c++) if (stance[c]) stanceCells++;
-        if (stanceCells <= 0) return 0;
+        if (stanceCells <= 0) return;
 
         var diffs = new float[act.frames.Count];
         float peak = 0f;
@@ -247,12 +287,17 @@ public class PlayerSpriteLibrary
             diffs[i] = (float)d / stanceCells;
             if (diffs[i] > peak) peak = diffs[i];
         }
-        if (peak <= 0.0001f) return 0;   // 整段都跟站姿一樣（或全部讀不到）→ 別自作聰明，從頭播
+        if (peak <= 0.0001f) return;   // 整段都跟站姿一樣（或全部讀不到）→ 別自作聰明，從頭播到尾
 
         float gate = peak * ActionStartPeakRatio;
         for (int i = 0; i < diffs.Length; i++)
-            if (diffs[i] >= gate) return i;
-        return 0;
+            if (diffs[i] >= gate) { start = i; break; }
+
+        // 結束幀：第一次到峰值 90% 的那格（＝出手到底）＋尾巴；一定 ≥ 起播幀
+        float endGate = peak * ActionEndPeakRatio;
+        for (int i = start; i < diffs.Length; i++)
+            if (diffs[i] >= endGate) { end = Mathf.Min(diffs.Length - 1, i + ActionEndTailFrames); break; }
+        if (end >= 0 && end < start) end = start;
     }
 
     /// <summary>
