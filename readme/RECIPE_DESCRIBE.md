@@ -105,7 +105,7 @@
 | DashDistance／DashWidth | | | | | | | | | | | ✓ |
 | ChargeMode／ChargeTimeReduction | ✓ | ✓ | ✓ | | | ✓ | ✓ | | ✓ | ✓ | ✓ |
 
-**武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`BulletScale`）只有 Normal／Orbital／Parabolic；光束外觀（`BeamStyle`／`BeamColor`／`BeamWidth`）是 Laser／Chain／SkyStrike；`PixelBeamSet` 只有 Laser；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
+**武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`AnimFPS`）只有 Normal／Orbital／Parabolic，`BulletScale`（施放大小）另外也給 Aura／SkyStrike／GroundCast／Melee／Dash（範圍與視覺一起放大）；光束外觀（`BeamStyle`／`BeamColor`／`BeamWidth`）是 Laser／Chain／SkyStrike；`PixelBeamSet` 只有 Laser；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
 
 ---
 
@@ -244,11 +244,32 @@ ID=38 Name=幽影突 Mode=Dash FireInterval=0.7 DashDistance=5 DashWidth=1.2
 | 銳利 `Damage` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
 | 追蹤 `HomingTurnSpeed` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
 | 分裂 `SpreadCount` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
-| 巨彈 `BulletScale` | ✓ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 須彌 `BulletScale`（施放大小） | ✓ | ✓ | ✓（含爆炸範圍） | ✗ | ✓ 光圈 | ✗ | ✓ 範圍＋雷柱 | ✗ | ✓ 半徑＋圖 | ✓ 半徑＋特效 | ✓ 寬度＋特效 |
 | 疾發 `FireInterval` | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 綿延 `LifeTime` | ✓ | ✓ 整組時間 | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 遠射 `Range` | ✗ | ✗ | ✗ | ✓ 光束長（-1 不動） | ✗ | ✓ 首段 | ✗ | ✗ | ✓ 施放距離 | ✗ | ✗ |
+| 廣角 `SpreadAngle` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| 群環 `OrbitalCount` | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 環距 `OrbitalRadius` | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 頻擊 `DotInterval` | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 連鎖 `ChainCount` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 引雷 `ChainRadius` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 鎖敵 `AimConeAngle` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 吸落 `SnapRadius` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| 群召 `SummonCount` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
+| 眾生 `SummonMaxAlive` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
+| 廣刃 `MeleeAngle` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
+| 長驅 `DashDistance` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| 聚氣 `ChargeTimeReduction` | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 省魔 `ManaCost` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 粗束 `BeamWidth` | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ 雷柱 | ✗ | ✗ | ✗ | ✗ |
 
+- 須彌珠（`BulletScale`，原名巨彈）＝**施放大小**：對非子彈模式是「範圍與視覺一起放大」（所見即所得，不會畫面變大傷害範圍沒變）；雷射／連鎖的粗細是 `BeamWidth`，不吃它。
 - 反彈珠對連鎖閃電**不再**增加跳數（跳數已是獨立欄 `ChainCount`）——這是拍板的設計，不是漏做。
 - 追蹤珠對連鎖／落雷無效（原本借用 `HomingTurnSpeed` 當錐角／搜尋半徑，會出現「Lv3 追蹤珠＝整張圖吸附」的錯位，已改成獨立欄 `AimConeAngle`／`SnapRadius`）。
+- 9~25 是 2026-08-26 從兩張表「能拆的欄位」一次拆出來的（作者要求連射程、存活時間都拆；icon 先借舊符號）。**刻意沒拆的欄位**：`Radius`（碰撞半徑）、`AreaRadius`、`DashWidth`、`FlightTime` 與須彌／迅捷重疊；`RotationSpeed`／`ArcHeight`／`SpriteAngleOffset` 純視覺；`LandingScatterRadius`／`TrailStep` 加了是變差；`SummonRadius` 只是出生位置；ID／枚舉／開關類（`GroundEffectID`、`SubWeaponOnHit`、`BounceTarget`、`SplitTiming`、`ChargeMode`…）不是「加數值」能疊的，那是另一種「附魔」，之後再談。
+- 聚氣珠改的 `ChargeTimeReduction` 表裡存百分點（30＝縮短 30%），所以珠子填**固定值** 10/20/40 就是加百分點；`ChargeMode=0` 的武器鑲了沒感覺（模式判有效，但集氣沒開）。
+- 每顆珠子的白話說明與範例（拿現有武器算數字）見 [GEM_CATALOG.md](GEM_CATALOG.md)。
 - 要加新珠子：`GemTable.Field` 填 RecipeTable／WeaponTable 的欄名，有效性自動從 `WeaponModeSpec` 推導，**不用另外維護**。填了不存在的欄名載入時會 Warning。
 
 ---

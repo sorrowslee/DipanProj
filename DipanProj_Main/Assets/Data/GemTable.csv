@@ -14,5 +14,23 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Icon,BaseColor,Note
 4,銳利,Damage,Weapon,1,2,5,damage,,武器傷害
 5,追蹤,HomingTurnSpeed,Recipe,60,120,300,homing,,追蹤轉向速度。會自動打開追蹤
 6,分裂,SpreadCount,Recipe,1,1,2,split,,分裂／散射數量。會自動打開分裂
-7,巨彈,BulletScale,Weapon,10%,20%,50%,scale,,子彈視覺大小
+7,須彌,BulletScale,Weapon,10%,20%,50%,scale,,施放大小：子彈變大；近戰/突進/法陣/落雷/佛光/拋物線爆炸的範圍與視覺一起放大。雷射與連鎖不吃（粗細看武器表 BeamWidth）
 8,疾發,FireInterval,Recipe,-10%,-20%,-40%,rapid,,發射間隔（負值＝更快）。程式有下限保護，不會被減到 0
+# ── 2026-08-26 從武器表／配方表拆出來的第二批（9~25）。Icon 先借現有符號，外型之後重製 ──
+9,綿延,LifeTime,Recipe,20%,40%,80%,speed,,子彈存活秒數（飛得更遠）。原本不消失（-1）的不受影響；環繞＝整組存在時間
+10,遠射,Range,Recipe,20%,40%,60%,pierce,,射程：雷射光束長度／連鎖首段射程／法陣施放距離。雷射 -1（無限）不受影響
+11,廣角,SpreadAngle,Recipe,15,30,60,split,,分裂／散射的扇形總角度（度）。要有分裂數才看得出
+12,群環,OrbitalCount,Recipe,1,1,2,split,,環繞數量（僅環繞模式）
+13,環距,OrbitalRadius,Recipe,20%,40%,80%,scale,,環繞半徑（僅環繞模式）
+14,頻擊,DotInterval,Recipe,-10%,-20%,-40%,rapid,,雷射結算節拍（負值＝更密）。程式有下限保護
+15,連鎖,ChainCount,Recipe,1,2,3,bounce,,連鎖閃電跳躍次數（僅連鎖模式）
+16,引雷,ChainRadius,Recipe,20%,40%,80%,homing,,連鎖每跳搜尋半徑（僅連鎖模式）
+17,鎖敵,AimConeAngle,Recipe,30,60,180,homing,,連鎖首段鎖定錐半角（度），180＝任意方向鎖最近（僅連鎖模式）
+18,吸落,SnapRadius,Recipe,1,2,4,homing,,落雷落點吸附半徑（僅落雷模式）
+19,群召,SummonCount,Recipe,1,1,2,split,,每次召喚隻數（僅召喚模式）
+20,眾生,SummonMaxAlive,Recipe,1,2,4,split,,召喚物同時存在上限（僅召喚模式）
+21,廣刃,MeleeAngle,Recipe,20,40,80,scale,,近戰扇形總角度（度）（僅近戰模式）
+22,長驅,DashDistance,Recipe,20%,40%,80%,speed,,突進距離（僅突進模式）
+23,聚氣,ChargeTimeReduction,Recipe,10,20,40,rapid,,集氣時間縮減（固定值＝百分點，10＝縮短 10%）。只有 ChargeMode=1 的武器有感
+24,省魔,ManaCost,Weapon,-10%,-20%,-30%,damage,,耗魔（負值＝更省）。通用欄，所有模式都吃
+25,粗束,BeamWidth,Weapon,20%,40%,80%,scale,,雷射／連鎖光束粗細（視覺與命中共用）

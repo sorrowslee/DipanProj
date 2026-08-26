@@ -291,6 +291,7 @@
 - [x] ~~珠子的 icon 是借用的~~ 2026-08-04 正式素材全數到齊：珠身三級 `gemBase_red_lv1~3` + 8 種能力符號
       `gemIcon_bounce/pierce/speed/damage/homing/split/scale/rapid`，都是 500×500。
       疊圖規格（符號 55%、三級各自上移 8/24/14）已驗證八種都不爆框，見 [GEM_SOCKET.md](GEM_SOCKET.md) §6.5。
+- [ ] **第二批能力珠（GemID 9~25、ItemTable 409~425）的 icon 是暫借的**（2026-08-26）：`GemTable.Icon` 先填舊的八個 key，作者說之後外型會重製。重製時只要畫 `gemIcon_<key>.png` 丟進 `gemIcons/`、把 `Icon` 欄改成新 key，零程式改動。
 - [ ] **測試防具 501/502 的 icon 仍是借用的**（護身符借 `weapon_bronzeMirror`、戒指借 `weapon_talisman`）。
 - [ ] **屬性珠的藍色珠身還沒畫**：`Target=Player` 的珠子會去找 `gemBase_blue_lv1~3`，目前不存在
       （只會印 Warning、不會壞）。等真的做屬性珠時再補。

@@ -671,7 +671,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             // 光暈會比身體還窄、縮在肚子上（血統二階實測就是這個症狀）。
             // 用 radiusScale 而不是 visualScale——後者只放大視覺、傷害仍是原半徑，畫面會騙人。
             _activeAura = _groundEffectManager.Spawn(auraId, BodyCenterWorldPos, weapon.Damage,
-                                                     1f, BodyScale);
+                                                     1f, BodyScale * weapon.BulletScale);   // 須彌珠：光圈半徑與圖一起放大
             _activeAuraWeapon = weapon;
             // 發射特效（可選）：佛光在按下瞬間播一次（持續存在期間不每幀重播）
             TrySpawnFireEffect(weapon, AimDirectionToMouse());
@@ -929,7 +929,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         Vector2 origin = transform.position;
         Vector2 aim = AimDirectionToMouse();
         float distance = Mathf.Max(0.1f, weapon.Recipe.DashDistance);
-        float width = Mathf.Max(0.2f, weapon.Recipe.DashWidth);
+        float width = Mathf.Max(0.2f, weapon.Recipe.DashWidth * weapon.BulletScale);   // 須彌珠：掃擊寬度與視覺一起放大
 
         RaycastHit2D wall = Physics2D.CircleCast(origin, width * 0.45f, aim, distance, EnvLayer);
         float travel = wall.collider != null ? Mathf.Max(0f, wall.distance - width * 0.5f) : distance;
@@ -938,7 +938,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         float angle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
 
         if (_vfxManager != null && weapon.HitEffectID > 0)
-            _vfxManager.Spawn(weapon.HitEffectID, mid, angle, weapon.CastVisualScale);
+            _vfxManager.Spawn(weapon.HitEffectID, mid, angle, weapon.BulletScale);
 
         Vector2 capsuleSize = new Vector2(Mathf.Max(width, travel + width), width);
         Collider2D[] hits = Physics2D.OverlapCapsuleAll(mid, capsuleSize, CapsuleDirection2D.Horizontal,
@@ -976,7 +976,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         Vector2 delta = (Vector2)mouse - origin;
         float range = recipe.BeamRange > 0f ? recipe.BeamRange : 8f;
         Vector2 target = origin + Vector2.ClampMagnitude(delta, range);
-        _groundEffectManager.Spawn(weapon.Recipe.GroundEffectID, target, weapon.Damage, weapon.CastVisualScale);
+        // 須彌珠／集氣：走 radiusScale 讓傷害半徑與圖一起放大（visualScale 只放大圖，畫面會騙人）
+        _groundEffectManager.Spawn(weapon.Recipe.GroundEffectID, target, weapon.Damage, 1f, weapon.BulletScale);
         TrySpawnHitEffect(weapon, target);
     }
 
@@ -986,12 +987,13 @@ public class PlayerController : MonoBehaviour, IDamageable
     {
         Vector2 origin = transform.position;
         Vector2 aim = AimDirectionToMouse();
-        float radius = weapon.Recipe.AreaRadius > 0f ? weapon.Recipe.AreaRadius : 2f;
+        // 範圍與視覺一起乘 BulletScale（須彌珠＝施放大小；集氣快照的 BulletScale 已 ×2，所以這裡不再另乘 CastVisualScale）
+        float radius = (weapon.Recipe.AreaRadius > 0f ? weapon.Recipe.AreaRadius : 2f) * weapon.BulletScale;
         float halfAngle = Mathf.Clamp(weapon.Recipe.MeleeAngle, 1f, 360f) * 0.5f;
         float visualAngle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
         Vector2 visualPos = origin + aim * (radius * 0.45f);
         if (_vfxManager != null && weapon.HitEffectID > 0)
-            _vfxManager.Spawn(weapon.HitEffectID, visualPos, visualAngle, weapon.CastVisualScale);
+            _vfxManager.Spawn(weapon.HitEffectID, visualPos, visualAngle, weapon.BulletScale);
 
         Collider2D[] hits = Physics2D.OverlapCircleAll(origin, radius, EnemyLayer | EnvLayer);
         var damaged = new HashSet<int>();
@@ -1732,7 +1734,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         //    所以不同武器能各自調雷柱大小，底部仍會落在 impact。
         if (weapon.Recipe != null && weapon.Recipe.SegmentedColumn)
         {
-            SegmentedLightningColumn.Spawn(impact, Camera.main, 1.5f * weapon.CastVisualScale);
+            SegmentedLightningColumn.Spawn(impact, Camera.main, 1.5f * weapon.BulletScale);
             // 分段雷柱的 HitEffectID 專門留給地面爆炸，不再兼任雷柱本體。
             TrySpawnHitEffect(weapon, impact);
         }
@@ -1745,12 +1747,12 @@ public class PlayerController : MonoBehaviour, IDamageable
             {
                 boltOffset = bolt.AnimationSprites[0].bounds.size.y * bolt.Scale * 0.5f;
             }
-            boltOffset *= weapon.CastVisualScale;
-            _vfxManager.Spawn(weapon.HitEffectID, impact + Vector2.up * boltOffset, 0f, weapon.CastVisualScale);
+            boltOffset *= weapon.BulletScale;
+            _vfxManager.Spawn(weapon.HitEffectID, impact + Vector2.up * boltOffset, 0f, weapon.BulletScale);
         }
 
         // 3) 圓形 AOE：以 AreaRadius（留空用預設）對範圍內 IDamageable（怪 + 可破壞家具）以武器 Damage 結算一次
-        float radius = (weapon.Recipe != null && weapon.Recipe.AreaRadius > 0f) ? weapon.Recipe.AreaRadius : SkyStrikeDefaultBlast;
+        float radius = ((weapon.Recipe != null && weapon.Recipe.AreaRadius > 0f) ? weapon.Recipe.AreaRadius : SkyStrikeDefaultBlast) * weapon.BulletScale;   // 須彌珠
         if (weapon.Damage > 0f)
         {
             Collider2D[] hits = Physics2D.OverlapCircleAll(impact, radius, dmgMask);
@@ -1764,7 +1766,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         // 4) 可選：落點留一團地面特效（GroundEffectID > 0 時），例如焦痕/殘電
         if (_groundEffectManager != null && weapon.Recipe != null && weapon.Recipe.GroundEffectID > 0)
-            _groundEffectManager.Spawn(weapon.Recipe.GroundEffectID, impact, -1f, weapon.CastVisualScale);
+            _groundEffectManager.Spawn(weapon.Recipe.GroundEffectID, impact, -1f, 1f, weapon.BulletScale);
 
         // 5) SubRecipeID → 連鎖：落點接一條連鎖閃電轟擊旁邊的怪（用本武器 Damage/外觀，sub-recipe 的 ChainCount/ChainRadius）。
         //    首目標 = 落點 ChainRadius 內最近的可傷害目標；找到才連，之後逐跳。
@@ -1897,7 +1899,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private void TryApplyParabolicBlast(WeaponData firedWeapon, Vector2 landPos)
     {
         if (firedWeapon == null || firedWeapon.Recipe == null) return;
-        float radius = firedWeapon.Recipe.AreaRadius;
+        float radius = firedWeapon.Recipe.AreaRadius * firedWeapon.BulletScale;   // 須彌珠：爆炸範圍跟子彈一起變大
         if (radius <= 0f || firedWeapon.Damage <= 0f) return;
 
         // 範圍含怪物與地上物(Environment),兩者都實作 IDamageable
@@ -2059,7 +2061,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (shadow != null) shadow.Refresh();
 
         // 佛光光環：半徑跟著體型（視覺與傷害一起）。
-        if (_activeAura != null) _activeAura.SetRadiusScale(BodyScale);
+        if (_activeAura != null) _activeAura.SetRadiusScale(BodyScale * (_activeAuraWeapon != null ? _activeAuraWeapon.BulletScale : 1f));
 
         // 集氣光圈：直接砍掉就好。集氣迴圈每幀都會檢查「_chargeVfx == null 就補一顆」，
         // 下一幀自然會用新的體型重生，也會自己挑對藍光/紅光（不必在這裡判斷集氣完成沒）。

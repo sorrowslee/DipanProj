@@ -178,6 +178,9 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
 | `Speed` | **拋物線武器的 Speed 語意是「飛行秒數」**，0 會除零 | 0.05 |
 | `DotInterval` | 持續傷害改成每幀結算 | 0.02 秒 |
 | `SpreadCount` | （上限）效能保護 | 64 |
+| `Range` | 雷射 -1＝無限，加了會變成有限 | ≥0 才套用；下限 0.1 |
+| `LifeTime` | -1＝不消失，同上 | ≥0 才套用；下限 0.05 |
+| `ChargeTimeReduction` | 100% 會除零 | 上限 99 |
 
 > ⏳ **平衡用的上限尚未討論**。使用者要求等系統完成後一起確認並記錄在這裡。
 
@@ -274,8 +277,11 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
 | 4 | 銳利珠 | `damage` | `gemIcon_damage.png` |
 | 5 | 追蹤珠 | `homing` | `gemIcon_homing.png` |
 | 6 | 分裂珠 | `split` | `gemIcon_split.png` |
-| 7 | 巨彈珠 | `scale` | `gemIcon_scale.png` |
+| 7 | 須彌珠（原巨彈珠，2026-08-26 改名；效果＝施放大小：子彈變大、近戰／突進／法陣／落雷／佛光範圍與視覺一起放大） | `scale` | `gemIcon_scale.png` |
 | 8 | 疾發珠 | `rapid` | `gemIcon_rapid.png` |
+| 9~25 | 綿延／遠射／廣角／群環／環距／頻擊／連鎖／引雷／鎖敵／吸落／群召／眾生／廣刃／長驅／聚氣／省魔／粗束（2026-08-26 第二批） | **暫借**上面八個 key | ⏳ 外型待重製，見 TODO |
+
+每一顆珠子的功用、數值與使用範例見 [GEM_CATALOG.md](GEM_CATALOG.md)。
 
 **加一種新的能力珠**：畫一張 `gemIcon_<key>.png` 丟進 `gemIcons/` → `GemTable.csv` 加一列（`Icon` 填 `<key>`）
 → `ItemTable.csv` 加一列（`GemID` 指過去、`IconPath` **留空**）。零程式改動。

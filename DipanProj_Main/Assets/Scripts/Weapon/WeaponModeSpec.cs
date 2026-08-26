@@ -282,7 +282,7 @@ public static class WeaponModeSpec
             F(W, "WeaponAniPath",     FieldKind.Text,  "子彈外觀", "序列圖前綴", ""),
             F(W, "WeaponAniNumber",   FieldKind.Int,   "子彈外觀", "序列圖張數", "0", 0, 999),
             F(W, "AnimFPS",           FieldKind.Float, "子彈外觀", "序列圖幀率", "0", 0f, 120f),
-            F(W, "BulletScale",       FieldKind.Float, "子彈外觀", "子彈縮放", "1", 0.05f, 20f),
+            F(W, "BulletScale",       FieldKind.Float, "子彈外觀", "施放大小", "1", 0.05f, 20f, "子彈變大；近戰／突進／法陣／落雷／佛光／拋物線爆炸＝範圍與視覺一起放大（須彌珠改這欄）；雷射與連鎖不吃（粗細看 BeamWidth）"),
 
             // ── 光束外觀 ──
             F(W, "BeamStyle",    FieldKind.Int,   "光束外觀", "雷射種類", "2", 1, 10, "1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光"),
@@ -353,8 +353,8 @@ public static class WeaponModeSpec
 
         // 佛光：跟著玩家的 AOE
         M(d, WeaponMode.Aura, "佛光", "按住時在身上維持一圈跟著走的 AOE；圓的定義走 GroundEffectID（該列 Duration 必須 -1）", continuous: true)
-            .Req("GroundEffectID").Eff("Damage")
-            .Lbl("GroundEffectID", "佛光圓（GroundEffectTable ID，Duration=-1）");
+            .Req("GroundEffectID").Eff("Damage", "BulletScale")
+            .Lbl("GroundEffectID", "佛光圓（GroundEffectTable ID，Duration=-1）").Lbl("BulletScale", "光圈大小");
 
         // 連鎖閃電
         M(d, WeaponMode.Chain, "連鎖閃電", "打中第一隻後在半徑內逐跳；撞牆就停")
@@ -365,8 +365,8 @@ public static class WeaponModeSpec
         // 落雷
         M(d, WeaponMode.SkyStrike, "落雷", "從畫面上緣劈到滑鼠點，落地圓形 AOE；SubRecipeID 可接一條連鎖配方")
             .Eff("FireInterval").Eff(Multi).Eff("SubRecipeID", "SnapRadius", "AreaRadius", "GroundEffectID", "SegmentedColumn").Eff(Charge)
-            .Eff("Damage", "HitEffectID").Eff(BeamVisual)
-            .Lbl("SpreadCount", "落點數").Lbl("AreaRadius", "落雷範圍半徑").Lbl("GroundEffectID", "落點留痕（地面特效 ID）")
+            .Eff("Damage", "HitEffectID", "BulletScale").Eff(BeamVisual)
+            .Lbl("SpreadCount", "落點數").Lbl("AreaRadius", "落雷範圍半徑").Lbl("BulletScale", "落雷大小（範圍與雷柱）").Lbl("GroundEffectID", "落點留痕（地面特效 ID）")
             .Lbl("SubRecipeID", "落點接連鎖（填 Chain 配方 ID）");
 
         // 召喚
@@ -378,19 +378,20 @@ public static class WeaponModeSpec
         // 定點法陣
         M(d, WeaponMode.GroundCast, "定點法陣", "在滑鼠位置放一個地面特效（半徑／節拍走 GroundEffectTable，傷害用武器 Damage）")
             .Eff("FireInterval").Req("GroundEffectID").Eff("Range").Eff(Charge)
-            .Eff("Damage", "HitEffectID")
-            .Lbl("GroundEffectID", "法陣（GroundEffectTable ID）").Lbl("Range", "施放距離");
+            .Eff("Damage", "HitEffectID", "BulletScale")
+            .Lbl("GroundEffectID", "法陣（GroundEffectTable ID）").Lbl("Range", "施放距離").Lbl("BulletScale", "法陣大小（半徑與圖）");
 
         // 近戰
         M(d, WeaponMode.Melee, "近身扇形", "以自己為圓心、朝滑鼠方向掃一個扇形")
             .Eff("FireInterval", "AreaRadius", "MeleeAngle").Eff(Charge)
-            .Eff("Damage", "HitEffectID")
-            .Lbl("AreaRadius", "攻擊半徑");
+            .Eff("Damage", "HitEffectID", "BulletScale")
+            .Lbl("AreaRadius", "攻擊半徑").Lbl("BulletScale", "揮砍大小（半徑與特效）");
 
         // 突進
         M(d, WeaponMode.Dash, "突進斬", "往瞄準方向衝一段，掃過的目標各受傷一次；撞牆提前停")
             .Eff("FireInterval", "DashDistance", "DashWidth").Eff(Charge)
-            .Eff("Damage", "HitEffectID");
+            .Eff("Damage", "HitEffectID", "BulletScale")
+            .Lbl("BulletScale", "掃擊大小（寬度與特效）");
 
         return d;
     }
