@@ -31,6 +31,7 @@
 | [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md) | Effects 全庫審閱、特效武器化原則、已實作武器與下一批候選 | 從特效庫設計／擴充武器、查新武器素材來源 |
 | [CHARGE_MODE.md](CHARGE_MODE.md) | RecipeTable 集氣模式：按住／放開流程、3 秒倍率、藍紅集氣特效與持續武器互斥規則 | 啟用集氣武器、調整集氣倍率／特效或排查輸入互斥 |
 | [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) | **RecipeTable 填表手冊**（2026-08-26 新表：一列一種 `Mode`、45 欄分群、空白＝預設；模式 × 欄位矩陣、能力珠 × 模式矩陣、GroundEffectID 在各模式的角色、舊表遷移對照） | 填／改配方表、加新模式或新欄位、想知道某顆珠子對某武器有沒有用 |
+| [WEAPON_WORKBENCH.md](WEAPON_WORKBENCH.md) | **武器工坊**（Unity EditorWindow，`Project Tools → 武器工坊`）：選外型／選 Mode／只顯示有效欄／名稱下拉／範圍提示，Play 中改值立刻射出去（`SimulationOverride`），真鑲珠子有效，一鍵存回 CSV | **做／改任何武器或配方時優先用它，不要手改 CSV**；接新欄位／新模式後看視窗有沒有跟上 |
 | [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（**倒序，最新在最上**；較舊條目原文封存在 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭有逐條索引） | 想了解歷史脈絡 |
 | [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) | 產圖流程與規範 | **任何產圖前** |
 | [MapEditor_DESIGN.md](MapEditor_DESIGN.md) | 地圖編輯器設計與 `.dipanmap` 格式 | 改編輯器、看地圖格式 |

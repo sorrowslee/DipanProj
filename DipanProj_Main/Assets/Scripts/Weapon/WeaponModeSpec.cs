@@ -454,4 +454,43 @@ public static class WeaponModeSpec
                 return false;
         }
     }
+
+    // ─────────────────────────── 寫出 CSV 用 ───────────────────────────
+
+    /// <summary>表頭格：<c>Name(顯示名/說明)</c>。括號內是給人看的，解析時只取括號前；半形逗號換成全形免得撞到分隔符。</summary>
+    public static string HeaderCell(FieldSpec f)
+    {
+        string desc = f.Label ?? "";
+        if (!string.IsNullOrEmpty(f.Help)) desc += "/" + f.Help;
+        if (!string.IsNullOrEmpty(f.Default)) desc += "/空=" + f.Default;
+        desc = desc.Replace(",", "，").Replace("(", "（").Replace(")", "）");
+        return desc.Length > 0 ? f.Name + "(" + desc + ")" : f.Name;
+    }
+
+    /// <summary>整張表的表頭格（依欄順序）。</summary>
+    public static List<string> HeaderCells(FieldTable table)
+    {
+        var list = new List<string>();
+        foreach (var f in _fields) if (f.Table == table) list.Add(HeaderCell(f));
+        return list;
+    }
+
+    /// <summary>分組註解列的文字（每組一行：「── 群組：欄1 / 欄2」），寫在表頭之後。</summary>
+    public static List<string> GroupCommentLines(FieldTable table)
+    {
+        var lines = new List<string>();
+        string cur = null; var names = new List<string>();
+        foreach (var f in _fields)
+        {
+            if (f.Table != table) continue;
+            if (f.Group != cur)
+            {
+                if (cur != null) lines.Add("── " + cur + "：" + string.Join(" / ", names));
+                cur = f.Group; names.Clear();
+            }
+            names.Add(f.Name);
+        }
+        if (cur != null) lines.Add("── " + cur + "：" + string.Join(" / ", names));
+        return lines;
+    }
 }

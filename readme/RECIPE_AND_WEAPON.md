@@ -100,7 +100,7 @@
 
 ## WeaponManager
 * 在 `Start()` 時用 `CsvTable` 載入所有武器（`BuildWeapon` 依欄名取值），透過 `RecipeManager` 解析 `RecipeID` 為 `RecipeEntry` 引用；武器表欄位也過 `WeaponModeSpec.Validate`（例：召喚武器填了子彈圖會 Warning）。
-* **`SimulationOverride`**：不為 null 時 `GetCurrentWeapon()` 一律回它——武器效果模擬面板靠這個讓所有發射路徑打模擬武器；`All` 與 `CreateTransient` 同 RecipeManager。
+* **`SimulationOverride`**：不為 null 時 `GetCurrentWeapon()` 一律回它（**也會過 `AbilityResolver`**，所以真鑲的珠子對模擬武器有效）——[武器工坊](WEAPON_WORKBENCH.md) 靠這個讓所有發射路徑打模擬武器；`All` 與 `CreateTransient` 同 RecipeManager。
 * 使用 `PrefabMapping` 序列化列表模式（與 `MonsterSpawner` 一致），在 Inspector 中拖入子彈 Prefab。
 * 雷射／連鎖／非分段落雷武器額外載入光束素材，`BeamStyle` / `BeamColor` 編號透過 `BeamStyleLibrary` 解析為外型參數與顏色（見 [LASER.md](LASER.md)）。
 * **初始沒有武器**：`Start()` 只載表、**不指派任何初始武器**（`CurrentWeaponID = 0` ＝ 無武器，`GetCurrentWeapon()` 回 null）。實際武器由 `PlayerController` 依背包武器欄呼叫 `SwitchWeapon` 決定。（2026-07-27 改；此前這裡會強制設成最高 ID，導致玩家空手也能攻擊，且會蓋掉背包指定的武器。）

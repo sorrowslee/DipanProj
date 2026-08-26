@@ -25,11 +25,18 @@ public class WeaponManager : MonoBehaviour
     public IReadOnlyDictionary<int, WeaponData> All => _weapons;
 
     /// <summary>
-    /// **武器效果模擬用的覆蓋**：不為 null 時 <see cref="GetCurrentWeapon"/> 一律回它（不看背包、不套鑲嵌），
+    /// **武器工坊（武器效果模擬）用的覆蓋**：不為 null 時 <see cref="GetCurrentWeapon"/> 一律回它（不看背包裝的是哪把），
     /// 所以 PlayerController 的全部發射路徑（離散／雷射／佛光／集氣）都會拿模擬武器去打。
-    /// 設回 null 就恢復正常。由模擬面板設定；一般遊戲流程不要碰。
+    /// **鑲嵌照樣生效**：它跟正常武器一樣會過 <see cref="AbilityResolver"/>（作者要在模擬時真的去鍛造鑲珠子測），
+    /// 珠子一變 <see cref="RefreshLoadout"/> 就重算。設回 null 就恢復正常。由 Assets/Editor/WeaponWorkbench.cs 設定；一般遊戲流程不要碰。
     /// </summary>
-    public WeaponData SimulationOverride { get; set; }
+    public WeaponData SimulationOverride
+    {
+        get => _simBase;
+        set { _simBase = value; RefreshCurrentWeapon(); }
+    }
+    private WeaponData _simBase;       // 工坊交進來的原始模擬武器
+    private WeaponData _simResolved;   // 套完玩家鑲嵌後的模擬武器（真正被拿去打的那份）
 
     void Start()
     {
@@ -43,7 +50,7 @@ public class WeaponManager : MonoBehaviour
 
     public WeaponData GetCurrentWeapon()
     {
-        return SimulationOverride ?? _currentWeapon;
+        return _simResolved ?? _currentWeapon;
     }
 
     public void SwitchWeapon(int weaponID)
@@ -97,6 +104,8 @@ public class WeaponManager : MonoBehaviour
         // 玩家的能力容器在這裡把「表格資料」解析成「這個角色現在實際的武器」。
         // 沒掛解析器（例如編輯器測試場景）就照原樣用，行為與加入鑲嵌系統前一致。
         _currentWeapon = (AbilityResolver != null && baseWeapon != null) ? AbilityResolver(baseWeapon) : baseWeapon;
+        // 模擬武器同樣套一次玩家的鑲嵌（工坊：真鑲珠子也要對模擬武器有效）
+        _simResolved = (AbilityResolver != null && _simBase != null) ? AbilityResolver(_simBase) : _simBase;
     }
 
     /// <summary>

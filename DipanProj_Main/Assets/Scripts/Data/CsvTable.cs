@@ -272,4 +272,56 @@ namespace Dipan.Data
             return list.ToArray();
         }
     }
+
+    /// <summary>
+    /// CSV 寫出（給武器工坊存回 RecipeTable／WeaponTable 用；一般表由人手編輯，不會走這裡）。
+    /// 表頭與欄順序由呼叫端給；值含逗號／引號／換行時自動用雙引號包（讀回時 <see cref="CsvUtil.SplitLine"/> 認得）。
+    /// </summary>
+    public static class CsvWriter
+    {
+        /// <summary>單格跳脫：需要時用雙引號包、內部引號寫成 ""。</summary>
+        public static string Escape(string v)
+        {
+            if (v == null) return "";
+            bool need = v.IndexOf(',') >= 0 || v.IndexOf('"') >= 0 || v.IndexOf('\n') >= 0 || v.IndexOf('\r') >= 0
+                        || (v.Length > 0 && (char.IsWhiteSpace(v[0]) || char.IsWhiteSpace(v[v.Length - 1])));
+            if (!need) return v;
+            return "\"" + v.Replace("\"", "\"\"") + "\"";
+        }
+
+        /// <summary>一列：依 <paramref name="columns"/> 順序從字典取值（沒有的欄留空）。</summary>
+        public static string Row(IReadOnlyList<string> columns, IReadOnlyDictionary<string, string> fields)
+        {
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < columns.Count; i++)
+            {
+                if (i > 0) sb.Append(',');
+                string v;
+                if (fields != null && fields.TryGetValue(columns[i], out v)) sb.Append(Escape(v));
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>整列註解（第一格以 # 開頭，其餘補空欄，讓 Excel 類工具也對得齊）。</summary>
+        public static string Comment(int columnCount, string text)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append(Escape("# " + (text ?? "")));
+            for (int i = 1; i < columnCount; i++) sb.Append(',');
+            return sb.ToString();
+        }
+
+        /// <summary>組整份檔案：表頭 → 註解列 → 資料列。換行用 \n（與專案現有 CSV 一致）。</summary>
+        public static string Build(IReadOnlyList<string> headerCells, IReadOnlyList<string> columns,
+                                   IReadOnlyList<string> commentLines, IEnumerable<IReadOnlyDictionary<string, string>> rows)
+        {
+            var sb = new System.Text.StringBuilder();
+            for (int i = 0; i < headerCells.Count; i++) { if (i > 0) sb.Append(','); sb.Append(Escape(headerCells[i])); }
+            sb.Append('\n');
+            if (commentLines != null)
+                foreach (var c in commentLines) sb.Append(Comment(columns.Count, c)).Append('\n');
+            foreach (var r in rows) sb.Append(Row(columns, r)).Append('\n');
+            return sb.ToString();
+        }
+    }
 }

@@ -22,6 +22,8 @@ public static class GemEffectiveness
     {
         var wm = Wm;
         if (wm == null) return null;
+        // 武器工坊模擬中：不管鐵砧上放的是哪把，玩家實際射出去的是模擬武器，一律以它為準
+        if (wm.SimulationOverride != null) return wm.GetCurrentWeapon();
         if (contextItemId > 0 && InventorySystem.Instance != null)
         {
             var d = InventorySystem.Instance.GetData(contextItemId);
