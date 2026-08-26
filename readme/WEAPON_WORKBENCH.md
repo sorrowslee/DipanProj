@@ -44,6 +44,7 @@ Editor-only：`Assets/Editor/WeaponWorkbench.cs`，不進 build。
 
 - 外型只掃 `Resources/Weapon/`；圖放別處要手填路徑（欄位仍可直接改 CSV）。
 - 序列圖偵測靠檔名結尾 `_NN`（兩位以上數字）。
+- 名稱欄是 `DelayedTextField`：打完按 Enter 或點別處才提交；**直接點「儲存」也可以**——儲存鈕會先拿掉焦點、等下一次 OnGUI 讓欄位提交後才真的寫檔（`RequestSave`／`FlushPendingSave`），不會存到舊名字。之前用即時版，每一幀把 Trim 過的值塞回欄位，中文輸入法組字中會被打斷、改不了名（2026-08-26 修）。
 - `SubRecipeID` 指向「還沒儲存的新配方」時，模擬會印一條 `[RecipeTable] SubRecipeID 不存在` 的 Error（執行中的表沒有它）——先存檔、重進 Play 就好。
 
 *建立於 2026-08-26（接在 RecipeTable 大改之後）。*

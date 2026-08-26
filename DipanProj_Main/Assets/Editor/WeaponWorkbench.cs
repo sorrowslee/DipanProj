@@ -63,6 +63,9 @@ public class WeaponWorkbench : EditorWindow
 
     int _sel = -1;              // 目前選的武器（_weapons 的索引）
     bool _dirty;
+    // 「儲存」不直接存：先把鍵盤焦點拿掉、等下一次 OnGUI 讓 DelayedTextField 把還沒提交的文字寫進字典，再存。
+    // 否則「改了名字直接點儲存」會存到舊名字（Delayed 欄位要 Enter／失焦才提交，而點按鈕不會搶走焦點）。
+    bool _saveRequested;
     Vector2 _scroll;
 
     // Play 模擬
@@ -302,6 +305,7 @@ public class WeaponWorkbench : EditorWindow
         if (_sel < 0 || _sel >= _weapons.Count)
         {
             EditorGUILayout.HelpBox("沒有武器。按「＋新增」建一把。", MessageType.Info);
+            FlushPendingSave();
             return;
         }
 
@@ -325,6 +329,23 @@ public class WeaponWorkbench : EditorWindow
             _dirty = true;
             if (EditorApplication.isPlaying && _autoApply) RequestApply();
         }
+        FlushPendingSave();
+    }
+
+    void RequestSave()
+    {
+        GUI.FocusControl(null);
+        EditorGUIUtility.editingTextField = false;
+        _saveRequested = true;
+        Repaint();
+    }
+
+    /// <summary>OnGUI 尾端：焦點已拿掉、欄位都畫過一輪（Delayed 欄位此時已提交）→ 真的存。挑 Repaint 事件存，保證 Layout 那一輪先跑過。</summary>
+    void FlushPendingSave()
+    {
+        if (!_saveRequested || Event.current.type != EventType.Repaint) return;
+        _saveRequested = false;
+        SaveAll();
     }
 
     void DrawToolbar()
@@ -346,7 +367,7 @@ public class WeaponWorkbench : EditorWindow
         }
         var saveStyle = new GUIStyle(EditorStyles.toolbarButton);
         if (_dirty) saveStyle.normal.textColor = WarnColor;
-        if (GUILayout.Button(_dirty ? "儲存 ●" : "儲存", saveStyle, GUILayout.Width(64))) SaveAll();
+        if (GUILayout.Button(_dirty ? "儲存 ●" : "儲存", saveStyle, GUILayout.Width(64))) RequestSave();
         EditorGUILayout.EndHorizontal();
     }
 
@@ -385,7 +406,9 @@ public class WeaponWorkbench : EditorWindow
         EditorGUILayout.BeginVertical("box");
 
         using (new EditorGUI.DisabledScope(true)) EditorGUILayout.TextField("ID", Get(weapon, "ID"));
-        Set(weapon, "Name", EditorGUILayout.TextField(new GUIContent("名稱", "只給人看"), Get(weapon, "Name")));
+        // ⚠ 名稱一定要用 DelayedTextField：即時版每一幀把 Trim 過的值塞回欄位，中文輸入法組字到一半的字串會被打斷，
+        //   結果怎麼打都留不住（作者回報「新增武器後改不了名」）。Delayed 版按 Enter／離開欄位才提交。
+        Set(weapon, "Name", EditorGUILayout.DelayedTextField(new GUIContent("名稱", "只給人看；打完按 Enter"), Get(weapon, "Name")));
 
         // 配方選擇
         EditorGUILayout.BeginHorizontal();
@@ -473,7 +496,7 @@ public class WeaponWorkbench : EditorWindow
         WeaponMode mode = ModeOf(recipe);
         EditorGUILayout.LabelField($"配方（RecipeTable #{IdOf(recipe)}）", EditorStyles.boldLabel);
         EditorGUILayout.BeginVertical("box");
-        Set(recipe, "Name", EditorGUILayout.TextField(new GUIContent("配方名稱", "只給人看"), Get(recipe, "Name")));
+        Set(recipe, "Name", EditorGUILayout.DelayedTextField(new GUIContent("配方名稱", "只給人看；打完按 Enter"), Get(recipe, "Name")));   // 同上，Delayed
 
         // Mode 下拉（中文＋英文）
         var modes = Enum.GetValues(typeof(WeaponMode)).Cast<WeaponMode>().ToArray();

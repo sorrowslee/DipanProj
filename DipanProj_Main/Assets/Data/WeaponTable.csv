@@ -1,8 +1,8 @@
-ID(武器唯一識別碼/與ItemTable同號),Name(武器名稱/只給人看),Damage(傷害/Laser為每次DOT/Summon不用),RecipeID(對應配方表的ID),ManaCost(耗魔/離散每發/Laser與Aura每秒/空1),WeaponSpritePath(子彈圖路徑/相對Resources不含副檔名/與WeaponAniPath二擇一/留空=隱形子彈),SpriteAngleOffset(圖片角度補正度/攻擊端朝右為0),WeaponAniPath(序列圖路徑前綴/有值時忽略WeaponSpritePath),WeaponAniNumber(序列圖張數),AnimFPS(序列圖幀率),BulletScale(子彈縮放/空1),BeamStyle(雷射種類1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光/空2),BeamColor(雷射顏色1紅2橙3黃4綠5青6藍7紫8洋紅9白10琥珀金/空9),BeamWidth(雷射粗細/視覺與命中共用/空0.5),PixelBeamSet(像素雷射素材組/空=shader/A_Blue),FireEffectID(發射特效/玩家身上播),HitEffectID(擊中特效/命中點播),TrailEffectID(軌跡特效/配合配方TrailStep沿路種),SummonEffectID(召喚特效/每個生怪點播一次)
+ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每次 DOT；Summon 不用/空=1),RecipeID(配方 ID),ManaCost(耗魔/離散每發／持續型每秒/空=1),WeaponSpritePath(子彈圖路徑/相對 Resources、不含副檔名；與 WeaponAniPath 二擇一；留空＝隱形子彈),SpriteAngleOffset(圖片角度補正（度）/空=0),WeaponAniPath(序列圖前綴),WeaponAniNumber(序列圖張數/空=0),AnimFPS(序列圖幀率/空=0),BulletScale(施放大小/子彈變大；近戰／突進／法陣／落雷／佛光／拋物線爆炸＝範圍與視覺一起放大（須彌珠改這欄）；雷射與連鎖不吃（粗細看 BeamWidth）/空=1),BeamStyle(雷射種類/1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光/空=2),BeamColor(雷射顏色/1紅2橙3黃4綠5青6藍7紫8洋紅9白10琥珀金/空=9),BeamWidth(雷射粗細/視覺與命中共用/空=0.5),PixelBeamSet(像素雷射素材組/留空＝shader 雷射；A_Blue),FireEffectID(發射特效 ID/VfxTable；發射時在玩家身上播/空=0),HitEffectID(擊中特效 ID/VfxTable；命中點播/空=0),TrailEffectID(軌跡特效 ID/VfxTable；配合配方 TrailStep 沿路種/空=0),SummonEffectID(召喚特效 ID/VfxTable；每個生怪點播一次/空=0)
 # ── 通用：ID / Name / Damage / RecipeID / ManaCost,,,,,,,,,,,,,,,,,,
-# ── 子彈外觀 Normal/Orbital/Parabolic：WeaponSpritePath / SpriteAngleOffset / WeaponAniPath / WeaponAniNumber / AnimFPS / BulletScale,,,,,,,,,,,,,,,,,,
-# ── 光束外觀 Laser/Chain/SkyStrike：BeamStyle / BeamColor / BeamWidth / PixelBeamSet,,,,,,,,,,,,,,,,,,
-# ── 特效 ID（VfxTable）：FireEffectID / HitEffectID / TrailEffectID / SummonEffectID,,,,,,,,,,,,,,,,,,
+# ── 子彈外觀：WeaponSpritePath / SpriteAngleOffset / WeaponAniPath / WeaponAniNumber / AnimFPS / BulletScale,,,,,,,,,,,,,,,,,,
+# ── 光束外觀：BeamStyle / BeamColor / BeamWidth / PixelBeamSet,,,,,,,,,,,,,,,,,,
+# ── 特效：FireEffectID / HitEffectID / TrailEffectID / SummonEffectID,,,,,,,,,,,,,,,,,,
 1,3分裂追蹤飛劍,1,8,1,Weapon/single/weapon_sword,135,,,,,,,,,,2,,
 2,5分裂反彈彎刀,2,5,1,Weapon/single/weapon_scimitar,0,,,,,,,,,,,,
 3,火焰環繞彈,2,9,1,,0,Weapon/animation/fire/fire,6,12,5,,,,,,,,
@@ -23,3 +23,5 @@ ID(武器唯一識別碼/與ItemTable同號),Name(武器名稱/只給人看),Dam
 27,冰封法陣,2.5,40,4,,0,,,,,,,,,,,,
 28,死字咒,12,41,6,,0,,,,,,,,,,,,
 29,鏡界折光,2,42,2,,0,,,,,,6,0.38,A_Blue,,,,
+30,三連飛劍,1,43,1,Weapon/single/weapon_sword,135,,,,,,,,,,2,,
+31,飛劍-無能力,1,44,1,Weapon/single/weapon_sword,135,,,,,,,,,,,,

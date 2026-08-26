@@ -2,7 +2,7 @@
 
 > 返回 [文件總覽](README.md) ｜ 雙表架構與程式（RecipeManager／WeaponManager）見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)
 >
-> **2026-08-26 大改**：51 欄的舊表已換成 **45 欄、依模式分群**的新表——10 個 `IsXxx` 旗標收成一欄 **`Mode`**，
+> **2026-08-26 大改**：51 欄的舊表已換成 **45 欄（同日加連擊 2 欄 → 47）、依模式分群**的新表——10 個 `IsXxx` 旗標收成一欄 **`Mode`**，
 > 借用欄位改成獨立欄，所有數值欄**空白＝預設**。舊表填法對照見文末[遷移對照](#從舊表遷移對照)。
 
 ---
@@ -68,6 +68,8 @@
 | | `DashWidth` | 小數 | 1 | 掃擊寬度 |
 | **集氣** | `ChargeMode` | 布林 | 0 | 1＝按住 3 秒放開才施放（傷害×3、視覺×2）；Laser／Aura 不可（原「集氣模式」） |
 | | `ChargeTimeReduction` | 百分比 | 0% | `30%` 縮短 30%、`-20%` 延長 20%（原「集氣時間縮減」）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
+| **連擊** | `BurstCount` | 整數 | 1 | 扣一次扳機連射幾發（**一份魔力只扣一次**、每發各自分裂）；1＝不連擊；Laser／Aura／Orbital 不可（2026-08-26 新增，見 [3.13](#313-連擊burstcount--burstinterval)） |
+| | `BurstInterval` | 小數 | 0.1 | 連擊每發之間隔幾秒；`FireInterval` 從最後一發算起 |
 
 ---
 
@@ -104,6 +106,7 @@
 | MeleeAngle | | | | | | | | | | ✓ | |
 | DashDistance／DashWidth | | | | | | | | | | | ✓ |
 | ChargeMode／ChargeTimeReduction | ✓ | ✓ | ✓ | | | ✓ | ✓ | | ✓ | ✓ | ✓ |
+| BurstCount／BurstInterval | ✓ | | ✓ | | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 **武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`AnimFPS`）只有 Normal／Orbital／Parabolic，`BulletScale`（施放大小）另外也給 Aura／SkyStrike／GroundCast／Melee／Dash（範圍與視覺一起放大）；光束外觀（`BeamStyle`／`BeamColor`／`BeamWidth`）是 Laser／Chain／SkyStrike；`PixelBeamSet` 只有 Laser；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
 
@@ -230,6 +233,20 @@ ID=38 Name=幽影突 Mode=Dash FireInterval=0.7 DashDistance=5 DashWidth=1.2
 - 迸發方向沿命中面法線往外（生成點會沿法線推出去，避免生在牆裡被自己的重疊檢查瞬殺，見 PROBLEMS **B5**）。
 - 子武器只支援 **Normal** 模式；指向其他模式會印 Warning 並不生成。別接成循環（A 迸 B、B 迸 A）。
 
+### 3.13 連擊（`BurstCount` ／ `BurstInterval`）
+
+**扣一次扳機連射 N 發**——很多遊戲的「三連發」。跟集氣一樣是**附加在任何離散模式上的開關**，不是新的 `Mode`：填 `BurstCount 3`、`BurstInterval 0.08`，一般子彈就是三連發、近戰就是三連斬、法陣就是連放三個、召喚就是連叫三次、突進是連衝三段（每段重新朝滑鼠）。
+
+怎麼算：第一發跟平常一樣（扣魔、發射特效、攻擊動作），之後每隔 `BurstInterval` 秒自動補一發，**期間不看按鍵也不看冷卻**（放開也會射完）；**魔只在扣扳機那一發扣一次**，後面補的發數不扣（連擊＝「一份魔力連射 N 發」，否則跟按著連射沒差別——作者實測 10 連發耗魔 10 一按就空，拍板改掉）；每發各自分裂／反彈／追蹤；召喚滿了那串就中止。`FireInterval` 冷卻**從最後一發算起**，所以一輪的實際週期＝`(BurstCount-1)×BurstInterval + FireInterval`。
+
+- **瞄準鎖定**：整串連擊都朝扣扳機那一刻的方向／落點，中途滑鼠移走後面幾發不跟（作者實測 5 連發第 4 發轉向後拍板）。子彈／近戰／突進／連鎖鎖**方向**（突進會移動玩家，鎖點會歪），法陣／落雷／拋物線鎖**落點**。程式：`AimWorldPoint()`／`AimDirectionToMouse()` 在 `_burstAimLocked` 時回鎖住的值，所有離散發射路徑都走這兩個，**別直接讀 `Input.mousePosition`**。
+- 集氣＋連擊：集氣放開的那一發是 ×3 快照，**整串連擊都是 ×3**（拍板：簡單、也符合「蓄力放大招」的直覺；覺得太強就在配方降 `BurstCount`）。
+- 換武器／換圖／不能開火時，沒射完的連擊作廢。
+- Laser／Aura 沒有「發」的概念、Orbital 每次施放會清掉上一組環（連擊等於白射），所以這三種無效；表上填了載入會 Warning、不會讀。
+- 上限：`BurstCount` ≤ 16、`BurstInterval` ≥ 0.02（`PlayerAbilities` 安全夾值）。
+- 範例：配方 43「三連擊直線彈」＋武器 30「三連飛劍」（ItemTable 30）——`FireInterval 0.6`、`BurstCount 3`、`BurstInterval 0.08`，扣一次三劍連出、再等 0.6 秒。連擊珠（GemID 26）加發數。
+- 程式：`PlayerController` 的 `_burstRemaining／_burstTimer／_burstWeapon`、`AfterShot()`（冷卻與排程統一在這）、`HandleFiring` 開頭的「連擊進行中」分支。
+
 ---
 
 ## 4. 能力珠 × 模式
@@ -263,6 +280,7 @@ ID=38 Name=幽影突 Mode=Dash FireInterval=0.7 DashDistance=5 DashWidth=1.2
 | 聚氣 `ChargeTimeReduction` | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
 | 省魔 `ManaCost` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | 粗束 `BeamWidth` | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ 雷柱 | ✗ | ✗ | ✗ | ✗ |
+| 連擊 `BurstCount` | ✓ | ✗ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 
 - 須彌珠（`BulletScale`，原名巨彈）＝**施放大小**：對非子彈模式是「範圍與視覺一起放大」（所見即所得，不會畫面變大傷害範圍沒變）；雷射／連鎖的粗細是 `BeamWidth`，不吃它。
 - 反彈珠對連鎖閃電**不再**增加跳數（跳數已是獨立欄 `ChainCount`）——這是拍板的設計，不是漏做。

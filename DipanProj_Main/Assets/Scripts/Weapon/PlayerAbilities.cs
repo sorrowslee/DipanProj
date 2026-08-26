@@ -246,6 +246,9 @@ public class PlayerAbilities
         if (Eff(mode, "SummonRadius")) r.SummonRadius = Mathf.Max(0.1f, Get(_recipe, "SummonRadius").Apply(r.SummonRadius));
         // 集氣時間縮減：表裡存的是百分點（30＝縮短 30%），珠子填固定值就是加百分點；上限 99 免得除零
         if (Eff(mode, "ChargeTimeReduction")) r.ChargeTimeReduction = Mathf.Clamp(Get(_recipe, "ChargeTimeReduction").Apply(r.ChargeTimeReduction), -1000f, 99f);
+        // 連擊：珠子加發數；上限 16（一次扣扳機最多 16 發，效能保護）
+        if (Eff(mode, "BurstCount")) r.BurstCount = Mathf.Clamp(Mathf.RoundToInt(Get(_recipe, "BurstCount").Apply(r.BurstCount)), 1, SafeMaxBurstCount);
+        if (Eff(mode, "BurstInterval")) r.BurstInterval = Mathf.Max(SafeMinBurstInterval, Get(_recipe, "BurstInterval").Apply(r.BurstInterval));
     }
 
     // ══════════════════ 安全夾值（不是遊戲平衡，是「會把遊戲弄壞」的下限）══════════════════
@@ -262,6 +265,10 @@ public class PlayerAbilities
     const float SafeMinDotInterval = 0.02f;
     /// <summary>單次發射的子彈數上限（分裂/散射/環繞）。純粹是效能保護。</summary>
     const int SafeMaxSpreadCount = 64;
+    /// <summary>連擊一次扣扳機最多幾發（效能保護）。</summary>
+    const int SafeMaxBurstCount = 16;
+    /// <summary>連擊每發最短間隔；0 會變成同一幀全射出去。</summary>
+    const float SafeMinBurstInterval = 0.02f;
 
     static Mod Get(Dictionary<string, Mod> table, string field)
         => table.TryGetValue(field, out var m) ? m : default;

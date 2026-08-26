@@ -71,6 +71,11 @@ public class RecipeEntry
     /// <summary>集氣時間縮減百分比：30 = 減少 30%；-20 = 延長 20%。</summary>
     public float ChargeTimeReduction = 0f;
 
+    // ── 連擊 ──
+    /// <summary>扣一次扳機連射幾發；1＝不連擊。第一發走正常發射，其餘由 PlayerController 依 <see cref="BurstInterval"/> 補出去。</summary>
+    public int BurstCount = 1;
+    public float BurstInterval = 0.1f;
+
     /// <summary>持續型（按住生效）：Laser / Aura。沒有發射間隔、不吃集氣。</summary>
     public bool IsContinuous => WeaponModeSpec.Get(Mode).Continuous;
 
@@ -204,6 +209,10 @@ public class RecipeEntry
         // ── 集氣（持續型的 ChargeMode 欄本來就無效 → G() 回 null → false）──
         e.ChargeMode = Bo("ChargeMode", false);
         e.ChargeTimeReduction = Math.Max(-1000f, Math.Min(99f, CsvFieldParse.Percent(G("ChargeTimeReduction"), 0f)));
+
+        // ── 連擊（Laser/Aura/Orbital 欄無效 → 保持 1）──
+        e.BurstCount = Math.Max(1, In("BurstCount", 1));
+        e.BurstInterval = Math.Max(0.02f, Fl("BurstInterval", 0.1f));
 
         // 規格檢查（必填缺 / 無效卻有填）
         if (fields != null) problems.AddRange(WeaponModeSpec.Validate(mode, fields, FieldTable.Recipe));

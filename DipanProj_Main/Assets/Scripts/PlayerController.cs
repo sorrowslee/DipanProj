@@ -40,6 +40,14 @@ public class PlayerController : MonoBehaviour, IDamageable
     private HitReactionHandler _hitReaction;
     private CombatStats _stats;            // HP/MP 數值層（血/魔條訂閱它的事件）；見 readme/COMBAT.md
     private float _fireTimer = 0f;
+    // ── 連擊（RecipeTable BurstCount / BurstInterval）：扣一次扳機連射 N 發。第一發走正常 Shoot，
+    //    其餘由 HandleFiring 依 BurstInterval 一發一發補出去（不看按鍵、不看冷卻）；冷卻 FireInterval 從最後一發算起。
+    private int _burstRemaining = 0;          // 還沒射出去的發數
+    private float _burstTimer = 0f;           // 距離下一發還有幾秒
+    private WeaponData _burstWeapon;          // 這串連擊用的武器（集氣放開的 ×3 快照會整串沿用）
+    private bool _burstAimLocked;             // 連擊期間瞄準鎖定：整串都朝扣扳機那一刻的方向／落點，中途滑鼠跑掉不跟
+    private Vector2 _burstAimPoint;           // 鎖定的滑鼠世界座標（法陣／落雷／拋物線用落點）
+    private Vector2 _burstAimDir;             // 鎖定的方向（子彈／近戰／突進／連鎖用方向）
     private float _lastSkillAlertTime = -99f;
     private const float SkillAlertMinInterval = 0.4f;   // 技能提示（冷卻中/召喚已滿）最短間隔（秒），避免連點洗版
     // ── 攻擊動畫（2026-08-22 改版）────────────────────────────────────────────────
@@ -396,6 +404,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void OnDestroy()
     {
+        CancelBurst();
         ClearActiveOrbitalBullets();
         ClearActiveBeams();
         ClearActiveAura();
@@ -430,6 +439,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             var data = itemId > 0 ? _inventory.GetData(itemId) : null;
             int weaponId = (data != null && data.WeaponID > 0) ? data.WeaponID : 0;   // 0 = 沒有武器
             _weaponManager.SwitchWeapon(weaponId);
+            CancelBurst();   // 換武器時還沒射完的連擊作廢（別用舊武器補射）
 
             // 卸下當下若正放著持續型武器或集氣中，立刻收乾淨（不等下一幀 HandleFiring 的 guard）。
             if (weaponId == 0)
@@ -453,6 +463,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// <summary>換地圖時清掉屬於舊地圖的持續武器。集氣狀態刻意保留；MapManager 會清掉舊 VFX，進新圖後若按鍵仍按住會自動重建。</summary>
     public void ClearPersistentWeaponsForMapChange()
     {
+        CancelBurst();
         ClearActiveOrbitalBullets();
         ClearActiveBeams();
         ClearActiveAura();
@@ -479,6 +490,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             if (_activeBeams.Count > 0) ClearActiveBeams();
             if (_activeAura != null) ClearActiveAura();
             if (_isCharging) CancelCharge();
+            CancelBurst();
             // 刻意「不」跳提示：需求是沒武器時完全沒反應；而且開場劇情到柴房撿佛燈前玩家本來就空手，
             // 提示會一路蹦在那段刻意乾淨的演出畫面上（初始森林 13/14 連血球 HUD 都關掉了）。
             return;
@@ -503,6 +515,20 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (isAura)
         {
             UpdateAura(weapon, firing);
+            return;
+        }
+
+        // ── 連擊進行中：不看按鍵、不看冷卻，時間到就補下一發（不扣魔）；召喚滿了就中止這串 ──
+        if (_burstRemaining > 0)
+        {
+            _burstTimer -= Time.deltaTime;
+            if (_burstTimer <= 0f)
+            {
+                if (_burstWeapon != null && _burstWeapon.Recipe != null && Shoot(false, _burstWeapon, burstShot: true))
+                    TriggerAttackPose();
+                else
+                    CancelBurst();
+            }
             return;
         }
 
@@ -864,7 +890,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // pressed = 這一幀是否「剛按下」攻擊（決定要不要跳技能提示，如召喚已達上限；連按/連射不重複洗版）。
     // 回傳是否「真的發射出去」：魔力不足／召喚已滿 → false（CD 中此函式不會被呼叫）。用來決定要不要擺攻擊動作。
-    bool Shoot(bool pressed, WeaponData overrideWeapon = null)
+    // burstShot = 這一發是連擊補出來的（不重新排一串連擊、發完最後一發才起冷卻）。
+    bool Shoot(bool pressed, WeaponData overrideWeapon = null, bool burstShot = false)
     {
         if (_weaponManager == null) return false;
 
@@ -881,10 +908,11 @@ public class PlayerController : MonoBehaviour, IDamageable
                 if (pressed) ShowSkillAlert("召喚數已達上限");
                 return false;
             }
-            if (_stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
+            // 連擊補的那幾發不扣魔：「一份魔力連射 N 發」才跟按著連射有差別
+            if (!burstShot && _stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
             TrySpawnFireEffect(weapon, AimDirectionToMouse());
             SummonSystem.Cast(gameObject, transform.position, weapon.Recipe, _summonAlive, MonsterFaction.PlayerAlly, weapon.SummonEffectID);
-            _fireTimer = (weapon.Recipe.Data != null) ? weapon.Recipe.Data.FireInterval : 1f;
+            AfterShot(weapon, burstShot);
             return true;
         }
 
@@ -898,8 +926,9 @@ public class PlayerController : MonoBehaviour, IDamageable
             return false;
         }
 
-        // 魔力：不夠就不發射（不重置 _fireTimer、不播發射特效）。離散武器每發扣一次 ManaCost。
-        if (_stats != null && !_stats.TrySpendMana(weapon.ManaCost))
+        // 魔力：不夠就不發射（不重置 _fireTimer、不播發射特效）。離散武器每次扣扳機扣一次 ManaCost；
+        // 連擊補出來的發數（burstShot）不扣——連擊是「一份魔力連射 N 發」，否則跟按著連射沒差別。
+        if (!burstShot && _stats != null && !_stats.TrySpendMana(weapon.ManaCost))
             return false;
 
         // 發射特效：每次離散發射在玩家身上播一次，朝瞄準方向
@@ -918,8 +947,41 @@ public class PlayerController : MonoBehaviour, IDamageable
             default:                    ShootNormal(weapon, recipe); break;
         }
 
-        _fireTimer = recipe.FireInterval;
+        AfterShot(weapon, burstShot);
         return true;
+    }
+
+    /// <summary>每次真的射出去之後統一處理冷卻與連擊排程（一般與召喚路徑共用）。</summary>
+    private void AfterShot(WeaponData weapon, bool burstShot)
+    {
+        float interval = (weapon.Recipe.Data != null) ? weapon.Recipe.Data.FireInterval : 1f;
+        if (burstShot)
+        {
+            _burstRemaining--;
+            _burstTimer = weapon.Recipe.BurstInterval;
+            if (_burstRemaining <= 0) { CancelBurst(); _fireTimer = interval; }   // 冷卻從最後一發算起
+            return;
+        }
+        _fireTimer = interval;   // 連擊中也先起冷卻（按鍵在連擊期間本來就不會被讀），最後一發再重起一次
+        int burst = weapon.Recipe.BurstCount;
+        if (burst > 1)
+        {
+            _burstWeapon = weapon;   // 集氣放開時這裡拿到的是 ×3 快照 → 整串都是集氣彈
+            _burstRemaining = burst - 1;
+            _burstTimer = weapon.Recipe.BurstInterval;
+            // 鎖瞄準：第一發用的方向／落點整串沿用（作者要求：中途滑鼠移走，後面幾發也不能換方向）
+            _burstAimPoint = AimWorldPoint();
+            _burstAimDir = AimDirectionToMouse();
+            _burstAimLocked = true;
+        }
+    }
+
+    private void CancelBurst()
+    {
+        _burstRemaining = 0;
+        _burstTimer = 0f;
+        _burstWeapon = null;
+        _burstAimLocked = false;
     }
 
     // 突進斬：CircleCast 保證不穿牆，OverlapCapsule 覆蓋整段路徑；傷害目標依 GameObject 去重。
@@ -972,8 +1034,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
 
         Vector2 origin = transform.position;
-        Vector3 mouse = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        Vector2 delta = (Vector2)mouse - origin;
+        Vector2 delta = AimWorldPoint() - origin;   // 連擊中鎖落點
         float range = recipe.BeamRange > 0f ? recipe.BeamRange : 8f;
         Vector2 target = origin + Vector2.ClampMagnitude(delta, range);
         // 須彌珠／集氣：走 radiusScale 讓傷害半徑與圖一起放大（visualScale 只放大圖，畫面會騙人）
@@ -1016,9 +1077,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void ShootNormal(WeaponData weapon, ProjectileData recipe)
     {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mousePos.z = 0;
-        Vector2 fireDirection = (mousePos - transform.position).normalized;
+        Vector2 fireDirection = AimDirectionToMouse();   // 連擊中鎖方向
         Vector2 spawnPos = (Vector2)transform.position;
 
         LayerMask collisionMask = EnvLayer | EnemyLayer;
@@ -1334,9 +1393,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     private void ShootParabolic(WeaponData weapon, ProjectileData recipe)
     {
-        Vector3 mousePos = Camera.main != null ? Camera.main.ScreenToWorldPoint(Input.mousePosition) : transform.position;
-        mousePos.z = 0;
-        Vector2 mouseTarget = (Vector2)mousePos;
+        Vector2 mouseTarget = AimWorldPoint();   // 連擊中鎖落點
         // 保險：滑鼠世界座標偶爾會是 NaN/Inf（滑鼠在視窗外、相機該幀尚未就緒等）→ 會讓拋物線落點與速度變 NaN、
         // 進而每幀狂洗「transform.position ... is not valid」。異常就退回「玩家前方一格」，讓這發仍打得出去。
         if (float.IsNaN(mouseTarget.x) || float.IsNaN(mouseTarget.y) ||
@@ -1495,11 +1552,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     // 目標搜尋與傷害全在主遊戲側（守住「彈道系統不算傷害」邊界）；LaserBeam 只當折線視覺（SpawnChainVisual）。
     private void ShootChain(WeaponData weapon, ProjectileData recipe)
     {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mousePos.z = 0f;
         Vector2 origin = (Vector2)transform.position;
-        Vector2 baseDir = (Vector2)mousePos - origin;
-        baseDir = baseDir.sqrMagnitude > 0.0001f ? baseDir.normalized : Vector2.right;
+        Vector2 baseDir = AimDirectionToMouse();   // 連擊中鎖方向
         float baseAngle = Mathf.Atan2(baseDir.y, baseDir.x) * Mathf.Rad2Deg;
 
         int count = Mathf.Max(1, recipe.SplitCount);   // 散射道數（= SpreadCount 欄）
@@ -1688,10 +1742,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     // 目標搜尋與傷害全在主遊戲側；視覺複用 LaserBeam 折線（垂直鋸齒閃電）。
     private void ShootSkyStrike(WeaponData weapon, ProjectileData recipe)
     {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mousePos.z = 0f;
         Vector2 player = (Vector2)transform.position;
-        Vector2 mouse = (Vector2)mousePos;
+        Vector2 mouse = AimWorldPoint();   // 連擊中鎖落點
 
         int count = Mathf.Max(1, recipe.SplitCount);   // 落點道數（= SpreadCount 欄）
         float totalSpread = recipe.SpreadAngle;        // 扇形總角度（= SpreadAngle 欄）
@@ -1934,11 +1986,19 @@ public class PlayerController : MonoBehaviour, IDamageable
     }
 
     // ── 一次性特效（VFX）：發射特效生在玩家身上、擊中特效生在命中點，皆讀發射快照武器 ──
+    /// <summary>瞄準用的世界座標：平常＝滑鼠；連擊進行中＝扣扳機那一刻鎖住的點。所有離散發射路徑都要走這個，別直接讀 Input.mousePosition。</summary>
+    private Vector2 AimWorldPoint()
+    {
+        if (_burstAimLocked) return _burstAimPoint;
+        Vector3 mousePos = Camera.main != null ? Camera.main.ScreenToWorldPoint(Input.mousePosition) : transform.position;
+        return new Vector2(mousePos.x, mousePos.y);
+    }
+
+    /// <summary>瞄準方向：平常＝玩家→滑鼠；連擊進行中＝鎖住的方向（突進會移動玩家，鎖方向而不是鎖點才會整串同向）。</summary>
     private Vector2 AimDirectionToMouse()
     {
-        Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-        mousePos.z = 0f;
-        Vector2 dir = (Vector2)mousePos - (Vector2)transform.position;
+        if (_burstAimLocked) return _burstAimDir;
+        Vector2 dir = AimWorldPoint() - (Vector2)transform.position;
         return dir.sqrMagnitude > 0.0001f ? dir.normalized : Vector2.right;
     }
 
