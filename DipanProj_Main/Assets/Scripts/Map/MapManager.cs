@@ -57,6 +57,11 @@ public class MapManager : MonoBehaviour
     /// 由 <see cref="PlaceAndSetup"/> 在每次換圖時依該列更新；PlayerController 的發射 guard 讀它。</summary>
     public bool WeaponDisabled { get; private set; }
     public bool IsLoading => _loading;
+
+    // 進圖自動劇情（CutsceneDirector.MaybeAutoStart）要延到「場景說明播完」才開演（2026-08-27 作者拍板：
+    // 一進圖先看到正常的遊戲畫面 → 跳場景名 → 名字淡出後劇情模式才整套出現：藏主角、演員登場、Skip、黑邊）。
+    // 只有「這張圖這一趟要跳名字」時才延後；沒名字的圖仍在 PlaceAndSetup 同幀開演（零行為變化）。
+    bool _autoCutscenePending;
     public string CurrentModule => _loadedModule;   // 目前所在大地圖 module（結算/記過關用）
 
     /// <summary>
@@ -154,6 +159,7 @@ public class MapManager : MonoBehaviour
     IEnumerator LoadMapRoutine(MapTableRow row, string entrance)
     {
         _loading = true;
+        _autoCutscenePending = false;   // 上一張圖還沒開演的自動劇情作廢（新圖自有一輪）
         bool moduleEntry = row.module != _loadedModule;
         mapLoader.fitCameraToMap = false;   // 相機由本元件依 MapMode 接管
 
@@ -231,8 +237,10 @@ public class MapManager : MonoBehaviour
     /// 5) 多顆依區域清單順序點火；前一顆若開了對話，等對話關閉才點下一顆（避免兩段對話相撞）。
     /// 期間換圖就中止（新圖會有自己的一輪）。見 readme/TRIGGER_CHAIN.md。
     ///
-    /// **順帶負責「場景說明」**（MapsTable 的 SceneTip 欄）：掛在同一條等待鏈上，等進場特效與進場劇情
-    /// 都播完、觸發點點火之前跳一次場景名。掛這裡是因為「等過場播完」的邏輯只該有一份。見 readme/SCENE_TIP.md。
+    /// **順帶負責「場景說明」**（MapsTable 的 SceneTip 欄）：掛在同一條等待鏈上，等進場特效播完就跳一次場景名，
+    /// **名字整段播完才開演進圖自動劇情**（有名字要跳的圖，PlaceAndSetup 會把劇情留給這裡開）。
+    /// 順序：進場特效 → 趴地起身 → 場景說明 → 劇情開演、等它演完 → 進場觸發。
+    /// 掛這裡是因為「等過場播完」的邏輯只該有一份。見 readme/SCENE_TIP.md。
     /// </summary>
     IEnumerator FireEnterTriggersRoutine(MapTableRow row)
     {
@@ -264,19 +272,13 @@ public class MapManager : MonoBehaviour
             if (_currentMapId != mapAtStart || _loading) yield break;
         }
 
-        // 等「進場自動劇情」演完再點火進場觸發：避免劇情的對話與進場觸發對話互相蓋掉。
-        // （劇情由 MaybeAutoStart 在 PlaceAndSetup 內同步開演，此時 IsPlaying 已為 true。）
-        while (Dipan.Cutscene.CutsceneDirector.IsPlaying)
-        {
-            if (_currentMapId != mapAtStart || _loading) yield break;   // 劇情交棒換圖 → 中止（新圖自有一輪）
-            yield return null;
-        }
-
         if (_currentMapId != mapAtStart || _loading) yield break;   // 等待期間換圖 → 中止（別把上一張圖的名字跳在新圖上）
 
-        // 場景說明（MapsTable 的 SceneTip 欄）：等到這裡才跳，所以進場特效（睜眼醒來）與進場自動劇情
-        // 都已經播完，名字不會蓋在過場上。它自己會暫停遊戲＋鎖操作，而且**這裡要等它整段播完（含淡出）**
-        // 才往下點火——不等的話進場對話會直接疊在名字上面（作者實測回報）。
+        // 場景說明（MapsTable 的 SceneTip 欄）：進場特效（睜眼醒來）與趴地起身都播完了才跳，名字不會蓋在過場上。
+        // 此時畫面是**正常遊戲狀態**（主角在、HUD 在、還沒進劇情模式）——這是作者要的：先看到自己在場景裡、
+        // 跳名字、名字淡出後劇情模式才整套出現（2026-08-27 拍板；第一版是劇情演完才跳名字）。
+        // 它自己會暫停遊戲＋鎖操作，而且**這裡要等它整段播完（含淡出）**才開演劇情／點火——
+        // 不等的話劇情或進場對話會直接疊在名字上面（作者實測回報過一次）。
         // 見 Dipan.UI.SceneTipPanel / readme/SCENE_TIP.md。
         if (row != null && !string.IsNullOrEmpty(row.sceneTip) && _shownSceneTips.Add(row.sceneTip))
         {
@@ -291,6 +293,23 @@ public class MapManager : MonoBehaviour
             }
             else _shownSceneTips.Remove(row.sceneTip);
         }
+
+        // 進圖自動劇情：名字播完了，現在才開演（PlaceAndSetup 判定這一趟要跳名字時把它留給這裡）。
+        // 開演的第一幀就會藏主角、擺演員、建 Skip、拉黑邊——劇情模式的要素全部在名字之後才出現。
+        if (_autoCutscenePending)
+        {
+            _autoCutscenePending = false;
+            Dipan.Cutscene.CutsceneDirector.MaybeAutoStart(mapLoader != null ? mapLoader.Map : null, _player);
+        }
+
+        // 等「進場自動劇情」演完再點火進場觸發：避免劇情的對話與進場觸發對話互相蓋掉。
+        while (Dipan.Cutscene.CutsceneDirector.IsPlaying)
+        {
+            if (_currentMapId != mapAtStart || _loading) yield break;   // 劇情交棒換圖 → 中止（新圖自有一輪）
+            yield return null;
+        }
+
+        if (_currentMapId != mapAtStart || _loading) yield break;   // 等待期間換圖 → 中止
 
         if (regions == null) yield break;
 
@@ -368,7 +387,12 @@ public class MapManager : MonoBehaviour
         }
 
         // 劇情演出：此圖有 cutscene 且設 autoStart 就開演（半演出半漫畫的開場等）。見 CutsceneDirector。
-        Dipan.Cutscene.CutsceneDirector.MaybeAutoStart(mapLoader.Map, _player);
+        // **這一趟要跳場景名的圖，劇情延到名字播完才開演**（由 FireEnterTriggersRoutine 在名字之後呼叫）：
+        // 作者要的是「一進圖先看到正常畫面（主角在、HUD 在）→ 跳名字 → 名字淡出後劇情模式整套出現
+        // （藏主角、演員登場、Skip、黑邊）」，而不是一進圖就進劇情模式、只是先暫停跳名字。
+        // 沒名字要跳的圖（開場山道、房間互跳）仍在這裡同幀開演，主角一幀都不會露出來。
+        _autoCutscenePending = row != null && !string.IsNullOrEmpty(row.sceneTip) && !_shownSceneTips.Contains(row.sceneTip);
+        if (!_autoCutscenePending) Dipan.Cutscene.CutsceneDirector.MaybeAutoStart(mapLoader.Map, _player);
 
         // 關卡進度：把這張地圖「還沒撿走的掉落物」在原座標重放（換圖回來紅水還在原地）。見 RunProgress / InteractionManager。
         if (InteractionManager.Exists) InteractionManager.Instance.RestoreGroundDrops(_currentMapId);

@@ -98,8 +98,8 @@ public class PlayerAnimator : MonoBehaviour
     /// <summary>
     /// 依血統載入各動作的幀。fps≤0 用 12、referenceSpeed≤0 用 5。
     /// <paramref name="targetHeight"/> = 角色站立顯示高度（世界單位，≤0 用 1.95）：依 idle（取不到改 walk）
-    /// 的可見像素高度自動換算每張的縮放(tileSize)，與來源解析度/留白無關，所有動作同一縮放（比例一致，
-    /// dead 仍維持較矮的躺姿）。
+    /// 的可見像素高度自動換算 idle 的縮放(tileSize)；walk/attack 再各自依「體積尺度」對齊 idle
+    /// （<see cref="PlayerSpriteLibrary.GetActionSize"/>），消除 AutoSprite 各動作大小落差；dead 用 idle 的縮放、不正規化（躺姿本來就矮）。
     /// </summary>
     /// <param name="bodyScale">
     /// 體型倍率（1 = 原樣）。只用來決定 sprite 的 pivot——放大時讓**可見腳底留在原位、只往上長**，
@@ -125,20 +125,25 @@ public class PlayerAnimator : MonoBehaviour
             tileSize = targetHeight / wbox.y;
         tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
 
-        // 逐動作高度正規化：walk/attack 對齊 idle 的可見高度（消除 AI 各動作大小落差）；dead 維持躺姿用 idle 縮放、不正規化。
-        float idleVis = StateVisH(lib, bloodline, "idle");
+        // 逐動作尺度正規化：walk/attack 對齊 idle 的「體積尺度」（掃全幀取中位數的 √(高×√面積)，見
+        // PlayerSpriteLibrary.GetActionSize），消除 AutoSprite 各動作大小落差；dead 維持躺姿用 idle 縮放、不正規化。
+        // ⚠ 以前只對齊「第一幀的可見高度」——Base 的 attack 高度只多 4%、整個人卻粗了 14%，玩家一出手角色就長大
+        //   （PROBLEMS G7）。
+        float idleSize = StateSize(lib, bloodline, "idle");
         if (bodyScale <= 0.01f) bodyScale = 1f;
+        float walkTile = StateTile(lib, bloodline, "walk", tileSize, idleSize);
+        float attackTile = StateTile(lib, bloodline, "attack", tileSize, idleSize);
         _idle = lib.GetFrames(bloodline, "idle", tileSize, bodyScale);
-        _walk = lib.GetFrames(bloodline, "walk", StateTile(lib, bloodline, "walk", tileSize, idleVis), bodyScale);
+        _walk = lib.GetFrames(bloodline, "walk", walkTile, bodyScale);
         _dead = lib.GetFrames(bloodline, "dead", tileSize, bodyScale);
-        _attack = lib.GetFrames(bloodline, "attack", StateTile(lib, bloodline, "attack", tileSize, idleVis), bodyScale);
+        _attack = lib.GetFrames(bloodline, "attack", attackTile, bodyScale);
 
         // 各動作的可見幾何（給特效對位用）。與 GetFrames 用同一組 tileSize，算出來才對得上。
         _visH.Clear(); _footRel.Clear();
         CacheGeometry(lib, bloodline, "idle", State.Idle, tileSize, bodyScale);
-        CacheGeometry(lib, bloodline, "walk", State.Walk, StateTile(lib, bloodline, "walk", tileSize, idleVis), bodyScale);
+        CacheGeometry(lib, bloodline, "walk", State.Walk, walkTile, bodyScale);
         CacheGeometry(lib, bloodline, "dead", State.Dead, tileSize, bodyScale);
-        CacheGeometry(lib, bloodline, "attack", State.Attack, StateTile(lib, bloodline, "attack", tileSize, idleVis), bodyScale);
+        CacheGeometry(lib, bloodline, "attack", State.Attack, attackTile, bodyScale);
 
         // 攻擊起播幀：跳過「跟站著沒兩樣」的起手。整條規則與門檻見 PlayerSpriteLibrary.ActionStartPeakRatio。
         _attackStart = (_attack != null && _attack.Length > 0)
@@ -174,13 +179,14 @@ public class PlayerAnimator : MonoBehaviour
         _footRel[key] = (fy - pivotY) * stateTile;
     }
 
-    // 逐動作高度正規化助手：讓某動作的顯示縮放(tileSize)使其「可見高度」= idle 的可見高度。
-    static float StateVisH(PlayerSpriteLibrary lib, string b, string state)
-        => (lib.TryGetVisibleBox(b, state, out var sz, out _) && sz.y > 0.0001f) ? sz.y : 0f;
-    static float StateTile(PlayerSpriteLibrary lib, string b, string state, float baseTile, float idleVis)
+    // 逐動作尺度正規化助手：讓某動作的顯示縮放(tileSize)使其「體積尺度」= idle 的體積尺度。
+    // 尺度算不出來（沒圖／全透明）就用 idle 的縮放，行為同改動前的退路。
+    static float StateSize(PlayerSpriteLibrary lib, string b, string state)
+        => lib.GetActionSize(b, state).Scale;
+    static float StateTile(PlayerSpriteLibrary lib, string b, string state, float baseTile, float idleSize)
     {
-        float v = StateVisH(lib, b, state);
-        return (idleVis > 0.0001f && v > 0.0001f) ? Mathf.Clamp(baseTile * (idleVis / v), 0.1f, 30f) : baseTile;
+        float v = StateSize(lib, b, state);
+        return (idleSize > 0.0001f && v > 0.0001f) ? Mathf.Clamp(baseTile * (idleSize / v), 0.1f, 30f) : baseTile;
     }
 
     public bool Has(State s) => FramesFor(s) != null;

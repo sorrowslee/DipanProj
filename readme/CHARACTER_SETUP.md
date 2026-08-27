@@ -54,8 +54,17 @@
 > 正規化到同一個世界高度，所以不同來源、不同留白的圖進來都一樣高——基準是
 > `PlayerController.CharacterWorldHeight`（1.95）× **`BodyScale`**（血統表的體型倍率，Base = 1）。
 >
-> 但正規化**只看高度、不看體積與姿勢**：瘦長挺立的圖在同高度下就是比橫向壯碩的圖看起來小一號。
+> 但跨血統的正規化**只看高度、不看體積與姿勢**：瘦長挺立的圖在同高度下就是比橫向壯碩的圖看起來小一號。
 > `BodyScale` 就是拿來用眼睛校正那個落差的旋鈕。它是**純視覺**——不動碰撞框、不動戰鬥數值。
+>
+> **同一血統內，walk／attack 另外對齊 idle 的「體積尺度」（2026-08-27）**：AutoSprite 各動作的角色大小抓不準
+> （Base 的 attack 整個人比 idle 粗一圈），所以 `PlayerAnimator.Setup` 對 walk／attack 各算一個縮放，
+> 讓它的尺度＝idle 的尺度。尺度由 `PlayerSpriteLibrary.GetActionSize` 從圖算：**掃全部幀**、每幀量
+> 可見框高與 √不透明像素數、各取**中位數**，尺度＝√(高 × √面積)。⚠ 不是只量高度——高度對「畫粗了」無感、
+> 對「蹲下」反而會放大；也不是只量第一幀——第一幀常是起手。細節與量測數據見 [PROBLEMS.md](PROBLEMS.md) **G7**。
+> dead 不正規化（躺姿本來就矮）。換圖後跑 `Project Tools → 角色 → 攻擊動畫幀數報告`，會印每個血統
+> walk／attack 的縮放：**離 1 很遠代表那組圖大小抓歪了**（例：Base attack ×0.917）。
+> 這裡沒有手填覆寫欄——只跟圖有關的資訊從圖算，抓歪了重做圖。
 >
 > **放大是以「可見腳底」為錨點往上長**，不是置中放大（置中會讓腳往下沉、像陷進地板）。
 > 實作是 `PlayerSpriteLibrary.ApplyFootPivot` 依倍率倒推 sprite 的 pivot、就地 `Sprite.Create` 重建；

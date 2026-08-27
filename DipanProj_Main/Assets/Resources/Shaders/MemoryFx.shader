@@ -5,7 +5,10 @@
 //
 // 效果由外到內四層（強度都由 _Amount 0~1 統一淡入淡出，0＝完全原畫面）：
 //   1. 泛黃：去飽和後往暖褐色偏（老照片/相紙氧化）
-//   2. 柔邊：越靠畫面邊緣越模糊（4-tap 十字模糊，靠 _BlurPx 控半徑）
+//   2. 柔邊：越靠畫面邊緣越模糊（13-tap 圓盤模糊：中心＋內圈 6＋外圈 6，靠 _BlurPx 控半徑）
+//      ⚠ 第一版是 4-tap 十字：半徑 6px 下四個取樣點彼此相距 6px、各佔 15%，等於把畫面疊成
+//         四個錯位的半透明副本——燈籠、柱子這種硬邊物件在畫面兩側會變成一塊塊的重影，作者看成「馬賽克」。
+//         取樣點太少的模糊不是模糊，是重影；tap 數要跟半徑成比例（相鄰取樣點距離 ≤ 2~3px 才看不出來）。
 //   3. 暈影：邊緣壓暗 ＋ 往中心提亮一點（相紙邊緣氧化 + 中央曝光）
 //   4. 顆粒：極輕的靜態雜訊，避免整片死板
 //
@@ -25,6 +28,7 @@ Shader "Hidden/Dipan/MemoryFx"
             CGPROGRAM
             #pragma vertex vert_img
             #pragma fragment frag
+            #pragma target 3.0   // 13 次 tex2D ＋ 雜訊 hash，ps_2_x 的指令上限不夠
             #include "UnityCG.cginc"
 
             sampler2D _MainTex;
@@ -62,11 +66,24 @@ Shader "Hidden/Dipan/MemoryFx"
                 fixed4 col = tex2D(_MainTex, i.uv);
                 if (blur > 0.01)
                 {
-                    fixed4 b = col * 0.4;
-                    b += tex2D(_MainTex, i.uv + float2( tx.x, 0)) * 0.15;
-                    b += tex2D(_MainTex, i.uv + float2(-tx.x, 0)) * 0.15;
-                    b += tex2D(_MainTex, i.uv + float2(0,  tx.y)) * 0.15;
-                    b += tex2D(_MainTex, i.uv + float2(0, -tx.y)) * 0.15;
+                    // 圓盤取樣：內圈 6 點（半徑 0.5）、外圈 6 點（半徑 1.0，錯開 30°），權重近似高斯。
+                    // 半徑 6px 時相鄰取樣點距離約 3px，硬邊物件糊成一團而不是四個重影。
+                    // 權重總和 = 0.16 + 6×0.09 + 6×0.05 = 1.0。
+                    fixed4 b = col * 0.16;
+                    // 內圈（0°, 60°, …）× 0.5r
+                    b += tex2D(_MainTex, i.uv + float2( 0.5000,  0.0000) * tx) * 0.09;
+                    b += tex2D(_MainTex, i.uv + float2( 0.2500,  0.4330) * tx) * 0.09;
+                    b += tex2D(_MainTex, i.uv + float2(-0.2500,  0.4330) * tx) * 0.09;
+                    b += tex2D(_MainTex, i.uv + float2(-0.5000,  0.0000) * tx) * 0.09;
+                    b += tex2D(_MainTex, i.uv + float2(-0.2500, -0.4330) * tx) * 0.09;
+                    b += tex2D(_MainTex, i.uv + float2( 0.2500, -0.4330) * tx) * 0.09;
+                    // 外圈（30°, 90°, …）× 1.0r
+                    b += tex2D(_MainTex, i.uv + float2( 0.8660,  0.5000) * tx) * 0.05;
+                    b += tex2D(_MainTex, i.uv + float2( 0.0000,  1.0000) * tx) * 0.05;
+                    b += tex2D(_MainTex, i.uv + float2(-0.8660,  0.5000) * tx) * 0.05;
+                    b += tex2D(_MainTex, i.uv + float2(-0.8660, -0.5000) * tx) * 0.05;
+                    b += tex2D(_MainTex, i.uv + float2( 0.0000, -1.0000) * tx) * 0.05;
+                    b += tex2D(_MainTex, i.uv + float2( 0.8660, -0.5000) * tx) * 0.05;
                     col = b;
                 }
 

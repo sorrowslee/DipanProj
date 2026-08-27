@@ -116,7 +116,7 @@
 - [ ] 攻擊播放速度：目前沿用 `PlayerAnimFPS`（與 idle/walk 共用）。要獨立速度 → 給 `PlayerAnimator` 加 per-state 的 attack fps。
 - [ ] 觸發方式：目前是「**按住開火鍵**」就播（吃輸入，沒魔力/冷卻中也會擺姿勢）。若要改「**真的射出去那一下**才播」，改成在實際發射點（Shoot/UpdateLaser/UpdateAura）觸發 + 一次性播完。
 - [ ] 殘留時間 `AttackAnimLinger`（PlayerController 常數，現 0.12s）。
-- [ ] 大小一致性：attack 幀顯示縮放沿用 idle 可見高度換算；cast 幀主體高度與 idle 差太多會忽大忽小。
+- [x] ~~大小一致性：attack 幀顯示縮放沿用 idle 可見高度換算；cast 幀主體高度與 idle 差太多會忽大忽小。~~ → **已改成「體積尺度」對齊**（2026-08-27，掃全幀取中位數的 √(高×√面積)，見 [PROBLEMS.md](PROBLEMS.md) **G7**）。⏳ 尚未做：各動作腳底對齊（縮放不同時腳底會偏一點）、怪物端 `MonsterAnimator` 仍是第一幀高度法。
 
 ---
 

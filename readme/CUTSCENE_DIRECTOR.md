@@ -183,6 +183,7 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
   少了這道，症狀是「劇情剛播完，人就被送回上一張圖」。見 [PROBLEMS.md](PROBLEMS.md) **B14**。
 
 - **`MapManager` 在載圖完成後呼叫 `CutsceneDirector.MaybeAutoStart(map, player)`**，換圖會先收掉上一段演出。
+- **有場景名的圖，自動播延到名字播完才開演**（2026-08-27）：`MapManager.PlaceAndSetup` 判定這一趟要跳 `SceneTip` 時不呼叫 `MaybeAutoStart`，改由進場等待鏈在名字整段播完後呼叫。所以玩家看到的是**正常畫面 → 場景名 → 劇情模式整套出現**（藏主角、演員、Skip、黑邊都在名字之後）。沒名字的圖仍同幀開演。`playCutscene` 中途啟動的不受影響。細節見 [SCENE_TIP.md](SCENE_TIP.md) §3。
 - **進場觸發（`onEnter`）會等演出演完才點火**：`MapManager` 迴圈等 `CutsceneDirector.IsPlaying` 變 false，避免劇情對話與進場觸發對話互相蓋掉。演出中途交棒換圖則直接中止（新圖自有一輪）。
 - **`fade` 的黑幕 sortingOrder = 90**，刻意壓在 `UILayer.Window`(100) 之下 → 畫面全黑但**對話框仍浮在黑幕上可見**（黑暗中的尖叫）。
 - **`screenFx` 開始時會即時移除黑幕**：螢幕特效是相機後處理、在所有 UI 之下，黑幕會蓋住它。同一幀移除且特效已啟動，不會閃出清晰場景。
@@ -213,7 +214,7 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 | 層 | 內容 | 為什麼需要 |
 |---|---|---|
 | **淡掉場景氛圍**（`SuspendAtmosphere`，預設開） | `AtmosphereController.SetBypass(0→1)`，把整套氛圍與原始畫面內插 | **這是回憶在暗地圖上看不看得見的關鍵**，見下方警告 |
-| **泛黃＋柔邊＋暈影＋顆粒** | 去飽和後往暖褐偏／邊緣越外圈越模糊／邊緣壓暗中央微亮／極輕靜態顆粒 | 老照片的本體 |
+| **泛黃＋暈影＋顆粒**（柔邊已關） | 去飽和後往暖褐偏／邊緣壓暗中央微亮／極輕靜態顆粒。**邊緣模糊 `BlurPx` 自 2026-08-27 設 0**：npc 走到畫面邊邊整個人會被糊掉（見 PROBLEMS **J5**）；shader 的 13-tap 圓盤模糊留著，要開回來填 4~6 | 老照片的本體 |
 | **上下黑邊**（`Letterbox`，各 11% 高） | 後處理直接畫兩條黑邊，隨強度滑入滑出 | **與場景明暗完全無關**，全黑的地圖上也一眼看得出「進入過場」 |
 
 > ### ⚠ 為什麼一定要淡掉場景氛圍（踩過的坑）

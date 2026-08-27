@@ -27,7 +27,9 @@ namespace Dipan.MapFx
         const float Desat       = 0.65f;  // 去飽和（老照片不是全彩）
         const float VigStart    = 0.34f;  // 離中心多遠開始「柔邊＋壓暗」（越小＝輪廓越往內縮）
         const float VigPower    = 0.62f;  // 邊緣壓暗量
-        const float BlurPx      = 6.0f;   // 邊緣最大模糊半徑（像素）
+        // 邊緣最大模糊半徑（像素）。**2026-08-27 起關掉（0）**：劇情 npc 不會只在畫面中央走，走到邊邊整個人被糊掉
+        // （作者實測回報）。shader 裡的 13-tap 圓盤模糊還在，想開回來填 4~6；0 時 shader 直接跳過取樣、零成本。
+        const float BlurPx      = 0f;
         const float Grain       = 0.020f; // 顆粒
         static readonly Color Tint = new Color(1.00f, 0.86f, 0.62f, 1f);   // 相紙暖褐
 

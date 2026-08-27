@@ -12,7 +12,8 @@ namespace Dipan.Cutscene
     /// 串接鎖輸入、A* 走位、對話（沿用 DramaTable）、頭上對話框、置中漫畫、運鏡、螢幕特效、旗標、結束交棒。
     ///
     /// **兩個啟動入口**：
-    ///   ‧ <see cref="MaybeAutoStart"/>：<see cref="MapManager"/> 每次載圖完成後呼叫，autoStartOnEnter=true 才開演。
+    ///   ‧ <see cref="MaybeAutoStart"/>：<see cref="MapManager"/> 每次載圖完成後呼叫，autoStartOnEnter=true 才開演
+    ///     （這一趟要跳場景名的圖會延到名字播完才叫——先正常畫面、跳名字、再整套進劇情模式；見 readme/SCENE_TIP.md §3）。
     ///   ‧ <see cref="PlayById"/>：觸發鏈的 <c>playCutscene</c> 動作呼叫。把 autoStartOnEnter 關掉、
     ///     改用 trigger 啟動，就能沿用觸發鏈整套「條件旗標／重複規則（關卡單次·每次·每周目·永久）」來管
     ///     「這段劇情能不能播、播幾次」——**自動播是沒有一次性機制的，每次進圖都會重播**。
@@ -182,7 +183,9 @@ namespace Dipan.Cutscene
         /// 血量 HUD 有兩個會主動打開它的來源，而其中一個的時機正好在開演之後：
         ///   ① <c>MapManager.PlaceAndSetup</c>：在呼叫 MaybeAutoStart **之前**開，所以開演時關掉是有效的；
         ///   ② <c>PlayerController.Start()</c>：玩家**初次生成**那一幀才跑，而 Unity 的 Start 是在
-        ///      建立它的那支程式跑完之後才呼叫 ⇒ **比 MaybeAutoStart 晚**，會把剛關掉的 HUD 又開回來。
+        ///      建立它的那支程式跑完之後才呼叫 ⇒ **比同幀的 MaybeAutoStart 晚**，會把剛關掉的 HUD 又開回來。
+        ///      （2026-08-27 起有場景名的圖 MaybeAutoStart 延到名字播完才叫、那時 Start 早跑完了；
+        ///      但沒名字的圖仍是同幀開演，這個坑還在。）
         /// 症狀就是「勾了關閉血量 HUD 卻還在」，而且只在「進關卡第一張圖（玩家在那裡生成）」才發生，
         /// 同 module 房間互跳反而正常——極難反推。用每幀維持是最省事也最保險的做法：
         /// 之後不管誰去開 HUD 都蓋不過演出。

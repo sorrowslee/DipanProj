@@ -173,6 +173,111 @@ public class PlayerSpriteLibrary
         return true;
     }
 
+    // ─────────────────── 動作「體積尺度」：以 idle 為準把 walk/attack 縮成一樣大 ───────────────────
+    //
+    // 【要解決的問題】AutoSprite 產的各動作序列圖，同一個角色的「大小」抓不準：Base 的 attack 整個人
+    // 比 idle 粗一圈（頭、軀幹、腿全部變大），玩家一出手角色就「長大」、收手又「縮回去」。
+    // 2026-08-18 起 PlayerAnimator 已經會把 walk/attack 的顯示縮放對齊 idle，但它量的是**可見高度**，
+    // 而且只量**第一幀**——兩個盲點剛好都被 attack 踩中：
+    //   ① 高度對「畫粗了」無感（Base attack 只高 4%，體積卻大 14%）、對「蹲下」反而會把圖放大
+    //      （Nightborn attack 是蹲姿，高度比 idle 矮 → 被放大 1.036，實際體積已經是 idle 的 1.12 倍）。
+    //   ② 第一幀常是起手、不代表整段（Maojiang attack 第一幀高 190px、全段中位數 180px，差 5%）。
+    //
+    // 【規則】每個動作的「尺度」＝ √( 中位可見高 × 中位√不透明面積 )，兩者都是**掃全部幀取中位數**。
+    //   - √面積對「整體均勻放大」是線性的，對「手伸出去」這種姿勢變化只有小幅影響 → 補高度的盲點 ①。
+    //   - 高度對「畫粗了」無感，但不會被伸出去的手臂／披風騙 → 補面積的盲點（Jiangshi attack 身體沒變大、
+    //     只是手伸很長，純面積會多縮 10%）。兩者取幾何平均，各補對方一半。
+    //   - 中位數而不是第一幀／平均：起手、收勢、偶爾一張爆出來的幀都不影響。
+    // 實測七組血統（2026-08-27）attack 的縮放：Base 0.917、Jiangshi 0.945、Nightborn 0.961，其餘 0.99~1.06；
+    // walk 與舊高度法幾乎相同（Nightborn walk 三種指標一致地小 13%，舊法本來就對）。
+    //
+    // 【為什麼不做成 CSV 欄位／不離線把圖縮好】同起播幀：只跟那張圖有關的資訊就從圖算，不變成人工維護
+    // 的資料；離線縮圖要放大的血統會撞 256×256 畫布邊，而且每加一個血統都得記得跑一次腳本。
+    // 【成本】只在 Setup（進場／換血統）第一次查詢時掃一次、永久快取；25 張 256² 圖是毫秒級，
+    // 與起播幀掃描同一批貼圖（MapSpriteLoader 已快取）。
+    // ⚠ 這裡量的是像素（同 GetAlphaLocalBox 的 px ÷ PPU 只差一個常數），所以只能拿來算**同一血統各動作之間的比例**；
+    //    絕對顯示高度仍由 PlayerAnimator.Setup 用 idle 的 TryGetVisibleBox 決定，本區不碰。
+
+    /// <summary>某動作的「體積尺度」統計（像素）。<see cref="ActionSize.Scale"/> 才是拿來對齊的數字。</summary>
+    public struct ActionSize
+    {
+        public bool ok;
+        public int frames;              // 實際量到的幀數
+        public float medianHeightPx;    // 各幀可見框高度的中位數
+        public float medianSqrtAreaPx;  // 各幀 √(不透明像素數) 的中位數
+        /// <summary>尺度＝√(高 × √面積)：高度與面積的幾何平均，見本區說明。</summary>
+        public float Scale => (ok && medianHeightPx > 0f && medianSqrtAreaPx > 0f) ? Mathf.Sqrt(medianHeightPx * medianSqrtAreaPx) : 0f;
+    }
+
+    readonly Dictionary<string, ActionSize> _actionSize = new Dictionary<string, ActionSize>();   // "<血統>/<state>" → 尺度統計
+
+    /// <summary>
+    /// 取某血統某動作的體積尺度（掃全部幀、取中位數、快取）。沒圖或全部讀不到回 <c>ok=false</c>。
+    /// 兩個動作的 <see cref="ActionSize.Scale"/> 相除＝把後者縮成前者一樣大的倍率。
+    /// </summary>
+    public ActionSize GetActionSize(string bloodline, string state)
+    {
+        string key = Key(bloodline, state);
+        if (_actionSize.TryGetValue(key, out var cached)) return cached;
+        var r = ComputeActionSize(bloodline, state);
+        _actionSize[key] = r;
+        return r;
+    }
+
+    ActionSize ComputeActionSize(string bloodline, string state)
+    {
+        var none = new ActionSize { ok = false };
+        if (_loader == null || !_byTail.TryGetValue(Key(bloodline, state), out var item) || item == null) return none;
+
+        int n = item.IsAnimated ? item.frames.Count : 1;
+        var heights = new List<float>(n);
+        var sqrtAreas = new List<float>(n);
+        for (int i = 0; i < n; i++)
+        {
+            var tex = item.IsAnimated ? _loader.GetFrameTexture(item.frames[i]) : _loader.GetTexture(item);
+            if (!MeasureFrame(tex, out int h, out int area)) continue;
+            heights.Add(h);
+            sqrtAreas.Add(Mathf.Sqrt(area));
+        }
+        if (heights.Count == 0) return none;
+        return new ActionSize
+        {
+            ok = true,
+            frames = heights.Count,
+            medianHeightPx = Median(heights),
+            medianSqrtAreaPx = Median(sqrtAreas),
+        };
+    }
+
+    /// <summary>一張圖的可見框高度（px）與不透明像素數。全透明回 false。門檻同 PoseAlphaThreshold（去背邊當透明）。</summary>
+    static bool MeasureFrame(Texture2D tex, out int height, out int area)
+    {
+        height = 0; area = 0;
+        if (tex == null || tex.width <= 0 || tex.height <= 0) return false;
+        var px = tex.GetPixels32();
+        int w = tex.width, hgt = tex.height;
+        int minY = hgt, maxY = -1;
+        for (int y = 0; y < hgt; y++)
+        {
+            int rowBase = y * w;
+            bool any = false;
+            for (int x = 0; x < w; x++)
+                if (px[rowBase + x].a > PoseAlphaThreshold) { area++; any = true; }
+            if (any) { if (y < minY) minY = y; if (y > maxY) maxY = y; }
+        }
+        if (maxY < 0) return false;
+        height = maxY - minY + 1;
+        return true;
+    }
+
+    static float Median(List<float> v)
+    {
+        if (v == null || v.Count == 0) return 0f;
+        var a = new List<float>(v); a.Sort();
+        int m = a.Count / 2;
+        return (a.Count % 2 == 1) ? a[m] : 0.5f * (a[m - 1] + a[m]);
+    }
+
     // ─────────────────── 動作「起播幀」：跳過起手，全血統通用、零設定 ───────────────────
     //
     // 【要解決的問題】攻擊動畫是「一發＝一次」的短表演，但每個血統的素材起手長度都不一樣：
