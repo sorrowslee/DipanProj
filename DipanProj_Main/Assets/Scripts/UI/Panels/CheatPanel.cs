@@ -413,7 +413,7 @@ namespace Dipan.UI
         /// <summary>
         /// 一鍵取得所有血統藥劑：物品表裡**每一種血統藥劑各給一瓶**。涵蓋兩類，
         /// 判斷一律走 <see cref="ItemData"/> 的欄位、**不比對名稱前綴**（之後新增藥劑不必回來改這裡）：
-        ///   ① **系列起始藥劑**（`IsBloodlineStarter`，即 CSV 的 `BloodlineID > 0`）：目前 301 殭屍、302 夜裔。
+        ///   ① **系列起始藥劑**（`IsBloodlineStarter`，即 CSV 的 `BloodlineID > 0`）：目前 301 殭屍、302 血族（覓血者）。
         ///   ② **進階藥劑**（`IsBloodlineUpgrade`，即 CSV 的 `BloodlineUpgrade > 0`）：310 中階、311 高階，全系列通用。
         ///
         /// 每種一瓶（起始藥劑本來就 MaxStack=1）。進階藥劑要更多就連按幾次，或用上面的「依 ID 給道具」。
