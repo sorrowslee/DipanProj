@@ -48,3 +48,6 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 20,Bloodseeker,覓血者,Bloodseeker,1,10,15,25,20,15,,血族系列 第一階（數值為佔位，待屬性系統再校）
 21,CrimsonCount,血伯爵,Crimson Count,1.5,10,35,40,40,35,,血族系列 第二階（數值為佔位，待屬性系統再校）
 22,Cain,該隱,Cain,1.5,10,60,55,60,55,,血族系列 第三階（數值為佔位，待屬性系統再校）
+30,Werewolf,狼人,Werewolf,1.2,10,25,15,5,20,,狂族系列 第一階（數值為佔位，待屬性系統再校）
+31,Moonwatcher,望月者,Moonwatcher,1.5,10,45,25,10,45,,狂族系列 第二階（BodyScale 憑印象給，實機看過再定）
+32,Fenrir,芬里爾,Fenrir,1.4,10,70,40,15,70,,狂族系列 第三階（BodyScale 憑印象給，實機看過再定）

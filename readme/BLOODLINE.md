@@ -14,7 +14,7 @@
 
 | 規則 | 內容 |
 |---|---|
-| 系列 | 一個系列 = 三個階段。目前有兩個系列：殭屍系列 **殭屍 → 毛殭 → 旱魃**、血族系列 **覓血者 → 血伯爵 → 該隱**（2026-08-27 前叫「夜裔系列／夜裔／Nightborn」，PROBLEMS／PROGRESS 歷史條目裡的 Nightborn 就是它） |
+| 系列 | 一個系列 = 三個階段。目前有兩個系列：殭屍系列 **殭屍 → 毛殭 → 旱魃**、血族系列 **覓血者 → 血伯爵 → 該隱**、狂族系列 **狼人 → 望月者 → 芬里爾**（英文：血族系列 **Bloodborn**、第一階 **Bloodseeker**（也是外型資料夾名）；狂族系列 **Feralborn**、三階 `Werewolf`／`Moonwatcher`／`Fenrir`（2026-08-27 加）。2026-08-27 前叫「夜裔系列／夜裔／Nightborn」，PROBLEMS／PROGRESS 歷史條目裡的 Nightborn 就是它） |
 | 起點 | 所有角色從「人類」（血統 Id 1、外型 Base）開始 |
 | 選系列 | 喝**系列起始藥劑**（例：血統藥劑・殭屍）→ 變成該系列第一階。**本世只能選一次，不可逆，不能改吃別的系列** |
 | 升階 | 喝**血統進階藥劑・中階/高階**→ 沿目前系列往上一階。**全系列通用**（不是每個系列各做三瓶） |
@@ -37,13 +37,14 @@
 ```
 SeriesId,Key,DisplayName,Stage1Id,Stage2Id,Stage3Id,Note
 1,Jiangshi,殭屍,10,11,12,殭屍系列：殭屍 → 毛殭 → 旱魃
-2,Bloodseeker,血族,20,21,22,血族系列：覓血者 → 血伯爵 → 該隱
+2,Bloodborn,血族,20,21,22,血族系列：覓血者 → 血伯爵 → 該隱
+3,Feralborn,狂族,30,31,32,狂族系列：狼人 → 望月者 → 芬里爾
 ```
 
 這是「系列 ↔ 階段 ↔ 血統 Id」的**唯一真相**。`BloodlineSeriesTable.cs` 載入時順便建一份
 「血統 Id → (系列, 第幾階)」的反查索引，`TryLocate()` 就是查它。
 
-**血統 Id 慣例**：一個系列吃一個十位段（殭屍 10~12、血族 20~22、下一個系列 30~32…），**Id 1 保留給人類**。
+**血統 Id 慣例**：一個系列吃一個十位段（殭屍 10~12、血族 20~22、狂族 30~32、下一個系列 40~42…），**Id 1 保留給人類**。
 
 ### 表B `Assets/Data/BloodlineTable.csv` — 每種血統的外型與屬性
 
@@ -56,6 +57,9 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 20,Bloodseeker,覓血者,Bloodseeker,1,10,15,25,20,15,,血族系列 第一階
 21,CrimsonCount,血伯爵,Crimson Count,1,10,35,40,40,35,,血族系列 第二階
 22,Cain,該隱,Cain,1,10,60,55,60,55,,血族系列 第三階
+30,Werewolf,狼人,Werewolf,1,10,25,15,5,20,,狂族系列 第一階
+31,Moonwatcher,望月者,Moonwatcher,1.3,10,45,25,10,45,,狂族系列 第二階
+32,Fenrir,芬里爾,Fenrir,1.5,10,70,40,15,70,,狂族系列 第三階
 ```
 
 ⚠ **`SpriteFolder` 允許含空白**（`Crimson Count`）。catalog 存的是相對路徑、載圖走 `File.ReadAllBytes`，
@@ -120,6 +124,9 @@ Unity 怎麼算 bounds 影響。
 | 覓血者 | 256×256 | 78 | 174 |
 | 血伯爵 | 256×256 | 91 | **157** |
 | 該隱 | 256×256 | 73 | **138** |
+| 狼人 | 256×256 | 74 | **204** |
+| 望月者 | 256×256 | 128 | 186 |
+| 芬里爾 | 256×256 | 138 | 177 |
 
 但**跨血統的正規化只看高度、不看體積與姿勢**（同一血統內的 walk／attack 則另外用「體積尺度」對齊自己的 idle，
 見 [CHARACTER_SETUP.md](CHARACTER_SETUP.md) 顯示高度段、[PROBLEMS.md](PROBLEMS.md) **G7**——那是修「一出手就長大」的，
@@ -166,16 +173,17 @@ Unity 怎麼算 bounds 影響。
 | `BloodlineID` | **系列起始藥劑**：指到 BloodlineTable 的 Id（慣例是該系列第一階） |
 | `BloodlineUpgrade` | **進階藥劑**：目標階數（2 = 中階、3 = 高階）。不指定血統，實際變成什麼由表A 決定 |
 
-目前四瓶：
+目前五瓶：
 
 | ID | 名稱 | 欄位 | 取得 |
 |---|---|---|---|
 | 301 | 血統藥劑・殭屍 | `BloodlineID=10` | 血統祭壇（`BaseBloodRoll.csv`，300 元、不連抽） |
 | 302 | 血統藥劑・血族 | `BloodlineID=20` | 血統祭壇（同上，權重與殭屍同為 10） |
+| 303 | 血統藥劑・狂族 | `BloodlineID=30` | 血統祭壇（同上，權重 10） |
 | 310 | 血統進階藥劑・中階 | `BloodlineUpgrade=2` | 道具祭壇（`BaseItemRoll.csv`，權重 3） |
 | 311 | 血統進階藥劑・高階 | `BloodlineUpgrade=3` | 道具祭壇（`BaseItemRoll.csv`，權重 1） |
 
-icon 都在 `Resources/UI/Icons/Items/positions/bloodline/`：`bloodline_Jiangshi`（301）／`bloodline_Bloodseeker`（302）／`bloodline_lvup_middle`（310）／`bloodline_lvup_high`（311）。
+icon 都在 `Resources/UI/Icons/Items/positions/bloodline/`：`bloodline_Jiangshi`（301）／`bloodline_Bloodborn`（302）／`bloodline_Feralborn`（303）／`bloodline_lvup_middle`（310）／`bloodline_lvup_high`（311）。
 
 **為什麼進階藥劑放道具池不放血統池**：血統池賣的是「選一個系列」（一世一次的重大決定），
 進階是之後的成長消耗品，兩件事分開。高階刻意比中階稀有——血統必須逐階喝，抽到高階但還在第一階
@@ -483,8 +491,8 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 
 ## 7. 怎麼加一個新系列
 
-1. 表A 加一列（Id 接續，例如第三個系列）：`3,Werewolf,狼人,30,31,32,...`
-2. 表B 加三列：Id 30/31/32，填 `SpriteFolder`、`BodyScale`（先填 1，實機看過再調）與五屬性
+1. 表A 加一列（Id 接續，例如第四個系列）：`4,<系列Key>,<系列名>,40,41,42,...`
+2. 表B 加三列：Id 40/41/42，填 `SpriteFolder`、`BodyScale`（先填 1，實機看過再調）與五屬性
 3. 美術：`SequenceImage/<SpriteFolder>/{idle,walk,dead,attack}/` 與 `Talk/<SpriteFolder>/<8 種情緒>.png`
 4. **跑 `Project Tools → Sync Map Assets`**
 5. `ItemTable.csv` 加一瓶系列起始藥劑（`BloodlineID` = 該系列第一階的 Id）
@@ -499,7 +507,9 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 - **五個屬性只存不套用**，等角色屬性系統（見 §2 的警告）
 - **玩家沒地方「事後」查自己的血統與階段**——喝下去當下有立繪揭示面板，但之後就沒地方看了。等角色資訊面板
 - `SkillId` 仍是死欄（技能系統不存在）
-- 目前兩個系列（殭屍、血族），素材與資料都齊；再加系列照 §7 走
+- 目前三個系列（殭屍、血族、狂族），素材與資料都齊；再加系列照 §7 走。狂族的立繪除了 `normal` 之外目前是暫代圖（與旱魃同一張），美術到了直接覆蓋檔案即可
+- **狂族的 `BodyScale`（狼人 1／望月者 1.3／芬里爾 1.5）是憑印象給的，實機看過再定**
+- **狼人的攻擊動畫幾乎播不出來（只播 2 幀）**：起播／結束幀演算法（PROBLEMS G6）是拿「跟 idle 站姿的差異」當動作曲線，狼人的 idle 是直立、attack 整段都是前傾寬站姿 ⇒ 第 1 幀就到峰值 100%、結束幀＝第 2 幀。芬里爾也只播 3 幀（第 11~13）。這是演算法的前提（idle 與 attack 起手相似）被素材打破，不是素材壞掉；要嘛重做 attack 讓起手接近 idle，要嘛改成「相對 attack 自己第 1 幀」的曲線。記在 TODO
 - **血族三階的 `BodyScale` 全是 1，還沒實機看過**——該隱那張 idle 可見高只有 138px（Base 193），正規化會把它放大約 1.4 倍，是最需要用眼睛校正的一個
 - 變身表演**沒有音效**（專案還沒有音訊系統）——雷擊、煙爆、立繪剝落是這個遊戲裡最該有聲音的三個瞬間，音訊系統做好後第一個要補的就是這裡
 - **`Talk/Base/normal.png` 是 1122×1402，與其他三張（1024×1536）比例不同**。立繪揭示面板已用「等比縮到框內、靠下對齊」吸收掉，但第一次喝藥（人類 → 殭屍）那一幕人類會比殭屍小一圈。重畫成 1024×1536 就完全對齊
