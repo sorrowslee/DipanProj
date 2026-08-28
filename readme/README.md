@@ -34,6 +34,8 @@
 | [WEAPON_WORKBENCH.md](WEAPON_WORKBENCH.md) | **武器工坊**（Unity EditorWindow，`Project Tools → 武器工坊`）：選外型／選 Mode／只顯示有效欄／名稱下拉／範圍提示，Play 中改值立刻射出去（`SimulationOverride`），真鑲珠子有效，一鍵存回 CSV | **做／改任何武器或配方時優先用它，不要手改 CSV**；接新欄位／新模式後看視窗有沒有跟上 |
 | [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（**倒序，最新在最上**；較舊條目原文封存在 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭有逐條索引） | 想了解歷史脈絡 |
 | [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) | 產圖流程與規範 | **任何產圖前** |
+| [ART_DIRECTION.md](ART_DIRECTION.md) | **美術紀律**（畫面經營規則書：色彩劇本、明度階層、邊框剪影、特效語言、全屏質感、接地與生命感、UI 語彙；含給繪圖 AI 的產圖檢核表與截圖自檢表） | **委託產任何素材前**、調場景觀感、覺得「畫面組起來不漂亮」時 |
+| [art_direction/](art_direction/README.md) | **美術規範準則資料夾**：8 份分域準則——場景／地上物／角色圖／立繪／UI icon（ChatGPT 繪製域）＋場景特效／氛圍 shader（Claude 域）＋AI 委託工作流程 SOP；索引含分工表 | 委託/動手做任何領域的素材、特效、shader 前 |
 | [MapEditor_DESIGN.md](MapEditor_DESIGN.md) | 地圖編輯器設計與 `.dipanmap` 格式 | 改編輯器、看地圖格式 |
 | [MAP_LOADER_SETUP.md](MAP_LOADER_SETUP.md) | 主遊戲端地圖載入器(MapLoader)、素材同步、Unity 接線 | 動地圖載入、牆/可走/出生點、素材同步 |
 | [MAP_SYSTEM.md](MAP_SYSTEM.md) | 多圖串接（MapsTable／傳送點／MapManager）＋地圖狀態持久化概念 | 串接關卡多張地圖、傳送點、規劃狀態持久化 |

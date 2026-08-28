@@ -52,6 +52,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |
 | 發光／亮度／光圈／環境亮度 | [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)＋[readme/SCENE_EFFECT.md](readme/SCENE_EFFECT.md)（同框 12 盞上限寫死在兩處） |
 | 產任何圖片素材 | [readme/AI_IMAGE_GEN_GUIDE.md](readme/AI_IMAGE_GEN_GUIDE.md) |
+| 素材風格／場景調色／畫面觀感（「組起來不漂亮」） | [readme/ART_DIRECTION.md](readme/ART_DIRECTION.md)（畫面經營六紀律＋繪圖 AI 檢核表；產圖操作仍看 AI_IMAGE_GEN_GUIDE） |
 | 第一次接觸專案／遇到怪問題 | [readme/PROBLEMS.md](readme/PROBLEMS.md)（檔頭有分類索引；踩過的坑幾乎都在裡面） |
 
 ---
