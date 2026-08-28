@@ -171,6 +171,11 @@ namespace Dipan.UI
             if (_stats == null) return;
             if (_hp != null) _hp.SetStats(_stats.Health, _stats.MaxHealth);
             if (_mp != null) _mp.SetStats(_stats.Mana, _stats.MaxMana);
+
+            // 暗場景收斂：把場景黑暗程度餵給血球（HUD 是 Overlay 不吃後處理，要顯式跟）。
+            float dim = AtmosphereController.DarknessLevel;
+            if (_hp != null) _hp.SetSceneDim(dim);
+            if (_mp != null) _mp.SetSceneDim(dim);
         }
 
         // 找玩家身上的 CombatStats（快取；玩家死亡/換地圖重生後自動重找）

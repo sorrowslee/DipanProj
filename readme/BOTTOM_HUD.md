@@ -60,6 +60,12 @@ Diablo 風的底部操控列：整條石雕框（燃燈佛、法輪、血瓶槽�
 
 **搖晃手感**（`LiquidOrb.cs`）：`ApproachSpeed`（液面追上速度）、`SloshImpulse`（晃多大）、`SloshStiffness`（回穩多急）、`SloshDamping`（多快靜下）、`SloshMax`（上限）。
 
+**暗場景收斂（2026-08-28 加）**：血球亮度會隨場景黑暗程度自動收斂——`BottomHudPanel.Update` 每幀把
+`AtmosphereController.DarknessLevel`（0~1）餵給 `LiquidOrb.SetSceneDim`，最暗場景時整體亮度乘
+`LiquidOrb.DarkSceneDim`（現 0.65），換圖／回憶演出平滑過渡、亮場景維持原樣。
+理由：HUD 不吃後處理，畫面壓暗後高飽和血球會變成全畫面最亮的東西搶戲（美術紀律七）。
+想收更狠改 `DarkSceneDim`；各氛圍對應的黑暗程度在 `AtmosphereController.DarknessLevel`。
+
 ---
 
 ## 5. 踩坑 / 注意

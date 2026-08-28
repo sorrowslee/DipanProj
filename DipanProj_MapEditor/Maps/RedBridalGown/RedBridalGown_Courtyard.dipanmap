@@ -282,6 +282,7 @@
     }
   ],
   "sceneFx": [],
+  "npcs": [],
   "lights": [
     {
       "id": "88ef7847",
@@ -414,6 +415,19 @@
       "flicker": 1.0,
       "flickerSpeed": 1.0,
       "softness": 0.46
+    },
+    {
+      "id": "ef321670",
+      "name": "",
+      "x": 9.009611,
+      "y": -5.041233,
+      "radius": 1.5,
+      "intensity": 0.9,
+      "color": "CFE4FF",
+      "flicker": 0.0,
+      "flickerSpeed": 1.0,
+      "softness": 0.4
     }
-  ]
+  ],
+  "cutscenes": []
 }

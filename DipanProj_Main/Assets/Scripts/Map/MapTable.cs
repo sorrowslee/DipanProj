@@ -35,6 +35,11 @@ using UnityEngine;
 ///   兩者刻意不綁在一起——地圖檔改名時圖不會跟著壞。
 ///   ⚠ **同一趟關卡內同一個 key 只顯示一次**（去重用 key 不是地圖 id），所以整個關卡的房間可以
 ///   全部填同一個 key：不管玩家先進哪一間都會跳、之後房間互跳都不會再跳。見 readme/SCENE_TIP.md。
+/// - AtmoTint = **場景主色染色**（6 碼 16 進位 RRGGBB，不含 #；留空 / 缺欄 = 不染，與舊行為相同）。
+///   把整張畫面的「暗部」往這個色相拉（亮度不變、只動色相/飽和），燈池中心與亮部幾乎不受影響——
+///   用來執行美術紀律的「色彩劇本」：紅嫁衣填暗絳紅、別的圖填各自的主色，暗就從「灰的暗」變「有主題的暗」。
+///   任何 Atmosphere 型別都可疊加；「Atmosphere=1 且 EnvBright=100」的圖填了也會生效（會為此啟用後處理）。
+///   見 readme/ATMOSPHERE.md〈場景主色染色〉與 readme/art_direction/SHADER_GUIDELINE.md。
 /// 見 readme/MAP_SYSTEM.md。
 /// </summary>
 public class MapTableRow
@@ -51,6 +56,7 @@ public class MapTableRow
     public bool noWeapon = false; // 禁止玩家使用武器：0/空 = 可用（預設）；1 = 禁用（劇情地圖、大廳）
     public int envBright = 100;   // 環境亮度 0~100：只在 atmosphere==1 生效，把整張圖壓暗、讓場上的燈照回來（100/空 = 不壓暗）
     public string sceneTip = "";  // 場景說明文字圖 key（空 = 這張圖不顯示場景說明）；圖＝UI/Texts/SceneTipPanel_Text_<key>
+    public string atmoTint = "";  // 場景主色染色 RRGGBB（空 = 不染）：暗部往此色相拉、亮度不變（見 AtmosphereController）
 }
 
 public class MapTable : MonoBehaviour
@@ -139,8 +145,11 @@ public class MapTable : MonoBehaviour
             if (v.Length >= 11 && int.TryParse(v[10].Trim(), out int eb)) envBright = Mathf.Clamp(eb, 0, 100);
 
             // SceneTip 第 12 欄為新增、向下相容：缺欄 / 留空都 = 不顯示場景說明（舊行為）。
-            // 是最後一欄，所以值會帶著行尾的 \r —— Trim() 一併吃掉（同 name/module 的處理）。
             string sceneTip = v.Length >= 12 ? v[11].Trim() : "";
+
+            // AtmoTint 第 13 欄為新增、向下相容：缺欄 / 留空 = 不染色（舊行為）。
+            // 末欄的值會帶著行尾的 \r —— Trim() 一併吃掉（同 name/module 的處理）。
+            string atmoTint = v.Length >= 13 ? v[12].Trim() : "";
 
             var row = new MapTableRow
             {
@@ -156,6 +165,7 @@ public class MapTable : MonoBehaviour
                 noWeapon = noWeapon,
                 envBright = envBright,
                 sceneTip = sceneTip,
+                atmoTint = atmoTint,
             };
 
             if (_byId.ContainsKey(id))

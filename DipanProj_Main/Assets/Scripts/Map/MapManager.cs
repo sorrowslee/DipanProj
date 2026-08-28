@@ -361,7 +361,7 @@ public class MapManager : MonoBehaviour
 
         // 依 MapsTable 的 Atmosphere 欄套用氛圍後處理（換圖即時切換，室外→古墓自動變氛圍）。見 AtmosphereController。
         // EnvBright（環境亮度）只在 Atmosphere=1 生效：壓暗整張圖、讓場上的火把/燈籠把周圍照回來。
-        AtmosphereController.ApplyMapAtmosphere(row.atmosphere, row.envBright);
+        AtmosphereController.ApplyMapAtmosphere(row.atmosphere, row.envBright, row.atmoTint);
         // 場景特效（世界端，如火雨）：依 SceneEffect 欄，換圖即時切換、自動清殘留。見 SceneEffectController。
         SceneEffectController.ApplyMapSceneEffect(row.sceneEffect, mapLoader.Map);
         // 進場一次性全螢幕過場：依 EnterEffect 欄（＝ScreenFxTable 的 id，0=無/1=睜眼/2=破幻術/3=馬賽克…），

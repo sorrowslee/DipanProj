@@ -92,6 +92,14 @@ public class MapLoader : MonoBehaviour
     [Header("傳送點特效（VfxTable ID，須為 Loop=1/Duration=-1 的循環特效；0 = 不放）")]
     public int teleportVfxId = 6;
 
+    // ── 傳送點冷光（2026-08-28，美術紀律：傳送點＝全場唯一冷色，暗場景要讀得出來）──
+    // 每個傳送點標記掛一盞冷藍微光：暗場景（幽暗/噩夢/EnvBright<100）在傳送點周圍照出一圈冷光池，
+    // 與滿場暖橘火光形成色溫對比＝玩家一眼找到出口；亮場景照明系統不收集光源、零影響。
+    // 掛在標記物件上 → togglePortal 隱藏、換圖銷毀時自動退出光源登記（LightSource.OnDisable）。
+    public float teleportLightRadius = 1.6f;      // 0 = 不掛冷光
+    public float teleportLightIntensity = 0.5f;
+    private static readonly Color TeleportLightColor = new Color(0.62f, 0.80f, 1.00f, 1f);   // 冷藍
+
 
     // ---- runtime ----
     MapData _map;
@@ -841,6 +849,18 @@ public class MapLoader : MonoBehaviour
             {
                 inst.transform.SetParent(_root, true);   // 掛進 MapRoot，換圖拆除時一併清掉
                 if (!string.IsNullOrEmpty(r.id)) TeleportMarkerById[r.id] = inst.gameObject;   // 供 togglePortal 隱藏/恢復外型
+
+                // 傳送點冷光：暗場景給傳送點一圈冷藍光池（見上方欄位註解）。極輕微搖晃、瀰漫柔邊。
+                if (teleportLightRadius > 0f)
+                {
+                    var ls = inst.gameObject.AddComponent<LightSource>();
+                    ls.radius = teleportLightRadius;
+                    ls.intensity = teleportLightIntensity;
+                    ls.color = TeleportLightColor;
+                    ls.flicker = 0.3f;
+                    ls.flickerSpeed = 0.5f;
+                    ls.softness = 0.25f;
+                }
                 n++;
             }
         }

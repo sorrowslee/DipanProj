@@ -41,6 +41,22 @@ public class AtmosphereController : MonoBehaviour
     // 光圈大小由「光源的發光半徑(世界單位)」決定，換算成 viewport 比例後餵給 shader。
     private const float DefaultSoftness = 0.46f;  // 內圈(全亮)半徑 = 外圈半徑 × 此比例（沿用原本 0.13/0.28 的比例）
     private const float FallbackOuterVp = 0.28f;  // 相機非正交時的後備外圈（viewport 比例）
+
+    // ── 玩家常駐體光（美術紀律二：主角永遠看得見自己）──
+    // 沒有任何發光裝時，暗場景（2/3/9、或 EnvBright<100）給玩家一圈「快熄的香頭」等級微光：
+    // 只照出自己身體的輪廓，照不了路——刻意弱於一個身位，**不能破壞柴房教學「要點燈才看得見路」的壓力**。
+    // 嫌太亮/太暗改這兩個數即可（半徑=世界格、亮度=1 為標準火把）。
+    private const float PlayerAmbientRadius    = 1.2f;
+    private const float PlayerAmbientIntensity = 0.35f;
+    private const float PlayerAmbientSoftness  = 0.30f;   // 比預設更瀰漫的柔邊（內圈小）
+    /// <summary>體光光色＝偏中性的微暖白——刻意跟火把/燈籠的暖橘（DefaultWarm）區隔：
+    /// 體光是「角色可讀性」不是「一盞燈」，用中性色角色不會看起來像自帶燈籠（GPT 美術回饋 2026-08-28）。</summary>
+    private static readonly Color PlayerAmbientColor = new Color(1.00f, 0.96f, 0.90f, 1f);
+
+    // ── 場景主色染色（MapsTable 的 AtmoTint 欄；美術紀律一：色彩劇本）──
+    // 把畫面「暗部」往地圖主色的色相拉（亮度不變），燈池中心/亮部幾乎不動。
+    // 這是整體強度（再乘上 shader 內按暗度的權重）；想全遊戲染重/染淡改這個數。
+    private const float SceneTintStrength = 0.32f;   // 0.5 首版實測整片糊成粉紗（連中間調都被拉），收到 0.32
     // 掃裝備欄取最大發光半徑用（靜態陣列，避免每幀 Enum.GetValues 產生 GC）。
     private static readonly Dipan.Inventory.EquipSlot[] EquipSlots =
     {
@@ -51,6 +67,8 @@ public class AtmosphereController : MonoBehaviour
     private int _mode = 1;         // 當前氛圍型別（1=正常；2=幽暗；3=噩夢…）。預設 1，等地圖設定。
     private float _envDark = 0f;   // 環境壓暗量 0~1（＝1 − 環境亮度/100）。只在 _mode==1 生效。
     private float _bypass = 0f;    // 氛圍旁通 0~1（1＝完全還原原始畫面）。見 SetBypass。
+    private Color _sceneTint = Color.white;  // 場景主色染色（AtmoTint 欄解析結果）
+    private float _tintAmount = 0f;          // 0 = 不染；>0 = 染色整體強度（SceneTintStrength）
 
     private Material _mat;
     private Camera _cam;
@@ -76,12 +94,51 @@ public class AtmosphereController : MonoBehaviour
     /// 由 MapManager 在載圖時呼叫，套用當前地圖的氛圍型別（MapsTable 的 Atmosphere 欄）
     /// 與環境亮度（EnvBright 欄，0~100，100＝不壓暗）。
     /// </summary>
-    public static void ApplyMapAtmosphere(int type, int envBright = 100)
+    public static void ApplyMapAtmosphere(int type, int envBright = 100, string tintHex = "")
     {
         if (Instance == null) AutoSpawn();
         if (Instance == null) return;
         Instance._mode = type;
         Instance._envDark = 1f - Mathf.Clamp01(envBright / 100f);
+
+        // AtmoTint 欄：6 碼 RRGGBB（不含 #）。留空/解析失敗 = 不染色（舊行為）。
+        Instance._tintAmount = 0f;
+        if (!string.IsNullOrWhiteSpace(tintHex))
+        {
+            if (ColorUtility.TryParseHtmlString("#" + tintHex.Trim(), out Color c))
+            {
+                Instance._sceneTint = c;
+                Instance._tintAmount = SceneTintStrength;
+            }
+            else
+            {
+                Debug.LogWarning($"[Atmosphere] AtmoTint「{tintHex}」不是合法的 RRGGBB，忽略不染色。");
+            }
+        }
+    }
+
+    /// <summary>
+    /// 目前場景的「黑暗程度」0~1，給**不吃後處理的 UI**（Screen Space Overlay 的 HUD）跟著收斂亮度用
+    /// （美術紀律七：血球等高亮 UI 在暗場景要調暗，別當畫面上最亮的東西）。
+    /// 噩夢/深海恐怖=1、幽暗=0.8、深海/鬼霧=0.5、正常=EnvBright 的壓暗量、其餘氛圍=0。
+    /// 回憶演出 SetBypass 淡掉氛圍時，這個值也跟著淡回 0（HUD 同步亮回來）。
+    /// </summary>
+    public static float DarknessLevel
+    {
+        get
+        {
+            var i = Instance;
+            if (i == null) return 0f;
+            float d;
+            switch (i._mode)
+            {
+                case 3: case 9: d = 1f; break;
+                case 2:         d = 0.8f; break;
+                case 8: case 14: d = 0.5f; break;
+                default:        d = (i._mode <= 1) ? i._envDark : 0f; break;
+            }
+            return d * (1f - i._bypass);
+        }
     }
 
     /// <summary>
@@ -154,7 +211,7 @@ public class AtmosphereController : MonoBehaviour
 
         // 氛圍 1（正常）且沒設環境亮度 → 完全不處理，材質設 null → AtmosphereBlit 直接 passthrough。
         // （有設環境亮度就要走 shader，才能壓暗並讓場上的燈照回來。）
-        if (_mode <= 1 && _envDark <= 0.001f)
+        if (_mode <= 1 && _envDark <= 0.001f && _tintAmount <= 0.001f)
         {
             _blit.Material = null;
             return;
@@ -165,6 +222,8 @@ public class AtmosphereController : MonoBehaviour
         _mat.SetFloat("_EnvDark", _envDark);
         _mat.SetFloat("_Bypass", _bypass);
         _mat.SetFloat("_Aspect", (float)Screen.width / Mathf.Max(1, Screen.height));
+        _mat.SetColor("_SceneTint", _sceneTint);
+        _mat.SetFloat("_TintAmount", _tintAmount);
 
         int count = BuildLights();
         _mat.SetFloat("_LightCount", count);
@@ -178,6 +237,16 @@ public class AtmosphereController : MonoBehaviour
     /// </summary>
     private int BuildLights()
     {
+        // 只有「吃照明」的模式才收集光源：2 幽暗 / 3 噩夢 / 9 深海恐怖 / 14 鬼霧、或 type 1 且有環境壓暗。
+        // 其他模式 shader 本來就不讀 v/lightShift；而「只染色（AtmoTint）啟用 shader」的亮圖若照收光源，
+        // 玩家體光/佛燈會透過 mode 1 分支的 lightShift 在大白天染出一圈暖色——這裡直接擋掉。
+        bool lit = _mode == 2 || _mode == 3 || _mode == 9 || _mode == 14 || (_mode <= 1 && _envDark > 0.001f);
+        if (!lit)
+        {
+            for (int i = 0; i < MaxLights; i++) { _lightData[i] = Vector4.zero; _lightTint[i] = Vector4.zero; }
+            return 0;
+        }
+
         int n = 0;
         float t = Time.time;
         Vector3 from = _player != null ? _player.position : _cam.transform.position;
@@ -191,6 +260,13 @@ public class AtmosphereController : MonoBehaviour
             float fast = Mathf.Sin(t * 3.2f + _seed) * 0.5f + 0.5f;
             float breathe = Mathf.Lerp(0.93f, 1.06f, Mathf.Clamp01(0.85f * slow + 0.15f * fast));
             Write(n++, _player.position, pr * breathe, DefaultSoftness, LightSource.DefaultWarm, breathe);
+        }
+        else if (_player != null && !Dipan.Cutscene.PlayerVisibility.IsHidden)
+        {
+            // 玩家常駐體光（沒有任何發光裝時）：恆定不呼吸、半徑小於一個身位、瀰漫柔邊。
+            // 目的只有一個——暗場景裡永遠看得見「我人在這」；照不了路，點燈壓力不變（見檔頭常數註解）。
+            Write(n++, _player.position, PlayerAmbientRadius, PlayerAmbientSoftness,
+                  PlayerAmbientColor, PlayerAmbientIntensity);
         }
 
         // ② 場上的發光地上物（火把/燈籠/香爐…），取最近的填滿剩餘名額。

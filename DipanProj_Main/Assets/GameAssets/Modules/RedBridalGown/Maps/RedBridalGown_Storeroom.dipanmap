@@ -442,6 +442,7 @@
     }
   ],
   "sceneFx": [],
+  "npcs": [],
   "lights": [
     {
       "id": "b2f8405f",
@@ -478,6 +479,43 @@
       "flicker": 1.0,
       "flickerSpeed": 1.0,
       "softness": 0.46
+    },
+    {
+      "id": "56710872",
+      "name": "",
+      "x": 3.66315341,
+      "y": -2.07088184,
+      "radius": 1.8,
+      "intensity": 0.3,
+      "color": "",
+      "flicker": 0.3,
+      "flickerSpeed": 1.0,
+      "softness": 0.2
+    },
+    {
+      "id": "691f3149",
+      "name": "",
+      "x": 3.65860558,
+      "y": -4.62836,
+      "radius": 1.8,
+      "intensity": 0.3,
+      "color": "",
+      "flicker": 0.3,
+      "flickerSpeed": 1.0,
+      "softness": 0.2
+    },
+    {
+      "id": "c5d57f1f",
+      "name": "",
+      "x": 3.65435147,
+      "y": -6.747241,
+      "radius": 1.8,
+      "intensity": 0.3,
+      "color": "",
+      "flicker": 0.3,
+      "flickerSpeed": 1.0,
+      "softness": 0.2
     }
-  ]
+  ],
+  "cutscenes": []
 }

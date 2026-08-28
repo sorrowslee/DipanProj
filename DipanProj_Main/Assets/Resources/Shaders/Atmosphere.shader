@@ -14,7 +14,7 @@
 //  13 = 大雨（細密雨點往下落）
 //  14 = 陰森森林鬼霧（畫面偏暗、陰綠冷調 + 漂移黑霧雲塊、偶爾飄來一陣濃霧）
 //  15 = 電視雜訊（雪花噪點 + 掃描線 + 滾動同步條 + 偶發水平撕裂 + 灰調閃爍）
-// 照明（type 1 環境壓暗 / 2 / 3 / 9 用）：多光源，由 AtmosphereController 每幀餵入
+// 照明（type 1 環境壓暗 / 2 / 3 / 9 / 14 用）：多光源，由 AtmosphereController 每幀餵入
 //   _LightData[i] = (viewport.x, viewport.y, 外圈半徑, 內圈半徑)、_LightTint[i] = (r, g, b, 亮度)、_LightCount = 實際盞數。
 //   每盞的油燈式呼吸在 CPU 端各自算好才餵進來（每盞不同相位），shader 只負責疊合。
 //   MAX_LIGHTS 必須與 AtmosphereController.MaxLights 一致。
@@ -29,6 +29,8 @@ Shader "Custom/Atmosphere"
         _EnvDark ("Env Darken (0..1, type 1)", Float) = 0
         _Bypass ("Bypass (0=full atmosphere, 1=raw picture)", Float) = 0
         _Mode ("Mode (1 normal+dark,2..6,7..9 ocean,10 snow,11 gale,12 drizzle,13 rain,14 ghostFog,15 tvNoise)", Float) = 2
+        _SceneTint ("Scene tint color (AtmoTint)", Color) = (1,1,1,1)
+        _TintAmount ("Scene tint amount (0=off)", Float) = 0
     }
     SubShader
     {
@@ -50,6 +52,10 @@ Shader "Custom/Atmosphere"
             // 幽暗/噩夢地圖上畫面幾乎全黑，任何乘法式的色調效果都等於失效，
             // 所以回憶期間把氛圍整個淡掉、讓場景亮回來再套回憶色。見 MemoryFxController。
             float _Bypass;
+            // 場景主色染色（MapsTable 的 AtmoTint 欄）：把暗部往主色的色相拉、亮度不變。
+            // _TintAmount 為整體強度（0=不染），shader 內再乘按暗度的權重（暗部染重、亮部不動）。
+            float4 _SceneTint;
+            float  _TintAmount;
 
             // ── 多光源（同框上限；與 AtmosphereController.MaxLights 一致）──
             #define MAX_LIGHTS 12
@@ -197,7 +203,10 @@ Shader "Custom/Atmosphere"
                     float lum = dot(col.rgb, float3(0.299, 0.587, 0.114));
                     col.rgb = lerp(col.rgb, lum.xxx, 0.40);
                     col.rgb *= float3(0.62, 0.78, 0.66);          // 陰綠冷調
-                    col.rgb *= 0.70;                               // 壓暗
+                    // 壓暗改成吃照明（2026-08-28）：沒有燈 = 0.70 與舊版完全相同；有燈往原亮度還原。
+                    // 佛燈/體光在鬼霧圖才有作用（此前 14 不讀光源清單，「有照光半徑卻看不出來」）。
+                    col.rgb *= lerp(0.70, 1.0, v);
+                    col.rgb *= lightShift;                         // 光源自己的顏色
                     col.rgb *= lerp(0.40, 1.0, vig);               // 加深暈影
 
                     // 一團黑霧：每個週期生一團，從畫面外一側緩慢飄到另一側離場（方向/高度/大小隨機），團間有空檔。
@@ -390,6 +399,21 @@ Shader "Custom/Atmosphere"
                     float3 tint = lerp(float3(0.72, 0.84, 1.05), float3(1.06, 0.98, 0.84), v);
                     col.rgb *= tint * 0.85;
                     col.rgb *= lightShift;                            // 光源自己的顏色
+                }
+
+                // ── 場景主色染色（AtmoTint；美術紀律一「色彩劇本」）──
+                // 「灰的暗」→「有主題的暗」：暗部往地圖主色的色相拉。三個守則：
+                //   1) 亮度保持不變（tint 先歸一化到像素自身亮度）→ 只動色相/飽和、不會把畫面再壓暗（E11）。
+                //   2) 權重按暗度：暗部染最重、亮部（燈池中心/自發光）幾乎不動 → 紅燈籠的橘紅不被污染。
+                //   3) 放在所有 mode 分支之後、bypass 之前 → 任何氛圍都可疊加、回憶演出照樣整套淡掉。
+                if (_TintAmount > 0.0001)
+                {
+                    float tl  = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    float darkW = 1.0 - smoothstep(0.04, 0.42, tl);       // 只染真正的暗部；中間調（地板受光面）放過，保層次
+                    float tintLum = max(dot(_SceneTint.rgb, float3(0.299, 0.587, 0.114)), 0.001);
+                    float3 tinted = _SceneTint.rgb * (tl / tintLum);      // 主色歸一化到像素自身亮度
+                    col.rgb = lerp(col.rgb, tinted, saturate(_TintAmount * darkW));
+                    col.rgb = saturate(col.rgb);
                 }
 
                 // 氛圍旁通（回憶演出用）：與原始畫面內插。放在最後一行＝不管哪個 mode 都一致地淡掉。

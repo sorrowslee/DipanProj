@@ -32,6 +32,11 @@ namespace Dipan.UI
         public float Gloss        = 0.18f;   // 高光白點強度
         public float RimStrength  = 0f;   // 玻璃邊緣亮環
         public float SurfStrength = 0.18f;   // 液面亮邊
+        // 暗場景收斂（美術紀律七）：場景全黑時血球別當畫面上最亮的東西——「進暗房間，手機自動切夜間模式」。
+        // 最暗場景（DarknessLevel=1）時亮度乘到這個值；亮場景維持 1。想收更狠就調小。
+        public float DarkSceneDim  = 0.65f;
+
+        float _dimTarget, _dimShown = -1f;   // 暗場景係數 0~1（-1 = 尚未初始化，首幀直接對齊）
 
         RawImage _img;
         Material _mat;
@@ -98,6 +103,16 @@ namespace Dipan.UI
             _tip.SetActive(false);
         }
 
+        /// <summary>
+        /// 由 HUD 每幀餵入場景黑暗程度 0~1（AtmosphereController.DarknessLevel）。
+        /// 血球亮度隨之收斂（平滑過渡），換圖/回憶演出時自動跟著變。
+        /// </summary>
+        public void SetSceneDim(float darkness01)
+        {
+            _dimTarget = Mathf.Clamp01(darkness01);
+            if (_dimShown < 0f) _dimShown = _dimTarget;   // 首幀直接對齊，不做淡入
+        }
+
         /// <summary>由 HUD 每幀餵入當前值 / 上限。</summary>
         public void SetStats(float current, float max)
         {
@@ -130,6 +145,13 @@ namespace Dipan.UI
                 _mat.SetFloat("_Fill", _shown);
                 _mat.SetFloat("_Slosh", _sloshO);
                 _mat.SetFloat("_T", _t);
+
+                // 暗場景收斂：平滑追上目標係數，把整體亮度乘進去（亮場景 =1、最暗 ×DarkSceneDim）。
+                if (_dimShown >= 0f)
+                {
+                    _dimShown += (_dimTarget - _dimShown) * Mathf.Min(1f, dt * 3f);
+                    _mat.SetFloat("_Bright", Brightness * Mathf.Lerp(1f, DarkSceneDim, _dimShown));
+                }
             }
 
             // 懸停時即時更新數字（受擊時會跟著跳）

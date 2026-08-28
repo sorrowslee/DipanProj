@@ -418,8 +418,8 @@
             "entranceId": "ShrineHall_south",
             "targetMapId": "7",
             "targetEntrance": "Courtyard_north",
-            "markerX": 9.018914,
-            "markerY": -7.31698751,
+            "markerX": 9.03229,
+            "markerY": -7.547919,
             "markerW": 2.2,
             "markerH": 1.2
           }
@@ -462,6 +462,7 @@
     }
   ],
   "sceneFx": [],
+  "npcs": [],
   "lights": [
     {
       "id": "af6ab51f",
@@ -502,7 +503,7 @@
     {
       "id": "0446a1f7",
       "name": "",
-      "x": 7.431246,
+      "x": 7.456838,
       "y": -1.6533246,
       "radius": 1.0,
       "intensity": 1.0,
@@ -511,5 +512,6 @@
       "flickerSpeed": 1.0,
       "softness": 0.46
     }
-  ]
+  ],
+  "cutscenes": []
 }
