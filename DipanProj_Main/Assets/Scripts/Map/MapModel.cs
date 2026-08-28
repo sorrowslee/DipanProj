@@ -215,6 +215,9 @@ namespace Dipan.MapRuntime
         public string panelArg = "";      // 介面參數（例：抽選池代號、未來的 shopId）
         public string next = "";          // 對話結束後啟動的 trigger（名稱，同觸發鏈 next）
         public string setFlag = "";       // 對話結束後寫的旗標
+        // 消失旗標：此旗標成立時這個 NPC 消失（進圖時已成立＝不生；關卡中途成立＝場上即時消失）。
+        // 空＝永不因旗標消失。典型：三方陣營劇本的和平版 NPC 填「開戰旗」——開戰瞬間退場、換戰鬥版怪物上場。
+        public string disappearFlag = "";
     }
 
     public class TriggerRegion

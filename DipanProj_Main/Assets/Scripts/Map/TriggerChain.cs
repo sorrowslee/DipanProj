@@ -41,6 +41,8 @@ public static class TriggerChain
     public const string TypeWatchFlag = "watchFlag";       // 觀察旗標變動（自動）：監聽 fireOnFlag 指定的旗標，該旗標「首次成立(false→true)」時觸發自己的 next。本身不做事，只當「旗標驅動的鏈起點」（同 onEnter，改由旗標驅動）。見 AutoFireOnFlag
     public const string TypeUnlockRoll = "unlockRoll";     // 解鎖抽選內容（鏈動作）：把某個物品永久加進某個抽選池（跨輪迴保留）。例：打贏紅嫁衣→血統池+幽靈。pool=池代號(GachaPoolTable 的 PoolId)、entry=物品 id。見 Dipan.Gacha.GachaService
     public const string TypeSelectScript = "selectScript"; // 選擇劇本（鏈動作）：被 next 啟動時開「選擇劇本」面板（邪佛發牌），玩家按領取拿走某張劇本→加進背包→關閉→接 next。取代原本直接 giveItem 給紅嫁衣劇本。scriptIds='|' 分隔可領取劇本道具 id、specialIds='|' 分隔用特殊裂紋框的 id。見 SelectScriptPanel
+    public const string TypeFactionWar = "factionWar";     // 三方陣營開戰（鏈動作）：兩族開始互咬(演戲傷害1/100)＋攻擊玩家、切到可被玩家攻擊的層，再接 next。狀態只活在這趟關卡（換 module 自動回和平）。見 FactionRelations / readme/FACTION.md
+    public const string TypeJoinFaction = "joinFaction";   // 玩家結盟部族（鏈動作）：faction=werewolf/狼人 或 vampire/吸血鬼——該族不再攻擊玩家、玩家武器打不到它(切 Ally 層)，再接 next。典型：首領 NPC 對話 → next 接這顆。見 FactionRelations
 
     // ── 位置型 typeId（玩家踩到／按 F 才生效，被鏈啟動＝「解鎖」）──
     // 這些不進 Activate 的 switch，實際行為由 MapLoader / TeleportWatcher / InteractionManager 建點時處理。
@@ -351,6 +353,18 @@ public static class TriggerChain
             case TypeUnlockRoll: ExecuteUnlockRoll(r); break;
             case TypeBossIntro: ExecuteBossIntro(r); break;
             case TypeClearLevel: ExecuteClearLevel(r); break;
+            case TypeFactionWar:                       // 三方陣營開戰：切狀態＋刷部族 Layer，立即完成接 next
+                FactionRelations.StartWar();
+                OnCompleted(r);
+                break;
+            case TypeJoinFaction:                      // 玩家結盟部族：faction 參數認不得就警告、仍接 next（別讓鏈卡死）
+            {
+                var jf = FactionRelations.Parse(r.GetString("faction"));
+                if (jf != null && FactionRelations.IsTribe(jf.Value)) FactionRelations.JoinFaction(jf.Value);
+                else Debug.LogWarning($"[TriggerChain] joinFaction「{r.name}」的 faction=「{r.GetString("faction")}」認不得（可填 werewolf/狼人、vampire/吸血鬼），未結盟。");
+                OnCompleted(r);
+                break;
+            }
             case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
@@ -877,7 +891,11 @@ public static class TriggerChain
     }
 
     /// <summary>清掉所有「關卡單次」旗標。由 MapManager 在進入新 module（換關卡）時呼叫——所以每次進關這類旗標重算。</summary>
-    public static void ClearLevelFlags() => _levelFlags.Clear();
+    public static void ClearLevelFlags()
+    {
+        _levelFlags.Clear();
+        FactionRelations.ResetScenario();   // 三方陣營劇本狀態（開戰/結盟）＝關卡單次：跟關卡單次旗標同一個時機清
+    }
 
     // ───────────────────────── 內部 ─────────────────────────
 

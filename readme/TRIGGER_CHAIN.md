@@ -139,6 +139,9 @@
   - 邊界：換圖時進行中的點火中止（新圖有自己的一輪）；被別的鏈 `next` 指到時＝純轉接（直接完成、接自己的 next）；單場景測試（無 MapManager）不會點火。
 - **`unlockRoll` 解鎖抽選內容(鏈動作)**：`poolId`（哪個抽選池，＝`GachaPoolTable.csv` 的 `PoolId`，例 `weapon`／`blood`）、`itemId`（要加進池的道具 ID）。被鏈啟動時把這一筆寫進存檔的 `unlockedRollEntries`，該祭壇之後就抽得到它。**永久、跨輪迴、重複執行無害**（同一筆只會有一份）。典型用法：接在 boss 死亡旗標鏈上——`紅嫁衣死 → unlockRoll(blood, 302 幽靈血統藥劑)`、`榕樹妖死 → unlockRoll(weapon, 地刺戢)`。純鏈驅動、玩家踩不觸發、格子畫在角落即可。詳見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §3。
 
+- **`factionWar` 三方陣營開戰(鏈動作)**：無參數。被鏈啟動時把三方陣營劇本切成「開戰」——狼人/吸血鬼兩族開始互咬（演戲傷害 1/100）＋攻擊玩家、切到可被玩家攻擊的層，立即接 next。狀態＝**關卡單次**（換 module 自動回和平）。典型：`對話/事件 → factionWar（完成寫旗標=部族開戰）`——同一顆順便讓和平版 NPC 退場（NPC 的「消失旗標」填同一旗）。詳見 [FACTION.md](FACTION.md)。
+- **`joinFaction` 加入陣營(鏈動作)**：`faction`（填 `狼人`/`werewolf` 或 `吸血鬼`/`vampire`）。被鏈啟動時玩家結盟該族——該族不再攻擊玩家、玩家武器打不到它（切 Ally 層），立即接 next；認不得的值印 Warning、仍接 next 不卡鏈。典型：首領 NPC 對話 → next 接這顆。詳見 [FACTION.md](FACTION.md)。
+
 **位置型（靠近按 F，不是鏈動作）**
 
 - **`openPanel` 開啟介面(按F)**：`panelId`（要開哪個面板，目前只有 `gacha`）、`poolId`（`panelId=gacha` 時用：要開哪個抽選池）。玩家走到這幾格附近會出現星星＋「按 F」提示，按 F 開該面板。**地上物與觸發是兩件事**——祭壇的圖是地圖上的地上物（`rockAltar.png` ＋ `rockSlate_weapon.png` 之類的牌子），互動是**另外畫一顆 `openPanel` 觸發**蓋在祭壇前方玩家站得到的地板格上（跟 pickup 一樣要留意 [PROBLEMS.md](PROBLEMS.md) K1：感應格別只畫在實心物上）。條件欄位照常有效——祭壇填 `最低完成關卡數=1` ＝ 打過一關才開放，未達門檻走過去不會出現提示。

@@ -11,6 +11,14 @@ using UnityEngine;
 public static class CombatSystem
 {
     /// <summary>
+    /// 這一次 TakeDamage 是「演戲傷害」（兩族互打 ×1/100，見 FactionRelations）＝ true。
+    /// 只在 Apply 呼叫目標 TakeDamage 的那一瞬間成立（單執行緒、同步呼叫，結束即清）。
+    /// MonsterController.TakeDamage 據此**不跳傷害數字、不印 log**——30 隻互毆每下都浮個 0 會把畫面與 Console 洗成彈幕。
+    /// 白光閃爍照舊（打起來要有戲）。
+    /// </summary>
+    public static bool CurrentHitTheatrical { get; private set; }
+
+    /// <summary>
     /// 結算一次傷害。回傳「實際打進目標的最終傷害」（被無敵時間擋掉時，IDamageable 內部會忽略，但這裡仍回傳計算值）。
     /// </summary>
     public static float Apply(in DamageInfo info)
@@ -18,6 +26,20 @@ public static class CombatSystem
         if (info.Target == null || info.BaseAmount <= 0f) return 0f;
 
         float amount = info.BaseAmount;
+
+        // 0) 陣營傷害乘數（怪 × 怪才查；玩家相關一律 1）：兩族互打＝演戲 1/100（見 FactionRelations）。
+        //    放在最前面、且不受 IgnoreModifiers/True 影響——這是「劇本舞台效果」，不是數值加成。
+        bool theatrical = false;
+        if (info.Source != null)
+        {
+            var srcMc = info.Source.GetComponent<MonsterController>();
+            var dstMc = info.Target.GetComponent<MonsterController>();
+            if (srcMc != null && dstMc != null)
+            {
+                float fm = FactionRelations.DamageMultiplier(srcMc.Faction, dstMc.Faction);
+                if (fm < 0.999f) { amount *= fm; theatrical = true; }
+            }
+        }
 
         if (!info.IgnoreModifiers && info.Type != DamageType.True)
         {
@@ -41,7 +63,9 @@ public static class CombatSystem
         var damageable = info.Target.GetComponent<IDamageable>();
         if (damageable == null) return 0f;
 
-        damageable.TakeDamage(amount, info.HitDirection);
+        CurrentHitTheatrical = theatrical;
+        try { damageable.TakeDamage(amount, info.HitDirection); }
+        finally { CurrentHitTheatrical = false; }
         return amount;
     }
 

@@ -28,6 +28,10 @@ public class MonsterData
     public float DamageReduction = 0f;   // 受擊減傷 %（留空 = 0；掛勾，之後接減傷/抗性）
     public float DetectionRange = 10f;  // 感測玩家半徑（CSV: DetectionRange，留空 = 10）。怪 dist<=此值才發現玩家去追；紅嫁衣房約 18x10、對角 ~20.6，要全域看到玩家設 ~25。
 
+    // 陣營（CSV: Faction，末欄）：空＝Enemy（既有行為）；可填 Werewolf/狼人、Vampire/吸血鬼、Neutral/中立。
+    // 解析與規則見 FactionRelations；召喚系統呼叫 SpawnMonster 時明確傳 PlayerAlly，不受此欄影響。
+    public string FactionStr = "";
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

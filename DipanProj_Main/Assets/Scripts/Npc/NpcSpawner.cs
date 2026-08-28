@@ -14,6 +14,11 @@ public static class NpcSpawner
     public static GameObject Spawn(NpcInstance inst)
     {
         if (inst == null) return null;
+
+        // 消失旗標已成立（例：三方陣營劇本已開戰）→ 這個和平版 NPC 這一趟不再出現（換圖回來也不生）。
+        string gone = (inst.disappearFlag ?? "").Trim();
+        if (gone.Length > 0 && TriggerChain.FlagTrue(gone)) return null;
+
         var data = NpcDatabase.Instance.Get(inst.npcId);
         if (data == null)
         {

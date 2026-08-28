@@ -276,6 +276,24 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：三方陣營**開戰**——兩族（狼人/吸血鬼陣營的怪）開始互咬（演戲傷害 1/100）＋攻擊玩家、
+                // 變成玩家可攻擊，再接 next。狀態只活在這趟關卡（換 module 自動回和平）。
+                // 純鏈驅動、玩家踩不觸發；格子畫在角落或 0 格即可。典型：對話/事件 → next 接這顆 → setFlag=開戰旗（讓和平 NPC 消失）。
+                typeId = "factionWar", displayName = "三方陣營開戰(鏈動作)", color = "#D94D6A",
+                paramSchema = new List<TriggerParam>()
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：玩家**結盟**某一族——該族不再攻擊玩家、玩家武器打不到它，再接 next。
+                // faction 填 werewolf/狼人 或 vampire/吸血鬼。典型：首領 NPC 對話 → next 接這顆。
+                typeId = "joinFaction", displayName = "加入陣營(鏈動作)", color = "#6A8CD9",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "faction", type = ParamType.String, label = "陣營(狼人/吸血鬼)" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 觀察旗標變動（自動）：監聽指定旗標，該旗標「首次成立(false→true)」時觸發自己的「接續觸發(next)」。
                 // 本身不做事、只當「旗標驅動的鏈起點」（同進場觸發 onEnter，但改由旗標驅動）。用「＋手動新增空區域」建立（0 格）。
                 // 典型：怪物出生點「死亡觸發旗標」= X → 本 trigger fireOnFlag=X → next 接對話/動畫/給獎勵…→ 最後接「過關(結算)」。

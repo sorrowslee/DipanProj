@@ -1888,6 +1888,15 @@ namespace DipanMapEditor.UI
             GUILayout.EndHorizontal();
             GUILayout.Label("對話結束＝完成：寫旗標＋啟動\n接續觸發（**每次進圖只跑第一\n次**；對話本身可反覆聊）。");
 
+            GUILayout.Space(6);
+            GUILayout.Label("── 消失旗標 ──");
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("旗標", GUILayout.Width(44));
+            DrawFlagFieldCore(sel.disappearFlag ?? "", "npc/" + sel.id + "/disappearFlag", false,
+                              v => { UndoManager.Push(); sel.disappearFlag = v; });
+            GUILayout.EndHorizontal();
+            GUILayout.Label("旗標成立＝這個 NPC 消失（進圖已\n成立＝不生；中途成立＝即時退場）。\n典型：和平版 NPC 填開戰旗。空＝\n不消失。");
+
             GUILayout.Space(4);
             if (GUILayout.Button("刪除這個 NPC")) ctl.DeleteSelected();
 

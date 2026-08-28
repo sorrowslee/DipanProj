@@ -47,6 +47,7 @@ public static class PlayModeStaticReset
         PlayerSpriteLibrary.ResetForPlayMode();
         MonsterSpriteLibrary.ResetForPlayMode();
         NpcDatabase.ResetForPlayMode();                // NPC 種類表（NpcTable.csv）
+        FactionRelations.ResetForPlayMode();           // 三方陣營劇本狀態（開戰/結盟）
         Dipan.Drama.DramaDatabase.ResetForPlayMode();
         Dipan.Drama.DramaTalkDatabase.ResetForPlayMode();
 

@@ -573,6 +573,19 @@
 - [ ] **實機驗證**（Cowork 端開不了 Unity）：見 PROGRESS 2026-08-28 條目的驗收清單；另確認編輯器 NPC 分頁的拖曳/路徑點/Undo。
 - [ ] **買賣／兌換介面本體**：NPC 端（panelId/panelArg）與 `InteractionManager.OpenPanelById` 對應表已就緒，介面做好後加一個 case ＋ ShopTable.csv（商品資料驅動）。
 - [ ] **護送任務**：`NpcBrain` 加 escort 模式（玩家在半徑內才沿路徑前進）＋頭上血條＋死亡=失敗接鏈；HP/受擊地基已有（NpcTable 的 HP 欄）。
-- [ ] **多方陣營**：把 `FactionRelations` 從寫死規則改成陣營關係表（faction × faction），玩家陣營進存檔、子彈命中也改查它（現在靠 Layer）。
+- [x] ~~**多方陣營**~~ → ✅ 2026-08-28 完成第二波（見 [FACTION.md](FACTION.md)）：Werewolf/Vampire、開戰/結盟鏈動作、演戲傷害 1/100、結盟切層。
 - [ ] **NPC 鏈的重複規則**：目前 setFlag/next 固定「每次進圖跑第一次」；若之後要「每周目/永久一次」再加欄（可沿用觸發鏈 repeat 的自動旗標作法）。
 - [ ] **編輯器預覽大小**與遊戲端 CharacterWorldHeight 正規化不完全一致（沿用劇情演員預覽管線的既有近似），要對到像素級再補。
+
+---
+
+## 陣營系統第二波後續 — 2026-08-28
+
+三方陣營地基（見 [FACTION.md](FACTION.md)）程式完成，缺口：
+
+- [ ] **實機驗證**：照 FACTION.md §3 擺測試劇本（驗收清單在 PROGRESS 2026-08-28 條目）。
+- [ ] **兩族戰士的 MonsterData 列與素材**：表還沒加列（作者決定用哪些圖；狂族血統的狼人序列圖在 Characters/SequenceImage，怪物端要放 Monsters/SequenceImage 才載得到）。
+- [ ] **選邊後的敵族殲滅／勝負收尾**：兩族互打 1/100 打不死是刻意的；「殲滅敵族過關」的流程（殺完接 watchFlag→結算之類）等劇本具體設計再擺。
+- [ ] **關係表資料化**：目前規則寫在 FactionRelations 程式裡（夠用）；陣營種類再變多時改成 CSV 關係表。
+- [ ] 開戰演出（鏡頭/音效/雙方吼叫）＝劇情系統既有件組裝，不需新程式。
+- [ ] **NPC「出現旗標」**：目前只有消失旗標，開戰後不能讓新 NPC 登場（首領要嘛一直在場、要嘛用 drama 觸發點＋條件旗標替代，見 FACTION.md §5.5）。有劇本需要「中途登場的 NPC」時補 appearFlag（生成端過濾＋旗標成立時補生）。

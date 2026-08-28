@@ -223,7 +223,7 @@ namespace DipanMapEditor.Tools
                 x = s.x + map.tileSize, y = s.y,
                 behavior = s.behavior, speed = s.speed, dwellSeconds = s.dwellSeconds,
                 dramaId = s.dramaId, panelId = s.panelId, panelArg = s.panelArg,
-                next = s.next, setFlag = s.setFlag,
+                next = s.next, setFlag = s.setFlag, disappearFlag = s.disappearFlag,
             };
             if (s.waypoints != null)
                 foreach (var w in s.waypoints) copy.waypoints.Add(new Vec2(w.x + map.tileSize, w.y));

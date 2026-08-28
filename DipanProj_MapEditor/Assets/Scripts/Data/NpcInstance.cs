@@ -39,5 +39,7 @@ namespace DipanMapEditor.Data
         public string next = "";
         /// <summary>對話結束後寫的旗標（同觸發鏈 setFlag；每次進圖只跑第一次）。</summary>
         public string setFlag = "";
+        /// <summary>消失旗標：此旗標成立時 NPC 消失（進圖已成立＝不生；中途成立＝即時退場）。空＝不消失。</summary>
+        public string disappearFlag = "";
     }
 }

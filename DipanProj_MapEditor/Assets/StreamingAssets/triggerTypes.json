@@ -512,6 +512,29 @@
       ]
     },
     {
+      "typeId": "factionWar",
+      "displayName": "三方陣營開戰(鏈動作)",
+      "color": "#D94D6A",
+      "params": []
+    },
+    {
+      "typeId": "joinFaction",
+      "displayName": "加入陣營(鏈動作)",
+      "color": "#6A8CD9",
+      "params": [
+        {
+          "key": "faction",
+          "type": "String",
+          "label": "陣營(狼人/吸血鬼)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        }
+      ]
+    },
+    {
       "typeId": "watchFlag",
       "displayName": "觀察旗標變動",
       "color": "#7FE0A0",

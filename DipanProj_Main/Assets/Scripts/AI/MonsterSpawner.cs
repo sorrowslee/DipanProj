@@ -103,6 +103,9 @@ public class MonsterSpawner : MonoBehaviour
             data.DisplayName = (values.Length > 16 && !string.IsNullOrWhiteSpace(values[16])) ? values[16].Trim() : "";
             data.PortraitPath = (values.Length > 17 && !string.IsNullOrWhiteSpace(values[17])) ? values[17].Trim() : "";
 
+            // 陣營（索引 22，表尾欄）：空＝Enemy。Werewolf/狼人、Vampire/吸血鬼、Neutral/中立（見 FactionRelations.Parse）。
+            data.FactionStr = (values.Length > 22 && !string.IsNullOrWhiteSpace(values[22])) ? values[22].Trim() : "";
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();
@@ -169,6 +172,15 @@ public class MonsterSpawner : MonoBehaviour
             return null;
         }
 
+        // 陣營：呼叫端沒特別指定（＝預設 Enemy）時，改用 CSV 的 Faction 欄（空＝維持 Enemy）。
+        // 召喚系統明確傳 PlayerAlly（玩家召喚物），優先於表——同一種怪被玩家召出來就是友軍。
+        if (faction == MonsterFaction.Enemy && !string.IsNullOrWhiteSpace(data.FactionStr))
+        {
+            var parsed = FactionRelations.Parse(data.FactionStr);
+            if (parsed != null) faction = parsed.Value;
+            else Debug.LogWarning($"[MonsterSpawner] 怪物 {id}「{data.Name}」的 Faction 欄「{data.FactionStr}」認不得，維持 Enemy。");
+        }
+
         GameObject go;
         if (!string.IsNullOrEmpty(data.PrefabPath) && _prefabCache.TryGetValue(data.PrefabPath, out GameObject prefab))
         {
@@ -182,16 +194,10 @@ public class MonsterSpawner : MonoBehaviour
             go = BuildMonsterGameObject(data.Name, position);
         }
 
-        // Layer：Enemy 陣營用 Inspector 指定的 EnemyLayer（不寫死編號）；PlayerAlly 用 Ally 層（玩家子彈打不到、不推玩家）。
-        if (faction == MonsterFaction.PlayerAlly && FactionLayers.AllyLayer >= 0)
-        {
-            go.layer = FactionLayers.AllyLayer;
-        }
-        else if (EnemyLayer != 0)
-        {
-            int layerIndex = Mathf.RoundToInt(Mathf.Log(EnemyLayer.value, 2));
-            go.layer = layerIndex;
-        }
+        // Layer：統一交給 FactionRelations.ApplyLayer——Enemy＝Inspector 指定的 EnemyLayer；PlayerAlly/Neutral＝Ally 層；
+        // 部族（狼人/吸血鬼）依劇本狀態（和平/結盟＝Ally 層打不到、開戰未結盟＝Enemy 層可打）。
+        int inspectorEnemyLayer = EnemyLayer != 0 ? Mathf.RoundToInt(Mathf.Log(EnemyLayer.value, 2)) : -1;
+        FactionRelations.ApplyLayer(go, faction, inspectorEnemyLayer);
 
         // 設定縮放
         go.transform.localScale = Vector3.one * data.Scale;

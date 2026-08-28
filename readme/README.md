@@ -48,6 +48,7 @@
 | [FORGING.md](FORGING.md) | 鍛造介面（Y 鍵開；鐵砧中央放武器/裝備、左右 6 個鑲嵌孔依裝備孔位數解鎖、底部兩顆按鈕尚未接功能；重用 ISlotView/SlotDragController 拖放地基） | 改鍛造介面、做鑲嵌/拆裝備、接鐵匠 NPC、加裝備孔位數 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
 | [NPC_SYSTEM.md](NPC_SYSTEM.md) | **NPC 系統**（編輯器 NPC 分頁放置、原地/來回走動、按 F 交談走 DramaTable、對話後開介面 panelId、接觸發鏈；NpcTable.csv 分表、圖沿用 Monsters/SequenceImage、陣營 Neutral＋FactionRelations 單一判定） | 放/改 NPC、加 NPC 種類、做對話商人、未來護送/陣營前 |
+| [FACTION.md](FACTION.md) | **陣營系統**（三方陣營劇本：狼人×吸血鬼×主角——和平/開戰/結盟三態、factionWar·joinFaction 鏈動作、演戲傷害 1/100、結盟切 Ally 層打不到；規則單一真相在 FactionRelations.cs） | 做多方陣營劇本、動「誰能傷誰」、加陣營前 |
 | [GACHA_SYSTEM.md](GACHA_SYSTEM.md) | **祭壇抽選系統**（邪佛廣場走到祭壇按 F 抽選：四層資料架構讓「武器/裝備/血統/道具」大項可隨時增刪、打通關卡解鎖新內容進池、老虎機表演＋十連結算面板；**金錢改成獨立數字不再是背包道具**、血統藥劑一次性換外型；新觸發 `openPanel`／`unlockRoll`、新條件「最低/最高完成關卡數」＋「條件不成立時」） | 加/改抽選大項或池內容、放新祭壇、改抽選介面表演、動金錢或血統 |
 | [BLOODLINE.md](BLOODLINE.md) | **血統系統**（系列＝三階段：殭屍→毛殭→旱魃；表A 系列表＋表B 血統表、系列起始藥劑一世一次不可逆、進階藥劑全系列通用且必須逐階、SpriteFolder 同時決定序列圖與立繪、輪迴歸零回人類；**`BodyScale` 體型倍率＝腳底錨點放大、純視覺**；**變身演出已完成**：倒下→天雷→煙霧→換裝→爬起；⚠ 五屬性只存不套用）<br>**也是玩家可見身體幾何的正典**（`FeetWorldPos` / `BodyCenterWorldPos` / `VisibleBodyHeight`） | 加/改血統或系列、動血統藥劑、換角色外型與立繪、改變身演出、**要定位或縮放任何「掛在玩家身上」的特效** |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |

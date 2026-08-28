@@ -25,6 +25,7 @@ public class NpcAgent : MonoBehaviour
     public string NextTrigger = "";
     public string SetFlagName = "";
     public string ShownName = "";
+    public string DisappearFlag = "";   // 旗標成立＝這個 NPC 即時退場（見 NpcInstance.disappearFlag）
 
     MonsterController _mc;
     NpcBrain _brain;
@@ -40,6 +41,17 @@ public class NpcAgent : MonoBehaviour
     void OnDisable() { Active.Remove(this); }
     void OnDestroy() { if (_marker != null) Destroy(_marker.gameObject); }
 
+    float _flagPollAt;   // 消失旗標輪詢節流（1/4 秒查一次就夠，NPC 數量少）
+
+    void Update()
+    {
+        if (DisappearFlag.Length == 0) return;
+        if (Time.unscaledTime < _flagPollAt) return;
+        _flagPollAt = Time.unscaledTime + 0.25f;
+        if (TriggerChain.FlagTrue(DisappearFlag))
+            Destroy(gameObject);   // 即時退場（開戰瞬間換演員）。對話回呼有 this==null 防呆，不怕正好在聊
+    }
+
     public void Configure(MonsterController mc, NpcBrain brain, Dipan.MapRuntime.NpcInstance inst, NpcData data)
     {
         _mc = mc;
@@ -49,6 +61,7 @@ public class NpcAgent : MonoBehaviour
         PanelArg = (inst.panelArg ?? "").Trim();
         NextTrigger = (inst.next ?? "").Trim();
         SetFlagName = (inst.setFlag ?? "").Trim();
+        DisappearFlag = (inst.disappearFlag ?? "").Trim();
         ShownName = data != null ? data.ShownName : "";
         if (CanInteract) _marker = NpcTalkMarker.Create(transform);   // 頭上對話泡泡（純程式畫、零素材）
     }

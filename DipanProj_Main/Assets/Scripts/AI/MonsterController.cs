@@ -271,6 +271,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             case "Chase":
                 _brain = new ChaseBrain();
                 break;
+            case "War":             // 三方陣營劇本的部族戰士：追最近的敵對目標（敵對怪或玩家）貼上互咬（見 WarBrain）
+                _brain = new WarBrain();
+                break;
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();
                 IsBoss = true;
@@ -341,9 +344,13 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     {
         if (_isDead) return;
 
-        // 目標：Enemy 陣營＝追玩家；PlayerAlly＝跟玩家(ctx.Player) + 打最近敵怪(ctx.Enemy)。
-        Transform enemyTarget = (Faction == MonsterFaction.PlayerAlly) ? FindNearestEnemy() : null;
-        Transform playerTarget = (Faction == MonsterFaction.PlayerAlly) ? PlayerTransform : _sensor.GetTargetPlayer();
+        // 目標（統一查 FactionRelations）：
+        //  ‧ enemyTarget＝最近的敵對怪：PlayerAlly 一直找；部族開戰後找（HasMonsterFoes）；其餘 null。
+        //  ‧ playerTarget：PlayerAlly＝玩家本體（跟隨用）；會攻擊玩家的陣營＝感測範圍內的玩家；其餘 null
+        //    （Neutral／和平期部族 AttacksPlayer=false → 不追蹤玩家，NPC「平時不看玩家」也靠這條）。
+        Transform enemyTarget = FactionRelations.HasMonsterFoes(Faction) ? FindNearestEnemy() : null;
+        Transform playerTarget = (Faction == MonsterFaction.PlayerAlly) ? PlayerTransform
+                               : (FactionRelations.AttacksPlayer(Faction) ? _sensor.GetTargetPlayer() : null);
 
         // 發現玩家（或友軍發現敵怪）→ 記住，之後才允許說話（黏著，不再變回未發現）。
         if (!IsAwareOfPlayer && (playerTarget != null || enemyTarget != null)) IsAwareOfPlayer = true;
@@ -362,10 +369,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             _brain.Think(in ctx);
         }
 
-        // 面向/攻擊動畫的對象：友軍面向正在打的敵怪（沒有就面向玩家）；敵人面向玩家。
-        Transform faceTarget = (Faction == MonsterFaction.PlayerAlly)
-            ? (enemyTarget != null ? enemyTarget : playerTarget)
-            : playerTarget;
+        // 面向/攻擊動畫的對象：有敵對怪目標（友軍打敵怪、部族互咬）就面向它，否則面向玩家目標。
+        Transform faceTarget = enemyTarget != null ? enemyTarget : playerTarget;
         HandleVisuals(faceTarget);
     }
 
@@ -461,8 +466,11 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             return;
 
         _currentHealth -= amount;
-        DamageNumberManager.Show(gameObject, amount);   // 頭上跳傷害數字（已過無敵判定 = 確實吃到傷害）
-        Debug.Log($"{MonsterName} took {amount} damage. HP: {_currentHealth}/{MaxHealth}");
+        if (!CombatSystem.CurrentHitTheatrical)   // 演戲傷害（兩族互打 1/100）：不跳數字、不印 log（30 隻互毆會洗版）；白光閃爍照舊
+        {
+            DamageNumberManager.Show(gameObject, amount);   // 頭上跳傷害數字（已過無敵判定 = 確實吃到傷害）
+            Debug.Log($"{MonsterName} took {amount} damage. HP: {_currentHealth}/{MaxHealth}");
+        }
 
         if (_currentHealth <= 0)
         {
