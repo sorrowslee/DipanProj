@@ -88,6 +88,7 @@ public static class TriggerChain
     static readonly Dictionary<string, (int mapId, string entrance)> _teleportOverride = new Dictionary<string, (int, string)>(); // 傳送門：執行期覆寫目的地（劇本決定）
 
     static TriggerRegion _pendingDramaRegion;   // 等「對話關閉」才算完成的 region（DramaPanel/TalkPanel 關閉時通知）
+    static System.Action _pendingDramaAction;   // 等「對話關閉」才執行的回呼（NPC 交談等**不是 trigger** 的對話來源用）
 
     /// <summary>換圖後重建：計算每個 trigger 的初始啟用狀態、套用 linkedFx／傳送點外型 顯示/隱藏。由 MapManager 呼叫。</summary>
     public static void Setup(MapData map, MapManager manager, Dictionary<string, GameObject> fxById,
@@ -100,6 +101,7 @@ public static class TriggerChain
         _disabled.Clear();
         _teleportOverride.Clear();   // 换图 → 清掉上一張圖的傳送門目的地覆寫
         _pendingDramaRegion = null;
+        _pendingDramaAction = null;
 
         if (map?.TriggerLayer?.regions == null) return;
         foreach (var r in map.TriggerLayer.regions)
@@ -129,6 +131,7 @@ public static class TriggerChain
         _levelFlags.Clear();
         _teleportOverride.Clear();
         _pendingDramaRegion = null;
+        _pendingDramaAction = null;
         OnTriggerFired = null;
     }
 
@@ -218,7 +221,7 @@ public static class TriggerChain
     public static bool IsActive(TriggerRegion r) => !IsDisabled(r) && RequirementMet(r);
 
     /// <summary>是否有對話正在播（等面板關閉的鏈節點還沒結）。進場觸發依序點火時據此等待，避免兩段對話撞在一起。</summary>
-    public static bool DramaPending => _pendingDramaRegion != null;
+    public static bool DramaPending => _pendingDramaRegion != null || _pendingDramaAction != null;
 
     // ── 重複規則（repeat）給「進場觸發」用的判定/標記 ──
     // 與 InteractionManager 的互動點用同一套自動旗標格式（"已觸發:"+id；永久加「永久:」前綴）。
@@ -280,14 +283,30 @@ public static class TriggerChain
         _pendingDramaRegion = r;
     }
 
-    /// <summary>DramaPanel / TalkPanel 關閉時通知（面板 OnClose 呼叫）。無待結 region 時無事。</summary>
+    /// <summary>
+    /// 對話型動作（**非 trigger 版**）：開了 DramaPanel/TalkPanel 後呼叫，等面板關閉才執行回呼。
+    /// 給「不是地圖 trigger 的對話來源」用——目前是 NPC 交談（NpcAgent：對話關閉 → 開介面/接鏈）。
+    /// 與 <see cref="CompleteAfterDrama"/> 同一個關閉通知（NotifyDramaClosed），也一樣延後一幀執行。
+    /// 換圖（Setup）會清掉未結的回呼，呼叫端自行防呆已銷毀的情況。
+    /// </summary>
+    public static void CompleteAfterDramaAction(System.Action onClosed)
+    {
+        if (_pendingDramaAction != null)
+            Debug.LogWarning("[TriggerChain] 前一個對話完成回呼（action）還沒結，被新的覆蓋。");
+        _pendingDramaAction = onClosed;
+    }
+
+    /// <summary>DramaPanel / TalkPanel 關閉時通知（面板 OnClose 呼叫）。無待結 region/回呼時無事。</summary>
     public static void NotifyDramaClosed()
     {
         var r = _pendingDramaRegion;
+        var act = _pendingDramaAction;
         _pendingDramaRegion = null;
+        _pendingDramaAction = null;
         // 延後一幀再接鏈：此刻面板正在 OnClose，若同步接鏈又去開新對話會重入 → 舊面板把新面板關掉、
         // IsOpen 殘留、遊戲永久暫停（玩家卡死）。等這幀面板完全關乾淨，下一幀再繼續鏈。
         if (r != null) TriggerChainRunner.NextFrame(() => OnCompleted(r));
+        if (act != null) TriggerChainRunner.NextFrame(act);
     }
 
     /// <summary>依名稱（優先）或 id 找到目標 trigger 並啟動：動作型立即執行、位置型解鎖。</summary>

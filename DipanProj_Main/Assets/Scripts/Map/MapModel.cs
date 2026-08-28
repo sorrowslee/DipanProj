@@ -27,6 +27,9 @@ namespace Dipan.MapRuntime
         // 場景特效（可放置的粒子特效；編輯器放、遊戲端依 SceneFxTable 生成）。缺欄＝空清單。
         public List<SceneFxInstance> sceneFx = new List<SceneFxInstance>();
 
+        // NPC（編輯器「NPC」分頁放：站位/行為/路徑/對話/介面/接鏈）。缺欄＝空清單（舊地圖行為不變）。
+        public List<NpcInstance> npcs = new List<NpcInstance>();
+
         // 獨立光源（不綁地上物的照明點；編輯器「照明」分頁放）。缺欄＝空清單（舊地圖行為不變）。
         // 給「火炬/燈籠已經畫在背景圖裡」的情況：不必把它們從背景拆成地上物，把光源點放到火焰中心就會發光。
         public List<LightInstance> lights = new List<LightInstance>();
@@ -185,6 +188,33 @@ namespace Dipan.MapRuntime
         public bool loop = true;
         public bool intermittent = false;
         public float interval = 2f;
+    }
+
+    /// <summary>
+    /// 一個 NPC 擺放實例（編輯器「NPC」分頁放置；種類資料查 NpcTable.csv）。座標為世界座標。
+    /// 行為：idle＝原地不動；patrol＝沿 [站位→waypoints…] 乒乓來回（走到尾倒著走回站位）。
+    /// dramaId＝按 F 交談播的對話（DramaTable，Type 1/2 皆可；0＝不對話）；
+    /// panelId/panelArg＝對話結束後開的介面（沒填 dramaId 時＝按 F 直接開）；
+    /// next/setFlag＝對話結束後接觸發鏈（每次進圖只跑第一次）。見 readme/NPC_SYSTEM.md。
+    /// </summary>
+    public class NpcInstance
+    {
+        public const string BehaviorIdle = "idle";
+        public const string BehaviorPatrol = "patrol";
+
+        public string id;
+        public string name = "";          // 好認的名字（編輯器清單顯示；遊戲端只在警告訊息用）
+        public int npcId;                 // NpcTable.csv 的 ID
+        public float x, y;                // 站位（世界座標）
+        public string behavior = BehaviorIdle;   // idle / patrol（未來擴充：escort…）
+        public List<Vec2> waypoints = new List<Vec2>();   // patrol 的路徑點（不含站位）
+        public float speed = 0f;          // 走動速度覆寫；0＝用 NpcTable 的 Speed
+        public float dwellSeconds = 0f;   // 抵達每個路徑點停留秒數
+        public int dramaId = 0;           // 按 F 交談的對話（0＝不對話）
+        public string panelId = "";       // 對話結束後開的介面（見 InteractionManager.OpenPanelById）
+        public string panelArg = "";      // 介面參數（例：抽選池代號、未來的 shopId）
+        public string next = "";          // 對話結束後啟動的 trigger（名稱，同觸發鏈 next）
+        public string setFlag = "";       // 對話結束後寫的旗標
     }
 
     public class TriggerRegion

@@ -10331,6 +10331,29 @@
       "interval": 2.0
     }
   ],
+  "npcs": [
+    {
+      "id": "40d36571",
+      "name": "測試NPC",
+      "npcId": 1,
+      "x": 49.4951973,
+      "y": -24.1216373,
+      "behavior": "patrol",
+      "waypoints": [
+        {
+          "x": 56.7496071,
+          "y": -24.06337
+        }
+      ],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 23,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": ""
+    }
+  ],
   "lights": [
     {
       "id": "b16c52a6",

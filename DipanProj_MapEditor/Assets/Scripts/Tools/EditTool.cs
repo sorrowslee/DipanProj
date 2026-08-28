@@ -10,6 +10,7 @@ namespace DipanMapEditor.Tools
         Object,     // 地上物：放置/選取/翻轉/縮放/移動
         Walkable,   // 可走/不可走筆刷
         Trigger,    // Trigger 區域：類型/區域/塗格/參數
+        Npc,        // NPC：放置站位/路徑點、選角色、填對話/介面/接鏈參數
         SceneFx,    // 場景特效：新增特效、放置起/終點、填 fxId 等參數
         Light,      // 照明：不綁地上物的獨立光源（火炬/燈籠已畫在背景圖時用），放位置＋調半徑/亮度/光色/搖晃
         Cutscene,   // 劇情演出：演員走位/說話/漫畫/運鏡的過場編排

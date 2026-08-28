@@ -62,8 +62,11 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public void NotifySkillCast() => _skillCastAnimUntil = Time.time + SkillCastAnimSeconds;
 
     [Header("Faction")]
-    [Tooltip("陣營：Enemy=一般敵怪/boss/其召喚物(追玩家)；PlayerAlly=玩家召喚的協戰怪(追敵怪)。由 MonsterSpawner 設定。")]
+    [Tooltip("陣營：Enemy=一般敵怪/boss/其召喚物(追玩家)；PlayerAlly=玩家召喚的協戰怪(追敵怪)；Neutral=中立 NPC(不打人不被打)。由 MonsterSpawner / NpcSpawner 設定。")]
     public MonsterFaction Faction = MonsterFaction.Enemy;
+
+    [Tooltip("移動時面向「移動方向」而不是玩家（NPC 巡邏用：往右走就面右）。停下時仍面向感測範圍內的玩家。")]
+    public bool FaceMovement = false;
     public bool IsDead => _isDead;
     public float CurrentHealth => _currentHealth;                       // 目前血量（給 boss Brain 判階段用）
     public float HealthFraction => MaxHealth > 0f ? _currentHealth / MaxHealth : 0f;  // 血量比例 0~1
@@ -376,7 +379,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         for (int i = 0; i < list.Count; i++)
         {
             MonsterController mc = list[i];
-            if (mc == null || mc == this || mc.IsDead || mc.Faction != MonsterFaction.Enemy) continue;
+            if (mc == null || mc == this || mc.IsDead || !FactionRelations.Hostile(Faction, mc.Faction)) continue;   // 「打得到的才是敵人」統一查 FactionRelations
             float sq = ((Vector2)mc.transform.position - (Vector2)transform.position).sqrMagnitude;
             if (sq <= rangeSq && sq < bestSq) { bestSq = sq; best = mc.transform; }
         }
@@ -394,6 +397,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         if (!_lastVisualPosInit) { _lastVisualPos = pos; _lastVisualPosInit = true; }
         float dt = Time.deltaTime;
         float rawSpeed = dt > 0.0001f ? Vector2.Distance(pos, _lastVisualPos) / dt : 0f;
+        float moveDx = pos.x - _lastVisualPos.x;   // 本幀實際位移 X（FaceMovement 面向用；在覆寫前取）
         _lastVisualPos = pos;
         // 指數平滑：吃掉單幀抖動（物理步與畫面步不完全對齊時的零位移幀），避免走路/發呆一幀一跳。
         _visualSpeedEma = (dt > 0.0001f)
@@ -435,7 +439,14 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 
         // 2. 左右翻轉 (Flip)：依玩家位置與「來源圖朝向」決定（與動畫系統無關；同 PlayerController.SetFacing）。
         //    來源朝右(SpriteSourceFacesRight=true)：面右=不翻(flipX=false)、面左=翻(true)；來源朝左：相反。
-        if (player != null)
+        //    FaceMovement（NPC 巡邏）：移動中面向「移動方向」（不然往右走、玩家在左，會邊倒退邊走）；
+        //    停下時退回下面的「面向玩家」（玩家走近，NPC 轉頭看他）。
+        if (FaceMovement && moving && Mathf.Abs(moveDx) > 0.002f)
+        {
+            bool faceRight = moveDx > 0f;
+            _spriteRenderer.flipX = (faceRight != SpriteSourceFacesRight);
+        }
+        else if (player != null)
         {
             bool faceRight = player.position.x > transform.position.x;
             _spriteRenderer.flipX = (faceRight != SpriteSourceFacesRight);

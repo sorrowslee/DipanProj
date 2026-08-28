@@ -56,11 +56,11 @@ namespace Dipan.UI
         // ───────── 表演節奏（秒，unscaled）─────────
         [Header("表演節奏（秒，unscaled）")]
         [Tooltip("淡入秒數")]
-        public float FadeInSeconds = 0.5f;
+        public float FadeInSeconds = 0.33f;
         [Tooltip("完全顯示後停留多久才開始淡出。整段是暫停遊戲的，而邪佛廣場每一輪都會再跳一次，所以刻意壓短")]
-        public float HoldSeconds = 1.5f;
+        public float HoldSeconds = 1.0f;
         [Tooltip("淡出秒數")]
-        public float FadeOutSeconds = 0.6f;
+        public float FadeOutSeconds = 0.4f;
 
         // ───────── 版面（CanvasScaler 參考解析度 1920×1080 下的尺寸；每次 Begin 重算）─────────
         [Header("場景名文字圖（1920×1080 參考解析度）")]
@@ -70,6 +70,12 @@ namespace Dipan.UI
         public float TextMaxWidth = 900f;
         [Tooltip("文字中心相對畫面中心的垂直位移（+ 往上）")]
         public float TextCenterY = 175f;
+
+        [Header("黑幕（半透明遮罩）")]
+        [Tooltip("要不要在名字後面鋪半透明黑幕（同一般 UI 視窗的遮罩）。沒有它會「看起來能走卻動不了」——玩家分不出遊戲被暫停了")]
+        public bool DimBackdrop = true;
+        [Tooltip("黑幕濃度（0~1；0.6 = 與 UIManager 共用遮罩同濃度）。⚠ Linear 色彩空間，大面積半透明比直覺重，見 PROBLEMS E11")]
+        [Range(0f, 1f)] public float DimAlpha = 0.6f;
 
         [Header("分隔線底版")]
         [Tooltip("要不要顯示底下那條血紅分隔線")]
@@ -95,7 +101,7 @@ namespace Dipan.UI
         /// </summary>
         public bool IsPlaying => gameObject.activeSelf;
 
-        Image _text, _bg;
+        Image _text, _bg, _dim;
         float _fadeNow = 0.35f;   // 目前這一次淡入/淡出要用的秒數（見 FadeDuration）
         float _t;                 // 開演至今（unscaled 秒）
         float _endTime;           // 開始淡出的時刻
@@ -130,6 +136,13 @@ namespace Dipan.UI
         // 疊層順序（先建 = 最底）：分隔線底版 → 場景名文字。
         protected override void OnBuild()
         {
+            // 黑幕：**自己鋪、不用 UIManager 的共用遮罩**——共用那張只服務 Window 層
+            // （UpdateBackdrop 過濾 Layer == Window，本面板是 Overlay 搆不到）；
+            // 掛在面板底下還順便跟著面板的 CanvasGroup 一起淡入淡出，不必另管動畫。
+            _dim = UIBuilder.SolidPanel(transform, "Backdrop", new Color(0f, 0f, 0f, DimAlpha));
+            _dim.raycastTarget = false;     // ⚠ Overlay 層鋪滿畫面，一律不吃點擊（暫停由 PausesGame 負責）
+            _dim.transform.SetAsFirstSibling();
+
             _bg = UIBuilder.Image(transform, "Divider", null);
             _bg.preserveAspect = true;
             _bg.raycastTarget = false;      // ⚠ Overlay 層鋪滿畫面，不關掉會吃掉玩家的點擊
@@ -170,6 +183,13 @@ namespace Dipan.UI
                 float ba = bgSprite.rect.height > 0f ? bgSprite.rect.width / bgSprite.rect.height : 10f;
                 _bg.rectTransform.sizeDelta = new Vector2(BgWidth, BgWidth / Mathf.Max(0.01f, ba));
                 _bg.rectTransform.anchoredPosition = new Vector2(0f, BgCenterY);
+            }
+
+            // ── 黑幕（每次 Begin 套用：Inspector 改開關/濃度，下次進圖生效）──
+            if (_dim != null)
+            {
+                _dim.enabled = DimBackdrop;
+                _dim.color = new Color(0f, 0f, 0f, Mathf.Clamp01(DimAlpha));
             }
 
             _t = 0f;

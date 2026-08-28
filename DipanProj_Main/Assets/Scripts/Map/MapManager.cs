@@ -373,6 +373,7 @@ public class MapManager : MonoBehaviour
         // 協程開跑時 Start 已執行完，且睜眼開頭是全黑（眼皮閉合），看不到趴下前的站姿。
         _wakeUpWanted = ScreenFxTable.WakeUpPose(row.enterEffect);   // 由表決定此進場特效要不要連動玩家趴地→起身（目前只有睜眼）
         mapLoader.SpawnMonsters();
+        mapLoader.SpawnNpcs();   // NPC（中立、可交談）：與怪物同批生成，換圖同批清掉
         SetupWatcher();
 
         // 血球 HUD 顯示規則：開場山道劇情場景(初始森林13/14)不顯示，初始洞窟(11)起才顯示。

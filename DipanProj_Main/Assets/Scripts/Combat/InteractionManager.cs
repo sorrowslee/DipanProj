@@ -476,7 +476,7 @@ public class InteractionManager : MonoBehaviour
                 if (_loot[i] != null) _loot[i].SetLabelVisible(GroundLoot.LabelsVisible);
         }
 
-        if (_loot.Count == 0 && _points.Count == 0) { HideTip(); return; }
+        if (_loot.Count == 0 && _points.Count == 0 && NpcAgent.Active.Count == 0) { HideTip(); return; }
 
         // 開 UI（背包/劇情等）時不互動、不顯示提示。
         // 例外：新手教學把玩家定住、逼他按 F 那一刻，雖然輸入被擋，但要放行「按 F 開傳送門」。
@@ -543,7 +543,23 @@ public class InteractionManager : MonoBehaviour
             }
         }
 
-        if (bestLoot == null && bestPoint == null) { HideTip(); return; }
+        // NPC（可交談/可開介面的才算；NPC 會走動，所以不是建點制、每幀直接比距離）。
+        NpcAgent bestNpc = null;
+        var npcs = NpcAgent.Active;
+        for (int i = 0; i < npcs.Count; i++)
+        {
+            var npc = npcs[i];
+            if (npc == null || !npc.CanInteract) continue;
+            float d = ((Vector2)npc.transform.position - p).sqrMagnitude;
+            if (d <= best)
+            {
+                best = d; bestNpc = npc; bestLoot = null; bestPoint = null;
+                tipPos = npc.TipWorldPos;                   // 頭頂（碰撞框上緣）＋ tipHeight ＝ 提示浮在頭上
+                tipText = npc.TipText(interactKey);
+            }
+        }
+
+        if (bestLoot == null && bestPoint == null && bestNpc == null) { HideTip(); return; }
 
         if (tipText != null)
         {
@@ -555,6 +571,7 @@ public class InteractionManager : MonoBehaviour
         if (Input.GetKeyDown(interactKey))
         {
             if (bestLoot != null) { TryPickUpLoot(bestLoot); return; }
+            if (bestNpc != null) { HideTip(); bestNpc.Interact(); return; }   // NPC：交談/開介面（見 NpcAgent）
 
             var k = KindOf(bestPoint);                          // 按 F 的行為也由型別定義決定
             if (k?.Activate != null) k.Activate(bestPoint);
@@ -571,19 +588,27 @@ public class InteractionManager : MonoBehaviour
     }
 
     // 開啟指定的 UI 面板（不消耗此互動點：關掉 UI 後還能再按 F 重開，祭壇本來就是可以一直回來抽的）。
-    // panelId → 面板的對應寫在這裡；之後要接商店/鐵匠/圖鑑就在這個 switch 加一個 case。
     void OpenPanelPoint(InteractPoint pt)
     {
         if (pt == null) return;
         HideTip();
-        switch (pt.panelId)
+        OpenPanelById(pt.panelId, pt.panelArg, $"開啟介面點「{pt.id}」");
+    }
+
+    /// <summary>
+    /// panelId → 面板的**唯一對應表**：openPanel trigger（祭壇）與 NPC（對話後開介面）都走這裡。
+    /// 之後要接商店/兌換/鐵匠/圖鑑就在這個 switch 加一個 case（arg 建議＝該介面的資料表 id，例如 shopId）。
+    /// </summary>
+    public static void OpenPanelById(string panelId, string arg, string caller = "")
+    {
+        switch (panelId)
         {
             case "gacha":   // 祭壇抽選：arg = GachaPoolTable.csv 的 PoolId
-                Dipan.UI.GachaPanel.OpenFor(pt.panelArg);
+                Dipan.UI.GachaPanel.OpenFor(arg);
                 break;
             default:
-                Debug.LogWarning($"[InteractionManager] 開啟介面點「{pt.id}」的 panelId=「{pt.panelId}」沒有對應的面板。" +
-                                 "可用值目前只有 gacha；要加新的請到 InteractionManager.OpenPanelPoint 補一個 case。");
+                Debug.LogWarning($"[InteractionManager] {caller} 的 panelId=「{panelId}」沒有對應的面板。" +
+                                 "可用值目前只有 gacha；要加新的請到 InteractionManager.OpenPanelById 補一個 case。");
                 break;
         }
     }

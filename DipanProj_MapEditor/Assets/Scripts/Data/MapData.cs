@@ -52,6 +52,12 @@ namespace DipanMapEditor.Data
         public List<SceneFxInstance> sceneFx = new List<SceneFxInstance>();
 
         /// <summary>
+        /// NPC（「NPC」分頁放置：站位/行為/路徑/對話/介面/接鏈）；獨立於圖層，直接掛在地圖上。
+        /// 舊地圖沒有這個欄位 → 反序列化後是空清單，行為與以前相同。
+        /// </summary>
+        public List<NpcInstance> npcs = new List<NpcInstance>();
+
+        /// <summary>
         /// 獨立光源（不綁地上物的照明點）；獨立於圖層，直接掛在地圖上。
         /// 給「火炬/燈籠已經畫在背景圖裡」的情況：不必把它們從背景拆成地上物，把光源點放到火焰中心就會發光。
         /// 舊地圖沒有這個欄位 → 反序列化後是空清單，行為與以前相同。

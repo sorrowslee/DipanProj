@@ -138,6 +138,13 @@ namespace DipanMapEditor.UI
         Tools.CutsceneController _csCtl;
         Preview.CutscenePreview _previewCtl;
         Vector2 _csScroll;
+
+        // NPC 工具
+        Tools.NpcController _npcCtl;
+        Vector2 _npcScroll;
+        Data.NpcInstance _npcBufFor;   // 選取切換時重灌輸入暫存
+        string _npNameBuf = "", _npDramaBuf = "", _npSpeedBuf = "", _npDwellBuf = "", _npPanelBuf = "", _npArgBuf = "", _npNextBuf = "";
+        bool _npcPickRole, _npcPickNext;
         CutsceneActor _csActorBufFor;
         CutsceneStep _csStepBufFor;
         string _csBufDrama, _csBufLang, _csBufSeconds, _csBufZoom, _csBufScale, _csBufFps, _csBufSpeed;
@@ -243,6 +250,12 @@ namespace DipanMapEditor.UI
             return _previewCtl;
         }
 
+        Tools.NpcController NpcCtl()
+        {
+            if (_npcCtl == null) _npcCtl = FindObjectOfType<Tools.NpcController>();
+            return _npcCtl;
+        }
+
         // ---- 版面計算（面板位置與場景可視區的唯一真相）----
 
         /// <summary>右側屬性面板的位置。所有工具的面板共用，夾在頂部列與底部狀態列之間。</summary>
@@ -298,6 +311,10 @@ namespace DipanMapEditor.UI
             else if (CurrentTool == EditTool.Trigger)
             {
                 DrawTriggerPanel();
+            }
+            else if (CurrentTool == EditTool.Npc)
+            {
+                DrawNpcPanel();
             }
             else if (CurrentTool == EditTool.SceneFx)
             {
@@ -435,6 +452,7 @@ namespace DipanMapEditor.UI
             RailButton("場景特效", EditTool.SceneFx);
             RailButton("照明", EditTool.Light);
             RailButton("劇情", EditTool.Cutscene);
+            RailButton("NPC", EditTool.Npc);
             GUILayout.EndArea();
         }
 
@@ -1644,6 +1662,238 @@ namespace DipanMapEditor.UI
         // 空字串/無效 → 回傳預設值（存進資料時就是預設，符合「沒填就給預設」）。
         static int ParseIntOr(string s, int def) => int.TryParse(s, out int v) ? v : def;
         static float ParseFloatOr(string s, float def) => float.TryParse(s, out float v) ? v : def;
+
+        // ================= NPC 面板 =================
+
+        void DrawNpcPanel()
+        {
+            var map = MapSession.Instance?.Map;
+            var ctl = NpcCtl();
+            if (map == null || ctl == null) return;
+            if (map.npcs == null) map.npcs = new List<Data.NpcInstance>();
+
+            var rect = PanelRect;
+            GUILayout.BeginArea(rect, GUI.skin.box);
+            _npcScroll = GUILayout.BeginScrollView(_npcScroll);
+
+            GUILayout.Label("NPC");
+            GUILayout.Label("放角色→設行為與對話。\n畫布上直接拖曳 NPC／路徑點。");
+
+            var rows = Preview.NpcTableEditor.Rows;
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("重讀 NPC 表", GUILayout.Width(88))) Preview.NpcTableEditor.Reload();
+            GUILayout.Label($"共 {rows.Count} 種");
+            GUILayout.EndHorizontal();
+            if (rows.Count == 0)
+            {
+                GUILayout.Label("⚠ 主專案 Assets/Data/NpcTable.csv\n沒有資料（或不存在）。\n先在表裡加 NPC 種類再來擺。");
+                GUILayout.EndScrollView();
+                GUILayout.EndArea();
+                return;
+            }
+
+            GUILayout.Space(4);
+            if (GUILayout.Button("＋ 新增 NPC")) ctl.NewNpc(rows[0].ID);
+
+            GUILayout.Space(6);
+            GUILayout.Label($"NPC 清單（{map.npcs.Count}）");
+            Data.NpcInstance toDelete = null;
+            for (int i = 0; i < map.npcs.Count; i++)
+            {
+                var n = map.npcs[i];
+                if (n == null) continue;
+                GUILayout.BeginHorizontal();
+                GUI.color = (n == ctl.Selected) ? Color.cyan : Color.white;
+                var r0 = Preview.NpcTableEditor.Get(n.npcId);
+                string label = !string.IsNullOrWhiteSpace(n.name) ? n.name : (r0 != null ? r0.ShownName : $"NPC {i + 1}");
+                if (GUILayout.Button(label, GUILayout.Width(150))) ctl.Select(n);
+                if (GUILayout.Button("刪", GUILayout.Width(32))) toDelete = n;
+                GUILayout.EndHorizontal();
+            }
+            GUI.color = Color.white;
+            if (toDelete != null) { ctl.Select(toDelete); ctl.DeleteSelected(); }
+
+            var sel = ctl.Selected;
+            if (sel == null)
+            {
+                GUILayout.Space(8);
+                GUILayout.Label("按「＋ 新增 NPC」建立，\n或點畫布上的 NPC 選取。");
+                GUILayout.EndScrollView();
+                GUILayout.EndArea();
+                return;
+            }
+
+            GUILayout.Space(8);
+            GUILayout.Label("── 編輯 NPC ──");
+
+            if (_npcBufFor != sel)   // 切換選取 → 重灌輸入暫存
+            {
+                _npcBufFor = sel;
+                _npNameBuf = sel.name ?? "";
+                _npDramaBuf = sel.dramaId > 0 ? sel.dramaId.ToString() : "";
+                _npPanelBuf = sel.panelId ?? "";
+                _npArgBuf = sel.panelArg ?? "";
+                _npNextBuf = sel.next ?? "";
+                _npcPickRole = false; _npcPickNext = false;
+            }
+
+            GUILayout.BeginHorizontal();
+            GUI.color = ctl.Placing ? Color.green : Color.white;
+            if (GUILayout.Button("放置站位")) ctl.BeginPlace();
+            GUI.color = Color.white;
+            if (GUILayout.Button("複製一個")) ctl.DuplicateSelected();
+            GUILayout.EndHorizontal();
+            GUILayout.Label(ctl.Placing ? "→ 到畫布點一下放置" : $"站位 ({sel.x:0.0}, {sel.y:0.0})");
+
+            // 名稱（清單顯示用）
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("名稱", GUILayout.Width(44));
+            bool editingName = GUI.GetNameOfFocusedControl() == "npName";
+            if (!editingName) _npNameBuf = sel.name ?? "";
+            GUI.SetNextControlName("npName");
+            string sn = GUILayout.TextField(_npNameBuf ?? "", GUILayout.Width(140));
+            GUILayout.EndHorizontal();
+            if (editingName && sn != _npNameBuf) { _npNameBuf = sn; sel.name = sn; }
+
+            // 角色（NpcTable 下拉）
+            var curRow = Preview.NpcTableEditor.Get(sel.npcId);
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("角色", GUILayout.Width(44));
+            if (GUILayout.Button(curRow != null ? $"{curRow.ID}｜{curRow.ShownName}" : $"{sel.npcId}（表裡沒有）"))
+                _npcPickRole = !_npcPickRole;
+            GUILayout.EndHorizontal();
+            if (_npcPickRole)
+            {
+                foreach (var r in rows)
+                    if (GUILayout.Button($"　{r.ID}｜{r.ShownName}"))
+                    {
+                        UndoManager.Push();
+                        sel.npcId = r.ID;
+                        _npcPickRole = false;
+                    }
+            }
+
+            // 行為
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("行為", GUILayout.Width(44));
+            GUI.color = sel.behavior != Data.NpcInstance.BehaviorPatrol ? Color.cyan : Color.white;
+            if (GUILayout.Button("原地", GUILayout.Width(60))) { UndoManager.Push(); sel.behavior = Data.NpcInstance.BehaviorIdle; }
+            GUI.color = sel.behavior == Data.NpcInstance.BehaviorPatrol ? Color.cyan : Color.white;
+            if (GUILayout.Button("來回走動", GUILayout.Width(80))) { UndoManager.Push(); sel.behavior = Data.NpcInstance.BehaviorPatrol; }
+            GUI.color = Color.white;
+            GUILayout.EndHorizontal();
+
+            if (sel.behavior == Data.NpcInstance.BehaviorPatrol)
+            {
+                GUILayout.Space(2);
+                GUI.color = ctl.AddingWaypoints ? Color.green : Color.white;
+                if (GUILayout.Button(ctl.AddingWaypoints ? "加路徑點中…（ESC 結束）" : "＋ 加路徑點（連續點畫布）"))
+                    ctl.ToggleAddWaypoints();
+                GUI.color = Color.white;
+
+                if (sel.waypoints != null && sel.waypoints.Count > 0)
+                {
+                    int del = -1;
+                    for (int i = 0; i < sel.waypoints.Count; i++)
+                    {
+                        var w = sel.waypoints[i];
+                        GUILayout.BeginHorizontal();
+                        GUILayout.Label($"點{i + 1} ({w.x:0.0}, {w.y:0.0})", GUILayout.Width(140));
+                        if (GUILayout.Button("刪", GUILayout.Width(32))) del = i;
+                        GUILayout.EndHorizontal();
+                    }
+                    if (del >= 0) ctl.RemoveWaypoint(del);
+                    GUILayout.Label("走法：站位→各點 乒乓來回；\n點可在畫布上直接拖。");
+                }
+                else GUILayout.Label("（還沒有路徑點：至少加一點\n才會走動）");
+
+                LightNumField("速度", "npSpeed", ref _npSpeedBuf,
+                              () => sel.speed, v => sel.speed = v, 0.2f, 0f, "0=用表");
+                LightNumField("停留秒", "npDwell", ref _npDwellBuf,
+                              () => sel.dwellSeconds, v => sel.dwellSeconds = v, 0.2f, 0f, "每點停留");
+            }
+
+            GUILayout.Space(6);
+            GUILayout.Label("── 對話與介面 ──");
+
+            // 對話 id（DramaTable；Type 1 大圖或 Type 2 頭像對話都可）
+            bool editingDrama = GUI.GetNameOfFocusedControl() == "npDrama";
+            if (!editingDrama) _npDramaBuf = sel.dramaId > 0 ? sel.dramaId.ToString() : "";
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("對話id", GUILayout.Width(44));
+            GUI.SetNextControlName("npDrama");
+            string sd = GUILayout.TextField(_npDramaBuf ?? "", GUILayout.Width(56));
+            GUILayout.Label("DramaTable", GUILayout.Width(80));
+            GUILayout.EndHorizontal();
+            if (editingDrama && sd != _npDramaBuf)
+            {
+                _npDramaBuf = sd;
+                sel.dramaId = int.TryParse(sd, out var dv) && dv > 0 ? dv : 0;
+            }
+            GUILayout.Label("靠近按 F 交談（可反覆聊）。\n空＝不對話。");
+
+            // 介面（對話結束後開；沒填對話＝按 F 直接開）
+            bool editingPanel = GUI.GetNameOfFocusedControl() == "npPanel";
+            if (!editingPanel) _npPanelBuf = sel.panelId ?? "";
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("介面", GUILayout.Width(44));
+            GUI.SetNextControlName("npPanel");
+            string sp = GUILayout.TextField(_npPanelBuf ?? "", GUILayout.Width(80));
+            GUILayout.EndHorizontal();
+            if (editingPanel && sp != _npPanelBuf) { _npPanelBuf = sp; sel.panelId = sp.Trim(); }
+
+            bool editingArg = GUI.GetNameOfFocusedControl() == "npArg";
+            if (!editingArg) _npArgBuf = sel.panelArg ?? "";
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("參數", GUILayout.Width(44));
+            GUI.SetNextControlName("npArg");
+            string sa = GUILayout.TextField(_npArgBuf ?? "", GUILayout.Width(80));
+            GUILayout.EndHorizontal();
+            if (editingArg && sa != _npArgBuf) { _npArgBuf = sa; sel.panelArg = sa.Trim(); }
+            GUILayout.Label("對話結束後開此介面；沒填對話\n＝按 F 直接開。目前可填：gacha\n（參數=抽選池代號）；買賣/兌換\n介面做好後在此填新代號。空＝不開。");
+
+            GUILayout.Space(6);
+            GUILayout.Label("── 對話結束後接鏈 ──");
+
+            // 接續觸發（next）：文字輸入＋從本圖 trigger 名單挑
+            bool editingNext = GUI.GetNameOfFocusedControl() == "npNext";
+            if (!editingNext) _npNextBuf = sel.next ?? "";
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("接續", GUILayout.Width(44));
+            GUI.SetNextControlName("npNext");
+            string sx = GUILayout.TextField(_npNextBuf ?? "", GUILayout.Width(110));
+            if (GUILayout.Button("選", GUILayout.Width(32))) _npcPickNext = !_npcPickNext;
+            GUILayout.EndHorizontal();
+            if (editingNext && sx != _npNextBuf) { _npNextBuf = sx; sel.next = sx.Trim(); }
+            if (_npcPickNext && map.TriggerLayer?.regions != null)
+            {
+                foreach (var tr in map.TriggerLayer.regions)
+                {
+                    if (tr == null || string.IsNullOrWhiteSpace(tr.name)) continue;
+                    if (GUILayout.Button("　" + tr.name))
+                    {
+                        UndoManager.Push();
+                        sel.next = tr.name.Trim();
+                        _npcPickNext = false;
+                    }
+                }
+                if (GUILayout.Button("　（清空）")) { UndoManager.Push(); sel.next = ""; _npcPickNext = false; }
+            }
+
+            // 完成寫旗標（與觸發點同一套旗標登記表）
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("寫旗標", GUILayout.Width(44));
+            DrawFlagFieldCore(sel.setFlag ?? "", "npc/" + sel.id + "/setFlag", false,
+                              v => { UndoManager.Push(); sel.setFlag = v; });
+            GUILayout.EndHorizontal();
+            GUILayout.Label("對話結束＝完成：寫旗標＋啟動\n接續觸發（**每次進圖只跑第一\n次**；對話本身可反覆聊）。");
+
+            GUILayout.Space(4);
+            if (GUILayout.Button("刪除這個 NPC")) ctl.DeleteSelected();
+
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+        }
 
         // ================= 照明面板（獨立光源，不綁地上物） =================
 

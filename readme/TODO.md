@@ -563,3 +563,16 @@
 - [ ] **御靈水晶（武器 13）的 `WeaponSpritePath`**：召喚模式不用子彈圖，那一格是歷史殘留，載入會印 Warning。要清掉或留著當圖鑑用，作者決定。
 - [ ] **GemTable 的 `Note` 欄**：現在「對哪些模式有效」由程式推導，`Note` 裡手寫的說明（例如「拋物線加了會變慢」）已過時，可改成只寫設計意圖。
 - [ ] 平衡用的能力上限（既有項目，見 [GEM_SOCKET.md](GEM_SOCKET.md) §4）——這次沒動。
+
+---
+
+## NPC 系統第一波後續 — 2026-08-28
+
+第一波（編輯器 NPC 分頁、原地/來回、交談、開介面、接鏈）已完成，見 [NPC_SYSTEM.md](NPC_SYSTEM.md)。缺口與下一步：
+
+- [ ] **實機驗證**（Cowork 端開不了 Unity）：見 PROGRESS 2026-08-28 條目的驗收清單；另確認編輯器 NPC 分頁的拖曳/路徑點/Undo。
+- [ ] **買賣／兌換介面本體**：NPC 端（panelId/panelArg）與 `InteractionManager.OpenPanelById` 對應表已就緒，介面做好後加一個 case ＋ ShopTable.csv（商品資料驅動）。
+- [ ] **護送任務**：`NpcBrain` 加 escort 模式（玩家在半徑內才沿路徑前進）＋頭上血條＋死亡=失敗接鏈；HP/受擊地基已有（NpcTable 的 HP 欄）。
+- [ ] **多方陣營**：把 `FactionRelations` 從寫死規則改成陣營關係表（faction × faction），玩家陣營進存檔、子彈命中也改查它（現在靠 Layer）。
+- [ ] **NPC 鏈的重複規則**：目前 setFlag/next 固定「每次進圖跑第一次」；若之後要「每周目/永久一次」再加欄（可沿用觸發鏈 repeat 的自動旗標作法）。
+- [ ] **編輯器預覽大小**與遊戲端 CharacterWorldHeight 正規化不完全一致（沿用劇情演員預覽管線的既有近似），要對到像素級再補。

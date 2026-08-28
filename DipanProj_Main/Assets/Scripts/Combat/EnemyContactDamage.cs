@@ -43,15 +43,10 @@ public class EnemyContactDamage : MonoBehaviour
             if (_myCol == null) return;
         }
 
-        if (_faction == MonsterFaction.Enemy)
-        {
-            DamagePlayerIfTouching();                       // 敵人 → 玩家
-            DamageMonstersOfFaction(MonsterFaction.PlayerAlly); // 敵人 → 玩家召喚物
-        }
-        else
-        {
-            DamageMonstersOfFaction(MonsterFaction.Enemy);  // 友軍 → 敵怪
-        }
+        // 「誰能傷誰」統一查 FactionRelations（單一真相）：Enemy → 玩家＋友軍；PlayerAlly → 敵怪；
+        // Neutral（NPC）→ 誰都不打（且 ContactDamage=0 根本進不到這裡）。未來多方陣營只改 FactionRelations。
+        if (FactionRelations.AttacksPlayer(_faction)) DamagePlayerIfTouching();
+        DamageHostileMonsters();
     }
 
     private void DamagePlayerIfTouching()
@@ -68,13 +63,13 @@ public class EnemyContactDamage : MonoBehaviour
         if (Touching(_playerCol)) Hit(_player.gameObject);
     }
 
-    private void DamageMonstersOfFaction(MonsterFaction target)
+    private void DamageHostileMonsters()
     {
         var list = MonsterController.Active;
         for (int i = 0; i < list.Count; i++)
         {
             MonsterController mc = list[i];
-            if (mc == null || mc.IsDead || mc.Faction != target) continue;
+            if (mc == null || mc.IsDead || !FactionRelations.Hostile(_faction, mc.Faction)) continue;
             if (mc.gameObject == gameObject) continue;
             Collider2D col = mc.GetComponent<Collider2D>();
             if (col == null) continue;

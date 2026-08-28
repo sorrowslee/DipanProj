@@ -226,6 +226,17 @@ public class MapLoader : MonoBehaviour
         if (spawnMonsters) SpawnMonstersFromMap();
     }
 
+    /// <summary>依當前地圖的 npcs 清單生 NPC（編輯器「NPC」分頁擺放；種類查 NpcTable.csv）。
+    /// 由 MapManager 在 SpawnMonsters 之後呼叫；NPC 物件不掛 MapRoot，換圖由 ClearTransientGameplay 清掉。</summary>
+    public void SpawnNpcs()
+    {
+        if (_map?.npcs == null || _map.npcs.Count == 0) return;
+        int n = 0;
+        foreach (var inst in _map.npcs)
+            if (inst != null && NpcSpawner.Spawn(inst) != null) n++;
+        if (n > 0) Debug.Log($"[MapLoader] 依地圖 NPC 清單生成 {n} 個 NPC。");
+    }
+
     /// <summary>玩家出生點（playerSpawn）中心，供 MapManager 放置玩家（關卡開場、或落點找不到時的後備）。</summary>
     public bool TryGetPlayerSpawn(out Vector2 center) => TryGetRegionCenter(playerSpawnTypeId, out center);
 
