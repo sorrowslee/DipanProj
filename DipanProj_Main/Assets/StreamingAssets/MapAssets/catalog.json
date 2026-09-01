@@ -3023,6 +3023,87 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/BloodFang/Environment/BloodFang_BloodFlag",
+      "path": "Modules/BloodFang/Environment/BloodFang_BloodFlag.png",
+      "category": "Environment",
+      "module": "BloodFang",
+      "pixelSize": 409,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 13,
+        "rows": 20,
+        "cells": [
+          "0000000000000",
+          "0111111111110",
+          "0001111111000",
+          "0011111111000",
+          "0001111111000",
+          "0011111111100",
+          "0011111111100",
+          "0011111111100",
+          "0011111111100",
+          "0001111111000",
+          "0001111111000",
+          "0001111111000",
+          "0001111110000",
+          "0000111110000",
+          "0000011100000",
+          "0000001000000",
+          "0000001000000",
+          "0000000000000",
+          "0000000000000",
+          "0000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/BloodFang/Environment/BloodFang_FangFlag",
+      "path": "Modules/BloodFang/Environment/BloodFang_FangFlag.png",
+      "category": "Environment",
+      "module": "BloodFang",
+      "pixelSize": 398,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 13,
+        "rows": 20,
+        "cells": [
+          "0000000000000",
+          "0111111111110",
+          "0001111111000",
+          "0001111111000",
+          "0001111111000",
+          "0011111111000",
+          "0011111111000",
+          "0011111111000",
+          "0011111111000",
+          "0011111111000",
+          "0001111111000",
+          "0001111111000",
+          "0001111111000",
+          "0001111111000",
+          "0000111100000",
+          "0000011100000",
+          "0000011000000",
+          "0000001000000",
+          "0000000000000",
+          "0000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/BloodFang/Background/Stage_BloodFangInitialScene",
+      "path": "Modules/BloodFang/Background/Stage_BloodFangInitialScene.png",
+      "category": "Background",
+      "module": "BloodFang",
+      "pixelSize": 1448,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/Future/Background/Stage_Arena",
       "path": "Modules/Future/Background/Stage_Arena.png",
       "category": "Background",

@@ -39,11 +39,13 @@ public static class DevQuickStart
     const string ItemHub1  = Root + "/邪佛廣場-1關後 (Main_Square)";
     const string ItemArena  = Root + "/競技場1 (Future_Arena)";
     const string ItemArena2 = Root + "/競技場2 (Future_Arena2)";
+    const string ItemBloodFang = Root + "/血狂之爭 (BloodFang_InitialScene)";
     const string ItemOff   = Root + "/關閉（走正式標題流程）";
 
     // 「map:<id>」型目標用的地圖 id（MapsTable.csv）。加新的測試地圖只要在這裡加一顆常數＋兩個 MenuItem，不用動 Apply()。
     const int ArenaMapId  = 15;   // Future_Arena（Future module 首圖）
     const int Arena2MapId = 16;   // Future_Arena2
+    const int BloodFangMapId = 17; // BloodFang_InitialScene（血狂之爭劇本首圖，module=BloodFang）
 
     static string Cur => EditorPrefs.GetString(PrefKey, "");
 
@@ -103,6 +105,7 @@ public static class DevQuickStart
     [MenuItem(ItemHub1, false, 1003)]   static void SetHub1()   => Set("Hub1");
     [MenuItem(ItemArena, false, 1020)]  static void SetArena()  => Set($"map:{ArenaMapId}");
     [MenuItem(ItemArena2, false, 1021)]  static void SetArena2() => Set($"map:{Arena2MapId}");
+    [MenuItem(ItemBloodFang, false, 1022)] static void SetBloodFang() => Set($"map:{BloodFangMapId}");
     [MenuItem(ItemOff, false, 1040)]  static void SetOff()    => Set("");
 
     // 驗證函式：順便在選單項打勾，讓你一眼看到目前選了哪個。
@@ -112,6 +115,7 @@ public static class DevQuickStart
     [MenuItem(ItemHub1, true, 1003)]   static bool VHub1()   { Menu.SetChecked(ItemHub1,   Cur == "Hub1"); return true; }
     [MenuItem(ItemArena, true, 1020)] static bool VArena()  { Menu.SetChecked(ItemArena,  Cur == $"map:{ArenaMapId}"); return true; }
     [MenuItem(ItemArena2, true, 1021)]static bool VArena2() { Menu.SetChecked(ItemArena2, Cur == $"map:{Arena2MapId}"); return true; }
+    [MenuItem(ItemBloodFang, true, 1022)] static bool VBloodFang() { Menu.SetChecked(ItemBloodFang, Cur == $"map:{BloodFangMapId}"); return true; }
     [MenuItem(ItemOff, true, 1040)]   static bool VOff()    { Menu.SetChecked(ItemOff,   string.IsNullOrEmpty(Cur)); return true; }
 
     static void Set(string target)
