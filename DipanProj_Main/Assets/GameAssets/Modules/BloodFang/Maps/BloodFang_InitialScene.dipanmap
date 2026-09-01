@@ -103,6 +103,24 @@
             ]
           ],
           "params": {}
+        },
+        {
+          "id": "35c415cc",
+          "name": "傳送點-大門",
+          "typeId": "teleport",
+          "cells": [
+            [
+              13,
+              9
+            ]
+          ],
+          "params": {
+            "entranceId": "BloodFang_InitialScene",
+            "targetMapId": "18",
+            "targetEntrance": "BloodFang_GuessLobby-south",
+            "showMarker": true,
+            "linkedFx": ""
+          }
         }
       ]
     }
