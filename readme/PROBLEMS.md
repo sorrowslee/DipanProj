@@ -16,8 +16,8 @@
 | A | 打包與部署 (Build & Deploy) | A1~A10（A3、A9 已淘汰，原文封存、存根在原位） |
 | B | 地圖載入 (Map Loader) | B1~B14 |
 | C | 地圖編輯器 / 素材同步 | C1~C10（⚠ C6/C7 排在 C1 前面） |
-| D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D23 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E21 |
+| D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D24 |
+| E | 效能 / 顯示 (Performance & Display) | E1~E22（⚠ E21 誤植在 J 段開頭，維持原位不搬） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F17（⚠ G 章整段插在 F3 與 F4 之間） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G7（位置在 F3 之後） |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1 |
@@ -466,6 +466,12 @@
 - **原因**：C# 的 static 欄位**照原始碼裡的宣告順序**逐一初始化。`_modes = BuildModes()` 宣告在前、`static readonly string[] BulletVisual = {...}` 宣告在後 ⇒ `BuildModes()` 執行時 `BulletVisual` 還是 null。跟 D 段其他 static 坑同一家族，但這條不是「Domain Reload 沒歸零」，是**初始化順序**。
 - **解法**：被靜態建構用到的常數／陣列一律宣告在最前面（`WeaponModeSpec` 檔頭有註解）。更保險的寫法是把它們做成 `static readonly` 屬性或在方法裡就地 `new`。（2026-08-26 記，在 Cowork 用 mono 跑單元測試時抓到，Unity 一次都沒跑過就修掉了。）
 
+### D24. 演出開場 `UIManager.CloseAll()` 把底部血球 HUD 一起關掉，之後永遠不再出現（換一張圖又自己好）
+- **症狀**：在場景中喝血統藥劑、變身演出播完之後，**底部操控列的血球 HUD 整條不見了，而且不會再出現**——開背包、打怪、喝藥都叫不回來。走一次傳送點換到別張圖，它又自己回來了，所以看起來「時好時壞」。
+- **原因**：`BloodlineTransformFxRunner.Run()` 開場呼叫 `UIManager.Instance.CloseAll()`（本意是把背包那類會整片蓋住演出的視窗關掉），但 **`CloseAll()` 是遍歷 `_panels` 全關、不分層**，HUD 層的 `BottomHudPanel` 照樣被關。而全專案只有兩個地方會把它開起來：`PlayerController.Start()`（**只在玩家初次生成那一幀**）與 `MapManager.PlaceAndSetup()`（**只在換圖時**）。喝藥變身既不重生玩家也不換圖，兩條路都跑不到 ⇒ HUD 就此消失，直到下一次換圖才被 `PlaceAndSetup` 補開回來（這也是「換張圖就好了」的來源，正好把真正的原因蓋掉）。**劇情演出踩過一模一樣的坑**，`CutsceneDirector` 用 `_hudWasOpen` 記下再於收尾開回來（見 D21），血統這條當初漏了對應的還原步驟。
+- **解法**：還原點放在 **`BloodlineSystem.RestoreHud()`**，由 `FinishPerformance()` 呼叫：① `PlayTransform()` 在叫 `BloodlineTransformFx.Play` **之前**先記 `_hudWasOpen = ui.IsOpen<BottomHudPanel>()`（之後再問就永遠是 false）；② `FinishPerformance()` 解完 hold 後照旗標開回來。選 `FinishPerformance` 是因為它是「世界演出 ＋ 立繪揭示」兩段的**唯一共同出口**（正常結束、玩家中途死掉、保險絲逾時、`OnDestroy` 都會走到）；放在 Fx 的 `finally` 只蓋得住前半段，而且會讓血球在立繪揭示那一段從底下透出來。③ 開回來要加跟 `PlayerController.Start()` 同一條守衛 `!SaveConstants.IsIntroCutsceneMap(CurrentMapId)`，否則會違反「開場山道劇情場景(13/14)不顯示血球」那條規則。
+- **通則**：**`CloseAll()` 不分層，任何演出用它清場前都要先記下 HUD 狀態、收尾還原**；而且還原點要挑「所有離開路徑的共同出口」，不要挑其中一段的 `finally`。同一家族：D13（鎖要具名）、D21（HUD 關了又被 `Start()` 開回來）——都是「演出跨系統改了全域狀態卻沒還乾淨」。（2026-09-01 記）
+
 ## E. 效能 / 顯示 (Performance & Display)
 
 ### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順
@@ -655,6 +661,12 @@
   ③ **有手動 `\n` 時先跑一輪「每段各佔一行」**（尊重作者排的斷句，否則字級會被挑到「那一段還要再自動折一次」的大小，手動的兩行變成三行、斷在作者不要的地方）；
   ④ `verticalOverflow = Overflow` 兜底，估不準時寧可溢出一點也不要被裁掉。
 - **通則**：**「自動縮放到剛好塞滿」這類 API 的輸入是排版，不是語意。** 只要作者能用不影響語意的方式（換行、標點、空格）改變排版，同一段內容就會得到不同大小——而作者的心智模型是「這句話有多長」。要一致就得自己定義規則：**先決定「什麼東西應該決定大小」（這裡是字數），再讓其他東西（斷行位置）不影響它。**（2026-08-22 記）
+
+### E22. 暫停中播的鏡頭震動震完不會回位——鏡頭卡在偏掉的地方，等暫停解除才慢慢滑回來
+- **症狀**：喝血統藥劑，天雷打下來的那一瞬間**整個畫面偏掉**，之後整段變身演出、連立繪 tip 都維持在偏掉的構圖；tip 關掉之後鏡頭才自己滑回正確位置。看起來像「演出把鏡頭移走了」，但演出裡根本沒有任何運鏡步驟。
+- **原因**：`MapCameraController.LateUpdate` 的震動是**最後直接疊在 `_cam.transform.position` 上、而且不寫回 `_vel`／`desired`**，靠「下一幀 SmoothDamp 會把鏡頭拉回基準位置」來保證不累積（原註解就是這樣寫的）。這個假設有一個沒寫出來的前提：**SmoothDamp 要真的在動**。而 `SmoothDamp` 吃 `Time.deltaTime`，**遊戲暫停時（`timeScale = 0`）完全不動**；震動本身卻是 `unscaledDeltaTime`（刻意的，暫停中播的演出要看得到震）。兩者搭在一起就變成「有位移、沒有回復力」——每幀 `position += 隨機偏移` 疊上去，0.25 秒的震動 ≈ 15 幀隨機漫步，震完停在累積的偏移量上。而血統變身**整段（世界演出 ＋ 立繪揭示）都在 `timeScale = 0` 底下**，所以要等 tip 關掉、時間恢復，SmoothDamp 才開始把鏡頭拉回玩家——症狀的時序完全對得上。
+- **解法**：讓「不累積」由自己保證，不依賴 SmoothDamp。新增 `_shakeApplied` 記下這一幀疊了多少，**下一幀 `LateUpdate` 開頭先扣掉**再算基準位置（`Vector3 cur = _cam.transform.position - _shakeApplied;`）。這樣不管 `timeScale` 是多少，震動都只是「疊在基準上的一層」，震完立刻回到基準。`Apply()`（換圖，會直接寫 `transform.position`）順手 `StopShake()` ＋ 清 `_shakeApplied`，免得下一幀扣掉一個不存在的偏移。
+- **通則**：**「這個偏移之後會被 XX 拉回來」是一種隱性依賴，要問清楚 XX 在暫停時還跑不跑。** 專案裡「演出＝unscaled、遊戲邏輯＝scaled」兩條時間軸並存（見 D15），任何「A 造成位移、B 負責回復」的配對，只要 A 是 unscaled 而 B 是 scaled，暫停時就會單邊生效。判準很簡單：**暫時性的偏移要自己記住、自己還原，不要借別人的收斂行為當還原機制。**（2026-09-01 記）
 
 ## F. 戰鬥 / 傷害 (Combat)
 

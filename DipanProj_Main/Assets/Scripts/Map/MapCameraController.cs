@@ -99,6 +99,10 @@ public class MapCameraController : MonoBehaviour
         _baseOrtho = _cam.orthographic ? _cam.orthographicSize : (map.height * map.tileSize * 0.5f);
         _zoneActive = false; _zoneZoomMul = 1f; _zoneOffset = Vector2.zero;
         _zoomCur = 1f; _offsetCur = Vector2.zero;
+        // 這支方法直接寫過 _cam.transform.position，上一張圖殘留的震動偏移記錄要清掉，
+        // 否則下一幀 LateUpdate 開頭會從新位置扣掉一個不存在的偏移（鏡頭一進圖就歪一下）。
+        StopShake();
+        _shakeApplied = Vector3.zero;
         _applied = true;
     }
 
@@ -167,7 +171,12 @@ public class MapCameraController : MonoBehaviour
                 ? ClampToBounds(_target.position)
                 : new Vector3(_baseCenter.x, _baseCenter.y, 0f);
 
-        Vector3 cur = _cam.transform.position;
+        // ⚠ 先把「上一幀疊上去的震動偏移」扣掉，拿到乾淨的基準位置再算這一幀。
+        //    不扣的話震動會**累積**：每幀 position += shake，而把它拉回來的只有下面那個
+        //    SmoothDamp——它吃 Time.deltaTime，**遊戲暫停時（timeScale=0）完全不動**。
+        //    於是暫停中播的震動（血統變身的天雷就是）會變成一段隨機漫步，震完鏡頭就停在
+        //    偏掉的位置，直到暫停解除後 SmoothDamp 才慢慢把它拉回去（見 readme/PROBLEMS.md E22）。
+        Vector3 cur = _cam.transform.position - _shakeApplied;
         Vector3 desired = new Vector3(basePos.x + _offsetCur.x, basePos.y + _offsetCur.y, cur.z);
 
         // 對準點期間也要平滑移動過去（即使整張圖模式），所以一律用 SmoothDamp。
@@ -179,8 +188,10 @@ public class MapCameraController : MonoBehaviour
         // 4) 震動：最後才疊上去。
         // ⚠ 順序很重要——必須在 SmoothDamp 之後。若把偏移加進 desired 再 SmoothDamp，
         //   平滑會把高頻抖動整個吃掉，看起來只是鏡頭「軟軟地飄一下」而不是震。
-        //   也因為不寫回 _vel / desired，震完自然回到正確位置，不會累積漂移。
+        //   不寫回 _vel／desired（震動不該影響跟隨的速度狀態），改用 _shakeApplied
+        //   在下一幀開頭扣掉——這樣「不累積」是靠自己保證的，不依賴 SmoothDamp 把它拉回來。
         Vector3 shake = ConsumeShakeOffset();
+        _shakeApplied = shake;                 // 記下來，下一幀開頭要扣掉（見上面的說明）
         if (shake != Vector3.zero) _cam.transform.position += shake;
     }
 
@@ -192,6 +203,15 @@ public class MapCameraController : MonoBehaviour
     float _shakeTimeLeft;
     float _shakeDuration;
     float _shakeAmplitude;   // 世界單位
+
+    /// <summary>
+    /// 上一幀疊到相機上的震動偏移。每幀開頭扣掉、結尾重新記錄，讓震動**永遠不累積**。
+    ///
+    /// ⚠ 不能靠「SmoothDamp 會把它拉回來」——那支吃 <c>Time.deltaTime</c>，
+    /// 遊戲暫停時（<c>timeScale = 0</c>）一動也不動；而震動本身是 unscaled（暫停中照震）。
+    /// 兩者搭在一起，暫停中播的震動就變成沒有回復力的隨機漫步。見 readme/PROBLEMS.md **E22**。
+    /// </summary>
+    Vector3 _shakeApplied;
 
     /// <summary>
     /// 讓鏡頭震動一下（擊中、爆炸之類的衝擊感）。振幅線性衰減到 0。

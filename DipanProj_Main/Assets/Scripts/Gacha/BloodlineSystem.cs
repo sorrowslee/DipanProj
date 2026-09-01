@@ -57,6 +57,19 @@ namespace Dipan.Gacha
         float _transformStartedAt;
 
         /// <summary>
+        /// 表演開始前，底部血球 HUD（<c>BottomHudPanel</c>）是不是開著的——表演收尾要照這個還原。
+        ///
+        /// ⚠ 為什麼需要這個旗標：<c>BloodlineTransformFxRunner</c> 開場會 <c>UIManager.CloseAll()</c>
+        /// （目的是把背包那類會蓋住演出的視窗關掉），但 <c>CloseAll</c> 是**遍歷全部面板、不分層**，
+        /// 所以 HUD 層的血球條會被一起關掉。而全專案只有兩個地方會把它開起來——
+        /// <c>PlayerController.Start()</c>（只在玩家初次生成那一幀）與 <c>MapManager.PlaceAndSetup()</c>（換圖時）——
+        /// 喝藥變身既不重生也不換圖，兩條路都不會跑到 ⇒ **血條就此永久消失，直到玩家換一張圖才回來**。
+        /// 症狀是「變身完血球不見了、之後也不再出現」，而且因為換圖會自己修好，看起來時好時壞、極難反推。
+        /// 劇情演出（<c>CutsceneDirector</c>）踩過一模一樣的坑，用的也是「記下來、收尾開回去」這個做法。
+        /// </summary>
+        bool _hudWasOpen;
+
+        /// <summary>
         /// 表演期間掛在 UIManager 的具名 external hold。
         ///
         /// ⚠ <b>為什麼要一個「橫跨兩段」的鎖，而不是讓兩段各自鎖自己。</b>
@@ -434,6 +447,9 @@ namespace Dipan.Gacha
             // 從這一刻壓到立繪面板關掉為止。世界演出與面板各自也會鎖自己那一段，
             // 這一層是為了接住兩段之間的縫（見 PerformanceHoldOwner 的說明）。
             var ui = Dipan.UI.UIManager.Instance;
+            // ⚠ 一定要在 BloodlineTransformFx.Play 之前問——演出開場的 CloseAll() 會把 HUD 一起關掉，
+            //   之後再問就永遠是 false，收尾也就不會還原（見 _hudWasOpen 的說明）。
+            _hudWasOpen = ui != null && ui.IsOpen<Dipan.UI.BottomHudPanel>();
             if (ui != null) ui.SetExternalHold(PerformanceHoldOwner, true, true);
 
             var fromDef = BloodlineTable.Get(fromId);
@@ -469,6 +485,28 @@ namespace Dipan.Gacha
             _transforming = false;
             var ui = Dipan.UI.UIManager.Instance;
             if (ui != null) ui.SetExternalHold(PerformanceHoldOwner, false, false);
+            RestoreHud(ui);
+        }
+
+        /// <summary>
+        /// 把表演開場被 <c>CloseAll()</c> 連帶關掉的底部血球 HUD 開回來（只在它本來就開著時）。
+        ///
+        /// 放在 <see cref="FinishPerformance"/> 而不是 <c>BloodlineTransformFxRunner</c> 的 finally，
+        /// 是因為這裡是「世界演出 ＋ 立繪揭示」兩段的**唯一共同出口**：正常結束、玩家中途死掉、
+        /// 保險絲逾時、OnDestroy 被外力銷毀，全部都會走到，沒有漏網路徑；放在 Fx 那邊只蓋得住前半段。
+        ///
+        /// ⚠ 守衛跟 <c>PlayerController.Start()</c> 用同一條規則：**開場山道劇情場景(初始森林13/14)不顯示血球**。
+        /// 表演中途若換到那種圖（理論上不會，但保險絲與例外路徑會走到這裡），少了守衛就會違反
+        /// <c>MapManager.PlaceAndSetup()</c> 那條「劇情場景把 HUD 關起來」的規則、把血球開在劇情畫面上。
+        /// </summary>
+        void RestoreHud(Dipan.UI.UIManager ui)
+        {
+            if (!_hudWasOpen) return;
+            _hudWasOpen = false;
+            if (ui == null) return;
+            if (MapManager.Instance != null
+                && SaveConstants.IsIntroCutsceneMap(MapManager.Instance.CurrentMapId)) return;
+            if (!ui.IsOpen<Dipan.UI.BottomHudPanel>()) ui.Open<Dipan.UI.BottomHudPanel>();
         }
 
         void OnDestroy()

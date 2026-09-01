@@ -74,6 +74,7 @@ Diablo 風的底部操控列：整條石雕框（燃燈佛、法輪、血瓶槽�
 - **玻璃反光素材 `BottomControlPanel_Bubble.png` 不能用**：圓內部是一整片不透明灰（alpha 255、RGB ~190），疊上去會把液體蓋成灰。已改由著色器自生高光，該圖**已棄用/刪除**。
 - **框圖匯入 `maxTextureSize` = 2048**，但原圖 2172 寬會被 Unity 縮一點；想更銳可調 4096＋Compression None（同專案 UI 去壓縮慣例，見 [PROBLEMS.md](PROBLEMS.md) G2/G3）。
 - 著色器 `_T` 用 `unscaledTime`：HUD 不暫停，但開背包（暫停）時液面仍要微動，所以不吃 `Time.timeScale`。
+- **演出用 `UIManager.CloseAll()` 清場會把這個面板一起關掉，而且沒人會自動開回來**：會開它的只有 `PlayerController.Start()`（玩家初次生成那一幀）與 `MapManager.PlaceAndSetup()`（換圖時）。所以任何「不換圖、不重生玩家」的演出（血統變身就是）若用了 `CloseAll`，**收尾一定要自己把它開回來**，否則血條會永久消失、直到玩家換一張圖才自己好（看起來像偶發）。見 [PROBLEMS.md](PROBLEMS.md) **D24**；劇情演出（`CutsceneDirector`）與血統演出（`BloodlineSystem.RestoreHud`）都是「記下原本開著沒、收尾還原」的做法。
 - **液體球著色器別硬寫 `ZTest Always`**：自繪 material 硬寫 `ZTest Always` 會無視畫布 `sortingOrder`、穿透畫到上層視窗（背包）之上——開背包時血球會蓋在背包上、連背包壓底的半透明黑幕都蓋不住。已改成標準 uGUI 的 `ZTest [unity_GUIZTestMode]`，血球才會跟隨層級（HUD 層 `sortingOrder=0` < Window 層 `100`，正確被背包蓋住）。
 
 ---

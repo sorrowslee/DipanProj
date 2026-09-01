@@ -42,6 +42,9 @@ namespace Dipan.Gacha
     ///   → 角色站著定格。所以 onSwap 之後一定要 RefreshLyingPose()。</item>
     /// <item><b>所有離開路徑都要解鎖。</b>玩家死了、換場景、例外 —— 只要沒解 SetExternalHold，
     ///   玩家就永久卡住不能動。本檔用 try/finally 保證。</item>
+    /// <item><b>開場的 <c>CloseAll()</c> 會把底部血球 HUD 一起關掉，還原不在本檔。</b>
+    ///   還原由 <c>BloodlineSystem.RestoreHud</c> 在 <c>FinishPerformance</c> 做（世界演出＋立繪兩段的唯一共同出口）。
+    ///   漏還的症狀是「變身完血條不見、之後也不再出現」，換一張圖又會自己好——見 readme/PROBLEMS.md D24。</item>
     /// </list>
     /// </summary>
     public static class BloodlineTransformFx
@@ -221,6 +224,11 @@ namespace Dipan.Gacha
                 // ── 關掉所有面板（背包還開著會整片蓋在演出上），然後鎖操作＋暫停遊戲 ──
                 // pause=true 是刻意的：演出期間玩家不能閃避，不凍住世界的話怪物會把他打死。
                 // 代價是「所有計時器都要 unscaled」——見檔頭坑 1，下面每一個 Unscaled 旗標都是為此而設。
+                // ⚠ CloseAll() 是**遍歷全部面板、不分層**，所以 HUD 層的底部血球條也會被一起關掉，
+                //   而且沒有任何人會自動把它開回來（PlayerController.Start 只在初次生成跑、MapManager 只在換圖跑）。
+                //   還原的責任在 BloodlineSystem.RestoreHud——它在 FinishPerformance（兩段表演的唯一共同出口）
+                //   依表演前記下的 _hudWasOpen 開回去。**這裡別自己開回來**：立繪面板還要接著演，
+                //   在這一段就把血球放回畫面反而會從立繪底下透出來。
                 if (UIManager.Instance != null)
                 {
                     UIManager.Instance.CloseAll();
