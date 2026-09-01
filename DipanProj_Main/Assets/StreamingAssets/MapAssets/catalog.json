@@ -3095,8 +3095,17 @@
       }
     },
     {
-      "id": "Modules/BloodFang/Background/Stage_BloodFangInitialScene",
-      "path": "Modules/BloodFang/Background/Stage_BloodFangInitialScene.png",
+      "id": "Modules/BloodFang/Background/Stage_BloodFang_GuessLobby",
+      "path": "Modules/BloodFang/Background/Stage_BloodFang_GuessLobby.png",
+      "category": "Background",
+      "module": "BloodFang",
+      "pixelSize": 1363,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/BloodFang/Background/Stage_BloodFang_InitialScene",
+      "path": "Modules/BloodFang/Background/Stage_BloodFang_InitialScene.png",
       "category": "Background",
       "module": "BloodFang",
       "pixelSize": 1448,
