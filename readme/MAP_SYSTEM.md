@@ -96,6 +96,9 @@ ID, Name,   Module,        Path,                                                
   - `offsetY`：鏡頭上(+)/下(-)位移。要往上看到高處目標就給正值。留空=0。
 - **運作**：`CameraZoneWatcher`（由 `MapManager.SetupWatcher` 自掛，仿 TeleportWatcher）每幀看玩家在不在鏡頭區，進/離開時通知 `MapCameraController.SetCameraZone / ClearCameraZone`。縮放與位移**疊加在正常相機（跟隨或整張地圖）之上**，過渡平滑（`MapCameraController.zoneTransitionTime`，預設 0.4 秒）。換圖自動還原、不殘留。
 - 兩種相機模式都有效：整張地圖模式以地圖中心為基準加位移；跟隨模式拉遠若超出邊界則該軸自動置中。
+- **邊界夾制（跟隨模式）**：`zoom`／`offset` 都被夾在地圖邊界內——`LateUpdate` 除了夾目標，還會在 `SmoothDamp` 之後**再夾一次相機的實際位置**，所以拉遠的過渡中也不會露出地圖外的黑（沒這道會露 1~1.5 秒，見 [PROBLEMS.md](PROBLEMS.md) **E24**）。**代價：貼近地圖邊緣時 `zoom`／`offset` 的效果會被夾住打折。**
+  - 所以「走到大門口鏡頭拉遠看宅邸全貌」這種需求，**光靠 `offsetY` 在地圖邊緣是拉不出來的**——地圖外沒東西可看。作法是從資料端給空間：那一側多留幾格景，或把 camZone 區域往地圖內側挪，讓玩家還沒貼到邊界就開始拉遠。
+  - 對準點（`SetFocusPoint`／鏡頭聚焦 trigger）**刻意不夾邊界**，確保目標正好在畫面正中央，不受此限。
 
 ---
 

@@ -3108,7 +3108,7 @@
       "path": "Modules/BloodFang/Background/Stage_BloodFang_InitialScene.png",
       "category": "Background",
       "module": "BloodFang",
-      "pixelSize": 1448,
+      "pixelSize": 1149,
       "ppu": 256,
       "frameCount": 1
     },

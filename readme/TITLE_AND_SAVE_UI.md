@@ -67,15 +67,49 @@
 
 **要暫時回到舊的「直接進關卡」測試流程**：在任何 `BeforeSceneLoad` 前把 `GameFlowManager.TitleFlowEnabled = false` 即可（bootstrap 會整個略過，兩個旗標維持 false）。
 
-### 測試快捷：直接進某關卡（DevQuickStart，Editor-only）
+### 測試快捷：直接進某關卡／某地圖（DevQuickStart，Editor-only）
 
-反覆測單一關卡（例如紅嫁衣）不必每次從標題→讀檔→廣場→開傳送門。用選單 **`Project Tools/測試/直接進關卡`** 一鍵切換：
+反覆測單一關卡不必每次從標題→讀檔→廣場→開傳送門。用選單 **`Project Tools/測試/直接進關卡`** 一鍵切換（有勾＝目前選的；「關閉」＝恢復正式標題流程）。
 
-- **紅嫁衣 (RedBridalGown)** / **初始洞窟 (Main_Cave)**：按 Play 直接載入該 module 首張地圖（跳過標題流程；有勾＝目前選的）。
-- **邪佛廣場 (Main_Square)**：直接進廣場（map 12，是 Main 模組的**非首圖**，所以用「地圖 id」進、不是用 module）。
-- **關閉（走正式標題流程）**：恢復正式流程。
+原理：`Assets/Editor/DevQuickStart.cs`（Editor-only、不進 build）在 `AfterAssembliesLoaded`（早於 `GameFlowBootstrap`）把 `TitleFlowEnabled` 關掉，再覆寫 `MapManager` 的開機目標——**不動場景序列化的 `MapManager.startModule`（＝Main）**，所以關掉後正式開場鏈照舊。選了任一目標都會順便開 `SaveManager.DevFreshCharacter`（每次 Play 用全新乾淨角色，不動正式三欄存檔）。狀態存 EditorPrefs（只影響本機編輯器）。
 
-原理：`Assets/Editor/DevQuickStart.cs`（Editor-only、不進 build）在 `AfterAssembliesLoaded`（早於 `GameFlowBootstrap`）把 `TitleFlowEnabled` 關掉，再用 `MapManager.DevStartModuleOverride`（進 module 首圖）或 `MapManager.DevStartMapId`（直接進某地圖，如廣場 12）覆寫開機目標——**不動場景序列化的 `MapManager.startModule`（＝Main）**，所以關掉後正式開場鏈照舊。狀態存 EditorPrefs（只影響本機編輯器）。要加別的關卡／地圖就在 `DevQuickStart.cs` 複製一個選單項、填 module 名或地圖 id。
+#### 兩種目標型別 —— **關卡一律用 module 型**
+
+| 型別 | 寫法 | 走的路 | 進哪張圖由誰決定 |
+|---|---|---|---|
+| **module 型（預設）** | `Set("<module>")` | `DevStartModuleOverride` → `StartLevel` → `MapTable.FindLevelStart` | **`MapsTable.csv` 的 `IsLevelStart`**（該 module 填 1 的那一列） |
+| map 型（例外） | `Set("map:<id>")` | `DevStartMapId` → `GoToMap(id)` | **程式裡寫死的 id**，完全不看 `IsLevelStart` |
+
+- **新增任何「直接進某關卡／某劇本」的入口，一律用 module 型。** 這樣「這一關要從哪張圖開始」永遠只由 CSV 決定，換圖不必改程式。
+- **map 型只留給「該 module 首圖以外的單張地圖」**——目前只有邪佛廣場（Main 模組的 map 12，非首圖）與競技場 2（map 16）。除此之外不要用；照著它複製新關卡的入口，就會做出一個「CSV 怎麼改都沒用」的選單項（踩過：[PROBLEMS.md](PROBLEMS.md) **B15**）。
+
+#### 要換「某一關從哪張地圖開始」——只改 CSV，不用動程式
+
+在 `Assets/Data/MapsTable.csv` 把想進的那張圖 `IsLevelStart` 改 **1**、同 `Module` 的其他列改 **0**（**每個 module 恰好一張 1**；多張會取第一張並印 Warning）。存檔 → 回 Unity → 按 Play。測試選單與正式流程（廣場選劇本進關）**吃的是同一個欄位**，所以兩邊會同步改變——比較完 A/B 兩張圖後，記得把要留的那張設回去。
+
+#### 要加一個新關卡的入口——複製三行
+
+1. 選單項常數：`const string ItemXxx = Root + "/<中文名> (<Module>)";`（**括號寫 module 名、不要寫地圖名**，免得日後換圖名稱就過期）
+2. 設定：`[MenuItem(ItemXxx, false, 10NN)] static void SetXxx() => Set("<Module>");`
+3. 打勾驗證：`[MenuItem(ItemXxx, true, 10NN)] static bool VXxx() { Menu.SetChecked(ItemXxx, Cur == "<Module>"); return true; }`
+
+`Apply()` 不用動（module 型走的是 else 分支）。priority 一律 1000 起跳（原因見該檔註解：數字太小會把整個「測試」子選單擠到 Project Tools 上方）。
+
+> **⚠ 改了某一項的目標字串後，要在選單裡重新點一次那一項。** 目前選的是什麼存在 EditorPrefs（`Dipan.DevQuickStart.Target`），改程式不會動到已存的舊值——舊值還在就會照舊進舊目標。**識別特徵：那一項不會打勾**（驗證函式比對的是新字串）。
+
+#### 目前的選單項
+
+| 選單項 | 型別 | 進哪裡 |
+|---|---|---|
+| 紅嫁衣 (RedBridalGown) | module | 該 module `IsLevelStart=1` 的圖 |
+| 初始洞窟 (Main_Cave) | module（`Main`） | 同上 |
+| 血狂之爭 (BloodFang) | module | 同上 |
+| 邪佛廣場-初始 (Main_Square) | map（`SaveConstants.HubMapId`＝12） | 廣場，完成 0 關的乾淨狀態 |
+| 邪佛廣場-1關後 (Main_Square) | map（12） | 廣場，另外把 `PreClearedModule` 標成已通關（測「通過 N 關才出現」的東西） |
+| 競技場1 (Future_Arena) | map（15） | Future 模組首圖（歷史因素用 map 型） |
+| 競技場2 (Future_Arena2) | map（16） | 非首圖，正確的 map 型用法 |
+| 關閉（走正式標題流程） | — | 恢復正式流程 |
+
 
 ---
 

@@ -9,10 +9,15 @@ using UnityEditor;
 ///
 /// 原理：`AfterAssembliesLoaded`（早於 GameFlowBootstrap 的 BeforeSceneLoad）先關掉
 /// <see cref="Dipan.Flow.GameFlowManager.TitleFlowEnabled"/>，再依選擇覆寫 MapManager 開機目標：
-///  - **module**（紅嫁衣／初始洞窟）→ 進該關**首張地圖**（<see cref="MapManager.DevStartModuleOverride"/>）。
+///  - **module**（紅嫁衣／初始洞窟／血狂之爭）→ 進該關**首張地圖**（<see cref="MapManager.DevStartModuleOverride"/>）——
+///    「首張」＝ MapsTable 該 module 中 <c>IsLevelStart=1</c> 的那一列，所以**改 CSV 就能換成進該劇本的任何一張圖**（每個 module 只留一張 =1）。
 ///  - **地圖 id**（邪佛廣場、競技場）→ 直接進**指定地圖**（<see cref="MapManager.DevStartMapId"/>）；因為廣場是 Main 模組的
-///    map 12、非首圖，用 module 進不了它。競技場走通用的 <c>map:&lt;id&gt;</c> 目標字串，**加新的測試地圖只要加一顆 id 常數＋兩個 MenuItem**。
+///    map 12、非首圖，用 module 進不了它。競技場走通用的 <c>map:&lt;id&gt;</c> 目標字串——**這型只給「非模組首圖」的單張地圖**，見下方規則。
 /// 都**不動場景序列化的 `MapManager.startModule`（＝Main）**，所以「關閉」後正式開場鏈照舊。狀態存 EditorPrefs（只影響本機）。
+/// <para><b>加新入口的規則（照做，別複製 map 型）</b>：關卡／劇本一律用 <c>Set("&lt;module&gt;")</c>，
+///   進哪張圖由 <c>MapsTable.csv</c> 的 <c>IsLevelStart</c> 決定（換圖只改 CSV、不用改這支）；
+///   <c>map:&lt;id&gt;</c> 只留給「該 module 首圖以外的單張地圖」（邪佛廣場 12、競技場2 16）。
+///   完整說明見 readme/TITLE_AND_SAVE_UI.md〈測試快捷〉，踩過的坑見 readme/PROBLEMS.md B15。</para>
 ///
 /// 另外：只要選了任一目標（含廣場），就打開 <see cref="Dipan.Save.SaveManager.DevFreshCharacter"/>——
 /// 進場時砍掉舊的一次性測試角色、建一個全新乾淨角色（所有旗標／進度／背包歸零），
@@ -26,7 +31,7 @@ using UnityEditor;
 /// </summary>
 public static class DevQuickStart
 {
-    // 空=關閉；"RedBridalGown"/"Main"=進該 module 首圖；"Hub"/"Hub1"=邪佛廣場（用地圖 id）。
+    // 空=關閉；"RedBridalGown"/"Main"/"BloodFang"=進該 module 首圖（＝MapsTable 該 module IsLevelStart=1 那張）；"Hub"/"Hub1"=邪佛廣場（用地圖 id）。
     const string PrefKey = "Dipan.DevQuickStart.Target";
     const string Root = "Project Tools/測試/直接進關卡";
 
@@ -39,13 +44,12 @@ public static class DevQuickStart
     const string ItemHub1  = Root + "/邪佛廣場-1關後 (Main_Square)";
     const string ItemArena  = Root + "/競技場1 (Future_Arena)";
     const string ItemArena2 = Root + "/競技場2 (Future_Arena2)";
-    const string ItemBloodFang = Root + "/血狂之爭 (BloodFang_InitialScene)";
+    const string ItemBloodFang = Root + "/血狂之爭 (BloodFang)";
     const string ItemOff   = Root + "/關閉（走正式標題流程）";
 
     // 「map:<id>」型目標用的地圖 id（MapsTable.csv）。加新的測試地圖只要在這裡加一顆常數＋兩個 MenuItem，不用動 Apply()。
     const int ArenaMapId  = 15;   // Future_Arena（Future module 首圖）
     const int Arena2MapId = 16;   // Future_Arena2
-    const int BloodFangMapId = 17; // BloodFang_InitialScene（血狂之爭劇本首圖，module=BloodFang）
 
     static string Cur => EditorPrefs.GetString(PrefKey, "");
 
@@ -105,7 +109,7 @@ public static class DevQuickStart
     [MenuItem(ItemHub1, false, 1003)]   static void SetHub1()   => Set("Hub1");
     [MenuItem(ItemArena, false, 1020)]  static void SetArena()  => Set($"map:{ArenaMapId}");
     [MenuItem(ItemArena2, false, 1021)]  static void SetArena2() => Set($"map:{Arena2MapId}");
-    [MenuItem(ItemBloodFang, false, 1022)] static void SetBloodFang() => Set($"map:{BloodFangMapId}");
+    [MenuItem(ItemBloodFang, false, 1022)] static void SetBloodFang() => Set("BloodFang");
     [MenuItem(ItemOff, false, 1040)]  static void SetOff()    => Set("");
 
     // 驗證函式：順便在選單項打勾，讓你一眼看到目前選了哪個。
@@ -115,7 +119,7 @@ public static class DevQuickStart
     [MenuItem(ItemHub1, true, 1003)]   static bool VHub1()   { Menu.SetChecked(ItemHub1,   Cur == "Hub1"); return true; }
     [MenuItem(ItemArena, true, 1020)] static bool VArena()  { Menu.SetChecked(ItemArena,  Cur == $"map:{ArenaMapId}"); return true; }
     [MenuItem(ItemArena2, true, 1021)]static bool VArena2() { Menu.SetChecked(ItemArena2, Cur == $"map:{Arena2MapId}"); return true; }
-    [MenuItem(ItemBloodFang, true, 1022)] static bool VBloodFang() { Menu.SetChecked(ItemBloodFang, Cur == $"map:{BloodFangMapId}"); return true; }
+    [MenuItem(ItemBloodFang, true, 1022)] static bool VBloodFang() { Menu.SetChecked(ItemBloodFang, Cur == "BloodFang"); return true; }
     [MenuItem(ItemOff, true, 1040)]   static bool VOff()    { Menu.SetChecked(ItemOff,   string.IsNullOrEmpty(Cur)); return true; }
 
     static void Set(string target)

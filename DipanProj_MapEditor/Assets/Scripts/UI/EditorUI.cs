@@ -1939,7 +1939,7 @@ namespace DipanMapEditor.UI
                 if (nb != lp.EnvBright) lp.SetEnvBright(nb);
                 GUILayout.Label("調到滿意後，把這個數字填進主專案\nAssets/Data/MapsTable.csv 這張圖那列的\n『EnvBright』欄，遊戲裡才會一樣暗。\n（100=不壓暗；45≈昏暗室內）");
 
-                // 遊戲同框上限是 12 盞，預覽最多畫 32——畫面內超過 12 時遊戲會丟掉最遠的，先在這裡示警。
+                // 遊戲同框上限是 20 盞（GameMaxLights），預覽最多畫 32——畫面內超標時遊戲會丟掉最遠的，先在這裡示警。
                 if (lp.Enabled && lp.OnScreenCount > LightPreview.GameMaxLights)
                 {
                     GUI.color = new Color(1f, 0.75f, 0.3f);

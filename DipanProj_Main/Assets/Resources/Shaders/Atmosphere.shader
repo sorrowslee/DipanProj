@@ -58,7 +58,7 @@ Shader "Custom/Atmosphere"
             float  _TintAmount;
 
             // ── 多光源（同框上限；與 AtmosphereController.MaxLights 一致）──
-            #define MAX_LIGHTS 12
+            #define MAX_LIGHTS 20
             float4 _LightData[MAX_LIGHTS];   // xy = viewport 位置, z = 外圈半徑, w = 內圈半徑
             float4 _LightTint[MAX_LIGHTS];   // rgb = 光色, a = 亮度
             float  _LightCount;              // 實際盞數（0 = 沒有任何光源）

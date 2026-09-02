@@ -59,7 +59,7 @@
 | [STOREROOM_POTION_TUTORIAL.md](STOREROOM_POTION_TUTORIAL.md) | 儲藏室 HP 藥水強制新手教學（紅嫁衣第二間房：撿藥水→左鍵放進藥水格→強制按 1 喝；DrinkOnly 鎖、喝完 `TriggerChain.Activate` togglePortal 開傳送點123） | 改藥水教學流程、教學寫死清單、地圖佈置 |
 | [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) | 觸發鏈：trigger 接 trigger（next/startDisabled/旗標條件）、動作型 giveItem/teleportTo/cameraFocus、**進場觸發 onEnter（一進地圖自動觸發、0 格不塗格子）**、傳送點綠幕連動 | 編排「對話→給物品→開門→傳送」這類事件流程、加條件分支、做「一進房間就播對話」 |
 | [SAVE_SYSTEM.md](SAVE_SYSTEM.md) | 本地存檔系統（persistentDataPath、多角色 roster、統一角色存檔、轉生繼承、JSON+校驗碼、Steam Cloud 預留）＋§14 進度層（周目=generation、完成關卡=clearedModules、金錢、出生點旗標、進度 API） | 做存檔/讀檔、角色建立/轉生、物品持久化、記錄關卡/周目進度前 |
-| [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物 |
+| [TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) | 標題畫面＋三欄存讀檔 UI＋GameFlowManager 總流程（新建/繼續/覆蓋/刪除、進廣場自動存、出生點旗標、in-place 輪迴 API） | 改開場進入流程、存讀檔畫面、標題、輪迴帶物、**加/改「直接進關卡」測試選單** |
 | [LEVEL_END_FLOW.md](LEVEL_END_FLOW.md) | 過關/死亡/返回廣場 → 卍字離場特效 → 結算畫面 → 回廣場（clearLevel 觸發＋fireOnFlag＋延時觸發＋倒數＋ResultPanel 美術；EndLevel 三模式） | 改過關/死亡表演、離場特效、結算版面、接 clearLevel |
 | [RUN_PROGRESS.md](RUN_PROGRESS.md) | **關卡進度與臨時包（RunProgress）**：一趟關卡內怪死了不復生／撿過的不再出現／掉落物留原地（跨換圖記憶、離開關卡才重置）＋臨時包「通關才落袋、死亡歸零」＋取得物品統一入口 `GiveItem`＋F8 除錯疊層 | 改怪物重生/拾取記憶/掉落物、做掉寶、動臨時包或結算獎勵、加「給玩家東西」的新來源 |
 | [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) | **劇情演出編輯器**：地圖編輯器「劇情」分頁排一段半演出半漫畫的過場（演員走位/對話/**頭上對話框**/運鏡/置中漫畫/淡黑/螢幕特效/交棒，14 種步驟、`parallelNext` 與 `background` 並行、編輯器內預覽）＋**回憶特效**（泛黃＋上下黑邊＋暫時解除場景壓暗）＋**條件旗標/完成寫旗標**（只播一次）＋**隱藏主角/關閉血量HUD**＋**`playCutscene` 鏈動作**；資料存 `.dipanmap` 的 `cutscenes` | 做/改地圖內的劇情演出、開場山道那類過場、要回憶感/頭上對話/用 trigger 觸發劇情；**注意與 CUTSCENE_TUNNEL（穿隧道播影片）是兩套** |

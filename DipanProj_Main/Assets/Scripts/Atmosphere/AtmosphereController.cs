@@ -34,8 +34,10 @@ public class AtmosphereController : MonoBehaviour
 {
     public static AtmosphereController Instance { get; private set; }
 
-    /// <summary>同框光源數上限。必須與 Atmosphere.shader 裡的 MAX_LIGHTS 完全一致（改一邊要改另一邊）。</summary>
-    public const int MaxLights = 12;
+    /// <summary>同框光源數上限。必須與 Atmosphere.shader 裡的 MAX_LIGHTS 完全一致（改一邊要改另一邊）。
+    /// 2026-08-28 由 12 提到 20：庭院這種「全圖一屏＋多傳送點冷光」的樞紐房會超過 12，
+    /// 超過就有燈整盞被踢掉（見 PROBLEMS E23）。編輯器照明預覽的警告門檻（LightPreview.GameMaxLights）要同步。</summary>
+    public const int MaxLights = 20;
 
     // ── 光圈可調參數 ──
     // 光圈大小由「光源的發光半徑(世界單位)」決定，換算成 viewport 比例後餵給 shader。
@@ -249,7 +251,10 @@ public class AtmosphereController : MonoBehaviour
 
         int n = 0;
         float t = Time.time;
-        Vector3 from = _player != null ? _player.position : _cam.transform.position;
+        // 挑燈基準＝相機中心，不是玩家（2026-08-28 改，見 PROBLEMS E23）：
+        // 「整張地圖」模式下相機不動，用玩家當基準會讓「離玩家遠的那半邊」的燈隨走位被踢出清單——
+        // 人走到左邊、右邊的燈整盞熄掉。改相機後：全圖模式挑選結果恆定；跟隨模式相機≒玩家、行為不變。
+        Vector3 from = _cam.transform.position;
 
         // ① 玩家身上的發光裝（提燈）：以玩家為心，沿用單光源時代的暖色與呼吸手感。
         // ⚠ 劇情把主角藏起來時（PlayerVisibility.IsHidden）要一起跳過——否則空地上會浮著一圈沒有主人的光。

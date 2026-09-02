@@ -179,11 +179,24 @@ public class MapCameraController : MonoBehaviour
         Vector3 cur = _cam.transform.position - _shakeApplied;
         Vector3 desired = new Vector3(basePos.x + _offsetCur.x, basePos.y + _offsetCur.y, cur.z);
 
+        // ⚠ 鏡頭區的 offset 也要夾邊界（basePos 夾過了，加上 offset 又會出去）。
+        //    不夾的話 offsetY=2 就是「合法地」把鏡頭推出地圖上緣 2 格，穩定露黑邊、而且不會自己恢復。
+        bool clampNow = _following && !_focus.HasValue;   // 對準點刻意不夾（見上面 basePos 的註解）
+        if (clampNow) desired = ClampToBounds(desired);
+
         // 對準點期間也要平滑移動過去（即使整張圖模式），所以一律用 SmoothDamp。
         if ((_following || _focus.HasValue) && followSmoothTime > 0f)
             _cam.transform.position = Vector3.SmoothDamp(cur, desired, ref _vel, followSmoothTime);
         else
             _cam.transform.position = desired;
+
+        // ⚠ 再夾一次「相機的實際位置」，不是只夾目標——這一道才擋得住鏡頭區拉遠時的破綻。
+        //    上面第 2 步的 orthographicSize 是**當幀立刻**變大的，位置卻要靠 SmoothDamp 追；
+        //    視窗一放大，相機還停在舊的貼邊位置就已經超界了（貼著邊界進區最明顯）。
+        //    而且 zoom 還在指數成長（zoneTransitionTime 收斂約 0.8 秒），合法區間一直內縮、
+        //    SmoothDamp 永遠落後半拍 ⇒ 黑邊會持續 1~1.5 秒才收掉。見 readme/PROBLEMS.md **E24**。
+        //    代價：貼邊時 zoom/offset 會被夾住打折（地圖外本來就沒東西可看），要看更遠請從地圖資料端留空間。
+        if (clampNow) _cam.transform.position = ClampToBounds(_cam.transform.position);
 
         // 4) 震動：最後才疊上去。
         // ⚠ 順序很重要——必須在 SmoothDamp 之後。若把偏移加進 desired 再 SmoothDamp，

@@ -16,7 +16,7 @@ namespace DipanMapEditor.Core
     ///
     /// ⚠ 與遊戲的差異（面板上也有寫）：
     ///   ① 這裡只模擬「壓暗＋照亮＋光色」，遊戲的氛圍 2 幽暗/3 噩夢還會另外去飽和、加冷色調。
-    ///   ② 遊戲同框上限 12 盞（AtmosphereController.MaxLights），這裡最多畫 32 盞；
+    ///   ② 遊戲同框上限 20 盞（AtmosphereController.MaxLights），這裡最多畫 32 盞；
     ///      畫面內超過遊戲上限時 <see cref="OnScreenCount"/> 會超標，面板據此出示警告。
     /// </summary>
     [RequireComponent(typeof(Camera))]
@@ -26,7 +26,7 @@ namespace DipanMapEditor.Core
         public const int MaxPreviewLights = 32;
 
         /// <summary>遊戲端的同框上限（AtmosphereController.MaxLights）。只用來出示警告，不影響預覽。</summary>
-        public const int GameMaxLights = 12;
+        public const int GameMaxLights = 20;   // 2026-08-28 隨遊戲端 MaxLights 12→20 同步
 
         /// <summary>開關（由 EditorUI 的「照明預覽」鈕切換，PlayerPrefs 記住）。</summary>
         public bool Enabled { get; private set; }
