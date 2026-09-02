@@ -5,6 +5,24 @@ Shader "Custom/SpriteFlash"
         [PerRendererData] _MainTex ("Sprite Texture", 2D) = "white" {}
         _Color ("Tint", Color) = (1,1,1,1)
         _FlashAmount ("Flash Amount", Range(0,1)) = 0
+
+        // ── 角色環境融合 POC（CharacterEnvPoc 以 MaterialPropertyBlock 餵值）──
+        // 全部預設 0／白＝**這段完全不執行**，畫面與加這功能之前逐位元相同。
+        _EnvOn ("Env fusion on (0=off)", Float) = 0
+        _EnvMix ("Env tint strength", Float) = 0
+        // ⚠ 這兩個是**乘法係數**不是顏色：宣告成 Color 會被 Unity 在 Linear 專案下自動做一次
+        //   gamma→linear 轉換而扭曲（1.08 這種大於 1 的值更是直接失真）。用 Vector + SetVector 原樣送。
+        _EnvBase ("Env dark-side mul (Vector, NOT color)", Vector) = (1,1,1,1)
+        _EnvLit ("Env lit-side mul (Vector, NOT color)", Vector) = (1,1,1,1)
+        _EnvPivot ("Env pivot (LINEAR lum)", Float) = 0.085
+        _EnvSplit ("Env split half-width (LINEAR)", Float) = 0.060
+        _BlackLift ("Black level lift (LINEAR)", Float) = 0
+        // 黑階抬升的**色向量**（Vector，非 Color：同 _EnvBase 的理由）。歸一化的場景暗部色。
+        _LiftTint ("Black lift color (Vector, normalized)", Vector) = (1,1,1,1)
+        _Sat ("Saturation delta", Float) = 0
+        _LumBoost ("Lit boost (push over bloom threshold)", Float) = 0
+        _EdgeTint ("Edge tint (real color, auto gamma->linear)", Color) = (1,1,1,1)
+        _EdgeAmount ("Edge tint strength", Float) = 0
     }
 
     SubShader
@@ -28,6 +46,7 @@ Shader "Custom/SpriteFlash"
             CGPROGRAM
             #pragma vertex SpriteVert
             #pragma fragment SpriteFrag
+            #pragma target 3.0
             #pragma multi_compile_instancing
             #pragma multi_compile _ PIXELSNAP_ON
             #include "UnityCG.cginc"
@@ -49,8 +68,14 @@ Shader "Custom/SpriteFlash"
             };
 
             sampler2D _MainTex;
+            float4 _MainTex_TexelSize;   // 邊緣偵測要鄰域取樣（_EdgeAmount > 0 時才用）
             fixed4 _Color;
             float _FlashAmount;
+
+            // ── 角色環境融合 POC ──
+            float _EnvOn, _EnvMix, _EnvPivot, _EnvSplit;
+            float _BlackLift, _Sat, _LumBoost, _EdgeAmount;
+            float4 _EnvBase, _EnvLit, _EdgeTint, _LiftTint;
 
             v2f SpriteVert(appdata_t IN)
             {
@@ -68,7 +93,70 @@ Shader "Custom/SpriteFlash"
 
             fixed4 SpriteFrag(v2f IN) : SV_Target
             {
-                fixed4 c = tex2D(_MainTex, IN.texcoord) * IN.color;
+                fixed4 texel = tex2D(_MainTex, IN.texcoord);
+                fixed4 c = texel * IN.color;
+
+                // ── 角色環境融合（POC；_EnvOn = 0 時整段跳過＝原本的畫面）──
+                // ⚠⚠ 這裡所有門檻與抬升量都是 **Linear 空間**的數字（專案跑 Linear，見 PROBLEMS E11/E26）：
+                //    室內石材場景的 linear 亮度整張擠在 0.02~0.20、中位數才 0.083。
+                //    照 sRGB 直覺填 0.5 那種「一半亮」的值＝門檻永遠達不到，症狀是「效果好像沒做」而不是報錯。
+                //    預設值刻意跟 Atmosphere.shader mode 16 的 pivot/split 對齊，讓角色與場景用同一條分界。
+                if (_EnvOn > 0.5)
+                {
+                    // ⚠ 整段用 float 中間變數算，不要直接在 fixed3 上累加：
+                    //   fixed 的精度是 1/256（0.0039），而黑階抬升是 0.008 這種量級的小數——
+                    //   直接在 fixed 上做會被量化成 2 個 step、抬升量變得又跳又不準。
+                    //   （桌面平台 fixed 實際上就是 float，這裡是為了語意正確與日後移植。）
+                    //   c 本身維持 fixed4 不動，所以 Mode 0 的路徑跟加這功能之前完全一樣。
+                    float3 e = c.rgb;
+                    float lum = dot(e, float3(0.299, 0.587, 0.114));
+                    // 亮側權重：與 Atmosphere 室內系同構的 smoothstep（split 小＝曲線陡＝只有真亮部才算亮側）
+                    float litW  = smoothstep(_EnvPivot - _EnvSplit, _EnvPivot + _EnvSplit, lum);
+                    float darkW = 1.0 - smoothstep(0.0, _EnvPivot, lum);
+
+                    // (a) 飽和微調（負值＝去飽和，往場景的收斂調性靠）
+                    e = lerp(lum.xxx, e, 1.0 + _Sat);
+
+                    // (b) 黑階抬升 ← 本 POC 的主角。
+                    //     全螢幕後處理對角色與場景一視同仁，**永遠不會改變「角色暗部比場景暗多少」**；
+                    //     那個相對差就是「貼在背景上」的主因，只能在角色自己的 sprite 上動。
+                    //
+                    //     ⚠ 抬升量必須**帶場景暗部的顏色**，不能三通道等量加。
+                    //     首版用中性灰加法，實測角色暗部的 R/B 從 1.81 掉到 1.51——場景暗部是暖褐的
+                    //     （實機量到 R/B ≈ 1.9），角色卻被拉成灰的，**色相上反而更不融入**。
+                    //     _LiftTint 是歸一化的場景暗部色（三通道平均 = 1），所以換色不會改變抬升的總亮度。
+                    e += _BlackLift * darkW * _LiftTint.rgb;
+
+                    // (c) 亮部抬升：把角色亮部推過 Atmosphere bloom 的抽取門檻（0.09 linear）。
+                    //     場景亮面都在發光瀰漫、角色偏暗完全不參與 bloom → 角色是全畫面唯一的硬邊。
+                    //     光暈長在角色**外面**，所以角色本體不會糊（不違反「不可 blur 角色」）。
+                    e *= 1.0 + _LumBoost * litW;
+
+                    // (d) 環境色：暗側 / 亮側各自的乘法色，沿用當前 Atmosphere mode 的 baseTint / litTint，
+                    //     角色與場景吃同一組色 → 之後換氛圍角色會自動跟著變。
+                    float3 tint = lerp(_EnvBase.rgb, _EnvLit.rgb, litW);
+                    e = lerp(e, e * tint, _EnvMix);
+
+                    // (e) 邊緣融合：只動最外圈 1px。純黑輪廓直接接非常亮的地板＝對比最劇烈處。
+                    //     用鄰域 alpha 的最小值找外緣；_EdgeAmount = 0 時不做這 4 次取樣。
+                    if (_EdgeAmount > 0.0001)
+                    {
+                        float2 ts = _MainTex_TexelSize.xy;
+                        float a1 = tex2D(_MainTex, IN.texcoord + float2(-ts.x, 0)).a;
+                        float a2 = tex2D(_MainTex, IN.texcoord + float2( ts.x, 0)).a;
+                        float a3 = tex2D(_MainTex, IN.texcoord + float2(0, -ts.y)).a;
+                        float a4 = tex2D(_MainTex, IN.texcoord + float2(0,  ts.y)).a;
+                        float minA = min(min(a1, a2), min(a3, a4));
+                        // ⚠ 一定要用 texel.a（貼圖原始 alpha）而不是 c.a：c.a 已經乘過 IN.color.a，
+                        //    無敵閃爍期間 SpriteRenderer.color.a = 0.4，拿它跟鄰居的原始 alpha 相減恆為負，
+                        //    邊緣融合會在角色每次挨打時整個消失。
+                        float edge = saturate(texel.a - minA);   // 自己不透明、鄰居透明 = 外緣
+                        e = lerp(e, _EdgeTint.rgb, edge * _EdgeAmount);
+                    }
+
+                    c.rgb = e;
+                }
+
                 c.rgb = lerp(c.rgb, fixed3(1, 1, 1), _FlashAmount);
                 c.rgb *= c.a;
                 return c;

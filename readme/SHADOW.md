@@ -11,13 +11,17 @@
 * 元件 `Assets/Scripts/BlobShadow.cs`：掛在角色上即可。玩家由 `PlayerController.Start`、怪物由 `MonsterController.Start` 各自 `AddComponent<BlobShadow>()`（已接好）。
 * 影子是**獨立 GameObject**（不是角色的子物件）——避免被角色的 `flipX` 翻轉或 `localScale` 縮放二次影響；每幀 `LateUpdate` 把影子移到角色腳下。角色銷毀時 `OnDestroy` 自動清掉影子。
 * 影子圖是**程序生成的柔邊圓**（中心實、邊緣淡的 alpha 貼圖，白色靠 `SpriteRenderer.color` 染成黑半透明），整個遊戲**共用一張**（static 快取）。零 prefab、零美術。
-* 大小依角色的**不透明像素寬度**自動算（`TryGetVisibleFraction` 掃 alpha；貼圖不可讀時才退回整張 `bounds.size.x`），縱向壓扁成橢圓。腳底位置同理取不透明區的下緣，不是畫布底。排序設在角色 `sortingOrder` 之下一階（畫在角色腳下、地面之上）。
+* 大小依角色的**不透明像素寬度**自動算（`TryGetVisibleFraction` 掃 alpha；貼圖不可讀時才退回整張 `bounds.size.x`），縱向壓扁成橢圓。排序設在角色 `sortingOrder` 之下一階（畫在角色腳下、地面之上）。
+* 腳底位置同理取不透明區的下緣，不是畫布底。排序設在角色 `sortingOrder` 之下一階（畫在角色腳下、地面之上）。
+* ⚠ **水平位置目前一律用 `transform.position.x`，而它不見得對得準腳。** 2026-09-02 試過四種「從 alpha 猜腳在哪」的自動算法，
+  每一種都有反例——長袍、披風、背包、爪子這些突出物會把猜測帶偏，毛殭那類角色最明顯，而且**走路時常常剛好正確、idle 卻偏掉**
+  （姿勢會改變外框）。改動已全部還原，改走資料驅動：缺口記在 [TODO.md](TODO.md)，過程與教訓見 [PROBLEMS.md](PROBLEMS.md) **E28**。
 
 ## 可調參數（`BlobShadow` Inspector / 程式預設）
 
 | 欄位 | 預設 | 說明 |
 |---|---|---|
-| `ShadowColor` | 黑 alpha 0.9 | 影子顏色與濃淡 |
+| `ShadowColor` | 黑 alpha 0.3 | 影子顏色與濃淡 |
 | `WidthFactor` | 1.1 | 影子寬 = 角色世界寬 × 此值 |
 | `HeightRatio` | 0.5 | 影子高 / 寬（越小越扁、俯視感越強） |
 | `VerticalOffset` | 0 | 腳底再往下(正)/上(負)微調 |

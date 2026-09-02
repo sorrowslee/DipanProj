@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Dipan.Diagnostics;   // 【POC】角色場景融合測試（CharacterEnvPoc）；拔除 POC 時連同下面三小段一起刪
 
 /// <summary>
 /// 通用受擊反應元件：白光閃爍、擊退位移、無敵時間（半透明）。
@@ -37,6 +38,11 @@ public class HitReactionHandler : MonoBehaviour
     private float _accumulatedDamage;
     private static Material _sharedFlashMaterial;
     private Color _originalColor;
+
+    // 【POC】角色場景融合測試：目前的白閃量（要跟環境參數寫進同一個 MPB，見 ApplyPropertyBlock）
+    private float _flashAmount;
+    // 【POC】看過的 CharacterEnvPoc.Version；不同代表模式被切過，要重寫一次 MPB
+    private int _envVersion = -1;
 
     public void Configure(SpriteRenderer sr, Rigidbody2D rb,
         float invincibleTimeMs, float knockbackThreshold, float knockbackPercent)
@@ -164,10 +170,35 @@ public class HitReactionHandler : MonoBehaviour
 
     private void SetFlashAmount(float amount)
     {
+        _flashAmount = amount;
+        ApplyPropertyBlock();
+    }
+
+    // 【POC】角色場景融合測試：模式被切換時（P → G）重寫一次 MPB。
+    // 只是一個 int 比較，成本可忽略；POC 結束後這支 Update 連同 _envVersion 一起刪掉即可。
+    private void Update()
+    {
+        if (_envVersion != CharacterEnvPoc.Version) ApplyPropertyBlock();
+    }
+
+    /// <summary>
+    /// 把白閃量與（POC 的）角色環境參數**一次寫進同一個 MaterialPropertyBlock**。
+    ///
+    /// ⚠ 為什麼要合在一起：<c>SetPropertyBlock</c> 是**整包覆蓋**的。分成兩處各寫各的，
+    ///   角色一挨打，受擊白閃那次的 block 就會把環境參數整組沖掉一瞬間
+    ///   （症狀是「被打的時候角色顏色會跳一下」）。這裡是這個 renderer 唯一的 MPB 寫入點。
+    /// ⚠ 刻意用 <c>GetPropertyBlock</c> 讀回既有內容再覆寫（＝這支本來就在用的模式），
+    ///   而不是 <c>Clear()</c> 後全寫：SpriteRenderer 的 <c>_MainTex</c> 走 [PerRendererData]，
+    ///   把整包清掉是沒必要冒的風險。
+    /// </summary>
+    private void ApplyPropertyBlock()
+    {
         if (_spriteRenderer == null || _mpb == null) return;
 
+        _envVersion = CharacterEnvPoc.Version;
         _spriteRenderer.GetPropertyBlock(_mpb);
-        _mpb.SetFloat("_FlashAmount", amount);
+        _mpb.SetFloat("_FlashAmount", _flashAmount);
+        CharacterEnvPoc.FillPropertyBlock(_mpb);   // 【POC】模式 0 時只寫 _EnvOn=0，shader 整段跳過
         _spriteRenderer.SetPropertyBlock(_mpb);
     }
 

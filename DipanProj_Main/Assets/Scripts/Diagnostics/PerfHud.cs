@@ -85,6 +85,15 @@ namespace Dipan.Diagnostics
                 if (Input.GetKeyDown(KeyCode.T)) CycleTarget();
                 if (Input.GetKeyDown(KeyCode.F)) MapSpriteLoader.ToggleSceneFilterMode();
                 if (Input.GetKeyDown(KeyCode.C)) CollisionDebugOverlay.Toggle();
+                // 【POC】角色場景融合測試：循環 原狀 / 色彩 / 色彩+邊緣（見 CharacterEnvPoc）
+                // Shift+G 反向——要來回比對相鄰兩個模式時，正向繞一圈要按四次，中間會被別的模式干擾判斷。
+                if (Input.GetKeyDown(KeyCode.G))
+                {
+                    if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
+                        CharacterEnvPoc.CycleBack();
+                    else
+                        CharacterEnvPoc.Cycle();
+                }
             }
 
             // 用 unscaled，暫停（Time.timeScale=0）時也能量測
@@ -215,7 +224,7 @@ namespace Dipan.Diagnostics
             float w = 380f;
             var content = new GUIContent(text);
             float contentH = _label.CalcHeight(content, w);
-            const float ctrlRowH = 82f;   // 控制鈕（三列：VSync/FPS ＋ 場景濾波 ＋ 碰撞範圍）的高度
+            const float ctrlRowH = 110f;  // 控制鈕（四列：VSync/FPS ＋ 場景濾波 ＋ 碰撞範圍 ＋【POC】角色色彩融合）的高度
             float h = Mathf.Min(contentH + 18f + ctrlRowH, Screen.height - 16f);
             GUILayout.BeginArea(new Rect(10, 10, w, h), _box);
 
@@ -236,6 +245,11 @@ namespace Dipan.Diagnostics
                 CollisionDebugOverlay.Toggle();
             if (CollisionDebugOverlay.Enabled)
                 GUILayout.Label("綠=地上物 紅=牆 藍=水/坑 黃=玩家 橘=怪物", _label);
+
+            // 【POC】角色場景融合測試（2026-09-02，見 CharacterEnvPoc 與 readme/PROGRESS.md）。
+            // 四模式即時比較：確認到底是什麼造成角色不融入場景。POC 結束後這三行連同該類別一起刪。
+            if (GUILayout.Button("角色融合(G / Shift+G 反向): " + CharacterEnvPoc.ModeName(), _btn))
+                CharacterEnvPoc.Cycle();
 
             GUILayout.Label(content, _label);
             GUILayout.EndArea();
