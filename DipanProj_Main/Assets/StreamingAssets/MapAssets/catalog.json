@@ -3144,7 +3144,7 @@
       "path": "Modules/BloodFang/Background/Stage_BloodFang_GuessLobby.png",
       "category": "Background",
       "module": "BloodFang",
-      "pixelSize": 1363,
+      "pixelSize": 1448,
       "ppu": 256,
       "frameCount": 1
     },
