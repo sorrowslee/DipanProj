@@ -33,6 +33,9 @@
 2. **Linear 色彩空間**（**E11**）：alpha 憑 Gamma 直覺填會重約一倍；
    調疊色先用 `a*C^2.2+(1-a)*BG^2.2` 開 1/2.2 次方驗算，或直接實機截圖量 RGB 對答案。
    優先用明暗對比與描邊，避免大面積半透明。
+   **同一個坑的另一半：shader 裡的每個「亮度門檻」也是 Linear 值**——Linear 專案裡「看起來一半亮」
+   實際只有 0.08 上下，憑直覺填 0.5 的門檻永遠不觸發，而症狀是「效果好像沒做」不是報錯（**E26**）。
+   定門檻前先量一張該場景截圖的 linear percentile（E26 附程式碼），門檻要落在 p25~p90 之間。
 3. **動態要「呼吸」，不要「閃爍」**：
    - 週期用 Perlin／多相位 sin 疊加，避免單一 sin 的機械感；
    - **多實例各自獨立相位種子**（照明多光源的教訓：整排火把同步明滅一眼假）；
@@ -45,9 +48,9 @@
 
 ## 3. 技術紀律
 
-1. **鏡像與雙處常數要同步改**：`MaxLights`(12) ↔ shader `MAX_LIGHTS`；
+1. **鏡像與雙處常數要同步改**：`MaxLights`(20，2026-08-28 由 12 提高) ↔ shader `MAX_LIGHTS`；
    編輯器 `LightPreview`／`EditorLightPreview.shader` 與遊戲端 type 1 分支同一條式子；
-   同框 12 盞上限寫死在兩處（AGENTS 鐵則同款）。
+   同框光源上限寫死在兩處（AGENTS 鐵則同款）。
 2. **Bypass 相容**：任何新 mode／新效果必須被 `AtmosphereController.SetBypass` 統一淡掉——
    效果寫在 `Atmosphere.shader` 最後一行內插**之前**。「暫時脫離當前場景」的演出一律走 SetBypass，
    不要自己另疊一套反向補償。

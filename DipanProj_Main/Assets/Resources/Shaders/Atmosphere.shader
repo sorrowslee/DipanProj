@@ -14,6 +14,12 @@
 //  13 = 大雨（細密雨點往下落）
 //  14 = 陰森森林鬼霧（畫面偏暗、陰綠冷調 + 漂移黑霧雲塊、偶爾飄來一陣濃霧）
 //  15 = 電視雜訊（雪花噪點 + 掃描線 + 滾動同步條 + 偶發水平撕裂 + 灰調閃爍）
+//  16~19 = 室內系（共用一段基底 + 四組常數，見 frag 內 "_Mode > 15.5" 分支）：
+//   16 = 室內暖光（微暖色溫 + 柔和 Bloom + 角落略暗）
+//   17 = 莊嚴金輝（暗部偏冷、亮部淡金 + 石材略提亮 + 很輕的光暈）
+//   18 = 冷月室內（整體灰藍，暖色燈源保留 → 冷暖對比；吃照明）
+//   19 = 燭火幽影（亮度稍降 + 暖色局部光感 + 暗部極輕呼吸；吃照明）
+// Bloom（16/17）：由 AtmosphereBlit 先跑 Custom/AtmosphereBloom 兩個降解析度 pass，結果從 _BloomTex 進來。
 // 照明（type 1 環境壓暗 / 2 / 3 / 9 / 14 用）：多光源，由 AtmosphereController 每幀餵入
 //   _LightData[i] = (viewport.x, viewport.y, 外圈半徑, 內圈半徑)、_LightTint[i] = (r, g, b, 亮度)、_LightCount = 實際盞數。
 //   每盞的油燈式呼吸在 CPU 端各自算好才餵進來（每盞不同相位），shader 只負責疊合。
@@ -29,6 +35,7 @@ Shader "Custom/Atmosphere"
         _EnvDark ("Env Darken (0..1, type 1)", Float) = 0
         _Bypass ("Bypass (0=full atmosphere, 1=raw picture)", Float) = 0
         _Mode ("Mode (1 normal+dark,2..6,7..9 ocean,10 snow,11 gale,12 drizzle,13 rain,14 ghostFog,15 tvNoise)", Float) = 2
+        _BloomTex ("Bloom（由 AtmosphereBlit 餵；沒跑 bloom 時是黑圖）", 2D) = "black" {}
         _SceneTint ("Scene tint color (AtmoTint)", Color) = (1,1,1,1)
         _TintAmount ("Scene tint amount (0=off)", Float) = 0
     }
@@ -48,6 +55,8 @@ Shader "Custom/Atmosphere"
 
             sampler2D _MainTex;
             float _Aspect, _Mode, _EnvDark;
+            // 室內系 16/17 的 bloom 來源（AtmosphereBlit 的前置 pass 產生；其餘 mode 是黑圖、不取樣）。
+            sampler2D _BloomTex;
             // 暫時淡出整套氛圍（1＝完全還原原始畫面）。給「回憶演出」用：
             // 幽暗/噩夢地圖上畫面幾乎全黑，任何乘法式的色調效果都等於失效，
             // 所以回憶期間把氛圍整個淡掉、讓場景亮回來再套回憶色。見 MemoryFxController。
@@ -114,7 +123,7 @@ Shader "Custom/Atmosphere"
                     uv.x += wob * 0.0022;
                     uv.y += sin(uv.x * 16.0 + t * 1.3) * 0.0018;
                 }
-                else if (_Mode > 14.5)
+                else if (_Mode > 14.5 && _Mode < 15.5)   // ⚠ 閉區間：16+ 的室內系不做撕裂位移
                 {
                     // 電視雜訊（15）：偶發整列水平撕裂位移（取樣前做）
                     // 注意：'line' 是 HLSL 保留字，變數名用 ln。
@@ -174,7 +183,109 @@ Shader "Custom/Atmosphere"
                     col.rgb *= lerp(1.0, vig, _EnvDark);
                     col.rgb = saturate(col.rgb);
                 }
-                else if (_Mode > 14.5)
+                else if (_Mode > 15.5)
+                {
+                    // ── type 16~19：室內系（一段共用基底 + 四組常數）──
+                    // 為什麼共用：這四種的差別只有色溫／壓暗／暈影／去飽和／bloom／呼吸這幾個常數。
+                    // 各寫一段等於把同一條式子放進指令預算四次——本 shader 已把 19 種氛圍攤平、指令數吃緊
+                    // （見檔頭），共用可能就是「編譯得過 / 洋紅」的差別。**再加室內氛圍請只加一組常數，別另開分支。**
+                    float dim, desat, vigDepth, bloomK, breathK, lightW, stoneLift, split, pivot;
+                    float3 baseTint, litTint;
+                    if (_Mode > 18.5)
+                    {
+                        // 19 燭火幽影：亮度稍降、暖色局部光感、暗部極輕呼吸
+                        dim = 0.72; desat = 0.15; vigDepth = 0.50; bloomK = 0.0; breathK = 0.03;
+                        lightW = 1.0; stoneLift = 0.0; split = 0.060; pivot = 0.085;
+                        baseTint = float3(0.88, 0.90, 0.98); litTint = float3(1.10, 0.98, 0.82);
+                    }
+                    else if (_Mode > 17.5)
+                    {
+                        // 18 冷月室內：整體灰藍，燈池往暖色還原 → 冷暖對比
+                        dim = 0.80; desat = 0.30; vigDepth = 0.35; bloomK = 0.0; breathK = 0.0;
+                        lightW = 1.0; stoneLift = 0.0; split = 0.060; pivot = 0.085;
+                        baseTint = float3(0.80, 0.88, 1.06); litTint = float3(1.08, 1.00, 0.86);
+                    }
+                    else if (_Mode > 16.5)
+                    {
+                        // 17 莊嚴金輝：暗部偏冷、亮部淡金、石材略提亮、很輕的光暈
+                        // split 小＝內插曲線陡：大片中間調（石材）就已經偏冷，只有真正的亮部才轉金
+                        // ——這是 17 跟 16 拉得開的關鍵，不是把顏色調更飽。
+                        dim = 1.0; desat = 0.05; vigDepth = 0.15; bloomK = 0.15; breathK = 0.0;
+                        lightW = 0.0; stoneLift = 0.20; split = 0.050; pivot = 0.140;
+                        baseTint = float3(0.86, 0.92, 1.10); litTint = float3(1.18, 1.06, 0.78);
+                    }
+                    else
+                    {
+                        // 16 室內暖光：微暖色溫、柔和 bloom、角落略暗（＝中央相對亮）
+                        // split 大＝曲線平緩：整張圖都暖、不做冷暖分離（跟 17 的分工就在這裡）。
+                        dim = 0.94; desat = 0.05; vigDepth = 0.50; bloomK = 0.70; breathK = 0.0;
+                        lightW = 0.0; stoneLift = 0.0; split = 0.060; pivot = 0.085;
+                        baseTint = float3(1.08, 0.98, 0.86); litTint = float3(1.14, 1.04, 0.90);
+                    }
+
+                    float lum0 = dot(col.rgb, float3(0.299, 0.587, 0.114));
+                    // 色彩內插的依據：lightW=0 → 按「像素亮度」（暗部冷、亮部暖/金，16/17 用，不必有燈）；
+                    //                 lightW=1 → 按「照明係數 v」（燈池暖、其餘冷＝冷暖對比，18/19 用，要有燈）。
+                    // ⚠ 18/19 必須在 AtmosphereController.BuildLights 的白名單裡，否則 v 恆為 0、燈完全沒作用。
+                    //
+                    // ⚠ 亮度路徑**不能直接拿 lum 當權重**：一般場景大半是中間調（灰石材 lum≈0.55~0.6），
+                    //    直接用等於全畫面都停在內插中點，兩個色調不同的 mode 會收斂成幾乎同一個顏色
+                    //    （16/17 第一版就是這樣，實機看不出差別）。改用 smoothstep 把曲線調陡：
+                    //    split 小＝陡（中間調歸到暗側，只有真正的亮部才轉暖／金）＝冷暖分離明顯；
+                    //    split 大＝平緩（整張圖同一個調性）。**覺得兩個 mode 太像，先動 split，不是動顏色。**
+                    //
+                    // ⚠⚠ pivot／split 是 **Linear 空間**的數值，不是你看截圖估的那個亮度（E11 的變體，見 E26）。
+                    //    專案跑 Linear：截圖上看起來 0.32 的中間灰，shader 裡拿到的 lum 其實只有 **0.083**。
+                    //    實測某張石材大廳的 linear 分布：p25=0.055 / p50=0.083 / p90=0.135 / p99=0.20
+                    //    ——**整張畫面都擠在 0.02~0.20**。
+                    // ⚠ pivot 的語意是「**顏色從 baseTint 翻成 litTint 的分界**」，不是「中間調中心」。
+                    //    想要「中間調維持底色、只有亮部才轉色」（17 的冷石材＋金高光），pivot 要放在
+                    //    **中間調之上**（p85~p90 一帶＝0.14）；放在中位數 0.085 等於一半畫面翻到 litTint，
+                    //    整張圖都變成高光色，跟隔壁 mode 又混在一起（16/17 第三版才修對）。
+                    //    想要「整張同一個調性」（16 的暖），兩端顏色本來就接近，pivot 放中位數即可。
+                    //    split＝過渡帶半寬：16 用 0.06（平緩），17 用 0.05 配 pivot 0.14＝只有 p85 以上才開始轉金。
+                    //    憑直覺填 0.5 那種「一半亮」的數字，等於門檻永遠達不到、litTint 完全不會參與。
+                    //    要重定門檻就照 E26 的方法量一張該場景的截圖，別用眼睛估。
+                    float lumMix = smoothstep(pivot - split, pivot + split, lum0);
+                    float mixw = saturate(lightW * v + (1.0 - lightW) * lumMix);
+
+                    col.rgb *= lerp(dim, 1.0, v);                 // 壓暗（燈照到的地方還原；16/17 的 dim=1 等於不壓）
+                    col.rgb = lerp(col.rgb, lum0.xxx, desat);     // 去飽和（把雜色素材統一進場景）
+                    col.rgb *= lerp(baseTint, litTint, mixw);     // 色溫
+                    col.rgb *= lerp(1.0, vig, vigDepth);          // 角落壓暗
+                    col.rgb *= lightShift;                        // 光源自己的顏色（沒燈時＝1，不影響 16/17）
+
+                    // 石材略提亮（只有 17）：後處理拿不到材質資訊，用「低飽和 ＋ 中高亮度」近似石頭。
+                    // 同樣低飽和的灰衣服／鐵器也會被一起提亮，這是這個近似的已知代價。
+                    if (stoneLift > 0.0001)
+                    {
+                        float mx = max(col.r, max(col.g, col.b));
+                        float mn = min(col.r, min(col.g, col.b));
+                        float sat = (mx - mn) / max(mx, 0.0001);
+                        // 門檻同樣是 Linear 尺度：maxChannel 的 p50≈0.105、p90≈0.17（見上面的說明）。
+                        float stoneW = (1.0 - smoothstep(0.25, 0.60, sat)) * smoothstep(0.06, 0.16, mx);
+                        col.rgb *= 1.0 + stoneLift * stoneW;
+                    }
+
+                    // 暗部呼吸（只有 19）：兩個不同頻率的 sin 疊加（單一 sin 有機械感，見 SHADER_GUIDELINE §2.3），
+                    // 幅度極小且只作用在「沒被燈照到」的地方——全螢幕同步明滅看久會暈。
+                    if (breathK > 0.0001)
+                    {
+                        float tb = _Time.y;
+                        float wave = sin(tb * 0.9) * 0.6 + sin(tb * 1.37 + 1.7) * 0.4;
+                        col.rgb *= 1.0 + breathK * (1.0 - v) * wave;
+                    }
+
+                    // Bloom（16/17）：加法疊回，**並乘上該 mode 的 litTint**——bloom 抽的是場景原色，
+                    // 而石材本身偏暖褐，不染色的話光暈會把 mode 自己的調性沖掉（17 的冷調就是這樣被沖成暖的）。
+                    // 光暈的顏色本來就該是該 mode 的高光色。刻意用加法不用乘法——乘法類效果在暗畫面上會安靜失效（J4），
+                    // 而 bloom 的本質就是「亮處溢出來」。沒跑前置 pass 時 _BloomTex 是黑圖，加上去等於沒事。
+                    if (bloomK > 0.0001)
+                        col.rgb += tex2D(_BloomTex, uv).rgb * bloomK * litTint;
+
+                    col.rgb = saturate(col.rgb);
+                }
+                else if (_Mode > 14.5)   // ⚠ 開區間：新 mode 編號更大時，分支一定要加在這行「之前」，否則會掉進雜訊
                 {
                     // ── type 15：電視雜訊（雪花 + 掃描線 + 滾動同步條 + 灰調閃爍；撕裂在取樣前）──
                     float t = _Time.y;

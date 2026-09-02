@@ -18,6 +18,10 @@ using UnityEngine.SceneManagement;
 ///   12 = 綿綿細雨／毛毛雨（＝大雨的半速半密度）；13 = 大雨（細密雨點往下落）；
 ///   14 = 陰森森林鬼霧（畫面偏暗、陰綠冷調 + 漂移黑霧、偶爾一陣濃）；
 ///   15 = 電視雜訊（雪花 + 掃描線 + 滾動同步條 + 偶發水平撕裂 + 灰調閃爍）。
+///   16~19 = 室內系（shader 內共用一段基底 + 四組常數）：16 室內暖光（微暖 + 柔和 Bloom + 角落略暗）、
+///     17 莊嚴金輝（暗部冷 / 亮部淡金 + 石材略提亮 + 很輕的光暈）、18 冷月室內（灰藍底 + 暖燈池＝冷暖對比）、
+///     19 燭火幽影（稍降亮度 + 暖色局部光感 + 暗部極輕呼吸）。**18/19 吃照明，16/17 不吃**（見 BuildLights）。
+///     16/17 的 Bloom 由 <see cref="AtmosphereBlit"/> 的前置 pass 產生，只有這兩種 mode 會跑。
 /// 視覺差異全在 <c>Resources/Shaders/Atmosphere.shader</c>（用 _Mode 切 1~15）。
 ///
 /// ── 照明（2026-08-10 改多光源）──
@@ -73,6 +77,8 @@ public class AtmosphereController : MonoBehaviour
     private float _tintAmount = 0f;          // 0 = 不染；>0 = 染色整體強度（SceneTintStrength）
 
     private Material _mat;
+    /// <summary>Bloom 前置材質（Custom/AtmosphereBloom）。只有室內系 16/17 會用到；載不到就自動略過 bloom。</summary>
+    private Material _bloomMat;
     private Camera _cam;
     private AtmosphereBlit _blit;
     private Transform _player;
@@ -137,6 +143,9 @@ public class AtmosphereController : MonoBehaviour
                 case 3: case 9: d = 1f; break;
                 case 2:         d = 0.8f; break;
                 case 8: case 14: d = 0.5f; break;
+                case 19:        d = 0.5f; break;    // 燭火幽影：亮度稍降
+                case 18:        d = 0.35f; break;   // 冷月室內：偏灰藍但不算暗
+                                                    // 16/17 是亮場景 → 走 default 的 0
                 default:        d = (i._mode <= 1) ? i._envDark : 0f; break;
             }
             return d * (1f - i._bypass);
@@ -169,6 +178,12 @@ public class AtmosphereController : MonoBehaviour
             return;
         }
         _mat = new Material(sh) { hideFlags = HideFlags.HideAndDontSave };
+
+        // Bloom 前置（只給 mode 16/17）。載不到不是致命問題：BloomEnabled 會維持 false，
+        // 室內系照樣有色溫/暈影，只是少了光暈。
+        Shader bsh = Resources.Load<Shader>("Shaders/AtmosphereBloom");
+        if (bsh != null) _bloomMat = new Material(bsh) { hideFlags = HideFlags.HideAndDontSave };
+        else Debug.LogWarning("[Atmosphere] 找不到 Resources/Shaders/AtmosphereBloom，室內系 16/17 的 Bloom 停用。");
         _seed = Random.value * 1000f;
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
@@ -178,6 +193,7 @@ public class AtmosphereController : MonoBehaviour
         if (Instance == this) Instance = null;
         SceneManager.sceneLoaded -= OnSceneLoaded;
         if (_mat != null) Destroy(_mat);
+        if (_bloomMat != null) Destroy(_bloomMat);
     }
 
     // 換場景：相機／玩家可能換新，清掉引用、下一幀重新抓。（地圖型別不重置，由 MapManager 重新套用。）
@@ -216,10 +232,14 @@ public class AtmosphereController : MonoBehaviour
         if (_mode <= 1 && _envDark <= 0.001f && _tintAmount <= 0.001f)
         {
             _blit.Material = null;
+            _blit.BloomEnabled = false;
             return;
         }
 
         _blit.Material = _mat;
+        // Bloom 前置 pass 只在室內系 16/17 跑——其餘 17 種氛圍完全不經過，成本與加這功能之前一樣。
+        _blit.BloomMaterial = _bloomMat;
+        _blit.BloomEnabled = _bloomMat != null && (_mode == 16 || _mode == 17);
         _mat.SetFloat("_Mode", _mode);
         _mat.SetFloat("_EnvDark", _envDark);
         _mat.SetFloat("_Bypass", _bypass);
@@ -239,10 +259,13 @@ public class AtmosphereController : MonoBehaviour
     /// </summary>
     private int BuildLights()
     {
-        // 只有「吃照明」的模式才收集光源：2 幽暗 / 3 噩夢 / 9 深海恐怖 / 14 鬼霧、或 type 1 且有環境壓暗。
+        // 只有「吃照明」的模式才收集光源：2 幽暗 / 3 噩夢 / 9 深海恐怖 / 14 鬼霧 / 18 冷月 / 19 燭火幽影、
+        // 或 type 1 且有環境壓暗。（18/19 的冷暖對比就是靠燈池，沒有這行 v 恆為 0、燈完全沒作用。
+        //  16/17 刻意不收：它們的「中央亮」是暈影做的、不需要光源，收了反而多跑一輪迴圈。）
         // 其他模式 shader 本來就不讀 v/lightShift；而「只染色（AtmoTint）啟用 shader」的亮圖若照收光源，
         // 玩家體光/佛燈會透過 mode 1 分支的 lightShift 在大白天染出一圈暖色——這裡直接擋掉。
-        bool lit = _mode == 2 || _mode == 3 || _mode == 9 || _mode == 14 || (_mode <= 1 && _envDark > 0.001f);
+        bool lit = _mode == 2 || _mode == 3 || _mode == 9 || _mode == 14 || _mode == 18 || _mode == 19
+                   || (_mode <= 1 && _envDark > 0.001f);
         if (!lit)
         {
             for (int i = 0; i < MaxLights; i++) { _lightData[i] = Vector4.zero; _lightTint[i] = Vector4.zero; }
