@@ -139,6 +139,26 @@
             "markerX": 11.5085421,
             "markerY": -15.3532772
           }
+        },
+        {
+          "id": "dd989323",
+          "name": "傳送點-北方",
+          "typeId": "teleport",
+          "cells": [
+            [
+              11,
+              6
+            ]
+          ],
+          "params": {
+            "entranceId": "BloodFang_GuessLobby_north",
+            "targetMapId": "19",
+            "targetEntrance": "BloodFang_Gallery_south",
+            "showMarker": true,
+            "linkedFx": "",
+            "markerX": 11.5039511,
+            "markerY": -5.59047556
+          }
         }
       ]
     }

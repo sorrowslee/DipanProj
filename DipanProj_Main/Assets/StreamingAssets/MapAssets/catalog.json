@@ -3095,6 +3095,51 @@
       }
     },
     {
+      "id": "Modules/BloodFang/Environment/BloodFang_MainLobby_Table",
+      "path": "Modules/BloodFang/Environment/BloodFang_MainLobby_Table.png",
+      "category": "Environment",
+      "module": "BloodFang",
+      "pixelSize": 396,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 13,
+        "rows": 20,
+        "cells": [
+          "0000000001100",
+          "0000000101100",
+          "0000000101110",
+          "0000100111110",
+          "0000111111110",
+          "0010111110000",
+          "0011111110000",
+          "0011111000000",
+          "1101111000000",
+          "0111111000000",
+          "0111111000000",
+          "0111111000000",
+          "0111111100000",
+          "0111111110000",
+          "0011111111000",
+          "0011111111000",
+          "0001011111100",
+          "0000011111000",
+          "0000011101000",
+          "0000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/BloodFang/Background/Stage_BloodFang_Gallery",
+      "path": "Modules/BloodFang/Background/Stage_BloodFang_Gallery.png",
+      "category": "Background",
+      "module": "BloodFang",
+      "pixelSize": 971,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/BloodFang/Background/Stage_BloodFang_GuessLobby",
       "path": "Modules/BloodFang/Background/Stage_BloodFang_GuessLobby.png",
       "category": "Background",
@@ -3109,6 +3154,15 @@
       "category": "Background",
       "module": "BloodFang",
       "pixelSize": 1149,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/BloodFang/Background/Stage_BloodFang_MainLobby",
+      "path": "Modules/BloodFang/Background/Stage_BloodFang_MainLobby.png",
+      "category": "Background",
+      "module": "BloodFang",
+      "pixelSize": 1403,
       "ppu": 256,
       "frameCount": 1
     },
