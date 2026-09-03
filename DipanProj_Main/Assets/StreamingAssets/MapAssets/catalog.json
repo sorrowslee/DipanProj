@@ -3095,6 +3095,30 @@
       }
     },
     {
+      "id": "Modules/BloodFang/Environment/BloodFang_MainLobby_Barrels",
+      "path": "Modules/BloodFang/Environment/BloodFang_MainLobby_Barrels.png",
+      "category": "Environment",
+      "module": "BloodFang",
+      "pixelSize": 818,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 26,
+        "rows": 8,
+        "cells": [
+          "00000000000000000000000000",
+          "00111100111100111100011100",
+          "01111101111101111100111110",
+          "01111111111111111110111110",
+          "01111111111111111111111110",
+          "01111111111111111111111110",
+          "01111111111111111111111110",
+          "00000000000000000000000000"
+        ]
+      }
+    },
+    {
       "id": "Modules/BloodFang/Environment/BloodFang_MainLobby_Table",
       "path": "Modules/BloodFang/Environment/BloodFang_MainLobby_Table.png",
       "category": "Environment",
@@ -3157,6 +3181,15 @@
           "00000000000000000000000000000000"
         ]
       }
+    },
+    {
+      "id": "Modules/BloodFang/Background/Stage_BloodFang_BrewingRoom",
+      "path": "Modules/BloodFang/Background/Stage_BloodFang_BrewingRoom.png",
+      "category": "Background",
+      "module": "BloodFang",
+      "pixelSize": 2274,
+      "ppu": 256,
+      "frameCount": 1
     },
     {
       "id": "Modules/BloodFang/Background/Stage_BloodFang_Gallery",
