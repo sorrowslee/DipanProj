@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using Dipan.Diagnostics;   // 【POC】角色場景融合測試（CharacterEnvPoc）；拔除 POC 時連同下面三小段一起刪
 
 /// <summary>
 /// 通用受擊反應元件：白光閃爍、擊退位移、無敵時間（半透明）。
@@ -39,9 +38,9 @@ public class HitReactionHandler : MonoBehaviour
     private static Material _sharedFlashMaterial;
     private Color _originalColor;
 
-    // 【POC】角色場景融合測試：目前的白閃量（要跟環境參數寫進同一個 MPB，見 ApplyPropertyBlock）
+    // 白閃量（要跟角色環境融合的參數寫進同一個 MPB，見 ApplyPropertyBlock）
     private float _flashAmount;
-    // 【POC】看過的 CharacterEnvPoc.Version；不同代表模式被切過，要重寫一次 MPB
+    // 看過的 CharacterEnvFusion.Version；不同代表模式被切過或量到新場景數據，要重寫一次 MPB
     private int _envVersion = -1;
 
     public void Configure(SpriteRenderer sr, Rigidbody2D rb,
@@ -174,15 +173,14 @@ public class HitReactionHandler : MonoBehaviour
         ApplyPropertyBlock();
     }
 
-    // 【POC】角色場景融合測試：模式被切換時（P → G）重寫一次 MPB。
-    // 只是一個 int 比較，成本可忽略；POC 結束後這支 Update 連同 _envVersion 一起刪掉即可。
+    // 角色環境融合：模式被切換（P → G）或量到新場景數據時重寫一次 MPB。只是一個 int 比較，成本可忽略。
     private void Update()
     {
-        if (_envVersion != CharacterEnvPoc.Version) ApplyPropertyBlock();
+        if (_envVersion != CharacterEnvFusion.Version) ApplyPropertyBlock();
     }
 
     /// <summary>
-    /// 把白閃量與（POC 的）角色環境參數**一次寫進同一個 MaterialPropertyBlock**。
+    /// 把白閃量與角色環境融合參數**一次寫進同一個 MaterialPropertyBlock**。
     ///
     /// ⚠ 為什麼要合在一起：<c>SetPropertyBlock</c> 是**整包覆蓋**的。分成兩處各寫各的，
     ///   角色一挨打，受擊白閃那次的 block 就會把環境參數整組沖掉一瞬間
@@ -195,10 +193,10 @@ public class HitReactionHandler : MonoBehaviour
     {
         if (_spriteRenderer == null || _mpb == null) return;
 
-        _envVersion = CharacterEnvPoc.Version;
+        _envVersion = CharacterEnvFusion.Version;
         _spriteRenderer.GetPropertyBlock(_mpb);
         _mpb.SetFloat("_FlashAmount", _flashAmount);
-        CharacterEnvPoc.FillPropertyBlock(_mpb);   // 【POC】模式 0 時只寫 _EnvOn=0，shader 整段跳過
+        CharacterEnvFusion.FillPropertyBlock(_mpb);   // 角色環境融合：原狀／未量到場景時只寫 _EnvOn=0，shader 整段跳過
         _spriteRenderer.SetPropertyBlock(_mpb);
     }
 

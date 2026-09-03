@@ -47,6 +47,7 @@ public static class PlayModeStaticReset
         PlayerSpriteLibrary.ResetForPlayMode();
         MonsterSpriteLibrary.ResetForPlayMode();
         CharacterMipBias.ResetForPlayMode();           // 【過渡期】角色取樣密度對齊背景（登記表＋場景密度）
+        CharacterEnvFusion.ResetForPlayMode();         // 角色環境融合（模式、場景量測結果）
         NpcDatabase.ResetForPlayMode();                // NPC 種類表（NpcTable.csv）
         ShadowAnchorTable.ResetForPlayMode();          // 影子錨點表（ShadowAnchorTable.csv）
         FactionRelations.ResetForPlayMode();           // 三方陣營劇本狀態（開戰/結盟）

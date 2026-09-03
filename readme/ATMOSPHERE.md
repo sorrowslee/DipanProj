@@ -154,6 +154,21 @@ HUD 是 Screen Space Overlay、不吃後處理，所以暗場景裡血球會變�
 `BottomHudPanel` 每幀把它餵給兩顆 `LiquidOrb.SetSceneDim`，血球亮度平滑收斂
 （最暗 ×`DarkSceneDim`=0.65）。詳見 [BOTTOM_HUD.md](BOTTOM_HUD.md)。
 
+## 角色環境融合（2026-09-03 轉正；前身 09-02 的 CharacterEnvPoc）
+
+**問題**：全螢幕後處理對角色與場景一視同仁，永遠不會改變「角色暗部比場景暗多少」——亮場景裡角色黑衣服是死黑、地板卻是中灰，人眼就判定角色是貼上去的（大廳實測地板 linear 中位 0.36、角色暗部 0.02，差 18 倍）。只能在角色自己的 sprite 上動。
+
+**做法**（`Scripts/Atmosphere/CharacterEnvFusion.cs` ＋ `Custom/SpriteFlash` 的 `_Env*` 參數）：
+- **黑階抬升**（主角）：角色最暗處抬到「場景中位 ÷ 14」（`TargetDarkRatio`，作者實機拍板：大廳 ×1 剛好、×2 太過；上限 `MaxBlackLift` 0.06）。抬升量帶場景暗部的顏色，不然角色暗部會被拉得比場景冷。
+- **環境色**（輔）：角色暗側乘場景暗部的歸一色、亮側乘場景亮部的歸一色，強度 0.35。
+- **自動算，不做每種氛圍一組參數**：會隨場景變的只有「中位亮度」與「暗部／亮部顏色」，全部**進圖後量最終畫面**——`AtmosphereBlit` 在後處理之後把整個畫面逐級縮到 32×18、`AsyncGPUReadback` 讀回 CPU（不卡幀），算中位亮度、最暗 15% 平均色、最亮 15% 平均色。換圖後第 20 幀量一次、第 110 幀再量一次（分幀載入、光源都到位後），之後不再量。這是 PROBLEMS **E26**「量最終畫面、不要照 shader 常數推」的自動化版本。
+  - 結果：大廳（17）≈0.026、紅嫁衣暗房（2，地板中位 0.016）≈0.001＝等於不抬。**場景越亮抬越多、暗到像紅嫁衣就自動關**。
+- 參數走 `MaterialPropertyBlock`，由 `HitReactionHandler` 與白閃寫在**同一個 block**（`SetPropertyBlock` 整包覆蓋，分兩處寫會互相洗掉）。全部 0 時 shader 整段跳過＝逐位元等於沒這功能。
+
+**怎麼看／怎麼調**：P 面板 **G** 循環 0 原狀／1 自動／2 自動×2，**Shift+G** 重量一次場景；按鈕上顯示量到的場景中位亮度、量測次數、主角實際拿到的抬升量。全域力道只有一顆 `TargetDarkRatio`（14；越小越亮）。要單張圖覆寫：MapsTable 加 `CharLift` 欄（尚未加，需要時再加，空＝自動——同 AtmoTint 慣例）。
+
+**已證偽、不要重做**（09-02 量的）：「角色沒參與 bloom」不成立；「邊緣對比是主因」不成立（Test C 已砍）。**解析度不一致**（背景被放大顯示）是另一個獨立且更大的根因，見 PROBLEMS **E29**。
+
 ## 運作方式
 
 - **自動生成、零接線**：`AtmosphereController` 用 `[RuntimeInitializeOnLoadMethod]` 自生成、跨地圖常駐（同 PerfHud 模式），每場景把後處理元件 `AtmosphereBlit` 掛到 `Camera.main`。

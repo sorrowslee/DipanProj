@@ -19,7 +19,7 @@
   - **目標FPS(T)**：不限 → 30 → 60 → 120 → 144 → 240 循環（VSync 開時 Unity 會忽略，按鈕上有註明）。
   - **場景濾波(F)**：Bilinear ↔ Point（見 PERF_QUALITY_AUDIT §2）。
   - **碰撞範圍(C)**：碰撞疊層（見 MAP_LOADER_SETUP）。
-  - **角色色彩(G)**：【POC】角色場景融合的色彩處理 原狀 ↔ 色彩（`CharacterEnvPoc`）。
+  - **角色融合(G, Shift+G 重量)**：角色環境融合 0 原狀／1 自動／2 自動×2，按鈕顯示量到的場景中位亮度與主角抬升量（見 ATMOSPHERE.md〈角色環境融合〉）。
   - **角色取樣對齊背景(M)**：【過渡期】`CharacterMipBias` 開關，按鈕上顯示主角目前的 mipMapBias 與背景 px/格（見 PROBLEMS **E29**）。
 - **顯示內容**：
   - FPS ＋ 每幀 ms ＋ **最差一幀**（卡頓指標）。

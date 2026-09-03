@@ -108,6 +108,7 @@ public class AtmosphereController : MonoBehaviour
         if (Instance == null) return;
         Instance._mode = type;
         Instance._envDark = 1f - Mathf.Clamp01(envBright / 100f);
+        CharacterEnvFusion.OnAtmosphereChanged(type);   // 角色環境融合：換圖排一次場景量測（見該檔頭）
 
         // AtmoTint 欄：6 碼 RRGGBB（不含 #）。留空/解析失敗 = 不染色（舊行為）。
         Instance._tintAmount = 0f;
@@ -131,6 +132,9 @@ public class AtmosphereController : MonoBehaviour
     /// 噩夢/深海恐怖=1、幽暗=0.8、深海/鬼霧=0.5、正常=EnvBright 的壓暗量、其餘氛圍=0。
     /// 回憶演出 SetBypass 淡掉氛圍時，這個值也跟著淡回 0（HUD 同步亮回來）。
     /// </summary>
+    /// <summary>目前地圖的 Atmosphere 型別（MapsTable 欄值）；沒有控制器時回 0。</summary>
+    public static int CurrentMode => Instance != null ? Instance._mode : 0;
+
     public static float DarknessLevel
     {
         get

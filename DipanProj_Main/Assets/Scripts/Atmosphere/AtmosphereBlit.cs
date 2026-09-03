@@ -23,6 +23,25 @@ public class AtmosphereBlit : MonoBehaviour
 
     private void OnRenderImage(RenderTexture src, RenderTexture dst)
     {
+        // 角色環境融合要量「後處理之後」的最終畫面（一張圖進場後量兩次，其餘幀只是一個 bool 比較）。
+        // dst 可能是 null（直接畫到螢幕）——那就先畫進暫存 RT 量完再送上螢幕。見 CharacterEnvFusion 檔頭。
+        bool probe = CharacterEnvFusion.WantsProbe;
+        RenderTexture probeTarget = dst;
+        if (probe && dst == null)
+        {
+            probeTarget = RenderTexture.GetTemporary(src.width, src.height, 0, src.format);
+            Render(src, probeTarget);
+            CharacterEnvFusion.ProbeFrom(probeTarget);
+            Graphics.Blit(probeTarget, dst);
+            RenderTexture.ReleaseTemporary(probeTarget);
+            return;
+        }
+        Render(src, dst);
+        if (probe) CharacterEnvFusion.ProbeFrom(dst);
+    }
+
+    void Render(RenderTexture src, RenderTexture dst)
+    {
         if (Material == null) { Graphics.Blit(src, dst); return; }
 
         if (!BloomEnabled || BloomMaterial == null)

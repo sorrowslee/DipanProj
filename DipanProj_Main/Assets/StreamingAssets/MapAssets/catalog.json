@@ -3135,7 +3135,7 @@
       "path": "Modules/BloodFang/Background/Stage_BloodFang_Gallery.png",
       "category": "Background",
       "module": "BloodFang",
-      "pixelSize": 971,
+      "pixelSize": 1800,
       "ppu": 256,
       "frameCount": 1
     },
@@ -3162,7 +3162,7 @@
       "path": "Modules/BloodFang/Background/Stage_BloodFang_MainLobby.png",
       "category": "Background",
       "module": "BloodFang",
-      "pixelSize": 1403,
+      "pixelSize": 3750,
       "ppu": 256,
       "frameCount": 1
     },

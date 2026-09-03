@@ -67,7 +67,7 @@
 | [DEPLOY.md](DEPLOY.md) | 打包流程（Project Tools 選單、BuildScript 打包＋驗收、場景順序、打包疑難排解） | 打包、build 出錯時 |
 | [ITCH_BUTLER.md](ITCH_BUTLER.md) | **itch.io & butler 手冊**：裝 butler（台灣 DNS 坑）、登入、換機器設定清單、常用指令（`status` 查推送）、PC 用 itch app 取得、費用、itch/butler 疑難排解 | 設定新 Mac、上傳出錯、查推送狀態、**任何 itch/butler 問題** |
 | [DISPLAY_SETTINGS.md](DISPLAY_SETTINGS.md) | 效能診斷面板(PerfHud：FPS/CPU·GPU ms/瓶頸/顯卡，按 P) ＋ 上架前玩家畫面設定(VSync/幀率上限/視窗模式)規劃 | 排查幀數/卡頓、做畫面設定選單 |
-| [ATMOSPHERE.md](ATMOSPHERE.md) | 場景氛圍後處理（MapsTable 的 Atmosphere 欄 1~15：正常/幽暗/噩夢/烈日/焦土/沙塵/淺海/深海/深海+恐怖/風雪/強風/細雨/大雨/陰森森林鬼霧/電視雜訊；提燈光圈、熱浪、海洋折射、風絲、雨絲、漂移黑霧、雪花噪訊，地圖驅動、換圖即時切換） | 調某地圖陰森/炎熱/海洋/風雨/鬼霧/雜訊氛圍、做新地圖、改光圈/調色/扭曲 |
+| [ATMOSPHERE.md](ATMOSPHERE.md) | 場景氛圍後處理＋**角色環境融合**（進圖自動量最終畫面、黑階抬升＋環境色，讓角色不像貼紙）（MapsTable 的 Atmosphere 欄 1~15：正常/幽暗/噩夢/烈日/焦土/沙塵/淺海/深海/深海+恐怖/風雪/強風/細雨/大雨/陰森森林鬼霧/電視雜訊；提燈光圈、熱浪、海洋折射、風絲、雨絲、漂移黑霧、雪花噪訊，地圖驅動、換圖即時切換） | 調某地圖陰森/炎熱/海洋/風雨/鬼霧/雜訊氛圍、做新地圖、改光圈/調色/扭曲 |
 | [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) | 進場一次性效果（MapsTable `EnterEffect` 欄，進圖播一次就結束）：睜眼醒來（後處理杏眼遮罩＋模糊對焦＋亮度暗角，用在初始洞窟）＋**玩家趴地→起身連動（倒播 dead 幀＝爬起，零新素材）**。與 Atmosphere/SceneEffect 的「持續狀態」分工 | 做進場過場（睜眼/昏迷/暈眩…）、改睜眼節奏、改趴地起身、加新進場效果 |
 | [SCENE_EFFECT.md](SCENE_EFFECT.md) | 場景特效（世界端）：① 地圖級 SceneEffect（MapsTable 欄，火雨）②**可放置 SceneFx**（編輯器「場景特效」分頁逐個放、SceneFxTable 驅動、stream 煙/火/冰/毒＋portal 傳送門、編輯器即時預覽）。與 Atmosphere（螢幕後處理）分工互補 | 做煙霧圍巾/噴射/傳送門、加新特效種類、調外觀、火雨、編輯器內預覽 |
 | [RESOURCE_LOADING.md](RESOURCE_LOADING.md) | 資源載入與載入頁（地圖改「分幀載入＋LoadingPanel」解決進場/換圖凍住；依關卡 Resources/Loading/<module>.png 顯示載入圖、停留秒數、鎖輸入不暫停） | 進場/換圖會卡、做載入頁、放各關載入圖、調分幀批量 |

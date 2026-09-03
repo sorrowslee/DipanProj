@@ -6,7 +6,7 @@ Shader "Custom/SpriteFlash"
         _Color ("Tint", Color) = (1,1,1,1)
         _FlashAmount ("Flash Amount", Range(0,1)) = 0
 
-        // ── 角色環境融合 POC（CharacterEnvPoc 以 MaterialPropertyBlock 餵值）──
+        // ── 角色環境融合（CharacterEnvFusion 以 MaterialPropertyBlock 餵值；場景數據進圖時自動量）──
         // 全部預設 0／白＝**這段完全不執行**，畫面與加這功能之前逐位元相同。
         _EnvOn ("Env fusion on (0=off)", Float) = 0
         _EnvMix ("Env tint strength", Float) = 0
@@ -69,7 +69,7 @@ Shader "Custom/SpriteFlash"
             fixed4 _Color;
             float _FlashAmount;
 
-            // ── 角色環境融合 POC ──
+            // ── 角色環境融合 ──
             float _EnvOn, _EnvMix, _EnvPivot, _EnvSplit;
             float _BlackLift, _Sat, _LumBoost;
             float4 _EnvBase, _EnvLit, _LiftTint;
@@ -93,11 +93,11 @@ Shader "Custom/SpriteFlash"
                 fixed4 texel = tex2D(_MainTex, IN.texcoord);
                 fixed4 c = texel * IN.color;
 
-                // ── 角色環境融合（POC；_EnvOn = 0 時整段跳過＝原本的畫面）──
+                // ── 角色環境融合（_EnvOn = 0 時整段跳過＝原本的畫面）──
                 // ⚠⚠ 這裡所有門檻與抬升量都是 **Linear 空間**的數字（專案跑 Linear，見 PROBLEMS E11/E26）：
                 //    室內石材場景的 linear 亮度整張擠在 0.02~0.20、中位數才 0.083。
                 //    照 sRGB 直覺填 0.5 那種「一半亮」的值＝門檻永遠達不到，症狀是「效果好像沒做」而不是報錯。
-                //    預設值刻意跟 Atmosphere.shader mode 16 的 pivot/split 對齊，讓角色與場景用同一條分界。
+                //    pivot/split 是角色自己貼圖的亮度分界（角色空間），不隨場景變。
                 if (_EnvOn > 0.5)
                 {
                     // ⚠ 整段用 float 中間變數算，不要直接在 fixed3 上累加：
@@ -114,7 +114,7 @@ Shader "Custom/SpriteFlash"
                     // (a) 飽和微調（負值＝去飽和，往場景的收斂調性靠）
                     e = lerp(lum.xxx, e, 1.0 + _Sat);
 
-                    // (b) 黑階抬升 ← 本 POC 的主角。
+                    // (b) 黑階抬升 ← 本功能的主角。
                     //     全螢幕後處理對角色與場景一視同仁，**永遠不會改變「角色暗部比場景暗多少」**；
                     //     那個相對差就是「貼在背景上」的主因，只能在角色自己的 sprite 上動。
                     //

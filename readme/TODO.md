@@ -627,9 +627,14 @@
 
 ## 角色場景融合 — 2026-09-03（過渡期措施已上線，等背景換圖）
 
-- [ ] **實機驗證 mipMapBias**：P → M 開關比對，大廳 bias 約 +1.0（面板會顯示）。看角色與背景銳利度是否一致、臉部細節掉多少可接受。
+- [x] ~~實機驗證 mipMapBias~~ → GuessLobby／InitialScene 作者已換 120~139 px/格 的底圖，M 在這兩張圖 bias=0（正確：永不銳化）。要看 M 的效果得去 MainLobby（45）或紅嫁衣（80）。
+- [x] ~~G（黑階抬升）實機看不出差別~~ → 作者拍板 ×1 剛好、×2 太過；目前只在 Atmosphere 17 自動開（`CharacterEnvPoc.OnAtmosphereChanged`）。
+- [x] ~~Character Environment Profile~~ → 改成**自動算**（進圖量最終畫面），`CharacterEnvPoc` 轉正為 `Scripts/Atmosphere/CharacterEnvFusion.cs`（見 ATMOSPHERE.md〈角色環境融合〉）。
+- [ ] **實機驗證自動算**：抽三張看——大廳（應≈之前的「1 色彩」）、紅嫁衣書房（應≈關）、廣場（介於中間）；P → G 鈕看場景 p50 與 lift 數字合不合理、Shift+G 重量結果穩不穩。
+- [ ] 單張圖覆寫欄 `CharLift`（MapsTable，空＝自動）：目前沒加，抽驗有哪張不對再加。
+- [ ] 回憶演出（SetBypass 淡掉氛圍）期間不重量，角色抬升維持進圖時的值——若看得出不對再處理。
 - [ ] **背景換高解析度**（作者）：各地圖建議尺寸見 [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) §4.1；`Main_Square`（90×50）要另外決定。
 - [ ] 背景換完 → `CharacterMipBias.DefaultEnabled = false`（或整支刪），再對一次角色/背景。
-- [ ] POC 色彩處理（黑階抬升）對齊 Atmosphere 17 的參數仍未實機看過；Test C 邊緣融合已砍。其餘缺口見上一則 2026-09-02 POC 條目。
+- [x] ~~POC 色彩處理對齊 17 的參數~~ → 作者拍板 ×1；已轉正成自動算（上一則）。
 - [ ] 紀律五（全屏質感層）、腳部接地漸層（sprite 下 35% 往地板色收）都還沒做。
 

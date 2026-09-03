@@ -85,8 +85,12 @@ namespace Dipan.Diagnostics
                 if (Input.GetKeyDown(KeyCode.T)) CycleTarget();
                 if (Input.GetKeyDown(KeyCode.F)) MapSpriteLoader.ToggleSceneFilterMode();
                 if (Input.GetKeyDown(KeyCode.C)) CollisionDebugOverlay.Toggle();
-                // 【POC】角色場景融合測試：切換 原狀 / 色彩（見 CharacterEnvPoc；2026-09-03 邊緣融合已砍，只剩兩態）
-                if (Input.GetKeyDown(KeyCode.G)) CharacterEnvPoc.Cycle();
+                // 角色環境融合：循環 原狀 / 自動 / 自動×2（見 CharacterEnvFusion）；Shift+G 重量一次場景
+                if (Input.GetKeyDown(KeyCode.G))
+                {
+                    if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift)) CharacterEnvFusion.RequestProbe();
+                    else CharacterEnvFusion.Cycle();
+                }
                 // 【過渡期】角色取樣密度對齊背景（mipMapBias）開關，見 CharacterMipBias 檔頭
                 if (Input.GetKeyDown(KeyCode.M)) CharacterMipBias.Toggle();
             }
@@ -219,7 +223,7 @@ namespace Dipan.Diagnostics
             float w = 380f;
             var content = new GUIContent(text);
             float contentH = _label.CalcHeight(content, w);
-            const float ctrlRowH = 135f;  // 控制鈕（五列：VSync/FPS ＋ 場景濾波 ＋ 碰撞範圍 ＋【POC】角色色彩融合 ＋【過渡期】取樣對齊）的高度
+            const float ctrlRowH = 135f;  // 控制鈕（五列：VSync/FPS ＋ 場景濾波 ＋ 碰撞範圍 ＋角色融合 ＋【過渡期】取樣對齊）的高度
             float h = Mathf.Min(contentH + 18f + ctrlRowH, Screen.height - 16f);
             GUILayout.BeginArea(new Rect(10, 10, w, h), _box);
 
@@ -241,10 +245,9 @@ namespace Dipan.Diagnostics
             if (CollisionDebugOverlay.Enabled)
                 GUILayout.Label("綠=地上物 紅=牆 藍=水/坑 黃=玩家 橘=怪物", _label);
 
-            // 【POC】角色場景融合測試（2026-09-02，見 CharacterEnvPoc 與 readme/PROGRESS.md）。
-            // 原狀 / 色彩 兩態即時比較。POC 結束後這兩行連同該類別一起刪。
-            if (GUILayout.Button("角色色彩(G): " + CharacterEnvPoc.ModeName(), _btn))
-                CharacterEnvPoc.Cycle();
+            // 角色環境融合（見 CharacterEnvFusion 檔頭）：原狀 / 自動 / 自動×2 即時比較；後面是量到的場景數據與主角實際拿到的抬升量。
+            if (GUILayout.Button("角色融合(G, Shift+G 重量): " + CharacterEnvFusion.ModeName() + EnvAppliedText(), _btn))
+                CharacterEnvFusion.Cycle();
 
             // 【過渡期】角色取樣密度對齊背景（2026-09-03，見 CharacterMipBias 檔頭與 readme/PROBLEMS.md E29）。
             // 顯示的 bias 是「主角這張圖」會拿到的值：0 代表這張地圖沒背景圖、或功能已關。
@@ -253,6 +256,22 @@ namespace Dipan.Diagnostics
 
             GUILayout.Label(content, _label);
             GUILayout.EndArea();
+        }
+
+        // 主角的 MaterialPropertyBlock 裡 _EnvOn／_BlackLift 實際是多少——按 G 之後沒跟著變，代表參數沒送到 shader
+        // （HitReactionHandler 沒掛、material 不是 SpriteFlash…）。前面先印量到的場景中位亮度與量測次數。
+        static readonly MaterialPropertyBlock _probe = new MaterialPropertyBlock();
+        static string EnvAppliedText()
+        {
+            var pc = Object.FindObjectOfType<PlayerController>();
+            var sr = pc != null ? pc.GetComponent<SpriteRenderer>() : null;
+            if (sr == null) return "";
+            sr.GetPropertyBlock(_probe);
+            string scene = CharacterEnvFusion.ProbeCount > 0 ? $"場景p50={CharacterEnvFusion.SceneLuma:0.000}(第{CharacterEnvFusion.ProbeCount}次) " : "場景未量 ";
+            float on = _probe.GetFloat("_EnvOn");
+            string mat = sr.sharedMaterial != null && sr.sharedMaterial.shader != null ? sr.sharedMaterial.shader.name : "?";
+            bool ok = mat.EndsWith("SpriteFlash");
+            return $" [{scene}主角 _EnvOn={on:0} lift={_probe.GetFloat("_BlackLift"):0.000}{(ok ? "" : " ⚠material=" + mat)}]";
         }
 
         // 【過渡期】主角目前拿到的 mipMapBias（找不到主角就只顯示場景密度）。

@@ -45,7 +45,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 跨數秒的演出／輸入鎖 | PROBLEMS **D13/D14**（輸入鎖要用具名 `SetExternalHold(owner,…)`；吃 `Time.deltaTime` 的演出會被任何 `PausesGame` 面板凍住） |
 | 地上物擋路／可走層／「看起來能走卻走不過去」 | PROBLEMS **B9** ＋ [readme/MAP_LOADER_SETUP.md](readme/MAP_LOADER_SETUP.md)——**擋路碰撞與可走層是兩份獨立的真相**，塗可走層對地上物零作用 |
 | 角色影子對不準／加新角色或換序列圖後影子歪 | [readme/SHADOW.md](readme/SHADOW.md)〈定位：影子錨點表〉——演算法已定版，**單一角色不對一律改表**（〈手動調整影子〉手冊）、不再動演算法；**別再往「程式自動偵測腳」投工**（PROBLEMS **E28**） |
-| 畫面軟／角色像貼紙／產或換整張背景圖 | PROBLEMS **E29** ＋ [readme/PERF_QUALITY_AUDIT.md](readme/PERF_QUALITY_AUDIT.md) §4.1（背景每格 ≥128px；過渡期 `CharacterMipBias` 換完背景要關） |
+| 畫面軟／角色像貼紙／產或換整張背景圖 | PROBLEMS **E29** ＋ [readme/PERF_QUALITY_AUDIT.md](readme/PERF_QUALITY_AUDIT.md) §4.1（背景每格 ≥128px；過渡期 `CharacterMipBias` 換完背景要關）；角色暗部融不進場景 → [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)〈角色環境融合〉（自動量畫面、只有一顆 `TargetDarkRatio`，別回頭做每氛圍一組參數） |
 | 「玩家碰到了沒」的位置判定 | PROBLEMS **B13**——判定對齊碰撞（`transform.position`），特效對齊視覺（腳底）；診斷用碰撞疊層（遊戲中 **P → C**） |
 | 填／改 RecipeTable、加武器模式或欄位、動能力珠 | **做武器優先用 [readme/WEAPON_WORKBENCH.md](readme/WEAPON_WORKBENCH.md)（Unity 內的武器工坊，Play 中立刻射出去看）**；欄位意義見 [readme/RECIPE_DESCRIBE.md](readme/RECIPE_DESCRIBE.md)（一列一種 `Mode`、模式 × 欄位矩陣）＋ `Assets/Scripts/Weapon/WeaponModeSpec.cs`（單一真相：加欄／加模式只改它，視窗自動跟上）；珠子有效性見 [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md) |
 | 武器／裝備／背包／掉落／存檔 | [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md)（表格只是模板、物品實例、能力容器）＋ [readme/GEM_CATALOG.md](readme/GEM_CATALOG.md)（每顆珠子的功用與範例，改珠子數值或加珠子要同步更新它）＋ [readme/INVENTORY.md](readme/INVENTORY.md) |
