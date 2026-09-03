@@ -132,8 +132,8 @@
           ],
           "params": {
             "entranceId": "BloodFang_GuessLobby-south",
-            "targetMapId": "",
-            "targetEntrance": "",
+            "targetMapId": "17",
+            "targetEntrance": "BloodFang_InitialScene_north",
             "showMarker": true,
             "linkedFx": "",
             "markerX": 11.5085421,
