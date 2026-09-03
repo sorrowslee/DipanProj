@@ -212,8 +212,8 @@
           ],
           "params": {
             "entranceId": "BloodFang_Diningroom_south",
-            "targetMapId": "",
-            "targetEntrance": "",
+            "targetMapId": "23",
+            "targetEntrance": "BloodFang_Garde_north",
             "showMarker": true,
             "linkedFx": "",
             "markerX": 7.50821638,

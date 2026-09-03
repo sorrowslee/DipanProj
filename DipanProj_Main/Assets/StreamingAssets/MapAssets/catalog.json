@@ -3247,6 +3247,57 @@
       }
     },
     {
+      "id": "Modules/BloodFang/Environment/BloodFang_Garden_Pool",
+      "path": "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_01.png",
+      "category": "Environment",
+      "module": "BloodFang",
+      "pixelSize": 256,
+      "ppu": 256,
+      "frameCount": 25,
+      "frames": [
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_01.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_02.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_03.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_04.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_05.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_06.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_07.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_08.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_09.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_10.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_11.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_12.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_13.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_14.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_15.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_16.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_17.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_18.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_19.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_20.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_21.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_22.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_23.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_24.png",
+        "Modules/BloodFang/Environment/BloodFang_Garden_Pool/Garden_Pool-spritesheet_25.png"
+      ],
+      "footprint": {
+        "subdiv": 8,
+        "cols": 8,
+        "rows": 8,
+        "cells": [
+          "00000000",
+          "00011000",
+          "01111110",
+          "01111110",
+          "01111110",
+          "01111110",
+          "01111110",
+          "00011000"
+        ]
+      }
+    },
+    {
       "id": "Modules/BloodFang/Background/Stage_BloodFang_BrewingRoom",
       "path": "Modules/BloodFang/Background/Stage_BloodFang_BrewingRoom.png",
       "category": "Background",
@@ -3270,6 +3321,15 @@
       "category": "Background",
       "module": "BloodFang",
       "pixelSize": 1800,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/BloodFang/Background/Stage_BloodFang_Garden",
+      "path": "Modules/BloodFang/Background/Stage_BloodFang_Garden.png",
+      "category": "Background",
+      "module": "BloodFang",
+      "pixelSize": 3200,
       "ppu": 256,
       "frameCount": 1
     },
