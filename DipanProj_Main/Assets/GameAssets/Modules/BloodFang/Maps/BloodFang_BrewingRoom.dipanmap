@@ -319,8 +319,8 @@
           ],
           "params": {
             "entranceId": "BloodFang_BrewingRoom_south",
-            "targetMapId": "",
-            "targetEntrance": "",
+            "targetMapId": "22",
+            "targetEntrance": "BloodFang_Diningroom_north",
             "showMarker": true,
             "linkedFx": "",
             "markerX": 11.9473944,
