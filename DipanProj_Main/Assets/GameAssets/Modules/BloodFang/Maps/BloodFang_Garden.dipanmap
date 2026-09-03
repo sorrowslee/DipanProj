@@ -32,7 +32,7 @@
           "scaleY": 2.06914878,
           "sortKey": -10.53357,
           "zOrder": 0,
-          "hp": 1,
+          "hp": -1,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
