@@ -85,15 +85,10 @@ namespace Dipan.Diagnostics
                 if (Input.GetKeyDown(KeyCode.T)) CycleTarget();
                 if (Input.GetKeyDown(KeyCode.F)) MapSpriteLoader.ToggleSceneFilterMode();
                 if (Input.GetKeyDown(KeyCode.C)) CollisionDebugOverlay.Toggle();
-                // 【POC】角色場景融合測試：循環 原狀 / 色彩 / 色彩+邊緣（見 CharacterEnvPoc）
-                // Shift+G 反向——要來回比對相鄰兩個模式時，正向繞一圈要按四次，中間會被別的模式干擾判斷。
-                if (Input.GetKeyDown(KeyCode.G))
-                {
-                    if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-                        CharacterEnvPoc.CycleBack();
-                    else
-                        CharacterEnvPoc.Cycle();
-                }
+                // 【POC】角色場景融合測試：切換 原狀 / 色彩（見 CharacterEnvPoc；2026-09-03 邊緣融合已砍，只剩兩態）
+                if (Input.GetKeyDown(KeyCode.G)) CharacterEnvPoc.Cycle();
+                // 【過渡期】角色取樣密度對齊背景（mipMapBias）開關，見 CharacterMipBias 檔頭
+                if (Input.GetKeyDown(KeyCode.M)) CharacterMipBias.Toggle();
             }
 
             // 用 unscaled，暫停（Time.timeScale=0）時也能量測
@@ -224,7 +219,7 @@ namespace Dipan.Diagnostics
             float w = 380f;
             var content = new GUIContent(text);
             float contentH = _label.CalcHeight(content, w);
-            const float ctrlRowH = 110f;  // 控制鈕（四列：VSync/FPS ＋ 場景濾波 ＋ 碰撞範圍 ＋【POC】角色色彩融合）的高度
+            const float ctrlRowH = 135f;  // 控制鈕（五列：VSync/FPS ＋ 場景濾波 ＋ 碰撞範圍 ＋【POC】角色色彩融合 ＋【過渡期】取樣對齊）的高度
             float h = Mathf.Min(contentH + 18f + ctrlRowH, Screen.height - 16f);
             GUILayout.BeginArea(new Rect(10, 10, w, h), _box);
 
@@ -247,12 +242,29 @@ namespace Dipan.Diagnostics
                 GUILayout.Label("綠=地上物 紅=牆 藍=水/坑 黃=玩家 橘=怪物", _label);
 
             // 【POC】角色場景融合測試（2026-09-02，見 CharacterEnvPoc 與 readme/PROGRESS.md）。
-            // 四模式即時比較：確認到底是什麼造成角色不融入場景。POC 結束後這三行連同該類別一起刪。
-            if (GUILayout.Button("角色融合(G / Shift+G 反向): " + CharacterEnvPoc.ModeName(), _btn))
+            // 原狀 / 色彩 兩態即時比較。POC 結束後這兩行連同該類別一起刪。
+            if (GUILayout.Button("角色色彩(G): " + CharacterEnvPoc.ModeName(), _btn))
                 CharacterEnvPoc.Cycle();
+
+            // 【過渡期】角色取樣密度對齊背景（2026-09-03，見 CharacterMipBias 檔頭與 readme/PROBLEMS.md E29）。
+            // 顯示的 bias 是「主角這張圖」會拿到的值：0 代表這張地圖沒背景圖、或功能已關。
+            if (GUILayout.Button("角色取樣對齊背景(M): " + (CharacterMipBias.Enabled ? "開" : "關") + MipBiasText(), _btn))
+                CharacterMipBias.Toggle();
 
             GUILayout.Label(content, _label);
             GUILayout.EndArea();
+        }
+
+        // 【過渡期】主角目前拿到的 mipMapBias（找不到主角就只顯示場景密度）。
+        static string MipBiasText()
+        {
+            if (!CharacterMipBias.Enabled) return "";
+            if (CharacterMipBias.SceneDensity <= 0f) return "（無背景圖 → 0）";
+            var pc = Object.FindObjectOfType<PlayerController>();
+            var sr = pc != null ? pc.GetComponent<SpriteRenderer>() : null;
+            if (sr == null || sr.sprite == null) return $"（背景 {CharacterMipBias.SceneDensity:0} px/格）";
+            float b = CharacterMipBias.BiasFor(sr.sprite.pixelsPerUnit, pc.transform.lossyScale.x);
+            return $" bias +{b:0.00}（背景 {CharacterMipBias.SceneDensity:0} px/格）";
         }
 
         // ---- VSync / 目標幀率 切換 ----

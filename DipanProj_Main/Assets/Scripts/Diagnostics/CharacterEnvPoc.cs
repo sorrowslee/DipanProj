@@ -9,10 +9,13 @@ namespace Dipan.Diagnostics
     /// 不是正式架構——確認有效之後才會另外規劃通用的 Character Environment System。
     ///
     /// ── 怎麼用 ──
-    /// 遊戲中按 <b>P</b> 開效能面板 → 按 <b>G</b> 循環（<b>Shift+G</b> 反向），面板上顯示目前是哪一種：
+    /// 遊戲中按 <b>P</b> 開效能面板 → 按 <b>G</b> 切換，面板上顯示目前是哪一種：
     ///   0 原狀     ：完全現狀（本類別的所有效果都不作用，逐位元等於加這功能之前）
     ///   1 色彩     ：角色色彩處理（黑階抬升為主、環境色與亮部抬升為輔）
-    ///   2 色彩+邊緣：再加邊緣融合
+    ///
+    /// ⚠ **Test C（邊緣融合）已於 2026-09-03 砍除**：兩輪實測貢獻都在雜訊級（p99 差 0.0007），1px 在實際顯示尺寸下不可見。
+    ///   同日另外找到一個色彩處理救不了的根因——背景底圖被放大顯示、角色卻是縮小顯示，銳利度不一致
+    ///   （見 CharacterMipBias 檔頭、readme/PROBLEMS.md E29）。
     ///
     /// ⚠ **原方案的 Test A（腳下接觸陰影）已從這個 POC 移除、影子相關改動全部還原。**
     ///   做的時候發現真正的問題在影子的**定位**：`BlobShadow` 靠掃 alpha 猜「腳在哪」，
@@ -39,9 +42,9 @@ namespace Dipan.Diagnostics
         public enum Mode
         {
             Original = 0,   // 完全現狀
-            EnvTint,        // 色彩處理
-            Full            // 色彩處理 ＋ 邊緣融合
+            EnvTint         // 色彩處理
         }
+        const int ModeCount = 2;
 
         /// <summary>目前模式。改它請走 <see cref="Cycle"/>／<see cref="SetMode"/>，否則版本號不會動、沒人會更新。</summary>
         public static Mode Current { get; private set; } = Mode.Original;
@@ -49,11 +52,7 @@ namespace Dipan.Diagnostics
         /// <summary>每次模式變更 +1。使用端拿它跟自己看過的值比對，不同才重新拉參數。</summary>
         public static int Version { get; private set; } = 1;
 
-        public static void Cycle() => SetMode((Mode)(((int)Current + 1) % 3));
-
-        /// <summary>反向循環。要來回比對相鄰兩個模式（例如 0 ↔ 1 只差接觸陰影）時，
-        /// 正向繞一圈要按四次，中間會被別的模式干擾判斷。</summary>
-        public static void CycleBack() => SetMode((Mode)(((int)Current + 2) % 3));
+        public static void Cycle() => SetMode((Mode)(((int)Current + 1) % ModeCount));
 
         public static void SetMode(Mode m)
         {
@@ -67,7 +66,6 @@ namespace Dipan.Diagnostics
             switch (Current)
             {
                 case Mode.EnvTint: return "1 色彩";
-                case Mode.Full:    return "2 色彩+邊緣";
                 default:           return "0 原狀";
             }
         }
@@ -156,19 +154,12 @@ namespace Dipan.Diagnostics
         /// </summary>
         const float LumBoost = 0.10f;
 
-        /// <summary>邊緣融合色（真顏色，走 SetColor 讓 Unity 自動轉 linear）。暖石材色，讓最外圈沾到環境光。</summary>
-        static readonly Color EdgeTint = new Color32(0xC6, 0xAA, 0x82, 0xFF);
-        const float EdgeAmount = 0.25f;
-
         // ══════════════════════════════════════════════════════════════
         //  對外查詢
         // ══════════════════════════════════════════════════════════════
 
-        /// <summary>色彩處理有沒有開（Test B 起）。</summary>
+        /// <summary>色彩處理有沒有開（Test B）。</summary>
         public static bool ColorEnabled => Current >= Mode.EnvTint;
-
-        /// <summary>邊緣融合有沒有開（只有 Test C）。</summary>
-        public static bool EdgeEnabled => Current >= Mode.Full;
 
         /// <summary>
         /// 把本模式的色彩參數寫進 <paramref name="mpb"/>。
@@ -197,8 +188,6 @@ namespace Dipan.Diagnostics
             mpb.SetVector("_LiftTint", LiftTint);
             mpb.SetFloat("_Sat", SatDelta);
             mpb.SetFloat("_LumBoost", LumBoost);
-            mpb.SetColor("_EdgeTint", EdgeTint);
-            mpb.SetFloat("_EdgeAmount", EdgeEnabled ? EdgeAmount : 0f);
         }
     }
 }

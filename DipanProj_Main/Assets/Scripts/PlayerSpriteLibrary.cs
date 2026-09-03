@@ -173,6 +173,35 @@ public class PlayerSpriteLibrary
         return true;
     }
 
+    // ─────────────────── 影子錨點：表優先、沒有就用同一條演算法當場算 ───────────────────
+
+    readonly Dictionary<string, ShadowAnchorPx> _shadowAnchor = new Dictionary<string, ShadowAnchorPx>();
+
+    /// <summary>
+    /// 某血統某動作的影子錨點（像素、畫布座標；見 <see cref="ShadowAnchorPx"/>）。
+    /// 先查 ShadowAnchorTable.csv（Key = Characters/&lt;血統&gt;/&lt;動作&gt;），沒有這列就用 <see cref="ShadowAnchorMath"/>
+    /// 掃這個動作的全部幀當場算（與編輯器工具同一條路徑）。結果快取；沒圖回 ok=false。
+    /// </summary>
+    public ShadowAnchorPx GetShadowAnchor(string bloodline, string state)
+    {
+        string key = Key(bloodline, state);
+        if (_shadowAnchor.TryGetValue(key, out var cached)) return cached;
+        var a = ComputeShadowAnchor(ShadowAnchorTable.KindCharacters, bloodline, state, _loader, _byTail.TryGetValue(key, out var item) ? item : null);
+        _shadowAnchor[key] = a;
+        return a;
+    }
+
+    /// <summary>PlayerSpriteLibrary 與 MonsterSpriteLibrary 共用：表 → 退路自動算。</summary>
+    internal static ShadowAnchorPx ComputeShadowAnchor(string kind, string name, string state, MapSpriteLoader loader, CatalogItem item)
+    {
+        if (ShadowAnchorTable.Instance.TryGet(kind, name, state, out var fromTable)) return fromTable;
+        if (loader == null || item == null) return new ShadowAnchorPx { ok = false };
+        var texs = new List<Texture2D>();
+        if (item.IsAnimated) foreach (var f in item.frames) texs.Add(loader.GetFrameTexture(f));
+        else texs.Add(loader.GetTexture(item));
+        return ShadowAnchorMath.ComputeFromTextures(texs, ShadowAnchorMath.IsLyingAction(state));
+    }
+
     // ─────────────────── 動作「體積尺度」：以 idle 為準把 walk/attack 縮成一樣大 ───────────────────
     //
     // 【要解決的問題】AutoSprite 產的各動作序列圖，同一個角色的「大小」抓不準：Base 的 attack 整個人

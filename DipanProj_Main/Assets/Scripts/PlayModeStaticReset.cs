@@ -46,7 +46,9 @@ public static class PlayModeStaticReset
         // 上一輪 Play 結束時被銷毀的 sprite → 角色/怪物只剩影子、劇情圖/立繪變空白。丟掉單例，下次存取重載乾淨的圖。
         PlayerSpriteLibrary.ResetForPlayMode();
         MonsterSpriteLibrary.ResetForPlayMode();
+        CharacterMipBias.ResetForPlayMode();           // 【過渡期】角色取樣密度對齊背景（登記表＋場景密度）
         NpcDatabase.ResetForPlayMode();                // NPC 種類表（NpcTable.csv）
+        ShadowAnchorTable.ResetForPlayMode();          // 影子錨點表（ShadowAnchorTable.csv）
         FactionRelations.ResetForPlayMode();           // 三方陣營劇本狀態（開戰/結盟）
         Dipan.Drama.DramaDatabase.ResetForPlayMode();
         Dipan.Drama.DramaTalkDatabase.ResetForPlayMode();

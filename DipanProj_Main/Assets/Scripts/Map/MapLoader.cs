@@ -301,6 +301,7 @@ public class MapLoader : MonoBehaviour
             Destroy(_root.gameObject);
             _root = null;
         }
+        CharacterMipBias.ClearSceneDensity();   // 【過渡期】舊圖的背景密度作廢，新圖 BuildBackground 會再設
         _revealer = null;   // 隨 MapRoot 一起銷毀了，清引用
         _respawner = null;  // 同上（不清的話換圖後會拿到已銷毀的元件，重複產生的出生點就失效了）
     }
@@ -335,6 +336,11 @@ public class MapLoader : MonoBehaviour
         var item = _catalog.Find(_map.backgroundId);
         var sprite = _sprites.GetWholeSprite(item, _map.tileSize);
         if (sprite == null) { Debug.LogWarning($"[MapLoader] 背景找不到：{_map.backgroundId}"); return; }
+
+        // 【過渡期】角色取樣密度對齊背景：把這張背景的「貼圖像素 / 世界單位」告訴 CharacterMipBias
+        // （背景被拉伸貼齊整張地圖，所以密度 = 貼圖寬 ÷ 地圖世界寬）。背景解析度提上來後可整段拿掉。
+        if (sprite.texture != null)
+            CharacterMipBias.SetSceneDensity(sprite.texture.width, _map.width * _map.tileSize);
 
         var go = new GameObject("Background");
         go.transform.SetParent(_root, false);

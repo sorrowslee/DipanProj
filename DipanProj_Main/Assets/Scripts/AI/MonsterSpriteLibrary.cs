@@ -95,6 +95,21 @@ public class MonsterSpriteLibrary
         return frames;
     }
 
+    readonly Dictionary<string, ShadowAnchorPx> _shadowAnchor = new Dictionary<string, ShadowAnchorPx>();
+
+    /// <summary>
+    /// 某怪某動作的影子錨點（像素、畫布座標）。先查 ShadowAnchorTable.csv（Key = Monsters/&lt;怪名&gt;/&lt;動作&gt;），
+    /// 沒有就用同一條演算法掃全幀當場算（見 <see cref="ShadowAnchorMath"/>）。結果快取；沒圖回 ok=false。
+    /// </summary>
+    public ShadowAnchorPx GetShadowAnchor(string monsterName, string state)
+    {
+        string key = Key(monsterName, state);
+        if (_shadowAnchor.TryGetValue(key, out var cached)) return cached;
+        var a = PlayerSpriteLibrary.ComputeShadowAnchor(ShadowAnchorTable.KindMonsters, monsterName, state, _loader, _byTail.TryGetValue(key, out var item) ? item : null);
+        _shadowAnchor[key] = a;
+        return a;
+    }
+
     /// <summary>
     /// 取某怪某動作（取代表幀＝該動作第一幀）的「不透明像素貼合框」，給碰撞框用：
     /// size / offset 為世界單位 @ scale 1（PPU 256），offset 相對 sprite 中心。

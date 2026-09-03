@@ -17,6 +17,10 @@
 - **面板上的即時切換鈕**（滑鼠點，遠端最穩；也可鍵盤）：
   - **VSync(V)**：關 → 開·每刷新 → 開·每2刷 循環。
   - **目標FPS(T)**：不限 → 30 → 60 → 120 → 144 → 240 循環（VSync 開時 Unity 會忽略，按鈕上有註明）。
+  - **場景濾波(F)**：Bilinear ↔ Point（見 PERF_QUALITY_AUDIT §2）。
+  - **碰撞範圍(C)**：碰撞疊層（見 MAP_LOADER_SETUP）。
+  - **角色色彩(G)**：【POC】角色場景融合的色彩處理 原狀 ↔ 色彩（`CharacterEnvPoc`）。
+  - **角色取樣對齊背景(M)**：【過渡期】`CharacterMipBias` 開關，按鈕上顯示主角目前的 mipMapBias 與背景 px/格（見 PROBLEMS **E29**）。
 - **顯示內容**：
   - FPS ＋ 每幀 ms ＋ **最差一幀**（卡頓指標）。
   - **CPU 主緒 ms / CPU 渲染 ms / GPU ms**（`FrameTimingManager`）＋ 自動判斷**瓶頸**（CPU bound / GPU bound / **受 VSync 限制**）。

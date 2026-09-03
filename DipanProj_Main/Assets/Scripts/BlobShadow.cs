@@ -7,6 +7,13 @@ using UnityEngine;
 /// 掛在任何角色上即可（玩家 / 怪物 / 未來 NPC）：`gameObject.AddComponent&lt;BlobShadow&gt;()`。
 /// 影子是**獨立物件**（非子物件，避免被角色翻轉/縮放二次影響），角色銷毀時自動一起清掉。
 /// 全程式建構、零 prefab——影子圖用程序生成的柔邊橢圓（一張共用快取）。見 readme/SHADOW.md。
+///
+/// ── 定位（2026-09-03 起兩條路）──
+/// ① **錨點路**：角色身上有 <see cref="IShadowAnchorSource"/>（PlayerAnimator／MonsterAnimator）時，每幀拿「目前動作」的
+///    影子錨點（像素、畫布座標；來源是 ShadowAnchorTable.csv 或同一條演算法當場算），再用**當前 sprite** 的
+///    PPU／pivot／lossyScale／flipX 換成世界位移。idle 與 walk 的腳在畫布裡不在同一個位置，所以一定要逐動作。
+/// ② **舊路**（沒有錨點來源，例如舊 Animator 怪）：Start 量一次 idle 幀的不透明區——X 用 transform、Y 用不透明區下緣。
+///    這條路的已知缺陷（idle 偏、walk 準）見 readme/PROBLEMS.md **E28**。
 /// </summary>
 public class BlobShadow : MonoBehaviour
 {
@@ -16,6 +23,8 @@ public class BlobShadow : MonoBehaviour
     public float HeightRatio = 0.5f;    // 影子高 / 寬（越小越扁，俯視感越強）
     public float VerticalOffset = 0f;   // 腳底再往下(正)/上(負)微調（世界單位）
     public int SortingOrderBelow = 1;   // 比角色 sortingOrder 低幾階
+    [Tooltip("錨點路：換動作時影子位移的平滑時間（秒）。idle 與 walk 的腳在畫布裡差了幾十像素，不平滑會在每次起步/停步時跳一下。0 = 不平滑。")]
+    public float AnchorSmoothTime = 0.08f;
 
     // ── 除錯：true = 把影子強制畫在最上層（會蓋住角色）＋印 log，用來確認影子是否生成。平時 false ──
     const bool DebugDrawOnTop = false;
@@ -26,11 +35,17 @@ public class BlobShadow : MonoBehaviour
     SpriteRenderer _charSr;
     GameObject _shadowGo;
     float _footOffsetY;
+    IShadowAnchorSource _anchorSrc;   // 錨點路（見檔頭）；null = 舊路
+    float _lastAnchorW = -1f;         // 上次套的影子寬（世界單位），變了才改 localScale
+    Vector2 _smoothOff;               // 平滑中的本地位移（世界單位、相對 transform；只平滑位移、不平滑世界位置，角色移動時影子不拖尾）
+    bool _smoothInit;
+    bool _lastFlip;                   // 轉身時位移直接跳（轉身本來就是瞬間的，平滑反而像影子滑過去）
 
     void Start()
     {
         _charSr = GetComponent<SpriteRenderer>();
         if (_charSr == null) _charSr = GetComponentInChildren<SpriteRenderer>();
+        _anchorSrc = GetComponent<IShadowAnchorSource>();
 
         Measure(out float width, out float height);
 
@@ -91,8 +106,11 @@ public class BlobShadow : MonoBehaviour
             _charSr = GetComponent<SpriteRenderer>();
             if (_charSr == null) _charSr = GetComponentInChildren<SpriteRenderer>();
         }
+        if (_anchorSrc == null) _anchorSrc = GetComponent<IShadowAnchorSource>();
         Measure(out float width, out float height);
         _shadowGo.transform.localScale = new Vector3(width, height, 1f);
+        _lastAnchorW = -1f;   // 錨點路下一幀會重套
+        _smoothInit = false;  // 換外型後位移直接跳到新值，不從舊外型平滑過去
         UpdateShadowPosition();
     }
 
@@ -116,6 +134,48 @@ public class BlobShadow : MonoBehaviour
     {
         if (_shadowGo == null) return;
         Vector3 p = transform.position;
+
+        // ── 錨點路：目前動作的錨點（像素）→ 世界位移 ──
+        if (_anchorSrc != null && _charSr != null && _charSr.sprite != null
+            && _anchorSrc.TryGetShadowAnchor(out var a) && a.ok)
+        {
+            var sp = _charSr.sprite;
+            float ppu = sp.pixelsPerUnit;
+            if (ppu > 0.0001f)
+            {
+                Rect r = sp.rect;
+                Vector2 pivotPx = sp.pivot;   // 以 rect 左下為原點的像素（bodyScale > 1 時 pivot 被 PlayerSpriteLibrary 往下移，這裡自動跟上）
+                // 表裡的 X 相對畫布中心、Y 從畫布底往上；換算成相對 pivot（＝transform）的本地位移。
+                // 畫布尺寸若與量表時不同（作者換了 512 的圖沒重算），按比例縮放像素值，至少不會整個飛掉。
+                float sx = (a.canvasW > 0) ? r.width / a.canvasW : 1f;
+                float sy = (a.canvasH > 0) ? r.height / a.canvasH : 1f;
+                float localX = (a.xFromCenterPx * sx + r.width * 0.5f - pivotPx.x) / ppu;
+                float localY = (a.yFromBottomPx * sy - pivotPx.y) / ppu;
+
+                Vector3 ls = transform.lossyScale;
+                float flip = _charSr.flipX ? -1f : 1f;   // 錨點是「未翻面」的來源圖方向，翻面時 X 取負
+                var target = new Vector2(localX * ls.x * flip, localY * ls.y - VerticalOffset);
+                // 換動作（idle↔walk）錨點會差幾十像素，平滑一下免得起步/停步時影子跳；平滑的是位移不是世界位置。
+                bool flipped = _charSr.flipX;
+                if (!_smoothInit || AnchorSmoothTime <= 0.0001f || flipped != _lastFlip) { _smoothOff = target; _smoothInit = true; _lastFlip = flipped; }
+                else
+                {
+                    float k = 1f - Mathf.Exp(-Time.unscaledDeltaTime / AnchorSmoothTime);   // unscaled：暫停中的演出（D15）角色照走，影子也要跟
+                    _smoothOff = Vector2.Lerp(_smoothOff, target, k);
+                }
+                _shadowGo.transform.position = new Vector3(p.x + _smoothOff.x, p.y + _smoothOff.y, p.z);
+
+                float w = (a.widthPx * sx / ppu) * Mathf.Abs(ls.x) * WidthFactor;
+                if (w > 0.0001f && !Mathf.Approximately(w, _lastAnchorW))
+                {
+                    _lastAnchorW = w;
+                    _shadowGo.transform.localScale = new Vector3(w, w * HeightRatio, 1f);
+                }
+                return;
+            }
+        }
+
+        // ── 舊路：Start 量一次的位移 ──
         _shadowGo.transform.position = new Vector3(p.x, p.y + _footOffsetY, p.z);
     }
 

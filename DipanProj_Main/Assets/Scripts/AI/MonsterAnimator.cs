@@ -14,7 +14,7 @@ using UnityEngine;
 /// 但內建在這裡（不依賴 Unity Animator）。左右翻面仍由 MonsterController 控 SpriteRenderer.flipX，與本元件無關。
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
-public class MonsterAnimator : MonoBehaviour
+public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
 {
     public enum State { Idle, Walk, Attack }
 
@@ -33,6 +33,17 @@ public class MonsterAnimator : MonoBehaviour
 
     State _state = State.Idle;
     int _idx;
+
+    // ── 影子錨點（每個動作一組，Setup 時從 ShadowAnchorTable／自動計算取好；見 ShadowAnchor.cs）──
+    readonly System.Collections.Generic.Dictionary<State, ShadowAnchorPx> _shadow = new System.Collections.Generic.Dictionary<State, ShadowAnchorPx>();
+
+    public bool TryGetShadowAnchor(out ShadowAnchorPx anchor)
+    {
+        if (_shadow.TryGetValue(_state, out anchor) && anchor.ok) return true;
+        if (_shadow.TryGetValue(State.Idle, out anchor) && anchor.ok) return true;
+        anchor = default;
+        return false;
+    }
     float _timer;
     float _currentSpeed;   // 由 MonsterController 每幀餵入，用於走路 fps 連動
 
@@ -54,8 +65,18 @@ public class MonsterAnimator : MonoBehaviour
         _walk = lib.GetFrames(monsterName, "walk", StateTile(lib, monsterName, "walk", tileSize, idleVis));
         _attack = lib.GetFrames(monsterName, "attack", StateTile(lib, monsterName, "attack", tileSize, idleVis));
 
+        // 【過渡期】角色取樣密度對齊背景（mipMapBias），見 CharacterMipBias 檔頭；背景解析度提上來後可拿掉這三行。
+        CharacterMipBias.Register(_idle, transform);
+        CharacterMipBias.Register(_walk, transform);
+        CharacterMipBias.Register(_attack, transform);
+
+        _shadow.Clear();
+        _shadow[State.Idle]   = lib.GetShadowAnchor(monsterName, "idle");
+        _shadow[State.Walk]   = lib.GetShadowAnchor(monsterName, "walk");
+        _shadow[State.Attack] = lib.GetShadowAnchor(monsterName, "attack");
+
         // idle 是必備；萬一只給了 walk 沒給 idle，就用 walk 當待機後備（不至於沒圖）
-        if (_idle == null && _walk != null) _idle = _walk;
+        if (_idle == null && _walk != null) { _idle = _walk; if (!_shadow[State.Idle].ok) _shadow[State.Idle] = _shadow[State.Walk]; }
 
         _hasAny = _idle != null || _walk != null || _attack != null;
         if (!_hasAny)

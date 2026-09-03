@@ -21,8 +21,6 @@ Shader "Custom/SpriteFlash"
         _LiftTint ("Black lift color (Vector, normalized)", Vector) = (1,1,1,1)
         _Sat ("Saturation delta", Float) = 0
         _LumBoost ("Lit boost (push over bloom threshold)", Float) = 0
-        _EdgeTint ("Edge tint (real color, auto gamma->linear)", Color) = (1,1,1,1)
-        _EdgeAmount ("Edge tint strength", Float) = 0
     }
 
     SubShader
@@ -68,14 +66,13 @@ Shader "Custom/SpriteFlash"
             };
 
             sampler2D _MainTex;
-            float4 _MainTex_TexelSize;   // 邊緣偵測要鄰域取樣（_EdgeAmount > 0 時才用）
             fixed4 _Color;
             float _FlashAmount;
 
             // ── 角色環境融合 POC ──
             float _EnvOn, _EnvMix, _EnvPivot, _EnvSplit;
-            float _BlackLift, _Sat, _LumBoost, _EdgeAmount;
-            float4 _EnvBase, _EnvLit, _EdgeTint, _LiftTint;
+            float _BlackLift, _Sat, _LumBoost;
+            float4 _EnvBase, _EnvLit, _LiftTint;
 
             v2f SpriteVert(appdata_t IN)
             {
@@ -137,22 +134,7 @@ Shader "Custom/SpriteFlash"
                     float3 tint = lerp(_EnvBase.rgb, _EnvLit.rgb, litW);
                     e = lerp(e, e * tint, _EnvMix);
 
-                    // (e) 邊緣融合：只動最外圈 1px。純黑輪廓直接接非常亮的地板＝對比最劇烈處。
-                    //     用鄰域 alpha 的最小值找外緣；_EdgeAmount = 0 時不做這 4 次取樣。
-                    if (_EdgeAmount > 0.0001)
-                    {
-                        float2 ts = _MainTex_TexelSize.xy;
-                        float a1 = tex2D(_MainTex, IN.texcoord + float2(-ts.x, 0)).a;
-                        float a2 = tex2D(_MainTex, IN.texcoord + float2( ts.x, 0)).a;
-                        float a3 = tex2D(_MainTex, IN.texcoord + float2(0, -ts.y)).a;
-                        float a4 = tex2D(_MainTex, IN.texcoord + float2(0,  ts.y)).a;
-                        float minA = min(min(a1, a2), min(a3, a4));
-                        // ⚠ 一定要用 texel.a（貼圖原始 alpha）而不是 c.a：c.a 已經乘過 IN.color.a，
-                        //    無敵閃爍期間 SpriteRenderer.color.a = 0.4，拿它跟鄰居的原始 alpha 相減恆為負，
-                        //    邊緣融合會在角色每次挨打時整個消失。
-                        float edge = saturate(texel.a - minA);   // 自己不透明、鄰居透明 = 外緣
-                        e = lerp(e, _EdgeTint.rgb, edge * _EdgeAmount);
-                    }
+                    // （原本的 (e) 邊緣融合 Test C 已於 2026-09-03 砍除：兩輪實測貢獻在雜訊級。）
 
                     c.rgb = e;
                 }

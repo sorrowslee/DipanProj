@@ -1194,6 +1194,7 @@ GameObject:
   - component: {fileID: 537006696}
   - component: {fileID: 537006697}
   - component: {fileID: 537006698}
+  - component: {fileID: 537006699}
   m_Layer: 0
   m_Name: GameManagers
   m_TagString: Untagged
@@ -1363,6 +1364,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   npcCSV: {fileID: 4900000, guid: 0740d935758254e78bb5492a7e1ec201, type: 3}
+--- !u!114 &537006699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 537006687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 657f3a4e3b4144300948399eb665e1ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shadowAnchorCSV: {fileID: 4900000, guid: a30b05759a1ad4b368f779d75501453c, type: 3}
 --- !u!114 &550503362
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4563,6 +4577,8 @@ MonoBehaviour:
   objectMaxHP: 20
   objectDestroyVfxId: 5
   teleportVfxId: 6
+  teleportLightRadius: 1.6
+  teleportLightIntensity: 0.5
   objectsPerFrame: 8
 --- !u!4 &1751355723
 Transform:

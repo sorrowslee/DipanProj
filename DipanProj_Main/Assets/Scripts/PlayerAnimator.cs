@@ -14,7 +14,7 @@ using UnityEngine;
 /// 左右翻面仍由 PlayerController 控 SpriteRenderer.flipX，與本元件無關。
 /// </summary>
 [RequireComponent(typeof(SpriteRenderer))]
-public class PlayerAnimator : MonoBehaviour
+public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
 {
     public enum State { Idle, Walk, Dead, Attack }
 
@@ -84,6 +84,19 @@ public class PlayerAnimator : MonoBehaviour
     readonly Dictionary<State, float> _visH = new Dictionary<State, float>();      // 可見高（世界單位）
     readonly Dictionary<State, float> _footRel = new Dictionary<State, float>();   // 可見腳底相對 transform 的 Y 位移（負＝在下方）
 
+    // ── 影子錨點（每個動作一組，Setup 時從 ShadowAnchorTable／自動計算取好）──
+    // BlobShadow 每幀問「目前動作」的錨點；換算成世界座標是它的事（要看當前 sprite 的 PPU/pivot、lossyScale、flipX）。
+    // 沒有該動作的錨點（例如沒給 dead 圖）→ 退回 idle 的；連 idle 都沒有 → 回 false，BlobShadow 走舊的自動量測。
+    readonly Dictionary<State, ShadowAnchorPx> _shadow = new Dictionary<State, ShadowAnchorPx>();
+
+    public bool TryGetShadowAnchor(out ShadowAnchorPx anchor)
+    {
+        if (_shadow.TryGetValue(GeomState, out anchor) && anchor.ok) return true;
+        if (_shadow.TryGetValue(State.Idle, out anchor) && anchor.ok) return true;
+        anchor = default;
+        return false;
+    }
+
     State GeomState => (_lyingHold || _wakePlaying || _fallPlaying) ? State.Dead : _state;
 
     /// <summary>目前姿勢下「可見身體」的高度（世界單位）。取不到回 0。</summary>
@@ -138,8 +151,19 @@ public class PlayerAnimator : MonoBehaviour
         _dead = lib.GetFrames(bloodline, "dead", tileSize, bodyScale);
         _attack = lib.GetFrames(bloodline, "attack", attackTile, bodyScale);
 
+        // 【過渡期】角色取樣密度對齊背景（mipMapBias），見 CharacterMipBias 檔頭；背景解析度提上來後可拿掉這四行。
+        CharacterMipBias.Register(_idle, transform);
+        CharacterMipBias.Register(_walk, transform);
+        CharacterMipBias.Register(_dead, transform);
+        CharacterMipBias.Register(_attack, transform);
+
         // 各動作的可見幾何（給特效對位用）。與 GetFrames 用同一組 tileSize，算出來才對得上。
         _visH.Clear(); _footRel.Clear();
+        _shadow.Clear();
+        _shadow[State.Idle]   = lib.GetShadowAnchor(bloodline, "idle");
+        _shadow[State.Walk]   = lib.GetShadowAnchor(bloodline, "walk");
+        _shadow[State.Dead]   = lib.GetShadowAnchor(bloodline, "dead");
+        _shadow[State.Attack] = lib.GetShadowAnchor(bloodline, "attack");
         CacheGeometry(lib, bloodline, "idle", State.Idle, tileSize, bodyScale);
         CacheGeometry(lib, bloodline, "walk", State.Walk, walkTile, bodyScale);
         CacheGeometry(lib, bloodline, "dead", State.Dead, tileSize, bodyScale);
@@ -152,7 +176,7 @@ public class PlayerAnimator : MonoBehaviour
         // 攻擊結束幀：播到「動作最大幀＋尾巴」就當播完（PlayerSpriteLibrary.ActionEndPeakRatio），-1＝播到最後一幀。
         _attackEnd = (_attack != null && _attack.Length > 0) ? lib.GetActionEndFrame(bloodline, "attack") : -1;
 
-        if (_idle == null && _walk != null) _idle = _walk;   // 沒給 idle 就用 walk 當待機後備
+        if (_idle == null && _walk != null) { _idle = _walk; if (!_shadow[State.Idle].ok) _shadow[State.Idle] = _shadow[State.Walk]; }   // 沒給 idle 就用 walk 當待機後備
 
         _hasAny = _idle != null || _walk != null || _dead != null || _attack != null;
         if (!_hasAny)
