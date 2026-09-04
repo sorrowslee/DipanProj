@@ -28,6 +28,8 @@ using UnityEngine.SceneManagement;
 /// 光源有兩種來源，兩者一視同仁塞進同一份清單餵給 shader：
 ///   ① 玩家身上的發光裝（ItemTable 的 LightRadius，取所有裝備欄最大值）→ 以玩家為心。
 ///   ② 場上的發光地上物（<see cref="LightSource"/>，由 MapLoader 依編輯器「發光半徑」掛）→ 火把/燈籠/香爐。
+///   ③ 角色常駐體光：玩家的寫在下面 BuildLights 裡（沒有發光裝時的後備）；**怪物的由
+///      MonsterSpawner.SpawnMonster 掛 LightSource**（陰冷青白、恆定不呼吸），走的是 ② 同一條路。
 /// 每幀取離玩家最近的 <see cref="MaxLights"/> 盞，換算成 viewport 座標與半徑餵進 shader 陣列。
 /// 每盞燈各自做油燈式呼吸（自己的亂數種子，不會整場同步）。完全沒有光源 → 暗氛圍下就是全暗。
 ///
@@ -252,9 +254,47 @@ public class AtmosphereController : MonoBehaviour
         _mat.SetFloat("_TintAmount", _tintAmount);
 
         int count = BuildLights();
+        DumpLightsIfRequested(count);   // F9：把這一幀真正餵給 shader 的燈全部印出來（見該方法）
         _mat.SetFloat("_LightCount", count);
         _mat.SetVectorArray("_LightData", _lightData);
         _mat.SetVectorArray("_LightTint", _lightTint);
+    }
+
+    /// <summary>
+    /// **除錯：按 F9 印出這一幀真正餵給 shader 的光源清單**（Console 一次性快照）。
+    ///
+    /// 存在的理由：光「看起來沒有作用」時，可能的原因有好幾層——這張圖的氛圍根本不吃照明、
+    /// 光源沒被掛上、被 20 盞名額擠掉、或是掛上了但參數太弱看不出來。**光靠看畫面分不出是哪一種**，
+    /// 每次都要人去 Hierarchy 翻元件。這支把答案直接印出來：氛圍型別、吃不吃照明、實際盞數，
+    /// 以及每一盞的來源物件名、世界座標、半徑、亮度。
+    /// （2026-09-04 加：怪物體光「看起來沒生效」查了半天才發現是強度不夠，就是缺這個工具。）
+    ///
+    /// 同家族的除錯工具：`P` 效能面板（`C` 疊碰撞層）、`F8` 關卡進度。
+    /// </summary>
+    private void DumpLightsIfRequested(int count)
+    {
+        if (!Input.GetKeyDown(KeyCode.F9)) return;
+
+        bool lit = _mode == 2 || _mode == 3 || _mode == 9 || _mode == 14 || _mode == 18 || _mode == 19
+                   || (_mode <= 1 && _envDark > 0.001f);
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"[Atmosphere] 光源快照　氛圍 type={_mode}　吃照明={(lit ? "是" : "否（這個氛圍的 shader 根本不讀光源，掛再多燈都不會亮）")}　" +
+                      $"環境壓暗={_envDark:F2}　本幀盞數={count}/{MaxLights}");
+
+        // 玩家那一盞是 BuildLights 直接寫進陣列的（不在 LightSource 登記表裡），所以分開列。
+        if (_player != null)
+            sb.AppendLine($"    · 玩家（slot 0，體光或提燈）　位置={_player.position.x:F1},{_player.position.y:F1}");
+
+        var all = new List<LightSource>();
+        LightSource.CollectNearest(_cam != null ? _cam.transform.position : Vector3.zero, all, MaxLights);
+        sb.AppendLine($"    LightSource 登記表命中 {all.Count} 盞（依「距離−半徑」由近到遠；排在 {MaxLights} 名之後的不會進畫面）：");
+        for (int i = 0; i < all.Count; i++)
+        {
+            var ls = all[i];
+            sb.AppendLine($"    · {ls.gameObject.name}　位置={ls.transform.position.x:F1},{ls.transform.position.y:F1}" +
+                          $"　半徑={ls.radius:F2}　亮度={ls.intensity:F2}　柔邊={ls.softness:F2}　搖晃={ls.flicker:F2}");
+        }
+        Debug.Log(sb.ToString());
     }
 
     /// <summary>

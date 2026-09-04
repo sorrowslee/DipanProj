@@ -153,6 +153,16 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 腳下影子（見 readme/SHADOW.md）
         if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
 
+        // 常駐體光：暗地圖裡讓輪廓浮出來（見 MonsterSpawner.AttachMonsterGlow ／ readme/ATMOSPHERE.md）。
+        // ⚠ **這是保險，正規入口在 MonsterSpawner.SpawnMonster**。兩邊都叫、方法自己判重不會掛兩顆。
+        //    為什麼要保險：2026-09-04 加體光後，新娘房的 boss 與她的召喚物實機上沒有光，
+        //    而走查所有已知生成路徑（地圖出生點／重生器／召喚）都該經過 SpawnMonster——既然對不上，
+        //    就在「每隻怪一定會跑到」的這裡補一道，任何漏網的生成路徑都會被接住。
+        // ⚠ **NPC 要排除**：NPC 沿用整套怪物地基（NpcSpawner 也 AddComponent<MonsterController>，
+        //    連 BlobShadow/YSortByFeet 都是靠上面那幾行掛的），不擋掉的話 NPC 會跟著發鬼光。
+        if (GetComponent<NpcAgent>() == null)
+            MonsterSpawner.AttachMonsterGlow(gameObject, transform.localScale.y);
+
         // 依腳底 Y 動態排序，和地上物一起正確交錯遮蔽（見 MapDepthSort / YSortByFeet）。
         if (GetComponent<YSortByFeet>() == null) gameObject.AddComponent<YSortByFeet>();
 

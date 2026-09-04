@@ -4,6 +4,30 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **怪物常駐體光：暗場景裡怪物終於看得見輪廓**（2026-09-04，改 `Assets/Scripts/AI/MonsterSpawner.cs`；見 [ATMOSPHERE.md](ATMOSPHERE.md)〈怪物常駐體光〉）：作者回報紅嫁衣場景裡怪物的輪廓完全看不清楚、連紅嫁衣女殭屍都一樣，要求比照「主角沒帶佛燈時身上的微光」。**這是全域機制，不是某個關卡的特例**——以後每隻怪、每張暗地圖都適用。
+  **做法：沿用既有機制，一行新系統都沒加。** 主角那個微光是 `AtmosphereController.BuildLights` 裡寫死的「玩家常駐體光」；怪物這邊只要在生成時掛一顆 `LightSource`，氛圍系統自己就會收走（它本來就是「會發光的世界物件」的通用標記）。半徑 1.1×CSV 的 `Scale`、亮度 0.30、柔邊 0.30、`flicker=0` 恆定不呼吸，光色**陰冷青白**——刻意與玩家的微暖白區隔，暗場景一眼分得出敵我（作者指定）。
+  **⚠ 掛點是 `MonsterSpawner.SpawnMonster`，不是 `MonsterController.Start()`——這點是這條記錄的重點：** **NPC 也是用 `MonsterController` 當地基**（`NpcSpawner` 一樣 `AddComponent<MonsterController>`，連 `MonsterAnimator`/`MonsterActuator`/`BlobShadow` 都沿用），掛在 Start 裡的話 NPC 會跟著發鬼光。放在 SpawnMonster ＝ 怪物有、NPC 沒有，意圖明確，也不必依賴「元件加入順序 vs Start 時序」這種脆弱前提。**以後要給「所有怪物」加什麼東西，都要先想一下 NPC 會不會被掃到。**
+  其他刻意的決定：prefab **自帶 `LightSource` 的怪不覆蓋**（設計上就會發光的怪，尊重原設定）；死亡不必特別關光（`Die()` 之後 `LateUpdate` 就 `Destroy`，`LightSource.OnDisable` 自動退出登記表）；恆定不呼吸是因為場上一堆怪一起明滅畫面會到處閃（玩家體光當初也是同一個理由）。
+  **⚠ 已知限制**：體光與場景的燈**共用同一個 20 盞名額**（`AtmosphereController.MaxLights`）。排序鍵是「距離 − 半徑」，體光半徑很小 ⇒ 不會擠掉燈籠火把（安全的那一半）；但反過來，**某張圖若擺了非常多盞燈，怪物體光可能進不了前 20 名**。症狀是「這張圖的怪就是沒有光」，先去數那張圖的發光地上物數量，不要先懷疑這段程式。
+  **⚠ 第一次實機後的修正：參數照抄玩家體光是錯的。** 作者回報新娘房的紅嫁衣 boss 與她召喚的怪「看起來似乎沒有光圈」。查證過程（都排除了）：那張圖 `Atmosphere=2` 會吃照明；全圖只有 4 盞燈、0 個發光地上物，離 20 盞名額差很遠；boss（id 13）`PrefabPath` 空、走程式建怪那條線，`Scale=1`，也沒有自帶 `LightSource` 會讓我跳過；地圖出生點／重生器／召喚三條路全部經過 `SpawnMonster`。**真正的原因是強度不足**——boss 站的位置離最近那盞燈（radius 3）超過 3.7 格、確實在暗處，但體光只有亮度 0.35，在幽暗（壓暗 0.8）的底亮 0.2 上只提到 0.3 上下，肉眼讀不出輪廓。
+  **通則：玩家體光與怪物體光的目的不同，數值不能互抄。** 玩家體光要「微弱到照不了路」（玩家本來就知道自己在哪，只需要一點提示，而且要維持點燈壓力）；**怪物體光要被「認出來」**，門檻高得多。改成半徑 1.5、亮度 0.55（玩家仍是 1.2／0.35）。
+  **順手補了一個工具：`F9` 印出這一幀真正餵給 shader 的光源清單**（`AtmosphereController.DumpLightsIfRequested`）。光「看起來沒作用」時，原因可能是氛圍不吃照明／沒掛上／被名額擠掉／太弱，**光看畫面分不出是哪一種**，這次就是查了半天才確定是最後一種。快照會印氛圍 type、吃不吃照明、本幀盞數，以及每盞的來源物件名／座標／半徑／亮度。同家族：`P` 效能面板、`F8` 關卡進度。
+  **⚠ 第二次實機後：新娘房的 boss 與她的召喚物仍然完全沒有光，一般怪物卻很明顯（作者提供左右對比截圖，差異極大）。**
+  走查所有已知生成路徑——地圖出生點（`MapLoader`，含 `gated`/重複產生交給 `MapMonsterRespawner` 的分支）、`SummonSystem`（`MonsterWeaponUser` 委派給它）——**全部都會經過 `SpawnMonster`**；boss（id 13）`PrefabPath` 空、`Scale=1`、沒有自帶 `LightSource`；那張圖只有 4 盞燈、`Atmosphere=2` 會吃照明。**帳面上完全對不上**，而我沒有執行環境、拿不到執行期事實。
+  所以改成兩手：
+  - **保險**：在 `MonsterController.Start` 也補一道（與 `BlobShadow`／`YSortByFeet` 並列，**每隻怪一定會跑到**），兩邊都呼叫同一個 `MonsterSpawner.AttachMonsterGlow`、方法自己判重。**任何沒經過 `SpawnMonster` 的漏網路徑都會被接住。** ⚠ 這一道必須用 `GetComponent<NpcAgent>() == null` 排除 NPC——NPC 沿用整套怪物地基，連影子都是靠 Start 掛的。
+  - **診斷**：`AttachMonsterGlow` 在 Editor 下印一行 `[MonsterGlow] 掛上體光：<物件名> …`（`#if UNITY_EDITOR`，不進 build）。**沒印到＝生成路徑沒被涵蓋；印了但畫面沒光＝被 20 盞名額擠掉或參數太弱**（再按 F9 分辨）。
+  **通則：查不出原因又拿不到執行期資料時，與其反覆猜，不如「把所有路徑都接住」＋「讓下一次能一眼分辨」。** 前者讓症狀當場消失，後者讓真正的原因下次自己浮出來。
+  **⚠ 找到真正的原因了（診斷 log 立了大功）：`LightSource` 那套光是乘法，在深色地板上等於無效。**
+  加了 log 之後，作者的 Console 顯示 boss 與召喚物**都有掛上、參數也對**（`r=1.50 i=0.55`），但畫面上就是看不見。查 `Atmosphere.shader` 的 type 2 分支才發現關鍵：`col.rgb *= lerp(0.35, 1.0, v)` —— **光的作用是「把壓暗還原」，不是「加光」**。所以光圈亮不亮完全取決於該處原本的畫面有多亮：
+  - 淺色石板地（原亮度 ~0.5）：`0.175 → 0.33`，很明顯
+  - 新娘房的深色木地板（原亮度 ~0.15）：`0.053 → 0.099`，兩個都是「很暗」，**肉眼分不出來**
+  同一份程式、同樣的參數，**差別只在腳下地板的顏色**。而且**再怎麼調 `intensity` 都沒用**——0.55 調到 1.0 也只是把 0.15 還原成 0.15。
+  **這條專案已經踩過一次**：`MemoryFxController` 檔頭寫著「紅嫁衣全 10 張圖除了提燈那一圈以外接近全黑，而泛黃／暈影／柔邊全都是乘法或壓暗，**在黑色上乘任何顏色還是黑** ⇒ 整套回憶效果等於失效」。同一個房間家族、同一個機制、同一個坑。
+  **解法：新增 `Assets/Scripts/CharacterGlow.cs`——角色背後的加色光暈**（`Custom/AuraGlow`，`Blend One One`，專案既有的加色 shader），照 `BlobShadow` 的範式做（程序生成徑向漸層、獨立物件、LateUpdate 跟隨、角色銷毀自動清）。體光因此變成**兩層互補**：`LightSource` 讓周圍地面亮（亮地板上有效、有光照感），`CharacterGlow` 保證輪廓在任何地板上都看得見。光暈畫在角色**之下**（sortingOrder −1）⇒ 只有 sprite 的透明區亮起來，是「剪影浮出來」不是「整隻怪發光」。
+  **通則：「把環境調亮」與「讓物件自己發光」是兩件事，乘法式照明只能做前者。** 凡是「不管背景多暗都必須看得見」的需求（角色可讀性、UI 提示、關鍵物件），都不能靠乘法照明，要用加色。
+  ⚠ **未實機驗證**：Cowork 這邊編譯不了 Unity。**嫌怪在暗處看不清楚時該調的是 `MonsterGlowAdditive`（加色光暈，預設 0.30），不是 `MonsterGlowIntensity`**；Linear 色彩空間疊色比直覺重約一倍（PROBLEMS **E11**），預設值刻意保守。只在「吃照明」的氛圍才看得見（幽暗 2／噩夢 3／深海恐怖 9／鬼霧 14／冷月 18／燭火幽影 19，或 type 1＋環境壓暗），亮場景 shader 根本不讀光源、零副作用。
+
 * [x] **Boss 開戰前奏定案：黑霧籠罩（兩張灰階密度圖 ＋ shader）＋「強敵現身」文字煙霧凝聚／散去 ＋ 頭目資訊進退場**（2026-09-04，新增 `Assets/Resources/Shaders/BossAura.shader`＋`SmokeDissolve.shader`，改 `UI/Panels/BossIntroPanel.cs`、`Map/TriggerChain.cs`；素材 `Resources/UI/Texts/{tw,en}/BossInfo_Warning.png`、`Resources/UI/BossIntroPanel/BossIntroPanel_Smoke1|2.png`；見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) 的 `bossIntro` 段）
   **成品節奏**：黑邊滑入＋紅霧湧入佈滿全螢幕翻騰 → 霧聚攏到畫面中央 → 「強敵現身」從霧裡凝聚成形 → 撐一拍 → **文字與霧被同一陣風吹散** → 頭像/名牌滑入、壓黑底版與血色暈影跟著淡進來 → 名字浮現 → 收。
   **同一天走了四版**，前三版的失敗是這條記錄的重點：

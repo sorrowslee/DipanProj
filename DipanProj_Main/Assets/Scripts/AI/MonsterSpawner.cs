@@ -216,10 +216,85 @@ public class MonsterSpawner : MonoBehaviour
         // 掉寶與「記不記進度」拆開：一次性出生點兩者都有；重複產生的出生點只掉寶不記進度；召喚物兩者都沒有（防無限刷）。
         controller.DropsLoot = dropsLoot ?? !string.IsNullOrEmpty(spawnKey);
 
+        // 怪物常駐體光：暗地圖裡讓輪廓浮出來（見下方 AttachMonsterGlow）
+        AttachMonsterGlow(go, data.Scale);
+
         // 🟢 初始面向設定：根據主角位置決定面向
         SetInitialOrientation(go);
 
         return go;   // 回傳生成物件（召喚技能用來追蹤同時存在上限；一般呼叫端可忽略）
+    }
+
+    // ───────────────────────── 怪物常駐體光 ─────────────────────────
+    // 幽暗/噩夢/鬼霧那些暗地圖裡，怪物整隻沉在黑色中、連輪廓都看不出來（作者實機回報，紅嫁衣女殭屍
+    // 也一樣）。給每隻怪掛一盞很小的 LightSource，讓它在暗處浮出一圈輪廓——用途與
+    // AtmosphereController 的「玩家常駐體光」完全相同（照不了路、不影響點燈壓力），只是換成**陰冷青白**，
+    // 暗場景裡一眼分得出敵我。適用**所有怪物、所有地圖**，不是只給某個關卡。
+    //
+    // ⚠ 為什麼掛在 SpawnMonster 而不是 MonsterController.Start()：
+    //   **NPC 也是用 MonsterController 當地基**（NpcSpawner 一樣 AddComponent<MonsterController>），
+    //   掛在那裡的話 NPC 會跟著發鬼光。放在這裡＝怪物有、NPC 沒有，意圖明確也不依賴元件加入的時序。
+    //
+    // ⚠ 不會擠掉場景的燈籠火把：LightSource.CollectNearest 的排序鍵是「距離 − 半徑」，
+    //   體光半徑很小，遇到半徑大的場景燈天生就排在後面（同框 20 盞上限見 AtmosphereController.MaxLights）。
+    //
+    // ⚠ 只在「吃照明」的氛圍才看得見（幽暗2/噩夢3/深海恐怖9/鬼霧14/冷月18/燭火幽影19，或 type1+環境壓暗）——
+    //   亮場景 shader 根本不讀光源，這盞燈不會有任何副作用。
+    // ⚠ **不要照抄玩家體光的數值**（第一版就是這樣，作者實機回報「看起來似乎沒有光圈」）：
+    //    玩家體光（半徑 1.2／亮度 0.35）的設計目的是「微弱到照不了路」——因為玩家本來就知道自己在哪，
+    //    只需要一點點提示。怪物要的是**被認出來**，那是更高的門檻：在幽暗(mode 2，壓暗 0.8)的場景裡，
+    //    0.35 的亮度只把 0.2 的底亮提到 0.3 上下，肉眼幾乎讀不出輪廓。
+    private const float MonsterGlowRadius    = 1.2f;    // 同玩家：這一層只負責讓腳邊地面有一點光照感
+    private const float MonsterGlowIntensity = 0.35f;   // 同玩家。⚠ 這層在深色地板上幾乎無效，別靠調它變亮
+    private const float MonsterGlowSoftness  = 0.32f;   // 內圈小、邊緣瀰漫 ⇒ 是「浮出輪廓」不是「打一盞聚光燈」
+    private static readonly Color MonsterGlowColor = new Color(0.72f, 0.90f, 0.98f, 1f);   // 陰冷青白
+    // 加色光暈的亮度與大小（CharacterGlow）。**怪在暗地板上看不看得見，主要是這兩個值決定的**。
+    // ⚠ 目標是「不要完全被黑暗吃掉、勉強看得到輪廓」，**不是給怪一盞跟著跑的燈**。
+    //    2026-09-04 第一版設 0.30／1.9，實機作者回報「根本變成行動燈光」——這兩個值寧可偏低。
+    //    Linear 色彩空間疊色比直覺重約一倍（PROBLEMS E11），往上調要很小步。
+    private const float MonsterGlowAdditive = 0.11f;
+    private const float MonsterGlowSize     = 1.35f;   // 光暈直徑 = 角色可見高度 × 此值（貼著輪廓，不要撐開）
+
+    /// <summary>
+    /// 給一隻怪掛常駐體光。已經自帶 <see cref="LightSource"/> 的 prefab（設計上就會發光的怪）不動它。
+    ///
+    /// ⚠ **這裡與 <c>MonsterController.Start</c> 各叫一次，兩邊都會呼叫本方法**（自己判重、不會掛兩顆）：
+    ///   這裡是「知道 CSV Scale 的正規入口」；`MonsterController.Start` 那一道是**保險**，
+    ///   涵蓋任何沒有經過 SpawnMonster 的生成路徑（2026-09-04：新娘房 boss 與她的召喚物實機沒有光，
+    ///   走查所有已知路徑都該經過這裡卻沒生效，所以補上那一道）。
+    /// </summary>
+    public static void AttachMonsterGlow(GameObject go, float scale)
+    {
+        if (go == null) return;
+
+        // ── 第一層：LightSource（走 AtmosphereController 的照明系統）──
+        // 它讓怪**周圍的地面**跟著亮一點，有「被光照到」的感覺。
+        // ⚠ 但這一層在**深色地板上幾乎無效**——那套光是乘法（type 2 幽暗是 col *= lerp(0.35,1,v)），
+        //    作用是「把壓暗還原」而不是「加光」，在原本就很暗的地板上還原了也還是暗。
+        //    所以一定要搭配下面第二層。詳見 CharacterGlow 檔頭。
+        if (go.GetComponent<LightSource>() == null)   // 尊重 prefab 自帶的發光設定
+        {
+            var ls = go.AddComponent<LightSource>();
+            ls.radius    = MonsterGlowRadius * Mathf.Max(0.5f, scale);   // 大隻的怪光圈跟著大（CSV 的 Scale 欄）
+            ls.intensity = MonsterGlowIntensity;
+            ls.softness  = MonsterGlowSoftness;
+            ls.color     = MonsterGlowColor;
+            ls.flicker   = 0f;   // 恆定不呼吸（同玩家體光）——場上一堆怪一起明滅，畫面會到處閃
+        }
+
+        // ── 第二層：CharacterGlow（角色背後的加色光暈）──
+        // **這一層才是「不管地板多暗都看得見輪廓」的保證**（加色，不受乘法照明的限制）。
+        if (go.GetComponent<CharacterGlow>() == null)
+        {
+            var cg = go.AddComponent<CharacterGlow>();
+            cg.GlowColor = MonsterGlowColor;
+            cg.Intensity = MonsterGlowAdditive;
+            cg.SizeFactor = MonsterGlowSize;
+        }
+#if UNITY_EDITOR
+        Debug.Log($"[MonsterGlow] 掛上體光：{go.name}　pos={go.transform.position.x:F1},{go.transform.position.y:F1}" +
+                  $"　（LightSource r={MonsterGlowRadius * Mathf.Max(0.5f, scale):F2} i={MonsterGlowIntensity:F2}／加色光暈 i={MonsterGlowAdditive:F2}）");
+#endif
     }
 
     /// <summary>

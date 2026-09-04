@@ -75,6 +75,10 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 
 > **左右翻面**由 `MonsterController` 控 `SpriteRenderer.flipX`（依玩家方向），與幀無關——所以走路圖只要畫「面朝一個方向」即可，和主角同規則。
 
+> **每隻怪自動有的東西**（不必在 CSV 或 prefab 做任何事）：`BlobShadow` 腳下影子（見 [SHADOW.md](SHADOW.md)）、
+> `YSortByFeet` 依腳底排序、**常駐體光**——`MonsterSpawner.SpawnMonster` 會掛一盞很小的陰冷青白 `LightSource`，
+> 讓怪在暗地圖裡看得見輪廓（見 [ATMOSPHERE.md](ATMOSPHERE.md)〈怪物常駐體光〉；prefab 自帶 `LightSource` 的怪不會被覆蓋）。
+
 ### 碰撞框（自動貼合「圖的不透明像素」）
 
 route B 怪物的碰撞框是一個**貼合 sprite 不透明像素的 `BoxCollider2D`**（不是整張畫布、也不是「以最大邊為半徑的圓」）——所以**圖的透明空白邊不會撐大碰撞範圍**。瘦長的鬼魂只有看得到的身體那塊會被碰到，不會「離很遠就被判定到」。
