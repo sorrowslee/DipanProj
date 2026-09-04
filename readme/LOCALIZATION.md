@@ -87,8 +87,9 @@ LoadSprite("UI/Texts/ClearStagePanel_Title");   // → 實際載 UI/Texts/tw/Cle
 | `ClearStagePanel_ReturnText` | 返回廣場 | RETURN |
 | `Text_Gain` | 領取 | CLAIM |
 | `Text_StageName_RedBridalGown` | 紅嫁衣 | Red Bridal Gown |
+| `BossInfo_Warning` | 強敵現身 | （作者已出圖） |
 
-**兩種語言都齊了**（2026-08-19）。英文用**全大寫**（英文遊戲 UI 的主流慣例）；
+**兩種語言都齊了**（2026-08-19；`BossInfo_Warning` 2026-09-04 補上，用在 boss 開戰前奏，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) 的 `bossIntro`）。英文用**全大寫**（英文遊戲 UI 的主流慣例）；
 唯一例外是遊戲副標 `Rebirth of Ruin` 用 Title Case，與全大寫的主標形成層次。
 
 ## 怎麼測英文版

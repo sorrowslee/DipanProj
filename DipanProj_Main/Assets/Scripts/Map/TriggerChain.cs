@@ -36,7 +36,7 @@ public static class TriggerChain
     public const string TypePlayScreenFx = "playScreenFx"; // 播放螢幕特效（鏈動作）：就地播一次性全螢幕過場特效（依 effectId，如 1=破幻術）、暫停擋操作，播完再接 next（通常＝teleportTo）
     public const string TypeTogglePortal = "togglePortal"; // 開關傳送點（鏈動作）：把 target 指定的傳送點隱藏封鎖(show=false)或顯示解鎖(show=true)，含外型/綠幕，再接 next。Boss 房封門用
     public const string TypeOnEnter = "onEnter";           // 進場觸發（自動）：進圖載入結束後自動觸發，純鏈起點（0 格、不塗格子），見 MapManager.FireEnterTriggersRoutine
-    public const string TypeBossIntro = "bossIntro";       // Boss開戰資訊（鏈動作）：暫停＋中央警告特效＋左滑入頭像＋右滑入姓名牌匾，表演完再接 next（見 BossIntroPanel）
+    public const string TypeBossIntro = "bossIntro";       // Boss開戰資訊（鏈動作）：暫停＋電視雜訊斷訊＋左滑入頭像＋右滑入姓名牌匾，表演完再接 next（見 BossIntroPanel）
     public const string TypeClearLevel = "clearLevel";     // 過關（鏈動作）：被 next 呼叫到就啟動「延時倒數（玩家可動）→ 卍字離場 → 結算 → 返回廣場」流程並記過關（見 GameFlowManager.EndLevel）。旗標偵測已抽到 watchFlag，這裡純鏈動作
     public const string TypeWatchFlag = "watchFlag";       // 觀察旗標變動（自動）：監聽 fireOnFlag 指定的旗標，該旗標「首次成立(false→true)」時觸發自己的 next。本身不做事，只當「旗標驅動的鏈起點」（同 onEnter，改由旗標驅動）。見 AutoFireOnFlag
     public const string TypeUnlockRoll = "unlockRoll";     // 解鎖抽選內容（鏈動作）：把某個物品永久加進某個抽選池（跨輪迴保留）。例：打贏紅嫁衣→血統池+幽靈。pool=池代號(GachaPoolTable 的 PoolId)、entry=物品 id。見 Dipan.Gacha.GachaService
@@ -618,9 +618,11 @@ public static class TriggerChain
         OnCompleted(r);   // 動作型：立即完成、接 next
     }
 
-    // Boss 開戰資訊（鏈動作）：暫停遊戲播「Warning 特效＋左滑入 boss 頭像＋右滑入姓名牌匾」開場表演（BossIntroPanel），
-    // 表演結束（自動播完或玩家跳過）才接 next。顯示名/頭像資料在 MonsterData.csv 的 DisplayName / PortraitPath 欄，
-    // 這裡只填 monsterId（與怪物出生點同一個 ID）；warnVfxId 留空＝面板預設（VfxTable 14 警告）。
+    // Boss 開戰資訊（鏈動作）：暫停遊戲播「左滑入 boss 頭像＋右滑入姓名牌匾」開場表演（BossIntroPanel），
+    // 表演結束才接 next。顯示名/頭像資料在 MonsterData.csv 的 DisplayName / PortraitPath 欄，
+    // 這裡只填 monsterId（與怪物出生點同一個 ID）。
+    // ⚠ 2026-09-04：舊的 WARNING 序列圖前奏已移除（調性不搭），**參數 warnVfxId 停用**——舊地圖填過的值
+    //   不會報錯、單純被忽略（不必回頭清資料）。前奏特效目前是空的、待重做，掛點在 BossIntroPanel.Begin 尾端。
     // 延後一幀開面板：此鏈常由對話面板 OnClose 續接，同步開新模態面板會重入卡死（見 PROBLEMS D8）。
     static void ExecuteBossIntro(TriggerRegion r)
     {
@@ -631,8 +633,7 @@ public static class TriggerChain
             OnCompleted(r);
             return;
         }
-        int warnVfxId = r.GetInt("warnVfxId", 0);   // 留空/0 = 用面板預設（VfxTable 14）
-        TriggerChainRunner.NextFrame(() => Dipan.UI.BossIntroPanel.Show(monsterId, warnVfxId, () => OnCompleted(r)));
+        TriggerChainRunner.NextFrame(() => Dipan.UI.BossIntroPanel.Show(monsterId, () => OnCompleted(r)));
     }
 
     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，指定張閃爍；到收起時機（移動/攻擊/任意鍵）自動收，收完接 next。
