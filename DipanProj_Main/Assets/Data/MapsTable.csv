@@ -22,3 +22,6 @@ ID,Name,Module,Path,IsLevelStart,MapMode,Atmosphere(1正常/2幽暗+打光/3噩�
 21,BloodFang_BrewingRoom,BloodFang,Modules/BloodFang/Maps/BloodFang_BrewingRoom.dipanmap,0,2,2,0,,0,,,
 22,BloodFang_Diningroom,BloodFang,Modules/BloodFang/Maps/BloodFang_Diningroom.dipanmap,0,2,17,0,,0,,,
 23,BloodFang_Garden,BloodFang,Modules/BloodFang/Maps/BloodFang_Garden.dipanmap,0,2,17,0,,0,,,
+24,BloodFang_ArmoryRoom,BloodFang,Modules/BloodFang/Maps/BloodFang_ArmoryRoom.dipanmap,0,2,17,0,,0,,,
+25,BloodFang_TrainingGround,BloodFang,Modules/BloodFang/Maps/BloodFang_TrainingGround.dipanmap,0,2,1,0,,0,,,
+26,BloodFang_Barracks,BloodFang,Modules/BloodFang/Maps/BloodFang_Barracks.dipanmap,0,2,17,0,,0,,,
