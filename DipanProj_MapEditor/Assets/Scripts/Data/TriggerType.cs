@@ -138,6 +138,10 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "holdSeconds", type = ParamType.Float, label = "停留秒數" },   // 鏡頭到位後停留幾秒（留空=1.6）
                     new TriggerParam { key = "dim",         type = ParamType.String, label = "黑幕樣式",
                                        options = new [] { "中央留洞", "整片全黑", "無" } },
+                    // 聚焦錨點（世界座標）：兩個都填才生效，留空＝退回「格子中心」（舊行為）。
+                    // 格子中心只有 ±0.5 格精度，對不準畫在背景圖裡的門——同 teleport 的 markerX/markerY。
+                    new TriggerParam { key = "focusX",      type = ParamType.Float, label = "聚焦點X(世界座標)" },
+                    new TriggerParam { key = "focusY",      type = ParamType.Float, label = "聚焦點Y(世界座標)" },
                 }
             });
             set.types.Add(new TriggerTypeDef

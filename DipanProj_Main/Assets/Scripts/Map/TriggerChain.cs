@@ -30,7 +30,7 @@ public static class TriggerChain
 {
     public const string TypeGiveItem = "giveItem";
     public const string TypeTeleportTo = "teleportTo";
-    public const string TypeCameraFocus = "cameraFocus";   // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格中心＋黑幕，停留後拉回，再接 next
+    public const string TypeCameraFocus = "cameraFocus";   // 鏡頭聚焦（鏈動作）：飄鏡頭到錨點（沒設＝自己那格中心）＋黑幕，停留後拉回，再接 next
     public const string TypePlayerHint = "playerHint";     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，到收起時機（移動/攻擊/任意鍵）自動收，再接 next
     public const string TypePlayCutscene = "playCutscene"; // 播放劇情演出（鏈動作）：播本圖的一段 cutscene（cutsceneId 留空＝第一段），演完才接 next。搭配該段 autoStart=off，就能用觸發鏈的條件旗標/重複規則管「這段劇情能不能播、播幾次」
     public const string TypePlayScreenFx = "playScreenFx"; // 播放螢幕特效（鏈動作）：就地播一次性全螢幕過場特效（依 effectId，如 1=破幻術）、暫停擋操作，播完再接 next（通常＝teleportTo）
@@ -531,13 +531,22 @@ public static class TriggerChain
         OnCompleted(r);
     }
 
-    // 鏡頭聚焦（鏈動作）：飄鏡頭到自己那格區域中心＋壓黑幕、停留、再拉回，全程定住玩家；表演完才接 next。
-    // 聚焦中心＝這個 trigger 畫的格子中心（通常畫在傳送門正中間一格）。
+    // 鏡頭聚焦（鏈動作）：飄鏡頭到聚焦點＋壓黑幕、停留、再拉回，全程定住玩家；表演完才接 next。
+    //
+    // 聚焦點的兩種來源，依序：
+    //   ① 錨點 focusX / focusY（世界座標，兩個都填才算）—— 精準對位用。
+    //   ② 沒設錨點 → 退回「這個 trigger 畫的格子中心」（舊行為，向下相容）。
+    //
+    // ★ 為什麼需要錨點：格子中心的解析度只有 ±0.5 格，而**門這類美術是畫在背景圖裡的**、位置任意，
+    //   兩者永遠對不齊。傳送點早就為了同一個理由做了 markerX/markerY（見 readme/MapEditor_DESIGN.md §4.5）。
+    //   2026-09-07 邪佛廣場改尺寸後這件事被放大：黑幕的洞縮成貼身尺寸之後，0.27 格（1080p 上 26px）
+    //   的偏差一眼就看得出來——洞是準確置中的，是鏡頭沒把門放到正中央。
+    //   ⚠ 錨點是**世界座標**，所以改地圖畫布尺寸時要跟著換算（同 markerX/markerY，見 resize_main_square.py）。
     static void ExecuteCameraFocus(TriggerRegion r)
     {
-        if (!RegionCenter(r, out Vector2 center))
+        if (!TryFocusAnchor(r, out Vector2 center) && !RegionCenter(r, out center))
         {
-            Debug.LogWarning($"[TriggerChain] 鏡頭聚焦「{r.name}」沒畫任何格子，無法決定聚焦中心，直接接 next。");
+            Debug.LogWarning($"[TriggerChain] 鏡頭聚焦「{r.name}」既沒填錨點(focusX/focusY)也沒畫格子，無法決定聚焦中心，直接接 next。");
             OnCompleted(r);
             return;
         }
@@ -757,6 +766,25 @@ public static class TriggerChain
     public static bool TryGetRegionCenter(string name, out Vector2 center) => RegionCenter(Find(name), out center);
 
     /// <summary>某 trigger 區域的世界中心（各格中心平均）。沒畫格子回 false。</summary>
+    /// <summary>
+    /// 鏡頭聚焦的錨點（<c>focusX</c>/<c>focusY</c>，世界座標）。**兩個都填了才算數**——
+    /// 留空／填一半／填非數字一律回 false，讓呼叫端退回格子中心（向下相容，舊地圖不受影響）。
+    /// 刻意不用 <c>GetFloat</c> 判斷：它填不出來會回 0，而 0 是合法座標，分不出「沒設」與「設成 0」。
+    /// </summary>
+    static bool TryFocusAnchor(TriggerRegion r, out Vector2 p)
+    {
+        p = default;
+        if (r?.Params == null) return false;
+        if (!r.Params.TryGetValue("focusX", out var vx) || !r.Params.TryGetValue("focusY", out var vy)) return false;
+        string sx = vx?.ToString(), sy = vy?.ToString();
+        if (string.IsNullOrWhiteSpace(sx) || string.IsNullOrWhiteSpace(sy)) return false;
+        var st = System.Globalization.NumberStyles.Float;
+        var inv = System.Globalization.CultureInfo.InvariantCulture;   // 與 MapModel.GetFloat 同樣走不變文化，避免逗點小數點的地區差異
+        if (!float.TryParse(sx, st, inv, out float x) || !float.TryParse(sy, st, inv, out float y)) return false;
+        p = new Vector2(x, y);
+        return true;
+    }
+
     static bool RegionCenter(TriggerRegion r, out Vector2 center)
     {
         center = default;

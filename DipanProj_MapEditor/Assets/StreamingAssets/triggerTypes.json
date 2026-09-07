@@ -348,6 +348,26 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false
+        },
+        {
+          "key": "focusX",
+          "type": "Float",
+          "label": "聚焦點X(世界座標)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
+        },
+        {
+          "key": "focusY",
+          "type": "Float",
+          "label": "聚焦點Y(世界座標)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false
         }
       ]
     },

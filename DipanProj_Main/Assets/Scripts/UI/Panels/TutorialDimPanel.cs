@@ -21,8 +21,26 @@ namespace Dipan.UI
 
         // 壓黑用的統一色調與 alpha（全黑與圓洞黑幕共用；改這裡一次兩處都變）。
         static readonly Color DimColor = new Color(0f, 0f, 0f, 0.6f);
-        // 中央洞占螢幕的半寬/半高比例（0.13 → 洞寬 26% 螢幕；0.22 → 洞高 44% 螢幕）。
-        const float HoleHalfX = 0.14f, HoleHalfY = 0.24f;
+        // 中央洞的大小，單位是**世界格數**（不是螢幕比例）。
+        //
+        // ★ 為什麼用格數而不用螢幕比例（2026-09-07 踩過）：鏡頭跟隨模式的 orthographicSize 固定
+        //   ⇒ **畫面高永遠是 10 格**，但**畫面寬幾格取決於視窗寬高比**（16:9 是 17.8 格、4:3 只有 13.3 格）。
+        //   舊版把半寬寫成「螢幕寬的比例」，同一個值在窄視窗框住的世界範圍就少 21%，
+        //   目標物的左右會被切掉——作者在 1356×968（比例 1.40）的視窗上實際撞到：門寬 299px、洞只有 274px。
+        //   所以高直接除以 ViewTiles，寬要再乘 (螢幕高/螢幕寬) 把視窗比例補回來。
+        //
+        // ★ 這兩個數字是「配著畫面上那個目標物有多大」調出來的，不是隨手填的：
+        //   邪佛廣場的傳送門是 3.09×2.73 格，洞比它大 1.16×/1.27× ＝ 剛好一圈貼身留白。
+        //   （原值 0.14/0.24 螢幕比例＝ 4.98×4.80 格，是配 90×50 時代的門 4.29×3.79 格調的；
+        //     2026-09-07 廣場畫布改 48×36、地上物統一縮 0.72，門變小而洞沒跟著 ⇒ 洞相對大了 45%。
+        //     現值＝原值 ×0.72，留白倍率與當初完全一致。）
+        //
+        // ⚠ **日後若某張圖的聚焦目標大小差很多，不要直接改這裡**——這是全域值；
+        //   那時應該把大小做成 cameraFocus 的參數（例如 dim 填「中央留洞:3.6,3.5」），逐個 trigger 決定。
+        const float HoleTilesW = 3.59f, HoleTilesH = 3.46f;
+        // 畫面高幾格 ＝ MapCameraController.followViewHeightTiles（跟隨模式的縮放基準）。
+        // ⚠ 那邊改了這裡要跟著改，否則洞的大小會跟世界對不上。
+        const float ViewTiles = 10f;
 
         Image _full;                 // ShowFull 用：整片黑
         Image _top, _bottom, _left, _right;  // ShowSpotlight 用：四塊框出中央洞
@@ -69,8 +87,13 @@ namespace Dipan.UI
         {
             ShowNone();
             _top.enabled = _bottom.enabled = _left.enabled = _right.enabled = true;
-            float x0 = 0.5f - HoleHalfX, x1 = 0.5f + HoleHalfX;
-            float y0 = 0.5f - HoleHalfY, y1 = 0.5f + HoleHalfY;
+            // 格數 → 螢幕比例。高：畫面高就是 ViewTiles 格，直接除。
+            // 寬：畫面寬是 ViewTiles×aspect 格，所以除完還要再除 aspect（＝乘 高/寬）。
+            float aspect = Screen.height > 0 ? (float)Screen.width / Screen.height : 16f / 9f;
+            float halfY = HoleTilesH / ViewTiles * 0.5f;
+            float halfX = HoleTilesW / ViewTiles * 0.5f / Mathf.Max(0.01f, aspect);
+            float x0 = 0.5f - halfX, x1 = 0.5f + halfX;
+            float y0 = 0.5f - halfY, y1 = 0.5f + halfY;
             SetAnchors(_top, 0f, y1, 1f, 1f);        // 洞上方整條
             SetAnchors(_bottom, 0f, 0f, 1f, y0);     // 洞下方整條
             SetAnchors(_left, 0f, y0, x0, y1);       // 洞左側（介於上下條之間）
