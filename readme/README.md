@@ -75,7 +75,7 @@
 | [INTRO_FALL.md](INTRO_FALL.md) | 序章「持續墜落深淵」程式動畫（獨立 Intro 場景、全程式建構、`IntroFallController`）：側面峽谷岩壁背景無限捲動＋散佈短碎條速度線 → 正面放射速度線＋時空扭曲 shader ＋色調穿越 → 收尾縮小沒入＋淡出載入下一場景 | 改開場墜落動畫、調速度線/山壁/色調/角色大小、接漫畫或進遊戲的串接 |
 | [CUTSCENE_TUNNEL.md](CUTSCENE_TUNNEL.md) | 過場鏈「穿隧道→播影片→換圖」（全程式、cutscene 觸發點啟動、一次性）：`CutsceneWatcher`(地圖端串接)＋`TunnelWalkController`(按鍵走出發光拱門、等比放大、白光收尾、Canvas 1200)＋`VideoPlayerOverlay`(StreamingAssets/Video 的 mp4、黑幕先蓋再準備、淡黑換圖、Canvas 1300)；影片放哪/觸發點參數(video/targetMapId)/Unity 接線 | 改穿隧道表演、接/換過場影片、調洞口/步數/晃動、cutscene 觸發點 |
 | [CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) | **核心迴圈企劃**（設計意圖，非程式規格）：輪迴為主軸、access／power 兩軸分離、邪佛「3新+1舊」四選一與業障回響、正常 3 輪／上限 4 輪破邪佛、帶物 min(周目,7)、20 關深/標準分層、關卡內收穫「通關才落袋、死亡歸零」 | 想確認玩法方向與已拍板的規則；做任何影響經濟/關卡選擇/輪迴節奏的功能前 |
-| [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) | 效能與畫質稽核（2026-07-05 四大根因與修正：Rigidbody2D Interpolate、60Hz 物理、地圖貼圖 Bilinear+mipmap、UI maxTextureSize；素材尺寸規範；**§4.1 整張背景圖每格 ≥128px 與各地圖建議尺寸**） | 排查卡頓/畫面粗糙、訂素材尺寸前、**產或換背景底圖前** |
+| [PERF_QUALITY_AUDIT.md](PERF_QUALITY_AUDIT.md) | 效能與畫質稽核（2026-07-05 四大根因與修正：Rigidbody2D Interpolate、60Hz 物理、地圖貼圖 Bilinear+mipmap、UI maxTextureSize；素材尺寸規範；**§4.1 整張背景圖每格 ≥128px 與各地圖現況實測**；**§4.2 背景解析度↔編輯器格數換算（格數比必須等於圖的長寬比，附快查表與階梯表）**） | 排查卡頓/畫面粗糙、訂素材尺寸前、**產或換背景底圖前**、**開新地圖要決定格數時** |
 | [PROPS_IMAGEGEN_LIST.md](PROPS_IMAGEGEN_LIST.md) | 地上物產圖清單（A 家具 12／B 裝飾儀式 12／C 庭院 6／D 廚房 7／E 儲藏 6／F 柴房 4／G 場景大物 2，共 49 件，各附提示詞與 credits 估算） | 要產一批地上物素材時挑清單、估成本 |
 | [FALLEN_BUDDHA_LIGHT.md](FALLEN_BUDDHA_LIGHT.md) | **墮落佛光實驗存檔**（2026-08-17 試過紫色佛光／旋轉卍字／拿掉照明，全部退回原狀；素材存 `readme/variants/`、機制留在 CSV 欄位，附「怎麼再開回來」）＋ 三條疊色通則摘要 | 想把佛光改色/加符號、動照明範圍、或**疊任何發光效果**之前 |
 | [PROBLEMS.md](PROBLEMS.md) | **踩坑記錄與解法**(症狀→原因→解法) | **第一次看文件時必看**；遇到怪問題、或要把新坑記下來時 |
