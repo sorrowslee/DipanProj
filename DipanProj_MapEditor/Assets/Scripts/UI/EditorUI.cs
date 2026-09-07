@@ -78,20 +78,21 @@ namespace DipanMapEditor.UI
         /// <summary>清掉預覽（套用後或按取消）。</summary>
         public void ClearAutoPreview() { AutoPreview = null; }
 
-        /// <summary>
-        /// 預覽狀態下，用筆刷改預覽的單一子格（所見即所得，改完再一起套用）。
-        /// <para>為什麼要有：自動生成一定會有猜錯的地方（可破壞的桌子擋在路中間、破壞後才該能走，
-        /// 影像上分不出來），作者本來就要手工補。讓筆刷在預覽階段就能改，就不必「套用→再修→再看」跑兩趟。</para>
-        /// </summary>
-        public void SetAutoPreviewCell(int fx, int fy, bool walkable)
+        // 上一幀看到的 MapData 物件。讀檔／新建／Undo 還原都會換成新物件，用參考比對就能偵測「換地圖了」。
+        // ⚠ 這是 2026-09-07 那個資料遺失事故的補丁之一：以前換地圖不清預覽，
+        //   讀到別張圖時因為尺寸對不上所以不顯示、讀回同尺寸的圖預覽又生效，
+        //   讓作者以為「存檔成功了」，其實看到的是一張從沒寫進資料的遮罩。
+        MapData _lastMapSeen;
+
+        void ClearAutoState()
         {
-            var map = MapSession.Instance?.Map;
-            if (AutoPreview == null || map == null) return;
-            int fw = map.FineWidth;
-            if (fx < 0 || fy < 0 || fx >= fw || fy >= map.FineHeight) return;
-            int i = fy * fw + fx;
-            if (i >= 0 && i < AutoPreview.Length) AutoPreview[i] = walkable;
+            AutoPreview = null;
+            AutoSeedValid = false;
+            AutoSeedPickMode = false;
+            _autoReport = "";
+            WalkableAutoGen.ClearCache();
         }
+
 
         // ---- 試走模式（2026-09-07）----
         /// <summary>試走時是否疊上可走層顏色（Tab 切換）。預設開，方便看是哪一格擋住的。</summary>
@@ -366,6 +367,10 @@ namespace DipanMapEditor.UI
         // 會把按鍵吃掉，那樣 Esc 有時候會沒反應。
         void Update()
         {
+            // 換地圖（讀檔/新建/Undo 還原）就把自動生成的狀態整個丟掉——預覽是綁在特定地圖上的暫態。
+            var curMap = MapSession.Instance?.Map;
+            if (!ReferenceEquals(curMap, _lastMapSeen)) { _lastMapSeen = curMap; ClearAutoState(); }
+
             if (CurrentTool == EditTool.Playtest)
             {
                 if (Input.GetKeyDown(KeyCode.Escape))
@@ -667,6 +672,21 @@ namespace DipanMapEditor.UI
             GUILayout.BeginHorizontal();
             if (GUILayout.Button("存檔") && !string.IsNullOrWhiteSpace(_saveName) && !string.IsNullOrWhiteSpace(_mapsDir))
             {
+                // ⚠ 最後一道防線（2026-09-07 資料遺失事故）：自動生成的預覽是記憶體裡的暫態，
+                //   沒套用就存檔＝存到舊資料。作者那次生成完直接存，整張圖存成全牆。
+                //   這裡不問、直接幫他套用進去 —— 因為「畫面上看到的」就是他要的，
+                //   而且套用有進 Undo，真的不要按 Cmd/Ctrl+Z 就好。
+                if (AutoPreview != null)
+                {
+                    var m0 = MapSession.Instance?.Map;
+                    if (m0 != null)
+                    {
+                        UndoManager.Push();
+                        int applied = WalkableOps.ApplyMask(m0, AutoPreview);
+                        if (applied >= 0) _autoReport = $"存檔前已自動套用生成結果（{applied} 子格）";
+                    }
+                    ClearAutoPreview();
+                }
                 Directory.CreateDirectory(_mapsDir);
                 string path = Path.Combine(_mapsDir, _saveName.Trim() + MapSerializer.Extension);
                 MapSession.Instance.SaveMap(path);

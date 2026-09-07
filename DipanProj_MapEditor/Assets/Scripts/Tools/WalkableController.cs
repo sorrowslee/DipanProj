@@ -58,22 +58,22 @@ namespace DipanMapEditor.Tools
             int y0 = cell.y - size / 2;
             char state = _ui.WalkBrushState;
 
-            // 自動生成預覽中：筆刷改的是**預覽**，不是地圖資料（所見即所得，改完一起套用）。
-            // 自動生成一定有猜錯的地方（例如可破壞的桌子擋在路中間、破壞後才該能走，影像上分不出來），
-            // 讓預覽階段就能修，就不必「套用→再修→再看」跑兩趟。
+            // 自動生成預覽中一動筆刷 → **先把預覽套用進地圖資料**，再照常塗。
+            //
+            // ⚠ 這裡的設計換過一次，換的原因是一起資料遺失事故（2026-09-07）：
+            //   原本是「筆刷改預覽本身、按套用才寫入」。作者自動生成後直接用筆刷修、然後存檔，
+            //   結果**塗的東西全在那張沒套用的遮罩裡**，存進檔案的還是全牆，整張圖白做。
+            //   現在改成「一動筆刷就先落地」——所見即所得，而且畫面上看到的一定就是資料裡的，
+            //   不存在「看得到但還沒生效」的中間狀態。套用進 Undo，反悔按 Cmd/Ctrl+Z 即可。
             if (_ui.AutoPreview != null)
             {
-                // 預覽遮罩只有可走/牆兩態，表達不了水；要塗水請先套用。
-                if (state == WalkableOps.Water)
-                {
-                    _ui.SetStatus("預覽中不能塗水／坑——請先按「③ 套用」，再用藍色筆刷塗");
-                    return;
-                }
-                bool walkable = state == WalkableOps.Walk;
-                for (int dy = 0; dy < size; dy++)
-                    for (int dx = 0; dx < size; dx++)
-                        _ui.SetAutoPreviewCell(x0 + dx, y0 + dy, walkable);
-                return;   // 不動地圖資料，所以也不進 Undo（預覽本來就是暫態）
+                UndoManager.Push();
+                int n = WalkableOps.ApplyMask(map, _ui.AutoPreview);
+                _ui.ClearAutoPreview();
+                _ui.SetStatus(n >= 0
+                    ? $"已自動套用生成結果（{n} 子格），接著就是一般塗改——反悔按 Cmd/Ctrl+Z"
+                    : "預覽與地圖尺寸對不上，已丟棄預覽");
+                _strokePushed = true;   // 上面已經 Push 過，這一筆不要再 Push 第二次
             }
 
             if (!_strokePushed) { UndoManager.Push(); _strokePushed = true; }
