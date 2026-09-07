@@ -109,6 +109,14 @@ namespace DipanMapEditor.Core
                 walkGO.AddComponent<WalkableController>();
             }
 
+            // 7b. 試走（WASD 在編輯器裡走一遍驗證可走層）
+            if (FindObjectOfType<PlaytestController>() == null)
+            {
+                var playGO = new GameObject("PlaytestController");
+                playGO.transform.SetParent(transform, false);
+                playGO.AddComponent<PlaytestController>();
+            }
+
             // 8. Trigger 塗刷控制
             if (FindObjectOfType<TriggerController>() == null)
             {

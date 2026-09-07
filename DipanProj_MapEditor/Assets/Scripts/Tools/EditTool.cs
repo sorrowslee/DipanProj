@@ -15,5 +15,6 @@ namespace DipanMapEditor.Tools
         Light,      // 照明：不綁地上物的獨立光源（火炬/燈籠已畫在背景圖時用），放位置＋調半徑/亮度/光色/搖晃
         Cutscene,   // 劇情演出：演員走位/說話/漫畫/運鏡的過場編排
         EffectPreview, // 特效預覽器：瀏覽/輪播 StreamingAssets/Effects 底下整理好的特效（不編輯地圖）
+        Playtest,   // 試走：用 WASD 在編輯器裡走一遍驗證可走層（不編輯地圖，見 Tools/PlaytestController）
     }
 }

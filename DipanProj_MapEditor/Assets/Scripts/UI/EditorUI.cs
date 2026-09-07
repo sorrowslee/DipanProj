@@ -33,6 +33,69 @@ namespace DipanMapEditor.UI
 
         /// <summary>可走工具的筆刷邊長（以子格計）：1~128。一筆塗 N×N 個子格。</summary>
         public int WalkBrushSize { get; private set; } = 1;
+
+        // ---- 自動生成可走區（2026-09-07）----
+        // 資料流：作者按「選種子」→ WalkableController 收到點擊寫進 AutoSeed →
+        // 這裡呼叫 WalkableAutoGen.Generate 產出 AutoPreview → WalkableOverlay 把它畫成綠/紅
+        //（＝套用後的樣子）→ 按「套用」才真的寫進可走層（一次 Undo）。**預覽階段完全不動地圖資料**；
+        // 預覽中用筆刷塗，改的也是 AutoPreview（見 WalkableController），所以所見即所得。
+        /// <summary>自動生成的預覽結果（長度 = FineWidth×FineHeight，true=可走）；null＝沒有預覽。</summary>
+        public bool[] AutoPreview { get; private set; }
+        /// <summary>種子點（子格座標）。</summary>
+        public Vector2Int AutoSeed { get; private set; }
+        /// <summary>種子點是否已設過（沒設過就不畫十字、也不能生成）。</summary>
+        public bool AutoSeedValid { get; private set; }
+        /// <summary>「選種子」模式：開著時可走工具的左鍵是「指定種子」而不是「塗格子」。</summary>
+        public bool AutoSeedPickMode { get; private set; }
+        float _autoTolerance = WalkableAutoGen.DefaultTolerance;
+        // 最後一次生成的結果訊息。**一定要顯示在面板上**，不能只寫進狀態列 ——
+        // 生成失敗時 AutoPreview 是 null，那整區（含「③ 套用」）就不畫，
+        // 看起來像按鈕憑空消失（2026-09-07 作者回報）。
+        string _autoReport = "";
+
+        /// <summary>由 WalkableController 呼叫：作者在畫布上點了一個種子點。</summary>
+        public void SetAutoSeed(Vector2Int fine)
+        {
+            AutoSeed = fine; AutoSeedValid = true; AutoSeedPickMode = false;
+            RegenerateAutoPreview();
+        }
+
+        /// <summary>重算預覽（改容差、換種子時呼叫）。</summary>
+        public void RegenerateAutoPreview()
+        {
+            var session = MapSession.Instance;
+            var map = session?.Map;
+            if (map == null || !AutoSeedValid) { AutoPreview = null; return; }
+            Texture2D bg = null;
+            if (!string.IsNullOrEmpty(map.backgroundId))
+                bg = SpriteCache.GetTexture(session.Catalog.Find(map.backgroundId));
+            if (bg == null) { AutoPreview = null; _autoReport = "背景圖讀不到（按頂部「刷新素材」再試）"; return; }
+            AutoPreview = WalkableAutoGen.Generate(map, bg, AutoSeed, _autoTolerance, out string report);
+            _autoReport = report ?? "";
+            _statusMsg = string.IsNullOrEmpty(report) ? _statusMsg : $"自動生成預覽：{report}";
+        }
+
+        /// <summary>清掉預覽（套用後或按取消）。</summary>
+        public void ClearAutoPreview() { AutoPreview = null; }
+
+        /// <summary>
+        /// 預覽狀態下，用筆刷改預覽的單一子格（所見即所得，改完再一起套用）。
+        /// <para>為什麼要有：自動生成一定會有猜錯的地方（可破壞的桌子擋在路中間、破壞後才該能走，
+        /// 影像上分不出來），作者本來就要手工補。讓筆刷在預覽階段就能改，就不必「套用→再修→再看」跑兩趟。</para>
+        /// </summary>
+        public void SetAutoPreviewCell(int fx, int fy, bool walkable)
+        {
+            var map = MapSession.Instance?.Map;
+            if (AutoPreview == null || map == null) return;
+            int fw = map.FineWidth;
+            if (fx < 0 || fy < 0 || fx >= fw || fy >= map.FineHeight) return;
+            int i = fy * fw + fx;
+            if (i >= 0 && i < AutoPreview.Length) AutoPreview[i] = walkable;
+        }
+
+        // ---- 試走模式（2026-09-07）----
+        /// <summary>試走時是否疊上可走層顏色（Tab 切換）。預設開，方便看是哪一格擋住的。</summary>
+        public bool PlaytestShowWalkable { get; private set; } = true;
         static readonly int[] WalkBrushSizes = { 1, 2, 4, 8, 16, 32, 64, 128 };
 
         public void ClearObjectBrush() => SelectedObjectAssetId = null;
@@ -59,6 +122,7 @@ namespace DipanMapEditor.UI
         public bool TriggerNewRegionPerStroke { get; private set; } = true;
         string _triggerType;
         Vector2 _trigScroll;
+        Vector2 _walkScroll;   // 可走面板：加了「自動生成」那區之後會超出面板高度，必須能捲
 
         /// <summary>ESC 進檢視模式：停止筆刷、清掉選取，改成點畫布上的區域來檢查。</summary>
         public void EnterTriggerInspect()
@@ -86,6 +150,9 @@ namespace DipanMapEditor.UI
         string _saveName = "";
         Vector2 _loadScroll, _bgScroll;
         string _statusMsg = "";
+
+        /// <summary>給其他控制器寫底部狀態列（例如筆刷在預覽中被擋下時的說明）。</summary>
+        public void SetStatus(string msg) => _statusMsg = msg ?? "";
 
         // 旗標登記表（全域；觸發點的旗標欄從這裡選）
         static FlagRegistry _flagReg = new FlagRegistry();
@@ -122,6 +189,7 @@ namespace DipanMapEditor.UI
         Tools.SceneFxController _sfxCtl;
         Tools.LightController _lightCtl;
         EditTool _toolBeforePreview = EditTool.Object;   // 進特效預覽器前停在哪個工具，離開時退回這個
+        EditTool _toolBeforePlaytest = EditTool.Walkable; // 進試走前停在哪個工具（多半是可走），離開時退回
         LightPreview _lightPrev;     // 照明預覽（壓暗＋燈照回來）
         Preview.TeleportMarkerPreview _tpPrev;   // 傳送點對位預覽（畫出真的傳送點特效、可直接拖曳）
         // 照明面板：清單捲動位置＋選取中那盞的數字輸入暫存（切換選取時重新同步）
@@ -294,6 +362,32 @@ namespace DipanMapEditor.UI
             return false;
         }
 
+        // 鍵盤：試走與「選種子」的快捷。用 Update 而不是 OnGUI 的 Event —— IMGUI 有輸入框取得焦點時
+        // 會把按鍵吃掉，那樣 Esc 有時候會沒反應。
+        void Update()
+        {
+            if (CurrentTool == EditTool.Playtest)
+            {
+                if (Input.GetKeyDown(KeyCode.Escape))
+                {
+                    CurrentTool = _toolBeforePlaytest;
+                    _statusMsg = "已結束試走";
+                }
+                else if (Input.GetKeyDown(KeyCode.Tab))
+                {
+                    PlaytestShowWalkable = !PlaytestShowWalkable;
+                    _statusMsg = PlaytestShowWalkable ? "試走：顯示可走層疊加" : "試走：隱藏可走層疊加（純看畫面）";
+                }
+                return;
+            }
+
+            if (AutoSeedPickMode && Input.GetKeyDown(KeyCode.Escape))
+            {
+                AutoSeedPickMode = false;
+                _statusMsg = "已取消選種子";
+            }
+        }
+
         void OnGUI()
         {
             DrawTopBar();
@@ -327,6 +421,10 @@ namespace DipanMapEditor.UI
             else if (CurrentTool == EditTool.Cutscene)
             {
                 DrawCutscenePanel();
+            }
+            else if (CurrentTool == EditTool.Playtest)
+            {
+                DrawPlaytestPanel();
             }
             else if (CurrentTool == EditTool.EffectPreview)
             {
@@ -367,6 +465,7 @@ namespace DipanMapEditor.UI
             {
                 MapSession.Instance?.ReloadCatalog();
                 SpriteCache.Clear();
+                WalkableAutoGen.ClearCache();   // 背景圖重載了，自動生成的降取樣快取要跟著失效
                 Preview.TeleportMarkerPreview.ClearCache();   // 傳送點外型改了(VfxTable/PNG)也一起重讀
                 _objects = null;
             }
@@ -408,6 +507,22 @@ namespace DipanMapEditor.UI
                 _statusMsg = tp.Enabled
                     ? "傳送點對位開啟：直接拖曳畫布上的傳送點外型即可對齊門（半透明＝該點勾掉了「使用傳送點外型」）"
                     : "傳送點對位關閉";
+            }
+            // 試走：用 WASD 在編輯器裡走一遍驗證可走層，不必存檔→Sync→進主遊戲。
+            // 相機會切成主遊戲跟隨模式的視野（畫面高 10 格），碰撞用同尺寸的圓，所以走起來的手感一致。
+            GUI.color = CurrentTool == EditTool.Playtest ? Color.cyan : Color.white;
+            if (GUILayout.Button(CurrentTool == EditTool.Playtest ? "結束試走" : "試走", GUILayout.Width(60)))
+            {
+                if (CurrentTool == EditTool.Playtest) { CurrentTool = _toolBeforePlaytest; _statusMsg = "已結束試走"; }
+                else
+                {
+                    _toolBeforePlaytest = CurrentTool;
+                    CurrentTool = EditTool.Playtest;
+                    ClearAutoPreview();            // 試走時看的是實際可走層，不要被還沒套用的預覽干擾
+                    AutoSeedPickMode = false;
+                    _showNew = _showSave = _showLoad = _showBg = _showFlags = _showScreenFx = false;
+                    _statusMsg = "試走中：WASD／方向鍵移動、Tab 切換可走層疊加、Esc 結束";
+                }
             }
             GUI.color = Color.white;
 
@@ -1083,11 +1198,53 @@ namespace DipanMapEditor.UI
 
         // ---- 可走/不可走筆刷面板 ----
 
+        // ---- 試走面板 ----
+        // 只顯示操作說明與即時狀態，不提供任何編輯 —— 試走是「驗證」不是「編輯」，
+        // 想改就按 Esc 回可走工具改完再走一次。
+        void DrawPlaytestPanel()
+        {
+            var map = MapSession.Instance?.Map;
+            GUILayout.BeginArea(PanelRect, GUI.skin.box);
+            GUILayout.Label("試走中");
+            GUILayout.Space(4);
+            GUILayout.Label("WASD／方向鍵　移動\nTab　顯示/隱藏可走層疊加\nEsc　結束試走");
+            GUILayout.Space(8);
+
+            var pc = PlayCtl();
+            if (pc != null && map != null)
+            {
+                Vector2 p = pc.PlayerPos;
+                var fine = MapCoords.WorldToFineCell(p, map);
+                GUILayout.Label($"座標　({p.x:0.00}, {p.y:0.00})");
+                GUILayout.Label($"子格　({fine.x}, {fine.y})");
+                GUI.color = pc.BlockedThisFrame ? new Color(1f, 0.6f, 0.2f) : Color.white;
+                GUILayout.Label(pc.BlockedThisFrame ? "← 這個方向被擋住" : "");
+                GUI.color = Color.white;
+            }
+
+            GUILayout.Space(10);
+            GUILayout.Label($"疊加：{(PlaytestShowWalkable ? "顯示中" : "已隱藏")}");
+            GUILayout.Space(10);
+            GUILayout.Label("⚠ 這裡只判斷可走層，\n不含地上物的碰撞\n（那是主遊戲依素材 alpha\n烘出來的，編輯器沒有）。\n所以擋路的家具在這裡\n走得過去是正常的。");
+            GUILayout.EndArea();
+        }
+
+        Tools.PlaytestController _playCtl;
+        Tools.PlaytestController PlayCtl()
+        {
+            if (_playCtl == null) _playCtl = FindObjectOfType<Tools.PlaytestController>();
+            return _playCtl;
+        }
+
         void DrawWalkablePanel()
         {
             var map = MapSession.Instance?.Map;
             var rect = PanelRect;
             GUILayout.BeginArea(rect, GUI.skin.box);
+            // ⚠ 一定要 ScrollView：這個面板加了「自動生成」那區之後就超出高度了，
+            //   而超出的部分正是「③ 套用」與「取消預覽」兩顆按鈕 —— 看不到等於功能不存在。
+            //   （2026-09-07 作者實機回報：選完種子、拖完容差，找不到套用鈕。）
+            _walkScroll = GUILayout.BeginScrollView(_walkScroll);
 
             GUILayout.Label("可走 / 牆 / 水");
             if (map != null)
@@ -1134,8 +1291,87 @@ namespace DipanMapEditor.UI
                 }
             }
 
+            // ---- 自動生成可走區（依背景圖）----
+            // 定位是「一鍵鋪好底稿」不是「一鍵完成」：實測全庫平均 IoU 76%，但錯誤集中在少數大塊，
+            // 生成後平均再補 6 筆左右就好（演算法與實測數字見 Core/WalkableAutoGen 的檔頭）。
+            GUILayout.Space(10);
+            GUILayout.Label("── 自動生成（依背景圖）──");
+            if (map == null)
+            {
+                GUILayout.Label("（沒有地圖）");
+            }
+            else if (string.IsNullOrEmpty(map.backgroundId))
+            {
+                GUILayout.Label("這張圖沒有背景圖，\n自動生成無從判斷。");
+            }
+            else
+            {
+                GUI.color = AutoSeedPickMode ? Color.cyan : Color.white;
+                if (GUILayout.Button(AutoSeedPickMode ? "① 點畫布上的地板…（Esc 取消）" : "① 選種子：點一塊地板"))
+                {
+                    AutoSeedPickMode = !AutoSeedPickMode;
+                    _statusMsg = AutoSeedPickMode
+                        ? "請在畫布上點一塊「確定是地板」的地方（點在最大片的地板中央效果最好）"
+                        : "已取消選種子";
+                }
+                GUI.color = Color.white;
+
+                if (AutoSeedValid)
+                {
+                    GUILayout.Label($"種子：子格 ({AutoSeed.x},{AutoSeed.y})");
+                    GUILayout.BeginHorizontal();
+                    GUILayout.Label("② 容差", GUILayout.Width(46));
+                    float t = GUILayout.HorizontalSlider(_autoTolerance,
+                                  WalkableAutoGen.MinTolerance, WalkableAutoGen.MaxTolerance);
+                    GUILayout.Label($"{_autoTolerance:0}", GUILayout.Width(26));
+                    GUILayout.EndHorizontal();
+                    // 拖滑桿即時重算：降取樣結果有快取，只有第一次會讀整張背景圖
+                    if (!Mathf.Approximately(t, _autoTolerance)) { _autoTolerance = t; RegenerateAutoPreview(); }
+
+                    // 說明要講「拖了會發生什麼」＋「該拖到哪」，不要只寫抽象定義
+                    //（第一版寫「小＝只認同色 大＝連陰影也算」，作者回報看不懂）
+                    GUILayout.Label("往右拖 → 綠色範圍變大\n多數地圖落在 30~40");
+
+                    if (AutoPreview != null)
+                    {
+                        GUILayout.Space(2);
+                        // ⚠ 措辭與配色都踩過坑（2026-09-07）：一度用「青＝會變可走／橘＝原本可走但這次沒抓到」
+                        //    這種**差異色**，結果作者拿綠筆去塗橘色區域、顏色卻不變（那格仍然同時滿足
+                        //    「現在可走」與「預覽沒抓到」）——預覽該顯示的是**套用後的結果**，不是差異。
+                        //    現在一律綠/紅，語意與平常的筆刷完全一致。
+                        GUILayout.Label("預覽中：綠＝可走　紅＝牆\n可以直接用筆刷改，改完再套用");
+                        if (GUILayout.Button("③ 套用（就是你現在看到的樣子）"))
+                        {
+                            UndoManager.Push();
+                            int n = WalkableOps.ApplyMask(map, AutoPreview);
+                            ClearAutoPreview();
+                            _autoReport = $"已套用，改動 {n} 子格。\n要再調就按「重新生成預覽」";
+                            _statusMsg = $"已套用自動生成（改動 {n} 子格）——接著用筆刷補幾筆，再按「試走」驗證";
+                        }
+                        if (GUILayout.Button("取消預覽")) { ClearAutoPreview(); _statusMsg = "已取消自動生成預覽"; }
+                    }
+                    else
+                    {
+                        // 沒有預覽（剛套用完、按過取消、或生成失敗）。一定要給一顆「重新生成」，
+                        // 否則作者只能重選種子 —— 而且失敗原因要寫在這裡，不能只留在狀態列。
+                        if (!string.IsNullOrEmpty(_autoReport))
+                        {
+                            GUI.color = new Color(1f, 0.75f, 0.35f);
+                            GUILayout.Label(_autoReport);
+                            GUI.color = Color.white;
+                        }
+                        if (GUILayout.Button("重新生成預覽")) RegenerateAutoPreview();
+                    }
+                }
+                else
+                {
+                    GUILayout.Label("先選種子，才有容差與預覽。");
+                }
+            }
+
             GUILayout.Space(10);
             GUILayout.Label("左鍵拖曳塗子格。\n綠 = 可走\n紅 = 牆（擋玩家＋反彈子彈）\n藍 = 水/坑（擋玩家、子彈穿過）\n新地圖初始全部為牆。\n只有此工具下才顯示疊加色。");
+            GUILayout.EndScrollView();
             GUILayout.EndArea();
         }
 
