@@ -5364,6 +5364,112 @@
       ]
     },
     {
+      "id": "Modules/RedBridalGown/Environment/bed_canopy_bridal",
+      "path": "Modules/RedBridalGown/Environment/bed_canopy_bridal.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 566,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 18,
+        "rows": 20,
+        "cells": [
+          "011111111111111110",
+          "011111111111111110",
+          "011111111111111110",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111110",
+          "111111111111111110",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "111111111111111111",
+          "010000000000000110",
+          "010000000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/carpet_phoenix_xi",
+      "path": "Modules/RedBridalGown/Environment/carpet_phoenix_xi.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 682,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 22,
+        "rows": 10,
+        "cells": [
+          "0111111111111111111100",
+          "0111111111111111111100",
+          "0111111111111111111100",
+          "0111111111111111111100",
+          "0111111111111111111110",
+          "1111111111111111111110",
+          "1111111111111111111110",
+          "1111111111111111111110",
+          "1000000000000000000010",
+          "0000000000000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/chest_lacquer_1",
+      "path": "Modules/RedBridalGown/Environment/chest_lacquer_1.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 183,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 6,
+        "rows": 6,
+        "cells": [
+          "111111",
+          "111111",
+          "111111",
+          "111111",
+          "111111",
+          "000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/chest_lacquer_2",
+      "path": "Modules/RedBridalGown/Environment/chest_lacquer_2.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 177,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 6,
+        "rows": 6,
+        "cells": [
+          "111111",
+          "111111",
+          "111111",
+          "111111",
+          "111111",
+          "000000"
+        ]
+      }
+    },
+    {
       "id": "Modules/RedBridalGown/Environment/container_bamboo_basket",
       "path": "Modules/RedBridalGown/Environment/container_bamboo_basket.png",
       "category": "Environment",
@@ -5652,6 +5758,29 @@
       }
     },
     {
+      "id": "Modules/RedBridalGown/Environment/decor_flower_knot",
+      "path": "Modules/RedBridalGown/Environment/decor_flower_knot.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 110,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 4,
+        "rows": 7,
+        "cells": [
+          "0110",
+          "0111",
+          "0110",
+          "0110",
+          "1110",
+          "0110",
+          "0000"
+        ]
+      }
+    },
+    {
       "id": "Modules/RedBridalGown/Environment/decor_potted_plant",
       "path": "Modules/RedBridalGown/Environment/decor_potted_plant.png",
       "category": "Environment",
@@ -5680,6 +5809,28 @@
           "0000000000000000",
           "0000000000000000",
           "0000000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/decor_silk_ball",
+      "path": "Modules/RedBridalGown/Environment/decor_silk_ball.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 108,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 4,
+        "rows": 6,
+        "cells": [
+          "1110",
+          "1111",
+          "1111",
+          "0110",
+          "0100",
+          "0000"
         ]
       }
     },
@@ -7268,6 +7419,62 @@
       }
     },
     {
+      "id": "Modules/RedBridalGown/Environment/lantern_stand_left",
+      "path": "Modules/RedBridalGown/Environment/lantern_stand_left.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 123,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 4,
+        "rows": 12,
+        "cells": [
+          "0100",
+          "0110",
+          "1111",
+          "1111",
+          "1111",
+          "1111",
+          "0110",
+          "0110",
+          "0110",
+          "1110",
+          "1110",
+          "0110"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/lantern_stand_right",
+      "path": "Modules/RedBridalGown/Environment/lantern_stand_right.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 126,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 4,
+        "rows": 12,
+        "cells": [
+          "0110",
+          "0110",
+          "1111",
+          "1111",
+          "1111",
+          "1111",
+          "0110",
+          "0110",
+          "0110",
+          "0110",
+          "1110",
+          "0110"
+        ]
+      }
+    },
+    {
       "id": "Modules/RedBridalGown/Environment/light_candlestick",
       "path": "Modules/RedBridalGown/Environment/light_candlestick.png",
       "category": "Environment",
@@ -7488,6 +7695,54 @@
           "0000000000000000",
           "0000000000000000",
           "0000000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/nightstand_candle",
+      "path": "Modules/RedBridalGown/Environment/nightstand_candle.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 120,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 4,
+        "rows": 8,
+        "cells": [
+          "0110",
+          "0110",
+          "1111",
+          "1111",
+          "1111",
+          "1111",
+          "1111",
+          "0000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/nightstand_lantern",
+      "path": "Modules/RedBridalGown/Environment/nightstand_lantern.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 115,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 4,
+        "rows": 8,
+        "cells": [
+          "0110",
+          "1110",
+          "1111",
+          "1111",
+          "1111",
+          "1111",
+          "1111",
+          "0000"
         ]
       }
     },
@@ -7716,6 +7971,77 @@
       }
     },
     {
+      "id": "Modules/RedBridalGown/Environment/screen_four_panel",
+      "path": "Modules/RedBridalGown/Environment/screen_four_panel.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 447,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 14,
+        "rows": 13,
+        "cells": [
+          "10010011001001",
+          "11111111111111",
+          "11111111111111",
+          "11111111111111",
+          "11111111111111",
+          "11111111111111",
+          "11111111111111",
+          "11111111111111",
+          "11111111111111",
+          "11111111111111",
+          "11111111111111",
+          "11111101111111",
+          "00000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/stool_square_1",
+      "path": "Modules/RedBridalGown/Environment/stool_square_1.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 109,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 4,
+        "rows": 5,
+        "cells": [
+          "1111",
+          "1111",
+          "1111",
+          "1010",
+          "0000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/stool_square_2",
+      "path": "Modules/RedBridalGown/Environment/stool_square_2.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 109,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 4,
+        "rows": 5,
+        "cells": [
+          "1111",
+          "1111",
+          "1111",
+          "1010",
+          "0000"
+        ]
+      }
+    },
+    {
       "id": "Modules/RedBridalGown/Environment/structure_well",
       "path": "Modules/RedBridalGown/Environment/structure_well.png",
       "category": "Environment",
@@ -7744,6 +8070,30 @@
           "0000000000000000",
           "0000000000000000",
           "0000000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/tea_table_set",
+      "path": "Modules/RedBridalGown/Environment/tea_table_set.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 243,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 8,
+        "rows": 8,
+        "cells": [
+          "00011000",
+          "00011000",
+          "00111000",
+          "11111111",
+          "11111111",
+          "11111111",
+          "11000011",
+          "00000000"
         ]
       }
     },
@@ -7904,6 +8254,36 @@
           "0000001111100000",
           "0000000110000000",
           "0000000000000000"
+        ]
+      }
+    },
+    {
+      "id": "Modules/RedBridalGown/Environment/vanity_with_mirror",
+      "path": "Modules/RedBridalGown/Environment/vanity_with_mirror.png",
+      "category": "Environment",
+      "module": "RedBridalGown",
+      "pixelSize": 301,
+      "ppu": 256,
+      "frameCount": 1,
+      "footprint": {
+        "subdiv": 8,
+        "cols": 10,
+        "rows": 14,
+        "cells": [
+          "0001110000",
+          "0011111110",
+          "0011111110",
+          "0111111110",
+          "1111111110",
+          "1111111111",
+          "1111111111",
+          "1111111111",
+          "1101001110",
+          "1101111010",
+          "1011111010",
+          "1001111010",
+          "0001001000",
+          "0000000000"
         ]
       }
     },
@@ -8240,7 +8620,7 @@
       "path": "Modules/RedBridalGown/Background/Stage_BridalRoom.png",
       "category": "Background",
       "module": "RedBridalGown",
-      "pixelSize": 1448,
+      "pixelSize": 1882,
       "ppu": 256,
       "frameCount": 1
     },
