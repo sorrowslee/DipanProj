@@ -23,6 +23,12 @@ public class MonsterActuator : MonoBehaviour
     const float StuckSeconds = 0.3f;
     const float UnstickSeconds = 0.4f;
     const float UnstickAngle = 75f;
+    // 放棄期：連 MaxUnstickTries 次側滑都救不回來（＝真的沒路可走，被逼進死角/牆縫）→ 真的停下來
+    // GiveUpSeconds，速度歸零。理由：舊版「一整圈都被擋仍朝目標推」會讓 velocity 恆為滿速、實際位移
+    // 卻只剩貼牆抖動，MonsterController 的動畫判定（看實際位移）就會判成「在走」→ 演成原地踏步。
+    // 停下期間位移為 0 → 動畫自然回 idle；期滿自動重試，玩家一走開路就通了。
+    const int MaxUnstickTries = 2;
+    const float GiveUpSeconds = 0.6f;
 
     private Rigidbody2D _rb;
     private Collider2D _col;
@@ -31,6 +37,9 @@ public class MonsterActuator : MonoBehaviour
     private Vector2 _lastPos;
     private float _stuckTime;
     private float _unstickUntil = -1f;
+    private int _unstickFails;          // 連續側滑失敗次數（真的移動了就歸零）
+    private float _giveUpUntil = -1f;   // 放棄期結束時間（這段時間內完全不動）
+    private bool _lastNoPath;           // 上一幀「A* 也找不到路」（＝真的沒路，不是被活物擋一下）
 
     private readonly List<Vector2> _path = new List<Vector2>();
     private int _pathIdx;
@@ -59,7 +68,13 @@ public class MonsterActuator : MonoBehaviour
             _rb.velocity = toTarget.normalized * MoveSpeed; IsMoving = true; _lastPos = pos; return;
         }
 
+        // 放棄期：連側滑都救不回來 → 這段時間完全不動（不要硬頂著牆磨出假走路）。
+        // 這裡不呼叫 Stop()，因為 Stop() 會清掉放棄期狀態（那是給 Brain 主動喊停用的）。
+        if (Time.time < _giveUpUntil) { _rb.velocity = Vector2.zero; IsMoving = false; _lastPos = pos; return; }
+
         UpdateStuck(pos);
+        // UpdateStuck 這一幀可能剛判定「放棄」→ 同幀就停，不要再送出一幀的滿速指令。
+        if (Time.time < _giveUpUntil) { _rb.velocity = Vector2.zero; IsMoving = false; _lastPos = pos; return; }
 
         Vector2 dir;
         if (Time.time < _unstickUntil)
@@ -69,6 +84,7 @@ public class MonsterActuator : MonoBehaviour
         else if (DirectClear(pos, targetPos))
         {
             _path.Clear();                                                   // 直線可達 → 直走（含最後貼近玩家）
+            _lastNoPath = false;
             dir = toTarget.normalized;
         }
         else
@@ -86,6 +102,9 @@ public class MonsterActuator : MonoBehaviour
         _rb.velocity = Vector2.zero;
         IsMoving = false;
         _stuckTime = 0f;
+        _unstickFails = 0;
+        _giveUpUntil = -1f;
+        _lastNoPath = false;
         _path.Clear();
     }
 
@@ -105,6 +124,7 @@ public class MonsterActuator : MonoBehaviour
             }
         }
 
+        _lastNoPath = _path.Count == 0;   // A* 無解＝真的沒路（放棄期只在這種情況才准觸發）
         if (_path.Count == 0)
             return SteerAround(pos, (target - pos).normalized);            // 沒 nav / 找不到路：局部避障
 
@@ -117,11 +137,27 @@ public class MonsterActuator : MonoBehaviour
     private void UpdateStuck(Vector2 pos)
     {
         if (!IsMoving) { _stuckTime = 0f; return; }
-        if (Time.time < _unstickUntil) return;
         float moved = (pos - _lastPos).magnitude;
         float expected = MoveSpeed * Time.deltaTime * 0.4f;
-        if (moved < expected) _stuckTime += Time.deltaTime; else _stuckTime = 0f;
-        if (_stuckTime > StuckSeconds) { _unstickUntil = Time.time + UnstickSeconds; _stuckTime = 0f; _avoidSign = -_avoidSign; _path.Clear(); }
+
+        // 側滑期間：只要真的挪動了就算脫困成功，失敗計數歸零（不會被誤送進放棄期）。
+        if (Time.time < _unstickUntil) { if (moved >= expected) _unstickFails = 0; return; }
+
+        if (moved < expected) _stuckTime += Time.deltaTime; else { _stuckTime = 0f; _unstickFails = 0; }
+        if (_stuckTime <= StuckSeconds) return;
+
+        _stuckTime = 0f;
+        _avoidSign = -_avoidSign;
+        _path.Clear();
+        // 只有「A* 也找不到路」才准放棄。被玩家/其他怪短暫擋住時路徑是通的，維持舊的側滑行為，
+        // 免得互相推擠的怪動不動就站著發呆。
+        if (++_unstickFails > MaxUnstickTries && _lastNoPath)
+        {
+            // 側滑試過都沒用＝這裡真的沒路 → 停下來等（動畫回 idle），期滿再重試。
+            _giveUpUntil = Time.time + GiveUpSeconds;   // 實際的停止由 MoveTowards 在下一行檢查後執行
+            _unstickUntil = -1f;
+        }
+        else { _unstickUntil = Time.time + UnstickSeconds; if (_unstickFails > MaxUnstickTries) _unstickFails = MaxUnstickTries; }
     }
 
     // 目標是否「直線可達」（中心到目標的直線沒撞牆）→ 是就不必尋徑，直接走。

@@ -25,9 +25,12 @@
 ## 2. 紅嫁衣女殭屍（`RedBridalGownBrain`）
 
 **行為**：躲玩家＋定時召喚家人幽靈當追兵。
-- **逃跑**：玩家進入 `FleeRange`(4.0) 內 → 往「反方向」直線逃（用她自己的 `MonsterData.Speed`）；拉開到 `SafeRange`(6.5) 才停（遲滯避免臨界抖動）。**刻意不做繞牆尋路** → 會被牆角/家具卡住讓玩家追上；速度也刻意低於玩家（玩家 5、她預設 3.5）。
+- **逃跑**：玩家進入 `FleeRange`(4.0) 內 → 往「反方向」逃（用她自己的 `MonsterData.Speed`）；拉開到 `SafeRange`(6.5) 才停（遲滯避免臨界抖動）。速度刻意低於玩家（玩家 5、她預設 3.5），追不追得上靠這個調，**不靠把她卡住**。
+  - **走 A\* 尋徑**（`MonsterActuator` 預設 `AvoidObstacles=true`）：會自動繞牆／家具，和其他怪一樣不做硬碰撞。（早期版本曾「刻意不繞路讓她卡住」，**已不是現況**。）
+  - **⭐ 跑跑停停的節奏**（2026-09-08）：跑滿 `FleeBurstDistance`(5 世界單位) →`FleeRestSeconds`(0.8) 站著喘，循環；`FleeBurstMaxSeconds`(6) 是保險上限。**Burst 綁距離不綁時間**——綁時間的話 CSV 的 `Speed` 一調小，每段跑的距離就等比縮水（Speed 0.5 時只挪 0.75 格），變成「偶爾抽動一下」，見 [PROBLEMS.md](PROBLEMS.md) **F20**。喘息期間**召喚照常**。目的是給玩家攻擊窗口，玩家不必整場追著她跑。**這是明確參數，刻意不依賴「被打時擊退窗口會阻斷 Think」那個副作用**（見 [PROBLEMS.md](PROBLEMS.md) **F19**）。被牆卡住的那幾幀不算進 Burst，免得她在死角空轉完跑步額度、接著又站著喘。
+  - **⭐ 跑之前先確認「真的有路可跑」**（2026-09-08）：以「玩家反方向」為 0°，依 `FleeScanAngles`（0, ±25, ±50, ±75, ±100, ±125, ±150，偏離小的優先）掃描候選方向，每個要同時滿足「落點 `IsWalkableWorld`」＋「`HasLineOfSight` 走得過去」＋「不會反而更靠近玩家」；取第一個可行的當目標，**四面都沒路就 `Stop()` 站住**（動畫自然回 idle）。沒有這一關的話，逃跑目標點會落進牆裡、被 A* 的 `NearestWalkable` 吸附成「她自己腳下那格」，變成滿速在原地來回＝**原地踏步**（成因與通則見 [PROBLEMS.md](PROBLEMS.md) **F18**）。
 - **召喚**：**只看冷卻、不綁逃跑狀態**（她多半在逃，若綁「安全才召」會幾乎不召）。召喚是一把 WeaponTable 武器（見 §3），冷卻/名單/數量/上限全走配方。
-- **手感常數**都在 `RedBridalGownBrain.cs` 上方（`FleeRange`/`SafeRange`/`DetectionRange`/`AwayLookahead`）；逃跑速度走 CSV `Speed`。
+- **手感常數**都在 `RedBridalGownBrain.cs` 上方（`FleeRange`/`SafeRange`/`DetectionRange`/`AwayLookahead`/`FleeScanAngles`）；逃跑速度走 CSV `Speed`。**她太容易站著不動**＝掃描太嚴（把 `AwayLookahead` 調小，落點更近就更容易可走）；**她太滑溜繞不死**＝把 `FleeScanAngles` 的大角度砍掉（只留 ±75° 內就不會沿牆逃）。
 
 **boss 死亡＝召喚物回收**：紅嫁衣被打敗時，她召喚出來、還活著的家人幽靈會**當場被回收清除**（`MonsterWeaponUser.RecallSummons`，由 `MonsterController.Die` 呼叫）——boss 死了招式不該還在場上。這是通用機制，見 §6.7。
 
@@ -80,6 +83,7 @@
 - [ ] **實機調手感**：逃跑速度（CSV `Speed`，現 3.5）、逃/停距離與召喚冷卻/上限（配方 26）。太難就降 `SummonMaxAlive`/拉長 `FireInterval`；她太好抓就升 `Speed`。
 - [x] ~~boss 只會追擊、不逃跑不召喚~~ → **已修**（BrainType 沒 Trim，見 [PROBLEMS.md](PROBLEMS.md) F4）。修後若仍要驗證：確認 MonsterData.csv 已被 Unity 重匯入、boss 出生點填怪物 ID 13。
 - [ ] **怪打怪傷害忽勝忽敗**（召喚物 vs 敵怪）＝接觸傷害每幀結算＋怪 InvincibleTimeMs=0＋近乎一擊斃命 → 勝負看 Update 順序。**待調數值**：給互毆的怪 `InvincibleTimeMs`>0（300~500）＋平衡 HP/ContactDamage。詳見 [PROBLEMS.md](PROBLEMS.md) F5。
+  > ⚠ **做這條之前先讀 [PROBLEMS.md](PROBLEMS.md) F19**：擊退窗口會整段跳過 `Think()`，所以 `InvincibleTimeMs` 同時是一份「隱形的行為預算」——給紅嫁衣加了無敵幀，她被打時能做決策的時間會變多，**逃跑手感會跟著變**（她會變得更難纏）。節奏本身已經參數化在 `RedBridalGownBrain`，改完對照 `FleeBurstSeconds`/`FleeRestSeconds` 重調即可，別以為是別處壞掉。
 - [ ] boss 召喚的家人幽靈(8~12)若只有站姿/看不到 → 幽靈 walk 幀還沒進 StreamingAssets，跑 `Project Tools → Sync Map Assets`。
 - [ ] （Phase 2）要讓怪物射飛劍/落雷 → 把 PlayerController 發射管線抽成共用服務，`MonsterWeaponUser` 非召喚分支接上。
 
