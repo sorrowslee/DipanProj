@@ -24,7 +24,7 @@
 
 | 欄 | 意義 |
 |---|---|
-| `Key` | `Characters/<血統>/<動作>` 或 `Monsters/<怪名>/<動作>`（＝資料夾路徑，不分大小寫） |
+| `Key` | `Characters/<血統>/<動作>` 或 `Monsters/<怪名>/<動作>`（＝資料夾路徑，不分大小寫）。**「角色」那段可以有多層**——血統圖 2026-09-09 起依系列分資料夾，所以是 `characters/feralborn/werewolf/walk` |
 | `AnchorX` | 影子中心 X（px，相對畫布中心，+右，**未翻面**的來源圖方向） |
 | `AnchorY` | 影子中心 Y（px，從畫布底往上＝可見腳底） |
 | `WidthPx` | 影子寬（px；`BlobShadow.WidthFactor` 再乘上去） |
@@ -62,7 +62,7 @@
 
 | 角色 | Key 長這樣 |
 |---|---|
-| 主角某血統的某動作 | `characters/<血統資料夾名>/<idle\|walk\|attack\|dead>`，例 `characters/maojiang/idle` |
+| 主角某血統的某動作 | `characters/<血統資料夾路徑>/<idle\|walk\|attack\|dead>`，例 `characters/jiangshi/maojiang/idle`（**血統圖依系列分了一層**，只有 `characters/base/*` 還是兩段） |
 | 怪物／NPC 的某動作 | `monsters/<怪名資料夾名>/<動作>`，例 `monsters/family_father/walk` |
 
 Key 不分大小寫，就是 `GameAssets/**/SequenceImage/` 底下的資料夾路徑。**每個動作各一列**：idle 對了不代表 walk 對，要分別看。

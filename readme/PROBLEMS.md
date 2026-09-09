@@ -15,7 +15,7 @@
 |---|---|---|
 | A | 打包與部署 (Build & Deploy) | A1~A10（A3、A9 已淘汰，原文封存、存根在原位） |
 | B | 地圖載入 (Map Loader) | B1~B15 |
-| C | 地圖編輯器 / 素材同步 | C1~C11（⚠ C6/C7 排在 C1 前面） |
+| C | 地圖編輯器 / 素材同步 | C1~C12（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D24 |
 | E | 效能 / 顯示 (Performance & Display) | E1~E31（⚠ E21 誤植在 J 段開頭，維持原位不搬） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F20（⚠ G 章整段插在 F3 與 F4 之間） |
@@ -290,6 +290,16 @@
   2. **預覽中一動筆刷 → 先自動套用預覽再塗**（`WalkableController`）：不再有「看得到但還沒生效」的中間狀態，畫面上的一定就是資料裡的。套用進 Undo，反悔 Cmd/Ctrl+Z。
   3. **存檔前若還有未套用的預覽 → 直接幫他套用**（`EditorUI.DrawSaveDialog`）：最後一道防線，防「生成完直接存檔」。
 - **通則**：**任何「預覽／暫存」狀態都必須回答三個問題 —— 換資料時會不會清掉？存檔時會不會被遺漏？使用者的編輯會不會掉進去出不來？** 三個有一個沒答，就會變成「看得到、存不到」的資料遺失。更根本的教訓：**不要讓 UI 上看得到的東西與實際資料不一致**；如果非得有暫態，就讓任何一個「會改資料的動作」自動把它落地。
+
+### C12. 素材資料夾多加一層分類，大部分工具都沒事，只有一個靜默失效——「遞迴」與「寫死兩層」混在同一組管線裡
+- **症狀**（2026-09-09 整理血統圖時**事前查出來的**，不是事後補記）：把 `Characters/SequenceImage/<血統>/` 改成 `Characters/SequenceImage/<系列>/<血統>/` 之後，遊戲照常跑、立繪照常出，**但影子錨點表算不出任何一列**——被改動的血統全部從表裡消失，影子退回 runtime 自動算（含三筆作者手改過的 manual 值）。而且不會有錯誤訊息。
+- **原因**：同一套素材有**四個掃描器**，三個是遞迴、一個寫死兩層。
+  - `MapAssetSyncTool.AddSequenceAnimations` / `MapIO.ScanSequence` / `Tools/sync_map_assets.sh`：都是「遞迴走到底，**沒有直接 PNG 的資料夾就跳過**」——插幾層都對。
+  - `ShadowAnchorTool.Scan`：`GetDirectories(seqDir)` 當角色、再 `GetDirectories(nd)` 當動作，**寫死兩層**。加一層之後它把 `Feralborn` 當角色、`Werewolf` 當動作，然後在 `Werewolf/` 下找不到直接的 PNG → `continue` → 整個系列一列都不產生。**失敗方式是「跳過」不是「報錯」**，所以完全靜默。
+  - 消費端反而都沒事：`PlayerSpriteLibrary` 的鍵是 `Characters/SequenceImage/` 之後的**整段**尾巴、`DramaTalkDatabase` 是字串串接 `Main/Characters/Talk/{血統}/{情緒}`——它們從來不解析「有幾層」，只要 `BloodlineTable.SpriteFolder` 跟著填成 `Feralborn/Werewolf` 就對上了。
+- **解法**：`ShadowAnchorTool.Scan` 改成與 Sync 工具**同一條規則**（`AllDirectories` ＋「沒有直接 PNG 就跳過」），角色名 ＝ 動作資料夾的上層相對 `SequenceImage` 的路徑（新增 `RelDir` 輔助）。連帶 `ShadowAnchorTable.csv` 的 48 個 `characters/*` Key 要補上系列那一段，否則執行期查不到、手改值全部失效。
+- **還沒中但同型的一處**：地圖編輯器的 `PreviewSpriteLoader` 用 `Path.Combine(b, "Monsters", "SequenceImage", folder, state)` **寫死兩層**。這次只動 `Characters`，所以沒事；**哪天要把 `Monsters/SequenceImage` 也依關卡或種類分層，記得先改它**（NPC 分頁與劇情演員預覽都靠它）。
+- **通則**：**同一份資料被多個掃描器讀時，「支援到什麼形狀」必須是它們的共同契約，不能一個一個各自假設。** 這裡三個遞迴、一個寫死，平常完全看不出差別——只有在資料形狀改變的那一刻才會分岔，而且分岔的那個是靜默跳過。改資料夾結構前，先把「有幾個地方在掃這批檔案」數出來（`grep` 那個資料夾名），一個一個確認它怎麼走目錄，不要只確認「遊戲跑起來有沒有圖」。另一條：**「跳過」是最難查的失敗模式**——`if (files.Count == 0) continue;` 這種防呆在資料正確時是保險，在資料形狀變了時就變成消音器；這類 continue 值得順手加一則 log。
 
 ## D. 存檔 / 常駐單例 (Save & Persistent Singletons)
 

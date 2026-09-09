@@ -8,6 +8,7 @@ using Dipan.Data;
 
 /// <summary>
 /// 「計算影子錨點」（2026-09-03）：遞迴掃 <c>Assets/GameAssets/**/(Characters|Monsters)/SequenceImage/&lt;角色&gt;/&lt;動作&gt;/*.png</c>，
+/// 其中 <c>&lt;角色&gt;</c> 可以是**多層**（例 <c>Feralborn/Werewolf</c>，血統圖依系列分資料夾之後就是這樣），
 /// 對每個「角色/動作」用 <see cref="ShadowAnchorMath"/>（與 runtime 退路**同一條路徑**）算一組影子錨點，寫進
 /// <c>Assets/Data/ShadowAnchorTable.csv</c>，並在專案根 <c>TempImage/ShadowAnchors/</c>（gitignored）輸出每個角色一張檢視用拼圖
 /// —— 每列一個動作（順序 idle / walk / attack / dead / 其他）、每列取 4 幀，畫上影子與紅十字（錨點），不用進遊戲就能一眼看全部角色。
@@ -27,7 +28,7 @@ public static class ShadowAnchorTool
     static readonly string[] Columns = { "Key", "AnchorX", "AnchorY", "WidthPx", "Source", "Frames", "CanvasW", "CanvasH", "Note" };
     static readonly string[] HeaderCells =
     {
-        "Key(角色種類/角色/動作: Characters/<血統>/<動作> 或 Monsters/<怪名>/<動作>, 不分大小寫)",
+        "Key(角色種類/角色/動作: Characters/<系列>/<血統>/<動作> 或 Monsters/<怪名>/<動作>, 角色可多層, 不分大小寫)",
         "AnchorX(影子中心X px/相對畫布中心/+右/未翻面方向)",
         "AnchorY(影子中心Y px/從畫布底往上/=可見腳底)",
         "WidthPx(影子寬 px/BlobShadow 再乘 WidthFactor)",
@@ -159,22 +160,40 @@ public static class ShadowAnchorTool
         {
             string kind = Path.GetFileName(Path.GetDirectoryName(seqDir));   // Characters / Monsters
             if (kind != ShadowAnchorTable.KindCharacters && kind != ShadowAnchorTable.KindMonsters) continue;
-            var nameDirs = new List<string>(Directory.GetDirectories(seqDir)); nameDirs.Sort(System.StringComparer.Ordinal);
-            foreach (var nd in nameDirs)
+            // 遞迴找「直接含 PNG」的葉資料夾 ＝ 一個動作；角色名 ＝ 那個葉資料夾的上層、相對 SequenceImage 的路徑。
+            // ⚠ 這裡刻意**不假設固定兩層**（2026-09-09 改）：血統圖改成依系列分資料夾後，
+            //   Characters/SequenceImage/Feralborn/Werewolf/walk 的角色名是「Feralborn/Werewolf」。
+            //   舊的兩層寫法會把 Feralborn 當角色、Werewolf 當動作，然後在 Werewolf/ 下找不到 PNG
+            //   → **整個系列被靜默跳過、一列都算不出來**。規則與 MapAssetSyncTool.AddSequenceAnimations
+            //   完全一致（AllDirectories ＋「沒有直接 PNG 就跳過」），兩邊要一起看。
+            var actDirs = new List<string>(Directory.GetDirectories(seqDir, "*", SearchOption.AllDirectories));
+            actDirs.Sort(System.StringComparer.Ordinal);
+            foreach (var ad in actDirs)
             {
-                var actDirs = new List<string>(Directory.GetDirectories(nd)); actDirs.Sort(System.StringComparer.Ordinal);
-                foreach (var ad in actDirs)
-                {
-                    var files = new List<string>(Directory.GetFiles(ad, "*.png", SearchOption.TopDirectoryOnly));
-                    files.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));   // 與 Sync 工具同序
-                    if (files.Count == 0) continue;
-                    string name = Path.GetFileName(nd), action = Path.GetFileName(ad);
-                    list.Add(new Seq { kind = kind, name = name, action = action, key = ShadowAnchorTable.MakeKey(kind, name, action), files = files });
-                }
+                var files = new List<string>(Directory.GetFiles(ad, "*.png", SearchOption.TopDirectoryOnly));
+                if (files.Count == 0) continue;   // 非葉資料夾（只含子資料夾）→ 跳過
+                files.Sort((a, b) => string.CompareOrdinal(Path.GetFileName(a), Path.GetFileName(b)));   // 與 Sync 工具同序
+                string action = Path.GetFileName(ad);
+                string name = RelDir(seqDir, Path.GetDirectoryName(ad));
+                if (string.IsNullOrEmpty(name)) continue;   // PNG 直接躺在 SequenceImage/ 底下 → 沒有角色層，不是合法素材
+                list.Add(new Seq { kind = kind, name = name, action = action, key = ShadowAnchorTable.MakeKey(kind, name, action), files = files });
             }
         }
         list.Sort((a, b) => string.CompareOrdinal(a.key, b.key));
         return list;
+    }
+
+    /// <summary>
+    /// <paramref name="dir"/> 相對 <paramref name="root"/> 的路徑，一律用 <c>/</c> 當分隔（跨平台、與 catalog id 同形）。
+    /// dir ＝ root 時回空字串。
+    /// </summary>
+    static string RelDir(string root, string dir)
+    {
+        if (string.IsNullOrEmpty(dir)) return "";
+        string r = Path.GetFullPath(root).TrimEnd(Path.DirectorySeparatorChar);
+        string d = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar);
+        if (d.Length <= r.Length) return "";
+        return d.Substring(r.Length + 1).Replace('\\', '/');
     }
 
     static Texture2D LoadPng(string path)

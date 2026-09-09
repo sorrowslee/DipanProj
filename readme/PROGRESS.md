@@ -4,6 +4,28 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **血統圖依「系列」分資料夾：`SequenceImage/` 與 `Talk/` 各多一層**（2026-09-09，見 [PROBLEMS.md](PROBLEMS.md) **C12**、[BLOODLINE.md](BLOODLINE.md) §2）：
+  作者反映兩個資料夾各躺 13 個血統資料夾、越來越難找。改成 `Base` 留在根層（人類不屬任何系列），
+  其餘 12 個收進四個系列資料夾：`Jiangshi/`、`Bloodborn/`、`Feralborn/`、`Gaiaborn/`（名字＝表A 的 `Key`）。
+  殭屍系列因此出現 `Jiangshi/Jiangshi`——**刻意保留**，規則統一成「資料夾名就是表A 的 Key」，加系列時不用想。<br>
+  **動手前先把所有引用點追過一遍，結果比預期好**：四個掃描器裡有三個（`MapAssetSyncTool`、`MapIO`、
+  `Tools/sync_map_assets.sh`）本來就是遞迴的（走到「直接含 PNG 的葉資料夾」為止），消費端
+  `PlayerSpriteLibrary`（鍵＝Marker 之後的整段尾巴）與 `DramaTalkDatabase`（字串串接）也從不解析層數
+  ⇒ **只要 `BloodlineTable.SpriteFolder` 改成 `Feralborn/Werewolf` 這種相對路徑，這六條全部自動接上、零程式改動**。
+  地圖編輯器專案只碰 `Monsters/SequenceImage`，完全不受影響。<br>
+  **唯一要改的是 `ShadowAnchorTool.Scan`**：它寫死兩層（`GetDirectories` 當角色、再 `GetDirectories` 當動作），
+  加一層後會把系列當角色、血統當動作，然後在血統資料夾裡找不到直接的 PNG → `continue` → **整個系列靜默消失、一列都不產生**。
+  改成與 Sync 工具同一條規則（`AllDirectories` ＋「沒有直接 PNG 就跳過」，角色名＝葉資料夾的上層相對路徑，新增 `RelDir`）。<br>
+  **實際做的六件事**：① 搬 12 個資料夾 ×2（含各自的 `.meta`，Unity 才認得是移動而不是刪除＋新增）；
+  ② `BloodlineTable.csv` 12 列的 `SpriteFolder`；③ `ShadowAnchorTable.csv` 48 個 Key 補系列段
+  （**含三筆 manual 手改與昨天改的 `titan/walk`，不補就全部失效**）；④ `ShadowAnchorTool` 改遞迴；
+  ⑤ `StreamingAssets/MapAssets/Main/Characters/` 整包移出（Sync 只推不刪，不清的話舊路徑 1269 張會跟新路徑並存；
+  順便清掉本來就殘留的 102 張）；⑥ `SequenceImage/Nightborn` 空殼（0 張 PNG、狂族改名前的殘留）移出。
+  ⑤⑥ 都移到專案根的 `_to_delete/`（約 248MB）等作者自己刪。<br>
+  **驗算**：`SpriteFolder` 13 筆全部對得到 SequenceImage 與 Talk 的實體資料夾；模擬 catalog 尾巴 × 26 個鍵全中；
+  `ShadowAnchorTable` 的 52 個 characters 列 ↔ 52 個實際動作資料夾，**孤兒 0、遺漏 0**。<br>
+  ⏳ **未實機驗證**；作者要在 Unity 跑 `Sync Map Assets` 重建 StreamingAssets 與 catalog。
+
 * [x] **泰坦走路時影子落在身後：一段 4~5px 寬的拖曳剪影被當成第二隻腳**（2026-09-09，見 [SHADOW.md](SHADOW.md) §5b）：
   作者回報泰坦走路時影子明顯偏後方、停下來就回到腳下。**演算法沒有動**（2026-09-03 已定版，一律改表）。<br>
   **查證**：`ShadowAnchorTable` 的 `characters/titan/walk` 是 **-23.8**，而同角色 idle 是 **+7.8**——差 32px。

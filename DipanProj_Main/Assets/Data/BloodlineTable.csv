@@ -27,7 +27,8 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 #                   但正規化只看高度不看體積與姿勢，瘦長挺立的圖看起來就是比橫向壯碩的圖小一號。,,,,,,,,,,,
 #                   這一欄就是拿來「用眼睛校正」那個落差的，調到看順眼為止即可。,,,,,,,,,,,
 #                 變身演出的煙霧與電弧會自動跟著這個倍率放大（取變身前後較大的那一個），不必另外調。,,,,,,,,,,,
-#   SpriteFolder  外型資料夾名，同時決定兩件事：,,,,,,,,,,,
+#   SpriteFolder  外型資料夾「相對路徑」（2026-09-09 起依系列分一層，例 Feralborn/Werewolf；Base 仍在根層），,,,,,,,,,,,
+#                 同時決定兩件事：,,,,,,,,,,,
 #                   ・動作序列圖 GameAssets/Main/Characters/SequenceImage/<這一欄>/{idle,walk,dead,attack}/,,,,,,,,
 #                   ・對話立繪   GameAssets/Main/Characters/Talk/<這一欄>/<情緒>.png,,,,,,,,,,,
 #                 兩邊資料夾必須同名。留空 = 不換外型。,,,,,,,,,,,
@@ -45,15 +46,15 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 #   Note          備註（程式不讀）。,,,,,,,,,,,
 # ─────────────────────────────────────────────────────────────────────────────,,,,,,,,,,,
 1,Human,人類,Base,1,5,5,5,1,1,,初始外型（最基礎數值）。輪迴後回到這個狀態
-10,Jiangshi,殭屍,Jiangshi,1,5,20,10,5,20,,殭屍系列 第一階
-11,Maojiang,毛殭,Maojiang,1.5,5,40,15,15,40,,殭屍系列 第二階
-12,Hanba,旱魃,Hanba,1.2,5,60,25,30,60,,殭屍系列 第三階
-20,Bloodseeker,覓血者,Bloodseeker,1,5,15,25,20,15,,血族系列 第一階（數值為佔位，待屬性系統再校）
-21,CrimsonCount,血伯爵,Crimson Count,1.5,5,35,40,40,35,,血族系列 第二階（數值為佔位，待屬性系統再校）
-22,Cain,該隱,Cain,1.5,5,60,55,60,55,,血族系列 第三階（數值為佔位，待屬性系統再校）
-30,Werewolf,狼人,Werewolf,1.2,5,25,15,5,20,,狂族系列 第一階（數值為佔位，待屬性系統再校）
-31,Moonwatcher,望月者,Moonwatcher,1.5,5,45,25,10,45,,狂族系列 第二階（BodyScale 憑印象給，實機看過再定）
-32,Fenrir,芬里爾,Fenrir,1.4,5,70,40,15,70,,狂族系列 第三階（BodyScale 憑印象給，實機看過再定）
-40,Gargoyle,石像鬼,Gargoyle,1.5,2,25,8,10,25,,土裔系列 第一階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）
-41,MountainGiant,山嶽巨人,MountainGiant,2,2,50,12,15,50,,土裔系列 第二階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）
-42,Titan,泰坦,Titan,1.8,2,80,20,25,80,,土裔系列 第三階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）
+10,Jiangshi,殭屍,Jiangshi/Jiangshi,1,5,20,10,5,20,,殭屍系列 第一階
+11,Maojiang,毛殭,Jiangshi/Maojiang,1.5,5,40,15,15,40,,殭屍系列 第二階
+12,Hanba,旱魃,Jiangshi/Hanba,1.2,5,60,25,30,60,,殭屍系列 第三階
+20,Bloodseeker,覓血者,Bloodborn/Bloodseeker,1,5,15,25,20,15,,血族系列 第一階（數值為佔位，待屬性系統再校）
+21,CrimsonCount,血伯爵,Bloodborn/Crimson Count,1.5,5,35,40,40,35,,血族系列 第二階（數值為佔位，待屬性系統再校）
+22,Cain,該隱,Bloodborn/Cain,1.5,5,60,55,60,55,,血族系列 第三階（數值為佔位，待屬性系統再校）
+30,Werewolf,狼人,Feralborn/Werewolf,1.2,5,25,15,5,20,,狂族系列 第一階（數值為佔位，待屬性系統再校）
+31,Moonwatcher,望月者,Feralborn/Moonwatcher,1.5,5,45,25,10,45,,狂族系列 第二階（BodyScale 憑印象給，實機看過再定）
+32,Fenrir,芬里爾,Feralborn/Fenrir,1.4,5,70,40,15,70,,狂族系列 第三階（BodyScale 憑印象給，實機看過再定）
+40,Gargoyle,石像鬼,Gaiaborn/Gargoyle,1.5,2,25,8,10,25,,土裔系列 第一階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）
+41,MountainGiant,山嶽巨人,Gaiaborn/MountainGiant,2,2,50,12,15,50,,土裔系列 第二階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）
+42,Titan,泰坦,Gaiaborn/Titan,1.8,2,80,20,25,80,,土裔系列 第三階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）

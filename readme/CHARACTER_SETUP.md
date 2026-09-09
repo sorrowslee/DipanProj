@@ -9,7 +9,7 @@
 > **資料夾慣例**（每個血統一個資料夾、每個動作一個子資料夾、單張 PNG 一幀）：
 >
 > ```
-> GameAssets/Main/Characters/SequenceImage/<血統>/
+> GameAssets/Main/Characters/SequenceImage/<系列>/<血統>/     ← 2026-09-09 起依系列分一層（Base 例外，仍在根層）
 > ├─ idle/   idle_01.png ...        ← 必備（單張也可＝靜態站姿）
 > ├─ walk/   walk_01.png ...        ← 必備
 > ├─ dead/   dead_01.png ...        ← 可選；一次性，播完停在最後一幀

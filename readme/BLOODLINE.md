@@ -155,6 +155,16 @@ Unity 怎麼算 bounds 影響。
 - 動作序列圖 `GameAssets/Main/Characters/SequenceImage/<SpriteFolder>/{idle,walk,dead,attack}/`
 - 對話立繪 `GameAssets/Main/Characters/Talk/<SpriteFolder>/<情緒>.png`
 
+> **`SpriteFolder` 是一段「相對路徑」，不是單一資料夾名**（2026-09-09 起）。兩個資料夾都依**系列**分了一層，
+> 所以現在填的是 `Feralborn/Werewolf` 這種帶斜線的值；只有人類 `Base` 還在根層（它不屬於任何系列）。
+> 系列資料夾名 ＝ 表A 的 `Key`，所以殭屍系列會出現 `Jiangshi/Jiangshi`（系列與第一階同名），這是刻意的——
+> 規則統一成「資料夾名就是表A 的 Key」，加系列時不用想。
+>
+> 為什麼這樣改不會壞：**四處掃描器（`MapAssetSyncTool.cs`、`MapIO.cs`、`Tools/sync_map_assets.sh` 的序列圖／立繪掃描）
+> 本來就是遞迴的**（掃到「直接含 PNG 的葉資料夾」為止），而 `PlayerSpriteLibrary` 的鍵是
+> `Characters/SequenceImage/` 之後的**整段**尾巴、`DramaTalkDatabase` 是字串串接 —— 所以中間插幾層都對得上。
+> **唯一要配合改的是影子錨點工具**（它原本寫死兩層），見 [PROBLEMS.md](PROBLEMS.md) **C12**。
+
 > 🧯 **加了新的血統資料夾，一定要跑 `Project Tools → Sync Map Assets`。**
 > 這兩條路都是走 catalog（StreamingAssets），沒同步的話執行期一張圖都載不到，
 > 角色會變成**只剩影子**，Console 會有 `[PlayerAnimator] 血統「X」找不到任何外型圖`。
@@ -512,7 +522,8 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 
 1. 表A 加一列（Id 接續，例如第四個系列）：`4,<系列Key>,<系列名>,40,41,42,...`
 2. 表B 加三列：Id 40/41/42，填 `SpriteFolder`、`BodyScale`（先填 1，實機看過再調）與五屬性
-3. 美術：`SequenceImage/<SpriteFolder>/{idle,walk,dead,attack}/` 與 `Talk/<SpriteFolder>/<8 種情緒>.png`
+3. 美術：`SequenceImage/<系列Key>/<SpriteFolder>/{idle,walk,dead,attack}/` 與 `Talk/<系列Key>/<SpriteFolder>/<8 種情緒>.png`
+   —— **兩個資料夾都要開一層系列資料夾**（名字＝表A 的 `Key`），表B 的 `SpriteFolder` 就填 `<系列Key>/<角色資料夾>`
 4. **跑 `Project Tools → Sync Map Assets`**
 5. `ItemTable.csv` 加一瓶系列起始藥劑（`BloodlineID` = 該系列第一階的 Id）
 6. `BaseBloodRoll.csv` 加一列（或做成 `unlockRoll` 觸發解鎖）
