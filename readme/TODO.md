@@ -679,8 +679,10 @@
 
 資料端四張 CSV 已完成，做法見 [PROGRESS.md](PROGRESS.md) 檔頭那條與 [BLOODLINE.md](BLOODLINE.md) §7。
 
-- [ ] **`Gargoyle/idle` 只有 1 張圖**（`Gargoyle-iso_idle_right-trimmed.png`，檔名沒有編號後綴）。其他每個血統的 idle 都是 25 張——看起來是匯出時漏掉整組。補齊前石像鬼的待機是靜止單格。
-- [ ] **`MountainGiant/walk` 只有 1 張圖**（`MountainGiant-iso_walk_right-trimmed.png`），同上，山嶽巨人走路會不動。
+- [x] ~~三階的 attack 只播得到前 2~4 幀~~ → 2026-09-09 已修（[PROBLEMS.md](PROBLEMS.md) **G9**）：加了「曲線沒有可辨識的峰就整段照播」的失效偵測。石像鬼 2→25、泰坦 4→23，順手修好狼人與覓血者（2→25），其餘九個血統一格不動。⏳ **未實機驗證**
+- [ ] **表B 的 `WalkSpeed` 數字要重填**：這一欄 2026-09-09 接上了（換血統會真的改移動速度），但表裡現在的數字是屬性系統前的佔位值——人類 5、**其他 12 個血統一律 10** ⇒ 一喝藥就兩倍速。要嘛逐個填成實際想要的速度、要嘛清空該格（＝不改速度）。實機跑過再定。
+- [ ] **山嶽巨人的 attack 只播 4 幀，是刻意不動的**：它振幅 52%＝曲線有結構，G9 的保底沒有命中它，所以那 4 幀就是演算法認定的動作長度。實機看了覺得太短的話，是素材的動作幅度問題，不是演算法。
+- [ ] **幀數比其他血統少**：石像鬼 idle 15／walk 22、山嶽巨人 idle 22／walk 14、泰坦 idle 24／walk 24／attack 23，其他血統各動作一律 25。程式是逐格播、不影響正確性，只是循環長度不同；若是匯出時掉幀再補。
 - [ ] **在 Unity 跑 `Project Tools → Sync Map Assets`**（Cowork 這邊跑不了 Unity）。沒跑的話執行期載不到任何一張圖，角色只剩影子、Console 會報 `[PlayerAnimator] 血統「X」找不到任何外型圖`。
 - [ ] **在 Unity 跑 `Project Tools → 角色 → 計算影子錨點`**：`ShadowAnchorTable.csv` 還沒有這三個角色的列。算完看 `TempImage/ShadowAnchors/` 的拼圖，歪的直接改 `AnchorX/AnchorY/WidthPx` 並把 `Source` 改 `manual`（見 [SHADOW.md](SHADOW.md)）。
 - [ ] **三階的 `BodyScale` 全是 1，未實機看過**。設定上石像鬼 → 山嶽巨人 → 泰坦是越變越大，但引擎會把每個血統的 idle 可見高正規化成同一個世界高度，體型差別得靠這一欄做出來（改 CSV 即時生效）。

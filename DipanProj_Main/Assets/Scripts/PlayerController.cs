@@ -2149,6 +2149,29 @@ public class PlayerController : MonoBehaviour, IDamageable
     }
 
     /// <summary>
+    /// 換走路速度（血統表的 <c>WalkSpeed</c> 由 <c>BloodlineSystem.ApplyTo</c> 推進來）。
+    ///
+    /// ⚠ <b>不能只設 <see cref="MoveSpeed"/>。</b>「正常走 ＝ 動畫 1 倍速」這個基準有**兩份**，
+    /// 都是在初始化時抄走 MoveSpeed 的：<c>PlayerAnimator.ReferenceSpeed</c>（路線 B 的逐格動畫）
+    /// 與 <c>AnimatorSpeedByVelocity.ReferenceSpeed</c>（舊 Animator 那條，目前停用但元件還在）。
+    /// 只改 MoveSpeed 的話，速度變兩倍、基準還停在舊值 ⇒ 走路動畫跟著播兩倍速。
+    ///
+    /// 刻意**不重跑** <c>PlayerAnimator.Setup</c>：那支會重載圖、重算縮放並把 sprite 打回 idle 第 0 幀
+    /// （變身演出正趴著的時候被打回站姿，就是 BLOODLINE §5 的坑 2）。基準是 public 欄位，直接設就好。
+    ///
+    /// <paramref name="speed"/> ≤ 0 一律忽略＝維持 Inspector 值（血統表那一欄留空就是這個意思）。
+    /// </summary>
+    public void SetMoveSpeed(float speed)
+    {
+        if (speed <= 0.01f) return;
+        if (Mathf.Approximately(MoveSpeed, speed)) return;
+        MoveSpeed = speed;
+        if (_playerAnim != null) _playerAnim.ReferenceSpeed = MoveSpeed;
+        var asv = GetComponent<AnimatorSpeedByVelocity>();
+        if (asv != null) asv.ReferenceSpeed = MoveSpeed;
+    }
+
+    /// <summary>
     /// 體型（<see cref="BodyScale"/>）改變後，把所有「依身體大小」而且**還活著**的東西重新對齊。
     ///
     /// 為什麼需要這支：多數特效是「生成當下讀 SpriteRenderer.bounds」，所以下次生成自然就跟上了；

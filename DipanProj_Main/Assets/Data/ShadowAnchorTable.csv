@@ -88,4 +88,4 @@ characters/mountaingiant/walk,-4.2,55.3,110,auto,14,256,256,幀數 1→14 已重
 characters/titan/attack,-0.2,37.5,183,auto,23,256,256,
 characters/titan/dead,-28.5,60.2,155,auto,9,256,256,幀數 9→25 已重算
 characters/titan/idle,7.8,39.5,147,auto,24,256,256,
-characters/titan/walk,-23.8,37,129,auto,24,256,256,
+characters/titan/walk,8,37,129,manual,24,256,256,"2026-09-09 手改：原本 -23.8 是把左後方一段 4~5px 寬的窄剪影（拖在後面的布條／髮絲）當成第二隻腳，錨點被拉到身體後方約 33px；濾掉寬度 <10px 的段後，24 幀的真實兩腳中點中位數是 +9，對齊 idle 的 7.8 取 8，換動作時不會跳。⚠ WidthPx 129 也是被那段窄剪影撐出來的（idle 是 147），先沒動"

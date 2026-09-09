@@ -260,6 +260,20 @@ namespace Dipan.UI
         }
 
         // 解析立繪、套版面、啟動表演。缺圖的部分各自略過（不擋流程，一定會走到 Finish）。
+        /// <summary>
+        /// 把字級夾到「這個字數在石碑上不會換行」的大小。回傳值永遠 ≤ <paramref name="maxSize"/>，
+        /// 所以只會讓長名字變小、不會把短名字放大（版面其餘部分都是照 NameFontSize 算的）。
+        /// 估寬用「一個字 ≈ 一個字級」——毛筆字 Bakudai 是全形等寬，中文血統名這樣估就夠準。
+        /// </summary>
+        int FitFontSize(string text, int maxSize)
+        {
+            int len = text != null ? text.Length : 0;
+            if (len <= 0) return maxSize;
+            float areaW = PlateW * Mathf.Max(0.01f, NameArea.width);
+            int fit = Mathf.FloorToInt(areaW / len);
+            return Mathf.Clamp(Mathf.Min(maxSize, fit), 8, maxSize);
+        }
+
         void Begin(string fromFolder, string toFolder, string displayName, System.Action onFinished)
         {
             _onFinished = onFinished;
@@ -335,7 +349,13 @@ namespace Dipan.UI
             _plate.enabled = false;                                   // 飄入時刻才開
 
             _name.text = string.IsNullOrEmpty(displayName) ? "" : displayName;
-            _name.fontSize = NameFontSize;
+            // 字級依字數自動縮：石碑的字區寬 ＝ PlateW × NameArea.width（預設 360 × 0.60 ＝ 216px），
+            // 中文一個字大約就是一個字級寬 ⇒ 預設 56 只放得下 3 個字，第 4 個字會被 uGUI 的
+            // horizontalOverflow = Wrap 折到第二行（「山嶽巨人」踩到的就是這個，2026-09-09 修）。
+            // 為什麼縮字而不是把 NameArea 拉寬：那一欄當初就是為了避開石碑左右的尖刺裝飾才收到 0.60，
+            // 拉寬會讓字壓到裝飾上。縮字級只影響「長名字」——三個字的血統算出來仍是 56，位元級零影響；
+            // 四個字 54（肉眼看不出差別）、五個字 43（還很清楚）。
+            _name.fontSize = FitFontSize(_name.text, NameFontSize);
             _name.font = string.IsNullOrEmpty(NameFontPath) ? UIBuilder.DefaultFont : UIBuilder.LoadFont(NameFontPath);
             var nrt = _name.rectTransform;
             nrt.anchorMin = new Vector2(NameArea.x, NameArea.y);

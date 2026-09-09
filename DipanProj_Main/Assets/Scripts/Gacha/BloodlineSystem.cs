@@ -538,9 +538,16 @@ namespace Dipan.Gacha
                 && (pc.Bloodline != def.SpriteFolder || !Mathf.Approximately(pc.BodyScale, def.BodyScale)))
                 pc.SetBloodline(def.SpriteFolder, def.BodyScale);
 
-            // 2) 屬性：⚠ 刻意什麼都不做。表B 的五個屬性目前只存不套用（沒有角色屬性系統）。
-            //    等屬性系統做好，套用點就在這裡；在那之前不要偷偷改 CombatStats 或 MoveSpeed，
-            //    否則會跟未來的屬性系統變成兩套來源打架（舊版就是這樣，已拿掉）。
+            // 2) 行走速度：套用表B 的 WalkSpeed（2026-09-09 作者要求接上）。
+            //    留空／≤0 ＝不套用、維持 PlayerController 的 Inspector 值，所以不想讓某個血統改速度就把那格清空。
+            //    ⚠ 一定要走 SetMoveSpeed()，不能直接寫 pc.MoveSpeed——「正常走＝動畫 1 倍速」的基準有兩份，
+            //      只改速度不改基準會讓走路動畫跟著變速，理由寫在 SetMoveSpeed 的註解裡。
+            pc.SetMoveSpeed(def.WalkSpeed);
+
+            //    其餘四個屬性（力量／敏捷／魔力／體力）仍然只存不套用——遊戲裡還沒有對應的東西：
+            //    力量沒有攻擊力欄位（傷害在武器表）、敏捷沒有任何對應；魔力／體力若要接到 CombatStats 的
+            //    MaxMana／MaxHealth，得先解掉「ReviveFull() 會呼叫 CombatStats.Init() 把上限打回 Inspector 基礎值」
+            //    這個坑（舊版血統加 HP 就是死在這，死一次回廣場修正就消失）。等屬性系統一起做。
 
             // 3) 技能：預留欄位，技能系統還沒做。
             if (def.SkillId > 0)

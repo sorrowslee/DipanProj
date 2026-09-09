@@ -351,6 +351,30 @@ public class PlayerSpriteLibrary
     /// <summary>最大幀之後再多播幾幀當收勢，免得從伸到底直接跳站姿太硬。1＝多一格；0＝到最大幀就停。</summary>
     public const int ActionEndTailFrames = 1;
 
+    /// <summary>
+    /// 「這條曲線有沒有結構」的門檻：振幅 ＝ (峰值 − 最低) ÷ 峰值。低於這個值就當作**演算法對這組素材失效**。
+    ///
+    /// 【為什麼需要它】上面整套規則的隱含前提是「attack 起手 ≈ 站姿 → 中間出手到底 → 曲線有一個峰」。
+    /// 素材若是「整段都跟站姿差很多」（石像鬼的 idle 是蹲踞石像姿、attack 全程站起來揮擊；
+    /// 泰坦、狼人、覓血者同理），差異曲線就變成一條在高檔震盪的平線、沒有可辨識的峰——
+    /// 「第一次到峰值 90%」等於在雜訊裡挑第一個點，抓在哪一格是隨機的，實測都落在第 1~2 幀
+    /// ＝玩家只看得到起手抖一下，出拳完全沒播（作者 2026-09-09 回報石像鬼與泰坦的症狀）。
+    ///
+    /// 【實測振幅】芬里爾 84%、該隱 74%、望月者 65%、血伯爵 59%、旱魃 55%、山嶽巨人 52%、毛殭 49%、殭屍 44%
+    /// ／／ 石像鬼 30%、泰坦 24%、狼人 21%、覓血者 19%、Base 17%。分界落在 30~44% 之間，取 0.35。
+    /// </summary>
+    public const float ActionFlatCurveAmplitude = 0.35f;
+
+    /// <summary>
+    /// 「算出來的區間短到不可能是真的」的門檻：播放幀數 ÷ 總幀數。
+    ///
+    /// 【為什麼要和振幅**同時**成立才保底】只看振幅會誤傷 Base（振幅 17% 但目前播 9/25 幀、表演正常，
+    /// 它只是 attack 第 1 幀就已經出手）；只看幀數比會誤傷山嶽巨人（播 4/25，但它振幅 52%＝曲線有結構，
+    /// 那 4 幀就是它真正的動作長度）。兩條一起，命中的只有石像鬼(2/25)、狼人(2/25)、覓血者(2/25)、
+    /// 泰坦(4/23) 這四組「明顯壞掉」的，其餘九組**一格都不動**。
+    /// </summary>
+    public const float ActionMinPlayRatio = 0.2f;
+
     const int PoseGrid = 64;              // 輪廓比對的取樣格數（整張畫布 → PoseGrid×PoseGrid 佔用格）
     const byte PoseAlphaThreshold = 10;   // 與 MapSpriteLoader.AlphaThreshold 同值（去背邊當透明）
 
@@ -432,6 +456,21 @@ public class PlayerSpriteLibrary
         for (int i = start; i < diffs.Length; i++)
             if (diffs[i] >= endGate) { end = Mathf.Min(diffs.Length - 1, i + ActionEndTailFrames); break; }
         if (end >= 0 && end < start) end = start;
+
+        // ── 保底：曲線沒有結構 ＋ 算出來的區間又短得離譜 ⇒ 這組素材不適用上面的規則，整段照播 ──
+        // 判準與理由見 ActionFlatCurveAmplitude / ActionMinPlayRatio 的註解。
+        // 退回「起 0、播到最後一幀」＝這支功能加進來以前的行為，所以最壞情況只是「沒幫上忙」，不會更糟。
+        float low = float.MaxValue;
+        for (int i = 0; i < diffs.Length; i++) if (diffs[i] < low) low = diffs[i];
+        float amplitude = (peak - low) / peak;
+        int lastFrame = end >= 0 ? end : diffs.Length - 1;
+        float playRatio = (float)(lastFrame - start + 1) / diffs.Length;
+        if (amplitude < ActionFlatCurveAmplitude && playRatio < ActionMinPlayRatio)
+        {
+            Debug.Log($"[PlayerSpriteLibrary] 「{bloodline}/{state}」的動作曲線沒有可辨識的峰"
+                      + $"（振幅 {amplitude:P0}、算出來只播 {playRatio:P0}），改為整段照播。");
+            start = 0; end = -1;
+        }
     }
 
     /// <summary>
