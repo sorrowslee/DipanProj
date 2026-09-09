@@ -672,3 +672,17 @@
   可考慮的方向（未討論）：分頁／可摺疊分組、面板可拖寬、把長說明改成 tooltip、常用欄位固定在頂部不捲走。
 - [x] ~~可走面板加了「自動生成」後直接爆版、看不到「③ 套用」鈕~~ → 2026-09-07 已修：補上 `ScrollView`（其他面板本來就有，唯獨可走面板沒有，因為它以前內容短塞得下）＋精簡說明文字。**通則：往任何面板加東西時，先確認那個面板有沒有 ScrollView** —— 沒有的話超出的部分是完全看不到、不是捲得到。
 
+
+---
+
+## 土裔血統（Gaiaborn）— 2026-09-09（資料完成，未實機）
+
+資料端四張 CSV 已完成，做法見 [PROGRESS.md](PROGRESS.md) 檔頭那條與 [BLOODLINE.md](BLOODLINE.md) §7。
+
+- [ ] **`Gargoyle/idle` 只有 1 張圖**（`Gargoyle-iso_idle_right-trimmed.png`，檔名沒有編號後綴）。其他每個血統的 idle 都是 25 張——看起來是匯出時漏掉整組。補齊前石像鬼的待機是靜止單格。
+- [ ] **`MountainGiant/walk` 只有 1 張圖**（`MountainGiant-iso_walk_right-trimmed.png`），同上，山嶽巨人走路會不動。
+- [ ] **在 Unity 跑 `Project Tools → Sync Map Assets`**（Cowork 這邊跑不了 Unity）。沒跑的話執行期載不到任何一張圖，角色只剩影子、Console 會報 `[PlayerAnimator] 血統「X」找不到任何外型圖`。
+- [ ] **在 Unity 跑 `Project Tools → 角色 → 計算影子錨點`**：`ShadowAnchorTable.csv` 還沒有這三個角色的列。算完看 `TempImage/ShadowAnchors/` 的拼圖，歪的直接改 `AnchorX/AnchorY/WidthPx` 並把 `Source` 改 `manual`（見 [SHADOW.md](SHADOW.md)）。
+- [ ] **三階的 `BodyScale` 全是 1，未實機看過**。設定上石像鬼 → 山嶽巨人 → 泰坦是越變越大，但引擎會把每個血統的 idle 可見高正規化成同一個世界高度，體型差別得靠這一欄做出來（改 CSV 即時生效）。
+- [ ] **五屬性是佔位值**（力量／體力偏高、敏捷偏低的走向），等角色屬性系統做好再一起校平衡。
+- [ ] **檢查 attack 的起播／結束幀**：狼人與芬里爾撞過「idle 直立、attack 整段前傾 ⇒ 只播 2~3 幀」的坑（PROBLEMS **G6**、[BLOODLINE.md](BLOODLINE.md) §8）。土裔三階會不會也中，實機看過才知道。

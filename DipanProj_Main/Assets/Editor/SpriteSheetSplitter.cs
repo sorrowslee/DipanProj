@@ -6,9 +6,10 @@ using UnityEditor;
 using UnityEngine;
 
 /// <summary>
-/// 5×5＝25 張的序列圖切割工具。
+/// AutoSprite 序列圖切割工具（固定 5 欄，列數由圖自己算）。
 ///
-/// 用途：AutoSprite 會把一個動作輸出成「一張 5×5 的大序列圖」（25 格），
+/// 用途：AutoSprite 會把一個動作輸出成「一張 5 欄的大序列圖」（完整版 5×5＝25 格；
+/// 它推薦的 perfect loop 張數較少，就變成 5×3＝15 格、5×2＝10 格…），
 /// 但本專案的 route B 程式逐格動畫吃的是「資料夾裡的單張幀」。三個選單入口（Project Tools）：
 ///
 ///   1. <b>Split Sprite Sheet</b>：選一張序列圖 → 切成單張幀、寫回<b>同資料夾</b>、刪掉原圖（原始單張模式，行為不變）。
@@ -19,10 +20,14 @@ using UnityEngine;
 ///      每張序列圖<b>就地</b>切成幀（幀留在 sheet 原本所在的資料夾）。
 ///      適合「sheet 已經各自放進 idle/walk/attack/dead 資料夾」的角色包，選角色資料夾一鍵全切。
 ///
-/// 共同切割規格（依與使用者確認過的規格）：
-///   1. <b>格數固定 5×5 ＝ 25 格</b>；每格大小由圖自己算（圖寬÷5 × 圖高÷5），所以原生 1280×1280（每格 256）
-///      與放大後的 5120×5120（每格 1024）都吃得下——<b>放大過的序列圖不會被當成 20×20 切成 400 張</b>。
-///      寬或高不是 5 的倍數 → 單張模式中止並提示、批次模式跳過該檔並列入報告。
+/// 共同切割規格：
+///   1. <b>欄數固定 5</b>（AutoSprite 的排版），<b>格邊長 ＝ 圖寬÷5</b>，<b>列數 ＝ 圖高÷格邊長</b>。
+///      因為 AutoSprite 的格子一定是正方形，所以列數可以這樣反推，不必寫死：
+///      1280×1280 → 5×5（25 格，每格 256）、<b>1280×768 → 5×3（15 格，perfect loop 版）</b>、
+///      1280×512 → 5×2（10 格）；放大過的也一樣，5120×3072 → 5×3（每格 1024）。
+///      <b>放大過的序列圖不會被當成 20×20 切成 400 張</b>（欄數固定，格邊長跟著圖變大）。
+///      寬不是 5 的倍數、或高不是格邊長的整數倍（＝格子不是正方形）→ 單張模式中止並提示、批次模式跳過並列入報告。
+///      列數上限 <see cref="MaxRows"/>＝防呆，避免誤選一張超高的圖被切成上百張。
 ///   2. 順序 row-major（左→右、上→下）。
 ///   3. 命名 = 來源檔名前綴 + 兩位數、從 _01 起（例：walk.png → walk_01.png、walk_02.png…），與 CHARACTER_SETUP 一致。
 ///   4. 全透明的空格自動跳過、不輸出（序號在保留的幀上連續編，不留洞）。
@@ -32,18 +37,22 @@ using UnityEngine;
 ///
 /// ⚠ 批次模式（2、3）額外守衛：<b>檔名結尾是「_兩位以上數字」的 PNG 視為「已是切好的幀」直接跳過</b>
 /// （例 <c>walk_01.png</c>）——否則「整包就地切割」跑第二次時，會把上次切出來的每一張幀再「切割」一次
-/// （改名 + 刪原檔），整包被靜默重排。舊版是用「剛好 256×256」當守衛，改成 5×5 之後那條不再成立
+/// （改名 + 刪原檔），整包被靜默重排。舊版是用「剛好 256×256」當守衛，改成 5 欄之後那條不再成立
 /// （放大後的幀是 1024×1024），所以改用檔名辨認自己的輸出。
-/// 第二道保險是尺寸：256／512／1024 都不是 5 的倍數，真的漏網也會被擋下並列入報告，不會被切壞。
+/// 第二道保險是尺寸：<b>欄數固定 5，而單張幀的邊長 256／512／1024 都不是 5 的倍數</b>，真的漏網也會被寬度那關擋下。
+/// （這也是列數改成自動推算、欄數卻<b>刻意不改成自動</b>的原因：欄數一旦自由推算，正方形的單張幀就可能被
+/// 判成合法的 1×1／2×2 合圖，這道保險會靜默失效。）
 /// 單張模式沒有這個守衛（使用者親手選那張檔，視為明確意圖，維持舊行為）。
 ///
 /// 純 Editor + 純 C#（Texture2D 切格 → EncodeToPNG），無外部依賴。
 /// </summary>
 public static class SpriteSheetSplitter
 {
-    // 格數固定：AutoSprite 的合圖永遠是 5×5＝25 張。要支援別的排版就改這兩個數字（其餘程式不必動）。
+    // 欄數固定：AutoSprite 的合圖永遠是 5 欄（張數少的 perfect loop 版是列數變少，不是欄數變少）。
+    // 要支援別的排版就改這個數字，其餘程式不必動；列數一律由圖算出來。
     private const int GridCols = 5;
-    private const int GridRows = 5;
+    // 列數防呆上限：完整版是 5 列，留一倍餘裕。誤選一張超高的圖時擋下，不會被切成上百張。
+    private const int MaxRows = 10;
 
     // ─────────────────────────────────────────────
     //  入口 1：單張（原始模式，行為不變）
@@ -52,7 +61,7 @@ public static class SpriteSheetSplitter
     [MenuItem("Project Tools/Split Sprite Sheet", false, 40)]
     public static void SplitSelectedSheet()
     {
-        string path = EditorUtility.OpenFilePanel("選擇要切割的序列圖（5×5 ＝ 25 格）", Application.dataPath, "png");
+        string path = EditorUtility.OpenFilePanel("選擇要切割的序列圖（5 欄，列數自動判斷）", Application.dataPath, "png");
         if (string.IsNullOrEmpty(path)) return;   // 取消
 
         if (!IsUnderAssets(path))
@@ -141,8 +150,8 @@ public static class SpriteSheetSplitter
 
         if (!EditorUtility.DisplayDialog($"Split Sprite Sheets（{modeName}）",
                 $"在「{Path.GetFileName(folder)}」找到 {pngs.Length} 張 PNG。\n\n" +
-                $"將逐張切成 {GridCols}×{GridRows} ＝ {GridCols * GridRows} 格（檔名結尾是 _數字的視為已切好的幀、自動跳過；\n" +
-                $"寬高不是 {GridCols} 的倍數的跳過並列入報告）。\n" +
+                $"將逐張切成 {GridCols} 欄（列數依圖高自動判斷；檔名結尾是 _數字的視為已切好的幀、自動跳過；\n" +
+                $"寬不是 {GridCols} 的倍數、或格子不是正方形的跳過並列入報告）。\n" +
                 "切割成功的序列圖會被刪除（幀已寫出）。\n\n確定開始？",
                 "開始", "取消"))
             return;
@@ -185,7 +194,7 @@ public static class SpriteSheetSplitter
         AssetDatabase.Refresh();
 
         var sb = new StringBuilder();
-        sb.AppendLine($"切割 {okCount} 張序列圖（每張 {GridCols}×{GridRows} ＝ {GridCols * GridRows} 格）；跳過 {skipFrame} 張已是單張幀的 PNG。");
+        sb.AppendLine($"切割 {okCount} 張序列圖（每張 {GridCols} 欄、列數依圖高判斷）；跳過 {skipFrame} 張已是單張幀的 PNG。");
         if (failures.Count > 0)
         {
             sb.AppendLine($"\n⚠ {failures.Count} 張無法處理（原檔保留未動）：");
@@ -209,7 +218,7 @@ public static class SpriteSheetSplitter
     }
 
     /// <summary>
-    /// 把一張序列圖切成 <see cref="GridCols"/>×<see cref="GridRows"/> 張單張幀寫進 <paramref name="outFolder"/>
+    /// 把一張序列圖切成 <see cref="GridCols"/> 欄 ×（圖高÷格邊長）列 張單張幀寫進 <paramref name="outFolder"/>
     /// （不存在會建立），成功後刪掉原圖（含 .meta）。
     /// <paramref name="isBatch"/>：批次模式為 true（檔名像自己的輸出就跳過）；單張模式為 false（親手選檔＝明確意圖，照切）。
     /// </summary>
@@ -236,20 +245,46 @@ public static class SpriteSheetSplitter
 
         int sw = sheet.width, sh = sheet.height;
 
-        if (sw % GridCols != 0 || sh % GridRows != 0)
+        // 欄數固定 5、格子是正方形 → 格邊長 = 寬÷5，列數 = 高÷格邊長。
+        // 這樣 25 張(5×5)、15 張(5×3)、10 張(5×2) 都吃得下，放大過的合圖也一樣（格邊長跟著變大）。
+        if (sw % GridCols != 0)
         {
             Object.DestroyImmediate(sheet);
             res.errorTitle = "尺寸不符";
-            res.error = $"圖片尺寸為 {sw}×{sh}，寬要能被 {GridCols} 整除、高要能被 {GridRows} 整除" +
-                        $"（固定切 {GridCols}×{GridRows} ＝ {GridCols * GridRows} 格）。\n" +
-                        "例：1280×1280（每格 256）、5120×5120（每格 1024）。請確認是整張合圖、且無格間留白。";
+            res.error = $"圖片尺寸為 {sw}×{sh}，寬 {sw} 不能被欄數 {GridCols} 整除。\n" +
+                        $"AutoSprite 的合圖固定 {GridCols} 欄，寬必須是 {GridCols} 的倍數" +
+                        $"（例：1280 → 每格 256、5120 → 每格 1024）。請確認選到的是整張合圖、不是已經切好的單張幀。";
+            return res;
+        }
+
+        int cellSize = sw / GridCols;    // 格邊長（正方形）。⚠ 不能叫 cell——下面切格迴圈裡已有 Color[] cell（CS0136）
+        if (sh % cellSize != 0)
+        {
+            Object.DestroyImmediate(sheet);
+            res.errorTitle = "尺寸不符";
+            res.error = $"圖片尺寸為 {sw}×{sh}：依 {GridCols} 欄算出格邊長 {cellSize}，但高 {sh} 不是 {cellSize} 的整數倍" +
+                        $"（{sh} ÷ {cellSize} = {(float)sh / cellSize:0.##} 列）。\n" +
+                        $"AutoSprite 的格子是正方形，高應該是 {cellSize} 的整數倍" +
+                        $"（例 {cellSize * 5}＝5 列 25 格、{cellSize * 3}＝3 列 15 格、{cellSize * 2}＝2 列 10 格）。\n" +
+                        "請確認合圖沒有被裁切過、也沒有格間留白。";
+            return res;
+        }
+
+        int rows = sh / cellSize;
+        if (rows < 1 || rows > MaxRows)
+        {
+            Object.DestroyImmediate(sheet);
+            res.errorTitle = "列數異常";
+            res.error = $"圖片尺寸為 {sw}×{sh}，依 {GridCols} 欄算出格邊長 {cellSize}、共 {rows} 列" +
+                        $"（{rows * GridCols} 格），超出防呆上限 {MaxRows} 列。\n" +
+                        "請確認選到的是單一動作的合圖，而不是多個動作拼在一起的長圖。";
             return res;
         }
 
         res.cols = GridCols;
-        res.rows = GridRows;
-        int cellW = sw / GridCols;   // 每格大小由圖自己算，所以放大過的合圖照樣是 25 張、只是每張比較大
-        int cellH = sh / GridRows;
+        res.rows = rows;
+        int cellW = cellSize;
+        int cellH = cellSize;
 
         string prefix = Path.GetFileNameWithoutExtension(path);
         Directory.CreateDirectory(outFolder);

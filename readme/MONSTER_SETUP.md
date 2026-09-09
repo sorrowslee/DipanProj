@@ -53,6 +53,14 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | **`PrefabPath`** | **route B 留空**。只有要沿用「自帶 Animator 的舊 prefab」才填（向下相容） |
 | **`AnimFPS`** | **新增**：程式動畫播放幀率，留空＝8。走路會再依實際速度連動（防腳滑） |
 
+> **⭐ 張數不必湊滿 25：有幾張就播幾張，但循環會變快。** 載入完全依 catalog 的 `frameCount`（同步工具掃資料夾數 PNG，沒有上限也沒有期待張數），播放是 `_idx = (_idx + 1) % frames.Length`；1 張＝靜態姿勢（catalog 只在 ≥2 幀時寫 `frames`）。現成例子：`ZhaYu/walk` 只有 8 張、家人幽靈 `Ghost_*` 的 idle 都只有 1 張，都正常。
+> **但 `AnimFPS` 是「每秒幾幀」不是「整個動作幾秒」**，所以：
+> ```
+> 動作循環時間 = 張數 ÷ AnimFPS
+> ```
+> 紅嫁衣 `AnimFPS=25`、走路 25 張＝ 1.00 秒一循環；換成 AutoSprite 推薦的 perfect loop（例 15 張）而 `AnimFPS` 不動，就變成 0.60 秒一循環、動作快將近一倍（走路會像小碎步）。**張數換成幾張，就把 `AnimFPS` 一起改成幾**，節奏才會維持原樣。主角同理，只是 fps 在 `PlayerController` 的 Inspector 欄位 **Player Anim FPS**（預設 12）而不是 CSV。
+> 另外兩件換圖時會遇到的事：**幀順序是檔名字典序**（`string.CompareOrdinal`），所以編號一定要補零（`_01`~`_15`；寫成 `_1`~`_15` 會排成 1,10,11,…,2,3）；**Sync 不會刪舊檔**，25 張換成 15 張時 `StreamingAssets` 裡舊的 16~25 號會留著，但 catalog 只列新的 15 張所以不影響播放，只是垃圾檔。
+
 ---
 
 ## 防呆（有動畫才演、沒有就略過）

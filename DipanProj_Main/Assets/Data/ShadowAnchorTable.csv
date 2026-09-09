@@ -26,18 +26,18 @@ characters/fenrir/attack,3,49.5,151,auto,25,256,256,
 characters/fenrir/dead,2,70.6,184,auto,9,256,256,幀數 9→25 已重算
 characters/fenrir/idle,3.5,49.5,138,auto,25,256,256,
 characters/fenrir/walk,-17,67.4,162,auto,25,256,256,
-characters/hanba/attack,-8,43.5,105,manual,25,256,256,"2026-09-03 手改：原本 -29.2 是把窄的布條當第二隻腳；改成兩腳中點"
+characters/hanba/attack,-8,43.5,105,manual,25,256,256,2026-09-03 手改：原本 -29.2 是把窄的布條當第二隻腳；改成兩腳中點
 characters/hanba/dead,9.5,40.2,141,auto,9,256,256,幀數 9→25 已重算
-characters/hanba/idle,-2,42,88,manual,25,256,256,"2026-09-03 手改：自動算把破布條當成第二隻腳 → 影子壓在近腳上偏左；改成真正兩腳的中點"
-characters/hanba/walk,-1,43,90,manual,25,256,256,"2026-09-03 手改：同 idle：改成兩腳中點；寬去掉外張的衣襬"
-characters/jiangshi/attack,-4,49,92,manual,25,256,256,"2026-09-03 手改：原本 130 是把前伸的雙臂算進框寬；改成跨距×1.15，跟 idle/walk 不會爆掉"
+characters/hanba/idle,-2,42,88,manual,25,256,256,2026-09-03 手改：自動算把破布條當成第二隻腳 → 影子壓在近腳上偏左；改成真正兩腳的中點
+characters/hanba/walk,-1,43,90,manual,25,256,256,2026-09-03 手改：同 idle：改成兩腳中點；寬去掉外張的衣襬
+characters/jiangshi/attack,-4,49,92,manual,25,256,256,2026-09-03 手改：原本 130 是把前伸的雙臂算進框寬；改成跨距×1.15，跟 idle/walk 不會爆掉
 characters/jiangshi/dead,11.5,49.5,141,auto,9,256,256,幀數 9→25 已重算
-characters/jiangshi/idle,0,50.4,86,manual,25,256,256,"2026-09-03 手改：站姿窄、自動算只取到框寬 64 偏小；寬拉到 ≈可見身高一半（對齊主角 Base 的比例）"
-characters/jiangshi/walk,1,51,86,manual,25,256,256,"2026-09-03 手改：同 idle：寬對齊 Base 比例，避免換動作時影子跳大小"
-characters/maojiang/attack,-16,48,100,manual,25,256,256,"2026-09-03 手改：原本 X 正值把影子推到身體右邊；改成兩腳中點，寬去掉前伸毛爪"
+characters/jiangshi/idle,0,50.4,86,manual,25,256,256,2026-09-03 手改：站姿窄、自動算只取到框寬 64 偏小；寬拉到 ≈可見身高一半（對齊主角 Base 的比例）
+characters/jiangshi/walk,1,51,86,manual,25,256,256,2026-09-03 手改：同 idle：寬對齊 Base 比例，避免換動作時影子跳大小
+characters/maojiang/attack,-16,48,100,manual,25,256,256,2026-09-03 手改：原本 X 正值把影子推到身體右邊；改成兩腳中點，寬去掉前伸毛爪
 characters/maojiang/dead,-1.5,46.8,185,auto,9,256,256,幀數 9→25 已重算
-characters/maojiang/idle,0,44,99,manual,25,256,256,"2026-09-03 手改：自動算只抓到近腳（毛爪垂到腳邊）→ X 用了框中心、Y 只取近腳底；改成兩腳中點 / 兩腳底平均"
-characters/maojiang/walk,3,42,98,manual,25,256,256,"2026-09-03 手改：同 idle：改用兩腳中點；寬對齊可見身高一半"
+characters/maojiang/idle,0,44,99,manual,25,256,256,2026-09-03 手改：自動算只抓到近腳（毛爪垂到腳邊）→ X 用了框中心、Y 只取近腳底；改成兩腳中點 / 兩腳底平均
+characters/maojiang/walk,3,42,98,manual,25,256,256,2026-09-03 手改：同 idle：改用兩腳中點；寬對齊可見身高一半
 characters/moonwatcher/attack,-4.8,44,123,auto,25,256,256,
 characters/moonwatcher/dead,-10,59.2,181,auto,9,256,256,幀數 9→25 已重算
 characters/moonwatcher/idle,-7,42,128,auto,25,256,256,
@@ -77,3 +77,15 @@ monsters/skeletongeneral/idle,-4.2,45,101,auto,25,256,256,
 monsters/skeletongeneral/walk,6,44.5,112,auto,25,256,256,
 monsters/zhayu/idle,-5,45.1,320,auto,1,500,500,
 monsters/zhayu/walk,-3.2,44,324,auto,8,500,500,
+characters/gargoyle/attack,-13,55.5,136,auto,25,256,256,
+characters/gargoyle/dead,2,68.6,124,auto,9,256,256,幀數 9→25 已重算
+characters/gargoyle/idle,-0.5,55,83,auto,15,256,256,幀數 1→15 已重算
+characters/gargoyle/walk,-5.9,56.8,99,auto,22,256,256,
+characters/mountaingiant/attack,-11.2,53,165,auto,25,256,256,
+characters/mountaingiant/dead,6,60,120,auto,9,256,256,幀數 9→25 已重算
+characters/mountaingiant/idle,-3.2,47.9,144,auto,22,256,256,
+characters/mountaingiant/walk,-4.2,55.3,110,auto,14,256,256,幀數 1→14 已重算
+characters/titan/attack,-0.2,37.5,183,auto,23,256,256,
+characters/titan/dead,-28.5,60.2,155,auto,9,256,256,幀數 9→25 已重算
+characters/titan/idle,7.8,39.5,147,auto,24,256,256,
+characters/titan/walk,-23.8,37,129,auto,24,256,256,

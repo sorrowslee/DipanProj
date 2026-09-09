@@ -4,6 +4,43 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **新增第四個血統系列「土裔 Gaiaborn」：石像鬼 → 山嶽巨人 → 泰坦**（2026-09-09，見 [BLOODLINE.md](BLOODLINE.md) §7）：
+  作者把三階的序列圖（`SequenceImage/Gargoyle`／`MountainGiant`／`Titan`）、八種情緒的說話立繪（`Talk/<同名>`）與藥劑 icon（`bloodline_Gaiaborn`）都放好之後，照 §7 的六步做完資料端。<br>
+  **改動全部是 CSV，程式零改動**：表A `BloodlineSeriesTable.csv` 加 `4,Gaiaborn,土裔,40,41,42`；
+  表B `BloodlineTable.csv` 加 40/41/42 三列（`SpriteFolder` 照資料夾實際名稱、`BodyScale` 一律先填 1、五屬性為佔位）；
+  `ItemTable.csv` 加 304 血統藥劑・土裔（`BloodlineID=40`、`BloodlineUpgrade` 留空＝兩欄互斥）；
+  `BaseBloodRoll.csv` 加 304 進血統祭壇池、權重 10（與其他三瓶同）。進階藥劑 310/311 全系列通用，**不必為土裔另做**。<br>
+  **確認過「加系列」真的不用碰程式**：`grep` 整個 `Assets/Scripts` 沒有任何寫死的血統／系列清單，
+  變身演出與立繪揭示面板（`BloodlineIntroPanel`）的立繪、血統名都是從表B ＋ Talk catalog 現查的；
+  抽選面板的「血統」大項也早就在 `GachaPoolTable.csv` 裡、指向 `BaseBloodRoll`。這是當初把規則收斂進 `BloodlineSystem`、UI 不懂任何血統規則換來的。<br>
+  **交叉驗證腳本跑過**（欄數對齊、表A→表B 每個階段 Id 都查得到、304 的 icon 檔實際存在、血統池每個 ItemId 都在 ItemTable）：全數通過。<br>
+  ⏳ **作者端還要在 Unity 做三件事**：① `Project Tools → Sync Map Assets`（不同步的話執行期一張圖都載不到，角色只剩影子）；
+  ② `Project Tools → 角色 → 計算影子錨點`（新角色在 `ShadowAnchorTable` 還沒有列）；③ 實機看過再定三階的 `BodyScale`。<br>
+  ⚠ **素材缺兩組**：`Gargoyle/idle` 只有 1 張、`MountainGiant/walk` 只有 1 張（其他血統各動作都是 25 張），
+  且這兩個檔名沒有編號後綴，像是匯出時漏掉整組。已記進 [TODO.md](TODO.md)。<br>
+  ⏳ **未實機驗證**。
+
+* [x] **切圖工具支援 AutoSprite 的 perfect loop 合圖（列數改成自動推算）**（2026-09-09，見 [PROBLEMS.md](PROBLEMS.md) **G8**、[CHARACTER_SETUP.md](CHARACTER_SETUP.md)、[MONSTER_SETUP.md](MONSTER_SETUP.md)）：
+  作者回報 `Gargoyle/idle` 的合圖（1280×768）用 `Project Tools → Split Sprite Sheet` 切不了、說尺寸不符。<br>
+  **`SpriteSheetSplitter` 把格數寫死 5×5**，檢查 `高 % 5 == 0` → 768 % 5 = 3 被擋。
+  逐格量 alpha 驗過那張圖其實完全正常：5 欄 × 3 列（每格 256）＝ 15 格、**15 格全有內容**——
+  **AutoSprite 的 perfect loop 是列數變少，不是欄數變少、也不是 25 格的殘缺版**。<br>
+  **修法**：欄數維持固定 5，格邊長 ＝ 寬÷5、列數 ＝ 高÷格邊長（格子是正方形所以能反推），
+  再驗 `高 % 格邊長 == 0`（圖沒被裁過）與列數上限 `MaxRows`(10)。
+  驗算 1280×1280→5×5、1280×768→5×3、1280×512→5×2、5120×3072→5×3 全部正確，
+  而 256/512/1024 的單張幀仍被擋（見下）。<br>
+  **⚠ 欄數刻意沒一起改成自動**：批次「整包就地切割」的第二道冪等保險靠的就是
+  「單張幀邊長 256／512／1024 都不是 5 的倍數」；欄數一旦自由推算，正方形的單張幀會被判成合法的 1×1／2×2 合圖，
+  上次切出來的幀會被再切一次（改名＋刪原檔）＝整包靜默重排。<br>
+  **順手把「張數不滿 25 會怎樣」寫進 MONSTER_SETUP**：載入依 catalog 的 `frameCount`，有幾張播幾張
+  （`ZhaYu/walk` 只有 8 張、`Ghost_*` 的 idle 只有 1 張＝靜態姿勢，都正常），
+  但 **`AnimFPS` 是「每秒幾幀」不是「整個動作幾秒」→ 循環時間 ＝ 張數 ÷ AnimFPS**，
+  換 perfect loop 要把 `AnimFPS` 一起改成新張數，否則動作會快將近一倍；
+  另附幀順序是**檔名字典序**（編號務必補零）與 **Sync 不刪舊檔**（不影響播放、只是垃圾檔）兩點。<br>
+  **通則**：**寫死的資料形狀假設要分清楚哪一維真的固定、哪一維只是當時剛好**；把可變的那維改成從資料反推，
+  並先查固定的那維有沒有兼著別的職責（這裡兼著冪等守衛）——「全部改成自動」會順手拆掉保險，而且當下毫無症狀。<br>
+  ⏳ **未實機驗證**（待作者在 Unity 編譯後對 Gargoyle idle 實跑一次）。
+
 * [x] **逃跑節奏改綁距離：調 `Speed` 不該連帶改掉行為模式**（2026-09-08，見 [PROBLEMS.md](PROBLEMS.md) **F20**、[BOSS_MODULE.md](BOSS_MODULE.md) §2）：
   作者嫌紅嫁衣移動太快，把 `MonsterData.csv` 的 `Speed` 從 3.5 調到 0.5，結果她變成幾乎不動、
   偶爾動一下沒走兩步就停，和預期的「一樣的移動模式、只是走得慢」差很多（已先調回 3.5）。<br>
