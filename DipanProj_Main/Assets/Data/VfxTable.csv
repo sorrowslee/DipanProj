@@ -24,3 +24,8 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 30,變身煙塵,VfxEffects/TransformSmoke/symmetrical_smoke_burst_001,10,15,1,0,,22100,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 31,變身環繞電弧,VfxEffects/TransformAura/fx3_lightning_aura,22,20,1,1,-1,22050,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 32,該隱・血色電弧,VfxEffects/BloodlineAura/Cain/fx3_lightning_aura,22,20,1,1,-1,22050,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+33,芬里爾・火焰腳印,VfxEffects/BloodlineTrail/FenrirFire/fire_looping_001,12,18,1,0,,8,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+34,泰坦・踏地衝擊環,VfxEffects/BloodlineTrail/TitanShock/impfx1_dust_impact_A,9,20,1.6,0,,8,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+35,泰坦・踏地揚塵,VfxEffects/BloodlineTrail/TitanDust/fx1_impact_dust,13,16,0.85,0,,8,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+36,泰坦・環繞碎石,VfxEffects/BloodlineOrbit/TitanRock/pj1_rock_brown,8,10,1,1,-1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+37,化神期・青雷,VfxEffects/BloodlineAura/DivineForm/fx3_lightning_aura,22,20,1,1,-1,22050,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

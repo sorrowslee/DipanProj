@@ -99,6 +99,45 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
 
     State GeomState => (_lyingHold || _wakePlaying || _fallPlaying) ? State.Dead : _state;
 
+    /// <summary>
+    /// 目前「**幾何上**」算哪個動作。倒下／趴地／爬起期間一律回 <see cref="State.Dead"/>——
+    /// 因為 <see cref="VisibleHeight"/> / <see cref="FeetOffsetY"/> / <see cref="BodyCenterOffsetY"/>
+    /// 這三個幾何屬性都是查它，所以它回 Dead 就代表「身體幾何已經是趴姿」。
+    ///
+    /// 給**掛在角色身上的持續型特效**判斷「我現在還對得到位嗎」用。
+    /// 趴著的時候「頭」在水平方向的某一端，任何「從身體中心往上偏移」的定位都對不到
+    /// （血統變身那段就是踩這個：旱魃的頭光留在原地、人已經倒下）——那不是調參數能修的，
+    /// 所以這類特效在 Dead 期間應該直接關掉。見 [BLOODLINE.md](../../readme/BLOODLINE.md) §5b。
+    /// </summary>
+    public State CurrentGeomState => GeomState;
+
+    /// <summary>
+    /// 掛在身上的持續型特效（血統神格特效那三層）現在該不該顯示。
+    ///
+    /// **白名單**：只有 idle / walk / attack 這三種「站著的動作」才顯示。
+    /// 刻意**不寫成「不是 Dead 就顯示」**——之後若加新動作（受傷、施法、被抓住…），
+    /// 白名單會讓它預設關閉、不會冒出「特效浮在半空」的意外；確認那個姿勢對得到位再加進來。
+    /// </summary>
+    /// <summary>
+    /// 走路動畫目前播到第幾幀（0-based）；**不是 Walk 狀態時回 -1**。
+    /// 給「要跟腳步節奏同步」的效果用（血統的腳步特效）——用「走了多遠」推算會隨移動速度跑掉，
+    /// 動畫幀才是腳實際踏地的節奏。
+    /// </summary>
+    public int WalkFrame => (_state == State.Walk && !IsWakeUpBusy && _walk != null && _walk.Length > 0)
+        ? Mathf.Clamp(_idx, 0, _walk.Length - 1) : -1;
+
+    /// <summary>走路動畫的總幀數（一個完整循環）。0 = 這個血統沒有 walk 圖。</summary>
+    public int WalkFrameCount => _walk != null ? _walk.Length : 0;
+
+    public bool BodyFxVisible
+    {
+        get
+        {
+            var s = GeomState;
+            return s == State.Idle || s == State.Walk || s == State.Attack;
+        }
+    }
+
     /// <summary>目前姿勢下「可見身體」的高度（世界單位）。取不到回 0。</summary>
     public float VisibleHeight => _visH.TryGetValue(GeomState, out var v) ? v : 0f;
 

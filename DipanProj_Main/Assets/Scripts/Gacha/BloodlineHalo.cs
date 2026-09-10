@@ -82,6 +82,7 @@ public class BloodlineHalo : MonoBehaviour
     Color _color = Color.white;
 
     PlayerController _pc;
+    PlayerAnimator _anim;
     YSortByFeet _ysort;
 
     GameObject _go;
@@ -94,6 +95,7 @@ public class BloodlineHalo : MonoBehaviour
     void Awake()
     {
         _pc = GetComponent<PlayerController>();
+        _anim = GetComponent<PlayerAnimator>();
         _ysort = GetComponent<YSortByFeet>();
     }
 
@@ -164,9 +166,17 @@ public class BloodlineHalo : MonoBehaviour
         if (_style == null) return;
         if (_go == null) { Rebuild(); return; }
 
-        // Play 模式中拉 RingWidth 就即時重畫（只有值真的變了才會進去，平常是一次比較）。
+        // Play 模式中拉 RingWidth / FillAmount 就即時重畫（只有值真的變了才會進去）。
         if (!Mathf.Approximately(_builtRingWidth, RingWidth)
             || !Mathf.Approximately(_builtFill, FillAmount)) Rebuild();
+
+        if (_anim == null) _anim = GetComponent<PlayerAnimator>();
+
+        // 趴著／倒下／爬起時整層關掉：那時「頭」在水平方向的某一端，
+        // 而這裡的定位是「從身體中心往上偏移」——對不到，而且不是調參數能修的。
+        // （血統變身整段都在演 dead：人倒下了、頭光還留在原地。）見 PlayerAnimator.BodyFxVisible。
+        if (_anim != null && _sr != null) _sr.enabled = _anim.BodyFxVisible;
+        if (_anim != null && !_anim.BodyFxVisible) return;
 
         float h = _pc != null ? _pc.ScaledCharacterHeight : 2f;
 

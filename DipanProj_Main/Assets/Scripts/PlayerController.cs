@@ -2201,6 +2201,9 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         var godHalo = GetComponent<BloodlineHalo>();
         if (godHalo != null) godHalo.Rebuild();
+
+        var godOrbit = GetComponent<BloodlineOrbit>();
+        if (godOrbit != null) godOrbit.Rebuild();
     }
 
     /// <summary>套過體型倍率後的角色顯示高度（世界單位）。特效要「蓋住玩家」時用這個當基準。</summary>

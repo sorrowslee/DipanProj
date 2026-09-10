@@ -39,6 +39,41 @@
   所以**大目標大特效、小目標小特效**。此時 `VfxTable` 該列的 `Scale` 欄對這三種特效改當「**相對目標高度的倍率**」（1 = 與目標等高、1.3 = 比目標大 30% 包住它）。**要調大小就改這一欄**：id 10 目前 1.3；id 5／id 7 目前 1（＝與物件/怪等高），覺得爆裂太小/太大就往上/下調。
 
 
+## ⚠ 生出來的 sprite 是「中心 pivot」——放在腳下／地面要自己補半個高度
+
+`VfxManager` 的 `Spawn` / `SpawnSizedToHeight` 都是把特效的**中心**擺在你給的座標。
+所以「在角色腳下放一個特效」如果直接傳 `FeetWorldPos`，特效會有**一半落在腳底線以下**，
+看起來像踩在角色前面的地上，而不是在腳下。
+
+要讓特效**底部**貼齊某條線，座標要自己往上加半個特效高度：
+
+```csharp
+float size = 目標高度;
+Vector2 p = pc.FeetWorldPos;
+p.y += size * 0.5f;                       // ← pivot 補償
+vfx.SpawnSizedToHeight(id, p, size);
+```
+
+命中特效、爆炸那類「以命中點為中心」的用途不受影響（中心 pivot 正是要的）。
+
+### ⚠ 另一個陷阱：`SpawnSizedToHeight` 縮的是**高度**，扁素材的寬度會跟著爆
+
+它把 sprite 的**高度**縮到你指定的值，寬度按原比例跟著走。素材接近正方形時沒感覺，
+但**扁的素材**（塵土、衝擊波那種 104×24 的）寬高比可能有 4 倍以上——
+指定高度 0.5 單位，實際會攤成 **2.2 單位寬**。
+
+所以扁素材的 `Scale` 要**往下調**才對，看到一個小於 1 的 `Scale` 不代表它畫出來比較小。
+實例（泰坦踏地）：
+
+| id | 素材 | 比例 | Scale | 算出來的高 × 寬 |
+|---|---|---|---|---|
+| 34 | 96×96 衝擊環 | 1:1 | 1.6 | 1.12 × 1.12 |
+| 35 | 104×24 揚塵 | 4.33:1 | **0.65** | 0.46 × **1.98** |
+
+Scale 從 1.6 降到 0.65，畫面上的**寬度反而幾乎翻倍**——因為素材形狀換了。
+**調扁素材的大小時，先算一次寬度，不要只看 `Scale` 的數字。**
+實例與可調參數見 [BLOODLINE.md](BLOODLINE.md) §5b 的 `FootFxYRatio`（2026-09-10 芬里爾火焰腳印踩到）。
+
 ## 配置檔案
 
 `Assets/Data/VfxTable.csv`：
@@ -99,7 +134,12 @@
 
 | ID | 名稱 | 素材 | Loop | SortingOrder | 備註 |
 |---|---|---|---|---|---|
-| 32 | 該隱・血色電弧 | `VfxEffects/BloodlineAura/Cain/`（22 幀） | 1，`Duration=-1` | 22050 | **常駐**，生死由 `BloodlineAura` 管；素材＝特效庫 `fx3_lightning_aura` 的 **red** 版 |
+| 32 | 該隱・血色電弧 | `VfxEffects/BloodlineAura/Cain/`（22 幀） | 1，`Duration=-1` | 22050 | **常駐**，生死由 `BloodlineAura` 管；素材＝特效庫 `fx3_lightning_aura` 的 **red** 版。⚠ 目前沒有血統在用 |
+| 37 | 化神期・青雷 | `VfxEffects/BloodlineAura/DivineForm/`（22 幀） | 1，`Duration=-1` | （被接管） | **目前化神期在用**。與 id 32 同一組素材的 **blue** 版，由 `BloodlineAura` 掛在身上。⚠ 一輪 1.1 秒（22 幀 @20fps）。作者要的「不要一直閃」是**間歇**不是放慢——由 `BloodlineAura.PulseGap`（預設 2.5 秒）在兩輪之間留白，這一列的 `AnimFPS` 維持 20 |
+| 36 | 泰坦・環繞碎石 | `VfxEffects/BloodlineOrbit/TitanRock/`（8 幀） | 1，`Duration=-1` | （被接管） | **目前泰坦在用**。素材＝`pj1_rock_brown` 的 **dark** 版。由 `BloodlineOrbit` 生成 4 顆繞軌道，排序每幀接管（要能繞到角色前後） |
+| 35 | 泰坦・踏地揚塵 | `VfxEffects/BloodlineTrail/TitanDust/`（13 幀） | 0（播完自毀） | **8** | **備選、目前沒人用**（改成了環繞碎石）。素材＝`fx1_impact_dust` 的 **brown** 版（本身就是土色，不必染）。104×24 的扁素材，`Scale=0.65` 算出來是 0.46 高 × 1.98 寬 |
+| 34 | 泰坦・踏地衝擊環 | `VfxEffects/BloodlineTrail/TitanShock/`（9 幀） | 0（播完自毀） | **8** | **備選、目前沒人用**（實機看過覺得太幾何、偏「魔法」，換成 35 的揚塵）。素材＝`impfx1_dust_impact_A` 的 **white** 版。血統表填回 34 就能切回來比較 |
+| 33 | 芬里爾・火焰腳印 | `VfxEffects/BloodlineTrail/FenrirFire/`（12 幀） | 0（播完自毀） | **8** | 走路時由 `BloodlineTrail`（`TrailStyle=Fire`）在腳下放；素材＝特效庫 `Fire/fire_looping_001` 的 **orange** 版。**火燒多久改這一列的 `AnimFPS` 就好**（12 幀 @18fps ≈ 0.67 秒） |
 
 與 id 31（變身電弧）**同一組圖、不同顏色**——特效庫那個動畫有六色，四個第三階各挑一色即可，加一個血統 = 複製 22 張圖 + 這張表加一列。
 

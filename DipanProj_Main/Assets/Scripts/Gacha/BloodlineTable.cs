@@ -50,6 +50,18 @@ namespace Dipan.Gacha
 
         /// <summary>殘影染色。留空 = 白＝維持角色原色。</summary>
         public Color TrailColor = Color.white;
+
+        /// <summary>
+        /// 殘影／腳印用的 VfxTable id。只有「放特效」的樣式（<c>Fire</c>、<c>Dust</c>）需要；
+        /// <c>Fade</c> 是複製角色當下那格 sprite，不吃這一欄。0 = 沒有。
+        /// </summary>
+        public int TrailVfxId;
+
+        /// <summary>
+        /// 身體周圍浮空繞行的物件（<see cref="BloodlineOrbit"/>）用的 VfxTable id。
+        /// 那一列必須 <c>Loop=1</c>、<c>Duration=-1</c>（常駐）。0 = 沒有這一層。
+        /// </summary>
+        public int OrbitVfxId;
     }
 
     /// <summary>
@@ -150,6 +162,8 @@ namespace Dipan.Gacha
                     HaloColor = ParseColor(CsvUtil.Field(v, 14), Color.white),
                     TrailStyle = CsvUtil.Field(v, 15),
                     TrailColor = ParseColor(CsvUtil.Field(v, 16), Color.white),
+                    TrailVfxId = CsvUtil.FieldInt(v, 17, 0),
+                    OrbitVfxId = CsvUtil.FieldInt(v, 18, 0),
                 };
                 if (d.DisplayName.Length == 0) d.DisplayName = d.Key.Length > 0 ? d.Key : $"#{id}";
                 // 留空/0/負數一律當 1；上限擋在 5 倍，填錯一個 0 不會讓角色大到蓋滿整個畫面。

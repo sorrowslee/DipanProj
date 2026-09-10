@@ -29,10 +29,23 @@ public class BloodlineAura : MonoBehaviour
     /// <summary>相對角色的排序偏移。+1 = 畫在角色之上（電光罩在身上）。</summary>
     public int SortOffset = 1;
 
+    /// <summary>
+    /// **間歇播放**：播完一輪之後隔多久再播一次（秒）。**0 = 不間歇**（維持無限循環）。
+    ///
+    /// 常駐電弧一直不停地閃會太吵、也把角色本身蓋掉（該隱那次退回的原因之一）。
+    /// 間歇的作法是「播一輪就讓它自毀，等這段空檔過去再生一顆新的」——
+    /// 刻意**不是**把 renderer 關掉再打開：那樣動畫會在隱藏期間繼續跑，再現身時是從播到一半的地方接，
+    /// 看起來像卡了一下。重生才會每次都從第 0 幀開始。
+    ///
+    /// 「一輪多長」是從 VfxTable 算的（張數 ÷ AnimFPS），所以改了表格的幀率這裡自動跟上。
+    /// </summary>
+    public float PulseGap = 2.5f;
+
     int _vfxId;
     VfxInstance _inst;
     SpriteRenderer _instSr;
     PlayerController _pc;
+    PlayerAnimator _anim;
     YSortByFeet _ysort;
     VfxManager _vfx;
 
@@ -41,11 +54,13 @@ public class BloodlineAura : MonoBehaviour
     // 所以「生出來馬上就沒了」連續幾次就停用這一層並印一次警告，不讓它無聲地拖垮效能。
     float _lastSpawnAt;
     int _quickRespawns;
+    float _nextSpawnAt;         // 間歇模式：這個時間點之後才生下一顆
     const int MaxQuickRespawns = 3;
 
     void Awake()
     {
         _pc = GetComponent<PlayerController>();
+        _anim = GetComponent<PlayerAnimator>();
         _ysort = GetComponent<YSortByFeet>();
     }
 
@@ -74,7 +89,17 @@ public class BloodlineAura : MonoBehaviour
         float h = (_pc != null ? _pc.ScaledCharacterHeight : 2f) * Mathf.Max(0.01f, HeightRatio);
         Vector2 pos = _pc != null ? _pc.BodyCenterWorldPos : (Vector2)transform.position;
 
-        _inst = _vfx.SpawnLoopSizedToHeight(_vfxId, pos, h, -1f);
+        // 間歇模式：只讓它活「一輪動畫」那麼久，播完自毀，空檔過了再生一顆新的（下面的 LateUpdate）。
+        // 一輪多長直接從 VfxTable 算，改表格的幀率這裡自動跟上。
+        float life = -1f;
+        if (PulseGap > 0f)
+        {
+            float loop = LoopSeconds();
+            life = loop;
+            _nextSpawnAt = Time.time + loop + PulseGap;
+        }
+
+        _inst = _vfx.SpawnLoopSizedToHeight(_vfxId, pos, h, life);
         if (_inst == null) return;
 
         _inst.transform.SetParent(transform, true);   // 跟著玩家移動
@@ -90,8 +115,11 @@ public class BloodlineAura : MonoBehaviour
 
         if (_inst == null)
         {
-            // 特效不在了：VfxManager 剛就緒、剛換過圖、或表格沒填 Duration=-1。
-            if (Time.unscaledTime - _lastSpawnAt < 1f && ++_quickRespawns >= MaxQuickRespawns)
+            // 間歇模式：播完那一輪之後刻意留白，時間到了才生下一顆。
+            if (PulseGap > 0f && Time.time < _nextSpawnAt) return;
+
+            // 特效不在了：VfxManager 剛就緒、剛換過圖、或（非間歇模式下）表格沒填 Duration=-1。
+            if (PulseGap <= 0f && Time.unscaledTime - _lastSpawnAt < 1f && ++_quickRespawns >= MaxQuickRespawns)
             {
                 Debug.LogWarning($"[BloodlineAura] VfxTable {_vfxId} 生出來馬上就消失，已停用這一層。" +
                                  "常駐的環繞特效那一列必須 Loop=1 且 Duration=-1（見 readme/VFX.md）。");
@@ -100,6 +128,17 @@ public class BloodlineAura : MonoBehaviour
             }
             Rebuild();
             return;
+        }
+
+        if (_anim == null) _anim = GetComponent<PlayerAnimator>();
+
+        // 趴著／倒下／爬起時整層關掉（同 BloodlineHalo）——變身演出本身就有自己的環繞電弧，
+        // 兩層疊在一起也只是亂。見 PlayerAnimator.BodyFxVisible。
+        if (_anim != null)
+        {
+            bool show = _anim.BodyFxVisible;
+            if (_instSr != null) _instSr.enabled = show;
+            if (!show) return;
         }
 
         // 位置：可見身體中心（趴著時比站著低），不是 transform.position。見 PROBLEMS E14。
@@ -112,6 +151,15 @@ public class BloodlineAura : MonoBehaviour
             float baseY = transform.position.y + (_ysort != null ? _ysort.FeetYOffset : 0f);
             _instSr.sortingOrder = MapDepthSort.Order(baseY, 0) + SortOffset;
         }
+    }
+
+    /// <summary>一輪動畫多長（秒）＝ VfxTable 的張數 ÷ AnimFPS。查不到就回 1 秒。</summary>
+    float LoopSeconds()
+    {
+        var data = _vfx != null ? _vfx.GetEffect(_vfxId) : null;
+        if (data == null || data.AnimFPS <= 0f
+            || data.AnimationSprites == null || data.AnimationSprites.Length == 0) return 1f;
+        return data.AnimationSprites.Length / data.AnimFPS;
     }
 
     void Clear()

@@ -704,11 +704,22 @@
 - [ ] **旱魃要不要環繞電光還沒定**（該隱是看過之後決定不要的）。要的話：特效庫 `fx3_lightning_aura` 的
   **orange** 22 張複製進 `Resources/VfxEffects/BloodlineAura/Hanba/`、`VfxTable` 加一列（`Loop=1`、`Duration=-1`）、
   表B 那格填上 id。
-- [ ] **`TrailStyle=Dust`（腳下揚塵）還沒接**——泰坦要用。它需要一組塵土序列圖：
-  特效庫的 `fx3_dust_trail_brown`（20 幀）可用，複製進 `Resources/VfxEffects/` 並加一列 `VfxTable` 之後，
-  在 `BloodlineTrail` 補一個分支（改成呼叫 `VfxManager.Spawn` 在腳下播一次）即可。
-  目前填 Dust 只會印一則警告、不會有任何表現。
-- [ ] **芬里爾／泰坦還沒填表**（旱魃 2026-09-10 已填＝`Disk` 金色頭光）。
+- [ ] **`TrailStyle=Dust` 沒有血統在用**（泰坦改用了衝擊環）。**機制已經在了**（2026-09-10 做 `Fire` 時一併補上：
+  腳下放一次性 Vfx ＋ 第 18 欄 `TrailVfxId`），所以現在只差**素材**：把特效庫的 `fx3_dust_trail_brown`
+  （20 幀）複製進 `Resources/VfxEffects/`、加一列 `VfxTable`，再把 `BloodlineTrail` 的 `dust` 分支
+  改成走 `SpawnFootFx`（現在是直接 return）即可。目前填 Dust 只會印一則警告。
+- [ ] **規劃 20+ 血統的特效分配（新缺口，2026-09-10）**：作者拍板「一個血統只掛一層」，
+  而血統會做到 20 個以上（修真系列的築基／元嬰／化神已進表）。⇒ **辨識度的預算很緊**，
+  「換個顏色」已被驗證不夠（旱魃第一版跟該隱撞型）。
+  現有庫存：Halo 5 種樣式（Disc／Disk／Cracked／Crescent／Stone）× 身光／頭光兩種尺寸位置、
+  環繞特效（特效庫至少 10 種不同的 aura／swirl／shield 動畫可挑）、殘影（Fade／Dust）。
+  **建議在填下一批血統之前先做一次盤點與分配表**，避免做到第 10 個才發現撞型。
+- [ ] **好幾個機制目前沒有血統在用**，都留給後面的血統（程式與素材都在，填表就能用）：
+  `Fade` 殘影、腳步特效的 `Dust` 別名、
+  以及泰坦淘汰掉的兩個腳步素材——踏地衝擊環（VfxTable 34）與踏地揚塵（35）。
+- [x] ~~四個第三階都填完了~~ → 2026-09-10：該隱 `Disc` 血色身光／旱魃 `Disk` 金色頭光／
+  芬里爾 `Step` 火焰腳印／泰坦 `OrbitVfxId` 環繞碎石／化神期 `AuraVfxId` 青雷。
+  **五個都還沒實機驗證觀感**（泰坦的碎石與化神期的青雷完全沒看過）。（旱魃 2026-09-10 已填＝`Disk` 金色頭光）。
   ⚠ 填之前先想「輪廓跟已經有的那幾個像不像」——旱魃第一版就是因為跟該隱都是大圓環而被退回。
   芬里爾的 `Crescent`（殘月）與泰坦的 `Stone`（分塊岩輪）輪廓夠不一樣，但兩者目前都設定成**身光尺寸**，
   必要時在 `StyleDefaults` 給它們自己的尺寸位置。。素材幾乎不用做——`fx3_lightning_aura` 有六色，

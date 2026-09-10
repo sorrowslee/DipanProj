@@ -216,14 +216,15 @@ namespace Dipan.Gacha
         /// <summary>
         /// 「喝這瓶藥會發生什麼事」的規劃結果。
         /// UI 端拿它做三件事：擋下不能喝的（顯示 <see cref="Reason"/>）、
-        /// 顯示確認視窗文案（<see cref="ConfirmText"/>）、成功後的 Toast（<see cref="DoneText"/>）。
+        /// 顯示確認視窗文案（<see cref="ConfirmText"/>）。
+        /// （<see cref="DoneText"/> 目前**沒有人顯示**——成功的說明交給立繪揭示面板，見 <see cref="TryDrink"/>。）
         /// </summary>
         public struct DrinkPlan
         {
             public bool Ok;
             public string Reason;        // Ok=false 時的說明（直接拿去 Toast）
             public string ConfirmText;   // 確認視窗文案
-            public string DoneText;      // 成功後的 Toast
+            public string DoneText;      // 成功後的說明。⚠ 目前沒有人顯示它（成功不跳 Toast，見 TryDrink）
             public int TargetBloodlineId;
         }
 
@@ -382,8 +383,16 @@ namespace Dipan.Gacha
         /// <summary>
         /// 真的喝下去。成功回 true。
         ///
-        /// <paramref name="message"/> **成功與失敗都會填**：成功是「血脈已定：殭屍」這種回饋，
-        /// 失敗是擋下的理由。呼叫端直接拿去 Toast 就好，不要自己記成功文案——
+        /// <paramref name="message"/> **只有失敗才填**（擋下的理由），成功時是空字串——
+        /// 照 <c>ItemUse</c> 的約定「message 為空 ＝ 這次使用不需要對玩家說話」。
+        ///
+        /// ⚠ **成功時刻意不跳 Toast**（2026-09-10 作者要求移除「血脈已定：xxx」）：
+        /// 喝完緊接著就是變身演出 ＋ 立繪揭示面板，那個面板整整四秒都在講「你變成什麼了」，
+        /// 再跳一則 Toast 是重複，而且會壓在演出上面。<see cref="DrinkPlan.DoneText"/> 仍然算出來，
+        /// 只是目前沒有人顯示它——要恢復的話在呼叫端 Toast 它即可。
+        ///
+        /// 失敗的訊息**一定要留**：「不能喝的時候要在按鍵當下就擋下並說明理由」是明確要求的體驗。
+        ///
         /// 內部會重新 <see cref="Plan"/> 一次（確認視窗開著的期間狀態可能變了），
         /// 所以真正發生的事情可能和 UI 幾秒前算出來的不一樣。
         /// </summary>
@@ -396,7 +405,9 @@ namespace Dipan.Gacha
                 return false;
             }
 
-            message = plan.DoneText;
+            // 成功不說話：後面的立繪揭示面板會交代得更清楚（見上方註解）。
+            message = string.Empty;
+
             var inv = InventorySystem.Instance;
             var sm = SaveManager.Instance;
 
@@ -593,14 +604,23 @@ namespace Dipan.Gacha
             }
             else if (halo != null) halo.SetStyle(null, Color.white);
 
-            // ③ 移動殘影
+            // ③ 身體周圍浮空繞行的物件（碎石／骨頭／符咒…）
+            var orbit = go.GetComponent<BloodlineOrbit>();
+            if (def.OrbitVfxId > 0)
+            {
+                if (orbit == null) orbit = go.AddComponent<BloodlineOrbit>();
+                orbit.SetEffect(def.OrbitVfxId);
+            }
+            else if (orbit != null) orbit.SetEffect(0);
+
+            // ④ 移動足跡
             var trail = go.GetComponent<BloodlineTrail>();
             if (!string.IsNullOrEmpty(def.TrailStyle))
             {
                 if (trail == null) trail = go.AddComponent<BloodlineTrail>();
-                trail.SetStyle(def.TrailStyle, def.TrailColor);
+                trail.SetStyle(def.TrailStyle, def.TrailColor, def.TrailVfxId);
             }
-            else if (trail != null) trail.SetStyle(null, Color.white);
+            else if (trail != null) trail.SetStyle(null, Color.white, 0);
         }
     }
 }
