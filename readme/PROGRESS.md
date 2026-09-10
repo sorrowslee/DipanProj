@@ -4,6 +4,82 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **第五個系列「靈脈 SpiritVein」＋ 每個系列補上二／三階「直達藥劑」**（2026-09-10，見 [BLOODLINE.md](BLOODLINE.md) §3）：
+  作者放好靈脈三階的序列圖與立繪（`SpiritVein/{Foundation, Nascent Soul, Divine Form}`，已照 2026-09-09 的系列分層放）
+  與藥劑 icon，一併要求「每個血統都加二階與三階藥劑，喝下去直接跳到那一階」。<br>
+  **靈脈**：表A `5,SpiritVein,靈脈,50,51,52`；表B 加 50 築基期／51 元嬰期／52 化神期
+  （`SpriteFolder` 分別是 `SpiritVein/Foundation`、`SpiritVein/Nascent Soul`、`SpiritVein/Divine Form`
+  —— **後兩個含空白，照資料夾實際名稱填**，同血伯爵的 `Crimson Count`）；`ItemTable` 加 305、`BaseBloodRoll` 加 305 權重 10。<br>
+  **直達藥劑：查完程式發現不用改任何東西**。`PlanStarter` 只做兩件事——查 `BloodlineID` 在不在表B、本世是否已定型；
+  **從來沒有檢查「必須是第一階」**（第一階只是填表慣例，不是規則）。所以「`BloodlineID` 指到第 3 階」天生就合法，
+  語意剛好就是「跳過前面直接變成那一階」。於是十瓶直達藥劑純粹是 `ItemTable` 加十列。<br>
+  **編號規則**（新訂，寫進 §3）：`30x` 第一階／`32x` 第二階直達／`33x` 第三階直達，末位固定是系列序
+  （1 殭屍／2 血族／3 狂族／4 土裔／5 靈脈）；`310`／`311` 維持是全系列通用的進階藥劑。
+  三瓶共用同一張系列 icon（作者指定）。<br>
+  **既有規則自然延伸、沒有特例**：喝完 321（毛殭＝第 2 階）的人再喝 310（中階）會被 `PlanUpgrade` 擋掉
+  （「已在此之上」），喝 311（高階）才過。<br>
+  **驗算**：五個系列 × 三階全部在表B；15 瓶藥劑的 `BloodlineID` 逐一反查表A，實際落點與預期階數完全相符；
+  icon 檔案都存在；ItemTable 無重複 ID。<br>
+  ⚠ **兩件刻意沒做的**：① 十瓶直達藥劑**沒放進任何池**——放血統池會把「選系列」的抽中率稀釋成三分之一，
+  比較像是關卡獎勵或 `unlockRoll` 的東西，作者決定；② 靈脈三階的 `WalkSpeed` **留空**（＝不套用、維持 Inspector 的 5），
+  沒跟著其他血統填 10，因為那些 10 本來就是待重填的佔位值。兩件都記進 §8。<br>
+  ℹ 順帶：表B 這段期間被加了 `AuraVfxId`／`HaloStyle`／`HaloColor`／`TrailStyle`／`TrailColor` 五個新欄，
+  目前只有旱魃與該隱填了值。新加的三列照既有寫法**只填到 `Note` 就結束、不補尾端逗號**，也沒代填任何光環設定。<br>
+  ⏳ **未實機驗證**；要跑 `Sync Map Assets`（靈脈的圖還沒進 StreamingAssets）與影子錨點工具（表裡還沒有這三個角色）。
+
+* [x] **第三階血統的「神格特效」三層骨架（環繞電光／背後圓盤／移動殘影），先接上該隱**（2026-09-10，見 [BLOODLINE.md](BLOODLINE.md) §5b、[VFX.md](VFX.md)）：
+  作者要讓四個第三階（旱魃／該隱／芬里爾／泰坦）「像神明一樣」——渾身電光、背後血色圓盤、走路留流光。
+  這次做的是**三層通用骨架＋資料驅動接法**，只填該隱一列讓他先看觀感，其餘三個之後填表即可。<br>
+  **素材成本意外是零**：特效庫裡 `fx3_lightning_aura`（＝變身電弧的來源）本來就有 **blue/green/orange/red/violet/yellow 六色**、各 22 幀，
+  四個血統各挑一色就好，連換色都不必。該隱用 red，複製進 `Resources/VfxEffects/BloodlineAura/Cain/`（.meta 沿用
+  TransformAura 的匯入設定＝Point 濾鏡、PPU 100、無 mipmap，只換 guid）。<br>
+  **資料驅動**：`BloodlineTable.csv` 尾端加五欄 `AuraVfxId / HaloStyle / HaloColor / TrailStyle / TrailColor`。
+  ⚠ **現有 12 列一個字都沒動**——`CsvUtil.Field` 讀不到的欄位回空字串，所以「舊列 = 12 欄 = 三層全關」天生成立。
+  只有該隱那列補了 `32,Disc,A01018,Fade,C0202A`。**刻意不在程式裡判斷「是不是第三階」**：誰有特效由表決定，
+  之後想給二階加一點光、或讓某隻 boss 共用同一套，都只要填表。<br>
+  **三層各自踩到的既有結論（都不是重新發明）**：<br>
+  ① **環繞電光** `BloodlineAura`：生法直接沿用變身演出那三行（`SpawnLoopSizedToHeight` + `SetParent`）。
+  但常駐比短演出多兩件事——**排序必須每幀接管**（VfxTable 的 22050 是表演層固定值，常駐會變成「玩家走到柱子後面、
+  電光還飄在柱子前面」，改成與角色同一條 Y 排序算式 +1）；**生死要有人負責**（`Duration=-1` 永不自毀）。
+  另加了防呆：若表格忘了填 `Loop=1/Duration=-1`，特效播完就沒、而元件看到 null 會補生一顆 ⇒ **每幀生一顆特效**，
+  所以「生出來馬上就沒」連三次就停用該層並印警告。<br>
+  ② **背後圓盤** `BloodlineHalo`：**圖是程式畫的**（同心環＋放射線＋外緣光暈，另有 Cracked／Crescent／Stone 三種樣式備用）。
+  這與 BossAura 檔頭「純程序 noise 生不出煙的絲與捲、形狀要美術畫」**不衝突**——那條講的是**有機形狀**，圓盤是**幾何形狀**。
+  貼圖是 **premultiplied（RGB = alpha）**所以透明區 RGB = 0，用 `AdditiveGlow` 不會疊出方塊（**E12** 佛光那個坑）。
+  **畫在角色之下**：圓盤中央被角色不透明的身體擋住、只露外圈，所以不會跟身上的加色電光互相洗掉（**E13** 的零和陷阱）——
+  ⚠ 反過來疊到角色之上就會踩到。獨立物件而非子物件、程序生成貼圖、加色，這三條都是從 `CharacterGlow`／`BlobShadow` 沿用的。
+  刻意**不做 static 快取**（CharacterGlow 有，因為要餵全場的怪；玩家只有一個），順便避開 **I8** 的陣列型 static 殘留。<br>
+  ③ **移動殘影** `BloodlineTrail`：全專案搜過**沒有任何現成殘影機制**（`TrailEffectID` 那套是子彈沿路種特效，不是角色），
+  所以新寫。作法最省：不畫新圖，每走一段距離把**當下那一格 sprite** 複製成獨立 SpriteRenderer 留在原地、染色淡出。
+  三個要點：殘影**不能掛在玩家底下**（會跟著走）、要連 `flipX` 與 `lossyScale` 一起複製（角色圖是執行期 `Sprite.Create` 的）、
+  alpha 填「感覺值的一半」（**E11** Linear 疊色）。<br>
+  **共通**：位置一律走 `BodyCenterWorldPos` / `ScaledCharacterHeight`，不碰 `transform.position` 與 `bounds`（**E14**）；
+  兩層「撐過體型變更」的效果已加進 `PlayerController.RefreshBodyScaledVisuals()`（芬里爾 1.5 倍體型才不會停在舊尺寸）；
+  三層都由 `BloodlineSystem.ApplyTo` 收斂式套用，玩家物件重建（換圖／死亡回廣場）會自動重掛。<br>
+  ✅ **實機看過了**（作者截圖）：三層都正確生成、圓盤確實畫在角色背後、排序沒問題。<br>
+  **第一輪回饋（同日）**：① **該隱不要環繞電光**——電弧的白色像素太搶眼、把角色本身蓋過去，
+  他要的是「只有背後那圈紅環」⇒ 該隱的 `AuraVfxId` 清空（id 32 與 22 張素材留著，其他血統要用可直接接）。
+  ② **紅環太細** ⇒ `BloodlineHalo.RingWidth` 從 0.10 加粗到 **0.20**，並改成
+  「主環半徑隨粗細自動內縮」（不縮的話加粗會撞上外緣柔化被切平）＋ **Play 中拉滑桿即時重畫**。<br>
+  **第二輪（同日，做旱魃時連帶修的）**：加粗之後才發現**高斯環根本做不出「粗的線」**——
+  它的寬度同時是柔化距離，一加粗整條就散成一團暈。改成**平頂環帶**（中間實心、只有邊緣柔化）才是作者要的粗線。
+  順手把 `Mathf.SmoothStep` 全部換成自寫的 `SStep`：Unity 那支是「在 from/to 之間插值」不是 GLSL 的門檻語意，
+  寫成 `SmoothStep(0f,1f,Clamp01(x))` 剛好等價、換個門檻就靜默算錯。兩條都記進 [PROBLEMS.md](PROBLEMS.md) **E32**。
+  另加 `FillAmount`（圓盤內部填充濃度，0=只有環、1=實心面），與 `RingWidth` 一樣**Play 中拉滑桿即時重畫**。<br>
+  **旱魃**（`Cracked` 龜裂赤日輪 ＋ 焦紅殘影）已填表，同樣**先不給電光**。<br>
+  **順手建立了離線預覽**：把 `Shape()` 原樣搬到 Python，模擬石板地上的 Linear 加色畫出四種樣式
+  （`TempImage/BloodlineHalo/`）。**改形狀不必進 Unity 就能先看**——這次就是靠它發現「加粗變暈」與
+  Crescent／Stone 的實際樣子。⚠ 改算式要記得同步過去，否則預覽會騙人。<br>
+  **第三輪（同日）**：旱魃第一版給 `Cracked`（龜裂赤日輪），作者實機的評語是**「跟該隱太像」**——
+  兩個都是罩住全身的大圓環、只差顏色，遠看分不出來。改成新樣式 **`Disk`：只比頭大一圈、貼在腦後的
+  金色實心圓**（佛像頭光），象徵旱災之神。**通則：血統之間的辨識度要靠輪廓與位置，不能只靠顏色。**<br>
+  連帶把**尺寸與位置改成由樣式決定**（`StyleDefaults`）——身光與頭光本來就是兩種東西，
+  不該共用一組全域數字。`Disk` 的 0.36 / 0.34 是**拿作者的實機截圖量出來的**
+  （程式偵測角色暗色範圍得可見高 216px、頭部在上緣 75px 內），不是憑感覺給。<br>
+  **定位方式值得留著**：把候選頭光**直接疊在他的截圖上**（用暗度遮罩讓圓只畫在非角色像素上，
+  模擬「畫在他後面」），四個候選一次看完就定案，省掉全部的實機來回。圖在 `TempImage/BloodlineHalo/hanba_disk.png`。<br>
+  ⏳ `TrailStyle=Dust`（腳下揚塵，泰坦要用）**還沒接**——它要一組塵土序列圖，記在 [TODO.md](TODO.md)。
+
 * [x] **血統圖依「系列」分資料夾：`SequenceImage/` 與 `Talk/` 各多一層**（2026-09-09，見 [PROBLEMS.md](PROBLEMS.md) **C12**、[BLOODLINE.md](BLOODLINE.md) §2）：
   作者反映兩個資料夾各躺 13 個血統資料夾、越來越難找。改成 `Base` 留在根層（人類不屬任何系列），
   其餘 12 個收進四個系列資料夾：`Jiangshi/`、`Bloodborn/`、`Feralborn/`、`Gaiaborn/`（名字＝表A 的 `Key`）。

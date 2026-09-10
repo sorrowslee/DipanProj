@@ -30,6 +30,17 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 304,血統藥劑・土裔,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Gaiaborn,1,一次性的血統藥劑,喝下覺醒「土裔」血脈　本世不可更改系列,瓶底沉著磨不碎的砂。喝下去的那一刻，血就開始記得石頭的重量。,,,,,,,40,,
 310,血統進階藥劑・中階,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_lvup_middle,9,推進血脈至第二階,把目前的血脈推進到第二階　需先覺醒血脈,濃稠得幾乎不流動。血在裡面，還記得自己曾經是誰。,,,,,,,,,2
 311,血統進階藥劑・高階,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_lvup_high,9,推進血脈至第三階,把目前的血脈推進到第三階　需先進階至第二階,瓶身冰得燙手。再往下一步，就不是人能回頭的地方了。,,,,,,,,,3
+305,血統藥劑・築基期,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_SpiritVein,1,一次性的血統藥劑,喝下直接覺醒「築基期」血脈　本世不可更改系列,瓶裡浮著一縷不肯散的白氣。喝下去的那一刻，經脈就開始自己走路了。,,,,,,,50,,
+321,血統藥劑・毛殭,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Jiangshi,1,一次性的血統藥劑,喝下直接覺醒「毛殭」血脈　本世不可更改系列,屍氣裡多了一層毛絨絨的暖。腐爛那一段替你省了，直接長出鬃。,,,,,,,11,,
+322,血統藥劑・血伯爵,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Bloodborn,1,一次性的血統藥劑,喝下直接覺醒「血伯爵」血脈　本世不可更改系列,不再是鐵鏽，是陳年的酒。三百個夜，一口喝完。,,,,,,,21,,
+323,血統藥劑・望月者,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Feralborn,1,一次性的血統藥劑,喝下直接覺醒「望月者」血脈　本世不可更改系列,低吼變成了長嗥。不必等第一次滿月，月亮已經在瓶子裡。,,,,,,,31,,
+324,血統藥劑・山嶽巨人,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Gaiaborn,1,一次性的血統藥劑,喝下直接覺醒「山嶽巨人」血脈　本世不可更改系列,砂已經沉成了石。跳過風化的年歲，直接長成一座山。,,,,,,,41,,
+325,血統藥劑・元嬰期,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_SpiritVein,1,一次性的血統藥劑,喝下直接覺醒「元嬰期」血脈　本世不可更改系列,白氣凝成了一個小小的人形。它替你把築基那一關走完了。,,,,,,,51,,
+331,血統藥劑・旱魃,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Jiangshi,1,一次性的血統藥劑,喝下直接覺醒「旱魃」血脈　本世不可更改系列,瓶裡是燒乾的赤紅。屍氣、鬃毛、腐骨都省了，只留最後那把火。,,,,,,,12,,
+332,血統藥劑・該隱,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Bloodborn,1,一次性的血統藥劑,喝下直接覺醒「該隱」血脈　本世不可更改系列,漆黑得照不出人影。第一個殺人者的血，中間那些後代全跳過了。,,,,,,,22,,
+333,血統藥劑・芬里爾,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Feralborn,1,一次性的血統藥劑,喝下直接覺醒「芬里爾」血脈　本世不可更改系列,瓶子在你手裡抖，像有東西想咬穿它。狼與望月都不必了，直接是那頭吞月的。,,,,,,,32,,
+334,血統藥劑・泰坦,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_Gaiaborn,1,一次性的血統藥劑,喝下直接覺醒「泰坦」血脈　本世不可更改系列,重得幾乎拿不動。山嶽在它腳下也只是一塊石頭。,,,,,,,42,,
+335,血統藥劑・化神期,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_SpiritVein,1,一次性的血統藥劑,喝下直接覺醒「化神期」血脈　本世不可更改系列,瓶裡什麼都沒有——你卻覺得有人在看你。築基與元嬰，都只是通往這裡的階梯。,,,,,,,52,,
 201,小回血瓶,Potion,None,UI/Icons/Items/positions/item_hpPosition_s,99,回復少量生命,回復生命 10,飲下一口，暖流自喉頭漫入四肢。,,,,10,0,,,,
 202,小回魔瓶,Potion,None,UI/Icons/Items/positions/item_mpPosition_s,99,回復少量魔力,回復魔力 10,吞一口冷冽，識海重新泛起微光。,,,,0,10,,,,
 401,反彈珠,Gem,None,,1,能力珠・反彈,鑲進裝備的孔位　賦予子彈「撞牆反彈」,石心有一道摺痕，光走到那裡就會轉彎。,,,,,,,,1,

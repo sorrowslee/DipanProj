@@ -1,4 +1,4 @@
-Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vitality,SkillId,Note
+Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vitality,SkillId,Note,AuraVfxId,HaloStyle,HaloColor,TrailStyle,TrailColor
 # ─────────────────────────────────────────────────────────────────────────────,,,,,,,,,,,
 # 血統表（表B）。一列 = 一種血統（= 某個系列的某一階，或「人類」）。,,,,,,,,,,,
 #,,,,,,,,,,,
@@ -44,17 +44,29 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 #   Vitality      體力    （概念值，未套用）,,,,,,,,,,,
 #   SkillId       預留：血統附帶的技能。⚠ 技能系統目前還不存在，填了只會印一則提示。,,,,,,,,,,,
 #   Note          備註（程式不讀）。,,,,,,,,,,,
+#   ── 以下五欄為「第三階神格特效」，全部留空 = 沒有任何特效（現有血統即為此狀態）──,,,,,,,,,,,
+#   AuraVfxId     環繞全身的特效，填 VfxTable 的 ID（該特效必須 Loop=1、Duration=-1）。留空 = 無。,,,,,,,,,,,
+#                 ⚠ 排序由 BloodlineAura 每幀接管（進 Y 排序帶，與角色同進退），,,,,,,,,,,,
+#                   所以 VfxTable 那列的 SortingOrder 對這個用途不生效，只是沒接管時的退路。,,,,,,,,,,,
+#   HaloStyle     背後圓盤樣式：Disc（同心光輪）/ Cracked（龜裂日輪）/ Crescent（殘月）/ Stone（岩輪）。留空 = 無。,,,,,,,,,,,
+#   HaloColor     圓盤顏色，六位 hex（可省略 #）。⚠ 專案是 Linear 色彩空間，,,,,,,,,,,,
+#                 亮色疊在暗底上比直覺重一倍，填「感覺值的一半」才對（見 PROBLEMS E11）。,,,,,,,,,,,
+#   TrailStyle    移動殘影：Fade（角色虛影淡出）/ Dust（腳下揚塵）。留空 = 無。,,,,,,,,,,,
+#   TrailColor    殘影染色，六位 hex（可省略 #）。留空 = 用角色原色。,,,,,,,,,,,
 # ─────────────────────────────────────────────────────────────────────────────,,,,,,,,,,,
 1,Human,人類,Base,1,5,5,5,1,1,,初始外型（最基礎數值）。輪迴後回到這個狀態
 10,Jiangshi,殭屍,Jiangshi/Jiangshi,1,5,20,10,5,20,,殭屍系列 第一階
 11,Maojiang,毛殭,Jiangshi/Maojiang,1.5,5,40,15,15,40,,殭屍系列 第二階
-12,Hanba,旱魃,Jiangshi/Hanba,1.2,5,60,25,30,60,,殭屍系列 第三階
+12,Hanba,旱魃,Jiangshi/Hanba,1.2,5,60,25,30,60,,殭屍系列 第三階,,Disk,C08A1E,Fade,B85426
 20,Bloodseeker,覓血者,Bloodborn/Bloodseeker,1,5,15,25,20,15,,血族系列 第一階（數值為佔位，待屬性系統再校）
 21,CrimsonCount,血伯爵,Bloodborn/Crimson Count,1.5,5,35,40,40,35,,血族系列 第二階（數值為佔位，待屬性系統再校）
-22,Cain,該隱,Bloodborn/Cain,1.5,5,60,55,60,55,,血族系列 第三階（數值為佔位，待屬性系統再校）
+22,Cain,該隱,Bloodborn/Cain,1.5,5,60,55,60,55,,血族系列 第三階（數值為佔位，待屬性系統再校）,,Disc,A01018,Fade,C0202A
 30,Werewolf,狼人,Feralborn/Werewolf,1.2,5,25,15,5,20,,狂族系列 第一階（數值為佔位，待屬性系統再校）
 31,Moonwatcher,望月者,Feralborn/Moonwatcher,1.5,5,45,25,10,45,,狂族系列 第二階（BodyScale 憑印象給，實機看過再定）
 32,Fenrir,芬里爾,Feralborn/Fenrir,1.4,5,70,40,15,70,,狂族系列 第三階（BodyScale 憑印象給，實機看過再定）
 40,Gargoyle,石像鬼,Gaiaborn/Gargoyle,1.5,2,25,8,10,25,,土裔系列 第一階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）
 41,MountainGiant,山嶽巨人,Gaiaborn/MountainGiant,2,2,50,12,15,50,,土裔系列 第二階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）
 42,Titan,泰坦,Gaiaborn/Titan,1.8,2,80,20,25,80,,土裔系列 第三階（數值為佔位，待屬性系統再校；BodyScale 先填 1，實機看過再定）
+50,Foundation,築基期,SpiritVein/Foundation,1,,15,20,30,15,,靈脈系列 第一階（數值為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定）
+51,NascentSoul,元嬰期,SpiritVein/Nascent Soul,1,,25,30,55,30,,靈脈系列 第二階（同上；SpriteFolder 含空白＝照資料夾實際名稱，勿去掉）
+52,DivineForm,化神期,SpiritVein/Divine Form,1,,40,45,85,50,,靈脈系列 第三階（同上；SpriteFolder 含空白＝照資料夾實際名稱，勿去掉）

@@ -688,3 +688,33 @@
 - [ ] **三階的 `BodyScale` 全是 1，未實機看過**。設定上石像鬼 → 山嶽巨人 → 泰坦是越變越大，但引擎會把每個血統的 idle 可見高正規化成同一個世界高度，體型差別得靠這一欄做出來（改 CSV 即時生效）。
 - [ ] **五屬性是佔位值**（力量／體力偏高、敏捷偏低的走向），等角色屬性系統做好再一起校平衡。
 - [ ] **檢查 attack 的起播／結束幀**：狼人與芬里爾撞過「idle 直立、attack 整段前傾 ⇒ 只播 2~3 幀」的坑（PROBLEMS **G6**、[BLOODLINE.md](BLOODLINE.md) §8）。土裔三階會不會也中，實機看過才知道。
+
+
+---
+
+## 第三階神格特效 — 2026-09-10（骨架完成，只接了該隱，未實機）
+
+三層元件與資料欄位已完成，做法見 [BLOODLINE.md](BLOODLINE.md) §5b。
+
+- [x] ~~該隱實機看過~~ → 2026-09-10：電光太搶眼已拿掉（`AuraVfxId` 留空）、環從 0.10 加粗到 0.20 並改成平頂環帶。
+- [ ] **其餘參數仍是憑推算給的**：圓盤大小（`DiameterRatio` 1.15）、高度（`CenterYRatio` 0.18）、
+  轉速（18 度/秒）、殘影濃度（`StartAlpha` 0.40）與間隔（`SpacingRatio` 0.30）。
+  全是 `public` 欄位，Play 中選 Player 就能即時調，調到滿意再回填程式碼預設值。
+  其中 `RingWidth` 與 `FillAmount` 改了會即時重畫貼圖，可以直接拉滑桿看。
+- [ ] **旱魃要不要環繞電光還沒定**（該隱是看過之後決定不要的）。要的話：特效庫 `fx3_lightning_aura` 的
+  **orange** 22 張複製進 `Resources/VfxEffects/BloodlineAura/Hanba/`、`VfxTable` 加一列（`Loop=1`、`Duration=-1`）、
+  表B 那格填上 id。
+- [ ] **`TrailStyle=Dust`（腳下揚塵）還沒接**——泰坦要用。它需要一組塵土序列圖：
+  特效庫的 `fx3_dust_trail_brown`（20 幀）可用，複製進 `Resources/VfxEffects/` 並加一列 `VfxTable` 之後，
+  在 `BloodlineTrail` 補一個分支（改成呼叫 `VfxManager.Spawn` 在腳下播一次）即可。
+  目前填 Dust 只會印一則警告、不會有任何表現。
+- [ ] **芬里爾／泰坦還沒填表**（旱魃 2026-09-10 已填＝`Disk` 金色頭光）。
+  ⚠ 填之前先想「輪廓跟已經有的那幾個像不像」——旱魃第一版就是因為跟該隱都是大圓環而被退回。
+  芬里爾的 `Crescent`（殘月）與泰坦的 `Stone`（分塊岩輪）輪廓夠不一樣，但兩者目前都設定成**身光尺寸**，
+  必要時在 `StyleDefaults` 給它們自己的尺寸位置。。素材幾乎不用做——`fx3_lightning_aura` 有六色，
+  各挑一色複製 22 張圖即可；圓盤的 `Cracked`／`Crescent`／`Stone` 三種樣式程式已經寫好，填欄位就能用。
+- [ ] **五種樣式都用離線預覽看過形狀了**（`TempImage/BloodlineHalo/halo_all.png`），但只有 `Disc` 進過遊戲。
+  Cracked（目前沒有血統在用）／Crescent／Stone 的實機觀感待驗。算式都在 `BloodlineHalo.Shape()` 一個函式裡，
+  Python 對應版在對話產出的 `shape3.py`（改算式要兩邊同步，否則預覽會騙人）。
+- [ ] **沒有音效**（同變身演出，專案還沒有音訊系統）。
+

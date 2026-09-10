@@ -2193,6 +2193,14 @@ public class PlayerController : MonoBehaviour, IDamageable
             Destroy(_chargeVfx.gameObject);
             _chargeVfx = null;
         }
+
+        // 第三階神格特效：環繞電光與背後圓盤的大小都是「生成當下依角色高度算死」的，體型變了要重來一次。
+        // （移動殘影不必列在這裡——它每生一個殘影都當場讀 ScaledCharacterHeight，天生會跟。）
+        var godAura = GetComponent<BloodlineAura>();
+        if (godAura != null) godAura.Rebuild();
+
+        var godHalo = GetComponent<BloodlineHalo>();
+        if (godHalo != null) godHalo.Rebuild();
     }
 
     /// <summary>套過體型倍率後的角色顯示高度（世界單位）。特效要「蓋住玩家」時用這個當基準。</summary>

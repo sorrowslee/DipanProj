@@ -31,6 +31,25 @@ namespace Dipan.Gacha
 
         public int SkillId;           // 預留：技能系統還不存在
         public string Note;
+
+        // ── 第三階「神格特效」三層（各自獨立，留空 = 沒有那一層）──
+        // 現有 13 列的 CSV 都只有到 Note 為止，CsvUtil.Field 讀不到就回空字串，
+        // 所以「沒填 = 完全沒有特效」是天生成立的，舊列一個字都不用動。
+
+        /// <summary>環繞全身的特效（<see cref="BloodlineAura"/>）。VfxTable 的 id，該列必須 Loop=1 且 Duration=-1。0 = 無。</summary>
+        public int AuraVfxId;
+
+        /// <summary>背後圓盤樣式（<see cref="BloodlineHalo"/>）：Disc / Cracked / Crescent / Stone。留空 = 無。</summary>
+        public string HaloStyle;
+
+        /// <summary>圓盤顏色。⚠ Linear 色彩空間，亮色疊暗底比直覺重一倍，填「感覺值的一半」（PROBLEMS E11）。</summary>
+        public Color HaloColor = Color.white;
+
+        /// <summary>移動殘影樣式（<see cref="BloodlineTrail"/>）：Fade / Dust。留空 = 無。</summary>
+        public string TrailStyle;
+
+        /// <summary>殘影染色。留空 = 白＝維持角色原色。</summary>
+        public Color TrailColor = Color.white;
     }
 
     /// <summary>
@@ -67,6 +86,18 @@ namespace Dipan.Gacha
         {
             var d = Get(id);
             return d != null ? d.DisplayName : fallback;
+        }
+
+        /// <summary>
+        /// 六位 hex 顏色（<c>A01018</c> 或 <c>#A01018</c> 都收）→ Color；留空或格式不對就回 <paramref name="fallback"/>。
+        /// CSV 欄位刻意允許省略 <c>#</c>——整行以 # 開頭會被當註解跳過，省略比較不容易寫錯。
+        /// </summary>
+        public static Color ParseColor(string s, Color fallback)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return fallback;
+            s = s.Trim();
+            if (!s.StartsWith("#")) s = "#" + s;
+            return ColorUtility.TryParseHtmlString(s, out var c) ? c : fallback;
         }
 
         static void EnsureLoaded()
@@ -112,6 +143,13 @@ namespace Dipan.Gacha
                     Vitality = CsvUtil.FieldFloat(v, 9, 0f),
                     SkillId = CsvUtil.FieldInt(v, 10, 0),
                     Note = CsvUtil.Field(v, 11),
+
+                    // 第三階神格特效（12~16 欄）。舊列沒有這些欄位 → Field 回空字串 → 三層全關。
+                    AuraVfxId = CsvUtil.FieldInt(v, 12, 0),
+                    HaloStyle = CsvUtil.Field(v, 13),
+                    HaloColor = ParseColor(CsvUtil.Field(v, 14), Color.white),
+                    TrailStyle = CsvUtil.Field(v, 15),
+                    TrailColor = ParseColor(CsvUtil.Field(v, 16), Color.white),
                 };
                 if (d.DisplayName.Length == 0) d.DisplayName = d.Key.Length > 0 ? d.Key : $"#{id}";
                 // 留空/0/負數一律當 1；上限擋在 5 倍，填錯一個 0 不會讓角色大到蓋滿整個畫面。

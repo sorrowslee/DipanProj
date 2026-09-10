@@ -553,7 +553,54 @@ namespace Dipan.Gacha
             if (def.SkillId > 0)
                 Debug.Log($"[BloodlineSystem] 血統「{def.DisplayName}」帶技能 {def.SkillId}，但技能系統尚未實作，先略過。");
 
+            // 4) 神格特效（環繞電光／背後圓盤／移動殘影三層，各自獨立）。
+            //    ⚠ 刻意**不在程式裡判斷「是不是第三階」**——誰有特效由血統表決定。
+            //      之後想給二階也加一點光、或讓某隻 boss 共用同一套，都只要填表、不必改程式
+            //      （專案的「CSV 資料驅動優先」鐵則）。三欄全留空的血統完全不會掛上任何元件。
+            ApplyGodhoodFx(pc, def);
+
             _appliedId = bloodlineId;
+        }
+
+        /// <summary>
+        /// 套上／撤下三層神格特效。三層都是「表格留空 ＝ 關掉那一層」，
+        /// 所以輪迴回人類、或換到沒填特效的血統時會自動清乾淨，不需要另外寫還原程式碼。
+        ///
+        /// 元件用 GetComponent + AddComponent 就地掛（同 BlobShadow／YSortByFeet 的慣例）；
+        /// 關掉時**只把該層設成 0／null 而不移除元件**，避免調表時反覆 AddComponent／Destroy。
+        /// 玩家物件重建（換圖、死亡回廣場）後，外層 Update 的收斂邏輯會重新走一次這裡，
+        /// 所以不必為「玩家不見了」寫任何補掛程式碼。
+        /// </summary>
+        static void ApplyGodhoodFx(PlayerController pc, BloodlineDef def)
+        {
+            var go = pc.gameObject;
+
+            // ① 環繞電光（VfxTable 那列必須 Loop=1 / Duration=-1）
+            var aura = go.GetComponent<BloodlineAura>();
+            if (def.AuraVfxId > 0)
+            {
+                if (aura == null) aura = go.AddComponent<BloodlineAura>();
+                aura.SetEffect(def.AuraVfxId);
+            }
+            else if (aura != null) aura.SetEffect(0);
+
+            // ② 背後圓盤（程序化畫，畫在角色之下）
+            var halo = go.GetComponent<BloodlineHalo>();
+            if (!string.IsNullOrEmpty(def.HaloStyle))
+            {
+                if (halo == null) halo = go.AddComponent<BloodlineHalo>();
+                halo.SetStyle(def.HaloStyle, def.HaloColor);
+            }
+            else if (halo != null) halo.SetStyle(null, Color.white);
+
+            // ③ 移動殘影
+            var trail = go.GetComponent<BloodlineTrail>();
+            if (!string.IsNullOrEmpty(def.TrailStyle))
+            {
+                if (trail == null) trail = go.AddComponent<BloodlineTrail>();
+                trail.SetStyle(def.TrailStyle, def.TrailColor);
+            }
+            else if (trail != null) trail.SetStyle(null, Color.white);
         }
     }
 }
