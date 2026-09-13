@@ -71,11 +71,27 @@ public class BloodlineOrbit : MonoBehaviour
         _ysort = GetComponent<YSortByFeet>();
     }
 
-    /// <summary>設定要繞的 VfxTable id；≤ 0 = 關掉這一層。重複傳同一個 id 不會重生。</summary>
-    public void SetEffect(int vfxId)
+    /// <summary>
+    /// 設定要繞的 VfxTable id；≤ 0 = 關掉這一層。重複傳同一組設定不會重生。
+    ///
+    /// <para><paramref name="count"/> / <paramref name="sizeRatio"/> 由表B 的 <c>OrbitCount</c> / <c>OrbitSize</c> 傳進來，
+    /// **≤ 0 一律當「不指定」＝保留 Inspector 上的值**（泰坦那種沒填的血統行為完全不變）。
+    /// 之所以要讓它可以逐血統指定：泰坦是「一圈小碎石」、應龍是「單獨一顆大水球」，
+    /// 同一個元件要做出這兩種，顆數與大小就不能寫死。</para>
+    /// </summary>
+    public void SetEffect(int vfxId, int count = 0, float sizeRatio = 0f)
     {
         if (vfxId <= 0) { _vfxId = 0; Clear(); return; }
-        if (vfxId == _vfxId && _items != null) return;
+
+        // 顆數／大小也算「設定的一部分」——只比 id 會漏掉「同一顆球改成兩顆」這種調整。
+        int wantCount = count > 0 ? Mathf.Clamp(count, 1, 16) : Count;
+        float wantSize = sizeRatio > 0f ? Mathf.Clamp(sizeRatio, 0.02f, 2f) : SizeRatio;
+        bool same = vfxId == _vfxId && _items != null
+                    && wantCount == Count && Mathf.Approximately(wantSize, SizeRatio);
+        if (same) return;
+
+        Count = wantCount;
+        SizeRatio = wantSize;
         _vfxId = vfxId;
         _quickRespawns = 0;
         Rebuild();

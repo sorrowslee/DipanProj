@@ -41,6 +41,7 @@ namespace Dipan.Drama
         Catalog _catalog;
         MapSpriteLoader _loader;
         readonly Dictionary<string, Sprite> _spriteCache = new Dictionary<string, Sprite>();
+        readonly Dictionary<string, PortraitFit> _fitCache = new Dictionary<string, PortraitFit>();
 
         /// <summary>取某群組的整串對話（已排序）；該群組不存在回 null。</summary>
         public List<DramaTalkData> GetGroup(int group)
@@ -129,6 +130,8 @@ namespace Dipan.Drama
             {
                 d.LeftAvatar = ResolvePortrait(d.LeftAvatarPath, bloodline);
                 d.RightAvatar = ResolvePortrait(d.RightAvatarPath, bloodline);
+                d.LeftFit = ResolveFit(d.LeftAvatarPath, bloodline);
+                d.RightFit = ResolveFit(d.RightAvatarPath, bloodline);
             }
         }
 
@@ -143,18 +146,8 @@ namespace Dipan.Drama
         {
             if (string.IsNullOrEmpty(rawPath)) return null;
 
-            string catalogId;
-            if (rawPath.StartsWith(ActorPrefix, System.StringComparison.OrdinalIgnoreCase))
-            {
-                string emotion = rawPath.Substring(ActorPrefix.Length).Trim().ToLowerInvariant();   // angry / cry / ...
-                if (string.IsNullOrEmpty(emotion)) return null;
-                string blood = string.IsNullOrEmpty(bloodline) ? "Base" : bloodline.Trim();
-                catalogId = $"{CharacterTalkRoot}/{blood}/{emotion}";
-            }
-            else
-            {
-                catalogId = rawPath;
-            }
+            string catalogId = ResolveCatalogId(rawPath, bloodline);
+            if (string.IsNullOrEmpty(catalogId)) return null;
 
             if (_spriteCache.TryGetValue(catalogId, out var cached)) return cached;
 
@@ -168,6 +161,61 @@ namespace Dipan.Drama
                         : "確認圖放在 GameAssets/Modules/<module>/Talk/ 下，且已執行 Project Tools → Sync Map Assets。"));
             _spriteCache[catalogId] = sp;
             return sp;
+        }
+
+        /// <summary>
+        /// 立繪路徑字串 → catalog id：<c>Actor_&lt;情緒&gt;</c> 依「目前血統」組成
+        /// <c>Main/Characters/Talk/&lt;SpriteFolder&gt;/&lt;情緒小寫&gt;</c>（SpriteFolder 可能自帶系列層，如
+        /// <c>Bloodborn/Bloodseeker</c>）；其餘原樣當 catalog id。留空 / 沒寫情緒回 null。
+        /// </summary>
+        string ResolveCatalogId(string rawPath, string bloodline)
+        {
+            if (string.IsNullOrEmpty(rawPath)) return null;
+            if (!rawPath.StartsWith(ActorPrefix, System.StringComparison.OrdinalIgnoreCase)) return rawPath;
+
+            string emotion = rawPath.Substring(ActorPrefix.Length).Trim().ToLowerInvariant();   // angry / cry / ...
+            if (string.IsNullOrEmpty(emotion)) return null;
+            string blood = string.IsNullOrEmpty(bloodline) ? "Base" : bloodline.Trim();
+            return $"{CharacterTalkRoot}/{blood}/{emotion}";
+        }
+
+        /// <summary>
+        /// 取一張立繪的排版資料：不透明內容在圖檔裡的位置/大小（讓 TalkPanel 對齊「人物」而不是「圖檔外框」）
+        /// ＋ <see cref="PortraitTable"/> 裡這張圖的固定微調。依 catalog id 快取。
+        ///
+        /// <para>內容框走 <see cref="MapSpriteLoader.GetAlphaLocalBox"/>——與地上物碰撞同一支（它自己也有快取）。
+        /// 掃不到（圖載不到 / 整張全透明）時回 <see cref="PortraitFit.None"/>，TalkPanel 會退回用圖檔外框的舊排法，
+        /// 不會因此不顯示。</para>
+        /// </summary>
+        public PortraitFit ResolveFit(string rawPath, string bloodline)
+        {
+            string catalogId = ResolveCatalogId(rawPath, bloodline);
+            if (string.IsNullOrEmpty(catalogId)) return PortraitFit.None;
+            if (_fitCache.TryGetValue(catalogId, out var cached)) return cached;
+
+            var fit = PortraitFit.None;
+
+            EnsureLoader();
+            var item = _catalog?.Find(catalogId);
+            if (item != null)
+            {
+                // tileSize 傳 1：排版只用 canvas / content / center 三者的比值，單位會約掉。
+                var box = _loader.GetAlphaLocalBox(item, 1f);
+                if (box.ok)
+                {
+                    fit.ok = true;
+                    fit.canvas = box.canvas;
+                    fit.content = box.size;
+                    fit.center = box.offset;
+                }
+            }
+
+            var tuned = PortraitTable.Instance.Get(catalogId);
+            fit.imgScale = tuned.scale;
+            fit.imgOffset = tuned.offset;
+
+            _fitCache[catalogId] = fit;
+            return fit;
         }
 
         void EnsureLoader()

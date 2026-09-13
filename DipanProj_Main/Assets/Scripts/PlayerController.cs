@@ -107,6 +107,16 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// <summary>佛光（Mode=Aura）光環目前是否開著（按住左鍵/空白鍵維持中）。供新手教學偵測「玩家真的點亮佛燈」用。</summary>
     public bool IsAuraActive => _activeAura != null;
 
+    /// <summary>
+    /// **持續型武器（雷射／佛光）正在放**。離散武器永遠是 false（它的攻擊是瞬間的）。
+    ///
+    /// <para>要綁「玩家正在攻擊」的功能請分兩種情況：離散武器走
+    /// <see cref="TrySpawnFireEffect"/>（每發都會經過），持續型武器**只有按下的那一幀**會經過它，
+    /// 之後按著不放完全不再呼叫 ⇒ 想在持續攻擊期間反覆做事的，要每幀問這個屬性。
+    /// （2026-09-13 的 BloodlineAttackFx 就是漏了這一半，症狀是「雷射按著只播第一次」。）</para>
+    /// </summary>
+    public bool IsContinuousFireActive => _activeBeams.Count > 0 || _activeAura != null;
+
     /// <summary>玩家現在能不能開火。兩個條件：**有裝備武器** ＋ **這張地圖沒禁用武器**（MapsTable 的 NoWeapon 欄）。
     /// 發射 guard 與「按攻擊鍵轉身面向滑鼠」都讀它，確保兩處判斷永遠一致。</summary>
     public bool CanFire
@@ -343,7 +353,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         //  ‧ 持續武器（雷射/佛光）：只在「開始放的那一下」（上升緣）擺**一次**；按住的期間不再重擺（後面一直擺很怪）。
         // 這個「持續 vs 離散」的差別天生來自武器的發射模式——持續武器會產生 _activeBeams/_activeAura、離散走 Shoot——
         // 所以不必寫死武器類型，也不必多一個欄位維護；之後任何新的持續型武器只要走同一套光束/佛光機制就自動生效。
-        bool continuousFireActive = _activeBeams.Count > 0 || _activeAura != null;
+        bool continuousFireActive = IsContinuousFireActive;
         if (continuousFireActive && !_continuousFireWasActive)
             TriggerAttackPose();   // 上升緣＝剛開始放 → 擺一次就好
         _continuousFireWasActive = continuousFireActive;
@@ -2050,8 +2060,13 @@ public class PlayerController : MonoBehaviour, IDamageable
         Dipan.UI.AlertPanel.Toast(message);
     }
 
+    // ⚠ 這個方法是**四條發射路徑（離散武器／雷射／召喚／佛光）唯一的共同節點**，
+    //   所以「玩家出手了」的通知掛在這裡最前面——刻意放在下面那個 early-return 之前，
+    //   否則沒填 FireEffectID 的武器就不會通知。見 BloodlineAttackFx。
     private void TrySpawnFireEffect(WeaponData weapon, Vector2 aimDir)
     {
+        if (TryGetComponent<BloodlineAttackFx>(out var bloodlineAtkFx)) bloodlineAtkFx.NotifyAttack();
+
         if (_vfxManager == null || weapon == null || weapon.FireEffectID <= 0) return;
         float angle = Mathf.Atan2(aimDir.y, aimDir.x) * Mathf.Rad2Deg;
         _vfxManager.Spawn(weapon.FireEffectID, MuzzleWorldPos, angle, weapon.CastVisualScale);   // 發射特效跟著出手點

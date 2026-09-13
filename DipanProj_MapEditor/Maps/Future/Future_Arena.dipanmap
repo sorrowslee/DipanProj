@@ -20,7 +20,6 @@
       "visible": true,
       "opacity": 1.0,
       "locked": false,
-      "tiles": [],
       "objects": [
         {
           "assetId": "Main/Environment/rockAltar",
@@ -46,7 +45,12 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
-          "lightRadius": 0.0
+          "lightRadius": 0.0,
+          "lightIntensity": 1.0,
+          "lightColor": "",
+          "lightFlicker": 1.0,
+          "lightFlickerSpeed": 1.0,
+          "lightSoftness": 0.46
         }
       ]
     },
@@ -178,5 +182,26 @@
       ]
     }
   ],
-  "sceneFx": []
+  "sceneFx": [],
+  "npcs": [
+    {
+      "id": "df480ed4",
+      "name": "測試說話npc",
+      "npcId": 1,
+      "x": 4.86546135,
+      "y": -1.987992,
+      "behavior": "idle",
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 23,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": ""
+    }
+  ],
+  "lights": [],
+  "cutscenes": []
 }

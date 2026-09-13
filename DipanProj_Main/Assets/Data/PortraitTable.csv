@@ -1,0 +1,19 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# 立繪固定微調表。一列 = 一張立繪，記「這張圖要比標準大/小多少、往哪偏多少」。
+# Id = 解析後的 catalog id（不是 DramaTalkTable 裡寫的字串）。Actor_<情緒> 會查到當下血統的那張圖。
+# 空欄 = 預設（Scale 1 / OffsetX 0 / OffsetY 0）。位移以畫面為準：+X 往右、+Y 往上。
+#
+# ⚠ 排版本身已經會自動把「人物」對齊到固定落點（見 Scripts/Drama/PortraitFit.cs 與 TalkPanel.SetAvatar），
+#   素材留白與畫布比例的差異不必在這裡補。這張表只放「刻意的構圖選擇」。
+#   整張表都是選填的——沒列進來的圖就是完全交給自動對齊。
+#
+# 與 DramaTalkTable 那 6 個微調欄的關係：兩者疊加（Scale 相乘、Offset 相加）。
+#   這裡 = 那張圖每次出現都要的；DramaTalkTable = 只有那一句才要的特例。
+# ─────────────────────────────────────────────────────────────────────────────
+Id,Scale,OffsetX,OffsetY,Note
+Main/Talk/Buddha/Buddha_normal,1.1,-130,-130,邪佛比人大一點、更沉進對話框（原本在 DramaTalkTable 重複填了 10 列）
+Modules/RedBridalGown/Talk/treeFace_vicious,,,-50,舊補償值：自動對齊後可能可歸零（實機看過再決定）
+Modules/RedBridalGown/Talk/treeFace_crazy,,,-50,同上
+Modules/RedBridalGown/Talk/redBridalGown_angry,,,-50,同上
+Main/Talk/Girl/Girl_Fear,,,-50,同上
+Main/Talk/Girl/Girl_Smile,,,-50,同上

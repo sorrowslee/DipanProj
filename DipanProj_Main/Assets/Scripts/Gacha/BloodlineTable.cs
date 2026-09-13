@@ -62,6 +62,34 @@ namespace Dipan.Gacha
         /// 那一列必須 <c>Loop=1</c>、<c>Duration=-1</c>（常駐）。0 = 沒有這一層。
         /// </summary>
         public int OrbitVfxId;
+
+        /// <summary>
+        /// 繞行物件的顆數（<see cref="BloodlineOrbit.Count"/>）。**留空／0 = 用元件預設（4 顆）**。
+        /// 泰坦是一圈碎石、應龍是單獨一顆大水球——同一層要做出這兩種，顆數與大小就不能寫死在元件上。
+        /// </summary>
+        public int OrbitCount;
+
+        /// <summary>
+        /// 單顆的高度倍率（<see cref="BloodlineOrbit.SizeRatio"/>，＝角色高度 × 此值）。
+        /// **留空／0 = 用元件預設（0.13）**。顆數少的時候要放大才撐得起畫面。
+        /// </summary>
+        public float OrbitSize;
+
+        /// <summary>
+        /// **攻擊時才播一次**的罩身特效（<see cref="BloodlineAttackFx"/>）用的 VfxTable id。
+        /// 那一列是**一次性**的（<c>Loop=0</c>、<c>Duration</c> 留空），播放速度用該列的 <c>AnimFPS</c> 調。
+        /// 0 = 沒有這一層。
+        ///
+        /// <para>⚠ 這一層與另外四層的差別是**時機不是輪廓**——它平常看不到，
+        /// 所以不佔用「一個血統只掛一層」那條原則的額度。</para>
+        /// </summary>
+        public int AttackVfxId;
+
+        /// <summary>
+        /// 攻擊特效兩次播放之間的最短間隔（秒）。**壓住連射時就是每隔這麼久播一次**；
+        /// 單擊之所以每次都播得到，是因為兩次點擊本來就隔得比它久。留空／0 = 用元件預設（3 秒）。
+        /// </summary>
+        public float AttackFxGap;
     }
 
     /// <summary>
@@ -156,7 +184,7 @@ namespace Dipan.Gacha
                     SkillId = CsvUtil.FieldInt(v, 10, 0),
                     Note = CsvUtil.Field(v, 11),
 
-                    // 第三階神格特效（12~16 欄）。舊列沒有這些欄位 → Field 回空字串 → 三層全關。
+                    // 第三階神格特效（12~22 欄）。舊列沒有這些欄位 → Field 回空字串 → 那幾層全關／用預設。
                     AuraVfxId = CsvUtil.FieldInt(v, 12, 0),
                     HaloStyle = CsvUtil.Field(v, 13),
                     HaloColor = ParseColor(CsvUtil.Field(v, 14), Color.white),
@@ -164,6 +192,14 @@ namespace Dipan.Gacha
                     TrailColor = ParseColor(CsvUtil.Field(v, 16), Color.white),
                     TrailVfxId = CsvUtil.FieldInt(v, 17, 0),
                     OrbitVfxId = CsvUtil.FieldInt(v, 18, 0),
+
+                    // 繞行層的「顆數／單顆大小」（19~20 欄，2026-09-13 加）。留空 = 0 = 用元件預設。
+                    OrbitCount = CsvUtil.FieldInt(v, 19, 0),
+                    OrbitSize = CsvUtil.FieldFloat(v, 20, 0f),
+
+                    // 攻擊時一次性罩身特效（21~22 欄，2026-09-13 加）。留空 = 沒有這一層。
+                    AttackVfxId = CsvUtil.FieldInt(v, 21, 0),
+                    AttackFxGap = CsvUtil.FieldFloat(v, 22, 0f),
                 };
                 if (d.DisplayName.Length == 0) d.DisplayName = d.Key.Length > 0 ? d.Key : $"#{id}";
                 // 留空/0/負數一律當 1；上限擋在 5 倍，填錯一個 0 不會讓角色大到蓋滿整個畫面。

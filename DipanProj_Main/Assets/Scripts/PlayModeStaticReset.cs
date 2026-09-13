@@ -53,6 +53,7 @@ public static class PlayModeStaticReset
         FactionRelations.ResetForPlayMode();           // 三方陣營劇本狀態（開戰/結盟）
         Dipan.Drama.DramaDatabase.ResetForPlayMode();
         Dipan.Drama.DramaTalkDatabase.ResetForPlayMode();
+        Dipan.Drama.PortraitTable.ResetForPlayMode();
 
         // 傷害數字管理器：懶漢單例 + _quitting 守衛。停止 Play 的 OnApplicationQuit 會把 _quitting 設 true，
         // 沒 Domain Reload 就殘留 → 下次 Play 的 Instance 被擋成 null、頭上傷害數字消失。歸零解死結。

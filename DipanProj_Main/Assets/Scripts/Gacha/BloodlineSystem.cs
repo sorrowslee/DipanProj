@@ -574,7 +574,7 @@ namespace Dipan.Gacha
         }
 
         /// <summary>
-        /// 套上／撤下三層神格特效。三層都是「表格留空 ＝ 關掉那一層」，
+        /// 套上／撤下神格特效各層。每一層都是「表格留空 ＝ 關掉那一層」，
         /// 所以輪迴回人類、或換到沒填特效的血統時會自動清乾淨，不需要另外寫還原程式碼。
         ///
         /// 元件用 GetComponent + AddComponent 就地掛（同 BlobShadow／YSortByFeet 的慣例）；
@@ -609,9 +609,18 @@ namespace Dipan.Gacha
             if (def.OrbitVfxId > 0)
             {
                 if (orbit == null) orbit = go.AddComponent<BloodlineOrbit>();
-                orbit.SetEffect(def.OrbitVfxId);
+                orbit.SetEffect(def.OrbitVfxId, def.OrbitCount, def.OrbitSize);
             }
             else if (orbit != null) orbit.SetEffect(0);
+
+            // ⑤ 攻擊時才播一次的罩身特效（平常看不到，所以不佔「一個血統一層」的額度）
+            var atkFx = go.GetComponent<BloodlineAttackFx>();
+            if (def.AttackVfxId > 0)
+            {
+                if (atkFx == null) atkFx = go.AddComponent<BloodlineAttackFx>();
+                atkFx.SetEffect(def.AttackVfxId, def.AttackFxGap);
+            }
+            else if (atkFx != null) atkFx.SetEffect(0);
 
             // ④ 移動足跡
             var trail = go.GetComponent<BloodlineTrail>();

@@ -11,5 +11,9 @@ namespace Dipan.Drama
     {
         [Tooltip("把 Assets/Data/DramaTalkTable.csv 拖進來")]
         public TextAsset talkCSV;
+
+        // 立繪固定微調表（選填）：沒拖就是每張立繪都走自動對齊、不做額外偏移。見 PortraitTable。
+        [Tooltip("把 Assets/Data/PortraitTable.csv 拖進來（選填：每張立繪的固定縮放/位移）")]
+        public TextAsset portraitCSV;
     }
 }

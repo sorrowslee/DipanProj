@@ -30,5 +30,10 @@ namespace Dipan.Drama
 
         public Sprite LeftAvatar;    // 載好的左立繪（解析失敗 / 留空＝null，TalkPanel 自動隱藏）
         public Sprite RightAvatar;   // 載好的右立繪（同上）
+
+        // 立繪排版資料（與 Avatar 同時解析）：人物在圖檔裡的實際位置/大小 ＋ 該張圖的固定微調。
+        // TalkPanel 用它把人物對齊到固定落點，吸收掉各張素材留白與畫布比例的差異。見 PortraitFit。
+        public PortraitFit LeftFit = PortraitFit.None;
+        public PortraitFit RightFit = PortraitFit.None;
     }
 }

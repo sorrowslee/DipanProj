@@ -63,13 +63,16 @@
 | `RightAvatarPath` | **右側立繪**路徑（兩種寫法見下）。留空 = 右側不顯示立繪 |
 | `SpotlightSide` | **聚光側＝現在誰在說話**：**1 = 左、2 = 右**（其餘 / 留空視為 1）。聚光側立繪正常亮、另一側**壓暗**（保留原色相），姓名牌匾也擺聚光側 |
 | `Text` | 對話內容。含逗號用 `"..."` 包覆；`\n` 轉換行 |
-| `LeftScale`/`LeftOffsetX`/`LeftOffsetY` | **左立繪微調**（選填，空=1/0/0）：縮放乘在標準立繪高度上；位移為畫面單位、+X 往右、+Y 往上 |
-| `RightScale`/`RightOffsetX`/`RightOffsetY` | **右立繪微調**（同上，右側獨立）。註：立繪寬度已改依**圖片實際比例**自動算，非主角比例的 NPC 圖不會再被壓進固定框 |
+| `LeftScale`/`LeftOffsetX`/`LeftOffsetY` | **左立繪微調**（選填，空=1/0/0）：**只放「這一句」的特例**；縮放乘在標準人物高度上，位移為畫面單位、+X 往右、+Y 往上 |
+| `RightScale`/`RightOffsetX`/`RightOffsetY` | **右立繪微調**（同上，右側獨立） |
+
+> ⚠ **這 6 欄平常留空**。素材尺寸/留白造成的偏差由〈立繪自動對齊〉處理，不必在這裡補；
+> 某張圖每次出現都要的固定偏移請寫 `PortraitTable.csv`（同一節）——填在句子上等於同一張圖出現幾次就要填幾次。
 
 **立繪路徑兩種寫法**（`LeftAvatarPath` / `RightAvatarPath` 皆可）：
 
 1. **catalog id**：相對 `GameAssets/` 的路徑、不含副檔名（例 `Modules/RedBridalGown/Talk/redBridalGown`）——每關專屬立繪，走地圖素材管線（同劇情大圖）。
-2. **`Actor_<情緒>`**：主角情緒立繪（例 `Actor_Angry`）——依**目前血統**載 `GameAssets/Main/Characters/Talk/<血統>/<情緒>.png`（情緒大小寫不拘）。目前情緒有 `normal`/`happy`/`angry`/`cry`/`fear`/`proud`/`speechless`（未來可增）；血統資料夾依 `BloodlineTable.SpriteFolder` 自動切換，**2026-09-09 起依系列分了一層**：`Base`／`Jiangshi/{Jiangshi,Maojiang,Hanba}`／`Bloodborn/{Bloodseeker,Crimson Count,Cain}`／`Feralborn/{Werewolf,Moonwatcher,Fenrir}`／`Gaiaborn/{Gargoyle,MountainGiant,Titan}`／`SpiritRoot/{Foundation,Nascent Soul,Divine Form}`。掃描是遞迴的，加幾層都收得到。找不到圖 = 那側不顯示（方便人工抓 bug）。
+2. **`Actor_<情緒>`**：主角情緒立繪（例 `Actor_Angry`）——依**目前血統**載 `GameAssets/Main/Characters/Talk/<血統>/<情緒>.png`（情緒大小寫不拘）。目前情緒有 `normal`/`happy`/`angry`/`cry`/`fear`/`hurt`（未來可增）；血統資料夾依 `BloodlineTable.SpriteFolder` 自動切換，**2026-09-09 起依系列分了一層**：`Base`／`Jiangshi/{Jiangshi,Maojiang,Hanba}`／`Bloodborn/{Bloodseeker,Crimson Count,Cain}`／`Feralborn/{Werewolf,Moonwatcher,Fenrir}`／`Gaiaborn/{Gargoyle,MountainGiant,Titan}`／`SpiritRoot/{Foundation,Nascent Soul,Divine Form}`。掃描是遞迴的，加幾層都收得到。找不到圖 = 那側不顯示（方便人工抓 bug）。
 
 範例（群組 1 = 單側立繪；群組 2 = 左右對話、聚光側交替）：
 
@@ -107,8 +110,46 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
   - 每關專屬立繪放 `GameAssets/Modules/<module>/Talk/`，`LeftAvatarPath` / `RightAvatarPath` 填 **catalog id**（相對 GameAssets、不含副檔名，例 `Modules/RedBridalGown/Talk/redBridalGown`）。
   - 跑 `Project Tools → Sync Map Assets` 收進 catalog ＋ StreamingAssets。`DramaTalkDatabase.ResolvePortrait` 用 `CatalogLoader` + `MapSpriteLoader` 把每個立繪路徑載成 Sprite（同 `DramaDatabase.ResolveImages`；依解析後 catalog id 快取，同一張圖多句共用只載一次）。
   - **`Talk` 是同步分類白名單的一員**（與 `Environment/Tiles/Background/Drama` 並列）；**主角情緒立繪 `Characters/Talk/<血統>/*.png` 另由三處同步工具的 `Characters/Talk` 掃描收進 catalog**（id 例 `Main/Characters/Talk/Base/angry`，category=`Talk`）。**加新素材分類 / 掃描時三處同步產生器要一起改**（`MapAssetSyncTool.cs`、`MapIO.cs`、`Tools/sync_map_assets.sh`），否則會像 [PROBLEMS.md](PROBLEMS.md) C3 那樣「放了圖卻載不到」。
-  - TalkPanel 把左右立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、左立繪錨左下角、右立繪錨右下角。位置/大小常數在 `TalkPanel.cs` 上方：`AvatarHeight`（大小）、`AvatarOverlap`（**越大越往下＝被對話框蓋住越多、露出越少**）、`AvatarSideMargin`（離左/右邊）。某側沒立繪（載不到 / 留空）時那側自動隱藏。
+  - TalkPanel 把左右立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、左立繪錨左下角、右立繪錨右下角。位置/大小常數在 `TalkPanel.cs` 上方，**三個量的都是「人物」而不是「圖檔」**（見〈立繪自動對齊〉）：`AvatarHeight`（人物高度）、`AvatarOverlap`（人物底部沉入對話框多少，**越大越往下＝露出越少**）、`AvatarInnerX`（**人物內側緣**距畫面左/右邊，**越大兩人靠越近**）。某側沒立繪（載不到 / 留空）時那側自動隱藏。
   - **右側立繪一律水平翻轉**（`localScale.x=-1`，原地鏡像不位移）：因為立繪原圖臉朝右，放右邊要翻成朝左才面向畫面中央、與左側對望。所以 `RightAvatarPath` 的圖**直接放正常朝右的原圖即可**，不必自己先翻好。
+
+### 立繪自動對齊（2026-09-13）
+
+**問題**：立繪的**圖檔外框 ≠ 人物**。實測 132 張立繪，不透明內容佔畫布的比例從 **0.717 到 1.000**、左右留白 **0~16%**、畫布比例也不統一（1024×1536 之外還有 1122×1402、1149×1369、500×500…）。舊排版量的是圖檔——高度固定 660、寬度＝高×圖檔長寬比、左立繪把**圖檔左緣**貼邊——所以換一張圖＝換一組留白，人物就在畫面上飄。**同一個角色的兩張表情就會跳**（`Girl_Fear` 右留白 0%、`Girl_Smile` 15.8%）。舊算法下人物內側緣的散佈實測是 **217px**。
+
+**解法**：改成量**不透明內容框**（`Scripts/Drama/PortraitFit.cs`），三件事都對齊「人」：
+
+| 量 | 對齊到 | 常數 |
+|---|---|---|
+| 人物高度 | 固定值 | `AvatarHeight` |
+| 人物**內側緣**（朝畫面中央那一邊） | 距畫面左/右邊固定 | `AvatarInnerX` |
+| 人物底緣 | 對話框上緣 − 固定值 | `AvatarOverlap` |
+
+於是留白多寡、畫布大小、畫布比例全部被吸收掉：**留白多的圖只是圖檔被放得比較大，人物一樣大、一樣的位置**。美術之後給什麼尺寸都不用管。
+
+> ⚠ **三個常數的上限是畫面高 1080**（CanvasScaler 參考解析度）：
+> 人物頂端 = `576.9 − AvatarOverlap + AvatarHeight`，**超過 1080 頭頂就被切掉**。
+> 因為全部立繪的人物高度現在都被正規化成同一個值，**切到就是全部一起切**（實機第一版 660/100 算出 1137，
+> 所有角色的角與頭髮都被切平）。目前 580/130 ⇒ 頂端 1027、留 53px。
+> 要調：**縮小人物改 `AvatarHeight`、整體下移改 `AvatarOverlap`**。
+
+- **內容框哪裡來**：`MapSpriteLoader.GetAlphaLocalBox`——地上物碰撞用的同一支（掃不透明像素外接框、依 catalog id 快取）。**刻意不另外烘進 catalog.json**：這專案的 catalog 有四個產生器（兩支 C#、兩支 shell），只有部分會烘，走同一支現成掃描才不會「不同機器算出不同結果」。對話面板是模態暫停的，第一次掃圖的成本感覺不到。
+- **右側立繪是鏡像的**（`localScale.x=-1`），鏡像後原圖的**右**緣會變成畫面上的**左**緣——正好也是內側緣，所以左右兩側都用同一個值（`PortraitFit.ContentRightFromCenter`）對齊，不必分兩套。
+- **掃不到內容框時**（圖載不到 / catalog 沒這筆）自動退化成「整張圖＝內容」，也就是舊的量圖檔行為，不會因此不顯示。
+
+#### 固定微調 `PortraitTable.csv`（選填）
+
+自動對齊解掉的是**尺寸誤差**；另一種微調是**刻意的構圖選擇**（例如邪佛要比人大一點、要更沉進對話框），那是**那張圖的屬性、不是那句話的屬性**。這類寫 `Assets/Data/PortraitTable.csv`：
+
+```
+Id,Scale,OffsetX,OffsetY,Note
+Main/Talk/Buddha/Buddha_normal,1.1,-130,-130,邪佛比人大一點、更沉進對話框
+```
+
+- `Id` = **解析後的 catalog id**（不是 CSV 裡寫的字串）；`Actor_<情緒>` 會查到當下血統的那張圖。
+- 空欄 = 預設（Scale 1 / Offset 0）。`#` 開頭 = 註解列。**整張表選填**，沒列進來的圖完全交給自動對齊。
+- 與 `DramaTalkTable` 那 6 欄**疊加**：Scale 相乘、Offset 相加。這裡＝那張圖每次出現都要的；那邊＝只有那一句才要的特例。
+- **接線**：把 `Assets/Data/PortraitTable.csv` 拖進場景 `GameManagers` 上 `DramaTalkTableProvider` 的 **Portrait CSV** 欄。沒拖 = 全部走自動對齊（不報錯）。
 
 ### 圖放哪（重要）：每關專屬、走地圖素材管線，不放共用 Resources
 

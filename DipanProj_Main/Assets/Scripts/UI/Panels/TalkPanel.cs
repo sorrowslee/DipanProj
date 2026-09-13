@@ -40,11 +40,20 @@ namespace Dipan.UI
         const float PlateW = 540f, PlateH = 216f, PlateY = 66f;
         const float PlateLeftCx = 872f, PlateRightCx = BgW - 872f;
 
-        // 立繪（站姿、排在對話框「後方」＝被對話框蓋住、左立繪錨左下/右立繪錨右下）。原圖比例 1086:1448≈0.75。
-        const float AvatarHeight = 660f;                       // 立繪在畫面上的高度（越大越大隻；寬度自動 = 高×比例）
-        const float AvatarAspect = 1086f / 1448f;              // 寬 = 高 × 此比例
-        const float AvatarSideMargin = 220f;                    // 距畫面左/右邊（越大越往中間靠）
-        const float AvatarOverlap = 100f;                      // 立繪底部沉入對話框多少（**越大越往下＝被對話框蓋住越多、露出越少**；負值＝往上露出更多）
+        // 立繪（站姿、排在對話框「後方」＝被對話框蓋住、左立繪錨左下/右立繪錨右下）。
+        //
+        // ⚠ 這三個常數量的都是「**人物**」，不是「圖檔」——排版走 PortraitFit 的不透明內容框
+        // （見 SetAvatar 的說明）。素材的留白與畫布比例差很多（內容佔畫布 0.717~1.000、
+        // 畫布 1024×1536 之外還有 1122×1402 等），量圖檔會讓人物跟著留白飄。
+        // ⚠ 這三個值的上限是**畫面高 1080**（CanvasScaler 參考解析度）：
+        //    人物頂端 = (BottomMargin + 對話框顯示高) − AvatarOverlap + AvatarHeight
+        //             = 576.9 − AvatarOverlap + AvatarHeight，**超過 1080 頭頂就被切掉**。
+        //    660/100 那組（2026-09-13 上午）算出來是 1137 ⇒ 超出 57px，實機看得到角與頭髮被切平。
+        //    現在這組是 1027，頂端留 53px 呼吸空間。要再調：**縮小人物改 AvatarHeight、整體下移改 AvatarOverlap**。
+        const float AvatarHeight = 580f;                       // **人物**在畫面上的高度（越大越大隻；圖檔會被連帶放大到超過這個值）
+        const float AvatarInnerX = 650f;                       // **人物內側緣**（朝畫面中央那一邊）距畫面左/右邊（越大兩人靠越近）
+        const float AvatarOverlap = 130f;                      // **人物底部**沉入對話框多少（**越大越往下＝被對話框蓋住越多、露出越少**；負值＝往上露出更多）
+        const float AvatarAspect = 1086f / 1448f;              // 建立時的暫定比例（實際尺寸每次 SetAvatar 依圖重算）
 
         // 非聚光側（沒在說話的人）壓暗：整體調暗、保留原色相（灰色 tint 乘上去＝背光感）。聚光側用純白＝原色。
         static readonly Color SpotlightColor = Color.white;
@@ -163,16 +172,32 @@ namespace Dipan.UI
             Place(_plate.rectTransform, spotRight ? PlateRightCx : PlateLeftCx, PlateY, PlateW, PlateH);
 
             // 左、右立繪各自顯示（有圖才顯示）；非聚光側壓暗（保留原色相）。可用 CSV 選填欄微調縮放/位移。
-            SetAvatar(_avatarLeft, l.LeftAvatar, dim: spotRight, right: false,
+            SetAvatar(_avatarLeft, l.LeftAvatar, l.LeftFit, dim: spotRight, right: false,
                       scale: l.LeftScale, offX: l.LeftOffsetX, offY: l.LeftOffsetY);
-            SetAvatar(_avatarRight, l.RightAvatar, dim: !spotRight, right: true,
+            SetAvatar(_avatarRight, l.RightAvatar, l.RightFit, dim: !spotRight, right: true,
                       scale: l.RightScale, offX: l.RightOffsetX, offY: l.RightOffsetY);
         }
 
-        // 設定單一立繪：套 sprite、亮/暗、有圖才啟用；並依該句的縮放/位移調整大小與位置。
-        // 大小：高 = AvatarHeight × scale，寬依 **sprite 實際長寬比** 自動算（不同比例的 NPC 立繪不會被硬塞進主角比例的框）。
-        // 位置：在標準落點上加 (offX, offY)（+X 往右、+Y 往上；右側立繪雖水平鏡像，位移方向仍以畫面為準）。
-        void SetAvatar(Image avatar, Sprite sprite, bool dim, bool right,
+        /// <summary>
+        /// 設定單一立繪：套 sprite、亮/暗、有圖才啟用，並把「**人物**」對齊到固定落點。
+        ///
+        /// <para><b>對齊的是不透明內容框、不是圖檔外框</b>（<see cref="PortraitFit"/>）：
+        /// 縮放讓<b>人物高度</b> = <see cref="AvatarHeight"/>、水平讓<b>人物內側緣</b>（朝畫面中央那一邊）
+        /// 落在 <see cref="AvatarInnerX"/>、底部讓<b>人物底緣</b>落在對話框上緣 − <see cref="AvatarOverlap"/>。
+        /// 三個量都對「人」，所以美術給多大的畫布、留多少白邊都不會讓人物飄。</para>
+        ///
+        /// <para><b>右側立繪是鏡像的</b>（localScale.x = −1，讓臉朝向畫面中央），鏡像後原圖的<b>右</b>緣會變成
+        /// 畫面上的<b>左</b>緣——正好也是它的內側緣，所以左右兩側都用 <see cref="PortraitFit.ContentRightFromCenter"/>
+        /// 這一個值對齊，不必分兩套。</para>
+        ///
+        /// <para>內容框掃不到時（圖載不到 / catalog 沒這筆）自動退化成「整張圖 = 內容」，
+        /// 也就是舊的「量圖檔」行為，不會不顯示。</para>
+        ///
+        /// <para>縮放/位移有兩層、<b>相乘與相加</b>：<c>fit.imgScale/imgOffset</c> 是<b>那張圖</b>的固定微調
+        /// （<see cref="PortraitTable"/>，設定一次），參數 <paramref name="scale"/>/<paramref name="offX"/>/<paramref name="offY"/>
+        /// 是<b>那一句</b>的特例（DramaTalkTable 選填欄）。位移一律以畫面為準（+X 右、+Y 上），右側鏡像不影響方向。</para>
+        /// </summary>
+        void SetAvatar(Image avatar, Sprite sprite, PortraitFit fit, bool dim, bool right,
                        float scale = 1f, float offX = 0f, float offY = 0f)
         {
             avatar.sprite = sprite;
@@ -180,23 +205,52 @@ namespace Dipan.UI
             avatar.color = dim ? DimmedColor : SpotlightColor;
             if (sprite == null) return;
 
-            float h = AvatarHeight * Mathf.Max(0.05f, scale);
-            float aspect = sprite.rect.height > 0f ? sprite.rect.width / sprite.rect.height : AvatarAspect;
-            float w = h * aspect;
+            // 內容框（掃不到就當「整張圖都是內容」＝舊行為）。單位隨來源，下面只用比值。
+            Vector2 canvas = fit.ok ? fit.canvas : new Vector2(sprite.rect.width, sprite.rect.height);
+            Vector2 content = fit.ok ? fit.content : canvas;
+            float rightFromCenter = fit.ok ? fit.ContentRightFromCenter : canvas.x * 0.5f;
+            float bottomFromCenter = fit.ok ? fit.ContentBottomFromCenter : -canvas.y * 0.5f;
+            if (canvas.x <= 0f || canvas.y <= 0f || content.y <= 0f) return;
+
+            // k = 讓「人物高度」＝ AvatarHeight 的縮放；圖檔本身會被放大到 canvas * k（留白越多、圖看起來越大）。
+            // imgScale 用 >0 判斷而不是 Max：PortraitFit 是 struct，萬一拿到 default(struct)（imgScale=0）
+            // 用 Max(0.05f, 0) 會把人物縮成 5% 這種「不像 bug 的 bug」，寧可當 1（＝沒微調）。
+            float imgScale = fit.imgScale > 0f ? fit.imgScale : 1f;
+            float k = AvatarHeight * Mathf.Max(0.05f, scale) * imgScale / content.y;
 
             var rt = avatar.rectTransform;
-            rt.sizeDelta = new Vector2(w, h);
+            rt.sizeDelta = new Vector2(canvas.x * k, canvas.y * k);
+
+            float px = offX + fit.imgOffset.x;
+            float py = offY + fit.imgOffset.y;
 
             float boxTop = BottomMargin + BgH * (DisplayWidth / BgW);
-            float bottomY = boxTop - AvatarOverlap + offY;
-            rt.anchoredPosition = right
-                ? new Vector2(-(AvatarSideMargin + w * 0.5f) + offX, bottomY)
-                : new Vector2(AvatarSideMargin + offX, bottomY);
+            float bottomY = boxTop - AvatarOverlap + py;                      // 人物底緣的目標 y
+
+            // 縱向（兩側相同）：pivot.y = 0，所以 anchoredPosition.y 量的是「圖檔底緣」，
+            // 往下扣掉「人物底緣到圖檔底緣」那段留白。
+            float imgBottomY = bottomY - (canvas.y * 0.5f + bottomFromCenter) * k;
+
+            if (right)
+            {
+                // 右側：anchor 右下、pivot (0.5, 0)、localScale.x = −1（以水平中軸原地鏡像）。
+                // anchoredPosition.x 量的是「圖檔中心距畫面右邊」（負值），
+                // 鏡像後人物內側緣距畫面右邊 = 圖檔中心距右邊 + 人物右緣距圖檔中心。
+                rt.anchoredPosition = new Vector2(rightFromCenter * k - AvatarInnerX + px, imgBottomY);
+            }
+            else
+            {
+                // 左側：anchor 左下、pivot (0, 0)，anchoredPosition.x 量的是「圖檔左緣距畫面左邊」。
+                rt.anchoredPosition = new Vector2(AvatarInnerX - (canvas.x * 0.5f + rightFromCenter) * k + px, imgBottomY);
+            }
         }
 
-        // 建一個立繪 Image：站姿、排在對話框「後方」（被對話框蓋住），貼畫面左下 / 右下角；底部 = 對話框上緣 - AvatarOverlap。
+        // 建一個立繪 Image：站姿、排在對話框「後方」（被對話框蓋住），貼畫面左下 / 右下角。
         // 立繪原圖臉朝右，所以「右側立繪一律水平翻轉」(localScale.x=-1) 讓臉朝向畫面中央 → 與左側對望。
         // 翻轉以立繪水平中軸為準（pivot.x=0.5）原地鏡像、不位移。
+        //
+        // 這裡只定 anchor / pivot / 翻轉這些「不會變的」；**實際尺寸與位置每次 SetAvatar 依該張圖的內容框重算**
+        // （建立當下 sprite 還是 null、enabled=false，看不到）。sizeDelta 只是個不會被用到的暫定值。
         Image BuildAvatar(string name, bool right)
         {
             var avatar = UIBuilder.Image(transform, name, null);
@@ -205,19 +259,13 @@ namespace Dipan.UI
             avatar.enabled = false;
 
             var rt = avatar.rectTransform;
-            float w = AvatarHeight * AvatarAspect;
-            rt.sizeDelta = new Vector2(w, AvatarHeight);
-
-            // 對話框上緣（距畫面底）= 底邊距 + 對話框實際顯示高度；立繪底部沉入框內 AvatarOverlap。
-            float boxTop = BottomMargin + BgH * (DisplayWidth / BgW);
-            float bottomY = boxTop - AvatarOverlap;
+            rt.sizeDelta = new Vector2(AvatarHeight * AvatarAspect, AvatarHeight);
 
             if (right)
             {
-                // 右側：錨右下、pivot 水平置中 + 底部。距右邊 AvatarSideMargin（量到立繪外緣）。localScale.x=-1 原地水平翻轉。
+                // 右側：錨右下、pivot 水平置中 + 底部（localScale.x=-1 要以水平中軸才是原地翻轉）。
                 rt.anchorMin = rt.anchorMax = new Vector2(1f, 0f);
                 rt.pivot = new Vector2(0.5f, 0f);
-                rt.anchoredPosition = new Vector2(-(AvatarSideMargin + w * 0.5f), bottomY);
                 rt.localScale = new Vector3(-1f, 1f, 1f);
             }
             else
@@ -225,7 +273,6 @@ namespace Dipan.UI
                 // 左側：錨左下、pivot 左下，不翻轉（原圖臉朝右＝朝向畫面中央，正好）。
                 rt.anchorMin = rt.anchorMax = new Vector2(0f, 0f);
                 rt.pivot = new Vector2(0f, 0f);
-                rt.anchoredPosition = new Vector2(AvatarSideMargin, bottomY);
                 rt.localScale = Vector3.one;
             }
             return avatar;
