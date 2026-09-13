@@ -225,9 +225,37 @@ Unity 怎麼算 bounds 影響。
 | 310 | 血統進階藥劑・中階 | `BloodlineUpgrade=2` | 道具祭壇（`BaseItemRoll.csv`，權重 3） |
 | 311 | 血統進階藥劑・高階 | `BloodlineUpgrade=3` | 道具祭壇（`BaseItemRoll.csv`，權重 1） |
 
-icon 都在 `Resources/UI/Icons/Items/positions/bloodline/`：一個系列共用一張圖
-（`bloodline_Jiangshi`／`bloodline_Bloodborn`／`bloodline_Feralborn`／`bloodline_Gaiaborn`／`bloodline_SpiritRoot`／`bloodline_Cloudborn`／`bloodline_Blazeborn`，
-該系列的三瓶都用它），另外兩瓶進階藥劑是 `bloodline_lvup_middle`（310）／`bloodline_lvup_high`（311）。
+### 背包圖示：血瓶 ＋ 系列圖騰 ＋ 階級星星（2026-09-13 重製）
+
+icon 都在 `Resources/UI/Icons/Items/positions/bloodline/`。**二十一瓶系列藥劑不再各有成品圖**，
+改成三層疊出來（唯一繪製入口 `Scripts/UI/ItemIcons.cs`，與能力珠同一套機制）：
+
+| 層 | 素材 | ArtSpec（量自 2026-09-13 的素材，換圖要重量） |
+|---|---|---|
+| 底 | `bloodline_BaseBottle`（共用血瓶） | 走 `IconFit` 正規化，不透明內容剛好塞滿格子 |
+| 中 | `bloodline_Logo_<系列Key>`（白色系列圖騰） | 內容寬 ＝ icon 長邊的 **38%**，中心比 icon 中心**低 7.5%** |
+| 上 | `inventoryPanel_ItemLv<1\|2\|3>`（銅／銀／金星） | 內容寬 ＝ **32%**，中心在 **(+34%, −31%)** ＝右下角 |
+
+圖騰為什麼要往下偏：瓶身那塊方形玻璃量出來是 y 212~429（500 基準），中心比畫布中心低 7.5%；
+對齊畫布的話圖騰會浮在液體上緣。星星圖在 `Resources/UI/InventoryPanel/`（與格子 UI 同一批素材）。
+
+**系列與階數不另存欄位**：`ItemIcons.TryBloodlineArt` 拿 `ItemTable` 的 `BloodlineID` 丟給
+`BloodlineSeriesTable.TryLocate` 反查（表A 是「系列 ↔ 階段」的唯一真相，這裡再存一份就會打架），
+拿到的 `series.Key`（`Jiangshi`／`Blazeborn`…）**刻意就是 logo 的檔名**，`stage` 就是星星級數。
+⇒ **加新系列不必改任何程式**：表A 加一列、丟一張 `bloodline_Logo_<Key>.png` 進去，圖就出來了。
+查不到系列（表沒填好）會自動退回該列 CSV 的 `IconPath`，畫面不會開天窗。
+
+⚠ **三層的縮放一律以「不透明內容」換算**（`IconFit.ContentPx`），不是以畫布：
+七張 logo 的畫布與留白都不同（多數 1254×1254、內容佔 96%，`SpiritRoot` 卻是 500×500、佔 82%），
+照畫布縮的話靈根的圖騰會比別人小一號。這也是為什麼**不能**直接呼叫 `IconFit.Fit` 去擺疊圖——
+它會把第一次的 `sizeDelta` 記成基準框，而這裡的基準框會隨底圖正規化後的 rect 改變。
+
+二十一列的 `IconPath` 已統一填 `bloodline_BaseBottle`（程式其實不讀它、走 `ItemIcons`，
+但填對了，萬一哪裡漏走唯一入口至少畫得出一個瓶子）。舊的七張成品圖
+（`bloodline_Jiangshi` 等）**留在原地沒刪**，目前無人引用。
+
+**兩瓶進階藥劑（310／311）不走這條路**：它們不屬於任何系列（全系列通用、`IsBloodlineUpgrade`），
+維持自己的成品圖 `bloodline_lvup_middle`／`bloodline_lvup_high`，也不畫星星。
 
 > **直達藥劑為什麼不用改程式**：`PlanStarter` 只做兩件事——查 `BloodlineID` 在不在表B、以及本世是否已定型；
 > **它從來沒有檢查「必須是第一階」**（第一階只是填表的慣例，不是規則）。所以「指到第 3 階的起始藥劑」
@@ -902,7 +930,11 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
    —— **兩個資料夾都要開一層系列資料夾**（名字＝表A 的 `Key`），表B 的 `SpriteFolder` 就填 `<系列Key>/<角色資料夾>`
 4. **跑 `Project Tools → Sync Map Assets`**
 5. `ItemTable.csv` 加**三瓶**（見 §3 的編號規則）：`30x` 第一階（`BloodlineID` = Stage1Id）、
-   `32x` 第二階直達（= Stage2Id）、`33x` 第三階直達（= Stage3Id）。三瓶共用同一張系列 icon
+   `32x` 第二階直達（= Stage2Id）、`33x` 第三階直達（= Stage3Id）。
+   三瓶的 `IconPath` 都填共用血瓶 `UI/Icons/Items/positions/bloodline/bloodline_BaseBottle`
+5b. 美術（icon）：丟一張 `bloodline_Logo_<系列Key>.png` 進 `Resources/UI/Icons/Items/positions/bloodline/`
+   —— 檔名的 `<系列Key>` 必須等於表A 的 `Key`。**程式一行都不用改**，三瓶會自動變成
+   「血瓶＋這張圖騰＋一/二/三階星星」（見 §3〈背包圖示〉）
 6. `BaseBloodRoll.csv` 加一列（只放 `30x` 那瓶；直達藥劑目前不進池，見 §8）（或做成 `unlockRoll` 觸發解鎖）
 
 **進階藥劑不用動**——它是全系列通用的。程式碼一行都不用改。

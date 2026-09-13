@@ -35,7 +35,7 @@
 
 | 檔案（`Assets/Scripts/UI/`） | 角色 |
 |---|---|
-| `ItemIcons.cs` | **畫物品圖示的唯一入口**（背包/倉庫/鍛造/結算/抽選/HUD/地上掉落物）。處理能力珠的兩層疊圖，並在裡面呼叫 `IconFit`。**不要繞過它直接讀 `data.Icon`**。 |
+| `ItemIcons.cs` | **畫物品圖示的唯一入口**（背包/倉庫/鍛造/結算/抽選/HUD/地上掉落物）。處理能力珠的兩層疊圖與血統藥劑的三層疊圖（血瓶＋系列圖騰＋階級星星，見 [BLOODLINE.md](BLOODLINE.md) §3），並在裡面呼叫 `IconFit`。**不要繞過它直接讀 `data.Icon`**。 |
 | `IconFit.cs` ＋ `IconFitBox.cs` | **icon 大小正規化**：用 `Sprite.vertices`（Tight 網格頂點）量出不透明內容的外接框，反推 Image 的大小與偏移，讓「看得見的那塊」塞滿呼叫端給的內容框。不需要貼圖開 Read/Write。`IconFitBox` 是掛在 icon 上的小元件，記住呼叫端最初給的框（否則每次重算會越畫越大）。 |
 | `SlotOutline.cs` | **格子外框高亮**：四條細線圍一圈、不填滿。錨點各貼一邊，所以貼滿任何大小的格子都成立、線粗不變。背包與倉庫的 hover 高亮、以及「可放這格」的呼吸外框都用它。 |
 
