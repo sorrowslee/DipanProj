@@ -88,10 +88,8 @@ namespace Dipan.UI
         readonly ForgeSlotWidget[] _socketSlots = new ForgeSlotWidget[ForgeSockets.MaxSockets];
         int _lastDragId = -1;
 
-        // tooltip（與背包／倉庫同款）
-        const float TooltipWidth = 460f;
-        RectTransform _tooltip;
-        Text _tipName, _tipStats, _tipLore;
+        // tooltip：與背包／倉庫**同一份**共用元件（見 UI/ItemTooltip.cs）
+        ItemTooltip _tip;
 
         // ───────────────────────── 給背包查詢的靜態入口 ─────────────────────────
         //
@@ -209,7 +207,7 @@ namespace Dipan.UI
 
             BuildCloseButton();
             BuildTitle();
-            BuildTooltip();
+            _tip = ItemTooltip.Create(transform);   // 共用元件（與背包／倉庫同一份）
         }
 
         static Vector2 SocketCenter(int i) =>
@@ -271,38 +269,6 @@ namespace Dipan.UI
             return b;
         }
 
-        /// <summary>浮動 tooltip（與背包／倉庫同款）：掛在 panel root（不受 frame 縮放）。</summary>
-        void BuildTooltip()
-        {
-            var go = UIBuilder.Create("Tooltip", transform);
-            _tooltip = UIBuilder.Rect(go);
-            _tooltip.anchorMin = _tooltip.anchorMax = new Vector2(0.5f, 0.5f);
-            _tooltip.pivot = new Vector2(0f, 1f);
-            _tooltip.sizeDelta = new Vector2(TooltipWidth, 10f);
-
-            var bg = go.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.05f, 0.07f, 0.96f);
-            bg.raycastTarget = false;
-
-            var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.padding = new RectOffset(18, 18, 14, 14);
-            vlg.spacing = 8;
-            vlg.childAlignment = TextAnchor.UpperLeft;
-            vlg.childControlWidth = true; vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
-
-            var fit = go.AddComponent<ContentSizeFitter>();
-            fit.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            _tipName = UIBuilder.Text(go.transform, "Name", "", 26, new Color(1f, 0.85f, 0.45f), TextAnchor.UpperLeft);
-            _tipName.fontStyle = FontStyle.Bold;
-            _tipStats = UIBuilder.Text(go.transform, "Stats", "", 22, new Color(0.92f, 0.92f, 0.95f), TextAnchor.UpperLeft);
-            _tipLore = UIBuilder.Text(go.transform, "Lore", "", 20, new Color(0.72f, 0.69f, 0.62f), TextAnchor.UpperLeft);
-            _tipLore.fontStyle = FontStyle.Italic;
-
-            go.SetActive(false);
-        }
 
         // ───────────────────────── 開關 ─────────────────────────
 
@@ -382,7 +348,7 @@ namespace Dipan.UI
             var ui = UIManager.Instance;
             if (ui != null && !ui.IsOpen<InventoryPanel>()) { ui.Close(this); return; }
 
-            if (_tooltip != null && _tooltip.gameObject.activeSelf) PositionTooltip();
+            if (_tip != null) _tip.Follow();
 
             int drag = SlotDragController.DraggingItemId;
             if (drag != _lastDragId) { _lastDragId = drag; UpdateDropHighlights(drag); }
@@ -484,46 +450,35 @@ namespace Dipan.UI
 
         // ───────────────────────── tooltip ─────────────────────────
 
+        /// <summary>
+        /// 版面與定位都在 <see cref="ItemTooltip"/>；這裡只負責**鍛造專屬的那段說明**：
+        /// 珠子對參考武器無效、或鐵砧上那件身上鑲了無效的珠子。
+        /// </summary>
         void ShowTooltip(int itemId)
         {
             var d = itemId > 0 && InventorySystem.Instance != null ? InventorySystem.Instance.GetData(itemId) : null;
             if (d == null) { HideTooltip(); return; }
-            _tipName.text = d.Name;
-            string stats = d.TipStats ?? "";
+
             // 鑲嵌有效性：珠子 → 對參考武器無效就說明；鐵砧上那件 → 列出它身上無效的珠子
+            string extra = null;
             var refW = ReferenceWeapon();
             if (refW != null)
             {
                 if (d.IsGem && !GemEffectiveness.IsEffective(itemId, refW))
-                    stats += (stats.Length > 0 ? "\n" : "") + string.Format(Language.GetText(TxtGemNoEffectOnWeapon), refW.Name);
+                    extra = string.Format(Language.GetText(TxtGemNoEffectOnWeapon), refW.Name);
                 else if (!_anvil.IsEmpty && itemId == _anvil.ItemId)
                 {
                     string bad = GemEffectiveness.IneffectiveGemNames(_anvil.Instance, refW);
-                    if (bad.Length > 0) stats += (stats.Length > 0 ? "\n" : "") + string.Format(Language.GetText(TxtIneffectiveGems), bad);
+                    if (bad.Length > 0) extra = string.Format(Language.GetText(TxtIneffectiveGems), bad);
                 }
             }
-            _tipStats.text = stats; _tipStats.gameObject.SetActive(!string.IsNullOrEmpty(stats));
-            _tipLore.text = d.TipLore; _tipLore.gameObject.SetActive(!string.IsNullOrEmpty(d.TipLore));
-            _tooltip.gameObject.SetActive(true);
-            _tooltip.SetAsLastSibling();
-            PositionTooltip();
+
+            // 鐵砧上那一件拿得到物品實例（孔位／珠子），其他格子只有 id。
+            if (!_anvil.IsEmpty && itemId == _anvil.ItemId) _tip.Show(_anvil.GetAt(0), extra);
+            else _tip.Show(itemId, extra);
         }
 
-        void HideTooltip()
-        {
-            if (_tooltip != null) _tooltip.gameObject.SetActive(false);
-        }
-
-        void PositionTooltip()
-        {
-            var panelRect = (RectTransform)transform;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    panelRect, Input.mousePosition, null, out Vector2 local))
-                return;
-            bool right = local.x > 0f;
-            _tooltip.pivot = new Vector2(right ? 1f : 0f, 1f);
-            _tooltip.anchoredPosition = local + new Vector2(right ? -18f : 18f, -18f);
-        }
+        void HideTooltip() => _tip.Hide();
 
         // ───────────────────────── 版面小工具 ─────────────────────────
 

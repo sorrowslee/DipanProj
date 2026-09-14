@@ -55,15 +55,26 @@ namespace Dipan.Inventory
     {
         // ═══════════════ 容量（要加格就改這裡；兩包各自獨立，改一邊不影響另一邊）═══════════════
 
-        /// <summary>裝備包格數。</summary>
-        public const int EquipBagCount = 40;
-        /// <summary>消耗品包格數。</summary>
-        public const int ItemBagCount = 40;
+        /// <summary>裝備包格數。目前 ＝ 剛好兩頁；想要別的容量直接填數字即可，不必是整頁的倍數。</summary>
+        public const int EquipBagCount = PageSlots * 2;
+        /// <summary>消耗品包格數。同上，兩包各自獨立。</summary>
+        public const int ItemBagCount = PageSlots * 2;
         /// <summary>道具格總數（＝兩包相加）。存檔與鍛造鎖定用的格子編號都是這個範圍內的「扁平索引」。</summary>
         public const int GridCount = EquipBagCount + ItemBagCount;
 
-        /// <summary>介面一頁顯示幾格（5x4）。放在資料層是為了讓「容量 → 幾頁」這件事只有一種算法。</summary>
-        public const int PageSlots = 20;
+        /// <summary>
+        /// 介面一頁的**欄數 × 列數**。**改這兩個數字就換掉背包版面**——`InventoryPanel` 會照它重排格子、
+        /// 重鋪格線美術，分頁與容量也自動跟上（2026-09-14 改；在那之前格子座標是硬編在面板裡的 5×4 陣列）。
+        ///
+        /// 放在資料層是為了讓「容量 → 幾頁 → 一頁畫幾格」只有一種算法、也只有一個真相。
+        ///
+        /// ⚠ **格子大小由「列數」決定**：網格區的高度才是瓶頸（量過的數字見 `InventoryPanel` 的 ArtSpec）——
+        ///   4 列 ≈ 104px、3 列 ≈ 144px、2 列 ≈ 223px。只減欄數（5×4 → 4×4）格子**不會變大**，只是左右空出來。
+        /// </summary>
+        public const int PageCols = 4, PageRows = 3;
+
+        /// <summary>介面一頁顯示幾格。</summary>
+        public const int PageSlots = PageCols * PageRows;
 
         public const int PotionSlotCount = 2;   // 藥水格數（要加格改這裡）
 

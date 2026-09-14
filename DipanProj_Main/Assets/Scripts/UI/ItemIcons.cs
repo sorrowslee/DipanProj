@@ -79,7 +79,20 @@ namespace Dipan.UI
         const string BloodlineDir  = "UI/Icons/Items/positions/bloodline/";
         const string BloodlineBase = BloodlineDir + "bloodline_BaseBottle";
         const string BloodlineLogo = BloodlineDir + "bloodline_Logo_";
+        const string BloodlineWhole = BloodlineDir + "bloodline_";   // 一個系列一張的成品瓶
         const string StarPrefix    = "UI/InventoryPanel/inventoryPanel_ItemLv";
+
+        /// <summary>
+        /// **血統藥劑的瓶身畫法**（2026-09-14 加的開關，兩種畫法都留著讓作者實機比）：
+        ///   true  ＝ 共用血瓶 `bloodline_BaseBottle` ＋ 疊系列圖騰 `bloodline_Logo_<Key>`
+        ///   false ＝ **一個系列一張成品瓶** `bloodline_<Key>`（原本的畫法），不疊圖騰
+        /// **兩種都會畫右下角的階級星星**，差別只在瓶身。
+        ///
+        /// 檔名兩邊都是用系列 `Key` 組出來的，所以切換不必改 CSV、也不必改素材。
+        /// 決定之後：留疊圖版就刪七張成品瓶、留成品瓶版就刪 `BaseBottle` 與七張 logo，
+        /// 並把這個開關和另一條路徑一起拿掉（別讓兩套畫法長期並存）。
+        /// </summary>
+        const bool BloodlineUseLogoOverlay = false;
 
         /// <summary>疊在底圖之上的子物件名稱（重複使用、不會每幀新建）。</summary>
         const string OverlayName = "IconOverlay";
@@ -149,7 +162,8 @@ namespace Dipan.UI
             }
 
             // 查得到系列才換血瓶；查不到（表沒填好）就退回 CSV 那張圖，畫面不會開天窗。
-            if (TryBloodlineArt(d, out _, out _)) return Load(BloodlineBase);
+            if (TryBloodlineArt(d, out string bkey, out _))
+                return Load(BloodlineUseLogoOverlay ? BloodlineBase : BloodlineWhole + bkey);
 
             return d.Icon;
         }
@@ -168,7 +182,9 @@ namespace Dipan.UI
                 return Load($"{GemIconDir}{gd.Icon}");
             }
 
-            if (TryBloodlineArt(d, out string key, out _)) return Load($"{BloodlineLogo}{key}");
+            // 成品瓶畫法沒有中層（圖騰已經畫在瓶身上了）。
+            if (BloodlineUseLogoOverlay && TryBloodlineArt(d, out string key, out _))
+                return Load($"{BloodlineLogo}{key}");
 
             return null;
         }
@@ -194,9 +210,13 @@ namespace Dipan.UI
             return GemIconOffsetUp[i];
         }
 
-        /// <summary>這個物品的疊圖是不是「血統圖騰」（用內容正規化那套算式，和珠子不同）。</summary>
+        /// <summary>
+        /// 這個物品的**中層疊圖**是不是「血統圖騰」（要用內容正規化那套算式，和珠子不同）。
+        /// 成品瓶畫法沒有中層，所以回 false。
+        /// </summary>
         static bool IsBloodlineArt(int itemId)
         {
+            if (!BloodlineUseLogoOverlay) return false;
             var inv = InventorySystem.Instance;
             var d = inv != null ? inv.GetData(itemId) : null;
             return d != null && TryBloodlineArt(d, out _, out _);

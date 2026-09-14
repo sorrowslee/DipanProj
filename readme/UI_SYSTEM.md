@@ -35,6 +35,7 @@
 
 | 檔案（`Assets/Scripts/UI/`） | 角色 |
 |---|---|
+| `ItemTooltip.cs` | **物品浮動 tooltip 的唯一一份**（背包／倉庫／鍛造共用）。大圖預覽＋名稱＋功能＋劇情、一律開在游標上方並夾在畫面內。**掛在 `UILayer.Popup` 層、不掛在面板底下**——掛面板底下的話兩個面板同開時會被另一個蓋住（[PROBLEMS.md](PROBLEMS.md) **E34**）。新面板要 tooltip 一律用它，不要自己再建一個。 |
 | `ItemIcons.cs` | **畫物品圖示的唯一入口**（背包/倉庫/鍛造/結算/抽選/HUD/地上掉落物）。處理能力珠的兩層疊圖與血統藥劑的三層疊圖（血瓶＋系列圖騰＋階級星星，見 [BLOODLINE.md](BLOODLINE.md) §3），並在裡面呼叫 `IconFit`。**不要繞過它直接讀 `data.Icon`**。 |
 | `IconFit.cs` ＋ `IconFitBox.cs` | **icon 大小正規化**：用 `Sprite.vertices`（Tight 網格頂點）量出不透明內容的外接框，反推 Image 的大小與偏移，讓「看得見的那塊」塞滿呼叫端給的內容框。不需要貼圖開 Read/Write。`IconFitBox` 是掛在 icon 上的小元件，記住呼叫端最初給的框（否則每次重算會越畫越大）。 |
 | `SlotOutline.cs` | **格子外框高亮**：四條細線圍一圈、不填滿。錨點各貼一邊，所以貼滿任何大小的格子都成立、線粗不變。背包與倉庫的 hover 高亮、以及「可放這格」的呼吸外框都用它。 |
@@ -202,9 +203,9 @@ public class InventoryPanel : UIPanel
 
 - `ItemTable.csv` + `InventorySystem`（純資料層，CSV 驅動，仿 WeaponTable）。
 - `InventoryPanel`（繼承 `UIPanel`，依使用者提供的設計圖 + 拆分小圖以 UIBuilder 建構）。
-- ✅ 拖放（共用 `SlotDragController`）、✅ tooltip（背包/倉庫各建一份，浮動跟游標）——已完成。
+- ✅ 拖放（共用 `SlotDragController`）、✅ tooltip（**共用 `ItemTooltip`，背包／倉庫／鍛造同一份**，2026-09-14 抽出）——已完成。
 - ✅ HUD（血球/藥水槽，走 `HUD` 層）——已完成，見 [BOTTOM_HUD.md](BOTTOM_HUD.md)。
-- 待補：格子堆疊分割、（可選）把 tooltip 抽成共用元件（背包/倉庫/鍛造各有一份幾乎一樣的）。
+- 待補：格子堆疊分割。（tooltip 抽共用已於 2026-09-14 完成。）
 
 ---
 

@@ -347,6 +347,19 @@ namespace Dipan.UI
         /// </summary>
         const int SystemLayerSortingOrder = 700;
 
+        /// <summary>
+        /// 取某一層的容器（該層 Canvas 的 transform）。
+        /// 給「**不是 UIPanel、但必須待在某一層**」的東西用——目前是 <see cref="ItemTooltip"/>：
+        /// 它如果掛在自己面板底下，背包與倉庫同時開著時就會被另一個面板整個蓋住（2026-09-14 實機發現）。
+        /// 拿不到（UIManager 還沒建好）時回 null，呼叫端要有退路。
+        /// </summary>
+        public Transform LayerRoot(UILayer layer)
+        {
+            int i = (int)layer;
+            return (_layerCanvas != null && i >= 0 && i < _layerCanvas.Length && _layerCanvas[i] != null)
+                ? _layerCanvas[i].transform : null;
+        }
+
         void BuildLayers()
         {
             int n = Enum.GetValues(typeof(UILayer)).Length;

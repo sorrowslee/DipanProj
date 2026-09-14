@@ -16,12 +16,12 @@
 | A | 打包與部署 (Build & Deploy) | A1~A10（A3、A9 已淘汰，原文封存、存根在原位） |
 | B | 地圖載入 (Map Loader) | B1~B15 |
 | C | 地圖編輯器 / 素材同步 | C1~C12（⚠ C6/C7 排在 C1 前面） |
-| D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D24 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E33（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬） |
+| D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
+| E | 效能 / 顯示 (Performance & Display) | E1~E34（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F21（⚠ G 章整段插在 F3 與 F4 之間） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G9（位置在 F3 之後） |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1 |
-| I | 開發環境 / 工具（Cowork 橋接器） | I1~I9 |
+| I | 開發環境 / 工具（Cowork 橋接器） | I1~I10 |
 | J | 螢幕特效 / 進場過場 (Screen FX) | J1~J5 |
 | K | 互動 / 拾取 (Interaction & Pickup) | K1~K2 |
 | L | 資料表 / CSV (Data Tables) | L1~L3 |
@@ -503,6 +503,12 @@
 - **解法**：還原點放在 **`BloodlineSystem.RestoreHud()`**，由 `FinishPerformance()` 呼叫：① `PlayTransform()` 在叫 `BloodlineTransformFx.Play` **之前**先記 `_hudWasOpen = ui.IsOpen<BottomHudPanel>()`（之後再問就永遠是 false）；② `FinishPerformance()` 解完 hold 後照旗標開回來。選 `FinishPerformance` 是因為它是「世界演出 ＋ 立繪揭示」兩段的**唯一共同出口**（正常結束、玩家中途死掉、保險絲逾時、`OnDestroy` 都會走到）；放在 Fx 的 `finally` 只蓋得住前半段，而且會讓血球在立繪揭示那一段從底下透出來。③ 開回來要加跟 `PlayerController.Start()` 同一條守衛 `!SaveConstants.IsIntroCutsceneMap(CurrentMapId)`，否則會違反「開場山道劇情場景(13/14)不顯示血球」那條規則。
 - **通則**：**`CloseAll()` 不分層，任何演出用它清場前都要先記下 HUD 狀態、收尾還原**；而且還原點要挑「所有離開路徑的共同出口」，不要挑其中一段的 `finally`。同一家族：D13（鎖要具名）、D21（HUD 關了又被 `Start()` 開回來）——都是「演出跨系統改了全域狀態卻沒還乾淨」。（2026-09-01 記）
 
+### D25. 改了倉庫每頁格數，**舊存檔一載入就把格數改回去**（UI 只畫得出新格數，資料卻是舊的）
+- **症狀**:把 `StorageSystem.DefaultCols/Rows` 由 10×10 改成 5×5,新角色正常;**載入舊存檔的角色**卻會變成「UI 只有 25 格,但那一頁的資料其實還是 100 格」——第 26 格以後的東西**看得到位置卻拿不出來**(其實是連看都看不到,因為根本沒有那些格子的 widget)。
+- **原因**:`ItemGridData.RestoreFrom` 第一行是 `if (dto.cols > 0 && dto.rows > 0) { Cols = dto.cols; Rows = dto.rows; }`——**存檔裡存了格數,而且讀檔時會拿它覆寫程式的設定**。原本的用意是「向下相容 / 未來支援每頁不同大小」,但實際效果是**格數的真相跑到存檔裡去了**,改程式改不動它。
+- **解法**:把那一行拿掉,格數一律以程式端(`StorageSystem.DefaultCols/Rows`)為準;存檔裡超出新容量的物品會落到下面既有的 `AddStack` 分支、塞回前面的空位。**⚠ 縮小容量時,舊存檔裝得比新容量多的部分會塞不下 ⇒ 那些東西會消失**,動容量前先想一下手上的存檔。
+- **通則**:**「版面/容量」這種由程式與美術決定的東西不要存進存檔**,存檔只該存「玩家擁有什麼、放在第幾格」。一旦存了,它就會在讀檔時反過來覆蓋程式,而且症狀是「改了沒反應」這種最難查的形式。背包端沒有這個問題——`InventorySystem` 的容量是純 `const`,存檔裡只有格號。
+
 ## E. 效能 / 顯示 (Performance & Display)
 
 ### E1. Windows build「幀數低 / 不順」,但 Mac 與 Unity 編輯器都很順
@@ -846,6 +852,12 @@
 - **解法**：改成量**不透明內容框**——縮放讓「人物高度」固定、水平讓「人物內側緣」固定、底部讓「人物底緣」固定（`Scripts/Drama/PortraitFit.cs` ＋ `TalkPanel.SetAvatar`）。留白多的圖只是圖檔被放得比較大，**人物一樣大、一樣的位置**。內容框直接用 `MapSpriteLoader.GetAlphaLocalBox`（地上物碰撞用的同一支，有快取），**刻意不另外烘進 catalog.json**：catalog 有四個產生器、只有部分會烘，共用同一支現成掃描才不會出現「同一張圖在不同機器上位置不一樣」。細節見 [DRAMA.md](DRAMA.md)〈立繪自動對齊〉。
 - **順帶修掉的設計問題**：微調有兩種，過去混在一起填在**句子**上。一種是補償尺寸誤差（已由自動對齊解掉），另一種是**刻意的構圖選擇**（邪佛要比人大、要更沉）——後者是**那張圖的屬性、不是那句話的屬性**，所以搬進 `PortraitTable.csv`（一張圖一列，設定一次）。原本邪佛那組 `1.1/-130/-130` 在 `DramaTalkTable` 裡重複填了 10 列。
 - **通則**：**排版參數要先問「它量的是素材還是內容」**。只要素材的留白／畫布尺寸沒有強制規範，任何「量圖檔外框」的對齊都會隨素材飄，而且症狀會被誤判成「美術畫歪了」。同一個道理在這個專案已經出現過三次：地上物碰撞（**B9**，外接矩形只能縮框不能挖洞）、角色影子（**E28**，量 `SpriteRenderer.bounds` 不是量可見身體），加上這次的立繪。（2026-09-13 記）
+
+### E34. 兩個面板同時開著時，其中一個的 tooltip 被另一個面板整片蓋住
+- **症狀**:單開背包時 tooltip 正常;按 K 讓倉庫與背包**並排同時開著**之後,把滑鼠移到背包格子上,tooltip 有一半被倉庫面板壓在下面(2026-09-14 實機)。
+- **原因**:tooltip 當時是**掛在自己那個面板底下**的子物件。兩個面板是同一層(`UILayer.Window`)的**兄弟節點**,uGUI 的繪製順序照 hierarchy 走 ⇒ 排在後面的整個面板(含它的背景圖)都畫在前面那個面板的**所有**子物件之上。`SetAsLastSibling()` 在這裡幫不上忙——它只能把 tooltip 排到**自己面板內部**的最後,跨不出去。**任何「浮在面板之上的東西」掛在面板底下都會犯這個錯**(tooltip、拖曳中的圖示、飄字)。
+- **解法**:掛到**專門的上層**,不要掛在面板底下。專案的 `UILayer` 早就定義好了:`Popup = 2`（註解原文就是「彈窗：確認框、**提示（tooltip）**。永遠壓在視窗之上」），sortingOrder 200 > Window 的 100。做法是 `UIManager.LayerRoot(UILayer.Popup)` 取那一層的容器當 parent（2026-09-14 為此新增的 API），定位與夾制的基準也跟著換成那個 Canvas 的 rect（全螢幕，比原本以面板 rect 夾制更正確）。
+- **⚠ 換層之後多出來的責任**:tooltip 不再是面板的子物件,**面板關閉時它不會自動跟著消失**了。三個用它的面板(背包/倉庫/鍛造)的 `OnClose` 都要呼叫 `Hide()`——本來就有,但改這種掛載位置時一定要回頭確認一遍。
 
 ## F. 戰鬥 / 傷害 (Combat)
 
@@ -1200,6 +1212,28 @@
 
   等效寫法：`GIT_OPTIONAL_LOCKS=0 git status`。
 - **通則**：**在橋接器（device_bash）裡把 git 當成「唯讀查詢工具」時，一律帶 `--no-optional-locks`。** 要跟 HEAD 對照舊版內容，用 `git show HEAD:<path>` 讀 object 就好，不必碰 index。已經卡住時只能請使用者手動 `rm .git/index.lock`——AI 在橋接器裡沒有刪檔權限。（2026-07-27 記；此前 AI 每改一批檔案就跑一次 `git status` 驗證，因而反覆製造這個檔案）
+
+### I10. AI 改完 C# 之後 Unity 一開就整排 `CS0103: The name '_xxx' does not exist`（整段刪除時把相鄰的欄位宣告一起刪掉了）
+- **症狀**:AI 說「改好了」，但 Unity 一編譯冒出一整排 `CS0103: The name '_highlight' does not exist in the current context`,而且集中在**同一個檔案的好幾行**。2026-09-14 把 tooltip 抽成共用元件時就是這樣:`StoragePanel` 的 8 處 `_highlight` 全部炸掉。
+- **原因**:AI 在這個環境裡**沒有 C# 編譯器可用**(Cowork 容器沒有 Unity、也沒有 mono/dotnet),所以改大段程式時是用「找到起始行、找到結束行、整段換掉」的方式做的。而**欄位宣告常常是好幾個擠在一起的**:
+
+  ```csharp
+  const float TooltipWidth = 460f;
+  RectTransform _highlight;   // ← 和 tooltip 無關，只是剛好排在中間
+  RectTransform _tooltip;
+  Text _tipName, _tipStats, _tipLore;
+  ```
+
+  「從 `TooltipWidth` 刪到 `_tipName` 那行」看起來很合理,卻順手帶走了中間那個**與這次改動無關的欄位**。括號平衡檢查、關鍵字殘留檢查(`grep _tooltip` 回 0)**全都會過**——被刪掉的東西不會留下痕跡,這正是這個錯誤難自己發現的原因。
+- **解法**:刪完整段之後,**一定要跑一次「用到但沒宣告」的檢查**,不要只檢查括號與殘留字串。沒有編譯器也做得到——用正規表示式把檔案裡所有 `_xxx` 的**使用**與**宣告**各收一份、相減:
+
+  ```bash
+  # 收集使用：(?<![\w.])(_\w+)        收集宣告：型別 _name ;/=/,  ＋ var/out/參數
+  # 兩者相減，剩下的就是「用到但沒宣告」的嫌疑名單
+  ```
+
+  實作見 2026-09-14 那次的做法(腳本留在對話裡,十幾行 python)。**另一條更根本的預防**:整段刪除前先把要刪的範圍印出來看一眼,確認裡面**只有這次要動的東西**;欄位區尤其危險,它是「一堆不相干的宣告排在一起」的地方。
+- **順帶**:`git --no-optional-locks diff` 裡把 `^-        (RectTransform|Text|Image|const|readonly|...)` 這類**被刪掉的宣告行**濾出來看,也能一眼抓到誤刪(這次就是這樣確認另外兩個檔案沒事的)。
 
 ---
 

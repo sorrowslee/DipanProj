@@ -19,15 +19,41 @@ namespace Dipan.UI
 
         const string ResDir = "UI/StoragePanel/";
 
-        // ── 底圖原生座標（量自 StoragePanelBG）──
-        const float FrameW = 1123f, FrameH = 1401f;
-        const float GridX0 = 167f, GridY0 = 403f;
-        const float CellW = 84.8f, CellH = 85f;
-        const int StoreCols = 10, StoreRows = 10;
-        static readonly float[] TabCx = { 252f, 421f, 591f, 760f, 930f };
-        const float TabCy = 350f, TabW = 156f, TabH = 104f;
+        // ── 底圖原生座標（**量自 StoragePanelBG.png，1122×1402**；換底圖要重量）──
+        //
+        // ⚠ 2026-09-14 之前這一區的座標是憑印象填的（`GridX0=167`、`CellW=84.8`、10×10），
+        //   與底圖實際畫的格線對不上 ⇒ 格子與頁籤整片往右下溢出到框外（作者實機截圖）。
+        //   現在的值是掃描底圖亮度量出來的：**垂直線中心 196…921（節距 72.6，10 欄）、
+        //   水平線中心 408…1096（節距 76.5，9 列）**。
+        //
+        // 格線本身跟背包一樣**改由程式鋪**（底圖那張 10×9 用 `StoragePanel_GridBlank` 蓋掉、
+        // 再用從底圖裁下來的格單元 `StoragePanel_CellFrame` 依欄列數平鋪），
+        // 所以欄列數改 `StorageSystem.DefaultCols/Rows` 就換版面，素材不用動。見 readme/STORAGE.md。
+        const float FrameW = 1122f, FrameH = 1402f;
+        const float GridX0 = 196f, GridY0 = 408f, GridX1 = 921f, GridY1 = 1096f;   // 格線區（最外圈線的中心）
+        const float GridPad = 5f;                    // 格子與邊界之間留的縫
+        const float CellInnerRatio = 0.90f;          // 格單元圖裡「格內容」佔的比例（量自 CellFrame 73×77）
+        const float BlankX = 190f, BlankY = 400f, BlankW = 740f, BlankH = 702f;    // 蓋舊格線的底板
+
+        // 頁籤：**對齊每一欄的中心**（剛好 5 欄 5 頁），不再寫死 x 座標
+        const float TabCy = 350f;                    // 頁籤中心線（在格線區上緣之上的木板區）
+        const float TabWidthRatio = 0.92f;           // 頁籤寬 ＝ 一欄的 92%
+        const float TabAspect = 408f / 612f;         // 頁籤圖 CellBG_normal 是 612×408
         // 重整鈕「中心」位置（底圖原生像素，左上為原點，X→右、Y→下）。要往上就調小 RefreshCy、往右就調大 RefreshCx。
         const float RefreshCx = 765f, RefreshCy = 1250f, RefreshSize = 130f;
+
+        /// <summary>一個格單元的邊長（含縫）。由格線區與欄列數算出來 ⇒ 改欄列數不必重量座標。</summary>
+        static float CellPitch => Mathf.Min((GridX1 - GridX0 - GridPad * 2f) / StorageSystem.DefaultCols,
+                                            (GridY1 - GridY0 - GridPad * 2f) / StorageSystem.DefaultRows);
+
+        /// <summary>第 (col,row) 格的**左上角**（底圖像素座標）。整組在格線區裡置中。</summary>
+        static Vector2 CellTopLeft(int col, int row)
+        {
+            float p = CellPitch;
+            float ox = GridX0 + GridPad + ((GridX1 - GridX0 - GridPad * 2f) - p * StorageSystem.DefaultCols) * 0.5f;
+            float oy = GridY0 + GridPad + ((GridY1 - GridY0 - GridPad * 2f) - p * StorageSystem.DefaultRows) * 0.5f;
+            return new Vector2(ox + col * p, oy + row * p);
+        }
 
         // ── 擺位 ──
         const float FrameScale = 0.72f;
@@ -49,10 +75,8 @@ namespace Dipan.UI
         readonly List<ItemSlotWidget> _storeSlots = new List<ItemSlotWidget>();
 
         // hover 高亮 + tooltip（行為比照背包）
-        const float TooltipWidth = 460f;
         RectTransform _highlight;   // hover 外框（與背包同一套，見 UI/SlotOutline.cs）
-        RectTransform _tooltip;
-        Text _tipName, _tipStats, _tipLore;
+        ItemTooltip _tip;           // tooltip 的版面與定位都在共用元件裡（見 UI/ItemTooltip.cs）
 
         static Sprite L(string n) => Resources.Load<Sprite>(ResDir + n);
 
@@ -78,18 +102,21 @@ namespace Dipan.UI
             UIBuilder.Center(_frame, FrameW, FrameH, new Vector2(SoloX, 0));
             _frame.localScale = new Vector3(FrameScale, FrameScale, 1f);
 
-            for (int i = 0; i < TabCx.Length; i++)
+            float tabW = CellPitch * TabWidthRatio, tabH = tabW * TabAspect;
+            for (int i = 0; i < StorageSystem.PageCount; i++)
             {
                 int page = i;
                 var b = UIBuilder.Button(_frame, $"Tab{i + 1}", "", () => SetPage(page), Color.white, _cellNormal);
                 var bimg = b.GetComponent<Image>();
                 b.targetGraphic = bimg;
-                PlaceTL((RectTransform)b.transform, TabCx[i] - TabW / 2f, TabCy - TabH / 2f, TabW, TabH);
+                // 頁籤中心對齊第 i 欄的中心（5 欄 5 頁剛好一對一）
+                float tabCx = CellTopLeft(i, 0).x + CellPitch * 0.5f;
+                PlaceTL((RectTransform)b.transform, tabCx - tabW / 2f, TabCy - tabH / 2f, tabW, tabH);
                 if (i < _cellNum.Length && _cellNum[i] != null)
                 {
                     var num = UIBuilder.Image(b.transform, "Num", _cellNum[i]);
                     num.preserveAspect = true; num.raycastTarget = false;
-                    UIBuilder.Stretch(num.rectTransform, 34, 34, 16, 16);
+                    UIBuilder.Stretch(num.rectTransform, tabW * 0.22f, tabW * 0.22f, tabH * 0.15f, tabH * 0.15f);
                 }
                 _tabImages.Add(bimg);
             }
@@ -107,47 +134,17 @@ namespace Dipan.UI
             ic.preserveAspect = true; ic.raycastTarget = false;
             UIBuilder.Stretch(ic.rectTransform, 30, 30, 30, 30);
 
-            _storeHolder = MakeHolder(_frame, "StoreGrid", GridX0, GridY0);
+            BuildGridArt();   // 蓋掉底圖畫死的 10×9 格線 ＋ 依欄列數鋪新格線（**一定要在格子之前**）
+
+            _storeHolder = MakeHolder(_frame, "StoreGrid", 0f, 0f);
 
             // hover 外框（重用一個，移入時貼到該格）。細線而不是整片上色——理由見 UI/SlotOutline.cs。
             _highlight = SlotOutline.Create(_frame, "HoverOutline", new Color(1f, 0.88f, 0.55f, 0.85f), 3.5f);
             _highlight.gameObject.SetActive(false);
 
-            BuildTooltip();
+            _tip = ItemTooltip.Create(transform);   // 共用元件（與背包／鍛造同一份）
         }
 
-        /// <summary>浮動 tooltip（與背包同款）：掛在 panel root（不受 frame 縮放），上半正楷功能、下半斜體劇情。</summary>
-        void BuildTooltip()
-        {
-            var go = UIBuilder.Create("Tooltip", transform);
-            _tooltip = UIBuilder.Rect(go);
-            _tooltip.anchorMin = _tooltip.anchorMax = new Vector2(0.5f, 0.5f);
-            _tooltip.pivot = new Vector2(0f, 1f);
-            _tooltip.sizeDelta = new Vector2(TooltipWidth, 10f);
-
-            var bg = go.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.05f, 0.07f, 0.96f);
-            bg.raycastTarget = false;
-
-            var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.padding = new RectOffset(18, 18, 14, 14);
-            vlg.spacing = 8;
-            vlg.childAlignment = TextAnchor.UpperLeft;
-            vlg.childControlWidth = true; vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true; vlg.childForceExpandHeight = false;
-
-            var fit = go.AddComponent<ContentSizeFitter>();
-            fit.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
-            fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-            _tipName = UIBuilder.Text(go.transform, "Name", "", 26, new Color(1f, 0.85f, 0.45f), TextAnchor.UpperLeft);
-            _tipName.fontStyle = FontStyle.Bold;
-            _tipStats = UIBuilder.Text(go.transform, "Stats", "", 22, new Color(0.92f, 0.92f, 0.95f), TextAnchor.UpperLeft);
-            _tipLore = UIBuilder.Text(go.transform, "Lore", "", 20, new Color(0.72f, 0.69f, 0.62f), TextAnchor.UpperLeft);
-            _tipLore.fontStyle = FontStyle.Italic;
-
-            go.SetActive(false);
-        }
 
         protected override void OnOpen()
         {
@@ -174,7 +171,7 @@ namespace Dipan.UI
             UIBuilder.Stretch(_highlight);
             _highlight.SetAsFirstSibling();
             _highlight.gameObject.SetActive(true);
-            ShowTooltip(slot.Container.GetAt(slot.Index).ItemId);
+            ShowTooltip(slot.Container.GetAt(slot.Index));
         }
 
         public void HoverExit(ItemSlotWidget slot)
@@ -190,38 +187,14 @@ namespace Dipan.UI
             _highlight.SetParent(_frame, false);
         }
 
-        void ShowTooltip(int itemId)
-        {
-            var d = itemId > 0 ? InventorySystem.Instance.GetData(itemId) : null;
-            if (d == null) { HideTooltip(); return; }
-            _tipName.text = d.Name;
-            _tipStats.text = d.TipStats; _tipStats.gameObject.SetActive(!string.IsNullOrEmpty(d.TipStats));
-            _tipLore.text = d.TipLore; _tipLore.gameObject.SetActive(!string.IsNullOrEmpty(d.TipLore));
-            _tooltip.gameObject.SetActive(true);
-            _tooltip.SetAsLastSibling();
-            PositionTooltip();
-        }
-
-        void HideTooltip()
-        {
-            if (_tooltip != null) _tooltip.gameObject.SetActive(false);
-        }
+        /// <summary>hover 進出時開關 tooltip。倉庫格子拿得到整個 <see cref="ItemStack"/>，
+        /// 所以**連鑲嵌內容與珠子等級一起顯示**（以前只傳 itemId，那些資訊看不到）。</summary>
+        void ShowTooltip(ItemStack st) => _tip.Show(st);
+        void HideTooltip() => _tip.Hide();
 
         void Update()
         {
-            if (_tooltip != null && _tooltip.gameObject.activeSelf) PositionTooltip();
-        }
-
-        void PositionTooltip()
-        {
-            var panelRect = (RectTransform)transform;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    panelRect, Input.mousePosition, null, out Vector2 local))
-                return;
-            bool right = local.x > 0f;
-            _tooltip.pivot = new Vector2(right ? 1f : 0f, 1f);
-            float ox = right ? -18f : 18f;
-            _tooltip.anchoredPosition = local + new Vector2(ox, -18f);
+            if (_tip != null) _tip.Follow();
         }
 
         /// <summary>並排（左移）或單獨（置中）。由 StorageBagCoordinator 呼叫。</summary>
@@ -267,14 +240,41 @@ namespace Dipan.UI
             ClearHolder(_storeHolder);
             _storeSlots.Clear();
             int capacity = _activeStore.Capacity;
+            int cols = StorageSystem.DefaultCols;
+            float pitch = CellPitch, inner = pitch * CellInnerRatio;
             for (int i = 0; i < capacity; i++)
             {
-                int c = i % StoreCols, r = i / StoreCols;
-                float size = Mathf.Min(CellW, CellH) - 4f;
-                var slot = ItemSlotWidget.Create(_storeHolder, size);
-                PlaceTL((RectTransform)slot.transform, c * CellW, r * CellH, size, size);
+                var tl = CellTopLeft(i % cols, i / cols);
+                var slot = ItemSlotWidget.Create(_storeHolder, inner);
+                // 命中區置中在格單元裡（CellTopLeft 給的是單元左上角）
+                PlaceTL((RectTransform)slot.transform, tl.x + (pitch - inner) * 0.5f, tl.y + (pitch - inner) * 0.5f, inner, inner);
                 slot.Bind(this, _activeStore, i);
                 _storeSlots.Add(slot);
+            }
+        }
+
+        /// <summary>
+        /// 鋪格線美術：先用底板蓋掉底圖畫死的 10×9 格線，再依欄列數鋪格單元。
+        /// 與背包同一套做法（見 readme/INVENTORY.md〈道具區的格線是程式鋪的〉），
+        /// **一定要在 <see cref="BuildStoreGrid"/> 之前呼叫**——命中區要蓋在圖上面才收得到點擊。
+        /// </summary>
+        void BuildGridArt()
+        {
+            var blank = UIBuilder.Image(_frame, "GridBlank", L("StoragePanel_GridBlank"));
+            blank.raycastTarget = false;
+            blank.preserveAspect = false;
+            PlaceTL(blank.rectTransform, BlankX, BlankY, BlankW, BlankH);
+
+            var cellSprite = L("StoragePanel_CellFrame");
+            float p = CellPitch;
+            int n = StorageSystem.DefaultCols * StorageSystem.DefaultRows;
+            for (int i = 0; i < n; i++)
+            {
+                var img = UIBuilder.Image(_frame, $"CellFrame_{i}", cellSprite);
+                img.raycastTarget = false;
+                img.preserveAspect = false;
+                var tl = CellTopLeft(i % StorageSystem.DefaultCols, i / StorageSystem.DefaultCols);
+                PlaceTL(img.rectTransform, tl.x, tl.y, p, p);
             }
         }
 

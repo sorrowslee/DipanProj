@@ -11,7 +11,8 @@ namespace Dipan.UI
     /// 從 InventorySystem 讀資料繪 icon。座標都在「背景原圖像素空間」(1254x1254)，整個 frame 等比縮放塞進畫面。
     ///
     /// 版面：左右各三個裝備欄（左＝武器/手套/鞋子、右＝盔甲/護身符/戒指，順序照背景圖畫的剪影）、
-    /// 下方兩個藥水格、中央 5x4 共 20 格的道具區，上方兩個頁籤（裝備 / 消耗品）切換兩個獨立的包，
+    /// 下方兩個藥水格、中央的道具區（欄列數＝ <see cref="InventorySystem.PageCols"/> × <see cref="InventorySystem.PageRows"/>，
+    /// 格線由程式鋪、不是底圖畫的，見下方 ArtSpec），上方兩個頁籤（裝備 / 消耗品）切換兩個獨立的包，
     /// 底列由左到右是 重整鈕 / 上一頁 / 頁碼 / 下一頁 / 金錢。
     ///
     /// 分包與容量規則在資料層（<see cref="InventorySystem"/>），這裡只負責「顯示第幾包的第幾頁」。
@@ -30,10 +31,37 @@ namespace Dipan.UI
         // ── 背景原圖尺寸（2026-08-07 新版背景 inventoryPanel_Bg.png，正方形）──
         const float BgW = 1254f, BgH = 1254f;
 
-        // ── 道具格 5x4（量自背景的格線）──
-        static readonly float[] GridCx = { 403f, 513.4f, 623.8f, 734.2f, 844.6f };
-        static readonly float[] GridCy = { 467f, 577f, 687f, 797f };
-        const float CellW = 95f, CellH = 92f;
+        // ── 道具格：欄 × 列由 InventorySystem.PageCols/PageRows 決定（改那兩個數字就換版面）──
+        //
+        // 2026-09-14 之前這裡是硬編的 5×4 座標陣列（量自底圖畫死的格線）。現在改成：
+        // 底圖那張 5×4 格線用 `inventoryPanel_GridBlank` 蓋掉，格線改由 `inventoryPanel_CellFrame`
+        // （從底圖裁下來的**一個格單元**，左右上下各含半條暗縫，所以平鋪就還原原圖的雙線＋鉚釘）
+        // 依欄列數鋪出來 ⇒ **換格數不必動任何素材、也不必重量座標**。
+        //
+        // ArtSpec（量自 inventoryPanel_Bg.png 1254×1254，換底圖要重量）：
+        //   ‧ 網格外框的**內緣**：x 331~920、y 396~875（外框線本身與四角裝飾都在這之外，不會被蓋到）
+        //   ‧ 格單元節距 110.4×109.7、格內容 95 ⇒ 內容佔單元的 86%
+        //   ‧ 舊格線的涵蓋範圍：x 340~912、y 405~867（底板就是這個大小）
+        //
+        // ⚠ **格子大小由「列數」決定**，欄數只影響左右留白：可用高度 467 ÷ 列數才是瓶頸
+        //   （4 列 ≈ 104px、3 列 ≈ 144px）。5×4 → 4×4 格子一樣大，白改。
+        const float GridX0 = 331f, GridY0 = 396f, GridX1 = 920f, GridY1 = 875f;
+        const float GridPad = 6f;                    // 格子與外框之間留的縫
+        const float CellInnerRatio = 95f / 110.4f;   // 格單元圖裡「格內容」佔的比例
+        const float BlankX = 340f, BlankY = 405f, BlankW = 572f, BlankH = 462f;
+
+        /// <summary>一個格單元的邊長（含縫）。由網格區與欄列數算出來，所以改欄列數不必重量座標。</summary>
+        static float CellPitch => Mathf.Min((GridX1 - GridX0 - GridPad * 2f) / InventorySystem.PageCols,
+                                            (GridY1 - GridY0 - GridPad * 2f) / InventorySystem.PageRows);
+
+        /// <summary>第 (col,row) 格的中心（背景像素座標）。整組在網格區裡置中。</summary>
+        static Vector2 CellCenter(int col, int row)
+        {
+            float p = CellPitch;
+            float ox = GridX0 + GridPad + ((GridX1 - GridX0 - GridPad * 2f) - p * InventorySystem.PageCols) * 0.5f;
+            float oy = GridY0 + GridPad + ((GridY1 - GridY0 - GridPad * 2f) - p * InventorySystem.PageRows) * 0.5f;
+            return new Vector2(ox + (col + 0.5f) * p, oy + (row + 0.5f) * p);
+        }
 
         // ── icon 與方框的比例（所有格子共用一組）──
         // icon 的實際大小不再逐格寫死：呼叫端只給「內容框 = 格框 × 這兩個比例」，
@@ -118,12 +146,9 @@ namespace Dipan.UI
         /// <summary>目前顯示中的那一包（給外部查詢／除錯用）。</summary>
         public BagKind CurrentBag => _bag;
 
-        // ── tooltip ──
-        const float TooltipWidth = 460f;
-        // 語言表：鑲嵌珠對目前武器無效的標記（4016，鍛造介面段）
-        const int TxtGemIneffectiveMark = 4016;
-        RectTransform _tooltip;
-        Text _tipName, _tipStats, _tipLore;
+        // ── tooltip：版面、字級、定位規則全部在共用元件裡（見 UI/ItemTooltip.cs）──
+        //    背包／倉庫／鍛造共用同一份，才不會像以前那樣三個面板各抄一份、改了一個忘了另外兩個。
+        ItemTooltip _tip;
 
         // ═══════════════ 素材擺放（ArtSpec）═══════════════
         //
@@ -188,14 +213,15 @@ namespace Dipan.UI
             BuildEquipSlots();
             BuildTabs();          // 頁籤圖（底下）
             BuildBottomBar();     // 底列圖（底下）
-            BuildGridSlots();     // 20 個道具格
+            BuildGridArt();       // 蓋掉底圖的舊格線 ＋ 依欄列數鋪新格線（**一定要在命中格之前**）
+            BuildGridSlots();     // 一頁份的道具格
 
             // hover 外框（重用一個，移入時貼到該格）
             _highlight = SlotOutline.Create(frameGO.transform, "HoverOutline", HoverOutline, HoverOutlineWidth);
             _highlight.gameObject.SetActive(false);
 
             BuildHitAreas();      // 透明按鈕蓋在圖上（一定要在圖之後建，否則收不到點擊）
-            BuildTooltip();
+            _tip = ItemTooltip.Create(transform);   // 共用元件，掛在 panel root（不受 frame 縮放）
             BuildPotionSlots();
         }
 
@@ -216,13 +242,37 @@ namespace Dipan.UI
             // 只建「一頁」的格子並重複使用：切頁籤/翻頁時只重新綁定索引、不重建物件。
             // 這點很重要——新手教學會鎖定某一格的 GameObject，重建會讓它指到已銷毀的物件。
             _gridSlots = new InventorySlotWidget[InventorySystem.PageSlots];
+            float inner = CellPitch * CellInnerRatio;
             for (int i = 0; i < _gridSlots.Length; i++)
             {
-                int c = i % GridCx.Length, r = i / GridCx.Length;
-                var w = MakeSlot($"Cell_{i}", GridCx[c], GridCy[r], CellW, CellH,
-                                 InventorySlotWidget.Kind.Grid);
+                var c = CellCenter(i % InventorySystem.PageCols, i / InventorySystem.PageCols);
+                var w = MakeSlot($"Cell_{i}", c.x, c.y, inner, inner, InventorySlotWidget.Kind.Grid);
                 w.index = -1;
                 _gridSlots[i] = w;
+            }
+        }
+
+        /// <summary>
+        /// 鋪道具區的格線美術：先用底板蓋掉底圖畫死的 5×4 格線，再依欄列數鋪格單元。
+        /// **一定要在 <see cref="BuildGridSlots"/> 之前呼叫**——命中區要蓋在圖上面才收得到點擊。
+        /// 兩張圖都 `raycastTarget = false`，純裝飾。
+        /// </summary>
+        void BuildGridArt()
+        {
+            var blank = UIBuilder.Image(_frame, "GridBlank", UIBuilder.LoadSprite(ResDir + "inventoryPanel_GridBlank"));
+            blank.raycastTarget = false;
+            blank.preserveAspect = false;
+            Place(blank.rectTransform, BlankX + BlankW * 0.5f, BlankY + BlankH * 0.5f, BlankW, BlankH);
+
+            var cellSprite = UIBuilder.LoadSprite(ResDir + "inventoryPanel_CellFrame");
+            float p = CellPitch;
+            for (int i = 0; i < InventorySystem.PageSlots; i++)
+            {
+                var img = UIBuilder.Image(_frame, $"CellFrame_{i}", cellSprite);
+                img.raycastTarget = false;
+                img.preserveAspect = false;
+                var c = CellCenter(i % InventorySystem.PageCols, i / InventorySystem.PageCols);
+                Place(img.rectTransform, c.x, c.y, p, p);
             }
         }
 
@@ -321,41 +371,6 @@ namespace Dipan.UI
         }
 
         /// <summary>建浮動 tooltip：掛在 panel root（不受 frame 縮放），上半正楷功能、下半斜體劇情，高度自動。</summary>
-        void BuildTooltip()
-        {
-            var go = UIBuilder.Create("Tooltip", transform);   // panel root，不在 frame 底下
-            _tooltip = UIBuilder.Rect(go);
-            _tooltip.anchorMin = _tooltip.anchorMax = new Vector2(0.5f, 0.5f);
-            _tooltip.pivot = new Vector2(0f, 1f);
-            _tooltip.sizeDelta = new Vector2(TooltipWidth, 10f);
-
-            var bg = go.AddComponent<Image>();
-            bg.color = new Color(0.05f, 0.05f, 0.07f, 0.96f);
-            bg.raycastTarget = false;   // tooltip 跟著游標，絕不能擋住 hover 事件
-
-            var vlg = go.AddComponent<VerticalLayoutGroup>();
-            vlg.padding = new RectOffset(18, 18, 14, 14);
-            vlg.spacing = 8;
-            vlg.childAlignment = TextAnchor.UpperLeft;
-            vlg.childControlWidth = true;
-            vlg.childControlHeight = true;
-            vlg.childForceExpandWidth = true;
-            vlg.childForceExpandHeight = false;
-
-            var fit = go.AddComponent<ContentSizeFitter>();
-            fit.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;   // 寬固定
-            fit.verticalFit = ContentSizeFitter.FitMode.PreferredSize;     // 高自動
-
-            _tipName = UIBuilder.Text(go.transform, "Name", "", 26, new Color(1f, 0.85f, 0.45f), TextAnchor.UpperLeft);
-            _tipName.fontStyle = FontStyle.Bold;
-            _tipStats = UIBuilder.Text(go.transform, "Stats", "", 22, new Color(0.92f, 0.92f, 0.95f), TextAnchor.UpperLeft);
-            _tipStats.fontStyle = FontStyle.Normal;   // 正楷
-            _tipLore = UIBuilder.Text(go.transform, "Lore", "", 20, new Color(0.72f, 0.69f, 0.62f), TextAnchor.UpperLeft);
-            _tipLore.fontStyle = FontStyle.Italic;    // 斜體
-
-            go.SetActive(false);
-        }
-
         InventorySlotWidget MakeSlot(string name, float px, float py, float w, float h,
                                      InventorySlotWidget.Kind kind)
         {
@@ -703,85 +718,15 @@ namespace Dipan.UI
             _highlight.SetParent(_frame, false);
         }
 
-        // ── tooltip ──
+        // ── tooltip（內容與版面都在 ItemTooltip；這裡只是給 slot 委派用的薄包裝）──
 
-        void ShowTooltip(int itemId) => ShowTooltip(new ItemStack { ItemId = itemId, Count = 1, Inst = null });
-
-        void ShowTooltip(ItemStack st)
-        {
-            var d = (st.ItemId > 0) ? InventorySystem.Instance.GetData(st.ItemId) : null;
-            if (d == null) { HideTooltip(); return; }
-
-            // 名稱後面標出「這一件」的資訊——孔數／珠子等級是每一件各自不同的，表格裡查不到。
-            string title = d.Name;
-            if (st.Inst != null)
-            {
-                if (st.Inst.HasSockets && st.Inst.UnlockedCount > 0)
-                    title += $"（{st.Inst.UnlockedCount} 孔）";
-                else if (st.Inst.level > 0)
-                    title += $"  Lv{st.Inst.level}";
-            }
-            _tipName.text = title;
-
-            _tipStats.text = BuildTipStats(d, st.Inst);
-            _tipStats.gameObject.SetActive(!string.IsNullOrEmpty(_tipStats.text));
-            _tipLore.text = d.TipLore;
-            _tipLore.gameObject.SetActive(!string.IsNullOrEmpty(d.TipLore));
-
-            _tooltip.gameObject.SetActive(true);
-            _tooltip.SetAsLastSibling();
-            PositionTooltip();
-        }
-
-        /// <summary>
-        /// tooltip 上半：表格寫死的說明 ＋「這一件」的鑲嵌內容。
-        /// 能力珠會顯示它這一級實際給多少（直接查 GemTable，不用另外維護一份文案）。
-        /// </summary>
-        static string BuildTipStats(ItemData d, ItemInstance inst)
-        {
-            var sb = new System.Text.StringBuilder(d.TipStats ?? "");
-
-            // 能力珠：這一顆這一級給多少
-            if (d.IsGem && inst != null)
-            {
-                var gd = ItemManager.Gems.Get(d.GemID);
-                if (gd != null)
-                {
-                    if (sb.Length > 0) sb.Append('\n');
-                    float v = gd.ValueAt(inst.level);
-                    string val = gd.IsPercent ? $"{(v >= 0 ? "+" : "")}{(v * 100f):0.#}%" : $"{(v >= 0 ? "+" : "")}{v:0.##}";
-                    sb.Append($"Lv{inst.level}：{gd.Name} {val}");
-                }
-            }
-
-            // 裝備：列出目前鑲了什麼；對參考武器（這件是武器→它自己；防具→目前裝備的武器）沒效果的珠子標出來
-            if (inst != null && inst.HasSockets && inst.UnlockedCount > 0)
-            {
-                if (sb.Length > 0) sb.Append('\n');
-                sb.Append($"鑲嵌 {inst.GemCount}/{inst.UnlockedCount}");
-                var inv = InventorySystem.Instance;
-                var refW = GemEffectiveness.ReferenceWeapon(d.WeaponID > 0 ? d.ID : 0);
-                for (int i = 0; i < inst.sockets.Count; i++)
-                {
-                    var g = inst.GemAt(i);
-                    if (g == null) continue;
-                    var gemItem = inv != null ? inv.GetData(g.itemId) : null;
-                    sb.Append('\n').Append("　・").Append(gemItem != null ? gemItem.Name : $"#{g.itemId}").Append(" Lv").Append(g.level);
-                    if (refW != null && !GemEffectiveness.IsEffective(g, refW))
-                        sb.Append(Language.GetText(TxtGemIneffectiveMark));
-                }
-            }
-            return sb.ToString();
-        }
-
-        void HideTooltip()
-        {
-            if (_tooltip != null) _tooltip.gameObject.SetActive(false);
-        }
+        void ShowTooltip(int itemId) => _tip.Show(itemId);
+        void ShowTooltip(ItemStack st) => _tip.Show(st);
+        void HideTooltip() => _tip.Hide();
 
         void Update()
         {
-            if (_tooltip != null && _tooltip.gameObject.activeSelf) PositionTooltip();
+            if (_tip != null) _tip.Follow();
             int drag = SlotDragController.DraggingItemId;
             if (drag != _lastDragId) { _lastDragId = drag; UpdateDropHighlights(drag); }
             if (_dropHintOn) PulseDropHints();
@@ -896,17 +841,5 @@ namespace Dipan.UI
         }
 
         /// <summary>tooltip 跟著游標；游標在右半邊就翻到左側顯示，避免超出畫面。</summary>
-        void PositionTooltip()
-        {
-            var panelRect = (RectTransform)transform;
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    panelRect, Input.mousePosition, null, out Vector2 local))
-                return;
-
-            bool right = local.x > 0f;
-            _tooltip.pivot = new Vector2(right ? 1f : 0f, 1f);
-            float ox = right ? -18f : 18f;
-            _tooltip.anchoredPosition = local + new Vector2(ox, -18f);
-        }
     }
 }

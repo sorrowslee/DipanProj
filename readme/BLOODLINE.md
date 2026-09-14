@@ -225,34 +225,42 @@ Unity 怎麼算 bounds 影響。
 | 310 | 血統進階藥劑・中階 | `BloodlineUpgrade=2` | 道具祭壇（`BaseItemRoll.csv`，權重 3） |
 | 311 | 血統進階藥劑・高階 | `BloodlineUpgrade=3` | 道具祭壇（`BaseItemRoll.csv`，權重 1） |
 
-### 背包圖示：血瓶 ＋ 系列圖騰 ＋ 階級星星（2026-09-13 重製）
+### 背包圖示：成品瓶 ＋ 右下角階級角標（2026-09-14 定；`ItemIcons` 有開關）
 
-icon 都在 `Resources/UI/Icons/Items/positions/bloodline/`。**二十一瓶系列藥劑不再各有成品圖**，
-改成三層疊出來（唯一繪製入口 `Scripts/UI/ItemIcons.cs`，與能力珠同一套機制）：
+icon 都在 `Resources/UI/Icons/Items/positions/bloodline/`，由唯一繪製入口 `Scripts/UI/ItemIcons.cs` 疊出來。
+**瓶身有兩種畫法，用 `ItemIcons.BloodlineUseLogoOverlay` 這個常數切換**（作者實機比過再決定留哪個）：
 
-| 層 | 素材 | ArtSpec（量自 2026-09-13 的素材，換圖要重量） |
+| 畫法 | 開關 | 底層 | 中層 |
+|---|---|---|---|
+| **成品瓶（現行）** | `false` | `bloodline_<系列Key>` ——一個系列一張畫好的瓶子 | 無 |
+| 共用瓶＋圖騰 | `true` | `bloodline_BaseBottle` | `bloodline_Logo_<系列Key>`（白色圖騰，內容寬 ＝ icon 長邊 **38%**、中心低 **7.5%**） |
+
+**兩種畫法都會畫右下角的階級角標**，差別只在瓶身：
+
+| 層 | 素材 | ArtSpec（量自素材，換圖要重量） |
 |---|---|---|
-| 底 | `bloodline_BaseBottle`（共用血瓶） | 走 `IconFit` 正規化，不透明內容剛好塞滿格子 |
-| 中 | `bloodline_Logo_<系列Key>`（白色系列圖騰） | 內容寬 ＝ icon 長邊的 **38%**，中心比 icon 中心**低 7.5%** |
-| 上 | `inventoryPanel_ItemLv<1\|2\|3>`（銅／銀／金星） | 內容寬 ＝ **32%**，中心在 **(+34%, −31%)** ＝右下角 |
+| 上 | `inventoryPanel_ItemLv<1\|2\|3>`（Ⅰ／Ⅱ／Ⅲ 角標） | 內容寬 ＝ **32%**，中心在 **(+34%, −31%)** ＝右下角 |
 
-圖騰為什麼要往下偏：瓶身那塊方形玻璃量出來是 y 212~429（500 基準），中心比畫布中心低 7.5%；
-對齊畫布的話圖騰會浮在液體上緣。星星圖在 `Resources/UI/InventoryPanel/`（與格子 UI 同一批素材）。
+圖騰那條路徑為什麼要往下偏：共用血瓶的方形玻璃量出來是 y 212~429（500 基準），中心比畫布中心低 7.5%；
+對齊畫布的話圖騰會浮在液體上緣。角標圖在 `Resources/UI/InventoryPanel/`（與格子 UI 同一批素材）。
 
-**系列與階數不另存欄位**：`ItemIcons.TryBloodlineArt` 拿 `ItemTable` 的 `BloodlineID` 丟給
+⚠ **兩套畫法不要長期並存**：決定之後把開關與沒選上的那條路徑一起刪掉——
+留成品瓶就刪 `bloodline_BaseBottle` 與七張 `bloodline_Logo_*`；留疊圖就刪七張成品瓶。
+
+**系列與階數不另存欄位**（兩種畫法共用同一套查表，所以檔名都是用系列 `Key` 組的、切換不必改 CSV）：
+`ItemIcons.TryBloodlineArt` 拿 `ItemTable` 的 `BloodlineID` 丟給
 `BloodlineSeriesTable.TryLocate` 反查（表A 是「系列 ↔ 階段」的唯一真相，這裡再存一份就會打架），
 拿到的 `series.Key`（`Jiangshi`／`Blazeborn`…）**刻意就是 logo 的檔名**，`stage` 就是星星級數。
 ⇒ **加新系列不必改任何程式**：表A 加一列、丟一張 `bloodline_Logo_<Key>.png` 進去，圖就出來了。
 查不到系列（表沒填好）會自動退回該列 CSV 的 `IconPath`，畫面不會開天窗。
 
-⚠ **三層的縮放一律以「不透明內容」換算**（`IconFit.ContentPx`），不是以畫布：
+⚠ **疊圖的縮放一律以「不透明內容」換算**（`IconFit.ContentPx`），不是以畫布：
 七張 logo 的畫布與留白都不同（多數 1254×1254、內容佔 96%，`SpiritRoot` 卻是 500×500、佔 82%），
-照畫布縮的話靈根的圖騰會比別人小一號。這也是為什麼**不能**直接呼叫 `IconFit.Fit` 去擺疊圖——
+角標三張也一樣，照畫布縮就會大小不一。這也是為什麼**不能**直接呼叫 `IconFit.Fit` 去擺疊圖——
 它會把第一次的 `sizeDelta` 記成基準框，而這裡的基準框會隨底圖正規化後的 rect 改變。
 
-二十一列的 `IconPath` 已統一填 `bloodline_BaseBottle`（程式其實不讀它、走 `ItemIcons`，
-但填對了，萬一哪裡漏走唯一入口至少畫得出一個瓶子）。舊的七張成品圖
-（`bloodline_Jiangshi` 等）**留在原地沒刪**，目前無人引用。
+二十一列的 `IconPath` 目前填的是 `bloodline_BaseBottle`（程式不讀它、一律走 `ItemIcons` 用 `Key` 組檔名）。
+**選定成品瓶之後，這 21 列應該改回各自的 `bloodline_<系列Key>`**，讓「漏走唯一入口」時也畫得出正確的瓶子。
 
 **兩瓶進階藥劑（310／311）不走這條路**：它們不屬於任何系列（全系列通用、`IsBloodlineUpgrade`），
 維持自己的成品圖 `bloodline_lvup_middle`／`bloodline_lvup_high`，也不畫星星。

@@ -182,7 +182,11 @@ namespace Dipan.Inventory
 
         public void RestoreFrom(StorageDTO dto)
         {
-            if (dto != null && dto.cols > 0 && dto.rows > 0) { Cols = dto.cols; Rows = dto.rows; }
+            // ⚠ **刻意不採用存檔裡的 cols/rows**（2026-09-14 改）。倉庫格數是跟著 UI 版面走的
+            //    （見 StorageSystem.DefaultCols/Rows 與 StoragePanel），真相在程式端不在存檔裡。
+            //    原本這裡會用存檔的值覆寫 ⇒ 改小格數之後，舊存檔一載入就把格數變回去，
+            //    UI 只畫得出 25 格、資料卻有 100 格，後面 75 格的東西看得到也拿不出來。
+            //    舊存檔裝得比現在多時，超出的會走下面的 AddStack 塞回前面的空位；真的塞不下才會掉。
             _grid = new ItemStack[Capacity];
             if (dto != null && dto.grid != null)
                 foreach (var s in dto.grid)
