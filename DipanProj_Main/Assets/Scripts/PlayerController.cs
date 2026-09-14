@@ -1371,7 +1371,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             ApplyDamage(target, firedWeapon.Damage, hitDir);
 
             TryTriggerGroundEffect(firedWeapon.Recipe, point, hitEnemy, hitEnv, false);
-            TrySpawnHitEffect(firedWeapon, point);
+            TrySpawnHitEffect(firedWeapon, point, hitEnemy);
             TrySpawnBeamSplit(firedWeapon, point);
         }
     }
@@ -1707,7 +1707,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             Vector2 tp = targets[i].position;
             Vector2 hd = (tp - prev).sqrMagnitude > 0.0001f ? (tp - prev).normalized : Vector2.up;
             ApplyDamage(targets[i].gameObject, weapon.Damage, hd);
-            TrySpawnHitEffect(weapon, tp);
+            TrySpawnHitEffect(weapon, tp, IsOnEnemyLayer(targets[i].gameObject));
             prev = tp;
         }
 
@@ -1919,7 +1919,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
         TryTriggerGroundEffect(firedWeapon.Recipe, spawnPos, hitEnemy, hitEnv, false);
-        TrySpawnHitEffect(firedWeapon, spawnPos);
+        TrySpawnHitEffect(firedWeapon, spawnPos, hitEnemy);
         TryTriggerSubWeapon(firedWeapon, bullet, hit, spawnPos, hitEnemy, hitEnv);
     }
 
@@ -2072,11 +2072,24 @@ public class PlayerController : MonoBehaviour, IDamageable
         _vfxManager.Spawn(weapon.FireEffectID, MuzzleWorldPos, angle, weapon.CastVisualScale);   // 發射特效跟著出手點
     }
 
-    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos)
+    /// <summary>
+    /// 播武器自己的擊中特效（<c>HitEffectID</c>）。
+    /// <paramref name="hitEnemy"/>＝這一次打中的是**怪物**時，若玩家身上掛著三階血統的擊中特效，
+    /// 這裡就**讓位**——那一層會由 <see cref="BloodlineHitFx"/> 在怪身上播（2026-09-14 作者拍板：
+    /// 三階血統的擊中特效凌駕一般武器，所有三階通用）。
+    /// ⚠ 打到牆／地上物、以及「落地爆炸／施放點」這種不是打在怪身上的視覺一律傳 false 照常播——
+    /// 那不是「攻擊到怪物」，讓位會讓回饋憑空消失。見 readme/BLOODLINE.md §5c。
+    /// </summary>
+    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos, bool hitEnemy = false)
     {
         if (_vfxManager == null || firedWeapon == null || firedWeapon.HitEffectID <= 0) return;
+        if (hitEnemy && BloodlineHitFx.HasEffect) return;
         _vfxManager.Spawn(firedWeapon.HitEffectID, pos, 0f, firedWeapon.CastVisualScale);
     }
+
+    /// <summary>這個物件是不是站在怪物層（連鎖／AOE 的目標可能是怪，也可能是可破壞地上物）。</summary>
+    private bool IsOnEnemyLayer(GameObject go)
+        => go != null && ((1 << go.layer) & EnemyLayer.value) != 0;
 
     // 沿子彈飛行路徑每隔 TrailStep 距離種一個特效（地刺武器：載體隱形、靠這個沿路長出尖刺）。
     // 由 BulletInstance.OnTrailPoint 觸發；子彈反彈/分裂/追蹤後的彎折路徑都會跟著種。

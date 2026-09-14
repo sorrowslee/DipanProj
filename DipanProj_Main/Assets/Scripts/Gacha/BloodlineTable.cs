@@ -90,6 +90,26 @@ namespace Dipan.Gacha
         /// 單擊之所以每次都播得到，是因為兩次點擊本來就隔得比它久。留空／0 = 用元件預設（3 秒）。
         /// </summary>
         public float AttackFxGap;
+
+        /// <summary>
+        /// **擊中怪物時**在那隻怪身上播一次的特效（<see cref="BloodlineHitFx"/>）用的 VfxTable id。
+        /// 那一列是**一次性**的（<c>Loop=0</c>、<c>Duration</c> 留空）。0 = 沒有這一層。
+        ///
+        /// <para>⚠ 這一層**凌駕武器自己的 <c>HitEffectID</c>**（2026-09-14 作者拍板，所有三階血統通用）：
+        /// 打到怪物時武器的擊中特效讓位、只播這一個；**打到牆／地上物仍照播武器自己的**
+        /// （那不是「攻擊到怪物」，見 readme/BLOODLINE.md §5c）。</para>
+        ///
+        /// <para>大小跟著**那隻怪**走（<c>SpawnSizedToHeight</c>），所以大怪大特效、小怪小特效；
+        /// 與另外五層「跟著玩家身體幾何」不同——這一層的定位基準在目標身上。</para>
+        /// </summary>
+        public int HitVfxId;
+
+        /// <summary>
+        /// 擊中特效的最短間隔（秒），**每隻怪各自計時**。雷射／火焰噴射器每個 DOT tick 都會命中，
+        /// 不節流會在同一隻怪身上狂閃；分怪計時則保證「AOE 打中五隻＝五隻身上都有」。
+        /// 留空／0 = 用元件預設（0.35 秒）。
+        /// </summary>
+        public float HitFxGap;
     }
 
     /// <summary>
@@ -184,7 +204,7 @@ namespace Dipan.Gacha
                     SkillId = CsvUtil.FieldInt(v, 10, 0),
                     Note = CsvUtil.Field(v, 11),
 
-                    // 第三階神格特效（12~22 欄）。舊列沒有這些欄位 → Field 回空字串 → 那幾層全關／用預設。
+                    // 第三階神格特效（12~24 欄）。舊列沒有這些欄位 → Field 回空字串 → 那幾層全關／用預設。
                     AuraVfxId = CsvUtil.FieldInt(v, 12, 0),
                     HaloStyle = CsvUtil.Field(v, 13),
                     HaloColor = ParseColor(CsvUtil.Field(v, 14), Color.white),
@@ -200,6 +220,10 @@ namespace Dipan.Gacha
                     // 攻擊時一次性罩身特效（21~22 欄，2026-09-13 加）。留空 = 沒有這一層。
                     AttackVfxId = CsvUtil.FieldInt(v, 21, 0),
                     AttackFxGap = CsvUtil.FieldFloat(v, 22, 0f),
+
+                    // 擊中怪物時在怪身上播的特效（23~24 欄，2026-09-14 加）。留空 = 沒有這一層。
+                    HitVfxId = CsvUtil.FieldInt(v, 23, 0),
+                    HitFxGap = CsvUtil.FieldFloat(v, 24, 0f),
                 };
                 if (d.DisplayName.Length == 0) d.DisplayName = d.Key.Length > 0 ? d.Key : $"#{id}";
                 // 留空/0/負數一律當 1；上限擋在 5 倍，填錯一個 0 不會讓角色大到蓋滿整個畫面。

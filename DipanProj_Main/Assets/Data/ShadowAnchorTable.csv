@@ -90,38 +90,50 @@ characters/gaiaborn/titan/dead,-28.5,60.2,155,auto,9,256,256,幀數 9→25 已�
 characters/gaiaborn/titan/idle,7.8,39.5,147,auto,24,256,256,
 characters/gaiaborn/titan/walk,8,37,129,manual,24,256,256,2026-09-09 手改：原本 -23.8 是把左後方一段 4~5px 寬的窄剪影（拖在後面的布條／髮絲）當成第二隻腳，錨點被拉到身體後方約 33px；濾掉寬度 <10px 的段後，24 幀的真實兩腳中點中位數是 +9，對齊 idle 的 7.8 取 8，換動作時不會跳。⚠ WidthPx 129 也是被那段窄剪影撐出來的（idle 是 147），先沒動
 characters/blazeborn/fafnir/attack,-13,52,132,auto,25,256,256,
-characters/blazeborn/fafnir/dead,-12,73.7,178,auto,9,256,256,
-characters/blazeborn/fafnir/idle,8,46.5,118,manual,21,256,256,"2026-09-13 三修：+8。這隻龍的剪影量不出可靠答案——最底層抓到的是拖地的尾尖、上半身重心被左後張開的翅膀拉偏、粗段法對同批人形校驗又給不出一致的校正量（+15.7/+9.5/+14.0/-2.5），所以四種量法各給一個數（-32.5/-5/-15/-3.5）。改成照作者實機回饋直接調：-15 偏左 → 往右。⚠ 要再動就以 4~8px 為一步（256px=一格），別再用演算法推"
-characters/blazeborn/fafnir/walk,8,46.5,119,manual,15,256,256,"2026-09-13 三修：+8。這隻龍的剪影量不出可靠答案——最底層抓到的是拖地的尾尖、上半身重心被左後張開的翅膀拉偏、粗段法對同批人形校驗又給不出一致的校正量（+15.7/+9.5/+14.0/-2.5），所以四種量法各給一個數（-32.5/-5/-15/-3.5）。改成照作者實機回饋直接調：-15 偏左 → 往右。⚠ 要再動就以 4~8px 為一步（256px=一格），別再用演算法推"
+characters/blazeborn/fafnir/dead,-12,73.7,178,auto,9,256,256,幀數 9→25 已重算
+characters/blazeborn/fafnir/idle,8,46.5,118,manual,21,256,256,2026-09-13 三修：+8。這隻龍的剪影量不出可靠答案——最底層抓到的是拖地的尾尖、上半身重心被左後張開的翅膀拉偏、粗段法對同批人形校驗又給不出一致的校正量（+15.7/+9.5/+14.0/-2.5），所以四種量法各給一個數（-32.5/-5/-15/-3.5）。改成照作者實機回饋直接調：-15 偏左 → 往右。⚠ 要再動就以 4~8px 為一步（256px=一格），別再用演算法推
+characters/blazeborn/fafnir/walk,8,46.5,119,manual,15,256,256,2026-09-13 三修：+8。這隻龍的剪影量不出可靠答案——最底層抓到的是拖地的尾尖、上半身重心被左後張開的翅膀拉偏、粗段法對同批人形校驗又給不出一致的校正量（+15.7/+9.5/+14.0/-2.5），所以四種量法各給一個數（-32.5/-5/-15/-3.5）。改成照作者實機回饋直接調：-15 偏左 → 往右。⚠ 要再動就以 4~8px 為一步（256px=一格），別再用演算法推
 characters/blazeborn/nidhogg/attack,1,53.5,97,auto,25,256,256,
-characters/blazeborn/nidhogg/dead,-2,74.8,132,auto,9,256,256,
-characters/blazeborn/nidhogg/idle,-2,50.5,91,manual,15,256,256,"2026-09-13 手改：auto 算出 -36（同批素材的 base/thrall/jiao idle 都在 ±1.2 內，這是離群值）——披風/尾巴那類窄剪影被當成第二隻腳，錨點被拉到身體後方；離線量最底 8px、濾掉寬<10px 的段後，真實接地中點與 thrall/jiao 同一水準，換算回表的尺規是 -2。walk 對齊 idle，換動作時不會跳"
-characters/blazeborn/nidhogg/walk,-2,54,98,manual,14,256,256,"2026-09-13 手改：auto 算出 -23.9（同批素材的 base/thrall/jiao idle 都在 ±1.2 內，這是離群值）——披風/尾巴那類窄剪影被當成第二隻腳，錨點被拉到身體後方；離線量最底 8px、濾掉寬<10px 的段後，真實接地中點與 thrall/jiao 同一水準，換算回表的尺規是 -2。walk 對齊 idle，換動作時不會跳"
+characters/blazeborn/nidhogg/dead,-2,74.8,132,auto,9,256,256,幀數 9→25 已重算
+characters/blazeborn/nidhogg/idle,-2,50.5,91,manual,15,256,256,2026-09-13 手改：auto 算出 -36（同批素材的 base/thrall/jiao idle 都在 ±1.2 內，這是離群值）——披風/尾巴那類窄剪影被當成第二隻腳，錨點被拉到身體後方；離線量最底 8px、濾掉寬<10px 的段後，真實接地中點與 thrall/jiao 同一水準，換算回表的尺規是 -2。walk 對齊 idle，換動作時不會跳
+characters/blazeborn/nidhogg/walk,-2,54,98,manual,14,256,256,2026-09-13 手改：auto 算出 -23.9（同批素材的 base/thrall/jiao idle 都在 ±1.2 內，這是離群值）——披風/尾巴那類窄剪影被當成第二隻腳，錨點被拉到身體後方；離線量最底 8px、濾掉寬<10px 的段後，真實接地中點與 thrall/jiao 同一水準，換算回表的尺規是 -2。walk 對齊 idle，換動作時不會跳
 characters/blazeborn/thrall/attack,-6.8,54,94,auto,25,256,256,
-characters/blazeborn/thrall/dead,-5,76.2,148,auto,9,256,256,
+characters/blazeborn/thrall/dead,-5,76.2,148,auto,9,256,256,幀數 9→25 已重算
 characters/blazeborn/thrall/idle,1.2,53.5,88,auto,19,256,256,
 characters/blazeborn/thrall/walk,0.8,56,96,auto,21,256,256,
 characters/cloudborn/chiwen/attack,-1.8,49.5,150,auto,25,256,256,
-characters/cloudborn/chiwen/dead,-19.5,70,155,auto,9,256,256,
-characters/cloudborn/chiwen/idle,-1,47.5,86,manual,18,256,256,"2026-09-13 手改：auto 的 -25.4 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 -0.7，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。attack(-1.8) 本來就正常，沒動"
-characters/cloudborn/chiwen/walk,-1,51,90,manual,12,256,256,"2026-09-13 手改：auto 的 -19 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 -0.7，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。對齊 idle"
+characters/cloudborn/chiwen/dead,-19.5,70,155,auto,9,256,256,幀數 9→25 已重算
+characters/cloudborn/chiwen/idle,-1,47.5,86,manual,18,256,256,2026-09-13 手改：auto 的 -25.4 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 -0.7，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。attack(-1.8) 本來就正常，沒動
+characters/cloudborn/chiwen/walk,-1,51,90,manual,12,256,256,2026-09-13 手改：auto 的 -19 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 -0.7，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。對齊 idle
 characters/cloudborn/jiao/attack,-2.2,53,80,auto,25,256,256,
-characters/cloudborn/jiao/dead,-11.5,68.6,137,auto,9,256,256,
+characters/cloudborn/jiao/dead,-11.5,68.6,137,auto,9,256,256,幀數 9→25 已重算
 characters/cloudborn/jiao/idle,-0.5,52,76,auto,15,256,256,
 characters/cloudborn/jiao/walk,-4.6,55.8,80,auto,22,256,256,
-characters/cloudborn/yinglong/attack,0,47,87,manual,25,256,256,"2026-09-13 手改：auto 的 -22.5 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 +0.1，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。attack 原本 -22.5 也被同一條尾巴騙到，一起改"
-characters/cloudborn/yinglong/dead,-11,71.8,159,auto,9,256,256,
-characters/cloudborn/yinglong/idle,0,42.5,86,manual,15,256,256,"2026-09-13 手改：auto 的 -23 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 +0.1，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。尾巴往左下拖地，是這批裡被騙得最兇的一個"
-characters/cloudborn/yinglong/walk,0,45.5,91,manual,13,256,256,"2026-09-13 手改：auto 的 -17.2 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 +0.1，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。對齊 idle"
+characters/cloudborn/yinglong/attack,0,47,87,manual,25,256,256,2026-09-13 手改：auto 的 -22.5 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 +0.1，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。attack 原本 -22.5 也被同一條尾巴騙到，一起改
+characters/cloudborn/yinglong/dead,-11,71.8,159,auto,9,256,256,幀數 9→25 已重算
+characters/cloudborn/yinglong/idle,0,42.5,86,manual,15,256,256,2026-09-13 手改：auto 的 -23 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 +0.1，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。尾巴往左下拖地，是這批裡被騙得最兇的一個
+characters/cloudborn/yinglong/walk,0,45.5,91,manual,13,256,256,2026-09-13 手改：auto 的 -17.2 是拖地的尾巴／衣襬／翅膀被當成第二隻腳。離線量「剪影上 55% 的重心」（站姿角色的腳在軀幹正下方）得 +0.1，與已驗證的 base/thrall/jiao 同一水準；同批六個角色的身體重心全部落在 ±6 內，證明錨點本來就該接近 0。對齊 idle
 characters/spiritroot/divine form/attack,1.5,40.5,114,auto,25,256,256,
-characters/spiritroot/divine form/dead,-6,56.1,134,auto,9,256,256,
+characters/spiritroot/divine form/dead,-6,56.1,134,auto,9,256,256,幀數 9→25 已重算
 characters/spiritroot/divine form/idle,-4.5,46.7,85,auto,23,256,256,
 characters/spiritroot/divine form/walk,-7.8,43,92,auto,12,256,256,
 characters/spiritroot/foundation/attack,-5,54.5,64,auto,25,256,256,
-characters/spiritroot/foundation/dead,4.5,70.8,99,auto,9,256,256,
+characters/spiritroot/foundation/dead,4.5,70.8,99,auto,9,256,256,幀數 9→25 已重算
 characters/spiritroot/foundation/idle,-1.8,54.5,62,auto,23,256,256,
 characters/spiritroot/foundation/walk,-3.2,56,66,auto,22,256,256,
 characters/spiritroot/nascent soul/attack,-1.5,47.4,98,auto,25,256,256,
-characters/spiritroot/nascent soul/dead,0.5,55.6,91,auto,9,256,256,
+characters/spiritroot/nascent soul/dead,0.5,55.6,91,auto,9,256,256,幀數 9→25 已重算
 characters/spiritroot/nascent soul/idle,-7,49.3,89,auto,16,256,256,
 characters/spiritroot/nascent soul/walk,-5.5,49.4,86,auto,20,256,256,
+characters/swarmborn/parasite/attack,-5.8,49.5,126,auto,23,256,256,
+characters/swarmborn/parasite/dead,10,61,120,auto,9,256,256,幀數 9→25 已重算
+characters/swarmborn/parasite/idle,-3.8,34,95,auto,24,256,256,
+characters/swarmborn/parasite/walk,-2,46.5,101,auto,19,256,256,
+characters/swarmborn/ravager/attack,-10.5,42,142,auto,25,256,256,
+characters/swarmborn/ravager/dead,8.5,70.8,179,auto,9,256,256,幀數 9→25 已重算
+characters/swarmborn/ravager/idle,1.5,35.5,95,auto,21,256,256,
+characters/swarmborn/ravager/walk,-4,51.8,122,auto,13,256,256,
+characters/swarmborn/swarm emperor/attack,0.5,32.3,210,auto,25,256,256,
+characters/swarmborn/swarm emperor/dead,-17,63.3,202,auto,9,256,256,幀數 9→25 已重算
+characters/swarmborn/swarm emperor/idle,-8.5,39.1,131,manual,17,256,256,2026-09-14 手改：auto 的 -25.5 是離群值（同批的 parasite -3.8／ravager +1.5，全表其他角色都在 ±8 內）——垂到腿高的翅膀把「最低兩段」騙走了。離線拆最底帶：真正接地的是三段細腳（中心 -22／-8／+5，整體中心 -8.5），而 c-75 的翅膀要到距底 40px 才出現。演算法只取最低的兩段（-22 與 -8）所以偏左。填接地整體中心 -8.5
+characters/swarmborn/swarm emperor/walk,-8.5,46.2,160,manual,11,256,256,2026-09-14 手改：對齊 idle 的 -8.5（同 nidhogg 的做法），換動作時影子不會跳；auto 的 -25.1 與 idle 同一個誤判

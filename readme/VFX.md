@@ -18,6 +18,10 @@
 
 * **發射特效 (`FireEffectID`)**：每次發射在**玩家身上**播一次、朝瞄準方向。離散武器（直射/環繞/拋物線）每次射擊播一次（吃 `FireInterval` 節流）；雷射在**按下瞬間**播一次（持續光束不每幀重播）。
 * **擊中特效 (`HitEffectID`)**：子彈／光束**命中點**播一次。涵蓋打到怪物、障礙物、拋物線落地三種情況（**首版統一一種特效**，不分表面）。雷射的命中特效綁在 `DotInterval` tick，天然節流。
+  > ⚠ **打到怪物時這一欄會被三階血統蓋過**（2026-09-14 起）：玩家若掛著血統的擊中特效（表B `HitVfxId`），
+  > 命中怪物時武器的 `HitEffectID` **讓位**、改由 `BloodlineHitFx` 在那隻怪身上播；**打到牆／地上物、
+  > 以及落地爆炸與施放點的視覺仍照播武器自己的**。所以「武器的擊中特效沒出現」先確認玩家是不是三階血統。
+  > 規則與六個呼叫點的分類見 [BLOODLINE.md](BLOODLINE.md) **§5c**。
 * **軌跡特效 (`TrailEffectID`)**：沿路徑每隔配方 `TrailStep` 距離鋪一個特效。兩種載體：
   * **子彈**（一般飛行道具）→ 由 `BulletInstance.OnTrailPoint` 觸發，做**地刺類武器**（隱形子彈沿路種尖刺，自動吃滿反彈/分裂/追蹤）。見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 的 `TrailStep`。
   * **雷射光束**（`Mode=Laser` + `TrailEffectID>0`）→ 沿光束路徑鋪**循環**火焰，做**火焰噴射器**（按住掃射、持續 DOT）。此時火焰 Vfx 須 `Loop=1` + `Duration=-1`（持續循環、由 PlayerController 管理生死）。見 [LASER.md](LASER.md) 的「火焰噴射器」。

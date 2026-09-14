@@ -55,10 +55,14 @@ namespace Dipan.Inventory
     {
         // ═══════════════ 容量（要加格就改這裡；兩包各自獨立，改一邊不影響另一邊）═══════════════
 
-        /// <summary>裝備包格數。目前 ＝ 剛好兩頁；想要別的容量直接填數字即可，不必是整頁的倍數。</summary>
-        public const int EquipBagCount = PageSlots * 2;
+        // ⚠⚠ 這兩個數字目前是**暫時放大的除錯值**（2026-09-14）：各 10 頁。
+        //    **原本的設定是各 `PageSlots * 2`（＝兩頁、24 格），要還原就把 10 改回 2。**
+        //    還原（縮小容量）前先看下面那段「增減容量安全嗎」。
+
+        /// <summary>裝備包格數。目前 ＝ 10 頁（**暫時除錯值，原為 2 頁**）；想要別的容量直接填數字即可，不必是整頁的倍數。</summary>
+        public const int EquipBagCount = PageSlots * 10;
         /// <summary>消耗品包格數。同上，兩包各自獨立。</summary>
-        public const int ItemBagCount = PageSlots * 2;
+        public const int ItemBagCount = PageSlots * 10;
         /// <summary>道具格總數（＝兩包相加）。存檔與鍛造鎖定用的格子編號都是這個範圍內的「扁平索引」。</summary>
         public const int GridCount = EquipBagCount + ItemBagCount;
 
@@ -77,6 +81,26 @@ namespace Dipan.Inventory
         public const int PageSlots = PageCols * PageRows;
 
         public const int PotionSlotCount = 2;   // 藥水格數（要加格改這裡）
+
+        // ═══════════════ 增減容量安全嗎（改上面那兩個常數之前先看這段）═══════════════
+        //
+        // **放大：完全安全。** 容量不存進存檔——`RestoreState` 一律以這裡的常數為準，
+        // 舊存檔的格號照填、填不下的走 `AddStack` 找空位，多出來的格子就是空的。
+        // （⚠ 這一點與倉庫不同：倉庫的 `ItemGridData.RestoreFrom` 曾經用存檔裡的 cols/rows
+        //   反過來覆寫程式設定，導致「改小了沒反應、資料還多出拿不到的格子」——見 PROBLEMS D25。
+        //   背包沒有那條路，容量的真相只有這裡一個。）
+        //
+        // **縮小：只有一種情況會掉東西**——舊存檔裡「某一包裝的件數 > 新容量」，
+        // 那時越界的格子走 `AddStack` 也塞不下，超出的就沒了。所以還原（10 → 2）之前，
+        // 先確認手上的存檔每一包都不超過 24 件；不確定就先在遊戲裡把東西丟進倉庫再改。
+        //
+        // **UI 不必跟著改**：`InventoryPanel` 的格子只建一頁重複使用，頁數由 `PagesOf(bag)` 算，
+        // 分頁、箭頭亮暗、頁碼、新手教學的 `FindGridSlotRect` 自動切頁全部跟著走。
+        //
+        // ⚠ **之後要做「背包擴充道具」時，這兩個 `const` 會擋路**——const 是編譯期的值，
+        // 執行期加格得把它們改成 `static int`（或每個存檔各自帶一個容量欄位）並在變動時
+        // 重建 `_grid` 陣列＋`Raise()`。改的時候記得：`GridCount` 是存檔格號的值域，
+        // 縮小時仍要走上面那條 `AddStack` 的保命路徑。
 
         /// <summary>重整鈕在裝備包的排序：武器 → 盔甲 → 手套 → 鞋子 → 護身符 → 戒指。</summary>
         static readonly EquipSlot[] SortEquipOrder =

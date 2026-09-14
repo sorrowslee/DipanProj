@@ -66,6 +66,12 @@ public static class CombatSystem
         CurrentHitTheatrical = theatrical;
         try { damageable.TakeDamage(amount, info.HitDirection); }
         finally { CurrentHitTheatrical = false; }
+
+        // 4) 三階血統的擊中特效：玩家打中怪物時，在那隻怪身上播一次（見 BloodlineHitFx）。
+        //    掛在這裡是因為**這裡是全遊戲傷害的單一入口**——子彈／雷射 tick／連鎖閃電／AOE 爆炸
+        //    四條路都會經過，之後新增武器模式也不必回來補。條件判斷全在 NotifyHit 裡，
+        //    沒掛這一層時它就是一個 static null 檢查。
+        BloodlineHitFx.NotifyHit(info.Source, info.Target);
         return amount;
     }
 

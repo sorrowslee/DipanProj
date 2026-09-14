@@ -622,6 +622,16 @@ namespace Dipan.Gacha
             }
             else if (atkFx != null) atkFx.SetEffect(0);
 
+            // ⑥ 擊中怪物時在「那隻怪」身上播一次的特效（唯一一層定位基準在目標身上，不是玩家）
+            //    ⚠ 它會讓武器自己的 HitEffectID 在打到怪時讓位（見 BloodlineHitFx 檔頭與 BLOODLINE.md §5c）。
+            var hitFx = go.GetComponent<BloodlineHitFx>();
+            if (def.HitVfxId > 0)
+            {
+                if (hitFx == null) hitFx = go.AddComponent<BloodlineHitFx>();
+                hitFx.SetEffect(def.HitVfxId, def.HitFxGap);
+            }
+            else if (hitFx != null) hitFx.SetEffect(0);
+
             // ④ 移動足跡
             var trail = go.GetComponent<BloodlineTrail>();
             if (!string.IsNullOrEmpty(def.TrailStyle))

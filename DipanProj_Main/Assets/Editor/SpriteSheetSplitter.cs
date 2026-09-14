@@ -8,8 +8,8 @@ using UnityEngine;
 /// <summary>
 /// AutoSprite 序列圖切割工具（格線由每張圖自己推測，排版／解析度都不必固定）。
 ///
-/// 用途：AutoSprite 會把一個動作輸出成「一張大序列圖」（完整版 5×5＝25 格；它推薦的 perfect loop
-/// 張數較少，就變成 5×3＝15 格、5×2＝10 格…；素材高清化後整張圖還會放大 2~4 倍），
+/// 用途：AutoSprite 會把一個動作輸出成「一張大序列圖」（常見是 5×5＝25 格；它推薦的 perfect loop
+/// 張數較少時就變成 5×3、4×3、5×2…；素材拿重繪工具高清化之後整張圖還會放大 2~4 倍），
 /// 但本專案的 route B 程式逐格動畫吃的是「資料夾裡的單張幀」。三個選單入口（Project Tools）：
 ///
 ///   1. <b>Split Sprite Sheet</b>：選一張序列圖 → 切成單張幀、寫回<b>同資料夾</b>、刪掉原圖（原始單張模式，行為不變）。
@@ -30,15 +30,26 @@ using UnityEngine;
 ///   6. 切割成功後刪掉原始序列圖（連同 .meta）。
 ///   7. 不清理資料夾裡既有的舊幀（同名覆寫、不同名保留）。
 ///
-/// <b>怎麼推測格線（<see cref="GuessGrid"/>）</b>——關鍵觀察：<b>AutoSprite 每一格的角色四周都留白</b>，
-/// 所以「切對」時<b>沒有任何一格的內容會碰到格線</b>，切錯就幾乎每格都被攔腰切開。演算法三步：
+/// <b>怎麼推測格線（<see cref="GuessGrid"/>）</b>——關鍵觀察：<b>一格放一幀，所以正確的格線一定落在
+/// 幀與幀的交界上</b>，線兩側不會同時是角色的實體像素；切錯則幾乎每條線都把角色攔腰切開。演算法三步：
 ///   ① 候選格邊長 ＝ <b>圖寬與圖高的公因數</b>（格子是正方形），再濾掉格邊長 &lt; <see cref="MinCell"/>、
 ///      格數 &lt; 2 或 &gt; <see cref="MaxCells"/> 的（1 格＝單張圖、太多格＝一定切錯）。
-///   ② 對每個候選算「<b>貼邊率</b>」＝內容碰到格線的格數 ÷ 總格數，取最低者。
-///   ③ 最低貼邊率 &gt; <see cref="MaxEdgeRatio"/> ＝ 認不出格線 → 不切、附上候選一覽說明原因。
-/// 實測分離度極高、中間沒有模糊地帶：真合圖（Gargoyle idle 5×3、紅嫁衣 walk 5×5）都是 <b>0%</b>；
-/// 而單張立繪 `ZhaYu/idle` 500×500 最低 76%、`Ghost_GrandMa` 408×612 最低 33%、已切好的 256×256 幀最低 31%，
-/// 全部落在門檻外被擋下。
+///   ② 對每個候選算「<b>跨線率</b>」＝內部格線兩側同時是實體像素的點數 ÷ 內部格線總長度，取最低者；
+///      同分取<b>較小的 cell</b>（擋掉「cell 剛好是正解倍數」那種也零跨線的粗排版，例如把 4×4 看成 2×2）。
+///      alpha &lt; <see cref="SolidAlpha"/> 的抗鋸齒羽化不算實體，否則正解會出現零星偽跨線。
+///   ③ 最低跨線率 &gt; <see cref="MaxCrossRatio"/>，或切出來有內容的格子少於 <see cref="MinNonEmptyCells"/>
+///      ＝ 認不出格線 → 不切、附上候選一覽說明原因。
+/// <b>⚠ 這三步沒有一處用到欄數、列數或圖片尺寸當基準</b>——AutoSprite 的排版（5×5／5×3／4×3／5×2…）
+/// 與高清重繪後的放大倍率都是變數，只有「格子是正方形」與「線不該切穿角色」兩個前提是不變的。
+/// 實測分離度極高、中間沒有模糊地帶（2026-09-14 量）：正解（蟲皇 dead 5×5）<b>0.00%</b>；
+/// 同一張圖的其他排版 8×8 21%／4×4 29%／2×2 49%；單張立繪 `ZhaYu/idle` 500×500 最低 39%、
+/// `Ghost_GrandMa` 408×612 最低 19%、已切好的 256×256 幀最低 24%，全部落在門檻外被擋下。
+///
+/// <b>為什麼不是「貼邊率」</b>（2026-09-14 改，見 readme/PROBLEMS.md <b>C14</b>）：初版判的是
+/// 「內容有沒有<b>碰到</b>格線」，前提是「AutoSprite 每一格四周都留白」。倒下／展翅這類橫向撐滿整格的
+/// 動作會打破那個前提——蟲皇 dead 的第 7~11 幀翅膀張到 212~256px（格子就是 256），
+/// 貼邊率 20% 超過當時 10% 的門檻，<b>正確的 5×5 被判成切錯而整張拒切</b>。
+/// 貼邊不等於切穿；真正要防的是切穿，所以改成直接量它。
 ///
 /// ⚠ 批次模式（2、3）的兩道守衛：
 ///   ① <b>檔名結尾是「_兩位以上數字」的 PNG 視為「已是切好的幀」直接跳過</b>（例 <c>walk_01.png</c>）。
@@ -53,9 +64,12 @@ using UnityEngine;
 public static class SpriteSheetSplitter
 {
     // ── 格線推測參數（見檔頭「怎麼推測格線」）──
-    private const int MinCell = 32;            // 格邊長下限：再小就不像一幀角色圖了
-    private const int MaxCells = 64;           // 格數上限：AutoSprite 最多 25 格，留餘裕；也擋掉「切成上百張」
-    private const float MaxEdgeRatio = 0.10f;  // 貼邊率門檻：低於這個才算切對（實測真合圖 0%、非合圖 31% 以上）
+    // ⚠ 這四個都是「與排版、解析度無關」的量：沒有任何一個是格數或圖片尺寸。
+    private const int MinCell = 32;             // 格邊長下限：再小就不像一幀角色圖了
+    private const int MaxCells = 64;            // 格數上限：擋掉「切成上百張」（不是 AutoSprite 的張數上限）
+    private const float MaxCrossRatio = 0.02f;  // 跨線率門檻：低於這個才算切對（實測正解 0%、切錯 19% 以上）
+    private const byte SolidAlpha = 16;         // 低於此 alpha 視為抗鋸齒羽化，不算「實體像素」
+    private const int MinNonEmptyCells = 2;     // 切出來至少要有兩格有內容，才像一張合圖
 
     // ─────────────────────────────────────────────
     //  入口 1：單張（原始模式，行為不變）
@@ -241,14 +255,15 @@ public static class SpriteSheetSplitter
     {
         public bool ok;
         public int cols, rows, cell;
-        public float edgeRatio;     // 採用的候選的貼邊率（越低越確定切對）
+        public float crossRatio;    // 採用的候選的跨線率（越低越確定切對；0 ＝沒有任何一幀被切穿）
         public string detail;       // 給錯誤訊息用的候選一覽
     }
 
     /// <summary>
-    /// 從圖本身推測格線。原理見檔頭：AutoSprite 每一格的角色四周都留白，所以
-    /// <b>切對時沒有任何一格的內容會碰到格線，切錯就幾乎每格都碰</b>。
-    /// 候選限縮成「圖寬與圖高的公因數」（格子是正方形），再用貼邊率挑出唯一解。
+    /// 從圖本身推測格線。原理見檔頭：<b>切對時沒有任何一幀會被格線切穿</b>。
+    /// 候選限縮成「圖寬與圖高的公因數」（格子是正方形），再用<b>跨線率</b>挑出唯一解；
+    /// 同分時取較小的 cell（擋掉「cell 剛好是正解的倍數」那種也零跨線的粗排版，例如把 4×4 看成 2×2）。
+    /// <b>全程不假設欄數、列數或圖片尺寸</b>——5×5／5×3／4×3／5×2 與高清放大過的圖都走同一條路。
     /// </summary>
     private static GridGuess GuessGrid(Texture2D sheet)
     {
@@ -257,6 +272,7 @@ public static class SpriteSheetSplitter
         Color32[] px = sheet.GetPixels32();   // 一次讀全圖：索引 [y * w + x]，y=0 是最下面一列
         var sb = new StringBuilder();
         float bestRatio = 2f;
+        bool found = false;
 
         int limit = Mathf.Min(w, h);
         for (int size = MinCell; size <= limit; size++)
@@ -265,41 +281,72 @@ public static class SpriteSheetSplitter
             int cols = w / size, rows = h / size, n = cols * rows;
             if (n < 2 || n > MaxCells) continue;                   // 1 格＝單張圖、太多格＝一定切錯
 
-            int touch = 0;
-            for (int r = 0; r < rows; r++)
-                for (int c = 0; c < cols; c++)
-                    if (CellTouchesEdge(px, w, c * size, h - (r + 1) * size, size)) touch++;
+            float ratio = CrossRatio(px, w, h, size, cols, rows);
+            int nonEmpty = CountNonEmptyCells(px, w, size, cols, rows);
+            sb.Append($"{cols}×{rows}:{ratio * 100f:0.##}%(有內容 {nonEmpty} 格) ");
 
-            float ratio = (float)touch / n;
-            sb.Append($"{cols}×{rows}:{ratio * 100f:0}% ");
-            if (ratio < bestRatio)
+            // 嚴格小於 ＋ size 由小到大 ⇒ 同分自動取較小的 cell。
+            if (ratio < bestRatio && nonEmpty >= MinNonEmptyCells)
             {
                 bestRatio = ratio;
-                g.cols = cols; g.rows = rows; g.cell = size; g.edgeRatio = ratio;
+                g.cols = cols; g.rows = rows; g.cell = size; g.crossRatio = ratio;
+                found = true;
             }
         }
 
         g.detail = sb.Length > 0 ? sb.ToString().TrimEnd() : "（沒有任何候選：圖寬與圖高沒有合適的公因數）";
-        g.ok = bestRatio <= MaxEdgeRatio;
+        g.ok = found && bestRatio <= MaxCrossRatio;
         return g;
     }
 
-    /// <summary>這一格的內容有沒有碰到格子的四條邊（碰到＝格線八成切在角色身上）。</summary>
-    /// <param name="x0">格左緣 x</param><param name="yBottom">格下緣 y（Unity 貼圖原點在左下）</param>
-    private static bool CellTouchesEdge(Color32[] px, int texW, int x0, int yBottom, int size)
+    /// <summary>
+    /// 這組格線的<b>跨線率</b>＝「格線兩側同時是實體像素」的點數 ÷ 所有內部格線的總長度。
+    /// 切對時是 0（線正好落在幀與幀的交界）；切錯時角色被攔腰切開，這個值會是兩位數的百分比。
+    /// <b>只數內部格線，不數圖的外框</b>——外框不是切下去的位置，內容貼著外框是正常的
+    /// （倒下、展翅這類橫向撐滿整格的動作就會貼滿，見 readme/PROBLEMS.md <b>C14</b>）。
+    /// <paramref name="px"/> 的 alpha 低於 <see cref="SolidAlpha"/> 一律不算，否則抗鋸齒羽化
+    /// 會讓正解出現零星的偽跨線（蟲皇 dead 實測：兩個點，alpha 各為 2 與 5）。
+    /// </summary>
+    private static float CrossRatio(Color32[] px, int w, int h, int size, int cols, int rows)
     {
-        int yTop = yBottom + size - 1, x1 = x0 + size - 1;
-        for (int x = x0; x <= x1; x++)
+        int cross = 0, total = 0;
+
+        for (int c = 1; c < cols; c++)          // 縱線：x = c * size
         {
-            if (px[yBottom * texW + x].a > 0) return true;
-            if (px[yTop * texW + x].a > 0) return true;
+            int x = c * size;
+            for (int y = 0; y < h; y++)
+                if (px[y * w + x - 1].a >= SolidAlpha && px[y * w + x].a >= SolidAlpha) cross++;
+            total += h;
         }
-        for (int y = yBottom; y <= yTop; y++)
+
+        for (int r = 1; r < rows; r++)          // 橫線：y = r * size
         {
-            if (px[y * texW + x0].a > 0) return true;
-            if (px[y * texW + x1].a > 0) return true;
+            int y = r * size;
+            for (int x = 0; x < w; x++)
+                if (px[(y - 1) * w + x].a >= SolidAlpha && px[y * w + x].a >= SolidAlpha) cross++;
+            total += w;
         }
-        return false;
+
+        return total > 0 ? (float)cross / total : 1f;   // 沒有任何內部格線 ⇒ 當成切錯
+    }
+
+    /// <summary>這組格線切出來有幾格「不是全透明」（＝真的會寫出一張幀）。</summary>
+    private static int CountNonEmptyCells(Color32[] px, int texW, int size, int cols, int rows)
+    {
+        int n = 0;
+        for (int r = 0; r < rows; r++)
+            for (int c = 0; c < cols; c++)
+                if (!CellIsEmpty(px, texW, c * size, r * size, size)) n++;
+        return n;
+    }
+
+    /// <summary>這一格是不是全透明（判準與寫出階段的 <see cref="IsFullyTransparent"/> 一致：alpha 全為 0）。</summary>
+    private static bool CellIsEmpty(Color32[] px, int texW, int x0, int y0, int size)
+    {
+        for (int y = y0; y < y0 + size; y++)
+            for (int x = x0; x < x0 + size; x++)
+                if (px[y * texW + x].a > 0) return false;
+        return true;
     }
 
     /// <summary>
@@ -336,9 +383,9 @@ public static class SpriteSheetSplitter
         {
             Object.DestroyImmediate(sheet);
             res.errorTitle = "認不出格線";
-            res.error = $"圖片尺寸為 {sw}×{sh}，找不到「切下去不會切到角色」的格線。\n\n" +
-                        $"各候選排版的貼邊率（角色碰到格線的格數比例，越低越可能是正確答案）：\n{guess.detail}\n\n" +
-                        $"門檻是 {MaxEdgeRatio * 100f:0}%。真正的合圖通常是 0%；" +
+            res.error = $"圖片尺寸為 {sw}×{sh}，找不到「切下去不會切穿角色」的格線。\n\n" +
+                        $"各候選排版的跨線率（格線兩側同時是角色實體像素的比例，越低越可能是正確答案）：\n{guess.detail}\n\n" +
+                        $"門檻是 {MaxCrossRatio * 100f:0.##}%。真正的合圖是 0%（線落在幀與幀的交界）；" +
                         "都高於門檻代表這張多半不是合圖（單張立繪／已經切好的幀），或者它被裁切過、格線不再對齊。";
             return res;
         }
