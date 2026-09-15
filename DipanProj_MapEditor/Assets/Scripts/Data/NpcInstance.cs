@@ -41,5 +41,28 @@ namespace DipanMapEditor.Data
         public string setFlag = "";
         /// <summary>消失旗標：此旗標成立時 NPC 消失（進圖已成立＝不生；中途成立＝即時退場）。空＝不消失。</summary>
         public string disappearFlag = "";
+        /// <summary>
+        /// 出現條件（通用條件字串，AND）：不成立＝這個 NPC 進圖時根本不生。空＝無條件出現。
+        /// 格式 <c>kind:value</c>、<c>!</c> 前綴＝沒有、<c>|</c> 分隔＝AND，見主遊戲 AppearCondition。
+        /// 例：血族才出現＝<c>series:2</c>；血族狂族都不是＝<c>!series:2|!series:3</c>。
+        /// </summary>
+        public string conditions = "";
+        /// <summary>
+        /// 條件對話：由上往下取第一個條件成立的 dramaId 來講；全不成立才退回 <see cref="dramaId"/>。
+        /// 「同族就說是同族、外來者就說不要靠近」填這裡。
+        /// </summary>
+        public List<ConditionalDrama> conditionalDramas = new List<ConditionalDrama>();
+    }
+
+    /// <summary>
+    /// 一條「條件對話」（條件成立就講這個 dramaId）。與主遊戲 <c>Dipan.MapRuntime.ConditionalDrama</c>
+    /// **鏡像**，改欄位要兩邊一起改。
+    /// </summary>
+    public class ConditionalDrama
+    {
+        /// <summary>條件字串（同 NpcInstance.conditions 的格式）。空＝無條件成立（等於預設句）。</summary>
+        public string conditions = "";
+        /// <summary>條件成立時講的對話（DramaTable 的 ID）。0＝這一列無效、略過。</summary>
+        public int dramaId = 0;
     }
 }

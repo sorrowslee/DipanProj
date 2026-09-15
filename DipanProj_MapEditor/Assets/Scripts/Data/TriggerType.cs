@@ -333,12 +333,18 @@ namespace DipanMapEditor.Data
         ///   requireCycleMax 周目 ≤ 此值才成立（初始限定填 1；留空=不限）
         ///   requireCycleMin 周目 ≥ 此值才成立（老手限定用；留空=不限）
         ///   requireItem     背包道具條件：填 itemId=「須有此道具」；前綴 "!"（如 !104）=「須無此道具」；留空=不檢查
+        ///   conditions      偵測條件清單（血統系列/血統/背包道具/旗標，"kind:value" 以 | 分隔＝AND，! 前綴＝沒有）
         ///   repeat          重複規則：關卡單次(預設)/每次/每周目/永久，見主專案 readme/TRIGGER_CHAIN.md
         /// 以上所有條件（含 requireFlag）以 AND 結算，全成立才觸發。旗標名可加 "永久:" 前綴＝跨輪迴保存。
         /// </summary>
         public static readonly List<TriggerParam> ChainParams = new List<TriggerParam>
         {
             // ── 條件（可不可以觸發）──
+            // 偵測條件：可增減的條件清單（血統系列／血統／背包道具／旗標），多條＝AND。
+            // 與 NPC 的「出現條件／條件對話」、地上物的「出現條件」**共用同一個 UI 與同一支求值器**
+            // （主遊戲 AppearCondition），所以同一組條件可以原封不動填在不同地方。
+            // 存進地圖的是一個字串："series:2|!item:104"（! 前綴＝沒有）。
+            new TriggerParam { key = "conditions",      type = ParamType.String, label = "偵測條件",   group = "條件", isConditionList = true },
             new TriggerParam { key = "requireFlag",     type = ParamType.String, label = "條件旗標",   group = "條件", isFlagRef = true, flagNegatable = true },
             new TriggerParam { key = "requireCycleMax", type = ParamType.Int,    label = "周目上限",   group = "條件" },
             new TriggerParam { key = "requireCycleMin", type = ParamType.Int,    label = "周目下限",   group = "條件" },
@@ -390,5 +396,6 @@ namespace DipanMapEditor.Data
         public bool flagNegatable;       // 旗標欄可否定（條件旗標）：加「有/沒有」切換，沒有＝存成 "!名字"
         public bool isScreenEffectRef;   // 此欄的值是「螢幕特效 id」→ 面板加「螢幕特效表」按鈕開參照清單（可查/填 id）
         public bool isPortalList;        // 此欄是「可多筆」字串清單 → 面板渲染成多欄、按「＋」加一欄、「−」刪一欄；存成逗號分隔字串
+        public bool isConditionList;     // 此欄是「偵測條件清單」→ 面板渲染成 [偵測▼][id][有/沒有][−] 多列；存成 "kind:value|kind:value" 字串
     }
 }

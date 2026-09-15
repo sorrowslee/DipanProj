@@ -416,6 +416,11 @@ public class MapLoader : MonoBehaviour
             if (have < inst.appearAfterClears) return;
         }
 
+        // 出現條件（血統系列／血統／道具／旗標，AND）不成立 → 這個地上物不生。
+        // 與 NPC、觸發點共用同一支求值器，所以「血族才看得到的祭壇圖」和「血族才按得到的感應區」
+        // 可以填一模一樣的條件，不會一個看不見一個按得到（同 appearAfterClears 的設計理由）。
+        if (!AppearCondition.Met(inst.conditions)) return;
+
         // 消失旗標：旗標已成立＝這個地上物早該消失（例：上次已撿走佛燈）→ 進圖時根本不生。
         // 旗標尚未成立＝照常建好，並登記給 revealer，等關卡中途旗標成立時銷毀（見文末 RegisterDisappear）。
         bool disappearGated = !string.IsNullOrEmpty(inst.disappearFlag);
@@ -1043,7 +1048,7 @@ public class MapLoader : MonoBehaviour
     static readonly string[] ChainConditionKeys =
     {
         "requireFlag", "requireCycleMin", "requireCycleMax", "requireItem",
-        "requireClearsMin", "requireClearsMax",
+        "requireClearsMin", "requireClearsMax", "conditions",
     };
 
     /// <summary>解析 monsterId 欄：單一 id（"5"）或 '|' 分隔的多個 id（"5|7|9"）。無效值略過，全無效回空陣列。</summary>

@@ -41,6 +41,7 @@ public static class PlayModeStaticReset
 
         // 觸發鏈：清 static 集合／快取／**事件訂閱**（OnTriggerFired 跨 Play 會累積 → 重複觸發、呼叫到已銷毀的 TutorialManager 等）。
         TriggerChain.ResetForPlayMode();
+        AppearCondition.ResetForPlayMode();            // 通用條件（conditions）：清「看不懂的條件只警告一次」的記錄
 
         // 素材庫單例：走「執行期從 StreamingAssets 載入的 Texture/Sprite」的懶漢單例——static 快取會回傳
         // 上一輪 Play 結束時被銷毀的 sprite → 角色/怪物只剩影子、劇情圖/立繪變空白。丟掉單例，下次存取重載乾淨的圖。

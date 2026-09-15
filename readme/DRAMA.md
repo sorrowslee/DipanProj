@@ -2,6 +2,10 @@
 
 > 返回 [文件總覽](README.md)｜靠近按 F 的互動共用機制見 [INTERACTION.md](INTERACTION.md)｜UI 框架見 [UI_SYSTEM.md](UI_SYSTEM.md)｜資料表載入慣例見 [INVENTORY.md](INVENTORY.md)
 
+> **要「依玩家血統／背包道具講不同句」**：對話內容本身不變，分支做在**講話的人**身上——
+> NPC 用〈條件對話〉（[NPC_SYSTEM.md §2](NPC_SYSTEM.md)），地圖上的 drama 觸發點用「偵測條件」＋
+> `條件不成立時=跳過這顆繼續` 串成分支。條件種類與坑見 [TRIGGER_CHAIN.md §2.6](TRIGGER_CHAIN.md)。
+
 玩家走到地圖上的「劇情觸發點」，靠近按 **F** 跳出一個劇情檢視介面（一張大圖 + 一段文字）。觸發互動本身（星星標示、靠近按 F、消耗）完全複用 [INTERACTION.md](INTERACTION.md) 的 `InteractionManager`——本檔只談**劇情專屬**的部分：資料表、檢視介面。
 
 ---

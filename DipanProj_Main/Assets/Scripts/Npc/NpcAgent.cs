@@ -27,6 +27,10 @@ public class NpcAgent : MonoBehaviour
     public string ShownName = "";
     public string DisappearFlag = "";   // 旗標成立＝這個 NPC 即時退場（見 NpcInstance.disappearFlag）
 
+    // 條件對話：由上往下取第一個條件成立的 dramaId（見 NpcInstance.conditionalDramas）。
+    // 全不成立才退回 DramaId。**按 F 的當下**才判定，所以玩家中途變身、再回來聊，講的就是新身分的那一句。
+    List<Dipan.MapRuntime.ConditionalDrama> _condDramas;
+
     MonsterController _mc;
     NpcBrain _brain;
     NpcTalkMarker _marker;
@@ -35,7 +39,28 @@ public class NpcAgent : MonoBehaviour
     bool _flipBeforeTalk;      // 對話前的朝向（flipX），對話結束轉回——「借過頭來看玩家一下」的語意
     bool _hasFlipBeforeTalk;
 
-    public bool CanInteract => DramaId > 0 || PanelId.Length > 0;
+    /// <summary>這個 NPC 有沒有任何一句可講（預設對話或條件對話都算）。</summary>
+    public bool HasAnyDrama => DramaId > 0 || (_condDramas != null && _condDramas.Count > 0);
+
+    public bool CanInteract => HasAnyDrama || PanelId.Length > 0;
+
+    /// <summary>
+    /// 這次按 F 要講哪一句：條件對話由上往下取第一個成立的，全不成立退回預設 <see cref="DramaId"/>。
+    /// 0＝沒有任何一句可講（純開介面的商人就是這種）。
+    /// </summary>
+    int PickDramaId()
+    {
+        if (_condDramas != null)
+        {
+            for (int i = 0; i < _condDramas.Count; i++)
+            {
+                var c = _condDramas[i];
+                if (c == null || c.dramaId <= 0) continue;          // 空列／沒填 id：略過，不當成「成立」
+                if (AppearCondition.Met(c.conditions)) return c.dramaId;
+            }
+        }
+        return DramaId;
+    }
 
     void OnEnable() { if (!Active.Contains(this)) Active.Add(this); }
     void OnDisable() { Active.Remove(this); }
@@ -62,6 +87,7 @@ public class NpcAgent : MonoBehaviour
         NextTrigger = (inst.next ?? "").Trim();
         SetFlagName = (inst.setFlag ?? "").Trim();
         DisappearFlag = (inst.disappearFlag ?? "").Trim();
+        _condDramas = inst.conditionalDramas;                       // 直接引用擺放資料（唯讀用途，不改它）
         ShownName = data != null ? data.ShownName : "";
         if (CanInteract) _marker = NpcTalkMarker.Create(transform);   // 頭上對話泡泡（純程式畫、零素材）
     }
@@ -76,7 +102,7 @@ public class NpcAgent : MonoBehaviour
         }
     }
 
-    public string TipText(KeyCode key) => DramaId > 0 ? $"按 {key} 鍵交談" : $"按 {key} 鍵";
+    public string TipText(KeyCode key) => HasAnyDrama ? $"按 {key} 鍵交談" : $"按 {key} 鍵";
 
     /// <summary>玩家按 F（由 InteractionManager 呼叫）。</summary>
     public void Interact()
@@ -84,12 +110,14 @@ public class NpcAgent : MonoBehaviour
         RememberFacing();   // 記住對話前的朝向（對話結束轉回；巡邏中＝當下的行進朝向）
         FacePlayer();       // 只有這一刻轉向玩家——平時 NPC 完全不看玩家（DetectionRange=0，見 NpcSpawner）
 
-        if (DramaId > 0)
+        int dramaId = PickDramaId();   // 條件對話：這一刻才決定講哪一句（同族/外來者…）
+
+        if (dramaId > 0)
         {
-            var d = DramaDatabase.Instance.Get(DramaId);
+            var d = DramaDatabase.Instance.Get(dramaId);
             if (d == null)
             {
-                Debug.LogWarning($"[NpcAgent] NPC「{name}」的 dramaId={DramaId} 在 DramaTable 找不到，改直接開介面/接鏈。");
+                Debug.LogWarning($"[NpcAgent] NPC「{name}」的 dramaId={dramaId} 在 DramaTable 找不到，改直接開介面/接鏈。");
                 RestoreFacing();
                 OnTalkClosedCore();
                 return;
@@ -97,7 +125,7 @@ public class NpcAgent : MonoBehaviour
             if (_brain != null) _brain.Talking = true;               // 對話中站住不走
             TriggerChain.CompleteAfterDramaAction(OnTalkClosed);     // 面板關閉才續（開介面／接鏈）
             if (d.Type == 2) DramaTalkController.Play(d.TalkGroup, allowSkip: true);
-            else Dipan.UI.DramaPanel.Show(DramaId);
+            else Dipan.UI.DramaPanel.Show(dramaId);
         }
         else
         {

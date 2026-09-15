@@ -19,6 +19,14 @@ public static class NpcSpawner
         string gone = (inst.disappearFlag ?? "").Trim();
         if (gone.Length > 0 && TriggerChain.FlagTrue(gone)) return null;
 
+        // 出現條件（血統系列／血統／道具／旗標，AND）不成立 → 這隻不生。
+        // 典型：門口疊三隻 NPC——血族版填 "series:2"、狂族版填 "series:3"、看門人填 "!series:2|!series:3"。
+        // ⚠ 只在這裡判定一次：關卡中途變身不會即時換人，換到下一張圖重生時才反應（作者拍板）。
+        if (!AppearCondition.Met(inst.conditions))
+        {
+            return null;
+        }
+
         var data = NpcDatabase.Instance.Get(inst.npcId);
         if (data == null)
         {

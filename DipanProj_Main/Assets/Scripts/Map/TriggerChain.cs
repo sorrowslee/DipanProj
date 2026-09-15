@@ -77,6 +77,7 @@ public static class TriggerChain
     const string KeyRequireClearsMin = "requireClearsMin";      // 最低完成關卡數：完成數 ≥ 此值才可觸發（空=不限制）
     const string KeyRequireClearsMax = "requireClearsMax";      // 最高完成關卡數：完成數 ≤ 此值才可觸發（空=不限制；填 0＝只在一關都還沒通時）
     const string KeyRequireClearsScope = "requireClearsScope";  // "lifetime"=看跨輪迴高水位；其餘/空=本周目
+    const string KeyConditions = "conditions";   // 通用條件（血統系列/血統/道具/旗標，AND）；格式與求值見 AppearCondition
     const string KeyOnBlocked = "onBlocked";                    // 條件不成立時：空/「中止整條鏈」=停；「跳過這顆繼續」=改跑自己的 next
     const string KeyFireOnFlag = "fireOnFlag";     // 「旗標一成立就自動觸發本 trigger」：填旗標名。與 onEnter（進場自動）同類、改由旗標驅動。用途：boss 死亡設旗標→clearLevel 自動觸發，不需玩家踩點
 
@@ -150,6 +151,7 @@ public static class TriggerChain
     ///   requireClearsMin 最低完成關卡數：完成數 ≥ 值（搭配 requireClearsScope：lifetime=跨輪迴高水位／空=本周目）
     ///   requireClearsMax 最高完成關卡數：完成數 ≤ 值（填 0＝只在「一關都還沒通」時成立，用來擋初次限定的內容）
     ///   requireItem     背包道具：填 itemId=須有；"!itemId"=須無
+    ///   conditions      通用條件（血統系列/血統/道具/旗標，"kind:value" 以 | 分隔＝AND，! 前綴＝沒有）；見 AppearCondition
     /// </summary>
     public static bool RequirementMet(TriggerRegion r)
     {
@@ -200,6 +202,10 @@ public static class TriggerChain
                 if (has == mustNotHave) return false;   // 須無卻有、或 須有卻無 → 擋
             }
         }
+
+        // 5) 通用條件（血統系列／血統／道具／旗標，AND）——與 NPC、地上物的「出現條件」共用同一支求值器，
+        //    所以「血族才出現的 NPC」和「血族才觸發的對話點」可以填一模一樣的條件。見 AppearCondition。
+        if (!AppearCondition.Met(r.GetString(KeyConditions))) return false;
 
         return true;
     }

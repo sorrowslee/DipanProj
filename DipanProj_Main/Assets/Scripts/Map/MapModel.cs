@@ -138,6 +138,10 @@ namespace Dipan.MapRuntime
         // 進圖時旗標已成立＝根本不生此物件；旗標於關卡中途成立＝由 MapObjectRevealer 立即銷毀。
         // 搭配觸發鏈 setFlag 用（例：pickup 撿起佛燈 → setFlag → 佛燈地上物消失）。
         public string disappearFlag = "";
+        // 出現條件（通用條件字串，AND）：不成立＝這個地上物**進圖時根本不生**。空＝無條件出現。
+        // 與 NPC／觸發點共用同一支求值器與同一個編輯器 UI，見 AppearCondition。
+        // ⚠ 只在進圖當下判定一次（不像 appearFlag 有「中途旗標成立才現身」的機制）。
+        public string conditions = "";
         // ── 照明（火把/燈籠/香爐/地上的佛燈…）──
         // 由 MapLoader 掛 LightSource；AtmosphereController 每幀取最近的 N 盞餵給氛圍 shader（多光源）。
         // 只有「暗氛圍地圖（2 幽暗/3 噩夢/9 深海恐怖）」或「MapsTable 環境亮度<100 的地圖」看得到效果。
@@ -218,6 +222,27 @@ namespace Dipan.MapRuntime
         // 消失旗標：此旗標成立時這個 NPC 消失（進圖時已成立＝不生；關卡中途成立＝場上即時消失）。
         // 空＝永不因旗標消失。典型：三方陣營劇本的和平版 NPC 填「開戰旗」——開戰瞬間退場、換戰鬥版怪物上場。
         public string disappearFlag = "";
+        // 出現條件（通用條件字串，AND）：不成立＝這個 NPC **進圖時根本不生**。空＝無條件出現。
+        // 格式與求值見 AppearCondition（例：血族才出現＝"series:2"；血族狂族都不是＝"!series:2|!series:3"）。
+        // ⚠ 只在進圖生成當下判定一次（作者拍板：關卡中途變身不即時換人，換到下一張圖才反應）。
+        public string conditions = "";
+        // 條件對話：由上往下取**第一個條件成立**的 dramaId 來講；全都不成立才退回上面的 dramaId。
+        // 這是「同族就說『是同族啊』、外來者就說『不要靠近』」的落點。與出現條件不同，
+        // 這個是**按 F 的當下**判定（NPC 沒有視覺變化不會穿幫，且與觸發點的條件語意一致）。
+        public List<ConditionalDrama> conditionalDramas = new List<ConditionalDrama>();
+    }
+
+    /// <summary>
+    /// 一條「條件對話」：條件成立就講這個 dramaId。掛在 <see cref="NpcInstance.conditionalDramas"/>，
+    /// 由上往下取第一個成立的（特例放上面、通則放下面）。
+    /// 與編輯器 <c>DipanMapEditor.Data.ConditionalDrama</c> **鏡像**，改欄位要兩邊一起改。
+    /// </summary>
+    public class ConditionalDrama
+    {
+        /// <summary>條件字串（格式見 AppearCondition）。空＝無條件成立（等於把它當預設句）。</summary>
+        public string conditions = "";
+        /// <summary>條件成立時要講的對話（DramaTable 的 ID）。0＝這一列無效、略過。</summary>
+        public int dramaId = 0;
     }
 
     public class TriggerRegion

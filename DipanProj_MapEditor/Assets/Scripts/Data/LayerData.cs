@@ -80,6 +80,9 @@ namespace DipanMapEditor.Data
         // 遊戲端：進圖時旗標已成立＝根本不生此物件；旗標中途成立＝由 MapObjectRevealer 立即銷毀。
         // 搭配觸發鏈 setFlag 用（例：pickup 撿起佛燈 → setFlag → 佛燈地上物消失）。
         public string disappearFlag = "";
+        // 出現條件（通用條件字串，AND）：不成立＝這個地上物進圖時根本不生。空＝無條件出現。
+        // 格式 kind:value、! 前綴＝沒有、| 分隔＝AND（見主遊戲 AppearCondition）。與 NPC／觸發點共用同一套。
+        public string conditions = "";
         // ── 照明（火把/燈籠/香爐/地上的佛燈…）──
         // 遊戲端由 MapLoader 掛 LightSource，AtmosphereController 每幀取最近的 12 盞餵給氛圍 shader（多光源）。
         // 只有「暗氛圍地圖（2 幽暗/3 噩夢/9 深海恐怖）」或「MapsTable 環境亮度<100 的地圖」看得到效果。

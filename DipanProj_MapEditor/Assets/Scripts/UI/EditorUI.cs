@@ -981,6 +981,16 @@ namespace DipanMapEditor.UI
                 GUILayout.EndHorizontal();
             }
 
+            // ── 偵測條件：條件不成立＝這個地上物**進圖時根本不生**（與 NPC／觸發點共用同一套條件與同一個 UI）。
+            //    ⚠ 只在進圖當下判定一次，不像「出現旗標」有中途現身機制。典型：血族玩家才看得到的祭壇圖。
+            {
+                var objSelH = sel;
+                GUILayout.Label("── 偵測條件（出現與否）──");
+                DrawConditionList(objSelH.conditions ?? "", "obj" + objSelH.GetHashCode() + "/conditions",
+                    val => objSelH.conditions = val);
+                GUILayout.Label("多條＝全部成立才出現。進圖當下\n判定一次，中途變身不會即時改變。");
+            }
+
             // ── 照明（火把/燈籠/香爐/地上的佛燈…）──
             //    發光半徑 >0 才會展開其餘選項。在「暗氛圍」地圖(幽暗/噩夢/深海恐怖)、
             //    或 MapsTable「環境亮度」<100 的地圖上才看得到效果；同框最多 12 盞。
@@ -1591,6 +1601,7 @@ namespace DipanMapEditor.UI
         static void DrawParamField(TriggerRegion r, TriggerParam p)
         {
             if (p.isPortalList) { DrawPortalListField(r, p); return; }   // 可多筆清單：自己畫多欄＋＋/−，不走單行版型
+            if (p.isConditionList) { DrawConditionListField(r, p); return; }   // 偵測條件清單：多列 [種類][id][有/沒有][−]，不走單行版型
 
             GUILayout.BeginHorizontal();
             GUILayout.Label(string.IsNullOrEmpty(p.label) ? p.key : p.label, GUILayout.Width(90));
@@ -1721,6 +1732,233 @@ namespace DipanMapEditor.UI
                     _flagIdBuf.Remove(bufKey);
                 }
                 // 查無 → 保留輸入、不填名稱（作者看不到名稱＝知道沒配成功）。
+            }
+        }
+
+        // ═══════════════════════ 偵測條件清單（conditions）═══════════════════════
+        // 全專案共用的條件 UI，四個使用端共用它與同一支求值器（主遊戲 AppearCondition）：
+        //   ‧ 觸發點／怪物出生點（trigger 的「偵測條件」參數）
+        //   ‧ NPC：出現條件（生不生這隻）＋ 條件對話（講哪一句）
+        //   ‧ 地上物：出現條件
+        // 存進地圖的是**一個字串**："series:2|!item:104"（! 前綴＝沒有、| 分隔＝AND）。
+        // 為什麼是字串不是巢狀結構：TriggerRegion 的參數是 Dictionary<string,object> 塞不進結構，
+        // 用字串四個地方才能共用同一個 parser 與這一個元件，.dipanmap 也不會長出新格式。
+
+        static readonly string[] CondKinds = { "series", "bloodline", "item", "flag" };
+
+        // 哪一列的「選」清單正在展開（key＝bufKey + "/" + 列索引）。static：本元件被 static 的 DrawParamField 呼叫。
+        static readonly HashSet<string> _condPickOpen = new HashSet<string>();
+        static Vector2 _condPickScroll;
+
+        /// <summary>一條偵測條件（畫面上的一列）。只活在繪製期間，每幀從字串解析、有變動才組回字串。</summary>
+        class CondItem
+        {
+            public string kind = "series";
+            public string value = "";
+            public bool not;      // true＝「沒有／不是」（序列化成 ! 前綴）
+        }
+
+        static string CondKindLabel(string kind)
+        {
+            switch (kind)
+            {
+                case "series":    return "血統系列";
+                case "bloodline": return "血統";
+                case "item":      return "背包道具";
+                case "flag":      return "旗標";
+            }
+            // 不認得的種類（手改過地圖檔／未來新增的）：**保留原值不動**，按一下才換成合法的，不默默改資料。
+            return string.IsNullOrEmpty(kind) ? "（未設定）" : kind + "？";
+        }
+
+        static List<CondItem> ParseConditions(string raw)
+        {
+            var list = new List<CondItem>();
+            if (string.IsNullOrWhiteSpace(raw)) return list;      // 沒填過＝0 列，面板只顯示「＋」，不生雜訊
+            foreach (var part in raw.Split('|'))
+            {
+                string t = (part ?? "").Trim();
+                if (t.Length == 0) continue;
+                var c = new CondItem();
+                if (t.StartsWith("!")) { c.not = true; t = t.Substring(1).Trim(); }
+                int colon = t.IndexOf(':');       // 只切第一個冒號：旗標名可能自帶「永久:」前綴
+                if (colon > 0) { c.kind = t.Substring(0, colon).Trim(); c.value = t.Substring(colon + 1).Trim(); }
+                else { c.value = t; }
+                list.Add(c);
+            }
+            return list;
+        }
+
+        // ⚠️ **刻意不過濾空列**——否則按「＋」加的空列會當幀被濾掉、看起來沒反應（傳送點清單踩過這個雷）。
+        //    空列對遊戲無害：AppearCondition 讀到沒填值的條件會直接略過。
+        static string SerializeConditions(List<CondItem> list)
+        {
+            var parts = new List<string>();
+            for (int i = 0; i < list.Count; i++)
+            {
+                var c = list[i];
+                parts.Add((c.not ? "!" : "") + (c.kind ?? "") + ":" + (c.value ?? "").Trim());
+            }
+            return string.Join("|", parts);
+        }
+
+        /// <summary>trigger 參數版（走 TriggerParam schema 的 isConditionList）。</summary>
+        static void DrawConditionListField(TriggerRegion r, TriggerParam p)
+        {
+            GUILayout.Label(string.IsNullOrEmpty(p.label) ? p.key : p.label);
+            DrawConditionList(
+                (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString() : "",
+                (r?.id ?? "") + "/" + p.key,
+                val => r.Params[p.key] = val);
+        }
+
+        /// <summary>
+        /// 偵測條件清單元件（trigger／NPC／地上物共用）。
+        /// cur＝目前的條件字串、bufKey＝這一組條件的唯一鍵（展開狀態與旗標輸入暫存用）、setValue＝有變動時寫回。
+        /// </summary>
+        static void DrawConditionList(string cur, string bufKey, System.Action<string> setValue)
+        {
+            var list = ParseConditions(cur);
+            bool changed = false;
+            int removeAt = -1;
+
+            for (int i = 0; i < list.Count; i++)
+            {
+                var c = list[i];
+                string pickKey = bufKey + "/" + i;
+
+                GUILayout.BeginHorizontal();
+
+                // 偵測種類：循環按鈕（血統系列 → 血統 → 背包道具 → 旗標 → 繞回）
+                if (GUILayout.Button(CondKindLabel(c.kind), GUILayout.Width(72)))
+                {
+                    UndoManager.Push();
+                    int idx = System.Array.IndexOf(CondKinds, c.kind);
+                    c.kind = CondKinds[idx < 0 ? 0 : (idx + 1) % CondKinds.Length];
+                    c.value = "";                 // 換種類＝舊 id 不再有意義（血統 2 ≠ 道具 2），清掉免得誤判
+                    _condPickOpen.Remove(pickKey);
+                    changed = true;
+                }
+
+                if (c.kind == "flag")
+                {
+                    // 旗標與觸發點的旗標欄**完全同一套**（輸入 id → 確認 → 鎖成名字）。
+                    // 「有/沒有」由本列統一畫，所以這裡 negatable 傳 false，避免出現兩顆。
+                    string before = c.value;
+                    DrawFlagFieldCore(c.value, pickKey, false, val => { c.value = val ?? ""; });
+                    if (c.value != before) changed = true;
+                }
+                else
+                {
+                    string next = GUILayout.TextField(c.value ?? "", GUILayout.Width(46));
+                    if (next != c.value) { c.value = next; changed = true; }
+                    if (GUILayout.Button("選", GUILayout.Width(32)))
+                    {
+                        if (!_condPickOpen.Remove(pickKey)) _condPickOpen.Add(pickKey);
+                    }
+                    string nm = Preview.ConditionRefTables.NameOf(c.kind, c.value);
+                    GUILayout.Label(nm.Length > 0 ? nm
+                                                  : ((c.value ?? "").Trim().Length > 0 ? "（查無此 id）" : ""));
+                }
+
+                if (GUILayout.Button(c.not ? "沒有" : "有", GUILayout.Width(40)))
+                {
+                    UndoManager.Push();
+                    c.not = !c.not;
+                    changed = true;
+                }
+                if (GUILayout.Button("−", GUILayout.Width(24))) removeAt = i;
+
+                GUILayout.EndHorizontal();
+
+                // 「選」清單：列出該表的 id＋名稱（直讀主專案 CSV），點一下填進這一列。
+                if (_condPickOpen.Contains(pickKey))
+                {
+                    var rows = Preview.ConditionRefTables.ListFor(c.kind);
+                    GUILayout.BeginVertical(GUI.skin.box);
+                    if (GUILayout.Button("重讀表（改過主專案 CSV 按這個）"))
+                        Preview.ConditionRefTables.Reload();
+                    _condPickScroll = GUILayout.BeginScrollView(_condPickScroll, GUILayout.Height(120));
+                    if (rows != null)
+                    {
+                        for (int k = 0; k < rows.Count; k++)
+                        {
+                            if (GUILayout.Button(rows[k].Label))
+                            {
+                                UndoManager.Push();
+                                c.value = rows[k].Id.ToString();
+                                _condPickOpen.Remove(pickKey);
+                                changed = true;
+                            }
+                        }
+                    }
+                    GUILayout.EndScrollView();
+                    GUILayout.EndVertical();
+                }
+            }
+
+            if (removeAt >= 0)
+            {
+                UndoManager.Push();
+                list.RemoveAt(removeAt);
+                _condPickOpen.Clear();    // 索引位移了，全部收起，免得展開狀態指到別列
+                changed = true;
+            }
+
+            if (GUILayout.Button("＋ 加一條偵測條件"))
+            {
+                UndoManager.Push();
+                list.Add(new CondItem());
+                changed = true;
+            }
+
+            if (changed) setValue(SerializeConditions(list));
+        }
+
+        /// <summary>
+        /// 條件對話清單（NPC 專用）：一列＝「這組條件成立就講這個 dramaId」，由上往下取第一個成立的。
+        /// 全都不成立才退回 NPC 的預設「對話id」。特例放上面、通則放下面。
+        /// 直接改傳進來的 List（它就是 NpcInstance.conditionalDramas 本身）。
+        /// </summary>
+        static void DrawConditionalDramaList(List<ConditionalDrama> list, string bufKey)
+        {
+            if (list == null) return;
+
+            int removeAt = -1;
+            for (int i = 0; i < list.Count; i++)
+            {
+                var cd = list[i];
+                if (cd == null) { list[i] = cd = new ConditionalDrama(); }
+
+                GUILayout.BeginVertical(GUI.skin.box);
+
+                GUILayout.BeginHorizontal();
+                GUILayout.Label($"第{i + 1}句", GUILayout.Width(44));
+                GUILayout.Label("對話id", GUILayout.Width(44));
+                string cur = cd.dramaId > 0 ? cd.dramaId.ToString() : "";
+                string next = GUILayout.TextField(cur, GUILayout.Width(56));
+                if (next != cur) cd.dramaId = int.TryParse(next, out var dv) && dv > 0 ? dv : 0;
+                if (GUILayout.Button("刪除這句", GUILayout.Width(72))) removeAt = i;
+                GUILayout.EndHorizontal();
+
+                var cdRef = cd;   // 閉包要抓的是這一列（迴圈變數直接進 lambda 在舊 C# 會全指到最後一列）
+                DrawConditionList(cdRef.conditions ?? "", bufKey + "/cd" + i,
+                                  val => cdRef.conditions = val);
+
+                GUILayout.EndVertical();
+            }
+
+            if (removeAt >= 0)
+            {
+                UndoManager.Push();
+                list.RemoveAt(removeAt);
+                _condPickOpen.Clear();    // 索引位移，全部收起
+            }
+
+            if (GUILayout.Button("＋ 加一句條件對話"))
+            {
+                UndoManager.Push();
+                list.Add(new ConditionalDrama());
             }
         }
 
@@ -2088,6 +2326,14 @@ namespace DipanMapEditor.UI
             }
             GUILayout.Label("靠近按 F 交談（可反覆聊）。\n空＝不對話。");
 
+            // 條件對話：依血統／道具等條件講不同句。由上往下取第一個條件成立的；
+            // 全不成立才退回上面的「對話id」。**按 F 的當下**判定（中途變身再回來聊會換句）。
+            GUILayout.Space(4);
+            GUILayout.Label("── 條件對話（依條件講不同句）──");
+            GUILayout.Label("由上往下取第一個條件成立的；都不\n成立才用上面的「對話id」。例：血族\n說「是同族啊」、其他人說「外來者\n不要靠近」。");
+            if (sel.conditionalDramas == null) sel.conditionalDramas = new List<ConditionalDrama>();
+            DrawConditionalDramaList(sel.conditionalDramas, "npc/" + sel.id + "/cds");
+
             // 介面（對話結束後開；沒填對話＝按 F 直接開）
             bool editingPanel = GUI.GetNameOfFocusedControl() == "npPanel";
             if (!editingPanel) _npPanelBuf = sel.panelId ?? "";
@@ -2152,6 +2398,12 @@ namespace DipanMapEditor.UI
                               v => { UndoManager.Push(); sel.disappearFlag = v; });
             GUILayout.EndHorizontal();
             GUILayout.Label("旗標成立＝這個 NPC 消失（進圖已\n成立＝不生；中途成立＝即時退場）。\n典型：和平版 NPC 填開戰旗。空＝\n不消失。");
+
+            GUILayout.Space(6);
+            GUILayout.Label("── 偵測條件（出現與否）──");
+            DrawConditionList(sel.conditions ?? "", "npc/" + sel.id + "/conditions",
+                              val => sel.conditions = val);
+            GUILayout.Label("條件不成立＝這隻**進圖時根本不生**\n（多條＝全部成立才出現）。\n⚠ 只在進圖當下判定一次，關卡中途\n變身不會即時換人，換下一張圖才反應。\n典型：門口疊三隻——血族版填「血統\n系列=2 有」、狂族版填「=3 有」、\n看門人填「=2 沒有」＋「=3 沒有」。");
 
             GUILayout.Space(4);
             if (GUILayout.Button("刪除這個 NPC")) ctl.DeleteSelected();

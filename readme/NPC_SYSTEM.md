@@ -15,7 +15,7 @@
 | 層 | 存哪 | 內容 |
 |---|---|---|
 | **種類**（這是「誰」） | `Assets/Data/NpcTable.csv` | 外觀資料夾、顯示名、縮放、動畫幀率、預設速度、HP（護送預留） |
-| **擺放**（放在哪、做什麼） | `.dipanmap` 的 `npcs` 清單（編輯器「NPC」分頁） | 站位、行為、路徑點、速度覆寫、dramaId、panelId、next/setFlag |
+| **擺放**（放在哪、做什麼） | `.dipanmap` 的 `npcs` 清單（編輯器「NPC」分頁） | 站位、行為、路徑點、速度覆寫、dramaId、panelId、next/setFlag、**出現條件、條件對話** |
 | **對話內容** | `DramaTable.csv`（＋`DramaTalkTable.csv`） | 既有劇情系統，Type 1 大圖／Type 2 頭像對話都通用 |
 
 ### NpcTable.csv 欄位（依表頭取值，表尾加欄不用改程式）
@@ -48,6 +48,16 @@ NPC 的圖與**怪物、劇情演出的演員**共用同一個圖庫：`Monsters
 - **對話與介面**：`對話id`（DramaTable 的 ID，空＝不對話）；`介面`＋`參數`（對話結束後開，**沒填對話＝按 F 直接開**，例如純商人）。
 - **接鏈**：`接續`（本圖 trigger 名稱，可按「選」從清單挑）＋`寫旗標`（同觸發點的旗標登記表，輸入 id → 確認）。
 - **消失旗標**（2026-08-28 加）：旗標成立＝這個 NPC 消失——進圖時已成立就不生（換圖回來也不會回來，直到旗標清掉）、關卡中途成立就即時退場。典型：三方陣營劇本的和平版 NPC 填「開戰旗」，開戰瞬間退場換戰鬥版怪物上場（見 [FACTION.md](FACTION.md)）。
+- **偵測條件（出現與否）**（2026-09-15 加）：條件不成立＝**這隻進圖時根本不生**。種類／格式／坑見
+  [TRIGGER_CHAIN.md §2.6](TRIGGER_CHAIN.md)（與觸發點、地上物共用同一套條件與同一個 UI）。
+  ⚠ **只在進圖生成當下判定一次**——關卡中途變身不會即時換人，換到下一張圖才反應（作者拍板）。
+  典型：血狂之爭門口**疊三隻 NPC**——血族版填「血統系列 2 有」、狂族版填「血統系列 3 有」、
+  看門人填「血統系列 2 沒有」＋「血統系列 3 沒有」。
+- **條件對話**（2026-09-15 加）：一句一組條件，**由上往下取第一個條件成立的** dramaId 來講；
+  全都不成立才退回上面的「對話id」。所以**特例放上面、通則放下面**。
+  ⚠ 與出現條件不同，這個是**按 F 的當下**判定（NPC 沒有視覺變化不會穿幫，且與觸發點語意一致）：
+  同一張圖裡變身後再回頭聊，講的就是新身分那一句。
+  典型：血族 NPC 對血族玩家說「是同族啊」、對其他人說「外來者不要靠近」。
 - **NPC 角色的預覽**在**所有工具下都會顯示**（會播 idle 呼吸動畫；直讀主專案 GameAssets，不必同步）；把手與路徑線只在 NPC 工具下畫。主專案的 NpcTable.csv 改了按面板「重讀 NPC 表」。
 - 資料存 `.dipanmap` 的 `npcs` 清單（獨立於三圖層；舊地圖缺欄＝空清單）。**編輯器 `Data/NpcInstance.cs` 與主遊戲 `MapModel.cs` 的 NpcInstance 是鏡像，改欄位要兩邊一起改。**
 
@@ -55,11 +65,11 @@ NPC 的圖與**怪物、劇情演出的演員**共用同一個圖庫：`Monsters
 
 ## 3. 遊戲端行為
 
-- **生成**：`MapManager.PlaceAndSetup` → `MapLoader.SpawnNpcs()` → `NpcSpawner.Spawn`（在生怪之後）。換圖由 `ClearTransientGameplay` 一併清掉（非 PlayerAlly 都清）。
+- **生成**：`MapManager.PlaceAndSetup` → `MapLoader.SpawnNpcs()` → `NpcSpawner.Spawn`（在生怪之後）。**消失旗標已成立、或「偵測條件」不成立 → 直接不生**（`AppearCondition.Met`）。換圖由 `ClearTransientGameplay` 一併清掉（非 PlayerAlly 都清）。
 - **陣營＝Neutral、放 Ally 層**：玩家子彈打 Enemy 層→打不到 NPC；敵怪的接觸傷害與友軍找目標都查 `FactionRelations` →不打中立；`ContactDamage=0` → NPC 也不傷人。
 - **走動**：`NpcBrain`（IMonsterBrain）驅動 `MonsterActuator.MoveTowards` → **A* 導航免費附贈**（路徑點之間有家具會繞）。
 - **面向（2026-08-28 作者拍板）**：NPC 平時**完全不看玩家**——走路面向移動方向（`MonsterController.FaceMovement`）、原地/停留時保持原本朝向（`DetectionRange=0`，見 NpcSpawner）。**只有按 F 對話那一刻**由 `NpcAgent` 轉向玩家，**對話結束轉回對話前的朝向**、繼續未完路程。（最初版是「玩家走近 2.6 格就轉頭」，實測會和走路面向互搶造成左右抖動，已移除。）
-- **交談**：靠近出現「按 F 鍵交談」提示（`InteractionManager` 統一管理；NPC 會移動，走 `NpcAgent.Active` 登記表動態比距離，同掉落物）。頭上有**對話泡泡標示**（`NpcTalkMarker`，純程式畫、零素材；走 Overlay 相機，暗場景也可見）。按 F → NPC 停下、面向玩家 → 依 `dramaId` 播對話（Type 1 大圖／Type 2 頭像對話；面板暫停遊戲）。
+- **交談**：靠近出現「按 F 鍵交談」提示（`InteractionManager` 統一管理；NPC 會移動，走 `NpcAgent.Active` 登記表動態比距離，同掉落物）。頭上有**對話泡泡標示**（`NpcTalkMarker`，純程式畫、零素材；走 Overlay 相機，暗場景也可見）。按 F → NPC 停下、面向玩家 → 依 `NpcAgent.PickDramaId()`（條件對話由上往下取第一個成立的，全不成立退回 `dramaId`）播對話（Type 1 大圖／Type 2 頭像對話；面板暫停遊戲）。
 - **對話結束後**（面板關閉，走 `TriggerChain.CompleteAfterDramaAction`，延一幀）：① 有填 `panelId` 就開介面（`InteractionManager.OpenPanelById`，與祭壇 openPanel trigger **同一張對應表**——之後買賣/兌換介面做好，在那個 switch 加 case、NPC 與 trigger 同時受益）；② 跑鏈：寫 `setFlag`、`Activate(next)`。
 - **一次性語意**：**對話可反覆聊**（隨時能再按 F）；**鏈（setFlag/next）每次進圖只跑第一次**（NPC 隨換圖重生＝「關卡單次」語意）。要跨圖/跨周目一次性，讓 next 指到的 trigger 自己用「條件旗標／重複規則」把門關上（Activate 會查它的條件）。
 
@@ -81,8 +91,11 @@ NPC 的圖與**怪物、劇情演出的演員**共用同一個圖庫：`Monsters
 | `NpcData.cs` / `NpcTableProvider.cs` / `NpcDatabase.cs` | NpcTable.csv 的資料類／場景 Provider（拖 CSV）／懶漢載入（依表頭取值） |
 | `NpcBrain.cs` | 決策機：原地／乒乓巡邏（含每點停留）；`Talking` 時站住 |
 | `NpcSpawner.cs` | 把 NpcInstance＋NpcData 組裝成場上 NPC（走 MonsterController 地基、Neutral、Ally 層） |
-| `NpcAgent.cs` | 互動大腦：按 F → 對話 → 開介面 → 接鏈；`Active` 登記表 |
+| `NpcAgent.cs` | 互動大腦：按 F → 對話 → 開介面 → 接鏈；`Active` 登記表；`PickDramaId()` 挑條件對話 |
 | `NpcTalkMarker.cs` | 頭上對話泡泡（程式畫、Overlay 層、自動跟隨） |
+
+**共用（非 NPC 專屬）**：`Scripts/Map/AppearCondition.cs`＝偵測條件的求值器（觸發點／NPC／地上物共用）；
+編輯器 `Preview/ConditionRefTables.cs`＝條件列「選」清單直讀主專案的血統系列／血統／道具三張 CSV。
 
 **動到的既有檔**：`MonsterFaction`（+Neutral）、`FactionRelations.cs`（**新**：敵我判定單一真相）、`EnemyContactDamage`／`MonsterController.FindNearestEnemy`（改查 FactionRelations）、`MonsterController`（+`FaceMovement`）、`MapModel`（+NpcInstance/npcs）、`MapLoader`（+SpawnNpcs）、`MapManager`（呼叫）、`TriggerChain`（+`CompleteAfterDramaAction`）、`InteractionManager`（NPC 目標＋`OpenPanelById` 抽出）、`PlayModeStaticReset`（+NpcDatabase）。
 
@@ -108,6 +121,8 @@ NPC 的圖與**怪物、劇情演出的演員**共用同一個圖庫：`Monsters
 - 編輯器預覽的角色大小與遊戲**近似**而非完全一致（預覽沿用劇情演員管線；遊戲端另有 CharacterWorldHeight 正規化）。
 - `speed`/`dwellSeconds` 以外沒有 per-擺放的 Scale/AnimFPS 覆寫（要不同大小＝ NpcTable 開兩列）。
 - 對話中其他 NPC 也會被面板暫停凍住（全遊戲 PausesGame 慣例，非 bug）。
+- 偵測條件**沒有 OR**（多條一律 AND）。要「血族或狂族」就多擺一隻各填一條，見 [TRIGGER_CHAIN.md §2.6](TRIGGER_CHAIN.md)。
+- 出現條件不成立的 NPC 是**根本不生**，不像地上物的「出現旗標」有「先建好藏起來、中途現身」的機制。
 - **純開介面（沒填 dramaId）的 NPC** 按 F 後會轉向玩家、但介面關閉後**不會轉回**（介面面板沒有關閉回呼可掛；有對話的 NPC 才有「對話結束轉回」）。巡邏中的會在續走時自己轉回，原地的會一直看著玩家——真的介意再補。
 
 ## 7. 未來預留（設計時已挖好的插座）

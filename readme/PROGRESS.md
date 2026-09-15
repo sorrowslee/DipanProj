@@ -4,6 +4,32 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **通用「偵測條件」：依血統／道具決定 NPC 出不出現、講哪一句（⏳ 未編譯未實測）**（2026-09-15，見 [TRIGGER_CHAIN.md §2.6](TRIGGER_CHAIN.md)＋[NPC_SYSTEM.md](NPC_SYSTEM.md)）：
+  作者要「血族玩家對血族 NPC 說『是同族啊』、其他人說『外來者不要靠近』」，以及
+  「血狂之爭門口依血統換不同 NPC 出現」。做成**一套通用條件**而不是 NPC 專屬功能。<br>
+  **為什麼能這麼省**：專案早就有三套各自寫死的條件機制（`TriggerChain.RequirementMet` 的六個條件欄、
+  地上物的 `appearAfterClears`/`appearFlag`/`disappearFlag`、NPC 的 `disappearFlag`），
+  這次只是多開一條**共用**的：新檔 `Scripts/Map/AppearCondition.cs` 一支求值器 ＋ 編輯器一個 UI 元件，
+  **四個使用端同時受益**——觸發點（怪物出生點免費附贈，因為它本來就走 `RequirementMet`）、
+  NPC 出現與否、NPC 講哪一句、地上物出現與否。既有條件欄**一個都沒動**，純加法，舊地圖缺欄＝空＝永遠成立。<br>
+  **格式決定：存成一個字串** `series:2|!item:104`（`!`＝沒有、`|`＝AND）。
+  因為 `TriggerRegion` 的參數是 `Dictionary<string,object>` 塞不進巢狀結構，用字串四個地方才能共用同一個 parser；
+  作者在編輯器看不到字串，只看到 `[偵測種類▼][id][選][有/沒有][−]` 的清單。<br>
+  ⚠ **「血族」是系列不是血統**——血族＝`SeriesId 2`（覓血者 20／血伯爵 21／該隱 22）。
+  偵測種類因此做了**兩種**：「血統系列」（三階都算，日常用這個）與「血統」（只認一階，寫該隱限定台詞用）。
+  只做後者的話，玩家喝進階藥劑變成血伯爵，血族 NPC 就不認得他了。<br>
+  ⚠ **判定時機刻意不一致，這是設計不是 bug**：出現與否**只在進圖生成當下問一次**（作者拍板：
+  中途變身不要在眼前憑空換人，換下一張圖才反應）；講哪一句是**按 F 當下**問（沒有視覺變化不會穿幫）。<br>
+  **刻意不做 OR**：一加上去清單就得長出括號與優先序、要在 IMGUI 上排邏輯樹。
+  「血族或狂族」用「多擺一隻各填一條」就能表達。<br>
+  **未知種類一律當成立、不擋人**＋Console 印一次——「東西莫名其妙不見了」比「東西多出現」難查太多。<br>
+  ⚠ 無存檔測試（DevQuickStart／編輯器直測）時血統**照實＝人類**，所以血統條件一律不成立；
+  不做「沒存檔就放行」的特例，否則門口那三隻會全部一起冒出來。要測請用測試選單進關。<br>
+  編輯器條件列的「選」清單直讀主專案 `BloodlineSeriesTable.csv`／`BloodlineTable.csv`／`ItemTable.csv`
+  （`Preview/ConditionRefTables.cs`，同 `NpcTableEditor` 的直讀磁碟作法）。
+  `NpcInstance` 兩專案鏡像已同步加欄（`conditions`＋`conditionalDramas`），`ObjectInstance` 加 `conditions`。<br>
+  **未驗證**：全部只過人工檢查（括號平衡、命名空間、鏡像欄位），**Unity 還沒編譯過、也還沒實機擺過**。
+
 * [x] **蟲皇的影子錨點手改（idle／walk）＋ 一個新的量法寫進 SHADOW.md**（2026-09-14，見 [SHADOW.md](SHADOW.md)〈5c〉）：
   作者實機回報影子偏掉。**沒動演算法**（已定版，PROBLEMS **E28**），照〈手動調整影子〉改表。<br>
   **一眼認出是離群值**：蟲皇 idle `-25.5`／walk `-25.1`，而同批的寄生體 `-3.8`、獵殺者 `+1.5`，全表其他角色都在 ±8 內

@@ -49,6 +49,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 「玩家碰到了沒」的位置判定 | PROBLEMS **B13**——判定對齊碰撞（`transform.position`），特效對齊視覺（腳底）；診斷用碰撞疊層（遊戲中 **P → C**） |
 | 填／改 RecipeTable、加武器模式或欄位、動能力珠 | **做武器優先用 [readme/WEAPON_WORKBENCH.md](readme/WEAPON_WORKBENCH.md)（Unity 內的武器工坊，Play 中立刻射出去看）**；欄位意義見 [readme/RECIPE_DESCRIBE.md](readme/RECIPE_DESCRIBE.md)（一列一種 `Mode`、模式 × 欄位矩陣）＋ `Assets/Scripts/Weapon/WeaponModeSpec.cs`（單一真相：加欄／加模式只改它，視窗自動跟上）；珠子有效性見 [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md) |
 | 武器／裝備／背包／掉落／存檔 | [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md)（表格只是模板、物品實例、能力容器）＋ [readme/GEM_CATALOG.md](readme/GEM_CATALOG.md)（每顆珠子的功用與範例，改珠子數值或加珠子要同步更新它）＋ [readme/INVENTORY.md](readme/INVENTORY.md) |
+| 做「依血統／背包道具決定**出不出現**或**講哪一句**」 | [readme/TRIGGER_CHAIN.md](readme/TRIGGER_CHAIN.md) **§2.6 通用條件** ——觸發點／NPC／地上物／怪物出生點**共用同一套條件與同一個 UI**（求值器 `Scripts/Map/AppearCondition.cs`）；**「血族」是系列不是血統**（血族＝SeriesId 2，三階都算）；多條一律 AND、**沒有 OR** |
 | 放/改 NPC、NPC 對話/開介面、未來護送 | [readme/NPC_SYSTEM.md](readme/NPC_SYSTEM.md)（NpcTable 分表、圖沿用 Monsters/SequenceImage 角色圖庫；編輯器與主遊戲的 NpcInstance 是鏡像） |
 | 陣營/多方互打劇本、動「誰能傷誰」 | [readme/FACTION.md](readme/FACTION.md)（規則單一真相＝`FactionRelations.cs`：敵對/傷害乘數/切層都只改它；擺劇本照 §3 一條龍） |
 | 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |
