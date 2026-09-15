@@ -2277,6 +2277,18 @@ namespace DipanMapEditor.UI
             GUI.color = Color.white;
             GUILayout.EndHorizontal();
 
+            // 初始朝向（進圖生成當下套一次；預覽會即時翻面）
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("朝向", GUILayout.Width(44));
+            GUI.color = !sel.faceLeft ? Color.cyan : Color.white;
+            if (GUILayout.Button("向右", GUILayout.Width(60))) { UndoManager.Push(); sel.faceLeft = false; }
+            GUI.color = sel.faceLeft ? Color.cyan : Color.white;
+            if (GUILayout.Button("向左", GUILayout.Width(60))) { UndoManager.Push(); sel.faceLeft = true; }
+            GUI.color = Color.white;
+            GUILayout.EndHorizontal();
+            if (sel.behavior == Data.NpcInstance.BehaviorPatrol)
+                GUILayout.Label("（走動中面向移動方向；\n這裡設的是停下／起步前的朝向）");
+
             if (sel.behavior == Data.NpcInstance.BehaviorPatrol)
             {
                 GUILayout.Space(2);

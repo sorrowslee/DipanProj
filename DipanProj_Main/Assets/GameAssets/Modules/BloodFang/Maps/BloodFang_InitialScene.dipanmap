@@ -280,7 +280,86 @@
     }
   ],
   "sceneFx": [],
-  "npcs": [],
+  "npcs": [
+    {
+      "id": "6d8fc1f3",
+      "name": "血族接待員",
+      "npcId": 2,
+      "x": 10.2096367,
+      "y": -14.8709364,
+      "behavior": "idle",
+      "faceLeft": false,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 0,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "",
+      "conditions": "series:2",
+      "conditionalDramas": [
+        {
+          "conditions": "bloodline:22",
+          "dramaId": 26
+        },
+        {
+          "conditions": "series:2",
+          "dramaId": 24
+        }
+      ]
+    },
+    {
+      "id": "24151638",
+      "name": "狂族接待員",
+      "npcId": 3,
+      "x": 14.868063,
+      "y": -14.9716778,
+      "behavior": "idle",
+      "faceLeft": true,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 0,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "",
+      "conditions": "series:3",
+      "conditionalDramas": [
+        {
+          "conditions": "bloodline:32|series:3",
+          "dramaId": 27
+        },
+        {
+          "conditions": "",
+          "dramaId": 25
+        }
+      ]
+    },
+    {
+      "id": "9a88b403",
+      "name": "人族管家",
+      "npcId": 4,
+      "x": 9.05808,
+      "y": -14.9091015,
+      "behavior": "idle",
+      "faceLeft": false,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 28,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "",
+      "conditions": "!series:2|!series:3",
+      "conditionalDramas": []
+    }
+  ],
   "lights": [],
   "cutscenes": []
 }

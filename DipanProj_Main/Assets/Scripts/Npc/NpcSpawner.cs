@@ -50,6 +50,12 @@ public static class NpcSpawner
         mc.FaceMovement = true;                // 走路面向移動方向；停下時玩家在感測範圍內才面向玩家
         mc.DropsLoot = false;
 
+        // 初始朝向（編輯器 NPC 面板的「朝向」；舊地圖沒這欄＝面向右，與過去行為相同）。
+        // flipX 規則同 MonsterController.HandleVisuals：面右＝不翻（來源圖朝右時）。
+        // 只要套一次即可——NPC 是 Neutral 且 DetectionRange=0，HandleVisuals 的 faceTarget 恆為 null，
+        // 「面向玩家」那條永遠不會覆寫它；走動時才由 FaceMovement 依移動方向接手（停下保持當時朝向）。
+        sr.flipX = (inst.faceLeft == mc.SpriteSourceFacesRight);
+
         // 行為：原地 / 來回。巡邏點 = [站位, 路徑點…]，乒乓來回。
         var mode = inst.behavior == NpcInstance.BehaviorPatrol ? NpcBrain.Mode.Patrol : NpcBrain.Mode.Idle;
         Vector2[] points = null;

@@ -23,6 +23,12 @@ namespace DipanMapEditor.Data
         public float x, y;
         /// <summary>行為：idle / patrol。</summary>
         public string behavior = BehaviorIdle;
+        /// <summary>
+        /// 初始朝向：true＝面向左、false（預設，也是舊地圖缺欄值）＝面向右。
+        /// 生成當下套一次；巡邏 NPC 一走動就由「面向移動方向」接手（只有停下時看得到這個設定）。
+        /// 對話時會暫時轉向玩家、講完轉回（見主遊戲 NpcAgent）。
+        /// </summary>
+        public bool faceLeft = false;
         /// <summary>patrol 的路徑點（不含站位；NPC 走 站位→wp1→…→尾端 再倒回）。</summary>
         public List<Vec2> waypoints = new List<Vec2>();
         /// <summary>走動速度覆寫；0＝用 NpcTable 的 Speed。</summary>

@@ -45,6 +45,8 @@ NPC 的圖與**怪物、劇情演出的演員**共用同一個圖庫：`Monsters
 - **＋ 新增 NPC**：生在畫面中心、進放置模式，點畫布定位。角色預設用 NpcTable 第一列，面板「角色」可換（下拉列出全表）。
 - **畫布操作**：直接**拖曳** NPC（青圈把手）；選取後路徑點是綠色小方塊、也可直接拖。ESC 取消模式。
 - **行為**：`原地`／`來回走動`。來回＝按「＋ 加路徑點（連續點畫布）」逐點點出路徑（自動切成來回模式），走法＝**站位→點1→點2…乒乓來回**（走到尾倒著走回站位）。「速度」（0＝用表）與「停留秒」（抵達每點停多久）可調。
+- **朝向**（2026-09-15 加）：`向右`／`向左`，**預設向右**（來源序列圖一律畫朝右）。進圖生成當下套一次，
+  預覽會即時翻面。⚠ **來回走動的 NPC 一起步就由「面向移動方向」接手**，所以這個設定只在牠停下／還沒動時看得到。
 - **對話與介面**：`對話id`（DramaTable 的 ID，空＝不對話）；`介面`＋`參數`（對話結束後開，**沒填對話＝按 F 直接開**，例如純商人）。
 - **接鏈**：`接續`（本圖 trigger 名稱，可按「選」從清單挑）＋`寫旗標`（同觸發點的旗標登記表，輸入 id → 確認）。
 - **消失旗標**（2026-08-28 加）：旗標成立＝這個 NPC 消失——進圖時已成立就不生（換圖回來也不會回來，直到旗標清掉）、關卡中途成立就即時退場。典型：三方陣營劇本的和平版 NPC 填「開戰旗」，開戰瞬間退場換戰鬥版怪物上場（見 [FACTION.md](FACTION.md)）。
@@ -68,6 +70,10 @@ NPC 的圖與**怪物、劇情演出的演員**共用同一個圖庫：`Monsters
 - **生成**：`MapManager.PlaceAndSetup` → `MapLoader.SpawnNpcs()` → `NpcSpawner.Spawn`（在生怪之後）。**消失旗標已成立、或「偵測條件」不成立 → 直接不生**（`AppearCondition.Met`）。換圖由 `ClearTransientGameplay` 一併清掉（非 PlayerAlly 都清）。
 - **陣營＝Neutral、放 Ally 層**：玩家子彈打 Enemy 層→打不到 NPC；敵怪的接觸傷害與友軍找目標都查 `FactionRelations` →不打中立；`ContactDamage=0` → NPC 也不傷人。
 - **走動**：`NpcBrain`（IMonsterBrain）驅動 `MonsterActuator.MoveTowards` → **A* 導航免費附贈**（路徑點之間有家具會繞）。
+- **初始朝向（2026-09-15 加）**：`NpcInstance.faceLeft`（編輯器面板「朝向」）在 `NpcSpawner.Spawn` 生成當下設一次
+  `sr.flipX = (faceLeft == mc.SpriteSourceFacesRight)`。因為 NPC 是 Neutral＋`DetectionRange=0`，
+  `HandleVisuals` 的 faceTarget 恆為 null，**「面向玩家」那條永遠不會覆寫它**——原地 NPC 會一直保持設定的朝向。
+  舊地圖沒這欄＝`false`＝向右，與過去行為相同。
 - **面向（2026-08-28 作者拍板）**：NPC 平時**完全不看玩家**——走路面向移動方向（`MonsterController.FaceMovement`）、原地/停留時保持原本朝向（`DetectionRange=0`，見 NpcSpawner）。**只有按 F 對話那一刻**由 `NpcAgent` 轉向玩家，**對話結束轉回對話前的朝向**、繼續未完路程。（最初版是「玩家走近 2.6 格就轉頭」，實測會和走路面向互搶造成左右抖動，已移除。）
 - **交談**：靠近出現「按 F 鍵交談」提示（`InteractionManager` 統一管理；NPC 會移動，走 `NpcAgent.Active` 登記表動態比距離，同掉落物）。頭上有**對話泡泡標示**（`NpcTalkMarker`，純程式畫、零素材；走 Overlay 相機，暗場景也可見）。按 F → NPC 停下、面向玩家 → 依 `NpcAgent.PickDramaId()`（條件對話由上往下取第一個成立的，全不成立退回 `dramaId`）播對話（Type 1 大圖／Type 2 頭像對話；面板暫停遊戲）。
 - **對話結束後**（面板關閉，走 `TriggerChain.CompleteAfterDramaAction`，延一幀）：① 有填 `panelId` 就開介面（`InteractionManager.OpenPanelById`，與祭壇 openPanel trigger **同一張對應表**——之後買賣/兌換介面做好，在那個 switch 加 case、NPC 與 trigger 同時受益）；② 跑鏈：寫 `setFlag`、`Activate(next)`。
@@ -118,7 +124,10 @@ NPC 的圖與**怪物、劇情演出的演員**共用同一個圖庫：`Monsters
 
 - NPC **不會被任何攻擊打到**（血條、可死亡＝護送任務那一波）。
 - 鏈的一次性只有「關卡單次」語意（見 §3）；沒有 per-NPC 的重複規則欄。
-- 編輯器預覽的角色大小與遊戲**近似**而非完全一致（預覽沿用劇情演員管線；遊戲端另有 CharacterWorldHeight 正規化）。
+- ~~編輯器預覽的角色大小與遊戲近似而非完全一致~~ → **2026-09-15 已對齊**：NPC 預覽改走
+  `PreviewSpriteLoader.Load(..., normalizeHeight: 1.95)`，與遊戲端 `MonsterController` 同一套「可見高度正規化」，
+  **編輯器看到多大、遊戲就多大**（各自再乘 NpcTable 的 `Scale`）。所以 `Scale` 一律從 **1** 開始調。
+  ⚠ 劇情演出預覽仍是舊的畫布基準（見 PROBLEMS **C15**）。
 - `speed`/`dwellSeconds` 以外沒有 per-擺放的 Scale/AnimFPS 覆寫（要不同大小＝ NpcTable 開兩列）。
 - 對話中其他 NPC 也會被面板暫停凍住（全遊戲 PausesGame 慣例，非 bug）。
 - 偵測條件**沒有 OR**（多條一律 AND）。要「血族或狂族」就多擺一隻各填一條，見 [TRIGGER_CHAIN.md §2.6](TRIGGER_CHAIN.md)。

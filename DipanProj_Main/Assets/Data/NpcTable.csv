@@ -1,2 +1,5 @@
 ID,Name,DisplayName,Scale,AnimFPS,Speed,HP
 1,ZhaYu,示範村民,1,8,0.8,50
+2,VampireSoldier,血族士兵,1,8,0.8,50
+3,WerewolfSoldier,狂族士兵,1,8,0.8,50
+4,Housekeeper,人族管家,1,8,0.8,50

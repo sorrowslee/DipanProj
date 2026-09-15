@@ -211,6 +211,9 @@ namespace Dipan.MapRuntime
         public int npcId;                 // NpcTable.csv 的 ID
         public float x, y;                // 站位（世界座標）
         public string behavior = BehaviorIdle;   // idle / patrol（未來擴充：escort…）
+        // 初始朝向：true＝面向左、false（預設＝舊地圖缺欄）＝面向右。生成當下套一次（NpcSpawner）。
+        // 巡邏 NPC 一走動就由 MonsterController.FaceMovement（面向移動方向）接手；對話時 NpcAgent 暫時轉向玩家、講完轉回。
+        public bool faceLeft = false;
         public List<Vec2> waypoints = new List<Vec2>();   // patrol 的路徑點（不含站位）
         public float speed = 0f;          // 走動速度覆寫；0＝用 NpcTable 的 Speed
         public float dwellSeconds = 0f;   // 抵達每個路徑點停留秒數

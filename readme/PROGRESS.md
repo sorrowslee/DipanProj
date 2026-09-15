@@ -4,6 +4,26 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **NPC 三修：大小兩邊不一致、狂族士兵永遠在走路、補「初始朝向」（⏳ 未編譯未實測）**（2026-09-15，見 [NPC_SYSTEM.md](NPC_SYSTEM.md)＋PROBLEMS **C15**／**G10**）：
+  作者擺了血族士兵／狂族士兵之後回報三件事，根因各自獨立。<br>
+  **① 編輯器小、遊戲巨人**：兩邊算大小的方式**從來就不同**——遊戲端把 idle 的**可見像素高度**正規化到
+  `CharacterWorldHeight` 1.95 世界高（與畫布大小無關），編輯器端是 `PPU = 256/tileSize`（＝角色在畫布裡佔多少就多大）。
+  示範村民 ZhaYu 畫布 500px、可見 451px → 編輯器 1.76 格，**湊巧接近 1.95，所以這個落差被蓋住到今天**；
+  iso 去背的兩隻士兵畫布 256、可見只有 135／193px → 編輯器 0.53／0.75 格，作者只好把 `Scale` 填 3，
+  遊戲就變 1.95×3＝**5.85 格高**。修法：`PreviewSpriteLoader.Load` 加 `normalizeHeight` 參數，
+  `NpcView` 傳 1.95 走與遊戲相同的公式；`NpcTable` 兩列 `Scale` 回填 1。
+  **劇情演出預覽刻意不動**（預設 `normalizeHeight=0`＝舊行為）——那邊的演員走位是照舊基準排的，改了會全部跑掉。<br>
+  **② 狂族士兵永遠是 walk**：`WerewolfSoldier/idle/` 是**空資料夾**，17 張圖全在拼錯的 `idlle/`。
+  遊戲端與編輯器**都有「idle 取不到退回 walk」的 fallback**，所以一路不報錯。圖已搬回 `idle/`、`idlle/` 已刪
+  （⚠ **要跑一次 `Sync Map Assets`**；本次已順手把 StreamingAssets 那份也搬正，不跑也能先測）。<br>
+  **③ 補初始朝向**：`NpcInstance` 兩專案鏡像加 `faceLeft`（bool，預設 false＝向右，舊地圖缺欄＝維持原行為），
+  編輯器面板「行為」下方加`向右／向左`兩顆按鈕、預覽即時翻面，`NpcSpawner` 生成當下設一次 `sr.flipX`。
+  **只要設一次就夠**：NPC 是 Neutral＋`DetectionRange=0` → `HandleVisuals` 的 faceTarget 恆為 null，
+  「面向玩家」那條永遠不會覆寫它；巡邏 NPC 一起步才由 `FaceMovement` 接手。<br>
+  **順手修**：編輯器「複製一個」`NpcController.DuplicateSelected` 漏複製昨天新加的 `conditions` 與
+  `conditionalDramas`（複製出來的 NPC 會掉條件），已補上並對條件對話做深拷貝。<br>
+  **未驗證**：人工檢查（鏡像欄位、括號、公式與遊戲端逐項對算）為主，**Unity 還沒編譯過、也還沒實機看過大小與朝向**。
+
 * [x] **通用「偵測條件」：依血統／道具決定 NPC 出不出現、講哪一句（⏳ 未編譯未實測）**（2026-09-15，見 [TRIGGER_CHAIN.md §2.6](TRIGGER_CHAIN.md)＋[NPC_SYSTEM.md](NPC_SYSTEM.md)）：
   作者要「血族玩家對血族 NPC 說『是同族啊』、其他人說『外來者不要靠近』」，以及
   「血狂之爭門口依血統換不同 NPC 出現」。做成**一套通用條件**而不是 NPC 專屬功能。<br>

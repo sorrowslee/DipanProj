@@ -5,10 +5,17 @@ using UnityEngine;
 namespace DipanMapEditor.Preview
 {
     /// <summary>
-    /// 載入劇情演員的逐格動畫幀（idle/walk），直接讀主專案 GameAssets 來源 PNG
+    /// 載入角色的逐格動畫幀（idle/walk），直接讀主專案 GameAssets 來源 PNG
     /// （Main 與當前 module 底下的 Monsters/SequenceImage/&lt;folder&gt;/&lt;state&gt;/）。
-    /// 尺寸正規化與遊戲端一致：依 idle(取不到用 walk) 首幀「不透明像素高度」把角色縮放到 CharacterWorldHeight(1.95) 世界高，
-    /// 所以編輯器預覽的角色大小 ≈ 遊戲。
+    ///
+    /// **兩種尺寸模式**（呼叫端用 <paramref name="normalizeHeight"/> 決定，2026-09-15 補）：
+    ///  ‧ <c>normalizeHeight = 0</c>（預設，劇情演出預覽沿用）：PPU = 256/tileSize，
+    ///    即「原生 256px 畫布 ＝ 一格」——角色大小**取決於原圖畫布像素數**。
+    ///  ‧ <c>normalizeHeight &gt; 0</c>（NPC 預覽用 1.95）：與遊戲端 <c>MonsterController</c> 同一套——
+    ///    量 idle（取不到用 walk）首幀的**不透明像素高度**，把角色縮放成固定的世界高度，
+    ///    **與原圖畫布大小無關**。這樣編輯器看到的大小＝遊戲看到的大小（再各自乘 CSV 的 Scale）。
+    ///
+    /// ⚠ 兩邊算法不同就會出「編輯器裡小、遊戲裡對」的錯覺，害人把 CSV Scale 填大（見 PROBLEMS C15）。
     /// </summary>
     public static class PreviewSpriteLoader
     {
@@ -45,7 +52,7 @@ namespace DipanMapEditor.Preview
         }
 
 
-        // 量首幀不透明像素的高度（px），供 walk 對齊 idle 用。
+        // 量首幀不透明像素的高度（px），供 walk 對齊 idle／世界高正規化用。
         static int VisiblePx(string framePath)
         {
             try
@@ -67,6 +74,7 @@ namespace DipanMapEditor.Preview
 
         static Sprite[] MakeSprites(List<string> files, float ppu)
         {
+            ppu = Mathf.Clamp(ppu, 1f, 4096f);
             var arr = new Sprite[files.Count];
             for (int i = 0; i < files.Count; i++)
             {
@@ -77,27 +85,49 @@ namespace DipanMapEditor.Preview
             return arr;
         }
 
-        public static ActorFrames Load(string folder, string module, float tileSize)
+        /// <param name="tileSize">一格的世界大小（舊模式用它換 PPU）。</param>
+        /// <param name="normalizeHeight">
+        /// &gt;0＝把角色「可見像素高度」正規化成這麼多世界單位（遊戲端 CharacterWorldHeight，預設 1.95）；
+        /// 0＝舊行為（256px 畫布＝一格）。
+        /// </param>
+        public static ActorFrames Load(string folder, string module, float tileSize, float normalizeHeight = 0f)
         {
             if (string.IsNullOrEmpty(folder)) return null;
-            string key = folder + "|" + (module ?? "") + "|" + tileSize;
+            string key = folder + "|" + (module ?? "") + "|" + tileSize + "|" + normalizeHeight;
             if (_cache.TryGetValue(key, out var c)) return c;
 
             var idleFiles = FrameFiles(folder, "idle", module);
             var walkFiles = FrameFiles(folder, "walk", module);
 
-            // idle 用 PPU = 256/tileSize（同遊戲）；walk 逐動作正規化：把 walk 首幀可見高度對齊 idle，
-            // 消除 AI 各動作大小落差（走路變大、停下變小）。與遊戲端 MonsterAnimator 同公式。
-            float walkTile = tileSize;
             int idleVisPx = (idleFiles != null && idleFiles.Count > 0) ? VisiblePx(idleFiles[0]) : 0;
             int walkVisPx = (walkFiles != null && walkFiles.Count > 0) ? VisiblePx(walkFiles[0]) : 0;
-            if (idleVisPx > 0 && walkVisPx > 0)
-                walkTile = Mathf.Clamp(tileSize * ((float)idleVisPx / walkVisPx), 0.1f, 30f);
+
+            float basePpu = TileNativePx / Mathf.Max(0.0001f, tileSize);
+            float idlePpu = basePpu, walkPpu = basePpu;
+
+            if (normalizeHeight > 0f)
+            {
+                // 遊戲端同公式：可見高度 → 固定世界高（與畫布像素數無關）。
+                // idle 取不到就用 walk 當基準（同 MonsterController）。
+                int fallbackPx = idleVisPx > 0 ? idleVisPx : walkVisPx;
+                if (fallbackPx > 0)
+                {
+                    idlePpu = (idleVisPx > 0 ? idleVisPx : fallbackPx) / normalizeHeight;
+                    walkPpu = (walkVisPx > 0 ? walkVisPx : fallbackPx) / normalizeHeight;
+                }
+            }
+            else if (idleVisPx > 0 && walkVisPx > 0)
+            {
+                // 舊模式的 walk 逐動作正規化：把 walk 首幀可見高度對齊 idle，
+                // 消除各動作大小落差（走路變大、停下變小）。
+                float walkTile = Mathf.Clamp(tileSize * ((float)idleVisPx / walkVisPx), 0.1f, 30f);
+                walkPpu = TileNativePx / Mathf.Max(0.0001f, walkTile);
+            }
 
             var res = new ActorFrames
             {
-                idle = idleFiles != null ? MakeSprites(idleFiles, TileNativePx / Mathf.Max(0.0001f, tileSize)) : null,
-                walk = walkFiles != null ? MakeSprites(walkFiles, TileNativePx / Mathf.Max(0.0001f, walkTile)) : null,
+                idle = idleFiles != null ? MakeSprites(idleFiles, idlePpu) : null,
+                walk = walkFiles != null ? MakeSprites(walkFiles, walkPpu) : null,
             };
             if (res.idle == null && res.walk != null) res.idle = res.walk;   // 沒 idle 用 walk 當待機（同遊戲）
             if (res.idle == null && res.walk == null)

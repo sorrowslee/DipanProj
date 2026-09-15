@@ -25,6 +25,9 @@ namespace DipanMapEditor.Core
             public int frame; public float timer;
         }
 
+        /// <summary>遊戲端 MonsterController.CharacterWorldHeight 的鏡像（角色可見高度正規化到幾個世界單位）。改要兩邊一起改。</summary>
+        const float GameCharacterWorldHeight = 1.95f;
+
         readonly List<View> _views = new List<View>();
         MapData _map;
 
@@ -78,9 +81,10 @@ namespace DipanMapEditor.Core
         {
             var row = NpcTableEditor.Get(v.npc.npcId);
             float tile = _map != null ? _map.tileSize : 1f;
-            // 尺寸正規化交給 PreviewSpriteLoader（依可見高度 ≈ 遊戲的 CharacterWorldHeight 邏輯它已處理近似），
-            // 這裡再乘 NpcTable 的 Scale（同遊戲 transform.localScale）。
-            var f = row != null ? PreviewSpriteLoader.Load(row.Name, _map?.module, tile) : null;
+            // 尺寸：走 PreviewSpriteLoader 的「可見高度正規化」模式（normalizeHeight = GameCharacterWorldHeight），
+            // 與遊戲端 MonsterController 同一套 → **編輯器看到的大小＝遊戲看到的大小**，
+            // 不再受原圖畫布像素數影響（見 PROBLEMS C15）。這裡再乘 NpcTable 的 Scale（同遊戲 transform.localScale）。
+            var f = row != null ? PreviewSpriteLoader.Load(row.Name, _map?.module, tile, GameCharacterWorldHeight) : null;
             v.frames = f?.idle;
             v.fps = row != null && row.AnimFPS > 0f ? row.AnimFPS : 8f;
             v.go.transform.localScale = Vector3.one * (row != null && row.Scale > 0f ? row.Scale : 1f);
@@ -93,6 +97,8 @@ namespace DipanMapEditor.Core
         void SyncTransform(View v)
         {
             v.go.transform.position = new Vector3(v.npc.x, v.npc.y, 0f);
+            // 初始朝向：來源序列圖一律朝右（同遊戲 MonsterController.SpriteSourceFacesRight 預設 true）→ 面左＝翻面。
+            v.sr.flipX = v.npc.faceLeft;
             // 與 ObjectView / 遊戲 MapDepthSort 的 zOrder=0 帶同公式（sortKey = y）→ 和地上物正確交錯。
             v.sr.sortingOrder = 7000 + Mathf.Clamp(Mathf.RoundToInt(-v.npc.y * 100f), 0, 5999);
         }

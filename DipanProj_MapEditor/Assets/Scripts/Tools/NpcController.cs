@@ -221,12 +221,17 @@ namespace DipanMapEditor.Tools
                 id = System.Guid.NewGuid().ToString("N").Substring(0, 8),
                 name = s.name, npcId = s.npcId,
                 x = s.x + map.tileSize, y = s.y,
-                behavior = s.behavior, speed = s.speed, dwellSeconds = s.dwellSeconds,
+                behavior = s.behavior, faceLeft = s.faceLeft, speed = s.speed, dwellSeconds = s.dwellSeconds,
                 dramaId = s.dramaId, panelId = s.panelId, panelArg = s.panelArg,
                 next = s.next, setFlag = s.setFlag, disappearFlag = s.disappearFlag,
+                conditions = s.conditions,
             };
             if (s.waypoints != null)
                 foreach (var w in s.waypoints) copy.waypoints.Add(new Vec2(w.x + map.tileSize, w.y));
+            // 條件對話要深拷貝（共用同一串 List 會兩隻連動；2026-09-15 前漏複製，複製出來的 NPC 會掉條件）
+            if (s.conditionalDramas != null)
+                foreach (var cd in s.conditionalDramas)
+                    copy.conditionalDramas.Add(new ConditionalDrama { conditions = cd.conditions, dramaId = cd.dramaId });
             map.npcs.Add(copy);
             Selected = copy;
             ClearModes();
