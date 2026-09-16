@@ -842,6 +842,20 @@ namespace DipanMapEditor.UI
             GUI.Label(new Rect(x + 8f, y + boxH - 26f, boxW - 16f, 22f), Short(item.id));
         }
 
+        /// <summary>屬性面板上「勾選項」底下的灰色說明小字。給不常用、容易記反的旗標（可走／可穿越）
+        /// 把差別直接寫在面板上，免得每次都要回頭翻文件。richText：可用 &lt;b&gt; 標重點。</summary>
+        static void FlagHint(string text)
+        {
+            var st = new GUIStyle(GUI.skin.label)
+            {
+                richText = true,
+                wordWrap = true,
+                padding = new RectOffset(20, 4, 0, 6),   // 左縮排＝視覺上掛在上面那個勾底下
+                normal = { textColor = new Color(0.70f, 0.70f, 0.70f) }
+            };
+            GUILayout.Label(text, st);
+        }
+
         void DrawObjectInspector()
         {
             var ctl = ObjCtl();
@@ -1059,12 +1073,18 @@ namespace DipanMapEditor.UI
                 }
             }
 
-            // 可走（勾選＝這個地上物不擋路、不設碰撞、畫在角色腳下；例：木板/地毯可踩上去）。
-            bool nextWalk = GUILayout.Toggle(sel.walkable, " 可走");
+            // 可走 / 可穿越：兩個都是「不設碰撞」，差別只在**畫在角色腳下還是跟角色比 Y**。
+            // 這兩個勾不常用、極容易記反（2026-09-16 就有一張地毯勾成「可穿越」→ 整片蓋住火焰噴射器的火，
+            // 見 readme/PROBLEMS.md E35），所以面板上直接把差別寫出來，不要只留在文件裡。
+            bool nextWalk = GUILayout.Toggle(sel.walkable, " 可走（鋪在地上：地毯／木板／蒲團）");
             if (nextWalk != sel.walkable) { UndoManager.Push(); sel.walkable = nextWalk; if (nextWalk) sel.passThrough = false; }
-            // 可穿越（勾選＝無碰撞可穿過，但照常 Y-sort 依 Y 前後遮蔽；給站立的鬼魂/煙/光這種穿透物）。與可走互斥。
-            bool nextPass = GUILayout.Toggle(sel.passThrough, " 可穿越");
+            FlagHint("無碰撞 ＋ <b>固定畫在角色腳下</b>（排序 5）：地面特效（火焰噴射器的火…）會正常蓋在它上面。"
+                   + "玩家走不走得過去仍看<b>可走層</b>，這個勾不影響。");
+
+            bool nextPass = GUILayout.Toggle(sel.passThrough, " 可穿越（站著的東西：鬼魂／煙／光）");
             if (nextPass != sel.passThrough) { UndoManager.Push(); sel.passThrough = nextPass; if (nextPass) sel.walkable = false; }
+            FlagHint("無碰撞，但<b>照常依 Y 跟角色前後遮蔽</b>。⚠ <b>鋪在地上的別勾這個</b>——它會反過來"
+                   + "蓋住腳下的地面特效（PROBLEMS E35）。與「可走」互斥。");
 
             // 不可被摧毀（勾選＝血量 -1）；未勾選才顯示可調的數值血量
             bool indes = sel.hp == -1;
