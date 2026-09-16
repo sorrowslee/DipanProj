@@ -13,12 +13,21 @@
 
 發現玩家後，每隔一段時間從「目前血量已解鎖」的句子裡**隨機挑一句**講。例：句3=30%、句4=10% → 血量 >30% 只會挑 1、2；10%~30% 挑 1~3；<10% 全開。
 
+### ⭐ 門檻句是「跌破就一定喊」（2026-09-16）
+
+帶 `N%:` 前綴的句子，在血量**第一次** ≤ N 的那一刻會**立刻強制喊出來**——不看間隔、不擲 `SpeakChance`、也不要求已經發現玩家（會掉血就表示玩家早就動手了）。喊過之後這句仍留在隨機池裡，之後還會不時再講（舊行為不變）。
+
+**這就是「boss 放大絕時喊話」的做法**：紅嫁衣 CSV 句子4 填 `50%: 家人們，一起出來吧`，而 `RedBridalGownBrain` 的大絕門檻 `UltHpThreshold` 也是 0.5 ⇒ 兩者讀同一個血量、自然同時發生，**不必把台詞寫死在 Brain 裡**。要給別的 boss 做一樣的效果，就把台詞門檻填成和那隻 boss 的招式門檻同一個數字。
+
+> ⚠ **一次跌破好幾個門檻只會喊最低的那句**（例如一發大傷害從滿血打到剩 5%，同時跨過 30% 與 10% → 只喊 10% 那句）。其餘同時跌破的會一併記成「已播報」，否則下一幀接著喊會變成連珠炮。
+
 > ⚠️ **句子內不能用半形逗號 `,`**（CSV 靠它分欄），要用全形「，」。
 
 ## 頻率 / 行為（`Scripts/AI/MonsterSpeech.cs` 最上面常數）
 - `SpeakIntervalSeconds`（一般怪平均間隔，預設 10）、`IntervalJitter`（±抖動去同步）、`SpeakChance`（時間到真的開口的機率 0.55＝有時不說）、`FirstDelayMin/Max`（第一次開口的隨機起始時機）、`BubbleDuration`（顯示秒數 2）。
 - **boss 加乘**：`BossIntervalMul`（間隔減半＝頻率兩倍）、`BossSpeakChance`（0.9 幾乎必說，避免劇情要角整場沉默）。boss 判定 = `MonsterController.IsBoss`（在 `Initialize` 依 BrainType 設；新增 boss brain 記得在該 case 設 `IsBoss = true`）。
 - 「發現玩家」= `MonsterController.IsAwareOfPlayer`（偵測到玩家後黏著為 true）。
+- **上面這些頻率參數對「門檻句強制播報」一律無效**——那條路徑刻意繞過間隔與機率（見上一節）。喊完會把隨機那條的下一次時間往後推一個完整間隔，免得緊接著又冒一句把劇情台詞蓋掉。
 
 ## 對話框（`Scripts/UI/Panels/MonsterSpeechPanel.cs`）
 

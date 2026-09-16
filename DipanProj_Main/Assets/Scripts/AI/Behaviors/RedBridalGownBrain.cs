@@ -16,6 +16,14 @@ using UnityEngine;
 ///  ‧ 定時召喚家人幽靈當追兵——召喚是一把 WeaponTable 的「召喚武器」，冷卻/名單/數量/同時上限
 ///    全走配方（RecipeTable 的 Mode=Summon 那組欄位），由 <see cref="MonsterWeaponUser"/> 結算。
 ///    召喚不綁逃跑狀態、只看冷卻，確保 boss 持續施壓（她速度慢、多半在逃，若綁「安全才召」會幾乎不召）。
+///  ‧ **大絕「家人齊聚」（血量 ≤ <see cref="UltHpThreshold"/>，一輩子只放一次）**：一口氣把家人幽靈
+///    **每一種各叫一隻**出來（配方 28 的 <c>SummonEachOnce</c>，角度平均分開），接著 **pant（喘息）
+///    <see cref="UltPantSeconds"/> 秒完全停擺**——不逃、不召、站著喘，那是留給玩家的輸出窗口。
+///    喘完就回到平時的逃跑＋定時召喚，不會再放第二次。
+///    ⚠ 大絕走**另一把獨立的召喚武器**（<see cref="UltimateWeaponId"/>），不是平時那把：
+///    <see cref="MonsterWeaponUser"/> 一個元件管一把武器＋一份分身名單，分開掛才能讓大絕那 11 隻
+///    **不佔用**平時 <c>SummonMaxAlive</c> 的額度（喘完照樣能再召 2 隻）。
+///    死亡回收沒有漏掉它們——<c>MonsterController.Die</c> 收的是身上**全部**的 MonsterWeaponUser。
 ///
 /// 未來每隻 boss：新增一個 XxxBrain + 在 MonsterController 的 BrainType switch 掛上、CSV 指定 BrainType 即可。
 /// 手感全在下方常數，要調就改這裡。
@@ -35,6 +43,11 @@ public class RedBridalGownBrain : IMonsterBrain
     const float FleeBurstMaxSeconds = 6f;    // 保險上限：速度極慢／一直被擋時，最多跑這麼久就先喘一次
     const float FleeRestSeconds  = 0.8f;     // 喘息多久（這段站著不動、播 idle，但召喚照常）
 
+    // ── 大絕「家人齊聚」──
+    const float UltHpThreshold = 0.5f;   // 血量比例 ≤ 此值 → 放大絕（0.5 = 剩一半）。只會觸發一次。
+    const float UltPantSeconds = 10f;    // 招完站著喘幾秒（＝留給玩家的輸出窗口）。要更好打就調大。
+    const int UltimateWeaponId = 15;     // WeaponTable 15「紅嫁衣大絕-家人齊聚」→ 配方 28（SummonEachOnce=1）
+
     // 逃跑方向掃描：以「玩家反方向」為 0°，往兩側逐步加大角度找可跑的路。
     // 排序＝偏離最小優先，所以正後方能跑就走正後方，被牆擋住才退而求其次沿牆逃。
     // 最大 ±150°（不含 180°：那是直接往玩家身上撞）。
@@ -53,12 +66,25 @@ public class RedBridalGownBrain : IMonsterBrain
     bool _hasLastFleeAngle;
     MonsterWeaponUser _weapon;
 
+    // 大絕狀態。_ultFreezeUntil 之前完全停擺；那段時間＝出手動作(SkillCastAnimSeconds) ＋ 喘息(UltPantSeconds)。
+    MonsterWeaponUser _ultimate;
+    bool _ultUsed;          // 已經放過了（一輩子一次，喘完也不會再放）
+    float _ultFreezeUntil;  // 這個時刻之前不逃、不召、站著不動（＝出手動作 + 喘息；pant 動畫本身由 MonsterController 排程）
+
     void EnsureInit(in MonsterContext ctx)
     {
         if (_inited) return;
         _inited = true;
         if (ctx.Sensor != null) ctx.Sensor.DetectionRange = DetectionRange;
         _weapon = (ctx.Self != null) ? ctx.Self.WeaponUser : null;
+
+        // 大絕用「第二個」MonsterWeaponUser：一個元件＝一把武器＋一份分身名單，
+        // 分開掛才能讓大絕那批不佔平時召喚的同時上限（ctx.Self.WeaponUser 已快取成第一個，不受影響）。
+        if (ctx.Self != null)
+        {
+            _ultimate = ctx.Self.gameObject.AddComponent<MonsterWeaponUser>();
+            _ultimate.Configure(ctx.Self, UltimateWeaponId);
+        }
     }
 
     public void Think(in MonsterContext ctx)
@@ -67,6 +93,34 @@ public class RedBridalGownBrain : IMonsterBrain
 
         MonsterActuator act = ctx.Actuator;
         Transform player = ctx.Player;
+        MonsterController self = ctx.Self;
+
+        // ── 大絕「家人齊聚」：血量掉到一半就把家人全叫出來，然後站著喘。一輩子只放一次。 ──
+        if (!_ultUsed && self != null && _ultimate != null && player != null
+            && self.HealthFraction <= UltHpThreshold)
+        {
+            // TryUse 成功才算數（場上沒空位之類的失敗會下一幀再試，不會白白消耗掉這次大絕）。
+            if (_ultimate.TryUse())
+            {
+                _ultUsed = true;
+                // 排一次就好：先讓 attack 出手動作演完（TryUse 成功時 MonsterWeaponUser 已呼叫 NotifySkillCast），
+                // 延遲那麼久之後才切 pant（PlayPant 壓得過 attack，不延後會直接蓋掉出手動作）。
+                // ⚠ 不在這裡「等時間到再呼叫」——玩家猛打時擊退窗口會整段跳過 Think（PROBLEMS F19），
+                //    輪詢式的寫法會讓 pant 延後甚至不播。起訖時間交給 MonsterController 保管。
+                self.PlayPant(UltPantSeconds, self.SkillCastAnimSeconds);
+                _ultFreezeUntil = Time.time + self.SkillCastAnimSeconds + UltPantSeconds;
+                ResetFleeState();
+            }
+        }
+
+        // 大絕的出手＋喘息期間：完全停擺（不逃、不召喚、站著）。**擺在平時召喚之前並直接 return**，
+        // 否則她會一邊喘一邊繼續召 2 隻，破綻就不成立了。
+        if (_ultUsed && Time.time < _ultFreezeUntil)
+        {
+            act.Stop();
+            ResetFleeState();
+            return;
+        }
 
         // 召喚：玩家在場、冷卻好就召（不綁逃跑狀態）。冷卻/上限在 MonsterWeaponUser 內部結算。
         if (player != null && _weapon != null) _weapon.TryUse();

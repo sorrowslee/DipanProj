@@ -2,7 +2,7 @@
 
 > 返回 [文件總覽](README.md)｜怪物量產見 [MONSTER_SETUP.md](MONSTER_SETUP.md)｜武器/配方見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)｜傷害結算見 [COMBAT.md](COMBAT.md)｜劇情分支見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7
 >
-> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚）程式完成（2026-07-09）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** 待實機微調。投射型武器供怪物使用（飛劍/落雷…）為 Phase 2。
+> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** 待實機微調。投射型武器供怪物使用（飛劍/落雷…）為 Phase 2。
 
 「一隻強怪＝一個 Brain 模組」。第一個範例是紅嫁衣女殭屍。未來每隻 boss 都新增一個自己的 Brain 類別，其它系統不動。
 
@@ -30,6 +30,15 @@
   - **⭐ 跑跑停停的節奏**（2026-09-08）：跑滿 `FleeBurstDistance`(5 世界單位) →`FleeRestSeconds`(0.8) 站著喘，循環；`FleeBurstMaxSeconds`(6) 是保險上限。**Burst 綁距離不綁時間**——綁時間的話 CSV 的 `Speed` 一調小，每段跑的距離就等比縮水（Speed 0.5 時只挪 0.75 格），變成「偶爾抽動一下」，見 [PROBLEMS.md](PROBLEMS.md) **F20**。喘息期間**召喚照常**。目的是給玩家攻擊窗口，玩家不必整場追著她跑。**這是明確參數，刻意不依賴「被打時擊退窗口會阻斷 Think」那個副作用**（見 [PROBLEMS.md](PROBLEMS.md) **F19**）。被牆卡住的那幾幀不算進 Burst，免得她在死角空轉完跑步額度、接著又站著喘。
   - **⭐ 跑之前先確認「真的有路可跑」**（2026-09-08）：以「玩家反方向」為 0°，依 `FleeScanAngles`（0, ±25, ±50, ±75, ±100, ±125, ±150，偏離小的優先）掃描候選方向，每個要同時滿足「落點 `IsWalkableWorld`」＋「`HasLineOfSight` 走得過去」＋「不會反而更靠近玩家」；取第一個可行的當目標，**四面都沒路就 `Stop()` 站住**（動畫自然回 idle）。沒有這一關的話，逃跑目標點會落進牆裡、被 A* 的 `NearestWalkable` 吸附成「她自己腳下那格」，變成滿速在原地來回＝**原地踏步**（成因與通則見 [PROBLEMS.md](PROBLEMS.md) **F18**）。
 - **召喚**：**只看冷卻、不綁逃跑狀態**（她多半在逃，若綁「安全才召」會幾乎不召）。召喚是一把 WeaponTable 武器（見 §3），冷卻/名單/數量/上限全走配方。
+- **⭐ 大絕「家人齊聚」（2026-09-16，血量 ≤ `UltHpThreshold` 0.5，一輩子只放一次）**：一口氣把家人幽靈
+  **每一種各叫一隻**（怪物 2~12 共 11 隻）出來，接著 **pant（喘息）`UltPantSeconds`(10) 秒完全停擺**——不逃、不召、站著喘，那是留給玩家的輸出窗口；喘完回到平時的逃跑＋定時召喚，不會再放第二次。
+  - **走另一把獨立的召喚武器**（`UltimateWeaponId` = 武器 15 → 配方 28）。`MonsterWeaponUser` 是「一個元件＝一把武器＋一份分身名單」，**分開掛才能讓大絕那 11 隻不佔平時 `SummonMaxAlive` 的額度**（喘完照樣能再召 2 隻）。Brain 在 `EnsureInit` 時自己 `AddComponent` 第二個（`ctx.Self.WeaponUser` 已快取成第一個，不受影響）。
+  - **死亡回收沒漏掉它們**：`MonsterController.Die` 收的是身上**全部**的 `MonsterWeaponUser`（`GetComponents`，2026-09-16 由單數改複數）——否則 boss 死後那 11 隻會留在場上繼續追殺玩家，違反 §6.7。
+  - **出手 → 喘息的接縫**：施放成功時 `MonsterWeaponUser` 已呼叫 `NotifySkillCast`（播 attack），所以 pant 要**延後** `SkillCastAnimSeconds`(0.6) 才開始，否則 pant 優先度較高會當場把出手動作蓋掉。⚠ 這個延後**排程在 `MonsterController.PlayPant(秒, 延遲)` 裡、呼叫一次就好**，刻意不是 Brain 每幀輪詢——被打時的擊退窗口會**整段跳過 `Think()`**（見 [PROBLEMS.md](PROBLEMS.md) **F19**），輪詢式寫法會讓玩家猛打時 pant 延後甚至不播。
+  - **pant 動畫**：`MonsterAnimator.State.Pant`，圖放 `Monsters/SequenceImage/RedBridalGown/pant/`（**要跑 Sync Map Assets**）。沒有 pant 圖會自動退回 idle（不是 walk——喘息時站著不動，退成走路會變原地踏步），所以素材還沒到位也不會壞。
+    兩個 pant 專屬參數在 `MonsterAnimator` 上方：**`PantFpsMul`**（0.25＝幀率是 CSV `AnimFPS` 的四分之一；喘氣照原速播太急促。一輪秒數 ＝ 張數 ÷（AnimFPS × 本倍率））與 **`PantPingPong`**（true＝**乒乓來回播** 0→N→0→…；喘氣是吸↔吐的往復、首尾本來就接不起來，一般循環每輪會跳接一次，倒著播回去接縫自然消失。素材若是不對稱動作就關掉，否則像倒帶）。
+  - **施放時的喊話不寫在 Brain 裡**：MonsterData 句子4 填 `50%: 家人們，一起出來吧`，血量門檻句在**第一次跌破時會強制播報**（2026-09-16 起，見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)），和 `UltHpThreshold` 讀同一個血量 ⇒ 自然同時發生。別的 boss 要「放招時喊話」照抄這個做法：台詞門檻填成和招式門檻同一個數字即可。
+  - **手感調整**：`RedBridalGownBrain.cs` 上方三個常數（`UltHpThreshold` / `UltPantSeconds` / `UltimateWeaponId`）；要她一次叫出來的陣仗更散就調配方 28 的 `SummonRadius`。
 - **手感常數**都在 `RedBridalGownBrain.cs` 上方（`FleeRange`/`SafeRange`/`DetectionRange`/`AwayLookahead`/`FleeScanAngles`）；逃跑速度走 CSV `Speed`。**她太容易站著不動**＝掃描太嚴（把 `AwayLookahead` 調小，落點更近就更容易可走）；**她太滑溜繞不死**＝把 `FleeScanAngles` 的大角度砍掉（只留 ±75° 內就不會沿牆逃）。
 
 **boss 死亡＝召喚物回收**：紅嫁衣被打敗時，她召喚出來、還活著的家人幽靈會**當場被回收清除**（`MonsterWeaponUser.RecallSummons`，由 `MonsterController.Die` 呼叫）——boss 死了招式不該還在場上。這是通用機制，見 §6.7。
@@ -52,7 +61,21 @@
 | `SummonMaxAlive` | 同一施放者的分身**同時存在上限**，達上限暫停召喚（空=4） |
 | `SummonRadius` | 在施放者周圍多遠的環上生成（空=2） |
 
-**現有資料**：配方 26「召喚-紅嫁衣家人」(`Mode=Summon`, `FireInterval=3` 冷卻, `SummonIds=8|9|10|11|12`, `SummonCount=2`, `SummonMaxAlive=5`, `SummonRadius=2`) ← 武器 14「紅嫁衣召喚」 ← 怪物 13 `Weapon=14`。召喚出的家人幽靈用最基本的 `Chase`（ChaseBrain）追玩家。
+**RecipeTable 第 6 欄（2026-09-16 新增）**：
+
+| 欄 | 意義 |
+|---|---|
+| `SummonEachOnce` | 1 = **池裡每個 ID 各召一隻**（忽略 `SummonCount`、不重複抽，且**生成角度平均分開**——十幾隻各自隨機取角會擠成一團、互相卡位又看不出陣仗）。數量仍受 `SummonMaxAlive` 夾，所以那一筆要把上限填到 ≥ 池子大小才會一次到齊。空/0 = 照 `SummonCount` 隨機抽（舊行為） |
+
+**現有資料**（2026-09-16 更新，之前寫的 `8|9|10|11|12`／`MaxAlive=5` 已過時）：
+
+| | 平時召喚 | 大絕「家人齊聚」 |
+|---|---|---|
+| 武器 | 14「紅嫁衣召喚家人」 | **15「紅嫁衣大絕-家人齊聚」** |
+| 配方 | 26（`FireInterval=3`, `SummonIds=2\|3\|…\|12`, `SummonCount=2`, `SummonMaxAlive=2`, `SummonRadius=2`） | **28**（`SummonIds=2\|3\|…\|12`, **`SummonEachOnce=1`**, `SummonMaxAlive=11`, `SummonRadius=3.5`, `FireInterval=0.1`） |
+| 掛在哪 | 怪物 13 的 `Weapon=14`（`MonsterController.Initialize` 掛） | `RedBridalGownBrain.EnsureInit` 自己 `AddComponent` 第二個 `MonsterWeaponUser` |
+
+配方 28 的 `FireInterval` 只是「起手緩衝」（`MonsterWeaponUser` 生成後先等一個冷卻週期），**「只放一次」是 Brain 的 `_ultUsed` 旗標控制的，不是靠冷卻**。召喚出的家人幽靈一律用最基本的 `Chase`（ChaseBrain）追玩家。
 
 **玩家側已接（2026-07-09，測試用）**：召喚核心抽成擁有者無關的共用靜態 `SummonSystem.Cast(owner, originPos, recipe, aliveTracker)`——`MonsterWeaponUser`（boss）與 `PlayerController.Shoot`（玩家）都呼叫它，各持一份 alive 清單管同時上限。玩家 Shoot 在「需要 BulletPrefab」的守衛**之前**先攔 `Mode=Summon`：耗魔→播發射特效→`SummonSystem.Cast`→`_fireTimer=FireInterval`（按住左鍵依冷卻重複召喚）。
 - **測試武器＝13 號「御靈水晶」**（RecipeID→27）。配方 27：`Mode=Summon`, `FireInterval=1.5`, `SummonIds=1`（ZhaYu，Main 的怪、**任何地圖都載得到 idle+walk**，故不必先 Sync 就能測）, `SummonCount=1`, `SummonMaxAlive=3`, `SummonRadius=1.5`。切到御靈水晶、按住左鍵即在身邊召喚。要召家人幽靈把 `SummonIds` 改 `8|9|10|11|12`（需在 RedBridalGown 地圖或先 Sync 讓幽靈 walk 幀到位）。
@@ -81,6 +104,7 @@
 - [ ] **在編輯器紅嫁衣最終房放 boss**：怪物出生點填**怪物 ID 13**（RedBridalGown）。她的 BrainType/Weapon 已在 CSV 設好。
 - [ ] **家人怪出生點**（給 killedFamily 用）：預先擺放的家人怪（8~12）出生點填「死亡觸發旗標」`killedFamily`（關卡單次），與 boss 召喚分身無關。
 - [ ] **實機調手感**：逃跑速度（CSV `Speed`，現 3.5）、逃/停距離與召喚冷卻/上限（配方 26）。太難就降 `SummonMaxAlive`/拉長 `FireInterval`；她太好抓就升 `Speed`。
+- [ ] **大絕（2026-09-16）⏳ 未編譯未實測**：跑 `Sync Map Assets` 把 `RedBridalGown/pant/`（50 張，目前是拿 idle 頂替、真圖製作中）帶進 StreamingAssets；實機看 ① 11 隻在 boss 房（10×18）散不散得開、會不會卡牆 ② 10 秒喘息夠不夠玩家輸出 ③ 出手 0.6 秒接 pant 的接縫順不順。真 pant 圖到位後**要再跑一次「計算影子錨點」**。
 - [x] ~~boss 只會追擊、不逃跑不召喚~~ → **已修**（BrainType 沒 Trim，見 [PROBLEMS.md](PROBLEMS.md) F4）。修後若仍要驗證：確認 MonsterData.csv 已被 Unity 重匯入、boss 出生點填怪物 ID 13。
 - [ ] **怪打怪傷害忽勝忽敗**（召喚物 vs 敵怪）＝接觸傷害每幀結算＋怪 InvincibleTimeMs=0＋近乎一擊斃命 → 勝負看 Update 順序。**待調數值**：給互毆的怪 `InvincibleTimeMs`>0（300~500）＋平衡 HP/ContactDamage。詳見 [PROBLEMS.md](PROBLEMS.md) F5。
   > ⚠ **做這條之前先讀 [PROBLEMS.md](PROBLEMS.md) F19**：擊退窗口會整段跳過 `Think()`，所以 `InvincibleTimeMs` 同時是一份「隱形的行為預算」——給紅嫁衣加了無敵幀，她被打時能做決策的時間會變多，**逃跑手感會跟著變**（她會變得更難纏）。節奏本身已經參數化在 `RedBridalGownBrain`，改完對照 `FleeBurstSeconds`/`FleeRestSeconds` 重調即可，別以為是別處壞掉。

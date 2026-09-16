@@ -11,7 +11,7 @@
 ## 量產一隻新怪（重複這幾步）
 
 1. **放圖**：在 `GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/` 底下，每個動作開一個子資料夾放單張幀圖：
-   - `idle/`（**必備**）、`walk/`（**必備**）、`attack/`（可選，沒放就不會有攻擊動畫）。
+   - `idle/`（**必備**）、`walk/`（**必備**）、`attack/`（可選，沒放就不會有攻擊動畫）、`pant/`（可選，喘息；目前只有紅嫁衣放完大絕時用，見 [BOSS_MODULE.md](BOSS_MODULE.md) §2）。
    - 檔名數字**補零**、依檔名排序＝播放順序：`idle_01.png`、`walk_01.png`…`walk_08.png`（超過 9 張務必兩位數，否則 `_10` 會排到 `_2` 前面）。
    - 不用組序列圖、不用在 Unity 切格——一張 PNG = 一幀。
 2. **同步**：`Project Tools → Sync Map Assets`（把圖收進 catalog ＋ StreamingAssets）。
@@ -32,7 +32,11 @@
 GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 ├─ idle/    idle_01.png  idle_02.png ...   ← 必備（單張也可，就是靜態站姿）
 ├─ walk/    walk_01.png  walk_02.png ...   ← 必備
-└─ attack/  attack_01.png ...              ← 可選
+├─ attack/  attack_01.png ...              ← 可選
+└─ pant/    pant_01.png ...                ← 可選（喘息；沒放會自動退回 idle）
+                                              ↑ pant 專屬兩個參數在 MonsterAnimator 上方：
+                                                PantFpsMul（幀率倍率，預設 0.25＝比 AnimFPS 慢四倍）
+                                                PantPingPong（乒乓來回播，預設 true＝首尾不必對接）
 ```
 
 同步工具會把**每個「直接含 PNG 的動作葉資料夾」**收成一筆 catalog item（`category=Monsters`、`id`＝資料夾相對路徑、≥2 幀帶 `frameCount`/`frames`）。`MonsterSpriteLibrary` 再依「`<怪名>/<state>`」索引取用。
@@ -70,6 +74,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 - 所以「**有 `attack/` 才會演攻擊、沒有就只走路/發呆**」是天生行為，加新怪不必動程式。
 - ⚠️ **攻擊動畫 ≠ 攻擊邏輯**：目前「在攻擊範圍內（`AttackRange`）且有 attack 圖」就播攻擊動畫，傷害仍走既有的**接觸傷害**（`EnemyContactDamage`）。真正的「會攻擊的 AI ＋ 攻擊判定/傷害」是另一塊，之後再接。
 - **死亡 / 受傷動畫**尚未納入（目前死亡直接銷毀）。要加時照 idle/walk/attack 同模式擴充 `MonsterAnimator` 的狀態詞彙。
+- **加一個新動作要動的只有 `MonsterAnimator`**（2026-09-16 加 `pant` 時實測）：`MonsterSpriteLibrary.GetFrames(怪名, 動作)` 與 Sync 工具都是**通用字串／掃「直接含 PNG 的葉資料夾」**，載圖與同步都不必改；影子錨點工具同理（會自動多算一組，取不到時 `TryGetShadowAnchor` 退回 idle）。`MonsterAnimator` 那邊固定五處：`State` 列舉、幀陣列欄位、`Setup` 載入＋`CharacterMipBias.Register`＋影子錨點、`FramesFor`、`Resolve` 的退回規則。**沒圖的怪不會噴 log**（`GetFrames` 找不到只是靜靜回 null 並快取），所以加動作不會汙染 Console。
 
 ---
 

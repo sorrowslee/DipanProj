@@ -259,6 +259,8 @@ public static class WeaponModeSpec
             F(R, "SummonCount",    FieldKind.Int,     "召喚", "每次召喚幾隻", "1", 1, 64),
             F(R, "SummonMaxAlive", FieldKind.Int,     "召喚", "同時存在上限", "4", 1, 999),
             F(R, "SummonRadius",   FieldKind.Float,   "召喚", "生成半徑", "2", 0.1f, 50f),
+            F(R, "SummonEachOnce", FieldKind.Bool,    "召喚", "每個 ID 各一隻", "0",
+              help: "1＝忽略「每次召喚幾隻」，池內每個 ID 各生一隻、不重複，且生成角度平均分開（大絕「一次叫齊一整組」用）"),
 
             // ── 近戰 ──
             F(R, "MeleeAngle", FieldKind.Float, "近戰", "扇形總角度（度）", "100", 1f, 360f),
@@ -382,7 +384,7 @@ public static class WeaponModeSpec
 
         // 召喚
         M(d, WeaponMode.Summon, "召喚", "施放時在身邊生怪；冷卻用 FireInterval")
-            .Eff("FireInterval").Req("SummonIds").Eff("SummonCount", "SummonMaxAlive", "SummonRadius").Eff(Burst)
+            .Eff("FireInterval").Req("SummonIds").Eff("SummonCount", "SummonMaxAlive", "SummonRadius", "SummonEachOnce").Eff(Burst)
             .Eff("SummonEffectID")
             .Lbl("FireInterval", "召喚冷卻（秒）");
 

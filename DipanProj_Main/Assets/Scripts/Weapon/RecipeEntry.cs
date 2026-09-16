@@ -60,6 +60,9 @@ public class RecipeEntry
     public int SummonCount = 1;
     public int SummonMaxAlive = 4;
     public float SummonRadius = 2f;
+    /// <summary>true = 池裡**每個 ID 各召一隻**（忽略 <see cref="SummonCount"/>、不重複抽、生成角度平均分開）。
+    /// 給「一口氣把一整組怪叫齊」的大絕用（紅嫁衣的家人齊聚）；false = 照 SummonCount 隨機抽。</summary>
+    public bool SummonEachOnce = false;
 
     // ── 近戰 / 突進 ──
     public float MeleeAngle = 100f;
@@ -206,6 +209,7 @@ public class RecipeEntry
         e.SummonCount = In("SummonCount", 1);
         e.SummonMaxAlive = In("SummonMaxAlive", 4);
         e.SummonRadius = Fl("SummonRadius", 2f);
+        e.SummonEachOnce = Bo("SummonEachOnce", false);
 
         // ── 近戰 / 突進 ──
         e.MeleeAngle = Fl("MeleeAngle", 100f);

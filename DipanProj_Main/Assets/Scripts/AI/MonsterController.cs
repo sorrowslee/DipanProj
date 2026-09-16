@@ -61,6 +61,27 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     /// 即使怪離玩家很遠（如紅嫁衣邊逃邊召）也看得到出手動作。</summary>
     public void NotifySkillCast() => _skillCastAnimUntil = Time.time + SkillCastAnimSeconds;
 
+    private float _pantFrom, _pantUntil;   // 這個區間內播 pant 動畫（大絕後的喘息破綻，見 PlayPant）
+
+    /// <summary>放完大絕後的「喘息」破綻：<paramref name="delay"/> 秒後開始，播 <paramref name="seconds"/> 秒
+    /// pant 動畫（優先度壓過攻擊／走路／發呆）。<paramref name="delay"/> 是留給「出手動作」的時間——
+    /// pant 壓得過 attack，不延後的話施法動作會被當場蓋掉。
+    ///
+    /// <para>⚠ <b>刻意做成「呼叫一次就排程好」而不是每幀輪詢</b>：怪被打時的擊退窗口會**整段跳過 Think()**
+    /// （見 readme/PROBLEMS.md F19），Brain 那邊「時間到了再切 pant」的寫法會在玩家猛打時延後甚至不觸發。
+    /// 起訖時間交給本元件保管，動畫每幀自己判讀，就跟 Brain 有沒有被跳過完全無關。</para>
+    ///
+    /// <para><b>本方法只管動畫</b>——要不要同時停止行動由 Brain 決定（紅嫁衣是完全停擺）。
+    /// 沒有 pant 圖的怪會自動退回 idle（見 MonsterAnimator 的退回規則），所以任何怪都能安全呼叫。</para></summary>
+    public void PlayPant(float seconds, float delay = 0f)
+    {
+        _pantFrom = Time.time + Mathf.Max(0f, delay);
+        _pantUntil = _pantFrom + Mathf.Max(0f, seconds);
+    }
+
+    /// <summary>目前是否在喘息破綻中（含尚未開始的延遲期間＝false）。</summary>
+    public bool IsPanting => Time.time >= _pantFrom && Time.time < _pantUntil;
+
     [Header("Faction")]
     [Tooltip("陣營：Enemy=一般敵怪/boss/其召喚物(追玩家)；PlayerAlly=玩家召喚的協戰怪(追敵怪)；Neutral=中立 NPC(不打人不被打)。由 MonsterSpawner / NpcSpawner 設定。")]
     public MonsterFaction Faction = MonsterFaction.Enemy;
@@ -431,7 +452,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 && Vector2.Distance(transform.position, player.position) <= AttackRange;
             bool wantAttackPose = casting || inAttackRange;
 
-            if (wantAttackPose && _monAnim.Has(MonsterAnimator.State.Attack))
+            if (IsPanting)
+                // 喘息破綻最優先：壓過攻擊/走路/發呆。這段期間她就算被打得後退，畫面上也該是喘、不是走路。
+                st = MonsterAnimator.State.Pant;
+            else if (wantAttackPose && _monAnim.Has(MonsterAnimator.State.Attack))
                 st = MonsterAnimator.State.Attack;            // 有 attack 幀 → 播真正的攻擊/施法動作
             else if (casting)
                 // 施法但這隻怪沒有 attack 幀（如紅嫁衣的 attack 尚未 Sync 進 StreamingAssets）：
@@ -521,8 +545,12 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         }
 
         // 召喚者（boss）死亡：回收還在場上的召喚分身（例：紅嫁衣的家人幽靈）。
-        var weaponUser = GetComponent<MonsterWeaponUser>();
-        if (weaponUser != null) weaponUser.RecallSummons();
+        // ⚠ 用 GetComponents（複數）：一隻 boss 可能掛**不只一把**召喚武器——紅嫁衣除了平時那把，
+        // 大絕「家人齊聚」另有一把獨立的（獨立名單＝獨立同時上限，見 RedBridalGownBrain）。
+        // 只收第一個的話，大絕叫出來的 11 隻會在 boss 死後留在場上繼續追殺玩家（違反 BOSS_MODULE §6.7）。
+        var weaponUsers = GetComponents<MonsterWeaponUser>();
+        for (int i = 0; i < weaponUsers.Length; i++)
+            if (weaponUsers[i] != null) weaponUsers[i].RecallSummons();
     }
 
     void LateUpdate()
