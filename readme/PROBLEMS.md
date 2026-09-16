@@ -17,7 +17,7 @@
 | B | 地圖載入 (Map Loader) | B1~B15 |
 | C | 地圖編輯器 / 素材同步 | C1~C15（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E34（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬） |
+| E | 效能 / 顯示 (Performance & Display) | E1~E35（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F21（⚠ G 章整段插在 F3 與 F4 之間） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G10（位置在 F3 之後） |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1 |
@@ -894,6 +894,12 @@
 - **原因**:tooltip 當時是**掛在自己那個面板底下**的子物件。兩個面板是同一層(`UILayer.Window`)的**兄弟節點**,uGUI 的繪製順序照 hierarchy 走 ⇒ 排在後面的整個面板(含它的背景圖)都畫在前面那個面板的**所有**子物件之上。`SetAsLastSibling()` 在這裡幫不上忙——它只能把 tooltip 排到**自己面板內部**的最後,跨不出去。**任何「浮在面板之上的東西」掛在面板底下都會犯這個錯**(tooltip、拖曳中的圖示、飄字)。
 - **解法**:掛到**專門的上層**,不要掛在面板底下。專案的 `UILayer` 早就定義好了:`Popup = 2`（註解原文就是「彈窗：確認框、**提示（tooltip）**。永遠壓在視窗之上」），sortingOrder 200 > Window 的 100。做法是 `UIManager.LayerRoot(UILayer.Popup)` 取那一層的容器當 parent（2026-09-14 為此新增的 API），定位與夾制的基準也跟著換成那個 Canvas 的 rect（全螢幕，比原本以面板 rect 夾制更正確）。
 - **⚠ 換層之後多出來的責任**:tooltip 不再是面板的子物件,**面板關閉時它不會自動跟著消失**了。三個用它的面板(背包/倉庫/鍛造)的 `OnClose` 都要呼叫 `Hide()`——本來就有,但改這種掛載位置時一定要回頭確認一遍。
+
+### E35. 火焰噴射器的火被地毯「擋住」——其實火穿過去了，是被地毯**畫在上面蓋掉**
+- **症狀**:火焰噴射器朝鋪著地毯的方向噴,火團在地毯邊界被一刀切齊,看起來像撞到隱形牆停住(2026-09-16 新娘房 `RedBridalGown_BridalRoom` 實機)。
+- **原因**:兩件事疊起來,**跟碰撞完全無關**。① 火焰噴射器(WeaponTable **ID 7** → RecipeID **20**(Laser 模式)＋ **TrailEffectID 4**)畫面上那些火團是**沿路種的 VfxTable ID 4「火球」,它的 `SortingOrder` 寫死 8**——即排序表的「地面特效」帶,刻意壓在角色腳下。② 那張地毯的擺放勾的是**「可穿越」(`passThrough`) 而不是「可走」(`walkable`)**。`passThrough` **只免掉碰撞,排序照常走 Y 排序帶**(`LayerData.cs` 原話:「不設碰撞(可穿過)但照常 Y-sort 依 Y 前後遮蔽(站立的鬼魂/煙/光用);walkable 則畫在角色腳下」)⇒ `MapDepthSort.Order(-10.69, -1)` = 7000−6000+1069 = **2069 ≫ 8**,整片地毯蓋在火焰之上。碰撞沒參與的佐證:`walkable || passThrough` 兩者都跳過 `BuildObjectCollision`(地毯身上一顆 collider 也沒有),且該圖可走層在地毯那一帶全是 `0`。
+- **解法**:**鋪在地上的東西(地毯/木板/蒲團…)一律勾「可走」,不要勾「可穿越」**。「可穿越」是給**站著**的東西用的(榕樹妖場那批 `ghost_*` 鬼魂),它們本來就該跟角色 Y-sort 前後遮蔽。改一筆資料即可,不用動程式。(2026-09-16 診斷完成;作者當下選擇先不改資料,留此則備查。全專案掃過,`passThrough=true` 的 24 筆擺放裡只有 `carpet_phoenix_xi` 這一筆勾錯,其餘都是鬼魂。)
+- **⚠ 通則(診斷順序)**:「特效被某個地上物切斷」時**先比排序值,再懷疑碰撞**。而且 **`zOrder` 救不了**——世界帶最低是 1000(`zOrder=-1`),永遠高於腳下特效帶(可走地上物 5、地面特效 8),唯一能把地上物降進腳下帶的開關就是 `walkable`(固定 `WalkableObjectSortingOrder`)。反過來,若某個沿路/腳下特效本來就該蓋過所有地上物,就把它那筆 VfxTable 的 `SortingOrder` **留空**(改用 VfxManager 全域 22000);ID 4 目前只被火焰噴射器一把武器引用,改它零連帶影響。
 
 ## F. 戰鬥 / 傷害 (Combat)
 
