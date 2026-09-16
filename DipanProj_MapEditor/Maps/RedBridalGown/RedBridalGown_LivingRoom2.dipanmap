@@ -45,6 +45,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -76,6 +77,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -107,6 +109,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -138,6 +141,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -169,6 +173,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -200,6 +205,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -231,6 +237,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -469,6 +476,33 @@
             "deathFlag": "killedFamily",
             "spawnInterval": "",
             "maxAlive": ""
+          }
+        },
+        {
+          "id": "a68b138d",
+          "name": "進紅嫁衣房間前警告",
+          "typeId": "drama",
+          "cells": [
+            [
+              5,
+              3
+            ],
+            [
+              4,
+              3
+            ],
+            [
+              4,
+              4
+            ],
+            [
+              5,
+              4
+            ]
+          ],
+          "params": {
+            "dramaId": "29",
+            "canSkip": true
           }
         }
       ]

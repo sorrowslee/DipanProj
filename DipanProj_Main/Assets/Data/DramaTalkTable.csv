@@ -49,3 +49,4 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text,LeftScale,LeftOf
 43,25,狂族接待員,Modules/BloodFang/Talk/WerewolfSoldier_normal,Actor_Normal,1,歡迎貴賓光臨...,,,,,,
 44,25,狂族接待員,Modules/BloodFang/Talk/WerewolfSoldier_fear,Actor_Normal,1,我的天啊，您是...!!?看到您真是我的榮幸，快請進,,,,,,
 45,26,人族接待員,Modules/BloodFang/Talk/Housekeeper_normal,Actor_Normal,1,恭迎貴客光臨，請您跟我來吧,,,,,,
+46,27,主角,Actor_Fear,,1,前面感覺有好可怕的氣息，真的要進去嗎?,,,,,,
