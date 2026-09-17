@@ -280,10 +280,21 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
-                // 動作型：三方陣營**開戰**——兩族（狼人/吸血鬼陣營的怪）開始互咬（演戲傷害 1/100）＋攻擊玩家、
-                // 變成玩家可攻擊，再接 next。狀態只活在這趟關卡（換 module 自動回和平）。
+                // 動作型：三方陣營**開戰**＝**結束和平**、回到預設的敵對——兩族（狼人/吸血鬼陣營的怪）
+                // 開始互咬（演戲傷害 1/100）＋攻擊玩家、變成玩家可攻擊，再接 next。狀態只活在這趟關卡（換 module 自動重置）。
+                // ⚠ 2026-09-17 語意反轉：**預設就是敵對**，所以這顆只有在先擺過「三方陣營和平」之後才有事做
+                //    （沒進過和平段按它也安全，只是重套一次 Layer）。
                 // 純鏈驅動、玩家踩不觸發；格子畫在角落或 0 格即可。典型：對話/事件 → next 接這顆 → setFlag=開戰旗（讓和平 NPC 消失）。
                 typeId = "factionWar", displayName = "三方陣營開戰(鏈動作)", color = "#D94D6A",
+                paramSchema = new List<TriggerParam>()
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：三方陣營**和平**——兩族視同中立：不打人、不被打、玩家武器打不到（Ally 層），再接 next。
+                // ⚠ 這是**特例**：預設（什麼都不擺）就是敵對，部族怪放上場就會照自己的 Brain 攻擊玩家。
+                //    要「戰狼站在場上但不動手」才需要擺這顆——典型：進場觸發(onEnter) → next 接這顆。
+                // 純鏈驅動、玩家踩不觸發；格子畫在角落或 0 格即可。之後用「三方陣營開戰」結束和平。
+                typeId = "factionPeace", displayName = "三方陣營和平(鏈動作)", color = "#4DA6D9",
                 paramSchema = new List<TriggerParam>()
             });
             set.types.Add(new TriggerTypeDef

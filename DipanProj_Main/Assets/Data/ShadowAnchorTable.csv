@@ -137,3 +137,21 @@ characters/swarmborn/swarm emperor/attack,0.5,32.3,210,auto,25,256,256,
 characters/swarmborn/swarm emperor/dead,-17,63.3,202,auto,9,256,256,幀數 9→25 已重算
 characters/swarmborn/swarm emperor/idle,-8.5,39.1,131,manual,17,256,256,2026-09-14 手改：auto 的 -25.5 是離群值（同批的 parasite -3.8／ravager +1.5，全表其他角色都在 ±8 內）——垂到腿高的翅膀把「最低兩段」騙走了。離線拆最底帶：真正接地的是三段細腳（中心 -22／-8／+5，整體中心 -8.5），而 c-75 的翅膀要到距底 40px 才出現。演算法只取最低的兩段（-22 與 -8）所以偏左。填接地整體中心 -8.5
 characters/swarmborn/swarm emperor/walk,-8.5,46.2,160,manual,11,256,256,2026-09-14 手改：對齊 idle 的 -8.5（同 nidhogg 的做法），換動作時影子不會跳；auto 的 -25.1 與 idle 同一個誤判
+monsters/housekeeper/idle,-6.8,135.6,91,auto,16,512,512,
+monsters/housekeeper/walk,-7.2,133.2,144,auto,12,512,512,
+monsters/redbridalgown/pant,-20.5,134.3,166,auto,25,512,512,
+monsters/vampiresoldier/attack,-3,58.6,123,auto,25,256,256,
+monsters/vampiresoldier/idle,-1.5,64,58,auto,16,256,256,
+monsters/vampiresoldier/walk,-1,64,72,auto,21,256,256,
+monsters/werewolfsoldier/attack,-8,42,170,auto,24,256,256,
+monsters/werewolfsoldier/idle,3.8,41.5,117,auto,17,256,256,
+monsters/werewolfsoldier/walk,-11.4,48,150,auto,14,256,256,
+monsters/wolf archers/attack,-15.5,49.5,205,auto,25,256,256,
+monsters/wolf archers/idle,1.5,37.5,104,auto,20,256,256,
+monsters/wolf archers/walk,-14.5,52.8,164,auto,14,256,256,
+monsters/wolf royal guard/idle,-399.5,29,1166,auto,1,1280,1024,
+monsters/wolf royal guard/jump,-393,30,1202,auto,1,1280,1280,
+monsters/wolf royal guard/walk,-383,36,1230,auto,1,1280,768,
+monsters/wolf warrior/attack,-4,58,190,manual,25,256,256,同 idle 那列
+monsters/wolf warrior/idle,-4,59,190,manual,23,256,256,手改：X/寬三動作統一。工具的找腳段演算法在 idle(單段) 與 walk(雙段) 抓到不同結果，X 差 25px 導致切動作時影子位移；寬差 22% 導致忽大忽小。內容水平中心實測只差 3px
+monsters/wolf warrior/walk,-4,70,190,manual,17,256,256,同 idle 那列

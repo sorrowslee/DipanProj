@@ -55,7 +55,8 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | `BrainType` | 目前 `Chase`（追玩家）；未來擴充其他 AI |
 | `InvincibleTimeMs` / `KnockbackThreshold` / `KnockbackPercent` | 受擊反應（見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)） |
 | **`PrefabPath`** | **route B 留空**。只有要沿用「自帶 Animator 的舊 prefab」才填（向下相容） |
-| **`AnimFPS`** | **新增**：程式動畫播放幀率，留空＝8。走路會再依實際速度連動（防腳滑） |
+| **`AnimFPS`** | **新增**：程式動畫播放幀率，留空＝8。走路會再依實際速度連動（防腳滑；倍率夾在 `MinMul`~`MaxMul`，見下） |
+| **`IdleScale`／`WalkScale`／`AttackScale`** | **逐動作顯示倍率**（表尾三欄，2026-09-17）。**留空＝自動**（把該動作的可見高對齊 idle）；有填就覆寫。`pant` 沿用 `IdleScale`。整體大小仍吃 `Scale` 欄，這三欄是在它之上的等比例微調。<br>⚠ **四足獸（狼/狗/豹）通常要填**：自動那套量高度，而奔跑姿勢身體壓低、高度矮 ⇒ 被**放大**。戰狼實測 walk 被自動放大 ×1.288、等效寬 221→285px（idle 才 181），填 `WalkScale=0.9` 之後差距從 57% 降到 10%。詳見 [PROBLEMS.md](PROBLEMS.md) **G12** |
 
 > **⭐ 張數不必湊滿 25：有幾張就播幾張，但循環會變快。** 載入完全依 catalog 的 `frameCount`（同步工具掃資料夾數 PNG，沒有上限也沒有期待張數），播放是 `_idx = (_idx + 1) % frames.Length`；1 張＝靜態姿勢（catalog 只在 ≥2 幀時寫 `frames`）。現成例子：`ZhaYu/walk` 只有 8 張、家人幽靈 `Ghost_*` 的 idle 都只有 1 張，都正常。
 > **但 `AnimFPS` 是「每秒幾幀」不是「整個動作幾秒」**，所以：
@@ -82,6 +83,11 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 
 - `Assets/Scripts/AI/MonsterSpriteLibrary.cs`：載一次 catalog，依「`<怪名>/<state>`」索引怪物動作素材、給幀（`GetFrames`/`Has`）。
 - `Assets/Scripts/AI/MonsterAnimator.cs`：程式逐格播放（Idle/Walk/Attack）、防呆退回、走路 fps 跟速度連動。
+  > **走路 fps = `AnimFPS × clamp(實際速度 / ReferenceSpeed, MinMul, MaxMul)`**，`ReferenceSpeed` ＝ CSV 的 `Speed`。
+  > `MaxMul`（2026-09-17 加，預設 **2.5**）是「跑快時腳步能加速到幾倍」——**以前這個上限寫死 1**，
+  > 對一般怪沒差（牠們的實際速度恆等於 `Speed` ⇒ 倍率恆為 1，所以預設 2.5 對既有怪是零變化），
+  > 但**會短暫加速的怪**（撲擊型的狼衝刺時位移是平常 3 倍）腳步還是散步節奏 ⇒ 視覺上是「滑過去」不是「衝過去」。
+  > **這類怪的「突襲感」是動畫節奏給的，不是位移數字給的**——調再快的速度，腳步不動一樣沒感覺。
 - `Assets/Scripts/AI/MonsterController.cs`：決定狀態（範圍內＋有 attack 圖→攻擊；移動→走路；靜止→發呆）並驅動 `MonsterAnimator`；無怪名/有 Animator 時退回舊 Animator。
 - `Assets/Scripts/AI/MonsterSpawner.cs`：`PrefabPath` 留空時**程式建一隻通用怪**（零 prefab），外觀靠 `MonsterAnimator` 載圖。
 - 同步管線（加新素材分類要三處一起改，見 [PROBLEMS.md](PROBLEMS.md) C3）：`Assets/Editor/MapAssetSyncTool.cs`、`Assets/Scripts/Map/MapIO.cs`、`Tools/sync_map_assets.sh`——皆已加 `Monsters/SequenceImage` 掃描。

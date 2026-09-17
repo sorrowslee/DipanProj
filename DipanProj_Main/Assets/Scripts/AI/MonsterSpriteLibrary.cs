@@ -72,10 +72,13 @@ public class MonsterSpriteLibrary
     /// 取某怪某動作的幀（依序）。單張資料夾 → 長度 1 的陣列（靜態姿勢）；找不到回 null。
     /// 結果快取，重覆呼叫同一隻同一動作不會重建。
     /// </summary>
-    public Sprite[] GetFrames(string monsterName, string state, float tileSize = 1f)
+    /// <param name="baseTileSize">**基準動作（idle）的 tileSize**，給腳底對齊用；&lt;=0 或等於 tileSize 時等同不縮放。
+    /// 各動作的 tileSize 不一樣時（逐動作縮放），只比像素會算錯，見下方註解。</param>
+    public Sprite[] GetFrames(string monsterName, string state, float tileSize = 1f, float baseTileSize = 0f)
     {
         string tail = Key(monsterName, state);
-        string cacheKey = $"{tail}|{tileSize}";
+        if (baseTileSize <= 0.0001f) baseTileSize = tileSize;
+        string cacheKey = $"{tail}|{tileSize}|b{baseTileSize}";
         if (_frameCache.TryGetValue(cacheKey, out var cached)) return cached;
 
         Sprite[] frames = null;
@@ -83,7 +86,14 @@ public class MonsterSpriteLibrary
         {
             if (item.IsAnimated)
             {
-                frames = _loader.GetAnimationFrames(item, tileSize);   // PPU=256/tileSize（同 PlayerSpriteLibrary）
+                // ⭐ 腳底對齊（2026-09-17）：AI 生成的序列圖常常把角色畫在畫布的不同高度——
+                //    戰狼實測 idle 的腳底在畫布底往上 56px、walk 卻是 69px，**差 13px**；
+                //    而角色會被 `CharacterWorldHeight / idle可見高` 放大（戰狼是 3.49 倍），
+                //    那 13px 在遊戲裡就是 **0.18 世界單位**（約玩家身高的 9%）⇒ 切 idle↔walk 時整隻狼上下跳，
+                //    腳下的影子當然也跟著跳。逐幀把 pivot.y 補償到同一條腳底線就解掉了。
+                //    基準取 **idle**：碰撞框與顯示大小也都是用 idle 算的（見 MonsterController.Setup），
+                //    所以基準幀的 pivot 維持 0.5、**角色的絕對位置與碰撞框完全不動**，只有其他動作被拉齊。
+                frames = _loader.GetAnimationFrames(item, tileSize, BaselineBottomPx(monsterName), baseTileSize / tileSize);
             }
             else
             {
@@ -94,6 +104,35 @@ public class MonsterSpriteLibrary
         _frameCache[cacheKey] = frames;   // 連 null 也快取，避免每幀重查
         return frames;
     }
+
+    readonly Dictionary<string, int> _baselineBottom = new Dictionary<string, int>();
+
+    /// <summary>
+    /// 這隻怪的「腳底基準」＝ **idle 第一幀**的不透明內容距畫布底的像素（取不到 idle 就用 walk，再取不到回 -1＝不對齊）。
+    /// 所有動作的幀都會被補償到這條線上，見 <see cref="GetFrames"/>。結果快取（每隻怪只量一次）。
+    /// ⚠ 基準**必須**跟「建碰撞框／算顯示大小」用的那一個動作一致（目前是 idle，見 MonsterController.Setup），
+    ///   否則基準幀的 pivot 不是 0.5，角色的絕對位置與碰撞框就會整個偏掉。
+    /// </summary>
+    int BaselineBottomPx(string monsterName)
+    {
+        string k = (monsterName ?? "").Trim().ToLowerInvariant();
+        if (_baselineBottom.TryGetValue(k, out int cached)) return cached;
+
+        int result = -1;
+        foreach (string state in BaselineStates)
+        {
+            if (!_byTail.TryGetValue(Key(monsterName, state), out var item) || item == null) continue;
+            string fp = item.IsAnimated ? (item.frames != null && item.frames.Count > 0 ? item.frames[0] : null) : null;
+            if (string.IsNullOrEmpty(fp)) continue;
+            var bp = _loader.GetFrameBottomPx(fp);
+            if (bp.x >= 0) { result = bp.x; break; }
+        }
+        _baselineBottom[k] = result;
+        return result;
+    }
+
+    // 找腳底基準的優先順序（與 MonsterController.Setup 算碰撞框/顯示大小的順序一致）。
+    static readonly string[] BaselineStates = { "idle", "walk" };
 
     readonly Dictionary<string, ShadowAnchorPx> _shadowAnchor = new Dictionary<string, ShadowAnchorPx>();
 

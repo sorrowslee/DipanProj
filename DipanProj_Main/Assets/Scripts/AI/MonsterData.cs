@@ -32,6 +32,16 @@ public class MonsterData
     // 解析與規則見 FactionRelations；召喚系統呼叫 SpawnMonster 時明確傳 PlayerAlly，不受此欄影響。
     public string FactionStr = "";
 
+    // 逐動作顯示倍率（CSV 表尾三欄，2026-09-17）。**留空＝維持既有的「自動依可見高對齊 idle」**（零行為變化）；
+    // 有填就完全覆寫那個自動值。<= 0 視同留空。pant 沿用 IdleScale。
+    // ⚠ 為什麼需要手填：自動那套量的是**可見高度**，對「同一個視角、只是畫粗了一圈」很準，但對
+    //   **四足獸**（idle 是 3/4 正面站姿、walk 是側面奔跑壓低身體）會**適得其反**——高度矮就被放大。
+    //   戰狼實測 walk 被放大 ×1.288，等效寬度 221→285px，比 idle 的 181 大 57%。見 readme/PROBLEMS.md G11 家族。
+    //   這種「視角本身換了」的素材，演算法永遠猜不準，作者的眼睛一眼就知道，所以開成手填。
+    public float IdleScale = 0f;
+    public float WalkScale = 0f;
+    public float AttackScale = 0f;
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

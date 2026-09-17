@@ -23,11 +23,19 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     [Tooltip("基準播放幀率（幀/秒）；由 CSV 的 AnimFPS 帶入，留空＝8")]
     public float BaseFps = 8f;
 
-    [Tooltip("走路速度連動的『正常移動速度』。走路 fps = BaseFps × clamp(實際速度/此值, MinMul, 1)")]
+    [Tooltip("走路速度連動的『正常移動速度』。走路 fps = BaseFps × clamp(實際速度/此值, MinMul, MaxMul)")]
     public float ReferenceSpeed = 3f;
 
     [Tooltip("走路放慢時的最低倍率（避免太慢變超卡）")]
     public float MinMul = 0.6f;
+
+    // ⭐ 2026-09-17 加。以前這裡的上限**寫死 1**，意思是「跑得再快，腳步頻率最多就是 BaseFps」。
+    // 對一般怪沒差（牠們的實際速度恆等於 CSV 的 Speed ⇒ 倍率恆為 1），但對**會短暫加速的怪**是硬傷：
+    // 撲擊型的狼衝刺時位移是平常的 3 倍，腳步卻還是散步的節奏 ⇒ 視覺上是「滑過去」不是「衝過去」，
+    // 作者實機回報「衝過去的速度跟平常移動時一樣」——其實位移早就 3 倍了，**沒有突襲感是動畫給的，不是數字給的**。
+    // 預設 2.5 對所有既有怪是零變化（跑不過 ReferenceSpeed 就吃不到上限）；不想要就設回 1。
+    [Tooltip("走路加快時的最高倍率。1 = 舊行為（再快也不加速）。撲擊型的怪衝刺時靠它做出狂奔的腳步節奏")]
+    public float MaxMul = 2.5f;
 
     // ⭐ 要調喘息快慢就改這一行（不是 CSV 的 AnimFPS——那是 idle/walk/attack 共用的，改它會整隻怪一起變）。
     [Tooltip("pant（喘息）的播放倍率：相對 BaseFps 的倍數。1 = 與 idle/walk 同速；數字越小越慢。" +
@@ -68,19 +76,31 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     /// <paramref name="tileSize"/> 決定顯示大小（PPU=256/tileSize），由 MonsterController 依 idle 可見高度自動換算後傳入
     /// → 與主角同一套：同一張圖在主角/怪物資料夾顯示一樣大。
     /// </summary>
-    public void Setup(string monsterName, float fps, float referenceSpeed, float tileSize = 1f)
+    public void Setup(string monsterName, float fps, float referenceSpeed, float tileSize = 1f,
+                      float idleScale = 0f, float walkScale = 0f, float attackScale = 0f)
     {
         _sr = GetComponent<SpriteRenderer>();
         BaseFps = fps > 0f ? fps : 8f;
         ReferenceSpeed = referenceSpeed > 0f ? referenceSpeed : 3f;
 
         var lib = MonsterSpriteLibrary.Instance;
-        // 逐動作高度正規化：walk/attack 對齊 idle 的可見高度，消除 AI 各動作大小落差（走路變大、停下變小）。
+        // 逐動作縮放：**CSV 有填就用填的（× tileSize），留空才走自動**（依可見高對齊 idle）。
+        // ⚠ 自動那套量的是可見高度，對「同一視角、只是畫粗一圈」很準，但對**四足獸**會適得其反——
+        //   idle 是 3/4 正面站姿、walk 是側面奔跑**壓低身體**，高度矮就被放大：戰狼實測 walk ×1.288、
+        //   等效寬 221→285px（idle 才 181），作者實機回報「walk 明顯比 idle 大很多」。
+        //   這種「視角本身換了」的素材演算法永遠猜不準，所以開放 MonsterData 的 IdleScale/WalkScale/AttackScale 手填。
         float idleVis = StateVisH(lib, monsterName, "idle");
-        _idle = lib.GetFrames(monsterName, "idle", tileSize);
-        _walk = lib.GetFrames(monsterName, "walk", StateTile(lib, monsterName, "walk", tileSize, idleVis));
-        _attack = lib.GetFrames(monsterName, "attack", StateTile(lib, monsterName, "attack", tileSize, idleVis));
-        _pant = lib.GetFrames(monsterName, "pant", StateTile(lib, monsterName, "pant", tileSize, idleVis));
+        float idleTile   = Tile(lib, monsterName, "idle",   tileSize, idleVis, idleScale);
+        float walkTile   = Tile(lib, monsterName, "walk",   tileSize, idleVis, walkScale);
+        float attackTile = Tile(lib, monsterName, "attack", tileSize, idleVis, attackScale);
+        float pantTile   = Tile(lib, monsterName, "pant",   tileSize, idleVis, idleScale);   // pant 是站著喘 → 沿用 idle 的倍率
+
+        // ⚠ 第 4 個參數是 **idle 的 tileSize**：腳底對齊（pivot 補償）要知道「基準動作被放大多少」才算得對，
+        //   各動作的 tileSize 不一樣時，只比像素會錯。見 MonsterSpriteLibrary.GetFrames。
+        _idle   = lib.GetFrames(monsterName, "idle",   idleTile,   idleTile);
+        _walk   = lib.GetFrames(monsterName, "walk",   walkTile,   idleTile);
+        _attack = lib.GetFrames(monsterName, "attack", attackTile, idleTile);
+        _pant   = lib.GetFrames(monsterName, "pant",   pantTile,   idleTile);
 
         // 【過渡期】角色取樣密度對齊背景（mipMapBias），見 CharacterMipBias 檔頭；背景解析度提上來後可拿掉這三行。
         CharacterMipBias.Register(_idle, transform);
@@ -122,6 +142,14 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         return (idleVis > 0.0001f && v > 0.0001f) ? Mathf.Clamp(baseTile * (idleVis / v), 0.1f, 30f) : baseTile;
     }
 
+    /// <summary>
+    /// 某動作最終的 tileSize：<paramref name="manualScale"/> &gt; 0 就用它（手填，完全覆寫自動），
+    /// 否則走 <see cref="StateTile"/> 的自動高度對齊（＝2026-09-17 之前的行為，留空的怪一個像素都不會變）。
+    /// </summary>
+    static float Tile(MonsterSpriteLibrary lib, string name, string state, float baseTile, float idleVis, float manualScale)
+        => manualScale > 0.0001f ? Mathf.Clamp(baseTile * manualScale, 0.1f, 30f)
+                                 : StateTile(lib, name, state, baseTile, idleVis);
+
     public bool Has(State s) => FramesFor(s) != null;
 
     /// <summary>
@@ -151,7 +179,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         float fps = BaseFps;
         if (_state == State.Walk && ReferenceSpeed > 0.01f)
         {
-            float mul = Mathf.Clamp(_currentSpeed / ReferenceSpeed, MinMul, 1f);
+            float mul = Mathf.Clamp(_currentSpeed / ReferenceSpeed, MinMul, Mathf.Max(1f, MaxMul));
             fps = BaseFps * mul;
         }
         else if (_state == State.Pant)

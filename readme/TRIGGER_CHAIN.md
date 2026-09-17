@@ -235,7 +235,8 @@ flag:hallGateOpen        旗標成立
   - 邊界：換圖時進行中的點火中止（新圖有自己的一輪）；被別的鏈 `next` 指到時＝純轉接（直接完成、接自己的 next）；單場景測試（無 MapManager）不會點火。
 - **`unlockRoll` 解鎖抽選內容(鏈動作)**：`poolId`（哪個抽選池，＝`GachaPoolTable.csv` 的 `PoolId`，例 `weapon`／`blood`）、`itemId`（要加進池的道具 ID）。被鏈啟動時把這一筆寫進存檔的 `unlockedRollEntries`，該祭壇之後就抽得到它。**永久、跨輪迴、重複執行無害**（同一筆只會有一份）。典型用法：接在 boss 死亡旗標鏈上——`紅嫁衣死 → unlockRoll(blood, 302 幽靈血統藥劑)`、`榕樹妖死 → unlockRoll(weapon, 地刺戢)`。純鏈驅動、玩家踩不觸發、格子畫在角落即可。詳見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §3。
 
-- **`factionWar` 三方陣營開戰(鏈動作)**：無參數。被鏈啟動時把三方陣營劇本切成「開戰」——狼人/吸血鬼兩族開始互咬（演戲傷害 1/100）＋攻擊玩家、切到可被玩家攻擊的層，立即接 next。狀態＝**關卡單次**（換 module 自動回和平）。典型：`對話/事件 → factionWar（完成寫旗標=部族開戰）`——同一顆順便讓和平版 NPC 退場（NPC 的「消失旗標」填同一旗）。詳見 [FACTION.md](FACTION.md)。
+- **`factionPeace` 三方陣營和平(鏈動作)**（2026-09-17 新增）：無參數。被鏈啟動時讓狼人/吸血鬼兩族**視同中立**——不打人、不被打、玩家武器打不到（切 Ally 層），立即接 next。⚠ **部族的預設狀態是「敵對」**，所以這顆是「要他們站著別動手」時才擺的特例；典型：`onEnter 進場觸發 → factionPeace`。詳見 [FACTION.md](FACTION.md) §0。
+- **`factionWar` 三方陣營開戰(鏈動作)**：無參數。被鏈啟動時**結束和平**、回到預設的敵對——狼人/吸血鬼兩族開始互咬（演戲傷害 1/100）＋攻擊玩家、切到可被玩家攻擊的層，立即接 next。狀態＝**關卡單次**（換 module 自動重置回敵對）。**沒擺過 `factionPeace` 的地圖按它也安全**（本來就敵對，只是重套一次 Layer）。典型：`對話/事件 → factionWar（完成寫旗標=部族開戰）`——同一顆順便讓和平版 NPC 退場（NPC 的「消失旗標」填同一旗）。詳見 [FACTION.md](FACTION.md)。
 - **`joinFaction` 加入陣營(鏈動作)**：`faction`（填 `狼人`/`werewolf` 或 `吸血鬼`/`vampire`）。被鏈啟動時玩家結盟該族——該族不再攻擊玩家、玩家武器打不到它（切 Ally 層），立即接 next；認不得的值印 Warning、仍接 next 不卡鏈。典型：首領 NPC 對話 → next 接這顆。詳見 [FACTION.md](FACTION.md)。
 
 **位置型（靠近按 F，不是鏈動作）**

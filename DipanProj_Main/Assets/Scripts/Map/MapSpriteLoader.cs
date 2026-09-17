@@ -135,6 +135,56 @@ namespace Dipan.MapRuntime
             return sp;
         }
 
+        /// <summary>
+        /// 同上，但指定 **pivot 的 Y**（0=畫布底、0.5=中心、1=頂）。給「腳底對齊」用：
+        /// AI 生成的序列圖常常每個動作把角色畫在畫布的不同高度，逐幀補償 pivot 就能讓腳底對齊，
+        /// 而且**不動角色的絕對位置**（基準幀的 pivot 仍是 0.5）。見 MonsterSpriteLibrary.GetFrames。
+        /// </summary>
+        public Sprite GetFrameSprite(string framePath, float tileSize, float pivotY)
+        {
+            if (string.IsNullOrEmpty(framePath)) return null;
+            if (Mathf.Abs(pivotY - 0.5f) < 0.0001f) return GetFrameSprite(framePath, tileSize);   // 沒補償 → 走原本那條（共用快取）
+            string key = $"frame|{framePath}|{tileSize}|p{pivotY:F4}";
+            if (_sprites.TryGetValue(key, out var sp) && sp != null) return sp;
+            var tex = GetFrameTexture(framePath);
+            if (tex == null) return null;
+            float ppu = TileNativePx / Mathf.Max(0.0001f, tileSize);
+            sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, pivotY), ppu);
+            _sprites[key] = sp;
+            return sp;
+        }
+
+        readonly Dictionary<string, Vector2Int> _frameBottomPx = new Dictionary<string, Vector2Int>();
+
+        /// <summary>
+        /// 某一幀「不透明內容的最底端」距畫布底的**像素數**，與畫布高（像素）：`(bottomPx, canvasH)`。
+        /// 取不到／全透明回 `(-1, 0)`。結果快取（掃整張圖，只做一次）。
+        /// ⚠ Unity 的紋理座標原點在**左下**，所以掃到的 minY 就是「距畫布底的像素」，不用再換算。
+        /// </summary>
+        public Vector2Int GetFrameBottomPx(string framePath)
+        {
+            if (string.IsNullOrEmpty(framePath)) return new Vector2Int(-1, 0);
+            if (_frameBottomPx.TryGetValue(framePath, out var cached)) return cached;
+
+            var tex = GetFrameTexture(framePath);
+            if (tex == null) { _frameBottomPx[framePath] = new Vector2Int(-1, 0); return _frameBottomPx[framePath]; }
+
+            int w = tex.width, h = tex.height;
+            Color32[] px = tex.GetPixels32();
+            int minY = -1;
+            for (int y = 0; y < h && minY < 0; y++)
+            {
+                int rowBase = y * w;
+                for (int x = 0; x < w; x++)
+                {
+                    if (px[rowBase + x].a > AlphaThreshold) { minY = y; break; }
+                }
+            }
+            var r = new Vector2Int(minY, h);
+            _frameBottomPx[framePath] = r;
+            return r;
+        }
+
         /// <summary>把某動畫物件的所有幀載成 Sprite[]（依 frames 順序）。非動畫或任一幀失敗回 null。</summary>
         public Sprite[] GetAnimationFrames(CatalogItem item, float tileSize)
         {
@@ -143,6 +193,37 @@ namespace Dipan.MapRuntime
             for (int i = 0; i < arr.Length; i++)
             {
                 arr[i] = GetFrameSprite(item.frames[i], tileSize);
+                if (arr[i] == null) return null;
+            }
+            return arr;
+        }
+
+        /// <summary>
+        /// 同上，但**逐幀對齊腳底**：補償每一幀的 pivot.y，讓所有幀的腳底落在同一條線上。
+        ///
+        /// <para>公式 `pivot_px = 該幀腳底 − (baselineBottomPx − 畫布高/2) × tileRatio`，其中
+        /// <paramref name="tileRatio"/> ＝ **基準動作的 tileSize ÷ 這個動作的 tileSize**。</para>
+        ///
+        /// <para>⚠ **那個 tileRatio 不能省**（2026-09-17 補）：對齊的目標是「腳底相對 transform 的**世界位移**一致」，
+        /// 而世界位移 ＝ 像素差 ÷ PPU，PPU 又跟該動作的 tileSize 綁在一起。各動作的 tileSize 只要不同
+        /// （逐動作縮放一定會不同），只比像素就會算錯——第一版就是漏了這一項，腳底其實還沒真的對齊。</para>
+        ///
+        /// <paramref name="baselineBottomPx"/> &lt; 0 或某幀量不到 → 那一幀退回原本的置中 pivot（不會壞）。
+        /// </summary>
+        public Sprite[] GetAnimationFrames(CatalogItem item, float tileSize, int baselineBottomPx, float tileRatio = 1f)
+        {
+            if (item == null || !item.IsAnimated) return null;
+            if (baselineBottomPx < 0) return GetAnimationFrames(item, tileSize);
+            if (tileRatio <= 0.0001f) tileRatio = 1f;
+            var arr = new Sprite[item.frames.Count];
+            for (int i = 0; i < arr.Length; i++)
+            {
+                string fp = item.frames[i];
+                var bp = GetFrameBottomPx(fp);
+                float pivotY = 0.5f;
+                if (bp.x >= 0 && bp.y > 0)
+                    pivotY = (bp.x - (baselineBottomPx - bp.y * 0.5f) * tileRatio) / bp.y;
+                arr[i] = GetFrameSprite(fp, tileSize, pivotY);
                 if (arr[i] == null) return null;
             }
             return arr;

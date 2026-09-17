@@ -43,6 +43,9 @@ public class CharacterGlow : MonoBehaviour
     [Tooltip("比角色的 sortingOrder 低幾階（要低，光暈才在角色背後、不會洗掉角色顏色）")]
     public int SortingOrderBelow = 1;
 
+    [Tooltip("只在『吃照明』的氛圍（幽暗/噩夢/鬼霧…）才顯示。怪物常駐體光要勾；false = 一律顯示")]
+    public bool OnlyInLitAtmosphere = false;
+
     const string GlowShaderPath = "Shaders/AuraGlow";   // Custom/AuraGlow：Blend One One 加色
 
     static Sprite _sharedSprite;      // 程序生成的徑向漸層（Unity 物件被銷毀後 ==null 為 true，會自動重建）
@@ -51,6 +54,14 @@ public class CharacterGlow : MonoBehaviour
     SpriteRenderer _charSr;
     GameObject _glowGo;
     SpriteRenderer _glowSr;
+
+    // ── 尺寸/位置快取（2026-09-17）：**不要每幀讀 bounds** ──
+    // 逐格動畫的圖多半是 trim 過的（每一幀去完透明邊之後高度都不一樣），每幀拿 bounds 算直徑與中心，
+    // 光暈就會跟著一幀一幀忽大忽小、上下抖＝肉眼看到的「怪物在閃」。暗場景其實一直在閃，只是被黑暗蓋掉。
+    // 直徑取「**目前為止遇過的最大可見高度**」（單調不減）：動畫播完一輪就穩定下來，之後再也不變；
+    // 中心偏移只量第一次。體型改變（BodyScale）時呼叫 RefreshSize() 重新量。
+    float _diameter;                    // 快取的光暈直徑（0 = 還沒量到有效值）
+    float _offsetY = float.NaN;         // 光暈中心相對 transform 的 Y 位移（量一次）
 
     void Start()
     {
@@ -70,6 +81,16 @@ public class CharacterGlow : MonoBehaviour
         ApplyColor();
     }
 
+    /// <summary>
+    /// 角色體型變了（血統 BodyScale、換外型）之後叫一次：丟掉尺寸/位置快取，下一幀重新量。
+    /// 不叫也不會壞，只是光暈維持舊尺寸。
+    /// </summary>
+    public void RefreshSize()
+    {
+        _diameter = 0f;
+        _offsetY = float.NaN;
+    }
+
     /// <summary>顏色/亮度改了之後叫一次（Inspector 上調完會自動生效，因為 LateUpdate 也會套）。</summary>
     void ApplyColor()
     {
@@ -83,18 +104,27 @@ public class CharacterGlow : MonoBehaviour
         if (_glowGo == null || _charSr == null) return;
 
         // 角色被藏起來（劇情、死亡演出）時光暈也跟著收，不然空地上會浮著一圈光。
-        bool visible = _charSr.enabled && _charSr.gameObject.activeInHierarchy;
+        // ⭐ OnlyInLitAtmosphere（怪物體光用）：亮場景整個不顯示——這一層是**加色**，不像 LightSource 那層
+        //    會被「亮場景 shader 不讀光源」自然擋掉，不主動關的話就是「大白天每隻怪都在發光」。
+        bool visible = _charSr.enabled && _charSr.gameObject.activeInHierarchy
+                       && (!OnlyInLitAtmosphere || AtmosphereController.LightsEnabled);
         if (_glowSr.enabled != visible) _glowSr.enabled = visible;
         if (!visible) return;
 
-        // 位置：角色**可見範圍的中心**（不是 transform，那是腳底）。用 bounds 是因為怪物逐格動畫每幀高度會變，
-        // 取中心比固定偏移穩。（玩家那邊不能這樣用——見 PROBLEMS E14；那是玩家 pivot 的坑，怪物沒有。）
+        // 尺寸/中心：量到就快取，**不每幀讀 bounds**（trim 過的逐格圖每幀高度都不同 → 光暈會閃，見欄位註解）。
         Bounds b = _charSr.bounds;
-        _glowGo.transform.position = new Vector3(b.center.x, b.center.y, transform.position.z);
+        if (b.size.y > 0.01f)
+        {
+            float d = b.size.y * SizeFactor;
+            if (d > _diameter) _diameter = d;                                   // 單調取最大：動畫跑完一輪就定下來
+            if (float.IsNaN(_offsetY)) _offsetY = b.center.y - transform.position.y;
+        }
+        if (_diameter <= 0.01f) return;   // sprite 還沒載好 → 這幀先不畫（下一幀再量）
 
-        // 大小：直徑 = 可見高度 × SizeFactor。共用 sprite 是 1 世界單位見方，所以 localScale 就是直徑。
-        float d = Mathf.Max(0.01f, b.size.y * SizeFactor);
-        _glowGo.transform.localScale = new Vector3(d, d, 1f);
+        // 位置：X 用 transform（b.center.x 會被 flipX 帶著左右跳）；Y 用量到的固定偏移。
+        float oy = float.IsNaN(_offsetY) ? 0f : _offsetY;
+        _glowGo.transform.position = new Vector3(transform.position.x, transform.position.y + oy, transform.position.z);
+        _glowGo.transform.localScale = new Vector3(_diameter, _diameter, 1f);
 
         // 排序：跟著角色走（角色用 YSortByFeet 每幀改 order），但**低一階**畫在它背後。
         _glowSr.sortingOrder = _charSr.sortingOrder - SortingOrderBelow;

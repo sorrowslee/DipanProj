@@ -53,6 +53,16 @@ public class MonsterActuator : MonoBehaviour
         _rb = GetComponent<Rigidbody2D>();
         _rb.gravityScale = 0;
         _rb.freezeRotation = true;
+        // ⭐ 2026-09-17 補：**程式生成的怪（route B）一直沒有開內插**。
+        // `Monster.prefab`／`Player.prefab` 的 m_Interpolate 都是 1，MonsterController 的註解也寫著
+        // 「玩家/怪物 Rigidbody2D 已開 Interpolate（見 PROBLEMS E5）」——但那只對「CSV 有填 PrefabPath 的舊怪」成立。
+        // route B 的怪是 new GameObject + AddComponent，拿到的是 Unity 預設值 **None**。
+        // 後果：物理是 60Hz，只要畫面跑得比 60fps 快，**就有整幀 transform.position 完全不動**
+        // （物理沒步進、又沒有內插補位）。任何「看單幀位移」的判定都會週期性誤判：
+        //   ‧ 本檔的 UpdateStuck ⇒ 怪莫名其妙側滑、甚至進放棄期站住 0.6 秒
+        //   ‧ PounceBrain 的撞牆判定 ⇒ 衝刺才跑 1.2 單位就被判成撞牆而中斷（作者實機回報「往前跑兩步就咬」）
+        // 順便畫面也更順（這本來就是 PROBLEMS E5 要的）。
+        _rb.interpolation = RigidbodyInterpolation2D.Interpolate;
         _lastPos = transform.position;
     }
 

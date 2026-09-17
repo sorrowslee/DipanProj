@@ -23,6 +23,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public bool SpriteSourceFacesRight = true;
     public float AnimFPS = 8f;           // 程式動畫播放幀率（CSV: AnimFPS，留空 = 8）
     public float AttackRange = 1.3f;     // 進入此距離且有 attack 圖 → 播攻擊動畫（略大於 ChaseBrain.StopDistance）
+
+    // 逐動作顯示倍率（CSV: IdleScale/WalkScale/AttackScale；0＝留空＝走自動高度對齊）。由 Initialize 從 MonsterData 帶入。
+    [HideInInspector] public float IdleScale, WalkScale, AttackScale;
     [Tooltip("施放技能（如召喚）後，attack 動畫維持播放的秒數（讓遠距離施法也看得到出手動作）")]
     public float SkillCastAnimSeconds = 0.6f;
     [Tooltip("角色站立顯示高度（世界單位），與主角 PlayerController.CharacterWorldHeight 同一套邏輯：" +
@@ -226,7 +229,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
             }
 
-            _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize);
+            _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize, IdleScale, WalkScale, AttackScale);
 
             // 碰撞框用同一個 tileSize 量 → 與放大後的 sprite 對齊（之後再 × transform.localScale = CSV Scale，一起縮放）。
             Vector2 vSize, vOff;
@@ -280,6 +283,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         _currentHealth = MaxHealth;
 
         InvincibleTimeMs = data.InvincibleTimeMs;
+        IdleScale = data.IdleScale; WalkScale = data.WalkScale; AttackScale = data.AttackScale;
         KnockbackThreshold = data.KnockbackThreshold;
         KnockbackPercent = data.KnockbackPercent;
 
@@ -304,6 +308,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 break;
             case "War":             // 三方陣營劇本的部族戰士：追最近的敵對目標（敵對怪或玩家）貼上互咬（見 WarBrain）
                 _brain = new WarBrain();
+                break;
+            case "Pounce":          // 撲擊型（狗/狼/豹…）：觀望→蓄力→直線撲擊→收招（見 PounceBrain）
+                _brain = new PounceBrain();
                 break;
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();

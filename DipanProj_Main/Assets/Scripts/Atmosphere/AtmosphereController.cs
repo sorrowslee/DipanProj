@@ -137,6 +137,27 @@ public class AtmosphereController : MonoBehaviour
     /// <summary>目前地圖的 Atmosphere 型別（MapsTable 欄值）；沒有控制器時回 0。</summary>
     public static int CurrentMode => Instance != null ? Instance._mode : 0;
 
+    /// <summary>
+    /// **這張地圖的氛圍吃不吃照明**（shader 會不會讀光源陣列）＝ 2 幽暗／3 噩夢／9 深海恐怖／14 鬼霧／
+    /// 18 冷月／19 燭火幽影，或 type ≤1 且有環境壓暗。沒有控制器時回 false（＝亮場景）。
+    ///
+    /// ⭐ **這條判定全專案只有這一份**（<see cref="BuildLights"/>、F9 光源快照、怪物體光都查它）。
+    /// 2026-09-17 之前它被抄寫在兩個地方，任何一邊加新氛圍都會靜默漂移；順手收斂成單一真相。
+    /// 用途不只「要不要收集光源」——**任何「只在暗場景才該出現的視覺」都該先問它**
+    /// （例：怪物常駐體光的加色光暈，見 <see cref="CharacterGlow.OnlyInLitAtmosphere"/>：
+    ///  它是加色、不受照明系統限制，在亮場景會變成「大白天每隻怪都在發光」）。
+    /// </summary>
+    public static bool LightsEnabled
+    {
+        get
+        {
+            var i = Instance;
+            if (i == null) return false;
+            return i._mode == 2 || i._mode == 3 || i._mode == 9 || i._mode == 14 || i._mode == 18 || i._mode == 19
+                   || (i._mode <= 1 && i._envDark > 0.001f);
+        }
+    }
+
     public static float DarknessLevel
     {
         get
@@ -275,8 +296,7 @@ public class AtmosphereController : MonoBehaviour
     {
         if (!Input.GetKeyDown(KeyCode.F9)) return;
 
-        bool lit = _mode == 2 || _mode == 3 || _mode == 9 || _mode == 14 || _mode == 18 || _mode == 19
-                   || (_mode <= 1 && _envDark > 0.001f);
+        bool lit = LightsEnabled;   // 單一真相（見該屬性註解）
         var sb = new System.Text.StringBuilder();
         sb.AppendLine($"[Atmosphere] 光源快照　氛圍 type={_mode}　吃照明={(lit ? "是" : "否（這個氛圍的 shader 根本不讀光源，掛再多燈都不會亮）")}　" +
                       $"環境壓暗={_envDark:F2}　本幀盞數={count}/{MaxLights}");
@@ -308,8 +328,7 @@ public class AtmosphereController : MonoBehaviour
         //  16/17 刻意不收：它們的「中央亮」是暈影做的、不需要光源，收了反而多跑一輪迴圈。）
         // 其他模式 shader 本來就不讀 v/lightShift；而「只染色（AtmoTint）啟用 shader」的亮圖若照收光源，
         // 玩家體光/佛燈會透過 mode 1 分支的 lightShift 在大白天染出一圈暖色——這裡直接擋掉。
-        bool lit = _mode == 2 || _mode == 3 || _mode == 9 || _mode == 14 || _mode == 18 || _mode == 19
-                   || (_mode <= 1 && _envDark > 0.001f);
+        bool lit = LightsEnabled;   // 單一真相（見該屬性註解）
         if (!lit)
         {
             for (int i = 0; i < MaxLights; i++) { _lightData[i] = Vector4.zero; _lightTint[i] = Vector4.zero; }

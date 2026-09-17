@@ -106,6 +106,11 @@ public class MonsterSpawner : MonoBehaviour
             // 陣營（索引 22，表尾欄）：空＝Enemy。Werewolf/狼人、Vampire/吸血鬼、Neutral/中立（見 FactionRelations.Parse）。
             data.FactionStr = (values.Length > 22 && !string.IsNullOrWhiteSpace(values[22])) ? values[22].Trim() : "";
 
+            // 逐動作顯示倍率（索引 23~25，表尾欄）：留空/0＝維持自動（依可見高對齊 idle）。見 MonsterData 的欄位註解。
+            data.IdleScale   = (values.Length > 23 && !string.IsNullOrWhiteSpace(values[23])) ? float.Parse(values[23]) : 0f;
+            data.WalkScale   = (values.Length > 24 && !string.IsNullOrWhiteSpace(values[24])) ? float.Parse(values[24]) : 0f;
+            data.AttackScale = (values.Length > 25 && !string.IsNullOrWhiteSpace(values[25])) ? float.Parse(values[25]) : 0f;
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();
@@ -290,6 +295,10 @@ public class MonsterSpawner : MonoBehaviour
             cg.GlowColor = MonsterGlowColor;
             cg.Intensity = MonsterGlowAdditive;
             cg.SizeFactor = MonsterGlowSize;
+            // ⭐ 2026-09-17：只在「吃照明」的氛圍顯示。這一層是加色光暈，**不會**像上面的 LightSource
+            //    那樣被「亮場景 shader 不讀光源」自然擋掉——不關的話競技場那種亮圖也會每隻怪發光
+            //    （作者實機回報）。體光的目的本來就只是「暗地圖裡看得見輪廓」，亮圖不需要。
+            cg.OnlyInLitAtmosphere = true;
         }
 #if UNITY_EDITOR
         Debug.Log($"[MonsterGlow] 掛上體光：{go.name}　pos={go.transform.position.x:F1},{go.transform.position.y:F1}" +

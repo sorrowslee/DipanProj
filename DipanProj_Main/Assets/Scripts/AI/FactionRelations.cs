@@ -8,17 +8,24 @@ using UnityEngine;
 /// 所以「玩家武器打不到某陣營」＝把那個陣營放 Ally 層（ApplyLayer 統一處理）。
 ///
 /// ── 劇本執行期狀態（狼人×吸血鬼三方陣營劇本）──
-/// <see cref="WarActive"/>（開戰了沒）與 <see cref="PlayerAllied"/>（玩家結盟哪一族）由觸發鏈動作
-/// `factionWar`／`joinFaction` 設定（見 TriggerChain）；生命週期＝**關卡單次**——
-/// 換 module 時由 TriggerChain.ClearLevelFlags 呼叫 <see cref="ResetScenario"/> 清空（同關卡單次旗標）。
+/// <see cref="PeaceActive"/>（現在是不是劇本的和平段）與 <see cref="PlayerAllied"/>（玩家結盟哪一族）
+/// 由觸發鏈動作 `factionPeace`／`factionWar`／`joinFaction` 設定（見 TriggerChain）；生命週期＝**關卡單次**——
+/// 換 module 時由 TriggerChain.ClearLevelFlags 呼叫 <see cref="ResetScenario"/> 清回預設（同關卡單次旗標）。
 ///
-/// ── 規則（2026-08-28 作者定案）──
-///  ‧ 和平（WarActive=false）：兩族視同中立——不打人、不被打、玩家武器打不到（Ally 層）。
-///  ‧ 開戰：兩族互為敵對（**演戲傷害 ×1/100**：他們的存在是在演戲，殺敵主力是玩家）；
-///    兩族攻擊玩家（正常傷害）、切到 Enemy 層（玩家可打）。未選邊時靠「兩族擺得近、索敵挑最近」
+/// ── 規則（2026-08-28 定案；2026-09-17 **把預設值反轉**，見下）──
+///  ‧ **預設（`PeaceActive=false`）＝敵對**：部族怪一放上場就照自己的 Brain 攻擊玩家、玩家也打得到（Enemy 層）；
+///    兩族之間互為敵對（**演戲傷害 ×1/100**：他們的存在是在演戲，殺敵主力是玩家）。
+///  ‧ **和平（`factionPeace` 鏈動作）＝劇本明確進入的特例**：兩族視同中立——不打人、不被打、玩家武器打不到（Ally 層）。
+///  ‧ **結束和平（`factionWar` 鏈動作）**：回到預設的敵對。未選邊時靠「兩族擺得近、索敵挑最近」
 ///    讓他們先互咬，不寫「不打主角」的特例。
-///  ‧ 結盟：該族不再攻擊玩家、切回 Ally 層（玩家武器天生打不到）；兩族之間照打（仍 1/100）。
+///  ‧ 結盟（`joinFaction`）：該族不再攻擊玩家、切回 Ally 層（玩家武器天生打不到）；兩族之間照打（仍 1/100）。
 ///  ‧ Enemy（一般怪）與兩族**刻意互不敵對**——既有內容與劇本部族各管各的。
+///
+/// ⭐ **為什麼預設是「敵對」而不是「和平」**（2026-09-17 作者拍板，反轉前是相反的）：
+/// 舊語意下，`Faction` 欄同時承載了兩件事——「這隻怪是狼人族」與「牠的敵意由一顆全域劇本開關決定」。
+/// 於是把一隻部族怪放到任何一張測試地圖上，牠都只會站著不動（開關沒被按下），
+/// **而「放上去就照自己的模組戰鬥」才該是預設，「不戰鬥」才是劇本要求的特例**。
+/// 反轉後 `Faction` 欄回歸單純的種族標籤（跟 HP、Speed 同一層級），敵意由劇本狀態另外表達。
 /// 未來更多陣營／更複雜關係：把 Hostile/DamageMultiplier 改成查資料表，呼叫端不動。
 /// </summary>
 public static class FactionRelations
@@ -26,8 +33,11 @@ public static class FactionRelations
     /// <summary>兩族互打的傷害乘數（演戲用；對玩家、玩家對怪一律 1）。</summary>
     public const float TheatricalDamageMultiplier = 0.01f;
 
-    /// <summary>開戰了沒（factionWar 鏈動作設定；換關卡重置）。</summary>
-    public static bool WarActive { get; private set; }
+    /// <summary>
+    /// 現在是不是劇本的「和平段」（`factionPeace` 鏈動作進入、`factionWar` 結束；換關卡重置回 false）。
+    /// **預設 false ＝敵對**——部族怪放上場就打人、也被打。和平是劇本明確要求的特例，見類別註解。
+    /// </summary>
+    public static bool PeaceActive { get; private set; }
 
     /// <summary>玩家結盟的部族；null＝未結盟（joinFaction 鏈動作設定；換關卡重置）。</summary>
     public static MonsterFaction? PlayerAllied { get; private set; }
@@ -48,9 +58,9 @@ public static class FactionRelations
             (a == MonsterFaction.PlayerAlly && b == MonsterFaction.Enemy)) return true;
 
         // 劇本部族：開戰才互咬；玩家召喚物視同玩家（開戰後對「非結盟」的部族敵對）
-        if (IsTribe(a) && IsTribe(b)) return WarActive;
-        if (a == MonsterFaction.PlayerAlly && IsTribe(b)) return WarActive && PlayerAllied != b;
-        if (IsTribe(a) && b == MonsterFaction.PlayerAlly) return WarActive && PlayerAllied != a;
+        if (IsTribe(a) && IsTribe(b)) return !PeaceActive;
+        if (a == MonsterFaction.PlayerAlly && IsTribe(b)) return !PeaceActive && PlayerAllied != b;
+        if (IsTribe(a) && b == MonsterFaction.PlayerAlly) return !PeaceActive && PlayerAllied != a;
 
         return false;   // Enemy ↔ 部族：刻意不敵對（各管各的）
     }
@@ -59,7 +69,7 @@ public static class FactionRelations
     public static bool AttacksPlayer(MonsterFaction a)
     {
         if (a == MonsterFaction.Enemy) return true;
-        if (IsTribe(a)) return WarActive && PlayerAllied != a;
+        if (IsTribe(a)) return !PeaceActive && PlayerAllied != a;
         return false;
     }
 
@@ -67,7 +77,7 @@ public static class FactionRelations
     public static bool HasMonsterFoes(MonsterFaction a)
     {
         if (a == MonsterFaction.PlayerAlly) return true;      // 打 Enemy（既有）＋開戰後打非結盟部族
-        if (IsTribe(a)) return WarActive;                     // 開戰後打另一族
+        if (IsTribe(a)) return !PeaceActive;                  // 非和平段就打另一族
         return false;
     }
 
@@ -97,13 +107,31 @@ public static class FactionRelations
 
     // ───────────────────────── 劇本狀態切換（TriggerChain 的鏈動作呼叫） ─────────────────────────
 
-    /// <summary>開戰：兩族開始互咬＋攻擊玩家；場上部族怪全部切到可被玩家攻擊的層。</summary>
-    public static void StartWar()
+    /// <summary>
+    /// 進入劇本的「和平段」（`factionPeace` 鏈動作）：兩族視同中立——不打人、不被打、
+    /// 玩家武器打不到（場上部族怪全部切到 Ally 層）。
+    /// **這是特例、要劇本明確呼叫**；沒呼叫過的地圖一律是預設的敵對。
+    /// </summary>
+    public static void StartPeace()
     {
-        if (WarActive) return;
-        WarActive = true;
+        if (PeaceActive) return;
+        PeaceActive = true;
         RefreshTribeLayers();
-        Debug.Log("[FactionRelations] 三方陣營開戰。");
+        Debug.Log("[FactionRelations] 三方陣營進入和平。");
+    }
+
+    /// <summary>
+    /// 結束和平＝回到預設的敵對（`factionWar` 鏈動作）：兩族開始互咬＋攻擊玩家；
+    /// 場上部族怪全部切回可被玩家攻擊的層。
+    /// ⚠ 名字沿用「開戰」是對作者而言的語意（按下去就是打起來），內部其實是「離開和平段」——
+    /// 所以**沒進過和平段的地圖按它也不會有事**（本來就是敵對，只是重套一次層）。
+    /// </summary>
+    public static void EndPeace()
+    {
+        if (!PeaceActive) { RefreshTribeLayers(); return; }
+        PeaceActive = false;
+        RefreshTribeLayers();
+        Debug.Log("[FactionRelations] 三方陣營結束和平（開戰）。");
     }
 
     /// <summary>玩家結盟某一族：該族不再攻擊玩家、玩家武器打不到它（切回 Ally 層）。</summary>
@@ -119,11 +147,11 @@ public static class FactionRelations
         Debug.Log($"[FactionRelations] 玩家結盟：{f}。");
     }
 
-    /// <summary>清掉劇本狀態（回和平、未結盟）。換 module 時由 TriggerChain.ClearLevelFlags 呼叫＝「只在這趟劇本內有效」。</summary>
+    /// <summary>清掉劇本狀態（回預設的敵對、未結盟）。換 module 時由 TriggerChain.ClearLevelFlags 呼叫＝「只在這趟劇本內有效」。</summary>
     public static void ResetScenario()
     {
-        if (!WarActive && PlayerAllied == null) return;
-        WarActive = false;
+        if (!PeaceActive && PlayerAllied == null) return;
+        PeaceActive = false;
         PlayerAllied = null;
         RefreshTribeLayers();
     }
@@ -131,7 +159,7 @@ public static class FactionRelations
     /// <summary>進 Play 模式歸零（已關 Domain Reload；由 PlayModeStaticReset 呼叫）。</summary>
     public static void ResetForPlayMode()
     {
-        WarActive = false;
+        PeaceActive = false;
         PlayerAllied = null;
     }
 
