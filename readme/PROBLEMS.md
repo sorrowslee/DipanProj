@@ -19,11 +19,11 @@
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
 | E | 效能 / 顯示 (Performance & Display) | E1~E35（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F21（⚠ G 章整段插在 F3 與 F4 之間） |
-| G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G10（位置在 F3 之後） |
+| G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G11（位置在 F3 之後） |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1 |
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I10 |
 | J | 螢幕特效 / 進場過場 (Screen FX) | J1~J5 |
-| K | 互動 / 拾取 (Interaction & Pickup) | K1~K2 |
+| K | 互動 / 拾取 (Interaction & Pickup) | K1~K3 |
 | L | 資料表 / CSV (Data Tables) | L1~L3 |
 
 > ⚠ 編號**不保證依閱讀順序遞增**（歷史造成，維持現狀）。新增條目：放進所屬分類、編號接該分類目前最大號；**永不重編號、永不重用舊編號**——全專案文件與 PROGRESS 大量引用這些編號。條目淘汰時整則原文搬 [archive/PROBLEMS-archive.md](archive/PROBLEMS-archive.md) 並在原位留存根（規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)）。
@@ -1038,6 +1038,21 @@
 - **解法**：把圖搬回 `idle/`、刪掉 `idlle/`，再跑 `Project Tools → Sync Map Assets`。
 - **檢查點**：資料夾**存在但空**與**根本不存在**的表現完全一樣，都沒有錯誤訊息。**看到角色從不 idle，第一件事是去看 `idle/` 裡到底有沒有檔案**，不要先查動畫狀態機。同理也適用 `walk/`（缺 walk 的怪走路時會卡在 idle）。
 
+### G11. 主角被藏起來了，地上還浮著一圈「沒有主人」的血統光（頭光／光環／繞行／拖尾）
+- **症狀**（2026-09-17，做卍字進場時發現）：任何把主角藏起來的演出——劇情的 `hidePlayer`、卍字進場——
+  主角本體、影子、碰撞都不見了，**血統特效卻還留在原地繼續轉**。人類血統看不出來，換成有神格特效的血統必現。
+- **原因**：`PlayerVisibility.Hide()` 是用 `GetComponentsInChildren` 關掉 SpriteRenderer＋Collider，
+  再另外關 `BlobShadow`。但 `BloodlineHalo` / `BloodlineAura` / `BloodlineOrbit` / `BloodlineTrail` /
+  `BloodlineAttackFx` 的**視覺全都是獨立 GameObject**（`SetParent(transform.parent)`，刻意不做子物件，
+  免得被角色的 `localScale`／`flipX` 二次影響，同 `BlobShadow` / `CharacterGlow` 的既有結論）
+  → `GetComponentsInChildren` **根本抓不到它們**，於是關不掉。
+  同一個坑 `AtmosphereController` 早就踩過並已處理（它靠 `PlayerVisibility.IsHidden` 跳過玩家的提燈光圈）。
+- **解法**：這五層**全部讀同一顆** `PlayerAnimator.BodyFxVisible`（原本只判姿勢是不是 Idle/Walk/Attack），
+  所以在那顆屬性加一條 `if (PlayerVisibility.IsHidden) return false;` 就一次擋掉全部。
+  **通則：之後再加任何「掛在玩家身上、但做成獨立物件」的持續特效，顯示條件一律接 `BodyFxVisible`，
+  不要各自判一次**——否則下一個藏主角的演出又會漏掉它。
+  （另一份相關清單：體型改變時要重新對齊的視覺，在 `PlayerController.RefreshBodyScaledVisuals()`。）
+
 ### F4. 紅嫁衣 boss（BrainType=RedBridalGown）還是用追擊、不逃跑不召喚
 - **症狀**：怪物有生出來、也會攻擊，但 boss 只會像一般怪一樣追玩家（`RedBridalGownBrain` 的逃跑＋召喚完全沒作用）。
 - **原因**：`MonsterSpawner.LoadMonsterData` 讀 `BrainType`/`Weapon` 時**沒有 `.Trim()`**。CSV 欄位值常帶前導空白（例 `13,RedBridalGown,50, RedBridalGown, 14,...` → `BrainType = " RedBridalGown"`），`switch (data.BrainType){ case "RedBridalGown": }` 對不上 → 掉回 `default = new ChaseBrain()`。**其他怪剛好 default 也是 Chase，所以這個 bug 一直被藏著**，直到出現第一個非 Chase 的 BrainType 才爆。（`Weapon` 因為 `MonsterController.Initialize` 讀取時有 `.Trim()` 才沒中招，但 brain 是 Chase、根本不會呼叫 `MonsterWeaponUser`，所以也不召喚。）
@@ -1363,6 +1378,22 @@
   本例正解：`邪佛對話` 設 `最高完成關卡數=0` ＋ `條件不成立時=跳過這顆繼續`，`給紅嫁衣劇本` 保留自己的 `requireItem=!104`（已經有劇本就不重複給）。
 - **通則**：**在鏈中間加條件前，先問「這顆被擋掉時，後面那些還該不該發生」**——想「整段取消」用預設，想「只跳過這一句」一定要同時設 `條件不成立時=跳過這顆繼續`。另外原本條件不成立是靜默的，現在會印一行 log，排查「鏈莫名其妙斷在中間」時先看 Console。（2026-07-28 記）
 
+### K3. 劇情點（或拾取點）「看完一次就消失，不能再看」——明明和隔壁那顆做法一樣
+- **症狀**（2026-09-17，紅嫁衣客廳1 的家書 dramaId=30）：靠近按 F 看完劇情後，**紫色星星消失、也按不動了**；
+  同一個模組裡書房那顆封靈符（dramaId=22）卻可以反覆觀看。兩顆的 `dramaId` 之外看起來設得一模一樣，
+  DramaTable 兩列也完全同構（`Type=1`、`TalkGroup` 空），所以會直覺懷疑是程式或 CSV 的問題。
+- **原因**：差在 trigger 的 **`重複規則`（`repeat`）** 這一欄——**書房那顆填了 `每次`，客廳這顆留空**。
+  留空＝`關卡單次`（`InteractionManager.ParseRepeat` 的預設 `RepeatMode.Visit`），觸發後走 `ConsumePoint`：
+  移除星星、加進 `_consumed`，**還會寫進 `RunProgress` 的 `consumedTriggers`（跨換圖記憶）**
+  ⇒ 同一趟關卡內離開房間再回來也不會復活，要**完整離開關卡**（回廣場／死亡）才重置。
+  `repeat=每次`（`RepeatMode.Always`）則在 `ConsumePoint` 第一行就 return，星星與互動點都保留。
+  ⚠ 這欄留空**不會有任何警告**，兩顆 trigger 在編輯器裡看起來也幾乎一樣，所以很容易以為是程式壞了。
+- **解法**：把那顆 trigger 的 `重複規則` 設成 `每次`（`.dipanmap` 的 `params` 加 `"repeat": "每次"`），
+  改完在 Unity 跑 `Project Tools → Sync Map Assets`。**不必清存檔**——`關卡單次` 的記錄是純記憶體，不寫檔。
+- **通則**：**「可以反覆閱讀」的東西（家書、告示、族譜、石碑）一律要明寫 `重複規則=每次`**，
+  預設值是給「撿一次就沒了」的道具用的。順帶一提：`重複規則` 對**怪物出生點無效**（見 TRIGGER_CHAIN §2.5.1 下方）。
+
+---
 
 ## L. 資料表 / CSV (Data Tables)
 

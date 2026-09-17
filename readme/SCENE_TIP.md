@@ -2,8 +2,9 @@
 
 > 返回 [文件總覽](README.md)
 
-進到一張「有名字」的地圖時，畫面上方淡入一張金色毛筆場景名、底下墊一條血紅分隔線，
-停留一下自動淡出。**整段暫停遊戲、鎖住操作**，播完才把場面交還給遊戲——
+進到一張「有名字」的地圖時：**先**由一個卍字從天而降把主角送進場（第 0 節，2026-09-17 加），
+卍字淡出後畫面上方淡入一張金色毛筆場景名、底下墊一條血紅分隔線，停留一下自動淡出。
+**整段（卍字＋名字）都暫停遊戲、鎖住操作**，播完才把場面交還給遊戲——
 所以名字一定看得完整，這張圖的**進場自動劇情**、進場對話／教學也一定接在它後面
 （2026-08-27 起：一進圖是正常畫面 → 跳名字 → 名字淡出後劇情模式才整套出現；之前是劇情演完才跳）。
 
@@ -11,9 +12,84 @@
 |---|---|
 | 資料 | `Assets/Data/MapsTable.csv` 的 **`SceneTip` 欄**（第 12 欄） |
 | 面板 | `Assets/Scripts/UI/Panels/SceneTipPanel.cs` |
+| 卍字進場 | `Assets/Scripts/Flow/LevelEnterManjiController.cs`（第 0 節） |
 | 觸發 | `MapManager.FireEnterTriggersRoutine`（與進場觸發同一條等待鏈） |
 | 文字圖 | `Assets/Resources/UI/Texts/<語言>/SceneTipPanel_Text_<key>.png` |
 | 分隔線 | `Assets/Resources/UI/SceneTipPanel/SceneTipPanel_Bg.png`（全場景共用一張） |
+
+---
+
+## 0. 卍字進場（進場表演的第一段）
+
+> **狀態：✅ 程式完成（2026-09-17），⏳ 未編譯、未實機驗證。**
+> 程式＝`Assets/Scripts/Flow/LevelEnterManjiController.cs`，接線在 `MapManager.FireEnterTriggersRoutine` 開頭。
+
+作者要的節奏：**進場 → 卍字從天而降（此時遊戲已暫停，只有卍字在動）→ 落地、主角出現 → 跳場景名 → 名字收掉才正式開打。**
+
+它是過關/死亡那支「卍字離場」（[LEVEL_END_FLOW.md](LEVEL_END_FLOW.md)）的**倒放**，兩支首尾呼應：
+
+| | 離場（過關／死亡） | 進場（本節） |
+|---|---|---|
+| 方向 | 淡入 → 縮小吞人 → 飛上天淡出 | 從天而降 → 落地放大吐人 → 原地淡出 |
+| 顏色 | 金（神聖）→ 紫（墮落） | 紫 → 金 |
+| 長度 | 0.45＋1.25＋0.95 ≈ **2.65 秒** | 0.85＋0.95＋0.40 ≈ **2.20 秒** |
+| 程式 | `LevelExitManjiController` | `LevelEnterManjiController` |
+
+卍字圖是**同一張**（`Resources/InitialStory/Manji`，載不到就用離場那支的程序生成備援——所以兩邊長得一樣，
+改一邊的圖另一邊跟著變）；`SortingOrder` 同樣寫死 **25000**（壓在世界特效 22000 與角色之上，理由見 LEVEL_END_FLOW 的雷點）。
+
+### 0.1 什麼時候播 —— **與場景說明共用同一份判定**
+
+> **「這一趟第一次進到一張 `SceneTip` 有填的地圖」就播。**
+
+沒有新的 CSV 欄位、也沒有第二份去重紀錄：判定直接讀第 2 節那個 `_shownSceneTips`
+（**只 `Contains` 不 `Add`**，名額留給場景說明自己去 Add；文字圖還沒畫、名額被還回去時，
+那一趟再進來連卍字一起重播，兩者永遠同步）。
+
+| 情況 | 卍字 | 場景名 |
+|---|---|---|
+| 標題／讀檔 → 邪佛廣場 | ✅ | ✅ |
+| 廣場 → 紅嫁衣（跨 module） | ✅ | ✅ |
+| 紅嫁衣房間互跳（柴房↔儲藏室…） | ❌ | ❌ |
+| 過關／死亡 → 回廣場 | ✅ | ✅ |
+| 開場：初始森林 1 → 森林 2 → 初始洞窟 | ❌ | ❌ |
+| 開場走到邪佛廣場 | ✅ | ✅ |
+
+前三張開場地圖不播，靠的正是「它們的 `SceneTip` 本來就刻意留空」——不必另外寫一條例外。
+
+⚠️ **代價（務必知道）：`SceneTip` 沒填的地圖＝不跳名字，也不會有卍字進場。**
+目前 `BloodFang_*`、`Future_*` 整組的 `SceneTip` 都是空的 → 進那些關卡兩樣都沒有。
+新關卡要有卍字，就照第 1 節畫一張名字圖、把 `SceneTip` 填上——**一件事同時開兩個開關，這是刻意的**。
+真的哪天需要「有卍字但不跳名字」（或反過來），才值得為它加一個 MapsTable 欄位；
+在那之前多一欄就是多一份會漂移的真相。
+
+### 0.2 主角怎麼消失又出現
+
+- 卍字還在天上時，主角走 `Dipan.Cutscene.PlayerVisibility.Hide()`（劇情 `hidePlayer` 用的同一支）整個藏起來——
+  **不是 `SetActive(false)`**：那支會連**影子、碰撞、暗場景的提燈光圈**一起關，三個坑寫在它的註解裡。
+- 落地後 `Show(false)` 讓 renderer 回來，同時把主角的 `localScale` 從 2% 放大回原尺寸（＝被吐出來），
+  這段期間**影子先按著不開**——影子是獨立物件、不跟著縮放，先放出來會看到「小主角配一團原尺寸的影子」。
+  吐完才開影子。（離場那支沒處理這件事，是它已知的小瑕疵。）
+- 血統特效（頭光／光環／繞行／拖尾）也是獨立物件、`PlayerVisibility` 抓不到，
+  2026-09-17 一併在 `PlayerAnimator.BodyFxVisible` 擋掉（見 [PROBLEMS.md](PROBLEMS.md) **G11**）。
+
+### 0.3 為什麼掛在等待鏈的**最前面**
+
+接線在 `FireEnterTriggersRoutine` 的**第一個 `yield` 之前**，兩個理由，別隨手往後搬：
+
+1. `StartCoroutine` 會同步跑到第一個 `yield`，所以主角是**與 `LoadingPanel` 關閉同一幀**被藏起來的——
+   晚一步玩家就會看到主角站在那裡閃一幀、才被卍字蓋掉。
+2. 「藏主角」與「開始播」之間不隔任何 `yield` ⇒ 不存在「中途換圖 `yield break` ⇒ 主角隱藏狀態殘留」的路徑。
+
+暫停用 `UIManager.SetExternalHold` 的**具名多載**（owner = `"LevelEnterManji"`，見 PROBLEMS **D13**），
+時間軸全程 unscaled；每幀增量**夾上限 0.05 秒**，因為本特效正好接在讀取頁關閉後的第一幀（整場最長的一幀），
+不夾的話卍字會「瞬移半段」才開始動。
+
+### 0.4 調整
+
+節奏與外觀常數都在 `LevelEnterManjiController` 檔頭（`DescendTime` / `UnwrapTime` / `FadeOutTime`、
+`BigSizeMul` / `SmallSizeMul` / `DescendDistMul` / `RotateSpeed`），旁邊註明了各自對應離場的哪一段。
+刻意比離場短：後面還接著場景說明（約 1.73 秒）＋可能的進場劇情，整段暫停太久玩家會煩（同第 4 節壓短停留的理由）。
 
 ---
 
@@ -68,7 +144,8 @@ key 是美術命名（`BuddhaSquare`）——**刻意不綁在一起**：綁了�
 ## 3. 顯示時機（為什麼掛在 FireEnterTriggersRoutine）
 
 `MapManager.FireEnterTriggersRoutine` 是進圖後那條**等待鏈**：
-等進場全螢幕特效（睜眼醒來）播完 → 等「趴地→起身」演完 → **跳場景說明** → **開演進場自動劇情**、等它演完 → 才點火進場觸發點。
+**卍字進場（第 0 節）** → 等進場全螢幕特效（睜眼醒來）播完 → 等「趴地→起身」演完 → **跳場景說明**
+→ **開演進場自動劇情**、等它演完 → 才點火進場觸發點。
 
 場景說明插在**進場特效之後、劇情開演之前**（2026-08-27 作者拍板；第一版是劇情演完才跳，
 作者在紅嫁衣書房實測覺得順序反了）。作者要的畫面節奏是：**一進圖先看到正常的遊戲畫面（主角在、HUD 在）
@@ -172,6 +249,9 @@ Unity 會把它們縮到 2048 才用。目前顯示尺寸遠小於此，看不�
 | 症狀 | 先看 |
 |---|---|
 | 完全沒跳 | Console 有沒有 `[MapManager] 場景說明「…」`。沒有 → CSV 那一列的 `SceneTip` 是空的、或那一趟已經跳過了（同 key 只跳一次） |
+| 卍字進場沒播（名字有跳） | 兩者共用同一份判定，不該發生。先看 Console 有沒有 `LevelEnterManji` 相關錯誤；再確認 `MapManager.FireEnterTriggersRoutine` 開頭那段沒被移走（第 0.3 節） |
+| 卍字播了但主角沒出現／整個不見 | `PlayerVisibility` 的 `Show` 沒被呼叫到。停 Play 再 Play 一次（`PlayModeStaticReset` 會歸零）；若必現，看 `LevelEnterManjiController.RestorePlayer` 是否被 OnDestroy 之外的路徑跳過 |
+| 進圖後遊戲永遠不開始（畫面正常但不能動） | `LevelEnterManjiController.IsPlaying` 殘留成 true，等待鏈卡住。確認 `PlayModeStaticReset` 裡那一行 `LevelEnterManjiController.ResetForPlayMode()` 還在 |
 | 有 Log 但畫面沒東西 | 接著會有 `[SceneTipPanel] MapsTable 的 SceneTip 填了「x」但沒有對應的文字圖` → 檔名或資料夾錯了。⚠️ 這種情況**名額會還回去**，補上圖之後同一趟再進來還跳得出來 |
 | 跳出來但字太大/太小/位置不對 | Play 模式選 `Layer_Overlay → SceneTipPanel` 調，調完回填程式預設值（第 4 節） |
 | 進場對話又疊在名字上 | `FireEnterTriggersRoutine` 那道 `while (tip.IsPlaying)` 等待被拿掉了，或改成等 `IsOpen`（見第 3 節） |

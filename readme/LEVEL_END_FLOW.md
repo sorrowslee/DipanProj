@@ -2,6 +2,10 @@
 
 > 玩家「過關、死亡、或從設定面板主動返回」時：播一段**旋轉卍字把玩家包裹吞入、飛上天離場**的世界特效 → 開**結算畫面**（關卡 loading 圖當底、過關/死亡各自標題、獎勵框）→ 按「返回廣場」回邪佛廣場中央。全程式、零 prefab，風格對齊 GameFlowManager / UIManager。
 
+> 🔁 **另一頭**：進場也有一個卍字（本特效的倒放：從天而降、落地把主角吐出來），
+> 家在 [SCENE_TIP.md](SCENE_TIP.md) **§0 卍字進場**——因為它的觸發判定與「場景說明」共用同一份狀態。
+> 兩支共用同一張卍字圖與同一個 `SortingOrder`，**動外觀/排序要兩邊一起看**。
+
 ## 什麼時候讀
 - 改過關/死亡的表演節奏、離場特效、結算畫面版面。
 - 加新關卡（要在對照表補顯示名）、或想懂 clearLevel 觸發怎麼接。
@@ -28,6 +32,7 @@
 | 檔案 | 角色 |
 |---|---|
 | `Scripts/Flow/GameFlowManager.cs` | 流程指揮：`EndLevel` / `EndLevelRoutine` / `ClearCountdown` / `ReturnToHubFromResult`；關卡 module→顯示名對照表 `ModuleDisplayNames`（**加新關卡在這加一行**）；`IsEndingLevel` |
+| `Scripts/Flow/LevelEnterManjiController.cs` | 世界座標卍字**進場**特效（本檔離場的倒放；說明在 [SCENE_TIP.md](SCENE_TIP.md) §0。共用離場這支的 `ManjiSprite`） |
 | `Scripts/Flow/LevelExitManjiController.cs` | 世界座標卍字離場特效（沿用開場墜落的卍字圖 `Resources/InitialStory/Manji`，載不到程序生成）。淡入→縮小吞玩家（金→紫）→飛上天淡出。**`SortingOrder = 25000`**（見下方雷點） |
 | `Scripts/UI/Panels/ResultPanel.cs` | 結算畫面。底＝`Resources/Loading/<module>.png`；美術元件在 `Resources/UI/ClearStagePanel/`（標題/死亡標題/獎勵框/獲得獎勵標頭/返回按鈕）。`Show(win, showTitle, module, displayName, rewards)`。獎勵格 `RewardsArea` ✅ **已接臨時包**（`PopulateRewards` 排圖示＋×數量），死亡/返回時 `rewards=null` → 顯示大「無」字 |
 | `Scripts/UI/Panels/ExitCountdownPanel.cs` | 過關延時期間上方的「X 秒後即將進入結算」倒數提示（HUD 層、不擋不暫停） |

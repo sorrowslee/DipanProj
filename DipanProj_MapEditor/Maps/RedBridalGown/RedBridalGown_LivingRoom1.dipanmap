@@ -45,6 +45,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -76,6 +77,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -107,6 +109,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -125,7 +128,7 @@
           "scaleY": 1.33100009,
           "sortKey": -2.713949,
           "zOrder": 0,
-          "hp": -1,
+          "hp": 1,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -138,6 +141,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -156,7 +160,7 @@
           "scaleY": 1.33100009,
           "sortKey": -2.713949,
           "zOrder": 0,
-          "hp": -1,
+          "hp": 1,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -169,6 +173,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -200,6 +205,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -231,6 +237,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -262,6 +269,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -416,6 +424,42 @@
             "deathFlag": "killedFamily",
             "spawnInterval": "",
             "maxAlive": ""
+          }
+        },
+        {
+          "id": "74004392",
+          "name": "家書所在地",
+          "typeId": "drama",
+          "cells": [
+            [
+              12,
+              2
+            ],
+            [
+              12,
+              3
+            ],
+            [
+              13,
+              3
+            ],
+            [
+              13,
+              2
+            ],
+            [
+              14,
+              2
+            ],
+            [
+              14,
+              3
+            ]
+          ],
+          "params": {
+            "dramaId": "30",
+            "canSkip": false,
+            "repeat": "每次"
           }
         }
       ]

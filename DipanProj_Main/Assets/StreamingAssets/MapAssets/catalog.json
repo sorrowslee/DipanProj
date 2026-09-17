@@ -11554,6 +11554,15 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/RedBridalGown/Drama/drama_Letter",
+      "path": "Modules/RedBridalGown/Drama/drama_Letter.png",
+      "category": "Drama",
+      "module": "RedBridalGown",
+      "pixelSize": 1254,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/RedBridalGown/Drama/drama_Talisman",
       "path": "Modules/RedBridalGown/Drama/drama_Talisman.png",
       "category": "Drama",

@@ -115,7 +115,9 @@ namespace Dipan.Flow
         // ───────────────────────── 卍字圖（載不到就程序生成）─────────────────────────
 
         static Sprite _sprite;
-        static Sprite ManjiSprite
+        /// <summary>卍字圖（進場特效 <see cref="LevelEnterManjiController"/> 共用同一張與同一份程序生成備援，
+        /// 兩支的卍字才不會長得不一樣）。</summary>
+        internal static Sprite ManjiSprite
         {
             get
             {

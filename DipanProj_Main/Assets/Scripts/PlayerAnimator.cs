@@ -129,10 +129,23 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
     /// <summary>走路動畫的總幀數（一個完整循環）。0 = 這個血統沒有 walk 圖。</summary>
     public int WalkFrameCount => _walk != null ? _walk.Length : 0;
 
+    /// <summary>
+    /// 「掛在身上的血統特效」（頭光 BloodlineHalo／光環 Aura／繞行 Orbit／拖尾 Trail／攻擊特效 AttackFx）
+    /// 現在該不該顯示。它們**全部讀這一顆**，所以要一起關就只改這裡。
+    ///
+    /// 兩個條件：
+    /// ① 姿勢正常（Idle/Walk/Attack）——躺下/死亡/變身倒地時人都倒了，頭光還浮在原位很怪。
+    /// ② 主角沒有被藏起來（<see cref="Dipan.Cutscene.PlayerVisibility"/>）。
+    ///    ⚠ 這幾個特效的視覺是**獨立 GameObject**（刻意不做子物件，免得被角色的 localScale/flipX 二次影響），
+    ///    所以 PlayerVisibility 的 GetComponentsInChildren 抓不到它們、關不掉 → 主角藏起來了、地上還浮著
+    ///    一圈沒有主人的光。劇情 hidePlayer 與卍字進場（LevelEnterManjiController）都會遇到，在這裡一次擋掉。
+    ///    （同一家族的前例：AtmosphereController 也是靠 PlayerVisibility.IsHidden 跳過玩家的提燈光圈。）
+    /// </summary>
     public bool BodyFxVisible
     {
         get
         {
+            if (Dipan.Cutscene.PlayerVisibility.IsHidden) return false;
             var s = GeomState;
             return s == State.Idle || s == State.Walk || s == State.Attack;
         }

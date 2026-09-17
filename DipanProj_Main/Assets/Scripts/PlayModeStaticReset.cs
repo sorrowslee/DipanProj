@@ -98,6 +98,10 @@ public static class PlayModeStaticReset
         // ⇒ 主角再也藏不起來（要重開 Unity 才會好）。同一家族：BloodlineTransformFxRunner.IsPlaying。
         Dipan.Cutscene.PlayerVisibility.ResetForPlayMode();
 
+        // 卍字進場特效的 IsPlaying：殘留成 true 的話，下一次進圖的等待鏈永遠卡在「等卍字播完」
+        // ⇒ 進圖之後遊戲再也不開始（同家族：BloodlineTransformFxRunner.IsPlaying）。
+        Dipan.Flow.LevelEnterManjiController.ResetForPlayMode();
+
         // 發光物登記表：清上一輪殘留（AtmosphereController 取最近發光地上物靠它）。
         LightSource.ClearAll();
     }

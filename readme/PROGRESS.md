@@ -4,6 +4,43 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **家書（dramaId=30）改成可反覆閱讀＋修正一處過期文件**（2026-09-17，見 [PROBLEMS.md](PROBLEMS.md) **K3**）：
+  作者回報「客廳1 的家書看完一次星星就不見了，書房的封靈符（22）卻能重複看，做法明明一樣」。
+  **不是程式問題**：書房那顆的 `重複規則` 填了 `每次`，客廳這顆留空 ⇒ 預設 `關卡單次`，觸發後 `ConsumePoint`
+  移除星星並寫進 `RunProgress.consumedTriggers`，**整趟關卡都不再出現**。
+  已在 `RedBridalGown_LivingRoom1.dipanmap` 的該 trigger 補上 `"repeat": "每次"`
+  （編輯器正本／GameAssets／StreamingAssets 三份一起改，不必先跑 Sync 也能測；不必清存檔，那層記錄不寫檔）。<br>
+  **順帶修掉一個會誤導人的文件錯誤**：TRIGGER_CHAIN §2.5.1 把 `關卡單次` 寫成「離圖重進復活」——
+  那是加 `RunProgress` 之前的舊行為，實際上同一趟關卡內離開房間再回來**不會**復活
+  （INTERACTION.md〈一次性與記憶範圍〉一直是對的，兩份不同步）。已改對並互相指路。
+
+* [x] **卍字進場：主角現在是被卍字送進場的（⏳ 未編譯未實測）**（2026-09-17，見 [SCENE_TIP.md](SCENE_TIP.md) §0）：
+  過關/死亡那支「卍字離場」現在有了對稱的另一半——**進場鏡頭是它的倒放**：卍字從天而降（紫、小、淡入、
+  起步快落地慢）→ 落地放大轉金、把主角從 2% 縮放吐出來 → 原地淡出，接著才跳場景名、名字收掉才開打。
+  全程暫停遊戲、`unscaled` 時間，程式 `Flow/LevelEnterManjiController.cs`（約 2.2 秒；刻意比離場的 2.65 短，
+  後面還接著 1.73 秒的場景說明）。<br>
+  **這次最關鍵的決定是「哪些圖要播」不開新開關**：直接與場景說明共用 `MapManager._shownSceneTips`
+  （只 `Contains` 不 `Add`，名額留給場景說明去 Add）。一行判定就同時得到作者要的四件事——
+  廣場與劇本入口都播、劇本內房間互跳不重播、**開場那三張（初始森林 1/2、初始洞窟）自動排除**
+  （它們的 `SceneTip` 本來就刻意留空）、以及「去重規則全專案只有一份、不會漂移」。
+  代價寫在 SCENE_TIP §0.1：`SceneTip` 空的地圖（目前 `BloodFang_*`、`Future_*` 整組）兩樣都沒有——
+  這是刻意的耦合，真要拆才加 MapsTable 欄位。<br>
+  **接線位置也是刻意的**：掛在 `FireEnterTriggersRoutine` 的**第一個 `yield` 之前**。`StartCoroutine`
+  會同步跑到第一個 `yield`，所以藏主角與 `LoadingPanel` 關閉是同一幀（晚一步就會看到主角閃一幀才被蓋掉）；
+  而且「藏主角 → 開始播」之間不隔 `yield`，就沒有「中途換圖 `yield break` ⇒ 主角永遠隱身」的路徑。<br>
+  **三個踩進去才知道的地方**：① 主角要走 `PlayerVisibility`（劇情 `hidePlayer` 同一支）而不是 `SetActive(false)`，
+  它會連影子、碰撞、提燈光圈一起關；② 吐出主角那段**影子要先按著**——影子是獨立物件不跟著縮放，
+  先放出來會變成「小主角配一團原尺寸的影子」（離場那支就有這個已知瑕疵，這次進場順手避開）；
+  ③ 每幀增量**夾上限 0.05 秒**——本特效正好接在讀取頁關閉後的第一幀（整場最長的一幀），
+  不夾的話 `unscaledDeltaTime` 一次吃掉大半段，卍字會「瞬移」才開始動。<br>
+  **順手修掉一個既有的坑**（[PROBLEMS.md](PROBLEMS.md) **G11**）：`PlayerVisibility` 關不掉血統特效
+  （頭光／光環／繞行／拖尾的視覺都是獨立 GameObject，`GetComponentsInChildren` 抓不到）→
+  主角藏起來了、地上還浮著一圈沒有主人的光。五層全讀同一顆 `PlayerAnimator.BodyFxVisible`，
+  在那裡加一條 `PlayerVisibility.IsHidden` 就全解決，**劇情 `hidePlayer` 的同一個症狀也一起好了**。<br>
+  卍字圖與 `SortingOrder`(25000) 都與離場共用（`LevelExitManjiController.ManjiSprite` 開成 internal），
+  兩支才不會長得不一樣；`PlayModeStaticReset` 補了 `LevelEnterManjiController.ResetForPlayMode()`
+  （`IsPlaying` 殘留會讓等待鏈永遠卡住＝進圖後遊戲再也不開始）。
+
 * [x] **血量門檻台詞改成「跌破就一定喊」——boss 放大絕時喊話的做法（⏳ 未編譯未實測）**（2026-09-16，見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)）：
   作者在紅嫁衣句子4 填了 `50%: 家人們，一起出來吧`，本意是「放大絕時喊這句」，實測卻沒喊。<br>
   **原因**：`N%:` 前綴原本只是**解鎖**——跌破門檻後那句才被放進隨機池，之後每隔 `SpeakIntervalSeconds`(boss 5 秒)

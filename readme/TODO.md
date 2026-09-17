@@ -743,3 +743,16 @@
   受「一個血統只掛一層」的額度限制，填之前先看上面那條〈規劃 20+ 血統的特效分配〉。
   蟲族題材上還沒被用掉的方向：群蟲環繞（`OrbitVfxId`，與泰坦碎石／應龍水球同層但形狀不同）、
   爬行痕跡（`TrailStyle=Step`／`Ground`）。
+
+
+## 卍字進場（2026-09-17 加）
+
+- [ ] **未編譯、未實機驗證**（`Flow/LevelEnterManjiController.cs`）。第一次實測請看：
+  卍字是不是在畫面上緣附近就開始看得見（起始高度＝角色高 ×7.5，太高就把 `DescendDistMul` 調小）、
+  落地那一下有沒有「煞住」的感覺、整段 2.2 秒接場景名 1.73 秒會不會太長。
+- [ ] **`BloodFang_*`、`Future_*` 整組沒有 `SceneTip`** → 進那些關卡**不會有卍字進場、也不跳場景名**。
+  要有就得照 [SCENE_TIP.md](SCENE_TIP.md) §1 畫一張名字圖再填 `SceneTip`（兩件事同一個開關，見 §0.1）。
+- [ ] **佛光光環（`CharacterGlow`／持續武器的 aura）沒有納入「藏主角」的處理**。
+  血統特效已經在 G11 一併解決，但武器 aura 走的是 `PlayerController._activeAura`、不讀 `BodyFxVisible`。
+  若實測發現「卍字還在天上、地上浮著一圈佛光」，就把它也接上 `PlayerVisibility.IsHidden`。
+- [ ] **沒有音效**（同離場卍字與變身演出，專案還沒有音訊系統）。

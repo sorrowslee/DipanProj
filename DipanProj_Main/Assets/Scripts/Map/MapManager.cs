@@ -230,7 +230,8 @@ public class MapManager : MonoBehaviour
 
     /// <summary>
     /// 依序點火本圖所有「進場觸發(自動)」（typeId=onEnter）的觸發點：
-    /// 1) 先等進場一次性效果（睜眼醒來）播完，對話才不會蓋在效果上。
+    /// 0) 先播「卍字進場」（只在這一趟第一次進到有名字的場景時；與場景說明同一份去重狀態）。
+    /// 1) 再等進場一次性效果（睜眼醒來）播完，對話才不會蓋在效果上。
     /// 2) 每顆各自檢查：啟用狀態＋條件（旗標/周目/道具）＋重複規則（每周目/永久 已觸發過就跳過）。
     /// 3) 有填「延遲秒數」就再等（用未縮放時間：暫停中也照走）。
     /// 4) 點火＝OnCompleted：寫完成旗標、啟動接續觸發（next）——它自己不做事，純鏈起點。
@@ -239,7 +240,7 @@ public class MapManager : MonoBehaviour
     ///
     /// **順帶負責「場景說明」**（MapsTable 的 SceneTip 欄）：掛在同一條等待鏈上，等進場特效播完就跳一次場景名，
     /// **名字整段播完才開演進圖自動劇情**（有名字要跳的圖，PlaceAndSetup 會把劇情留給這裡開）。
-    /// 順序：進場特效 → 趴地起身 → 場景說明 → 劇情開演、等它演完 → 進場觸發。
+    /// 順序：**卍字進場** → 進場特效 → 趴地起身 → 場景說明 → 劇情開演、等它演完 → 進場觸發。
     /// 掛這裡是因為「等過場播完」的邏輯只該有一份。見 readme/SCENE_TIP.md。
     /// </summary>
     IEnumerator FireEnterTriggersRoutine(MapTableRow row)
@@ -248,6 +249,27 @@ public class MapManager : MonoBehaviour
         //   沒有進場觸發點的地圖照樣要跳名字。regions 為 null 的處理留到真的要跑迴圈時。
         var regions = mapLoader != null ? mapLoader.Map?.TriggerLayer?.regions : null;
         int mapAtStart = _currentMapId;
+
+        // 卍字進場（Dipan.Flow.LevelEnterManjiController）：過關/死亡那支「卍字離場」的**倒放**——
+        // 卍字從天而降 → 落地放大、把主角吐出來 → 淡出，整段暫停遊戲。播完才接下面的場景說明。
+        // ⚠ 「哪些圖要播」刻意**與場景說明共用同一份狀態**（_shownSceneTips），不另開集合、也不新增 CSV 欄位：
+        //   ① 邪佛廣場(BuddhaSquare)、各劇本入口(RedBridalGown…) 自動符合——廣場去劇本、劇本回廣場都會播；
+        //   ② 初始洞窟(11)、初始森林 1/2(13/14) 的 SceneTip 本來就刻意留空 → 自動排除（作者要的正是那三張不播）；
+        //   ③ 同一趟關卡的房間互跳不重播。去重規則全專案只有一份，兩個系統不會漂移。
+        //   這裡只 Contains **不 Add**，名額留給下面的場景說明去 Add；文字圖還沒畫時它會把名額還回去，
+        //   那一趟再進來連卍字一起重播——兩者永遠同步。
+        // 放在整條等待鏈的**最前面**（第一個 yield 之前）有兩個理由，別隨手往後搬：
+        //   ① 與 LoadingPanel 關閉同一幀就把主角藏起來（StartCoroutine 會同步跑到第一個 yield），
+        //      否則玩家會先看到主角站在那裡閃一幀、才被卍字蓋掉；
+        //   ② 藏主角與播放之間不隔任何 yield → 不存在「中途換圖 yield break ⇒ 主角隱藏狀態殘留」的路徑。
+        if (row != null && !string.IsNullOrEmpty(row.sceneTip) && !_shownSceneTips.Contains(row.sceneTip))
+        {
+            bool manjiDone = false;
+            Dipan.Flow.LevelEnterManjiController.Play(_player != null ? _player.transform : null, () => manjiDone = true);
+            // IsPlaying 一起看：特效物件若被場景切換銷毀（onDone 不會呼叫），才不會永遠卡在這裡。
+            while (!manjiDone && Dipan.Flow.LevelEnterManjiController.IsPlaying) yield return null;
+            if (_currentMapId != mapAtStart || _loading) yield break;
+        }
 
         // 睜眼醒來連動（1/2）：先趴地定格（此時玩家的 Start 已跑完、dead 幀已載入；睜眼開頭全黑蓋住切換瞬間）。
         PlayerAnimator wakeAnim = null;
