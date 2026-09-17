@@ -312,6 +312,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
             case "Pounce":          // 撲擊型（狗/狼/豹…）：觀望→蓄力→直線撲擊→收招（見 PounceBrain）
                 _brain = new PounceBrain();
                 break;
+            case "Archer":          // 射手型（弓/弩/火槍…）：評估「原地射得到嗎」→ 射不到才移動（見 ArcherBrain）
+                _brain = new ArcherBrain();
+                break;
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();
                 IsBoss = true;

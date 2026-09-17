@@ -18,7 +18,7 @@
 | C | 地圖編輯器 / 素材同步 | C1~C15（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
 | E | 效能 / 顯示 (Performance & Display) | E1~E38（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38 在 E 段本體結尾） |
-| F | 戰鬥 / 傷害 (Combat) | F1~F23（⚠ G 章整段插在 F3 與 F4 之間） |
+| F | 戰鬥 / 傷害 (Combat) | F1~F26（⚠ G 章整段插在 F3 與 F4 之間） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G12（位置在 F3 之後） |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1 |
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I10 |
@@ -1310,6 +1310,27 @@
   3. 玩家火力夠猛時**仍然**會壓制住牠（模擬：每 0.2 秒擊退一次 ⇒ 撲擊 0.2 次/分）。這是設計上可接受的
      ——那個 DPS 下戰狼撐不到一秒——真要讓牠在彈雨中還手，調 `InvincibleTimeMs`／`KnockbackThreshold`／
      `KnockbackPercent`，不要再動 Brain。
+
+### F24. 怪物「還沒舉起武器，攻擊就已經打出去了」——攻擊動畫是**出手成功之後**才起播的
+- **症狀**:遠程怪的箭/法術已經飛出去了,牠的 attack 動畫才開始播「舉起武器」;看起來像動畫慢半拍,或是「憑空射出東西」。近戰怪不明顯（貼身瞬間出手),有預備動作的遠程怪一眼就看得出來。
+- **原因**:`MonsterWeaponUser.TryUse()` 是**施放成功之後**才呼叫 `MonsterController.NotifySkillCast()` 起播 attack 動畫的。對「貼上去就咬」的怪沒差,但只要 Brain 的節奏是「站定 N 秒 → 出手」,彈丸就必然比動畫早。**動畫不是慢,是順序反了。**
+- **解法**:**動畫先起播,到指定的那一幀才出手**——由 Brain 在動作開始時自己呼叫 `NotifySkillCast()`,並把出手延遲寫成**序列圖的幀號**而不是秒數:`MonsterAnimator.SetState` 切到 Attack 時幀索引歸零、以 CSV `AnimFPS` 起播,所以第 N 幀出現在 `(N-1) ÷ AnimFPS` 秒 ⇒ **改 AnimFPS 時機自動跟著對**。範例見 `ArcherBrain.BeginDraw`（[BOSS_MODULE.md](BOSS_MODULE.md) §8.2b）。<br>⚠ **順帶要處理動畫「續命」**:`NotifySkillCast()` 只把 attack 姿勢延到 `Time.time + SkillCastAnimSeconds`,而那個欄位**預設只有 0.6 秒**——比多數有預備動作的 attack 序列都短 ⇒ 只呼叫一次,動畫會在出手前就切回 idle。但**也不能每幀無腦續**:最後一次呼叫會多撐 0.6 秒、拖過整套動作結尾,動畫就接著演第二輪前段（看起來像「打完又舉一次武器」）。正解是只在「再續一次也不會超過這套動作的結束時間」時才續（`ArcherBrain.KeepAttackPose`）。<br>**不要改 `SkillCastAnimSeconds` 來解**——那是 `MonsterController` 的 public 欄位、**全怪共用**,為了一隻怪動它會影響所有會施法的怪。
+- **通則**:**任何有預備動作的怪物攻擊（拉弓、舉杖、掄石頭）都吃這一條**。做新的遠程/施法 Brain 時,節奏要定成「動畫起播 → 第 K 幀出手 → 收尾與冷卻重疊」,不要定成「等 N 秒 → 出手 → 播動畫」。
+
+### F25. 怪物「出手動作播了、東西沒射出來」,而且**每隻怪只發生在第一次**——事前問 `Ready`,冷卻卻是**執行時才被寫進去**的
+- **症狀**:遠程怪拉完弓/舉完杖,動作完整演完,**就是沒有東西飛出去**。Console 出現 `[Archer] … 播了 attack 卻沒射出東西`。看起來像隨機發生,但對照 log 的時間會發現規律:**每次 `[MonsterGlow] 掛上體光：<怪名>`（新怪生成）之後的第一發必定空砲,之後就正常**。
+- **原因**:`MonsterWeaponUser` 是**懶解析**——`Resolve()` 只在 `TryUse()` 的第一行被呼叫（因為 `WeaponManager` 要開場才載好）。而「**起手緩衝**」（生成後先等一個冷卻週期,避免一冒出來就出手）**正是在 `Resolve()` 裡才寫進 `_cooldown` 的**。於是:<br>① 怪剛生成 ⇒ `_cooldown = 0`、`_resolved = false`;<br>② Brain 在出手前檢查 `Ready`（`=> _cooldown <= 0f`）⇒ **拿到 `true` 的假答案**,因為 `Ready` 不會觸發 `Resolve()`;<br>③ Brain 放心地把整套出手動作演完（弓箭手是 0.71 秒）;<br>④ `TryUse()` 第一行才 `Resolve()`,**把起手緩衝寫進 `_cooldown`**;<br>⑤ 下一行 `if (_cooldown > 0f) return false;` ⇒ **被自己上一行剛設的冷卻擋掉**。
+- **解法**:把解析抽成 `EnsureResolved()`,**讓 `Ready` 也走它**（getter 有副作用,但這個副作用是必要的,已寫在註解裡）。順手把 `Resolve()` 的失敗分成兩種:找不到 `WeaponManager` 是**時序問題** ⇒ 不標記已解析、0.5 秒後重試（舊版在這裡就 `_resolved = true`,萬一怪比 WeaponManager 早初始化,牠**這輩子都不會再嘗試解析武器**);武器 ID 在表裡找不到是**設定問題** ⇒ 定案不重試。
+- **通則一（最重要）**:**任何「先問狀態、再執行」的 API,如果那個狀態是在執行路徑上才被初始化的,事前檢查就會拿到假答案。** 懶初始化的元件必須讓「查詢」與「執行」走**同一個** `EnsureXxx()`。這個 bug 的隱蔽之處在於:它不會報錯、不會每次發生,只在「物件剛建立的第一次」出現,所以很容易被當成偶發的手感問題。
+- **通則二**:**回傳值要表示「我真的做了」,不是「我試過了」。** 同一次還抓到 `MonsterWeaponUser.TryFireProjectile` 無條件 `return true`,但它呼叫的 `WeaponCastService.FireNormal` 在配方沒建好時其實一顆子彈都沒生 ⇒ 上層以為射出去了、照樣進冷卻、照樣播動畫,變成**連 warning 都不會有的空砲**。已改成 `FireNormal` 回報實際生成數、`TryFireProjectile` 原樣回傳。
+
+### F26. 清掉一群遠程怪 ⇒ Console 被 `MissingReferenceException` 洗版——**子彈的 callback 活得比射它的怪久**
+- **症狀**:放一堆弓箭手然後把牠們打死,Console 瞬間刷滿紅字 `MissingReferenceException: The object of type 'MonsterWeaponUser' has been destroyed but you are still trying to access it.`,而且**同一個時間戳重複幾十行**。遊戲不會閃退,但每顆在空中的箭命中時都會拋一次。
+- **原因**:子彈的命中 callback 綁的是 `MonsterWeaponUser` 的**實例方法**(`OnHit = OnProjectileHit`),而**子彈的壽命比射出它的怪長**。怪被打死 → `GameObject` 被 `Destroy` → 箭還在飛 → 命中的那一刻 callback 去讀 `transform.position` / `gameObject` ⇒ 炸。<br>⚠ **真正的陷阱在這裡**:**Unity 被 destroy 的物件在 C# 端不是真的 `null`**,只有 `UnityEngine.Object` 覆寫過的 `==` 才看得出來。所以原本那行 `if (hitTarget == null || _weapon == null) return;` **完全擋不住**——`_weapon` 是純 C# 物件(`WeaponData`),元件被 destroy 不會把它變 null,檢查照樣通過,下一行就炸。
+- **解法**:callback 第一行加 `if (this == null) return;`（走的是 Unity 覆寫的 `==`,這是唯一正確的判斷方式）。順帶把擊退方向從「射手→目標」改成**箭的飛行方向**(`bullet.Velocity`)——箭可能已經反彈/追蹤過好幾次、射手也可能離很遠,沿飛行方向擊退才符合畫面,而且少一個對 `transform` 的依賴。
+- **通則**:**任何「發射後就獨立存在」的東西——子彈、地面特效、召喚物、協程——只要它的 callback 指向發射者的實例方法,發射者死亡之後就會踩這條。** 寫這種 callback 時先問自己一句:**「這個 callback 有沒有可能在擁有者死掉之後才被呼叫?」** 會的話,第一行就要有 `this == null` 的防線。
+- **補充**:`PlayerController` 的 `HandleBulletHit` 那七個 callback **沒有**這個風險——玩家是常駐物件,專案裡沒有任何地方 `Destroy` 玩家(2026-09-17 掃過)。這條目前只對怪物成立。
+- **已知取捨**:修完之後,**射手死掉時牠已經射出去的箭就不再造成傷害**(整個 callback 提早 return),箭會繼續飛到壽命結束。要讓「死人的箭照樣殺人」,得在**發射當下**就把陣營資訊快照起來,因為 `CombatSystem.Apply` 需要 source `GameObject` 去查 `FactionRelations`,而那個物件已經不存在了。目前沒做。
 
 ## H. 流程 / 存讀檔 (Game Flow & Save UI)
 

@@ -2,7 +2,7 @@
 
 > 返回 [文件總覽](README.md)｜怪物量產見 [MONSTER_SETUP.md](MONSTER_SETUP.md)｜武器/配方見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)｜傷害結算見 [COMBAT.md](COMBAT.md)｜劇情分支見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7
 >
-> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** 待實機微調。投射型武器供怪物使用（飛劍/落雷…）為 Phase 2。
+> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** ✅ **射手型 `ArcherBrain` ＋ 怪物投射武器管線 `WeaponCastService`**（2026-09-17，見 §8）程式完成、⏳未編譯未實測。** 待實機微調。投射型武器供怪物使用：**`Normal` 直飛彈已打通**，其餘模式（雷射/拋物線/落雷…）仍待搬進 WeaponCastService。
 
 「一隻強怪＝一個 Brain 模組」。第一個範例是紅嫁衣女殭屍。未來每隻 boss 都新增一個自己的 Brain 類別，其它系統不動。
 
@@ -17,7 +17,7 @@
 |---|---|
 | `IMonsterBrain.Think(in MonsterContext)` | 決策機介面。簽名已從舊 `Think(actuator, player)` 升級為傳 **`MonsterContext`**（打包 Self/Actuator/Sensor/Player/DeltaTime）。Brain 要更多能力只往 context 加欄位，不改介面。 |
 | `MonsterContext`（struct） | 每幀決策脈絡。`ChaseBrain` 只讀 Actuator/Player；boss 級 Brain 另讀 `Self` 拿 `WeaponUser` 施放技能。 |
-| `MonsterWeaponUser`（元件，seam） | **怪物「使用一把武器」的統一入口**。`Configure(owner, weaponId)`；Brain 每幀呼叫 `TryUse()`，冷卻（配方 `FireInterval`）與召喚上限都在這裡結算。依配方型別分派：目前實作 `Mode=Summon`（召喚）；**投射型武器（飛劍/落雷）＝ Phase 2**。 |
+| `MonsterWeaponUser`（元件，seam） | **怪物「使用一把武器」的統一入口**。`Configure(owner, weaponId)`；Brain 每幀呼叫 `TryUse(target)`，冷卻（配方 `FireInterval`）與召喚上限都在這裡結算。依配方型別分派：`Mode=Summon`（召喚）與 **`Mode=Normal`（直飛投射彈，2026-09-17 接上，走 `WeaponCastService`，見 §8.4）**；其餘模式待搬。 |
 
 **怪物怎麼拿到武器**：`MonsterData.csv` 的 `Weapon` 欄以前閒置，現在**填 WeaponTable 的武器 ID（數字）**＝這隻怪掛 `MonsterWeaponUser` 用那把武器；填 `Contact`／空／非數字 = 不掛（只近戰接觸傷害）。`MonsterController.Initialize` 依此掛上並 `Configure`。
 
@@ -357,3 +357,181 @@ BrainType 填 `Pounce` 即可。
 - [ ] **撲擊傷害目前與咬擊相同**（作者 2026-09-17 選「零改動」）。要讓撲擊更痛，得給 `EnemyContactDamage` 加一個臨時倍率開關。
 - [ ] **`InvincibleTimeMs` 是一份隱形的行為預算**（[PROBLEMS.md](PROBLEMS.md) **F19**）：戰狼目前填 0（與其他量產怪一致），
       被連射時擊退窗口首尾相連 ⇒ 牠會站著不做決策。實測若覺得「被打時發呆、節奏亂掉」就填 300~500 再重調節奏。
+
+---
+
+## 8. 射手型（弓／弩／火槍…）— `ArcherBrain` ＋ 怪物投射武器管線
+
+> **狀態：✅ 程式完成（2026-09-17），⏳ 未編譯、未實機驗證。** 第一隻使用者：**怪物 18「Wolf Archers」狂族弩手**（BloodFang），
+> 拿武器 33「狂族十字弓」。**同一次改動順便把「怪物使用投射型武器」這條路打通了**（見 §8.4），
+> 不再是 §1 表格裡那句「投射型武器＝Phase 2」。
+
+`ChaseBrain` 是貼上去磨、`PounceBrain` 是拉開距離再撲，這支的決策核心是一個判斷句：
+**「我站在這裡射得到他嗎？」**——射得到就原地放箭、一步都不動；射不到才移動，而且只挪一小段就重新評估。
+
+> ### ⭐ 射手型模組的鐵則（作者 2026-09-17 拍板，**所有射手型 Brain 都適用**）
+>
+> **只要 attack 動作播了出去，就一定要射出箭。**
+>
+> `Draw` 階段**不做任何中途取消**——不重驗射程、不重驗視線、不看武器冷卻。
+> 所有該擋的檢查都在 `Observe` 決定拉弓的**那一刻**做完（射程／視線／`WeaponReady`），
+> 一旦進了 `Draw`，放箭就是必然。
+>
+> **為什麼**：拉弓要 0.7 秒，玩家在這段時間很容易走出射程或閃到柱子後面。第一版會因此取消放箭 ⇒
+> 作者實機回報「**十字弓已經提起來了卻不射箭，看起來很像 bug**」。
+> **弓箭滿場飛是可接受、甚至有趣的；「舉了弩卻沒箭」不是。**
+>
+> 真的需要「可取消的瞄準」（例如某種會被打斷施法的敵人）⇒ **另開一支 Brain**，不要改這支。
+
+### 8.1 四段狀態機
+
+| 階段 | 行為 | 常數（`ArcherBrain.cs` 檔頭） |
+|---|---|---|
+| `Observe` | **站定評估**。剛發現目標、移動完一段、射完一發之後都回到這裡 | `ObserveMin/Max` 0.4/0.8 |
+| `Reposition` | 往算好的落點**挪一小段就停**（綁距離不綁時間），走完回 `Observe` 重新評估 | `StepDistMin/Max` 1.2/2.2、`StepMaxSeconds` 2.0 |
+| `Draw` | **站定拉弓**。進來時就讓 attack 動畫起播，**演到指定的那一幀才放箭**（見 §8.2b）。**進來就一定會放箭，沒有取消條件**（見上方鐵則） | `ReleaseFrame` 14、`FollowThroughSeconds` 0.8 |
+| ↑ 放箭後 | 回 `Observe`，但用**較長的秒數**＝射擊間隔（作者指定先寫死在模組裡） | `IdleAfterShotMin/Max` 1.2/1.8 |
+
+### 8.2 核心判斷：`CanShootFrom()` ＝ 距離 ＋ 視線
+
+**這個判斷只在 `Observe` 階段做一次**（決定要不要拉弓的那一刻），連同武器冷卻（`WeaponReady`）一起——
+進了 `Draw` 就不再驗（見上方鐵則）。兩個條件都成立才開火：
+
+1. **距離**落在 `MinRange`(2.0) ~ `ShootRange`(5.25) 之間；
+2. **飛行物飛得過去**（`HasLineOfFire`）：從出手點往目標掃一條**有粗細的** `CircleCast`（`LineOfSightRadius` 0.18），
+   撞到障礙層就是被擋。
+
+⚠ **`ShootRange` 是「行為射程」，不是子彈真正飛得多遠**。配方 44 是 `Speed 15 × LifeTime 3 ＝ 45 世界單位`，
+而**畫面高才 10** ⇒ 直接拿子彈壽命當射程的話，牠會從畫面外你看不見的地方開始射你。
+**這條對任何「遠程怪」都成立，加火槍手時不要重新發明。**
+第一版抓 7（≈ 畫面寬一半），作者實測「有點太遠」⇒ **2026-09-17 砍 1/4 成 5.25**（≈ 畫面寬的 1/3）。
+`PreferredRange` 要跟著按比例縮（目前 4.1 ≈ ShootRange × 0.79），否則牠想站的位置會落在射程外、一直跑位。
+
+⚠ **視線檢查用 `CircleCast` 不用 `Linecast`**：箭有體積，那條「數學上剛好通過」的細線，實際射出去會撞在柱子邊上。
+而且障礙層用 `LayerMask.GetMask("Environment", "Water")`——**與 `MonsterActuator`／`MapNavGrid` 同一份定義**，
+所以「牠覺得射不過去」與「箭真的會被擋下」是同一個真相，不會出現「牠站在那裡一直不開火，你卻看不出哪裡被擋」。
+
+⚠ **視線起點要推出自己的身體框**（`MuzzleOffset()` ＝ 碰撞框 `extents.magnitude + 0.1`）：
+不推的話，`CircleCast` 的起始圓會重疊到「牠自己正貼著的那面牆」，變成**站在牆邊就永遠判定射不出去**。
+
+### 8.2b 放箭時機＝序列圖的「那一幀」，不是一個秒數
+
+> **2026-09-17 實測修正**：作者回報「**武器都還沒提起來，弓箭就射出來了**」。
+
+**根因是順序反了**：第一版在 `Draw` 站定 0.55 秒後才 `TryUse()`，而 attack 動畫是
+`MonsterWeaponUser` **施放成功後**才呼叫 `NotifySkillCast()` 起播的 ⇒ **箭先飛出去，動畫才開始播**。
+
+正確順序：**進入 `Draw` 就讓動畫起播**（`BeginDraw` 呼叫 `NotifySkillCast`），
+等它演到「弩已經舉到定位」那一幀才放箭。
+
+**幀怎麼換算成秒**：`MonsterAnimator.SetState` 切到 Attack 時會把幀索引歸零、以 CSV 的 `AnimFPS` 起播，
+所以第 N 幀出現在 `(N-1) ÷ AnimFPS` 秒。於是放箭時機寫成 **幀號**（`ReleaseFrame`）而不是秒數——
+**改 CSV 的 `AnimFPS` 時機會自動跟著對**，換一隻拉弓節奏不同的射手只要改這個常數。
+
+`Wolf Archers` 的 attack 25 張：1~3 預備、4~9 往前推、**10~12 完全水平前伸到位**、13~19 維持、20~25 收弩。
+第一版取 11（弩剛舉定那一幀），作者實測仍覺得太早 ⇒ **現在是 `ReleaseFrame = 14`**（@14fps ＝ 0.93 秒），
+落在「維持瞄準」那段的開頭，視覺上是「舉定、穩住、才放」——**放箭幀寧可比「動作到位」再晚一兩幀**，
+因為玩家的眼睛要一點時間確認武器已經舉好。
+
+⚠ **動畫要「續命」，但不能無腦每幀續**（`KeepAttackPose`）：
+`NotifySkillCast()` 只把 attack 姿勢延到 `Time.time + SkillCastAnimSeconds`，而那個欄位**預設只有 0.6 秒**，
+比拉弓到放箭（0.71 秒）還短 ⇒ 只呼叫一次的話動畫會在放箭前切回 idle。
+但每幀無腦續的話，最後一次呼叫會把姿勢多撐 0.6 秒、拖過整套動作的結尾，動畫接著演第二輪前段
+（看起來像「射完又舉一次弩」）。所以只在「再續一次也不會超過結束時間」時才續。
+收弩的後半段（`FollowThroughSeconds` 0.8）與射擊間隔的 idle **重疊**，不額外拉長節奏。
+
+### 8.3 移動只挪一小段，走完重新評估
+
+`BeginStep()` 依「為什麼射不到」決定落點，三種情況：
+
+| 情況 | 落點 |
+|---|---|
+| 太遠（> `ShootRange`） | 沿兩點連線靠近到 `PreferredRange`(5.5) |
+| 太近（< `MinRange`） | 同一條線往外 ⇒ 等於**後退** |
+| 距離剛好、但**視線被擋** | 保持大致距離，繞 `SideAngleMin~Max`(35~65°) 換一個能射穿的角度 |
+
+三種都只走 1.2~2.2 單位就停。**一次走到底是錯的**：途中障礙物關係變了不會發現，而且會變成「一路衝到玩家臉上」。
+`Reposition` 途中只要條件已經滿足就**立刻停下來射**，不必把這一步走完——否則會出現「明明已經走到射得到的位置，卻還要再走兩步才肯開火」。
+
+`PreferredRange`(5.5) 比 `ShootRange`(7.0) 短是刻意的：留餘裕，玩家走兩步不會立刻脫離射程、害牠又要重新跑位。
+
+### 8.4 怪物投射武器管線（`WeaponCastService`）— 這次真正的地基改動
+
+原本「發射一發子彈」只存在 `PlayerController` 裡，整段綁死玩家：瞄準來自滑鼠、出手點來自血統體型、
+命中層寫死 `EnemyLayer`、傷害來源寫死 `gameObject`。所以 `MonsterWeaponUser` 碰到非召喚武器只能吐 warning。
+
+**`Assets/Scripts/Weapon/WeaponCastService.cs`** 把「發射」本身抽出來，
+**誰射的／從哪射／往哪射／打得到哪一層／命中要做什麼**全部變成參數（`CastContext`）：
+
+| | 玩家（`ShootNormal`） | 怪物（`MonsterWeaponUser.TryFireProjectile`） |
+|---|---|---|
+| `Origin` | `MuzzleWorldPos`（血統體型的出手點） | 身體框外緣，朝目標方向 |
+| `Direction` | `AimDirectionToMouse()` | 朝 `TryUse(target)` 傳進來的目標 |
+| `OwnerScale` | `PlayerScale` | 1（怪物體型不該放大牠的箭） |
+| `TargetLayers` | 怪物層 | **目標所在的那一層**（射玩家＝Player 層、射敵對怪＝Enemy 層） |
+| `OnHit` | `HandleBulletHit`（地面特效／子武器迸發／擊中特效） | `CombatSystem.Apply` ＋ 擊中特效 |
+
+> **`FireNormal` 回傳「有沒有真的生出子彈」**，呼叫端要據此決定要不要進冷卻／播出手動畫。
+> 無條件當成功會產生**連 warning 都沒有的空砲**（PROBLEMS **F25** 通則二）。
+
+⭐ **`TargetLayers` 這一欄就是「怪物的箭不會被自己人擋住、也不會誤傷同伴」的全部秘密**——
+用 layer 先擋掉，不要在命中 callback 裡補陣營判斷。真正的「能不能造成傷害」仍由 `CombatSystem` 查 `FactionRelations`。
+
+**刻意留在呼叫端、沒有一起抽進來的**（它們屬於「誰在射」而不是「怎麼射」）：瞄準與出手點、耗魔／集氣／連擊／能力珠、
+以及**命中之後的效果鏈**。硬把玩家的命中鏈搬進服務，會把 `TryTriggerSubWeapon`／`TryTriggerGroundEffect` 整串
+玩家專屬狀態一起拖過來，服務就變成第二個 `PlayerController`。
+
+**目前只搬了 `Normal`（直飛彈）**，所以怪物能用的投射武器也只有 Normal——但分裂／反彈／追蹤／平行／穿透／軌跡
+這些配方欄位對怪物**全部有效**，因為那是同一份彈道程式。
+Laser／Parabolic／SkyStrike／Chain／Orbital／Melee／Dash／GroundCast 仍住在 `PlayerController`；
+之後一種一種搬進來，**搬完 `MonsterWeaponUser` 不用改就會自動支援**（它是照 `recipe.Mode` 分派的）。
+
+> 玩家端同時做了三個薄封裝：`ParallelOffsets`／`ResolvePierceableLayers`／`ResolveNonBounceLayers` 的實作都搬進服務，
+> `PlayerController` 只留一行轉呼叫（拋物線等其他模式還在用這些名字，不能直接刪）。
+> **所以平行彈與穿透／反彈的規則現在只有一份**，改一次玩家與怪物同時生效。
+
+### 8.5 加一隻新的射手型怪（SOP）
+
+`BrainType` 填 `Archer` 就能用，`ArcherBrain` 裡沒有任何「弩手專屬」的東西。
+
+| # | 做什麼 | 備註 |
+|---|---|---|
+| 1 | 素材丟 `Monsters/SequenceImage/<怪名>/idle｜walk｜attack` | `attack` ＝ 拉弓到放箭那一整套 |
+| 2 | 武器：`WeaponTable` 加一列（或沿用現成的），`Mode` 必須是 **Normal** | 背包 icon 與飛出去的圖是**兩個欄位**，見 [PROBLEMS.md](PROBLEMS.md) **E38** 上面那段與 PROGRESS 2026-09-17 那條 |
+| 3 | `MonsterData.csv` 加一列：`BrainType=Archer`、**`Weapon` 填武器 ID（數字，不是 `Contact`）** | 填 `Contact` 的話牠不會有 `MonsterWeaponUser`，就只會站著發呆 |
+| 4 | ⚠ 子彈圖的 `SpriteAngleOffset` **不要填 0** | 0 ＝「這顆子彈不旋轉」，箭會永遠朝右。水平朝右的圖填 **360**。見 PROBLEMS **E38** |
+| 5 | 跑 `Project Tools → 角色 → 計算影子錨點`；四足獸型還要手改成 `manual` | 見 [SHADOW.md](SHADOW.md)〈四足獸型的常見誤判〉 |
+| 6 | `Project Tools → Sync Map Assets` | 把圖與 CSV 帶進 StreamingAssets |
+
+**完全不用管的**：傷害結算、attack 動畫、左右翻面（自動面向玩家）、影子、腳底對齊、彈道行為。
+
+⚠ **寫新的射手型 Brain 時，鐵則照抄**：檢查全部放在「決定出手」的那一刻，出手動作開始之後不准反悔。
+這條看起來像小事，但它決定了玩家看到的是「一隻會射箭的怪」還是「一隻卡住的怪」。
+
+### 8.6 待辦 / 已知限制
+
+- [x] ~~舉了弩卻不射箭~~ → 2026-09-17 第二輪：移除 `Draw` 的所有中途取消，檢查前移到 `Observe`（見上方鐵則）。
+- [ ] **2026-09-17 實測已修三項**（射程太遠 → 砍 1/4；箭比動畫早出去 → 改幀對齊；舉了弩不射 → 鐵則）。
+      下一輪看：① 站位會不會在柱子附近來回抖（`SideAngleMin/Max`）；② 射擊間隔 1.2~1.8 秒會不會太密；
+      ③ `ReleaseFrame`（目前 14）的放箭時機順不順（覺得早就往後挪、晚就往前挪，一幀 ≈ 0.07 秒）。
+- [x] ~~每隻新生成的弩手第一發是空砲~~ → 2026-09-17 第三輪：`MonsterWeaponUser.Ready` 改成會先把武器解析完
+      （起手緩衝是解析時才寫進冷卻的，事前問 `Ready` 會拿到假答案）。**根因與兩條通則見 [PROBLEMS.md](PROBLEMS.md) F25**。
+      同時 `Observe` 遇到「射得到但武器冷卻中」改成**原地等** `WeaponWaitSeconds`(0.15)，不跑開——
+      牠明明站在射得到的位置，跑開只會看起來很蠢。
+- 🔧 **若 Console 出現 `[Archer] … 播了 attack 卻沒射出東西`**：那是鐵則被破壞的警報。
+      F25 修掉之後，剩下的原因都是**設定問題**（`Weapon` 欄沒填武器 ID／該武器的 `Mode` 不是 `Normal`／
+      場景 `WeaponManager` 的 Bullet Prefab 沒設／配方沒建好），不是手感問題。
+- 🔧 **手感不對先開除錯 log**：`ArcherBrain.DebugLog = true`（static），會印每次決策「能不能射／為什麼不能／挪去哪」。
+- [x] ~~箭比動畫早射出去~~／~~attack 動畫被 0.6 秒的 `SkillCastAnimSeconds` 切掉~~
+      → 2026-09-17 改成「動畫先起播、第 `ReleaseFrame` 幀放箭」＋`KeepAttackPose` 續命（見 §8.2b）。
+      **沒有改 `SkillCastAnimSeconds`**（那是全怪共用的 public 欄位），而是由 Brain 自己續，其他怪零影響。
+- [ ] **兩層射擊節流**：`ArcherBrain` 的 `IdleAfterShot`（行為）與武器配方的 `FireInterval`（武器）**是兩層**，
+      實際間隔取較嚴格的那個。想射快一點先改 Brain 的常數，不要去動配方——配方是玩家也在用的那把武器。
+- [ ] **射手死掉時，牠已經射出去的箭不再造成傷害**（箭會繼續飛完，只是不結算）。
+      這是修 [PROBLEMS.md](PROBLEMS.md) **F26**（清場時 Console 被 MissingReferenceException 洗版）時的取捨——
+      `CombatSystem.Apply` 需要 source `GameObject` 查陣營，而射手已經被 Destroy。
+      要讓「死人的箭照樣殺人」得在發射當下就把陣營快照起來，目前沒做。
+- [ ] **`MinRange`(2.0) 的後退是「挪一步」不是「逃跑」**：玩家一路貼上來，牠會邊退邊被貼身。
+      要做成真正的風箏（kiting）得加「後退時也能射」的狀態，那是新功能。
+- [ ] **手感參數全域共用**：`ArcherBrain` 檔頭的 `const` 所有射手型怪吃同一組。
+      之後若出現「短弓手 vs 長弓手」射程要分開，把 `ShootRange` 改成從 `MonsterData` 讀（同 §7.6 對 `StalkRange` 的說明）。

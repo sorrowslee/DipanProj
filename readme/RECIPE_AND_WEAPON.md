@@ -89,9 +89,34 @@
 **範例**：
 * 圖片的劍尖原本朝右上 45° → `SpriteAngleOffset = -45`（順時針轉 45° 讓劍尖朝右）
 * 圖片的劍尖原本朝上 → `SpriteAngleOffset = -90`
-* 圖片本身就朝右（如水平飛彈）→ `SpriteAngleOffset = 0`
+* 圖片本身就朝右（如水平飛彈、弩矢）→ **`SpriteAngleOffset = 360`，不是 0**（見下方警告）
+
+> ⚠ **`0` 不是「補正 0 度」，是「這顆子彈不要旋轉」**（2026-09-17 踩到，見 [PROBLEMS.md](PROBLEMS.md) **E38**）。
+> `BallisticsEngine.cs:127`（發射當下）與 `BulletInstance.cs:141`（飛行中每次移動）都寫成
+> `if (SpriteAngleOffset != 0f)` 才套 rotation ⇒ 填 0 的子彈**永遠維持圖的原始朝向**，往下射箭頭還是朝右。
+> 所以「圖本身已經朝右、數學上剛好不用補」的素材反而掉進這個洞。
+> **水平朝右的圖一律填 `360`**（≡ 0 度、且 `!= 0f`，也在武器工坊 `-360~360` 的合法範圍內）；
+> 真的想讓圖不旋轉（圓形光球、炸彈）才填 0 或留空。
+> 既有武器裡 `SpriteAngleOffset=0` 又有子彈圖的還有 **ID 2 彎刀／4 炸彈／11 蜂巢／13 御靈水晶**，它們目前都不旋轉。
 
 設定完成後，無論玩家往哪個方向射擊，武器圖片都會自動旋轉到正確角度，攻擊端永遠指向飛行方向。分裂子彈也會自動繼承此設定。
+
+## WeaponCastService — 不綁擁有者的發射服務（怪物與玩家共用）
+
+`Assets/Scripts/Weapon/WeaponCastService.cs`（2026-09-17 加）。
+
+**在這之前**「發射一發子彈」只存在 `PlayerController` 裡，整段綁死玩家（滑鼠瞄準、血統體型的出手點、
+命中層寫死 `EnemyLayer`、傷害來源寫死 `gameObject`），所以怪物想用同一把武器射同一種子彈時無路可走。
+
+現在「發射」本身抽成靜態服務，**誰射的／從哪射／往哪射／打得到哪一層／命中要做什麼**全是參數（`CastContext`）：
+`PlayerController.ShootNormal` 與 `MonsterWeaponUser.TryFireProjectile` 呼叫同一份彈道生成程式，
+所以分裂／反彈／追蹤／平行／穿透／軌跡只有一份實作。
+
+- **目前只搬了 `Normal`（直飛彈）**；其餘模式仍住在 `PlayerController`，之後一種一種搬。
+  搬的原則：**幾何與彈道進來，資源（耗魔／集氣／連擊／能力珠）與命中鏈留在呼叫端**。
+- `ParallelOffsets`／`ResolvePierceableLayers`／`ResolveNonBounceLayers` 的實作也搬進來了，
+  `PlayerController` 只留一行轉呼叫（拋物線等模式還在用這些名字）。
+- 怪物端怎麼用、`TargetLayers` 為什麼是「目標所在的那一層」：見 [BOSS_MODULE.md](BOSS_MODULE.md) §8.4。
 
 ## RecipeManager
 * 在 `Awake()` 時用 `CsvTable` 載入所有配方，每列交給 `RecipeEntry.FromFields`，問題（[Error]/[Warning]）逐條印到 Console（含行號）。

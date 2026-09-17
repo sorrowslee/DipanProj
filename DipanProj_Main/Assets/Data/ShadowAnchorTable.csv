@@ -149,9 +149,10 @@ monsters/werewolfsoldier/walk,-11.4,48,150,auto,14,256,256,
 monsters/wolf archers/attack,-15.5,49.5,205,auto,25,256,256,
 monsters/wolf archers/idle,1.5,37.5,104,auto,20,256,256,
 monsters/wolf archers/walk,-14.5,52.8,164,auto,14,256,256,
-monsters/wolf royal guard/idle,-399.5,29,1166,auto,1,1280,1024,
-monsters/wolf royal guard/jump,-393,30,1202,auto,1,1280,1280,
-monsters/wolf royal guard/walk,-383,36,1230,auto,1,1280,768,
+monsters/wolf royal guard/idle,-0.5,37.5,135,auto,17,256,256,幀數 1→17 已重算
+monsters/wolf royal guard/jump,-2.8,39,161,auto,25,256,256,幀數 1→25 已重算
+monsters/wolf royal guard/walk,-3,39,176,auto,12,256,256,幀數 1→12 已重算
 monsters/wolf warrior/attack,-4,58,190,manual,25,256,256,同 idle 那列
 monsters/wolf warrior/idle,-4,59,190,manual,23,256,256,手改：X/寬三動作統一。工具的找腳段演算法在 idle(單段) 與 walk(雙段) 抓到不同結果，X 差 25px 導致切動作時影子位移；寬差 22% 導致忽大忽小。內容水平中心實測只差 3px
 monsters/wolf warrior/walk,-4,70,190,manual,17,256,256,同 idle 那列
+monsters/wolf royal guard/attack,-18.5,36.3,168,auto,18,256,256,

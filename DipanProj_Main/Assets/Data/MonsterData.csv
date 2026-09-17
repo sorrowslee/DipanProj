@@ -16,3 +16,4 @@ ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, Knockbac
 15,VampireSoldier,30, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,,,,,,,,
 16,WerewolfSoldier,30, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,,,,,,,,
 17,Wolf Warrior,40,Pounce,Contact,1,,0,10,50,10,0,3.5,14,0.8,25,戰狼,,,,,,Werewolf,,0.98,
+18,Wolf Archers,25,Archer,33,1,,0,10,50,5,0,3,14,0.8,25,狂族弩手,,,,,,Werewolf,1.1,,

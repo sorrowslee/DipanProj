@@ -1086,58 +1086,32 @@ public class PlayerController : MonoBehaviour, IDamageable
     }
 
     // ── 平行彈（RecipeTable ParallelCount / ParallelSpacing / ParallelMaxWidth）──
-    /// <summary>一次扣扳機最多生幾顆子彈（平行 × 分裂）；超過就砍平行道數，遊戲不能因為珠子疊太多而卡死。</summary>
-    private const int MaxBulletsPerTrigger = 128;
-    /// <summary>平行彈從玩家位置散開到各自車道要幾秒（LaneBehavior 的側向速度衰減時間）。</summary>
-    private const float ParallelFanOutSeconds = 0.15f;
-    private bool _parallelCapWarned;
-
-    /// <summary>每一道的側向偏移（世界單位、垂直於射向、置中對稱）。總寬超過 ParallelMaxWidth 就壓縮間距；道數 × 每道顆數超過上限就砍道數。</summary>
+    // 實作已搬進 WeaponCastService（玩家與怪物共用同一份），這裡只留薄封裝：
+    // 拋物線（ShootParabolic）也用它算落點的並排偏移，所以不能直接刪掉這個名字。
+    /// <summary>每一道的側向偏移（世界單位、垂直於射向、置中對稱）。見 <see cref="WeaponCastService.ParallelOffsets"/>。</summary>
     private float[] ParallelOffsets(RecipeEntry r, int bulletsPerLane)
-    {
-        int lanes = Mathf.Clamp(r.ParallelCount, 1, 16);
-        int maxLanes = Mathf.Max(1, MaxBulletsPerTrigger / Mathf.Max(1, bulletsPerLane));
-        if (lanes > maxLanes)
-        {
-            if (!_parallelCapWarned) { _parallelCapWarned = true; Debug.LogWarning($"[平行彈] {r.Name}：{lanes} 道 × 每道 {bulletsPerLane} 顆超過一次扣扳機上限 {MaxBulletsPerTrigger}，砍成 {maxLanes} 道。"); }
-            lanes = maxLanes;
-        }
-        if (lanes <= 1) return new[] { 0f };
-        float spacing = r.ParallelSpacing;
-        float width = spacing * (lanes - 1);
-        if (width > r.ParallelMaxWidth) { width = r.ParallelMaxWidth; spacing = width / (lanes - 1); }
-        var offsets = new float[lanes];
-        for (int i = 0; i < lanes; i++) offsets[i] = -width * 0.5f + spacing * i;
-        return offsets;
-    }
+        => WeaponCastService.ParallelOffsets(r, bulletsPerLane);
 
     private void ShootNormal(WeaponData weapon, ProjectileData recipe)
     {
-        Vector2 fireDirection = AimDirectionToMouse();   // 連擊中鎖方向
-        Vector2 spawnPos = MuzzleWorldPos;   // 出手點（高大血統不會從腹部飛出）
-
-        LayerMask collisionMask = EnvLayer | EnemyLayer;
-        LayerMask pierceableLayers = ResolvePierceableLayers(weapon.Recipe);
-        LayerMask nonBounceLayers = ResolveNonBounceLayers(weapon.Recipe.BounceTarget);
-
-        Vector3 bulletScale = weapon.BulletPrefab.transform.localScale * PlayerScale * weapon.BulletScale;
         WeaponData firedWeapon = weapon;
 
-        // 平行彈：每一道全從玩家位置出生（不會生在牆裡），掛 LaneBehavior 讓它飛出去 0.15 秒內散開到自己的車道再拉直。
-        // 工廠每顆子彈給一個新實例；OnSpawn 分裂出的子彈會由 BallisticsEngine 繼承同一個工廠（整排一起散開）。
-        int perLane = (recipe.HasSplit && recipe.Timing == SplitTiming.OnSpawn) ? Mathf.Max(1, recipe.SplitCount) : 1;
-        float[] lanes = ParallelOffsets(weapon.Recipe, perLane);
-        Vector2 perp = new Vector2(-fireDirection.y, fireDirection.x);
-        for (int i = 0; i < lanes.Length; i++)
+        // 發射本身走「不綁擁有者」的共用服務（WeaponCastService）——怪物弓箭手用的是同一份彈道生成程式，
+        // 所以分裂／反彈／追蹤／平行／穿透的行為只有一份實作，改一次兩邊同時生效。
+        // 留在這裡的都是玩家專屬的東西：滑鼠瞄準、血統體型的出手點與縮放、以及命中之後的效果鏈
+        //（HandleBulletHit 裡的地面特效／子武器迸發／擊中特效）——那些不該跟著搬進服務。
+        var ctx = new WeaponCastService.CastContext
         {
-            Vector2 lateral = perp * lanes[i];
-            System.Func<IBulletBehavior> lane = lanes[i] != 0f ? () => new LaneBehavior(lateral, ParallelFanOutSeconds) : (System.Func<IBulletBehavior>)null;
-            BallisticsEngine.Spawn(recipe, weapon.BulletPrefab, spawnPos, fireDirection,
-                collisionMask, pierceableLayers, nonBounceLayers,
-                (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
-                weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos), lane);
-        }
+            Owner        = gameObject,
+            Origin       = MuzzleWorldPos,          // 出手點（高大血統不會從腹部飛出）
+            Direction    = AimDirectionToMouse(),   // 連擊中鎖方向
+            OwnerScale   = PlayerScale,
+            TargetLayers = EnemyLayer,
+            EnvLayer     = EnvLayer,
+            OnHit        = (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
+            OnTrailPoint = (b, pos) => TrySpawnTrailEffect(firedWeapon, pos),
+        };
+        WeaponCastService.FireNormal(weapon, recipe, in ctx);
     }
 
     private void ClearActiveOrbitalBullets()
@@ -1887,23 +1861,13 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
     }
 
+    /// <summary>可穿透的層。實作在 <see cref="WeaponCastService"/>（玩家傳怪物層、怪物傳玩家層）。</summary>
     private LayerMask ResolvePierceableLayers(RecipeEntry recipe)
-    {
-        LayerMask layers = EnemyLayer;
-        if (recipe != null && !recipe.BlockedByEnvironment)
-            layers |= EnvLayer;
-        return layers;
-    }
+        => WeaponCastService.ResolvePierceableLayers(recipe, EnemyLayer, EnvLayer);
 
+    /// <summary>反彈對象以外的層（碰到就停）。實作在 <see cref="WeaponCastService"/>。</summary>
     private LayerMask ResolveNonBounceLayers(BounceTarget bounceTarget)
-    {
-        return bounceTarget switch
-        {
-            BounceTarget.Environment => EnemyLayer,
-            BounceTarget.Enemy => EnvLayer,
-            _ => EnvLayer | EnemyLayer
-        };
-    }
+        => WeaponCastService.ResolveNonBounceLayers(bounceTarget, EnemyLayer, EnvLayer);
 
     void HandleBulletHit(WeaponData firedWeapon, BulletInstance bullet, GameObject target, RaycastHit2D hit)
     {

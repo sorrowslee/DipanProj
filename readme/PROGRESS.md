@@ -4,6 +4,132 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **修「清掉一群弓箭手 ⇒ Console 被 MissingReferenceException 洗版」＋ 放箭幀 11→14（⏳ 未編譯未實測）**
+  （2026-09-17，見 [PROBLEMS.md](PROBLEMS.md) **F26**）：作者放了一堆弓箭手後開始打，
+  Console 瞬間刷滿 `MissingReferenceException: The object of type 'MonsterWeaponUser' has been destroyed`
+  （不閃退、同一時間戳重複幾十行）。<br>
+  **根因：子彈的 callback 活得比射它的怪久。** 命中 callback 綁的是 `MonsterWeaponUser` 的實例方法
+  (`OnHit = OnProjectileHit`)，而箭飛在半空中時射手可能已經被打死、`GameObject` 被 `Destroy`
+  ⇒ 命中那一刻去讀 `transform.position`／`gameObject` 就炸。一次清場＝空中每顆箭各拋一次。<br>
+  ⚠ **真正的陷阱**：**Unity 被 destroy 的物件在 C# 端不是真的 null**，只有 `UnityEngine.Object` 覆寫的 `==`
+  看得出來。原本那行 `if (hitTarget == null || _weapon == null) return;` **完全擋不住**——
+  `_weapon` 是純 C# 的 `WeaponData`，元件被 destroy 不會把它變 null，檢查照樣通過、下一行就炸。
+  正解是 `if (this == null) return;`。<br>
+  順帶把擊退方向從「射手→目標」改成**箭的飛行方向**（`bullet.Velocity`）：箭可能已經反彈／追蹤過好幾次、
+  射手也可能離很遠，沿飛行方向擊退才符合畫面，而且少一個對 `transform` 的依賴。<br>
+  **掃過同類風險**：`PlayerController` 的七個 `HandleBulletHit`／`TrySpawnTrailEffect` callback **沒有**這個問題——
+  玩家是常駐物件，專案裡沒有任何地方 `Destroy` 玩家。這條目前只對怪物成立。<br>
+  **取捨（已記進 §8.6 待辦）**：射手死掉時，牠已經射出去的箭**不再造成傷害**（箭照樣飛完，只是不結算）。
+  要讓「死人的箭照樣殺人」得在發射當下就把陣營快照起來，因為 `CombatSystem.Apply` 需要 source `GameObject`
+  查 `FactionRelations`，而那個物件已經沒了。<br>
+  ⭐ **通則**：**任何「發射後就獨立存在」的東西（子彈、地面特效、召喚物、協程），只要 callback 指向發射者的
+  實例方法，發射者死亡之後就會踩這條。** 寫這種 callback 時先問：「它有沒有可能在擁有者死掉之後才被呼叫？」<br>
+  **同一輪的手感調整**：`ReleaseFrame` 11 → **14**（作者覺得箭還是太早飛出去）。
+  第 14 幀落在「維持瞄準」那段的開頭而不是「剛舉定」的 10~12，@14fps ＝ 0.93 秒。
+  **通則：放箭幀寧可比「動作到位」再晚一兩幀**——玩家的眼睛需要一點時間確認武器已經舉好。
+
+* [x] **修「每隻新生成的弩手第一發是空砲」——事前問 `Ready`，冷卻卻是執行時才寫進去的（⏳ 未編譯未實測）**
+  （2026-09-17，見 [PROBLEMS.md](PROBLEMS.md) **F25**）：上一輪加了「動作播了就一定要射」的鐵則之後，
+  作者回報**還是有舉起十字弓卻沒東西射出去**，並附了 Console log。<br>
+  **log 本身就是證據**：每次 `[MonsterGlow] 掛上體光：Wolf Archers`（新怪生成）之後約 3 秒就跟著一次
+  `[Archer] … 播了 attack 卻沒射出東西`，然後那隻就正常了 ⇒ **不是隨機，是「每隻怪的第一次」**。<br>
+  **根因**：`MonsterWeaponUser` 是懶解析（`WeaponManager` 開場才載好，所以 `Resolve()` 放在 `TryUse()` 第一行），
+  而「**起手緩衝**」的冷卻**正是在 `Resolve()` 裡才寫進 `_cooldown`** 的。於是
+  ① 怪剛生成 `_cooldown = 0`；② Brain 事前檢查 `Ready`（`=> _cooldown <= 0f`）拿到 **true 的假答案**
+  （`Ready` 不會觸發 `Resolve`）；③ 整套拉弓動作演完；④ `TryUse()` 第一行才 `Resolve()`、把起手緩衝寫進冷卻；
+  ⑤ **下一行就被自己剛設的冷卻擋掉**。<br>
+  **修法**：解析抽成 `EnsureResolved()`，**`Ready` 也走它**（getter 有副作用，但這個副作用是必要的，已寫在註解）。
+  順手把 `Resolve()` 的失敗分兩種：找不到 `WeaponManager` 是**時序問題** ⇒ 不定案、0.5 秒後重試
+  （舊版在這裡就 `_resolved = true`，**萬一怪比 WeaponManager 早初始化，牠這輩子都不會再嘗試解析武器**——
+  這是還沒被踩到但遲早會踩的隱形地雷）；武器 ID 找不到是設定問題 ⇒ 定案不重試。<br>
+  **順手抓到第二個空砲來源**：`TryFireProjectile` 無條件 `return true`，但它呼叫的 `FireNormal`
+  在配方沒建好時其實一顆子彈都沒生 ⇒ 上層以為射出去了、照樣進冷卻與播動畫，變成**連 warning 都沒有的空砲**。
+  已讓 `FireNormal` 回報實際生成數、`TryFireProjectile` 原樣回傳。<br>
+  **Brain 端配合**：`Observe` 遇到「射得到但武器冷卻中」改成**原地等 0.15 秒**再評估，而不是跑去移動——
+  牠明明站在射得到的位置，跑開只會看起來很蠢，而且回來還要再走一趟。<br>
+  ⭐ **兩條通則寫進 F25**：① **任何「先問狀態、再執行」的 API，若狀態是在執行路徑上才初始化的，
+  事前檢查就會拿到假答案**——懶初始化的元件必須讓「查詢」與「執行」走同一個 `EnsureXxx()`；
+  ② **回傳值要表示「我真的做了」，不是「我試過了」**。
+  第一條的隱蔽之處在於它不報錯、不每次發生，只在「物件剛建立的第一次」出現，很容易被當成偶發的手感問題。
+
+* [x] **射手型模組的鐵則：動作播了就一定要射出箭（⏳ 未編譯未實測）**（2026-09-17，
+  見 [BOSS_MODULE.md](BOSS_MODULE.md) §8 開頭的鐵則段）：作者實測回報
+  「**常常十字弓已經提起來了，卻不射箭**……只要播放 attack 動作，就一定要射箭出去，不然看起來很像 bug；
+  再來**弓箭滿場飛也很好玩**，不需要停止」。<br>
+  **兩個來源**：① `Draw` 階段每幀重驗 `CanShootFrom`，拉弓那 0.7 秒內玩家很容易走出射程或閃到柱子後
+  ⇒ 取消放箭；② `TryUse()` 撞到武器配方自己的 `FireInterval` 冷卻會回 false ⇒ 動作照播、箭不會出去
+  （目前 idle 1.2~1.8s ≫ FireInterval 0.3s 所以撞不到，但換一把慢武器就會中）。<br>
+  **修法：把所有檢查前移到「決定拉弓的那一刻」**（`Observe`），包含新加的 `WeaponReady()`；
+  `Draw` 階段**一個取消條件都不留**，進去就必然放箭。
+  另外把「動作播了卻沒射出去」做成**無條件 warning**（不藏在 `DebugLog` 後面）——
+  走到那裡就代表鐵則被破壞，而且一定是設定問題（`Weapon` 欄沒填武器 ID／`Mode` 不是 `Normal`／
+  `WeaponManager` 的 Bullet Prefab 沒設），不是手感問題。<br>
+  ⭐ **這是模組層級的設計原則，不是這隻怪的調整**：作者明確交代「弓箭手類的攻擊模組都要記得這件事情，
+  除非後面有例外，有例外就另開一個弓箭手 2 的模組」。所以鐵則寫在 §8 最顯眼處、`Draw` 分支的註解裡，
+  §8.5 的 SOP 也加了一條——**之後寫任何射手型 Brain 都照抄：檢查全部放在「決定出手」那一刻，
+  出手動作開始之後不准反悔。** 需要「可取消的瞄準」就另開一支 Brain，不要改這支。<br>
+  **通則**：這條其實不限射手——**任何「預備動作 → 出手」的怪物攻擊，中途取消都會被玩家讀成 bug**，
+  因為玩家看到的是動作、不是狀態機。要嘛別起手，要嘛做完。
+
+* [x] **狂族弩手第一輪實測修正：放箭時機對齊序列圖的幀 ＋ 射程砍 1/4（⏳ 未編譯未實測）**（2026-09-17，
+  見 [BOSS_MODULE.md](BOSS_MODULE.md) §8.2b、[PROBLEMS.md](PROBLEMS.md) **F24**）：
+  作者實測回報兩點——「**武器都還沒提起來，弓箭就射出來了**」、「射程有點太遠，砍 1/4 試試」。<br>
+  **① 放箭比動畫早＝順序反了，不是動畫慢**：第一版在 `Draw` 站定 0.55 秒後才 `TryUse()`，
+  而 attack 動畫是 `MonsterWeaponUser` **施放成功之後**才 `NotifySkillCast()` 起播的
+  ⇒ 箭先飛出去、動畫才開始播。改成 **`BeginDraw` 進來就讓動畫起播，演到「弩舉到定位」那一幀才放箭**。<br>
+  ⭐ **時機寫成「幀號」不是「秒數」**：`MonsterAnimator.SetState` 切 Attack 時幀索引歸零、以 CSV `AnimFPS` 起播，
+  所以第 N 幀 ＝ `(N-1) ÷ AnimFPS` 秒 ⇒ **改 CSV 的 AnimFPS，時機自動跟著對**，換一隻拉弓節奏不同的射手只要改 `ReleaseFrame`。
+  把 25 張 attack 拼成一張聯絡表看過：1~3 預備、4~9 往前推、**10~12 完全水平前伸到位**、13~19 維持、20~25 收弩
+  ⇒ `ReleaseFrame = 11`（@14fps ＝ 0.71 秒）。<br>
+  ⚠ **順帶解掉「動畫播不完」那條待辦**：`NotifySkillCast()` 只延 `SkillCastAnimSeconds`（**預設 0.6 秒**），
+  比拉弓到放箭（0.71 秒）還短 ⇒ 只叫一次動畫會在放箭前切回 idle；但**每幀無腦續**又會讓最後一次多撐 0.6 秒、
+  拖過結尾去演第二輪前段（像「射完又舉一次弩」）。正解是 `KeepAttackPose`：
+  **只在「再續一次也不會超過這套動作的結束時間」時才續**。
+  **刻意沒改 `SkillCastAnimSeconds`**——它是 `MonsterController` 的 public 欄位、全怪共用，為一隻怪動它會波及所有會施法的怪。
+  收弩的後半段（`FollowThroughSeconds` 0.8）與射擊間隔的 idle **重疊**，所以節奏沒有被拉長。<br>
+  **② 射程 7 → 5.25**（砍 1/4，≈ 畫面寬的 1/3）。`PreferredRange` 同比例 5.5 → 4.1
+  （維持 ≈ ShootRange × 0.79）——**這兩個要一起調**，否則牠想站的位置會落在射程外，變成一直跑位卻不開火。<br>
+  **通則已寫進 PROBLEMS F24**：任何有預備動作的怪物攻擊（拉弓、舉杖、掄石頭）都吃這一條，
+  節奏要定成「動畫起播 → 第 K 幀出手 → 收尾與冷卻重疊」，不要定成「等 N 秒 → 出手 → 播動畫」。
+
+* [x] **射手型怪物模組 `ArcherBrain` ＋ 打通「怪物使用投射型武器」（Phase 2 第一階段，⏳ 未編譯未實測）**（2026-09-17，
+  見 [BOSS_MODULE.md](BOSS_MODULE.md) §8）：作者要一隻「弓箭手」——先觀察、依射程決定要不要靠近、
+  中間有障礙物要先算會不會擋住飛行物、不用移動就射得到就原地射、每發之間停下來 idle。<br>
+  **卡點不在 Brain，在地基**：`MonsterWeaponUser` 只實作了 `Mode=Summon`，碰到投射型武器直接吐
+  「投射型武器供怪物使用為 Phase 2——待把 PlayerController 的發射管線抽成不綁玩家的共用服務」。
+  量了一下那個 Phase 2：`PlayerController` **2293 行、11 種模式、9 個 `Shoot*` 方法**散在 999~1900 行，
+  而且深綁玩家狀態（滑鼠瞄準／血統出手點／耗魔／集氣／連擊／能力珠／`HandleBulletHit`）⇒
+  一次全抽等於重寫 900 行＋重測 27 把武器。**作者拍板分階段：這次只把 `Normal` 搬進共用服務。**<br>
+  **新檔 `Assets/Scripts/Weapon/WeaponCastService.cs`**：把「發射」抽成
+  誰射的／從哪射／往哪射／打得到哪一層／命中要做什麼 全是參數的 `CastContext`。
+  玩家 `ShootNormal` 與怪物 `TryFireProjectile` 從此共用同一份彈道生成程式 ⇒
+  分裂／反彈／追蹤／平行／穿透／軌跡只有一份實作，**配方那些欄位對怪物全部有效**。
+  `ParallelOffsets`／`ResolvePierceableLayers`／`ResolveNonBounceLayers` 也搬進去，`PlayerController` 留薄封裝
+  （拋物線等模式還在用這些名字，不能直接刪）。`PlayerController` 2293 → 2257 行。<br>
+  ⭐ **`TargetLayers` ＝「目標所在的那一層」是關鍵設計**（射玩家→Player 層、射敵對怪→Enemy 層）：
+  用 layer 先擋掉，怪物的箭天生不會被自己人擋住、也不會誤傷同伴，**不必在命中 callback 裡補陣營判斷**；
+  真正「能不能造成傷害」仍由 `CombatSystem` 查 `FactionRelations`。<br>
+  **刻意沒一起抽進服務的**：瞄準與出手點、耗魔／集氣／連擊／能力珠、以及**命中後的效果鏈**——
+  硬把玩家的命中鏈搬進去，會把 `TryTriggerSubWeapon`／`TryTriggerGroundEffect` 整串玩家專屬狀態拖過來，
+  服務就變成第二個 `PlayerController`。**這條原則寫進 §8.4，之後搬其餘模式照它走。**<br>
+  **`ArcherBrain` 的核心是一個判斷句** `CanShootFrom()` ＝ 距離在 `MinRange`(2)~`ShootRange`(7) 之間
+  **且** `CircleCast` 打得過去。三個踩到／想清楚的點：
+  ① **射程必須是「行為射程」不能用子彈壽命**——配方 44 是 `Speed 15 × LifeTime 3 ＝ 45 單位`，畫面高才 10，
+  照抄的話牠會從畫面外射你；7 ≈ 畫面寬一半。
+  ② **視線用 `CircleCast` 不用 `Linecast`**（箭有體積，擦邊的細線實際會撞柱子），
+  且障礙層用 `LayerMask.GetMask("Environment","Water")`＝**與 `MonsterActuator`/`MapNavGrid` 同一份真相**，
+  不會出現「牠不開火但你看不出哪裡被擋」。
+  ③ **視線起點要推出自己的身體框**，否則起始圓會重疊到牠正貼著的那面牆 ⇒ **站在牆邊就永遠不開火**。<br>
+  移動照 `PounceBrain` 的教訓**綁距離不綁時間**（PROBLEMS F20），一次只挪 1.2~2.2 單位就回去重新評估；
+  途中一旦滿足條件就立刻停下來射（不然會「明明走到位了還要再走兩步才開火」）。<br>
+  **新怪物 18「Wolf Archers」狂族弩手**：`BrainType=Archer`、`Weapon=33`（狂族十字弓）、`Faction=Werewolf`、
+  HP 25／Speed 3／接觸傷害 5。素材沿用 BloodFang 的 `Wolf Archers`（idle 20／walk 14／attack 25 張）。<br>
+  ⚠ **已知會不對的地方（實測時先看這個）**：attack **25 張 × AnimFPS 14 ＝ 1.79 秒**，
+  而 `MonsterController.SkillCastAnimSeconds` 預設只有 **0.6 秒** ⇒ 拉弓拉到一半會切回 idle。
+  要嘛拉高那隻怪的 `AnimFPS`，要嘛調 `SkillCastAnimSeconds`（**全怪共用的 public 欄位**，動它要看其他怪）。<br>
+  **順手修對的舊文件**：`RECIPE_AND_WEAPON.md` 的〈SpriteAngleOffset 設定說明〉原本寫「圖本身就朝右 → 填 0」，
+  那正是 PROBLEMS **E38** 的坑（0 ＝ 不旋轉），已改成「填 360」並附警告。
+
 * [x] **新武器「狂族十字弓」＝背包是十字弓、射出去是弩矢（純資料、零程式改動，⏳ 未實測）**（2026-09-17）：<br>
   作者問「弓／火槍這類武器總不能把整把弓扔出去，是不是要在 `WeaponTable` 加欄位」。
   **答案是不用**——專案本來就有兩條互不相干的取圖管線，只是從沒被當成一件事寫下來：<br>
