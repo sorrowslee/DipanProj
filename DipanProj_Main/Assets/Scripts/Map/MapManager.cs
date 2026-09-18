@@ -46,6 +46,14 @@ public class MapManager : MonoBehaviour
     bool _loading;   // 載入進行中：擋掉重入（例如傳送 watcher 在載入期間又觸發）
     string _loadedModule;   // 已進入/預載的大地圖 module；跨 module 才出讀取頁＋預載，同 module 房間互跳不讀取
     bool _wakeUpWanted;   // 本次進圖要演「趴地→起身」（EnterEffect=1 睜眼醒來連動）；FireEnterTriggersRoutine 消化
+
+    // 本次進圖**不要**播進場演出（卍字 ＋ 場景名）。由 PlaceAndSetup 判定、FireEnterTriggersRoutine 消化（同上面那支的模式）。
+    // ⚠ 目前唯一的來源是「**開場鏈第一次抵達邪佛廣場**」：那一刻玩家是被邪佛的開場劇情接手的，
+    //   再疊一段「卍字把主角從天上送下來」＋「邪佛廣場」的場景名，會變成三件事同時演
+    //   （作者 2026-09-18 實機回報「劇情對話跟卍字同時進行，超奇怪」）。
+    //   之後每一次回廣場（打完關卡／讀檔）都照常播——判準是存檔的 `hubIntroSpawnDone`，
+    //   那個旗標本來就是為了「第一次進廣場走洞穴出口、之後走中央」而存在的，語意完全吻合，不必新增欄位或旗標。
+    bool _skipEnterShow;
     // 本趟關卡已經跳過的場景說明 key（MapsTable 的 SceneTip 欄）。跨 module 進新關卡時清空。
     // ⚠ 去重用 **key** 不是地圖 id：所以整個關卡的房間可以全填同一個名字——不管玩家先走進哪一間都會跳、
     //   之後房間互跳都不再跳。純執行期狀態、不進存檔。見 Dipan.UI.SceneTipPanel。
@@ -250,6 +258,10 @@ public class MapManager : MonoBehaviour
         var regions = mapLoader != null ? mapLoader.Map?.TriggerLayer?.regions : null;
         int mapAtStart = _currentMapId;
 
+        // 這一趟要不要播進場演出（卍字＋場景名）。讀完就清掉，一次性（見 _skipEnterShow）。
+        bool skipShow = _skipEnterShow;
+        _skipEnterShow = false;
+
         // 卍字進場（Dipan.Flow.LevelEnterManjiController）：過關/死亡那支「卍字離場」的**倒放**——
         // 卍字從天而降 → 落地放大、把主角吐出來 → 淡出，整段暫停遊戲。播完才接下面的場景說明。
         // ⚠ 「哪些圖要播」刻意**與場景說明共用同一份狀態**（_shownSceneTips），不另開集合、也不新增 CSV 欄位：
@@ -262,7 +274,7 @@ public class MapManager : MonoBehaviour
         //   ① 與 LoadingPanel 關閉同一幀就把主角藏起來（StartCoroutine 會同步跑到第一個 yield），
         //      否則玩家會先看到主角站在那裡閃一幀、才被卍字蓋掉；
         //   ② 藏主角與播放之間不隔任何 yield → 不存在「中途換圖 yield break ⇒ 主角隱藏狀態殘留」的路徑。
-        if (row != null && !string.IsNullOrEmpty(row.sceneTip) && !_shownSceneTips.Contains(row.sceneTip))
+        if (!skipShow && row != null && !string.IsNullOrEmpty(row.sceneTip) && !_shownSceneTips.Contains(row.sceneTip))
         {
             bool manjiDone = false;
             Dipan.Flow.LevelEnterManjiController.Play(_player != null ? _player.transform : null, () => manjiDone = true);
@@ -304,8 +316,15 @@ public class MapManager : MonoBehaviour
         // 見 Dipan.UI.SceneTipPanel / readme/SCENE_TIP.md。
         if (row != null && !string.IsNullOrEmpty(row.sceneTip) && _shownSceneTips.Add(row.sceneTip))
         {
+            // 這一趟要跳過（開場第一次進廣場）：**名額照樣佔掉、只是不跳出來**。
+            // 佔掉是刻意的——開場玩家可能走回洞窟再繞回廣場，那也還在同一段開場敘事裡，不該突然冒出名字。
+            // 等真的出發打關卡再回來（跨 module ⇒ 清空 _shownSceneTips）才會恢復正常。
+            if (skipShow)
+            {
+                Debug.Log($"[MapManager] 開場首次抵達廣場：略過進場演出（卍字＋場景說明「{row.sceneTip}」）。");
+            }
             // 沒真的跳出來（多半是還沒畫那張文字圖）就把名額還回去，圖補上之後這一趟再進來還跳得出來。
-            if (SceneTipPanel.Show(row.sceneTip))
+            else if (SceneTipPanel.Show(row.sceneTip))
             {
                 Debug.Log($"[MapManager] 場景說明「{row.sceneTip}」。");
                 // ⚠ 等的是 IsPlaying（含淡出）不是 IsOpen——IsOpen 在淡出「開始」時就已經是 false 了。
@@ -366,10 +385,17 @@ public class MapManager : MonoBehaviour
         // 邪佛廣場出生點：第一次（開場鏈抵達）用洞穴出口；之後（繼續/回廳/輪迴）一律用中央，省得每次跑遠。
         // 由存檔旗標 hubIntroSpawnDone 決定，覆寫傳入的 entrance。
         bool isHub = row.id == SaveConstants.HubMapId;
+        bool firstHubArrival = isHub && SaveManager.Instance != null && !SaveManager.Instance.HubIntroSpawnDone;
         if (isHub && SaveManager.Instance != null)
             entrance = SaveManager.Instance.HubIntroSpawnDone
                 ? SaveConstants.HubEntranceCenter
                 : SaveConstants.HubEntranceCaveExit;
+
+        // 開場鏈第一次抵達廣場 → 這一趟不播卍字與場景名（見 _skipEnterShow）。
+        // ⚠ **每次進圖都重新賦值**（不是「只在成立時設 true」）：漏掉 else 的話，這個旗標會殘留到下一張圖，
+        //   變成「那張圖也莫名其妙不播進場演出」——而且只有在特定的進圖順序下才會重現，最難查的那種。
+        // ⚠ 這一行必須在下面「把 HubIntroSpawnDone 設成 true」**之前**算好（本方法稍後就會設它）。
+        _skipEnterShow = firstHubArrival;
 
         Vector2 pos = ResolveSpawnPos(entrance);
         PlacePlayer(pos);
