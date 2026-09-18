@@ -155,4 +155,4 @@ monsters/wolf royal guard/walk,-3,39,176,auto,12,256,256,幀數 1→12 已重算
 monsters/wolf warrior/attack,-4,58,190,manual,25,256,256,同 idle 那列
 monsters/wolf warrior/idle,-4,59,190,manual,23,256,256,手改：X/寬三動作統一。工具的找腳段演算法在 idle(單段) 與 walk(雙段) 抓到不同結果，X 差 25px 導致切動作時影子位移；寬差 22% 導致忽大忽小。內容水平中心實測只差 3px
 monsters/wolf warrior/walk,-4,70,190,manual,17,256,256,同 idle 那列
-monsters/wolf royal guard/attack,-18.5,36.3,168,auto,18,256,256,
+monsters/wolf royal guard/attack,-11.6,37.3,170,auto,12,256,256,幀數 18→12 已重算

@@ -11,7 +11,8 @@
 ## 量產一隻新怪（重複這幾步）
 
 1. **放圖**：在 `GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/` 底下，每個動作開一個子資料夾放單張幀圖：
-   - `idle/`（**必備**）、`walk/`（**必備**）、`attack/`（可選，沒放就不會有攻擊動畫）、`pant/`（可選，喘息；目前只有紅嫁衣放完大絕時用，見 [BOSS_MODULE.md](BOSS_MODULE.md) §2）。
+   - `idle/`（**必備**）、`walk/`（**必備**）、`attack/`（可選，沒放就不會有攻擊動畫）、`pant/`（可選，喘息；目前只有紅嫁衣放完大絕時用，見 [BOSS_MODULE.md](BOSS_MODULE.md) §2）、`jump/`（可選，跳躍；只有 `BrainType=LeapSlam` 會播，見 [BOSS_MODULE.md](BOSS_MODULE.md) §9）。
+   - ⚠ **`jump/` 要先量幀再用**：一個資料夾未必只裝一次跳躍——狂族皇家衛士那 25 張其實是「跳兩次」，整組播完會踩兩下。量法與幀事件見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.1。
    - 檔名數字**補零**、依檔名排序＝播放順序：`idle_01.png`、`walk_01.png`…`walk_08.png`（超過 9 張務必兩位數，否則 `_10` 會排到 `_2` 前面）。
    - 不用組序列圖、不用在 Unity 切格——一張 PNG = 一幀。
 2. **同步**：`Project Tools → Sync Map Assets`（把圖收進 catalog ＋ StreamingAssets）。
@@ -33,7 +34,11 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 ├─ idle/    idle_01.png  idle_02.png ...   ← 必備（單張也可，就是靜態站姿）
 ├─ walk/    walk_01.png  walk_02.png ...   ← 必備
 ├─ attack/  attack_01.png ...              ← 可選
-└─ pant/    pant_01.png ...                ← 可選（喘息；沒放會自動退回 idle）
+├─ pant/    pant_01.png ...                ← 可選（喘息；沒放會自動退回 idle）
+└─ jump/    jump_01.png ...                ← 可選（跳躍；只有 BrainType=LeapSlam 會播，見 BOSS_MODULE §9）
+                                              ↑ jump 的倍率欄是 JumpScale，但**留空的語義和其他動作不同**：
+                                                其他動作留空＝自動依可見高對齊 idle；jump 留空＝**沿用 IdleScale、不做自動對齊**
+                                                （跳躍的可見高度本來就是動作的內容，正規化會把它抵銷；理由見 BOSS_MODULE §9.7）
                                               ↑ pant 專屬兩個參數在 MonsterAnimator 上方：
                                                 PantFpsMul（幀率倍率，預設 0.25＝比 AnimFPS 慢四倍）
                                                 PantPingPong（乒乓來回播，預設 true＝首尾不必對接）
@@ -56,6 +61,8 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | `InvincibleTimeMs` / `KnockbackThreshold` / `KnockbackPercent` | 受擊反應（見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)） |
 | **`PrefabPath`** | **route B 留空**。只有要沿用「自帶 Animator 的舊 prefab」才填（向下相容） |
 | **`AnimFPS`** | **新增**：程式動畫播放幀率，留空＝8。走路會再依實際速度連動（防腳滑；倍率夾在 `MinMul`~`MaxMul`，見下） |
+| **`JumpScale`** | **jump 顯示倍率**（表尾，接在 `AttackScale` 後面，2026-09-18）。有填就照填的走；<br>⚠ **留空的語義與上面三個不同**：其他動作留空＝走「自動依可見高對齊 idle」，**jump 留空＝直接沿用 `IdleScale`、不做自動對齊**。因為跳躍的可見高度本來就是動作的內容（蹲下時矮、騰空伸展時又不同），正規化等於把它抵銷，而且越蜷縮的幀被放得越大 ⇒ 騰空時怪會膨脹一圈（實測 1.05~1.31 倍）。詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.7 |
+| **`LeapDamage`／`LeapRadius`** | **跳躍踐踏專用**（表尾兩欄，2026-09-18）。只有 `BrainType=LeapSlam` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 2、半徑＝1.6。<br>⚠ **實際殺傷範圍 ＝ `LeapRadius` ＋ 目標碰撞框半徑**（玩家約 0.5），詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.4 |
 | **`IdleScale`／`WalkScale`／`AttackScale`** | **逐動作顯示倍率**（表尾三欄，2026-09-17）。**留空＝自動**（把該動作的可見高對齊 idle）；有填就覆寫。`pant` 沿用 `IdleScale`。整體大小仍吃 `Scale` 欄，這三欄是在它之上的等比例微調。<br>⚠ **四足獸（狼/狗/豹）通常要填**：自動那套量高度，而奔跑姿勢身體壓低、高度矮 ⇒ 被**放大**。戰狼實測 walk 被自動放大 ×1.288、等效寬 221→285px（idle 才 181），填 `WalkScale=0.9` 之後差距從 57% 降到 10%。詳見 [PROBLEMS.md](PROBLEMS.md) **G12** |
 
 > **⭐ 張數不必湊滿 25：有幾張就播幾張，但循環會變快。** 載入完全依 catalog 的 `frameCount`（同步工具掃資料夾數 PNG，沒有上限也沒有期待張數），播放是 `_idx = (_idx + 1) % frames.Length`；1 張＝靜態姿勢（catalog 只在 ≥2 幀時寫 `frames`）。現成例子：`ZhaYu/walk` 只有 8 張、家人幽靈 `Ghost_*` 的 idle 都只有 1 張，都正常。
@@ -76,6 +83,13 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 - ⚠️ **攻擊動畫 ≠ 攻擊邏輯**：目前「在攻擊範圍內（`AttackRange`）且有 attack 圖」就播攻擊動畫，傷害仍走既有的**接觸傷害**（`EnemyContactDamage`）。真正的「會攻擊的 AI ＋ 攻擊判定/傷害」是另一塊，之後再接。
 - **死亡 / 受傷動畫**尚未納入（目前死亡直接銷毀）。要加時照 idle/walk/attack 同模式擴充 `MonsterAnimator` 的狀態詞彙。
 - **加一個新動作要動的只有 `MonsterAnimator`**（2026-09-16 加 `pant` 時實測）：`MonsterSpriteLibrary.GetFrames(怪名, 動作)` 與 Sync 工具都是**通用字串／掃「直接含 PNG 的葉資料夾」**，載圖與同步都不必改；影子錨點工具同理（會自動多算一組，取不到時 `TryGetShadowAnchor` 退回 idle）。`MonsterAnimator` 那邊固定五處：`State` 列舉、幀陣列欄位、`Setup` 載入＋`CharacterMipBias.Register`＋影子錨點、`FramesFor`、`Resolve` 的退回規則。**沒圖的怪不會噴 log**（`GetFrames` 找不到只是靜靜回 null 並快取），所以加動作不會汙染 Console。
+  （2026-09-18 加 `jump` 時再次驗證：同樣只動那五處。）
+- **要「播一次就停」的動作用 `MonsterAnimator.PlayOneShot(state, 起幀, 迄幀, fps倍率)`**（2026-09-18 加）：
+  既有播放一律是**循環**，而且 `MonsterController.HandleVisuals` **每幀**都會依距離/位移呼叫 `SetState` 覆寫狀態 ——
+  所以有頭有尾的動作（跳躍、之後的死亡/受傷）光靠 `SetState` 撐不過下一幀。
+  one-shot 期間**完全忽略外部 `SetState`**，要交還控制權得明確 `CancelOneShot()`。
+  另可讀 `OneShotFrame`（1-based，＝檔名編號）把「第幾幀」當事件用，這樣改 `AnimFPS` 時時機會自動跟著對。
+  ⚠ 與 `SetState` 不同，**沒有那個動作的圖時 `PlayOneShot` 回 false 而不是自動退回**——呼叫端要有 plan B。
 
 ---
 
@@ -91,6 +105,13 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 - `Assets/Scripts/AI/MonsterController.cs`：決定狀態（範圍內＋有 attack 圖→攻擊；移動→走路；靜止→發呆）並驅動 `MonsterAnimator`；無怪名/有 Animator 時退回舊 Animator。
 - `Assets/Scripts/AI/MonsterSpawner.cs`：`PrefabPath` 留空時**程式建一隻通用怪**（零 prefab），外觀靠 `MonsterAnimator` 載圖。
 - 同步管線（加新素材分類要三處一起改，見 [PROBLEMS.md](PROBLEMS.md) C3）：`Assets/Editor/MapAssetSyncTool.cs`、`Assets/Scripts/Map/MapIO.cs`、`Tools/sync_map_assets.sh`——皆已加 `Monsters/SequenceImage` 掃描。
+
+> ⚠⚠ **要在怪腳下畫東西，用 `MonsterController.FeetWorldPos`，不要用 `transform.position`**：
+> route B 怪物的 sprite **pivot 是畫布中心（0.5）**，與玩家相反（玩家的 pivot 在腳底）。
+> `GetFrames` 的「腳底對齊」只把**各動作之間**拉齊，基準幀的 pivot 刻意維持 0.5。
+> 所以 transform 離腳底有**半個可見身高**那麼遠（狂族皇家衛士實測 1.27 世界單位）。
+> 另有 `BodyCenterWorldPos`（可見身體中心）與 `VisibleBodyHeight`。踩過見 [PROBLEMS.md](PROBLEMS.md) **G13**。
+> （`BlobShadow` 沒這個問題，它走影子錨點——**別因為影子看起來對就以為 transform 是腳底**。）
 
 > **左右翻面**由 `MonsterController` 控 `SpriteRenderer.flipX`（依玩家方向），與幀無關——所以走路圖只要畫「面朝一個方向」即可，和主角同規則。
 

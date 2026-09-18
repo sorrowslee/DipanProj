@@ -111,6 +111,15 @@ public class MonsterSpawner : MonoBehaviour
             data.WalkScale   = (values.Length > 24 && !string.IsNullOrWhiteSpace(values[24])) ? float.Parse(values[24]) : 0f;
             data.AttackScale = (values.Length > 25 && !string.IsNullOrWhiteSpace(values[25])) ? float.Parse(values[25]) : 0f;
 
+            // jump 顯示倍率（索引 26，接在 AttackScale 後面）：留空＝沿用 IdleScale、**不做自動高度對齊**
+            // （語義與上面三個不同，理由見 MonsterData.JumpScale 的註解）。
+            data.JumpScale = (values.Length > 26 && !string.IsNullOrWhiteSpace(values[26])) ? float.Parse(values[26]) : 0f;
+
+            // 跳躍踐踏（索引 27~28，表尾欄）：只有 BrainType=LeapSlam 的怪會用到，其餘一律留空。
+            // 留空＝0＝交給 LeapSlamBrain 的退路值（見 MonsterData 的欄位註解）。
+            data.LeapDamage = (values.Length > 27 && !string.IsNullOrWhiteSpace(values[27])) ? float.Parse(values[27]) : 0f;
+            data.LeapRadius = (values.Length > 28 && !string.IsNullOrWhiteSpace(values[28])) ? float.Parse(values[28]) : 0f;
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

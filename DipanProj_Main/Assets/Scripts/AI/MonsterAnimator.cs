@@ -18,7 +18,7 @@ using UnityEngine;
 [RequireComponent(typeof(SpriteRenderer))]
 public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
 {
-    public enum State { Idle, Walk, Attack, Pant }
+    public enum State { Idle, Walk, Attack, Pant, Jump }
 
     [Tooltip("基準播放幀率（幀/秒）；由 CSV 的 AnimFPS 帶入，留空＝8")]
     public float BaseFps = 8f;
@@ -51,7 +51,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     public bool PantPingPong = true;
 
     SpriteRenderer _sr;
-    Sprite[] _idle, _walk, _attack, _pant;
+    Sprite[] _idle, _walk, _attack, _pant, _jump;
     bool _hasAny;
 
     State _state = State.Idle;
@@ -71,13 +71,65 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     float _timer;
     float _currentSpeed;   // 由 MonsterController 每幀餵入，用於走路 fps 連動
 
+    // ── one-shot（播一段幀區間一次就停，2026-09-18 為跳躍踐踏加）──
+    // 為什麼需要：既有播放一律是「循環」，而「跳躍」這種**有頭有尾的動作**不能循環——
+    // 而且 MonsterController.HandleVisuals 每幀都會依「距離/位移」呼叫 SetState 覆寫狀態，
+    // Brain 光是 SetState(Jump) 撐不過下一幀。所以 one-shot 期間**直接壓過 SetState**（見 SetState）。
+    // 另一半的用意是「幀號即事件」：Brain 用 OneShotFrame 對齊起跳/落地那一幀，
+    // 這樣改 CSV 的 AnimFPS 時，整段跳躍的節奏與時機**自動跟著對**（同 ArcherBrain 的放箭幀，見 BOSS_MODULE §8.2b）。
+    bool  _osActive;      // one-shot 進行中（含播完停在最後一幀、等 Brain 來收）
+    bool  _osDone;        // 已播到結束幀
+    int   _osStart, _osEnd;   // 0-based 幀索引（含兩端）
+    float _osFpsMul = 1f;
+
+    /// <summary>one-shot 進行中（播完停在結束幀也算，直到 <see cref="CancelOneShot"/>）。</summary>
+    public bool OneShotPlaying => _osActive;
+    /// <summary>one-shot 已播到結束幀。</summary>
+    public bool OneShotFinished => _osActive && _osDone;
+    /// <summary>目前播到第幾幀（**1-based**，與資料夾裡的檔名編號一致）。沒在播 one-shot 時回 0。</summary>
+    public int OneShotFrame => _osActive ? _idx + 1 : 0;
+
+    /// <summary>
+    /// 播一段幀區間**一次**就停（停在結束幀，直到 <see cref="CancelOneShot"/>）。
+    /// <paramref name="startFrame"/>／<paramref name="endFrame"/> 是 **1-based**（＝資料夾裡的檔名編號，肉眼對得起來）。
+    /// endFrame ≤ 0 或超出張數＝播到最後一張。沒有這個動作的圖時回 false（**呼叫端要有 plan B**，
+    /// 不像 SetState 會自動退回——退回去循環播走路只會讓跳躍變成滑行）。
+    /// </summary>
+    public bool PlayOneShot(State s, int startFrame = 1, int endFrame = 0, float fpsMul = 1f)
+    {
+        var frames = FramesFor(s);
+        if (frames == null || frames.Length == 0) return false;
+
+        _osActive = true;
+        _osDone = false;
+        _osStart = Mathf.Clamp(startFrame - 1, 0, frames.Length - 1);
+        _osEnd   = (endFrame <= 0) ? frames.Length - 1 : Mathf.Clamp(endFrame - 1, _osStart, frames.Length - 1);
+        _osFpsMul = fpsMul > 0.01f ? fpsMul : 1f;
+
+        _state = s;
+        _idx = _osStart;
+        _dir = 1;
+        _timer = 0f;
+        ApplyFrame();
+        return true;
+    }
+
+    /// <summary>結束 one-shot，把控制權交還給每幀的 SetState。</summary>
+    public void CancelOneShot()
+    {
+        if (!_osActive) return;
+        _osActive = false;
+        _osDone = false;
+        _timer = 0f;
+    }
+
     /// <summary>
     /// 依怪名載入各動作的幀。fps≤0 用 8、referenceSpeed≤0 用 3。
     /// <paramref name="tileSize"/> 決定顯示大小（PPU=256/tileSize），由 MonsterController 依 idle 可見高度自動換算後傳入
     /// → 與主角同一套：同一張圖在主角/怪物資料夾顯示一樣大。
     /// </summary>
     public void Setup(string monsterName, float fps, float referenceSpeed, float tileSize = 1f,
-                      float idleScale = 0f, float walkScale = 0f, float attackScale = 0f)
+                      float idleScale = 0f, float walkScale = 0f, float attackScale = 0f, float jumpScale = 0f)
     {
         _sr = GetComponent<SpriteRenderer>();
         BaseFps = fps > 0f ? fps : 8f;
@@ -94,6 +146,15 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         float walkTile   = Tile(lib, monsterName, "walk",   tileSize, idleVis, walkScale);
         float attackTile = Tile(lib, monsterName, "attack", tileSize, idleVis, attackScale);
         float pantTile   = Tile(lib, monsterName, "pant",   tileSize, idleVis, idleScale);   // pant 是站著喘 → 沿用 idle 的倍率
+        // jump 的倍率語義**與其他動作不同**（2026-09-18 加 JumpScale 欄時保留這個設計）：
+        //   ‧ 有填 → 照填的走（× tileSize），和其他動作一樣。
+        //   ‧ **留空 → 沿用 idle 的 tileSize，不走自動高度對齊**（其他動作留空是走自動）。
+        // ⚠ 為什麼 jump 不能用自動：自動那套是「把這個動作的可見高度拉成跟 idle 一樣」，
+        //   而跳躍的可見高度**本來就是動作的內容**（蹲下蓄力時矮、騰空伸展時又不同）。
+        //   對它做正規化＝把跳躍最重要的那段身體變化整個抵銷掉，而且越蜷縮的幀被放得越大
+        //   ⇒ 騰空時怪會忽然膨脹一圈（同 PROBLEMS G12 的機制，但這裡發生在幀與幀之間）。
+        //   狂族皇家衛士實測：jump 的可見高在 152~190px 之間跳動、idle 是 199 ⇒ 自動對齊會逐幀放大 1.05~1.31 倍。
+        float jumpTile   = jumpScale > 0.0001f ? Mathf.Clamp(tileSize * jumpScale, 0.1f, 30f) : idleTile;
 
         // ⚠ 第 4 個參數是 **idle 的 tileSize**：腳底對齊（pivot 補償）要知道「基準動作被放大多少」才算得對，
         //   各動作的 tileSize 不一樣時，只比像素會錯。見 MonsterSpriteLibrary.GetFrames。
@@ -101,23 +162,26 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         _walk   = lib.GetFrames(monsterName, "walk",   walkTile,   idleTile);
         _attack = lib.GetFrames(monsterName, "attack", attackTile, idleTile);
         _pant   = lib.GetFrames(monsterName, "pant",   pantTile,   idleTile);
+        _jump   = lib.GetFrames(monsterName, "jump",   jumpTile,   idleTile);
 
         // 【過渡期】角色取樣密度對齊背景（mipMapBias），見 CharacterMipBias 檔頭；背景解析度提上來後可拿掉這三行。
         CharacterMipBias.Register(_idle, transform);
         CharacterMipBias.Register(_walk, transform);
         CharacterMipBias.Register(_attack, transform);
         CharacterMipBias.Register(_pant, transform);
+        CharacterMipBias.Register(_jump, transform);
 
         _shadow.Clear();
         _shadow[State.Idle]   = lib.GetShadowAnchor(monsterName, "idle");
         _shadow[State.Walk]   = lib.GetShadowAnchor(monsterName, "walk");
         _shadow[State.Attack] = lib.GetShadowAnchor(monsterName, "attack");
         _shadow[State.Pant]   = lib.GetShadowAnchor(monsterName, "pant");
+        _shadow[State.Jump]   = lib.GetShadowAnchor(monsterName, "jump");
 
         // idle 是必備；萬一只給了 walk 沒給 idle，就用 walk 當待機後備（不至於沒圖）
         if (_idle == null && _walk != null) { _idle = _walk; if (!_shadow[State.Idle].ok) _shadow[State.Idle] = _shadow[State.Walk]; }
 
-        _hasAny = _idle != null || _walk != null || _attack != null || _pant != null;
+        _hasAny = _idle != null || _walk != null || _attack != null || _pant != null || _jump != null;
         if (!_hasAny)
         {
             Debug.LogWarning($"[MonsterAnimator] 怪物「{monsterName}」找不到任何動作圖。" +
@@ -152,12 +216,18 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
 
     public bool Has(State s) => FramesFor(s) != null;
 
+    /// <summary>這個動作有幾幀（沒圖回 0）。Brain 要把「動作播完」換算成秒時用：<c>張數 ÷ (AnimFPS × 倍率)</c>。</summary>
+    public int FrameCount(State s) { var f = FramesFor(s); return f != null ? f.Length : 0; }
+
     /// <summary>
     /// 設定當前狀態並餵入當前速度（給走路 fps 連動）。沒有對應圖時自動退回 Attack→Walk→Idle。
     /// </summary>
     public void SetState(State s, float currentSpeed)
     {
         _currentSpeed = currentSpeed;
+        // one-shot 期間**完全不理會**外部狀態指令：HandleVisuals 每幀都會依距離/位移喊 Walk 或 Attack，
+        // 不擋的話跳到一半就被切回走路。要提前中止得明確呼叫 CancelOneShot（＝所有權清楚，不會互搶）。
+        if (_osActive) return;
         s = Resolve(s);
         if (s != _state)
         {
@@ -174,10 +244,17 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         if (!_hasAny) return;
         var frames = FramesFor(_state);
         if (frames == null || frames.Length == 0) return;
-        if (frames.Length == 1) { ApplyFrame(); return; }   // 靜態姿勢
+        if (frames.Length == 1) { ApplyFrame(); if (_osActive) _osDone = true; return; }   // 靜態姿勢（one-shot 視同播完）
 
         float fps = BaseFps;
-        if (_state == State.Walk && ReferenceSpeed > 0.01f)
+        if (_osActive)
+        {
+            // one-shot 走固定幀率（BaseFps × 倍率）：跳躍的節奏不該被「當下移動得多快」左右——
+            // 那條連動是為了走路不腳滑而存在的，套到跳躍上會讓騰空那幾幀忽快忽慢。
+            fps = BaseFps * _osFpsMul;
+            if (_osDone) { ApplyFrame(); return; }   // 播完就停在結束幀，等 Brain 收
+        }
+        else if (_state == State.Walk && ReferenceSpeed > 0.01f)
         {
             float mul = Mathf.Clamp(_currentSpeed / ReferenceSpeed, MinMul, Mathf.Max(1f, MaxMul));
             fps = BaseFps * mul;
@@ -206,6 +283,14 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     {
         if (count <= 1) return;
 
+        if (_osActive)
+        {
+            if (_idx >= _osEnd) { _idx = _osEnd; _osDone = true; return; }   // 到結束幀就停住（不回頭、不循環）
+            _idx++;
+            if (_idx >= _osEnd) { _idx = _osEnd; _osDone = true; }
+            return;
+        }
+
         if (_state == State.Pant && PantPingPong)
         {
             _idx += _dir;
@@ -232,6 +317,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         if (s == State.Attack) return Has(State.Walk) ? State.Walk : State.Idle;
         // pant 沒圖就退回 idle（**不退 walk**）——喘息時本來就站著不動，退成走路會變原地踏步。
         if (s == State.Pant) return State.Idle;
+        // jump 沒圖就退回 walk（不退 idle）——跳躍型 Brain 在「跳」的那段本來就在位移，退成發呆會變成滑過去。
+        if (s == State.Jump) return Has(State.Walk) ? State.Walk : State.Idle;
         if (s == State.Walk) return State.Idle;
         return State.Idle;
     }
@@ -243,6 +330,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
             case State.Walk: return _walk;
             case State.Attack: return _attack;
             case State.Pant: return _pant;
+            case State.Jump: return _jump;
             default: return _idle;
         }
     }

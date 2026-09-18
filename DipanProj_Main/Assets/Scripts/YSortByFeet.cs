@@ -15,16 +15,21 @@ public class YSortByFeet : MonoBehaviour
     public float FeetYOffset = 0f;
 
     SpriteRenderer _sr;
+    IAirborneVisual _airSrc;   // 「現在離地多高」的來源；null＝這個角色不會離地（＝既有所有角色，行為不變）
 
     void Awake()
     {
         _sr = GetComponent<SpriteRenderer>();
         if (_sr == null) _sr = GetComponentInChildren<SpriteRenderer>();
+        _airSrc = GetComponent<IAirborneVisual>();
     }
 
     void LateUpdate()
     {
         if (_sr == null) return;
-        _sr.sortingOrder = MapDepthSort.Order(transform.position.y + FeetYOffset, 0);
+        // 騰空時 transform.position.y 被往上推了，排序基準要扣回地面——否則角色跳起來的那半秒
+        // 會突然被「其實在牠後面」的地上物蓋住（Y 越大＝越後面）。見 IAirborneVisual。
+        float airH = (_airSrc != null) ? Mathf.Max(0f, _airSrc.AirborneHeight) : 0f;
+        _sr.sortingOrder = MapDepthSort.Order(transform.position.y - airH + FeetYOffset, 0);
     }
 }

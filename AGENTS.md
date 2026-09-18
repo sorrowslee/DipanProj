@@ -41,6 +41,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 |---|---|
 | 任何 UI 半透明／alpha 值 | PROBLEMS **E11**（Linear 色彩空間：疊色比直覺重/淡一倍，附診斷公式） |
 | 疊任何發光圖層／光暈／改佛光 | PROBLEMS **E12/E13** ＋ [readme/FALLEN_BUDDHA_LIGHT.md](readme/FALLEN_BUDDHA_LIGHT.md)（兩個發光層疊同位置是零和；`_Intensity` ≠ 實際亮度） |
+| 掛在**怪物**身上／腳下的特效（定位） | PROBLEMS **G13**——**route B 怪物的 pivot 是畫布中心、不是腳底**（與玩家相反）；用 `MonsterController.FeetWorldPos` / `BodyCenterWorldPos` / `VisibleBodyHeight`，別用 `transform.position`（會差半個身高） |
 | 掛在玩家身上的特效（定位／縮放） | PROBLEMS **E14**——用 `PlayerController.FeetWorldPos` / `BodyCenterWorldPos` / `VisibleBodyHeight`，別用 `transform.position` 當身體中心、別用 `SpriteRenderer.bounds` 當可見身體 |
 | 跨數秒的演出／輸入鎖 | PROBLEMS **D13/D14**（輸入鎖要用具名 `SetExternalHold(owner,…)`；吃 `Time.deltaTime` 的演出會被任何 `PausesGame` 面板凍住） |
 | 地上物擋路／可走層／「看起來能走卻走不過去」 | PROBLEMS **B9** ＋ [readme/MAP_LOADER_SETUP.md](readme/MAP_LOADER_SETUP.md)——**擋路碰撞與可走層是兩份獨立的真相**，塗可走層對地上物零作用 |
@@ -50,6 +51,8 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 填／改 RecipeTable、加武器模式或欄位、動能力珠 | **做武器優先用 [readme/WEAPON_WORKBENCH.md](readme/WEAPON_WORKBENCH.md)（Unity 內的武器工坊，Play 中立刻射出去看）**；欄位意義見 [readme/RECIPE_DESCRIBE.md](readme/RECIPE_DESCRIBE.md)（一列一種 `Mode`、模式 × 欄位矩陣）＋ `Assets/Scripts/Weapon/WeaponModeSpec.cs`（單一真相：加欄／加模式只改它，視窗自動跟上）；珠子有效性見 [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md) |
 | 武器／裝備／背包／掉落／存檔 | [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md)（表格只是模板、物品實例、能力容器）＋ [readme/GEM_CATALOG.md](readme/GEM_CATALOG.md)（每顆珠子的功用與範例，改珠子數值或加珠子要同步更新它）＋ [readme/INVENTORY.md](readme/INVENTORY.md) |
 | 做「依血統／背包道具決定**出不出現**或**講哪一句**」 | [readme/TRIGGER_CHAIN.md](readme/TRIGGER_CHAIN.md) **§2.6 通用條件** ——觸發點／NPC／地上物／怪物出生點**共用同一套條件與同一個 UI**（求值器 `Scripts/Map/AppearCondition.cs`）；**「血族」是系列不是血統**（血族＝SeriesId 2，三階都算）；多條一律 AND、**沒有 OR** |
+| 怪「**舉著攻擊動作還一邊移動**」、要做「出手就要把動作做完」的近戰 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§10**——`ChaseBrain` 的移動與 `HandleVisuals` 的攻擊動畫互不相干，這是天生行為；要改用 `MeleeChase`，並記得 `BrainControlsAttackPose` 不設就等於白做 |
+| 加「會跳躍／落地砸地」的怪、做落地裂地那類**地面程序化 shader**、動騰空角色的影子或排序 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§9**——跳躍動畫要先**量幀**（一個 `jump/` 資料夾未必只有一次跳躍）、幀號當事件不要寫秒數、傷害走短命 trigger＋既有接觸傷害（**實際殺傷＝半徑＋目標碰撞框半徑**）、騰空一律透過 `IAirborneVisual` 把高度扣回地面 |
 | 放/改 NPC、NPC 對話/開介面、未來護送 | [readme/NPC_SYSTEM.md](readme/NPC_SYSTEM.md)（NpcTable 分表、圖沿用 Monsters/SequenceImage 角色圖庫；編輯器與主遊戲的 NpcInstance 是鏡像） |
 | 陣營/多方互打劇本、動「誰能傷誰」 | [readme/FACTION.md](readme/FACTION.md)（規則單一真相＝`FactionRelations.cs`：敵對/傷害乘數/切層都只改它；擺劇本照 §3 一條龍） |
 | 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |

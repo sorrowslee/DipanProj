@@ -42,6 +42,20 @@ public class MonsterData
     public float WalkScale = 0f;
     public float AttackScale = 0f;
 
+    // jump 的顯示倍率（CSV 表尾，接在 AttackScale 後面）。
+    // ⚠ **留空的語義和上面三個不一樣**：上面三個留空＝走「自動依可見高對齊 idle」，
+    //   jump 留空＝**直接沿用 idle 的顯示倍率、不做自動對齊**。
+    //   因為跳躍的可見高度**本來就是動作的內容**（蹲下時矮、騰空伸展時又不同），
+    //   對它做高度正規化等於把跳躍最重要的那段身體變化整個抵銷，而且越蜷縮的幀被放得越大
+    //   ⇒ 騰空時怪會忽然膨脹一圈（狂族皇家衛士實測 1.05~1.31 倍）。詳見 readme/BOSS_MODULE.md §9.7。
+    //   有填就完全照填的走（作者自己看畫面決定，永遠比演算法準）。
+    public float JumpScale = 0f;
+
+    // ── 跳躍踐踏（BrainType=LeapSlam）專用，CSV 表尾兩欄。其他怪一律留空、用不到 ──
+    // 留空/0 時由 LeapSlamBrain 給退路（傷害＝ContactDamage×2、半徑＝1.6），所以既有怪不填也不會壞。
+    public float LeapDamage = 0f;   // 落地踐踏的一次性傷害
+    public float LeapRadius = 0f;   // 踐踏殺傷半徑（世界單位）；地面裂痕的視覺大小也吃它
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

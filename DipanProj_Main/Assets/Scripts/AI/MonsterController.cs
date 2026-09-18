@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
+public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, IAirborneVisual
 {
     private MonsterSensor _sensor;
     // 所有怪一律靠 A* 導航、碰撞框全設 trigger（不做硬碰撞、不會卡在牆/家具上）。
@@ -25,7 +25,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public float AttackRange = 1.3f;     // 進入此距離且有 attack 圖 → 播攻擊動畫（略大於 ChaseBrain.StopDistance）
 
     // 逐動作顯示倍率（CSV: IdleScale/WalkScale/AttackScale；0＝留空＝走自動高度對齊）。由 Initialize 從 MonsterData 帶入。
-    [HideInInspector] public float IdleScale, WalkScale, AttackScale;
+    [HideInInspector] public float IdleScale, WalkScale, AttackScale, JumpScale;
     [Tooltip("施放技能（如召喚）後，attack 動畫維持播放的秒數（讓遠距離施法也看得到出手動作）")]
     public float SkillCastAnimSeconds = 0.6f;
     [Tooltip("角色站立顯示高度（世界單位），與主角 PlayerController.CharacterWorldHeight 同一套邏輯：" +
@@ -53,12 +53,48 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
     public float AttackInterval = 0.5f;          // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval）
     public float DamageReductionPercent = 0f;    // 受擊減傷 %（掛勾；目前 CSV 預設 0，之後接減傷/抗性）
 
+    [Header("Leap Slam / 跳躍踐踏")]
+    [Tooltip("落地踐踏的傷害（CSV: LeapDamage）。留空/0 ＝ 退回 ContactDamage 的 2 倍（見 LeapSlamBrain）。只有 BrainType=LeapSlam 會用到")]
+    public float LeapDamage = 0f;
+    [Tooltip("落地踐踏的殺傷半徑（世界單位，CSV: LeapRadius）。留空/0 ＝ 退回 1.6。裂痕的視覺大小也吃它")]
+    public float LeapRadius = 0f;
+
     [Header("Weapon / Skill")]
     [Tooltip("這隻怪使用的武器 = WeaponTable 的 ID（CSV: MonsterData.Weapon 填數字）。Contact/空 = 只近戰接觸傷害、不掛武器。")]
     public int WeaponId = -1;
     // 怪物用武器的統一入口（召喚等技能走這裡；投射武器 Phase 2）。boss 級 Brain 透過 ctx.Self.WeaponUser 施放。
     public MonsterWeaponUser WeaponUser { get; private set; }
     private float _skillCastAnimUntil;   // < Time.time 前都播 attack 動畫（施放技能觸發，見 NotifySkillCast）
+
+    /// <summary>程式逐格動畫器（route B 才有；舊 prefab 怪為 null）。Brain 要自己控動畫（如跳躍的 one-shot）時用。</summary>
+    public MonsterAnimator Anim => _monAnim;
+
+    // ── 騰空（IAirborneVisual）──
+    // 由 LeapSlamBrain 在跳躍期間每幀寫入「這一幀視覺被抬高了多少」，落地歸 0。
+    // BlobShadow 與 YSortByFeet 會把這段高度扣回地面（影子留在地上、排序不會誤判）。見 IAirborneVisual。
+    // ⚠ 這是**純視覺**的高度：碰撞、傷害、尋徑全部照 transform 走，不因為「跳起來」而改變。
+    [HideInInspector] public float AirborneVisualHeight;
+    public float AirborneHeight => AirborneVisualHeight;
+
+    // ── 不可中斷的演出（2026-09-18）──
+    // 平常怪被打時的擊退窗口會**整段跳過 Think()**（見 readme/PROBLEMS.md F19），這對絕大多數 Brain 是對的
+    // （被打飛的時候本來就不該還在做決策），但對**每幀自己算位移的演出**是致命的：
+    // 跳躍踐踏的騰空只有 0.46 秒，玩家連射時擊退窗口首尾相連 ⇒ 那幾幀完全沒有位移 ⇒
+    // 畫面上就是「蹲下、動畫演完、人還在原地」（作者 2026-09-18 實機回報「常常準備跳但沒跳出去」）。
+    // Brain 在這種演出開始時把它設 true、結束設 false，期間 Think() 照跑。
+    // ⚠ 這只讓「決策」不被跳過；擊退的**位移**還是照送（rb.velocity），要不要壓制由 Brain 自己決定
+    //   （LeapSlamBrain 每幀直接寫 transform，等於自然壓制）。
+    [HideInInspector] public bool SuppressKnockbackInterrupt;
+
+    // ── Brain 接管攻擊姿勢（2026-09-18）──
+    // 預設（false）＝既有行為：`HandleVisuals` 只要「目標距離 ≤ AttackRange 且有 attack 幀」就自動播攻擊動畫。
+    // 那套的前提是「攻擊動畫純粹是貼身時的裝飾」，所以怪可以**一邊舉著劍一邊追著玩家跑**——
+    // 作者 2026-09-18 實機回報「他已經舉起劍了，我躲閃，他竟然還能移動並保持舉劍的動作，太詭異」。
+    // Brain 把這個設 true ＝「攻擊姿勢由我用 one-shot 全權控制」，`HandleVisuals` 不再自動判定，
+    // 於是「進入攻擊動作 → 站定把動作做完 → 才能再移動」成立（見 MeleeChaseBrain）。
+    // ⚠ 設了 true 就**一定**要自己播 attack，否則這隻怪永遠不會有攻擊動畫。
+    // NotifySkillCast（召喚等技能的出手動作）不受影響，那條路仍然通。
+    [HideInInspector] public bool BrainControlsAttackPose;
 
     /// <summary>怪物成功施放一次技能（召喚等）時由 MonsterWeaponUser 呼叫：讓 attack 動畫演一小段，
     /// 即使怪離玩家很遠（如紅嫁衣邊逃邊召）也看得到出手動作。</summary>
@@ -84,6 +120,58 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
 
     /// <summary>目前是否在喘息破綻中（含尚未開始的延遲期間＝false）。</summary>
     public bool IsPanting => Time.time >= _pantFrom && Time.time < _pantUntil;
+
+    // ── 可見身體的幾何（給「要對準腳下 / 要罩住身體」的特效用）──
+    // ⚠⚠ **route B 怪物的 pivot 是畫布中心（0.5），不是腳底**——與玩家相反（玩家的 pivot 在腳底，見 BLOODLINE.md §2）。
+    //    腳底對齊那套（MonsterSpriteLibrary.GetFrames）只把「各動作」拉到同一條腳底線，
+    //    **基準幀的 pivot 刻意維持 0.5**，好讓角色的絕對位置與碰撞框完全不動。
+    //    後果：**任何直接畫在 transform.position 的地面特效都會出現在角色半身高的位置**（＝胸口）。
+    //    狂族皇家衛士實測：idle 可見底邊在畫布下緣往上 28px、pivot 在 128px ⇒ 差 100px，
+    //    換算 PPU 102、再乘 Scale 1.3 ＝ **腳底在 transform 下方 1.27 世界單位**（可見高才 2.54）。
+    //    作者 2026-09-18 回報「龜裂在怪物胸口播放而不是腳底」，根因就是這個。
+    //    這是玩家版 PROBLEMS **E14** 的怪物版：**別拿 transform.position 當腳底，用下面這三個**。
+    float _feetLocalY;        // 腳底相對 transform 的本地 Y（未乘 localScale）
+    float _visibleLocalH;     // 可見身體的本地高度（未乘 localScale）
+    bool  _geomReady;         // FitVisibleBoxCollider 算過了沒（走 AutoAdjustCollider 後備時為 false）
+
+    /// <summary>可見身體高度（世界單位，已乘體型）。特效要「蓋住這隻怪」時用它當基準。</summary>
+    public float VisibleBodyHeight
+    {
+        get
+        {
+            float scale = Mathf.Abs(transform.localScale.y);
+            if (_geomReady && _visibleLocalH > 0.01f) return _visibleLocalH * scale;
+            var col = GetComponent<Collider2D>();          // 後備：用碰撞框（含 HitboxPadding，略大一點）
+            return col != null ? col.bounds.size.y : CharacterWorldHeight * scale;
+        }
+    }
+
+    /// <summary>
+    /// 角色**腳下站的位置**（可見身體的底部中心）。裂地、影子、落點標記這類「畫在地上」的東西一律對準這裡。
+    /// <para>⚠ 不要用 <c>transform.position</c>——那是畫布中心，會讓特效浮在半身高的位置（見上方註解）。</para>
+    /// </summary>
+    public Vector2 FeetWorldPos
+    {
+        get
+        {
+            Vector3 p = transform.position;
+            float scale = Mathf.Abs(transform.localScale.y);
+            if (_geomReady) return new Vector2(p.x, p.y + _feetLocalY * scale);
+            var col = GetComponent<Collider2D>();          // 後備：碰撞框底邊（再把 padding 的一半補回去）
+            if (col != null) return new Vector2(p.x, col.bounds.min.y + HitboxPadding * 0.5f);
+            return new Vector2(p.x, p.y);
+        }
+    }
+
+    /// <summary>可見身體的中心。要「罩住身體」的光環/煙霧對齊這裡。</summary>
+    public Vector2 BodyCenterWorldPos
+    {
+        get
+        {
+            Vector2 f = FeetWorldPos;
+            return new Vector2(f.x, f.y + VisibleBodyHeight * 0.5f);
+        }
+    }
 
     [Header("Faction")]
     [Tooltip("陣營：Enemy=一般敵怪/boss/其召喚物(追玩家)；PlayerAlly=玩家召喚的協戰怪(追敵怪)；Neutral=中立 NPC(不打人不被打)。由 MonsterSpawner / NpcSpawner 設定。")]
@@ -229,7 +317,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
             }
 
-            _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize, IdleScale, WalkScale, AttackScale);
+            _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize, IdleScale, WalkScale, AttackScale, JumpScale);
 
             // 碰撞框用同一個 tileSize 量 → 與放大後的 sprite 對齊（之後再 × transform.localScale = CSV Scale，一起縮放）。
             Vector2 vSize, vOff;
@@ -270,7 +358,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         _bodyCol.isTrigger = true;
         if (_feetCol == null) _feetCol = gameObject.AddComponent<BoxCollider2D>();
         float feetH = Mathf.Clamp(visSize.x * 0.35f, 0.1f, 0.3f);
-        float baseY = visOffset.y - visSize.y * 0.5f;   // 可見框底 = 腳的位置（俯視角 pivot 在腳）
+        float baseY = visOffset.y - visSize.y * 0.5f;   // 可見框底 = 腳的位置
+        _feetLocalY = baseY;                            // 給 FeetWorldPos 用（見下方「可見身體的幾何」）
+        _visibleLocalH = visSize.y;
+        _geomReady = true;
         _feetCol.size = new Vector2(Mathf.Max(0.05f, visSize.x * 0.5f), feetH);
         _feetCol.offset = new Vector2(visOffset.x, baseY + feetH * 0.5f);
         _feetCol.isTrigger = true;
@@ -283,7 +374,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         _currentHealth = MaxHealth;
 
         InvincibleTimeMs = data.InvincibleTimeMs;
-        IdleScale = data.IdleScale; WalkScale = data.WalkScale; AttackScale = data.AttackScale;
+        IdleScale = data.IdleScale; WalkScale = data.WalkScale; AttackScale = data.AttackScale; JumpScale = data.JumpScale;
         KnockbackThreshold = data.KnockbackThreshold;
         KnockbackPercent = data.KnockbackPercent;
 
@@ -291,6 +382,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         AttackInterval = data.AttackInterval;
         DamageReductionPercent = data.DamageReduction;
         AnimFPS = data.AnimFPS;
+        LeapDamage = data.LeapDamage;     // 跳躍踐踏（BrainType=LeapSlam）專用；其他怪留空＝用不到
+        LeapRadius = data.LeapRadius;
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
@@ -311,6 +404,12 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
                 break;
             case "Pounce":          // 撲擊型（狗/狼/豹…）：觀望→蓄力→直線撲擊→收招（見 PounceBrain）
                 _brain = new PounceBrain();
+                break;
+            case "MeleeChase":      // 近戰追擊：貼身才揮武器，**揮的期間站定把動作做完**才能再移動（見 MeleeChaseBrain）
+                _brain = new MeleeChaseBrain();
+                break;
+            case "LeapSlam":        // 跳躍踐踏型：開場一次跳躍踐踏（落地裂地＋AOE），之後永久轉近戰追擊（見 LeapSlamBrain）
+                _brain = new LeapSlamBrain();
                 break;
             case "Archer":          // 射手型（弓/弩/火槍…）：評估「原地射得到嗎」→ 射不到才移動（見 ArcherBrain）
                 _brain = new ArcherBrain();
@@ -396,7 +495,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         // 發現玩家（或友軍發現敵怪）→ 記住，之後才允許說話（黏著，不再變回未發現）。
         if (!IsAwareOfPlayer && (playerTarget != null || enemyTarget != null)) IsAwareOfPlayer = true;
 
-        if (_hitReaction == null || !_hitReaction.IsKnockedBack)
+        // 擊退期間預設不做決策（F19）；但 Brain 正在演「不可中斷的動作」時照跑（見 SuppressKnockbackInterrupt）。
+        if (_hitReaction == null || !_hitReaction.IsKnockedBack || SuppressKnockbackInterrupt)
         {
             var ctx = new MonsterContext
             {
@@ -458,7 +558,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers
         {
             MonsterAnimator.State st;
             bool casting = Time.time < _skillCastAnimUntil;   // 施放技能中 → 出手動作（不限距離）
-            bool inAttackRange = player != null
+            // Brain 接管時不做自動判定（見 BrainControlsAttackPose）——那是「舉著劍追人」的來源。
+            bool inAttackRange = !BrainControlsAttackPose && player != null
                 && Vector2.Distance(transform.position, player.position) <= AttackRange;
             bool wantAttackPose = casting || inAttackRange;
 

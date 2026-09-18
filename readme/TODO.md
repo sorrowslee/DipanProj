@@ -756,3 +756,45 @@
   血統特效已經在 G11 一併解決，但武器 aura 走的是 `PlayerController._activeAura`、不讀 `BodyFxVisible`。
   若實測發現「卍字還在天上、地上浮著一圈佛光」，就把它也接上 `PlayerVisibility.IsHidden`。
 - [ ] **沒有音效**（同離場卍字與變身演出，專案還沒有音訊系統）。
+
+
+## 跳躍踐踏型 `LeapSlamBrain` ＋ 狂族皇家衛士（2026-09-18 加）
+
+> 完整說明見 [BOSS_MODULE.md](BOSS_MODULE.md) §9。這裡只記缺口。
+
+- [ ] **未編譯、未實機驗證**（`Behaviors/LeapSlamBrain.cs`、`Combat/LeapSlamImpact.cs`、`Map/GroundCrackFx.cs`、
+  `Resources/Shaders/GroundCrack.shader`、`MonsterAnimator` 的 one-shot）。第一次實測請看：
+  **跳 5.85 單位（＝三個身高）會不會超出攝影機上緣**（會就把 `LeapSlamBrain.HopHeightInBodies` 調到 2.0~2.5）、
+  整段（含落地定格 1 秒）**2.18 秒**會不會太拖、裂痕 0.85 秒延伸得夠不夠慢、
+  裂痕在實際地板上讀不讀得出來（太淡優先加寬 `_CrackWidth`，**不要加 alpha**，見 PROBLEMS E11）、
+  **裂痕直徑 7 單位會不會反而太大**（改 `LeapSlamBrain.CrackRadiusMul`，只影響視覺）。
+- [ ] **⚠ 騰空中的接觸傷害還開著**（2026-09-18 提出、未拍板）：怪的碰撞框跟著抬高 1.5 但框高 1.9，
+  所以從玩家頭上飛過時仍可能擦到扣血，會稀釋「閃開落點」的意義。
+  要做就是騰空期間關掉 `EnemyContactDamage`、落地再開（傷害全交給 `LeapSlamImpact`）。見 BOSS_MODULE §9.10。
+- [ ] **Unity 端還沒做**：`Project Tools → 角色 → 計算影子錨點`（會多算一組 jump，四足/大幅度動作常要手改成 `manual`）、
+  `Project Tools → Sync Map Assets`（把 jump 的圖與新版 CSV 帶進 StreamingAssets）、
+  把 `monsterSpawn` 出生點的 `monsterId` 填 19 擺進測試地圖。
+- [ ] **`LeapDamage`／`LeapRadius` 兩欄留空**（＝接觸傷害 ×2 ＝ 24、半徑 1.6）。作者還沒定案實際數值。
+  ⚠ 調的時候記得**實際殺傷 ＝ 半徑 ＋ 目標碰撞框半徑**（玩家約 0.5）。
+- [ ] **幀號（`TakeoffFrame`/`LandFrame`/`EndFrame`/`TotalFrames`）是全域 const**：
+  第二隻跳躍型怪的 jump 幀序不同就得搬進 CSV（見 §9.9 第 2 步）。
+- [ ] **跳躍中仍會依目標翻面**：玩家若在 0.46 秒騰空中繞到另一側，怪會在空中轉身。要修就在 one-shot 期間鎖 flipX，
+  但那又會讓「跳完面向錯誤」，先觀察再說。
+- [ ] **沒有音效**（同專案其他演出，還沒有音訊系統）。落地那一下是最需要音效的地方之一。
+
+
+## 近戰追擊 `MeleeChaseBrain`（2026-09-18 加）
+
+> 完整說明見 [BOSS_MODULE.md](BOSS_MODULE.md) §10。
+
+- [ ] **未編譯、未實機驗證**。實測看：0.92 秒一刀會不會太慢、`AttackSlack`(0.25) 會不會讓怪貼得太近才揮。
+- [ ] **揮劍期間身體還是會轉向**（`HandleVisuals` 的 flipX 每幀跟著目標跑，動作不會停但人會轉）。
+  看起來怪的話要連 flipX 一起在 one-shot 期間鎖住。
+- [x] ~~傷害仍是接觸式~~ → 2026-09-18 改走**揮擊命中幀**（第 9 幀開一次 `ImpactDamageArea`），
+  並把怪身上的接觸傷害關掉（`DisableContactDamage`）。見 BOSS_MODULE §10.4。
+- [ ] **揮擊判定是圓形不是扇形**：圈心已往面向方向偏半個身位，但背後仍有一小塊會被打到。
+- [ ] **`HitFrame = 9` 是全域 const**（同 §9 的跳躍幀號）：換一隻 attack 節奏不同的怪要改它，
+  或搬進 CSV。程式會把它夾進實際張數，所以至少不會「一輩子揮空」。
+- [ ] **沒有「被打斷」的概念**：揮到一半被重擊也會揮完。要做破招得另外接 `HitReactionHandler`。
+- [ ] **既有的 `BrainType=Chase` 怪沒有換過來**（吸血鬼兵、狼人兵…）。牠們仍是「舉著劍追人」的舊行為——
+  這是刻意的（零風險），要換的話把 CSV 的 `BrainType` 從 `Chase` 改成 `MeleeChase` 即可，一隻一隻試。

@@ -30,9 +30,23 @@ public class BlobShadow : MonoBehaviour
     const bool DebugDrawOnTop = false;
     const int DebugSortingOrder = 30000;
 
+    // ── 角色騰空時的影子表現（見 IAirborneVisual）。角色沒實作那個介面時這兩個常數完全用不到 ──
+    // 影子留在地面，但要讓人看得出「牠離地了」：離地越高、影子越小越淡（現實中半影擴散會讓它變大變糊，
+    // 但在這個美術風格下「縮小變淡」讀起來才像跳起來，而且離地感更明確）。
+    // ⚠ 這兩個數字**不能調太兇**：影子留在地面、沿途滑向落點，是玩家判斷「牠要砸哪裡」的唯一線索。
+    //    第一版 0.55/0.45 是照「跳 1.5 單位」訂的；跳躍改成 3 個身高（5.85 單位）之後，
+    //    那組數字會把影子縮到 0.24 倍、透明度剩 0.28 ⇒ 最需要看到落點預告的時候反而看不見。
+    //    現在這組在 5.85 單位高時是 0.49 倍 / 0.63 透明度——明顯變小變淡（看得出離地），但一直看得見。
+    const float AirShrinkPerUnit = 0.18f;   // 影子尺寸 = 原尺寸 ÷ (1 + 離地高 × 此值)
+    const float AirFadePerUnit   = 0.10f;   // 影子透明度同式衰減
+
     static Sprite _sharedSprite;
 
     SpriteRenderer _charSr;
+    SpriteRenderer _shadowSr;         // 影子本體的 renderer（騰空淡化要改 color）
+    IAirborneVisual _airSrc;          // 「現在離地多高」的來源；null＝這個角色不會離地（＝既有所有角色）
+    float _baseW = -1f, _baseH = -1f; // 影子在地面上的尺寸（騰空縮放以它為基準，不會越縮越小）
+    float _lastAirH = -1f;
     GameObject _shadowGo;
     float _footOffsetY;
     IShadowAnchorSource _anchorSrc;   // 錨點路（見檔頭）；null = 舊路
@@ -46,11 +60,13 @@ public class BlobShadow : MonoBehaviour
         _charSr = GetComponent<SpriteRenderer>();
         if (_charSr == null) _charSr = GetComponentInChildren<SpriteRenderer>();
         _anchorSrc = GetComponent<IShadowAnchorSource>();
+        _airSrc = GetComponent<IAirborneVisual>();   // 取不到＝永遠貼地（既有行為，零變化）
 
         Measure(out float width, out float height);
 
         _shadowGo = new GameObject(gameObject.name + "_Shadow");
         var sr = _shadowGo.AddComponent<SpriteRenderer>();
+        _shadowSr = sr;
         sr.sprite = GetSharedSprite();
         sr.color = ShadowColor;
         if (_charSr != null)
@@ -63,6 +79,7 @@ public class BlobShadow : MonoBehaviour
             sr.sortingOrder = DebugDrawOnTop ? DebugSortingOrder : 0;
         }
         // 共用 sprite 的 native 尺寸 = 1 世界單位（PPU=邊長），故 localScale 直接 = 目標世界大小
+        _baseW = width; _baseH = height;
         _shadowGo.transform.localScale = new Vector3(width, height, 1f);
 
         UpdateShadowPosition();
@@ -108,8 +125,10 @@ public class BlobShadow : MonoBehaviour
         }
         if (_anchorSrc == null) _anchorSrc = GetComponent<IShadowAnchorSource>();
         Measure(out float width, out float height);
+        _baseW = width; _baseH = height;
         _shadowGo.transform.localScale = new Vector3(width, height, 1f);
         _lastAnchorW = -1f;   // 錨點路下一幀會重套
+        _lastAirH = -1f;
         _smoothInit = false;  // 換外型後位移直接跳到新值，不從舊外型平滑過去
         UpdateShadowPosition();
     }
@@ -134,6 +153,8 @@ public class BlobShadow : MonoBehaviour
     {
         if (_shadowGo == null) return;
         Vector3 p = transform.position;
+        // 角色騰空時 transform 被往上推了 airH，影子要把它扣回來才會留在地面上（見 IAirborneVisual）。
+        float airH = (_airSrc != null) ? Mathf.Max(0f, _airSrc.AirborneHeight) : 0f;
 
         // ── 錨點路：目前動作的錨點（像素）→ 世界位移 ──
         if (_anchorSrc != null && _charSr != null && _charSr.sprite != null
@@ -163,20 +184,46 @@ public class BlobShadow : MonoBehaviour
                     float k = 1f - Mathf.Exp(-Time.unscaledDeltaTime / AnchorSmoothTime);   // unscaled：暫停中的演出（D15）角色照走，影子也要跟
                     _smoothOff = Vector2.Lerp(_smoothOff, target, k);
                 }
-                _shadowGo.transform.position = new Vector3(p.x + _smoothOff.x, p.y + _smoothOff.y, p.z);
+                _shadowGo.transform.position = new Vector3(p.x + _smoothOff.x, p.y + _smoothOff.y - airH, p.z);
 
                 float w = (a.widthPx * sx / ppu) * Mathf.Abs(ls.x) * WidthFactor;
                 if (w > 0.0001f && !Mathf.Approximately(w, _lastAnchorW))
                 {
                     _lastAnchorW = w;
-                    _shadowGo.transform.localScale = new Vector3(w, w * HeightRatio, 1f);
+                    _baseW = w; _baseH = w * HeightRatio;
+                    _shadowGo.transform.localScale = new Vector3(_baseW, _baseH, 1f);   // 地面尺寸（騰空中下一行會再覆寫）
+                    _lastAirH = -1f;                                                    // 基準變了 → 讓 ApplyAirScale 重算
                 }
+                ApplyAirScale(airH);
                 return;
             }
         }
 
         // ── 舊路：Start 量一次的位移 ──
-        _shadowGo.transform.position = new Vector3(p.x, p.y + _footOffsetY, p.z);
+        _shadowGo.transform.position = new Vector3(p.x, p.y + _footOffsetY - airH, p.z);
+        ApplyAirScale(airH);
+    }
+
+    /// <summary>
+    /// 依離地高度套影子的尺寸與透明度。<b>高度 0（＝所有不會離地的角色）時完全不碰 renderer</b>，
+    /// 既有行為一個像素都不變。
+    /// </summary>
+    void ApplyAirScale(float airH)
+    {
+        if (airH <= 0.0001f && _lastAirH <= 0.0001f) return;   // 一直在地上 → 什麼都不做（最常見的路徑，零成本）
+        if (Mathf.Approximately(airH, _lastAirH) && airH > 0.0001f) return;
+        _lastAirH = airH;
+
+        float shrink = 1f / (1f + airH * AirShrinkPerUnit);
+        if (_baseW > 0.0001f)
+            _shadowGo.transform.localScale = new Vector3(_baseW * shrink, _baseH * shrink, 1f);
+
+        if (_shadowSr != null)
+        {
+            float fade = 1f / (1f + airH * AirFadePerUnit);
+            var c = ShadowColor; c.a *= fade;
+            _shadowSr.color = c;
+        }
     }
 
     void OnDestroy()

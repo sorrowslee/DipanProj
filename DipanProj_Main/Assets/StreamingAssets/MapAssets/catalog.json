@@ -8228,7 +8228,7 @@
       "module": "BloodFang",
       "pixelSize": 256,
       "ppu": 256,
-      "frameCount": 18,
+      "frameCount": 12,
       "frames": [
         "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_01.png",
         "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_02.png",
@@ -8241,13 +8241,7 @@
         "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_09.png",
         "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_10.png",
         "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_11.png",
-        "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_12.png",
-        "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_13.png",
-        "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_14.png",
-        "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_15.png",
-        "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_16.png",
-        "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_17.png",
-        "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_18.png"
+        "Modules/BloodFang/Monsters/SequenceImage/Wolf Royal Guard/attack/WolfRoyalGuard-iso_custom_sword_attack_right_12.png"
       ]
     },
     {

@@ -74,6 +74,8 @@ public static class PlayModeStaticReset
         SceneFxTable.ResetForPlayMode();
         ScreenFxTable.ResetForPlayMode();
         SegmentedLightningColumn.ResetForPlayMode();   // 拼接雷柱的 Sprite 快取（字典型，容器不會變 null）
+        GroundCrackFx.ResetForPlayMode();              // 地面龜裂的共用白 sprite ＋ shader 快取
+        HitStop.ResetForPlayMode();                    // 命中定格的常駐載體參考
         MapDepthSort.ResetForPlayMode();               // zOrder 超範圍的一次性警告旗標
 
         // 抽選系統的資料表（池登記表／各池基本表／血統表／血統系列表）＋血統系統的單例。
