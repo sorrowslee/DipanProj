@@ -53,6 +53,13 @@ public class MonsterData
 
     // ── 跳躍踐踏（BrainType=LeapSlam）專用，CSV 表尾兩欄。其他怪一律留空、用不到 ──
     // 留空/0 時由 LeapSlamBrain 給退路（傷害＝ContactDamage×2、半徑＝1.6），所以既有怪不填也不會壞。
+    // 揮舞型近戰（BrainType=MeleeChase／LeapSlam）的**命中幀**：attack 序列圖的第幾張是「武器揮到位」。
+    // 留空＝張數 × 0.7 的粗估（能動，但**不準**）。
+    // ⚠ **這個值一定要逐怪量**，比例完全靠不住——實測：狂族皇家衛士 9/12（75%）、狼人兵 8/24（33%）、
+    //   吸血鬼兵 11/25（44%）。量法：印出 attack 每一幀不透明像素的 bbox，**寬度／邊緣突然暴增的那一幀**
+    //   就是武器揮出去的時刻（見 readme/BOSS_MODULE.md §10.4）。
+    public int AttackHitFrame = 0;
+
     public float LeapDamage = 0f;   // 落地踐踏的一次性傷害
     public float LeapRadius = 0f;   // 踐踏殺傷半徑（世界單位）；地面裂痕的視覺大小也吃它
 

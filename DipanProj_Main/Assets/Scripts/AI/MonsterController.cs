@@ -53,6 +53,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     public float AttackInterval = 0.5f;          // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval）
     public float DamageReductionPercent = 0f;    // 受擊減傷 %（掛勾；目前 CSV 預設 0，之後接減傷/抗性）
 
+    [Tooltip("揮舞型近戰的命中幀：attack 序列圖的第幾張是「武器揮到位」（CSV: AttackHitFrame）。留空/0 ＝ 張數×0.7 粗估。**一定要逐怪量**，比例靠不住")]
+    public int AttackHitFrame = 0;
+
     [Header("Leap Slam / 跳躍踐踏")]
     [Tooltip("落地踐踏的傷害（CSV: LeapDamage）。留空/0 ＝ 退回 ContactDamage 的 2 倍（見 LeapSlamBrain）。只有 BrainType=LeapSlam 會用到")]
     public float LeapDamage = 0f;
@@ -382,6 +385,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         AttackInterval = data.AttackInterval;
         DamageReductionPercent = data.DamageReduction;
         AnimFPS = data.AnimFPS;
+        AttackHitFrame = data.AttackHitFrame;   // 揮舞型近戰的命中幀（留空＝張數×0.7 粗估）
         LeapDamage = data.LeapDamage;     // 跳躍踐踏（BrainType=LeapSlam）專用；其他怪留空＝用不到
         LeapRadius = data.LeapRadius;
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）

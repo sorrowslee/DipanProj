@@ -120,6 +120,9 @@ public class MonsterSpawner : MonoBehaviour
             data.LeapDamage = (values.Length > 27 && !string.IsNullOrWhiteSpace(values[27])) ? float.Parse(values[27]) : 0f;
             data.LeapRadius = (values.Length > 28 && !string.IsNullOrWhiteSpace(values[28])) ? float.Parse(values[28]) : 0f;
 
+            // 揮舞型近戰的命中幀（索引 29，表尾欄）：留空＝張數 × 0.7 的粗估。逐怪量，比例靠不住（見 MonsterData 註解）。
+            data.AttackHitFrame = (values.Length > 29 && !string.IsNullOrWhiteSpace(values[29])) ? int.Parse(values[29].Trim()) : 0;
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

@@ -57,11 +57,12 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | `ID` / `Name` | 編號 / 怪名（`Name` 要等於圖的資料夾名 `<怪名>`） |
 | `HP` / `Speed` / `ContactDamage` / `DamageReduction` | 血量 / 移動速度 / 接觸傷害 / 受擊減傷% |
 | `Scale` | 整體縮放（調大小） |
-| `BrainType` | 目前 `Chase`（追玩家）；未來擴充其他 AI |
+| `BrainType` | AI 模組。**近戰分兩種**（見 [BOSS_MODULE.md](BOSS_MODULE.md) §10.0）：`Chase`＝衝撞型（一路貼上去磨，**沒有 attack 圖**的怪用這個）、`MeleeChase`＝揮舞型（追到定點站定把攻擊動畫做完，**有 attack 圖**才能用）。<br>其他：`Pounce` 撲擊（§7）、`Archer` 射手（§8）、`LeapSlam` 跳躍踐踏（§9）、`War` 陣營戰士、`RedBridalGown`／`BanyanTree` boss |
 | `InvincibleTimeMs` / `KnockbackThreshold` / `KnockbackPercent` | 受擊反應（見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)） |
 | **`PrefabPath`** | **route B 留空**。只有要沿用「自帶 Animator 的舊 prefab」才填（向下相容） |
 | **`AnimFPS`** | **新增**：程式動畫播放幀率，留空＝8。走路會再依實際速度連動（防腳滑；倍率夾在 `MinMul`~`MaxMul`，見下） |
 | **`JumpScale`** | **jump 顯示倍率**（表尾，接在 `AttackScale` 後面，2026-09-18）。有填就照填的走；<br>⚠ **留空的語義與上面三個不同**：其他動作留空＝走「自動依可見高對齊 idle」，**jump 留空＝直接沿用 `IdleScale`、不做自動對齊**。因為跳躍的可見高度本來就是動作的內容（蹲下時矮、騰空伸展時又不同），正規化等於把它抵銷，而且越蜷縮的幀被放得越大 ⇒ 騰空時怪會膨脹一圈（實測 1.05~1.31 倍）。詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.7 |
+| **`AttackHitFrame`** | **揮舞型近戰的命中幀**（表尾）：attack 的第幾張是「武器揮到位」。留空＝張數 × 0.7 粗估。<br>⚠ **務必逐怪量**，比例靠不住——實測 12 張的怪是第 9 幀（75%）、24 張的是第 8 幀（33%）、25 張的是第 11 幀（44%）。量法見 [BOSS_MODULE.md](BOSS_MODULE.md) §10.4 |
 | **`LeapDamage`／`LeapRadius`** | **跳躍踐踏專用**（表尾兩欄，2026-09-18）。只有 `BrainType=LeapSlam` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 2、半徑＝1.6。<br>⚠ **實際殺傷範圍 ＝ `LeapRadius` ＋ 目標碰撞框半徑**（玩家約 0.5），詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.4 |
 | **`IdleScale`／`WalkScale`／`AttackScale`** | **逐動作顯示倍率**（表尾三欄，2026-09-17）。**留空＝自動**（把該動作的可見高對齊 idle）；有填就覆寫。`pant` 沿用 `IdleScale`。整體大小仍吃 `Scale` 欄，這三欄是在它之上的等比例微調。<br>⚠ **四足獸（狼/狗/豹）通常要填**：自動那套量高度，而奔跑姿勢身體壓低、高度矮 ⇒ 被**放大**。戰狼實測 walk 被自動放大 ×1.288、等效寬 221→285px（idle 才 181），填 `WalkScale=0.9` 之後差距從 57% 降到 10%。詳見 [PROBLEMS.md](PROBLEMS.md) **G12** |
 

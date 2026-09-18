@@ -793,8 +793,13 @@
 - [x] ~~傷害仍是接觸式~~ → 2026-09-18 改走**揮擊命中幀**（第 9 幀開一次 `ImpactDamageArea`），
   並把怪身上的接觸傷害關掉（`DisableContactDamage`）。見 BOSS_MODULE §10.4。
 - [ ] **揮擊判定是圓形不是扇形**：圈心已往面向方向偏半個身位，但背後仍有一小塊會被打到。
-- [ ] **`HitFrame = 9` 是全域 const**（同 §9 的跳躍幀號）：換一隻 attack 節奏不同的怪要改它，
-  或搬進 CSV。程式會把它夾進實際張數，所以至少不會「一輩子揮空」。
+- [x] ~~`HitFrame = 9` 是全域 const~~ → 2026-09-18 搬進 `MonsterData.csv` 的 `AttackHitFrame` 欄
+  （量完三隻發現比例從 33% 到 75%，靠不住）。
+- [ ] **一次攻擊只結算一個命中幀**：狼人兵其實是左右兩段連擊（attack 幀 8 與 15），目前只認第一段。
+  要連擊得讓 `AttackHitFrame` 可以填多個（例如 `8|15`）。
+- [ ] **ID 15／16 的 `AnimFPS` 還是 8**：attack 24~25 張 ⇒ **3 秒才揮一刀**，實測應該會覺得很鈍。
+  ⚠ `AnimFPS` 是 idle/walk/attack **共用**的，調快攻擊也會讓走路變快（14 左右是其他狼族怪的值）。
+  要只讓攻擊變快而不動走路，得把 `MeleeChaseBrain.AttackFpsMul` 改成從 CSV 讀（目前是全域 1.0）。
 - [ ] **沒有「被打斷」的概念**：揮到一半被重擊也會揮完。要做破招得另外接 `HitReactionHandler`。
 - [ ] **既有的 `BrainType=Chase` 怪沒有換過來**（吸血鬼兵、狼人兵…）。牠們仍是「舉著劍追人」的舊行為——
   這是刻意的（零風險），要換的話把 CSV 的 `BrainType` 從 `Chase` 改成 `MeleeChase` 即可，一隻一隻試。

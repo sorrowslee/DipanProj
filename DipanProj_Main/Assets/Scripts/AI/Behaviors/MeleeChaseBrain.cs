@@ -44,7 +44,10 @@ public class MeleeChaseBrain : IMonsterBrain
     // 為什麼要這樣：近戰武器有長度，劍尖掃得到的地方遠比身體碰撞框寬——
     // 狂族皇家衛士的 attack 第 9~12 幀劍已經掃出畫布外，而接觸傷害完全不知道劍在哪裡。
     // **幀號即事件**（同 §8.2b 的放箭幀）：改 CSV 的 AnimFPS 時機會自動跟著對。
-    const int   HitFrame = 9;          // 劍完全掃出的第一幀（量 attack 幀的 bbox 右緣量出來的：8 開始掃、9~12 掃到畫布外）
+    // 命中幀（attack 的第幾張是「武器揮到位」）**從 CSV 的 `AttackHitFrame` 讀**，這裡只是沒填時的退路。
+    // ⚠ **比例完全靠不住，一定要逐怪量**：實測狂族皇家衛士 9/12（75%）、狼人兵 8/24（33%）、吸血鬼兵 11/25（44%）。
+    //   量法：印 attack 每幀不透明像素的 bbox，**寬度／邊緣突然暴增的那一幀**就是武器揮出去的時刻。
+    const float HitFrameFallbackRatio = 0.7f;
 
     // ⭐⭐ **命中判定與起手判定用同一把尺：碰撞框的邊緣距離**（2026-09-18 大修，見 PROBLEMS **F27**）。
     //   第一版是「以怪的腳底為圓心、半徑＝框半寬＋0.55 開一個圈」去猜打得到誰——**那裡錯了兩件事**：
@@ -86,7 +89,8 @@ public class MeleeChaseBrain : IMonsterBrain
     Transform _targetColOwner;
     Vector2 _swingDir = Vector2.right;   // 這一次揮擊的方向（起手時記下，揮到一半目標移動也不轉——動作已經定型）
     bool _swingHit;                      // 這一次揮擊是否已經結算過命中幀
-    int  _hitFrame = HitFrame;           // 這隻怪實際用的命中幀（attack 張數比 HitFrame 少時夾到最後一幀）
+    int  _hitFrame = 1;                  // 這隻怪實際用的命中幀（起手時依 CSV／退路算好並夾進張數）
+    bool _hasAttackAnim;                 // 這隻怪有沒有 attack 圖；沒有的話整套「揮舞型」都不適用（見 EnsureConfigured）
 
     /// <summary>
     /// 套用本 Brain 需要的設定：接管攻擊姿勢、關掉「碰到就痛」。呼叫幾次都只會生效一次。
@@ -97,10 +101,24 @@ public class MeleeChaseBrain : IMonsterBrain
     {
         if (_configured || self == null) return;
         _configured = true;
+        _anim = self.Anim;
+
+        // ⚠⚠ **沒有 attack 圖的怪不能套這一套**，而且後果很嚴重：
+        //   本 Brain 會把「碰到就痛」關掉、改由揮擊的命中幀結算，
+        //   但沒有 attack 圖就永遠不會揮 ⇒ **那隻怪會完全無害**，而且不會有任何錯誤訊息。
+        //   所以這裡整段退回「衝撞型」（＝ChaseBrain 的行為：貼上去，傷害走接觸傷害），
+        //   並且**印一則 warning**——會走到這裡一定是 CSV 設定錯了（該填 Chase 卻填了 MeleeChase）。
+        _hasAttackAnim = _anim != null && _anim.Has(MonsterAnimator.State.Attack);
+        if (!_hasAttackAnim)
+        {
+            Debug.LogWarning($"[MeleeChase] 「{self.MonsterName}」沒有 attack 圖，" +
+                             "自動退回「衝撞型」（貼上去、傷害走接觸傷害）。" +
+                             "揮舞型近戰需要 attack 序列圖；只想要衝撞的話 MonsterData 的 BrainType 請填 Chase。");
+            return;
+        }
 
         // 攻擊姿勢從此由本 Brain 全權控制（見 MonsterController.BrainControlsAttackPose）。
         self.BrainControlsAttackPose = true;
-        _anim = self.Anim;
 
         // 傷害改由揮擊的命中幀結算（見 DisableContactDamage）。
         if (DisableContactDamage)
@@ -137,6 +155,14 @@ public class MeleeChaseBrain : IMonsterBrain
         {
             case Phase.Chase:
                 if (target == null) { act.Stop(); break; }
+
+                // 沒有 attack 圖 → 衝撞型：一路貼上去，傷害走接觸傷害（見 EnsureConfigured）
+                if (!_hasAttackAnim)
+                {
+                    if (Vector2.Distance(pos, target.position) > StopDistance) act.MoveTowards(target.position);
+                    else act.Stop();
+                    break;
+                }
 
                 if (Touching(AttackSlack) && Time.time >= _nextAttackAt && BeginAttack(ctx, act, target)) break;
 
@@ -197,8 +223,12 @@ public class MeleeChaseBrain : IMonsterBrain
         int frames = _anim.FrameCount(MonsterAnimator.State.Attack);
         float animSeconds = frames > 0 ? frames / fps : 1f;
 
-        // 命中幀夾進實際張數：換一隻 attack 只有 6 張的怪時，HitFrame(9) 永遠不會到 ⇒ 一輩子揮空不傷人。
-        _hitFrame = frames > 0 ? Mathf.Clamp(HitFrame, 1, frames) : HitFrame;
+        // 命中幀：CSV 的 AttackHitFrame 優先，沒填就用張數 × 比例粗估；一律夾進實際張數
+        // （否則換一隻 attack 只有 6 張的怪時，一個寫死的 9 永遠不會到 ⇒ 一輩子揮空不傷人）。
+        int want = (self != null && self.AttackHitFrame > 0)
+                   ? self.AttackHitFrame
+                   : Mathf.RoundToInt(frames * HitFrameFallbackRatio);
+        _hitFrame = frames > 0 ? Mathf.Clamp(want, 1, frames) : Mathf.Max(1, want);
 
         // 攻擊節奏：從**這一次揮的開始**算 AttackInterval，而不是從結束算——
         // 否則 CSV 的 AttackInterval 會變成「動作時間 ＋ 間隔」，一隻攻速 0.8 的怪實際上要 1.7 秒才揮一次。
