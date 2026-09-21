@@ -71,6 +71,7 @@ public static class PlayModeStaticReset
         Dipan.Localization.Language.ResetForPlayMode();
         Dipan.UI.ForgingPanel.ResetForPlayMode();   // 鍛造台的鎖定版本號（背包靠它輪詢重畫）
         Dipan.UI.SlotDragController.ResetForPlayMode();   // 拖放層的鎖定鉤子＋殘留的拖曳狀態
+        Dipan.UI.TalkPanel.ResetForPlayMode();            // 立繪邊緣羽化材質（殘留＝上一輪已銷毀的 Material → 立繪變洋紅）
         SceneFxTable.ResetForPlayMode();
         ScreenFxTable.ResetForPlayMode();
         SegmentedLightningColumn.ResetForPlayMode();   // 拼接雷柱的 Sprite 快取（字典型，容器不會變 null）
@@ -85,6 +86,7 @@ public static class PlayModeStaticReset
         Dipan.Gacha.BloodlineTable.ResetForPlayMode();
         Dipan.Gacha.BloodlineSeriesTable.ResetForPlayMode();   // 血統系列表（表A：系列 → 三階段的反查索引）
         Dipan.Gacha.BloodlineSystem.ResetForPlayMode();
+        Dipan.Flow.DreamTutorialFlow.ResetForPlayMode();   // 新手夢境教學開場：單例參考＋IsPlaying 旗標
         Dipan.Gacha.BloodlineTransformFxRunner.ResetForPlayMode();   // 變身演出的 IsPlaying（殘留會鎖死背包熱鍵）
         Dipan.UI.BloodlineIntroPanel.ResetForPlayMode();             // 立繪揭示面板的 IsShowing（同上，殘留一樣鎖死熱鍵）
         Dipan.Localization.LocalizedArt.ResetForPlayMode();          // 「缺某語言的圖」只警告一次的名單（不清的話下一輪 Play 就不再提醒）

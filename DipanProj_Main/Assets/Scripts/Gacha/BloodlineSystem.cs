@@ -33,7 +33,7 @@ namespace Dipan.Gacha
         static BloodlineSystem _instance;
 
         /// <summary>進 Play 時歸零（Domain Reload 已關）。由 PlayModeStaticReset 呼叫。</summary>
-        public static void ResetForPlayMode() => _instance = null;
+        public static void ResetForPlayMode() { _instance = null; _dreamOverrideId = 0; }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Bootstrap()
@@ -137,6 +137,49 @@ namespace Dipan.Gacha
             ApplyTo(_pc, want);
         }
 
+        // ───────────────────────── 夢境覆寫（新手夢境教學專用）─────────────────────────
+
+        static int _dreamOverrideId;
+
+        /// <summary>
+        /// 目前的「夢境血統」覆寫 id（0 = 沒有覆寫）。見 <see cref="SetDreamOverride"/>。
+        /// </summary>
+        public static int DreamOverrideId => _dreamOverrideId;
+
+        /// <summary>
+        /// 新手夢境教學用：把「本世血統」**暫時**當成某個血統，**完全不寫存檔**。
+        ///
+        /// 為什麼需要它：本系統是收斂式的（<see cref="Update"/> 每幀比對存檔血統與已套用的外觀），
+        /// 所以直接呼叫 <c>PlayerController.SetBloodline</c> 會在下一幀被打回去。覆寫這一層之後，
+        /// 外型／體型／走速／神格特效與「血統偵測條件」（<c>AppearCondition</c> 讀
+        /// <see cref="CurrentBloodlineId"/>）全部會跟著夢裡的血統走。
+        ///
+        /// 刻意**不經存檔**：夢是上一輪的記憶，玩家醒來必須是人類；而且
+        /// <see cref="IsFixedThisCycle"/> 讀的是 <see cref="StoredBloodlineId"/>、不吃這層覆寫，
+        /// 所以「本世是否已選定系列」不會被夢境誤觸（喝藥劑的規則完全不受影響）。
+        ///
+        /// ⚠ 離開夢境一定要呼叫 <see cref="ClearDreamOverride"/>，否則玩家醒來還是三階外貌。
+        /// <see cref="Dipan.Flow.DreamTutorialFlow"/> 已經備有「離開夢境地圖就自動清」的保險。
+        /// </summary>
+        public static void SetDreamOverride(int bloodlineId)
+        {
+            if (BloodlineTable.Get(bloodlineId) == null)
+            {
+                Debug.LogWarning($"[BloodlineSystem] 夢境覆寫的血統 id {bloodlineId} 在表B 找不到，忽略。");
+                return;
+            }
+            _dreamOverrideId = bloodlineId;
+            Debug.Log($"[BloodlineSystem] 夢境覆寫 → {BloodlineTable.NameOf(bloodlineId)}（id {bloodlineId}，不寫存檔）。");
+        }
+
+        /// <summary>解除夢境覆寫，回到存檔記著的本世血統（通常＝人類）。沒有覆寫時無事。</summary>
+        public static void ClearDreamOverride()
+        {
+            if (_dreamOverrideId == 0) return;
+            Debug.Log("[BloodlineSystem] 夢境覆寫解除 → 回到存檔的本世血統。");
+            _dreamOverrideId = 0;
+        }
+
         // ───────────────────────── 對外查詢 ─────────────────────────
 
         /// <summary>
@@ -169,6 +212,9 @@ namespace Dipan.Gacha
         {
             get
             {
+                // 新手夢境教學：夢裡的血統覆寫在最前面，且完全不進存檔（見 SetDreamOverride）。
+                if (_dreamOverrideId > 0 && BloodlineTable.Get(_dreamOverrideId) != null) return _dreamOverrideId;
+
                 int id = StoredBloodlineId;
                 if (id > 0 && BloodlineTable.Get(id) != null) return id;
                 return BloodlineTable.HumanId;

@@ -15,7 +15,8 @@ namespace Dipan.UI
     ///
     /// 雙立繪：一句可同時擺左、右兩個立繪（<see cref="DramaTalkData.LeftAvatar"/> / <see cref="DramaTalkData.RightAvatar"/>）。
     /// <see cref="DramaTalkData.SpotlightSide"/> = 說話者那一側：聚光側立繪正常亮、另一側壓暗（保留原色相、純調暗），
-    /// 姓名牌匾擺在聚光側、顯示說話者姓名。任一側 sprite=null（留空 / 載不到）那側自動隱藏。
+    /// 姓名牌匾擺在聚光側、顯示說話者姓名；**該句沒填姓名就整片隱藏**（旁白／獨白）。
+    /// 立繪則是任一側 sprite=null（留空 / 載不到）那側自動隱藏。
     /// </summary>
     public class TalkPanel : UIPanel
     {
@@ -49,15 +50,60 @@ namespace Dipan.UI
         //    人物頂端 = (BottomMargin + 對話框顯示高) − AvatarOverlap + AvatarHeight
         //             = 576.9 − AvatarOverlap + AvatarHeight，**超過 1080 頭頂就被切掉**。
         //    660/100 那組（2026-09-13 上午）算出來是 1137 ⇒ 超出 57px，實機看得到角與頭髮被切平。
-        //    現在這組是 1027，頂端留 53px 呼吸空間。要再調：**縮小人物改 AvatarHeight、整體下移改 AvatarOverlap**。
-        const float AvatarHeight = 580f;                       // **人物**在畫面上的高度（越大越大隻；圖檔會被連帶放大到超過這個值）
-        const float AvatarInnerX = 650f;                       // **人物內側緣**（朝畫面中央那一邊）距畫面左/右邊（越大兩人靠越近）
-        const float AvatarOverlap = 130f;                      // **人物底部**沉入對話框多少（**越大越往下＝被對話框蓋住越多、露出越少**；負值＝往上露出更多）
+        //    580/130 那組（2026-09-13）是 1027，頂端留 53px，但作者實機看覺得「人太小、離太遠、沒魄力」。
+        //    現在這組 880/400 算出來是 1057，頂端留 23px。要再調：**縮小人物改 AvatarHeight、整體下移改 AvatarOverlap**。
+        //
+        // 📐 **放大的正確做法是兩個一起加**：露出在對話框上方的高度 ＝ AvatarHeight − AvatarOverlap，
+        //    而它的物理上限只有 1080 − 576.9 ≈ 503（對話框上緣到畫面頂）。所以光加 AvatarHeight 會頂到天花板，
+        //    必須同步加 AvatarOverlap 讓人物往下沉——結果就是「人更大、但露出的身體部位更少」＝鏡頭拉近的臉部特寫感。
+        //    這一組露出 480、被對話框蓋掉約 45%（腰部以下），是作者要的構圖。
+        const float AvatarHeight = 880f;                       // **人物**在畫面上的高度（越大越大隻；圖檔會被連帶放大到超過這個值）
+        const float AvatarInnerFromCenter = 140f;              // **人物內側緣**（朝畫面中央那一邊）距**畫面中心**（越小兩人靠越近）
+                                                               // ⚠ 2026-09-21 從「距畫面左/右邊 820」改成「距中心 140」：
+                                                               //   CanvasScaler 是 match=0.5，UI 座標的畫面寬會隨螢幕比例浮動，
+                                                               //   錨在畫面邊會讓立繪在寬螢幕上離置中的對話框越來越遠。
+                                                               //   （1920 寬時兩種寫法等價：960 − 820 = 140。）
+        const float AvatarOverlap = 400f;                      // **人物底部**沉入對話框多少（**越大越往下＝被對話框蓋住越多、露出越少**；負值＝往上露出更多）
         const float AvatarAspect = 1086f / 1448f;              // 建立時的暫定比例（實際尺寸每次 SetAvatar 依圖重算）
+
+        // ── 立繪邊緣羽化（2026-09-21）──
+        // 部分素材的人物一路畫到畫布邊界才被切斷（蟲皇左緣 69%、法夫納左緣 40% 的畫布邊是不透明的），
+        // 去背再乾淨也救不回來——邊緣就是一條硬切直線。這裡讓靠近圖檔左右邊界的像素 alpha 漸層淡出，
+        // 硬邊化成柔邊融進暗場景。**這是短期補救**，根本解是產圖時要求人物四周留白。
+        // ⚠ 對沒切邊的立繪完全無害：它們的邊緣 alpha 本來就是 0，乘上衰減仍是 0。
+        // ⚠ 值是「佔圖寬的比例」：0.07 ＝ 1024px 寬的圖，左右各 72px 的漸層。調太大會把貼近邊緣的
+        //   手臂／披風也淡掉一截，實機看過再定。
+        const float AvatarFeatherX = 0.07f;                    // 左右羽化寬度（0 = 關閉）
+        const float AvatarFeatherY = 0f;                       // 上下羽化寬度（0 = 關閉）——
+                                                               // 上緣幾乎沒有切邊、下緣被對話框蓋住，預設不處理
 
         // 非聚光側（沒在說話的人）壓暗：整體調暗、保留原色相（灰色 tint 乘上去＝背光感）。聚光側用純白＝原色。
         static readonly Color SpotlightColor = Color.white;
         static readonly Color DimmedColor = new Color(0.42f, 0.42f, 0.42f, 1f);
+
+        // 左右立繪共用同一份羽化材質（參數相同）。static 快取，Play 模式結束要歸零（見 ResetForPlayMode）。
+        static Material _featherMat;
+
+        /// <summary>進 Play 時丟掉羽化材質（已關 Domain Reload；殘留的是上一輪被銷毀的 Material → 立繪會變洋紅）。</summary>
+        public static void ResetForPlayMode() { _featherMat = null; }
+
+        /// <summary>取得（必要時建立）立繪的羽化材質。shader 載不到就回 null ＝ 退回 UI 預設材質，只是沒有羽化。</summary>
+        static Material FeatherMaterial()
+        {
+            if (AvatarFeatherX <= 0f && AvatarFeatherY <= 0f) return null;   // 兩軸都關 ＝ 不用自訂材質
+            if (_featherMat != null) return _featherMat;
+
+            var sh = Resources.Load<Shader>("Shaders/TalkAvatarFeather");
+            if (sh == null)
+            {
+                Debug.LogWarning("[TalkPanel] 找不到 Resources/Shaders/TalkAvatarFeather，立繪邊緣羽化停用（其餘照常）。");
+                return null;
+            }
+            _featherMat = new Material(sh) { hideFlags = HideFlags.DontSave };
+            _featherMat.SetFloat("_FeatherX", AvatarFeatherX);
+            _featherMat.SetFloat("_FeatherY", AvatarFeatherY);
+            return _featherMat;
+        }
 
         RectTransform _frame;
         Image _plate, _avatarLeft, _avatarRight;
@@ -169,7 +215,12 @@ namespace Dipan.UI
             bool spotRight = l.SpotlightSide == 2;   // 聚光（說話者）在右側
 
             // 姓名牌匾擺在聚光側、顯示說話者姓名。
-            Place(_plate.rectTransform, spotRight ? PlateRightCx : PlateLeftCx, PlateY, PlateW, PlateH);
+            // ⚠ 沒填姓名（旁白、獨白、內心話這類「沒有說話者」的句子）→ **整片牌匾隱藏**，
+            //    不要留一塊空匾額在那裡。逐句判定，所以同一組對話可以有的句子有牌匾、有的沒有。
+            bool hasName = !string.IsNullOrWhiteSpace(l.Name);
+            _plate.gameObject.SetActive(hasName);
+            if (hasName)
+                Place(_plate.rectTransform, spotRight ? PlateRightCx : PlateLeftCx, PlateY, PlateW, PlateH);
 
             // 左、右立繪各自顯示（有圖才顯示）；非聚光側壓暗（保留原色相）。可用 CSV 選填欄微調縮放/位移。
             SetAvatar(_avatarLeft, l.LeftAvatar, l.LeftFit, dim: spotRight, right: false,
@@ -183,8 +234,12 @@ namespace Dipan.UI
         ///
         /// <para><b>對齊的是不透明內容框、不是圖檔外框</b>（<see cref="PortraitFit"/>）：
         /// 縮放讓<b>人物高度</b> = <see cref="AvatarHeight"/>、水平讓<b>人物內側緣</b>（朝畫面中央那一邊）
-        /// 落在 <see cref="AvatarInnerX"/>、底部讓<b>人物底緣</b>落在對話框上緣 − <see cref="AvatarOverlap"/>。
+        /// 距畫面中心 <see cref="AvatarInnerFromCenter"/>、底部讓<b>人物底緣</b>落在對話框上緣 − <see cref="AvatarOverlap"/>。
         /// 三個量都對「人」，所以美術給多大的畫布、留多少白邊都不會讓人物飄。</para>
+        ///
+        /// <para><b>外側緣有一條硬上限</b>：人物外側緣不得超出對話框外緣（對話框是置中固定寬，畫面越寬、
+        /// 錨在畫面邊的立繪離它越遠）。超出就整個往中央推回去，所以寬體型角色實際上是「外側貼齊對話框邊」，
+        /// 窄體型角色維持內側緣對齊、不受影響。</para>
         ///
         /// <para><b>右側立繪是鏡像的</b>（localScale.x = −1，讓臉朝向畫面中央），鏡像後原圖的<b>右</b>緣會變成
         /// 畫面上的<b>左</b>緣——正好也是它的內側緣，所以左右兩側都用 <see cref="PortraitFit.ContentRightFromCenter"/>
@@ -231,18 +286,34 @@ namespace Dipan.UI
             // 往下扣掉「人物底緣到圖檔底緣」那段留白。
             float imgBottomY = bottomY - (canvas.y * 0.5f + bottomFromCenter) * k;
 
+            // 以下 x 一律是「相對畫面中心」（anchor 0.5）：往右為正。
+            // 對話框外緣因此永遠是 ±halfBox，跟畫面實際多寬無關。
+            float contentW = content.x * k;                    // 人物寬（內容框）
+            float innerToImgLeft = (canvas.x * 0.5f + rightFromCenter) * k;   // 人物右緣距圖檔左緣
+            float halfBox = DisplayWidth * 0.5f;
+
+            float ax;
             if (right)
             {
-                // 右側：anchor 右下、pivot (0.5, 0)、localScale.x = −1（以水平中軸原地鏡像）。
-                // anchoredPosition.x 量的是「圖檔中心距畫面右邊」（負值），
-                // 鏡像後人物內側緣距畫面右邊 = 圖檔中心距右邊 + 人物右緣距圖檔中心。
-                rt.anchoredPosition = new Vector2(rightFromCenter * k - AvatarInnerX + px, imgBottomY);
+                // 右側鏡像（localScale.x = −1）：圖內的右緣會出現在畫面的左邊，
+                // 所以畫面上「人物內側緣」相對圖檔中心 = −rightFromCenter。
+                ax = AvatarInnerFromCenter + rightFromCenter * k + px;
+
+                // 外側緣（畫面右緣）不得超出對話框右緣。
+                float outer = ax + (content.x - rightFromCenter) * k;
+                if (outer > halfBox) ax -= (outer - halfBox);
             }
             else
             {
-                // 左側：anchor 左下、pivot (0, 0)，anchoredPosition.x 量的是「圖檔左緣距畫面左邊」。
-                rt.anchoredPosition = new Vector2(AvatarInnerX - (canvas.x * 0.5f + rightFromCenter) * k + px, imgBottomY);
+                // 左側：pivot (0,0)，ax 量的是「圖檔左緣」相對畫面中心。
+                ax = -AvatarInnerFromCenter - innerToImgLeft + px;
+
+                // 外側緣（畫面左緣）不得超出對話框左緣。
+                float outer = ax + innerToImgLeft - contentW;
+                if (outer < -halfBox) ax += (-halfBox - outer);
             }
+
+            rt.anchoredPosition = new Vector2(ax, imgBottomY);
         }
 
         // 建一個立繪 Image：站姿、排在對話框「後方」（被對話框蓋住），貼畫面左下 / 右下角。
@@ -258,20 +329,27 @@ namespace Dipan.UI
             avatar.raycastTarget = false;
             avatar.enabled = false;
 
+            // 邊緣羽化（見 AvatarFeatherX 的說明）。材質做在 UV 空間，右側立繪的鏡像不影響結果。
+            var fm = FeatherMaterial();
+            if (fm != null) avatar.material = fm;
+
             var rt = avatar.rectTransform;
             rt.sizeDelta = new Vector2(AvatarHeight * AvatarAspect, AvatarHeight);
 
+            // ⚠ 兩側都錨在**畫面中心底部**（0.5, 0），不是畫面左右邊：
+            //    對話框是置中、固定 1500 寬，立繪若錨在畫面邊，畫面越寬就離對話框越遠
+            //    （CanvasScaler match=0.5，UI 座標的畫面寬本來就會浮動）。錨在中心之後，
+            //    「對話框邊緣」永遠是 ±DisplayWidth/2，排版與 clamp 都不必知道畫面多寬。
+            rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0f);
             if (right)
             {
-                // 右側：錨右下、pivot 水平置中 + 底部（localScale.x=-1 要以水平中軸才是原地翻轉）。
-                rt.anchorMin = rt.anchorMax = new Vector2(1f, 0f);
+                // 右側：pivot 水平置中 + 底部（localScale.x=-1 要以水平中軸才是原地翻轉）。
                 rt.pivot = new Vector2(0.5f, 0f);
                 rt.localScale = new Vector3(-1f, 1f, 1f);
             }
             else
             {
-                // 左側：錨左下、pivot 左下，不翻轉（原圖臉朝右＝朝向畫面中央，正好）。
-                rt.anchorMin = rt.anchorMax = new Vector2(0f, 0f);
+                // 左側：pivot 左下，不翻轉（原圖臉朝右＝朝向畫面中央，正好）。
                 rt.pivot = new Vector2(0f, 0f);
                 rt.localScale = Vector3.one;
             }

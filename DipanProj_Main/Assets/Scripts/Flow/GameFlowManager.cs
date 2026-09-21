@@ -76,15 +76,15 @@ namespace Dipan.Flow
             sm.StartNewGameInSlot(slot, name);   // 建立並設為活躍（覆蓋時會先刪舊角）
             InGame = true;
 
-            // 新流程：跳過開場漫畫，直接進山道劇情（Main_InitialForest1＝13）。
-            // 劇情播到 end='fall' 時，CutsceneDirector 再接墜落尾段（Story_13~15→側/正墜落→初始洞窟 11）。
-            MapManager.SuppressAutoStart = true;   // 由本流程明確帶進山道，避免 MapManager 自動進關卡打架
-            Debug.Log($"[GameFlow] 新建遊戲 → 直接進山道劇情（起關 MapId={SaveConstants.NewGameStartMapId}）。");
-            StartCoroutine(NewGameToForestRoutine());
+            // 新流程：跳過開場漫畫，先進「新手夢境教學」的夢境-初始洞窟（DreamTutorial_Cave＝27）。
+            // ⚠ 夢境教學走完後接回山道劇情（Main_InitialForest1＝13）那段串接尚未實作。
+            MapManager.SuppressAutoStart = true;   // 由本流程明確帶進夢境洞窟，避免 MapManager 自動進關卡打架
+            Debug.Log($"[GameFlow] 新建遊戲 → 進新手夢境教學（起關 MapId={SaveConstants.DreamTutorialStartMapId}）。");
+            StartCoroutine(NewGameToDreamRoutine());
         }
 
-        /// <summary>新建遊戲：蓋黑幕遮住標題/存讀檔 → 關選單 → 確保在 MainScene → 等 MapManager 就緒後直接 GoToMap 到山道 → 淡出露出載入頁。</summary>
-        IEnumerator NewGameToForestRoutine()
+        /// <summary>新建遊戲：蓋黑幕遮住標題/存讀檔 → 關選單 → 確保在 MainScene → 等 MapManager 就緒後直接 GoToMap 到夢境洞窟 → 淡出露出載入頁。</summary>
+        IEnumerator NewGameToDreamRoutine()
         {
             var fader = ScreenFader.Ensure();
             yield return fader.FadeTo(1f, 0.25f);   // 蓋黑（暫停中，用 unscaledTime 仍會動）
@@ -103,12 +103,17 @@ namespace Dipan.Flow
             }
 
             if (MapManager.Instance != null)
-                MapManager.Instance.GoToMap(SaveConstants.NewGameStartMapId, null);   // 明確起關到山道（Main_InitialForest1＝13）
+                MapManager.Instance.GoToMap(SaveConstants.DreamTutorialStartMapId, null);   // 明確起關到夢境洞窟（DreamTutorial_Cave＝27）
             else
-                Debug.LogError("[GameFlow] 等不到 MapManager，無法進山道（確認 MainScene 裡有 MapManager）。");
+                Debug.LogError("[GameFlow] 等不到 MapManager，無法進夢境洞窟（確認 MainScene 裡有 MapManager）。");
 
             yield return null;                       // 等一幀讓 GoToMap 開出載入頁
-            yield return fader.FadeTo(0f, 0.35f);    // 淡出，露出載入頁/山道
+
+            // 夢境開場接手：先立起自己的黑幕（壓在對話之下），再讓螢幕黑幕淡出——
+            // 所以玩家看到的是「載入頁 → 全黑 → 對話 → 馬賽克展開」，中間不會閃到洞窟。
+            DreamTutorialFlow.Begin();
+
+            yield return fader.FadeTo(0f, 0.35f);    // 淡出，露出載入頁/夢境開場的黑幕
         }
 
         /// <summary>新建有開場：先蓋黑幕遮住標題/存讀檔面板，再關選單、載入 Intro，最後淡出露出開場。避免「標題閃一下才進漫畫」。</summary>

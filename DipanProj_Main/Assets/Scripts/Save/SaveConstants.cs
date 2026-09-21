@@ -22,6 +22,12 @@ namespace Dipan.Save
         /// <summary>新遊戲起關的地圖 ID（山道劇情第一張＝Main_InitialForest1）。</summary>
         public const int NewGameStartMapId = 13;
 
+        /// <summary>新手夢境教學的起始地圖 ID（夢境-初始洞窟＝DreamTutorial_Cave）。新建角色最先進這張，走完夢境教學才接回山道劇情（<see cref="NewGameStartMapId"/>）。</summary>
+        public const int DreamTutorialStartMapId = 27;
+
+        /// <summary>新手夢境教學的邪佛廣場（夢境-邪佛廣場＝DreamTutorial_Square）。</summary>
+        public const int DreamTutorialSquareMapId = 28;
+
         /// <summary>墜落尾段結束後起關的地圖 ID（初始洞窟＝Main_Cave，睜眼醒來）。</summary>
         public const int PostFallMapId = 11;
 
