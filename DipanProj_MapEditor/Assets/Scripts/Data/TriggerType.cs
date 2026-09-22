@@ -60,6 +60,15 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "spawnInterval", type = ParamType.Float, label = "重複間隔秒" },
                     // 同時存在上限：這個出生點生的怪還活著幾隻 ≥ 上限時，那一波就少生/不生（死了才補）。留空＝10。
                     new TriggerParam { key = "maxAlive", type = ParamType.Int, label = "同時存在上限" },
+                    // 總波數：留空/0＝無限波（原行為）。填 N＝生完 N 波就停。
+                    // ⚠ **被「同時存在上限」整個擋掉、一隻都沒生出來的那一波不計數**（20 波＝實實在在 20 批怪）。
+                    new TriggerParam { key = "maxWaves", type = ParamType.Int, label = "總波數(空=無限)" },
+                    // 波次群組：留空＝自己一組。多顆出生點填同一個名字＝要全部打完才算「全滅」。
+                    // 用在「廣場四周好幾顆出生點、各生各的怪，全部清光才開門」。
+                    new TriggerParam { key = "waveGroup", type = ParamType.String, label = "波次群組(空=自己一組)" },
+                    // ⭐ **「全滅」之後做什麼，用下方通用欄位的「接續觸發／完成寫旗標」**——
+                    //   出生點的「完成」＝這一組怪被清空的那一刻（波次出完且場上一隻不剩）。
+                    //   總波數留空（無限波）＝永遠不會完成，也就永遠不會推鏈。
                     // 「什麼時候才開始生」不另外開欄位——直接用下方的**通用條件欄位**：
                     //   條件旗標＝持續判定（旗標取消就暫停、恢復就繼續，配「開關(按F)」用這個）；
                     //   初始停用＋解鎖旗標＝一次性解鎖（要靠鏈 Activate，解鎖後不會再關）；
@@ -116,6 +125,29 @@ namespace DipanMapEditor.Data
                 paramSchema = new List<TriggerParam>
                 {
                     new TriggerParam { key = "linkTeleport", type = ParamType.String, label = "要開的傳送點名" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：被鏈啟動時把玩家「推」到自己這格（先快後慢＝被打飛），期間鎖操作＋鏡頭震，**到位才接 next**。
+                // 格子塗在要把玩家轟到的位置（**必須是可走的地面**：位移走 MovePosition，撞牆會被擋住）。
+                typeId = "pushPlayer", displayName = "震退玩家(鏈動作)", color = "#FF9955",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "seconds", type = ParamType.Float, label = "推多久(秒/空=0.45)" },
+                    new TriggerParam { key = "shake",   type = ParamType.Float, label = "鏡頭震幅(空=0.35/0=不震)" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：鎖住玩家移動、**放行攻擊**（只能原地打），腳下放一個循環特效當牢籠。立即接 next。
+                // ⚠ 牢籠特效是 Loop=1、不會自己消失——要另一顆 bindPlayer 填「束縛=0」來收。
+                typeId = "bindPlayer", displayName = "束縛玩家(鏈動作)", color = "#CC77FF",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "bind",      type = ParamType.Int,   label = "束縛(1=綁/0=解除/空=1)" },
+                    new TriggerParam { key = "cageVfxId", type = ParamType.Int,   label = "牢籠特效id(循環/空=無)" },
+                    new TriggerParam { key = "cageScale", type = ParamType.Float, label = "牢籠大小倍率(空=1)" },
                 }
             });
             set.types.Add(new TriggerTypeDef

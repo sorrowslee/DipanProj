@@ -140,6 +140,28 @@
           "isScreenEffectRef": false,
           "isPortalList": false,
           "isConditionList": false
+        },
+        {
+          "key": "maxWaves",
+          "type": "Int",
+          "label": "總波數(空=無限)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "waveGroup",
+          "type": "String",
+          "label": "波次群組(空=自己一組)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
         }
       ]
     },
@@ -779,6 +801,75 @@
       "displayName": "三方陣營和平(鏈動作)",
       "color": "#4DA6D9",
       "params": []
+    },
+    {
+      "typeId": "pushPlayer",
+      "displayName": "震退玩家(鏈動作)",
+      "color": "#FF9955",
+      "params": [
+        {
+          "key": "seconds",
+          "type": "Float",
+          "label": "推多久(秒/空=0.45)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "shake",
+          "type": "Float",
+          "label": "鏡頭震幅(空=0.35/0=不震)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        }
+      ]
+    },
+    {
+      "typeId": "bindPlayer",
+      "displayName": "束縛玩家(鏈動作)",
+      "color": "#CC77FF",
+      "params": [
+        {
+          "key": "bind",
+          "type": "Int",
+          "label": "束縛(1=綁/0=解除/空=1)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "cageVfxId",
+          "type": "Int",
+          "label": "牢籠特效id(循環/空=無)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "cageScale",
+          "type": "Float",
+          "label": "牢籠大小倍率(空=1)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        }
+      ]
     }
   ]
 }

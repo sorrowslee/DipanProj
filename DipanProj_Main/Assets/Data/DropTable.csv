@@ -1,0 +1,2 @@
+ID(掉落表 ID/MonsterData 的 DropTableId 引用；不可重複),Name(僅供辨識/程式不讀),Drop1(格式 itemId:機率%:數量/機率留空=100/數量留空=1/數量可填範圍如 1-5),Drop2,Drop3,Drop4,Drop5,Drop6,Drop7,Drop8
+1,一般小怪(2026-09-22 之前的內建掉落),101:100:1-5,201:17.5,202:17.5,,,,,

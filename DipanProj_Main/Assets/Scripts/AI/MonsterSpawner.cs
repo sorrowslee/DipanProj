@@ -132,6 +132,12 @@ public class MonsterSpawner : MonoBehaviour
             data.BombRadius = (values.Length > 32 && !string.IsNullOrWhiteSpace(values[32])) ? float.Parse(values[32]) : 0f;
             data.BombFuse   = (values.Length > 33 && !string.IsNullOrWhiteSpace(values[33])) ? float.Parse(values[33]) : 0f;
 
+            // 掉落表 ID（索引 34，表尾欄）：留空/0 ＝ 完全不掉寶。見 DropTable。
+            data.DropTableId = (values.Length > 34 && !string.IsNullOrWhiteSpace(values[34])) ? int.Parse(values[34].Trim()) : 0;
+
+            // 移動拖尾特效（索引 35，表尾欄）：留空 ＝ 不掛。見 MonsterMoveTrail。
+            data.MoveTrailFx = (values.Length > 35 && !string.IsNullOrWhiteSpace(values[35])) ? values[35].Trim() : "";
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

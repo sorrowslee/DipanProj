@@ -71,7 +71,18 @@ namespace Dipan.Flow
         /// </summary>
         const int DebugForceBloodlineId = 0;    // 0 = 正常隨機；要固定測某個血統就填它的 id（例：82 = 蟲皇）
 
-        const float PlayerReadyTimeout = 15f;   // 等地圖載完＋玩家換好外觀
+        /// <summary>
+        /// 等「玩家外觀換成該血統」的上限。
+        /// ⚠ **地圖還在載的時間不算在這裡面**（見 <see cref="WaitForPlayerReady"/> 的說明與 PROBLEMS H2）——
+        ///   以前是連載圖一起計時，遇到編輯器邊玩邊匯入素材、載圖超過 15 秒，就會在載入頁還開著的時候
+        ///   提早往下播對話，然後被換圖清掉回呼 → 永久黑幕。
+        /// </summary>
+        const float PlayerReadyTimeout = 15f;
+
+        /// <summary>等地圖載完的硬上限（保險絲，正常跑不會用到）。超過就照走，畫面可能會怪但不會卡死。</summary>
+        const float MapReadyTimeout = 90f;
+
+        const float DramaOpenTimeout = 3f;      // 對話面板「開起來」的上限（開不起來＝這段跳過，不要空等）
         const float DramaTimeout = 120f;        // 對話關閉回呼的保險絲（玩家可能掛在那裡不按）
         const float MosaicTimeout = 10f;        // 馬賽克播完回呼的保險絲
 
@@ -200,16 +211,27 @@ namespace Dipan.Flow
             return DramaBloodlineBase + series.SeriesId;
         }
 
-        /// <summary>等「載入頁關閉 ＋ 玩家存在 ＋ 外觀已換成該血統」。超時就照走（不讓流程卡死）。</summary>
+        /// <summary>
+        /// 等「載入頁關閉 ＋ 玩家存在 ＋ 外觀已換成該血統」。超時就照走（不讓流程卡死）。
+        ///
+        /// <para>⚠ **兩段計時，不能混成一個**（PROBLEMS H2）：
+        /// 「地圖載完」要多久不是這支能控制的（編輯器裡剛匯入完素材的第一次 Play 可以拖上幾十秒），
+        /// 而「外觀換好」只是幾幀的事。以前共用一個 15 秒上限，結果變成**地圖載很慢時提早放行**——
+        /// 在載入頁還開著的時候就去播開場對話，隨後地圖載完呼叫 <c>TriggerChain.Setup</c>，
+        /// 它會清掉所有未結的對話完成回呼，於是 <see cref="PlayDrama"/> 永遠等不到通知、黑幕永遠不撤。</para>
+        ///
+        /// <para>所以：外觀的 15 秒**只在「地圖已就緒」之後才開始累計**，地圖那段另外給一條寬鬆的硬保險絲。</para>
+        /// </summary>
         IEnumerator WaitForPlayerReady(int bloodlineId)
         {
             var def = BloodlineTable.Get(bloodlineId);
             string wantFolder = def != null ? def.SpriteFolder : null;
 
-            float t = 0f;
-            while (t < PlayerReadyTimeout)
+            float total = 0f;    // 含載圖的硬保險絲
+            float skinT = 0f;    // 只累計「地圖已就緒、還在等外觀」的時間
+            while (total < MapReadyTimeout)
             {
-                t += Time.unscaledDeltaTime;
+                total += Time.unscaledDeltaTime;
 
                 var ui = UIManager.Instance;
                 bool loading = ui != null && ui.IsOpen<LoadingPanel>();
@@ -220,9 +242,19 @@ namespace Dipan.Flow
                                  && (string.IsNullOrEmpty(wantFolder) || pc.Bloodline == wantFolder);
 
                 if (!loading && skinReady) yield break;
+
+                // 地圖還在載／玩家還沒生出來 → 外觀計時歸零重算（這段不是「外觀換不過來」的錯）。
+                if (!loading && pc != null) skinT += Time.unscaledDeltaTime;
+                else skinT = 0f;
+
+                if (skinT >= PlayerReadyTimeout)
+                {
+                    Debug.LogWarning($"[DreamTutorial] 地圖已就緒，但等玩家換好外觀等了 {PlayerReadyTimeout} 秒還沒好，先往下播對話。");
+                    yield break;
+                }
                 yield return null;
             }
-            Debug.LogWarning($"[DreamTutorial] 等玩家換好外觀等了 {PlayerReadyTimeout} 秒還沒好，先往下播對話。");
+            Debug.LogWarning($"[DreamTutorial] 等地圖載完等了 {MapReadyTimeout} 秒還沒好，先往下播對話（畫面可能會怪）。");
         }
 
         /// <summary>
@@ -236,25 +268,63 @@ namespace Dipan.Flow
         /// </summary>
         IEnumerator PlayDrama(int dramaId)
         {
-            bool closed = false;
-            TriggerChain.CompleteAfterDramaAction(() => closed = true);
-
             var db = DramaDatabase.Instance;
             var dd = db != null ? db.Get(dramaId) : null;
             if (dd == null)
+            {
                 Debug.LogWarning($"[DreamTutorial] DramaTable 找不到 id {dramaId}，這一段會被跳過。");
-            else if (dd.Type == 2)
-                DramaTalkController.Play(dd.TalkGroup);
-            else
-                DramaPanel.Show(dramaId);
+                yield break;
+            }
 
+            bool closed = false;
+            TriggerChain.CompleteAfterDramaAction(() => closed = true);
+
+            bool useTalk = dd.Type == 2;
+            if (useTalk) DramaTalkController.Play(dd.TalkGroup);
+            else DramaPanel.Show(dramaId);
+
+            // ── 1) 等面板真的開起來（開面板不是同幀的事）──
             float t = 0f;
-            while (!closed && t < DramaTimeout)
+            while (!closed && !PanelOpen(useTalk) && t < DramaOpenTimeout)
             {
                 t += Time.unscaledDeltaTime;
                 yield return null;
             }
-            if (!closed) Debug.LogWarning($"[DreamTutorial] drama {dramaId} 沒有等到關閉通知（超時 {DramaTimeout} 秒），流程繼續。");
+            if (!closed && !PanelOpen(useTalk))
+            {
+                Debug.LogWarning($"[DreamTutorial] drama {dramaId} 的面板沒有開起來（等了 {DramaOpenTimeout} 秒），這一段跳過。");
+                yield break;
+            }
+
+            // ── 2) 等面板關閉 ──
+            // ⚠ **不能只靠 TriggerChain 的完成回呼**（PROBLEMS H2）：那個回呼只有一格，
+            //   換圖時 TriggerChain.Setup 會把它清掉、別的對話來源也會蓋掉它。回呼一旦不見，
+            //   這裡就會空等到 120 秒保險絲，而那整段時間黑幕都還蓋著＝玩家看到的就是「按完一句之後全黑」。
+            //   所以**同時盯面板自己的開關狀態**，兩個訊號誰先到都算數。
+            t = 0f;
+            while (!closed && PanelOpen(useTalk) && t < DramaTimeout)
+            {
+                t += Time.unscaledDeltaTime;
+                yield return null;
+            }
+
+            // 回呼是「延一幀」送的（見 TriggerChain.NotifyDramaClosed），面板關掉後多等幾幀再判定，
+            // 免得正常流程也被當成「回呼被吃掉」而印警告。
+            for (int i = 0; i < 5 && !closed; i++) yield return null;
+
+            if (!closed && !PanelOpen(useTalk))
+                Debug.LogWarning($"[DreamTutorial] drama {dramaId} 沒收到關閉通知（回呼被別的流程清掉或蓋掉），" +
+                                 "改用面板狀態判定，流程繼續。");
+            else if (!closed)
+                Debug.LogWarning($"[DreamTutorial] drama {dramaId} 沒有等到關閉通知（超時 {DramaTimeout} 秒），流程繼續。");
+        }
+
+        /// <summary>對話面板目前是否開著（Type=2 走 TalkPanel，其餘走 DramaPanel）。</summary>
+        static bool PanelOpen(bool useTalk)
+        {
+            var ui = UIManager.Instance;
+            if (ui == null) return false;
+            return useTalk ? ui.IsOpen<TalkPanel>() : ui.IsOpen<DramaPanel>();
         }
 
         /// <summary>播馬賽克收斂（ScreenFxTable id 3），等播完。</summary>

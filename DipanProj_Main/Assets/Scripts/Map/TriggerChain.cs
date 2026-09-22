@@ -44,6 +44,8 @@ public static class TriggerChain
     public const string TypeFactionPeace = "factionPeace"; // 三方陣營和平（鏈動作）：兩族視同中立——不打人、不被打、玩家武器打不到(切 Ally 層)，再接 next。⚠ 預設是**敵對**，和平是劇本明確要進入的特例（2026-09-17 反轉）。見 FactionRelations / readme/FACTION.md
     public const string TypeFactionWar = "factionWar";     // 三方陣營開戰（鏈動作）＝**結束和平**、回到預設的敵對：兩族開始互咬(演戲傷害1/100)＋攻擊玩家、切到可被玩家攻擊的層，再接 next。狀態只活在這趟關卡（換 module 自動重置）。見 FactionRelations / readme/FACTION.md
     public const string TypeJoinFaction = "joinFaction";   // 玩家結盟部族（鏈動作）：faction=werewolf/狼人 或 vampire/吸血鬼——該族不再攻擊玩家、玩家武器打不到它(切 Ally 層)，再接 next。典型：首領 NPC 對話 → next 接這顆。見 FactionRelations
+    public const string TypePushPlayer = "pushPlayer";      // 震退玩家（鏈動作）：在 seconds 秒內把玩家「推」到自己這格（先快後慢＝被打飛），期間鎖操作＋鏡頭震，到位才接 next。給「把玩家轟回定位再開始演出」用（夢境佛掌、正式邪佛戰）
+    public const string TypeBindPlayer = "bindPlayer";      // 束縛玩家（鏈動作）：鎖移動、**放行攻擊**（只能原地打），腳下放一個循環特效當牢籠。bind=0 ＝解除束縛。立即接 next
 
     // ── 位置型 typeId（玩家踩到／按 F 才生效，被鏈啟動＝「解鎖」）──
     // 這些不進 Activate 的 switch，實際行為由 MapLoader / TeleportWatcher / InteractionManager 建點時處理。
@@ -104,6 +106,16 @@ public static class TriggerChain
         _teleportMarkerById = teleportMarkerById;
         _disabled.Clear();
         _teleportOverride.Clear();   // 换图 → 清掉上一張圖的傳送門目的地覆寫
+
+        // ⚠ 換圖會**清掉未結的對話完成回呼**。這件事本身是對的（上一張圖的鏈不該接到這張圖），
+        //   但如果清掉的是「跨換圖還在等」的流程回呼（例：夢境開場在載圖期間就把對話播出去了），
+        //   那個流程就會永遠等不到通知。以前是靜默清掉，查了半天才找到（PROBLEMS H2）——現在出聲。
+        if (_pendingDramaRegion != null)
+            Debug.LogWarning($"[TriggerChain] 換圖時還有未結的對話完成回呼（{_pendingDramaRegion.name}），已清掉——" +
+                             "它的 next/setFlag 不會執行。");
+        if (_pendingDramaAction != null)
+            Debug.LogWarning("[TriggerChain] 換圖時還有未結的對話完成回呼（action），已清掉——" +
+                             "等它的流程收不到通知（見 PROBLEMS H2）。");
         _pendingDramaRegion = null;
         _pendingDramaAction = null;
 
@@ -376,6 +388,8 @@ public static class TriggerChain
                 OnCompleted(r);
                 break;
             }
+            case TypePushPlayer: ExecutePushPlayer(r); break;
+            case TypeBindPlayer: ExecuteBindPlayer(r); break;
             case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
@@ -508,6 +522,89 @@ public static class TriggerChain
     }
 
     // 直接傳送（不用踩傳送點）。換圖 = 鏈的終點（setFlag 會先寫，next 填了也無意義）。
+    /// <summary>
+    /// **震退玩家**（鏈動作）：在 `seconds` 秒內把玩家從當下位置推到**自己這格**（沒塗格子就原地不動），
+    /// 期間鎖住操作、鏡頭震一下，**到位之後**才接 next。
+    ///
+    /// <para>為什麼不用 `teleportTo`：那是換圖用的瞬移，看不出「被什麼東西轟回去」。
+    /// 這裡要的是過程——先快後慢的位移曲線就是被打飛的手感。</para>
+    ///
+    /// <para>參數：<c>seconds</c>（推多久，空＝0.45）、<c>shake</c>（鏡頭震幅，空＝0.35，填 0 ＝不震）。
+    /// 落點 ＝ 這顆 trigger 塗的格子中心，**請塗在可走的地面上**（位移走 `MovePosition`，撞牆會被擋住）。</para>
+    ///
+    /// <para>⚠ **一定要等到位才接 next**：不等的話，骨牢／鏡頭拉遠會在玩家還在半空中飛的時候就發生。</para>
+    /// </summary>
+    static void ExecutePushPlayer(TriggerRegion r)
+    {
+        var player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null)
+        {
+            Debug.LogWarning($"[TriggerChain] pushPlayer「{r.name}」找不到玩家，直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+
+        if (!RegionCenter(r, out Vector2 target))
+        {
+            Debug.LogWarning($"[TriggerChain] pushPlayer「{r.name}」沒有塗格子（不知道要把玩家推到哪），直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+
+        float seconds = r.GetFloat("seconds", 0.45f);
+        float shake = r.GetFloat("shake", 0.35f);
+
+        if (shake > 0.001f)
+        {
+            var cam = Object.FindObjectOfType<MapCameraController>();
+            if (cam != null) cam.AddShake(Mathf.Min(seconds, 0.5f), shake);
+        }
+
+        var shove = player.GetComponent<PlayerShove>();
+        if (shove == null) shove = player.AddComponent<PlayerShove>();
+        shove.Shove(target, seconds, () => OnCompleted(r));   // 到位才接 next（見上方註解）
+    }
+
+    /// <summary>
+    /// **束縛玩家**（鏈動作）：鎖移動、**放行攻擊**，腳下放一個循環特效當牢籠。立即接 next。
+    ///
+    /// <para>參數：<c>bind</c>（1＝綁住／0＝解除，空＝1）、<c>cageVfxId</c>（VfxTable 的**循環**特效 id，空/0＝只鎖不放視覺）、
+    /// <c>cageScale</c>（相對那一列 Scale 的倍率，空＝1）。</para>
+    ///
+    /// <para>⚠ **牢籠特效是 Loop=1、不會自己消失**——一定要有另一顆 `bindPlayer`（`bind=0`）來收。
+    /// 忘了收的話，`PlayerBind` 在換圖／死亡時會自己清乾淨，不至於把玩家永久卡住，但畫面上會多一個牢籠。</para>
+    ///
+    /// <para>⚠ 束縛**刻意不上** `SetExternalHold`：那會把攻擊一起擋掉，而這裡要的正是「只能打、不能跑」。</para>
+    /// </summary>
+    static void ExecuteBindPlayer(TriggerRegion r)
+    {
+        var player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null)
+        {
+            Debug.LogWarning($"[TriggerChain] bindPlayer「{r.name}」找不到玩家，直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+
+        var bind = player.GetComponent<PlayerBind>();
+        if (bind == null) bind = player.AddComponent<PlayerBind>();
+
+        bool on = r.GetInt("bind", 1) != 0;
+        if (on)
+        {
+            int vfx = r.GetInt("cageVfxId", 0);
+            float scale = r.GetFloat("cageScale", 1f);
+            bind.Bind(vfx, scale);
+            Debug.Log($"[TriggerChain] bindPlayer「{r.name}」：綁住玩家（牢籠特效 {vfx}）。");
+        }
+        else
+        {
+            bind.Unbind();
+            Debug.Log($"[TriggerChain] bindPlayer「{r.name}」：解除束縛。");
+        }
+        OnCompleted(r);
+    }
+
     static void ExecuteTeleportTo(TriggerRegion r)
     {
         // 先把 setFlag 寫掉（換圖後本鏈狀態全清，不能等 OnCompleted）。

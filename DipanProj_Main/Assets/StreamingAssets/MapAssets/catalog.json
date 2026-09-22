@@ -547,6 +547,24 @@
       "frameCount": 1
     },
     {
+      "id": "Main/Monsters/SequenceImage/Buddha_Hand/idle",
+      "path": "Main/Monsters/SequenceImage/Buddha_Hand/idle/Buddha_Hand.png",
+      "category": "Monsters",
+      "module": "Main",
+      "pixelSize": 1254,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Main/Monsters/SequenceImage/Buddha_Hand/walk",
+      "path": "Main/Monsters/SequenceImage/Buddha_Hand/walk/Buddha_Hand.png",
+      "category": "Monsters",
+      "module": "Main",
+      "pixelSize": 1254,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Main/Monsters/SequenceImage/Butterfly/idle",
       "path": "Main/Monsters/SequenceImage/Butterfly/idle/ButterFly-iso_custom_fly2_right_01.png",
       "category": "Monsters",

@@ -4,6 +4,102 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **修掉「夢境開場播完第一句之後一片黑」（⏳ 未編譯未實測）**
+  （2026-09-22，作者回報「剛進遊戲顯示『最近，我常做奇怪的夢』，下一步就沒東西了，畫面一片黑」。
+  見 [PROBLEMS.md](PROBLEMS.md) **H2**）<br>
+  ⭐ **不是編譯錯誤**（`Library/ScriptAssemblies/Assembly-CSharp.dll` 比所有 `.cs` 都新＝編得過），
+  也不是資料壞掉（地圖／旗標／劇情表／shader 全部比對過乾淨）。**Console 一行紅字都沒有**，
+  唯一的線索是一行只有這次跑才出現的黃字：`[DreamTutorial] 等玩家換好外觀等了 15 秒還沒好，先往下播對話。`<br>
+  **連鎖**：`WaitForPlayerReady` 用**同一個 15 秒上限**同時等「地圖載完」和「外觀換好」
+  ⇒ 這次剛丟進一批新素材、第一次 Play 邊玩邊跑 Asset Pipeline Refresh、載圖超過 15 秒 ⇒ 超時放行
+  ⇒ **在載入頁還開著時就把開場對話播出去** ⇒ 地圖載完呼叫 `TriggerChain.Setup()`，
+  它會**清掉所有未結的對話完成回呼** ⇒ 玩家按完那一句、面板照常關閉、`NotifyDramaClosed()` 照常呼叫，
+  **但已經沒有回呼可以叫** ⇒ `PlayDrama` 空等滿 `DramaTimeout = 120` 秒，而黑幕是流程第 5 步才撤的 ＝ 全黑兩分鐘。<br>
+  **三層都補**：①`WaitForPlayerReady` **分開計時**——15 秒只在「地圖已就緒」之後才累計，
+  載圖另給 `MapReadyTimeout = 90s` 的寬鬆硬保險絲；②`PlayDrama` **同時盯面板自己的開關狀態**
+  （`UIManager.IsOpen<TalkPanel/DramaPanel>()`），回呼與面板狀態誰先到都算數，
+  順手補上「面板沒開起來就跳過」（以前 drama 找不到 id 會空等滿 120 秒）；
+  ③`TriggerChain.Setup` 清掉未結回呼時**印警告**，不再靜默吞掉。<br>
+  ⭐ **通則一**：「超時就照走」的保險絲**不能把不同性質的等待綁在同一個上限裡**——
+  一個是外部載入（不可控、可以很久），一個是自家狀態切換（幾幀）；綁在一起＝慢的逼快的提早放行。<br>
+  ⭐ **通則二**：只有一格的完成回呼隨時會被覆蓋或清空，跨換圖／跨載入還要存活的流程**必須有第二個獨立訊號**。<br>
+  ⭐ **通則三**：**全黑畫面 ＋ Console 沒紅字** ＝ 八成有協程停在 `yield` 上、而黑幕正是它負責撤的。
+  先找那支流程的保險絲常數，再反推它在等誰。<br>
+  ⚠ 順帶發現（**不是**這次的 bug）：`MainScene` 上 `DramaTalkTableProvider` 的 `portraitCSV` 是空的
+  ——那個欄位是這次加 `DropTableProvider` 時 Unity 重新序列化才寫進場景檔的，值**一直**都是空。
+  `PortraitTable` 對空表是容忍的（全部走自動對齊、不報錯）。要啟用就把 `Assets/Data/PortraitTable.csv` 拖進去。
+
+* [x] **夢境佛掌收尾三件套：震退回入口＋骨牢束縛＋鏡頭拉遠（⏳ 未編譯未實測）**
+  （2026-09-22，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) **§3.4b**）：手掌只有一張圖、只能從上往下壓，
+  玩家站在別的位置對打會很怪 ⇒ 先把他轟回入口、綁住、鏡頭拉遠，佛掌才壓下來。
+  整段在正式關卡打邪佛時可以原樣重用。<br>
+  ⭐ **鏡頭拉遠是零程式**：`camZone` 的 `zoom` 本來就有，而且它**每幀查 `TriggerChain.IsActive`**。
+  ⚠ 但**不能用「初始停用」**——`camZone` 是位置型，被鏈 `Activate` 到只會解鎖、**不接 next**
+  ⇒ 放在鏈中間整條鏈會斷在那裡。正解是**用條件旗標**：`bindPlayer` 寫 `dreamHandPhase`，
+  `camZone` 填 `requireFlag` 讀它 ⇒ 旗標一成立鏡頭就拉遠，鏈照常往下跑。
+  **通則：位置型 trigger 只能當鏈的終點，要它在鏈中間生效就改用旗標。**<br>
+  ⭐ **`bindPlayer` 沒有寫新的輸入鎖**：`PlayerController.Bound` 與教學的 `TutorialManager.FireOnly`
+  **共用同一個 Update 分支**（鎖移動、放行開火、開火時仍依滑鼠轉身）——兩者要的行為一模一樣，
+  共用就不會有「改了一邊忘了另一邊」的漂移。
+  ⚠ 束縛**刻意不上 `SetExternalHold`**：那會把攻擊一起擋掉，而這裡要的正是「只能打、不能跑」。<br>
+  ⭐ **`pushPlayer` 到位之後才接 next**：不等的話骨牢與鏡頭會在玩家還在半空中飛的時候就發生。
+  位移用 `Rigidbody2D.MovePosition`（直接寫 transform 會跟物理打架）、曲線**先快後慢**＝被打飛的手感、
+  輸入鎖用**具名** `SetExternalHold`（**D13**）。<br>
+  ⚠ **循環特效一定要有人收**：骨牢是 `Loop=1`，靠 `bindPlayer(bind=0)` 收；
+  忘了收也不會把玩家永久卡住——`PlayerBind.OnDisable`（換圖／死亡）會自己解綁清特效。
+  **static 的狀態旗標一定要有這層保險**，否則下一場會帶著「不能移動」進去，而且完全沒有錯誤訊息。<br>
+  **骨牢視覺先用暫代素材**：取 `EarthSpik2`（榕樹妖地刺）的**第 16~27 幀**——那一段高度固定 83px、
+  只有微小晃動 ＝ 天然的循環段——換成骨白色存成 `VfxEffects/BoneCage/`，VfxTable **ID 45**
+  （`Loop=1`、`SortingOrder 9` ＜ 角色的 10 ⇒ 骨牢在玩家身後、不擋住他自己）。
+  ⭐ **先用暫代素材把整段跑起來**：這段演出的成敗在**節奏**，不在骨牢畫得多細；節奏對了再產正式圖。<br>
+  佛掌 `Scale` 4 → **5**（顯示高 9.75），配 `camZone zoom 1.8`（視野 18 單位）⇒ 佛掌約佔畫面一半；
+  拖尾同步加量 `44:1.3:6|44:0.7:4`（身寬從碰撞框量，散開幅度自動跟著體型長）。<br>
+  ⚠⚠ **踩到一個沒有錯誤訊息的坑**：編輯器的 trigger 類型**正本是 `triggerTypes.json`**，
+  `TriggerType.cs` 只在「首次無檔時」生成它 ⇒ **只改 `.cs` 的話新欄位不會出現在面板上**。
+  上一輪加的 `maxWaves`／`waveGroup` 就是這樣沒進面板的，這次一起補進 json（見 MapEditor_DESIGN 的註記）。<br>
+  地圖 `DreamTutorial_Square` 三份 `.dipanmap` 已同步寫入，`flags.json` 新增 `dreamHandPhase`（關卡單次）並同步到 StreamingAssets。
+
+* [x] **邪佛手掌的滾滾沙塵：通用「移動拖尾特效」（⏳ 未編譯未實測）**
+  （2026-09-22，作者要「手掌在地上緩慢拖著沙塵壓過來」的壓迫感）<br>
+  **選素材**：把特效庫的候選按**實際比例**（`Buddha_Hand` 是 Scale 3 ⇒ 顯示高 5.85 世界單位，畫面高才 10）
+  疊到手掌圖上做對照，作者選了 `Smoke Bursts/directional_smoke_burst_002/gray`（厚實的翻騰煙團），
+  **不要**貼地的捲曲塵浪（`fx1_impact_dust`）——那個是一次性衝擊的對稱造型，拖行時讀起來像裝飾花紋。
+  ⭐ **按實際比例合成預覽比看素材縮圖準得多**：單看縮圖時捲曲塵浪很漂亮，疊上去才發現它被手掌的體積壓過去。<br>
+  素材複製進 `Resources/VfxEffects/DustTrail/`（18 幀）並**先壓暗去飽和**（`x0.62`＋去一半飽和）——
+  特效庫素材偏亮，暗黑場景直接用會像貼紙（EFFECT_LIBRARY 的建議）。VfxTable 新增 **ID 44「拖行沙塵(重物)」**，
+  `SortingOrder` 填 **8**（< 角色的 10）⇒ 沙塵沉在腳下、不會蓋住手掌。<br>
+  **做成通用功能**：新元件 `MonsterMoveTrail` ＋ CSV 表尾欄 `MoveTrailFx`
+  （格式 `vfxId:大小倍率:每秒幾個`，多層用 `|` 分隔；留空＝不掛，既有怪零影響）。
+  `Buddha_Hand` 填 `44:1:5|44:0.55:3`（主層＋一層小的錯開，兩層相位隨機錯開才不會同時冒出來像一團）。<br>
+  ⭐ **關鍵是「種在身後」不是「種在腳下」**：拖尾要讀得出**行進方向**。種正腳下的話，
+  怪停著時會原地堆成一坨、移動時又跟得太緊，看起來像牠在冒煙而不是在推開地面。
+  往反方向退 0.45 個身寬，那團塵就留在「牠剛剛輾過的地方」。左右交替散開 ＋ 大小/位置隨機，避免排成一條直線。<br>
+  ⚠ 身寬取自**碰撞框**（已含體型）⇒ 改 `Scale` 時拖尾的散開幅度自動跟著長（同 **F29** 的通則，不再寫死世界單位）。
+  位置用 `FeetWorldPos`（畫在地上的東西一律對腳底，不要用 transform ＝畫布中心，見 **G13**）。<br>
+  順手清掉 `Buddha_Hand` 從 `ZhaYu_Bomb` 複製來、對 `Chase` 型無效的 `BombDamage/BombRadius/BombFuse` 三個殘留值。
+
+* [x] **波次刷怪（總波數／波次群組／全滅接鏈）＋ 掉落表資料化（⏳ 未編譯未實測）**
+  （2026-09-22，為「新手夢境教學」在邪佛廣場做吸血鬼倖存者式湧怪。見
+  [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) **§3.5b**、[RUN_PROGRESS.md](RUN_PROGRESS.md)〈掉寶〉）<br>
+  ⭐ **八成的東西本來就在**：`MapMonsterRespawner` 為了「同時存在上限」**早就在追蹤每個出生點生的怪還活著哪些**，
+  全滅偵測直接掛在那份名單上。新增的只有兩個 CSV 欄位：`maxWaves`（總波數，留空＝無限＝舊行為）與
+  `waveGroup`（波次群組，留空＝自己一組）。<br>
+  ⭐⭐ **「全滅之後做什麼」沒有開新欄位**：出生點本來就有通用的 `接續觸發`／`完成寫旗標`，
+  這次只是替它定義了「什麼叫完成」——**這一組怪被清空的那一刻**，然後走既有的 `TriggerChain.OnCompleted`。
+  順帶讓**一次性出生點**也能收尾 ⇒「把這房間的怪殺光就開門」零程式就能編。
+  （代價：有填鏈的一次性出生點得改走 respawner 才追蹤得到存活，`MapLoader` 多判一個 `wantsClearChain`。）<br>
+  ⚠ **一隻都沒生出來的那一波不計數**（作者拍板）：否則玩家躲著不打時，波數會空轉跑完、
+  **一隻怪都沒出現就宣告全滅**。清場不會誤判——`IsLoading`／`IsEndingLevel` 期間 `Update` 整段提前 return。<br>
+  ⭐ **掉落表**（作者要求）：`DropRunLoot()` 的註解本來就寫著「暫定掉寶，正式掉寶公式之後換」，這次換掉。
+  新增 `DropTable.csv`（一列一張表、8 個**獨立**掉落槽，格式 `itemId:機率%:數量`）＋ `DropTable.cs` ＋ `DropTableProvider`，
+  `MonsterData.csv` 加 `DropTableId` 引用。<br>
+  ⚠ **留空＝完全不掉寶**（作者拍板），所以導入時**既有 22 隻怪一律填 1**＝表 ID 1「一般小怪」
+  ＝原本寫死的那組（銅錢 1~5、血瓶 17.5%、魔瓶 17.5%）⇒ **零行為變化**（20 萬次模擬比對過分布）。
+  `lootMoneyMin/Max`／`lootPotionChance` 三個 Inspector 欄位從此沒人讀，留著只為不動既有 prefab 的序列化資料。<br>
+  另外新增**夢境專用怪 ID 30~33**（ZhaYu 四種的低血量版，`DropTableId` 留空＝不掉寶，圖沿用同一批＝零素材成本）。<br>
+  ⏳ **需要 Unity 接線一步**：把 `Assets/Data/DropTable.csv` 拖進 GameManagers 上的 `DropTableProvider`。
+  沒掛會印 warning 並讓所有怪不掉寶（不會靜靜壞掉）。
+
 * [x] **自爆怪：引信改成「真的走到身邊」才點、引信視覺改走 shader 逐漸燒紅＋脈動加速（⏳ 未編譯未實測）**
   （2026-09-22，作者回報「離玩家還很遠就停下來爆炸」＋想要「逐漸變紅、滴滴滴、然後爆炸」的感覺）<br>
   ⭐ **距離的根因不是爆炸範圍太大（作者的猜想），是引信用了框對框的邊緣距離**：

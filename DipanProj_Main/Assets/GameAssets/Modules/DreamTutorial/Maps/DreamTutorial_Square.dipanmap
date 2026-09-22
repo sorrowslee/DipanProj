@@ -621,9 +621,159 @@
           "cells": [],
           "params": {
             "dramaId": "41",
-            "next": "",
+            "next": "怪物出生點1",
             "setFlag": "",
             "requireFlag": ""
+          }
+        },
+        {
+          "id": "1859dfcb",
+          "name": "怪物出生點1",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              28,
+              15
+            ],
+            [
+              18,
+              15
+            ],
+            [
+              13,
+              20
+            ],
+            [
+              33,
+              20
+            ],
+            [
+              30,
+              24
+            ],
+            [
+              15,
+              24
+            ]
+          ],
+          "params": {
+            "monsterId": "30|31|32|33",
+            "deathFlag": "",
+            "spawnInterval": "3",
+            "maxAlive": "",
+            "maxWaves": "1",
+            "waveGroup": "1",
+            "startDisabled": true,
+            "next": "打完小怪後對話"
+          }
+        },
+        {
+          "id": "b5cb8736",
+          "name": "打完小怪後對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "42",
+            "canSkip": true,
+            "next": "震退回入口"
+          }
+        },
+        {
+          "id": "14d7007e",
+          "name": "邪佛手掌出生點",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              23,
+              14
+            ]
+          ],
+          "params": {
+            "monsterId": "34",
+            "deathFlag": "",
+            "spawnInterval": "",
+            "maxAlive": "",
+            "maxWaves": "",
+            "waveGroup": "",
+            "startDisabled": true
+          }
+        },
+        {
+          "id": "5bd70828",
+          "name": "震退回入口",
+          "typeId": "pushPlayer",
+          "cells": [
+            [
+              23,
+              26
+            ]
+          ],
+          "params": {
+            "seconds": "0.5",
+            "shake": "0.45",
+            "next": "骨牢束縛"
+          }
+        },
+        {
+          "id": "de19873c",
+          "name": "骨牢束縛",
+          "typeId": "bindPlayer",
+          "cells": [],
+          "params": {
+            "bind": "1",
+            "cageVfxId": "45",
+            "cageScale": "1.0",
+            "next": "邪佛手掌出生點",
+            "setFlag": "dreamHandPhase"
+          }
+        },
+        {
+          "id": "b68dd5f6",
+          "name": "佛掌鏡頭拉遠",
+          "typeId": "camZone",
+          "cells": [
+            [
+              22,
+              25
+            ],
+            [
+              22,
+              26
+            ],
+            [
+              22,
+              27
+            ],
+            [
+              23,
+              25
+            ],
+            [
+              23,
+              26
+            ],
+            [
+              23,
+              27
+            ],
+            [
+              24,
+              25
+            ],
+            [
+              24,
+              26
+            ],
+            [
+              24,
+              27
+            ]
+          ],
+          "params": {
+            "zoom": "1.8",
+            "offsetX": "0",
+            "offsetY": "0",
+            "requireFlag": "dreamHandPhase"
           }
         }
       ]

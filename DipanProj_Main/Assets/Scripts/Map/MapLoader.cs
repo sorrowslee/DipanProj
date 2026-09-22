@@ -957,7 +957,18 @@ public class MapLoader : MonoBehaviour
             // 只在「真的有填條件」時才交給 MapMonsterRespawner 逐幀判定，其餘 99% 的出生點維持原本的即時生成路徑。
             bool gated = HasChainCondition(r);
             WarnBadSpawnConditions(r);
-            if (interval > 0f || gated)
+
+            // 波次（2026-09-22）：總波數＋波次群組。見 readme/TRIGGER_CHAIN.md §3.5b。
+            int maxWaves = r.GetInt("maxWaves", 0);          // 留空/0 ＝ 無限波（舊行為）
+            string waveGroup = r.GetString("waveGroup");     // 留空 ＝ 自己一組
+
+            // 「這一組怪被清空」要推鏈（＝通用欄位的 接續觸發／完成寫旗標）的，也得交給 respawner 追蹤存活。
+            // 沒填鏈、也沒填波次群組的一次性出生點，維持原本「當場生完就不管」的輕量路徑。
+            bool wantsClearChain = !string.IsNullOrEmpty(r.GetString("next"))
+                                || !string.IsNullOrEmpty(r.GetString("setFlag"))
+                                || !string.IsNullOrEmpty(waveGroup);
+
+            if (interval > 0f || gated || wantsClearChain)
             {
                 var points = new List<Vector2>();
                 // 一次性（interval<=0）仍要記 RunProgress『已清』，所以要帶 spawnKey；重複產生刻意留 null。
@@ -981,7 +992,8 @@ public class MapLoader : MonoBehaviour
                 }
                 int maxAlive = r.GetInt("maxAlive", 0);   // 留空/0 = 用保險預設（見 MapMonsterRespawner.DefaultMaxAlive）
                 spawned += _respawner.Register(spawner, monsterIds, points, keys, deathFlag, gated ? r : null,
-                                               interval, maxAlive, mapId, r.name);
+                                               interval, maxAlive, mapId, r.name,
+                                               chainRegion: r, maxWaves: maxWaves, waveGroup: waveGroup);
                 continue;
             }
 

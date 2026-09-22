@@ -51,6 +51,8 @@ public static class PlayModeStaticReset
         CharacterEnvFusion.ResetForPlayMode();         // 角色環境融合（模式、場景量測結果）
         NpcDatabase.ResetForPlayMode();                // NPC 種類表（NpcTable.csv）
         ShadowAnchorTable.ResetForPlayMode();          // 影子錨點表（ShadowAnchorTable.csv）
+        DropTable.ResetForPlayMode();                  // 掉落表（DropTable.csv）
+        PlayerBind.ResetForPlayMode();                 // 束縛玩家（骨牢）：清掉 PlayerController.Bound
         FactionRelations.ResetForPlayMode();           // 三方陣營劇本狀態（開戰/結盟）
         Dipan.Drama.DramaDatabase.ResetForPlayMode();
         Dipan.Drama.DramaTalkDatabase.ResetForPlayMode();

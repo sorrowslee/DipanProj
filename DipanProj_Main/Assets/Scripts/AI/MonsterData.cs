@@ -80,6 +80,22 @@ public class MonsterData
     public float BombRadius = 0f;
     public float BombFuse = 0f;     // 引信秒數：貼近後站定閃爍幾秒才爆。進了引信就一定會爆（見 SuicideBombBrain）
 
+    /// <summary>
+    /// 掉落表 ID（CSV 表尾欄，2026-09-22）：引用 `DropTable.csv` 的 `ID`。
+    /// <para>⚠ **留空／0 ＝ 完全不掉寶**（作者拍板）。導入這張表時既有的怪一律填 **1**
+    /// （＝原本寫死在 `MonsterController.DropRunLoot` 的那組：銅錢 1~5、血瓶 17.5%、魔瓶 17.5%），
+    /// 所以導入本身是零行為變化。</para>
+    /// <para>掉不掉寶還有一層前置條件：`MonsterController.DropsLoot`（召喚物／NPC 一律 false，避免無限刷）。</para>
+    /// </summary>
+    public int DropTableId = 0;
+
+    /// <summary>
+    /// 移動拖尾特效（CSV 表尾欄，2026-09-22）：怪在移動時持續在**身後**種的 VfxTable 特效。
+    /// 格式 <c>vfxId:大小倍率:每秒幾個</c>，多層用 <c>|</c> 分隔（例 <c>44:1:5|44:0.55:3</c>）。
+    /// 留空 ＝ 不掛（既有怪零影響）。給「有重量的東西」用——邪佛手掌的滾滾沙塵。見 <see cref="MonsterMoveTrail"/>。
+    /// </summary>
+    public string MoveTrailFx = "";
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

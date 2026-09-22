@@ -74,6 +74,14 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Tooltip("引信秒數（CSV: BombFuse）：貼近後站定閃爍幾秒才爆。留空/0 ＝ 退回 0.6。進了引信就一定會爆")]
     public float BombFuse = 0f;
 
+    [Header("Loot / 掉落")]
+    [Tooltip("掉落表 ID（CSV: DropTableId）→ DropTable.csv。留空/0 ＝ 完全不掉寶。既有的怪一律填 1 ＝ 原本寫死的那組掉落")]
+    public int DropTableId = 0;
+
+    [Header("Move Trail / 移動拖尾")]
+    [Tooltip("移動時在身後種的特效（CSV: MoveTrailFx）。格式 vfxId:大小倍率:每秒幾個，多層用 | 分隔。留空 ＝ 不掛")]
+    public string MoveTrailFx = "";
+
     [Header("Weapon / Skill")]
     [Tooltip("這隻怪使用的武器 = WeaponTable 的 ID（CSV: MonsterData.Weapon 填數字）。Contact/空 = 只近戰接觸傷害、不掛武器。")]
     public int WeaponId = -1;
@@ -425,6 +433,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         BombDamage = data.BombDamage;     // 自爆型專用；其他怪留空＝用不到
         BombRadius = data.BombRadius;
         BombFuse = data.BombFuse;
+        DropTableId = data.DropTableId;   // 掉落表（留空/0 ＝ 不掉寶）
+        MoveTrailFx = data.MoveTrailFx;   // 移動拖尾特效（留空 ＝ 不掛）
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
@@ -479,6 +489,15 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             WeaponUser = GetComponent<MonsterWeaponUser>();
             if (WeaponUser == null) WeaponUser = gameObject.AddComponent<MonsterWeaponUser>();
             WeaponUser.Configure(this, WeaponId);
+        }
+
+        // 移動拖尾（CSV: MoveTrailFx）：填了才掛；解析不出任何一層時元件會自己停用。
+        // ⚠ 這裡只 Configure，身寬是在 Update 才讀 collider 的——此刻碰撞框可能還沒量好（Setup 在後）。
+        if (!string.IsNullOrWhiteSpace(MoveTrailFx))
+        {
+            var trail = GetComponent<MonsterMoveTrail>();
+            if (trail == null) trail = gameObject.AddComponent<MonsterMoveTrail>();
+            trail.Configure(this, MoveTrailFx);
         }
 
         AutoAdjustCollider();
@@ -764,22 +783,27 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     }
 
     /// <summary>
-    /// 暫定掉寶（正式掉寶公式之後換）：必掉銅錢（RunProgress.MoneyItemId）＋機率掉一瓶藥（201/202）。
-    /// 透過 InteractionManager.DropLoot 掉在屍體位置，會自動登記進 RunProgress（沒撿的換圖回來還在）。
+    /// 掉寶：擲一次這隻怪的 <see cref="DropTableId"/>（<see cref="DropTable"/>），掉在屍體位置。
+    /// 透過 InteractionManager.DropLoot 掉落，會自動登記進 RunProgress（沒撿的換圖回來還在）。
+    ///
+    /// <para>⚠ **`DropTableId` 留空／0 ＝ 完全不掉寶**（作者 2026-09-22 拍板）。
+    /// 2026-09-22 之前這裡是寫死的「必掉銅錢 1~5 ＋ 35% 掉一瓶藥（201/202 各半）」，
+    /// 現在那組住在 `DropTable.csv` 的 **ID 1**，既有的怪全部填 1 ⇒ 導入本身零行為變化。</para>
+    ///
+    /// <para>Inspector 上的 `lootMoneyMin/Max`／`lootPotionChance` 已經沒有人讀了，
+    /// 留著只是為了不動到既有 prefab 的序列化資料；要調掉落請改 CSV。</para>
     /// </summary>
     void DropRunLoot()
     {
         if (!InteractionManager.Exists) return;
+        if (DropTableId <= 0) return;            // 不掉寶（夢境教學怪、以及任何刻意不給獎勵的怪）
+
+        var drops = DropTable.Roll(DropTableId);
+        if (drops.Count == 0) return;
+
         var im = InteractionManager.Instance;
         Vector2 pos = transform.position;
-
-        int money = Random.Range(lootMoneyMin, Mathf.Max(lootMoneyMin, lootMoneyMax) + 1);
-        if (money > 0) im.DropLoot(RunProgress.MoneyItemId, money, pos);
-
-        if (Random.value < lootPotionChance)
-        {
-            int potionId = (Random.value < 0.5f) ? 201 : 202;   // 201 小回血瓶 / 202 小回魔瓶
-            im.DropLoot(potionId, 1, pos);
-        }
+        for (int i = 0; i < drops.Count; i++)
+            im.DropLoot(drops[i].itemId, drops[i].count, pos);
     }
 }

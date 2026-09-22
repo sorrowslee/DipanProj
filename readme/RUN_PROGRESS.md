@@ -106,13 +106,23 @@ RunProgress.Instance.GiveItem(itemId, count, toRealBag: true)
 
 **結算**：`SettleIntoBag()` 回傳併入前的 `(itemId, count)` 快照，`GameFlowManager` 把它交給 `ResultPanel.Show(...)` 顯示在獎勵區——結算畫面**直接讀臨時包**，不必去分辨真背包裡哪些是這趟撿的。
 
-### 暫定掉寶
-`MonsterController.DropRunLoot()`（**暫定公式，正式掉寶表之後換**）：
+### 掉寶（資料驅動，2026-09-22 起）
 
-- 必掉銅錢：`lootMoneyMin`(1) ~ `lootMoneyMax`(5)
-- `lootPotionChance`(0.35) 機率掉一瓶藥，201 小回血瓶／202 小回魔瓶 各半
-
+`MonsterController.DropRunLoot()` 擲一次這隻怪的 **`DropTableId`**（`Assets/Data/DropTable.csv`），
 掉在屍體位置，透過 `InteractionManager.DropLoot` 自動登記進 `RunProgress`。
+
+- **一列 ＝ 一張掉落表**，有 8 個**獨立**掉落槽（`Drop1`~`Drop8`），彼此不互斥、各擲一次骰。
+- 槽的格式 `itemId:機率%:數量`：`101:100:1-5`（銅錢必掉 1~5）／`201:17.5`（數量留空＝1）／`301`（機率留空＝100%）。
+- ⚠ **`DropTableId` 留空／0 ＝ 完全不掉寶**（作者拍板）。給夢境教學怪這種「只是拿來打爽的」用。
+- 表 **ID 1「一般小怪」** 就是 2026-09-22 之前寫死的那組（銅錢 1~5、血瓶 17.5%、魔瓶 17.5%），
+  既有的怪導入時全部填 1 ⇒ **零行為變化**（20 萬次模擬比對過分布）。
+- 掉不掉還有一層前置條件：`DropsLoot`（召喚物／NPC 一律 false，避免無限刷）。
+
+> ⚠ `MonsterController` 的 Inspector 欄位 `lootMoneyMin`／`lootMoneyMax`／`lootPotionChance`
+> **已經沒有人讀了**，留著只是為了不動到既有 prefab 的序列化資料。要調掉落請改 CSV。
+
+> 需要 Unity 接線：把 `Assets/Data/DropTable.csv` 拖進場景 GameManagers 上的 **`DropTableProvider`**
+> （同 SceneFxTableProvider／ItemTableProvider 的做法）。沒掛會印 warning 並讓所有怪不掉寶，不會靜靜壞掉。
 
 ---
 
@@ -138,7 +148,6 @@ RunProgress.Instance.GiveItem(itemId, count, toRealBag: true)
 
 - **地上物 key 是清單索引**：`obj#N` 依賴「同一張地圖檔每次解析順序一致」這個性質。之所以夠用，是因為進度**只活在一趟關卡內、不寫存檔**——玩家不可能在一趟關卡進行中跑去編輯器改地圖。若之後要把進度寫進存檔，索引就會在「改過地圖的新版本」對不上舊存檔，屆時必須改成編輯器產生的穩定 GUID。
 - **`consumedTriggers` 只在本趟有效**：跨輪迴／跨存檔的「永久看過」另有機制（`repeat` 的 `每周目`／`永久` 自動旗標，見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)），兩者不衝突、各管各的。
-- **掉寶公式是暫定的**：目前寫死在 `MonsterController` 的 Inspector 欄位，之後要換成資料驅動的掉寶表。
 - **背包滿的結算**：`SettleIntoBag` 遇到真背包放不下只印 Warning 並**捨棄**，還沒做「溢出的掉在廣場地上」或「塞倉庫」。
 - **中途存檔續玩**：不支援（見 §5）。真要做需序列化 `MapRec` + 臨時包。
 

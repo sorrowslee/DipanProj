@@ -517,3 +517,14 @@ DipanProj_MapEditor/
 2. **不選取也看得到**：物件工具下，場景上會把**所有 `層 ≠ 0` 的物件**畫外框常駐標示——
    **橘框＋「＋」記號 = 層 +1**、**藍框＋「－」記號 = 層 -1**（`ObjectSelectionOverlay`）。
    這是刻意做的：層設錯不點選就完全看不出來，而症狀（角色被蓋住）又只會在遊戲裡出現。
+
+---
+
+> ⚠⚠ **加新的 trigger 類型／參數時：正本是 `Assets/StreamingAssets/triggerTypes.json`，不是 `TriggerType.cs`。**
+> `.cs` 裡的 `TriggerTypeSet.Defaults()` 只在**首次無檔時**生成一份 json，之後編輯器一律讀 json。
+> 所以只改 `.cs` 的話，**新欄位不會出現在面板上，而且沒有任何錯誤訊息**（2026-09-22 踩到：
+> 加了 `maxWaves`／`waveGroup` 卻在編輯器看不到）。
+> 兩邊都要改：`.cs`（新專案的預設值）＋ `triggerTypes.json`（實際在用的那份）。
+> 主遊戲端還要第三處：`TriggerChain` 的 `Type*` 常數 ＋ `Activate` 的 `case`（動作型），
+> 或把 typeId 加進 `PositionTypes`（位置型）——漏了會掉進 default 分支被當位置型，Console 會吼一聲。
+

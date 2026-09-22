@@ -79,6 +79,14 @@
       "IsLife": false,
       "IsLevel": true,
       "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 11,
+      "name": "dreamHandPhase",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
     }
   ]
 }

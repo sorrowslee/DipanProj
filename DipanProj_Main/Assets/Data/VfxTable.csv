@@ -35,3 +35,5 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 41,踐踏揚塵,VfxEffects/ImpactDust/ImpactDust,13,20,5,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 42,自爆火球,VfxEffects/SuicideExplosion/SuicideExplosion,14,20,3.8,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 43,炮彈爆炸(小),VfxEffects/Explosive/Explosive,8,20,0.5,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+44,拖行沙塵(重物),VfxEffects/DustTrail/DustTrail,18,14,2.2,0,,8,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+45,骨牢(束縛/循環),VfxEffects/BoneCage/BoneCage,12,10,2.0,1,3600,9,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

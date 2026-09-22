@@ -1195,6 +1195,7 @@ GameObject:
   - component: {fileID: 537006697}
   - component: {fileID: 537006698}
   - component: {fileID: 537006699}
+  - component: {fileID: 537006700}
   m_Layer: 0
   m_Name: GameManagers
   m_TagString: Untagged
@@ -1377,6 +1378,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shadowAnchorCSV: {fileID: 4900000, guid: a30b05759a1ad4b368f779d75501453c, type: 3}
+--- !u!114 &537006700
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 537006687}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 104154dc1164146fca0660d678f29b31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  dropCSV: {fileID: 4900000, guid: b42659ff099bd464e8b71d5956276825, type: 3}
 --- !u!114 &550503362
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1730,6 +1744,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   talkCSV: {fileID: 4900000, guid: dcf39ec474d344cf3a5ddef947844989, type: 3}
+  portraitCSV: {fileID: 0}
 --- !u!4 &726140661
 Transform:
   m_ObjectHideFlags: 0

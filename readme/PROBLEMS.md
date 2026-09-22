@@ -20,7 +20,7 @@
 | E | 效能 / 顯示 (Performance & Display) | E1~E38（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38 在 E 段本體結尾） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F29（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G12（位置在 F3 之後）；**G13、G14 在 F26 之後、H 段之前** |
-| H | 流程 / 存讀檔 (Game Flow & Save UI) | H1 |
+| H | 流程 / 存讀檔 (Game Flow & Save UI) | H1~H2 |
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I10 |
 | J | 螢幕特效 / 進場過場 (Screen FX) | J1~J5 |
 | K | 互動 / 拾取 (Interaction & Pickup) | K1~K3 |
@@ -1384,6 +1384,21 @@
 - **症狀**：接上「標題→存讀檔」流程後，新建遊戲會正常播開場漫畫＋墜落動畫，但墜落結束載入 MainScene 後**整個畫面全黑、無錯誤訊息**；改流程前墜落後會正常出現在 Main_Cave（地圖 11）。
 - **原因**：`GameFlowBootstrap` 在開機（BeforeSceneLoad）把 `MapManager.SuppressAutoStart` 設 true，目的是讓標題畫面蓋在「空的 MainScene」上、不要一進場就自動進關卡。但這個**靜態旗標整場有效**——開場鏈播完由 `IntroFallController` 載入 MainScene 時，那個新的 MapManager 也被壓住，`autoStartLevel` 不會 `StartLevel("Main")`（Main 模組首圖＝Main_Cave 11）→ 沒有任何地圖被建 → 全黑。原本能進 Main_Cave 正是靠這條自動進關卡。
 - **解法**：抑制只該作用在「開機當下的空 MainScene」，之後由各流程分支自己決定。`GameFlowManager` 在**新建＋播開場鏈**分支載入 Intro 場景前，把 `MapManager.SuppressAutoStart` 設回 **false**，交還給既有開場流程（Intro→MainScene 自動進 Main_Cave→過場到廣場）；**繼續 / 無開場直接進廣場**分支則維持 **true**、由流程明確 `GoToMap(廣場)`，避免和自動進 Main_Cave 打架。**通則：跨場景的「一次性抑制旗標」別設成整場有效，要在每個流程分支明確設定它的值。**
+
+### H2. 新建角色進夢境：播完「最近，我常常做奇怪的夢」之後畫面一片黑、再也沒下一句
+- **症狀**：新建角色 → 夢境開場，開頭那一句正常出現，按下一步之後**什麼都沒有、畫面全黑**，卡在那裡（實際上約兩分鐘後會自己恢復＝ `DramaTimeout` 保險絲）。Console **沒有任何紅字**，只有一行黃字 `[DreamTutorial] 等玩家換好外觀等了 15 秒還沒好，先往下播對話。`——那行就是唯一的線索。
+- **原因**：**兩件事各自合理，湊在一起才爆**。
+  1. `DreamTutorialFlow.WaitForPlayerReady` 用**一個** 15 秒上限同時等「地圖載完」和「玩家外觀換成該血統」。地圖載多久不是它能控制的——在編輯器裡剛丟進一批新素材時，第一次 Play 會邊玩邊跑 Asset Pipeline Refresh，載圖輕易超過 15 秒。超時後流程**照走**，於是在**載入頁還開著、地圖還在載**的時候就把開場對話播了出去。
+  2. 地圖終於載完時會呼叫 `TriggerChain.Setup()`，而它會**清掉所有未結的對話完成回呼**（`_pendingDramaRegion` / `_pendingDramaAction`）。這對換圖來說是對的（上一張圖的鏈不該接到這張圖），但這次被清掉的正是 `PlayDrama` 註冊的那一個。
+  結果：玩家按完那一句、`TalkPanel` 關閉、`NotifyDramaClosed()` 照常呼叫，但**已經沒有回呼可以叫**了 → `PlayDrama` 空等到 120 秒保險絲 → 這段期間黑幕（`ShowBlackout`）一直蓋著 ＝ 全黑。
+- **解法**：三層都補（2026-09-22）。
+  1. **分開計時**：`WaitForPlayerReady` 的 15 秒**只在「地圖已就緒」之後才累計**，地圖那段另給 `MapReadyTimeout = 90s` 的寬鬆硬保險絲。→ 一般情況下根本不會再在載圖期間播對話。
+  2. **不要只靠單一格回呼**：`PlayDrama` 改成**同時**盯 `UIManager.IsOpen<TalkPanel/DramaPanel>()`，回呼與面板狀態誰先到都算數；順便補上「面板根本沒開起來就跳過」的路徑（以前 drama 找不到 id 時會空等滿 120 秒）。
+  3. **不要靜默丟東西**：`TriggerChain.Setup` 清掉未結回呼時**印警告**。
+- **通則**：
+  - **「超時就照走」的保險絲，不能把不同性質的等待綁在同一個上限裡**——一個是外部載入（不可控、可以很久），一個是自家狀態切換（幾幀）。綁在一起＝慢的那個會逼快的那個提早放行，然後在「還沒準備好」的狀態下往下跑。
+  - **只有一格的完成回呼（`_pendingDramaAction`）＝隨時可能被覆蓋或清空**。跨換圖、跨載入還要存活的流程，必須有第二個獨立訊號可以判定（這裡是面板自己的開關狀態）。
+  - **全黑畫面 ＋ Console 沒紅字**，八成是「某個協程停在 `yield` 上、而黑幕是它負責撤的」。先找那支流程的保險絲常數，再反推它在等誰。
 
 ---
 

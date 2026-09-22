@@ -19,6 +19,18 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     [Header("Hit Reaction (hardcoded for now)")]
     public float PlayerInvincibleTimeMs = 1000f;
+    /// <summary>
+    /// **束縛中**（骨牢／擒抱…）：鎖住移動，但**放行攻擊**——玩家只能原地打。
+    /// 由 <see cref="PlayerBind"/> 開關，鏈動作 `bindPlayer` 驅動。
+    ///
+    /// <para>行為與教學的 <c>TutorialManager.FireOnly</c> 完全相同，所以在 <c>Update</c> 裡共用同一個分支。
+    /// 另開一個旗標而不是直接沿用 FireOnly，是因為那個屬於教學流程的狀態機、
+    /// 會被 <c>TutorialManager</c> 自己的步驟推進覆寫；演出用的束縛不該跟教學狀態糾纏在一起。</para>
+    ///
+    /// <para>⚠ static：整個遊戲同時只有一個玩家。換場景／讀檔要記得清（<see cref="PlayerBind.ResetForPlayMode"/>）。</para>
+    /// </summary>
+    public static bool Bound { get; internal set; }
+
     public float PlayerKnockbackThreshold = 0f;
     public float PlayerKnockbackPercent = 10f;
 
@@ -279,7 +291,9 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
 
         // 教學「鎖移動、只允許開火」：佛燈教學最後一步——玩家不能走（走不掉），但要能按住左鍵/空白鍵開佛光。
-        if (Dipan.UI.TutorialManager.FireOnly)
+        // ⭐ `Bound`（骨牢束縛，2026-09-22）**刻意共用同一個分支**：兩者要的行為一模一樣
+        //    （鎖移動、放行攻擊、開火時仍依滑鼠轉身）。共用就不會有「改了一邊忘了另一邊」的漂移。
+        if (Dipan.UI.TutorialManager.FireOnly || Bound)
         {
             _moveInput = Vector2.zero;   // 鎖住移動
             // 開火時仍依滑鼠決定朝向（不影響點亮，只是好看）
