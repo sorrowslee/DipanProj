@@ -93,7 +93,10 @@ public class MonsterSpriteLibrary
                 //    腳下的影子當然也跟著跳。逐幀把 pivot.y 補償到同一條腳底線就解掉了。
                 //    基準取 **idle**：碰撞框與顯示大小也都是用 idle 算的（見 MonsterController.Setup），
                 //    所以基準幀的 pivot 維持 0.5、**角色的絕對位置與碰撞框完全不動**，只有其他動作被拉齊。
-                frames = _loader.GetAnimationFrames(item, tileSize, BaselineBottomPx(monsterName), baseTileSize / tileSize);
+                //    ⚠ 基準的「腳底 px」與「畫布高 px」必須成對傳，兩者要量自同一張圖——
+                //      只傳腳底 px、拿這一幀的畫布高去配，畫布尺寸一換就整組位移（PROBLEMS **F28**）。
+                Vector2Int bl = BaselinePx(monsterName);
+                frames = _loader.GetAnimationFrames(item, tileSize, bl.x, bl.y, baseTileSize / tileSize);
             }
             else
             {
@@ -105,29 +108,36 @@ public class MonsterSpriteLibrary
         return frames;
     }
 
-    readonly Dictionary<string, int> _baselineBottom = new Dictionary<string, int>();
+    readonly Dictionary<string, Vector2Int> _baselinePx = new Dictionary<string, Vector2Int>();
 
     /// <summary>
-    /// 這隻怪的「腳底基準」＝ **idle 第一幀**的不透明內容距畫布底的像素（取不到 idle 就用 walk，再取不到回 -1＝不對齊）。
+    /// 這隻怪的「腳底基準」＝ **idle 第一幀**的 <c>(不透明內容距畫布底的 px, 那張圖的畫布高 px)</c>
+    /// （取不到 idle 就用 walk，再取不到回 x = -1 ＝不對齊）。
     /// 所有動作的幀都會被補償到這條線上，見 <see cref="GetFrames"/>。結果快取（每隻怪只量一次）。
-    /// ⚠ 基準**必須**跟「建碰撞框／算顯示大小」用的那一個動作一致（目前是 idle，見 MonsterController.Setup），
-    ///   否則基準幀的 pivot 不是 0.5，角色的絕對位置與碰撞框就會整個偏掉。
+    ///
+    /// <para>⚠ 基準**必須**跟「建碰撞框／算顯示大小」用的那一個動作一致（目前是 idle，見 MonsterController.Setup），
+    /// 否則基準幀的 pivot 不是 0.5，角色的絕對位置與碰撞框就會整個偏掉。</para>
+    ///
+    /// <para>⚠⚠ **畫布高一定要跟著腳底 px 一起回傳**（2026-09-22，見 readme/PROBLEMS.md **F28**）：
+    /// 對齊公式要算的是「基準幀的腳底離**基準幀**畫布中心多遠」，兩個數字必須量自同一張圖。
+    /// 舊版只回傳腳底 px，補償時拿「**當前幀**的畫布高」去配——全部動作同尺寸時剛好等價、**靜默算對**，
+    /// 但 ZhaYu 的 idle 是 256px、walk 是 500px ⇒ walk 整組往下位移 1.38 世界單位（走路時怪往前跳半個身高）。</para>
     /// </summary>
-    int BaselineBottomPx(string monsterName)
+    Vector2Int BaselinePx(string monsterName)
     {
         string k = (monsterName ?? "").Trim().ToLowerInvariant();
-        if (_baselineBottom.TryGetValue(k, out int cached)) return cached;
+        if (_baselinePx.TryGetValue(k, out var cached)) return cached;
 
-        int result = -1;
+        var result = new Vector2Int(-1, 0);
         foreach (string state in BaselineStates)
         {
             if (!_byTail.TryGetValue(Key(monsterName, state), out var item) || item == null) continue;
             string fp = item.IsAnimated ? (item.frames != null && item.frames.Count > 0 ? item.frames[0] : null) : null;
             if (string.IsNullOrEmpty(fp)) continue;
-            var bp = _loader.GetFrameBottomPx(fp);
-            if (bp.x >= 0) { result = bp.x; break; }
+            var bp = _loader.GetFrameBottomPx(fp);        // (腳底距畫布底 px, 畫布高 px)
+            if (bp.x >= 0) { result = bp; break; }
         }
-        _baselineBottom[k] = result;
+        _baselinePx[k] = result;
         return result;
     }
 

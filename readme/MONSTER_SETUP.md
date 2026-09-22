@@ -57,14 +57,16 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | `ID` / `Name` | 編號 / 怪名（`Name` 要等於圖的資料夾名 `<怪名>`） |
 | `HP` / `Speed` / `ContactDamage` / `DamageReduction` | 血量 / 移動速度 / 接觸傷害 / 受擊減傷% |
 | `Scale` | 整體縮放（調大小） |
-| `BrainType` | AI 模組。**近戰分兩種**（見 [BOSS_MODULE.md](BOSS_MODULE.md) §10.0）：`Chase`＝衝撞型（一路貼上去磨，**沒有 attack 圖**的怪用這個）、`MeleeChase`＝揮舞型（追到定點站定把攻擊動畫做完，**有 attack 圖**才能用）。<br>其他：`Pounce` 撲擊（§7）、`Archer` 射手（§8）、`LeapSlam` 跳躍踐踏（§9）、`War` 陣營戰士、`RedBridalGown`／`BanyanTree` boss |
+| `BrainType` | AI 模組。**近戰分兩種**（見 [BOSS_MODULE.md](BOSS_MODULE.md) §10.0）：`Chase`＝衝撞型（一路貼上去磨，**沒有 attack 圖**的怪用這個）、`MeleeChase`＝揮舞型（追到定點站定把攻擊動畫做完，**有 attack 圖**才能用）。<br>其他：`Pounce` 撲擊（§7）、`Archer` 射手（§8）、`LeapSlam` 跳躍踐踏（§9）、**`SuicideBomb` 自爆（§11，走到身邊引爆、不需要 attack 圖）**、`War` 陣營戰士、`RedBridalGown`／`BanyanTree` boss |
 | `InvincibleTimeMs` / `KnockbackThreshold` / `KnockbackPercent` | 受擊反應（見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)） |
 | **`PrefabPath`** | **route B 留空**。只有要沿用「自帶 Animator 的舊 prefab」才填（向下相容） |
 | **`AnimFPS`** | **新增**：程式動畫播放幀率，留空＝8。走路會再依實際速度連動（防腳滑；倍率夾在 `MinMul`~`MaxMul`，見下） |
 | **`JumpScale`** | **jump 顯示倍率**（表尾，接在 `AttackScale` 後面，2026-09-18）。有填就照填的走；<br>⚠ **留空的語義與上面三個不同**：其他動作留空＝走「自動依可見高對齊 idle」，**jump 留空＝直接沿用 `IdleScale`、不做自動對齊**。因為跳躍的可見高度本來就是動作的內容（蹲下時矮、騰空伸展時又不同），正規化等於把它抵銷，而且越蜷縮的幀被放得越大 ⇒ 騰空時怪會膨脹一圈（實測 1.05~1.31 倍）。詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.7 |
 | **`AttackHitFrame`** | **揮舞型近戰的命中幀**（表尾）：attack 的第幾張是「武器揮到位」。留空＝張數 × 0.7 粗估。<br>⚠ **務必逐怪量**，比例靠不住——實測 12 張的怪是第 9 幀（75%）、24 張的是第 8 幀（33%）、25 張的是第 11 幀（44%）。量法見 [BOSS_MODULE.md](BOSS_MODULE.md) §10.4 |
-| **`LeapDamage`／`LeapRadius`** | **跳躍踐踏專用**（表尾兩欄，2026-09-18）。只有 `BrainType=LeapSlam` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 2、半徑＝1.6。<br>⚠ **實際殺傷範圍 ＝ `LeapRadius` ＋ 目標碰撞框半徑**（玩家約 0.5），詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.4 |
-| **`IdleScale`／`WalkScale`／`AttackScale`** | **逐動作顯示倍率**（表尾三欄，2026-09-17）。**留空＝自動**（把該動作的可見高對齊 idle）；有填就覆寫。`pant` 沿用 `IdleScale`。整體大小仍吃 `Scale` 欄，這三欄是在它之上的等比例微調。<br>⚠ **四足獸（狼/狗/豹）通常要填**：自動那套量高度，而奔跑姿勢身體壓低、高度矮 ⇒ 被**放大**。戰狼實測 walk 被自動放大 ×1.288、等效寬 221→285px（idle 才 181），填 `WalkScale=0.9` 之後差距從 57% 降到 10%。詳見 [PROBLEMS.md](PROBLEMS.md) **G12** |
+| **`ReleaseFrame`** | **射手型的放彈幀**（表尾，2026-09-22）：attack 的第幾張是「武器已舉定、可以射了」。只有 `BrainType=Archer` 會用到，留空＝14。<br>⚠ **幀號即事件**（同 `AttackHitFrame`）：改 `AnimFPS` 時機會自動跟著對。<br>⚠ **要逐怪量**：狂族弩手 attack 25 張取 14；ZhaYu_Gun 只有 22 張、**幀 6 就完全水平舉定**，取 9。沿用別隻的值會晚半秒才出手。量法見 [BOSS_MODULE.md](BOSS_MODULE.md) §8.2b |
+| **`BombDamage`／`BombRadius`／`BombFuse`** | **自爆型專用**（表尾三欄，2026-09-22）。只有 `BrainType=SuicideBomb` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 3、半徑＝1.8、引信＝0.6 秒。<br>⚠ **半徑是「體型 1 時」的世界單位，實際會 ×`Scale`**（2026-09-22，見 [PROBLEMS.md](PROBLEMS.md) **F29**）——填表照體型 1 去想就好。另有防呆下限保證「引信點著就一定炸得到」。<br>⚠ **實際殺傷範圍 ＝ 縮放後半徑 ＋ 目標碰撞框半徑**（玩家約 0.5），同 `LeapRadius`。詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §11 |
+| **`LeapDamage`／`LeapRadius`** | **跳躍踐踏專用**（表尾兩欄，2026-09-18）。只有 `BrainType=LeapSlam` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 2、半徑＝1.6。<br>⚠ **半徑是「體型 1 時」的世界單位，實際會 ×`Scale`**（2026-09-22，見 [PROBLEMS.md](PROBLEMS.md) **F29**）：皇家衛士 `Scale` 1.5 ⇒ 實際 2.4；想維持舊的 1.6 就填 1.067。<br>⚠ **實際殺傷範圍 ＝ 縮放後半徑 ＋ 目標碰撞框半徑**（玩家約 0.5），詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.4 |
+| **`IdleScale`／`WalkScale`／`AttackScale`** | **逐動作顯示倍率**（表尾三欄，2026-09-17）。**留空＝自動**（把該動作的可見高對齊 idle）；**有填＝在那個自動結果上「再乘」**（2026-09-22 改，見 [PROBLEMS.md](PROBLEMS.md) **G14**）——所以 **1.0 ＝ 跟留空一樣、1.1 ＝ 比平常大一成**。<br>⚠ 舊版是「有填就**覆寫**自動」，而自動倍率本來就常 > 1（攻擊／奔跑姿勢比站姿矮）⇒ **填 1.1 反而會縮小**（ZhaYu_HugeSword 的 attack 自動倍率 1.252，填 1.1 等於縮 12%）。`pant` 沿用 `IdleScale`。整體大小仍吃 `Scale` 欄，這三欄是在它之上的等比例微調。<br>⚠ **四足獸（狼/狗/豹）通常要填**：自動那套量高度，而奔跑姿勢身體壓低、高度矮 ⇒ 被**放大**。戰狼實測 walk 被自動放大 ×1.288、等效寬 221→285px（idle 才 181），填 `WalkScale=0.9` 之後差距從 57% 降到 10%。詳見 [PROBLEMS.md](PROBLEMS.md) **G12** |
 
 > **⭐ 張數不必湊滿 25：有幾張就播幾張，但循環會變快。** 載入完全依 catalog 的 `frameCount`（同步工具掃資料夾數 PNG，沒有上限也沒有期待張數），播放是 `_idx = (_idx + 1) % frames.Length`；1 張＝靜態姿勢（catalog 只在 ≥2 幀時寫 `frames`）。現成例子：`ZhaYu/walk` 只有 8 張、家人幽靈 `Ghost_*` 的 idle 都只有 1 張，都正常。
 > **但 `AnimFPS` 是「每秒幾幀」不是「整個動作幾秒」**，所以：
@@ -131,6 +133,11 @@ route B 怪物的碰撞框是一個**貼合 sprite 不透明像素的 `BoxCollid
     哪天丟一張 512px 的進來才會爆。怪物這邊只用 `size`/`offset`，不受影響。
 - **整體大小** → 調 CSV 的 `Scale`。**碰撞鬆緊**（box 比可見範圍外擴多少）→ 調 `MonsterController.HitboxPadding`（預設 0.2 世界單位）。
 - 牆壁阻擋、子彈命中、接觸傷害（`EnemyContactDamage` 的幾何判定）全部共用這個 box。
+- ⚠⚠ **同一隻怪的所有動作必須是同一個畫布尺寸——這是硬契約，不是美觀建議**（2026-09-22 血淚，見 [PROBLEMS.md](PROBLEMS.md) **F28**）：
+  腳底對齊的 pivot 補償要拿「基準幀（idle 第一幀）的腳底離畫布中心多遠」去補其他幀，
+  兩個像素值**必須量自同一張畫布**。ZhaYu 的 idle 256px、walk 換成 500px 之後，
+  walk 整組幀**往下位移 1.38 世界單位**（超過半個身高）⇒ 走路時怪瞬移貼到玩家身上、停下又彈回、對話框離圖很遠。
+  **換素材時先比對畫布尺寸**（`ls` ＋ 一行 PIL），不一致就先統一。
 
 ---
 

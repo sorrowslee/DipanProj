@@ -123,6 +123,15 @@ public class MonsterSpawner : MonoBehaviour
             // 揮舞型近戰的命中幀（索引 29，表尾欄）：留空＝張數 × 0.7 的粗估。逐怪量，比例靠不住（見 MonsterData 註解）。
             data.AttackHitFrame = (values.Length > 29 && !string.IsNullOrWhiteSpace(values[29])) ? int.Parse(values[29].Trim()) : 0;
 
+            // 射手型的放彈幀（索引 30，表尾欄）：留空＝ArcherBrain 的退路值 14。幀號即事件，改 AnimFPS 會自動跟著對。
+            data.ReleaseFrame = (values.Length > 30 && !string.IsNullOrWhiteSpace(values[30])) ? int.Parse(values[30].Trim()) : 0;
+
+            // 自爆型（索引 31~33，表尾欄）：只有 BrainType=SuicideBomb 的怪會用到，其餘一律留空。
+            // 留空＝0＝交給 SuicideBombBrain 的退路值（傷害＝ContactDamage×3、半徑 1.8、引信 0.6 秒）。
+            data.BombDamage = (values.Length > 31 && !string.IsNullOrWhiteSpace(values[31])) ? float.Parse(values[31]) : 0f;
+            data.BombRadius = (values.Length > 32 && !string.IsNullOrWhiteSpace(values[32])) ? float.Parse(values[32]) : 0f;
+            data.BombFuse   = (values.Length > 33 && !string.IsNullOrWhiteSpace(values[33])) ? float.Parse(values[33]) : 0f;
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

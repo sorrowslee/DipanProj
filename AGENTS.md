@@ -47,12 +47,16 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 地上物擋路／可走層／「看起來能走卻走不過去」 | PROBLEMS **B9** ＋ [readme/MAP_LOADER_SETUP.md](readme/MAP_LOADER_SETUP.md)——**擋路碰撞與可走層是兩份獨立的真相**，塗可走層對地上物零作用 |
 | 角色影子對不準／加新角色或換序列圖後影子歪 | [readme/SHADOW.md](readme/SHADOW.md)〈定位：影子錨點表〉——演算法已定版，**單一角色不對一律改表**（〈手動調整影子〉手冊）、不再動演算法；**別再往「程式自動偵測腳」投工**（PROBLEMS **E28**） |
 | 畫面軟／角色像貼紙／產或換整張背景圖／**開新地圖決定格數** | PROBLEMS **E29** ＋ [readme/PERF_QUALITY_AUDIT.md](readme/PERF_QUALITY_AUDIT.md) §4.1（背景每格 ≥128px；過渡期 `CharacterMipBias` 換完背景要關）＋ **§4.2（格數比必須＝背景長寬比，否則整張背景被拉扁；`n = floor(W ÷ (128×a))`、格數 =`(a×n)×(b×n)`）**；角色暗部融不進場景 → [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)〈角色環境融合〉（自動量畫面、只有一顆 `TargetDarkRatio`，別回頭做每氛圍一組參數） |
+| 怪「圖還沒碰到就撞到我」／走路時**瞬移**／頭上對話框離圖很遠／換了一批某動作的圖之後變怪 | PROBLEMS **F28**——**先比對「同一隻怪各動作的畫布尺寸是否一致」**（`ls` ＋ 一行 PIL）。不一致會讓那個動作整組上下位移（實測 1.38 世界單位），**症狀全部長得像碰撞問題、成因卻在顯示**；同型的怪只有一隻壞，一律先比素材再改程式 |
+| 做任何**範圍技**（爆炸／踐踏／震波）、或動到怪的 `Scale` 之後招式打不到人 | PROBLEMS **F29**——**半徑不能是裸的世界單位常數**，一律走 `MonsterController.ScaledRadius()`（CSV 的半徑欄＝「體型 1 時」的值）；並確認「觸發」與「殺傷」用的是**會同步變動的尺**，否則一定存在某個體型讓它們錯開、而且沒有任何錯誤訊息 |
 | 「玩家碰到了沒」的位置判定 | PROBLEMS **B13**——判定對齊碰撞（`transform.position`），特效對齊視覺（腳底）；診斷用碰撞疊層（遊戲中 **P → C**） |
 | 填／改 RecipeTable、加武器模式或欄位、動能力珠 | **做武器優先用 [readme/WEAPON_WORKBENCH.md](readme/WEAPON_WORKBENCH.md)（Unity 內的武器工坊，Play 中立刻射出去看）**；欄位意義見 [readme/RECIPE_DESCRIBE.md](readme/RECIPE_DESCRIBE.md)（一列一種 `Mode`、模式 × 欄位矩陣）＋ `Assets/Scripts/Weapon/WeaponModeSpec.cs`（單一真相：加欄／加模式只改它，視窗自動跟上）；珠子有效性見 [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md) |
 | 武器／裝備／背包／掉落／存檔 | [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md)（表格只是模板、物品實例、能力容器）＋ [readme/GEM_CATALOG.md](readme/GEM_CATALOG.md)（每顆珠子的功用與範例，改珠子數值或加珠子要同步更新它）＋ [readme/INVENTORY.md](readme/INVENTORY.md) |
 | 做「依血統／背包道具決定**出不出現**或**講哪一句**」 | [readme/TRIGGER_CHAIN.md](readme/TRIGGER_CHAIN.md) **§2.6 通用條件** ——觸發點／NPC／地上物／怪物出生點**共用同一套條件與同一個 UI**（求值器 `Scripts/Map/AppearCondition.cs`）；**「血族」是系列不是血統**（血族＝SeriesId 2，三階都算）；多條一律 AND、**沒有 OR** |
 | 怪「**舉著攻擊動作還一邊移動**」、要做「出手就要把動作做完」的近戰 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§10**——`ChaseBrain` 的移動與 `HandleVisuals` 的攻擊動畫互不相干，這是天生行為；要改用 `MeleeChase`，並記得 `BrainControlsAttackPose` 不設就等於白做 |
 | 加「會跳躍／落地砸地」的怪、做落地裂地那類**地面程序化 shader**、動騰空角色的影子或排序 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§9**——跳躍動畫要先**量幀**（一個 `jump/` 資料夾未必只有一次跳躍）、幀號當事件不要寫秒數、傷害走短命 trigger＋既有接觸傷害（**實際殺傷＝半徑＋目標碰撞框半徑**）、騰空一律透過 `IAirborneVisual` 把高度扣回地面 |
+| 加「走到玩家身邊**自爆**」的怪、或任何「一定要發生、不能中途取消」的自毀機制 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§11**——進了引信就一定爆（同射手型鐵則）、被打死不爆是天生行為不用寫特例；**自毀一律用 `MonsterController.Kill()`，不要用 `TakeDamage(超大數字)`**（會被無敵幀擋掉 ⇒ 爆了卻沒死、站在原地不動） |
+| 加「會射東西的遠程怪」時**放彈時機不對** | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§8.2b** ＋ CSV `ReleaseFrame` 欄——放彈幀是**那套 attack 序列圖的性質**，逐怪量、填進 CSV（留空＝14），不要去改 `ArcherBrain` 的共用常數 |
 | 放/改 NPC、NPC 對話/開介面、未來護送 | [readme/NPC_SYSTEM.md](readme/NPC_SYSTEM.md)（NpcTable 分表、圖沿用 Monsters/SequenceImage 角色圖庫；編輯器與主遊戲的 NpcInstance 是鏡像） |
 | 陣營/多方互打劇本、動「誰能傷誰」 | [readme/FACTION.md](readme/FACTION.md)（規則單一真相＝`FactionRelations.cs`：敵對/傷害乘數/切層都只改它；擺劇本照 §3 一條龍） |
 | 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |

@@ -63,6 +63,23 @@ public class MonsterData
     public float LeapDamage = 0f;   // 落地踐踏的一次性傷害
     public float LeapRadius = 0f;   // 踐踏殺傷半徑（世界單位）；地面裂痕的視覺大小也吃它
 
+    // ── 射手型（BrainType=Archer）專用，CSV 表尾一欄 ──
+    // attack 序列圖的第幾張是「武器已經舉定、可以射了」。留空/0 ＝ ArcherBrain 的退路值 14。
+    // ⚠ **幀號即事件**（同 AttackHitFrame）：寫幀號而不是秒數，所以改 CSV 的 AnimFPS 時機會自動跟著對。
+    // ⚠ 一定要逐怪量：狂族弩手 attack 25 張、14（維持瞄準那段的開頭）；
+    //   ZhaYu_Gun attack 22 張、幀 6 就完全水平舉定且 6~22 都維持，取 9（舉定後穩住三幀才射）。
+    //   量法同 AttackHitFrame：印每幀不透明像素的 bbox，武器伸到定位後 bbox 就不再變化。
+    public int ReleaseFrame = 0;
+
+    // ── 自爆型（BrainType=SuicideBomb）專用，CSV 表尾三欄 ──
+    // 留空/0 時由 SuicideBombBrain 給退路（傷害＝ContactDamage×3、半徑＝1.8、引信＝0.6 秒），
+    // 所以既有怪不填也不會壞。
+    // ⚠ **實際殺傷範圍 ＝ BombRadius ＋ 目標碰撞框半徑**（玩家約 0.5）——同 LeapRadius，
+    //   因為傷害走 EnemyContactDamage 的「兩個碰撞框邊緣距離」（見 ImpactDamageArea 的註解）。
+    public float BombDamage = 0f;
+    public float BombRadius = 0f;
+    public float BombFuse = 0f;     // 引信秒數：貼近後站定閃爍幾秒才爆。進了引信就一定會爆（見 SuicideBombBrain）
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

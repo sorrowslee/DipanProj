@@ -49,7 +49,10 @@ public class ArcherBrain : IMonsterBrain
     //   實際秒數 = (ReleaseFrame - 1) ÷ 這隻怪的 AnimFPS ⇒ **CSV 改 AnimFPS 不會讓時機跑掉**。
     //   ⚠ 第一版取 11（弩剛舉定的那一幀），作者實測仍覺得「太早飛出去」⇒ **2026-09-17 改 14**，
     //     落在「維持瞄準」那一段的開頭，視覺上是「舉定、穩住、才放」。@14fps ＝ 0.93 秒。
-    const int ReleaseFrame = 14;
+    //   ⚠ **2026-09-22 改成逐怪可設**：這個值原本是全域常數，但一隻怪的放彈幀是**牠那套 attack 序列圖的性質**，
+    //     不是所有射手共用的手感——ZhaYu_Gun 的 attack 只有 22 張、幀 6 就完全水平舉定，用 14 會晚半秒才吐炮彈。
+    //     現在改成優先讀 `MonsterData.ReleaseFrame`（CSV 表尾欄），**留空＝沿用下面這個 14** ⇒ 狂族弩手零變化。
+    const int ReleaseFrameFallback = 14;
     const float FallbackAnimFps = 14f;   // 怪物資料拿不到 AnimFPS 時的退路（＝目前 CSV 的值）
     // 放箭之後再維持 attack 動畫多久（收弩的後半段）。這段與射擊間隔的 idle 重疊，不額外拉長節奏。
     const float FollowThroughSeconds = 0.8f;
@@ -230,17 +233,26 @@ public class ArcherBrain : IMonsterBrain
     }
 
     /// <summary>
-    /// 開始拉弓：**先讓 attack 動畫起播**，再依 <see cref="ReleaseFrame"/> 算出這一發什麼時候離手。
+    /// 開始拉弓：**先讓 attack 動畫起播**，再依放彈幀（CSV `ReleaseFrame`，留空＝<see cref="ReleaseFrameFallback"/>）算出這一發什麼時候離手。
     ///
     /// ⭐ 放箭時機是從**序列圖的幀**換算的，不是一個固定秒數：
     /// `MonsterAnimator.SetState` 切到 Attack 時會把幀索引歸零、以 CSV 的 `AnimFPS` 起播，
     /// 所以第 N 幀出現在 `(N-1) ÷ AnimFPS` 秒。這樣**改 CSV 的 AnimFPS，放箭時機會自動跟著對**，
-    /// 不必回來改這支程式；換一隻拉弓節奏不同的射手，只要改 `ReleaseFrame`。
+    /// 不必回來改這支程式；換一隻拉弓節奏不同的射手，只要改 CSV 的 `ReleaseFrame` 欄（留空＝14）。
     /// </summary>
     void BeginDraw(in MonsterContext ctx, float dist)
     {
         float fps = (ctx.Self != null && ctx.Self.AnimFPS > 0.01f) ? ctx.Self.AnimFPS : FallbackAnimFps;
-        float releaseDelay = Mathf.Max(0f, (ReleaseFrame - 1) / fps);
+
+        // 放彈幀：CSV 的 ReleaseFrame 優先，留空／0 就用退路值。
+        // ⚠ 一律夾進這隻怪 attack 的實際張數——填太大的話那一幀永遠不會到，
+        //   而 Draw 階段**沒有中途取消**（見檔頭鐵則）⇒ 會變成「舉著槍站在那裡一輩子不射」。
+        int releaseFrame = (ctx.Self != null && ctx.Self.ReleaseFrame > 0) ? ctx.Self.ReleaseFrame : ReleaseFrameFallback;
+        int attackFrames = (ctx.Self != null && ctx.Self.Anim != null)
+                           ? ctx.Self.Anim.FrameCount(MonsterAnimator.State.Attack) : 0;
+        if (attackFrames > 0) releaseFrame = Mathf.Clamp(releaseFrame, 1, attackFrames);
+
+        float releaseDelay = Mathf.Max(0f, (releaseFrame - 1) / fps);
 
         _releaseAt = Time.time + releaseDelay;
         _attackAnimEnd = _releaseAt + FollowThroughSeconds;
@@ -249,7 +261,7 @@ public class ArcherBrain : IMonsterBrain
         // 關鍵：這一行讓 attack 動畫**現在**就開始播（MonsterController.HandleVisuals 看到 casting 就切 Attack）。
         if (ctx.Self != null) ctx.Self.NotifySkillCast();
 
-        if (DebugLog) Debug.Log($"[Archer] 原地可射（距離={dist:F2}、視線通）→ 拉弓，{releaseDelay:F2}s 後放箭（第 {ReleaseFrame} 幀 @ {fps:F0}fps）");
+        if (DebugLog) Debug.Log($"[Archer] 原地可射（距離={dist:F2}、視線通）→ 拉弓，{releaseDelay:F2}s 後放箭（第 {releaseFrame} 幀 @ {fps:F0}fps）");
     }
 
     /// <summary>

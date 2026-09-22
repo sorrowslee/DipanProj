@@ -62,6 +62,18 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Tooltip("落地踐踏的殺傷半徑（世界單位，CSV: LeapRadius）。留空/0 ＝ 退回 1.6。裂痕的視覺大小也吃它")]
     public float LeapRadius = 0f;
 
+    [Header("Archer / 射手型")]
+    [Tooltip("射手型的放彈幀：attack 序列圖的第幾張是「武器已舉定、可以射了」（CSV: ReleaseFrame）。留空/0 ＝ 退回 14。**幀號即事件**，改 AnimFPS 時機自動跟著對。只有 BrainType=Archer 會用到")]
+    public int ReleaseFrame = 0;
+
+    [Header("Suicide Bomb / 自爆型")]
+    [Tooltip("自爆傷害（CSV: BombDamage）。留空/0 ＝ 退回 ContactDamage 的 3 倍。只有 BrainType=SuicideBomb 會用到")]
+    public float BombDamage = 0f;
+    [Tooltip("自爆殺傷半徑（世界單位，CSV: BombRadius）。留空/0 ＝ 退回 1.8。⚠ 實際殺傷 ＝ 此值 ＋ 目標碰撞框半徑（玩家約 0.5）")]
+    public float BombRadius = 0f;
+    [Tooltip("引信秒數（CSV: BombFuse）：貼近後站定閃爍幾秒才爆。留空/0 ＝ 退回 0.6。進了引信就一定會爆")]
+    public float BombFuse = 0f;
+
     [Header("Weapon / Skill")]
     [Tooltip("這隻怪使用的武器 = WeaponTable 的 ID（CSV: MonsterData.Weapon 填數字）。Contact/空 = 只近戰接觸傷害、不掛武器。")]
     public int WeaponId = -1;
@@ -71,6 +83,27 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
 
     /// <summary>程式逐格動畫器（route B 才有；舊 prefab 怪為 null）。Brain 要自己控動畫（如跳躍的 one-shot）時用。</summary>
     public MonsterAnimator Anim => _monAnim;
+
+    /// <summary>這隻怪的體型倍率（＝ `MonsterData.csv` 的 `Scale` 欄，實作上就是 `transform.localScale`）。</summary>
+    public float BodyScale => Mathf.Abs(transform.localScale.y);
+
+    /// <summary>
+    /// 把「以體型 1 為基準寫在 CSV／常數裡的世界單位半徑」換算成這隻怪**實際**的半徑。
+    ///
+    /// <para>⭐⭐ <b>怪的所有 AOE 半徑一律走這支</b>（爆炸、踐踏、震波、未來任何範圍技）。
+    /// 直接拿 CSV 的數字當世界單位是 PROBLEMS <b>F27</b> 的第一條死因：
+    /// <b>寫死的世界單位在怪放大時不會跟著長</b>——怪的碰撞框、圖、連武器都 ×`Scale` 變大了，
+    /// 只有那個常數沒有 ⇒ 相對縮水，大到某個體型就完全打不到人，而且**沒有任何錯誤訊息**。</para>
+    ///
+    /// <para>實例：`ZhaYu_Bomb` 的 `BombRadius` 1.8 固定不變，但引信是用**碰撞框的邊緣距離**判定的、
+    /// 會隨體型長大 ⇒ `Scale` 1 時「引信一點著就在殺傷圈內」，放大到 1.5 之後引信觸發距離變成 2.43、
+    /// 殺傷只到 2.30 ⇒ **炸了卻炸不到玩家**（作者 2026-09-22 回報）。</para>
+    ///
+    /// <para>⚠ 所以 CSV 的半徑欄（`BombRadius`／`LeapRadius`）語意是「**體型 1 時的半徑**」，
+    /// 不是最終世界單位。填表時照體型 1 去想就好，放大縮小由這裡處理。完整記錄見 readme/PROBLEMS.md <b>F29</b>。</para>
+    /// </summary>
+    public float ScaledRadius(float baseRadius) => baseRadius * BodyScale;
+
 
     // ── 騰空（IAirborneVisual）──
     // 由 LeapSlamBrain 在跳躍期間每幀寫入「這一幀視覺被抬高了多少」，落地歸 0。
@@ -388,6 +421,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         AttackHitFrame = data.AttackHitFrame;   // 揮舞型近戰的命中幀（留空＝張數×0.7 粗估）
         LeapDamage = data.LeapDamage;     // 跳躍踐踏（BrainType=LeapSlam）專用；其他怪留空＝用不到
         LeapRadius = data.LeapRadius;
+        ReleaseFrame = data.ReleaseFrame; // 射手型的放彈幀（留空＝ArcherBrain 退路 14）
+        BombDamage = data.BombDamage;     // 自爆型專用；其他怪留空＝用不到
+        BombRadius = data.BombRadius;
+        BombFuse = data.BombFuse;
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
@@ -417,6 +454,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 break;
             case "Archer":          // 射手型（弓/弩/火槍…）：評估「原地射得到嗎」→ 射不到才移動（見 ArcherBrain）
                 _brain = new ArcherBrain();
+                break;
+            case "SuicideBomb":     // 自爆型：追到貼身 → 引信閃爍預告 → 一次性爆炸傷害圈＋自毀（見 SuicideBombBrain）
+                _brain = new SuicideBombBrain();
                 break;
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();
@@ -631,6 +671,20 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     {
         TakeDamage(amount, Vector2.zero);
     }
+
+    /// <summary>
+    /// **立刻致死**，略過受擊反應與無敵幀。走的仍然是既有的死亡流程
+    /// （死亡特效／掉落／死亡旗標／RunProgress『已清』／召喚回收全部照跑），只是不經過 <see cref="TakeDamage"/>。
+    ///
+    /// <para>給「怪自己把自己弄死」的機制用——目前是自爆型（<see cref="SuicideBombBrain"/>）。</para>
+    ///
+    /// <para>⚠ **不要用 `TakeDamage(超大數字)` 代替**：那條路會先問 <c>HitReactionHandler.TryHitReaction</c>，
+    /// 怪正處在無敵幀內就直接 return false、一滴血都不扣 ⇒ 變成「爆炸放了、怪沒死」，
+    /// 而 Brain 已經進了終結狀態 ⇒ 牠會站在原地不動、不再追人也不再爆。
+    /// 目前自爆怪的 `InvincibleTimeMs` 填 0 所以碰不到，但那是 CSV 隨時可以改的值，
+    /// 不該讓「自爆會不會成功」取決於另一個欄位（同 PROBLEMS **F19**「無敵時間是一份隱形的行為預算」）。</para>
+    /// </summary>
+    public void Kill() => Die();
 
     // ── ICombatModifiers：怪物作為攻擊方無加成（1）；作為受擊方套用減傷掛勾（目前 CSV 預設 0 = 不減傷）──
     public float OutgoingDamageMultiplier(in DamageInfo info) => 1f;

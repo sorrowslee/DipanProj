@@ -75,7 +75,7 @@ monsters/redbridalgown/idle,-1.5,56.5,99,auto,25,256,256,
 monsters/redbridalgown/walk,-6.5,51.8,97,auto,25,256,256,
 monsters/skeletongeneral/idle,-4.2,45,101,auto,25,256,256,
 monsters/skeletongeneral/walk,6,44.5,112,auto,25,256,256,
-monsters/zhayu/idle,-5,45.1,320,auto,1,500,500,
+monsters/zhayu/idle,4.5,37.5,131,auto,21,256,256,幀數 1→21 已重算
 monsters/zhayu/walk,-3.2,44,324,auto,8,500,500,
 characters/gaiaborn/gargoyle/attack,-13,55.5,136,auto,25,256,256,
 characters/gaiaborn/gargoyle/dead,2,68.6,124,auto,9,256,256,幀數 9→25 已重算
@@ -156,3 +156,11 @@ monsters/wolf warrior/attack,-4,58,190,manual,25,256,256,同 idle 那列
 monsters/wolf warrior/idle,-4,59,190,manual,23,256,256,手改：X/寬三動作統一。工具的找腳段演算法在 idle(單段) 與 walk(雙段) 抓到不同結果，X 差 25px 導致切動作時影子位移；寬差 22% 導致忽大忽小。內容水平中心實測只差 3px
 monsters/wolf warrior/walk,-4,70,190,manual,17,256,256,同 idle 那列
 monsters/wolf royal guard/attack,-11.6,37.3,170,auto,12,256,256,幀數 18→12 已重算
+monsters/zhayu_bomb/idle,-3,41.5,180,auto,20,256,256,
+monsters/zhayu_bomb/walk,-1,46.5,136,auto,15,256,256,
+monsters/zhayu_gun/attack,-9.8,43,164,auto,22,256,256,
+monsters/zhayu_gun/idle,3.2,41,77,auto,16,256,256,
+monsters/zhayu_gun/walk,6.2,47,131,auto,14,256,256,
+monsters/zhayu_hugesword/attack,23,19.5,188,auto,25,256,256,
+monsters/zhayu_hugesword/idle,43.5,28.5,165,auto,21,256,256,
+monsters/zhayu_hugesword/walk,1,71,144,auto,13,256,256,

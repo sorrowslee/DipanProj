@@ -173,6 +173,30 @@ public class HitReactionHandler : MonoBehaviour
         ApplyPropertyBlock();
     }
 
+    // ── 充能發光（自爆怪的引信；SpriteFlash shader 的 _Charge* 參數）──
+    float _chargeAmount;
+    Color _chargeColor = new Color(1f, 0.25f, 0.12f);
+
+    /// <summary>
+    /// **充能發光**：讓角色整個往 <paramref name="color"/> 加亮（0 ＝關掉，shader 那一行不做事）。
+    /// 目前的使用者是自爆怪的引信（<see cref="SuicideBombBrain"/>）。
+    ///
+    /// <para>⚠⚠ <b>一定要走這支，不要自己去寫 <c>SpriteRenderer.color</c> 或自己 SetPropertyBlock。</b>
+    /// 這個 renderer 的 MPB **只有 <see cref="ApplyPropertyBlock"/> 一個寫入點**（理由見它的註解：
+    /// <c>SetPropertyBlock</c> 是整包覆蓋的，分開寫會互相沖掉）。
+    /// 而 <c>SpriteRenderer.color</c> 更糟——受擊無敵閃爍會把它改成半透明、結束再還原成
+    /// <c>_originalColor</c>，等於**把引信的顏色一起洗掉**。</para>
+    /// </summary>
+    public void SetCharge(float amount, Color color)
+    {
+        _chargeAmount = Mathf.Max(0f, amount);
+        _chargeColor = color;
+        ApplyPropertyBlock();
+    }
+
+    /// <summary>關掉充能發光。</summary>
+    public void ClearCharge() => SetCharge(0f, _chargeColor);
+
     // 角色環境融合：模式被切換（P → G）或量到新場景數據時重寫一次 MPB。只是一個 int 比較，成本可忽略。
     private void Update()
     {
@@ -196,6 +220,8 @@ public class HitReactionHandler : MonoBehaviour
         _envVersion = CharacterEnvFusion.Version;
         _spriteRenderer.GetPropertyBlock(_mpb);
         _mpb.SetFloat("_FlashAmount", _flashAmount);
+        _mpb.SetFloat("_ChargeAmount", _chargeAmount);       // 0 ＝ shader 那一行不做事
+        _mpb.SetColor("_ChargeColor", _chargeColor);
         CharacterEnvFusion.FillPropertyBlock(_mpb);   // 角色環境融合：原狀／未量到場景時只寫 _EnvOn=0，shader 整段跳過
         _spriteRenderer.SetPropertyBlock(_mpb);
     }
@@ -204,6 +230,8 @@ public class HitReactionHandler : MonoBehaviour
     {
         IsKnockedBack = false;
         IsInvincible = false;
+        // ⚠ 刻意**不清掉** _chargeAmount：受擊只該重置受擊自己的視覺。
+        //   引信一旦點著就不能被任何事打斷（見 SuicideBombBrain 的鐵則），挨打也不行。
         SetFlashAmount(0f);
         if (_spriteRenderer != null)
             _spriteRenderer.color = _originalColor;

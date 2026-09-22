@@ -77,7 +77,8 @@ public class LeapSlamBrain : IMonsterBrain
     // ⚠ 這只放大**視覺**，殺傷仍嚴格走 LeapRadius（同 GroundEffect 的 visualScale / radiusScale 之分）。
     //   要連傷害一起縮，改的是 MonsterData.csv 的 `LeapRadius` 欄，不是這裡。
     const float CrackRadiusMul = 1.47f;
-    const float DefaultRadius  = 1.6f;   // CSV LeapRadius 留空時的退路
+    // CSV LeapRadius 留空時的退路。⚠ 是「**體型 1 時**的世界單位」，實際會 ×`Scale`。
+    const float DefaultRadius  = 1.6f;
     const float DefaultDamageMul = 2.0f; // CSV LeapDamage 留空時：接觸傷害 × 此
 
     // ── 魄力（2026-09-18 加，作者回報「感受不到跳躍踐踏的魄力」）──
@@ -220,7 +221,12 @@ public class LeapSlamBrain : IMonsterBrain
 
         // 踐踏數值：CSV 留空就給退路（見 MonsterData 的欄位註解）
         var self = ctx.Self;
-        _radius = (self != null && self.LeapRadius > 0.01f) ? self.LeapRadius : DefaultRadius;
+        // ⭐ 半徑隨體型縮放（見 MonsterController.ScaledRadius 與 PROBLEMS **F27**／**F29**）：
+        //   寫死的世界單位在怪放大時不會跟著長 ⇒ 大怪的踐踏範圍相對縮水。
+        //   ⚠ 這會讓既有的大怪範圍變大：狂族皇家衛士 Scale 1.5 ⇒ 1.6 → 2.4。
+        //     想維持原樣就在 MonsterData 的 `LeapRadius` 填 1.067（＝1.6 ÷ 1.5）。
+        float baseLeapRadius = (self != null && self.LeapRadius > 0.01f) ? self.LeapRadius : DefaultRadius;
+        _radius = (self != null) ? self.ScaledRadius(baseLeapRadius) : baseLeapRadius;
         _damage = (self != null && self.LeapDamage > 0.01f)
                   ? self.LeapDamage
                   : ((self != null ? self.ContactDamage : 10f) * DefaultDamageMul);

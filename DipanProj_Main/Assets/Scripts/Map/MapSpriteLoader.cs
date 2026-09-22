@@ -201,28 +201,42 @@ namespace Dipan.MapRuntime
         /// <summary>
         /// 同上，但**逐幀對齊腳底**：補償每一幀的 pivot.y，讓所有幀的腳底落在同一條線上。
         ///
-        /// <para>公式 `pivot_px = 該幀腳底 − (baselineBottomPx − 畫布高/2) × tileRatio`，其中
-        /// <paramref name="tileRatio"/> ＝ **基準動作的 tileSize ÷ 這個動作的 tileSize**。</para>
+        /// <para>公式 `pivot_y = (該幀腳底px − (baselineBottomPx − **基準幀畫布高**/2) × tileRatio) ÷ 這一幀的畫布高`，
+        /// 其中 <paramref name="tileRatio"/> ＝ **基準動作的 tileSize ÷ 這個動作的 tileSize**。</para>
         ///
         /// <para>⚠ **那個 tileRatio 不能省**（2026-09-17 補）：對齊的目標是「腳底相對 transform 的**世界位移**一致」，
         /// 而世界位移 ＝ 像素差 ÷ PPU，PPU 又跟該動作的 tileSize 綁在一起。各動作的 tileSize 只要不同
         /// （逐動作縮放一定會不同），只比像素就會算錯——第一版就是漏了這一項，腳底其實還沒真的對齊。</para>
         ///
+        /// <para>⚠⚠ **`baselineCanvasPx` 也不能省**（2026-09-22 補，見 readme/PROBLEMS.md **F28**）：
+        /// 括號裡那一項是「**基準幀**的腳底離**基準幀**畫布中心多遠」，兩個像素值必須量自**同一張畫布**。
+        /// 這裡原本寫的是 `bp.y * 0.5`（＝**這一幀**的畫布高），當全部動作的畫布同尺寸時剛好等價、**靜默算對**，
+        /// 但只要有一個動作換了畫布尺寸就整個歪掉——ZhaYu 的 idle 是 256px、walk 是 500px，
+        /// 實測 walk 的 pivot 被算成 **1.037**（跑到畫布上緣外），整組 walk 幀**往下位移 1.38 世界單位**
+        /// ⇒ 走路時怪整隻往前跳半個身高、停下切 idle 又彈回去（作者回報的「瞬移過來、扣血、退回去」），
+        /// 頭上對話框也離圖很遠（框跟著 transform，圖卻跑掉了）。</para>
+        ///
         /// <paramref name="baselineBottomPx"/> &lt; 0 或某幀量不到 → 那一幀退回原本的置中 pivot（不會壞）。
         /// </summary>
-        public Sprite[] GetAnimationFrames(CatalogItem item, float tileSize, int baselineBottomPx, float tileRatio = 1f)
+        /// <param name="baselineCanvasPx">**基準幀的畫布高（px）**。必須與 <paramref name="baselineBottomPx"/> 量自同一張圖。</param>
+        public Sprite[] GetAnimationFrames(CatalogItem item, float tileSize, int baselineBottomPx,
+                                           int baselineCanvasPx, float tileRatio = 1f)
         {
             if (item == null || !item.IsAnimated) return null;
-            if (baselineBottomPx < 0) return GetAnimationFrames(item, tileSize);
+            if (baselineBottomPx < 0 || baselineCanvasPx <= 0) return GetAnimationFrames(item, tileSize);
             if (tileRatio <= 0.0001f) tileRatio = 1f;
+
+            // 基準幀的「腳底離畫布中心」有多少 px（以**基準幀的畫布**計）。這是所有幀要對齊的那條線。
+            float baseOffsetPx = baselineBottomPx - baselineCanvasPx * 0.5f;
+
             var arr = new Sprite[item.frames.Count];
             for (int i = 0; i < arr.Length; i++)
             {
                 string fp = item.frames[i];
-                var bp = GetFrameBottomPx(fp);
+                var bp = GetFrameBottomPx(fp);   // bp.x = 這一幀腳底距畫布底的 px，bp.y = 這一幀的畫布高
                 float pivotY = 0.5f;
                 if (bp.x >= 0 && bp.y > 0)
-                    pivotY = (bp.x - (baselineBottomPx - bp.y * 0.5f) * tileRatio) / bp.y;
+                    pivotY = (bp.x - baseOffsetPx * tileRatio) / bp.y;
                 arr[i] = GetFrameSprite(fp, tileSize, pivotY);
                 if (arr[i] == null) return null;
             }

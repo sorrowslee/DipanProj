@@ -136,7 +136,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         ReferenceSpeed = referenceSpeed > 0f ? referenceSpeed : 3f;
 
         var lib = MonsterSpriteLibrary.Instance;
-        // 逐動作縮放：**CSV 有填就用填的（× tileSize），留空才走自動**（依可見高對齊 idle）。
+        // 逐動作縮放：**留空＝自動依可見高對齊 idle；有填＝在那個自動結果上「再乘」**（2026-09-22 改，見 Tile()）。
+        //   ⚠ 舊版手填是「覆寫自動」⇒ 填 1.1 常常反而變小（自動倍率本來就 > 1）。
         // ⚠ 自動那套量的是可見高度，對「同一視角、只是畫粗一圈」很準，但對**四足獸**會適得其反——
         //   idle 是 3/4 正面站姿、walk 是側面奔跑**壓低身體**，高度矮就被放大：戰狼實測 walk ×1.288、
         //   等效寬 221→285px（idle 才 181），作者實機回報「walk 明顯比 idle 大很多」。
@@ -154,7 +155,10 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         //   對它做正規化＝把跳躍最重要的那段身體變化整個抵銷掉，而且越蜷縮的幀被放得越大
         //   ⇒ 騰空時怪會忽然膨脹一圈（同 PROBLEMS G12 的機制，但這裡發生在幀與幀之間）。
         //   狂族皇家衛士實測：jump 的可見高在 152~190px 之間跳動、idle 是 199 ⇒ 自動對齊會逐幀放大 1.05~1.31 倍。
-        float jumpTile   = jumpScale > 0.0001f ? Mathf.Clamp(tileSize * jumpScale, 0.1f, 30f) : idleTile;
+        // jump 有填 → **以 idle 的最終大小為基準再乘**（與其他動作同語意：「比平常大幾倍」）；
+        // 留空 → 直接沿用 idleTile。兩種情況都不走自動高度對齊（理由見上）。
+        // ⚠ 基準是 idleTile 不是 tileSize：IdleScale 有填時，jump 也該跟著那個大小走。
+        float jumpTile   = jumpScale > 0.0001f ? Mathf.Clamp(idleTile * jumpScale, 0.1f, 30f) : idleTile;
 
         // ⚠ 第 4 個參數是 **idle 的 tileSize**：腳底對齊（pivot 補償）要知道「基準動作被放大多少」才算得對，
         //   各動作的 tileSize 不一樣時，只比像素會錯。見 MonsterSpriteLibrary.GetFrames。
@@ -207,12 +211,29 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     }
 
     /// <summary>
-    /// 某動作最終的 tileSize：<paramref name="manualScale"/> &gt; 0 就用它（手填，完全覆寫自動），
-    /// 否則走 <see cref="StateTile"/> 的自動高度對齊（＝2026-09-17 之前的行為，留空的怪一個像素都不會變）。
+    /// 某動作最終的 tileSize ＝ **自動高度對齊的結果 × <paramref name="manualScale"/>**
+    /// （留空／0 ＝ 只做自動對齊，行為與 2026-09-17 以來完全相同）。
+    ///
+    /// <para>⭐ <b>手填是「在正常顯示大小之上再乘」，不是「覆寫」</b>（2026-09-22 改，作者拍板）：
+    /// CSV 的 `Scale` 是這隻怪的基準，`IdleScale`／`WalkScale`／`AttackScale` 是**在那之上**的逐動作微調
+    /// ⇒ 填 1.1 就該是「這個動作比平常大 10%」，填 1.0 ＝ 跟留空一樣。</para>
+    ///
+    /// <para>⚠ <b>舊版是 `baseTile × manualScale`，完全跳過自動對齊 ⇒ 填 1.1 常常反而變小。</b>
+    /// 因為自動對齊的倍率本來就不是 1：它要把這個動作的可見高拉到與 idle 一致，
+    /// 而攻擊／奔跑姿勢通常**比站姿矮**（身體前傾、壓低）⇒ 自動倍率 &gt; 1。
+    /// 實測 ZhaYu_HugeSword 的 attack 自動倍率是 **1.252**，作者填 1.1 想放大，結果反而縮小 12%
+    /// （作者回報「設 1.1 反而變更小」）。狂族皇家衛士的 jump 自動倍率 1.138、戰狼的 walk 1.336，
+    /// **手填的數字只要小於自動倍率就會縮**——這個陷阱沒有任何錯誤訊息。
+    /// 見 readme/PROBLEMS.md **G14**。</para>
+    ///
+    /// <para>⚠ 改語意時**既有的手填值要一起換算**（新值 ＝ 舊值 ÷ 自動倍率），否則那些怪的顯示會跟著變。
+    /// `IdleScale` 不必換算（idle 對齊自己，自動倍率恆為 1）；`jump` 見 <see cref="Setup"/> 的說明。</para>
     /// </summary>
     static float Tile(MonsterSpriteLibrary lib, string name, string state, float baseTile, float idleVis, float manualScale)
-        => manualScale > 0.0001f ? Mathf.Clamp(baseTile * manualScale, 0.1f, 30f)
-                                 : StateTile(lib, name, state, baseTile, idleVis);
+    {
+        float auto = StateTile(lib, name, state, baseTile, idleVis);
+        return manualScale > 0.0001f ? Mathf.Clamp(auto * manualScale, 0.1f, 30f) : auto;
+    }
 
     public bool Has(State s) => FramesFor(s) != null;
 

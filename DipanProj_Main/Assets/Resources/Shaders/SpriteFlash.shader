@@ -6,6 +6,12 @@ Shader "Custom/SpriteFlash"
         _Color ("Tint", Color) = (1,1,1,1)
         _FlashAmount ("Flash Amount", Range(0,1)) = 0
 
+        // ── 充能發光（自爆怪的引信；由 HitReactionHandler 以 MaterialPropertyBlock 餵值）──
+        // 預設 0 ＝**這一行不做事**，畫面與加這功能之前逐位元相同（同 _EnvOn 的設計）。
+        // ⚠ 用**加法**不是乘法 tint：這些怪本體幾乎全黑，乘法（黑 × 紅 = 黑）根本看不出來。
+        _ChargeAmount ("Charge glow amount (0=off)", Float) = 0
+        _ChargeColor ("Charge glow color", Color) = (1, 0.25, 0.12, 1)
+
         // ── 角色環境融合（CharacterEnvFusion 以 MaterialPropertyBlock 餵值；場景數據進圖時自動量）──
         // 全部預設 0／白＝**這段完全不執行**，畫面與加這功能之前逐位元相同。
         _EnvOn ("Env fusion on (0=off)", Float) = 0
@@ -68,6 +74,8 @@ Shader "Custom/SpriteFlash"
             sampler2D _MainTex;
             fixed4 _Color;
             float _FlashAmount;
+            float _ChargeAmount;
+            fixed4 _ChargeColor;
 
             // ── 角色環境融合 ──
             float _EnvOn, _EnvMix, _EnvPivot, _EnvSplit;
@@ -138,6 +146,11 @@ Shader "Custom/SpriteFlash"
 
                     c.rgb = e;
                 }
+
+                // 充能發光：往 _ChargeColor **加亮**。
+                // ⚠ 乘 c.a 是為了只在不透明像素上發光——透明區加亮會在角色周圍長出一圈方形光暈。
+                //   （下一行的 premultiply 之前就先乘，數學上等價於「對已上色的像素加光」。）
+                c.rgb += _ChargeColor.rgb * _ChargeAmount * c.a;
 
                 c.rgb = lerp(c.rgb, fixed3(1, 1, 1), _FlashAmount);
                 c.rgb *= c.a;
