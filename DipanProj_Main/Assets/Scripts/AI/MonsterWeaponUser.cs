@@ -90,6 +90,13 @@ public class MonsterWeaponUser : MonoBehaviour
             return;
         }
         // 起手緩衝：生成後先等一個冷卻週期才第一次施放，避免一冒出來就立刻出手。
+        // 例外：CSV `ObserveTime` 填 0（射手「不觀察」）⇒ 連起手緩衝一起取消，一進射程就能出手（作者 2026-09-23 拍板）。
+        //   只看 ==0：留空是 -1、填正數都照舊有緩衝。
+        if (_owner != null && _owner.ObserveTime == 0f)
+        {
+            _cooldown = 0f;
+            return;
+        }
         float interval = (_weapon.Recipe != null && _weapon.Recipe.Data != null) ? _weapon.Recipe.Data.FireInterval : 1f;
         _cooldown = Mathf.Max(0.1f, interval);
     }

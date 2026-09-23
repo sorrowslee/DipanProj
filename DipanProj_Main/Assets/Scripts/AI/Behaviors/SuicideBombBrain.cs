@@ -107,10 +107,8 @@ public class SuicideBombBrain : IMonsterBrain
             if (contact != null) contact.enabled = false;
         }
 
-        // 自爆時的視覺是那顆火球，不要再疊一次一般怪的死亡煙霧（DeathVfxId 預設 7）。
-        // ⚠ 這也影響「被玩家打死」的情況——自爆怪被拆掉時同樣不放骷髏煙霧，
-        //   那是刻意的：一隻炸彈被拆掉就是安靜地倒下，有煙霧反而像爆了。
-        self.DeathVfxId = 0;
+        // ⚠ 一般死亡特效（DeathVfxId）**不在這裡關**：被玩家打死時要照常播（作者 2026-09-23 拍板）。
+        //   只有「自爆」那一刻才關，見 Detonate 裡 Kill() 前一行。
 
         _hit = self.GetComponent<HitReactionHandler>();
     }
@@ -223,7 +221,13 @@ public class SuicideBombBrain : IMonsterBrain
         // ⚠⚠ 用 Kill() 而**不是** TakeDamage(超大數字)：後者會先問 HitReactionHandler，
         //    怪正在無敵幀內就一滴血都不扣 ⇒ 「爆炸放了、怪沒死」，而這裡已經進了 Done
         //    ⇒ 牠會站在原地不動、不再追人也不再爆。自爆成不成功不該取決於 InvincibleTimeMs（同 PROBLEMS F19）。
-        if (self != null && !self.IsDead) self.Kill();
+        // 自爆的視覺是那顆火球，不要再疊一次一般怪的死亡煙霧（DeathVfxId 預設 7）。
+        // 只在這裡關：被玩家打死走的是 TakeDamage→Die，不經過這裡 ⇒ 照常播死亡特效。
+        if (self != null && !self.IsDead)
+        {
+            self.DeathVfxId = 0;
+            self.Kill();
+        }
     }
 
     /// <summary>

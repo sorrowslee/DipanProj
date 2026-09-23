@@ -98,6 +98,15 @@ public class MonsterData
     public bool Controllable = true;
 
     /// <summary>
+    /// 射手型（BrainType=Archer）每次「站定評估」停多久（CSV 表尾欄 <c>ObserveTime</c>，2026-09-23）。
+    /// <para><b>留空 ＝ -1 ＝ 沿用 ArcherBrain 的 0.4~0.8 秒隨機</b>（既有怪零變化）。</para>
+    /// <para><b>填 0 ＝ 不觀察</b>：一進射程、視線通就立刻舉槍，**也取消生成後的武器起手緩衝**（見 MonsterWeaponUser.Resolve）。
+    /// 給玩家火力很強的場合（新手夢境教學）用，否則射手還沒出手就被清掉了。</para>
+    /// <para>填正數 ＝ 每次固定停這麼多秒。射完一發後的間隔（IdleAfterShot）不受這欄影響。</para>
+    /// </summary>
+    public float ObserveTime = -1f;
+
+    /// <summary>
     /// 移動拖尾特效（CSV 表尾欄，2026-09-22）：怪在移動時持續在**身後**種的 VfxTable 特效。
     /// 格式 <c>vfxId:大小倍率:每秒幾個</c>，多層用 <c>|</c> 分隔（例 <c>44:1:5|44:0.55:3</c>）。
     /// 留空 ＝ 不掛（既有怪零影響）。給「有重量的東西」用——邪佛手掌的滾滾沙塵。見 <see cref="MonsterMoveTrail"/>。

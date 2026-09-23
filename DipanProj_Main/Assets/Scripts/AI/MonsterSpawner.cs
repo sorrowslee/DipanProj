@@ -141,6 +141,9 @@ public class MonsterSpawner : MonoBehaviour
             // 可被控制（索引 36，表尾欄）：留空 ＝ 可以（既有怪零影響）；填 0 ＝ 免疫骨牢那類定身。
             data.Controllable = !(values.Length > 36 && values[36].Trim() == "0");
 
+            // 射手型觀察秒數（索引 37，表尾欄）：留空 ＝ -1 ＝ ArcherBrain 原本的 0.4~0.8 隨機；填 0 ＝ 不觀察＋無起手緩衝。
+            data.ObserveTime = (values.Length > 37 && !string.IsNullOrWhiteSpace(values[37])) ? float.Parse(values[37]) : -1f;
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

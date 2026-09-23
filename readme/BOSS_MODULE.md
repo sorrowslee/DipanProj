@@ -387,10 +387,22 @@ BrainType 填 `Pounce` 即可。
 
 | 階段 | 行為 | 常數（`ArcherBrain.cs` 檔頭） |
 |---|---|---|
-| `Observe` | **站定評估**。剛發現目標、移動完一段、射完一發之後都回到這裡 | `ObserveMin/Max` 0.4/0.8 |
+| `Observe` | **站定評估**。剛發現目標、移動完一段、射完一發之後都回到這裡 | `ObserveMin/Max` 0.4/0.8（CSV **`ObserveTime`** 可逐怪覆寫，見下方） |
 | `Reposition` | 往算好的落點**挪一小段就停**（綁距離不綁時間），走完回 `Observe` 重新評估 | `StepDistMin/Max` 1.2/2.2、`StepMaxSeconds` 2.0 |
 | `Draw` | **站定拉弓**。進來時就讓 attack 動畫起播，**演到指定的那一幀才放箭**（見 §8.2b）。**進來就一定會放箭，沒有取消條件**（見上方鐵則） | `ReleaseFrame` 14、`FollowThroughSeconds` 0.8 |
 | ↑ 放箭後 | 回 `Observe`，但用**較長的秒數**＝射擊間隔（作者指定先寫死在模組裡） | `IdleAfterShotMin/Max` 1.2/1.8 |
+
+**逐怪調「觀察」：CSV 表尾欄 `ObserveTime`**（2026-09-23）。「射手遲遲不出手」的延遲其實是幾段疊起來的：
+① 發現目標後的 `Observe`、② 射程外每挪一步都停一次 `Observe`、③ 生成後的武器起手緩衝（＝配方 `FireInterval`，見 `MonsterWeaponUser.Resolve`）、
+④ 舉槍到放彈（`ReleaseFrame`，動畫本身）、⑤ 射後間隔 `IdleAfterShot`。`ObserveTime` 管 ①②，填 0 時連 ③ 一起取消：
+
+| `ObserveTime` | 行為 | 用在 |
+|---|---|---|
+| 留空（＝-1） | 每次 `Observe` 停 0.4~0.8 秒隨機、有起手緩衝（原行為） | 一般關卡：21 號 ZhaYu_Gun、18 號狂族弩手 |
+| **0** | **不觀察**：一進射程、視線通就立刻舉槍；**生成後沒有起手緩衝** | 新手夢境教學的 32 號 ZhaYu_Gun（玩家火力強，不然牠沒機會出手） |
+| 正數 | 每次 `Observe` 固定停這麼多秒，起手緩衝照舊 | （目前沒人用） |
+
+④ 與「舉了就一定射」的鐵則、⑤ 射擊節奏都**不歸這欄管**。
 
 ### 8.2 核心判斷：`CanShootFrom()` ＝ 距離 ＋ 視線
 
@@ -1113,8 +1125,9 @@ RunProgress『已清』／召喚回收**全部照跑**）。
 - **爆炸特效**：VfxTable **ID 42「自爆火球」**（`expfx1_epic_explosion_A` 紅色 14 幀 @20fps）。
   火球大小**依實際半徑等比縮放**（`extraScale = BombRadius ÷ 1.8`）⇒ CSV 調大殺傷半徑時畫面會跟著變大，
   不會出現「炸得到卻看不出來」。
-- **一般死亡特效關掉**（`self.DeathVfxId = 0`）：自爆的視覺是那顆火球，不要再疊骷髏煙霧。
-  ⚠ 這也影響「被玩家拆掉」的情況——那時同樣不放煙霧，是刻意的：一隻炸彈被拆掉就是安靜地倒下。
+- **一般死亡特效只在自爆那一刻關掉**（引爆流程裡 `Kill()` 前一行才設 `self.DeathVfxId = 0`）：自爆的視覺是那顆火球，不要再疊骷髏煙霧。
+  **被玩家打死照常播死亡特效**（2026-09-23 作者拍板；之前是 brain 一掛上就歸零，連被打死都不播，看起來像 bug）。
+  ⚠ 別把歸零搬回 `EnsureConfigured`——那會在第一次 Think 就生效、蓋到「被打死」那條路。
 - **引信視覺 ＝ 整隻怪逐漸燒紅 ＋ 脈動越來越急**，是玩家**唯一**的預告
   （底光 `ChargeBaseMax` 0.55 隨進度線性爬升，疊一層方波脈動 `ChargePulseAmp` 0.45，
   週期 `PulseSlowInterval` 0.22 → `PulseFastInterval` 0.05）。

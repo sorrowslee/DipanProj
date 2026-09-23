@@ -43,6 +43,8 @@ public class ArcherBrain : IMonsterBrain
     // ── 節奏（秒）──
     const float ObserveMin = 0.4f;       // 站定評估：剛發現目標、或移動完一段之後
     const float ObserveMax = 0.8f;
+    //    ↑ 這是「CSV `ObserveTime` 留空」時的預設。逐怪可覆寫（2026-09-23）：填 0 ＝ 不觀察，填正數 ＝ 固定秒數。
+    //      見 ObserveSeconds。射完一發後的 IdleAfterShot 是射擊節奏，不歸這欄管。
     // ⭐ **放箭時機＝attack 序列圖「弩已經舉到定位」的那一幀**，不是一個拍腦袋的秒數。
     //   2026-09-17 作者實測回報「武器還沒提起來，箭就射出去了」——根因見下方 Draw 階段的註解。
     //   Wolf Archers 的 attack 25 張：1~3 預備、4~9 往前推、**10~12 完全水平前伸到位**、13~19 維持、20~25 收弩。
@@ -105,7 +107,7 @@ public class ArcherBrain : IMonsterBrain
         {
             _inited = true;
             _side = Random.value < 0.5f ? 1 : -1;   // 一群弓手才不會整排往同一邊挪
-            _phaseUntil = Time.time + Random.Range(ObserveMin, ObserveMax);
+            _phaseUntil = Time.time + ObserveSeconds(ctx);
         }
 
         // 目標取「最近的敵對目標」（同 PounceBrain / WarBrain）：對 Enemy 陣營與三方陣營都成立，不必寫特例。
@@ -115,7 +117,7 @@ public class ArcherBrain : IMonsterBrain
             act.Stop();
             _attackAnimEnd = 0f;
             _phase = Phase.Observe;
-            _phaseUntil = Time.time + Random.Range(ObserveMin, ObserveMax);
+            _phaseUntil = Time.time + ObserveSeconds(ctx);
             return;
         }
 
@@ -159,7 +161,7 @@ public class ArcherBrain : IMonsterBrain
                 {
                     act.Stop();
                     _phase = Phase.Observe;
-                    _phaseUntil = Time.time + Random.Range(ObserveMin, ObserveMax);
+                    _phaseUntil = Time.time + ObserveSeconds(ctx);
                     break;
                 }
                 act.MoveTowards(_stepTarget);
@@ -213,6 +215,19 @@ public class ArcherBrain : IMonsterBrain
                 break;
             }
         }
+    }
+
+    /// <summary>
+    /// 這一次站定評估要停多久：CSV `ObserveTime` 留空（-1）＝ <see cref="ObserveMin"/>~<see cref="ObserveMax"/> 隨機；
+    /// 填 0 ＝ 不停（下一次 Think 就評估，一進射程就舉槍）；填正數 ＝ 固定秒數。
+    /// <para>2026-09-23 作者：新手夢境教學裡玩家火力太強，射手「觀察」完幾乎沒機會出手 ⇒ 該場的 ZhaYu_Gun（32 號）填 0，
+    /// 一般關卡的 21 號與狂族弩手留空維持原樣。</para>
+    /// </summary>
+    static float ObserveSeconds(in MonsterContext ctx)
+    {
+        float t = (ctx.Self != null) ? ctx.Self.ObserveTime : -1f;
+        if (t < 0f) return Random.Range(ObserveMin, ObserveMax);
+        return t;
     }
 
     /// <summary>
