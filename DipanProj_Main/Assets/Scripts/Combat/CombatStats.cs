@@ -11,6 +11,26 @@ using UnityEngine;
 /// </summary>
 public class CombatStats : MonoBehaviour, ICombatModifiers
 {
+    // ── 不死保護（2026-09-23，新手夢境教學）──
+    // 開著時，受傷最多扣到 1 滴血，**永遠不會觸發 OnDeath**（＝不進死亡流程）。
+    // 理由：夢境是劇情演出，玩家在夢裡死掉會走一般的死亡／結算流程，整段夢境會壞掉（作者 2026-09-23 拍板）。
+    // 具名持有者（同 UIManager.SetExternalHold 的理由）：兩個系統同時開，先關的那一個不會把另一個的保護一起拿掉。
+    // static：CombatStats 目前只掛在玩家身上（怪物的血量是 MonsterController 自己管），不需要分實例。
+    static readonly System.Collections.Generic.HashSet<string> _deathGuards = new System.Collections.Generic.HashSet<string>();
+
+    /// <summary>目前是否有人開著不死保護。</summary>
+    public static bool DeathGuarded => _deathGuards.Count > 0;
+
+    /// <summary>開／關不死保護（具名：只影響自己這一份）。</summary>
+    public static void SetDeathGuard(string owner, bool on)
+    {
+        if (string.IsNullOrEmpty(owner)) owner = "__default__";
+        if (on) _deathGuards.Add(owner); else _deathGuards.Remove(owner);
+    }
+
+    /// <summary>進 Play 時清掉（Domain Reload 已關）。</summary>
+    public static void ResetForPlayMode() => _deathGuards.Clear();
+
     // ── 血量 ──
     public float MaxHealth { get; private set; } = 100f;
     public float Health { get; private set; } = 100f;
@@ -86,6 +106,8 @@ public class CombatStats : MonoBehaviour, ICombatModifiers
         if (IsDead) return 0f;
         float before = Health;
         Health = Mathf.Clamp(Health + delta, 0f, MaxHealth);
+        // 不死保護：受傷最多扣到 1（本來就不到 1 的就停在原值），所以下面的死亡判定永遠不成立。
+        if (DeathGuarded && delta < 0f) Health = Mathf.Max(Health, Mathf.Min(before, 1f));
         RaiseHealth();
 
         if (Health <= 0f && before > 0f)

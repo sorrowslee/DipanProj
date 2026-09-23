@@ -4,6 +4,12 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **新手夢境教學：瀕死保護——夢裡不會死，快死了就直接跳結尾（⏳ 未編譯未實測）**（2026-09-23）
+  作者擔心：玩家進邪佛廣場完全不攻擊，被小怪打死 ⇒ 走一般死亡流程，整段夢境會壞。拍板「絕對不能進死亡流程；快死就不再出下一波，直接震退＋佛掌」。<br>
+  ① **不死保護** `CombatStats.SetDeathGuard(owner, bool)`：受傷最多扣到 1 滴血、不觸發 `OnDeath`。夢境全程開著（`DreamTutorialFlow` 進夢開、`ReleaseDreamLoadout` 關）。這是真正的保證——之後任何時間點（飛行中的子彈、自爆怪的爆炸、結尾演出期間）都死不了。<br>
+  ② **瀕死跳結尾** `DreamTutorialFlow.CheckNearDeath`：廣場裡 HP ≤ 20% 且有出生點正在打 ⇒ 新 API `MapMonsterRespawner.AbortActiveWaves()`（不再生怪、場上的怪 `Kill()`、**不推鏈**）、收掉玩家提示、`TriggerChain.Activate("打完小怪後對話")`（drama 42，作者實測後指定：先講「先接下我這掌吧」那句再震退，與正常流程同一條）。會跳過大招提示與後面的波次。<br>
+  ③ 為什麼「沒有出生點在打就不跳」：小怪清完、已經在跑結尾時再跳一次會讓震退／骨牢觸發兩次。<br>
+  改：`CombatStats`、`MapMonsterRespawner`、`DreamTutorialFlow`、`PlayModeStaticReset`；文件 COMBAT §2、TRIGGER_CHAIN §3.5b〈強制中止〉。
 * [x] **蜜蜂圖試換後還原**（2026-09-23）：作者試了一張新的 `weapon_bee.png`（頭朝正右，角度曾改成 360），看過後覺得原本的好 ⇒ 圖從 git HEAD 還原、武器 12／68 的 `SpriteAngleOffset` 改回 **−47**，等於沒變。新圖備份在專案根目錄 `_to_delete/weapon_bee_新圖備份.png`。
 * [x] **化神期萬劍歸宗改成冰屬性＋飛劍再換圖**（2026-09-23）：① 配方 60 拿掉命中燒地（GroundEffect 1）；② 武器 60 擊中特效 雷地爆 26 → **冰凍 2**。③ 作者又換了一次 `weapon_sword.png`（500×500 冰晶劍），量劍尖→劍柄：劍尖方向 −134.3° ⇒ 五把飛劍的 `SpriteAngleOffset` 127→**134**；作者要再大 0.3 倍 ⇒ `BulletScale` ×1.3（武器 1/30/31/32：3→**3.9**；60：3.9→**5.07**）。⏳ 未實測。
 * [x] **飛劍換新圖後重調大小與角度：五把用 `weapon_sword` 的武器一起改**（2026-09-23）：作者把 `Resources/Weapon/single/weapon_sword.png` 換成新圖（500×500 細長劍，舊圖是 1260×1260 的粗像素劍）。子彈沒有尺寸正規化（大小＝像素 × prefab 0.1 × `BulletScale`），量主軸長度：舊 ≈1725px、新 ≈568px ⇒ **`BulletScale` ×3** 讓飛劍長度回到原本（約 1.7 世界單位）。新圖劍尖方向是 −126.5°（舊圖 −135°），**`SpriteAngleOffset` 135→127** 讓劍尖對準飛行方向。改到：武器 1 三分裂追蹤飛劍／30 三連飛劍／31 飛劍-無能力／32 三道飛劍（1→3）、60 萬劍歸宗（1.3→3.9）。判定半徑 `Radius` 沒動（Normal 的判定不吃 `BulletScale`）。背包 icon 是另一張 `UI/Icons/Equipment/weapon_sword`，不受影響。**通則：換子彈圖時要同時看「畫布尺寸 × 內容佔比」與「圖的朝向」兩件事，兩者都寫死在武器表的數字裡。** ⏳ 未實測。

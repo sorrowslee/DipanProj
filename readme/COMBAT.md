@@ -38,6 +38,7 @@
 * 在 `PlayerController` 的 Inspector 調：`PlayerMaxHealth`（預設 100）、`PlayerMaxMana`（預設 50）、`HealthRegenPerSec`（預設 0）、`ManaRegenPerSec`（預設 5）。
 * `PlayerController` 現在實作 `IDamageable`——所以**玩家是可被傷害的目標**（怪物接觸、未來陷阱/DOT 都打得到）。受傷時：先過 `HitReactionHandler`（無敵中則完全忽略），再 `CombatStats.ApplyHealthDelta(-傷害)`；血量歸零 → `OnDeath` → `PlayerController.Die()`（目前僅標記死亡，重生/讀檔流程之後接）。
 * 怪物維持**輕量 HP**（`MonsterController` 自管，不掛 `CombatStats`），只實作 `ICombatModifiers` 提供減傷掛勾。
+* **不死保護 `CombatStats.SetDeathGuard(owner, bool)`**（2026-09-23）：開著時受傷最多扣到 1 滴血、**永遠不觸發 `OnDeath`**（不進死亡流程）。具名持有者、static（`CombatStats` 只掛在玩家身上）。目前唯一使用者：新手夢境教學（`DreamTutorialFlow`，進夢開、醒來關），見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.5b〈強制中止〉。
 
 ### MP（魔力）＝武器發射的消耗
 * `WeaponTable.csv` 新增 **`ManaCost` 欄**（第 17 欄）；**留空 / 缺欄 = 1**。目前所有武器都填 1。

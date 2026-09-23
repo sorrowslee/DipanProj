@@ -52,6 +52,9 @@ public class MapMonsterRespawner : MonoBehaviour
         // ── 接續時機（2026-09-23）──
         public bool nextOnSpawn;           // true＝「生出來時」就推鏈（第一次真的生出至少一隻的那一刻），全滅時不再推
         public bool spawnNotified;         // 已經推過（只推一次）
+
+        // ── 強制中止（2026-09-23，夢境瀕死保護）──
+        public bool aborted;               // true＝被 AbortActiveWaves 收掉：不再生怪、也**不推鏈**
     }
 
     readonly List<Wave> _waves = new List<Wave>();
@@ -125,6 +128,7 @@ public class MapMonsterRespawner : MonoBehaviour
         for (int i = 0; i < _waves.Count; i++)
         {
             var w = _waves[i];
+            if (w.aborted) continue;   // 被強制中止的（見 AbortActiveWaves）：不生、不收尾、不推鏈
 
             // 先把已死（被 Destroy）的參照清掉——「還活著幾隻」是上限與全滅判定共用的同一份資料。
             w.alive.RemoveAll(go => go == null);
@@ -210,6 +214,43 @@ public class MapMonsterRespawner : MonoBehaviour
             Debug.Log($"[MapMonsterRespawner] 出生點「{o.regionName}」{grpTag} 波次全數清空 → 推鏈。");
             TriggerChain.OnCompleted(o.chainRegion);
         }
+    }
+
+    /// <summary>
+    /// **強制中止所有「已經開打」的出生點**：不再生下一波、場上還活著的怪一律 <c>Kill()</c>（照常播死亡特效），
+    /// 並且**不推它們的鏈**（標記成已收尾），回傳中止了幾顆。
+    /// <para>「已經開打」＝生過至少一波、或場上還有牠的怪。還沒被鏈啟動的出生點（例：初始停用、之後才接上的佛掌）
+    /// 完全不動，之後照常能被鏈叫起來。</para>
+    /// <para>用途：新手夢境教學的瀕死保護（<c>DreamTutorialFlow</c>）——玩家快死了就不再出怪，直接跳到結尾演出。
+    /// ⚠ 用 <c>Kill()</c> 而不是 <c>Destroy</c>：死亡特效／死亡旗標都照走，畫面上是「一起炸掉」而不是憑空消失。
+    /// 被收掉的出生點 <c>cleared</c> 也設為 true，所以同群組的其他出生點之後也不會再替它推鏈。</para>
+    /// </summary>
+    public int AbortActiveWaves()
+    {
+        int n = 0;
+        for (int i = 0; i < _waves.Count; i++)
+        {
+            var w = _waves[i];
+            if (w.aborted || w.cleared) continue;
+            w.alive.RemoveAll(go => go == null);
+            bool engaged = w.startedOnce || w.doneOneShot || w.wavesFired > 0 || w.alive.Count > 0;
+            if (!engaged) continue;
+
+            w.aborted = true;
+            w.cleared = true;
+            for (int k = 0; k < w.alive.Count; k++)
+            {
+                var go = w.alive[k];
+                if (go == null) continue;
+                var mc = go.GetComponent<MonsterController>();
+                if (mc != null) { if (!mc.IsDead) mc.Kill(); }
+                else Destroy(go);
+            }
+            w.alive.Clear();
+            n++;
+            Debug.Log($"[MapMonsterRespawner] 出生點「{w.regionName}」被強制中止（不再生怪、不推鏈），場上的怪已清除。");
+        }
+        return n;
     }
 
     /// <summary>同一個波次群組？兩邊都留空 ⇒ 只有自己算同組（各自獨立收尾）。</summary>

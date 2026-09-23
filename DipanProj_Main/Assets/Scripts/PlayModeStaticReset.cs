@@ -53,7 +53,8 @@ public static class PlayModeStaticReset
         ShadowAnchorTable.ResetForPlayMode();          // 影子錨點表（ShadowAnchorTable.csv）
         DropTable.ResetForPlayMode();                  // 掉落表（DropTable.csv）
         PlayerBind.ResetForPlayMode();
-        Dipan.UI.UIManager.ResetMenuLocksForPlayMode();   // 玩家選單鎖（新手夢境教學鎖背包/倉庫/鍛造/設定）                 // 束縛玩家（骨牢）：清掉 PlayerController.Bound
+        Dipan.UI.UIManager.ResetMenuLocksForPlayMode();
+        CombatStats.ResetForPlayMode();                  // 玩家不死保護（新手夢境教學）   // 玩家選單鎖（新手夢境教學鎖背包/倉庫/鍛造/設定）                 // 束縛玩家（骨牢）：清掉 PlayerController.Bound
         MonsterCage.ResetForPlayMode();                // 骨牢（怪物端）：清掉「目前關著幾隻」的計數
         FactionRelations.ResetForPlayMode();           // 三方陣營劇本狀態（開戰/結盟）
         Dipan.Drama.DramaDatabase.ResetForPlayMode();

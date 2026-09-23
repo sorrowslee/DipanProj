@@ -40,6 +40,20 @@ namespace Dipan.Flow
         /// <summary>輸入鎖的持有者名（具名鎖：解除時不會動到別人掛的，見 PROBLEMS D13）。</summary>
         const string HoldOwner = "DreamTutorialFlow";
 
+        /// <summary>
+        /// 瀕死保護：邪佛廣場裡玩家血量掉到最大血量的這個比例以下，就不再出怪、直接跳到結尾演出。
+        /// 見 <see cref="CheckNearDeath"/>。
+        /// </summary>
+        const float NearDeathRatio = 0.2f;
+
+        /// <summary>
+        /// 瀕死時要直接跳去的 trigger 名稱：邪佛廣場上的 drama「打完小怪後對話」（drama 42＝DramaTalkTable 第 64 句
+        /// 「這次好像有點長進…先接下我這掌吧」），它的 next 才是震退回入口→骨牢→場景吞噬→佛掌。
+        /// 與正常流程同一條路，只是跳過還沒打完的波次（作者 2026-09-23 實測後指定，先講這句再震退）。
+        /// ⚠ 同 <see cref="AfterMosaicTrigger"/>：在編輯器改了那顆的名字，這個常數要一起改（找不到時 TriggerChain 會印警告）。
+        /// </summary>
+        const string NearDeathJumpTrigger = "打完小怪後對話";
+
         /// <summary>夢境開頭那一句（與血統無關）。</summary>
         const int DramaIntro = 31;
 
@@ -98,6 +112,9 @@ namespace Dipan.Flow
 
         GameObject _blackout;
         bool _armed;        // 已經確認進到夢境地圖了 → Update 才開始檢查「離開」
+        bool _nearDeathFired;       // 瀕死保護已經觸發過（一場夢只跳一次）
+        float _nearDeathNextCheck;  // 節流：血量低時才會去找出生點，最多每 0.2 秒一次
+        CombatStats _playerStats;   // 快取（換圖玩家物件不變，但保險起見失效就重抓）
 
         /// <summary>
         /// 啟動夢境開場。重複呼叫會被忽略（已經有一份在跑）。
@@ -142,6 +159,10 @@ namespace Dipan.Flow
             // 夢裡一律不准玩家自己開選單（背包／倉庫／鍛造／設定）：武器是劇情覆寫、不在背包裡，
             // 開背包去換裝或拿東西只會出事（作者 2026-09-23 拍板）。離開夢境才解，見 Update／OnDestroy。
             UIManager.SetPlayerMenuLock(HoldOwner, true);
+
+            // 夢裡玩家不能死：最多扣到 1 滴血、不觸發死亡流程（作者 2026-09-23 拍板）。
+            // 快死時改走「不再出怪、直接跳結尾」，見 Update → CheckNearDeath。
+            CombatStats.SetDeathGuard(HoldOwner, true);
 
             // 2) 等地圖載完、玩家生出來、外觀確實換成那個血統（畫面還是全黑，變身過程玩家看不到）。
             yield return WaitForPlayerReady(bloodlineId);
@@ -234,6 +255,7 @@ namespace Dipan.Flow
         static void ReleaseDreamLoadout()
         {
             UIManager.SetPlayerMenuLock(HoldOwner, false);
+            CombatStats.SetDeathGuard(HoldOwner, false);
             var pc = FindPlayer();
             if (pc != null) pc.SetScriptedWeapon(0);
         }
@@ -436,7 +458,12 @@ namespace Dipan.Flow
             if (mm == null) return;
 
             int mapId = mm.CurrentMapId;
-            if (mapId <= 0 || IsDreamMap(mapId)) return;
+            if (mapId <= 0) return;
+            if (IsDreamMap(mapId))
+            {
+                if (mapId == SaveConstants.DreamTutorialSquareMapId && !mm.IsLoading) CheckNearDeath();
+                return;
+            }
 
             // 走出夢境（接回山道／讀檔／輪迴）→ 血統覆寫一定要解除，否則玩家醒來還是三階外貌。
             Debug.Log($"[DreamTutorial] 已離開夢境地圖（現在 MapId={mapId}），解除血統覆寫並收掉流程物件。");
@@ -446,6 +473,45 @@ namespace Dipan.Flow
             IsPlaying = false;
             _instance = null;
             Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// 瀕死保護（邪佛廣場）：玩家血量 ≤ 最大血量 × <see cref="NearDeathRatio"/>，而且**小怪波次正在打**的時候——
+        /// 中止所有進行中的出生點（場上的怪一起炸掉、不推它們的鏈），收掉畫面上的提示，
+        /// 直接跳到 <see cref="NearDeathJumpTrigger"/>（打完小怪後對話 → 震退回入口 → 骨牢 → 場景吞噬 → 佛掌壓下）。
+        ///
+        /// <para>為什麼要有這條：玩家若在廣場完全不攻擊，會被小怪打死 ⇒ 走一般死亡流程，整段夢境就壞了。
+        /// 真正「不會死」是 <see cref="CombatStats.SetDeathGuard"/> 保證的（最多扣到 1 滴血）；這裡負責的是
+        /// 「快死了就別再讓他挨打，直接進結尾」，看起來像是邪佛出手打斷了這場戰鬥。</para>
+        ///
+        /// <para>⚠ 只在「有出生點正在打」時才跳（<c>AbortActiveWaves</c> 回傳 &gt; 0）：
+        /// 小怪都打完、已經在跑結尾（打完小怪後對話／震退／佛掌）時血量再低也不跳，免得同一句對話與震退被觸發兩次。
+        /// 那段期間靠不死保護兜底就夠了。</para>
+        /// </summary>
+        void CheckNearDeath()
+        {
+            if (_nearDeathFired) return;
+            if (_playerStats == null)
+            {
+                var pc = FindPlayer();
+                _playerStats = pc != null ? pc.GetComponent<CombatStats>() : null;
+                if (_playerStats == null) return;
+            }
+            if (_playerStats.Health > _playerStats.MaxHealth * NearDeathRatio) return;
+
+            // 血量低了才去找出生點；再節流一下，免得「低血量但沒在打」的整段時間每幀 FindObjectOfType。
+            if (Time.unscaledTime < _nearDeathNextCheck) return;
+            _nearDeathNextCheck = Time.unscaledTime + 0.2f;
+
+            var respawner = FindObjectOfType<MapMonsterRespawner>();
+            int aborted = respawner != null ? respawner.AbortActiveWaves() : 0;
+            if (aborted <= 0) return;   // 沒有正在打的波次 ⇒ 已經在結尾了（或還沒開打），不跳
+
+            _nearDeathFired = true;
+            Debug.Log($"[DreamTutorial] 玩家瀕死（HP {_playerStats.Health:F0}/{_playerStats.MaxHealth:F0}）→ " +
+                      $"中止 {aborted} 個出生點、跳到「{NearDeathJumpTrigger}」。");
+            PlayerHintPanel.HidePanel();   // 「按左鍵攻擊」「按 E」這類提示還掛著的話一起收掉
+            TriggerChain.Activate(NearDeathJumpTrigger);
         }
 
         void OnDestroy()
