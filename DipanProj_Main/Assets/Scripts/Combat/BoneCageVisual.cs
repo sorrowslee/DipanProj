@@ -156,6 +156,135 @@ public class BoneCageVisual : MonoBehaviour
         return v;
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // 籠心與尺寸（怪物端 MonsterAnimator／玩家端 PlayerAnimator 共用，2026-09-23）
+    // ══════════════════════════════════════════════════════════════════════
+    // ⚠ 這**不是**影子的第二份真相，是**另一個問題的答案**（PROBLEMS G15）：
+    //   ‧ 影子是「腳下的一灘」→ X 取兩腳中點。拿武器的怪兩腳之間常被**拖在地上的武器**佔據，
+    //     ZhaYu_HugeSword idle 的影子 X 在畫布中心右邊 +43.5px，軀幹卻在 −8.7px ⇒ 差 0.6 世界單位。
+    //   ‧ 骨牢是「罩住整個身體的籠子」→ X 該對**軀幹**，Y 才對地面。
+    //   ‧ 籠子是實體，**不該跟著動作換錨點跳**：影子錨點逐動作不同，每幀跟著走籠子會左右滑。
+    // ⇒ 一律用 **idle** 算一次：X＝idle 各幀「可見框上方 TorsoFraction 的像素欄質心」中位數、
+    //   Y＝idle 的影子錨點 Y（與 idle 影子同一條地面線；沒有就退回可見框底）、軀幹寬＝同一段像素的跨距中位數。
+
+    /// <summary>軀幹取可見框上方多少比例（下方是腿、拖地的武器、長袍下擺——這些都會把中心拉歪）。</summary>
+    const float TorsoFraction = 0.6f;
+    /// <summary>軀幹寬取像素分佈的哪一段（兩端各去掉這個比例），免得一根飄出去的毛髮/破布把寬度撐大。</summary>
+    const float TorsoWidthTrim = 0.02f;
+
+    /// <summary>
+    /// 用 idle 幀算籠心（相對 transform 的本地位移，**未乘 lossyScale、未翻面**）與軀幹寬（本地單位）。
+    /// 貼圖不可讀／沒有幀回 false ⇒ 呼叫端退回問影子。
+    /// </summary>
+    public static bool ComputeIdleAnchor(Sprite[] frames, ShadowAnchorPx idleAnchor, out Vector2 local, out float torsoWidth)
+    {
+        local = Vector2.zero; torsoWidth = 0f;
+        if (frames == null || frames.Length == 0) return false;
+
+        var xs = new System.Collections.Generic.List<float>(frames.Length);
+        var bottoms = new System.Collections.Generic.List<float>(frames.Length);
+        var widths = new System.Collections.Generic.List<float>(frames.Length);
+        Sprite first = null;
+        foreach (var sp in frames)
+        {
+            if (sp == null || sp.pixelsPerUnit <= 0.0001f) continue;
+            if (!TryMeasureTorso(sp, out float cxPx, out float bottomPx, out float widthPx)) continue;
+            if (first == null) first = sp;
+            // 每幀用**自己的** rect／pivot 換算：同一個資料夾混了不同畫布的舊圖時（PROBLEMS F28），至少不會整組飛掉。
+            xs.Add((cxPx - sp.pivot.x) / sp.pixelsPerUnit);
+            bottoms.Add((bottomPx - sp.pivot.y) / sp.pixelsPerUnit);
+            widths.Add(widthPx / sp.pixelsPerUnit);
+        }
+        if (xs.Count == 0 || first == null) return false;
+
+        float y;
+        if (idleAnchor.ok)
+        {
+            float sy = (idleAnchor.canvasH > 0) ? first.rect.height / idleAnchor.canvasH : 1f;   // 同 BlobShadow 的換算
+            y = (idleAnchor.yFromBottomPx * sy - first.pivot.y) / first.pixelsPerUnit;
+        }
+        else y = ShadowAnchorMath.Median(bottoms);
+
+        local = new Vector2(ShadowAnchorMath.Median(xs), y);
+        torsoWidth = ShadowAnchorMath.Median(widths);
+        return true;
+    }
+
+    /// <summary>
+    /// 把本地籠心換成**每幀**的世界座標：套上當下的位置／體型／翻面／離地高度（同 BlobShadow 的換算）。
+    /// ⚠ 翻面時 X 取負（錨點是未翻面的來源圖方向）——角色轉身時籠子會跟著身體對稱移一下，這是對的。
+    /// </summary>
+    public static System.Func<Vector2> MakeSpot(Transform tr, SpriteRenderer sr, Vector2 local)
+    {
+        var air = tr != null ? tr.GetComponent<IAirborneVisual>() : null;
+        return () =>
+        {
+            if (tr == null) return Vector2.zero;
+            Vector3 p = tr.position;
+            Vector3 ls = tr.lossyScale;
+            float flip = (sr != null && sr.flipX) ? -1f : 1f;
+            float airH = air != null ? Mathf.Max(0f, air.AirborneHeight) : 0f;   // 騰空時 transform 被往上推，扣回地面
+            return new Vector2(p.x + local.x * ls.x * flip, p.y + local.y * ls.y - airH);
+        };
+    }
+
+    /// <summary>牢籠內徑（世界單位，未乘施放倍率）＝ max(可見身高 × 0.7, 軀幹寬 × 1.15)。兩端共用。</summary>
+    public static float InnerWidthFor(float bodyHeight, float torsoWidthWorld)
+        => Mathf.Max(bodyHeight * InnerWidthPerBodyHeight, torsoWidthWorld * InnerWidthPerTorsoWidth);
+
+    /// <summary>量一幀：可見框上方 <see cref="TorsoFraction"/> 的像素欄質心 X、軀幹寬、可見框底 Y（都是相對 sprite rect 左下的像素）。</summary>
+    static bool TryMeasureTorso(Sprite sp, out float cxPx, out float bottomPx, out float widthPx)
+    {
+        cxPx = 0f; bottomPx = 0f; widthPx = 0f;
+        var tex = sp.texture;
+        if (tex == null || !tex.isReadable) return false;
+        Color32[] px;
+        try { px = tex.GetPixels32(); } catch { return false; }
+
+        // ⚠⚠ 一定要用 sp.rect，**不能用 sp.textureRect**：Sprite.Create 預設是 Tight 網格，Unity 會把四周透明邊裁掉，
+        //    textureRect 回傳的是**裁過的**框（左緣往右縮了 textureRectOffset.x）⇒ 量出來的 X 相對裁過的左緣，
+        //    再拿去減「相對整張 rect 的 pivot」就整個往左偏。2026-09-23 第一版就栽在這：四隻怪全部往左 0.6~1.0 單位，
+        //    偏多少取決於各自左邊透明邊有多寬（所以每隻都不一樣、看起來毫無規律）。
+        Rect r = sp.rect;
+        int x0 = Mathf.RoundToInt(r.x), y0 = Mathf.RoundToInt(r.y);
+        int w = Mathf.RoundToInt(r.width), h = Mathf.RoundToInt(r.height), tw = tex.width;
+        byte thr = ShadowAnchorMath.AlphaThreshold;
+
+        int minY = int.MaxValue, maxY = -1;
+        for (int y = 0; y < h; y++)
+        {
+            int row = (y0 + y) * tw + x0;
+            for (int x = 0; x < w; x++)
+                if (px[row + x].a > thr) { if (y < minY) minY = y; maxY = y; break; }
+        }
+        if (maxY < 0) return false;
+
+        int from = maxY - Mathf.Max(1, Mathf.RoundToInt((maxY - minY + 1) * TorsoFraction)) + 1;
+        double sum = 0; long cnt = 0;
+        var colCount = new int[w];
+        for (int y = Mathf.Max(from, minY); y <= maxY; y++)
+        {
+            int row = (y0 + y) * tw + x0;
+            for (int x = 0; x < w; x++)
+                if (px[row + x].a > thr) { sum += x; cnt++; colCount[x]++; }
+        }
+        if (cnt == 0) return false;
+        cxPx = (float)(sum / cnt) + 0.5f;   // 像素中心
+
+        // 軀幹寬：像素分佈去掉兩端各 TorsoWidthTrim 之後的跨距
+        long lo = (long)(cnt * TorsoWidthTrim), hi = (long)(cnt * (1f - TorsoWidthTrim));
+        long acc = 0; int xLo = -1, xHi = -1;
+        for (int x = 0; x < w; x++)
+        {
+            acc += colCount[x];
+            if (xLo < 0 && acc > lo) xLo = x;
+            if (xHi < 0 && acc >= hi) { xHi = x; break; }
+        }
+        widthPx = (xLo >= 0 && xHi >= xLo) ? (xHi - xLo + 1) : 0f;
+        bottomPx = minY;
+        return true;
+    }
+
     SpriteRenderer MakePart(string name, Sprite sp, Shader shader, string layer, int order, float imageWidth)
     {
         if (sp == null) return null;

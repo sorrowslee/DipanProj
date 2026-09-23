@@ -162,6 +162,21 @@
           "isScreenEffectRef": false,
           "isPortalList": false,
           "isConditionList": false
+        },
+        {
+          "key": "nextWhen",
+          "type": "String",
+          "label": "接續時機",
+          "boolDefault": false,
+          "options": [
+            "全滅後",
+            "生出來時"
+          ],
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
         }
       ]
     },
@@ -480,7 +495,8 @@
           "options": [
             "移動",
             "攻擊",
-            "任意鍵"
+            "任意鍵",
+            "E鍵"
           ],
           "isFlagRef": false,
           "flagNegatable": false,
@@ -504,6 +520,21 @@
           "type": "Int",
           "label": "提示文字(語言表id)",
           "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "nextWhen",
+          "type": "String",
+          "label": "接續時機",
+          "boolDefault": false,
+          "options": [
+            "收起時",
+            "顯示時"
+          ],
           "isFlagRef": false,
           "flagNegatable": false,
           "isScreenEffectRef": false,
@@ -885,6 +916,112 @@
           "type": "Float",
           "label": "牢籠大小倍率(空=1)",
           "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        }
+      ]
+    },
+    {
+      "typeId": "monsterNear",
+      "displayName": "怪物逼近(鏈動作)",
+      "color": "#E0703A",
+      "params": [
+        {
+          "key": "monsterId",
+          "type": "Int",
+          "label": "怪物id(空=任何敵怪)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "distance",
+          "type": "Float",
+          "label": "逼近距離(身體邊緣間/空=1.5)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "freeze",
+          "type": "Bool",
+          "label": "觸發時停住怪物",
+          "boolDefault": true,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        }
+      ]
+    },
+    {
+      "typeId": "sceneVanish",
+      "displayName": "場景吞噬(鏈動作)",
+      "color": "#AA2233",
+      "params": [
+        {
+          "key": "startDelay",
+          "type": "Float",
+          "label": "開始延遲(秒/空=1)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "seconds",
+          "type": "Float",
+          "label": "吞完秒數(空=3)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "voidColor",
+          "type": "String",
+          "label": "虛空色(#RRGGBB/空=極暗血紅)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "edgeColor",
+          "type": "String",
+          "label": "吞噬邊色(#RRGGBB/空=血紅)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "nextWhen",
+          "type": "String",
+          "label": "接續時機",
+          "boolDefault": false,
+          "options": [
+            "開始時",
+            "吞完後"
+          ],
           "isFlagRef": false,
           "flagNegatable": false,
           "isScreenEffectRef": false,

@@ -4,6 +4,88 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **修「夢境洞窟北傳送點很難觸發」——踩踏矩形用預設 1.0×0.6 太小**（2026-09-23）：`DreamTutorial_Cave` 的「傳送點-北方」有錨點 (9.04, −2.31) 但沒填 `markerW`/`markerH`，退回預設 1.0×0.6（x 8.54~9.54、y −2.61~−2.01）。判定點是 `transform.position`（胸口，B13），玩家站進凹口、看起來已經踩在門上時，胸口約在 (8.35, −1.7)——偏左又偏上，落在小矩形外。修：補 `markerW=2.0`、`markerH=1.4`（x 8.04~10.04、y −3.01~−1.61，蓋住整個 2 格寬凹口），錨點不動（光盤位置、落點不變）。三份 .dipanmap 同步、md5 一致。**通則：有錨點的傳送點一定要依門洞實際大小填寬高，預設值只適合窄門。** ⏳ 未實機驗證。
+* [x] **夢境收尾調整：佛掌碰到才觸發＋傷害 0＋新螢幕特效（最終：id 5 馬賽克淡出；id 4 淡出黑幕保留）（⏳ 未編譯未實測）**
+  （2026-09-23。作者：「佛掌離玩家還太遠，碰到再結束沒關係，攻擊力填 0 以免弄死玩家」；「轉景前播個像破幻術的新特效」，從 4 個提案選了「漩渦吸入」）<br>
+  ① `佛掌逼近` 距離 1.5 → **0**（身體碰到才觸發）；MonsterData **34 Buddha_Hand `ContactDamage` 10 → 0**。<br>
+  ② 新螢幕特效 **id 4 夢境漩渦**：越轉越快（中心扭最兇）＋往中心吸入收成一點＋旋轉殘影＋外圈染暗紅＋收尾全黑。
+  鏈改成 `被佛掌擊中前對話(43) → 夢醒漩渦(playScreenFx 4；後改名「夢醒黑暗吞噬」) → 夢醒回山道(teleportTo 13)`。見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md)〈夢境漩渦〉。<br>
+  新增：`DreamVortexController.cs`、`DreamVortex.shader`、ScreenFxTable 第 4 列、`ScreenFxPlayer` case 4、編輯器 `ScreenFxCatalog` 一列。<br>
+  🔧 **同日換掉**：作者看完說漩渦「太 low」，要「跟佛掌出現時的場景吞噬類似，但這次全部轉黑、什麼都不留」⇒ id 4 改成 **黑暗吞噬**
+  （`DreamDevourController`＋`DreamDevour.shader`：螢幕後處理版的吞噬線，圓心每幀跟玩家、同一組蠕動起伏與柔邊、純黑、2.5 秒）。漩渦的檔案已移除。<br>
+  🔧 **再換一次**：黑暗吞噬作者也說不行，要「用破幻術一樣的特效，切得更細，像鏡子破掉」⇒ id 4 改成 **鏡碎**：
+  `DreamShatterController` **直接共用** `IllusionShatter.shader`（加六個參數、預設值＝破幻術原樣）——密度 30、黑底、冷銀裂紋、重力、
+  從撞擊點（玩家）一圈圈崩、翻轉鏡面反光。黑暗吞噬的檔案已移除；地圖 trigger 改名「夢醒鏡碎」。<br>
+  🔧 **定版：鏡子一步一步裂開**（作者描述：「先一條長裂痕、過 1 秒又一條不同方向、再一條，最後這幾大片像鏡子碎片掉落，整個畫面變黑」、裂痕方向每次隨機）。
+  新 shader `MirrorCrack.shader`＋重寫 `DreamShatterController`（時間軸全在 C#：裂痕 0/1/2 秒、錯位、掉落、震動）。
+  碎片＝在 3 條裂痕的哪一側；裂痕與碎片邊界同一條帶鋸齒距離函數；掉落用反推取樣；碎片重心 C# 格點統計；隨機方向兩兩夾角 ≥ 38°。
+  **破幻術 shader 已還原成原樣**（上一版為了共用加的六個參數拿掉）。總長 4.35 秒。<br>
+  🔧 **外觀照照片重做**（作者附真實碎鏡照片：「裂痕線太直了」）：放射狀彎曲長裂痕（極座標 θ(r) 曲線、共用彎曲率保證不交叉）＋
+  中心多邊形蜘蛛網（第一次用三角波圓弧變星星狀，改成頂點＋弦）＋分岔＋短裂痕＋厚度（亮芯／暗邊／折射）。
+  碎片改成「相鄰長裂痕之間的扇形＋中心一片」，節奏維持 0/1/2 秒三批。出圖前先用 Python 把 shader 邏輯移植到 numpy 在實機截圖上渲染驗證過。<br>
+  🔧 **最終定案：簡單淡出**（作者：「都不太行，鏡子特效砍掉，做簡單的淡出就好」）。id 4 改成 **淡出黑幕**（`FadeOutController`＋`ScreenFadeOut.shader`，1.5 秒、暫停＋鎖輸入）；
+  鏡碎相關檔案（`DreamShatterController`、`MirrorCrack.shader`）已移除，地圖 trigger 改名「夢醒淡出」。<br>
+  🔧 **淡出也不行 → 馬賽克淡出（新 id 5）**：作者要「馬賽克清晰倒過來」。`MosaicOutController` 共用 `Mosaic.shader`、曲線倒放（清晰→越來越粗＋沉暗→全黑，2 秒、暫停＋鎖輸入）；
+  地圖 trigger 改名「夢醒馬賽克」、effectId 5。**淡出黑幕（id 4）保留不刪**（作者：之後說不定用得到）。<br>
+  ⭐ 通則（這一串的教訓）：**過場特效先做最樸素的版本讓作者在流程裡實際看**，確定真的需要花俏再加——這次連做五版都被否決，淡出反而最合適。<br>
+
+* [x] **夢境收尾：佛掌逼近 → drama 43 → 傳回山道（drama 12 接原流程）（⏳ 未編譯未實測）**
+  （2026-09-23，作者要求能用地圖編輯器就用。見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)〈monsterNear〉、§3.5b `nextWhen`）<br>
+  全部用 trigger 排：`場景吞噬 → 邪佛手掌出生點(接續時機=生出來時) → 佛掌逼近(monsterNear 34, 1.5) → 被佛掌擊中前對話(43) → 夢醒回山道(teleportTo 13)`。
+  山道(13)本來就是 `onEnter → drama 12 → …`，所以傳過去就自動接回原流程，不用動山道地圖。<br>
+  新增兩個東西：① 出生點 `nextWhen`（全滅後／生出來時）——佛掌不會死，「全滅才接」永遠接不上；
+  ② 鏈動作 `monsterNear`（量兩個碰撞框之間的空隙；觸發時把怪設成 `Caged` 停住——讀取頁不暫停，不停住會在讀取頁後面撞上玩家扣血）。
+  `MonsterController.DataId`（MonsterData ID）。<br>
+  ⚠ **順手修一個潛伏 bug**：骨牢束縛以為換圖時 `PlayerBind.OnDisable` 會解，但**玩家物件跨圖是同一個、不會被停用** ⇒
+  傳回山道後玩家會「不能動＋腳下頂著骨牢」。改在 `MapManager.ClearTransientGameplay` 解綁（TRIGGER_CHAIN 那段說明一併改正）。<br>
+  改動：`MonsterNearWatcher.cs`（新）、`TriggerChain`、`MapMonsterRespawner`、`MapLoader`、`MonsterController`、`MapManager`、
+  編輯器 `TriggerType.cs`＋`triggerTypes.json`、三份 `DreamTutorial_Square.dipanmap`。<br>
+
+* [x] **夢境廣場改三波＋「按 E 施放大絕招」提示；`playerHint` 收起時機加 `E鍵`（⏳ 未編譯未實測）**
+  （2026-09-23，作者要在打一陣子後插「按 E 施放大絕招」——三階大招還沒做，**提示就只是提示**，不偵測有沒有真的放）<br>
+  作者選 A 案：每波一顆出生點、用鏈串 ⇒ `怪物出生點1 → 大招提示(E鍵收、顯示時接) → 怪物出生點2 → 怪物出生點3 → 打完小怪後對話`。
+  出生點 2、3 是照 1 複製的（同格子、同怪、`maxWaves=1`、`waveGroup` 2/3），**生怪設定由作者自己調**。
+  新增 LanguageTable **1012**「按 E 施放大絕招」。未做：提示逾時自動收起（作者未決定要不要）。<br>
+  改動：`PlayerHintPanel.HideMode.KeyE`、`TriggerChain.ParseHideMode`、編輯器 `TriggerType.cs`＋`triggerTypes.json`、`LanguageTable.csv`、三份 `DreamTutorial_Square.dipanmap`。<br>
+
+* [x] **`playerHint` 加「接續時機」：夢境攻擊提示改成不擋流程（⏳ 未編譯未實測）**
+  （2026-09-23，作者：「跳提示的同時怪就照常產生，只是上方跳提示；不按攻擊就一直被打，按了提示再移除」）<br>
+  `playerHint` 的 next 原本一定要等玩家做出收起動作才接 ⇒ 新增 `nextWhen`（收起時＝舊行為／顯示時＝一跳出來就接 next）。
+  夢境「左鍵發射教學」改 `顯示時`（`pause=false`）⇒ 對話 → 提示＋怪物出生點同時開始。
+  改動：`TriggerChain.ExecutePlayerHint`、編輯器 `TriggerType.cs`＋`triggerTypes.json`、三份 `DreamTutorial_Square.dipanmap`。<br>
+
+* [x] **第一次生怪卡頓修正＋場景吞噬加「吞完後才接續」（⏳ 未編譯未實測）**
+  （2026-09-23，作者回報「按下左鍵產怪時一瞬間停滯」、「先全黑，佛掌再出現」）<br>
+  ① **卡頓**：怪物庫有自己的 `MapSpriteLoader`，讀取頁的 module 預載只暖到 MapLoader 那一份 ⇒ 每種怪第一次生出來時同步解碼全部幀
+  （夢境四種 ZhaYu ≈ 兩百多張）。⇒ `MonsterSpriteLibrary.PreloadModuleRoutine` 在讀取頁分幀預載（連同逐幀腳底 px／腳底基準／影子錨點），
+  `MapLoader` 預載跳過怪物圖（原本白解一份還多佔記憶體）。見 PROBLEMS **E39**。<br>
+  ② **順序**：`sceneVanish` 加 `nextWhen`（開始時／吞完後）；夢境改「吞完後」⇒ 先全黑 3 秒，佛掌再從黑暗裡出現。
+  （`SceneVanish.Play` 加 `onDone`；開不成／重複觸發也會立刻回呼，鏈不會卡住。）<br>
+
+* [x] **新鏈動作 `sceneVanish` 場景吞噬＋夢境佛掌段接上（⏳ 未編譯未實測）**
+  （2026-09-23，作者問「佛掌逼近時能不能讓整個場景消失，只剩佛掌、玩家、骨牢」。見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.4b〈sceneVanish〉）<br>
+  作者選的樣式：**由外往內吞噬**／**極暗的血紅虛空**／**佛掌先出現、約 1 秒後才開始吞**。<br>
+  ⭐ **不能用黑幕**：角色和地上物同一條 Y 排序帶 ⇒ 改成讓地圖自己消失——背景與預設材質地上物換 `Custom/SceneVanish`
+  （global 參數、全圖共用一個材質，吞噬線才在每張圖之間接得起來；圈外換成虛空色**不是變透明**，地上物疊在虛空背景上才會真的看不見），
+  其餘（光源、場景特效、掉落物、互動星星）吞噬線越過就關。<br>
+  🔧 **作者第一次看完調整**：夢境這顆改成**純黑虛空、不燒紅邊**（`voidColor`＝`edgeColor`＝`#000000`；燒邊是疊加色，填黑＝沒有邊）、
+  `startDelay=0`（佛掌一出現就開始吞）。預設值（血紅）不動，留給之後別的劇情用。
+  同一輪：「左鍵發射教學」`playerHint` 改成**不暫停**（`pause=false`）——提示照跳、遊戲照走，玩家真的按下左鍵才收提示、接怪物出生點；
+  暫停版是時間凍住、一按就瞬間湧怪，作者覺得突兀。<br>
+  ⭐ **順序問題**：`monsterSpawn` 的 next 要怪全滅才觸發、佛掌不會死 ⇒ 鏈改成 `骨牢束縛 → 場景吞噬(立即交棒, startDelay=1) → 邪佛手掌出生點`。<br>
+  改動：新增 `Map/SceneVanish.cs`、`Resources/Shaders/SceneVanish.shader`；`MapLoader.MapRoot`；`TriggerChain`（`sceneVanish`）；
+  編輯器 `TriggerType.cs`＋`triggerTypes.json`；三份 `DreamTutorial_Square.dipanmap`（md5 相同）。<br>
+
+* [x] **夢境教學的束縛骨牢（`bindPlayer`）完善：永久＋不被擊退＋對位與骨牢武器同一套（⏳ 未編譯未實測）**
+  （2026-09-23，骨牢武器對位定版後回到夢境教學。見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.4b）<br>
+  ① **永久**：本來就沒有計時器（只有 `bind=0` 或換圖／死亡會解），這次把它寫成明文規格，與骨牢武器（有秒數）分開講清楚。<br>
+  ② **不會被擊退**：玩家的 `PlayerKnockbackThreshold=0`＝每一下都擊退，被佛掌一碰就會連人帶籠滑出去 ⇒
+  `HitReactionHandler.SuppressKnockback`（受擊照常、只是不位移），`PlayerBind` 綁住時開、解開時關。<br>
+  ③ **對位**：玩家端原本還在每幀問影子（骨牢武器已經證明那會隨動作滑動）⇒ 把演算法從 `MonsterAnimator` 抽到
+  `BoneCageVisual.ComputeIdleAnchor`／`MakeSpot`／`InnerWidthFor` 共用，`PlayerAnimator` 加 `TryGetCageAnchorLocal`。
+  排序每幀同步（G16）玩家端本來就吃得到。實測全部 24 個血統：軀幹偏移多數 < 5px、只有 `Swarm Emperor` −20px；
+  軀幹寬只有 `MountainGiant`（0.66×身高）、`Fenrir`（0.63）會讓牢籠比「身高 × 0.7」大一點。<br>
+
 * [x] **骨牢對位第四版：籠心對「軀幹」、不再每幀跟影子（⏳ 未編譯未實測）**
   （2026-09-23，作者附 ZhaYu／ZhaYu_Bomb／ZhaYu_Gun／ZhaYu_HugeSword 四張實測圖：「幾乎每隻被關住後對位都是歪的」。見 PROBLEMS **G15**）<br>
   **根因**：第三版的籠心問影子，而影子 X 是「兩腳中點」——拿武器的怪兩腳之間被拖地的武器佔住，

@@ -66,6 +66,10 @@ namespace DipanMapEditor.Data
                     // 波次群組：留空＝自己一組。多顆出生點填同一個名字＝要全部打完才算「全滅」。
                     // 用在「廣場四周好幾顆出生點、各生各的怪，全部清光才開門」。
                     new TriggerParam { key = "waveGroup", type = ParamType.String, label = "波次群組(空=自己一組)" },
+                    // 接續時機：全滅後（預設）＝這一組怪清空才接 next；生出來時＝第一次真的生出怪就接 next（給不會死的怪，例：夢境佛掌）。
+                    // ⚠ 只對「交給 respawner 的出生點」有效（有填條件／重複產生／有接續或群組的）——有填接續觸發本來就一定走那條。
+                    new TriggerParam { key = "nextWhen",  type = ParamType.String, label = "接續時機",
+                                       options = new [] { "全滅後", "生出來時" } },
                     // ⭐ **「全滅」之後做什麼，用下方通用欄位的「接續觸發／完成寫旗標」**——
                     //   出生點的「完成」＝這一組怪被清空的那一刻（波次出完且場上一隻不剩）。
                     //   總波數留空（無限波）＝永遠不會完成，也就永遠不會推鏈。
@@ -152,6 +156,33 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：盯著場上指定種類的怪，牠的身體邊緣離玩家身體邊緣 ≤ 距離時才接 next（可順便停住牠）。
+                // 夢境佛掌「即將壓到玩家前播對話」用。要接在那隻怪生出來之後（出生點「接續時機＝生出來時」）。
+                typeId = "monsterNear", displayName = "怪物逼近(鏈動作)", color = "#E0703A",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "monsterId", type = ParamType.Int,   label = "怪物id(空=任何敵怪)" },
+                    new TriggerParam { key = "distance",  type = ParamType.Float, label = "逼近距離(身體邊緣間/空=1.5)" },
+                    new TriggerParam { key = "freeze",    type = ParamType.Bool,  label = "觸發時停住怪物", boolDefault = true },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：以玩家為中心，整張地圖由外往內被吞成虛空，只剩角色／影子／HUD；不會自己復原（換圖才清）。
+                // 「接續時機」：開始時（預設）＝立即接 next、吞噬在「開始延遲」秒後才開始；吞完後＝整張全黑才接 next。
+                typeId = "sceneVanish", displayName = "場景吞噬(鏈動作)", color = "#AA2233",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "startDelay", type = ParamType.Float,  label = "開始延遲(秒/空=1)" },
+                    new TriggerParam { key = "seconds",    type = ParamType.Float,  label = "吞完秒數(空=3)" },
+                    new TriggerParam { key = "voidColor",  type = ParamType.String, label = "虛空色(#RRGGBB/空=極暗血紅)" },
+                    new TriggerParam { key = "edgeColor",  type = ParamType.String, label = "吞噬邊色(#RRGGBB/空=血紅)" },
+                    new TriggerParam { key = "nextWhen",   type = ParamType.String, label = "接續時機",
+                                       options = new [] { "開始時", "吞完後" } },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 typeId = "camZone", displayName = "鏡頭區", color = "#66CCFF",
                 paramSchema = new List<TriggerParam>
                 {
@@ -189,11 +220,14 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "flashLeft",  type = ParamType.Bool,   label = "左圖閃爍", boolDefault = false },
                     new TriggerParam { key = "flashRight", type = ParamType.Bool,   label = "右圖閃爍", boolDefault = true },
                     new TriggerParam { key = "hideOn",     type = ParamType.String, label = "收起時機",
-                                       options = new [] { "移動", "攻擊", "任意鍵" } },
+                                       options = new [] { "移動", "攻擊", "任意鍵", "E鍵" } },
                     // 強制教學用：停住遊戲＋上方跳一行字，玩家做出「收起時機」那個動作才解鎖往下。
                     // 留空＝舊行為（不暫停、只有圖）。收起時機=攻擊 且有暫停時，解鎖那一下會補射一發武器。
                     new TriggerParam { key = "pause",      type = ParamType.Bool,   label = "暫停遊戲", boolDefault = false },
                     new TriggerParam { key = "textId",     type = ParamType.Int,    label = "提示文字(語言表id)" },
+                    // 收起時（預設）＝做了動作才接 next；顯示時＝提示一跳出來就接 next，提示自己掛著等玩家做了才收。
+                    new TriggerParam { key = "nextWhen",   type = ParamType.String, label = "接續時機",
+                                       options = new [] { "收起時", "顯示時" } },
                 }
             });
             set.types.Add(new TriggerTypeDef

@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Dipan.MapRuntime;   // 怪物圖走「地圖素材管線」(catalog + StreamingAssets)，與劇情大圖/頭像同套
@@ -59,6 +60,67 @@ public class MonsterSpriteLibrary
 
     static string Key(string monsterName, string state)
         => $"{(monsterName ?? "").Trim().ToLowerInvariant()}/{(state ?? "").Trim().ToLowerInvariant()}";
+
+    /// <summary>
+    /// **預載**某 module（＋Main）所有怪物的序列圖到本庫的快取，分幀做、不卡畫面。由 MapManager 在進入新 module 的讀取頁期間呼叫。
+    ///
+    /// <para>⭐ 為什麼要有這支（2026-09-23 作者：「按下左鍵、怪物開始產生時會有一瞬間的停滯」）：
+    /// 本庫有**自己的** <see cref="MapSpriteLoader"/>，快取和 MapLoader 的不共用。讀取頁的「預載整個 module」只暖了 MapLoader 那一份，
+    /// 所以**每種怪第一次被生出來時**，牠所有動作的 PNG 都在那一幀同步讀檔＋解碼——夢境四種 ZhaYu 一次上場＝兩百多張圖，
+    /// 畫面當然停一下。現在改成在讀取頁就解好，MapLoader 那邊則不再重複解（見 MapLoader.PreloadModuleRoutine）。</para>
+    ///
+    /// <para>順手把「逐幀腳底 px」「腳底基準」「影子錨點」也先算好——這三個第一次生怪時都會掃整張像素（逐幀腳底對齊是每一幀都掃）。</para>
+    /// <para>快取不釋放（本庫本來就是這樣）：同一個 module 回來第二次是瞬間完成。</para>
+    /// </summary>
+    public IEnumerator PreloadModuleRoutine(string module, System.Action<float> onProgress)
+    {
+        if (_loader == null) { onProgress?.Invoke(1f); yield break; }
+
+        var items = new List<KeyValuePair<string, CatalogItem>>();
+        int total = 0;
+        foreach (var kv in _byTail)
+        {
+            var it = kv.Value;
+            if (it == null || (it.module != module && it.module != "Main")) continue;
+            items.Add(kv);
+            total += (it.IsAnimated && it.frames != null) ? it.frames.Count : 1;
+        }
+        total = Mathf.Max(1, total);
+
+        const int FramesPerYield = 8;   // 256px 的圖一次解 8 張，讀取頁的進度條才動得起來
+        int done = 0, since = 0;
+        var names = new HashSet<string>();
+        foreach (var kv in items)
+        {
+            var it = kv.Value;
+            if (it.IsAnimated && it.frames != null)
+            {
+                for (int f = 0; f < it.frames.Count; f++)
+                {
+                    _loader.GetFrameTexture(it.frames[f]);
+                    _loader.GetFrameBottomPx(it.frames[f]);   // 腳底對齊逐幀都要掃一次整張像素（GetAnimationFrames），一起先算掉
+                    done++;
+                    if (++since >= FramesPerYield) { since = 0; onProgress?.Invoke((float)done / total); yield return null; }
+                }
+            }
+            else { _loader.GetTexture(it); done++; }
+
+            int slash = kv.Key.IndexOf('/');
+            if (slash > 0) names.Add(kv.Key.Substring(0, slash));
+        }
+
+        foreach (var n in names)
+        {
+            BaselinePx(n);
+            foreach (var st in PreloadStates) if (Has(n, st)) GetShadowAnchor(n, st);
+            yield return null;
+        }
+
+        onProgress?.Invoke(1f);
+        Debug.Log($"[MonsterSpriteLibrary] 已預載 module「{module}」(+Main) 怪物序列圖：{names.Count} 隻、{done} 張。");
+    }
+
+    static readonly string[] PreloadStates = { "idle", "walk", "attack", "pant", "jump" };
 
     /// <summary>這隻怪有沒有這個動作的圖（防呆判斷用）。</summary>
     public bool Has(string monsterName, string state)

@@ -100,6 +100,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     private float _skillCastAnimUntil;   // < Time.time 前都播 attack 動畫（施放技能觸發，見 NotifySkillCast）
 
     /// <summary>程式逐格動畫器（route B 才有；舊 prefab 怪為 null）。Brain 要自己控動畫（如跳躍的 one-shot）時用。</summary>
+    /// <summary>MonsterData.csv 的 ID（出生點填的那個數字）。給「依怪物種類找場上的怪」用（例：鏈動作 monsterNear）。</summary>
+    public int DataId { get; private set; }
     public MonsterAnimator Anim => _monAnim;
 
     /// <summary>這隻怪的體型倍率（＝ `MonsterData.csv` 的 `Scale` 欄，實作上就是 `transform.localScale`）。</summary>
@@ -424,6 +426,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     public void Initialize(MonsterData data)
     {
         MonsterName = data.Name;
+        DataId = data.ID;
         MaxHealth = data.HP;
         _currentHealth = MaxHealth;
 

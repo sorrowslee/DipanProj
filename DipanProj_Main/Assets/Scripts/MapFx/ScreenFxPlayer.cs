@@ -24,12 +24,15 @@ using Dipan.UI;
 ///   1 = 睜眼醒來（EyeOpenController；EnterEffect 填 1 時連動玩家趴地→起身）。
 ///   2 = 破幻術（幻境崩碎回歸現實；IllusionShatterController）。
 ///   3 = 馬賽克清晰（像素格由粗到細收斂；MosaicController）。
+///   4 = 淡出黑幕（畫面平順淡成全黑、暫停＋鎖輸入；FadeOutController）。
+///   5 = 馬賽克淡出（id 3 的倒放：清晰→格子越來越粗＋變暗→全黑，暫停＋鎖輸入；MosaicOutController，共用 Mosaic.shader。新手夢境教學收尾用）。
 /// </summary>
 public static class ScreenFxPlayer
 {
     /// <summary>目前是否有任何全螢幕過場特效正在播（給「進場觸發等特效播完」等系統輪詢）。</summary>
     public static bool IsAnyPlaying =>
-        EyeOpenController.IsPlaying || IllusionShatterController.IsPlaying || MosaicController.IsPlaying;
+        EyeOpenController.IsPlaying || IllusionShatterController.IsPlaying || MosaicController.IsPlaying
+        || FadeOutController.IsPlaying || MosaicOutController.IsPlaying;
 
     /// <summary>
     /// 依 <paramref name="id"/> 播一次全螢幕過場特效；播完呼叫 <paramref name="onDone"/>（觸發鏈在這裡接 next）。
@@ -70,6 +73,12 @@ public static class ScreenFxPlayer
                 break;
             case 3:
                 MosaicController.Play(done, dur);           // 馬賽克清晰
+                break;
+            case 4:
+                FadeOutController.Play(done, dur);          // 淡出黑幕（畫面平順淡成全黑）
+                break;
+            case 5:
+                MosaicOutController.Play(done, dur);        // 馬賽克淡出（馬賽克清晰的倒放：清晰→越來越粗→全黑）
                 break;
             default:
                 Debug.LogWarning($"[ScreenFxPlayer] 未知的螢幕特效 id={id}（ScreenFxTable 沒這一列）。略過特效、鏈照常接 next。");

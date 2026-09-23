@@ -25,6 +25,13 @@ public class HitReactionHandler : MonoBehaviour
     /// </summary>
     public float WidthScaleCompensation = 1f;
 
+    /// <summary>
+    /// true ＝ 受擊照常（白閃、無敵幀、扣血都不變），**只是不擊退**。
+    /// 給「被骨牢關住」用（<c>PlayerBind</c>）：玩家被鎖在籠子裡，被佛掌一打就飛出籠外會整個穿幫。
+    /// 誰設誰負責放掉（PlayerBind.Unbind／OnDisable）。
+    /// </summary>
+    [System.NonSerialized] public bool SuppressKnockback;
+
     public bool IsInvincible { get; private set; }
     public bool IsKnockedBack { get; private set; }
 
@@ -94,7 +101,7 @@ public class HitReactionHandler : MonoBehaviour
     {
         _accumulatedDamage += damage;
 
-        if (_knockbackPercent > 0 && _accumulatedDamage >= _knockbackThreshold)
+        if (!SuppressKnockback && _knockbackPercent > 0 && _accumulatedDamage >= _knockbackThreshold)
         {
             _accumulatedDamage = 0;
             StartCoroutine(ApplyKnockback(hitDirection));

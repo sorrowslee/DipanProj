@@ -69,10 +69,9 @@ public class MonsterCage : MonoBehaviour
         // 尺寸 ＝ max(可見身高 × 0.7, 軀幹寬 × 1.15)：身高不受手上拿什麼影響；軀幹寬保證寬胖的怪（ZhaYu_Bomb 軀幹寬 0.85×身高）
         // 兩隻手不會伸到骨刺外面（作者 2026-09-23：「把怪物完整的包覆在骨牢裡」）。
         // 位置用 idle 的**軀幹 X＋地面線 Y**（見 BuildCageSpot）。身高／軀幹寬都已含體型，大怪自動配大牢（同 F29 的通則）。
-        float inner = h * BoneCageVisual.InnerWidthPerBodyHeight;
         var anim = target.GetComponent<MonsterAnimator>();
         float torsoW = anim != null ? anim.CageTorsoWidthLocal * Mathf.Abs(target.transform.lossyScale.x) : 0f;
-        inner = Mathf.Max(inner, torsoW * BoneCageVisual.InnerWidthPerTorsoWidth);
+        float inner = BoneCageVisual.InnerWidthFor(h, torsoW);
         _visual = BoneCageVisual.Spawn(target.gameObject,
             inner * Mathf.Max(0.01f, sizeMul), h,
             () => t != null ? t.FeetWorldPos : (Vector2)target.transform.position,
@@ -90,18 +89,7 @@ public class MonsterCage : MonoBehaviour
     {
         var anim = target.GetComponent<MonsterAnimator>();
         if (anim == null || !anim.TryGetCageAnchorLocal(out var local)) return null;
-        var sr = target.GetComponent<SpriteRenderer>();
-        var air = target.GetComponent<IAirborneVisual>();
-        var tr = target.transform;
-        return () =>
-        {
-            if (tr == null) return Vector2.zero;
-            Vector3 p = tr.position;
-            Vector3 ls = tr.lossyScale;
-            float flip = (sr != null && sr.flipX) ? -1f : 1f;
-            float airH = air != null ? Mathf.Max(0f, air.AirborneHeight) : 0f;   // 騰空時 transform 被往上推，扣回地面（同 BlobShadow）
-            return new Vector2(p.x + local.x * ls.x * flip, p.y + local.y * ls.y - airH);
-        };
+        return BoneCageVisual.MakeSpot(target.transform, target.GetComponent<SpriteRenderer>(), local);
     }
 
     void Update()

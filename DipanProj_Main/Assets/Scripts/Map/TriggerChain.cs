@@ -46,6 +46,8 @@ public static class TriggerChain
     public const string TypeFactionWar = "factionWar";     // 三方陣營開戰（鏈動作）＝**結束和平**、回到預設的敵對：兩族開始互咬(演戲傷害1/100)＋攻擊玩家、切到可被玩家攻擊的層，再接 next。狀態只活在這趟關卡（換 module 自動重置）。見 FactionRelations / readme/FACTION.md
     public const string TypeJoinFaction = "joinFaction";   // 玩家結盟部族（鏈動作）：faction=werewolf/狼人 或 vampire/吸血鬼——該族不再攻擊玩家、玩家武器打不到它(切 Ally 層)，再接 next。典型：首領 NPC 對話 → next 接這顆。見 FactionRelations
     public const string TypePushPlayer = "pushPlayer";      // 震退玩家（鏈動作）：在 seconds 秒內把玩家「推」到自己這格（先快後慢＝被打飛），期間鎖操作＋鏡頭震，到位才接 next。給「把玩家轟回定位再開始演出」用（夢境佛掌、正式邪佛戰）
+    public const string TypeMonsterNear = "monsterNear";    // 怪物逼近（鏈動作）：盯著場上指定種類的怪，身體邊緣離玩家 ≤ distance 時才接 next（可順便停住牠）。夢境佛掌「即將壓到玩家前」播對話用
+    public const string TypeSceneVanish = "sceneVanish";    // 場景吞噬（鏈動作）：以玩家為中心，整張地圖由外往內被吞成血紅虛空，只剩角色／影子／HUD；**立即接 next**（吞噬在 startDelay 秒後才開始），不會自己復原。夢境佛掌段用
     public const string TypeBindPlayer = "bindPlayer";      // 束縛玩家（鏈動作）：鎖移動、**放行攻擊**（只能原地打），腳下放一個循環特效當牢籠。bind=0 ＝解除束縛。立即接 next
 
     // ── 位置型 typeId（玩家踩到／按 F 才生效，被鏈啟動＝「解鎖」）──
@@ -391,6 +393,8 @@ public static class TriggerChain
             }
             case TypePushPlayer: ExecutePushPlayer(r); break;
             case TypeBindPlayer: ExecuteBindPlayer(r); break;
+            case TypeSceneVanish: ExecuteSceneVanish(r); break;
+            case TypeMonsterNear: ExecuteMonsterNear(r); break;
             case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
@@ -606,6 +610,62 @@ public static class TriggerChain
         OnCompleted(r);
     }
 
+    /// <summary>
+    /// **場景吞噬**（鏈動作）：見 <see cref="SceneVanish"/>。<c>nextWhen</c> 決定什麼時候接 next：
+    /// 空／「開始時」＝**立即接 next**（吞噬在 <c>startDelay</c> 秒後才開始）；「吞完後」＝整張全黑的那一刻才接。
+    /// （2026-09-23 夢境改用「吞完後」：作者要先全黑、佛掌再從黑暗裡出現。）
+    ///
+    /// <para>為什麼是「先接 next、再延遲開始」而不是演完才接：夢境要的是「佛掌先出現、約 1 秒後世界才開始被吞」，
+    /// 但佛掌是 <c>monsterSpawn</c> 生的——它的 next 要等**怪全滅**才觸發，佛掌不會死，所以吞噬沒辦法接在它後面。
+    /// 反過來把佛掌接在吞噬後面、吞噬立刻交棒，再用 startDelay 讓出那一秒，順序就對了。</para>
+    ///
+    /// <para>參數：<c>startDelay</c>（秒，空＝1）、<c>seconds</c>（吞完要幾秒，空＝3）、
+    /// <c>voidColor</c>／<c>edgeColor</c>（#RRGGBB，空＝預設極暗血紅／血紅燒邊）。</para>
+    /// </summary>
+    static void ExecuteSceneVanish(TriggerRegion r)
+    {
+        float delay = r.GetFloat("startDelay", 1f);
+        float secs = r.GetFloat("seconds", 3f);
+        Color vc = ParseHtmlColor(r.GetString("voidColor"), SceneVanish.DefaultVoidColor, r.name);
+        Color ec = ParseHtmlColor(r.GetString("edgeColor"), SceneVanish.DefaultEdgeColor, r.name);
+        string when = r.GetString("nextWhen").Trim();
+        bool waitDone = when == "吞完後" || when == "done";
+        Debug.Log($"[TriggerChain] sceneVanish「{r.name}」：{delay:0.##} 秒後開始吞噬、{secs:0.##} 秒吞完，{(waitDone ? "吞完後" : "立即")}接 next。");
+        if (waitDone) SceneVanish.Play(delay, secs, vc, ec, () => OnCompleted(r));
+        else { SceneVanish.Play(delay, secs, vc, ec); OnCompleted(r); }
+    }
+
+    /// <summary>
+    /// **怪物逼近**（鏈動作）：見 <see cref="MonsterNearWatcher"/>。逼近到才接 next。
+    /// 參數：<c>monsterId</c>（MonsterData ID，空／0＝任何敵對怪）、<c>distance</c>（身體邊緣之間的空隙，世界單位，空＝1.5）、
+    /// <c>freeze</c>（觸發時停住那隻怪，預設開）。
+    /// ⚠ 要接在「那隻怪已經生出來／即將生出來」之後：出生點的「接續時機＝生出來時」就是為這個加的。
+    /// </summary>
+    static void ExecuteMonsterNear(TriggerRegion r)
+    {
+        int id = r.GetInt("monsterId", 0);
+        float dist = r.GetFloat("distance", 1.5f);
+        bool freeze = r.GetBool("freeze", true);
+        if (!MonsterNearWatcher.Watch(id, dist, freeze, r.name, () => OnCompleted(r)))
+        {
+            Debug.LogWarning($"[TriggerChain] monsterNear「{r.name}」找不到目前的地圖，直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+        Debug.Log($"[TriggerChain] monsterNear「{r.name}」：開始盯怪物 {(id > 0 ? id.ToString() : "（任何敵怪）")}，" +
+                  $"逼近到 {dist:0.##} 才接 next{(freeze ? "（觸發時停住牠）" : "")}。");
+    }
+
+    static Color ParseHtmlColor(string s, Color fallback, string who)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return fallback;
+        s = s.Trim();
+        if (!s.StartsWith("#")) s = "#" + s;
+        if (ColorUtility.TryParseHtmlString(s, out var c)) return c;
+        Debug.LogWarning($"[TriggerChain] 「{who}」的顏色「{s}」看不懂（要 #RRGGBB），改用預設。");
+        return fallback;
+    }
+
     static void ExecuteTeleportTo(TriggerRegion r)
     {
         // 先把 setFlag 寫掉（換圖後本鏈狀態全清，不能等 OnCompleted）。
@@ -791,9 +851,17 @@ public static class TriggerChain
         bool flashRight = r.GetBool("flashRight", true);
         bool pause = r.GetBool("pause", false);
         var mode = ParseHideMode(r.GetString("hideOn"));
-        // 收起（玩家移動/攻擊/按鍵）後才 OnCompleted → 寫 setFlag（可做「只一次」）＋接 next。
+        // 接續時機（nextWhen）：
+        //   空／「收起時」＝舊行為：玩家做出收起動作後才 OnCompleted（寫 setFlag＋接 next）＝「做了才往下」的強制教學。
+        //   「顯示時」＝提示一跳出來就接 next，提示自己掛著、玩家做了才收（2026-09-23 夢境：對話完怪照常出，
+        //   只在上方提示「按左鍵攻擊」，不按就一直被打）。⚠ 這時搭「暫停遊戲」沒有意義（鏈已經往下跑了），會印警告。
+        string when = r.GetString("nextWhen").Trim();
+        bool nextOnShow = when == "顯示時" || when == "show";
+        if (nextOnShow && pause)
+            Debug.LogWarning($"[TriggerChain] 玩家提示「{r.name}」接續時機＝顯示時，卻勾了暫停遊戲——鏈會在暫停中照樣往下跑，通常不是你要的。");
         PlayerHintPanel.Show(playerGo.transform, left, flashLeft, right, flashRight, mode, pause, hintText,
-                             () => OnCompleted(r));
+                             nextOnShow ? (System.Action)null : () => OnCompleted(r));
+        if (nextOnShow) OnCompleted(r);
     }
 
     // 載提示圖：填檔名（放 Resources/UI/Common/ 下，例 Guide_Wasd）或含「/」的完整 Resources 路徑。
@@ -812,6 +880,7 @@ public static class TriggerChain
         {
             case "攻擊": return PlayerHintPanel.HideMode.Attack;
             case "任意鍵": return PlayerHintPanel.HideMode.AnyKey;
+            case "E鍵": return PlayerHintPanel.HideMode.KeyE;
             default: return PlayerHintPanel.HideMode.Move;   // 「移動」或留空
         }
     }

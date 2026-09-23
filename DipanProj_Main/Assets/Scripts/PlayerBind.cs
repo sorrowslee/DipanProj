@@ -11,6 +11,13 @@ using UnityEngine;
 ///
 /// <para>⚠ <b>刻意不上 `SetExternalHold`</b>：那會把攻擊一起擋掉，而這裡要的正是「只能打、不能跑」。</para>
 ///
+/// <para>⭐ **永久性**（2026-09-23 作者：劇情所需，不會因為時間過就消除）：沒有任何計時器，
+/// 只有兩條路會解開——鏈動作 `bindPlayer bind=0`（<see cref="Unbind"/>），或玩家物件被停用（換圖／死亡，見 OnDisable）。
+/// 與怪物端的骨牢武器（<c>MonsterCage</c>，有秒數、到時崩裂）是兩回事，只共用視覺。</para>
+///
+/// <para>⭐ 關住期間**不會被擊退**（<c>HitReactionHandler.SuppressKnockback</c>）：受擊照常（白閃、扣血、無敵幀），
+/// 只是不位移——否則被佛掌一碰就飛出籠外，籠子是跟著人走的，看起來就是「人帶著籠子滑出去」。</para>
+///
 /// <para>⚠ 牢籠的視覺**不會自己消失**——一定要有人呼叫 <see cref="Unbind"/>。
 /// 為了不讓玩家在「忘了解綁」時永遠卡住，本元件在 <c>OnDisable</c>（換圖／死亡）會自己清乾淨。</para>
 ///
@@ -35,18 +42,29 @@ public class PlayerBind : MonoBehaviour
     public void Bind(int cageVfxId, float sizeMul = 1f)
     {
         PlayerController.Bound = true;
+        SetKnockbackSuppressed(true);
         ClearCage();
 
         // ── 預設路徑：正式骨牢（前後夾層 ＋ 從地裡長出來）──
-        // 位置與大小都跟著**影子**走（見 BoneCageVisual 檔頭）；怪物端走的是同一份。
+        // 與怪物端完全同一套（2026-09-23 對位定版，PROBLEMS G15/G16）：
+        //   位置＝idle **軀幹 X＋地面線 Y**（PlayerAnimator.TryGetCageAnchorLocal），取不到才退回影子；
+        //   大小＝max(可見身高 × 0.7, 軀幹寬 × 1.15) × cageScale；前後兩片的排序每幀跟著玩家走。
         if (cageVfxId <= 0)
         {
             var self = GetComponent<PlayerController>();
             float h = self != null ? self.VisibleBodyHeight : 2f;
             if (h <= 0.01f) h = 2f;
+
+            var anim = GetComponent<PlayerAnimator>();
+            float torsoW = anim != null ? anim.CageTorsoWidthLocal * Mathf.Abs(transform.lossyScale.x) : 0f;
+            System.Func<Vector2> spot = null;
+            if (anim != null && anim.TryGetCageAnchorLocal(out var local))
+                spot = BoneCageVisual.MakeSpot(transform, GetComponent<SpriteRenderer>(), local);
+
             _boneCage = BoneCageVisual.Spawn(gameObject,
-                h * BoneCageVisual.InnerWidthPerBodyHeight * Mathf.Max(0.01f, sizeMul), h,
-                () => self != null ? self.FeetWorldPos : (Vector2)transform.position);
+                BoneCageVisual.InnerWidthFor(h, torsoW) * Mathf.Max(0.01f, sizeMul), h,
+                () => self != null ? self.FeetWorldPos : (Vector2)transform.position,
+                spot);
             return;
         }
 
@@ -69,7 +87,14 @@ public class PlayerBind : MonoBehaviour
     public void Unbind()
     {
         PlayerController.Bound = false;
+        SetKnockbackSuppressed(false);
         ClearCage();
+    }
+
+    void SetKnockbackSuppressed(bool on)
+    {
+        var hr = GetComponent<HitReactionHandler>();
+        if (hr != null) hr.SuppressKnockback = on;
     }
 
     void ClearCage()

@@ -15,7 +15,7 @@
 「全螢幕過場特效」原本散成兩條路、id 空間還不一樣（EnterEffect 的 1＝睜眼、screenFx 的 1＝破幻術）。現已整併成**單一登記表**，避免同一種特效兩邊各設一次：
 
 - 唯一表：`Assets/Data/ScreenFxTable.csv`（欄位 `Id,Name,Key,DurationSeconds,WakeUpPose,Notes`）。**（2026-07-22 起與其它資料表一起搬到 `Assets/Data`，靠 `ScreenFxTableProvider` 載入；舊路徑 `Assets/Resources/ScreenFxTable.csv` 已淘汰。見 [PROBLEMS.md](PROBLEMS.md) I 區「資料表搬家」。）**
-- 目前 id：**1 = 睜眼醒來**、**2 = 破幻術**、**3 = 馬賽克清晰**。`0` = 無特效。
+- 目前 id：**1 = 睜眼醒來**、**2 = 破幻術**、**3 = 馬賽克清晰**、**4 = 淡出黑幕**、**5 = 馬賽克淡出**。`0` = 無特效。
 - **三個填寫入口**共用同一份 id → **同 id 同效果**：
   1. `MapsTable.csv` 的 `EnterEffect` 欄（進目標圖載完後播一次）。
   2. 劇情編輯器（「劇情」工具）的 `screenFx` 步驟（`assetId`＝id）。
@@ -36,6 +36,25 @@
 - `WakeUpPose=1`（目前只有睜眼）＝當 EnterEffect 時連動玩家「趴地→起身」（原本程式寫死 `enterEffect==1`，現改讀表）。
 - **新增一種螢幕特效的維護點**：①`ScreenFxTable.csv` 加一列 ②寫 shader＋控制器（提供 `static Play(onDone,duration)`）③`ScreenFxPlayer.Play` 加 case ④編輯器 `EditorUI.ScreenFxCatalog` 同步一列。
 - ⚠️ 破幻術的 id 從 1 改成 2；既有 `RedBridalGown_BridalRoom.dipanmap` 的 `playScreenFx` effectId 已一併改為 2。
+
+### 馬賽克淡出（id 5，2026-09-23）
+
+「馬賽克清晰」（id 3）的**倒放**：清晰畫面很快碎成明顯的格子 → 格子越來越粗 → 後半段同時沉暗 → 停在全黑，播完才接鏈（預設 2 秒）。
+**新手夢境教學收尾用**：drama 43 關掉 → 馬賽克淡出 → `teleportTo 13` 回山道。夢境開頭是馬賽克收斂成清晰展開的，結尾倒過來收掉＝首尾呼應。
+
+- 檔案：`Scripts/MapFx/MosaicOutController.cs`（相機上掛 `MosaicOutBlit`）；**直接共用 `Mosaic.shader`，shader 沒改**，只是兩條曲線倒過來跑。
+- 可調：控制器的 `Min Cells`（最粗時垂直格數，越小越粗）、`Max Cells`、兩條曲線（程式內）。
+- 與 id 3 不同：**自己暫停＋鎖輸入**（具名持有者 `MosaicOut`），因為它是鏈動作直接播的、前面沒有劇情幫忙鎖。
+- **收尾先接鏈、再維持全黑 3 幀才停 blit**。
+
+### 淡出黑幕（id 4，2026-09-23）
+
+畫面平順淡成全黑（smoothstep，預設 1.5 秒），播完才接鏈。夢境收尾試過、作者覺得不夠，**保留備用**（目前沒有地圖在用）。
+
+- 檔案：`Scripts/MapFx/FadeOutController.cs`（相機上掛 `FadeOutBlit`）＋ `Resources/Shaders/ScreenFadeOut.shader`。
+- 刻意做成**相機後處理**而不是蓋 UI 黑幕：播完直接停 blit 就乾淨了，不會留一張要有人記得撤的黑幕蓋到下一張圖。
+- **暫停＋鎖輸入**（具名持有者 `FadeOut`）；**收尾先接鏈、再維持全黑 3 幀才停 blit**（讀取頁晚一幀出來也不會閃回場景）。
+- 歷史：這個 id 同一天先後做過「漩渦吸入」「黑暗吞噬」「破幻術切細」「三條直裂痕」「照片式碎鏡」，作者都不滿意，最後拍板「做簡單的淡出就好」。那些檔案都已移除；破幻術（id 2）完全沒動。
 
 ### 馬賽克清晰（id 3）
 像素馬賽克格由粗到細慢慢收斂成清晰畫面（`_Progress` 0→1）。shader＝`Resources/Shaders/Mosaic.shader`、控制器＝`MosaicController`。與睜眼／破幻術不同，**它不自行暫停/鎖輸入**，暫停/鎖輸入交給呼叫端（劇情 `lockInput`）。
@@ -113,7 +132,7 @@
 
 為什麼破幻術不做成 EnterEffect：EnterEffect 在**目標圖載完後**才播（只吃得到新場景畫面）、且**綁地圖＝每次進該圖都播**。破幻術要的是「崩的是**舊**幻境、只在這個劇情節點播一次」，所以走鏈動作（見紅嫁衣「沒殺家人」分支）。
 
-**資料驅動、不再為每種特效加 trigger 型別**：`playScreenFx` 只有一顆，填一個 `effectId`（欄旁「螢幕特效表」按鈕可查/填）。id → 特效由遊戲端 `ScreenFxPlayer.Play` 分派。id 一律以 `ScreenFxTable.csv` 為準（目前 **1=睜眼醒來、2=破幻術、3=馬賽克清晰**，見本檔開頭；破幻術的 id 在整併時從 1 改成 2）。
+**資料驅動、不再為每種特效加 trigger 型別**：`playScreenFx` 只有一顆，填一個 `effectId`（欄旁「螢幕特效表」按鈕可查/填）。id → 特效由遊戲端 `ScreenFxPlayer.Play` 分派。id 一律以 `ScreenFxTable.csv` 為準（目前 **1=睜眼醒來、2=破幻術、3=馬賽克清晰、4=淡出黑幕、5=馬賽克淡出**，見本檔開頭；破幻術的 id 在整併時從 1 改成 2）。
 
 - 加一種螢幕特效的三個維護點：① 寫 shader＋控制器（仿 `IllusionShatterController`／`EyeOpenController`）；② `ScreenFxPlayer.Play` 加一個 `case`；③ 更新編輯器「螢幕特效表」清單（`EditorUI.ScreenFxCatalog`）＋本節。
 - 破幻術程式：`Assets/Scripts/MapFx/IllusionShatterController.cs`（自生成常駐單例、曲線驅動、`unscaled` 時間、blit 掛主相機、`SetExternalHold` 暫停擋操作）＋ `Resources/Shaders/IllusionShatter.shader`（voronoi 玻璃裂紋＋碎塊崩落色散＋白光）。

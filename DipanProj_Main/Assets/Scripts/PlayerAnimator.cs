@@ -97,6 +97,32 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
         return false;
     }
 
+    // ── 骨牢錨點（2026-09-23，與 MonsterAnimator 同一份演算法：BoneCageVisual.ComputeIdleAnchor）──
+    // 夢境教學的 bindPlayer 骨牢用。籠子罩的是身體，X 對 idle 軀幹、Y 對 idle 地面線，一次算好——
+    // 不每幀問影子：影子錨點逐動作不同，玩家被關時一直在原地 idle↔attack 切換，籠子會跟著左右滑（PROBLEMS G15）。
+    bool _cageCached, _cageOk;
+    Vector2 _cageLocal;
+    float _cageTorsoW;
+
+    /// <summary>idle 軀幹寬（本地單位，未乘 lossyScale）；取不到回 0。</summary>
+    public float CageTorsoWidthLocal
+    {
+        get { if (!_cageCached) TryGetCageAnchorLocal(out _); return _cageOk ? _cageTorsoW : 0f; }
+    }
+
+    /// <summary>骨牢中心：相對 transform 的本地位移（**未乘 lossyScale、未翻面**）。換血統（Setup）時重算。</summary>
+    public bool TryGetCageAnchorLocal(out Vector2 local)
+    {
+        if (!_cageCached)
+        {
+            _cageCached = true;
+            _shadow.TryGetValue(State.Idle, out var a);
+            _cageOk = BoneCageVisual.ComputeIdleAnchor(_idle ?? _walk, a, out _cageLocal, out _cageTorsoW);
+        }
+        local = _cageLocal;
+        return _cageOk;
+    }
+
     State GeomState => (_lyingHold || _wakePlaying || _fallPlaying) ? State.Dead : _state;
 
     /// <summary>
@@ -212,6 +238,7 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
         // 各動作的可見幾何（給特效對位用）。與 GetFrames 用同一組 tileSize，算出來才對得上。
         _visH.Clear(); _footRel.Clear();
         _shadow.Clear();
+        _cageCached = false;   // 換血統外型後骨牢錨點要重算（見 TryGetCageAnchorLocal）
         _shadow[State.Idle]   = lib.GetShadowAnchor(bloodline, "idle");
         _shadow[State.Walk]   = lib.GetShadowAnchor(bloodline, "walk");
         _shadow[State.Dead]   = lib.GetShadowAnchor(bloodline, "dead");

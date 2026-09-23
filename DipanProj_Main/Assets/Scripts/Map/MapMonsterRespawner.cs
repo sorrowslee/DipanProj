@@ -48,6 +48,10 @@ public class MapMonsterRespawner : MonoBehaviour
                                            //   （作者拍板：20 波＝實實在在 20 批怪；被「同時存在上限」擋掉時不該空轉）
         public string waveGroup;           // 波次群組名（留空＝自己一組）。同組的出生點要全部打完才算全滅
         public bool cleared;               // 已經收過尾（只推一次鏈）
+
+        // ── 接續時機（2026-09-23）──
+        public bool nextOnSpawn;           // true＝「生出來時」就推鏈（第一次真的生出至少一隻的那一刻），全滅時不再推
+        public bool spawnNotified;         // 已經推過（只推一次）
     }
 
     readonly List<Wave> _waves = new List<Wave>();
@@ -60,7 +64,8 @@ public class MapMonsterRespawner : MonoBehaviour
     /// </summary>
     public int Register(MonsterSpawner spawner, int[] monsterIds, List<Vector2> points, List<string> spawnKeys,
                         string deathFlag, TriggerRegion region, float interval, int maxAlive, int mapId, string regionName,
-                        TriggerRegion chainRegion = null, int maxWaves = 0, string waveGroup = null)
+                        TriggerRegion chainRegion = null, int maxWaves = 0, string waveGroup = null,
+                        bool nextOnSpawn = false)
     {
         if (spawner == null || monsterIds == null || monsterIds.Length == 0) return 0;
         if (points == null || points.Count == 0) return 0;
@@ -82,6 +87,7 @@ public class MapMonsterRespawner : MonoBehaviour
             chainRegion = chainRegion,
             maxWaves = Mathf.Max(0, maxWaves),
             waveGroup = string.IsNullOrWhiteSpace(waveGroup) ? null : waveGroup.Trim(),
+            nextOnSpawn = nextOnSpawn,
         };
         _waves.Add(w);
 
@@ -187,6 +193,7 @@ public class MapMonsterRespawner : MonoBehaviour
             if (!SameGroup(w, o) || o.cleared) continue;
             o.cleared = true;
             if (o.chainRegion == null) continue;
+            if (o.nextOnSpawn) continue;   // 「生出來時」那一種：鏈在生出來那刻就推過了，全滅不再推第二次
 
             string grpTag = o.waveGroup != null ? $"（群組 {o.waveGroup}）" : "";
             bool hasChain = !string.IsNullOrEmpty(o.chainRegion.GetString("next"))
@@ -251,6 +258,15 @@ public class MapMonsterRespawner : MonoBehaviour
         }
 
         if (spawned > 0) w.wavesFired++;   // 見本方法的註解：生不出來就不算一波
+
+        // 接續時機＝生出來時（2026-09-23 夢境佛掌）：第一次真的生出怪的那一刻就推鏈，而不是等全滅。
+        // 理由：佛掌這種「不會死的怪」全滅永遠不會發生，後面要接的偵測／演出就永遠接不上。
+        if (spawned > 0 && w.nextOnSpawn && !w.spawnNotified && w.chainRegion != null)
+        {
+            w.spawnNotified = true;
+            Debug.Log($"[MapMonsterRespawner] 出生點「{w.regionName}」接續時機＝生出來時 → 推鏈。");
+            TriggerChain.OnCompleted(w.chainRegion);
+        }
         return spawned;
     }
 }

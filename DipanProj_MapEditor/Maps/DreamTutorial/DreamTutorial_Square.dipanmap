@@ -637,8 +637,9 @@
             "flashLeft": false,
             "flashRight": false,
             "hideOn": "攻擊",
-            "pause": true,
+            "pause": false,
             "textId": "1011",
+            "nextWhen": "顯示時",
             "next": "怪物出生點1"
           }
         },
@@ -673,12 +674,111 @@
             ]
           ],
           "params": {
-            "monsterId": "30|31|32|33",
+            "monsterId": "30",
             "deathFlag": "",
-            "spawnInterval": "3",
+            "spawnInterval": "1",
             "maxAlive": "",
-            "maxWaves": "1",
+            "maxWaves": "3",
             "waveGroup": "1",
+            "startDisabled": true,
+            "next": "大招提示"
+          }
+        },
+        {
+          "id": "e2978d14",
+          "name": "大招提示",
+          "typeId": "playerHint",
+          "cells": [],
+          "params": {
+            "leftImage": "",
+            "rightImage": "",
+            "flashLeft": false,
+            "flashRight": false,
+            "hideOn": "E鍵",
+            "pause": false,
+            "textId": "1012",
+            "nextWhen": "顯示時",
+            "next": "怪物出生點2"
+          }
+        },
+        {
+          "id": "f8514e78",
+          "name": "怪物出生點2",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              28,
+              15
+            ],
+            [
+              18,
+              15
+            ],
+            [
+              13,
+              20
+            ],
+            [
+              33,
+              20
+            ],
+            [
+              30,
+              24
+            ],
+            [
+              15,
+              24
+            ]
+          ],
+          "params": {
+            "monsterId": "31|32",
+            "deathFlag": "",
+            "spawnInterval": "1",
+            "maxAlive": "",
+            "maxWaves": "3",
+            "waveGroup": "2",
+            "startDisabled": true,
+            "next": "怪物出生點3"
+          }
+        },
+        {
+          "id": "87d42fc8",
+          "name": "怪物出生點3",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              28,
+              15
+            ],
+            [
+              18,
+              15
+            ],
+            [
+              13,
+              20
+            ],
+            [
+              33,
+              20
+            ],
+            [
+              30,
+              24
+            ],
+            [
+              15,
+              24
+            ]
+          ],
+          "params": {
+            "monsterId": "32|33",
+            "deathFlag": "",
+            "spawnInterval": "1",
+            "maxAlive": "",
+            "maxWaves": "3",
+            "waveGroup": "3",
             "startDisabled": true,
             "next": "打完小怪後對話"
           }
@@ -711,7 +811,53 @@
             "maxAlive": "",
             "maxWaves": "",
             "waveGroup": "",
-            "startDisabled": true
+            "startDisabled": true,
+            "nextWhen": "生出來時",
+            "next": "佛掌逼近"
+          }
+        },
+        {
+          "id": "ec919974",
+          "name": "佛掌逼近",
+          "typeId": "monsterNear",
+          "cells": [],
+          "params": {
+            "monsterId": "34",
+            "distance": "0",
+            "freeze": true,
+            "next": "被佛掌擊中前對話"
+          }
+        },
+        {
+          "id": "a0b405dd",
+          "name": "被佛掌擊中前對話",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "43",
+            "canSkip": true,
+            "next": "夢醒馬賽克"
+          }
+        },
+        {
+          "id": "4e04c055",
+          "name": "夢醒馬賽克",
+          "typeId": "playScreenFx",
+          "cells": [],
+          "params": {
+            "effectId": "5",
+            "duration": "",
+            "next": "夢醒回山道"
+          }
+        },
+        {
+          "id": "16fba96d",
+          "name": "夢醒回山道",
+          "typeId": "teleportTo",
+          "cells": [],
+          "params": {
+            "targetMapId": "13",
+            "targetEntrance": ""
           }
         },
         {
@@ -739,8 +885,22 @@
             "bind": "1",
             "cageVfxId": "",
             "cageScale": "1.0",
-            "next": "邪佛手掌出生點",
+            "next": "場景吞噬",
             "setFlag": "dreamHandPhase"
+          }
+        },
+        {
+          "id": "959423dc",
+          "name": "場景吞噬",
+          "typeId": "sceneVanish",
+          "cells": [],
+          "params": {
+            "startDelay": "0",
+            "seconds": "3",
+            "voidColor": "#000000",
+            "edgeColor": "#000000",
+            "nextWhen": "吞完後",
+            "next": "邪佛手掌出生點"
           }
         },
         {

@@ -25,7 +25,7 @@ namespace Dipan.UI
         public override bool InStack => false;
 
         /// <summary>收起時機。</summary>
-        public enum HideMode { Move, Attack, AnyKey }
+        public enum HideMode { Move, Attack, AnyKey, KeyE }
 
         /// <summary>暫停模式的輸入鎖持有者名（**具名**鎖：解除時不會動到別人掛的，見 PROBLEMS D13）。</summary>
         const string HoldOwner = "PlayerHintPanel";
@@ -174,6 +174,10 @@ namespace Dipan.UI
                     return held;
                 case HideMode.AnyKey:
                     return Input.anyKeyDown;
+                case HideMode.KeyE:
+                    // 夢境「按 E 施放大絕招」（2026-09-23）：只認 E——玩家邊走邊打，用「任意鍵／攻擊」提示會一閃就被收掉。
+                    // ⚠ 只看按鍵、不管大招有沒有真的放出來（三階大招還沒做，作者拍板提示就只是提示）。
+                    return Input.GetKeyDown(KeyCode.E);
                 default:
                     return false;
             }

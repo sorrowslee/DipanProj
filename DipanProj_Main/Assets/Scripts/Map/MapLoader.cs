@@ -108,6 +108,8 @@ public class MapLoader : MonoBehaviour
     VfxManager _vfx;
     string _assetRoot;
     Transform _root;
+    /// <summary>目前地圖的根節點（背景、地上物、光源、場景特效、本圖怪物都掛在底下；換圖時整棵拆掉）。沒載圖時為 null。</summary>
+    public Transform MapRoot => _root;
     int _envLayer;
     MapObjectRevealer _revealer;   // 本圖「靠旗標中途現身」的地上物顯現管理器（掛物件根下，換圖隨 MapRoot 銷毀）
     MapMonsterRespawner _respawner;   // 本圖「重複產生」的怪物出生點計時器（同上，掛 MapRoot 下，換圖隨之銷毀）
@@ -212,8 +214,16 @@ public class MapLoader : MonoBehaviour
         if (_catalog?.items == null || _sprites == null) { onProgress?.Invoke(1f); yield break; }
 
         var items = new List<CatalogItem>();
+        int skippedMonsters = 0;
         foreach (var it in _catalog.items)
-            if (it != null && (it.module == module || it.module == "Main")) items.Add(it);
+        {
+            if (it == null || (it.module != module && it.module != "Main")) continue;
+            // ⚠ 怪物序列圖**不在這裡預載**（2026-09-23）：怪物走 MonsterSpriteLibrary **自己的** MapSpriteLoader（快取不共用），
+            //   在這裡解碼等於白做——解一份放在永遠用不到的快取裡（還多佔一份記憶體），真正生怪時照樣同步重解一次
+            //   ⇒ 第一次生一批怪整個畫面卡一下（夢境教學按下左鍵那一刻）。怪物改由 MonsterSpriteLibrary.PreloadModuleRoutine 預載。
+            if (it.id != null && it.id.Contains(MonsterSpriteLibrary.Marker)) { skippedMonsters++; continue; }
+            items.Add(it);
+        }
 
         int total = Mathf.Max(1, items.Count), done = 0;
         foreach (var it in items)
@@ -225,7 +235,7 @@ public class MapLoader : MonoBehaviour
             if (done % 3 == 0) { onProgress?.Invoke((float)done / total); yield return null; }
         }
         onProgress?.Invoke(1f);
-        Debug.Log($"[MapLoader] 已預載 module「{module}」(+Main) 素材：{items.Count} 筆。");
+        Debug.Log($"[MapLoader] 已預載 module「{module}」(+Main) 素材：{items.Count} 筆（怪物序列圖 {skippedMonsters} 筆交給 MonsterSpriteLibrary）。");
     }
 
     /// <summary>依當前地圖的 monsterSpawn 出生點生怪。需在 MonsterSpawner.Awake 之後呼叫（MapManager 在 Start 驅動）。</summary>
@@ -961,6 +971,9 @@ public class MapLoader : MonoBehaviour
             // 波次（2026-09-22）：總波數＋波次群組。見 readme/TRIGGER_CHAIN.md §3.5b。
             int maxWaves = r.GetInt("maxWaves", 0);          // 留空/0 ＝ 無限波（舊行為）
             string waveGroup = r.GetString("waveGroup");     // 留空 ＝ 自己一組
+            // 接續時機（2026-09-23）：空／「全滅後」＝舊行為；「生出來時」＝第一次生出怪就接 next（給不會死的怪用，例：夢境佛掌）
+            string nextWhen = r.GetString("nextWhen").Trim();
+            bool nextOnSpawn = nextWhen == "生出來時" || nextWhen == "spawn";
 
             // 「這一組怪被清空」要推鏈（＝通用欄位的 接續觸發／完成寫旗標）的，也得交給 respawner 追蹤存活。
             // 沒填鏈、也沒填波次群組的一次性出生點，維持原本「當場生完就不管」的輕量路徑。
@@ -993,7 +1006,8 @@ public class MapLoader : MonoBehaviour
                 int maxAlive = r.GetInt("maxAlive", 0);   // 留空/0 = 用保險預設（見 MapMonsterRespawner.DefaultMaxAlive）
                 spawned += _respawner.Register(spawner, monsterIds, points, keys, deathFlag, gated ? r : null,
                                                interval, maxAlive, mapId, r.name,
-                                               chainRegion: r, maxWaves: maxWaves, waveGroup: waveGroup);
+                                               chainRegion: r, maxWaves: maxWaves, waveGroup: waveGroup,
+                                               nextOnSpawn: nextOnSpawn);
                 continue;
             }
 

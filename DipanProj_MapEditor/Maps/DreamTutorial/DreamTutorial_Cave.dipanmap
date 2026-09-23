@@ -185,8 +185,10 @@
             "targetEntrance": "DreamTutorial_Square_south",
             "showMarker": true,
             "linkedFx": "",
-            "markerX": 9.051148,
-            "markerY": -1.72468412
+            "markerX": 9.038951,
+            "markerY": -2.30763054,
+            "markerW": 2.0,
+            "markerH": 1.4
           }
         },
         {

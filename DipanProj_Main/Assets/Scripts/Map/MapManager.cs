@@ -195,7 +195,11 @@ public class MapManager : MonoBehaviour
 
             // 預載本 module（+Main 共用）的所有素材貼圖 → 進去後房間互跳不必再讀取。進度 0~0.6。
             yield return StartCoroutine(mapLoader.PreloadModuleRoutine(
-                row.module, p => { if (lp != null) lp.SetProgress(p * 0.6f); }));
+                row.module, p => { if (lp != null) lp.SetProgress(p * 0.4f); }));
+
+            // 怪物序列圖另外預載（怪物庫有自己的快取，上面那支暖不到它；不預載的話第一次生怪會卡一下）。進度 0.4~0.6。
+            yield return StartCoroutine(MonsterSpriteLibrary.Instance.PreloadModuleRoutine(
+                row.module, p => { if (lp != null) lp.SetProgress(0.4f + p * 0.2f); }));
 
             // 分幀建目標圖。進度 0.6~0.95。
             yield return StartCoroutine(mapLoader.LoadMapRoutine(
@@ -579,6 +583,12 @@ public class MapManager : MonoBehaviour
         {
             var pc = _player.GetComponent<PlayerController>();
             if (pc != null) pc.ClearPersistentWeaponsForMapChange();
+
+            // 骨牢束縛（bindPlayer）一律在換圖時解開（2026-09-23）。
+            // ⚠ 玩家物件**跨圖是同一個、不會被停用**，所以 PlayerBind.OnDisable 那道保險在換圖時根本不會跑——
+            //    不在這裡解的話，夢境收尾傳送回山道後玩家還是「不能動＋不會被擊退＋腳下頂著一座骨牢」。
+            var bind = _player.GetComponent<PlayerBind>();
+            if (bind != null && bind.IsBound) bind.Unbind();
         }
 
         // 怪物：清敵怪，但**保留玩家的召喚物(PlayerAlly)**——它們跟玩家一起過傳送點（下方 PlaceAndSetup→RepositionPlayerAllies 會移到玩家新落點）。
