@@ -419,6 +419,16 @@ namespace Dipan.Save
             set { if (_current != null && _current.progress.hubIntroSpawnDone != value) { _current.progress.hubIntroSpawnDone = value; MarkDirty(); } }
         }
 
+        /// <summary>
+        /// 新手夢境教學還沒走完（新建後還沒醒來到山道）。「繼續遊戲」看到 true 就重做一次夢。
+        /// 見 <see cref="ProgressDTO.dreamTutorialPending"/>。
+        /// </summary>
+        public bool DreamTutorialPending
+        {
+            get => _current != null && _current.progress.dreamTutorialPending;
+            set { if (_current != null && _current.progress.dreamTutorialPending != value) { _current.progress.dreamTutorialPending = value; MarkDirty(); } }
+        }
+
         /// <summary>上次所在的地圖（只會是 Main module 的圖；0 = 沒有記錄）。給「繼續遊戲」決定落點用。</summary>
         public int LastMapId => _current != null ? _current.progress.lastMapId : 0;
 

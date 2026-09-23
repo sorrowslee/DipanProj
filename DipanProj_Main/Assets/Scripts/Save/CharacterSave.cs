@@ -79,6 +79,13 @@ namespace Dipan.Save
         public int lastMapId = 0;
         public string lastEntrance = null;
 
+        // ── 新手夢境教學（2026-09-23，schema v4）──
+        // true ＝ 新建角色後還沒走完夢境（還沒進過任何 Main 地圖）。「繼續遊戲」看到它就**重做一次夢**，而不是看 lastMapId。
+        // 新建時設 true、第一次進 Main 地圖（醒來到山道 13）時清掉並立刻存檔（見 MapManager 的 Main 檢查點）。
+        // 夢境本身不存任何進度：夢裡的血統／武器都是暫時覆寫、夢境地圖不是 Main 不會記位置 ⇒ 重做就是從頭開始。
+        // 缺欄（v3 以前的舊存檔）＝ false ＝ 當作做完了，行為與改動前一致。
+        public bool dreamTutorialPending = false;
+
         // ── 其他劇情/狀態旗標（彈性擴充，免改結構）──
         public Dictionary<string, string> flags = new Dictionary<string, string>();
     }

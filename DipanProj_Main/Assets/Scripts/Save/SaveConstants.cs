@@ -8,8 +8,10 @@ namespace Dipan.Save
         /// v2（2026-07-03）：ProgressDTO 加關卡進度（clearedModules / inheritedItems / hubIntroSpawnDone）。
         /// v3（2026-08-01）：ProgressDTO 加 lastMapId / lastEntrance（「繼續遊戲」回到上次所在的 Main 地圖）。
         ///                   純新增欄位、舊存檔缺欄＝0/null＝退回廣場，不需要遷移程式碼。
+        /// v4（2026-09-23）：ProgressDTO 加 dreamTutorialPending（新手夢境教學沒做完就離開 → 繼續遊戲要重做一次夢）。
+        ///                   純新增欄位、舊存檔缺欄＝false＝「做完了」，不會被拉回夢裡，不需要遷移程式碼。
         /// </remarks>
-        public const int CurrentSchemaVersion = 3;
+        public const int CurrentSchemaVersion = 4;
 
         /// <summary>沒名字的測試角色預設名。正式建角 UI 接上後由玩家輸入覆蓋。</summary>
         public const string DefaultTestCharacterName = "test001";

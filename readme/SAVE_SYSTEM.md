@@ -472,3 +472,20 @@ static int CarryCountForCycle(int cycle);// = min(cycle, MaxCarryOnReincarnate)
 **動到的檔**：`Save/CharacterSave.cs`（ProgressDTO 兩個新欄）、`Save/SaveConstants.cs`（版本號 3）、
 `Save/SaveManager.cs`（`LastMapId`/`LastEntrance`/`RecordLastLocation`）、`Map/MapManager.cs`（PlaceAndSetup 記錄）、
 `Flow/GameFlowManager.cs`（`ContinueGame` + `GoToMapRoutine`）。
+
+
+## 新手夢境教學沒做完就離開 → 繼續遊戲重做一次夢（2026-09-23，schema v4）
+
+**原本的問題**：新建遊戲後先進夢境（DreamTutorial 27／28），但夢境地圖不是 `HubModule`，**不會記 `lastMapId`**。
+在夢裡關遊戲 → 存檔的 `lastMapId` 是 0 → `ContinueGame` 把它當成舊存檔、丟到**邪佛廣場中央**，夢境與山道劇情整段被跳過。
+
+**作法**（作者拍板：夢裡離開＝重來；山道裡離開＝從山道開始，後者本來就成立）：
+- `ProgressDTO.dreamTutorialPending`（`SaveManager.DreamTutorialPending`）。
+- `GameFlowManager.StartNewGame`：建角後設 **true**，並立刻 `SaveNow()`（不然在夢裡直接關視窗，磁碟上是沒有這個標記的版本）。
+- `MapManager.PlaceAndSetup` 的 Main 檢查點：第一次進 Main 地圖（醒來到山道 13）就設 **false**，緊接著原本的 `SaveNow()` 落地。
+- `GameFlowManager.ContinueGame`：**先看這個標記**（要在看 `lastMapId` 之前），true ⇒ 跑 `NewGameToDreamRoutine()` 從頭重做夢（同一個角色，不重建）。
+- 夢境本身不存任何進度：夢裡的血統／武器是暫時覆寫（見 [BLOODLINE.md](BLOODLINE.md) §5d），夢境地圖不記位置 ⇒ 「重做」就是乾淨地從頭來。
+- schema **v3 → v4**：純新增欄位，缺欄＝false＝「做完了」⇒ 舊存檔不會被拉回夢裡，`Migrate()` 不用改。
+- 輪迴後 `progress` 整個換掉 ⇒ 標記是 false ⇒ **不會再做一次夢**（符合「同一個存檔只體驗一次」）。
+
+**動到的檔**：`Save/CharacterSave.cs`、`Save/SaveConstants.cs`（版本號 4）、`Save/SaveManager.cs`、`Map/MapManager.cs`、`Flow/GameFlowManager.cs`。

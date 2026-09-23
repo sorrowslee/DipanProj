@@ -76,6 +76,11 @@ namespace Dipan.Flow
             sm.StartNewGameInSlot(slot, name);   // 建立並設為活躍（覆蓋時會先刪舊角）
             InGame = true;
 
+            // 新手夢境教學還沒做：先寫進存檔。在夢裡關掉遊戲 → 下次「繼續遊戲」重做一次夢（見 ContinueGame）。
+            // 立刻存檔：建角那一刻的存檔還沒有這個標記，不先寫的話在夢裡直接關視窗就會存成「做完了」。
+            sm.DreamTutorialPending = true;
+            sm.SaveNow();
+
             // 新流程：跳過開場漫畫，先進「新手夢境教學」的夢境-初始洞窟（DreamTutorial_Cave＝27）。
             // ⚠ 夢境教學走完後接回山道劇情（Main_InitialForest1＝13）那段串接尚未實作。
             MapManager.SuppressAutoStart = true;   // 由本流程明確帶進夢境洞窟，避免 MapManager 自動進關卡打架
@@ -141,6 +146,16 @@ namespace Dipan.Flow
             CloseMenus();
             InGame = true;
             MapManager.SuppressAutoStart = true;   // 由本流程明確帶圖，避免自動進 Main_Cave 打架
+
+            // 新手夢境教學沒做完就離開（2026-09-23 作者拍板）：夢不存進度，一律從頭重做。
+            // ⚠ 要放在看 lastMapId 之前：夢境地圖不是 Main、不會記位置，lastMapId 是 0，
+            //   不先攔下來的話會被當成舊存檔、直接丟到邪佛廣場中央（＝跳過整段夢境與山道劇情）。
+            if (sm.DreamTutorialPending)
+            {
+                Debug.Log("[GameFlow] 繼續遊戲：新手夢境教學還沒做完 → 從頭重做一次夢。");
+                StartCoroutine(NewGameToDreamRoutine());
+                return;
+            }
 
             // 回到「上次待在的 Main 地圖」：開場山道播到一半就離開 → 回山道重播；洞窟離開 → 回洞窟；
             // 廣場或關卡中離開 → 回廣場。沒有記錄（v2 以前的舊存檔、或資料異常）→ 退回廣場中央。

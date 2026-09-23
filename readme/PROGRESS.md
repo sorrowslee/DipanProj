@@ -4,6 +4,7 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **存檔：夢裡離開＝重做夢、山道裡離開＝從山道開始（schema v4）（⏳ 未編譯未實測）**（2026-09-23）：查到既有 bug——夢境地圖不是 Main、不記 `lastMapId`，夢裡關遊戲後「繼續遊戲」會被當成舊存檔丟到邪佛廣場中央，跳過夢境＋山道。新增 `ProgressDTO.dreamTutorialPending`：新建時 true＋立刻存、第一次進 Main（山道 13）時 false＋立刻存（沿用既有檢查點的 `SaveNow`）、`ContinueGame` 先看它，true 就 `NewGameToDreamRoutine()` 重做。山道那半邊本來就成立（13 是 Main、會記位置、cutscene 重播），沒改。舊存檔缺欄＝false，不受影響。見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md)〈新手夢境教學沒做完就離開〉。
 * [x] **新手夢境教學：瀕死保護——夢裡不會死，快死了就直接跳結尾（⏳ 未編譯未實測）**（2026-09-23）
   作者擔心：玩家進邪佛廣場完全不攻擊，被小怪打死 ⇒ 走一般死亡流程，整段夢境會壞。拍板「絕對不能進死亡流程；快死就不再出下一波，直接震退＋佛掌」。<br>
   ① **不死保護** `CombatStats.SetDeathGuard(owner, bool)`：受傷最多扣到 1 滴血、不觸發 `OnDeath`。夢境全程開著（`DreamTutorialFlow` 進夢開、`ReleaseDreamLoadout` 關）。這是真正的保證——之後任何時間點（飛行中的子彈、自爆怪的爆炸、結尾演出期間）都死不了。<br>

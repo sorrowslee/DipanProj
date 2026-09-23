@@ -463,6 +463,10 @@ public class MapManager : MonoBehaviour
             // 廣場另外標記「已抵達過」（決定下次的落點是洞穴出口還是中央）。
             if (isHub) SaveManager.Instance.HubIntroSpawnDone = true;
 
+            // 新手夢境教學：第一次進到 Main（＝從夢裡醒來到山道）就算夢做完了，之後「繼續遊戲」不再重做夢。
+            // 下面那行 SaveNow 會立刻寫檔，所以醒來後馬上關遊戲也不會被判成沒做完。
+            SaveManager.Instance.DreamTutorialPending = false;
+
             // 這幾張圖一輪只會經過一次，直接落地寫檔比較保險（否則靠 dirty 自動存/離開遊戲才寫，
             // 玩家在山道劇情中途直接關掉視窗就可能沒存到，回來又被丟回廣場）。
             SaveManager.Instance.SaveNow();

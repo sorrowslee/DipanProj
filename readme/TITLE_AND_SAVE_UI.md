@@ -240,3 +240,5 @@
 **動到的檔**：`Save/CharacterSave.cs`（ProgressDTO 兩個新欄）、`Save/SaveConstants.cs`（版本號 3）、
 `Save/SaveManager.cs`（`LastMapId`/`LastEntrance`/`RecordLastLocation`）、`Map/MapManager.cs`（PlaceAndSetup 記錄）、
 `Flow/GameFlowManager.cs`（`ContinueGame` + `GoToMapRoutine`）。
+
+> **2026-09-23 補充**：新建後先進新手夢境教學；**在夢裡離開 → 繼續遊戲重做一次夢**（`dreamTutorialPending`，schema v4）。詳見 [SAVE_SYSTEM.md](SAVE_SYSTEM.md)〈新手夢境教學沒做完就離開〉。
