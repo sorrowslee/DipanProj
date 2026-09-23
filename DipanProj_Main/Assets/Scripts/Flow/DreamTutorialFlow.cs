@@ -139,9 +139,16 @@ namespace Dipan.Flow
             }
             BloodlineSystem.SetDreamOverride(bloodlineId);
 
+            // 夢裡一律不准玩家自己開選單（背包／倉庫／鍛造／設定）：武器是劇情覆寫、不在背包裡，
+            // 開背包去換裝或拿東西只會出事（作者 2026-09-23 拍板）。離開夢境才解，見 Update／OnDestroy。
+            UIManager.SetPlayerMenuLock(HoldOwner, true);
+
             // 2) 等地圖載完、玩家生出來、外觀確實換成那個血統（畫面還是全黑，變身過程玩家看不到）。
             yield return WaitForPlayerReady(bloodlineId);
             _armed = true;
+
+            // 2b) 依血統直接裝上夢境武器（表B 的 DreamWeaponId）——不進背包、不進存檔，醒來收回。
+            EquipDreamWeapon(bloodlineId);
 
             // 3) 全黑畫面上播開頭那一句。
             yield return PlayDrama(DramaIntro);
@@ -198,6 +205,43 @@ namespace Dipan.Flow
             int picked = pool[Random.Range(0, pool.Count)];
             Debug.Log($"[DreamTutorial] 本次夢境血統 = {BloodlineTable.NameOf(picked)}（id {picked}，可抽 {pool.Count} 種）。");
             return picked;
+        }
+
+        /// <summary>
+        /// 裝上這個血統的夢境武器（表B <c>DreamWeaponId</c>）。留空＝不覆寫，玩家用自己裝的（新角色通常是空手）。
+        /// 走 <c>PlayerController.SetScriptedWeapon</c>＝WeaponManager 的劇情覆寫，背包與存檔完全不受影響。
+        /// </summary>
+        static void EquipDreamWeapon(int bloodlineId)
+        {
+            var def = BloodlineTable.Get(bloodlineId);
+            int weaponId = def != null ? def.DreamWeaponId : 0;
+            if (weaponId <= 0)
+            {
+                Debug.LogWarning($"[DreamTutorial] 血統 {BloodlineTable.NameOf(bloodlineId)}（id {bloodlineId}）沒有填 DreamWeaponId，夢裡沿用玩家自己的武器。");
+                return;
+            }
+            var pc = FindPlayer();
+            if (pc == null)
+            {
+                Debug.LogWarning("[DreamTutorial] 找不到玩家，夢境武器沒有裝上。");
+                return;
+            }
+            pc.SetScriptedWeapon(weaponId);
+            Debug.Log($"[DreamTutorial] 夢境武器 = WeaponTable {weaponId}（血統 {BloodlineTable.NameOf(bloodlineId)}）。");
+        }
+
+        /// <summary>收回夢境武器＋解開選單鎖。離開夢境（Update）與物件被銷毀（OnDestroy）都會呼叫，重複呼叫無害。</summary>
+        static void ReleaseDreamLoadout()
+        {
+            UIManager.SetPlayerMenuLock(HoldOwner, false);
+            var pc = FindPlayer();
+            if (pc != null) pc.SetScriptedWeapon(0);
+        }
+
+        static PlayerController FindPlayer()
+        {
+            var go = GameObject.FindGameObjectWithTag("Player");
+            return go != null ? go.GetComponent<PlayerController>() : null;
         }
 
         /// <summary>某個血統的夢境台詞 drama id＝31 + 它所屬系列的 SeriesId（見檔頭的隱含契約）。</summary>
@@ -397,6 +441,7 @@ namespace Dipan.Flow
             // 走出夢境（接回山道／讀檔／輪迴）→ 血統覆寫一定要解除，否則玩家醒來還是三階外貌。
             Debug.Log($"[DreamTutorial] 已離開夢境地圖（現在 MapId={mapId}），解除血統覆寫並收掉流程物件。");
             BloodlineSystem.ClearDreamOverride();
+            ReleaseDreamLoadout();   // 收回夢境武器＋解開選單鎖
             SetHold(false);
             IsPlaying = false;
             _instance = null;
@@ -405,6 +450,8 @@ namespace Dipan.Flow
 
         void OnDestroy()
         {
+            // 保險：不管是正常離開還是別的原因被銷毀（回標題／結束 Play），選單鎖與武器覆寫都不能留著。
+            ReleaseDreamLoadout();
             if (_instance == this) _instance = null;
         }
     }

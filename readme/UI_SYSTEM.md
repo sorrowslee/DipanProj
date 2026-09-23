@@ -180,6 +180,15 @@ public class InventoryPanel : UIPanel
 `BloodlineIntroPanel`）**不入堆疊**，`TopStackPanel()` 看不到它們，於是會落進第二個分支——
 玩家按 ESC 就能在不可跳過的演出上面疊一個設定面板。過場、教學這類「非面板但鎖著輸入」的狀態同理。
 背包等視窗開著時輸入也是被擋的，但那會走第一個分支，不受影響。
+
+### 玩家選單鎖（`UIManager.SetPlayerMenuLock`，2026-09-23）
+
+鎖「**玩家自己按鍵打開的選單**」：背包 B、倉庫 K、鍛造 Y（`StorageBagCoordinator`）、設定 O（`SettingsLauncher`）、
+沒有視窗時按 ESC 開設定（`UIManager.Update` 第二分支）。**劇情主動開的面板（對話、提示、載入頁…）不受影響**。
+- 具名持有者（`HashSet<string>`，理由同 `SetExternalHold`）；static，選單啟動器比 UIManager 早跑也查得到。
+- 設定面板**已經開著時 O 仍然能關**，免得卡在面板上。
+- 目前唯一使用者：新手夢境教學（`DreamTutorialFlow`，owner＝`DreamTutorialFlow`），離開夢境或流程物件銷毀時解鎖。
+- 作弊面板（L）、UI Demo（U）是開發工具，**刻意不鎖**。
   - ⚠ `pause` 要不要開，取決於**演出本身吃哪種時間**：用 `Time.deltaTime` 的（玩家動畫、`VfxInstance`、
     雷柱）暫停就會整段凍住，這時 `pause` 必須是 `false`（見 [PROBLEMS.md](PROBLEMS.md) **D14**）。
 - **輸入閘門怎麼接到玩家**：`PlayerController.Update` 開頭查一次 `UIManager.IsGameplayInputBlocked`，為真就清掉移動輸入並 return（最小侵入，沒有重構玩家的 input）。**任何之後要在開 UI 時停手的系統，都查這個靜態旗標即可。**

@@ -36,10 +36,12 @@ namespace Dipan.UI
             // ⚠ 這裡刻意**不用** IsGameplayInputBlocked：背包自己開著就會讓它為真，
             //    那樣一來按 B 就關不掉背包了。
             bool performing = Dipan.Gacha.BloodlineSystem.IsPerforming;
-            bool hotkeysFree = !TutorialManager.HardLock && !performing;
+            // 玩家選單鎖（新手夢境教學）：三顆全鎖、連 AllowBag 的例外也不放行。
+            bool menusLocked = UIManager.PlayerMenusLocked;
+            bool hotkeysFree = !TutorialManager.HardLock && !performing && !menusLocked;
             if (hotkeysFree && Input.GetKeyDown(storageKey)) ui.Toggle<StoragePanel>();
             if (hotkeysFree && Input.GetKeyDown(forgeKey)) ui.Toggle<ForgingPanel>();
-            if ((hotkeysFree || (TutorialManager.AllowBag && !performing))
+            if ((hotkeysFree || (TutorialManager.AllowBag && !performing && !menusLocked))
                 && Input.GetKeyDown(bagKey)) ui.Toggle<InventoryPanel>();
 
             // 依當前開啟狀態套用版面（idempotent，每幀套無妨）

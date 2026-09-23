@@ -110,6 +110,13 @@ namespace Dipan.Gacha
         /// 留空／0 = 用元件預設（0.35 秒）。
         /// </summary>
         public float HitFxGap;
+
+        /// <summary>
+        /// 新手夢境教學裡配給這個血統的武器（WeaponTable 的 ID，CSV 第 26 欄 <c>DreamWeaponId</c>，2026-09-23 加）。
+        /// 進夢由 <see cref="Dipan.Flow.DreamTutorialFlow"/> 透過 <c>PlayerController.SetScriptedWeapon</c> 直接裝上，
+        /// 離開夢境收回——**不進背包、不進存檔**。留空／0 ＝ 夢裡不覆寫（沿用玩家自己裝的）。
+        /// </summary>
+        public int DreamWeaponId;
     }
 
     /// <summary>
@@ -224,6 +231,9 @@ namespace Dipan.Gacha
                     // 擊中怪物時在怪身上播的特效（23~24 欄，2026-09-14 加）。留空 = 沒有這一層。
                     HitVfxId = CsvUtil.FieldInt(v, 23, 0),
                     HitFxGap = CsvUtil.FieldFloat(v, 24, 0f),
+
+                    // 新手夢境教學的配給武器（25 欄，2026-09-23 加）。留空 = 夢裡不覆寫武器。
+                    DreamWeaponId = CsvUtil.FieldInt(v, 25, 0),
                 };
                 if (d.DisplayName.Length == 0) d.DisplayName = d.Key.Length > 0 ? d.Key : $"#{id}";
                 // 留空/0/負數一律當 1；上限擋在 5 倍，填錯一個 0 不會讓角色大到蓋滿整個畫面。

@@ -38,6 +38,25 @@ public class WeaponManager : MonoBehaviour
     private WeaponData _simBase;       // 工坊交進來的原始模擬武器
     private WeaponData _simResolved;   // 套完玩家鑲嵌後的模擬武器（真正被拿去打的那份）
 
+    /// <summary>
+    /// **劇情武器覆寫**（2026-09-23，給新手夢境教學）：不為 0 時 <see cref="GetCurrentWeapon"/> 回這把（WeaponTable ID），
+    /// 不看背包武器欄。**不動背包、不進存檔**——清掉覆寫就等於「收回武器」，玩家原本裝的那把自動回來。
+    /// <para>優先序：工坊模擬（<see cref="SimulationOverride"/>）＞ 劇情覆寫 ＞ 背包武器欄。
+    /// 工坊排最前面是刻意的：在夢境裡開工坊調夢境武器時，工坊的值才看得到。</para>
+    /// <para>⚠ 請走 <c>PlayerController.SetScriptedWeapon</c>，別直接呼叫 <see cref="SetScriptedOverride"/>——
+    /// 換武器時玩家身上還開著的雷射／佛光／連擊要一起收掉，那段在 PlayerController。</para>
+    /// </summary>
+    public int ScriptedOverrideId => _scriptedId;
+    private int _scriptedId;
+    private WeaponData _scriptedResolved;
+
+    /// <summary>設定／清除劇情武器覆寫（0 ＝ 清除）。ID 在表裡找不到時會印錯並視同清除。</summary>
+    public void SetScriptedOverride(int weaponId)
+    {
+        _scriptedId = Mathf.Max(0, weaponId);
+        RefreshCurrentWeapon();
+    }
+
     void Start()
     {
         LoadWeapons();
@@ -50,7 +69,7 @@ public class WeaponManager : MonoBehaviour
 
     public WeaponData GetCurrentWeapon()
     {
-        return _simResolved ?? _currentWeapon;
+        return _simResolved ?? _scriptedResolved ?? _currentWeapon;
     }
 
     public void SwitchWeapon(int weaponID)
@@ -106,6 +125,9 @@ public class WeaponManager : MonoBehaviour
         _currentWeapon = (AbilityResolver != null && baseWeapon != null) ? AbilityResolver(baseWeapon) : baseWeapon;
         // 模擬武器同樣套一次玩家的鑲嵌（工坊：真鑲珠子也要對模擬武器有效）
         _simResolved = (AbilityResolver != null && _simBase != null) ? AbilityResolver(_simBase) : _simBase;
+        // 劇情覆寫（夢境武器）也照樣過能力容器——與背包武器同一條路，身上的裝備／珠子一樣有效。
+        var scriptedBase = _scriptedId > 0 ? GetWeapon(_scriptedId) : null;
+        _scriptedResolved = (AbilityResolver != null && scriptedBase != null) ? AbilityResolver(scriptedBase) : scriptedBase;
     }
 
     /// <summary>

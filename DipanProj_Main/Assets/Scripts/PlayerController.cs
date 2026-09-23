@@ -484,6 +484,30 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
     }
 
+    /// <summary>
+    /// 設定／清除**劇情武器**（0 ＝ 清除，回到背包武器欄那把）。目前的使用者是新手夢境教學：
+    /// 進夢依血統裝上 <c>BloodlineDef.DreamWeaponId</c>、醒來清掉（見 <c>DreamTutorialFlow</c>）。
+    /// <para>不碰背包、不進存檔（實作在 <see cref="WeaponManager.SetScriptedOverride"/>）。
+    /// 這裡多做的是「換武器時的收尾」——與背包換武器同一套：還沒射完的連擊作廢、
+    /// 正開著的雷射／佛光／集氣收乾淨，不然舊武器的光束會留在畫面上。</para>
+    /// </summary>
+    public void SetScriptedWeapon(int weaponId)
+    {
+        if (_weaponManager == null) _weaponManager = FindObjectOfType<WeaponManager>();
+        if (_weaponManager == null)
+        {
+            Debug.LogWarning("[PlayerController] 場景找不到 WeaponManager，劇情武器沒有套上。");
+            return;
+        }
+        if (_weaponManager.ScriptedOverrideId == Mathf.Max(0, weaponId)) return;
+        _weaponManager.SetScriptedOverride(weaponId);
+        CancelBurst();
+        ClearActiveOrbitalBullets();
+        ClearActiveBeams();
+        ClearActiveAura();
+        if (_isCharging) CancelCharge();
+    }
+
     /// <summary>換地圖時清掉屬於舊地圖的持續武器。集氣狀態刻意保留；MapManager 會清掉舊 VFX，進新圖後若按鍵仍按住會自動重建。</summary>
     public void ClearPersistentWeaponsForMapChange()
     {

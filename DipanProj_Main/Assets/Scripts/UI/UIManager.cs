@@ -46,6 +46,26 @@ namespace Dipan.UI
         /// <summary>遊戲輸入是否該被 UI 擋住（給 PlayerController 等查詢）。無 UIManager 時恆為 false。</summary>
         public static bool IsGameplayInputBlocked => Instance != null && Instance._inputBlocked;
 
+        // ── 玩家選單鎖（2026-09-23，新手夢境教學）──
+        // 鎖住「玩家自己按鍵打開的選單」：背包 B／倉庫 K／鍛造 Y／設定 O／沒有視窗時按 ESC 開設定。
+        // 不影響劇情主動開的面板（對話、提示、載入頁…）——那些是流程要開的，不是玩家要開的。
+        // 具名持有者（同 SetExternalHold 的理由）：兩個系統同時鎖時，先解的那一個不會把另一個的鎖一起清掉。
+        // static：選單啟動器（StorageBagCoordinator／SettingsLauncher）可能比 UIManager 早一步跑，查詢不必等實例。
+        static readonly HashSet<string> _menuLocks = new HashSet<string>();
+
+        /// <summary>玩家選單（背包／倉庫／鍛造／設定）目前是否被鎖住。</summary>
+        public static bool PlayerMenusLocked => _menuLocks.Count > 0;
+
+        /// <summary>鎖／解鎖玩家選單（具名：只影響自己這一份）。</summary>
+        public static void SetPlayerMenuLock(string owner, bool locked)
+        {
+            if (string.IsNullOrEmpty(owner)) owner = DefaultHoldOwner;
+            if (locked) _menuLocks.Add(owner); else _menuLocks.Remove(owner);
+        }
+
+        /// <summary>進 Play 時清掉（Domain Reload 已關，static 不會自動歸零）。</summary>
+        public static void ResetMenuLocksForPlayMode() => _menuLocks.Clear();
+
         /// <summary>
         /// 給非面板的系統掛「擋輸入 / 暫停」需求（例如進場睜眼過場：播放中暫停＋不能操作，播完解除）。
         /// 與面板的需求一起參與 Recompute（任一要求就生效），所以不會被載入頁關閉時的重算覆蓋掉。
@@ -154,7 +174,7 @@ namespace Dipan.UI
                     // 有視窗開著 → 關閉最上層（若該面板允許 ESC 關閉）。
                     if (top.CloseOnEscape) Close(top);
                 }
-                else if (_escapeRootPanel != null && !_inputBlocked)
+                else if (_escapeRootPanel != null && !_inputBlocked && !PlayerMenusLocked)
                 {
                     // 沒有任何視窗 → 開啟根面板（例如設定）。同一分支，不會關掉又重開。
                     //
