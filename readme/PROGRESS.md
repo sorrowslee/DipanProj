@@ -4,6 +4,138 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **骨牢對位第四版：籠心對「軀幹」、不再每幀跟影子（⏳ 未編譯未實測）**
+  （2026-09-23，作者附 ZhaYu／ZhaYu_Bomb／ZhaYu_Gun／ZhaYu_HugeSword 四張實測圖：「幾乎每隻被關住後對位都是歪的」。見 PROBLEMS **G15**）<br>
+  **根因**：第三版的籠心問影子，而影子 X 是「兩腳中點」——拿武器的怪兩腳之間被拖地的武器佔住，
+  `ZhaYu_HugeSword` 影子在軀幹右邊 52px（≈0.6 單位，正好是截圖裡的偏移）；再加上影子錨點**逐動作不同**，
+  被關的怪原地揮刀時籠子會跟著左右滑。<br>
+  ⇒ `MonsterAnimator.TryGetCageAnchorLocal`：**只用 idle、算一次、快取**——X＝可見框上方 60% 的像素欄質心（軀幹）中位數、
+  Y＝idle 影子錨點 Y（地面線不動）；`MonsterCage.BuildCageSpot` 套上位置／體型／翻面／離地高度，
+  經 `BoneCageVisual.Spawn` 新參數 `anchorSpot` 傳入（優先於影子；取不到才退回影子）。玩家端 `PlayerBind` 不變。
+  `[BoneCage]` log 多印「籠心與當下影子差多少」。<br>
+  ⚠⚠ **第一次實測四隻全往左偏 0.6~1.0（比原本更歪）**：量像素用了 `sprite.textureRect`——`Sprite.Create` 的 Tight 網格會裁掉透明邊，
+  那是**裁過的框**，X 少算了左透明邊寬。用「軀幹 − 左透明邊」預測 ZhaYu/Gun/Bomb 為 −59/−90/−43px，log 反推 −50/−93/−42，吻合 ⇒ 改用 `sprite.rect`（PROBLEMS G15）。<br>
+  ⚠⚠ **第二次實測（位置大致對了，只有 ZhaYu_Gun 完全正確）作者點出兩件事**：
+  ① **後面那張的中柱畫在怪身上**：前後片的排序只在 Spawn 抓一次，但怪的排序是 `YSortByFeet` 每幀依腳底 Y 算、每 0.01 單位差 1；
+  被關那一幀怪還在走 ⇒ 排序跑掉、back 翻到前面。Gun 是站定射擊的所以剛好對 ⇒ `SyncSorting` 每幀對齊＋`DefaultExecutionOrder(1000)`（PROBLEMS **G16**）。
+  ② **要把怪完整包在籠裡**：內徑改成 `max(身高×0.7, 軀幹寬×1.15)`——`ZhaYu_Bomb` 軀幹寬 0.85×身高，只看身高兩手會伸到骨刺外；
+  其他三隻仍由身高決定、大小不變（`MonsterAnimator.CageTorsoWidthLocal`、`BoneCageVisual.InnerWidthPerTorsoWidth`）。<br>
+  ✅ **第三次實測作者確認對位準了**，只剩一件：狂族皇家衛士揮砍時被關，**一直定格在 attack 最後一幀直到骨牢碎掉**——
+  Brain（MeleeChase／LeapSlam）用 one-shot 播揮砍，播完要靠 `Think()` 呼叫 `CancelOneShot`，而被關時 `Think()` 整個被跳過。
+  ⇒ `MonsterController.Update` 的 Caged 分支自己收尾：one-shot 播完就 `CancelOneShot`；HandleVisuals 自動循環的 attack
+  用新的 `MonsterAnimator.FinishAttackCycle()` 轉成「從目前這幀播到最後一幀就停」；之後 `HandleVisuals(null)`（不自動舉刀、不轉身）。
+  Brain 放開後的「播完了沒」都有時間保底（`_phaseUntil`／`_tEnd`），提前收掉不會卡死。<br>
+  ⭐ 通則：**腳下的東西對影子、罩住身體的東西對軀幹**；會停留的實體特效錨點要**固定一次**，不要跟著逐動作變的錨點走。<br>
+  ⚠ 順帶發現（**未處理，待作者決定**）：`StreamingAssets/.../Monsters/SequenceImage/ZhaYu/` 的 idle 混了一張舊的 500×500 `idle_01.png`、
+  walk 混了 8 張舊的 500×500 `walk_01~08.png`（與 21 張新的 256×256 同資料夾；Main 與 Tutorial 模組兩份都有）——
+  同 PROBLEMS **F28**，會讓 ZhaYu 播到那幾幀時忽大忽小、位置跳。`GameAssets/Main/.../ZhaYu/walk` 則**只有**舊的 8 張。<br>
+  改動：`AI/MonsterAnimator.cs`（新增 `TryGetCageAnchorLocal`）、`Combat/MonsterCage.cs`（`BuildCageSpot`）、`Combat/BoneCageVisual.cs`（`anchorSpot` 參數＋log）、`BlobShadow.cs`（註解）。
+
+* [x] **骨牢做成玩家武器（新模式 `Cage`）＋ 正式骨牢視覺（前後夾層＋從地裡長出來）（⏳ 未編譯未實測）**
+  （2026-09-22，作者畫好 `bone_prison_back/front` 兩張圖與骨杖 icon。
+  見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Cage 骨牢〉、[MONSTER_SETUP.md](MONSTER_SETUP.md) `Controllable` 欄）<br>
+  **一句話**：施放時從半徑內隨機挑一隻怪關住 N 秒，時間到牢籠崩裂並對牠結算一次大傷害。
+  作者拍板的四件事：**只鎖移動、放行攻擊**／**困住期間照常可以打**／**boss 靠 CSV 欄免疫**／**同時上限做成可鑲珠加成**。<br>
+  ⭐ **「珠子能加困住上限」是零額外成本**：能力珠的有效性本來就自動走 `WeaponModeSpec`
+  （`GemTable.Field` 直接對應 CSV 欄名），所以只要把 `CageMaxTargets` 登記成 Cage 模式的有效欄，
+  之後 `GemTable.csv` 加一列 `Field=CageMaxTargets`、`Target=Recipe` 就有珠子了，**不必再改程式**。
+  加模式／加欄只改 `WeaponModeSpec.cs` 一個檔（載入檢查、珠子、武器工坊視窗自動跟上）。<br>
+  ⭐⭐ **怪物定身的攔截點在 `MonsterController.Update` 總入口，不是各 Brain**：
+  移動是 Brain 透過 Actuator 下的，逐一去改每個 Brain 一定會漏，而且之後每加一個新 Brain 都要記得處理。
+  在總入口攔一次（清 velocity、跳過 `Think()`、照樣跑 `HandleVisuals`）才是單一真相——
+  而且近戰動畫與攻擊判定不在 `Think()` 裡，所以**照樣會揮**，正好就是「只鎖移動、放行攻擊」要的。<br>
+  ⚠ **選目標不能用 `Physics2D.OverlapCircle`**：專案全域 `queriesStartInColliders=false`，
+  貼身重疊的怪反而抓不到（**B7**）。走 `MonsterController.Active` 登記表。
+  排除自己的召喚物（PlayerAlly）與中立 NPC——關住自家友軍或村民只會讓人困惑。<br>
+  ⚠ **崩裂傷害走 `CombatSystem.Apply`，不直接扣血**：直接扣吃不到減傷、加成與浮動傷害數字，珠子也對它無效。<br>
+  ⚠ **`Controllable` 預設「可控」而不是「免疫」**：反過來的話每加一隻新怪都要記得填，忘了就抓不住、而且沒有錯誤訊息。<br>
+  ⭐⭐⭐ **視覺不能做成 VfxTable 一列**：`bone_prison` 是**前後夾層**（back 畫在角色後、front 畫在角色前，
+  角色夾在中間才像被關住），而 VfxTable 一列只有一個 `SortingOrder`，表達不了。
+  所以新增元件 `BoneCageVisual`（兩片 SpriteRenderer，角色是 10 ⇒ back 9／front 11），
+  **玩家被綁與怪被關共用同一份**。<br>
+  ⭐ **「長出來」是兩件事合起來的，缺一個都不像**：① shader `Custom/BoneCageGrow` 由下往上揭露，
+  **門檻依 X 抖動 ⇒ 三根骨刺錯開破土**（單一條水平揭露線看起來像「被地平線切開」）；
+  ② 元件對根節點做**縱向超調回彈**（0.72 → 1.06 → 1.0）。①負責冒出來、②負責力道。<br>
+  ⚠ **縮放支點在「地面線」而不是圖的中心**（`GroundLineFromBottom`）：
+  支點放中心的話，縱向縮放會讓地上的血色法陣跟著上下彈，一看就是在縮圖而不是在生長。<br>
+  ⭐⭐⭐ **對位改成跟著「影子」走（同日第二版，作者回報第一版「困得不準」）**。
+  第一版自己用 `FeetWorldPos` ＋ 目測的身高倍率算位置與大小 ⇒ 套上去偏掉。
+  根因不是常數估錯（實測圖裡的地面線就是 0.33、骨刺內徑就是圖寬的 0.652，目測值是準的），
+  而是**「角色站在哪一點」被算了第二份**：影子的錨點是逐角色逐動作量過、已定版的
+  （`ShadowAnchorTable.csv`，見 [SHADOW.md](SHADOW.md)），自己另算一份必然對不起來，
+  而且**腳下的圈跟影子沒疊在一起，玩家一眼就看得出來**。<br>
+  ⇒ `BlobShadow` 開一個 `TryGetGroundSpot(out 中心, out 寬)`（寬回傳**地面尺寸** `_baseW`，
+  不是當下 localScale——騰空時影子會縮小，拿那個當基準會讓腳下的東西忽大忽小），
+  骨牢的位置與大小全部問它。大小也從「身高 × 倍率」改成「**影子寬 × 倍率**」——
+  牢籠是地上的圈，本來就該對齊腳底的範圍而不是身高；體型大的怪影子也大，尺寸自動跟著對。
+  問不到影子時會**印警告**說明改用了退路座標（悄悄換一套座標正是查不出原因的那種 bug）。<br>
+  ⚠ **順手補一個第一版的漏**：`WeaponModeSpec` 宣告了 Cage 吃 `BulletScale`（工坊上的「牢籠大小」），
+  但 `Shoot` 沒把它傳下去 ⇒ **那個旋鈕是死的**。宣告了有效欄卻不讀，比沒有這一欄更難查。<br>  ⭐⭐ **第三版：大小改用「可見身高」，只有位置用影子**（作者第二次實測，骨牢大了一倍多）。
+  第二版把**位置與大小都**綁在影子上——位置是對的，大小不是。
+  影子寬量的是「底部 15% 帶的跨距」，而**拿武器的怪會把拖在地上的武器一起算進去**：
+  實測 `ZhaYu_HugeSword` 影子寬 **3.04**、可見身高才 **2.63**（影子比怪還寬；底部跨距 130px，兩腳根本沒那麼開）。
+  ⇒ 位置繼續問影子（站立點的單一真相），**大小改用可見身高 × 0.7**——身高不受手上拿什麼影響。
+  順手加一則診斷：影子寬 ＞ 可見身高時直接指出「那隻角色的影子錨點多半把武器算進去了」，
+  因為那會讓**影子本身**也偏，不只是骨牢。<br>
+  ⚠ **同一次實測釐清了一件事**：作者看到「怪在骨牢左上角」，其實骨牢**套在另一隻怪身上**
+  （Console 顯示套的是 `ZhaYu_HugeSword`，畫面上那隻是別隻）——`Cage` 是「半徑內**隨機**挑一隻」，
+  場上有多隻時玩家無從得知困到誰。**這是體驗問題不是 bug**。作者拍板：**改成「半徑內 ＋ 畫面上看得到」才納入候選**，隨機性保留。
+  ⭐ 通則：**玩家看不到的地方發生的事，等於沒發生**——按下去沒反應的那一發，玩家只會當作武器壞了。<br>
+  ⚠ **順帶掃出 6 列過期的影子錨點**（表裡記的畫布／幀數與實際素材不符；`BlobShadow` 會按比例硬湊、不報錯）：
+  `monsters/zhayu/walk`（表 500x500/8 幀 → 實際 256x256/**29** 幀）最嚴重、
+  `zhayu_hugesword/attack`（25 → **50** 幀）次之，其餘四列只差 1 幀。**要重算一次**。<br>
+  ⭐ **兩個「目測常數」改成量出來的**：地面線 0.33、牢籠內徑佔圖寬 0.652，都是對素材做像素分析得到的，
+  換圖時重量一次即可（方法記在 `BoneCageVisual` 檔頭）。<br>
+  ⚠ **`_Grow=1` 時揭露上界要補 `+_GrowJitter`**，否則抖動最大的那幾列會被切頭 ⇒ 骨刺永遠少一截、而且不會報錯。<br>
+  ⭐ **崩裂零新素材**：重用地上物破壞的 `ShatterBurst`（3×4 切塊拋飛淡出）。
+  ⚠ 碎片是掛在**本節點底下**的，所以不能馬上 `Destroy` 根節點——要等過碎片壽命（0.6s），否則碎片跟著一起消失、什麼都看不到。<br>
+  **夢境教學同步換掉暫代素材**：`bindPlayer` 的 `cageVfxId` **留空 ＝ 用正式骨牢**，填 VfxTable ID 才走舊的單層循環特效
+  （暫代的 ID 45 ＝ `EarthSpik2` 染白，留著當退路）。`DreamTutorial_Square` 已改成留空，三份 `.dipanmap` 同步（md5 相同）。<br>
+  新增：`WeaponMode.Cage`、`BoneCageVisual.cs`、`MonsterCage.cs`、`Resources/Shaders/BoneCageGrow.shader`；
+  `RecipeTable` 表尾 4 欄 ＋ 配方 **47**；`WeaponTable`／`ItemTable` **35 枯骨牢杖**（icon 用作者的 `weapon_bonestaff`）；
+  `MonsterData` 表尾 `Controllable`；`MonsterCage.ResetForPlayMode` 已進 `PlayModeStaticReset`。<br>
+  ⏳ **待調**：牢籠倍率 `HeightMul` 1.55、地面線 0.32 都是**目測值**，實機看過再調；
+  兩張圖自帶暗角與紅輝光，暗場景可能過亮（**E11/E12**），shader 留了 `_Dim`／`_Desat` 兩個旋鈕。
+
+* [x] **新手夢境教學：邪佛廣場「按左鍵發射武器」的暫停教學（⏳ 未編譯未實測）**
+  （2026-09-22，作者要「對話完、暫停遊戲提示按左鍵，按下去就恢復並且真的射出武器」。
+  見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3「playerHint」）<br>
+  ⭐ **沒有新造輪子**：`playerHint`（玩家提示）本來就有「收起時機=攻擊、收起後才接 next」，
+  缺的只有「暫停」跟「上方文字條」兩件事 ⇒ 加成它的兩個**選填欄位**（`pause`／`textId`），
+  留空＝舊行為，既有兩顆（洞窟 WASD、初始森林）逐位元無變化。之後三段教學（WASD／左鍵／E）
+  都能用同一顆 trigger 在編輯器排，不必回頭改程式。<br>
+  ⭐⭐ **「按下左鍵」和「開火判定」不是同一件事**：`HandleFiring` 讀的是
+  `Input.GetMouseButton`＝**當下按著沒**，不是「剛剛按過」。解除暫停的那一刻玩家多半已經放開了
+  ⇒ 教學過了卻**一發都沒射出去**。補法是 `PlayerController.RequestFireOnce()`：開一段**強制開火窗口**
+  （0.35 秒），期間開火判定一律當成玩家按著。<br>
+  ⭐⭐⭐ **第一版只補「一幀」，作者實測回報「按下去只解除暫停、沒射出武器」**（同日修）。
+  一幀不夠的根因是 **`Shoot()` 對雷射／佛光這種持續型武器直接 `return false`**——它們走
+  `UpdateLaser`／`UpdateAura` 的持續路徑，一幀 firing=true 等於開一瞬間又關掉，**畫面上根本看不出來**；
+  離散武器也只有一次機會，冷卻／魔力任一條件沒對上就靜默失敗。
+  ⇒ 改成窗口，並讓持續型與離散型**各自回報「真的射出去了沒」**。<br>
+  ⚠ 用**窗口**而不是一個等著被消費的永久旗標——呼叫端與 `PlayerController.Update` 誰先跑不保證
+  （早一幀晚一幀都可能），但若那期間玩家開了背包／被別的面板擋住，永久旗標會一直留著、
+  **等他關掉面板才莫名其妙射出一發**。<br>
+  ⭐ **這條路徑失敗的症狀是「什麼都沒發生」，所以一定要有訊息**：補一發時印一則 Log
+  （武器名／模式／可否開火／冷卻剩餘），射不出來時分三種情況講原因——沒裝備武器、
+  這張地圖設了 `NoWeapon`、整段窗口都沒射出（冷卻中或魔力不足）。
+  以前這三種**全部沒有任何 Console 訊息**，只能用猜的。<br>
+  ⭐ **秒收問題**：這顆接在對話後面，而玩家多半是用**左鍵點掉對話**的——面板一開他手還按著，
+  `MinVisible`(0.35s) 一過就被當成「做到了」，教學等於沒出現過。
+  所以暫停模式**開場已按著就要求先放開**，下一次按下才算數。<br>
+  ⚠ 暫停是 `SetExternalHold` 的**具名**鎖（**D13**），並且 `OnClose` 也一定解鎖：
+  面板被別的流程關掉（換圖／死亡）而沒解鎖的話，玩家會帶著「不能動＋`timeScale=0`」進下一場，
+  **完全沒有錯誤訊息**（同骨牢 `PlayerBind.OnDisable` 的理由）。<br>
+  ⚠ **條件旗標沒加**：`requireFlag` 不成立預設是「整條鏈中止」，這顆卡在鏈中間會把**放怪一起吃掉**。
+  夢境本來就一輩子只跑一次，不需要旗標；日後真要加必須同時填「條件不成立時＝跳過這顆繼續」。<br>
+  改動：`PlayerHintPanel`（暫停模式／文字條／補射／重新按一次）、`PlayerController.RequestFireOnce`、
+  `TriggerChain.ExecutePlayerHint`（讀兩個新欄位；**防呆從「兩張圖都沒有就跳過」放寬成「圖與文字都沒有才跳過」**——
+  純文字的教學是合法用法）、`LanguageTable.csv` **1011**「按下左鍵發射武器」、
+  編輯器 `TriggerType.cs` ＋ **`triggerTypes.json`**（⚠ 面板正本是 json，只改 `.cs` 新欄位不會出現在面板上）。
+  地圖 `DreamTutorial_Square` 鏈改成 `進場對話(41) → 左鍵發射教學 → 怪物出生點1`，三份 `.dipanmap` 已同步（md5 相同）。<br>
+  ⏳ **待實測**：⚠ 這顆的提示是**純文字條**（`leftImage`/`rightImage` 留空）——想改成頭上放圖就在編輯器填 `Guide_MouseLeft`。
+  測試階段請先在進廣場前裝備好武器（武器之後再安排）。
+
 * [x] **修掉「夢境開場播完第一句之後一片黑」（⏳ 未編譯未實測）**
   （2026-09-22，作者回報「剛進遊戲顯示『最近，我常做奇怪的夢』，下一步就沒東西了，畫面一片黑」。
   見 [PROBLEMS.md](PROBLEMS.md) **H2**）<br>

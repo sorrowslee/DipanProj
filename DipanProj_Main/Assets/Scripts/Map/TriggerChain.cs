@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Dipan.Inventory;
+using Dipan.Localization;
 using Dipan.MapRuntime;
 using Dipan.Save;
 using Dipan.UI;
@@ -754,6 +755,8 @@ public static class TriggerChain
     }
 
     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，指定張閃爍；到收起時機（移動/攻擊/任意鍵）自動收，收完接 next。
+    // 另可填「暫停遊戲」＋「提示文字(語言表 id)」做成強制教學：停住畫面、上方跳一行字，
+    // 玩家做出那個動作才解鎖往下（語氣同柴房佛燈／儲藏室藥水教學）。
     static void ExecutePlayerHint(TriggerRegion r)
     {
         var playerGo = GameObject.FindGameObjectWithTag("Player");
@@ -765,17 +768,32 @@ public static class TriggerChain
         }
         Sprite left = LoadHintSprite(r.GetString("leftImage"));
         Sprite right = LoadHintSprite(r.GetString("rightImage"));
-        if (left == null && right == null)
+
+        // 提示文字：填 LanguageTable 的 id（留 0／空＝不顯示文字條）。
+        // ⚠ 用 Language.Has 判斷，不能用回傳值判斷——查不到時 GetText 回的是佔位字串「[lang:id]」
+        //   而不是空字串，直接拿去顯示會在畫面上跳出一行 [lang:1011]。
+        int textId = r.GetInt("textId", 0);
+        string hintText = null;
+        if (textId > 0)
         {
-            Debug.LogWarning($"[TriggerChain] 玩家提示「{r.name}」左右圖都載不到（leftImage/rightImage），直接接 next。");
+            if (Language.Has(textId)) hintText = Language.GetText(textId);
+            else Debug.LogWarning($"[TriggerChain] 玩家提示「{r.name}」的 textId {textId} 在 LanguageTable 查不到，文字條不顯示。");
+        }
+
+        // ⚠ 圖與文字**都**沒有才算沒東西可提示（純文字的教學是合法用法，別退回舊的「兩張圖都沒有就跳過」）。
+        if (left == null && right == null && string.IsNullOrEmpty(hintText))
+        {
+            Debug.LogWarning($"[TriggerChain] 玩家提示「{r.name}」左右圖都載不到、也沒有 textId，直接接 next。");
             OnCompleted(r);
             return;
         }
         bool flashLeft = r.GetBool("flashLeft", false);
         bool flashRight = r.GetBool("flashRight", true);
+        bool pause = r.GetBool("pause", false);
         var mode = ParseHideMode(r.GetString("hideOn"));
         // 收起（玩家移動/攻擊/按鍵）後才 OnCompleted → 寫 setFlag（可做「只一次」）＋接 next。
-        PlayerHintPanel.Show(playerGo.transform, left, flashLeft, right, flashRight, mode, () => OnCompleted(r));
+        PlayerHintPanel.Show(playerGo.transform, left, flashLeft, right, flashRight, mode, pause, hintText,
+                             () => OnCompleted(r));
     }
 
     // 載提示圖：填檔名（放 Resources/UI/Common/ 下，例 Guide_Wasd）或含「/」的完整 Resources 路徑。

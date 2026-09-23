@@ -621,9 +621,25 @@
           "cells": [],
           "params": {
             "dramaId": "41",
-            "next": "怪物出生點1",
+            "next": "左鍵發射教學",
             "setFlag": "",
             "requireFlag": ""
+          }
+        },
+        {
+          "id": "a71c3d52",
+          "name": "左鍵發射教學",
+          "typeId": "playerHint",
+          "cells": [],
+          "params": {
+            "leftImage": "",
+            "rightImage": "",
+            "flashLeft": false,
+            "flashRight": false,
+            "hideOn": "攻擊",
+            "pause": true,
+            "textId": "1011",
+            "next": "怪物出生點1"
           }
         },
         {
@@ -721,7 +737,7 @@
           "cells": [],
           "params": {
             "bind": "1",
-            "cageVfxId": "45",
+            "cageVfxId": "",
             "cageScale": "1.0",
             "next": "邪佛手掌出生點",
             "setFlag": "dreamHandPhase"

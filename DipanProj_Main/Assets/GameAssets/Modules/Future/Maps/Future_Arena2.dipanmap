@@ -140,9 +140,9 @@
             ]
           ],
           "params": {
-            "monsterId": "1|20|21|22",
+            "monsterId": "19",
             "deathFlag": "",
-            "spawnInterval": "3",
+            "spawnInterval": "",
             "maxAlive": "50",
             "requireFlag": "startBornMonster_arena2"
           }

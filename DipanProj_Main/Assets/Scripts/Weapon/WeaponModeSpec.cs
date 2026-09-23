@@ -30,6 +30,8 @@ public enum WeaponMode
     Melee,
     /// <summary>突進斬：往瞄準方向衝一段，掃過的都受傷。</summary>
     Dash,
+    /// <summary>骨牢：隨機挑場上的怪困住一段時間，時間到牢籠崩裂、對牠結算一次大傷害。</summary>
+    Cage,
 }
 
 /// <summary>欄位值的型別（給載入檢查與未來「武器效果模擬」面板產輸入框用）。</summary>
@@ -265,6 +267,18 @@ public static class WeaponModeSpec
             // ── 近戰 ──
             F(R, "MeleeAngle", FieldKind.Float, "近戰", "扇形總角度（度）", "100", 1f, 360f),
 
+            // ── 骨牢 ──
+            // ⚠ CageMaxTargets 刻意是 Recipe 欄：能力珠的有效性自動走 WeaponModeSpec，
+            //    所以 GemTable 加一列 Field=CageMaxTargets、Target=Recipe 就能「鑲珠子加困住上限」，不必改程式。
+            F(R, "CageSeconds",    FieldKind.Float, "骨牢", "困住秒數", "5", 0.1f, 600f,
+              "時間到才崩裂結算傷害；夢境教學那種「困到演出結束」填很大的值即可"),
+            F(R, "CageMaxTargets", FieldKind.Int,   "骨牢", "同時困住上限", "1", 1, 32,
+              "這根武器同時最多關住幾隻；已經關滿就不再施放（不扣魔）。可用能力珠加"),
+            F(R, "CageRadius",     FieldKind.Float, "骨牢", "搜尋半徑", "8", 0.5f, 50f,
+              "從玩家身上量，這個半徑內隨機挑一隻沒被關的怪"),
+            F(R, "CageBurstMul",   FieldKind.Float, "骨牢", "崩裂傷害倍率", "5", 0f, 999f,
+              "崩裂傷害 = 武器 Damage × 這個倍率（走一般傷害結算，吃減傷與加成）"),
+
             // ── 突進 ──
             F(R, "DashDistance", FieldKind.Float, "突進", "突進距離", "4", 0.1f, 50f),
             F(R, "DashWidth",    FieldKind.Float, "突進", "掃擊寬度", "1", 0.1f, 20f),
@@ -399,6 +413,13 @@ public static class WeaponModeSpec
             .Eff("FireInterval", "AreaRadius", "MeleeAngle").Eff(Charge).Eff(Burst)
             .Eff("Damage", "HitEffectID", "BulletScale")
             .Lbl("AreaRadius", "攻擊半徑").Lbl("BulletScale", "揮砍大小（半徑與特效）");
+
+        // 骨牢
+        M(d, WeaponMode.Cage, "骨牢", "隨機挑半徑內一隻怪困住，時間到牢籠崩裂並結算一次大傷害")
+            .Eff("FireInterval", "CageSeconds", "CageMaxTargets", "CageRadius", "CageBurstMul").Eff(Burst)
+            .Eff("Damage", "HitEffectID", "BulletScale")
+            .Lbl("FireInterval", "施放冷卻（秒）").Lbl("Damage", "基礎傷害（崩裂時 × 倍率）")
+            .Lbl("HitEffectID", "崩裂特效 ID").Lbl("BulletScale", "牢籠大小");
 
         // 突進
         M(d, WeaponMode.Dash, "突進斬", "往瞄準方向衝一段，掃過的目標各受傷一次；撞牆提前停")

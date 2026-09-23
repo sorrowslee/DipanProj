@@ -90,6 +90,14 @@ public class MonsterData
     public int DropTableId = 0;
 
     /// <summary>
+    /// 可不可以被「定身類」控制效果抓住（CSV 表尾欄 <c>Controllable</c>，2026-09-22）。
+    /// 目前唯一的來源是骨牢（<c>WeaponMode.Cage</c>）。
+    /// <para><b>留空／1 ＝ 可以被控制</b>（既有怪零影響）；boss 與強怪填 <b>0</b> 就免疫。
+    /// 作法刻意是「預設可控、逐隻標免疫」而不是反過來——否則每加一隻新怪都要記得填，忘了就抓不住。</para>
+    /// </summary>
+    public bool Controllable = true;
+
+    /// <summary>
     /// 移動拖尾特效（CSV 表尾欄，2026-09-22）：怪在移動時持續在**身後**種的 VfxTable 特效。
     /// 格式 <c>vfxId:大小倍率:每秒幾個</c>，多層用 <c>|</c> 分隔（例 <c>44:1:5|44:0.55:3</c>）。
     /// 留空 ＝ 不掛（既有怪零影響）。給「有重量的東西」用——邪佛手掌的滾滾沙塵。見 <see cref="MonsterMoveTrail"/>。

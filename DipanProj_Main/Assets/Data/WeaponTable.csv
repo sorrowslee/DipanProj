@@ -29,3 +29,4 @@ ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每�
 31,飛劍-無能力,1,44,1,Weapon/single/weapon_sword,135,,,,,,,,,,,,
 33,狂族十字弓,3,44,1,Weapon/single/flyObj/arrows,360,,,,2.5,,,,,,,,
 34,血魔重炮,5,46,2,Weapon/single/flyObj/shell,360,,,,2.5,,,,,,43,,
+35,枯骨牢杖,4,47,3,,,,,,,,,,,,,,

@@ -68,6 +68,134 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         anchor = default;
         return false;
     }
+
+    // ── 骨牢錨點（2026-09-23）：「圍住整個身體」的東西該對準哪一點 ──
+    // ⚠ 這**不是**影子的第二份真相，是**另一個問題的答案**：
+    //   ‧ 影子是「腳下的一灘」→ X 取兩腳中點（ShadowAnchorMath）。拿武器的怪兩腳之間常被**拖在地上的武器**佔據，
+    //     ZhaYu_HugeSword idle 的影子 X 在畫布中心右邊 +43.5px，但牠的軀幹在 -8.7px ⇒ 差 52px ≈ 0.6 世界單位。
+    //   ‧ 骨牢是「罩住整個身體的籠子」→ X 該對**軀幹**，Y 才對地面。
+    //   ‧ 而且籠子是實體，**不該跟著動作換錨點跳**：以前每幀問影子，idle↔attack↔walk 切換時
+    //     影子錨點各不相同（ZhaYu_Gun idle +3.2 / attack -9.8），籠子就在怪身邊左右滑。
+    // ⇒ 一律用 **idle** 算一次、快取：X ＝ idle 各幀「可見框上方 TorsoFraction 的像素欄質心」的中位數，
+    //   Y ＝ idle 的影子錨點 Y（與 idle 時的影子同一條地面線；表裡沒有就退回可見框底）。
+    // 回傳的是**相對 transform 的本地位移**（未乘 lossyScale、未翻面），換算世界座標是呼叫端的事（見 MonsterCage）。
+    /// <summary>軀幹取可見框上方多少比例（下方是腿、拖地的武器、長袍下擺——這些都會把中心拉歪）。</summary>
+    const float TorsoFraction = 0.6f;
+    /// <summary>軀幹寬取像素分佈的哪一段（兩端各去掉這個比例），免得一根飄出去的毛髮/破布把寬度撐大。</summary>
+    const float TorsoWidthTrim = 0.02f;
+    bool _cageCached, _cageOk;
+    Vector2 _cageLocal;
+    float _cageTorsoW;
+
+    /// <summary>
+    /// idle 軀幹的寬（本地單位，未乘 lossyScale）。骨牢用它保證「牢籠內徑至少罩得住身體」——
+    /// 寬胖的怪（ZhaYu_Bomb 軀幹寬 0.85×身高）只靠「身高 × 0.7」會讓兩隻手伸到骨刺外面。
+    /// 取不到回 0（呼叫端只用身高）。
+    /// </summary>
+    public float CageTorsoWidthLocal
+    {
+        get { if (!_cageCached) TryGetCageAnchorLocal(out _); return _cageOk ? _cageTorsoW : 0f; }
+    }
+
+    /// <summary>
+    /// 「罩住整個身體」的特效（骨牢）的中心點：X＝idle 軀幹中心、Y＝idle 地面線，相對 transform 的本地位移
+    /// （**未乘 lossyScale、未翻面**）。第一次呼叫時算、之後快取。理由見上方註解。
+    /// </summary>
+    public bool TryGetCageAnchorLocal(out Vector2 local)
+    {
+        if (!_cageCached) { _cageCached = true; _cageOk = ComputeCageAnchorLocal(out _cageLocal); }
+        local = _cageLocal;
+        return _cageOk;
+    }
+
+    bool ComputeCageAnchorLocal(out Vector2 local)
+    {
+        local = Vector2.zero;
+        var frames = _idle ?? _walk;
+        if (frames == null || frames.Length == 0) return false;
+
+        var xs = new System.Collections.Generic.List<float>(frames.Length);
+        var bottoms = new System.Collections.Generic.List<float>(frames.Length);
+        var widths = new System.Collections.Generic.List<float>(frames.Length);
+        Sprite first = null;
+        foreach (var sp in frames)
+        {
+            if (sp == null || sp.pixelsPerUnit <= 0.0001f) continue;
+            if (!TryMeasureTorso(sp, out float cxPx, out float bottomPx, out float widthPx)) continue;
+            if (first == null) first = sp;
+            // 每幀用**自己的** rect／pivot 換算：同一個資料夾混了不同畫布的舊圖時（PROBLEMS F28），至少不會整組飛掉。
+            xs.Add((cxPx - sp.pivot.x) / sp.pixelsPerUnit);
+            bottoms.Add((bottomPx - sp.pivot.y) / sp.pixelsPerUnit);
+            widths.Add(widthPx / sp.pixelsPerUnit);
+        }
+        if (xs.Count == 0 || first == null) return false;   // 貼圖不可讀 → 呼叫端退回影子
+
+        float x = ShadowAnchorMath.Median(xs);
+        float y;
+        if (_shadow.TryGetValue(State.Idle, out var a) && a.ok)
+        {
+            float sy = (a.canvasH > 0) ? first.rect.height / a.canvasH : 1f;   // 同 BlobShadow 的換算
+            y = (a.yFromBottomPx * sy - first.pivot.y) / first.pixelsPerUnit;
+        }
+        else y = ShadowAnchorMath.Median(bottoms);
+
+        local = new Vector2(x, y);
+        _cageTorsoW = ShadowAnchorMath.Median(widths);
+        return true;
+    }
+
+    /// <summary>量一幀：可見框上方 <see cref="TorsoFraction"/> 的像素欄質心 X、軀幹寬、可見框底 Y（都是相對 sprite rect 左下的像素）。</summary>
+    static bool TryMeasureTorso(Sprite sp, out float cxPx, out float bottomPx, out float widthPx)
+    {
+        cxPx = 0f; bottomPx = 0f; widthPx = 0f;
+        var tex = sp.texture;
+        if (tex == null || !tex.isReadable) return false;
+        Color32[] px;
+        try { px = tex.GetPixels32(); } catch { return false; }
+
+        // ⚠⚠ 一定要用 sp.rect，**不能用 sp.textureRect**：Sprite.Create 預設是 Tight 網格，Unity 會把四周透明邊裁掉，
+        //    textureRect 回傳的是**裁過的**框（左緣往右縮了 textureRectOffset.x）⇒ 量出來的 X 相對裁過的左緣，
+        //    再拿去減「相對整張 rect 的 pivot」就整個往左偏。2026-09-23 第一版就栽在這：四隻怪全部往左 0.6~1.0 單位，
+        //    偏多少取決於各自左邊透明邊有多寬（所以每隻都不一樣、看起來毫無規律）。
+        Rect r = sp.rect;
+        int x0 = Mathf.RoundToInt(r.x), y0 = Mathf.RoundToInt(r.y);
+        int w = Mathf.RoundToInt(r.width), h = Mathf.RoundToInt(r.height), tw = tex.width;
+        byte thr = ShadowAnchorMath.AlphaThreshold;
+
+        int minY = int.MaxValue, maxY = -1;
+        for (int y = 0; y < h; y++)
+        {
+            int row = (y0 + y) * tw + x0;
+            for (int x = 0; x < w; x++)
+                if (px[row + x].a > thr) { if (y < minY) minY = y; maxY = y; break; }
+        }
+        if (maxY < 0) return false;
+
+        int from = maxY - Mathf.Max(1, Mathf.RoundToInt((maxY - minY + 1) * TorsoFraction)) + 1;
+        double sum = 0; long cnt = 0;
+        var colCount = new int[w];
+        for (int y = Mathf.Max(from, minY); y <= maxY; y++)
+        {
+            int row = (y0 + y) * tw + x0;
+            for (int x = 0; x < w; x++)
+                if (px[row + x].a > thr) { sum += x; cnt++; colCount[x]++; }
+        }
+        if (cnt == 0) return false;
+        cxPx = (float)(sum / cnt) + 0.5f;   // 像素中心
+
+        // 軀幹寬：像素分佈去掉兩端各 TorsoWidthTrim 之後的跨距
+        long lo = (long)(cnt * TorsoWidthTrim), hi = (long)(cnt * (1f - TorsoWidthTrim));
+        long acc = 0; int xLo = -1, xHi = -1;
+        for (int x = 0; x < w; x++)
+        {
+            acc += colCount[x];
+            if (xLo < 0 && acc > lo) xLo = x;
+            if (xHi < 0 && acc >= hi) { xHi = x; break; }
+        }
+        widthPx = (xLo >= 0 && xHi >= xLo) ? (xHi - xLo + 1) : 0f;
+        bottomPx = minY;
+        return true;
+    }
     float _timer;
     float _currentSpeed;   // 由 MonsterController 每幀餵入，用於走路 fps 連動
 
@@ -112,6 +240,24 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         _timer = 0f;
         ApplyFrame();
         return true;
+    }
+
+    /// <summary>
+    /// 把「正在循環播的 attack」轉成 one-shot：**從目前這一幀播到最後一幀就停**（之後由呼叫端 <see cref="CancelOneShot"/> 收）。
+    /// 給骨牢用（2026-09-23 作者：「讓怪物把動作播完，然後就變回 idle 等待骨牢破碎」）——
+    /// 直接切 idle 會把揮到一半的刀硬生生砍斷，讓它循環又會一直揮。已經在 one-shot 或不是 attack 時什麼都不做。
+    /// </summary>
+    public void FinishAttackCycle()
+    {
+        if (_osActive || _state != State.Attack) return;
+        var frames = FramesFor(_state);
+        if (frames == null || frames.Length == 0) return;
+        _osActive = true;
+        _osDone = false;
+        _osStart = Mathf.Clamp(_idx, 0, frames.Length - 1);
+        _osEnd = frames.Length - 1;
+        _osFpsMul = 1f;
+        _dir = 1;
     }
 
     /// <summary>結束 one-shot，把控制權交還給每幀的 SetState。</summary>
@@ -176,6 +322,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         CharacterMipBias.Register(_jump, transform);
 
         _shadow.Clear();
+        _cageCached = false;   // 換外型後骨牢錨點要重算（見 TryGetCageAnchorLocal）
         _shadow[State.Idle]   = lib.GetShadowAnchor(monsterName, "idle");
         _shadow[State.Walk]   = lib.GetShadowAnchor(monsterName, "walk");
         _shadow[State.Attack] = lib.GetShadowAnchor(monsterName, "attack");

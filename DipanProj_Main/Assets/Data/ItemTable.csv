@@ -83,3 +83,4 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 427,平射珠,Gem,None,,1,能力珠・平行,鑲進裝備的孔位　多一道並排的子彈,影子跟著它走，不快也不慢。,,,,,,,,27,
 501,護身符・金剛,Armor,Amulet,UI/Icons/Equipment/weapon_bronzeMirror,1,測試用護身符,鑲嵌用裝備　驗證跨裝備能力疊加,鏡面朝內，照的是自己的心魔。,,,,,,,,,
 502,戒指・流光,Armor,Ring,UI/Icons/Equipment/weapon_talisman,1,測試用戒指,鑲嵌用裝備　驗證跨裝備能力疊加,環上有一圈磨損，像被誰戴了很久很久。,,,,,,,,,
+35,枯骨牢杖,Weapon,Weapon,Weapon/single/weapon_bonestaff,1,骨杖,傷害 4　困住一隻敵人，牢籠崩裂時重創,杖頭那截指骨，至今仍記得攥緊時的力道。,35,,,,,,,,

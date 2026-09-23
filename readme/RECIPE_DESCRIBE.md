@@ -25,7 +25,7 @@
 |---|---|---|---|---|
 | **通用** | `ID` | 整數 | — | 配方唯一識別碼，武器表用 `RecipeID` 引用 |
 | | `Name` | 字串 | — | 只給人看，程式不讀 |
-| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`（不分大小寫，也接受中文名） |
+| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`（不分大小寫，也接受中文名） |
 | | `FireInterval` | 小數 | 0.3 | 發射間隔（秒）；Laser／Aura 無效（按住就在）；Summon＝召喚冷卻 |
 | **子彈本體** | `Speed` | 小數 | 15 | 飛行速度（世界單位/秒）；Orbital＝繞圈的切線速度 |
 | | `Radius` | 小數 | 0.1 | 碰撞半徑；Laser 改用武器表 `BeamWidth` |
@@ -66,6 +66,10 @@
 | **近戰** | `MeleeAngle` | 小數 | 100 | 扇形總角度 |
 | **突進** | `DashDistance` | 小數 | 4 | 突進距離 |
 | | `DashWidth` | 小數 | 1 | 掃擊寬度 |
+| **骨牢** | `CageSeconds` | 小數 | 5 | 困住幾秒；時間到才崩裂結算傷害 |
+| | `CageMaxTargets` | 整數 | 1 | 同時最多關幾隻；關滿就放不出來、也不扣魔。**能力珠可加** |
+| | `CageRadius` | 小數 | 8 | 從玩家身上量，此半徑內隨機挑一隻沒被關的怪 |
+| | `CageBurstMul` | 小數 | 5 | 崩裂傷害 ＝ 武器 `Damage` × 此值（走一般結算，吃減傷與加成） |
 | **集氣** | `ChargeMode` | 布林 | 0 | 1＝按住 3 秒放開才施放（傷害×3、視覺×2）；Laser／Aura 不可（原「集氣模式」） |
 | | `ChargeTimeReduction` | 百分比 | 0% | `30%` 縮短 30%、`-20%` 延長 20%（原「集氣時間縮減」）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
 | **連擊** | `BurstCount` | 整數 | 1 | 扣一次扳機連射幾發（**一份魔力只扣一次**、每發各自分裂）；1＝不連擊；Laser／Aura／Orbital 不可（2026-08-26 新增，見 [3.13](#313-連擊burstcount--burstinterval)） |
@@ -80,7 +84,7 @@
 
 ✓＝有效　（空）＝不讀　★＝本體必填　括號＝該模式下的意思
 
-| 欄位 | Normal | Orbital | Parabolic | Laser | Aura | Chain | SkyStrike | Summon | GroundCast | Melee | Dash |
+| 欄位 | Normal | Orbital | Parabolic | Laser | Aura | Chain | SkyStrike | Summon | GroundCast | Melee | Dash | Cage |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | FireInterval | ✓ | ✓ | ✓ | | | ✓ | ✓ | ✓(冷卻) | ✓ | ✓ | ✓ |
 | Speed | ✓ | ✓(切線) | | | | | | | | | |
@@ -107,7 +111,8 @@
 | SnapRadius／SegmentedColumn | | | | | | | ✓ | | | | |
 | SummonIds★／Count／MaxAlive／Radius | | | | | | | | ✓ | | | |
 | MeleeAngle | | | | | | | | | | ✓ | |
-| DashDistance／DashWidth | | | | | | | | | | | ✓ |
+| DashDistance／DashWidth | | | | | | | | | | | ✓ | |
+| CageSeconds／CageMaxTargets／CageRadius／CageBurstMul | | | | | | | | | | | | ✓ |
 | ChargeMode／ChargeTimeReduction | ✓ | ✓ | ✓ | | | ✓ | ✓ | | ✓ | ✓ | ✓ |
 | BurstCount／BurstInterval | ✓ | | ✓ | | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
 | ParallelCount／Spacing／MaxWidth | ✓ | | ✓(落點並排) | | | | | | | | |
@@ -217,6 +222,22 @@ ID=35 Name=虛空吞口 Mode=GroundCast FireInterval=1.2 Range=9 GroundEffectID=
 ```
 ID=34 Name=血月鬼爪 Mode=Melee FireInterval=0.55 AreaRadius=2.1 MeleeAngle=110
 ```
+
+### Cage 骨牢
+施放時從 `CageRadius` 內、**且畫面上看得到的**怪裡隨機挑一隻關起來 `CageSeconds` 秒，時間到牢籠崩裂、對牠結算一次 `Damage × CageBurstMul` 的傷害。
+- ⚠ **只挑畫面內的**：半徑內隨機本身沒錯，但玩家看不到畫面外發生什麼——按下去沒反應，那一發等於白放。
+  （實測時就是隨機挑中畫面外的巨劍兵，看起來像「骨牢對不準畫面上那隻怪」，其實是關在另一隻身上。）
+- **關住＝只鎖移動、放行攻擊**（與玩家被 `bindPlayer` 綁住同一套規則）。怪物端的「攻擊」只剩**接觸傷害**：被關那一刻正在揮的那一下會**播完**，之後回 idle 站著等骨牢碎掉、不再起新的一刀、也不轉身（2026-09-23 作者拍板）。被關的怪**照常可以被打**——骨牢是活靶，崩裂傷害是額外的。
+- **`MonsterData.csv` 的 `Controllable` 填 0 的怪免疫**（給 boss 與強怪）；自己的召喚物（PlayerAlly）與中立 NPC 一律不會被選中。
+- 關滿 `CageMaxTargets` 時再按只會跳提示、不扣魔。這一欄**能力珠可以加**——`GemTable.csv` 加一列 `Field=CageMaxTargets`、`Target=Recipe` 即可，不必改程式。
+- 不發射子彈、不需要 `WeaponSpritePath`（同 Summon）。牢籠視覺見 `BoneCageVisual`。
+- **牢籠大小調 `BulletScale`（武器表，工坊上叫「牢籠大小」）**：1 ＝ 內徑約為目標**可見身高**的 0.7 倍。
+  ⚠ **位置與大小的來源刻意不同**：
+  **位置**跟著影子（`BlobShadow.TryGetGroundSpot`）——「角色站在哪一點」專案裡只該有一份答案，
+  錨點表已經逐角色逐動作調過了（見 [SHADOW.md](SHADOW.md)）；
+  **大小**用可見身高，**不**用影子寬——影子寬量的是「底部 15% 帶的跨距」，
+  拿武器的怪會把拖在地上的武器一起算進去（實測 `ZhaYu_HugeSword` 影子寬 3.04 ＞ 牠的身高 2.63）。
+  所以骨牢**位置**不準 → 先看那隻角色的影子；**大小**不對 → 調 `BulletScale`。
 
 ### Dash 突進斬
 往瞄準方向衝 `DashDistance`（撞牆提前停），掃過的膠囊區域（寬 `DashWidth`）內各目標受傷一次。

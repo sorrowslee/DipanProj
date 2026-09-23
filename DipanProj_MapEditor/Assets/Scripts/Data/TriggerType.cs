@@ -190,6 +190,10 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "flashRight", type = ParamType.Bool,   label = "右圖閃爍", boolDefault = true },
                     new TriggerParam { key = "hideOn",     type = ParamType.String, label = "收起時機",
                                        options = new [] { "移動", "攻擊", "任意鍵" } },
+                    // 強制教學用：停住遊戲＋上方跳一行字，玩家做出「收起時機」那個動作才解鎖往下。
+                    // 留空＝舊行為（不暫停、只有圖）。收起時機=攻擊 且有暫停時，解鎖那一下會補射一發武器。
+                    new TriggerParam { key = "pause",      type = ParamType.Bool,   label = "暫停遊戲", boolDefault = false },
+                    new TriggerParam { key = "textId",     type = ParamType.Int,    label = "提示文字(語言表id)" },
                 }
             });
             set.types.Add(new TriggerTypeDef

@@ -139,6 +139,29 @@ public class BlobShadow : MonoBehaviour
     /// 反而因為本元件的 LateUpdate 也停了，影子會定格留在原地。要隱藏角色一定要一起呼叫這支。
     /// （劇情演出的「隱藏主角」走 <see cref="Dipan.Cutscene.PlayerVisibility"/>，那裡已經接好。）
     /// </summary>
+    /// <summary>
+    /// 取「角色站在地上的那一點」與它的寬度（＝影子的世界中心與**地面尺寸**寬）。
+    ///
+    /// <para>給任何要畫在**腳下**的東西共用（法陣、腳下圈…）——**不要自己再算一次腳底**。
+    /// ⚠ 「**罩住身體**」的東西（骨牢）X 不該對這裡：這裡的 X 是兩腳中點，拿武器的怪會被拖地的武器拉歪，
+    /// 見 <c>MonsterAnimator.TryGetCageAnchorLocal</c> 與 PROBLEMS **G15**。
+    /// 腳下的東西之所以一定要問這裡：影子的錨點是逐角色、逐動作量過並定版的（`ShadowAnchorTable.csv`，見 readme/SHADOW.md），
+    /// 自己用 <c>FeetWorldPos</c> 之類另算一份，一定會跟影子對不起來，
+    /// 而「腳下的圈」和「影子」沒疊在一起是玩家一眼就看得出來的。</para>
+    ///
+    /// <para>寬度回傳的是 <b>地面尺寸</b>（<c>_baseW</c>）而不是當下的 localScale——
+    /// 騰空時影子會縮小，拿那個當基準會讓腳下的東西跟著忽大忽小。</para>
+    /// </summary>
+    public bool TryGetGroundSpot(out Vector2 center, out float width)
+    {
+        center = transform.position;
+        width = 0f;
+        if (_shadowGo == null) return false;
+        center = _shadowGo.transform.position;
+        width = Mathf.Abs(_baseW);
+        return width > 0.0001f;
+    }
+
     public void SetVisible(bool on)
     {
         if (_shadowGo != null) _shadowGo.SetActive(on);

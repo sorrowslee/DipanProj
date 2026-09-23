@@ -82,6 +82,16 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Tooltip("移動時在身後種的特效（CSV: MoveTrailFx）。格式 vfxId:大小倍率:每秒幾個，多層用 | 分隔。留空 ＝ 不掛")]
     public string MoveTrailFx = "";
 
+    [Header("Control / 控制效果")]
+    [Tooltip("可否被骨牢那類定身效果抓住（CSV: Controllable）。留空/1 ＝ 可以；0 ＝ 免疫（給 boss 與強怪）")]
+    public bool Controllable = true;
+
+    /// <summary>
+    /// 目前被骨牢關著。由 <see cref="MonsterCage"/> 開關——**不要自己設**，
+    /// 否則沒有人負責解除，那隻怪會永遠站著不動而且沒有任何錯誤訊息。
+    /// </summary>
+    [HideInInspector] public bool Caged;
+
     [Header("Weapon / Skill")]
     [Tooltip("這隻怪使用的武器 = WeaponTable 的 ID（CSV: MonsterData.Weapon 填數字）。Contact/空 = 只近戰接觸傷害、不掛武器。")]
     public int WeaponId = -1;
@@ -435,6 +445,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         BombFuse = data.BombFuse;
         DropTableId = data.DropTableId;   // 掉落表（留空/0 ＝ 不掉寶）
         MoveTrailFx = data.MoveTrailFx;   // 移動拖尾特效（留空 ＝ 不掛）
+        Controllable = data.Controllable; // 可否被骨牢那類定身抓住（留空＝可以）
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
@@ -546,6 +557,30 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     void Update()
     {
         if (_isDead) return;
+
+        // ── 被定身（骨牢）：只鎖移動、**放行攻擊**（與玩家端 PlayerController.Bound 同一套規則）──
+        // ⚠ 為什麼在這裡而不是在各 Brain 裡：移動是 Brain 透過 Actuator 下的，逐一去改每個 Brain
+        //    一定會漏（而且之後每加一個新 Brain 都要記得處理）。在總入口攔一次才是單一真相。
+        // ⚠ 2026-09-23 起：被關住時**正在揮的那一下播完就回 idle、不再起新的一刀**（作者拍板，見下方〈動作收尾〉）；
+        //    「放行攻擊」剩下的是接觸傷害（EnemyContactDamage，不在這裡）。
+        if (Caged)
+        {
+            if (_rb != null) _rb.velocity = Vector2.zero;
+            // 動作收尾（2026-09-23 作者：「讓怪物把動作播完，然後就變回 idle 等待骨牢破碎再行動」）：
+            // ‧ Brain 用 one-shot 播的揮砍（MeleeChase／LeapSlam）：Think 被跳過，沒人會來 CancelOneShot
+            //   ⇒ 以前會一直定格在最後一幀直到骨牢碎掉。現在播完就由這裡收掉。
+            // ‧ HandleVisuals 自動循環的 attack：轉成 one-shot 播到最後一幀，不會揮到一半被砍斷、也不會一直揮。
+            // 收完之後 HandleVisuals(null)＝不看玩家：不再自動舉刀、也不轉身（籠心跟著翻面會讓籠子跳一下）。
+            // ⚠ 放開後 Brain 自己的「播完了沒」判斷都有時間保底（_phaseUntil／_tEnd），被這裡提前收掉不會卡死。
+            // ⚠ 接觸傷害（EnemyContactDamage）不在這裡，被關住貼身照樣會痛。
+            if (_monAnim != null)
+            {
+                _monAnim.FinishAttackCycle();
+                if (_monAnim.OneShotFinished) _monAnim.CancelOneShot();
+            }
+            HandleVisuals(null);
+            return;
+        }
 
         // 目標（統一查 FactionRelations）：
         //  ‧ enemyTarget＝最近的敵對怪：PlayerAlly 一直找；部族開戰後找（HasMonsterFoes）；其餘 null。

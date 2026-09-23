@@ -487,6 +487,28 @@
           "isScreenEffectRef": false,
           "isPortalList": false,
           "isConditionList": false
+        },
+        {
+          "key": "pause",
+          "type": "Bool",
+          "label": "暫停遊戲",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "textId",
+          "type": "Int",
+          "label": "提示文字(語言表id)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
         }
       ]
     },

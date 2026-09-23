@@ -244,6 +244,11 @@ public class PlayerAbilities
         if (Eff(mode, "SummonCount")) r.SummonCount = Mathf.Max(1, Mathf.RoundToInt(Get(_recipe, "SummonCount").Apply(r.SummonCount)));
         if (Eff(mode, "SummonMaxAlive")) r.SummonMaxAlive = Mathf.Max(1, Mathf.RoundToInt(Get(_recipe, "SummonMaxAlive").Apply(r.SummonMaxAlive)));
         if (Eff(mode, "SummonRadius")) r.SummonRadius = Mathf.Max(0.1f, Get(_recipe, "SummonRadius").Apply(r.SummonRadius));
+        // 骨牢：珠子可以加困住秒數、同時上限、搜尋半徑、崩裂倍率（上限 32 隻是效能保護，不是設計上限）
+        if (Eff(mode, "CageSeconds")) r.CageSeconds = Mathf.Max(0.1f, Get(_recipe, "CageSeconds").Apply(r.CageSeconds));
+        if (Eff(mode, "CageMaxTargets")) r.CageMaxTargets = Mathf.Clamp(Mathf.RoundToInt(Get(_recipe, "CageMaxTargets").Apply(r.CageMaxTargets)), 1, 32);
+        if (Eff(mode, "CageRadius")) r.CageRadius = Mathf.Max(0.5f, Get(_recipe, "CageRadius").Apply(r.CageRadius));
+        if (Eff(mode, "CageBurstMul")) r.CageBurstMul = Mathf.Max(0f, Get(_recipe, "CageBurstMul").Apply(r.CageBurstMul));
         // 集氣時間縮減：表裡存的是百分點（30＝縮短 30%），珠子填固定值就是加百分點；上限 99 免得除零
         if (Eff(mode, "ChargeTimeReduction")) r.ChargeTimeReduction = Mathf.Clamp(Get(_recipe, "ChargeTimeReduction").Apply(r.ChargeTimeReduction), -1000f, 99f);
         // 連擊：珠子加發數；上限 16（一次扣扳機最多 16 發，效能保護）

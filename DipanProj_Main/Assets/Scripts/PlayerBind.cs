@@ -11,13 +11,18 @@ using UnityEngine;
 ///
 /// <para>⚠ <b>刻意不上 `SetExternalHold`</b>：那會把攻擊一起擋掉，而這裡要的正是「只能打、不能跑」。</para>
 ///
-/// <para>⚠ 特效是 <c>Loop=1</c> 的循環特效，**它不會自己消失**——一定要有人呼叫 <see cref="Unbind"/>。
+/// <para>⚠ 牢籠的視覺**不會自己消失**——一定要有人呼叫 <see cref="Unbind"/>。
 /// 為了不讓玩家在「忘了解綁」時永遠卡住，本元件在 <c>OnDisable</c>（換圖／死亡）會自己清乾淨。</para>
+///
+/// <para><b>2026-09-22 換素材</b>：牢籠改用 <see cref="BoneCageVisual"/>（正式的前後夾層骨牢圖 ＋ 生長 shader），
+/// 與怪物端的骨牢武器**共用同一份視覺**。<c>cageVfxId</c> 留空／0 走新的；
+/// 填 VfxTable ID 才走舊的單層循環特效（早期暫代素材 ID 45 是那樣做的，留著當退路）。</para>
 /// </summary>
 [DisallowMultipleComponent]
 public class PlayerBind : MonoBehaviour
 {
-    VfxInstance _cage;
+    VfxInstance _cage;          // 舊路徑：VfxTable 的單層循環特效
+    BoneCageVisual _boneCage;   // 新路徑：前後夾層的正式骨牢
     VfxManager _vfx;
 
     /// <summary>目前是否被束縛。</summary>
@@ -30,8 +35,22 @@ public class PlayerBind : MonoBehaviour
     public void Bind(int cageVfxId, float sizeMul = 1f)
     {
         PlayerController.Bound = true;
+        ClearCage();
 
-        if (cageVfxId <= 0) return;
+        // ── 預設路徑：正式骨牢（前後夾層 ＋ 從地裡長出來）──
+        // 位置與大小都跟著**影子**走（見 BoneCageVisual 檔頭）；怪物端走的是同一份。
+        if (cageVfxId <= 0)
+        {
+            var self = GetComponent<PlayerController>();
+            float h = self != null ? self.VisibleBodyHeight : 2f;
+            if (h <= 0.01f) h = 2f;
+            _boneCage = BoneCageVisual.Spawn(gameObject,
+                h * BoneCageVisual.InnerWidthPerBodyHeight * Mathf.Max(0.01f, sizeMul), h,
+                () => self != null ? self.FeetWorldPos : (Vector2)transform.position);
+            return;
+        }
+
+        // ── 舊路徑：VfxTable 的單層循環特效（暫代素材時期用的，留著當退路）──
         if (_vfx == null) _vfx = Object.FindObjectOfType<VfxManager>();
         if (_vfx == null)
         {
@@ -39,7 +58,6 @@ public class PlayerBind : MonoBehaviour
             return;
         }
 
-        ClearCage();
         // 畫在腳下 ⇒ 對齊 FeetWorldPos，不要用 transform（玩家的 pivot 在腳底所以兩者相同，
         // 但寫成 FeetWorldPos 才不會在之後換 pivot 時默默偏掉）。
         var pc = GetComponent<PlayerController>();
@@ -58,6 +76,7 @@ public class PlayerBind : MonoBehaviour
     {
         if (_cage != null) Destroy(_cage.gameObject);
         _cage = null;
+        if (_boneCage != null) { _boneCage.Dismiss(); _boneCage = null; }
     }
 
     void OnDisable()

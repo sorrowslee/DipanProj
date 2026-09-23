@@ -64,6 +64,16 @@ public class RecipeEntry
     /// 給「一口氣把一整組怪叫齊」的大絕用（紅嫁衣的家人齊聚）；false = 照 SummonCount 隨機抽。</summary>
     public bool SummonEachOnce = false;
 
+    // ── 骨牢（Mode=Cage）──
+    /// <summary>困住幾秒；時間到牢籠崩裂並結算一次傷害。</summary>
+    public float CageSeconds = 5f;
+    /// <summary>這根武器同時最多關住幾隻（關滿就不再施放、也不扣魔）。**能力珠可加**。</summary>
+    public int CageMaxTargets = 1;
+    /// <summary>從玩家身上量，這個半徑內隨機挑一隻還沒被關的怪。</summary>
+    public float CageRadius = 8f;
+    /// <summary>崩裂傷害 = 武器 Damage × 這個倍率。</summary>
+    public float CageBurstMul = 5f;
+
     // ── 近戰 / 突進 ──
     public float MeleeAngle = 100f;
     public float DashDistance = 4f;
@@ -210,6 +220,12 @@ public class RecipeEntry
         e.SummonMaxAlive = In("SummonMaxAlive", 4);
         e.SummonRadius = Fl("SummonRadius", 2f);
         e.SummonEachOnce = Bo("SummonEachOnce", false);
+
+        // ── 骨牢 ──
+        e.CageSeconds = Fl("CageSeconds", 5f);
+        e.CageMaxTargets = In("CageMaxTargets", 1);
+        e.CageRadius = Fl("CageRadius", 8f);
+        e.CageBurstMul = Fl("CageBurstMul", 5f);
 
         // ── 近戰 / 突進 ──
         e.MeleeAngle = Fl("MeleeAngle", 100f);

@@ -138,6 +138,9 @@ public class MonsterSpawner : MonoBehaviour
             // 移動拖尾特效（索引 35，表尾欄）：留空 ＝ 不掛。見 MonsterMoveTrail。
             data.MoveTrailFx = (values.Length > 35 && !string.IsNullOrWhiteSpace(values[35])) ? values[35].Trim() : "";
 
+            // 可被控制（索引 36，表尾欄）：留空 ＝ 可以（既有怪零影響）；填 0 ＝ 免疫骨牢那類定身。
+            data.Controllable = !(values.Length > 36 && values[36].Trim() == "0");
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

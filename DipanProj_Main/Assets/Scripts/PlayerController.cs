@@ -493,12 +493,87 @@ public class PlayerController : MonoBehaviour, IDamageable
         ClearActiveAura();
     }
 
+    // ── 「教學補一發」：見 RequestFireOnce ──
+    float _forceFireUntil;        // 窗口結束時刻（unscaled；0＝目前沒有）
+    bool _forceFirePressedUsed;   // 「按下」的上升緣只給窗口第一幀（不然集氣武器會被重複啟動）
+    bool _forceFireDidFire;       // 這個窗口內真的射出去了嗎（給下面的診斷用）
+    bool _forceFireWarned;        // 診斷訊息一個窗口只印一次
+
+    /// <summary>
+    /// 請求「補一發」：接下來 <paramref name="window"/> 秒內，開火判定一律當成玩家按著開火鍵。
+    ///
+    /// <para>用途是**暫停型教學**（「按下左鍵發射武器」那種，見 <c>PlayerHintPanel</c> 的暫停模式）：
+    /// 教學解除暫停的那一刻玩家往往已經放開左鍵了，而開火判定讀的是 <c>Input.GetMouseButton</c>
+    /// ＝「當下按著沒」而不是「剛剛按過」，於是教學過了卻一發都沒射出去。</para>
+    ///
+    /// <para>⚠ **是一段窗口、不是一幀**（2026-09-22 修）。一幀不夠的兩個理由：
+    /// ① **雷射／佛光這種持續型武器不走 <c>Shoot</c>**（走 <c>UpdateLaser</c>／<c>UpdateAura</c> 的持續路徑），
+    ///    只給一幀等於開一瞬間又關掉，畫面上根本看不出來有發射；
+    /// ② 呼叫端與本 <c>Update</c> 的執行順序不保證誰先誰後，中間還可能卡到載入／面板。</para>
+    ///
+    /// <para>⚠ 也不能做成「一個永久旗標等著被消費」：若這期間玩家開了背包、被別的面板擋住，
+    /// 旗標會一直留著，等他關掉面板才莫名其妙射出一發。所以是**窗口**，過期作廢。</para>
+    /// </summary>
+    public void RequestFireOnce(float window = 0.35f)
+    {
+        _forceFireUntil = Time.unscaledTime + Mathf.Max(0.05f, window);
+        _forceFirePressedUsed = false;
+        _forceFireDidFire = false;
+        _forceFireWarned = false;
+
+        // 一則就好：這段路徑失敗時症狀是「什麼都沒發生」，沒有這行就只能用猜的。
+        var w = (_weaponManager != null) ? _weaponManager.GetCurrentWeapon() : null;
+        string mode = (w != null && w.Recipe != null) ? w.Recipe.Mode.ToString() : "—";
+        Debug.Log($"[PlayerController] 教學補一發：武器={(w != null ? w.Name : "（沒有裝備）")}、模式={mode}、" +
+                  $"可開火={CanFire}、冷卻剩={_fireTimer:0.00}s、窗口={window:0.00}s。");
+    }
+
+    /// <summary>
+    /// 補一發時「射不出來」的診斷。**這種失敗以前完全沒有訊息**——教學照樣往下跑、
+    /// 玩家只看到暫停解除卻什麼都沒發生，從 Console 也查不到原因。
+    /// </summary>
+    void ReportForceFireBlocked(WeaponData weapon)
+    {
+        if (_forceFireWarned) return;
+        if (weapon == null || weapon.Recipe == null)
+        {
+            _forceFireWarned = true;
+            Debug.LogWarning("[PlayerController] 教學要求發射武器，但**現在沒有裝備武器**（或那件武器在 RecipeTable 查不到配方）⇒ 不會有任何東西射出去。");
+            return;
+        }
+        if (MapManager.Instance != null && MapManager.Instance.WeaponDisabled)
+        {
+            _forceFireWarned = true;
+            Debug.LogWarning("[PlayerController] 教學要求發射武器，但**這張地圖設了禁用武器**（MapsTable 的 NoWeapon 欄）⇒ 不會有任何東西射出去。");
+        }
+    }
+
     // ── 發射總入口：雷射走持續光束路徑，其餘走離散發射 ──
     private void HandleFiring()
     {
         WeaponData weapon = (_weaponManager != null) ? _weaponManager.GetCurrentWeapon() : null;
-        bool firing = Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
-        bool firePressed = Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
+
+        // ── 教學「補一發」窗口：這段期間當成玩家按著開火鍵（理由見 RequestFireOnce）──
+        bool forced = _forceFireUntil > 0f && Time.unscaledTime <= _forceFireUntil;
+        bool forcedPressed = false;
+        if (forced)
+        {
+            forcedPressed = !_forceFirePressedUsed;   // 「按下」只算一次，否則集氣武器會被重複啟動
+            _forceFirePressedUsed = true;
+            if (!CanFire) ReportForceFireBlocked(weapon);
+        }
+        else if (_forceFireUntil > 0f)
+        {
+            // 窗口剛結束：什麼都沒射出去的話講清楚，不要靜默失敗。
+            // ⚠ 集氣武器例外：它是「放開才射」，窗口結束那一刻正是放開的瞬間，晚一點才會射出來。
+            if (!_forceFireDidFire && !_forceFireWarned && !_isCharging && CanFire)
+                Debug.LogWarning("[PlayerController] 教學要求發射武器，整段窗口都沒射出去——" +
+                                 "常見原因是技能還在冷卻中、或魔力不足（兩者都不會有錯誤訊息）。");
+            _forceFireUntil = 0f;
+        }
+
+        bool firing = forced || Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
+        bool firePressed = forcedPressed || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
 
         // 放開開火 → 解除攻擊姿勢的「持有」。⚠ 這只是解除持有，**動畫不會被切斷**：
         // HandleVisuals 還會看 IsAttackPlaying，所以點一下也一定看得到完整的攻擊動作。
@@ -533,12 +608,14 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (isLaser)
         {
             UpdateLaser(weapon, firing);
+            if (forced && IsContinuousFireActive) _forceFireDidFire = true;   // 持續型不走 Shoot，另外認定
             return;
         }
 
         if (isAura)
         {
             UpdateAura(weapon, firing);
+            if (forced && IsContinuousFireActive) _forceFireDidFire = true;
             return;
         }
 
@@ -568,7 +645,10 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (firing && _fireTimer <= 0)
         {
             if (Shoot(firePressed))
+            {
                 TriggerAttackPose();   // 真的發射出去才擺攻擊動作
+                if (forced) _forceFireDidFire = true;
+            }
         }
         else if (_fireTimer > 0f && firePressed)
             ShowSkillAlert("技能正在冷卻中");
@@ -936,6 +1016,36 @@ public class PlayerController : MonoBehaviour, IDamageable
             if (!burstShot && _stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
             TrySpawnFireEffect(weapon, AimDirectionToMouse());
             SummonSystem.Cast(gameObject, transform.position, weapon.Recipe, _summonAlive, MonsterFaction.PlayerAlly, weapon.SummonEffectID);
+            AfterShot(weapon, burstShot);
+            return true;
+        }
+
+        // 骨牢：不發射子彈、不需要 BulletPrefab。隨機挑半徑內一隻沒被關的怪關起來，
+        // 時間到由 MonsterCage 崩裂並結算傷害（見 MonsterCage）。
+        if (weapon.Recipe.Mode == WeaponMode.Cage)
+        {
+            if (MonsterCage.ActiveCount >= weapon.Recipe.CageMaxTargets)
+            {
+                if (pressed) ShowSkillAlert("骨牢數已達上限");
+                return false;
+            }
+            MonsterController victim = PickCageVictim(weapon.Recipe.CageRadius);
+            if (victim == null)
+            {
+                if (pressed) ShowSkillAlert("畫面上沒有可以困住的目標");
+                return false;
+            }
+            // 扣魔放在「確定關得住」之後：關不成卻扣了魔，玩家只會覺得武器壞掉（同召喚的處理）。
+            if (!burstShot && _stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
+            float cageDamage = weapon.Damage * weapon.Recipe.CageBurstMul;
+            // ⚠ 這裡要把 BulletScale（武器工坊上的「牢籠大小」）傳下去——
+            //    WeaponModeSpec 宣告了 Cage 吃這一欄，程式不讀的話那個旋鈕就是死的（第一版的漏）。
+            if (!MonsterCage.Cage(victim, gameObject, weapon.Recipe.CageSeconds, cageDamage, weapon.BulletScale))
+            {
+                Debug.LogWarning("[Cage] 挑到的目標關不住（狀態在這一幀之間變了？），這次施放取消。");
+                return false;
+            }
+            TrySpawnFireEffect(weapon, AimDirectionToMouse());
             AfterShot(weapon, burstShot);
             return true;
         }
@@ -1379,6 +1489,59 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // 統一傷害入口：所有武器命中都走中央 CombatSystem（玩家加成 → 目標減傷 → 結算）。
     // 來源 = 玩家本身（讓玩家的傷害加成生效）；牆等無 IDamageable 者由 CombatSystem 自動略過。見 readme/COMBAT.md
+    /// <summary>骨牢的候選名單（重用，避免每次施放都配置）。</summary>
+    readonly System.Collections.Generic.List<MonsterController> _cageCandidates
+        = new System.Collections.Generic.List<MonsterController>();
+
+    /// <summary>
+    /// 從半徑內隨機挑一隻可以關的怪；沒有就回 null。
+    ///
+    /// <para>⚠ **不用 <c>Physics2D.OverlapCircle</c>**：專案全域 <c>queriesStartInColliders = false</c>，
+    /// 它會略過「重疊在查詢起點」的 collider，貼身的怪反而抓不到（見 PROBLEMS <b>B7</b>）。
+    /// 走 <c>MonsterController.Active</c> 登記表才是這個專案的正解。</para>
+    ///
+    /// <para>排除自己的召喚物（PlayerAlly）與中立（NPC）——關住自家友軍或村民都只會讓人困惑。</para>
+    ///
+    /// <para>⚠ **只挑畫面內看得到的**（作者 2026-09-23 拍板）：半徑內隨機本身沒錯，但玩家看不到
+    /// 畫面外發生了什麼——按下去沒反應，等於這一發是白放的。實測時就是隨機挑中了畫面外的巨劍兵，
+    /// 看起來像「骨牢對不準畫面上那隻怪」，其實是關在另一隻身上。</para>
+    /// </summary>
+    private MonsterController PickCageVictim(float radius)
+    {
+        Vector2 origin = transform.position;   // 判定對齊碰撞而不是腳底（PROBLEMS B13）
+        float r2 = radius * radius;
+        var cam = Camera.main;
+
+        _cageCandidates.Clear();
+        var all = MonsterController.Active;
+        for (int i = 0; i < all.Count; i++)
+        {
+            var m = all[i];
+            if (m == null || m.IsDead) continue;
+            if (!m.Controllable || m.Caged) continue;
+            if (m.Faction == MonsterFaction.PlayerAlly || m.Faction == MonsterFaction.Neutral) continue;
+            if (((Vector2)m.transform.position - origin).sqrMagnitude > r2) continue;
+            if (!IsOnScreen(cam, m)) continue;
+            _cageCandidates.Add(m);
+        }
+        if (_cageCandidates.Count == 0) return null;
+        return _cageCandidates[Random.Range(0, _cageCandidates.Count)];
+    }
+
+    /// <summary>
+    /// 這隻怪現在看得到嗎（視埠內，四周留一點邊免得挑到只露半個身體的）。
+    /// 取不到相機時一律回 true——寧可放行也不要讓武器整個放不出來。
+    /// </summary>
+    private static bool IsOnScreen(Camera cam, MonsterController m)
+    {
+        if (cam == null || m == null) return true;
+        const float Margin = 0.04f;   // 視埠比例；約是畫面寬/高的 4%
+        Vector3 vp = cam.WorldToViewportPoint(m.BodyCenterWorldPos);
+        if (vp.z < 0f) return false;  // 在相機後面
+        return vp.x >= Margin && vp.x <= 1f - Margin
+            && vp.y >= Margin && vp.y <= 1f - Margin;
+    }
+
     private void ApplyDamage(GameObject target, float damage, Vector2 hitDir)
     {
         CombatSystem.Apply(gameObject, target, damage, hitDir);
