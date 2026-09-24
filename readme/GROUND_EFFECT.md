@@ -12,6 +12,11 @@
   * `DamageInterval = 0`：生成瞬間單次爆裂；`> 0`：每 N 秒週期 DOT
   * `Duration = -1`：永久存在直到外部銷毀
   * `TileSize`：單個 tile 的世界尺寸（同時是格子間距），預設 1
+* **目前的表（2026-09-24）**：2 佛光（Glow）／3 虛空吞口／6 冰封法陣／7 死字咒／**8 焚地（火焰燃燒）**／**9 焚地(大)**（半徑 2.13，同一組圖，只給旱魃的焚天火雨；後五個都是 Single）。
+  * **ID 1「火焰燃燒」已刪除**（2026-09-24，作者嫌醜）：它是 Tile 模式，把一張 256×512 直立火焰一格一格鋪滿圓，看起來像插滿蠟燭。
+    改用 **ID 8**（AI 程序化自繪的像素風圓形地火：焦黑地面＋岩漿裂紋＋外圈火環，12 幀循環、Single 模式），
+    原本引用 1 的配方 10／11／12 與旱魃的 61 全部改指 8。舊素材 `GroundEffect/fireGround/` 移到專案根目錄 `_to_delete/GroundEffect_fireGround/`。
+  * ⚠ **編號 1 不要重用**（舊文件、PROGRESS 還會提到「GroundEffect 1」＝那組舊火焰）。
 * `Assets/Resources/Prefabs/GroundEffect/GroundEffect.prefab`：渲染容器（純 SpriteRenderer + GroundEffectInstance）。Prefab 上的 SpriteRenderer 只當 `sortingLayer / sortingOrder / material` 範本，自身不顯示任何 sprite
 
 ## 鏈式觸發

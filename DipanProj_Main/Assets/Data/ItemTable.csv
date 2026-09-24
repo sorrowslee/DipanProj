@@ -86,4 +86,4 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 35,枯骨牢杖,Weapon,Weapon,Weapon/single/weapon_bonestaff,1,骨杖,傷害 4　困住一隻敵人，牢籠崩裂時重創,杖頭那截指骨，至今仍記得攥緊時的力道。,35,,,,,,,,
 69,焚獄炎杖,Weapon,Weapon,Weapon/single/weapon_firestaff,1,炎杖,傷害 5　五道地火追蹤敵人、命中處燃燒,杖尖一點，大地便替它把路燒出來。,69,,,,,,,,
 70,血鳴古鐘,Weapon,Weapon,Weapon/single/weapon_ancientbell,1,古鐘,傷害 10　鐘聲一路直線炸開、穿透所有敵人,鐘響一聲，血便碎成一地。,70,,,,,,,,
-71,魔狼爪,Weapon,Weapon,Weapon/single/weapon_wolfclaw,1,狼爪,傷害 8　一次揮出三道焰刃、穿透敵人、命中處燃燒,魔狼一抓，傷口裡燒的是牠吞下的月光。,71,,,,,,,,
+71,魔狼爪,Weapon,Weapon,Weapon/single/weapon_wolfclaw,1,狼爪,傷害 8　一次揮出五道焰刃、穿透敵人、命中爆出火焰,魔狼一抓，傷口裡燒的是牠吞下的月光。,71,,,,,,,,

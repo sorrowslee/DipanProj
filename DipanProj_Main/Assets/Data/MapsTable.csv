@@ -25,5 +25,5 @@ ID,Name,Module,Path,IsLevelStart,MapMode,Atmosphere(1正常/2幽暗+打光/3噩�
 24,BloodFang_ArmoryRoom,BloodFang,Modules/BloodFang/Maps/BloodFang_ArmoryRoom.dipanmap,0,2,17,0,,0,,,
 25,BloodFang_TrainingGround,BloodFang,Modules/BloodFang/Maps/BloodFang_TrainingGround.dipanmap,0,2,1,0,,0,,,
 26,BloodFang_GrandCamp,BloodFang,Modules/BloodFang/Maps/BloodFang_GrandCamp.dipanmap,0,2,17,0,,0,,,
-27,DreamTutorial_Cave,DreamTutorial,Modules/DreamTutorial/Maps/DreamTutorial_Cave.dipanmap,1,2,,,,,,,
+27,DreamTutorial_Cave,DreamTutorial,Modules/DreamTutorial/Maps/DreamTutorial_Cave.dipanmap,1,2,,,,1,,,
 28,DreamTutorial_Square,DreamTutorial,Modules/DreamTutorial/Maps/DreamTutorial_Square.dipanmap,0,2,5,,,,,,

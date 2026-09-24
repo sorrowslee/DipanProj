@@ -154,7 +154,7 @@ ID=9 Name=火焰環繞彈 Mode=Orbital FireInterval=0.3 Speed=4 Radius=0.1 LifeT
 - `RotationSpeed` 仍有效（翻滾炸彈）。穿透／反彈／追蹤對它無意義。
 
 ```
-ID=12 Name=玩家丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 FlightTime=1 ArcHeight=2.5 LandingScatterRadius=3 AreaRadius=1.5 GroundEffectID=1 GroundEffectHitTarget=Ground
+ID=12 Name=玩家丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 FlightTime=1 ArcHeight=2.5 LandingScatterRadius=3 AreaRadius=1.5 GroundEffectID=8 GroundEffectHitTarget=Ground
 ID=13 Name=螢幕外丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 SpreadCount=10 SpreadAngle=60 FlightTime=1 ArcHeight=2.5 LaunchSource=Offscreen LandingScatterRadius=3 AreaRadius=1.5
 ```
 

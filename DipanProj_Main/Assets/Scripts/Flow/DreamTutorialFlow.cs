@@ -83,7 +83,7 @@ namespace Dipan.Flow
         /// 每次新建角色都隨機會很難重現同一個情境，測某個血統的立繪／外型時把它填上就固定了。
         /// ⚠ 不為 0 時每次開場都會在 Console 印一則黃色警告提醒，測完記得改回 0。
         /// </summary>
-        const int DebugForceBloodlineId = 0;    // 0 = 正常隨機；要固定測某個血統就填它的 id（例：82 = 蟲皇）
+        const int DebugForceBloodlineId = 32;    // 0 = 正常隨機；要固定測某個血統就填它的 id（例：82 = 蟲皇）
 
         /// <summary>
         /// 等「玩家外觀換成該血統」的上限。

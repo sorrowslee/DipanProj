@@ -19,7 +19,7 @@ Editor-only：`Assets/Editor/WeaponWorkbench.cs`，不進 build。
 
 ## 二、範例：做一把「打中敵人會起火的飛劍」
 
-新增 → 外型選 `單張 Weapon › single › weapon_sword` → `SpriteAngleOffset` 填 135（劍尖朝右上）→ 配方 `Mode` 留一般子彈 → `Speed 20`、`PierceCount 1` → `GroundEffectID` 下拉選「1 火焰燃燒」→ `HitEffectID` 下拉選一個爆點 → 射一發。要三分裂就 `SpreadCount 3`、`SpreadAngle 60`；要追蹤 `HomingTurnSpeed 180`。滿意了按儲存。
+新增 → 外型選 `單張 Weapon › single › weapon_sword` → `SpriteAngleOffset` 填 135（劍尖朝右上）→ 配方 `Mode` 留一般子彈 → `Speed 20`、`PierceCount 1` → `GroundEffectID` 下拉選「8 焚地(火焰燃燒)」→ `HitEffectID` 下拉選一個爆點 → 射一發。要三分裂就 `SpreadCount 3`、`SpreadAngle 60`；要追蹤 `HomingTurnSpeed 180`。滿意了按儲存。
 
 ## 三、它動到哪些程式
 
