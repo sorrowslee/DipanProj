@@ -14,6 +14,9 @@ namespace Sorrows.Ballistics
     [HideInInspector] public LayerMask NonBounceLayers;
     [HideInInspector] public int PierceCount = 0;
     [HideInInspector] public float SpriteAngleOffset = 0f;
+    // 往左飛（Velocity.x < 0）時把圖上下翻轉：有「上下之分」的子彈圖（骷髏鬼頭…）跟著飛行角度轉 180° 會變倒立。
+    // 只在 SpriteAngleOffset != 0（有跟著飛行方向轉）時才有意義。分裂子彈由 Instantiate 複製母彈而繼承。
+    [HideInInspector] public bool FlipYWhenMovingLeft = false;
     [HideInInspector] public Sprite[] AnimationSprites;
     [HideInInspector] public float AnimFPS;
     // 軌跡點間距（世界單位）：> 0 時每飛這麼遠就觸發一次 OnTrailPoint。0 = 不產生軌跡。
@@ -24,6 +27,26 @@ namespace Sorrows.Ballistics
         public Action<BulletInstance, Vector2> OnGroundLanded;
         // 沿飛行路徑每隔 TrailStep 距離回報一次「經過此點」。彈道系統不知道種的是什麼（尖刺/火痕…），由主遊戲決定。
         public Action<BulletInstance, Vector2> OnTrailPoint;
+
+        /// <summary>FlipYWhenMovingLeft 用：水平速度往左就上下翻轉圖（x ≈ 0 時維持上一次的狀態，避免垂直飛行時抖動）。</summary>
+        public void ApplyFacingFlip(float velocityX)
+        {
+            if (Mathf.Abs(velocityX) < 0.0001f) return;
+            if (_sr == null) _sr = GetComponent<SpriteRenderer>();
+            if (_sr != null) _sr.flipY = velocityX < 0f;
+        }
+
+        /// <summary>
+        /// 重疊中的碰撞體是否在子彈「背後或側邊」（子彈沒有往它裡面鑽）。
+        /// 子彈中心本身就在碰撞體裡（ClosestPoint＝自己）時回 false ⇒ 照舊算命中（生在牆裡本來就該撞）。
+        /// </summary>
+        static bool IsBehindOverlap(Collider2D col, Vector2 pos, Vector2 moveDir)
+        {
+            if (moveDir.sqrMagnitude < 1e-8f) return false;
+            Vector2 toSurface = col.ClosestPoint(pos) - pos;
+            if (toSurface.sqrMagnitude < 1e-8f) return false;
+            return Vector2.Dot(toSurface, moveDir) <= 0f;
+        }
 
         public void RaiseGroundLanded(Vector2 landPos)
         {
@@ -57,7 +80,15 @@ namespace Sorrows.Ballistics
         // 生成時檢查起點周圍是否已有目標（處理 CircleCast 起點在 Collider 內部偵測不到的問題）
         public void CheckSpawnOverlap()
         {
-            Collider2D col = Physics2D.OverlapCircle((Vector2)transform.position, Radius, CollisionMask);
+            // 取「第一個不在背後」的重疊物：判定半徑大的子彈（餓鬼牙符 1.6）貼牆往外射時，
+            // 圓圈會蓋到背後那面牆，不排除就會一出生就撞牆自爆（見 PROBLEMS F31）。
+            Vector2 pos = transform.position;
+            Collider2D col = null;
+            foreach (var c in Physics2D.OverlapCircleAll(pos, Radius, CollisionMask))
+            {
+                if (c == null || IsBehindOverlap(c, pos, Velocity)) continue;
+                col = c; break;
+            }
             if (col == null) return;
 
             int id = col.gameObject.GetInstanceID();
@@ -92,6 +123,17 @@ namespace Sorrows.Ballistics
                 Vector2 dir = Velocity.normalized;
                 // 🟢 使用 CircleCast 代替 Raycast，增加判定面積
                 RaycastHit2D hit = Physics2D.CircleCast(currentPos, Radius, dir, frameDist, CollisionMask);
+                // 起點就重疊（distance 0）而且那個東西在背後 ⇒ 子彈正在離開它，不算命中；改找這一步路上第一個真正擋路的。
+                if (hit.collider != null && hit.distance <= 0f && IsBehindOverlap(hit.collider, currentPos, dir))
+                {
+                    hit = default;
+                    foreach (var h in Physics2D.CircleCastAll(currentPos, Radius, dir, frameDist, CollisionMask))
+                    {
+                        if (h.collider == null) continue;
+                        if (h.distance <= 0f && IsBehindOverlap(h.collider, currentPos, dir)) continue;
+                        hit = h; break;
+                    }
+                }
 
                 if (hit.collider != null)
                 {
@@ -142,6 +184,7 @@ namespace Sorrows.Ballistics
             {
                 float angle = Mathf.Atan2(Velocity.y, Velocity.x) * Mathf.Rad2Deg;
                 transform.rotation = Quaternion.Euler(0, 0, angle + SpriteAngleOffset);
+                if (FlipYWhenMovingLeft) ApplyFacingFlip(Velocity.x);
             }
 
             // 安全網：任何來源算出非有限（NaN/Inf）的速度都會讓 transform.position 變 NaN 並每幀狂洗 console。

@@ -781,7 +781,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             ID = source.ID, Name = source.Name, Damage = source.Damage * 3f, ManaCost = source.ManaCost,
             RecipeID = source.RecipeID, WeaponSpritePath = source.WeaponSpritePath,
-            SpriteAngleOffset = source.SpriteAngleOffset, WeaponAniPath = source.WeaponAniPath,
+            SpriteAngleOffset = source.SpriteAngleOffset, FlipYWhenLeft = source.FlipYWhenLeft, HitEffectAlignBullet = source.HitEffectAlignBullet, WeaponAniPath = source.WeaponAniPath,
             WeaponAniNumber = source.WeaponAniNumber, AnimFPS = source.AnimFPS,
             BulletScale = source.BulletScale * 2f, CastVisualScale = 2f,
             BeamStyle = source.BeamStyle, BeamColor = source.BeamColor, BeamWidth = source.BeamWidth * 2f,
@@ -1609,7 +1609,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             BallisticsEngine.Spawn(sub, prefab, point, dir,
                 collisionMask, pierceableLayers, nonBounceLayers,
                 (b, t2, h) => HandleBulletHit(fw, b, t2, h),
-                fw.WeaponSprite, fw.SpriteAngleOffset, scale, fw.WeaponSprites, fw.AnimFPS);
+                fw.WeaponSprite, fw.SpriteAngleOffset, scale, fw.WeaponSprites, fw.AnimFPS,
+                flipYWhenMovingLeft: fw.FlipYWhenLeft);
         }
     }
 
@@ -1683,7 +1684,7 @@ public class PlayerController : MonoBehaviour, IDamageable
                 collisionMask, pierceableLayers, nonBounceLayers,
                 null, // 拋物線不走 OnHit 流程
                 weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos));
+                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos), flipYWhenMovingLeft: weapon.FlipYWhenLeft);
 
             if (bullet == null) continue;
 
@@ -1749,7 +1750,7 @@ public class PlayerController : MonoBehaviour, IDamageable
                 collisionMask, pierceableLayers, nonBounceLayers,
                 (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
                 weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos));
+                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos), flipYWhenMovingLeft: weapon.FlipYWhenLeft);
 
             if (bullet != null)
             {
@@ -2084,7 +2085,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
         TryTriggerGroundEffect(firedWeapon.Recipe, spawnPos, hitEnemy, hitEnv, false);
-        TrySpawnHitEffect(firedWeapon, spawnPos, hitEnemy);
+        TrySpawnHitEffect(firedWeapon, spawnPos, hitEnemy, bullet);
         TryTriggerSubWeapon(firedWeapon, bullet, hit, spawnPos, hitEnemy, hitEnv);
     }
 
@@ -2149,7 +2150,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             collisionMask, pierceableLayers, nonBounceLayers,
             (b, t, h) => HandleBulletHit(fired, b, t, h),
             subWeapon.WeaponSprite, subWeapon.SpriteAngleOffset, scale, subWeapon.WeaponSprites, subWeapon.AnimFPS,
-            (b, p) => TrySpawnTrailEffect(fired, p));
+            (b, p) => TrySpawnTrailEffect(fired, p), flipYWhenMovingLeft: subWeapon.FlipYWhenLeft);
     }
 
     private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)
@@ -2245,11 +2246,20 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// ⚠ 打到牆／地上物、以及「落地爆炸／施放點」這種不是打在怪身上的視覺一律傳 false 照常播——
     /// 那不是「攻擊到怪物」，讓位會讓回饋憑空消失。見 readme/BLOODLINE.md §5c。
     /// </summary>
-    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos, bool hitEnemy = false)
+    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos, bool hitEnemy = false, BulletInstance bullet = null)
     {
         if (_vfxManager == null || firedWeapon == null || firedWeapon.HitEffectID <= 0) return;
         if (hitEnemy && BloodlineHitFx.HasEffect) return;
-        _vfxManager.Spawn(firedWeapon.HitEffectID, pos, 0f, firedWeapon.CastVisualScale);
+        // HitEffectAlignBullet：命中圖有方向性（餓鬼牙符的咬合）時，照子彈當下的角度與上下翻轉生成，否則永遠朝右。
+        bool align = firedWeapon.HitEffectAlignBullet && bullet != null;
+        float angle = align ? bullet.transform.eulerAngles.z : 0f;
+        VfxInstance vfx = _vfxManager.Spawn(firedWeapon.HitEffectID, pos, angle, firedWeapon.CastVisualScale);
+        if (align && vfx != null)
+        {
+            var bulletSr = bullet.GetComponent<SpriteRenderer>();
+            var vfxSr = vfx.GetComponent<SpriteRenderer>();
+            if (bulletSr != null && vfxSr != null) vfxSr.flipY = bulletSr.flipY;
+        }
     }
 
     /// <summary>這個物件是不是站在怪物層（連鎖／AOE 的目標可能是怪，也可能是可破壞地上物）。</summary>

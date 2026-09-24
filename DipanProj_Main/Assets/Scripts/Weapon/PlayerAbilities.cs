@@ -289,7 +289,7 @@ public class PlayerAbilities
     {
         ID = s.ID, Name = s.Name, Damage = s.Damage, ManaCost = s.ManaCost,
         RecipeID = s.RecipeID, WeaponSpritePath = s.WeaponSpritePath,
-        SpriteAngleOffset = s.SpriteAngleOffset, WeaponAniPath = s.WeaponAniPath,
+        SpriteAngleOffset = s.SpriteAngleOffset, FlipYWhenLeft = s.FlipYWhenLeft, HitEffectAlignBullet = s.HitEffectAlignBullet, WeaponAniPath = s.WeaponAniPath,
         WeaponAniNumber = s.WeaponAniNumber, AnimFPS = s.AnimFPS,
         BulletScale = s.BulletScale, CastVisualScale = s.CastVisualScale,
         BeamStyle = s.BeamStyle, BeamColor = s.BeamColor, BeamWidth = s.BeamWidth,

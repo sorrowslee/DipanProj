@@ -1,8 +1,8 @@
-ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每次 DOT；Summon 不用/空=1),RecipeID(配方 ID),ManaCost(耗魔/離散每發／持續型每秒/空=1),WeaponSpritePath(子彈圖路徑/相對 Resources、不含副檔名；與 WeaponAniPath 二擇一；留空＝隱形子彈),SpriteAngleOffset(圖片角度補正（度）/空=0),WeaponAniPath(序列圖前綴),WeaponAniNumber(序列圖張數/空=0),AnimFPS(序列圖幀率/空=0),BulletScale(施放大小/子彈變大；近戰／突進／法陣／落雷／佛光／拋物線爆炸＝範圍與視覺一起放大（須彌珠改這欄）；雷射與連鎖不吃（粗細看 BeamWidth）/空=1),BeamStyle(雷射種類/1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光/空=2),BeamColor(雷射顏色/1紅2橙3黃4綠5青6藍7紫8洋紅9白10琥珀金/空=9),BeamWidth(雷射粗細/視覺與命中共用/空=0.5),PixelBeamSet(像素雷射素材組/留空＝shader 雷射；A_Blue),FireEffectID(發射特效 ID/VfxTable；發射時在玩家身上播/空=0),HitEffectID(擊中特效 ID/VfxTable；命中點播/空=0),TrailEffectID(軌跡特效 ID/VfxTable；配合配方 TrailStep 沿路種/空=0),SummonEffectID(召喚特效 ID/VfxTable；每個生怪點播一次/空=0)
+ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每次 DOT；Summon 不用/空=1),RecipeID(配方 ID),ManaCost(耗魔/離散每發／持續型每秒/空=1),WeaponSpritePath(子彈圖路徑/相對 Resources、不含副檔名；與 WeaponAniPath 二擇一；留空＝隱形子彈),SpriteAngleOffset(圖片角度補正（度）/空=0),WeaponAniPath(序列圖前綴),WeaponAniNumber(序列圖張數/空=0),AnimFPS(序列圖幀率/空=0),BulletScale(施放大小/子彈變大；近戰／突進／法陣／落雷／佛光／拋物線爆炸＝範圍與視覺一起放大（須彌珠改這欄）；雷射與連鎖不吃（粗細看 BeamWidth）/空=1),BeamStyle(雷射種類/1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光/空=2),BeamColor(雷射顏色/1紅2橙3黃4綠5青6藍7紫8洋紅9白10琥珀金/空=9),BeamWidth(雷射粗細/視覺與命中共用/空=0.5),PixelBeamSet(像素雷射素材組/留空＝shader 雷射；A_Blue),FireEffectID(發射特效 ID/VfxTable；發射時在玩家身上播/空=0),HitEffectID(擊中特效 ID/VfxTable；命中點播/空=0),TrailEffectID(軌跡特效 ID/VfxTable；配合配方 TrailStep 沿路種/空=0),SummonEffectID(召喚特效 ID/VfxTable；每個生怪點播一次/空=0),FlipYWhenLeft(往左飛時上下翻轉/1＝往左飛時把圖上下翻；有上下之分的子彈圖用（骷髏頭…）/空=0),HitEffectAlignBullet(擊中特效跟子彈方向/1＝擊中特效照子彈當下角度與上下翻轉生成（有方向性的命中圖用）；空=0＝一律 0 度)
 # ── 通用：ID / Name / Damage / RecipeID / ManaCost,,,,,,,,,,,,,,,,,,
-# ── 子彈外觀：WeaponSpritePath / SpriteAngleOffset / WeaponAniPath / WeaponAniNumber / AnimFPS / BulletScale,,,,,,,,,,,,,,,,,,
+# ── 子彈外觀：WeaponSpritePath / SpriteAngleOffset / FlipYWhenLeft / WeaponAniPath / WeaponAniNumber / AnimFPS / BulletScale,,,,,,,,,,,,,,,,,,
 # ── 光束外觀：BeamStyle / BeamColor / BeamWidth / PixelBeamSet,,,,,,,,,,,,,,,,,,
-# ── 特效：FireEffectID / HitEffectID / TrailEffectID / SummonEffectID,,,,,,,,,,,,,,,,,,
+# ── 特效：FireEffectID / HitEffectID / HitEffectAlignBullet / TrailEffectID / SummonEffectID,,,,,,,,,,,,,,,,,,
 1,3分裂追蹤飛劍,1,8,1,Weapon/single/weapon_sword,134,,,,3.9,,,,,,2,,
 2,5分裂反彈彎刀,2,5,1,Weapon/single/weapon_scimitar,0,,,,,,,,,,,,
 3,火焰環繞彈,2,9,1,,0,Weapon/animation/fire/fire,6,12,5,,,,,,,,
@@ -42,3 +42,16 @@ ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每�
 69,焚獄炎杖,5,70,0,,,,,,,,,,,,17,48,
 70,血鳴古鐘,10,71,0,,,,,,,,,,,,,49,
 71,魔狼爪,8,72,0,,360,Weapon/animation/magicWolfSlash/magicWolfSlash,6,15,16,,,,,,17,,
+36,血滴子,3,73,1.5,,360,Weapon/animation/bloodSawblade/bloodSawblade,8,20,7.5,,,,,,51,,
+37,引魂幡,2,74,2,,360,Weapon/animation/soulBannerSkull/soulBannerSkull,10,15,8.4,,,,,,56,,,1
+38,餓鬼牙符,5,75,1.5,,360,Weapon/animation/hungryGhostFang/hungryGhostFang,12,15,17.2,,,,,,52,,,1,1
+39,玄冰針匣,2,76,1.5,,360,Weapon/animation/iceNeedle/iceNeedle,8,15,3.9,,,,,,2,,
+40,柳葉飛刀,1.5,77,1,,360,Weapon/animation/willowKnife/willowKnife,16,24,8.25,,,,,,,,
+41,飛蝗石,1,78,0.5,,360,Weapon/animation/locustStone/locustStone,8,15,4,,,,,,53,,
+42,掌心雷,4,79,2.5,,360,Weapon/animation/palmThunderOrb/palmThunderOrb,8,15,8,,,,,,54,,
+48,掌心雷電弧(子武器),1.5,80,0,,360,Weapon/animation/thunderSpark/thunderSpark,16,20,4,,,,,,,,
+43,無間輪,4,81,3,,360,Weapon/animation/avichiWheel/avichiWheel,40,20,8.55,,,,,,,,
+44,落星羅盤,7,82,3,,360,Weapon/animation/fallingMeteor/fallingMeteor,8,15,9.4,,,,,,43,,
+45,屍毒葫蘆,2,83,2,,360,Weapon/animation/corpsePoisonBlob/corpsePoisonBlob,14,15,8.4,,,,,,,,
+46,霹靂火彈,6,84,2.5,Weapon/single/weapon_thunderbomb,,,,,2,,,,,,55,,
+47,八卦護身印,2,85,2,,360,Weapon/animation/baguaSeal/baguaSeal,24,15,7.05,,,,,,,,

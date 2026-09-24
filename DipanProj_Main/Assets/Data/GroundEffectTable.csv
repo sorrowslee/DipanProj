@@ -5,3 +5,4 @@ ID, Name    , Radius, Duration, DamageInterval, Damage, AniPath                 
 7, 死字咒, 2.2, 3.33, 0, 1, GroundEffect/DeathSeal/DeathSeal, 50, 15, 1, Single
 8, 焚地(火焰燃燒),  1.6, 3, 0.5, 1, GroundEffect/ScorchedGround/ScorchedGround, 12, 12, 1, Single
 9, 焚地(大・旱魃焚天火雨), 2.13, 3, 0.5, 1, GroundEffect/ScorchedGround/ScorchedGround, 12, 12, 1, Single
+10,屍毒雲(屍毒葫蘆),3.0,2.1,0.35,1,GroundEffect/CorpsePoison/CorpsePoison,17,8,1,Single,,

@@ -64,11 +64,11 @@ namespace Sorrows.Ballistics
             return beam;
         }
 
-        public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null, Func<IBulletBehavior> extraBehavior = null)
+        public static BulletInstance Spawn(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Sprite bulletSprite = null, float spriteAngleOffset = 0f, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null, Func<IBulletBehavior> extraBehavior = null, bool flipYWhenMovingLeft = false)
         {
             // hideIfNoSprite=true：初始發射時若沒給圖 = 隱形子彈（地刺/火焰噴射器的隱形載體）。
             // 分裂子彈走 Internal_SpawnSplit（hideIfNoSprite=false），保留從母彈複製來的圖、不被清空。
-            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset, scale, animationSprites, animFPS, onTrailPoint, true, extraBehavior);
+            return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, bulletSprite, spriteAngleOffset, scale, animationSprites, animFPS, onTrailPoint, true, extraBehavior, flipYWhenMovingLeft);
         }
 
         internal static BulletInstance Internal_SpawnSplit(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers = default, LayerMask nonBounceLayers = default, Action<BulletInstance, GameObject, RaycastHit2D> onHit = null, Vector3 scale = default, Action<BulletInstance, Vector2> onTrailPoint = null)
@@ -80,7 +80,7 @@ namespace Sorrows.Ballistics
             return Internal_Create(def, prefab, position, direction, collisionMask, pierceableLayers, nonBounceLayers, onHit, null, 0f, scale, null, 0f, onTrailPoint, false, inherit);
         }
 
-        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null, bool hideIfNoSprite = false, Func<IBulletBehavior> extraBehavior = null)
+        private static BulletInstance Internal_Create(ProjectileData def, GameObject prefab, Vector2 position, Vector2 direction, LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers, Action<BulletInstance, GameObject, RaycastHit2D> onHit, Sprite bulletSprite, float spriteAngleOffset, Vector3 scale = default, Sprite[] animationSprites = null, float animFPS = 0f, Action<BulletInstance, Vector2> onTrailPoint = null, bool hideIfNoSprite = false, Func<IBulletBehavior> extraBehavior = null, bool flipYWhenMovingLeft = false)
         {
             GameObject go = UnityEngine.Object.Instantiate(prefab, position, Quaternion.identity);
             BulletInstance instance = go.GetComponent<BulletInstance>();
@@ -110,6 +110,9 @@ namespace Sorrows.Ballistics
 
                 if (spriteAngleOffset != 0f)
                     instance.SpriteAngleOffset = spriteAngleOffset;
+                // 分裂子彈傳 false：保留 Instantiate 從母彈複製來的值（與 SpriteAngleOffset 同理）
+                if (flipYWhenMovingLeft)
+                    instance.FlipYWhenMovingLeft = true;
 
                 // scale 在 OnSpawn 之前套用，確保分裂彈生成子彈時能讀到正確的縮放值
                 if (scale != default)
@@ -128,6 +131,7 @@ namespace Sorrows.Ballistics
                 {
                     float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
                     go.transform.rotation = Quaternion.Euler(0, 0, angle + instance.SpriteAngleOffset);
+                    if (instance.FlipYWhenMovingLeft) instance.ApplyFacingFlip(direction.x);
                 }
                 
                 foreach (var b in def.CreateBehaviors())

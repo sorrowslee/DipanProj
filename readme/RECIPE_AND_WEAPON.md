@@ -99,6 +99,16 @@
 > 真的想讓圖不旋轉（圓形光球、炸彈）才填 0 或留空。
 > 既有武器裡 `SpriteAngleOffset=0` 又有子彈圖的還有 **ID 2 彎刀／4 炸彈／11 蜂巢／13 御靈水晶**，它們目前都不旋轉。
 
+**往左飛會倒立 → `FlipYWhenLeft=1`**（WeaponTable，2026-09-24 新增）：圖跟著飛行角度轉，往左飛＝轉 180°，
+有「上下之分」的圖（骷髏鬼頭、人臉…）就會頭下腳上。填 1 時 `BulletInstance.ApplyFacingFlip` 會在水平速度往左時把
+`SpriteRenderer.flipY` 打開（x≈0 垂直飛時維持上一次的狀態）；分裂子彈由 `Instantiate` 複製母彈而繼承。
+上下對稱的圖（箭、冰錐、飛劍）不用填。需 `SpriteAngleOffset ≠ 0`。目前是武器 37 引魂幡、38 餓鬼牙符。見 PROBLEMS **E40**。
+
+**命中特效也要跟方向 → `HitEffectAlignBullet=1`**（WeaponTable，2026-09-24 新增）：`TrySpawnHitEffect` 預設一律用 0 度生成命中特效
+（爆炸、血花這類不分方向的圖本來就該這樣）。有方向性的命中圖（餓鬼牙符的咬合：往哪飛就該往哪咬）填 1，
+命中特效就用**子彈當下的 `rotation.z` 與 `flipY`** 生成——跟 `FlipYWhenLeft` 一起填，往左飛時子彈與咬合都是水平鏡像。
+只有子彈命中（`HandleBulletHit`）這條路會帶子彈進來；拋物線落地、近戰、落雷等仍是 0 度。
+
 設定完成後，無論玩家往哪個方向射擊，武器圖片都會自動旋轉到正確角度，攻擊端永遠指向飛行方向。分裂子彈也會自動繼承此設定。
 
 ## WeaponCastService — 不綁擁有者的發射服務（怪物與玩家共用）

@@ -94,7 +94,7 @@ public static class WeaponModeSpec
     // ⚠ 這幾個共用欄組一定要宣告在 _fields/_modes 之前——C# 靜態欄位依宣告順序初始化，
     //   放在後面的話 BuildModes() 跑的時候它們還是 null（單元測試抓到過）。
     // 共用欄組，避免每個模式重抄一遍
-    static readonly string[] BulletVisual = { "WeaponSpritePath", "SpriteAngleOffset", "WeaponAniPath", "WeaponAniNumber", "AnimFPS", "BulletScale" };
+    static readonly string[] BulletVisual = { "WeaponSpritePath", "SpriteAngleOffset", "FlipYWhenLeft", "HitEffectAlignBullet", "WeaponAniPath", "WeaponAniNumber", "AnimFPS", "BulletScale" };
     static readonly string[] BeamVisual = { "BeamStyle", "BeamColor", "BeamWidth" };
     static readonly string[] Charge = { "ChargeMode", "ChargeTimeReduction" };
     static readonly string[] Multi = { "SpreadCount", "SpreadAngle" };
@@ -306,6 +306,7 @@ public static class WeaponModeSpec
             // ── 子彈外觀 ──
             F(W, "WeaponSpritePath",  FieldKind.Text,  "子彈外觀", "子彈圖路徑", "", help: "相對 Resources、不含副檔名；與 WeaponAniPath 二擇一；留空＝隱形子彈"),
             F(W, "SpriteAngleOffset", FieldKind.Float, "子彈外觀", "圖片角度補正（度）", "0", -360f, 360f),
+            F(W, "FlipYWhenLeft",     FieldKind.Bool,  "子彈外觀", "往左飛時上下翻轉", "0", help: "1＝往左飛時把圖上下翻（有上下之分的圖跟著飛行角度轉 180° 會倒立）；需 SpriteAngleOffset≠0"),
             F(W, "WeaponAniPath",     FieldKind.Text,  "子彈外觀", "序列圖前綴", ""),
             F(W, "WeaponAniNumber",   FieldKind.Int,   "子彈外觀", "序列圖張數", "0", 0, 999),
             F(W, "AnimFPS",           FieldKind.Float, "子彈外觀", "序列圖幀率", "0", 0f, 120f),
@@ -320,6 +321,7 @@ public static class WeaponModeSpec
             // ── 特效 ID ──
             F(W, "FireEffectID",   FieldKind.Int, "特效", "發射特效 ID", "0", 0, 99999, "VfxTable；發射時在玩家身上播", universal: true),
             F(W, "HitEffectID",    FieldKind.Int, "特效", "擊中特效 ID", "0", 0, 99999, "VfxTable；命中點播"),
+            F(W, "HitEffectAlignBullet", FieldKind.Bool, "特效", "擊中特效跟子彈方向", "0", help: "1＝擊中特效用子彈當下的角度與上下翻轉生成（往左飛就往左咬）；0＝一律 0 度（爆炸、血花這類不分方向的圖）"),
             F(W, "TrailEffectID",  FieldKind.Int, "特效", "軌跡特效 ID", "0", 0, 99999, "VfxTable；配合配方 TrailStep 沿路種"),
             F(W, "SummonEffectID", FieldKind.Int, "特效", "召喚特效 ID", "0", 0, 99999, "VfxTable；每個生怪點播一次"),
         };

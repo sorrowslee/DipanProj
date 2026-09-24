@@ -23,6 +23,31 @@ Super Pixel Projectiles Pack 4 的 A 組藍色雷射已製作為武器 29「鏡�
 | 27 | 冰封法陣 | `fanfx2_ice_spell`（藍） | `Mode=GroundCast` | 射程 9、半徑 2.5、完整 2.5 秒冰晶動畫與持續傷害 |
 | 28 | 死字咒 | `spell_death_001`（紅） | `Mode=GroundCast` | 射程 10、半徑 2.2，「死」字完整顯現並在生成時造成傷害 12 |
 
+## 第二批（2026-09-24，12 把，零程式改動）
+
+飛行物全部從特效庫取、最近鄰放大 4 倍存 `Resources/Weapon/animation/<資料夾>/`；icon 是**代用圖**（`Resources/Weapon/single/`，左上角標「代用」），作者之後用同檔名覆蓋即可。「分圖」＝裝備 icon 與射出去的飛行物是不同張（同狂族十字弓）。
+
+| 武器 ID | 名稱 | 配方 | Mode | 飛行物素材 → 資料夾 | 代用 icon 檔名 | 分圖 | 命中／附加 |
+|---:|---|---:|---|---|---|---|---|
+| 36 | 血滴子 | 73 | Normal | `pj4_sawblade` **紅** → `bloodSawblade` | `weapon_xuedizi.png` | ✅ | 反彈 4、穿透 3；Vfx 51 血花 |
+| 37 | 引魂幡 | 74 | Normal | `pj3_death_wave` 紫 → `soulBannerSkull` | `weapon_soulbanner.png` | ✅ | 單顆追蹤；Vfx 56 骷髏煙（7 的放大版）；`FlipYWhenLeft=1`（往左飛不倒立） |
+| 38 | 餓鬼牙符 | 75 | Normal | `pj3_demon_bite_loop` 紅 → `hungryGhostFang` | `weapon_ghostfangtalisman.png` | ✅ | 短程（0.9 秒）；Vfx 52 `pj3_demon_bite_impact` 咬合；`FlipYWhenLeft=1`＋`HitEffectAlignBullet=1`（往哪飛就往哪咬） |
+| 39 | 玄冰針匣 | 76 | Normal | `pj2_ice_spike` 藍 → `iceNeedle` | `weapon_iceneedlebox.png` | ✅ | 單發、穿透 2；Vfx 2 冰凍 |
+| 40 | 柳葉飛刀 | 77 | Normal | `pj3_knife` 灰 → `willowKnife` | `weapon_willowknife.png` | ✅（icon 靜止刀，飛行物翻轉動畫） | 3 刀 30° 追蹤 |
+| 41 | 飛蝗石 | 78 | Normal | `pj1_rock` 灰 → `locustStone` | `weapon_locuststone.png` | ✅ | 0.15 秒連射、反彈 2；Vfx 53 小碎塵 |
+| 42 | 掌心雷 | 79 | Normal | `pj2_lightning_orb` 紫 → `palmThunderOrb` | `weapon_palmthunder.png` | ✅ | 命中迸發子武器 48；Vfx 54 `lightning_burst_002` |
+| 48 | 掌心雷電弧（子武器，不進背包） | 80 | Normal | `pj1_electricity` 紫 → `thunderSpark` | — | — | 4 道 120° 快速追蹤 |
+| 43 | 無間輪 | 81 | Normal | `pj4_dark_matter` 紫 → `avichiWheel` | `weapon_prayerwheel.png` | ✅ | 速度 4、無限穿透、**穿牆** |
+| 44 | 落星羅盤 | 82 | Normal | `pj2_meteor` 紅 → `fallingMeteor` | `weapon_starcompass.png` | ✅ | Vfx 43 爆炸(小)＋GroundEffect 8 焚地（Any） |
+| 45 | 屍毒葫蘆 | 83 | Parabolic | `pj1_blob` 綠 → `corpsePoisonBlob` | `weapon_poisongourd.png` | ✅ | 落地 AreaRadius 1.0＋GroundEffect **10 屍毒雲**（`fanfx2_poison` 綠，補邊成 128×220 讓接地點置中，見 PROBLEMS E42） |
+| 46 | 霹靂火彈 | 84 | Parabolic | icon 本身（`Weapon/single/weapon_thunderbomb`） | `weapon_thunderbomb.png` | ❌ 同圖 | 落地 AreaRadius 1.8；Vfx 55 `wills X_plosion` style_a（64 幀隔幀取 32） |
+| 47 | 八卦護身印 | 85 | Orbital | `pj3_magic_hex` 紫 → `baguaSeal` | `weapon_baguamirror.png` | ✅ | 4 枚環繞、半徑 1.6 |
+
+- ⚠ **拋物線的落地殺傷半徑＝`AreaRadius × BulletScale`**，擊中特效只吃 VfxTable `Scale`、地面特效只吃 GroundEffectTable `Radius`，三者不連動；放大子彈圖時要把 `AreaRadius` 除回去（屍毒葫蘆 0.24 × 8.4 ≈ 2）。
+- 對應資料：WeaponTable／ItemTable 36~47（48 只在 WeaponTable）、RecipeTable 73~85、VfxTable 51~56、GroundEffectTable 10。
+- 第一輪盤點時看過、但**沒選**的：鬼頭大刀（`fx2_slash`）、焚身火環（`wills round_vortex`）、魔眼咒（`fanfx3_gaze`）——之後要做可直接從這三個開始。
+- 刻意排除：科幻味太重（`pj4_scifi_bomb`、`pj1_toon_missile`、`pj4_scrap_metal`、`scifi_*`）、沒有對應機制（時停／減速／睡眠／吸血）、與現有武器重複（`scifx2_black_hole`≈虛空吞口、`fanfx3_death`≈死字咒）。
+
 ## 新增的泛用模式
 
 ### `Mode=Melee`

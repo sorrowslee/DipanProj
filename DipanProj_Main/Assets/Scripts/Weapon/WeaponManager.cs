@@ -205,6 +205,8 @@ public class WeaponManager : MonoBehaviour
 
         weapon.WeaponSpritePath = S("WeaponSpritePath");
         weapon.SpriteAngleOffset = CsvFieldParse.Float(S("SpriteAngleOffset"), 0f);
+        weapon.FlipYWhenLeft = CsvFieldParse.Bool(S("FlipYWhenLeft"), false);
+        weapon.HitEffectAlignBullet = CsvFieldParse.Bool(S("HitEffectAlignBullet"), false);
         weapon.WeaponAniPath = S("WeaponAniPath");
         weapon.WeaponAniNumber = CsvFieldParse.Int(S("WeaponAniNumber"), 0);
         weapon.AnimFPS = CsvFieldParse.Float(S("AnimFPS"), 0f);

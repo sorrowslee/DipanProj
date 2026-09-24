@@ -4,6 +4,27 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **餓鬼牙符：咬合方向＋貼牆射不出去（兩處程式修正）（⏳ 未編譯未實測）**（2026-09-24）：
+  ① **往左射卻往右咬**：命中特效一律 0 度生成。WeaponTable 新欄 **`HitEffectAlignBullet`**（`WeaponData`／`WeaponManager`／`WeaponModeSpec` 特效群＋子彈外觀有效欄、兩個 WeaponData 複製點），`TrySpawnHitEffect` 多一個選填 `bullet` 參數，填 1 時用子彈當下的 `rotation.z`＋`flipY` 生成；`HandleBulletHit` 傳入子彈。武器 38 填 `HitEffectAlignBullet=1`＋`FlipYWhenLeft=1`（往左飛時子彈與咬合都水平鏡像，不會牙齒倒過來）。見 RECIPE_AND_WEAPON〈SpriteAngleOffset 設定說明〉。
+  ② **貼牆往外射一出生就撞牆**：判定半徑 1.6 的出生重疊圓蓋到背後的牆。彈道核心 `BulletInstance` 加 `IsBehindOverlap`，出生檢查與飛行中「起點就重疊」的碰撞，若那個東西在子彈背後／側邊（正在離開它）就不算命中。**對所有子彈生效**，判定 `Radius` 不用縮。見 PROBLEMS **F31**。
+* [x] **特效庫第二批武器：作者第三輪調整＋屍毒雲落點偏移（⏳ 未實測）**（2026-09-24）：
+  ① 引魂幡改單發（配方 74 拿掉 `SpreadCount 3／SpreadAngle 40`，ItemTable 說明同步）。
+  ② 餓鬼牙符咬合特效 VfxTable 52 `Scale` 2→**6.9**：牙符飛行物 256px×0.001×17.2 ≈ 4.4 單位寬，咬合圖原生 64px ⇒ 4.4÷0.64 ≈ 6.9，兩者等寬。⚠ 飛行物的大小吃 `BulletScale`、命中特效只吃 VfxTable `Scale`，**改一邊不會帶動另一邊**。
+  ③ **屍毒葫蘆「特效比落點低」**：查過程式，落點、落地殺傷、地面特效三者都在同一個 `landPos`（＝滑鼠點），**傷害位置沒跑掉**；是毒雲素材的接地點在圖的 y≈110/128、Single 模式卻用圖中心對位 ⇒ 畫面上低了約 2.2 單位。把 17 幀補透明邊成 128×220（接地點置中），零程式改動。見 PROBLEMS **E42**。
+* [x] **特效庫第二批武器：作者第二輪調整＋兩個 bug（⏳ 未編譯未實測）**（2026-09-24）：
+  ① **引魂幡往左飛骷髏頭倒立** ⇒ **加了程式**（這批第一次動程式）：WeaponTable 新欄 `FlipYWhenLeft`（`WeaponData`／`WeaponManager` 讀、`WeaponModeSpec` 子彈外觀群加一欄＝工坊自動出現、集氣與珠子的兩個 WeaponData 複製點都帶上），`BallisticsEngine.Spawn` 多一個選填參數 `flipYWhenMovingLeft`（預設 false，其他呼叫點零變化），`BulletInstance.ApplyFacingFlip` 往左飛開 `flipY`。PlayerController 四個 Spawn 呼叫點＋`WeaponCastService` 都傳入。只有武器 37 填 1。見 PROBLEMS **E40**。
+  ② 引魂幡命中骷髏煙 VfxTable 56 `Scale` 2→**4**。⚠ 打到**怪**時若主角血統有 `BloodlineHitFx`，武器命中特效會被血統的換掉（`TrySpawnHitEffect` 既有行為），打牆才看得到武器自己的。
+  ③ 餓鬼牙符 `BulletScale` 8.6→**17.2**、判定 `Radius` 0.8→**1.6**。
+  ④ 飛蝗石碎塵 VfxTable 53 `Scale` 2.4→**1.6**（縮 1/3）。
+  ⑤ **屍毒雲播兩次** ⇒ 地面特效序列圖是循環播放、Duration 比一輪長就會重播。GroundEffect 10 改 `AnimFPS 10→8`、`Duration 3→2.1`、`DamageInterval 0.5→0.35`（總傷害仍約 6 跳）。見 PROBLEMS **E41**。
+* [x] **特效庫第二批武器：作者第一輪調整（大小／顏色／道數）（⏳ 未實測）**（2026-09-24）：「放大 1/2」＝×1.5、「放大 1 倍」＝×2。`BulletScale`：血滴子 5→**7.5**、引魂幡 4.2→**8.4**、餓鬼牙符 4.3→**8.6**、柳葉飛刀 5.5→**8.25**、掌心雷 4→**8**、無間輪 5.7→**8.55**、落星羅盤 4.7→**9.4**、屍毒葫蘆 4.2→**8.4**、八卦護身印 4.7→**7.05**；Normal／Orbital 的判定 `Radius` **同比例放大**（不跟 `BulletScale`，要自己對）。血滴子素材換 `pj4_sawblade` **紅**（覆蓋同名 8 幀）。玄冰針匣拿掉平行 3 道（配方 76 → 單發）。八卦護身印 `OrbitalCount` 8→**4**。命中特效：引魂幡改用新的 VfxTable **56**（重用怪物死亡骷髏煙、`Scale` 1→2；**不改 7**，7 是全遊戲怪物死亡共用）、飛蝗石 53 `Scale` 1.2→2.4、霹靂火彈 55 `Scale` 3.6→7.2。屍毒雲 GroundEffect 10 半徑 1.5→**3.0**。<br>
+  ⚠ **修正上一輪的錯（通則）**：Parabolic 落地殺傷半徑是 **`AreaRadius × BulletScale`**（`PlayerController.TryApplyParabolicBlast`），而擊中特效大小只吃 VfxTable `Scale`、地面特效只吃 GroundEffectTable `Radius`——**三者互不連動**。上一輪屍毒葫蘆填 `AreaRadius 1.0` × `BulletScale 4.2` ⇒ 實際炸 4.2 單位；這次改 `AreaRadius 0.24`（×8.4 ≈ 2.0）。霹靂火彈 `AreaRadius 1.8 × BulletScale 2 = 3.6`，上一輪特效只有半徑 1.8（傷害比畫面大一倍），這次特效放大後正好對上。**拋物線武器的子彈圖要放大時，記得回頭把 `AreaRadius` 除回去**。
+* [x] **特效庫第二批武器化：12 把新武器（武器 36~48、配方 73~85）（⏳ 未編譯未實測、icon 全是代用圖）**（2026-09-24）：作者請 AI 盤點 `DipanProj_MapEditor/Effects` 裡還沒用到、適合當武器的素材，從 15 個提案挑了 12 把。**全部是資料＋素材、零程式改動**（只用現有的 Normal／Parabolic／Orbital 與 `SubWeaponOnHit`）。總表與素材出處見 [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md)〈第二批〉。<br>
+  **做法**：飛行物一律從特效庫取、**最近鄰放大 4 倍**（沿用魔狼爪的通則：小像素圖直接當子彈，`BulletScale` 要 30+），存 `Resources/Weapon/animation/<名>/<名>_NN.png`；`SpriteAngleOffset` 一律填 **360**（PROBLEMS E38：填 0 會不旋轉）。`BulletScale` 用「像素 × 0.001 × BulletScale ＝ 世界尺寸」反推出目標大小（多數約 0.5~2 單位）。命中特效另存 `Resources/VfxEffects/`，不放大、靠 VfxTable `Scale` 調。<br>
+  **裝備圖／飛行物分圖**：除了霹靂火彈（丟出去的就是那顆彈，icon 與子彈同一張 `weapon_thunderbomb`）以外，11 把都是 icon（`ItemTable.IconPath`）與飛行物（`WeaponTable.WeaponAniPath`）各走各的，跟狂族十字弓同一套。icon 是 AI 用 PIL 畫的**代用圖**（左上角標「代用」），檔名見 EFFECT_WEAPONS，作者之後直接蓋同名檔即可。<br>
+  ⚠ **掌心雷跟提案不同**：原想「命中接連鎖閃電」，但 `SubWeaponOnHit` 只支援 Normal 子武器、連鎖閃電是 Chain ⇒ 改成命中迸出 **4 道追蹤電弧**（子武器 **48**，蜂巢→蜜蜂同一套），48 只進 WeaponTable、不進 ItemTable。<br>
+  新增：VfxTable **51~55**（血滴子血花／餓鬼咬合／飛蝗石碎塵(重用 ImpactDust 圖、縮小)／掌心雷電爆／霹靂十字爆(X_plosion 64 幀隔幀取 32)）、GroundEffectTable **10 屍毒雲**（`fanfx2_poison` 綠，半徑 1.5、3 秒、每 0.5 秒 1 傷）。重用：7 怪物死亡骷髏煙（引魂幡）、2 冰凍（玄冰針匣）、43 炮彈爆炸(小)＋GroundEffect 8 焚地（落星羅盤）。<br>
+  **沒放進抽選池**（`BaseWeaponRoll.csv`）——21~35 號之後的新武器本來就沒進池，要進池作者再決定。數值全是起手值，進武器工坊邊射邊調。
 * [x] **魔狼爪改五分裂、角度拉開**（2026-09-24）：配方 72 `SpreadCount` 3→**5**、`SpreadAngle` 30→**100**（每道間隔 15°→25°；月牙判定半徑 1.4 很大，15° 間隔在前幾格距離會糊成一團，看不出分裂）。
 * [x] **夢境洞窟禁用武器（只能 WASD 走）＋複查夢境選單鎖**（2026-09-24）：MapsTable 27 `DreamTutorial_Cave` 的 `NoWeapon` 空→**1**（沿用既有「地圖禁武」機制，`PlayerController.CanFire` 會擋；夢境武器照樣在洞窟就裝上，只是到廣場 28 才能開火，廣場 `NoWeapon` 留空）。零程式改動。複查選單鎖：`DreamTutorialFlow.Run` 一開頭 `SetPlayerMenuLock`、離開夢境地圖（27/28 以外）或流程物件銷毀才解 ⇒ 洞窟與廣場全程鎖 B/K/Y/O/ESC 設定；兩張圖上的 trigger 只有 drama／playerHint／teleport／monsterSpawn 這類，沒有 openPanel／selectScript／NPC 這種會開選單的，F 互動也開不出面板。開發工具 L（作弊）、U（UI Demo）、P（效能面板）刻意沒鎖。
 * [x] **旱魃焚天火雨：地上火圈範圍 +1/3、火球數 +1/2**（2026-09-24）：火圈半徑是 GroundEffectTable 的表格值、而 8 號現在是全部火焰武器共用 ⇒ **新增 GroundEffect 9「焚地(大)」**（同一組圖，半徑 1.6→**2.13**），只有配方 61 改指 9，其他武器不受影響。配方 61 `SpreadCount` 6→**9**。⚠ 落地爆炸的殺傷半徑（`AreaRadius 0.6 × BulletScale 3`＝1.8）沒動。

@@ -10,6 +10,8 @@ public class WeaponData
     public int RecipeID;
     public string WeaponSpritePath;
     public float SpriteAngleOffset;
+    public bool FlipYWhenLeft;          // 往左飛時上下翻轉子彈圖（有上下之分的圖用，例：引魂幡鬼頭）
+    public bool HitEffectAlignBullet;   // 命中特效跟子彈同角度／同翻轉（有方向性的命中圖用，例：餓鬼牙符往哪飛就往哪咬）
 
     public string WeaponAniPath;
     public int WeaponAniNumber;

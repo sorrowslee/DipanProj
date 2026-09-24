@@ -113,7 +113,7 @@ public static class WeaponCastService
                 collisionMask, pierceableLayers, nonBounceLayers,
                 ctx.OnHit,
                 weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-                ctx.OnTrailPoint, lane);
+                ctx.OnTrailPoint, lane, weapon.FlipYWhenLeft);
             if (b != null) spawned++;
         }
         return spawned > 0;
