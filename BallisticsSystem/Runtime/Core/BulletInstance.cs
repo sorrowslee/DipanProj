@@ -71,6 +71,13 @@ namespace Sorrows.Ballistics
         public List<IBulletBehavior> GetBehaviors() => _behaviors;
         public bool HasHit(int instanceId) => _hitObjects.Contains(instanceId);
 
+        /// <summary>
+        /// 清空「已命中過」名單：之後同一個目標可以再被這顆子彈打一次。
+        /// 一般子彈一輩子對同一個目標只打一次；迴旋（<see cref="BoomerangBehavior"/>）每次轉向都呼叫它，
+        /// 所以去程打過的怪回程還打得到。
+        /// </summary>
+        public void ClearHitHistory() => _hitObjects.Clear();
+
         private void Awake()
         {
             _sr = GetComponent<SpriteRenderer>();

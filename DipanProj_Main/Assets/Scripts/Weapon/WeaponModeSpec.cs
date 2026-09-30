@@ -32,6 +32,8 @@ public enum WeaponMode
     Dash,
     /// <summary>骨牢：隨機挑場上的怪困住一段時間，時間到牢籠崩裂、對牠結算一次大傷害。</summary>
     Cage,
+    /// <summary>迴旋：丟出去飛 Range 後折返追向玩家；穿牆、無限穿怪、每趟都能再打同一隻；次數用完回到手上才消失。</summary>
+    Boomerang,
 }
 
 /// <summary>欄位值的型別（給載入檢查與未來「武器效果模擬」面板產輸入框用）。</summary>
@@ -224,7 +226,7 @@ public static class WeaponModeSpec
             F(R, "HomingTurnSpeed", FieldKind.Float, "追蹤", "追蹤轉向速度（度/秒）", "0", 0f, 3600f, "0＝不追蹤；90 慢 180 中 360 快"),
 
             // ── 射程／範圍（語意一致的共用欄）──
-            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離"),
+            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）"),
             F(R, "AreaRadius", FieldKind.Float, "射程範圍", "範圍半徑", "", 0f, 50f, "Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑"),
 
             // ── 命中附加 ──
@@ -296,6 +298,10 @@ public static class WeaponModeSpec
             F(R, "ParallelSpacing",  FieldKind.Float, "平行", "平行間距", "0.45", 0.05f, 5f, "相鄰兩道的距離（世界單位）"),
             F(R, "ParallelMaxWidth", FieldKind.Float, "平行", "平行總寬上限", "3", 0.1f, 20f, "整排最寬幾單位；道數多到超過就壓縮間距（畫面高 10 單位）"),
 
+            // ── 迴旋（只有 Mode=Boomerang）──
+            F(R, "BoomerangCount", FieldKind.Int, "迴旋", "迴旋次數", "1", 1, 16,
+              "飛出去再回到玩家身上算一次；大於 1 會穿過玩家往身後再飛（像鐘擺）；最後一次回到手上才消失"),
+
             // ── WeaponTable：通用 ──
             F(W, "ID",       FieldKind.Int,   "通用", "武器 ID", "", 1, 99999, "與 ItemTable 同號", universal: true),
             F(W, "Name",     FieldKind.Text,  "通用", "武器名稱", "", universal: true),
@@ -322,6 +328,7 @@ public static class WeaponModeSpec
             F(W, "FireEffectID",   FieldKind.Int, "特效", "發射特效 ID", "0", 0, 99999, "VfxTable；發射時在玩家身上播", universal: true),
             F(W, "HitEffectID",    FieldKind.Int, "特效", "擊中特效 ID", "0", 0, 99999, "VfxTable；命中點播"),
             F(W, "HitEffectAlignBullet", FieldKind.Bool, "特效", "擊中特效跟子彈方向", "0", help: "1＝擊中特效用子彈當下的角度與上下翻轉生成（往左飛就往左咬）；0＝一律 0 度（爆炸、血花這類不分方向的圖）"),
+            F(W, "HitEffectEnemyOnly",   FieldKind.Bool, "特效", "擊中特效只在打到怪時播", "0", help: "1＝打到牆與可破壞地上物不播（血花這類只該出現在生物身上的圖）；0＝打到什麼都播。只對子彈／環繞／迴旋／雷射／連鎖有效"),
             F(W, "TrailEffectID",  FieldKind.Int, "特效", "軌跡特效 ID", "0", 0, 99999, "VfxTable；配合配方 TrailStep 沿路種"),
             F(W, "SummonEffectID", FieldKind.Int, "特效", "召喚特效 ID", "0", 0, 99999, "VfxTable；每個生怪點播一次"),
         };
@@ -352,7 +359,7 @@ public static class WeaponModeSpec
             .Eff(Multi).Eff("SplitTiming", "SubRecipeID", "BounceTarget", "MaxBounces", "HomingTurnSpeed")
             .Eff("GroundEffectID", "GroundEffectHitTarget", "TrailStep", "SubWeaponOnHit", "SubWeaponHitTarget")
             .Eff(Charge).Eff(Burst).Eff(Parallel)
-            .Eff("Damage", "HitEffectID", "TrailEffectID").Eff(BulletVisual);
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "TrailEffectID").Eff(BulletVisual);
 
         // 環繞：一般子彈 + 軌道
         M(d, WeaponMode.Orbital, "環繞", "一組子彈繞著玩家轉；碰到怪可穿透／反彈脫軌／分裂", bullets: true)
@@ -360,7 +367,7 @@ public static class WeaponModeSpec
             .Eff(Multi).Eff("SplitTiming", "SubRecipeID", "BounceTarget", "MaxBounces", "HomingTurnSpeed")
             .Eff("GroundEffectID", "GroundEffectHitTarget", "TrailStep", "SubWeaponOnHit", "SubWeaponHitTarget")
             .Eff("OrbitalRadius", "OrbitalCount").Eff(Charge)
-            .Eff("Damage", "HitEffectID", "TrailEffectID").Eff(BulletVisual)
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "TrailEffectID").Eff(BulletVisual)
             .Lbl("Speed", "環繞速度（切線）").Lbl("LifeTime", "整組存續秒數（-1＝直到下次發射）");
 
         // 拋物線：丟炸彈
@@ -376,7 +383,7 @@ public static class WeaponModeSpec
             .Eff("PierceCount", "BlockedByEnvironment").Eff(Multi)
             .Eff("SplitTiming", "SubRecipeID", "BounceTarget", "MaxBounces", "HomingTurnSpeed")
             .Eff("Range", "DotInterval", "GroundEffectID", "GroundEffectHitTarget", "TrailStep")
-            .Eff("Damage", "HitEffectID", "TrailEffectID", "PixelBeamSet").Eff(BeamVisual)
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "TrailEffectID", "PixelBeamSet").Eff(BeamVisual)
             .Lbl("SpreadCount", "光束道數").Lbl("Range", "光束長度（-1＝無限）").Lbl("HomingTurnSpeed", "光束彎曲追蹤速度")
             .Lbl("SplitTiming", "分裂時機（只認 OnHit）").Lbl("TrailStep", "火焰柱間距（配 TrailEffectID）");
 
@@ -388,7 +395,7 @@ public static class WeaponModeSpec
         // 連鎖閃電
         M(d, WeaponMode.Chain, "連鎖閃電", "打中第一隻後在半徑內逐跳；撞牆就停")
             .Eff("FireInterval").Eff(Multi).Eff("Range", "ChainCount", "ChainRadius", "AimConeAngle").Eff(Charge).Eff(Burst)
-            .Eff("Damage", "HitEffectID").Eff(BeamVisual)
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly").Eff(BeamVisual)
             .Lbl("SpreadCount", "閃電道數").Lbl("Range", "首段射程");
 
         // 落雷
@@ -428,6 +435,15 @@ public static class WeaponModeSpec
             .Eff("FireInterval", "DashDistance", "DashWidth").Eff(Charge).Eff(Burst)
             .Eff("Damage", "HitEffectID", "BulletScale")
             .Lbl("BulletScale", "掃擊大小（寬度與特效）");
+
+        // 迴旋：丟出去→折返追向玩家→（次數 >1）穿過玩家往身後再飛。穿牆、無限穿怪、每趟都能再打同一隻。
+        // ⚠ 刻意不吃的欄（寫死在 RecipeEntry.FromFields）：PierceCount 固定 -1、BlockedByEnvironment 固定 0、
+        //   LifeTime 由 BoomerangBehavior 每趟自動算上限；反彈／追蹤／分裂／平行／連擊／集氣／命中附加是否開放之後再談。
+        // SpawnsBullets 不勾：命中迸發（SubWeaponOnHit）的子武器目前只接受 Normal。
+        M(d, WeaponMode.Boomerang, "迴旋", "丟出去飛 Range 後折返追向玩家；穿牆、無限穿怪、每趟都能再打同一隻；次數用完回到手上才消失")
+            .Eff("FireInterval", "Speed", "Radius", "RotationSpeed", "Range", "BoomerangCount")
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly").Eff(BulletVisual)
+            .Lbl("Speed", "飛行速度（去回同速）").Lbl("Range", "迴旋距離（每趟往外飛多遠；空=5）");
 
         return d;
     }

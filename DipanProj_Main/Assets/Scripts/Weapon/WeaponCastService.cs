@@ -22,7 +22,8 @@ using Sorrows.Ballistics;
 ///     這是刻意的 seam：硬把玩家的命中鏈搬進來，會把 `TryTriggerSubWeapon`／`TryTriggerGroundEffect`
 ///     整串玩家專屬狀態一起拖過來，反而讓這支服務變成第二個 PlayerController。
 ///
-/// **目前只支援 <see cref="WeaponMode.Normal"/>**（直飛彈，含分裂／反彈／追蹤／平行／穿透／軌跡）。
+/// **目前只支援 <see cref="WeaponMode.Normal"/>**（直飛彈，含分裂／反彈／追蹤／平行／穿透／軌跡）
+/// 與 <see cref="WeaponMode.Boomerang"/>（迴旋：同一條路，只是多掛一個 <c>BoomerangBehavior</c>，見 <see cref="FireNormal"/>）。
 /// Laser／Parabolic／SkyStrike／Chain／Orbital／Melee／Dash／GroundCast 仍住在 `PlayerController`，
 /// 之後一種一種搬進來；搬的時候照同一個原則：幾何與彈道進來，資源與命中鏈留在呼叫端。
 /// </summary>
@@ -69,6 +70,13 @@ public static class WeaponCastService
 
         /// <summary>沿飛行路徑每隔 `TrailStep` 距離觸發一次（地刺武器用；沒有就傳 null）。</summary>
         public Action<BulletInstance, Vector2> OnTrailPoint;
+
+        /// <summary>
+        /// 迴旋（<see cref="WeaponMode.Boomerang"/>）回程要飛向的點。玩家＝身體中心（`BodyCenterWorldPos`，
+        /// 不是 transform.position——那是腳底，見 PROBLEMS E14）。留 null＝<see cref="Owner"/> 的 position。
+        /// 只在 <see cref="Owner"/> 還活著時才會被呼叫。其他模式不讀。
+        /// </summary>
+        public Func<Vector2> ReturnPoint;
     }
 
     /// <summary>
@@ -101,6 +109,20 @@ public static class WeaponCastService
         float[] lanes = ParallelOffsets(weapon.Recipe, perLane);
         Vector2 perp = new Vector2(-dir.y, dir.x);
 
+        // 迴旋：每顆子彈掛一個 BoomerangBehavior（有狀態，所以用工廠每顆給新實例）。
+        // 迴旋模式的 ParallelCount 是無效欄 ⇒ lanes 只有一道、偏移 0 ⇒ 不會和 LaneBehavior 搶同一個工廠插座。
+        // ⚠ lambda 不能捕捉 in 參數，所以先把要用的東西複製成區域變數。
+        Func<IBulletBehavior> boomerang = null;
+        if (weapon.Recipe != null && weapon.Recipe.Mode == WeaponMode.Boomerang)
+        {
+            Transform owner = ctx.Owner != null ? ctx.Owner.transform : null;
+            if (owner == null) return false;   // 沒有擁有者就沒有地方可以回來
+            Func<Vector2> returnPoint = ctx.ReturnPoint;
+            float range = recipe.BeamRange > 0f ? recipe.BeamRange : RecipeEntry.BoomerangDefaultRange;   // CSV 的 Range（已套遠射珠）
+            int trips = Mathf.Max(1, weapon.Recipe.BoomerangCount);
+            boomerang = () => new BoomerangBehavior(owner, returnPoint, range, trips);
+        }
+
         int spawned = 0;
         for (int i = 0; i < lanes.Length; i++)
         {
@@ -113,7 +135,7 @@ public static class WeaponCastService
                 collisionMask, pierceableLayers, nonBounceLayers,
                 ctx.OnHit,
                 weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-                ctx.OnTrailPoint, lane, weapon.FlipYWhenLeft);
+                ctx.OnTrailPoint, boomerang ?? lane, weapon.FlipYWhenLeft);
             if (b != null) spawned++;
         }
         return spawned > 0;

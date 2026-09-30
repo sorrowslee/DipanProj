@@ -12,6 +12,7 @@ public class WeaponData
     public float SpriteAngleOffset;
     public bool FlipYWhenLeft;          // 往左飛時上下翻轉子彈圖（有上下之分的圖用，例：引魂幡鬼頭）
     public bool HitEffectAlignBullet;   // 命中特效跟子彈同角度／同翻轉（有方向性的命中圖用，例：餓鬼牙符往哪飛就往哪咬）
+    public bool HitEffectEnemyOnly;     // 命中特效只在打到怪時播（打牆／可破壞地上物不播；血花這類圖用，例：血滴子）。只對有「命中對象」的模式有效，見 WeaponModeSpec
 
     public string WeaponAniPath;
     public int WeaponAniNumber;

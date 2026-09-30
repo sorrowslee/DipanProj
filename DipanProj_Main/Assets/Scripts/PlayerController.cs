@@ -781,7 +781,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             ID = source.ID, Name = source.Name, Damage = source.Damage * 3f, ManaCost = source.ManaCost,
             RecipeID = source.RecipeID, WeaponSpritePath = source.WeaponSpritePath,
-            SpriteAngleOffset = source.SpriteAngleOffset, FlipYWhenLeft = source.FlipYWhenLeft, HitEffectAlignBullet = source.HitEffectAlignBullet, WeaponAniPath = source.WeaponAniPath,
+            SpriteAngleOffset = source.SpriteAngleOffset, FlipYWhenLeft = source.FlipYWhenLeft, HitEffectAlignBullet = source.HitEffectAlignBullet, HitEffectEnemyOnly = source.HitEffectEnemyOnly, WeaponAniPath = source.WeaponAniPath,
             WeaponAniNumber = source.WeaponAniNumber, AnimFPS = source.AnimFPS,
             BulletScale = source.BulletScale * 2f, CastVisualScale = 2f,
             BeamStyle = source.BeamStyle, BeamColor = source.BeamColor, BeamWidth = source.BeamWidth * 2f,
@@ -1258,6 +1258,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             EnvLayer     = EnvLayer,
             OnHit        = (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
             OnTrailPoint = (b, pos) => TrySpawnTrailEffect(firedWeapon, pos),
+            ReturnPoint  = () => BodyCenterWorldPos,   // 迴旋回程飛回身體中心（只有 Mode=Boomerang 會用到）
         };
         WeaponCastService.FireNormal(weapon, recipe, in ctx);
     }
@@ -2249,6 +2250,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos, bool hitEnemy = false, BulletInstance bullet = null)
     {
         if (_vfxManager == null || firedWeapon == null || firedWeapon.HitEffectID <= 0) return;
+        // HitEffectEnemyOnly：血花這類圖只該出現在生物身上——打到牆／可破壞地上物不播（牆會流血很怪）。
+        // WeaponManager 只在「命中特效播在命中物上」的模式讀這欄（子彈／環繞／迴旋／雷射／連鎖，呼叫端都有傳 hitEnemy），
+        // 落點型（拋物線落地、法陣、落雷）呼叫時不傳 hitEnemy，那些模式這欄一律 false，不會被誤擋。
+        if (firedWeapon.HitEffectEnemyOnly && !hitEnemy) return;
         if (hitEnemy && BloodlineHitFx.HasEffect) return;
         // HitEffectAlignBullet：命中圖有方向性（餓鬼牙符的咬合）時，照子彈當下的角度與上下翻轉生成，否則永遠朝右。
         bool align = firedWeapon.HitEffectAlignBullet && bullet != null;

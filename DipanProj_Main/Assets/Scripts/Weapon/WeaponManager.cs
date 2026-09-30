@@ -207,6 +207,10 @@ public class WeaponManager : MonoBehaviour
         weapon.SpriteAngleOffset = CsvFieldParse.Float(S("SpriteAngleOffset"), 0f);
         weapon.FlipYWhenLeft = CsvFieldParse.Bool(S("FlipYWhenLeft"), false);
         weapon.HitEffectAlignBullet = CsvFieldParse.Bool(S("HitEffectAlignBullet"), false);
+        // 只對「命中特效播在命中物上」的模式有效（子彈／環繞／迴旋／雷射／連鎖）；拋物線落地、法陣、落雷的命中特效播在落點、
+        // 呼叫端不知道打到誰，讀進來會變成永遠不播——所以無效模式直接不讀（同 RecipeEntry「無效欄不讀」的原則）。
+        weapon.HitEffectEnemyOnly = WeaponModeSpec.IsEffective(recipe != null ? recipe.Mode : WeaponMode.Normal, "HitEffectEnemyOnly")
+                                    && CsvFieldParse.Bool(S("HitEffectEnemyOnly"), false);
         weapon.WeaponAniPath = S("WeaponAniPath");
         weapon.WeaponAniNumber = CsvFieldParse.Int(S("WeaponAniNumber"), 0);
         weapon.AnimFPS = CsvFieldParse.Float(S("AnimFPS"), 0f);

@@ -4,6 +4,21 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **擊中特效可設「只在打到怪時播」：血滴子打牆不再噴血（⏳ 未編譯未實測）**（2026-09-30）：作者：「牆壁會流血也太奇怪了」。原本 `TrySpawnHitEffect` 打到什麼都播。WeaponTable 新欄 **`HitEffectEnemyOnly`**（`WeaponData`／`WeaponManager`／`WeaponModeSpec` 特效群，集氣與珠子兩個 WeaponData 複製點都帶上），填 1 ⇒ `hitEnemy=false`（牆、可破壞地上物）不播。**只對子彈／環繞／迴旋／雷射／連鎖有效**——落點型模式（拋物線落地、法陣、落雷）呼叫時不傳 `hitEnemy`，讀進來會永遠不播，所以 `WeaponManager` 依 spec 對無效模式不讀。只有武器 36 填 1，其餘留空；WeaponTable 順手把 19 欄的舊短列補齊到 21（值不變，逐列比對過）。見 RECIPE_AND_WEAPON〈SpriteAngleOffset 設定說明〉末段。
+* [x] **血滴子飛行速度加快一倍**（2026-09-30）：作者看過第三版軌跡後要求。配方 73 `Speed` 10→**20**（迴旋去回同速，4 趟全程約 4.9→2.5 秒；每段保險上限由 BoomerangBehavior 依速度自動重算，不用另外調）。
+* [x] **迴旋軌跡第三版：中間趟繞主角轉、只有最後一次回手上（⏳ 未在 Unity 實測；C# 已用替身編譯執行）**（2026-09-30）：作者實測第二版「像蝴蝶在飛」——每趟都是一個尖端在主角身上的淚滴，回來時急轉、刻意穿過身體，看起來像減速再硬擠過去。作者：主角只是參考點，中間的迴旋不必飛過身體，只有最後一次要回到身上。<br>
+  **改成三段**：出手（淚滴前半）→ (N−1) 個以主角為中心的橢圓半圈（前→右側掠過→後→左側掠過→前…）→ 收回（淚滴後半）。只改 `BoomerangBehavior.cs`，建構參數不變。<br>
+  **關鍵（通則）**：兩種曲線要接得順，不只切線要同向，**曲率也要相等**——橢圓半短軸取 `b = 2√2·k`，端點曲率半徑 `b²/R` 才會等於淚滴終點的 `8k²/R`。繞圈中心用指數平滑追主角（進入時＝出手點，否則位置會跳）；繞圈段也套「實際速度不低於 Speed」，否則主角反方向跑時圈被拖住會變慢。<br>
+  **驗證**：Python 先模擬，再把 **C# 原檔**配一個最小 Unity 替身（Vector2／Mathf／Transform…）用 .NET 8 的 csc 直接編譯執行，照 BulletInstance.Update 的順序跑：兩邊數字完全一致。靜止時全程等速 10、y −5~5、x ±2.72，4 趟 4.92 秒不觸發保險，清命中名單 7 次；30／144 幀一致；主角往四個方向跑都收得回來，只剩換段那一兩幀略低於 9.5；每幀轉角最大 9°、只出現在繞過終點處、逐幀漸變無尖峰。暫停不轉圖、擁有者消失 16 幀內淡出收掉也驗到。
+* [x] **迴旋軌跡改成淚滴形（繞一圈回來）（⏳ 未編譯未實測）**（2026-09-30）：作者實測上一版正常，但「直線去、原路直線回」沒有迴旋鏢的感覺。畫了三種軌跡對照後作者選 **淚滴形**（一出手就往左彎、終點繞圓頭、從右側回到玩家；多趟時往身後反向再繞一個，連成 8 字），寬度拍板**寫死＝射程的一半**。只改 `BallisticsSystem/Runtime/Behaviors/BoomerangBehavior.cs`，建構參數不變，主遊戲零改動。<br>
+  **難在哪（通則）**：① 參數曲線要「等速」得每幀解弧長——尖端附近前進量與 Δθ 是二次關係，導數線性估計（連修正一次）實測仍會在出手／穿過玩家時連續幾幀減速到 0.67；改二分法。② 二分的搜尋範圍不能直接取到曲線終點：淚滴起點與終點是同一點，「到終點的弦長≈0」會被誤判成一出手就接住；要從小步長倍增、只在單調段裡找。③ 玩家移動：去程圈固定在出手點，回程錨點 smoothstep 漸移到玩家 ⇒ 一定回到手上；但玩家往反方向跑時錨點後拖會抵掉前進，模擬看到速度掉到 0.89、停在半空——加「回程實際速度不低於 Speed」（世界距離二分）。<br>
+  **驗證**：用 Python 移植同一套演算法照 BulletInstance 每幀順序模擬（30／60／144 幀、玩家靜止與四個方向跑、射程 1~20、速度 10~40）：靜止時全程等速、終點 5.00、寬 2.50、左出右回，4 趟 4.78 秒不觸發保險；邊跑邊接都收得回來，只剩「穿過玩家那一幀」偶有一幀變慢。
+* [x] **新發射模式「迴旋」`Mode=Boomerang`＋血滴子改成迴旋 4 趟（⏳ 未編譯未實測）**（2026-09-30）：
+  作者規格（討論後拍板）：丟出去飛 `Range` 後折返**追著玩家**飛回；`BoomerangCount>1` 時**穿過玩家往身後再飛**（鐘擺），最後一趟碰到玩家才收回；**只有第一趟看滑鼠**；**全程穿牆（反彈不作用）、無限穿怪、每趟都能再打同一隻**；保險用 `LifeTime` 概念但**每趟各自算**上限 ＝ (2×Range÷Speed)×2＋0.5 秒，超時淡出。<br>
+  **做法**：彈道模組新 `BoomerangBehavior`（整個飛行邏輯）＋`BulletInstance.ClearHitHistory()`；主遊戲 `WeaponModeSpec`（enum 尾端加 `Boomerang`、新欄 `BoomerangCount`、`Range` 說明）、`RecipeEntry`（`PierceCount=-1`／`BlockedByEnvironment=false` 寫死、`Range` 預設 5）、`WeaponCastService.FireNormal`（Boomerang 時用 extraBehavior 工廠掛行為、`CastContext.ReturnPoint`）、`PlayerController.ShootNormal` 一行（回程點＝`BodyCenterWorldPos`）。**發射分派一行都沒改**——一般子彈本來就走 `default` 分支，迴旋共用整條生成＋命中鏈，工坊／珠子有效性／載入檢查從 spec 自動跟上。<br>
+  **為什麼「清命中名單」是關鍵**：`_hitObjects` 讓一顆子彈一輩子只打同一目標一次，回程會穿過去程打過的怪（作者：「不然這武器一點意義都沒有」）。**為什麼分趟計時**：整把只算一個總時間的話，前一趟玩家亂跑拖久了，後面的趟會在半空消失。**為什麼用「距離 ≤ 本幀步長」判定接住**：回程每幀直指玩家，這個條件等於「本幀會到達」，速度被迅捷珠拉很高也不會一幀跳過玩家。<br>
+  **資料**：`RecipeTable.csv` 表尾加 `BoomerangCount` 欄（只有 73 填 4，其餘留空）；配方 73 改 `Mode=Boomerang`、名稱「血滴子-迴旋」，清掉變成無效欄的 `LifeTime 4`／`PierceCount 3`／`BounceTarget Environment`／`MaxBounces 4`（要改回舊版就填回這四個、清掉 Mode 與 BoomerangCount）。順手把 CSV 裡只有 51 欄的舊列補齊到 55（骨牢 4 欄當初沒補，值不變）。<br>
+  見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Boomerang 迴旋〉、[BALLISTICS.md](BALLISTICS.md)〈BoomerangBehavior〉。
 * [x] **餓鬼牙符：咬合方向＋貼牆射不出去（兩處程式修正）（⏳ 未編譯未實測）**（2026-09-24）：
   ① **往左射卻往右咬**：命中特效一律 0 度生成。WeaponTable 新欄 **`HitEffectAlignBullet`**（`WeaponData`／`WeaponManager`／`WeaponModeSpec` 特效群＋子彈外觀有效欄、兩個 WeaponData 複製點），`TrySpawnHitEffect` 多一個選填 `bullet` 參數，填 1 時用子彈當下的 `rotation.z`＋`flipY` 生成；`HandleBulletHit` 傳入子彈。武器 38 填 `HitEffectAlignBullet=1`＋`FlipYWhenLeft=1`（往左飛時子彈與咬合都水平鏡像，不會牙齒倒過來）。見 RECIPE_AND_WEAPON〈SpriteAngleOffset 設定說明〉。
   ② **貼牆往外射一出生就撞牆**：判定半徑 1.6 的出生重疊圓蓋到背後的牆。彈道核心 `BulletInstance` 加 `IsBehindOverlap`，出生檢查與飛行中「起點就重疊」的碰撞，若那個東西在子彈背後／側邊（正在離開它）就不算命中。**對所有子彈生效**，判定 `Radius` 不用縮。見 PROBLEMS **F31**。

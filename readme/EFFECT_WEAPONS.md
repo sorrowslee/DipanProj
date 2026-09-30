@@ -29,7 +29,7 @@ Super Pixel Projectiles Pack 4 的 A 組藍色雷射已製作為武器 29「鏡�
 
 | 武器 ID | 名稱 | 配方 | Mode | 飛行物素材 → 資料夾 | 代用 icon 檔名 | 分圖 | 命中／附加 |
 |---:|---|---:|---|---|---|---|---|
-| 36 | 血滴子 | 73 | Normal | `pj4_sawblade` **紅** → `bloodSawblade` | `weapon_xuedizi.png` | ✅ | 反彈 4、穿透 3；Vfx 51 血花 |
+| 36 | 血滴子 | 73 | **Boomerang** | `pj4_sawblade` **紅** → `bloodSawblade` | `weapon_xuedizi.png` | ✅ | **迴旋 4 趟**（2026-09-30 改；原為反彈 4、穿透 3）；Vfx 51 血花（`HitEffectEnemyOnly=1`：打牆不噴血） |
 | 37 | 引魂幡 | 74 | Normal | `pj3_death_wave` 紫 → `soulBannerSkull` | `weapon_soulbanner.png` | ✅ | 單顆追蹤；Vfx 56 骷髏煙（7 的放大版）；`FlipYWhenLeft=1`（往左飛不倒立） |
 | 38 | 餓鬼牙符 | 75 | Normal | `pj3_demon_bite_loop` 紅 → `hungryGhostFang` | `weapon_ghostfangtalisman.png` | ✅ | 短程（0.9 秒）；Vfx 52 `pj3_demon_bite_impact` 咬合；`FlipYWhenLeft=1`＋`HitEffectAlignBullet=1`（往哪飛就往哪咬） |
 | 39 | 玄冰針匣 | 76 | Normal | `pj2_ice_spike` 藍 → `iceNeedle` | `weapon_iceneedlebox.png` | ✅ | 單發、穿透 2；Vfx 2 冰凍 |

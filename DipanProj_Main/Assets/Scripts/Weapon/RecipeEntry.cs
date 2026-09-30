@@ -95,6 +95,12 @@ public class RecipeEntry
     public float ParallelSpacing = 0.45f;
     public float ParallelMaxWidth = 3f;
 
+    // ── 迴旋（Mode=Boomerang）──
+    /// <summary>迴旋的 Range 留空（或 ≤0）時用的每趟往外距離。</summary>
+    public const float BoomerangDefaultRange = 5f;
+    /// <summary>趟數：飛出去再回到玩家身上＝1；&gt;1 會穿過玩家往身後再飛（鐘擺）。每趟往外距離＝<c>Data.BeamRange</c>（CSV 的 Range）。</summary>
+    public int BoomerangCount = 1;
+
     /// <summary>持續型（按住生效）：Laser / Aura。沒有發射間隔、不吃集氣。</summary>
     public bool IsContinuous => WeaponModeSpec.Get(Mode).Continuous;
 
@@ -179,7 +185,7 @@ public class RecipeEntry
         if (homing > 0f) { d.HasHoming = true; d.HomingTurnSpeed = homing; }
 
         // ── 射程 / 範圍 ──
-        d.BeamRange = Fl("Range", mode == WeaponMode.GroundCast ? 8f : 20f);
+        d.BeamRange = Fl("Range", mode == WeaponMode.GroundCast ? 8f : mode == WeaponMode.Boomerang ? BoomerangDefaultRange : 20f);
         e.AreaRadius = Fl("AreaRadius", 0f);
 
         // ── 命中附加 ──
@@ -244,6 +250,15 @@ public class RecipeEntry
         e.ParallelCount = Math.Max(1, In("ParallelCount", 1));
         e.ParallelSpacing = Math.Max(0.05f, Fl("ParallelSpacing", 0.45f));
         e.ParallelMaxWidth = Math.Max(0.1f, Fl("ParallelMaxWidth", 3f));
+
+        // ── 迴旋：穿牆＋無限穿怪是這個模式的本質，不讀表（PierceCount／BlockedByEnvironment 對它是無效欄）──
+        e.BoomerangCount = Math.Max(1, In("BoomerangCount", 1));
+        if (mode == WeaponMode.Boomerang)
+        {
+            d.PierceCount = -1;
+            e.BlockedByEnvironment = false;
+            if (d.BeamRange <= 0f) d.BeamRange = BoomerangDefaultRange;   // Range 填 -1／0 對迴旋沒有意義
+        }
 
         // 規格檢查（必填缺 / 無效卻有填）
         if (fields != null) problems.AddRange(WeaponModeSpec.Validate(mode, fields, FieldTable.Recipe));

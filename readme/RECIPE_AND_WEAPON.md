@@ -109,6 +109,12 @@
 命中特效就用**子彈當下的 `rotation.z` 與 `flipY`** 生成——跟 `FlipYWhenLeft` 一起填，往左飛時子彈與咬合都是水平鏡像。
 只有子彈命中（`HandleBulletHit`）這條路會帶子彈進來；拋物線落地、近戰、落雷等仍是 0 度。
 
+**命中特效只在打到怪時播 → `HitEffectEnemyOnly=1`**（WeaponTable，2026-09-30 新增）：預設打到什麼都播，
+但血花這類圖只該出現在生物身上——血滴子打牆會「牆在流血」。填 1 時 `TrySpawnHitEffect` 在 `hitEnemy=false` 就不播
+（打到牆、**可破壞地上物**都不播）。**只對子彈／環繞／迴旋／雷射／連鎖有效**：這幾條路的呼叫端都知道打到的是不是怪；
+拋物線落地、法陣、落雷的命中特效播在落點、呼叫端不傳 `hitEnemy`，所以 `WeaponManager` 對那些模式**直接不讀**這欄
+（讀進來會變成永遠不播），填了只會在載入時 Warning。目前只有武器 36 血滴子填 1。
+
 設定完成後，無論玩家往哪個方向射擊，武器圖片都會自動旋轉到正確角度，攻擊端永遠指向飛行方向。分裂子彈也會自動繼承此設定。
 
 ## WeaponCastService — 不綁擁有者的發射服務（怪物與玩家共用）
@@ -123,6 +129,7 @@
 所以分裂／反彈／追蹤／平行／穿透／軌跡只有一份實作。
 
 - **目前只搬了 `Normal`（直飛彈）**；其餘模式仍住在 `PlayerController`，之後一種一種搬。
+  **`Boomerang`（迴旋，2026-09-30）也走 `FireNormal`**：同一條生成路，只是多掛一個 `BoomerangBehavior`（工廠插座與平行彈的 `LaneBehavior` 共用，迴旋不吃平行所以不衝突）；`CastContext.ReturnPoint` 是回程飛向的點（玩家傳 `BodyCenterWorldPos`，留 null＝Owner 的 position）。怪物端 `MonsterWeaponUser` 還只認 Normal，怪物暫時不能用迴旋武器。
   搬的原則：**幾何與彈道進來，資源（耗魔／集氣／連擊／能力珠）與命中鏈留在呼叫端**。
 - `ParallelOffsets`／`ResolvePierceableLayers`／`ResolveNonBounceLayers` 的實作也搬進來了，
   `PlayerController` 只留一行轉呼叫（拋物線等模式還在用這些名字）。
