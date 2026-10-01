@@ -85,7 +85,7 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 52,DivineForm,化神期,SpiritRoot/Divine Form,1.1,,40,45,85,50,,靈根系列 第三階（同上；SpriteFolder 含空白＝照資料夾實際名稱，勿去掉）,37,,,,,,,,,,,,,60
 60,Jiao,蛟人,Cloudborn/Jiao,1,,18,22,28,18,,雲龍系列 第一階（數值為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定）,,,,,,,,,,,,,,
 61,Chiwen,螭吻,Cloudborn/Chiwen,1.1,,35,35,50,35,,雲龍系列 第二階（同上）,,,,,,,,,,,,,,
-62,Yinglong,應龍,Cloudborn/Yinglong,1,,55,50,75,55,,雲龍系列 第三階（神格特效＝環繞水球 Orbit 38，一顆、放大，見 §5b）,,,,,,,38,1,0.4,,,,,66,72
+62,Yinglong,應龍,Cloudborn/Yinglong,1,,55,50,75,55,,雲龍系列 第三階（三階特效＝血統附帶的被動武器「應龍水珠」PassiveWeaponIds 72；不另掛神格環繞層）,,,,,,,,,,,,,,66,72
 70,Thrall,龍奴,Blazeborn/Thrall,1,,28,12,12,25,,熾龍系列 第一階（數值為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定）,,,,,,,,,,,,,,
 71,Fafnir,法夫納,Blazeborn/Fafnir,1.5,,50,22,25,50,,熾龍系列 第二階（同上）,,,,,,,,,,,,,,
 72,Nidhogg,尼德霍格,Blazeborn/Nidhogg,1.3,,75,35,45,75,,熾龍系列 第三階（神格特效＝攻擊時罩身熔岩爆 AttackVfxId 39，見 §5b）,,,,,,,,,,39,1.5,,,69
