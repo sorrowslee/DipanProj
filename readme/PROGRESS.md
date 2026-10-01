@@ -4,6 +4,13 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **新發射模式「浮游」`Mode=Familiar`＋測試武器「應龍水珠」（⏳ 未編譯未實測、icon 暫代）**（2026-10-01）：
+  作者規格：本體在玩家身邊環繞、自主發射飛行物攻擊；可加環繞數量、發射頻率、子彈威力與大小。討論後拍板：**裝備就全自動（不按鍵）**、**多本體錯開射、都打最近的**。<br>
+  **做法**：新元件 **`Scripts/Weapon/WeaponFamiliar.cs`**（本體生死與擺位＋錯開節奏＋索敵；環繞視覺照 `BloodlineOrbit` 的壓扁軌道／前後換排序／遠近縮放，排序 ±3 壓在血統環繞層 ±2 之上）；`PlayerController` 加 `ActiveFamiliarWeapon`、`HandleFiring` 的 Familiar 分支、`UpdateFamiliar`／`FireFamiliarShot`（扣魔＋`WeaponCastService.FireNormal`＋`HandleBulletHit`，子彈全套行為零重寫）；`WeaponModeSpec`（enum 尾端 `Familiar`、模式定義、WeaponTable 新欄 `FamiliarVfxId`（必填）／`FamiliarSize`／`FamiliarSpin`）；`WeaponData`／`WeaponManager`（只有 Familiar 讀這三欄）＋兩個 WeaponData 複製點；`RecipeEntry`（Familiar 也設 `HasSplit`、`Range` 預設 8）；`PlayerAbilities`（分裂珠對 Familiar 也開 `HasSplit`）。浮游武器裝著時按左鍵角色**不轉身**（不吃攻擊鍵）。<br>
+  **為什麼本體生死不放在 HandleFiring**：背包開著時 HandleFiring 不會被呼叫，在背包裡卸下武器本體會一直掛著——所以元件每幀自己問 `ActiveFamiliarWeapon`，發射節奏才跟著 HandleFiring 走（背包開著自然停火）。**為什麼錯開要兩層計時**：只給每個本體各自冷卻的話，沒怪時大家都冷卻好了、怪一進來就同一幀齊射；加一個「任兩發至少隔 `FireInterval÷N`」再輪流出手，才是均勻的噠噠噠，同時每個本體射速不變（疾發珠照常有感）。**為什麼不走 `TrySpawnFireEffect`**：它會通知三階血統的攻擊特效，自動射擊會讓那層一直播。<br>
+  **沿用既有欄＝現成珠子直接有效**：群環（本體數）、環距、疾發、銳利、須彌（子彈大小）、遠射（索敵半徑）＋一般子彈那套；集氣／連擊無效（沒有扳機）。GemTable 12／13 的 Note 一併更新。<br>
+  **資料**：WeaponTable 表尾加三欄（舊列全補空，加一行群組註解）；新配方 **86**「應龍水珠-浮游射擊」（間隔 1.2、速度 9、判定 0.2、壽命 2、索敵 8、半徑 1、**2 個本體**）、武器／道具 **72**「應龍水珠」（傷害 3、耗魔 0.5、`BulletScale 2`、本體＝VfxTable **38** 應龍水球、大小 0.8、轉速 60）；子彈圖 **`Resources/Weapon/single/weapon_waterorb.png`**（程式畫的 256px 半透明藍水球＋高光＋光暈；meta 複製 thunderbomb 的、`filterMode` 改 Bilinear，平滑圖用 Point 縮小會鋸齒）。icon 暫用同一張子彈圖。作弊面板「取得所有武器」拿得到。<br>
+  見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Familiar 浮游〉、[RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)。
 * [x] **血月鬼爪爪痕大小定在 `Scale 4.4`**（2026-10-01）：作者先要求再放大一倍（4.4→8.8），看過後要求縮小 0.5 倍，回到 **4.4**（畫面上約 2.8 單位寬，判定半徑 2.1）。
 * [x] **血月鬼爪改回原本的爪痕動畫，播快一倍、放大兩倍**（2026-10-01）：作者實測下面那版程序化刀光「還是不太行」，要求恢復原本、改試「原動畫加速放大」。武器 21 的資料還原成改版前（`HitEffectID 22`，`SlashStyle`／`HitEffectEnemyOnly`／`HitEffectAlignBullet` 清空＝與 git HEAD 同值）；VfxTable 22 `AnimFPS` 20→**40**、`Scale` 2.2→**4.4**（畫面上約 2.8 單位寬，判定半徑 2.1）。⚠ VfxTable 22 也被夢境「血月雙爪」（武器 63，沒人用）引用，會一起變。<br>
   **保留沒還原的**：`ShootMelee` 的位置修正（圓心 `MuzzleWorldPos`、怪的身體／碰撞邊緣判定，PROBLEMS F32）——舊爪痕現在從身體中段往前播。刀光程式（`MeleeSlashFx`／`MeleeSlash.shader`／`SlashStyle` 欄）與命中素材（VfxTable 57、`BloodClawHit/`）留著沒人用，要刪見 TODO。

@@ -5,6 +5,7 @@
 > **2026-08-26 大改**：51 欄的舊表已換成 **45 欄（同日加連擊 2 欄、平行 3 欄 → 50）、依模式分群**的新表——10 個 `IsXxx` 旗標收成一欄 **`Mode`**，
 > 借用欄位改成獨立欄，所有數值欄**空白＝預設**。舊表填法對照見文末[遷移對照](#從舊表遷移對照)。
 > **2026-09-30**：加 **`Mode=Boomerang` 迴旋**＋新欄 **`BoomerangCount`**（CSV 現為 56 欄，含之後加的骨牢 4 欄），見 [§3 Boomerang 迴旋](#boomerang-迴旋)。
+> **2026-10-01**：加 **`Mode=Familiar` 浮游**（裝備就自動攻擊：本體繞身、各自朝最近的怪射子彈）。**RecipeTable 沒有加欄**（全部沿用 `OrbitalCount`／`OrbitalRadius`／`Range`／`FireInterval`…），本體外觀三欄加在 **WeaponTable**（`FamiliarVfxId`／`FamiliarSize`／`FamiliarSpin`），見 [§3 Familiar 浮游](#familiar-浮游)。
 
 ---
 
@@ -26,7 +27,7 @@
 |---|---|---|---|---|
 | **通用** | `ID` | 整數 | — | 配方唯一識別碼，武器表用 `RecipeID` 引用 |
 | | `Name` | 字串 | — | 只給人看，程式不讀 |
-| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`／`Boomerang`（不分大小寫，也接受中文名） |
+| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`／`Boomerang`／`Familiar`（不分大小寫，也接受中文名） |
 | | `FireInterval` | 小數 | 0.3 | 發射間隔（秒）；Laser／Aura 無效（按住就在）；Summon＝召喚冷卻 |
 | **子彈本體** | `Speed` | 小數 | 15 | 飛行速度（世界單位/秒）；Orbital＝繞圈的切線速度 |
 | | `Radius` | 小數 | 0.1 | 碰撞半徑；Laser 改用武器表 `BeamWidth` |
@@ -41,15 +42,15 @@
 | **反彈** | `BounceTarget` | 列舉 | None | `None`／`Environment`（牆）／`Enemy`（怪） |
 | | `MaxBounces` | 整數 | 0 | 最大反彈次數（需 `BounceTarget ≠ None`） |
 | **追蹤** | `HomingTurnSpeed` | 小數 | 0 | 追蹤轉向（度/秒）；0＝不追蹤；90 慢／180 中／360 快；Laser＝光束彎曲速度 |
-| **射程／範圍** | `Range` | 小數 | 20（法陣 8、迴旋 5） | Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（≤0 也當 5） |
+| **射程／範圍** | `Range` | 小數 | 20（法陣 8、迴旋 5） | Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（≤0 也當 5）／Familiar 索敵半徑（空＝8，從玩家身上量） |
 | | `AreaRadius` | 小數 | 0 | Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑 |
 | **命中附加** | `GroundEffectID` | 整數 | 0 | 命中／落地時放一個 `GroundEffectTable` 的特效；**Aura／GroundCast 是本體、必填** |
 | | `GroundEffectHitTarget` | 列舉 | Enemy | `Enemy`／`Environment`／`Any`／`Ground`（Parabolic 落地專用） |
 | | `TrailStep` | 小數 | 0 | >0 時每飛這麼遠沿路種一個武器表 `TrailEffectID` 的特效（地刺、火焰噴射器） |
 | | `SubWeaponOnHit` | 整數 | 0 | 命中時在命中點射出這把**武器表 ID** 的武器 |
 | | `SubWeaponHitTarget` | 列舉 | Enemy | `Enemy`／`Environment`／`All` |
-| **環繞** | `OrbitalRadius` | 小數 | 2 | 軌道半徑 |
-| | `OrbitalCount` | 整數 | 3 | 一輪幾顆 |
+| **環繞** | `OrbitalRadius` | 小數 | 2 | 軌道半徑（Familiar 也吃，會再乘血統體型） |
+| | `OrbitalCount` | 整數 | 3 | 一輪幾顆（Familiar＝本體數量） |
 | **拋物線** | `FlightTime` | 小數 | 1 | **飛行秒數**——不論遠近都飛這麼久才落地（原本借用 `Speed`） |
 | | `ArcHeight` | 小數 | 2 | 弧頂視覺高度 |
 | | `LaunchSource` | 列舉 | Player | `Player`／`Offscreen`（從畫面外飛進來） |
@@ -120,6 +121,8 @@
 | ParallelCount／Spacing／MaxWidth | ✓ | | ✓(落點並排) | | | | | | | | |
 
 **Boomerang（迴旋）** 沒放進上面那張寬表（2026-09-30 新增），它只吃：`FireInterval`／`Speed`（去回同速）／`Radius`／`RotationSpeed`／`Range`（每趟往外距離）／`BoomerangCount`，武器表吃 `Damage`／`HitEffectID`／`HitEffectEnemyOnly`／子彈外觀全組（含 `BulletScale`）。**`PierceCount`／`BlockedByEnvironment`／`LifeTime` 是無效欄**——穿牆、無限穿怪、壽命都由模式本身決定（見 §3）。
+
+**Familiar（浮游）** 也沒放進寬表（2026-10-01 新增）。子彈吃的跟 **Normal 一樣**（`Speed`／`Radius`／`LifeTime`／穿透／反彈／追蹤／分裂／命中附加／平行），另外吃 `Range`（索敵半徑）、`OrbitalRadius`／`OrbitalCount`（本體軌道與數量）；**集氣與連擊無效**（兩者都綁「扣扳機」，這個模式沒有扳機）。武器表多吃本體三欄 `FamiliarVfxId`（**必填**）／`FamiliarSize`／`FamiliarSpin`，其餘同 Normal。
 
 **武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`AnimFPS`）只有 Normal／Orbital／Parabolic，`BulletScale`（施放大小）另外也給 Aura／SkyStrike／GroundCast／Melee／Dash（範圍與視覺一起放大）；光束外觀（`BeamStyle`／`BeamColor`／`BeamWidth`）是 Laser／Chain／SkyStrike；`PixelBeamSet` 只有 Laser；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
 
@@ -278,6 +281,23 @@ ID=38 Name=幽影突 Mode=Dash FireInterval=0.7 DashDistance=5 DashWidth=1.2
 ID=73 Name=血滴子-迴旋 Mode=Boomerang FireInterval=0.7 Speed=20 Radius=0.68 BoomerangCount=4   （Range 留空＝5）
 ```
 
+### Familiar 浮游
+**裝備就常駐、全自動，不用按攻擊鍵**（左鍵／空白對它沒有作用，按了角色也不轉身）。`OrbitalCount` 個本體繞著玩家轉，射程內有怪就**從本體的位置**朝**離玩家最近的怪**射一發一般子彈。（2026-10-01 新增；作者拍板：裝備就全自動、錯開射、都打最近的。）
+
+- **錯開射擊**：每個本體自己的冷卻＝`FireInterval`；另外任兩發之間至少隔 `FireInterval ÷ 本體數`、本體輪流出手 ⇒ 均勻的「噠、噠、噠」，不會同一幀齊射。每個本體的射速仍是 1÷`FireInterval`（疾發珠照常有感），所以 **本體越多＝總射速越高**。
+- **索敵**：`Range`（空＝8）從玩家身上量；只打活著、可控（不是劇情演員）、在玩家子彈打得到的層（結盟方被切到 Ally 層 ⇒ 自動排除）、而且**在畫面內**的怪（不對畫面外空放耗魔）。射程內沒怪時本體只是轉，**不扣冷卻**，怪一進來馬上射。
+- **耗魔**：每射一發扣一次 `ManaCost`（填 0＝不耗魔）；魔不夠就暫停，每 0.25 秒再試。
+- **本體外觀（WeaponTable）**：`FamiliarVfxId`＝VfxTable ID，**那一列必須 `Loop=1`、`Duration=-1`**（應龍水球＝38 可直接用）；`FamiliarSize`＝單顆高度（世界單位，空＝0.8）；`FamiliarSpin`＝轉速（度/秒，空＝60，負＝順時針）。本體大小、軌道半徑都會再乘血統體型。
+- **子彈外觀**照一般子彈：`WeaponSpritePath`／序列圖／`BulletScale`（＝子彈大小，**不影響本體**）。`FireEffectID` 播在**本體**位置（不在玩家身上），而且**不觸發三階血統的攻擊特效**（自動射擊每秒好幾發，會讓血統攻擊特效一直播）。
+- 本體的環繞視覺跟血統環繞層（`BloodlineOrbit`）同一套：軌道壓扁、轉到身後排在角色之下、遠近縮放；趴下／倒地時藏起來。共用參數（壓扁比、浮動、遠近差）在 `WeaponFamiliar` 元件 Inspector 上（第一次裝上浮游武器時才掛到玩家身上）。
+- 不擺攻擊動作（本體在射、角色沒出招）。背包開著、教學「只能喝藥」那段、禁武地圖都會停火；卸下武器或進禁武地圖本體當場收掉。
+- 程式：`Scripts/Weapon/WeaponFamiliar.cs`（本體＋節奏＋索敵）、`PlayerController.UpdateFamiliar`／`FireFamiliarShot`（扣魔＋`WeaponCastService.FireNormal`＋命中鏈 `HandleBulletHit`，所以子彈的分裂／反彈／追蹤／命中迸發都跟一般子彈同一份實作）。
+
+```
+ID=86 Name=應龍水珠-浮游射擊 Mode=Familiar FireInterval=1.2 Speed=9 Radius=0.2 LifeTime=2 Range=8 OrbitalRadius=1 OrbitalCount=2
+武器 72 應龍水珠：Damage=3 ManaCost=0.5 WeaponSpritePath=Weapon/single/weapon_waterorb BulletScale=2 FamiliarVfxId=38 FamiliarSize=0.8 FamiliarSpin=60
+```
+
 ### 3.12 `SubRecipeID` vs `SubWeaponOnHit`（兩個都叫 Sub，別搞混）
 
 | | `SubRecipeID` | `SubWeaponOnHit` |
@@ -360,6 +380,7 @@ ID=73 Name=血滴子-迴旋 Mode=Boomerang FireInterval=0.7 Speed=20 Radius=0.68
 - 9~25 是 2026-08-26 從兩張表「能拆的欄位」一次拆出來的（作者要求連射程、存活時間都拆；icon 先借舊符號）。**刻意沒拆的欄位**：`Radius`（碰撞半徑）、`AreaRadius`、`DashWidth`、`FlightTime` 與須彌／迅捷重疊；`RotationSpeed`／`ArcHeight`／`SpriteAngleOffset` 純視覺；`LandingScatterRadius`／`TrailStep` 加了是變差；`SummonRadius` 只是出生位置；ID／枚舉／開關類（`GroundEffectID`、`SubWeaponOnHit`、`BounceTarget`、`SplitTiming`、`ChargeMode`…）不是「加數值」能疊的，那是另一種「附魔」，之後再談。
 - 聚氣珠改的 `ChargeTimeReduction` 表裡存百分點（30＝縮短 30%），所以珠子填**固定值** 10/20/40 就是加百分點；`ChargeMode=0` 的武器鑲了沒感覺（模式判有效，但集氣沒開）。
 - **迴旋（Boomerang，不在上表）**：迅捷（`Speed`）、遠射（`Range`＝每趟距離）、銳利、須彌、疾發、省魔有效；反彈、穿透、綿延、追蹤、分裂、廣角、聚氣、連擊、平行**無效**（穿透本來就無限、壽命自動算）。
+- **浮游（Familiar，不在上表）**：**群環**（`OrbitalCount`＝本體數量）、**環距**（`OrbitalRadius`）、**疾發**（每個本體的間隔）、**銳利**、**須彌**（＝子彈大小，本體不變）、**遠射**（`Range`＝索敵半徑），以及一般子彈那一套（反彈、穿透、迅捷、追蹤、分裂、廣角、綿延、平行）、省魔都有效；**聚氣、連擊無效**（沒有扳機）。
 - 每顆珠子的白話說明與範例（拿現有武器算數字）見 [GEM_CATALOG.md](GEM_CATALOG.md)。
 - 要加新珠子：`GemTable.Field` 填 RecipeTable／WeaponTable 的欄名，有效性自動從 `WeaponModeSpec` 推導，**不用另外維護**。填了不存在的欄名載入時會 Warning。
 

@@ -142,6 +142,24 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
     }
 
+    /// <summary>
+    /// 目前裝備的浮游武器（<see cref="WeaponMode.Familiar"/>）；沒裝、裝的是別種、或現在不能開火（<see cref="CanFire"/>）＝null。
+    /// <see cref="WeaponFamiliar"/> 每幀問這個決定本體要不要存在——所以背包開著卸下武器、進禁武地圖、
+    /// 夢境劇情換武器，本體都會當場收掉，不用等 HandleFiring。
+    /// </summary>
+    public WeaponData ActiveFamiliarWeapon
+    {
+        get
+        {
+            if (_isDead || !CanFire) return null;
+            var w = _weaponManager.GetCurrentWeapon();
+            return (w != null && w.Recipe != null && w.Recipe.Mode == WeaponMode.Familiar) ? w : null;
+        }
+    }
+
+    // 浮游武器的本體與發射節奏（第一次裝上浮游武器時才掛上，見 UpdateFamiliar）
+    private WeaponFamiliar _familiar;
+
     // 離散武器集氣：按住空白／左鍵，放開才施放。3 秒完成後傷害 ×3、視覺 ×2。
     private const float ChargeRequiredSeconds = 3f;
     private const float ChargeVfxHeightRatio = 1.15f;
@@ -301,7 +319,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             // 這裡的轉身條件也要帶 CanFire，與下方一般路徑（isAttacking）保持一致：
             // 不能開火時按攻擊鍵不該有任何反應，包含轉身。目前柴房教學此階段必定已裝備佛燈、
             // 且教學地圖沒設 NoWeapon，所以實務上恆為 true；寫上去是避免未來「禁武地圖 + FireOnly 教學」時行為不一致。
-            if (_spriteRenderer != null && Camera.main != null && CanFire
+            if (_spriteRenderer != null && Camera.main != null && CanFire && ActiveFamiliarWeapon == null
                 && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)))
             {
                 float dx = Camera.main.ScreenToWorldPoint(Input.mousePosition).x - transform.position.x;
@@ -330,7 +348,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             // 不能開火時按攻擊鍵不該有任何反應——包含「轉身面向滑鼠」。
             // （否則空手／禁武地圖邊走邊按左鍵，人物朝向會跟移動方向不一致。）
-            bool isAttacking = CanFire && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0));
+            // 浮游武器不吃攻擊鍵 ⇒ 按了也不轉身（否則邊走邊按左鍵，朝向會跟移動方向對不上）。
+            bool isAttacking = CanFire && ActiveFamiliarWeapon == null && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0));
             if (isAttacking)
             {
                 Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -644,6 +663,15 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
+        // 浮游：裝備就自動打，不看按鍵（作者拍板 2026-10-01）。左鍵／空白對它沒有作用。
+        if (weapon.Recipe != null && weapon.Recipe.Mode == WeaponMode.Familiar)
+        {
+            if (_isCharging) CancelCharge();
+            CancelBurst();   // 從別把武器切過來時，前一把還沒補完的連擊不要繼續
+            UpdateFamiliar(weapon, forced);
+            return;
+        }
+
         // ── 連擊進行中：不看按鍵、不看冷卻，時間到就補下一發（不扣魔）；召喚滿了就中止這串 ──
         if (_burstRemaining > 0)
         {
@@ -788,6 +816,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             BeamStyle = source.BeamStyle, BeamColor = source.BeamColor, BeamWidth = source.BeamWidth * 2f,
             FireEffectID = source.FireEffectID, HitEffectID = source.HitEffectID,
             TrailEffectID = source.TrailEffectID, SummonEffectID = source.SummonEffectID,
+            FamiliarVfxId = source.FamiliarVfxId, FamiliarSize = source.FamiliarSize, FamiliarSpin = source.FamiliarSpin,
             Recipe = source.Recipe, BulletPrefab = source.BulletPrefab, WeaponSprite = source.WeaponSprite,
             WeaponSprites = source.WeaponSprites, BeamMuzzleSprite = source.BeamMuzzleSprite,
             BeamImpactSprite = source.BeamImpactSprite, PixelBeamSet = source.PixelBeamSet
@@ -1297,6 +1326,54 @@ public class PlayerController : MonoBehaviour, IDamageable
             ReturnPoint  = () => BodyCenterWorldPos,   // 迴旋回程飛回身體中心（只有 Mode=Boomerang 會用到）
         };
         WeaponCastService.FireNormal(weapon, recipe, in ctx);
+    }
+
+    // ── 浮游（Mode=Familiar）：本體繞身、各自錯開、自動朝最近的怪射一般子彈 ──
+    // 節奏與索敵在 WeaponFamiliar；這裡只負責「真的射出去那一下」（扣魔／發射特效／彈道／命中鏈）。
+    private void UpdateFamiliar(WeaponData weapon, bool forced)
+    {
+        if (_familiar == null)
+        {
+            _familiar = GetComponent<WeaponFamiliar>();
+            if (_familiar == null) _familiar = gameObject.AddComponent<WeaponFamiliar>();
+        }
+        _familiar.TickFiring(Time.deltaTime, weapon, (w, origin, target) =>
+        {
+            bool shot = FireFamiliarShot(w, origin, target);
+            if (shot && forced) _forceFireDidFire = true;
+            return shot;
+        });
+    }
+
+    /// <summary>從某個浮游本體朝目標射一發。回傳 false＝魔力不夠（呼叫端會稍後再試）。</summary>
+    private bool FireFamiliarShot(WeaponData weapon, Vector2 origin, MonsterController target)
+    {
+        if (weapon == null || weapon.Recipe == null || weapon.BulletPrefab == null || target == null) return false;
+        // 每發扣一次 ManaCost（填 0＝不耗魔）。
+        if (_stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
+
+        Vector2 dir = target.BodyCenterWorldPos - origin;   // 瞄身體中心，不瞄 transform（怪物 pivot 在畫布中心，PROBLEMS G13）
+
+        // 發射特效播在「本體」上，不是玩家身上。
+        // ⚠ 刻意不走 TrySpawnFireEffect：那支會通知 BloodlineAttackFx（三階血統的攻擊特效），
+        //   自動射擊每秒好幾發，會讓血統攻擊特效一直播個不停——浮游是本體在射、不是角色在出招。
+        if (_vfxManager != null && weapon.FireEffectID > 0)
+            _vfxManager.Spawn(weapon.FireEffectID, origin, Mathf.Atan2(dir.y, dir.x) * Mathf.Rad2Deg, weapon.CastVisualScale);
+
+        WeaponData firedWeapon = weapon;
+        var ctx = new WeaponCastService.CastContext
+        {
+            Owner        = gameObject,
+            Origin       = origin,                 // 從本體的位置射出
+            Direction    = dir,
+            OwnerScale   = PlayerScale,
+            TargetLayers = EnemyLayer,
+            EnvLayer     = EnvLayer,
+            OnHit        = (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
+            OnTrailPoint = (b, pos) => TrySpawnTrailEffect(firedWeapon, pos),
+        };
+        return WeaponCastService.FireNormal(weapon, weapon.Recipe.Data, in ctx);
+        // 不擺攻擊動作：本體在射，角色沒有出招（否則角色會一直卡在攻擊姿勢）。
     }
 
     private void ClearActiveOrbitalBullets()

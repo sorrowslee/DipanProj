@@ -34,6 +34,8 @@ public enum WeaponMode
     Cage,
     /// <summary>迴旋：丟出去飛 Range 後折返追向玩家；穿牆、無限穿怪、每趟都能再打同一隻；次數用完回到手上才消失。</summary>
     Boomerang,
+    /// <summary>浮游：裝備就常駐，本體繞著玩家轉，射程內有怪就各自從本體射子彈（不用按攻擊鍵）。</summary>
+    Familiar,
 }
 
 /// <summary>欄位值的型別（給載入檢查與未來「武器效果模擬」面板產輸入框用）。</summary>
@@ -226,7 +228,7 @@ public static class WeaponModeSpec
             F(R, "HomingTurnSpeed", FieldKind.Float, "追蹤", "追蹤轉向速度（度/秒）", "0", 0f, 3600f, "0＝不追蹤；90 慢 180 中 360 快"),
 
             // ── 射程／範圍（語意一致的共用欄）──
-            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）"),
+            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）／Familiar 索敵半徑（空=8）"),
             F(R, "AreaRadius", FieldKind.Float, "射程範圍", "範圍半徑", "", 0f, 50f, "Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑"),
 
             // ── 命中附加 ──
@@ -237,8 +239,8 @@ public static class WeaponModeSpec
             F(R, "SubWeaponHitTarget",    FieldKind.Enum, "命中附加", "迸發觸發對象", "Enemy", help: "Enemy／Environment／All", options: new[] { "Enemy", "Environment", "All" }),
 
             // ── 環繞 ──
-            F(R, "OrbitalRadius", FieldKind.Float, "環繞", "環繞半徑", "2", 0.1f, 20f),
-            F(R, "OrbitalCount",  FieldKind.Int,   "環繞", "環繞數量", "3", 1, 64),
+            F(R, "OrbitalRadius", FieldKind.Float, "環繞", "環繞半徑", "2", 0.1f, 20f, "Orbital／Familiar 共用（Familiar 會再乘血統體型）"),
+            F(R, "OrbitalCount",  FieldKind.Int,   "環繞", "環繞數量", "3", 1, 64, "Orbital＝幾顆子彈；Familiar＝幾個本體（群環珠改這欄）"),
 
             // ── 拋物線 ──
             F(R, "FlightTime",           FieldKind.Float, "拋物線", "飛行秒數", "1", 0.05f, 30f, "不論遠近都飛這麼久才落地（原本借用 Speed 欄）"),
@@ -333,6 +335,14 @@ public static class WeaponModeSpec
               "只有近戰：0＝不畫（舊行為：揮擊時在前方播 HitEffectID）；1＝血月三爪（程序化刀光，範圍＝判定扇形，HitEffectID 改成打中時在目標身上播）"),
             F(W, "TrailEffectID",  FieldKind.Int, "特效", "軌跡特效 ID", "0", 0, 99999, "VfxTable；配合配方 TrailStep 沿路種"),
             F(W, "SummonEffectID", FieldKind.Int, "特效", "召喚特效 ID", "0", 0, 99999, "VfxTable；每個生怪點播一次"),
+
+            // ── 浮游本體（只有 Mode=Familiar）──
+            F(W, "FamiliarVfxId", FieldKind.Int,   "浮游本體", "本體外觀（VfxTable ID）", "0", 0, 99999,
+              "Familiar 必填；VfxTable 那一列必須 Loop=1、Duration=-1（常駐，生死由程式負責）。應龍水球＝38"),
+            F(W, "FamiliarSize",  FieldKind.Float, "浮游本體", "本體大小", "0.8", 0.05f, 10f,
+              "單顆本體的顯示高度（世界單位，會再乘血統體型）；子彈大小另看 BulletScale"),
+            F(W, "FamiliarSpin",  FieldKind.Float, "浮游本體", "本體轉速（度/秒）", "60", -720f, 720f,
+              "正＝逆時針、負＝順時針、0＝停在原位不轉"),
         };
         return L;
     }
@@ -447,6 +457,22 @@ public static class WeaponModeSpec
             .Eff("FireInterval", "Speed", "Radius", "RotationSpeed", "Range", "BoomerangCount")
             .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly").Eff(BulletVisual)
             .Lbl("Speed", "飛行速度（去回同速）").Lbl("Range", "迴旋距離（每趟往外飛多遠；空=5）");
+
+        // 浮游：裝備就常駐、不用按鍵。本體繞玩家轉（視覺同 BloodlineOrbit：壓扁軌道＋前後換排序＋遠近縮放），
+        // 每個本體各自計時、彼此錯開，射程內有怪就從「本體的位置」朝最近的怪射一發一般子彈（走 WeaponCastService.FireNormal，
+        // 所以子彈吃一般子彈全套行為）。每發扣一次 ManaCost（填 0＝不耗魔）。
+        // ⚠ 刻意不吃：集氣／連擊（兩者都綁「扣扳機」，這個模式沒有扳機）。
+        // SpawnsBullets 不勾：命中迸發的子武器目前只接受 Normal（同 Boomerang）。
+        M(d, WeaponMode.Familiar, "浮游", "裝備就常駐：本體繞著玩家轉，射程內有怪就各自從本體射子彈（錯開射、都打最近的）；不用按攻擊鍵")
+            .Eff("FireInterval", "Speed", "Radius", "LifeTime", "RotationSpeed", "PierceCount", "BlockedByEnvironment")
+            .Eff(Multi).Eff("SplitTiming", "SubRecipeID", "BounceTarget", "MaxBounces", "HomingTurnSpeed")
+            .Eff("GroundEffectID", "GroundEffectHitTarget", "TrailStep", "SubWeaponOnHit", "SubWeaponHitTarget")
+            .Eff("Range", "OrbitalRadius", "OrbitalCount").Eff(Parallel)
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "TrailEffectID").Eff(BulletVisual)
+            .Req("FamiliarVfxId").Eff("FamiliarSize", "FamiliarSpin")
+            .Lbl("FireInterval", "每個本體的發射間隔（秒）").Lbl("Range", "索敵半徑（空=8）")
+            .Lbl("OrbitalRadius", "環繞半徑").Lbl("OrbitalCount", "本體數量").Lbl("Speed", "子彈飛行速度")
+            .Lbl("BulletScale", "子彈大小").Lbl("FireEffectID", "發射特效 ID（在本體位置播）");
 
         return d;
     }

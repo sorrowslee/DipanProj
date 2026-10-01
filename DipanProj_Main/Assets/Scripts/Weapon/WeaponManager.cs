@@ -233,6 +233,15 @@ public class WeaponManager : MonoBehaviour
         weapon.TrailEffectID = CsvFieldParse.Int(S("TrailEffectID"), 0);
         weapon.SummonEffectID = CsvFieldParse.Int(S("SummonEffectID"), 0);
 
+        // 浮游本體：只有 Familiar 讀（其他模式填了也不讀，載入時 Warning——同「無效欄不讀」原則）
+        WeaponMode wmode = recipe != null ? recipe.Mode : WeaponMode.Normal;
+        if (WeaponModeSpec.IsEffective(wmode, "FamiliarVfxId"))
+        {
+            weapon.FamiliarVfxId = Mathf.Max(0, CsvFieldParse.Int(S("FamiliarVfxId"), 0));
+            weapon.FamiliarSize = Mathf.Clamp(CsvFieldParse.Float(S("FamiliarSize"), 0.8f), 0.05f, 10f);
+            weapon.FamiliarSpin = Mathf.Clamp(CsvFieldParse.Float(S("FamiliarSpin"), 60f), -720f, 720f);
+        }
+
         weapon.Recipe = recipe;
         weapon.BulletPrefab = BulletPrefab;
 

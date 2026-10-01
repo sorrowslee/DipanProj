@@ -98,6 +98,8 @@ public class RecipeEntry
     // ── 迴旋（Mode=Boomerang）──
     /// <summary>迴旋的 Range 留空（或 ≤0）時用的每趟往外距離。</summary>
     public const float BoomerangDefaultRange = 5f;
+    /// <summary>浮游（Mode=Familiar）的 Range 留空時的索敵半徑（從玩家身上量）。</summary>
+    public const float FamiliarDefaultRange = 8f;
     /// <summary>趟數：飛出去再回到玩家身上＝1；&gt;1 會穿過玩家往身後再飛（鐘擺）。每趟往外距離＝<c>Data.BeamRange</c>（CSV 的 Range）。</summary>
     public int BoomerangCount = 1;
 
@@ -158,7 +160,7 @@ public class RecipeEntry
         string timingStr = G("SplitTiming");
         // 分裂行為（SplitBehavior）只有會飛的子彈用；雷射只認 OnHit（命中分裂），道數是直接讀 SplitCount 展開的；
         // 其他模式（拋物線/連鎖/落雷）也是直接讀 SplitCount 當顆數/道數，不走 SplitBehavior。
-        if (mode == WeaponMode.Normal || mode == WeaponMode.Orbital)
+        if (mode == WeaponMode.Normal || mode == WeaponMode.Orbital || mode == WeaponMode.Familiar)
         {
             d.HasSplit = spreadCount > 1;
             d.Timing = ParseSplitTiming(timingStr);   // 留空 = OnSpawn
@@ -185,7 +187,8 @@ public class RecipeEntry
         if (homing > 0f) { d.HasHoming = true; d.HomingTurnSpeed = homing; }
 
         // ── 射程 / 範圍 ──
-        d.BeamRange = Fl("Range", mode == WeaponMode.GroundCast ? 8f : mode == WeaponMode.Boomerang ? BoomerangDefaultRange : 20f);
+        d.BeamRange = Fl("Range", mode == WeaponMode.GroundCast ? 8f : mode == WeaponMode.Boomerang ? BoomerangDefaultRange
+                                 : mode == WeaponMode.Familiar ? FamiliarDefaultRange : 20f);
         e.AreaRadius = Fl("AreaRadius", 0f);
 
         // ── 命中附加 ──

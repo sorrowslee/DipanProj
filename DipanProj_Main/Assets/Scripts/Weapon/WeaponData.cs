@@ -34,6 +34,11 @@ public class WeaponData
     public int TrailEffectID;  // 沿子彈飛行路徑每隔 TrailStep 距離種一個（地刺武器靠這個沿路長出尖刺）
     public int SummonEffectID; // 召喚型武器：在每個生怪點播放一次，特效播完才生怪；0 / 留空 = 不播、立即生怪
 
+    // ── 浮游本體（只有 Mode=Familiar 讀；見 WeaponFamiliar）──
+    public int FamiliarVfxId;          // 本體外觀（VfxTable ID，該列 Loop=1、Duration=-1）。0 = 沒有本體 ⇒ 不運作
+    public float FamiliarSize = 0.8f;  // 單顆本體顯示高度（世界單位，再乘血統體型）
+    public float FamiliarSpin = 60f;   // 繞行轉速（度/秒，正＝逆時針）
+
     public RecipeEntry Recipe;
     public GameObject BulletPrefab;
     public Sprite WeaponSprite;

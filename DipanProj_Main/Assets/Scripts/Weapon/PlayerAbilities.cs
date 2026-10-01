@@ -202,7 +202,7 @@ public class PlayerAbilities
         {
             d.SplitCount = Mathf.Clamp(Mathf.RoundToInt(split.Apply(d.SplitCount)), 1, SafeMaxSpreadCount);
             // 分裂行為（SplitBehavior）只有會飛的子彈用；雷射/拋物線/連鎖/落雷直接讀 SplitCount 當道數/顆數
-            if (d.SplitCount > 1 && (mode == WeaponMode.Normal || mode == WeaponMode.Orbital)) d.HasSplit = true;
+            if (d.SplitCount > 1 && (mode == WeaponMode.Normal || mode == WeaponMode.Orbital || mode == WeaponMode.Familiar)) d.HasSplit = true;
         }
         if (Eff(mode, "SpreadAngle")) d.SpreadAngle = Get(_recipe, "SpreadAngle").Apply(d.SpreadAngle);
 
@@ -296,6 +296,7 @@ public class PlayerAbilities
         PixelBeamSet = s.PixelBeamSet,
         FireEffectID = s.FireEffectID, HitEffectID = s.HitEffectID,
         TrailEffectID = s.TrailEffectID, SummonEffectID = s.SummonEffectID,
+        FamiliarVfxId = s.FamiliarVfxId, FamiliarSize = s.FamiliarSize, FamiliarSpin = s.FamiliarSpin,
         Recipe = s.Recipe, BulletPrefab = s.BulletPrefab,
         WeaponSprite = s.WeaponSprite, WeaponSprites = s.WeaponSprites,
         BeamMuzzleSprite = s.BeamMuzzleSprite, BeamImpactSprite = s.BeamImpactSprite,
