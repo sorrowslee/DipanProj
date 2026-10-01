@@ -71,6 +71,12 @@ public sealed class ModeSpec
     public bool Continuous;
     /// <summary>會發射「會飛的一般子彈」（可當 SubWeaponOnHit 的子武器）。</summary>
     public bool SpawnsBullets;
+    /// <summary>
+    /// **被動型**（2026-10-01）：裝備著就自己運作、沒有扳機、不佔「當前武器」——所以可以跟主武器並存，
+    /// 也可以被任何來源掛載（ItemTable／BloodlineTable 的 <c>PassiveWeaponIds</c>，見 readme/PASSIVE_WEAPON.md）。
+    /// 目前只有 Familiar。之後新增一種「裝備就自動發生」的模式，在 <see cref="WeaponModeSpec.BuildModes"/> 把它打開就能掛載。
+    /// </summary>
+    public bool Passive;
 
     internal readonly HashSet<string> Effective = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
     internal readonly HashSet<string> Required = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -79,6 +85,7 @@ public sealed class ModeSpec
     internal ModeSpec Eff(params string[] fields) { foreach (var f in fields) Effective.Add(f); return this; }
     internal ModeSpec Req(params string[] fields) { foreach (var f in fields) { Required.Add(f); Effective.Add(f); } return this; }
     internal ModeSpec Lbl(string field, string label) { Labels[field] = label; return this; }
+    internal ModeSpec AsPassive() { Passive = true; return this; }
 }
 
 /// <summary>
@@ -156,6 +163,9 @@ public static class WeaponModeSpec
     }
 
     /// <summary>這個欄位對這個模式有沒有作用。通用欄（ID/Name/Mode…）一律 true；不認得的欄名回 false。</summary>
+    /// <summary>這個模式是不是被動型（可被 PassiveWeaponIds 掛載、不佔當前武器）。見 <see cref="ModeSpec.Passive"/>。</summary>
+    public static bool IsPassive(WeaponMode mode) => _modes.TryGetValue(mode, out var m) && m.Passive;
+
     public static bool IsEffective(WeaponMode mode, string field)
     {
         if (string.IsNullOrEmpty(field)) return false;
@@ -464,6 +474,7 @@ public static class WeaponModeSpec
         // ⚠ 刻意不吃：集氣／連擊（兩者都綁「扣扳機」，這個模式沒有扳機）。
         // SpawnsBullets 不勾：命中迸發的子武器目前只接受 Normal（同 Boomerang）。
         M(d, WeaponMode.Familiar, "浮游", "裝備就常駐：本體繞著玩家轉，射程內有怪就各自從本體射子彈（錯開射、都打最近的）；不用按攻擊鍵")
+            .AsPassive()
             .Eff("FireInterval", "Speed", "Radius", "LifeTime", "RotationSpeed", "PierceCount", "BlockedByEnvironment")
             .Eff(Multi).Eff("SplitTiming", "SubRecipeID", "BounceTarget", "MaxBounces", "HomingTurnSpeed")
             .Eff("GroundEffectID", "GroundEffectHitTarget", "TrailStep", "SubWeaponOnHit", "SubWeaponHitTarget")

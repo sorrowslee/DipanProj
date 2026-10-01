@@ -117,6 +117,13 @@ namespace Dipan.Gacha
         /// 離開夢境收回——**不進背包、不進存檔**。留空／0 ＝ 夢裡不覆寫（沿用玩家自己裝的）。
         /// </summary>
         public int DreamWeaponId;
+
+        /// <summary>
+        /// **被動武器掛載**（第 27 欄，2026-10-01）：升到這個血統就自動帶著的被動武器（WeaponTable ID，被動型模式如 Familiar），
+        /// 分號分隔可填多把。與 ItemTable 的同名欄是同一套掛載機制，收集在 <c>PassiveWeaponSet</c>。
+        /// 留空 = 沒有。見 readme/PASSIVE_WEAPON.md。
+        /// </summary>
+        public int[] PassiveWeaponIds = System.Array.Empty<int>();
     }
 
     /// <summary>
@@ -234,6 +241,9 @@ namespace Dipan.Gacha
 
                     // 新手夢境教學的配給武器（25 欄，2026-09-23 加）。留空 = 夢裡不覆寫武器。
                     DreamWeaponId = CsvUtil.FieldInt(v, 25, 0),
+
+                    // 被動武器掛載（26 欄，2026-10-01）。分號分隔；留空 = 沒有。ID 的有效性由 PassiveWeaponSet 解析時檢查。
+                    PassiveWeaponIds = Dipan.Inventory.ItemDatabase.ParseIdList(CsvUtil.Field(v, 26), $"血統 {id} 的 PassiveWeaponIds"),
                 };
                 if (d.DisplayName.Length == 0) d.DisplayName = d.Key.Length > 0 ? d.Key : $"#{id}";
                 // 留空/0/負數一律當 1；上限擋在 5 倍，填錯一個 0 不會讓角色大到蓋滿整個畫面。

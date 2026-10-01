@@ -282,6 +282,10 @@ ID=73 Name=血滴子-迴旋 Mode=Boomerang FireInterval=0.7 Speed=20 Radius=0.68
 ```
 
 ### Familiar 浮游
+> **2026-10-01 起是「被動武器」**（`ModeSpec.Passive`）：**不佔當前武器、可與主武器並存**，由裝備或血統的 `PassiveWeaponIds` 欄掛載
+> （道具 **503 應龍護身符**帶著它、應龍血統 62 附帶一把；武器型的道具 72 已移除）。掛載機制、多組疊加、珠子怎麼算，見 [PASSIVE_WEAPON.md](PASSIVE_WEAPON.md)；本節只講這一列怎麼填。
+> **被動武器不能裝在武器欄**：道具列 `WeaponID` 留空、`EquipSlot` 填護身符／戒指，`WeaponID` 指到浮游武器會被當成空手並印警告。
+
 **裝備就常駐、全自動，不用按攻擊鍵**（左鍵／空白對它沒有作用，按了角色也不轉身）。`OrbitalCount` 個本體繞著玩家轉，射程內有怪就**從本體的位置**朝**離玩家最近的怪**射一發一般子彈。（2026-10-01 新增；作者拍板：裝備就全自動、錯開射、都打最近的。）
 
 - **錯開射擊**：每個本體自己的冷卻＝`FireInterval`；另外任兩發之間至少隔 `FireInterval ÷ 本體數`、本體輪流出手 ⇒ 均勻的「噠、噠、噠」，不會同一幀齊射。每個本體的射速仍是 1÷`FireInterval`（疾發珠照常有感），所以 **本體越多＝總射速越高**。
@@ -290,12 +294,13 @@ ID=73 Name=血滴子-迴旋 Mode=Boomerang FireInterval=0.7 Speed=20 Radius=0.68
 - **本體外觀（WeaponTable）**：`FamiliarVfxId`＝VfxTable ID，**那一列必須 `Loop=1`、`Duration=-1`**（應龍水球＝38 可直接用）；`FamiliarSize`＝單顆高度（世界單位，空＝0.8）；`FamiliarSpin`＝轉速（度/秒，空＝60，負＝順時針）。本體大小、軌道半徑都會再乘血統體型。
 - **子彈外觀**照一般子彈：`WeaponSpritePath`／序列圖／`BulletScale`（＝子彈大小，**不影響本體**）。`FireEffectID` 播在**本體**位置（不在玩家身上），而且**不觸發三階血統的攻擊特效**（自動射擊每秒好幾發，會讓血統攻擊特效一直播）。
 - 本體的環繞視覺跟血統環繞層（`BloodlineOrbit`）同一套：軌道壓扁、轉到身後排在角色之下、遠近縮放；趴下／倒地時藏起來。共用參數（壓扁比、浮動、遠近差）在 `WeaponFamiliar` 元件 Inspector 上（第一次裝上浮游武器時才掛到玩家身上）。
-- 不擺攻擊動作（本體在射、角色沒出招）。背包開著、教學「只能喝藥」那段、禁武地圖都會停火；卸下武器或進禁武地圖本體當場收掉。
-- 程式：`Scripts/Weapon/WeaponFamiliar.cs`（本體＋節奏＋索敵）、`PlayerController.UpdateFamiliar`／`FireFamiliarShot`（扣魔＋`WeaponCastService.FireNormal`＋命中鏈 `HandleBulletHit`，所以子彈的分裂／反彈／追蹤／命中迸發都跟一般子彈同一份實作）。
+- 不擺攻擊動作（本體在射、角色沒出招）。背包開著、教學「只能喝藥」那段、禁武地圖都會停火；卸下裝備／換血統或進禁武地圖本體當場收掉。
+- 程式：`Scripts/Weapon/PassiveWeaponSet.cs`（誰帶著哪幾把）、`Scripts/Weapon/WeaponFamiliar.cs`（本體＋節奏＋索敵，一元件管多組）、`PlayerController.TickPassiveWeapons`／`FireFamiliarShot`（扣魔＋`WeaponCastService.FireNormal`＋命中鏈 `HandleBulletHit`，所以子彈的分裂／反彈／追蹤／命中迸發都跟一般子彈同一份實作）。
 
 ```
 ID=86 Name=應龍水珠-浮游射擊 Mode=Familiar FireInterval=1.2 Speed=9 Radius=0.2 LifeTime=2 Range=8 OrbitalRadius=1 OrbitalCount=2
 武器 72 應龍水珠：Damage=3 ManaCost=0.5 WeaponSpritePath=Weapon/single/weapon_waterorb BulletScale=2 FamiliarVfxId=38 FamiliarSize=0.8 FamiliarSpin=60
+道具 503 應龍護身符：EquipSlot=Amulet IconPath=UI/Icons/Equipment/amulet_waterorb PassiveWeaponIds=72   ← 掛載在護身符上，WeaponID 留空（武器型的道具 72 已移除）
 ```
 
 ### 3.12 `SubRecipeID` vs `SubWeaponOnHit`（兩個都叫 Sub，別搞混）

@@ -857,3 +857,12 @@
 - [ ] **手感參數寫死在 `WeaponFamiliar` 元件 Inspector**（全浮游武器共用）：軌道壓扁 0.38、軌道高度 0.05×身高、遠近差 0.25、浮動 0.06、只打畫面內的怪、魔不夠 0.25 秒重試、沒怪 0.1 秒重找。要逐武器不同時再開成 WeaponTable 欄。
 - [ ] **怪物不能用浮游武器**：`MonsterWeaponUser` 只認 Normal。
 - [ ] **還沒談的**：本體會不會擋子彈／被打、本體本身碰到怪有沒有接觸傷害、要不要「瞄滑鼠方向」的手動模式——作者這次選了純自動，以後要再加。
+
+
+## 被動武器掛載 `PassiveWeaponIds`（2026-10-01，應龍水珠改護身符）
+
+- [ ] **未編譯未實測**：`PassiveWeaponSet`／多組 `WeaponFamiliar`／`PlayerController` 的 `CanFire`／`CanRunPassive` 全是靜態核對過而已。測試步驟見 [PASSIVE_WEAPON.md](PASSIVE_WEAPON.md) §6。
+- [ ] **不同組之間不互相錯開**（只在組內錯開）：護身符＋血統各一組時四顆偶爾會同幀出兩發。要全域錯開得在 `WeaponFamiliar` 加跨組的 `_nextShotAt`。
+- [ ] **來源沒接 UI**：「這顆水珠是血統給的／護身符給的」只有 `PassiveWeaponSet.Describe()`，背包 tooltip／裝備欄都沒顯示。
+- [ ] 上一節〈浮游模式〉的缺口（起手值估的、沒命中特效、怪物不能用、手感參數在 Inspector）仍然成立；其中「icon 是暫代」已解（道具改成 503 應龍護身符、icon `amulet_waterorb`），「武器／道具 72」現在只剩 WeaponTable 72。
+

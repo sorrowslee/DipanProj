@@ -47,6 +47,13 @@ public class PlayerController : MonoBehaviour, IDamageable
     private readonly PlayerAbilities _abilities = new PlayerAbilities();
     /// <summary>玩家目前的能力總表（給 UI / 除錯讀）。</summary>
     public PlayerAbilities Abilities => _abilities;
+    /// <summary>
+    /// 玩家身上的被動武器清單（裝備／血統／武器欄給的 Familiar 等，見 readme/PASSIVE_WEAPON.md）。
+    /// 每幀比對簽章、變了才重算（<see cref="SyncPassiveWeapons"/>）。
+    /// </summary>
+    private readonly PassiveWeaponSet _passives = new PassiveWeaponSet();
+    /// <summary>被動武器清單（給 UI / 除錯讀）。</summary>
+    public PassiveWeaponSet Passives => _passives;
     private GroundEffectManager _groundEffectManager;
     private VfxManager _vfxManager;
     private HitReactionHandler _hitReaction;
@@ -130,34 +137,66 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// </summary>
     public bool IsContinuousFireActive => _activeBeams.Count > 0 || _activeAura != null;
 
-    /// <summary>玩家現在能不能開火。兩個條件：**有裝備武器** ＋ **這張地圖沒禁用武器**（MapsTable 的 NoWeapon 欄）。
-    /// 發射 guard 與「按攻擊鍵轉身面向滑鼠」都讀它，確保兩處判斷永遠一致。</summary>
+    /// <summary>玩家現在能不能開火。兩個條件：**有裝備（主動）武器** ＋ **這張地圖沒禁用武器**（MapsTable 的 NoWeapon 欄）。
+    /// 發射 guard 與「按攻擊鍵轉身面向滑鼠」都讀它，確保兩處判斷永遠一致。
+    /// <para>當前武器是**被動型**（Familiar 浮游，只會來自工坊模擬／劇情覆寫；武器欄擋在 <see cref="OnInventoryChanged"/>）時視為空手：
+    /// 按攻擊鍵沒反應、不轉身；那把武器由 <see cref="PassiveWeapons"/> 那條路運作（2026-10-01 起浮游是被動武器，可與主武器並存）。</para></summary>
     public bool CanFire
     {
         get
         {
-            if (_weaponManager == null || _weaponManager.GetCurrentWeapon() == null) return false;
+            if (_weaponManager == null) return false;
+            var w = _weaponManager.GetCurrentWeapon();
+            if (w == null) return false;
+            if (w.Recipe != null && WeaponModeSpec.IsPassive(w.Recipe.Mode)) return false;
+            if (MapManager.Instance != null && MapManager.Instance.WeaponDisabled) return false;
+            return true;
+        }
+    }
+
+    /// <summary>被動武器現在能不能運作：活著 ＋ 這張地圖沒禁用武器。**不要求有主武器**（空手只戴護身符也要有水珠）。
+    /// 背包開著時本體仍在、只是不射（發射節奏只在 HandleFiring 推進，與主武器一致）。</summary>
+    public bool CanRunPassive
+    {
+        get
+        {
+            if (_isDead) return false;
             if (MapManager.Instance != null && MapManager.Instance.WeaponDisabled) return false;
             return true;
         }
     }
 
     /// <summary>
-    /// 目前裝備的浮游武器（<see cref="WeaponMode.Familiar"/>）；沒裝、裝的是別種、或現在不能開火（<see cref="CanFire"/>）＝null。
-    /// <see cref="WeaponFamiliar"/> 每幀問這個決定本體要不要存在——所以背包開著卸下武器、進禁武地圖、
-    /// 夢境劇情換武器，本體都會當場收掉，不用等 HandleFiring。
+    /// 現在應該在運作的被動武器清單（<see cref="WeaponMode.Familiar"/> 等被動型）；不能運作（<see cref="CanRunPassive"/>）＝空。
+    /// <see cref="WeaponFamiliar"/> 每幀問這個決定本體要不要存在——所以背包開著卸下裝備、進禁武地圖、
+    /// 夢境劇情換武器／血統，本體都會當場收掉，不用等 HandleFiring。
+    /// 每次呼叫都會先 <see cref="SyncPassiveWeapons"/>（三個值的比對，便宜）。
     /// </summary>
-    public WeaponData ActiveFamiliarWeapon
+    public IReadOnlyList<WeaponData> PassiveWeapons
     {
         get
         {
-            if (_isDead || !CanFire) return null;
-            var w = _weaponManager.GetCurrentWeapon();
-            return (w != null && w.Recipe != null && w.Recipe.Mode == WeaponMode.Familiar) ? w : null;
+            if (!CanRunPassive) return System.Array.Empty<WeaponData>();
+            SyncPassiveWeapons();
+            return _passives.Weapons;
         }
     }
 
-    // 浮游武器的本體與發射節奏（第一次裝上浮游武器時才掛上，見 UpdateFamiliar）
+    /// <summary>
+    /// 被動武器清單的重算：背包裝備版本、血統 Id、當前武器參照三者任一變了就重收集。
+    /// 刻意用「比對」而不是事件——來源的變動路徑太多（換裝備／改珠子／喝藥／夢境覆寫／讀檔／工坊每幀改值），
+    /// 每幀比三個值反而最不會漏。
+    /// </summary>
+    private void SyncPassiveWeapons()
+    {
+        if (_weaponManager == null) return;
+        int bloodline = Dipan.Gacha.BloodlineSystem.CurrentBloodlineId;
+        var current = _weaponManager.GetCurrentWeapon();
+        if (_passives.NeedsRebuild(_inventory, bloodline, current))
+            _passives.Rebuild(_inventory, bloodline, current, _weaponManager);
+    }
+
+    // 被動武器（浮游）的本體與發射節奏（第一次有被動武器時才掛上，見 TickPassiveWeapons）
     private WeaponFamiliar _familiar;
 
     // 離散武器集氣：按住空白／左鍵，放開才施放。3 秒完成後傷害 ×3、視覺 ×2。
@@ -319,7 +358,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             // 這裡的轉身條件也要帶 CanFire，與下方一般路徑（isAttacking）保持一致：
             // 不能開火時按攻擊鍵不該有任何反應，包含轉身。目前柴房教學此階段必定已裝備佛燈、
             // 且教學地圖沒設 NoWeapon，所以實務上恆為 true；寫上去是避免未來「禁武地圖 + FireOnly 教學」時行為不一致。
-            if (_spriteRenderer != null && Camera.main != null && CanFire && ActiveFamiliarWeapon == null
+            if (_spriteRenderer != null && Camera.main != null && CanFire
                 && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)))
             {
                 float dx = Camera.main.ScreenToWorldPoint(Input.mousePosition).x - transform.position.x;
@@ -348,8 +387,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             // 不能開火時按攻擊鍵不該有任何反應——包含「轉身面向滑鼠」。
             // （否則空手／禁武地圖邊走邊按左鍵，人物朝向會跟移動方向不一致。）
-            // 浮游武器不吃攻擊鍵 ⇒ 按了也不轉身（否則邊走邊按左鍵，朝向會跟移動方向對不上）。
-            bool isAttacking = CanFire && ActiveFamiliarWeapon == null && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0));
+            // （武器欄裝的是浮游等被動型武器時 CanFire 為 false ⇒ 按了也不轉身，否則邊走邊按左鍵，朝向會跟移動方向對不上。）
+            bool isAttacking = CanFire && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0));
             if (isAttacking)
             {
                 Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -482,6 +521,18 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             var data = itemId > 0 ? _inventory.GetData(itemId) : null;
             int weaponId = (data != null && data.WeaponID > 0) ? data.WeaponID : 0;   // 0 = 沒有武器
+            // 被動武器不能當一般武器裝在武器欄（作者 2026-10-01 拍板）：道具列的 WeaponID 指到被動型模式（浮游）
+            // 是表填錯——應該 EquipSlot 填護身符／戒指、WeaponID 留空、用 PassiveWeaponIds 掛載。這裡當成空手並提醒。
+            if (weaponId > 0)
+            {
+                var wd = _weaponManager.GetWeapon(weaponId);
+                if (wd != null && wd.Recipe != null && WeaponModeSpec.IsPassive(wd.Recipe.Mode))
+                {
+                    Debug.LogWarning($"[PlayerController] 道具 {itemId}「{data.Name}」的 WeaponID {weaponId} 是被動型武器（{WeaponModeSpec.ModeLabel(wd.Recipe.Mode)}），" +
+                                     "被動武器不能裝在武器欄。請把它的 ItemTable 列改成 EquipSlot=Amulet/Ring、WeaponID 留空、PassiveWeaponIds 填這個 ID（見 readme/PASSIVE_WEAPON.md）。暫時視為空手。");
+                    weaponId = 0;
+                }
+            }
             _weaponManager.SwitchWeapon(weaponId);
             CancelBurst();   // 換武器時還沒射完的連擊作廢（別用舊武器補射）
 
@@ -595,6 +646,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     // ── 發射總入口：雷射走持續光束路徑，其餘走離散發射 ──
     private void HandleFiring()
     {
+        // 被動武器（浮游）：裝備著就自動打，不看按鍵、不看主武器。放在所有 guard 之前——
+        // 空手只戴護身符也要射；禁武地圖／死亡由 PassiveWeapons 自己回空清單擋掉。
+        TickPassiveWeapons();
+
         WeaponData weapon = (_weaponManager != null) ? _weaponManager.GetCurrentWeapon() : null;
 
         // ── 教學「補一發」窗口：這段期間當成玩家按著開火鍵（理由見 RequestFireOnce）──
@@ -660,15 +715,6 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             UpdateAura(weapon, firing);
             if (forced && IsContinuousFireActive) _forceFireDidFire = true;
-            return;
-        }
-
-        // 浮游：裝備就自動打，不看按鍵（作者拍板 2026-10-01）。左鍵／空白對它沒有作用。
-        if (weapon.Recipe != null && weapon.Recipe.Mode == WeaponMode.Familiar)
-        {
-            if (_isCharging) CancelCharge();
-            CancelBurst();   // 從別把武器切過來時，前一把還沒補完的連擊不要繼續
-            UpdateFamiliar(weapon, forced);
             return;
         }
 
@@ -1328,21 +1374,20 @@ public class PlayerController : MonoBehaviour, IDamageable
         WeaponCastService.FireNormal(weapon, recipe, in ctx);
     }
 
-    // ── 浮游（Mode=Familiar）：本體繞身、各自錯開、自動朝最近的怪射一般子彈 ──
-    // 節奏與索敵在 WeaponFamiliar；這裡只負責「真的射出去那一下」（扣魔／發射特效／彈道／命中鏈）。
-    private void UpdateFamiliar(WeaponData weapon, bool forced)
+    // ── 被動武器（Mode=Familiar 浮游）：本體繞身、各自錯開、自動朝最近的怪射一般子彈 ──
+    // 清單來源在 PassiveWeaponSet（裝備／血統／武器欄）、節奏與索敵在 WeaponFamiliar；
+    // 這裡只負責「真的射出去那一下」（扣魔／發射特效／彈道／命中鏈）。
+    // 教學「補一發」（forced）刻意不算被動的射擊——那個機制是在等玩家「出手」。
+    private void TickPassiveWeapons()
     {
+        var list = PassiveWeapons;
+        if (list.Count == 0 && _familiar == null) return;   // 從沒有過被動武器就不掛元件
         if (_familiar == null)
         {
             _familiar = GetComponent<WeaponFamiliar>();
             if (_familiar == null) _familiar = gameObject.AddComponent<WeaponFamiliar>();
         }
-        _familiar.TickFiring(Time.deltaTime, weapon, (w, origin, target) =>
-        {
-            bool shot = FireFamiliarShot(w, origin, target);
-            if (shot && forced) _forceFireDidFire = true;
-            return shot;
-        });
+        _familiar.TickFiring(Time.deltaTime, list, FireFamiliarShot);
     }
 
     /// <summary>從某個浮游本體朝目標射一發。回傳 false＝魔力不夠（呼叫端會稍後再試）。</summary>

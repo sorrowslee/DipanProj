@@ -134,7 +134,7 @@
 
 - **目前只搬了 `Normal`（直飛彈）**；其餘模式仍住在 `PlayerController`，之後一種一種搬。
   **`Boomerang`（迴旋，2026-09-30）也走 `FireNormal`**：同一條生成路，只是多掛一個 `BoomerangBehavior`（工廠插座與平行彈的 `LaneBehavior` 共用，迴旋不吃平行所以不衝突）；`CastContext.ReturnPoint` 是回程飛向的點（玩家傳 `BodyCenterWorldPos`，留 null＝Owner 的 position）。怪物端 `MonsterWeaponUser` 還只認 Normal，怪物暫時不能用迴旋武器。
-  **`Familiar`（浮游，2026-10-01）也走 `FireNormal`**：`PlayerController.FireFamiliarShot` 把 `Origin` 換成本體的位置、`Direction` 換成指向最近的怪，其餘與一般子彈完全相同；本體與發射節奏在 `WeaponFamiliar`（見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Familiar 浮游〉）。WeaponTable 為它加了 `FamiliarVfxId`／`FamiliarSize`／`FamiliarSpin` 三欄（`WeaponData` 欄位，`CreateChargedWeaponSnapshot` 與 `PlayerAbilities.ShallowCopy` 兩個複製點都已帶上——**之後 WeaponData 再加欄，這兩處一定要一起加**）。
+  **`Familiar`（浮游，2026-10-01）也走 `FireNormal`**：`PlayerController.FireFamiliarShot` 把 `Origin` 換成本體的位置、`Direction` 換成指向最近的怪，其餘與一般子彈完全相同；本體與發射節奏在 `WeaponFamiliar`（見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Familiar 浮游〉）。**同日改成被動武器**：不佔 `GetCurrentWeapon()`，由 `PassiveWeaponSet` 從裝備／血統收集、可多把並存（見 [PASSIVE_WEAPON.md](PASSIVE_WEAPON.md)）；`CanFire` 遇到被動型模式回 false。WeaponTable 為它加了 `FamiliarVfxId`／`FamiliarSize`／`FamiliarSpin` 三欄（`WeaponData` 欄位，`CreateChargedWeaponSnapshot` 與 `PlayerAbilities.ShallowCopy` 兩個複製點都已帶上——**之後 WeaponData 再加欄，這兩處一定要一起加**）。
   搬的原則：**幾何與彈道進來，資源（耗魔／集氣／連擊／能力珠）與命中鏈留在呼叫端**。
 - `ParallelOffsets`／`ResolvePierceableLayers`／`ResolveNonBounceLayers` 的實作也搬進來了，
   `PlayerController` 只留一行轉呼叫（拋物線等模式還在用這些名字）。

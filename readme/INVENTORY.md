@@ -225,6 +225,7 @@
 | `HealMp` | **藥劑**：喝下回復的魔力（`0` = 不回魔） |
 | `BloodlineID` | **系列起始藥劑**（第 16 欄 / index 15）：`>0` ＝ 對應 `BloodlineTable.csv` 的血統 Id，慣例上是某個系列的第一階。喝下去決定本世走哪一個血統系列，**一世一次、不可逆、不能改吃別系列**。程式端 `ItemData.IsBloodlineStarter` |
 | `GemID` | **能力珠**（第 17 欄 / index 16）：對應 `GemTable` 的 GemID。見 [GEM_SOCKET.md](GEM_SOCKET.md) |
+| `PassiveWeaponIds` | **被動武器掛載**（第 19 欄 / index 18，2026-10-01）：裝備這件就自動帶著的被動武器（WeaponTable ID，被動型模式如 `Familiar`），分號分隔可多把（`72;73`）；任何可裝備列都能填。目前只有 **503 應龍護身符**（`EquipSlot=Amulet`）填 `72`（＝WeaponTable 的應龍水珠）。見 [PASSIVE_WEAPON.md](PASSIVE_WEAPON.md) |
 | `BloodlineUpgrade` | **血統進階藥劑**（第 18 欄 / index 17）：值 = 目標階數（`2` 中階、`3` 高階）。**全系列通用**——不指定血統、只指定階數，實際變成哪一種由 `BloodlineSeriesTable.csv` 決定。程式端 `ItemData.IsBloodlineUpgrade` |
 
 > `IsBloodline` = 起始或進階任一（UI 用這個決定要不要走喝藥流程）。

@@ -51,6 +51,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 做任何**範圍技**（爆炸／踐踏／震波）、或動到怪的 `Scale` 之後招式打不到人 | PROBLEMS **F29**——**半徑不能是裸的世界單位常數**，一律走 `MonsterController.ScaledRadius()`（CSV 的半徑欄＝「體型 1 時」的值）；並確認「觸發」與「殺傷」用的是**會同步變動的尺**，否則一定存在某個體型讓它們錯開、而且沒有任何錯誤訊息 |
 | 「玩家碰到了沒」的位置判定 | PROBLEMS **B13**——判定對齊碰撞（`transform.position`），特效對齊視覺（腳底）；診斷用碰撞疊層（遊戲中 **P → C**） |
 | 填／改 RecipeTable、加武器模式或欄位、動能力珠 | **做武器優先用 [readme/WEAPON_WORKBENCH.md](readme/WEAPON_WORKBENCH.md)（Unity 內的武器工坊，Play 中立刻射出去看）**；欄位意義見 [readme/RECIPE_DESCRIBE.md](readme/RECIPE_DESCRIBE.md)（一列一種 `Mode`、模式 × 欄位矩陣）＋ `Assets/Scripts/Weapon/WeaponModeSpec.cs`（單一真相：加欄／加模式只改它，視窗自動跟上）；珠子有效性見 [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md) |
+| 做「裝備著就自動運作」的被動武器（應龍水珠那類）、讓裝備或血統**附帶**武器、加被動型模式 | [readme/PASSIVE_WEAPON.md](readme/PASSIVE_WEAPON.md)——**不另開表**：被動武器本身住 WeaponTable／RecipeTable，掛載只靠 `ItemTable`／`BloodlineTable` 的 `PassiveWeaponIds` 欄；主動模式（雷射、近戰…）刻意**不能**掛到護身符上；珠子對所有被動武器全身生效 |
 | 武器／裝備／背包／掉落／存檔 | [readme/GEM_SOCKET.md](readme/GEM_SOCKET.md)（表格只是模板、物品實例、能力容器）＋ [readme/GEM_CATALOG.md](readme/GEM_CATALOG.md)（每顆珠子的功用與範例，改珠子數值或加珠子要同步更新它）＋ [readme/INVENTORY.md](readme/INVENTORY.md) |
 | 做「依血統／背包道具決定**出不出現**或**講哪一句**」 | [readme/TRIGGER_CHAIN.md](readme/TRIGGER_CHAIN.md) **§2.6 通用條件** ——觸發點／NPC／地上物／怪物出生點**共用同一套條件與同一個 UI**（求值器 `Scripts/Map/AppearCondition.cs`）；**「血族」是系列不是血統**（血族＝SeriesId 2，三階都算）；多條一律 AND、**沒有 OR** |
 | 怪「**舉著攻擊動作還一邊移動**」、要做「出手就要把動作做完」的近戰 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§10**——`ChaseBrain` 的移動與 `HandleVisuals` 的攻擊動畫互不相干，這是天生行為；要改用 `MeleeChase`，並記得 `BrainControlsAttackPose` 不設就等於白做 |

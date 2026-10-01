@@ -35,6 +35,12 @@ namespace Dipan.Inventory
         public int BloodlineID;       // 系列起始藥劑：對應 BloodlineTable 的 Id（慣例是某系列第一階）；0 = 不是起始藥劑
         public int GemID;             // 能力珠：對應 GemTable 的 GemID（決定它給的是哪個能力）；0 = 不是能力珠
         public int BloodlineUpgrade;  // 血統進階藥劑：目標階數（2 = 中階、3 = 高階）。全系列通用；0 = 不是進階藥劑
+        /// <summary>
+        /// **被動武器掛載**（2026-10-01，第 19 欄）：裝備這件就自動帶著的被動武器（WeaponTable ID，被動型模式如 Familiar）。
+        /// 分號分隔可填多把（<c>72;73</c>）。任何可裝備列都能填（護身符、戒指、胸甲…）；
+        /// 不是被動型模式的 ID 載入時會印警告並略過。空 = 沒有。見 readme/PASSIVE_WEAPON.md。
+        /// </summary>
+        public int[] PassiveWeaponIds = System.Array.Empty<int>();
         public Sprite Icon;           // 由 ItemDatabase 從 Resources 載入
 
         public bool IsEquippable => EquipSlot != EquipSlot.None;
@@ -69,5 +75,7 @@ namespace Dipan.Inventory
         /// 見 readme/GEM_SOCKET.md。
         /// </summary>
         public bool IsGem => GemID > 0;
+        /// <summary>有沒有掛被動武器（見 <see cref="PassiveWeaponIds"/>）。</summary>
+        public bool HasPassiveWeapons => PassiveWeaponIds != null && PassiveWeaponIds.Length > 0;
     }
 }

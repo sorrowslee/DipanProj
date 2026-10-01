@@ -98,6 +98,9 @@ namespace Dipan.Inventory
                 d.GemID = int.TryParse(gemStr, out int gid) ? gid : 0;
                 string upStr = Field(v, 17);      // 血統進階藥劑的目標階數（選填欄；舊表沒這欄 → "" → 0）
                 d.BloodlineUpgrade = int.TryParse(upStr, out int bup) ? bup : 0;
+                // 被動武器掛載（第 19 欄 / index 18，2026-10-01）：分號分隔的 WeaponTable ID；舊表沒這欄 → "" → 空陣列。
+                // 這裡只切字串不驗證——ID 存不存在、是不是被動型模式，由 PassiveWeaponSet 解析時檢查（那時 WeaponTable 才載好）。
+                d.PassiveWeaponIds = ParseIdList(Field(v, 18), $"item {d.ID} {d.Name} 的 PassiveWeaponIds");
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {
@@ -114,6 +117,21 @@ namespace Dipan.Inventory
 
         /// <summary>安全取欄位（超出範圍回空字串），並去頭尾空白。</summary>
         static string Field(string[] v, int i) => (i < v.Length && v[i] != null) ? v[i].Trim() : "";
+
+        /// <summary>解析「分號分隔的整數 ID 清單」（<c>72;73</c>）。空字串 → 空陣列；壞掉的片段印警告並跳過。</summary>
+        public static int[] ParseIdList(string raw, string where)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return System.Array.Empty<int>();
+            var list = new System.Collections.Generic.List<int>();
+            foreach (var part in raw.Split(';'))
+            {
+                string t = part.Trim();
+                if (t.Length == 0) continue;
+                if (int.TryParse(t, out int id) && id > 0) list.Add(id);
+                else Debug.LogWarning($"[ItemDatabase] {where} 有看不懂的片段「{t}」（要填正整數、分號分隔），已略過。");
+            }
+            return list.ToArray();
+        }
 
         /// <summary>把字面 \n 轉成真正換行（讓 tooltip 文字可多行）。</summary>
         static string Unescape(string s) => string.IsNullOrEmpty(s) ? s : s.Replace("\\n", "\n");
