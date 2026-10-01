@@ -221,7 +221,13 @@ ID=35 Name=虛空吞口 Mode=GroundCast FireInterval=1.2 Range=9 GroundEffectID=
 ```
 
 ### Melee 近身扇形
-以自己為圓心、朝滑鼠方向掃一個扇形：`AreaRadius` 半徑（留空 2）、`MeleeAngle` 總角度（留空 100），範圍內的 `IDamageable` 各結算一次武器 `Damage`；`HitEffectID` 只在扇形中心播一次。
+以自己的**身體中段**（`MuzzleWorldPos`）為圓心、朝滑鼠方向掃一個扇形：`AreaRadius` 半徑（留空 2）、`MeleeAngle` 總角度（留空 100），範圍內的 `IDamageable` 各結算一次武器 `Damage`。
+- **判定**：碰撞體與圓重疊，且「怪的可見身體中心」或「碰撞體上離圓心最近的點」任一在扇形角度內就算打到（2026-09-30 起；以前用 `transform.position` 當圓心、用怪的 pivot 判角度，對不準，見 PROBLEMS **F32**）。
+- **揮擊視覺看武器表 `SlashStyle`**：
+  - **1＝血月三爪**（程序化刀光 `MeleeSlashFx`＋`Resources/Shaders/MeleeSlash.shader`）：三道爪痕沿**判定那個扇形**掃過，範圍＝判定、多大都銳利（須彌珠／集氣放大也不糊）；每一刀掃動方向**左右交替**。節奏 0.10 秒掃過＋0.03 停＋0.12 淡出。此時 **`HitEffectID` 的意思變成「打中時在目標身上播」**（配 `HitEffectEnemyOnly=1` 打家具不噴血、`HitEffectAlignBullet=1` 朝「自己→目標」方向噴）。
+  - **留空／0＝舊行為**：`HitEffectID` 當揮擊特效，揮擊時在扇形中段播一次，打中不另外播。
+  - 要加新樣式（例如火焰爪）：`MeleeSlashFx.ApplyStyle` 加一個 case 換四個顏色；形狀要不同才需要改 shader。
+  - ⚠ **目前沒有武器用 `SlashStyle`**：血月鬼爪 2026-10-01 作者實測後改回舊行為（VfxTable 22 爪痕，`AnimFPS 40`、`Scale 4.4`），刀光留著備用。
 
 ```
 ID=34 Name=血月鬼爪 Mode=Melee FireInterval=0.55 AreaRadius=2.1 MeleeAngle=110

@@ -328,7 +328,9 @@ public static class WeaponModeSpec
             F(W, "FireEffectID",   FieldKind.Int, "特效", "發射特效 ID", "0", 0, 99999, "VfxTable；發射時在玩家身上播", universal: true),
             F(W, "HitEffectID",    FieldKind.Int, "特效", "擊中特效 ID", "0", 0, 99999, "VfxTable；命中點播"),
             F(W, "HitEffectAlignBullet", FieldKind.Bool, "特效", "擊中特效跟子彈方向", "0", help: "1＝擊中特效用子彈當下的角度與上下翻轉生成（往左飛就往左咬）；0＝一律 0 度（爆炸、血花這類不分方向的圖）"),
-            F(W, "HitEffectEnemyOnly",   FieldKind.Bool, "特效", "擊中特效只在打到怪時播", "0", help: "1＝打到牆與可破壞地上物不播（血花這類只該出現在生物身上的圖）；0＝打到什麼都播。只對子彈／環繞／迴旋／雷射／連鎖有效"),
+            F(W, "HitEffectEnemyOnly",   FieldKind.Bool, "特效", "擊中特效只在打到怪時播", "0", help: "1＝打到牆與可破壞地上物不播（血花這類只該出現在生物身上的圖）；0＝打到什麼都播。只對子彈／環繞／迴旋／雷射／連鎖／近戰有效"),
+            F(W, "SlashStyle",           FieldKind.Int,  "特效", "近戰揮擊刀光樣式", "0", 0, 1,
+              "只有近戰：0＝不畫（舊行為：揮擊時在前方播 HitEffectID）；1＝血月三爪（程序化刀光，範圍＝判定扇形，HitEffectID 改成打中時在目標身上播）"),
             F(W, "TrailEffectID",  FieldKind.Int, "特效", "軌跡特效 ID", "0", 0, 99999, "VfxTable；配合配方 TrailStep 沿路種"),
             F(W, "SummonEffectID", FieldKind.Int, "特效", "召喚特效 ID", "0", 0, 99999, "VfxTable；每個生怪點播一次"),
         };
@@ -418,10 +420,11 @@ public static class WeaponModeSpec
             .Lbl("GroundEffectID", "法陣（GroundEffectTable ID）").Lbl("Range", "施放距離").Lbl("BulletScale", "法陣大小（半徑與圖）");
 
         // 近戰
-        M(d, WeaponMode.Melee, "近身扇形", "以自己為圓心、朝滑鼠方向掃一個扇形")
+        M(d, WeaponMode.Melee, "近身扇形", "以自己的身體中段為圓心、朝滑鼠方向掃一個扇形")
             .Eff("FireInterval", "AreaRadius", "MeleeAngle").Eff(Charge).Eff(Burst)
-            .Eff("Damage", "HitEffectID", "BulletScale")
-            .Lbl("AreaRadius", "攻擊半徑").Lbl("BulletScale", "揮砍大小（半徑與特效）");
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "HitEffectAlignBullet", "SlashStyle", "BulletScale")
+            .Lbl("AreaRadius", "攻擊半徑").Lbl("BulletScale", "揮砍大小（半徑與特效）")
+            .Lbl("HitEffectAlignBullet", "擊中特效跟揮擊方向（從自己指向目標）");
 
         // 骨牢
         M(d, WeaponMode.Cage, "骨牢", "隨機挑半徑內一隻怪困住，時間到牢籠崩裂並結算一次大傷害")

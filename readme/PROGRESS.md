@@ -4,6 +4,14 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-08-22，共 182 條；2026-08-21、2026-08-27 兩次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **血月鬼爪爪痕大小定在 `Scale 4.4`**（2026-10-01）：作者先要求再放大一倍（4.4→8.8），看過後要求縮小 0.5 倍，回到 **4.4**（畫面上約 2.8 單位寬，判定半徑 2.1）。
+* [x] **血月鬼爪改回原本的爪痕動畫，播快一倍、放大兩倍**（2026-10-01）：作者實測下面那版程序化刀光「還是不太行」，要求恢復原本、改試「原動畫加速放大」。武器 21 的資料還原成改版前（`HitEffectID 22`，`SlashStyle`／`HitEffectEnemyOnly`／`HitEffectAlignBullet` 清空＝與 git HEAD 同值）；VfxTable 22 `AnimFPS` 20→**40**、`Scale` 2.2→**4.4**（畫面上約 2.8 單位寬，判定半徑 2.1）。⚠ VfxTable 22 也被夢境「血月雙爪」（武器 63，沒人用）引用，會一起變。<br>
+  **保留沒還原的**：`ShootMelee` 的位置修正（圓心 `MuzzleWorldPos`、怪的身體／碰撞邊緣判定，PROBLEMS F32）——舊爪痕現在從身體中段往前播。刀光程式（`MeleeSlashFx`／`MeleeSlash.shader`／`SlashStyle` 欄）與命中素材（VfxTable 57、`BloodClawHit/`）留著沒人用，要刪見 TODO。
+* [x] **血月鬼爪重做：位置對準＋程序化三爪刀光＋命中噴血＋左右爪交替（⏳ 未編譯未實測；2026-10-01 作者實測後撤回外觀，見上一條）**（2026-09-30）：作者：「位置對不準、沒打擊感、特效小小爛爛的」。<br>
+  **診斷**（見 PROBLEMS **F32**）：① 圓心是 `transform.position`（腳踝，E14 漏網）；② 扇形角度用怪的 pivot（畫布中心，G13）；③ 特效 64px×2.2＝畫面 1.4 單位，判定卻是半徑 2.1、而且素材是「往前直刺」判定是「110° 橫掃」；④ 揮擊特效佔用 `HitEffectID`，揮空也播、打中反而什麼都沒有；⑤ 頓幀／震屏機制現成但沒接（作者這次選擇不加）。<br>
+  **做法**：`ShootMelee` 圓心改 `MuzzleWorldPos`、判定改「怪的 `BodyCenterWorldPos` 或碰撞體 `ClosestPoint` 任一在扇形內」；新 **`MeleeSlashFx`**＋**`Resources/Shaders/MeleeSlash.shader`**（照 `GroundCrackFx` 範本；三道爪痕沿判定扇形掃過、硬色塊三階＋黑色撕裂邊，照 VFX_GUIDELINE §1；排序 21990、登記在 MapDepthSort 檔頭）；WeaponTable 新欄 **`SlashStyle`**（只 Melee 讀；留空＝舊行為，所以沒人用的配方 63/64 夢境爪行為不變）；刀光樣式下 `HitEffectID` 改成打中時在目標身上播，`TrySpawnHitEffect` 多一個選填角度參數（近戰沒有子彈可抄角度）；每刀 `_meleeFlip` 翻轉＝左右爪交替。命中特效新做 **VfxTable 57**（`Splatters/directional_splatter_002` 紅轉 90° 朝右＋`impfx1_quick_impact_A` 白染淡粉疊在起點，最近鄰放大 4 倍，`Resources/VfxEffects/BloodClawHit/`）。<br>
+  **資料**：武器 21 `HitEffectID` 22→57、`SlashStyle 1`、`HitEffectEnemyOnly 1`、`HitEffectAlignBullet 1`；其他武器新欄留空（逐列比對過只有 21 變）。VfxTable 22（舊 BloodClaw）保留沒刪，配方 63 血月雙爪還指著它。<br>
+  **流程通則**：刀光外觀先用 Python（numpy，與 shader 逐行同公式）在實際背景上渲染逐幀圖＋動圖給作者確認，再寫 shader——主觀的外觀先定案，避免寫進 Unity 後反覆改。
 * [x] **擊中特效可設「只在打到怪時播」：血滴子打牆不再噴血（⏳ 未編譯未實測）**（2026-09-30）：作者：「牆壁會流血也太奇怪了」。原本 `TrySpawnHitEffect` 打到什麼都播。WeaponTable 新欄 **`HitEffectEnemyOnly`**（`WeaponData`／`WeaponManager`／`WeaponModeSpec` 特效群，集氣與珠子兩個 WeaponData 複製點都帶上），填 1 ⇒ `hitEnemy=false`（牆、可破壞地上物）不播。**只對子彈／環繞／迴旋／雷射／連鎖有效**——落點型模式（拋物線落地、法陣、落雷）呼叫時不傳 `hitEnemy`，讀進來會永遠不播，所以 `WeaponManager` 依 spec 對無效模式不讀。只有武器 36 填 1，其餘留空；WeaponTable 順手把 19 欄的舊短列補齊到 21（值不變，逐列比對過）。見 RECIPE_AND_WEAPON〈SpriteAngleOffset 設定說明〉末段。
 * [x] **血滴子飛行速度加快一倍**（2026-09-30）：作者看過第三版軌跡後要求。配方 73 `Speed` 10→**20**（迴旋去回同速，4 趟全程約 4.9→2.5 秒；每段保險上限由 BoomerangBehavior 依速度自動重算，不用另外調）。
 * [x] **迴旋軌跡第三版：中間趟繞主角轉、只有最後一次回手上（⏳ 未在 Unity 實測；C# 已用替身編譯執行）**（2026-09-30）：作者實測第二版「像蝴蝶在飛」——每趟都是一個尖端在主角身上的淚滴，回來時急轉、刻意穿過身體，看起來像減速再硬擠過去。作者：主角只是參考點，中間的迴旋不必飛過身體，只有最後一次要回到身上。<br>

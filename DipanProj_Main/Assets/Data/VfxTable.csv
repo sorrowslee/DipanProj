@@ -15,7 +15,7 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 15,綠色火焰, VfxEffects/GreenFire/fire_C,120,15,3,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 16,紅色鬼火, VfxEffects/GhostFire_Red/fire_looping_001,12,15,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 17,紅色地上火焰, VfxEffects/GroundFire_Red/fanfx2_fire_spell,23,15,2,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-22,血月鬼爪,VfxEffects/BloodClaw/BloodClaw,10,20,2.2,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+22,血月鬼爪,VfxEffects/BloodClaw/BloodClaw,10,40,4.4,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 23,幽影突,VfxEffects/GhostDash/GhostDash,9,20,4,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 26,九霄落雷地爆,VfxEffects/SkyLightningExplosion/SkyLightningExplosion,13,20,1.8,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 27,集氣中藍光,VfxEffects/ChargeUpBlue/ChargeUpBlue,16,16,1.6,1,-1,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -48,3 +48,4 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 54,掌心雷電爆,VfxEffects/PalmThunderBurst/PalmThunderBurst,9,20,2.5,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 55,霹靂火彈十字爆,VfxEffects/ThunderFireCross/ThunderFireCross,32,24,7.2,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 56,引魂幡鬼頭散(骷髏煙放大),VfxEffects/MonsterDead/fanfx1_skull_puff,12,15,4,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+57,血月鬼爪命中(血濺+衝擊閃),VfxEffects/BloodClawHit/BloodClawHit,9,20,0.7,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

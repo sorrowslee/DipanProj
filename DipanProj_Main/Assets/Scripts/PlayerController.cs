@@ -57,6 +57,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     private int _burstRemaining = 0;          // 還沒射出去的發數
     private float _burstTimer = 0f;           // 距離下一發還有幾秒
     private WeaponData _burstWeapon;          // 這串連擊用的武器（集氣放開的 ×3 快照會整串沿用）
+    private bool _meleeFlip;                  // 近戰左右爪交替：每揮一刀翻一次（刀光掃動方向鏡像）
     private bool _burstAimLocked;             // 連擊期間瞄準鎖定：整串都朝扣扳機那一刻的方向／落點，中途滑鼠跑掉不跟
     private Vector2 _burstAimPoint;           // 鎖定的滑鼠世界座標（法陣／落雷／拋物線用落點）
     private Vector2 _burstAimDir;             // 鎖定的方向（子彈／近戰／突進／連鎖用方向）
@@ -781,7 +782,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             ID = source.ID, Name = source.Name, Damage = source.Damage * 3f, ManaCost = source.ManaCost,
             RecipeID = source.RecipeID, WeaponSpritePath = source.WeaponSpritePath,
-            SpriteAngleOffset = source.SpriteAngleOffset, FlipYWhenLeft = source.FlipYWhenLeft, HitEffectAlignBullet = source.HitEffectAlignBullet, HitEffectEnemyOnly = source.HitEffectEnemyOnly, WeaponAniPath = source.WeaponAniPath,
+            SpriteAngleOffset = source.SpriteAngleOffset, FlipYWhenLeft = source.FlipYWhenLeft, HitEffectAlignBullet = source.HitEffectAlignBullet, HitEffectEnemyOnly = source.HitEffectEnemyOnly, SlashStyle = source.SlashStyle, WeaponAniPath = source.WeaponAniPath,
             WeaponAniNumber = source.WeaponAniNumber, AnimFPS = source.AnimFPS,
             BulletScale = source.BulletScale * 2f, CastVisualScale = 2f,
             BeamStyle = source.BeamStyle, BeamColor = source.BeamColor, BeamWidth = source.BeamWidth * 2f,
@@ -1204,15 +1205,26 @@ public class PlayerController : MonoBehaviour, IDamageable
     // 視覺只播一次 HitEffect，避免每打到一隻怪就疊一套揮砍動畫。
     private void ShootMelee(WeaponData weapon, ProjectileData recipe)
     {
-        Vector2 origin = transform.position;
+        // ⚠ 圓心＝身體中段（MuzzleWorldPos），**不是 transform.position**——後者在腳踝附近，
+        //   血統體型變大後差更多（PROBLEMS E14）。其他武器早就從 MuzzleWorldPos 出手，只有近戰漏改（2026-09-30 修）。
+        Vector2 origin = MuzzleWorldPos;
         Vector2 aim = AimDirectionToMouse();
         // 範圍與視覺一起乘 BulletScale（須彌珠＝施放大小；集氣快照的 BulletScale 已 ×2，所以這裡不再另乘 CastVisualScale）
         float radius = (weapon.Recipe.AreaRadius > 0f ? weapon.Recipe.AreaRadius : 2f) * weapon.BulletScale;
         float halfAngle = Mathf.Clamp(weapon.Recipe.MeleeAngle, 1f, 360f) * 0.5f;
         float visualAngle = Mathf.Atan2(aim.y, aim.x) * Mathf.Rad2Deg;
-        Vector2 visualPos = origin + aim * (radius * 0.45f);
-        if (_vfxManager != null && weapon.HitEffectID > 0)
-            _vfxManager.Spawn(weapon.HitEffectID, visualPos, visualAngle, weapon.BulletScale);
+
+        _meleeFlip = !_meleeFlip;   // 左右爪交替：每一刀掃動方向鏡像（連擊也照樣一左一右）
+
+        // 揮擊視覺：
+        //  ‧ SlashStyle ≥ 1 ⇒ 程序化刀光（MeleeSlashFx），畫在跟判定**同一個**圓心／半徑／扇形上，看到多大就打到多大；
+        //    此時 HitEffectID 的語意＝「打中時在目標身上播」（下面迴圈裡）。
+        //  ‧ SlashStyle 留空 ⇒ 舊行為：HitEffectID 當揮擊特效、揮擊時在前方播一次（打中不另外播）。
+        bool slash = weapon.SlashStyle > 0;
+        if (slash)
+            MeleeSlashFx.Spawn(origin, visualAngle, radius, halfAngle, weapon.SlashStyle, _meleeFlip);
+        else if (_vfxManager != null && weapon.HitEffectID > 0)
+            _vfxManager.Spawn(weapon.HitEffectID, origin + aim * (radius * 0.45f), visualAngle, weapon.BulletScale);
 
         Collider2D[] hits = Physics2D.OverlapCircleAll(origin, radius, EnemyLayer | EnvLayer);
         var damaged = new HashSet<int>();
@@ -1225,12 +1237,36 @@ public class PlayerController : MonoBehaviour, IDamageable
             Component component = target as Component;
             if (component == null || component.gameObject == gameObject) continue;
 
-            Vector2 toTarget = (Vector2)component.transform.position - origin;
-            if (toTarget.sqrMagnitude > 0.0001f && Vector2.Angle(aim, toTarget) > halfAngle) continue;
+            // 「目標在哪」：怪用**可見身體中心**（route B 怪的 pivot 是畫布中心、不是身體，見 PROBLEMS G13）；
+            // 可破壞地上物沒有這個概念，用碰撞框中心。
+            MonsterController mc = component as MonsterController;
+            if (mc == null) mc = component.GetComponent<MonsterController>();
+            Vector2 body = mc != null ? mc.BodyCenterWorldPos : (Vector2)col.bounds.center;
+            // 扇形判定：身體中心、或碰撞體上離圓心最近的那一點，**任一**在扇形內就算——
+            // 以前只看 pivot，大隻的怪「看起來被掃到」卻因為 pivot 在扇形外而打不到。
+            if (!InMeleeCone(origin, aim, halfAngle, body) && !InMeleeCone(origin, aim, halfAngle, col.ClosestPoint(origin))) continue;
             int key = component.gameObject.GetInstanceID();
             if (!damaged.Add(key)) continue;
-            CombatSystem.Apply(gameObject, component.gameObject, weapon.Damage, toTarget.normalized);
+
+            Vector2 hitDir = body - origin;
+            hitDir = hitDir.sqrMagnitude > 0.0001f ? hitDir.normalized : aim;
+            bool isEnemy = IsOnEnemyLayer(component.gameObject);
+            CombatSystem.Apply(gameObject, component.gameObject, weapon.Damage, hitDir);
+
+            // 命中特效（只有刀光樣式；舊行為已經在揮擊時播過）：在目標身上、朝「從自己指向目標」的方向。
+            // HitEffectEnemyOnly／BloodlineHitFx 讓位等規則都在 TrySpawnHitEffect 裡，跟子彈命中同一套。
+            if (slash)
+                TrySpawnHitEffect(weapon, mc != null ? body : col.ClosestPoint(origin), isEnemy, null,
+                                  Mathf.Atan2(hitDir.y, hitDir.x) * Mathf.Rad2Deg);
         }
+    }
+
+    /// <summary>點 p 是否在「以 origin 為圓心、朝 aim、半角 halfAngle」的扇形角度內（不管距離；距離由 OverlapCircle 管）。</summary>
+    static bool InMeleeCone(Vector2 origin, Vector2 aim, float halfAngle, Vector2 p)
+    {
+        Vector2 v = p - origin;
+        if (v.sqrMagnitude < 0.0001f) return true;   // 貼在圓心上＝一定算
+        return Vector2.Angle(aim, v) <= halfAngle;
     }
 
     // ── 平行彈（RecipeTable ParallelCount / ParallelSpacing / ParallelMaxWidth）──
@@ -2247,19 +2283,21 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// ⚠ 打到牆／地上物、以及「落地爆炸／施放點」這種不是打在怪身上的視覺一律傳 false 照常播——
     /// 那不是「攻擊到怪物」，讓位會讓回饋憑空消失。見 readme/BLOODLINE.md §5c。
     /// </summary>
-    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos, bool hitEnemy = false, BulletInstance bullet = null)
+    /// <param name="angleDeg">沒有子彈可抄角度時（近戰）由呼叫端給的方向；配合 <c>HitEffectAlignBullet</c> 才會用。NaN＝不給。</param>
+    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos, bool hitEnemy = false, BulletInstance bullet = null, float angleDeg = float.NaN)
     {
         if (_vfxManager == null || firedWeapon == null || firedWeapon.HitEffectID <= 0) return;
         // HitEffectEnemyOnly：血花這類圖只該出現在生物身上——打到牆／可破壞地上物不播（牆會流血很怪）。
-        // WeaponManager 只在「命中特效播在命中物上」的模式讀這欄（子彈／環繞／迴旋／雷射／連鎖，呼叫端都有傳 hitEnemy），
+        // WeaponManager 只在「命中特效播在命中物上」的模式讀這欄（子彈／環繞／迴旋／雷射／連鎖／近戰，呼叫端都有傳 hitEnemy），
         // 落點型（拋物線落地、法陣、落雷）呼叫時不傳 hitEnemy，那些模式這欄一律 false，不會被誤擋。
         if (firedWeapon.HitEffectEnemyOnly && !hitEnemy) return;
         if (hitEnemy && BloodlineHitFx.HasEffect) return;
         // HitEffectAlignBullet：命中圖有方向性（餓鬼牙符的咬合）時，照子彈當下的角度與上下翻轉生成，否則永遠朝右。
-        bool align = firedWeapon.HitEffectAlignBullet && bullet != null;
-        float angle = align ? bullet.transform.eulerAngles.z : 0f;
+        // 近戰沒有子彈，改用呼叫端給的方向（angleDeg）。
+        bool align = firedWeapon.HitEffectAlignBullet && (bullet != null || !float.IsNaN(angleDeg));
+        float angle = !align ? 0f : (bullet != null ? bullet.transform.eulerAngles.z : angleDeg);
         VfxInstance vfx = _vfxManager.Spawn(firedWeapon.HitEffectID, pos, angle, firedWeapon.CastVisualScale);
-        if (align && vfx != null)
+        if (align && vfx != null && bullet != null)   // 上下翻轉只有子彈可抄（近戰只給角度）
         {
             var bulletSr = bullet.GetComponent<SpriteRenderer>();
             var vfxSr = vfx.GetComponent<SpriteRenderer>();

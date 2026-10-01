@@ -836,3 +836,14 @@
 - [ ] **手感參數寫死在 `BoomerangBehavior`**：淚滴寬＝射程 × 0.5（`WidthRatio`，作者拍板先寫死；繞圈橢圓寬由它推出、射程 5 時約 5.4）、繞圈中心跟隨 0.35 秒（`CenterFollowSeconds`）、保險倍率 2、加 0.5 秒、淡出 0.25 秒；一律順時針（左出、右側掠過）。全程等速（沒有迴旋鏢那種出手快、終點慢的變速）。實測後再決定要不要開成配方欄。
 - [ ] **穿牆時背後貼著的怪會晚一點才被打到**：彈道核心 `CircleCast` 每幀只取第一個命中物的既有限制（見 BALLISTICS〈BoomerangBehavior〉），迴旋全程穿牆比較常遇到。
 
+## 血月鬼爪重做（2026-09-30）
+
+- [ ] **2026-10-01 作者實測後撤回刀光外觀**，血月鬼爪改回原本爪痕（VfxTable 22，`AnimFPS 40`、`Scale 4.4`）試看看。下面是留下來沒人用的東西：
+  - `Resources/Shaders/MeleeSlash.shader`、`Scripts/Combat/MeleeSlashFx.cs`、WeaponTable `SlashStyle` 欄——留著備用；確定不要就整組刪（`ShootMelee` 的 `slash` 分支與 `PlayModeStaticReset` 那一行一起拿掉）。
+  - VfxTable 57 與 `Resources/VfxEffects/BloodClawHit/`（命中血濺＋衝擊閃）——沒人引用，可刪。
+- [ ] **位置修正還在**（圓心 `MuzzleWorldPos`、判定看怪的身體／碰撞邊緣，PROBLEMS F32）；作者若要連這個也回到舊版再改回 `transform.position`。
+- [ ] **作者這次沒選的打擊感**：頓幀（`HitStop.Play` 現成）、震屏（`MapCameraController.AddShake` 現成）、每刀保證擊退。實測後覺得不夠力再開。
+- [ ] **`SlashStyle` 只有 1 種（血月）**：`MeleeSlashFx.ApplyStyle` 加 case 即可換色；做其他近戰武器（火焰爪、冰爪）時再加。
+- [ ] **配方 63 血月雙爪／64 天狼焚爪（夢境，沒人用）仍是舊行為**：要用的話填 `SlashStyle`，並把 `HitEffectID` 換成命中特效。
+- [ ] **`_claude_tmp/`（專案根目錄）**：這次產預覽圖的暫存資料夾，不在 Assets 裡、不影響遊戲，作者可以直接刪。
+
