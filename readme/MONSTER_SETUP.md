@@ -11,7 +11,7 @@
 ## 量產一隻新怪（重複這幾步）
 
 1. **放圖**：在 `GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/` 底下，每個動作開一個子資料夾放單張幀圖：
-   - `idle/`（**必備**）、`walk/`（**必備**）、`attack/`（可選，沒放就不會有攻擊動畫）、`pant/`（可選，喘息；目前只有紅嫁衣放完大絕時用，見 [BOSS_MODULE.md](BOSS_MODULE.md) §2）、`jump/`（可選，跳躍；只有 `BrainType=LeapSlam` 會播，見 [BOSS_MODULE.md](BOSS_MODULE.md) §9）。
+   - `idle/`（**必備**）、`walk/`（**必備**）、`attack/`（可選，沒放就不會有攻擊動畫）、`hang/`（可選，倒吊；只有 `BrainType=Bat` 會播，見 [BOSS_MODULE.md](BOSS_MODULE.md) §12）、`pant/`（可選，喘息；目前只有紅嫁衣放完大絕時用，見 [BOSS_MODULE.md](BOSS_MODULE.md) §2）、`jump/`（可選，跳躍；只有 `BrainType=LeapSlam` 會播，見 [BOSS_MODULE.md](BOSS_MODULE.md) §9）。
    - ⚠ **`jump/` 要先量幀再用**：一個資料夾未必只裝一次跳躍——狂族皇家衛士那 25 張其實是「跳兩次」，整組播完會踩兩下。量法與幀事件見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.1。
    - 檔名數字**補零**、依檔名排序＝播放順序：`idle_01.png`、`walk_01.png`…`walk_08.png`（超過 9 張務必兩位數，否則 `_10` 會排到 `_2` 前面）。
    - 不用組序列圖、不用在 Unity 切格——一張 PNG = 一幀。
@@ -36,6 +36,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 ├─ attack/  attack_01.png ...              ← 可選
 ├─ pant/    pant_01.png ...                ← 可選（喘息；沒放會自動退回 idle）
 └─ jump/    jump_01.png ...                ← 可選（跳躍；只有 BrainType=LeapSlam 會播，見 BOSS_MODULE §9）
+└─ hang/    hang_01.png ...                ← 可選（倒吊；只有 BrainType=Bat 會播，見 BOSS_MODULE §12；倍率欄 HangScale，留空＝沿用 idle，同 jump）
                                               ↑ jump 的倍率欄是 JumpScale，但**留空的語義和其他動作不同**：
                                                 其他動作留空＝自動依可見高對齊 idle；jump 留空＝**沿用 IdleScale、不做自動對齊**
                                                 （跳躍的可見高度本來就是動作的內容，正規化會把它抵銷；理由見 BOSS_MODULE §9.7）
@@ -57,7 +58,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | `ID` / `Name` | 編號 / 怪名（`Name` 要等於圖的資料夾名 `<怪名>`） |
 | `HP` / `Speed` / `ContactDamage` / `DamageReduction` | 血量 / 移動速度 / 接觸傷害 / 受擊減傷% |
 | `Scale` | 整體縮放（調大小） |
-| `BrainType` | AI 模組。**近戰分兩種**（見 [BOSS_MODULE.md](BOSS_MODULE.md) §10.0）：`Chase`＝衝撞型（一路貼上去磨，**沒有 attack 圖**的怪用這個）、`MeleeChase`＝揮舞型（追到定點站定把攻擊動畫做完，**有 attack 圖**才能用）。<br>其他：`Pounce` 撲擊（§7）、`Archer` 射手（§8）、`LeapSlam` 跳躍踐踏（§9）、**`SuicideBomb` 自爆（§11，走到身邊引爆、不需要 attack 圖）**、`War` 陣營戰士、`RedBridalGown`／`BanyanTree` boss |
+| `BrainType` | AI 模組。**近戰分兩種**（見 [BOSS_MODULE.md](BOSS_MODULE.md) §10.0）：`Chase`＝衝撞型（一路貼上去磨，**沒有 attack 圖**的怪用這個）、`MeleeChase`＝揮舞型（追到定點站定把攻擊動畫做完，**有 attack 圖**才能用）。<br>其他：`Pounce` 撲擊（§7）、`Archer` 射手（§8）、`LeapSlam` 跳躍踐踏（§9）、**`Flying` 飛行／`Bat` 蝙蝠（§12，盤旋＋V 字俯衝；Bat 會倒吊；walk＝飛行、idle＝停在地上）**、**`SuicideBomb` 自爆（§11，走到身邊引爆、不需要 attack 圖）**、`War` 陣營戰士、`RedBridalGown`／`BanyanTree` boss |
 | `InvincibleTimeMs` / `KnockbackThreshold` / `KnockbackPercent` | 受擊反應（見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)） |
 | **`PrefabPath`** | **route B 留空**。只有要沿用「自帶 Animator 的舊 prefab」才填（向下相容） |
 | **`AnimFPS`** | **新增**：程式動畫播放幀率，留空＝8。走路會再依實際速度連動（防腳滑；倍率夾在 `MinMul`~`MaxMul`，見下） |
@@ -70,6 +71,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | **`DropTableId`** | **掉落表 ID**（表尾，2026-09-22）→ `Assets/Data/DropTable.csv` 的 `ID`。<br>⚠ **留空／0 ＝ 完全不掉寶**。導入這張表時既有的怪**一律填 1**（＝原本寫死的那組：銅錢 1~5、血瓶 17.5%、魔瓶 17.5%），所以導入本身零行為變化。<br>一張表有 8 個**獨立**掉落槽，格式 `itemId:機率%:數量`（`101:100:1-5`／`201:17.5`／`301`＝必掉 1 個）。加新組合＝CSV 加一列，不動程式。<br>⚠ 掉不掉還有一層前置：`DropsLoot`（召喚物／NPC 一律 false，避免無限刷）。 |
 | **`BombDamage`／`BombRadius`／`BombFuse`** | **自爆型專用**（表尾三欄，2026-09-22）。只有 `BrainType=SuicideBomb` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 3、半徑＝1.8、引信＝0.6 秒。<br>⚠ **半徑是「體型 1 時」的世界單位，實際會 ×`Scale`**（2026-09-22，見 [PROBLEMS.md](PROBLEMS.md) **F29**）——填表照體型 1 去想就好。另有防呆下限保證「引信點著就一定炸得到」。<br>⚠ **實際殺傷範圍 ＝ 縮放後半徑 ＋ 目標碰撞框半徑**（玩家約 0.5），同 `LeapRadius`。詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §11 |
 | **`LeapDamage`／`LeapRadius`** | **跳躍踐踏專用**（表尾兩欄，2026-09-18）。只有 `BrainType=LeapSlam` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 2、半徑＝1.6。<br>⚠ **半徑是「體型 1 時」的世界單位，實際會 ×`Scale`**（2026-09-22，見 [PROBLEMS.md](PROBLEMS.md) **F29**）：皇家衛士 `Scale` 1.5 ⇒ 實際 2.4；想維持舊的 1.6 就填 1.067。<br>⚠ **實際殺傷範圍 ＝ 縮放後半徑 ＋ 目標碰撞框半徑**（玩家約 0.5），詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.4 |
+| **`HangScale`** | **hang（倒吊）顯示倍率**（表尾，2026-10-11，接在 `ObserveTime` 後面）。語義同 `JumpScale`：**留空＝沿用 idle 的大小、不做自動對齊**；有填＝以 idle 為基準再乘。只有放了 `hang/` 的蝙蝠類用得到。<br>⚠ 另外，**飛行怪（`BrainType=Flying／Bat`）的 walk／attack 也不做自動對齊**（沿用 idle，`WalkScale`／`AttackScale` 有填就再乘）——振翅的可見高度每幀都在變，拿坐姿正規化會忽大忽小。見 [BOSS_MODULE.md](BOSS_MODULE.md) §12.6 |
 | **`IdleScale`／`WalkScale`／`AttackScale`** | **逐動作顯示倍率**（表尾三欄，2026-09-17）。**留空＝自動**（把該動作的可見高對齊 idle）；**有填＝在那個自動結果上「再乘」**（2026-09-22 改，見 [PROBLEMS.md](PROBLEMS.md) **G14**）——所以 **1.0 ＝ 跟留空一樣、1.1 ＝ 比平常大一成**。<br>⚠ 舊版是「有填就**覆寫**自動」，而自動倍率本來就常 > 1（攻擊／奔跑姿勢比站姿矮）⇒ **填 1.1 反而會縮小**（ZhaYu_HugeSword 的 attack 自動倍率 1.252，填 1.1 等於縮 12%）。`pant` 沿用 `IdleScale`。整體大小仍吃 `Scale` 欄，這三欄是在它之上的等比例微調。<br>⚠ **四足獸（狼/狗/豹）通常要填**：自動那套量高度，而奔跑姿勢身體壓低、高度矮 ⇒ 被**放大**。戰狼實測 walk 被自動放大 ×1.288、等效寬 221→285px（idle 才 181），填 `WalkScale=0.9` 之後差距從 57% 降到 10%。詳見 [PROBLEMS.md](PROBLEMS.md) **G12** |
 
 > **⭐ 張數不必湊滿 25：有幾張就播幾張，但循環會變快。** 載入完全依 catalog 的 `frameCount`（同步工具掃資料夾數 PNG，沒有上限也沒有期待張數），播放是 `_idx = (_idx + 1) % frames.Length`；1 張＝靜態姿勢（catalog 只在 ≥2 幀時寫 `frames`）。現成例子：`ZhaYu/walk` 只有 8 張、家人幽靈 `Ghost_*` 的 idle 都只有 1 張，都正常。

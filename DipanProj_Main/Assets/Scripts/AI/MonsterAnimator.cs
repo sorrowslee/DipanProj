@@ -18,7 +18,8 @@ using UnityEngine;
 [RequireComponent(typeof(SpriteRenderer))]
 public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
 {
-    public enum State { Idle, Walk, Attack, Pant, Jump }
+    // Hang（倒吊）＝2026-10-11 為飛行模組加的第六個動作：蝙蝠類休息時倒掛在高處（見 BatBrain／readme/BOSS_MODULE.md §12）。
+    public enum State { Idle, Walk, Attack, Pant, Jump, Hang }
 
     [Tooltip("基準播放幀率（幀/秒）；由 CSV 的 AnimFPS 帶入，留空＝8")]
     public float BaseFps = 8f;
@@ -51,7 +52,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     public bool PantPingPong = true;
 
     SpriteRenderer _sr;
-    Sprite[] _idle, _walk, _attack, _pant, _jump;
+    Sprite[] _idle, _walk, _attack, _pant, _jump, _hang;
     bool _hasAny;
 
     State _state = State.Idle;
@@ -175,7 +176,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     /// → 與主角同一套：同一張圖在主角/怪物資料夾顯示一樣大。
     /// </summary>
     public void Setup(string monsterName, float fps, float referenceSpeed, float tileSize = 1f,
-                      float idleScale = 0f, float walkScale = 0f, float attackScale = 0f, float jumpScale = 0f)
+                      float idleScale = 0f, float walkScale = 0f, float attackScale = 0f, float jumpScale = 0f,
+                      float hangScale = 0f, bool flyer = false)
     {
         _sr = GetComponent<SpriteRenderer>();
         BaseFps = fps > 0f ? fps : 8f;
@@ -206,6 +208,21 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         // ⚠ 基準是 idleTile 不是 tileSize：IdleScale 有填時，jump 也該跟著那個大小走。
         float jumpTile   = jumpScale > 0.0001f ? Mathf.Clamp(idleTile * jumpScale, 0.1f, 30f) : idleTile;
 
+        // hang（倒吊）與 jump 同語義：留空＝沿用 idle 的大小、不做自動高度對齊；有填＝以 idle 為基準再乘。
+        //   倒吊的身體比坐姿長得多（血蝠：hang 可見高 335px、idle 坐姿 209px），自動對齊會把牠縮成 0.63 倍。
+        float hangTile   = hangScale > 0.0001f ? Mathf.Clamp(idleTile * hangScale, 0.1f, 30f) : idleTile;
+
+        // ⭐ 飛行怪（flyer，2026-10-11）：walk（＝飛行）與 attack（＝俯衝）也比照 jump，**不做自動高度對齊**。
+        //   飛行怪的 idle 是「停在地上」的姿勢（血蝠＝坐著），而振翅的可見高度每一幀都在變（翅膀上揚／下壓），
+        //   拿坐姿去正規化展翅 ⇒ 整組被縮放成另一個大小，切 hang→walk→attack 時忽大忽小。
+        //   所以飛行怪全部沿用 idle 的大小（＝同一張畫布、同一個縮放），WalkScale/AttackScale 有填就再乘。
+        //   旗標由 MonsterController 依 BrainType（Flying／Bat）傳入；非飛行怪零變化。
+        if (flyer)
+        {
+            walkTile   = walkScale   > 0.0001f ? Mathf.Clamp(idleTile * walkScale,   0.1f, 30f) : idleTile;
+            attackTile = attackScale > 0.0001f ? Mathf.Clamp(idleTile * attackScale, 0.1f, 30f) : idleTile;
+        }
+
         // ⚠ 第 4 個參數是 **idle 的 tileSize**：腳底對齊（pivot 補償）要知道「基準動作被放大多少」才算得對，
         //   各動作的 tileSize 不一樣時，只比像素會錯。見 MonsterSpriteLibrary.GetFrames。
         _idle   = lib.GetFrames(monsterName, "idle",   idleTile,   idleTile);
@@ -213,6 +230,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         _attack = lib.GetFrames(monsterName, "attack", attackTile, idleTile);
         _pant   = lib.GetFrames(monsterName, "pant",   pantTile,   idleTile);
         _jump   = lib.GetFrames(monsterName, "jump",   jumpTile,   idleTile);
+        _hang   = lib.GetFrames(monsterName, "hang",   hangTile,   idleTile);
 
         // 【過渡期】角色取樣密度對齊背景（mipMapBias），見 CharacterMipBias 檔頭；背景解析度提上來後可拿掉這三行。
         CharacterMipBias.Register(_idle, transform);
@@ -220,6 +238,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         CharacterMipBias.Register(_attack, transform);
         CharacterMipBias.Register(_pant, transform);
         CharacterMipBias.Register(_jump, transform);
+        CharacterMipBias.Register(_hang, transform);
 
         _shadow.Clear();
         _cageCached = false;   // 換外型後骨牢錨點要重算（見 TryGetCageAnchorLocal）
@@ -228,11 +247,12 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         _shadow[State.Attack] = lib.GetShadowAnchor(monsterName, "attack");
         _shadow[State.Pant]   = lib.GetShadowAnchor(monsterName, "pant");
         _shadow[State.Jump]   = lib.GetShadowAnchor(monsterName, "jump");
+        _shadow[State.Hang]   = lib.GetShadowAnchor(monsterName, "hang");
 
         // idle 是必備；萬一只給了 walk 沒給 idle，就用 walk 當待機後備（不至於沒圖）
         if (_idle == null && _walk != null) { _idle = _walk; if (!_shadow[State.Idle].ok) _shadow[State.Idle] = _shadow[State.Walk]; }
 
-        _hasAny = _idle != null || _walk != null || _attack != null || _pant != null || _jump != null;
+        _hasAny = _idle != null || _walk != null || _attack != null || _pant != null || _jump != null || _hang != null;
         if (!_hasAny)
         {
             Debug.LogWarning($"[MonsterAnimator] 怪物「{monsterName}」找不到任何動作圖。" +
@@ -387,6 +407,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         if (s == State.Pant) return State.Idle;
         // jump 沒圖就退回 walk（不退 idle）——跳躍型 Brain 在「跳」的那段本來就在位移，退成發呆會變成滑過去。
         if (s == State.Jump) return Has(State.Walk) ? State.Walk : State.Idle;
+        // hang 沒圖就退回 idle（倒吊是靜止的休息姿勢，退成走路會變成原地振翅）。
+        if (s == State.Hang) return State.Idle;
         if (s == State.Walk) return State.Idle;
         return State.Idle;
     }
@@ -399,6 +421,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
             case State.Attack: return _attack;
             case State.Pant: return _pant;
             case State.Jump: return _jump;
+            case State.Hang: return _hang;
             default: return _idle;
         }
     }

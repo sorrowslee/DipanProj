@@ -144,6 +144,9 @@ public class MonsterSpawner : MonoBehaviour
             // 射手型觀察秒數（索引 37，表尾欄）：留空 ＝ -1 ＝ ArcherBrain 原本的 0.4~0.8 隨機；填 0 ＝ 不觀察＋無起手緩衝。
             data.ObserveTime = (values.Length > 37 && !string.IsNullOrWhiteSpace(values[37])) ? float.Parse(values[37]) : -1f;
 
+            // hang 顯示倍率（索引 38，表尾欄，2026-10-11 飛行模組）：留空＝沿用 idle 的大小、不做自動高度對齊（同 JumpScale）。
+            data.HangScale = (values.Length > 38 && !string.IsNullOrWhiteSpace(values[38])) ? float.Parse(values[38]) : 0f;
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

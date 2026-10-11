@@ -45,6 +45,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -194,6 +195,54 @@
             "linkedFx": "",
             "markerX": 11.5051775,
             "markerY": -17.4721622
+          }
+        },
+        {
+          "id": "84a88580",
+          "name": "怪物出生點-血蝠",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              5,
+              1
+            ],
+            [
+              16,
+              1
+            ],
+            [
+              20,
+              3
+            ],
+            [
+              21,
+              5
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              3,
+              3
+            ],
+            [
+              9,
+              1
+            ],
+            [
+              12,
+              1
+            ]
+          ],
+          "params": {
+            "monsterId": "35",
+            "deathFlag": "",
+            "spawnInterval": "",
+            "maxAlive": "",
+            "maxWaves": "",
+            "waveGroup": "",
+            "nextWhen": ""
           }
         }
       ]

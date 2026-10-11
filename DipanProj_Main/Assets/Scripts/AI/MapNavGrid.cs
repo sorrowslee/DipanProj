@@ -29,6 +29,7 @@ public class MapNavGrid : MonoBehaviour
     float _cell;                          // 子格世界邊長 = tileSize / Subdiv
     Vector2 _originTL;                    // 地圖左上角世界座標（gx 往右、gy 往下；世界 Y 往上）
     bool[] _walk;
+    bool[] _fly;                          // 飛行可通過格（2026-10-11 飛行模組）：只有「牆 '1'」擋，水/坑 '2' 與地上物家具都飛得過去。見 IsFlyableWorld
     bool _ready;
 
     // A* 暫存（依格數配置、重用避免每次 GC）
@@ -69,6 +70,7 @@ public class MapNavGrid : MonoBehaviour
 
         // 位元圖是「牆/水/可走」的權威來源（'0' 可走；其餘不可走）。先讀成原始牆圖 wall[]（true = 牆）。
         bool[] wall = new bool[n];
+        _fly = new bool[n];
         for (int y = 0; y < _h; y++)
         {
             string rowStr = (blocked != null && y < blocked.Count) ? blocked[y] : null;
@@ -76,6 +78,7 @@ public class MapNavGrid : MonoBehaviour
             {
                 char c = (rowStr != null && x < rowStr.Length) ? rowStr[x] : '1';
                 wall[y * _w + x] = (c != '0');
+                _fly[y * _w + x] = (c != '1');   // 飛行：只有牆擋（水/坑飛得過去）。不膨脹、不聯集家具——飛在家具上方本來就不該被擋
             }
         }
 
@@ -260,6 +263,39 @@ public class MapNavGrid : MonoBehaviour
             if (_walk[i]) { world = CellCenter(i); return true; }
         }
         return false;
+    }
+
+    // ── 飛行（2026-10-11，飛行模組，見 FlyingBrain／readme/BOSS_MODULE.md §12）──
+    // 地面怪的 _walk 會把「牆＋水/坑＋家具」都當障礙，還把牆膨脹一圈留淨空；
+    // 飛行怪只該被**牆**擋（作者拍板：牆擋、水/坑/家具都飛得過去——會飛不代表能越牆，否則破壞地圖動線，同 §9.3）。
+    // ⚠ 兩者都以「地面點」查詢（飛行怪的影子位置，不是被抬高後的 transform）。
+
+    /// <summary>世界座標該點飛不飛得過去（只有牆擋；地圖外＝不行）。沒建格時視為可以（不設限）。</summary>
+    public bool IsFlyableWorld(Vector2 p)
+    {
+        if (!_ready || _fly == null) return true;
+        if (!WorldRect.Contains(p)) return false;
+        return _fly[WorldToIndex(p)];
+    }
+
+    /// <summary>兩個地面點之間能不能直線飛過去（沿線不碰牆）。沒建格時視為可以。</summary>
+    public bool HasFlyLineOfSight(Vector2 fromW, Vector2 toW)
+    {
+        if (!_ready || _fly == null) return true;
+        if (!WorldRect.Contains(fromW) || !WorldRect.Contains(toW)) return false;
+        int a = WorldToIndex(fromW), b = WorldToIndex(toW);
+        int x0 = a % _w, y0 = a / _w, x1 = b % _w, y1 = b / _w;
+        int dx = Mathf.Abs(x1 - x0), dy = Mathf.Abs(y1 - y0);
+        int sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+        int err = dx - dy, x = x0, y = y0;
+        while (true)
+        {
+            if (!InB(x, y) || !_fly[y * _w + x]) return false;
+            if (x == x1 && y == y1) return true;
+            int e2 = 2 * err;
+            if (e2 > -dy) { err -= dy; x += sx; }
+            if (e2 < dx) { err += dx; y += sy; }
+        }
     }
 
     public bool HasLineOfSight(Vector2 fromW, Vector2 toW)

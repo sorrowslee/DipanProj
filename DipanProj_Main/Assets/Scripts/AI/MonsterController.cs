@@ -25,7 +25,14 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     public float AttackRange = 1.3f;     // 進入此距離且有 attack 圖 → 播攻擊動畫（略大於 ChaseBrain.StopDistance）
 
     // 逐動作顯示倍率（CSV: IdleScale/WalkScale/AttackScale；0＝留空＝走自動高度對齊）。由 Initialize 從 MonsterData 帶入。
-    [HideInInspector] public float IdleScale, WalkScale, AttackScale, JumpScale;
+    [HideInInspector] public float IdleScale, WalkScale, AttackScale, JumpScale, HangScale;
+
+    /// <summary>
+    /// 飛行怪（BrainType=Flying／Bat，2026-10-11）。由 <see cref="Initialize"/> 依 BrainType 設定，
+    /// 影響 <see cref="MonsterAnimator.Setup"/> 的縮放規則（walk/attack 不做自動高度對齊，見那裡的說明）。
+    /// 飛行本身（地面點＋高度、空中移動）全在 <see cref="FlyingBrain"/>，這個旗標只管顯示大小。
+    /// </summary>
+    [HideInInspector] public bool IsFlyer;
     [Tooltip("施放技能（如召喚）後，attack 動畫維持播放的秒數（讓遠距離施法也看得到出手動作）")]
     public float SkillCastAnimSeconds = 0.6f;
     [Tooltip("角色站立顯示高度（世界單位），與主角 PlayerController.CharacterWorldHeight 同一套邏輯：" +
@@ -130,7 +137,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
 
 
     // ── 騰空（IAirborneVisual）──
-    // 由 LeapSlamBrain 在跳躍期間每幀寫入「這一幀視覺被抬高了多少」，落地歸 0。
+    // 由 LeapSlamBrain 在跳躍期間每幀寫入「這一幀視覺被抬高了多少」，落地歸 0；
+    // 飛行怪（FlyingBrain／BatBrain，§12）則**一直**有值（盤旋／倒吊的高度）。
     // BlobShadow 與 YSortByFeet 會把這段高度扣回地面（影子留在地上、排序不會誤判）。見 IAirborneVisual。
     // ⚠ 這是**純視覺**的高度：碰撞、傷害、尋徑全部照 transform 走，不因為「跳起來」而改變。
     [HideInInspector] public float AirborneVisualHeight;
@@ -155,6 +163,18 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     // ⚠ 設了 true 就**一定**要自己播 attack，否則這隻怪永遠不會有攻擊動畫。
     // NotifySkillCast（召喚等技能的出手動作）不受影響，那條路仍然通。
     [HideInInspector] public bool BrainControlsAttackPose;
+
+    // ── Brain 接管整個姿勢與朝向（2026-10-11，飛行模組）──
+    // `HandleVisuals` 平常依「有沒有在位移」切 walk／idle。對飛行怪這是錯的：
+    //   ‧ 懸停在空中時位移≈0 ⇒ 被切成 idle ＝ 血蝠的 idle 是「坐在地上」，畫面上就變成半空中坐著。
+    //   ‧ 倒吊（Hang）根本不在那套判定的詞彙裡。
+    // 所以 Brain 設 BrainPoseActive=true ＋ 每幀寫 BrainPose，`HandleVisuals` 就直接照播（喘息仍優先；one-shot 本來就壓過 SetState）。
+    // 走路 fps 此時固定用正常移動速度餵（＝1 倍），振翅節奏不會因為懸停而變慢。
+    // BrainFacing：0＝照舊（面向目標／FaceMovement）；+1＝面右；-1＝面左。俯衝時鎖方向用。
+    // ⚠ 預設 false／0 ＝ 既有行為，既有怪一個像素都不會變。
+    [HideInInspector] public bool BrainPoseActive;
+    [HideInInspector] public MonsterAnimator.State BrainPose = MonsterAnimator.State.Walk;
+    [HideInInspector] public int BrainFacing;
 
     /// <summary>怪物成功施放一次技能（召喚等）時由 MonsterWeaponUser 呼叫：讓 attack 動畫演一小段，
     /// 即使怪離玩家很遠（如紅嫁衣邊逃邊召）也看得到出手動作。</summary>
@@ -377,7 +397,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
             }
 
-            _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize, IdleScale, WalkScale, AttackScale, JumpScale);
+            _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize, IdleScale, WalkScale, AttackScale, JumpScale,
+                           HangScale, IsFlyer);
 
             // 碰撞框用同一個 tileSize 量 → 與放大後的 sprite 對齊（之後再 × transform.localScale = CSV Scale，一起縮放）。
             Vector2 vSize, vOff;
@@ -436,6 +457,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
 
         InvincibleTimeMs = data.InvincibleTimeMs;
         IdleScale = data.IdleScale; WalkScale = data.WalkScale; AttackScale = data.AttackScale; JumpScale = data.JumpScale;
+        HangScale = data.HangScale;
         KnockbackThreshold = data.KnockbackThreshold;
         KnockbackPercent = data.KnockbackPercent;
 
@@ -486,6 +508,14 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 break;
             case "SuicideBomb":     // 自爆型：追到貼身 → 引信閃爍預告 → 一次性爆炸傷害圈＋自毀（見 SuicideBombBrain）
                 _brain = new SuicideBombBrain();
+                break;
+            case "Flying":          // 飛行怪（泛用）：在出生點上空懸停 → 發現目標就盤旋 → 繞到側面俯衝 V 字攻擊（見 FlyingBrain）
+                _brain = new FlyingBrain();
+                IsFlyer = true;
+                break;
+            case "Bat":             // 蝙蝠類：飛行怪＋休息時倒吊在高處（hang），失去目標就飛到地圖上方另找地方倒吊（見 BatBrain）
+                _brain = new BatBrain();
+                IsFlyer = true;
                 break;
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();
@@ -669,7 +699,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 && Vector2.Distance(transform.position, player.position) <= AttackRange;
             bool wantAttackPose = casting || inAttackRange;
 
-            if (IsPanting)
+            if (BrainPoseActive && !IsPanting)
+                // Brain 接管姿勢（飛行怪：倒吊／振翅，見 BrainPoseActive）。one-shot 期間 SetState 本來就會被忽略。
+                st = BrainPose;
+            else if (IsPanting)
                 // 喘息破綻最優先：壓過攻擊/走路/發呆。這段期間她就算被打得後退，畫面上也該是喘、不是走路。
                 st = MonsterAnimator.State.Pant;
             else if (wantAttackPose && _monAnim.Has(MonsterAnimator.State.Attack))
@@ -685,7 +718,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             // 走路 fps 平常跟實際位移連動；但「施法退回走路且原地不動」時改用正常移動速度餵，
             // 讓出手表演以正常節奏播（否則實際位移≈0 會被 fps 連動壓到最慢）。
             float animSpeed = currentSpeed;
-            if (st == MonsterAnimator.State.Walk && casting && !moving)
+            if (st == MonsterAnimator.State.Walk && ((casting && !moving) || BrainPoseActive))
                 animSpeed = (_actuator != null && _actuator.MoveSpeed > 0.01f) ? _actuator.MoveSpeed : 3f;
             _monAnim.SetState(st, animSpeed);
         }
@@ -697,7 +730,12 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         //    來源朝右(SpriteSourceFacesRight=true)：面右=不翻(flipX=false)、面左=翻(true)；來源朝左：相反。
         //    FaceMovement（NPC 巡邏）：移動中面向「移動方向」（不然往右走、玩家在左，會邊倒退邊走）；
         //    停下時退回下面的「面向玩家」（玩家走近，NPC 轉頭看他）。
-        if (FaceMovement && moving && Mathf.Abs(moveDx) > 0.002f)
+        if (BrainFacing != 0)
+        {
+            // Brain 指定朝向（飛行怪俯衝時鎖住方向，見 BrainFacing）
+            _spriteRenderer.flipX = ((BrainFacing > 0) != SpriteSourceFacesRight);
+        }
+        else if (FaceMovement && moving && Mathf.Abs(moveDx) > 0.002f)
         {
             bool faceRight = moveDx > 0f;
             _spriteRenderer.flipX = (faceRight != SpriteSourceFacesRight);
@@ -846,6 +884,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
 
         var im = InteractionManager.Instance;
         Vector2 pos = transform.position;
+        // 飛行怪／騰空中死亡：transform 被抬高了 AirborneHeight，寶物要掉在地面點（影子那裡），不是半空中。
+        pos.y -= Mathf.Max(0f, AirborneVisualHeight);
         for (int i = 0; i < drops.Count; i++)
             im.DropLoot(drops[i].itemId, drops[i].count, pos);
     }

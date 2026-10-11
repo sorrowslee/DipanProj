@@ -57,6 +57,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 怪「**舉著攻擊動作還一邊移動**」、要做「出手就要把動作做完」的近戰 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§10**——`ChaseBrain` 的移動與 `HandleVisuals` 的攻擊動畫互不相干，這是天生行為；要改用 `MeleeChase`，並記得 `BrainControlsAttackPose` 不設就等於白做 |
 | 加「會跳躍／落地砸地」的怪、做落地裂地那類**地面程序化 shader**、動騰空角色的影子或排序 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§9**——跳躍動畫要先**量幀**（一個 `jump/` 資料夾未必只有一次跳躍）、幀號當事件不要寫秒數、傷害走短命 trigger＋既有接觸傷害（**實際殺傷＝半徑＋目標碰撞框半徑**）、騰空一律透過 `IAirborneVisual` 把高度扣回地面 |
 | 加「走到玩家身邊**自爆**」的怪、或任何「一定要發生、不能中途取消」的自毀機制 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§11**——進了引信就一定爆（同射手型鐵則）、被打死不爆是天生行為不用寫特例；**自毀一律用 `MonsterController.Kill()`，不要用 `TakeDamage(超大數字)`**（會被無敵幀擋掉 ⇒ 爆了卻沒死、站在原地不動） |
+| 加**飛行怪**（蝙蝠、鴉…）、或任何「一直在空中」的角色 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§12**——飛行＝**地面點＋高度**（`IAirborneVisual`，transform 被抬高、影子與排序扣回地面）；**不能用 `MonsterActuator`／A***（它拿被抬高的 transform 查格子）；擋路只看牆（`MapNavGrid.IsFlyableWorld`）；姿勢要 `BrainPoseActive` 接管，否則懸停會被切成 idle（＝半空中坐著）；接觸傷害要關 |
 | 加「會射東西的遠程怪」時**放彈時機不對** | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§8.2b** ＋ CSV `ReleaseFrame` 欄——放彈幀是**那套 attack 序列圖的性質**，逐怪量、填進 CSV（留空＝14），不要去改 `ArcherBrain` 的共用常數 |
 | 放/改 NPC、NPC 對話/開介面、未來護送 | [readme/NPC_SYSTEM.md](readme/NPC_SYSTEM.md)（NpcTable 分表、圖沿用 Monsters/SequenceImage 角色圖庫；編輯器與主遊戲的 NpcInstance 是鏡像） |
 | 陣營/多方互打劇本、動「誰能傷誰」 | [readme/FACTION.md](readme/FACTION.md)（規則單一真相＝`FactionRelations.cs`：敵對/傷害乘數/切層都只改它；擺劇本照 §3 一條龍） |

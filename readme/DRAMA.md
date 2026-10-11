@@ -114,7 +114,7 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
   - 每關專屬立繪放 `GameAssets/Modules/<module>/Talk/`，`LeftAvatarPath` / `RightAvatarPath` 填 **catalog id**（相對 GameAssets、不含副檔名，例 `Modules/RedBridalGown/Talk/redBridalGown`）。
   - 跑 `Project Tools → Sync Map Assets` 收進 catalog ＋ StreamingAssets。`DramaTalkDatabase.ResolvePortrait` 用 `CatalogLoader` + `MapSpriteLoader` 把每個立繪路徑載成 Sprite（同 `DramaDatabase.ResolveImages`；依解析後 catalog id 快取，同一張圖多句共用只載一次）。
   - **`Talk` 是同步分類白名單的一員**（與 `Environment/Tiles/Background/Drama` 並列）；**主角情緒立繪 `Characters/Talk/<血統>/*.png` 另由三處同步工具的 `Characters/Talk` 掃描收進 catalog**（id 例 `Main/Characters/Talk/Base/angry`，category=`Talk`）。**加新素材分類 / 掃描時三處同步產生器要一起改**（`MapAssetSyncTool.cs`、`MapIO.cs`、`Tools/sync_map_assets.sh`），否則會像 [PROBLEMS.md](PROBLEMS.md) C3 那樣「放了圖卻載不到」。
-  - TalkPanel 把左右立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、左立繪錨左下角、右立繪錨右下角。位置/大小常數在 `TalkPanel.cs` 上方，**三個量的都是「人物」而不是「圖檔」**（見〈立繪自動對齊〉）：`AvatarHeight`（人物高度）、`AvatarOverlap`（人物底部沉入對話框多少，**越大越往下＝露出越少**）、`AvatarInnerX`（**人物內側緣**距畫面左/右邊，**越大兩人靠越近**）。某側沒立繪（載不到 / 留空）時那側自動隱藏。
+  - TalkPanel 把左右立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、兩側都錨在畫面中心底部（2026-09-21 起，寬螢幕才不會離置中的對話框越來越遠），人物外側緣不超出對話框外緣。位置/大小常數在 `TalkPanel.cs` 上方，**三個量的都是「人物」而不是「圖檔」**（見〈立繪自動對齊〉）：`AvatarHeight`（人物高度）、`AvatarOverlap`（人物底部沉入對話框多少，**越大越往下＝露出越少**）、`AvatarInnerFromCenter`（**人物內側緣**距畫面中心，**越小兩人靠越近**）。某側沒立繪（載不到 / 留空）時那側自動隱藏。
   - **右側立繪一律水平翻轉**（`localScale.x=-1`，原地鏡像不位移）：因為立繪原圖臉朝右，放右邊要翻成朝左才面向畫面中央、與左側對望。所以 `RightAvatarPath` 的圖**直接放正常朝右的原圖即可**，不必自己先翻好。
 
 ### 立繪自動對齊（2026-09-13）
@@ -135,6 +135,7 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 > 人物頂端 = `576.9 − AvatarOverlap + AvatarHeight`，**超過 1080 頭頂就被切掉**。
 > 因為全部立繪的人物高度現在都被正規化成同一個值，**切到就是全部一起切**（實機第一版 660/100 算出 1137，
 > 所有角色的角與頭髮都被切平）。目前 580/130 ⇒ 頂端 1027、留 53px。
+> **決定截到身體哪裡的是比例** (`AvatarHeight − AvatarOverlap`) ÷ `AvatarHeight`：580/130＝78%（截到腰，現行）。2026-09-21 曾改成 880/400＝55%（只露胸口以上），作者 2026-10-11 實機看覺得放大太多，已還原。
 > 要調：**縮小人物改 `AvatarHeight`、整體下移改 `AvatarOverlap`**。
 
 - **內容框哪裡來**：`MapSpriteLoader.GetAlphaLocalBox`——地上物碰撞用的同一支（掃不透明像素外接框、依 catalog id 快取）。**刻意不另外烘進 catalog.json**：這專案的 catalog 有四個產生器（兩支 C#、兩支 shell），只有部分會烘，走同一支現成掃描才不會「不同機器算出不同結果」。對話面板是模態暫停的，第一次掃圖的成本感覺不到。

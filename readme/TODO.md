@@ -866,3 +866,13 @@
 - [ ] **來源沒接 UI**：「這顆水珠是血統給的／護身符給的」只有 `PassiveWeaponSet.Describe()`，背包 tooltip／裝備欄都沒顯示。
 - [ ] 上一節〈浮游模式〉的缺口（起手值估的、沒命中特效、怪物不能用、手感參數在 Inspector）仍然成立；其中「icon 是暫代」已解（道具改成 503 應龍護身符、icon `amulet_waterorb`），「武器／道具 72」現在只剩 WeaponTable 72。
 
+
+## 飛行模組／血蝠（2026-10-11）
+
+- [ ] **未編譯未實測**：`FlyingBrain`／`BatBrain`／`MonsterAnimator`（Hang）／`MonsterController`（`BrainPoseActive`）／`MapNavGrid`（`IsFlyableWorld`）全是靜態核對。實測前要先 `Project Tools → Sync Map Assets`（血蝠的圖還沒進 StreamingAssets），再在地圖編輯器放 `monsterSpawn` 填 **35**。
+- [ ] **血蝠 CSV 全是起手估值**：Scale 0.6、Speed 4、AnimFPS 25、咬 8、俯衝間隔 3、驚醒距離 8；盤旋 1.25 人高、倒吊 1.7 人高寫在 Brain 檔頭。
+- [ ] **影子錨點**：血蝠先不要跑「計算影子錨點」（飛行幀量到的腳是翅膀尖），目前全部退回 idle 的錨點；實機若影子偏再手填 `manual`。
+- [ ] **碰撞框是坐姿量的**：展翅時翅膀尖打不到。
+- [ ] **地面 AOE 打不打得到飛行怪**未決定（碰撞框在空中）。
+- [ ] **盤旋不會尋路**：目標在牆後時只會在牆這一側繞。
+- [ ] **沒有被擊落演出**。

@@ -113,6 +113,15 @@ public class MonsterData
     /// </summary>
     public string MoveTrailFx = "";
 
+    /// <summary>
+    /// hang（倒吊）的顯示倍率（CSV 表尾欄 <c>HangScale</c>，2026-10-11，飛行模組）。
+    /// <para>語義與 <see cref="JumpScale"/> 相同：<b>留空 ＝ 沿用 idle 的大小、不做自動高度對齊</b>；
+    /// 有填 ＝ 以 idle 的最終大小為基準再乘。只有放了 <c>hang/</c> 序列圖的怪（蝙蝠類，BrainType=Bat）會用到。</para>
+    /// <para>理由：倒吊的身體比坐姿長得多（血蝠 hang 可見高 335px、idle 坐姿 209px），自動對齊會把牠縮成 0.63 倍。
+    /// 見 readme/BOSS_MODULE.md §12。</para>
+    /// </summary>
+    public float HangScale = 0f;
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

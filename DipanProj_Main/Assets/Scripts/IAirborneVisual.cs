@@ -13,8 +13,8 @@
 /// <para><b>沒有實作這個介面的角色行為完全不變</b>（兩邊都是「取不到就當 0」），
 /// 所以玩家與既有怪物一個像素都不會動。</para>
 ///
-/// 目前唯一的實作是 <see cref="MonsterController"/>（由 <see cref="LeapSlamBrain"/> 在跳躍期間寫入）。
-/// 見 readme/BOSS_MODULE.md §9。
+/// 目前唯一的實作是 <see cref="MonsterController"/>。寫入者：<see cref="LeapSlamBrain"/>（跳躍期間，§9）、
+/// <see cref="FlyingBrain"/>／<see cref="BatBrain"/>（飛行怪**一直**在空中，§12）。見 readme/BOSS_MODULE.md。
 /// </summary>
 public interface IAirborneVisual
 {
