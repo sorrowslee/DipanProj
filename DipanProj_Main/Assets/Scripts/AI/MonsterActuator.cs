@@ -45,6 +45,7 @@ public class MonsterActuator : MonoBehaviour
     private int _pathIdx;
     private Vector2 _pathTarget;
     private float _repathAt;
+    private int _pathNavVersion = -1;   // 規劃這條路時尋徑格的版本；格子變了（家具被打爛）就重算
 
     private static readonly float[] AvoidAngles = { 18f, 34f, 52f, 72f, 96f, 124f, 155f };
 
@@ -126,9 +127,11 @@ public class MonsterActuator : MonoBehaviour
         {
             bool needRepath = _path.Count == 0
                 || (target - _pathTarget).sqrMagnitude > RepathMoveSq
-                || Time.time >= _repathAt;
+                || Time.time >= _repathAt
+                || _pathNavVersion != MapNavGrid.Version;   // 地圖變了（可破壞地上物被打爛）⇒ 舊路徑作廢
             if (needRepath)
             {
+                _pathNavVersion = MapNavGrid.Version;
                 if (nav.TryFindPath(pos, target, _path)) { _pathIdx = 0; _pathTarget = target; _repathAt = Time.time + RepathInterval; }
                 else _path.Clear();
             }

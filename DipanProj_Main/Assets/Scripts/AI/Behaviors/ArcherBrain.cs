@@ -31,11 +31,15 @@ public class ArcherBrain : IMonsterBrain
     //    而畫面高才 10 ⇒ 直接拿子彈壽命當射程的話，牠會從畫面外看不見的地方開始射你。
     //    7 單位 ≈ 畫面寬的一半，玩家看得到牠、也還有走位空間。
     // 2026-09-17：作者實測「7 太遠」⇒ 砍 1/4 成 5.25（≈ 畫面寬的 1/3，玩家看得很清楚是誰在射他）。
-    const float ShootRange = 5.25f;
+    const float DefaultShootRange = 5.25f;
+    // ⭐ 2026-10-11 起可逐怪覆寫：CSV `ShootRange` 欄（留空＝上面的 5.25）。血術士 7.0（作者：「射程太近，要一直靠近玩家」）。
+    //    PreferredRange 照 DefaultPreferredRange/DefaultShootRange 的比例自動跟著算，填表只要想「射多遠」。
+    float ShootRange = DefaultShootRange;
     const float MinRange = 2.0f;         // 比這還近就後退（射手被貼身該拉開，不是站著硬射）
     // 想站的距離。維持「約 ShootRange 的 0.79」這個比例：射程內留一點餘裕，
     // 玩家走兩步不會立刻脫離射程、害牠又要重新跑位。改 ShootRange 時記得一起按比例調。
-    const float PreferredRange = 4.1f;
+    const float DefaultPreferredRange = 4.1f;
+    float PreferredRange = DefaultPreferredRange;
     // 視線檢查的「飛行物粗細」。比子彈的碰撞半徑（配方 Radius，預設 0.1）寬一點：
     // 貼著牆角擦過去在判定上算通過、實際上常常會撞到，寬一點寧可多繞一步也不要射在柱子上。
     const float LineOfSightRadius = 0.18f;
@@ -76,10 +80,37 @@ public class ArcherBrain : IMonsterBrain
     const float SideAngleMax = 65f;
     const float SideFlipChance = 0.35f;  // 偶爾換邊繞，免得一直往同一邊卡死在同一根柱子後面
 
+    // ── 視線被擋時：主動找「射得到的站位」（2026-10-11）──
+    // 作者附圖：血術士在長桌左邊、玩家在右邊，距離在射程內但視線被桌子擋住 ⇒ 舊的「繞 35~65° 挪 1.2~2.2 單位」
+    // 永遠走不出桌子的遮蔽，加上 35% 隨機換邊 ⇒ 原地東晃西晃、一直不攻擊。
+    // 現在改成：以目標為中心、在射程內幾個圈上每 SpotAngleStep 度取候選點，留下「站得上去 ＋ 從那裡射得到」的，
+    // 依**實際走路距離**（A*，會繞過桌子）挑最近的，一路走過去；途中一射得到就停下來射。
+    const float SpotAngleStep = 15f;
+    const int SpotPathChecks = 6;          // 直線距離最近的前幾個候選才算 A* 路長（省效能）
+    const float SpotRecheckSeconds = 0.5f; // 走去站位途中，每隔多久確認一次「那個點還射得到目標」（目標會移動）
+    const float SpotTimeSlack = 1.6f;      // 走去站位的時限 ＝ 路長 ÷ 速度 × 此值 ＋ 1 秒
+    // ── 第二輪（2026-10-11 作者：「往上走兩步、原地抖抖抖、再走兩步……很容易被放風箏」）──
+    // 三個成因：① 一走到「剛好擦過桌角看得到」就停 ⇒ 玩家一動又被擋；② 每次停下都先 Observe 0.4~0.8 秒（還射不到也發呆）；
+    // ③ 玩家移動讓站位失效時，新站位可能在另一邊 ⇒ 來回換方向。對應：
+    const float RobustLosRadius = 0.45f;   // ① 「有餘裕的視線」：比 LineOfSightRadius 粗，不擦邊
+    const float RobustSideOffset = 0.8f;   // ① 目標往左右各移這麼多也還射得到，才算好站位（抗放風箏）
+    const float SpotSwitchPenalty = 0.6f;  // ③ 換站位時，每離舊站位 1 單位就多算這麼多路長 ⇒ 偏好同一側
+    const int MaxChainedSteps = 6;         // ② 還射不到就直接接下一段、不停頓；連續這麼多段都沒結果才停下來觀察一次
+
     /// <summary>除錯：把每次決策（能不能射／為什麼不能／挪去哪）印出來。抓站位手感時打開。</summary>
     public static bool DebugLog = false;
 
-    enum Phase { Observe, Reposition, Draw }
+    enum Phase { Observe, Reposition, Draw, Rush }
+
+    // ── 近身模式（2026-10-11 作者：「遠程打不到就用身體去撞也可以，總之不能發呆」）──
+    // 什麼時候：① 射不到、而且找不到任何射擊站位（窄走道裡大顆子彈根本過不去）；
+    //          ② 保險：有目標卻已經 StallSeconds 秒沒出手（不管卡在哪種迴圈）。
+    // 做什麼：直接走向目標，貼上去吃既有的接觸傷害（EnemyContactDamage，射手型沒有關掉它）；
+    //         每 RushCheckSeconds 檢查一次「射得到了沒」，射得到就立刻回去施法；最多衝 RushMaxSeconds 就重新評估。
+    //         衝刺期間不做「太近就後退」。
+    const float StallSeconds = 5f;
+    const float RushMaxSeconds = 3f;
+    const float RushCheckSeconds = 0.25f;
 
     Phase _phase = Phase.Observe;
     float _phaseUntil;
@@ -92,12 +123,29 @@ public class ArcherBrain : IMonsterBrain
     // 這一套 attack 動畫要演到什麼時候（Time.time）。0 ＝ 現在沒有在演。
     // Draw 與 Observe 兩個階段都靠它決定要不要繼續替動畫「續命」（見 KeepAttackPose）。
     float _attackAnimEnd;
+    bool _seekingSpot;          // 這一段 Reposition 是「走去找到的射擊站位」（不是挪一小步）
+    float _stepMaxSeconds = StepMaxSeconds;
+    float _nextSpotCheck;
+    bool _hasLastSpot;
+    Vector2 _lastSpot;
+    int _chainedSteps;
+    float _rushUntil, _nextRushCheck;
+    float _lastShotAt = -1f;     // 上一次決定出手的時間（BeginDraw）
+    float _engagedSince = -1f;   // 這次發現目標的時間（目標消失就重置）
+    readonly System.Collections.Generic.List<Vector2> _pathBuf = new System.Collections.Generic.List<Vector2>();
     float _releaseAt;        // 這一發的放箭時刻（Time.time）
 
     public void Think(in MonsterContext ctx)
     {
         MonsterActuator act = ctx.Actuator;
         if (act == null) return;
+        _actCache = act;
+        // 子彈真正的半徑（武器解析好之前是 0，之後讀一次就固定）
+        if (_projRadius <= 0f && ctx.Self != null && ctx.Self.WeaponUser != null)
+        {
+            float r = ctx.Self.WeaponUser.ProjectileRadius;
+            if (r > 0f) _projRadius = r;
+        }
         Vector2 pos = act.transform.position;
 
         // 身體框快取：出手點與視線起點都要從框外緣算（見 MuzzleOffset），沒有它會退回一個寫死的估值。
@@ -106,12 +154,19 @@ public class ArcherBrain : IMonsterBrain
         if (!_inited)
         {
             _inited = true;
+            if (ctx.Self != null && ctx.Self.ShootRange > 0.01f)
+            {
+                ShootRange = ctx.Self.ShootRange;
+                PreferredRange = ShootRange * (DefaultPreferredRange / DefaultShootRange);
+            }
             _side = Random.value < 0.5f ? 1 : -1;   // 一群弓手才不會整排往同一邊挪
             _phaseUntil = Time.time + ObserveSeconds(ctx);
         }
 
         // 目標取「最近的敵對目標」（同 PounceBrain / WarBrain）：對 Enemy 陣營與三方陣營都成立，不必寫特例。
         Transform target = Nearest(pos, ctx.Enemy, ctx.Player);
+        if (target == null) _engagedSince = -1f;
+        else if (_engagedSince < 0f) _engagedSince = Time.time;
         if (target == null)
         {
             act.Stop();
@@ -124,8 +179,42 @@ public class ArcherBrain : IMonsterBrain
         Vector2 tp = target.position;
         float dist = Vector2.Distance(pos, tp);
 
+        // ② 保險：有目標卻太久沒出手 ⇒ 不管卡在哪，強制近身（拉弓中不打斷，鐵則）
+        if (_phase != Phase.Draw && _phase != Phase.Rush
+            && Time.time - Mathf.Max(_lastShotAt, _engagedSince) > StallSeconds)
+        {
+            if (DebugLog) Debug.Log($"[Archer] {StallSeconds}s 沒出手 → 近身模式");
+            EnterRush();
+        }
+
         switch (_phase)
         {
+            // ── 近身：射不到就用身體撞（接觸傷害），途中一射得到就回去施法 ──
+            case Phase.Rush:
+            {
+                if (Time.time >= _nextRushCheck)
+                {
+                    _nextRushCheck = Time.time + RushCheckSeconds;
+                    if (CanShootFrom(pos, tp, dist) && WeaponReady(ctx))
+                    {
+                        act.Stop();
+                        BeginDraw(ctx, dist);
+                        break;
+                    }
+                }
+                if (Time.time >= _rushUntil)
+                {
+                    act.Stop();
+                    _engagedSince = Time.time;   // 重新給一次「正常找站位」的機會，5 秒內還不行會再衝
+                    _lastShotAt = -1f;
+                    _phase = Phase.Observe;
+                    _phaseUntil = Time.time;
+                    break;
+                }
+                act.MoveTowards(tp);
+                break;
+            }
+
             // ── 站定評估：這一段就是作者說的「先觀察」──
             case Phase.Observe:
                 act.Stop();
@@ -154,12 +243,34 @@ public class ArcherBrain : IMonsterBrain
             case Phase.Reposition:
             {
                 bool arrived = (_stepTarget - pos).sqrMagnitude <= ArriveDistSq;
-                bool timeout = Time.time - _stepStart >= StepMaxSeconds;   // 被牆卡住的保險
+                bool timeout = Time.time - _stepStart >= _stepMaxSeconds;   // 被牆卡住的保險
+                // 走去射擊站位途中：目標會動，定期確認那個點還射得到；射不到就換一個（換不到就回 Observe 重評估）
+                if (_seekingSpot && !arrived && !timeout && Time.time >= _nextSpotCheck)
+                {
+                    _nextSpotCheck = Time.time + SpotRecheckSeconds;
+                    float sd = Vector2.Distance(_stepTarget, tp);
+                    if (sd > ShootRange || sd < MinRange || !HasLineOfFire(_stepTarget, tp))
+                    {
+                        if (TryFindFiringSpot(act, pos, tp, out Vector2 spot, out float pathLen))
+                            SetSpot(act, spot, pathLen);
+                        else timeout = true;
+                    }
+                }
                 // 移動途中若已經滿足射擊條件就直接停下來射——不必把這一步走完，
                 // 否則會出現「明明已經走到射得到的位置，卻還要再走兩步才肯開火」。
-                if (arrived || timeout || CanShootFrom(pos, tp, dist))
+                // 找站位途中：只有「有餘裕地射得到」才提早停（不在桌角邊緣停下，見 RobustLosRadius）
+                bool canShootNow = _seekingSpot ? CanShootRobust(pos, tp, dist) : CanShootFrom(pos, tp, dist);
+                if (arrived || timeout || canShootNow)
                 {
                     act.Stop();
+                    // ② 還射不到就不要發呆：直接接下一段移動（最多連 MaxChainedSteps 段，避免無解時原地狂算）
+                    if (!CanShootFrom(pos, tp, dist) && _chainedSteps < MaxChainedSteps)
+                    {
+                        _chainedSteps++;
+                        BeginStep(pos, tp, dist);
+                        if (_phase == Phase.Reposition) break;
+                    }
+                    _chainedSteps = 0;
                     _phase = Phase.Observe;
                     _phaseUntil = Time.time + ObserveSeconds(ctx);
                     break;
@@ -269,6 +380,9 @@ public class ArcherBrain : IMonsterBrain
 
         float releaseDelay = Mathf.Max(0f, (releaseFrame - 1) / fps);
 
+        _lastShotAt = Time.time;
+        _hasLastSpot = false;    // 出手了 ⇒ 下一輪找站位不必再偏好上一次的那一側
+        _chainedSteps = 0;
         _releaseAt = Time.time + releaseDelay;
         _attackAnimEnd = _releaseAt + FollowThroughSeconds;
         _phase = Phase.Draw;
@@ -313,7 +427,32 @@ public class ArcherBrain : IMonsterBrain
     ///   實際射出去會撞在柱子邊上。障礙層與 <c>MonsterActuator</c>／<c>MapNavGrid</c> 同一份定義
     ///   （Environment + Water），所以「牠覺得射不過去」與「箭真的會被擋下」是同一個真相。
     /// </summary>
-    bool HasLineOfFire(Vector2 from, Vector2 targetPos)
+    // ⭐ 2026-10-11（PROBLEMS F37）：視線寬度一律不小於「這把武器子彈真正的碰撞半徑」。
+    //   血火咒的子彈半徑 0.8（照抄掌心雷），舊判斷只用 0.18 ⇒ 牠站在椅子旁判定「擦得過去」，
+    //   一顆直徑 1.6 的球飛出去就撞上椅子被消掉。判斷與實際飛行必須是同一份幾何（同 F22）。
+    float _projRadius = -1f;
+    float ShotRadius(float baseRadius) => Mathf.Max(baseRadius, _projRadius > 0f ? _projRadius : 0f);
+
+    bool HasLineOfFire(Vector2 from, Vector2 targetPos) => HasLineOfFire(from, targetPos, ShotRadius(LineOfSightRadius));
+
+    /// <summary>有餘裕地射得到：距離在射程內，且視線用較粗的 <see cref="RobustLosRadius"/> 也通（不是擦著桌角）。</summary>
+    bool CanShootRobust(Vector2 from, Vector2 targetPos, float dist)
+    {
+        if (dist > ShootRange || dist < MinRange) return false;
+        return HasLineOfFire(from, targetPos, ShotRadius(LineOfSightRadius) + (RobustLosRadius - LineOfSightRadius));
+    }
+
+    /// <summary>好站位：粗視線通，而且目標往左右各挪 <see cref="RobustSideOffset"/> 也還射得到（玩家小幅走位不會立刻失效）。</summary>
+    bool IsRobustSpot(Vector2 spot, Vector2 targetPos)
+    {
+        if (!HasLineOfFire(spot, targetPos, ShotRadius(LineOfSightRadius) + (RobustLosRadius - LineOfSightRadius))) return false;
+        Vector2 d = targetPos - spot;
+        if (d.sqrMagnitude < 1e-4f) return true;
+        Vector2 perp = new Vector2(-d.y, d.x).normalized * RobustSideOffset;
+        return HasLineOfFire(spot, targetPos + perp) && HasLineOfFire(spot, targetPos - perp);
+    }
+
+    bool HasLineOfFire(Vector2 from, Vector2 targetPos, float radius)
     {
         if (_envMask == -1) _envMask = LayerMask.GetMask("Environment", "Water");
 
@@ -327,7 +466,17 @@ public class ArcherBrain : IMonsterBrain
         float skip = MuzzleOffset();
         if (len <= skip) return true;
 
-        RaycastHit2D hit = Physics2D.CircleCast(from + d * skip, LineOfSightRadius, d, len - skip, _envMask);
+        Vector2 start = from + d * skip;
+        // 子彈一出生，彈道系統會先做 CheckSpawnOverlap（出生圈壓到「不在背後」的東西就算撞到）；
+        // 而專案全域 queriesStartInColliders=false，CircleCast 會**忽略起點就重疊的碰撞體**。
+        // 所以起點那一圈要另外查，規則與 BulletInstance.IsBehindOverlap 相同（最近點在前方才算擋）。
+        foreach (var c in Physics2D.OverlapCircleAll(start, radius, _envMask))
+        {
+            if (c == null) continue;
+            Vector2 toSurface = c.ClosestPoint(start) - start;
+            if (toSurface.sqrMagnitude < 1e-8f || Vector2.Dot(toSurface, d) > 0f) return false;
+        }
+        RaycastHit2D hit = Physics2D.CircleCast(start, radius, d, len - skip, _envMask);
         return hit.collider == null;
     }
 
@@ -372,6 +521,24 @@ public class ArcherBrain : IMonsterBrain
             Vector2 dir = Rotate(away, Random.Range(SideAngleMin, SideAngleMax) * _side);
             desired = targetPos + dir * keep;
             why = "視線被擋";
+
+            // ⭐ 先找「真的射得到的站位」，找得到就一路走過去（不是挪一小步）；找不到才退回上面那個側移。
+            var act = _actCache;
+            if (act != null && TryFindFiringSpot(act, pos, targetPos, out Vector2 spot, out float pathLen))
+            {
+                SetSpot(act, spot, pathLen);
+                if (DebugLog) Debug.Log($"[Archer] 射不到（視線被擋，距離={dist:F2}）→ 走去射擊站位 {spot}（路長 {pathLen:F1}）");
+                return;
+            }
+        }
+        _seekingSpot = false;
+        _stepMaxSeconds = StepMaxSeconds;
+        if (why == "視線被擋")
+        {
+            // ① 射不到、也找不到任何射擊站位 ⇒ 不要在原地亂挪（目標點常落在家具上、走不過去 ⇒ 發呆），直接近身
+            if (DebugLog) Debug.Log($"[Archer] 視線被擋且找不到射擊站位（距離={dist:F2}）→ 近身模式");
+            EnterRush();
+            return;
         }
 
         Vector2 delta = desired - pos;
@@ -381,6 +548,92 @@ public class ArcherBrain : IMonsterBrain
         _stepStart = Time.time;
         _phase = Phase.Reposition;
         if (DebugLog) Debug.Log($"[Archer] 射不到（{why}，距離={dist:F2}）→ 挪到 {_stepTarget}");
+    }
+
+    MonsterActuator _actCache;
+
+    void EnterRush()
+    {
+        _phase = Phase.Rush;
+        _rushUntil = Time.time + RushMaxSeconds;
+        _nextRushCheck = Time.time + RushCheckSeconds;
+        _seekingSpot = false;
+        _chainedSteps = 0;
+    }
+
+    void SetSpot(MonsterActuator act, Vector2 spot, float pathLen)
+    {
+        _stepTarget = spot;
+        _seekingSpot = true;
+        _stepStart = Time.time;
+        _nextSpotCheck = Time.time + SpotRecheckSeconds;
+        float speed = Mathf.Max(0.5f, act.MoveSpeed);
+        _stepMaxSeconds = pathLen / speed * SpotTimeSlack + 1f;
+        _phase = Phase.Reposition;
+    }
+
+    /// <summary>
+    /// 找一個「站得上去、而且從那裡射得到目標」的點，回傳實際走路距離最短的那個。
+    /// 候選：以目標為中心，半徑取 PreferredRange／射程中段／MinRange 外一點，每 <see cref="SpotAngleStep"/> 度一個。
+    /// 先用直線距離排序，只對最近的 <see cref="SpotPathChecks"/> 個算 A* 路長（繞桌子的路程才算得進去）。
+    /// </summary>
+    bool TryFindFiringSpot(MonsterActuator act, Vector2 pos, Vector2 targetPos, out Vector2 best, out float bestLen)
+    {
+        best = pos; bestLen = 0f;
+        var nav = MapNavGrid.Instance;
+        float[] radii = { PreferredRange, (MinRange + ShootRange) * 0.5f, MinRange + 0.5f };
+        var cands = new System.Collections.Generic.List<Vector2>();
+        foreach (float r in radii)
+        {
+            if (r < MinRange || r > ShootRange) continue;
+            for (float a = 0f; a < 360f; a += SpotAngleStep)
+            {
+                float rad = a * Mathf.Deg2Rad;
+                Vector2 c = targetPos + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * r;
+                if (nav != null && nav.Ready && !nav.IsWalkableWorld(c)) continue;
+                if (!IsRobustSpot(c, targetPos)) continue;
+                cands.Add(c);
+            }
+        }
+        if (cands.Count == 0)
+        {
+            // 沒有「有餘裕」的站位（窄房間）⇒ 放寬成只要射得到就好
+            foreach (float r in radii)
+            {
+                if (r < MinRange || r > ShootRange) continue;
+                for (float a = 0f; a < 360f; a += SpotAngleStep)
+                {
+                    float rad = a * Mathf.Deg2Rad;
+                    Vector2 c = targetPos + new Vector2(Mathf.Cos(rad), Mathf.Sin(rad)) * r;
+                    if (nav != null && nav.Ready && !nav.IsWalkableWorld(c)) continue;
+                    if (HasLineOfFire(c, targetPos)) cands.Add(c);
+                }
+            }
+            if (cands.Count == 0) return false;
+        }
+
+        cands.Sort((x, y) => (x - pos).sqrMagnitude.CompareTo((y - pos).sqrMagnitude));
+        bestLen = float.MaxValue;
+        float bestScore = float.MaxValue;
+        int n = Mathf.Min(SpotPathChecks, cands.Count);
+        for (int i = 0; i < n; i++)
+        {
+            float len;
+            if (nav != null && nav.Ready)
+            {
+                _pathBuf.Clear();
+                if (!nav.TryFindPath(pos, cands[i], _pathBuf) || _pathBuf.Count == 0) continue;   // 走不到（被封在另一區）
+                len = 0f;
+                Vector2 prev = pos;
+                for (int k = 0; k < _pathBuf.Count; k++) { len += Vector2.Distance(prev, _pathBuf[k]); prev = _pathBuf[k]; }
+            }
+            else len = Vector2.Distance(pos, cands[i]);
+            // ③ 換站位時偏好離舊站位近的（同一側），不要因為目標動了一下就整個轉向另一邊
+            float score = len + (_hasLastSpot ? SpotSwitchPenalty * Vector2.Distance(cands[i], _lastSpot) : 0f);
+            if (score < bestScore) { bestScore = score; bestLen = len; best = cands[i]; }
+        }
+        if (bestScore < float.MaxValue) { _hasLastSpot = true; _lastSpot = best; return true; }
+        return false;
     }
 
     static Transform Nearest(Vector2 pos, Transform a, Transform b)

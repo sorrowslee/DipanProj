@@ -25,7 +25,10 @@ namespace Sorrows.Ballistics
             {
                 _currentBounces++;
                 velocity = Vector2.Reflect(velocity, hit.normal);
-                instance.transform.position = hit.point + hit.normal * 0.01f;
+                // ⚠ 用 hit.centroid（碰到牆那一刻「圓心」的位置），不是 hit.point（牆面上的接觸點）。
+                //   CircleCast 的 point 在牆面上；把圓心放到牆面上＝整顆子彈往牆裡陷一個判定半徑。
+                //   小子彈（半徑 0.1）看不出來，血火咒（半徑 0.8）一反彈就整顆鑽進牆裡、看起來像被牆吃掉（2026-10-11）。
+                instance.transform.position = hit.centroid + hit.normal * 0.01f;
                 return true; 
             }
             return false;

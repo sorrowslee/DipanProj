@@ -15,6 +15,7 @@
    - ⚠ **`jump/` 要先量幀再用**：一個資料夾未必只裝一次跳躍——狂族皇家衛士那 25 張其實是「跳兩次」，整組播完會踩兩下。量法與幀事件見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.1。
    - 檔名數字**補零**、依檔名排序＝播放順序：`idle_01.png`、`walk_01.png`…`walk_08.png`（超過 9 張務必兩位數，否則 `_10` 會排到 `_2` 前面）。
    - 不用組序列圖、不用在 Unity 切格——一張 PNG = 一幀。
+   - ⚠ 拿到的是**精靈圖（一個動作一張大圖、格子排列）**時要先切成單張，原圖移出 `Assets`，否則整張會被當成一幀（血術士 2026-10-11，見 [BOSS_MODULE.md](BOSS_MODULE.md) §8.5b）。
 2. **同步**：`Project Tools → Sync Map Assets`（把圖收進 catalog ＋ StreamingAssets）。
 3. **填 CSV**：在 `Assets/Data/MonsterData.csv` 加一列（`Name` = 資料夾名 `<怪名>`，**`PrefabPath` 留空** = 走 route B），填 HP / Speed / ContactDamage / Scale / AnimFPS 等。
 4. **擺進地圖**：地圖編輯器放 `monsterSpawn` 出生點、填這隻的 `monsterId`（= CSV 的 ID）。
@@ -71,6 +72,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | **`DropTableId`** | **掉落表 ID**（表尾，2026-09-22）→ `Assets/Data/DropTable.csv` 的 `ID`。<br>⚠ **留空／0 ＝ 完全不掉寶**。導入這張表時既有的怪**一律填 1**（＝原本寫死的那組：銅錢 1~5、血瓶 17.5%、魔瓶 17.5%），所以導入本身零行為變化。<br>一張表有 8 個**獨立**掉落槽，格式 `itemId:機率%:數量`（`101:100:1-5`／`201:17.5`／`301`＝必掉 1 個）。加新組合＝CSV 加一列，不動程式。<br>⚠ 掉不掉還有一層前置：`DropsLoot`（召喚物／NPC 一律 false，避免無限刷）。 |
 | **`BombDamage`／`BombRadius`／`BombFuse`** | **自爆型專用**（表尾三欄，2026-09-22）。只有 `BrainType=SuicideBomb` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 3、半徑＝1.8、引信＝0.6 秒。<br>⚠ **半徑是「體型 1 時」的世界單位，實際會 ×`Scale`**（2026-09-22，見 [PROBLEMS.md](PROBLEMS.md) **F29**）——填表照體型 1 去想就好。另有防呆下限保證「引信點著就一定炸得到」。<br>⚠ **實際殺傷範圍 ＝ 縮放後半徑 ＋ 目標碰撞框半徑**（玩家約 0.5），同 `LeapRadius`。詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §11 |
 | **`LeapDamage`／`LeapRadius`** | **跳躍踐踏專用**（表尾兩欄，2026-09-18）。只有 `BrainType=LeapSlam` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 2、半徑＝1.6。<br>⚠ **半徑是「體型 1 時」的世界單位，實際會 ×`Scale`**（2026-09-22，見 [PROBLEMS.md](PROBLEMS.md) **F29**）：皇家衛士 `Scale` 1.5 ⇒ 實際 2.4；想維持舊的 1.6 就填 1.067。<br>⚠ **實際殺傷範圍 ＝ 縮放後半徑 ＋ 目標碰撞框半徑**（玩家約 0.5），詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.4 |
+| **`ShootRange`** | **射手型行為射程**（表尾，2026-10-11，接在 `HangScale` 後面；只有 `BrainType=Archer` 用）。**留空＝5.25**（既有射手零變化）；「想站的距離」自動 × 0.78 跟著算。血術士填 7。<br>⚠ 這是「多遠開始射」不是子彈飛多遠；超過約 7（畫面寬一半）會從畫面外射人。見 [BOSS_MODULE.md](BOSS_MODULE.md) §8.2 |
 | **`HangScale`** | **hang（倒吊）顯示倍率**（表尾，2026-10-11，接在 `ObserveTime` 後面）。語義同 `JumpScale`：**留空＝沿用 idle 的大小、不做自動對齊**；有填＝以 idle 為基準再乘。只有放了 `hang/` 的蝙蝠類用得到。<br>⚠ 另外，**飛行怪（`BrainType=Flying／Bat`）的 walk／attack 也不做自動對齊**（沿用 idle，`WalkScale`／`AttackScale` 有填就再乘）——振翅的可見高度每幀都在變，拿坐姿正規化會忽大忽小。見 [BOSS_MODULE.md](BOSS_MODULE.md) §12.6 |
 | **`IdleScale`／`WalkScale`／`AttackScale`** | **逐動作顯示倍率**（表尾三欄，2026-09-17）。**留空＝自動**（把該動作的可見高對齊 idle）；**有填＝在那個自動結果上「再乘」**（2026-09-22 改，見 [PROBLEMS.md](PROBLEMS.md) **G14**）——所以 **1.0 ＝ 跟留空一樣、1.1 ＝ 比平常大一成**。<br>⚠ 舊版是「有填就**覆寫**自動」，而自動倍率本來就常 > 1（攻擊／奔跑姿勢比站姿矮）⇒ **填 1.1 反而會縮小**（ZhaYu_HugeSword 的 attack 自動倍率 1.252，填 1.1 等於縮 12%）。`pant` 沿用 `IdleScale`。整體大小仍吃 `Scale` 欄，這三欄是在它之上的等比例微調。<br>⚠ **四足獸（狼/狗/豹）通常要填**：自動那套量高度，而奔跑姿勢身體壓低、高度矮 ⇒ 被**放大**。戰狼實測 walk 被自動放大 ×1.288、等效寬 221→285px（idle 才 181），填 `WalkScale=0.9` 之後差距從 57% 降到 10%。詳見 [PROBLEMS.md](PROBLEMS.md) **G12** |
 

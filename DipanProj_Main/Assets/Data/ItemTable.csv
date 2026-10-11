@@ -100,3 +100,4 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 45,屍毒葫蘆,Weapon,Weapon,Weapon/single/weapon_poisongourd,1,葫蘆,傷害 2　拋出屍毒、落地留一團毒雲,葫蘆裡裝的不是藥，是別人沒吃完的死。,45,,,,,,,,
 46,霹靂火彈,Weapon,Weapon,Weapon/single/weapon_thunderbomb,1,火彈,傷害 6　拋擲火彈、落地十字爆開,引信一燃，四方皆是退路，也都不是。,46,,,,,,,,
 47,八卦護身印,Weapon,Weapon,Weapon/single/weapon_baguamirror,1,八卦鏡,傷害 2　四枚符印環繞己身、灼傷近敵,八方有門，門門皆閉。,47,,,,,,,,
+49,血火咒,Weapon,Weapon,Weapon/single/weapon_bloodfirecurse,1,血火咒,傷害 4　血火珠撞牆反彈一次,以血為薪的咒火，撞上石壁也不肯熄。,49,,,,,,,,,

@@ -32,7 +32,7 @@
           "scaleY": 2.143589,
           "sortKey": -13.7103071,
           "zOrder": 0,
-          "hp": -1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -45,6 +45,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -216,8 +217,94 @@
             "targetEntrance": "BloodFang_Garde_north",
             "showMarker": true,
             "linkedFx": "",
-            "markerX": 7.50821638,
-            "markerY": -22.18768
+            "markerX": 7.45976257,
+            "markerY": -22.7809753,
+            "markerW": 1.78,
+            "markerH": 1.14
+          }
+        },
+        {
+          "id": "4dd212b0",
+          "name": "怪物出生點-血術士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              11,
+              12
+            ],
+            [
+              3,
+              14
+            ],
+            [
+              3,
+              20
+            ],
+            [
+              12,
+              21
+            ],
+            [
+              3,
+              8
+            ],
+            [
+              8,
+              7
+            ],
+            [
+              3,
+              22
+            ]
+          ],
+          "params": {
+            "monsterId": "36",
+            "deathFlag": "",
+            "spawnInterval": "",
+            "maxAlive": "",
+            "maxWaves": "",
+            "waveGroup": "",
+            "nextWhen": ""
+          }
+        },
+        {
+          "id": "0a3e07f8",
+          "name": "怪物出生點-血族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              11,
+              10
+            ],
+            [
+              3,
+              12
+            ],
+            [
+              3,
+              18
+            ],
+            [
+              12,
+              19
+            ],
+            [
+              10,
+              22
+            ],
+            [
+              4,
+              5
+            ]
+          ],
+          "params": {
+            "monsterId": "15",
+            "deathFlag": "",
+            "spawnInterval": "",
+            "maxAlive": "",
+            "maxWaves": "",
+            "waveGroup": "",
+            "nextWhen": ""
           }
         }
       ]

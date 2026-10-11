@@ -49,3 +49,4 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 55,霹靂火彈十字爆,VfxEffects/ThunderFireCross/ThunderFireCross,32,24,7.2,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 56,引魂幡鬼頭散(骷髏煙放大),VfxEffects/MonsterDead/fanfx1_skull_puff,12,15,4,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 57,血月鬼爪命中(血濺+衝擊閃),VfxEffects/BloodClawHit/BloodClawHit,9,20,0.7,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+58,血火爆,VfxEffects/BloodFireBurst/BloodFireBurst,9,20,2.5,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,

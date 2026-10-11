@@ -97,6 +97,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Tooltip("射手型每次站定評估停幾秒（CSV: ObserveTime）。-1（留空）＝ 0.4~0.8 隨機；0 ＝ 不觀察，一進射程就舉槍、且沒有生成後的起手緩衝；正數 ＝ 固定秒數。只有 BrainType=Archer 會用到")]
     public float ObserveTime = -1f;
 
+    [Tooltip("射手型的行為射程（CSV: ShootRange）。0（留空）＝ ArcherBrain 預設 5.25。只有 BrainType=Archer 會用到")]
+    public float ShootRange = 0f;
+
     /// <summary>
     /// 目前被骨牢關著。由 <see cref="MonsterCage"/> 開關——**不要自己設**，
     /// 否則沒有人負責解除，那隻怪會永遠站著不動而且沒有任何錯誤訊息。
@@ -476,6 +479,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         MoveTrailFx = data.MoveTrailFx;   // 移動拖尾特效（留空 ＝ 不掛）
         Controllable = data.Controllable; // 可否被骨牢那類定身抓住（留空＝可以）
         ObserveTime = data.ObserveTime;   // 射手型觀察秒數（留空＝-1＝原本的隨機；0＝不觀察）
+        ShootRange = data.ShootRange;     // 射手型行為射程（留空＝0＝ArcherBrain 預設 5.25）
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
 
         _sensor = gameObject.GetComponent<MonsterSensor>();

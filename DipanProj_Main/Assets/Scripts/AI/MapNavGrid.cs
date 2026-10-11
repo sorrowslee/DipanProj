@@ -29,7 +29,14 @@ public class MapNavGrid : MonoBehaviour
     float _cell;                          // 子格世界邊長 = tileSize / Subdiv
     Vector2 _originTL;                    // 地圖左上角世界座標（gx 往右、gy 往下；世界 Y 往上）
     bool[] _walk;
-    bool[] _fly;                          // 飛行可通過格（2026-10-11 飛行模組）：只有「牆 '1'」擋，水/坑 '2' 與地上物家具都飛得過去。見 IsFlyableWorld
+    bool[] _fly;
+    bool[] _baseWalk;                     // 只看牆（含淨空膨脹）、還沒聯集地上物的可走格。地上物被打壞時用它局部重算（見 RefreshArea）
+
+    /// <summary>
+    /// 尋徑格內容的版本號：每次 <see cref="Rebuild"/>／<see cref="RefreshArea"/> 都 +1。
+    /// <see cref="MonsterActuator"/> 看到版本變了就丟掉手上的舊路徑重算（2026-10-11，PROBLEMS B17）。
+    /// </summary>
+    public static int Version { get; private set; }                          // 飛行可通過格（2026-10-11 飛行模組）：只有「牆 '1'」擋，水/坑 '2' 與地上物家具都飛得過去。見 IsFlyableWorld
     bool _ready;
 
     // A* 暫存（依格數配置、重用避免每次 GC）
@@ -103,6 +110,8 @@ public class MapNavGrid : MonoBehaviour
                 _walk[i] = !near;
             }
 
+        _baseWalk = (bool[])_walk.Clone();
+
         // 地上物家具（椅子/供桌…不在位元圖裡、是獨立 box collider）：用物理聯集補進格子，A* 才會繞過去。
         // 關鍵：這一步在「位元圖膨脹之後」跑，只掃已經離牆 >clearCells 的格；再用一個「比牆淨空還小」的半徑，
         // 所以它**碰不到牆**（牆 composite 在更遠處）、只會封到真正壓在家具上的格 → 家具會被繞、牆的喉道不會被切斷。
@@ -123,6 +132,56 @@ public class MapNavGrid : MonoBehaviour
 
         _g = new float[n]; _f = new float[n]; _came = new int[n]; _heap = new int[n]; _heapIndex = new int[n];
         _ready = true;
+        Version++;
+    }
+
+    /// <summary>
+    /// 局部重算一塊區域的可走格（2026-10-11）。給**可破壞地上物被打壞**時呼叫：
+    /// 格子原本只在進場時用物理聯集把家具蓋進來一次，之後家具消失了格子不知道 ⇒
+    /// 怪物還繞著那張「已經不存在的桌子」走（作者實測：大餐桌被打爛後近戰兵還沿著桌子輪廓繞，打不到人）。
+    /// 規則與 <see cref="Rebuild"/> 的家具聯集同一套：底圖（只看牆）可走、且那一格沒有其他 Environment/Water 碰撞體壓著 ⇒ 可走。
+    /// ⚠⚠ <paramref name="removed"/>：正在消失的那個物件——它身上（含子物件）的碰撞體**一律當作不存在**。
+    /// 不能只靠「先停用碰撞體」：實測停用之後同一幀的 <c>OverlapCircle</c> **仍然打得到它**
+    /// （桌子是 CompositeCollider2D＋一堆 usedByComposite 的 box，停用後 Composite 的形狀要到之後才重建），
+    /// 診斷 log 顯示「解開 0 格、仍被擋 1115 格，擋住的就是 Obj_BloodFang_Diningroom_Table 自己」。見 PROBLEMS B17。
+    /// </summary>
+    public void RefreshArea(Bounds area, GameObject removed = null)
+    {
+        if (!_ready || _baseWalk == null) return;
+        int mask = UnionPhysics ? LayerMask.GetMask("Environment", "Water") : 0;
+        float r = 0.16f;   // 與 Rebuild 的家具半徑相同
+        int x0 = Mathf.Clamp(Mathf.FloorToInt((area.min.x - r - _originTL.x) / _cell) - 1, 0, _w - 1);
+        int x1 = Mathf.Clamp(Mathf.FloorToInt((area.max.x + r - _originTL.x) / _cell) + 1, 0, _w - 1);
+        int y0 = Mathf.Clamp(Mathf.FloorToInt((_originTL.y - (area.max.y + r)) / _cell) - 1, 0, _h - 1);
+        int y1 = Mathf.Clamp(Mathf.FloorToInt((_originTL.y - (area.min.y - r)) / _cell) + 1, 0, _h - 1);
+        if (mask != 0) Physics2D.SyncTransforms();
+        int opened = 0, stillBlocked = 0, wallCells = 0;
+        var blockers = new System.Collections.Generic.HashSet<string>();
+        for (int y = y0; y <= y1; y++)
+            for (int x = x0; x <= x1; x++)
+            {
+                int i = y * _w + x;
+                bool was = _walk[i];
+                bool ok = _baseWalk[i];
+                if (!ok) wallCells++;
+                if (ok && mask != 0)
+                {
+                    foreach (var hit in Physics2D.OverlapCircleAll(CellCenter(i), r, mask))
+                    {
+                        if (hit == null) continue;
+                        if (removed != null && (hit.gameObject == removed || hit.transform.IsChildOf(removed.transform))) continue;
+                        ok = false; stillBlocked++;
+                        if (blockers.Count < 6) blockers.Add(hit.name);
+                        break;
+                    }
+                }
+                if (ok && !was) opened++;
+                _walk[i] = ok;
+            }
+        Version++;
+        // 診斷（2026-10-11，B17 實測仍異常時加）：每次地上物被打爛印一行，確認「有沒有被呼叫／解開幾格／還被誰擋」。
+        Debug.Log($"[MapNavGrid] RefreshArea 範圍 {area.min:F1}~{area.max:F1}：解開 {opened} 格、仍被碰撞擋 {stillBlocked} 格、底圖本來就是牆 {wallCells} 格"
+                  + (blockers.Count > 0 ? $"；擋住的碰撞體：{string.Join(", ", blockers)}" : "") + $"（版本 {Version}）");
     }
 
     Vector2 CellCenter(int i)

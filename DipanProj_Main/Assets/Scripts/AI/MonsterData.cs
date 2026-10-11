@@ -122,6 +122,13 @@ public class MonsterData
     /// </summary>
     public float HangScale = 0f;
 
+    /// <summary>
+    /// 射手型（BrainType=Archer）的**行為射程**（CSV 表尾欄 <c>ShootRange</c>，2026-10-11）。
+    /// 留空／0 ＝ ArcherBrain 的預設 5.25（既有射手零變化）。「想站的距離」自動 × 0.78 跟著算。
+    /// ⚠ 這是「多遠開始射」不是子彈飛多遠；別填超過畫面寬一半（≈7），否則會從畫面外射你（BOSS_MODULE §8.2）。
+    /// </summary>
+    public float ShootRange = 0f;
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

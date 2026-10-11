@@ -36,6 +36,7 @@ Super Pixel Projectiles Pack 4 的 A 組藍色雷射已製作為武器 29「鏡�
 | 40 | 柳葉飛刀 | 77 | Normal | `pj3_knife` 灰 → `willowKnife` | `weapon_willowknife.png` | ✅（icon 靜止刀，飛行物翻轉動畫） | 3 刀 30° 追蹤 |
 | 41 | 飛蝗石 | 78 | Normal | `pj1_rock` 灰 → `locustStone` | `weapon_locuststone.png` | ✅ | 0.15 秒連射、反彈 2；Vfx 53 小碎塵 |
 | 42 | 掌心雷 | 79 | Normal | `pj2_lightning_orb` 紫 → `palmThunderOrb` | `weapon_palmthunder.png` | ✅ | 命中迸發子武器 48；Vfx 54 `lightning_burst_002` |
+| 49 | 血火咒（2026-10-11，血術士也拿這把） | 87 | Normal | 掌心雷的 `palmThunderOrb` **依亮度重新上色成血紅** → `bloodFireOrb` | `weapon_bloodfirecurse.png`（**暫代**＝掌心雷 icon 的複本，作者之後換） | ✅ | **撞牆反彈 1 次**（`BounceTarget=Environment`、`MaxBounces 1`）；**沒有**迸電子武器；Vfx **58**「血火爆」＝54 的紅色版 `BloodFireBurst` |
 | 48 | 掌心雷電弧（子武器，不進背包） | 80 | Normal | `pj1_electricity` 紫 → `thunderSpark` | — | — | 4 道 120° 快速追蹤 |
 | 43 | 無間輪 | 81 | Normal | `pj4_dark_matter` 紫 → `avichiWheel` | `weapon_prayerwheel.png` | ✅ | 速度 4、無限穿透、**穿牆** |
 | 44 | 落星羅盤 | 82 | Normal | `pj2_meteor` 紅 → `fallingMeteor` | `weapon_starcompass.png` | ✅ | Vfx 43 爆炸(小)＋GroundEffect 8 焚地（Any） |

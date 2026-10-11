@@ -102,6 +102,17 @@ public class DestructibleObject : MonoBehaviour, IDamageable
             }
             else Debug.LogWarning("[DestructibleObject] 場景找不到 VfxManager,破壞特效略過。");
         }
+        // ⭐ 通知怪物尋徑格「這裡空出來了」（2026-10-11，PROBLEMS B17）：格子只在進場時把家具蓋進去一次，
+        //   不通知的話怪物會一直繞著這個已經不存在的東西走。先停用碰撞體（Destroy 要到幀尾才生效、物理查詢還看得到它）。
+        var cols = GetComponentsInChildren<Collider2D>();
+        if (cols.Length > 0)
+        {
+            Bounds b = cols[0].bounds;
+            for (int i = 0; i < cols.Length; i++) { b.Encapsulate(cols[i].bounds); cols[i].enabled = false; }
+            // ⚠ 一定要把自己傳進去：停用碰撞體在同一幀不保證生效（Composite 延後重建），見 MapNavGrid.RefreshArea。
+            if (MapNavGrid.Instance != null) MapNavGrid.Instance.RefreshArea(b, gameObject);
+        }
+
         Destroy(gameObject);
     }
 }

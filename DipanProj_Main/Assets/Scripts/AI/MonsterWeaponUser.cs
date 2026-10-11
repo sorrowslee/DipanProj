@@ -113,6 +113,19 @@ public class MonsterWeaponUser : MonoBehaviour
     }
 
     /// <summary>
+    /// 這把武器**實際子彈**的碰撞半徑（配方 `Radius`）。還沒解析好／不是投射武器時回 0。
+    /// 給射手型 Brain 判斷「射不射得過去」用——判斷的寬度必須等於子彈真正的寬度（2026-10-11，PROBLEMS F37）。
+    /// </summary>
+    public float ProjectileRadius
+    {
+        get
+        {
+            EnsureResolved();
+            return (_weapon != null && _weapon.Recipe != null && _weapon.Recipe.Data != null) ? _weapon.Recipe.Data.Radius : 0f;
+        }
+    }
+
+    /// <summary>
     /// Brain 呼叫：冷卻好了就依配方型別施放。回傳「這次是否真的施放」。
     /// <paramref name="target"/> 只有投射型武器需要（決定射向與子彈打得到哪一層）；召喚型忽略它。
     /// </summary>
@@ -234,7 +247,10 @@ public class MonsterWeaponUser : MonoBehaviour
             {
                 Vector2 at = (hit.point != Vector2.zero) ? hit.point
                            : (bullet != null ? (Vector2)bullet.transform.position : (Vector2)hitTarget.transform.position);
-                _vfx.Spawn(_weapon.HitEffectID, at, 0f, _weapon.BulletScale);
+                // ⚠ 倍率用 CastVisualScale（平常 1），與玩家的 TrySpawnHitEffect 同一個規則——
+                //   不是 BulletScale：那是「子彈圖」的放大倍率（血火咒 8），乘到擊中特效上會大到蓋住半個畫面（2026-10-11）。
+                //   擊中特效的大小由 VfxTable 那一列的 Scale 決定。
+                _vfx.Spawn(_weapon.HitEffectID, at, 0f, _weapon.CastVisualScale);
             }
         }
     }

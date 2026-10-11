@@ -32,6 +32,10 @@
 - **地面特效(火堆/毒霧等)**:`GroundEffectInstance` 的範圍傷害改打 `IDamageable`,範圍層含 Environment(`GroundEffectManager.EnvironmentLayer`,留空自動以名稱解析)。
 - 血量歸零 → **把自己那張圖炸成碎片**(`ShatterBurst.Play`)→ `Destroy(gameObject)`。碰撞隨之消失,玩家/子彈即可通過。
 
+### 打爛之後怪物的路會跟著更新（2026-10-11）
+`Die` 會先停用自己的碰撞體、呼叫 `MapNavGrid.RefreshArea(碰撞框)` 局部重算怪物尋徑格，怪物（`MonsterActuator`）看到格子版本變了就重新找路。
+沒有這一步的話，怪物會一直繞著已經打爛的桌子走（見 [PROBLEMS.md](PROBLEMS.md) **B17**）。
+
 ## 破壞演出 = 程序化碎片（2026-09-03 起）
 
 **共用特效已預設關閉**。原本所有地上物都播 VfxTable ID 5 的同一顆煙塵,石雕、木桶、布幔破起來一模一樣,
