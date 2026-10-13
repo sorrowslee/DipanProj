@@ -179,6 +179,35 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [HideInInspector] public MonsterAnimator.State BrainPose = MonsterAnimator.State.Walk;
     [HideInInspector] public int BrainFacing;
 
+    // ── 無法被攻擊（虛體）形態（2026-10-13，血霧型）──
+    // 菁英血衛士化成血霧追人時**完全無敵**，逼玩家只能在牠現身揮刀的那一段反擊（見 BloodMistBrain／BOSS_MODULE §13）。
+    // 兩道防線：① 換到 Mist 層 ⇒ 所有用 LayerMask 找 Enemy 的武器（子彈/雷射/地面 AOE）**直接穿過**，不會撞上霧被吃掉；
+    //           ② TakeDamage 開頭擋掉 ⇒ 接住不看層、直接呼叫 TakeDamage 的傷害來源。
+    // ⚠ Kill()（自毀）不受影響——那是「怪自己把自己弄死」，不是被打。
+    /// <summary>目前是否處於無法被攻擊的虛體形態（由 <see cref="SetUntargetable"/> 切換）。</summary>
+    public bool IsUntargetable { get; private set; }
+    int _layerBeforeUntargetable = -1;
+
+    /// <summary>
+    /// 進入／離開虛體形態。進入時把 GameObject 搬到 <see cref="MistLayer"/>（沒有那一層就不換、只靠 TakeDamage 防線），
+    /// 離開時還原成進入前的層（可能是 Enemy，也可能是 Ally——被玩家召喚的友軍）。重複呼叫同一個值不做事。
+    /// </summary>
+    public void SetUntargetable(bool on)
+    {
+        if (IsUntargetable == on) return;
+        IsUntargetable = on;
+        if (on)
+        {
+            _layerBeforeUntargetable = gameObject.layer;
+            if (MistLayer.Layer >= 0) gameObject.layer = MistLayer.Layer;
+        }
+        else if (_layerBeforeUntargetable >= 0)
+        {
+            gameObject.layer = _layerBeforeUntargetable;
+            _layerBeforeUntargetable = -1;
+        }
+    }
+
     /// <summary>怪物成功施放一次技能（召喚等）時由 MonsterWeaponUser 呼叫：讓 attack 動畫演一小段，
     /// 即使怪離玩家很遠（如紅嫁衣邊逃邊召）也看得到出手動作。</summary>
     public void NotifySkillCast() => _skillCastAnimUntil = Time.time + SkillCastAnimSeconds;
@@ -504,6 +533,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             case "MeleeChase":      // 近戰追擊：貼身才揮武器，**揮的期間站定把動作做完**才能再移動（見 MeleeChaseBrain）
                 _brain = new MeleeChaseBrain();
                 break;
+            case "BloodMist":       // 血霧型（菁英血衛士）：遠了就化成無敵的血霧追過去，貼身才現身揮刀（見 BloodMistBrain）
+                _brain = new BloodMistBrain();
+                break;
             case "LeapSlam":        // 跳躍踐踏型：開場一次跳躍踐踏（落地裂地＋AOE），之後永久轉近戰追擊（見 LeapSlamBrain）
                 _brain = new LeapSlamBrain();
                 break;
@@ -754,6 +786,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     public void TakeDamage(float amount, Vector2 hitDirection)
     {
         if (_isDead) return;
+        if (IsUntargetable) return;   // 虛體形態（血霧）：完全無敵，不閃、不退、不跳數字（見 SetUntargetable）
 
         if (_hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
             return;

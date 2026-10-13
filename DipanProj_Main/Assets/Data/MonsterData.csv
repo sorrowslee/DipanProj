@@ -28,3 +28,4 @@ ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, Knockbac
 34,Buddha_Hand,1000000, Chase    ,Contact,6,,0,1000000,50,0,0,1.5,12,,25,,,,,,,,,,,,,,,,,,,,44:1.3:6|44:0.7:4,,,,
 35,Bloodbat,30,Bat,Contact,0.6,,0,2000,50,8,0,3,25,3,25,血蝠,,,,,,,,,,,,,15,,,,,1,,,,0.7,
 36,Blood Warlock,25,Archer,49,1.33,,0,10,50,5,0,2.6,14,0.8,25,血術士,,,,,,,,0.96,,,,,,9,,,,1,,,,,7
+37,Elite Bloodguard,60,BloodMist,Contact,1.25,,0,10,50,15,0,3.2,14,0.8,25,菁英血衛士,,,,,,,,,1.28,,,,11,,,,,1,,,,,

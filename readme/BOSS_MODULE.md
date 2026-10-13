@@ -2,7 +2,7 @@
 
 > 返回 [文件總覽](README.md)｜怪物量產見 [MONSTER_SETUP.md](MONSTER_SETUP.md)｜武器/配方見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)｜傷害結算見 [COMBAT.md](COMBAT.md)｜劇情分支見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7
 >
-> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** ✅ **射手型 `ArcherBrain` ＋ 怪物投射武器管線 `WeaponCastService`**（2026-09-17，見 §8）程式完成、⏳未編譯未實測。** ✅ **跳躍踐踏型 `LeapSlamBrain` ＋ 程序化裂地 shader**（2026-09-18，見 §9）與 **近戰追擊 `MeleeChaseBrain`（攻擊動作要做完才能再移動，見 §10）** 程式完成、⏳未編譯未實測。** ✅ **飛行型 `FlyingBrain`＋蝙蝠 `BatBrain`**（2026-10-11，見 §12）程式完成、⏳未編譯未實測。待實機微調。投射型武器供怪物使用：**`Normal` 直飛彈已打通**，其餘模式（雷射/拋物線/落雷…）仍待搬進 WeaponCastService。
+> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** ✅ **射手型 `ArcherBrain` ＋ 怪物投射武器管線 `WeaponCastService`**（2026-09-17，見 §8）程式完成、⏳未編譯未實測。** ✅ **跳躍踐踏型 `LeapSlamBrain` ＋ 程序化裂地 shader**（2026-09-18，見 §9）與 **近戰追擊 `MeleeChaseBrain`（攻擊動作要做完才能再移動，見 §10）** 程式完成、⏳未編譯未實測。** ✅ **飛行型 `FlyingBrain`＋蝙蝠 `BatBrain`**（2026-10-11，見 §12）程式完成、⏳未編譯未實測。** ✅ **血霧型 `BloodMistBrain`（菁英血衛士：遠了被紅霧吞沒化成無敵血霧追、貼身吹散紅霧現身揮刀）**（2026-10-13，見 §13）程式完成、⏳未編譯未實測。待實機微調。投射型武器供怪物使用：**`Normal` 直飛彈已打通**，其餘模式（雷射/拋物線/落雷…）仍待搬進 WeaponCastService。
 
 「一隻強怪＝一個 Brain 模組」。第一個範例是紅嫁衣女殭屍。未來每隻 boss 都新增一個自己的 Brain 類別，其它系統不動。
 
@@ -1329,3 +1329,93 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 - [ ] **沒有被擊落／死亡掉落演出**：死亡直接走一般死亡特效（掉寶已改成掉在地面點）。
 - [ ] **盤旋只會反向避牆、不會尋路**：目標躲在牆後時蝙蝠會在牆的這一側繞。
 - 🔧 手感對不上時開 `FlyingBrain.DebugLog = true`：每次俯衝印起點／鎖定落點／咬的高度／命中邊緣距離。
+
+---
+
+## 13. 血霧型（菁英血衛士）— `BloodMistBrain`：遠了被紅霧吞沒、化成無敵的血霧追，貼身才吹散紅霧現身揮刀
+
+> **狀態：✅ 程式完成（2026-10-13），⏳ 未編譯、未實機驗證。** 使用者：`BrainType=BloodMist`（MonsterData **37** 菁英血衛士 Elite Bloodguard）。
+
+作者的設計：牠追擊時**一律化成血霧、全程無敵**，只有現身揮刀那一段打得到——**逼玩家在牠近身攻擊時反擊**。
+
+### 13.1 一輪行為
+
+| 階段 | 行為 | 打得到嗎 |
+|---|---|---|
+| `Melee` | **委派 `MeleeChaseBrain`**（§10）：近距離走過去、站定揮完、命中幀結算 | ✅ |
+| `Dissolve` | 目標的**碰撞框邊緣距離 > 2.5** 且沒在揮刀 → **站定 idle**，紅霧由下往上湧出（0.35 秒），濃度到 0.6 時本體在霧底下淡掉（0.18 秒） | ❌（**霧一開始湧出就無敵**） |
+| `Cloud` | 只剩紅霧，以 CSV 的 `Speed` 追過去（作者：霧態與 Speed 同速） | ❌ |
+| `Reform` | 邊緣距離 ≤ 0.25（＝§10 的起手門檻）→ 站定，本體在霧底下淡回來（0.18 秒）、紅霧被吹散（0.30 秒） | ❌，**霧完全散掉才解除** |
+
+- ⭐⭐ **無敵的範圍＝「紅霧在場」的整段**（作者拍板）：湧出的前半段畫面上還看得到怪，但武器已經打不到——刻意的。
+- **不用任何序列圖**：第一版用 mist 序列圖（人→霧）化霧、倒播現身，作者覺得序列圖醜、而 shader 紅霧好看得多，改成「idle＋紅霧蓋住／吹散」，mist 圖與為它加的共用程式一併移除（同日）。⇒ **任何有 idle 的怪都能套這支**。
+- **近距離不化霧**（作者拍板）：2.5 以內交給 §10 用 walk 走過去——**這段打得到**，是玩家的第二個反擊窗口。
+- **霧態最多 6 秒**就強制現身（路被擋死時不要永遠是一團打不到的霧）；化霧／現身過場最多 1.5 秒（visual 異常時不會卡在無敵的過場裡）。
+- **攻擊段為什麼委派**：§10 的「起手／停止兩個門檻」與「命中幀用碰撞框邊緣距離結算（與體型無關，F27/F29）」都踩過坑才定版。
+  `MeleeChaseBrain` 為此加了唯讀的 `IsBusy`（揮刀／收招中），血霧型等這一刀揮完才化霧。
+
+### 13.2 素材與命中幀（2026-10-13 量）
+
+| 動作 | 張數 | 內容 |
+|---|---|---|
+| `idle`／`walk` | 23／13 | 一般站姿／走路 |
+| `attack` | 25 | 1~9 雙刀高舉蓄力、10 開始下劈、**11 刀光掃到最低最前（＝`AttackHitFrame 11`，bbox 右緣 384→496 暴增）**、12 殘光、13~25 收招 |
+
+- 三組都是 512 畫布、腳底一致在 y≈432（F28 已查）。
+- ⚠ **`AttackScale 1.28`**：attack 第一幀雙刀高舉過頭（可見高 411px vs idle 321px），逐動作自動高度對齊只量第一幀 ⇒ 整組 attack 被縮成 0.78 倍。
+  三組畫布與人物本來就一樣大，所以用 1.28（≈411÷321）把自動縮放抵銷回原圖大小。同一個坑見 PROBLEMS「只量第一幀」那則（代表幀最好用中位數）。walk 自動倍率 1.02，留空。
+
+### 13.3 無敵怎麼做的：換到 `Mist` 層（Layer 10）＋ `TakeDamage` 防線
+
+`MonsterController.SetUntargetable(bool)`：
+1. 把 GameObject 搬到 **Layer 10 `Mist`**（`MistLayer.cs` 在進場前設碰撞：抄一份 Enemy 層的設定，再穿過 Player／Enemy／Ally／自己 ⇒ 只被牆擋）。
+   玩家所有武器（直飛彈、雷射、地面 AOE）找目標都是「LayerMask 對 Enemy 層」，**換層 ⇒ 全部天生穿過去**，不會撞上霧、被吃掉、噴擊中特效。
+2. `TakeDamage` 開頭 `if (IsUntargetable) return;`——接住不看層、直接呼叫的傷害來源。
+- 離開時還原成進入前的層（可能是 Enemy，也可能是 Ally）。`Kill()`（自毀）不受影響。
+- 專案沒有 `Mist` 層時印 warning、只靠第 2 道防線（＝子彈打得到霧但不扣血）。
+
+### 13.4 血霧是 shader：`Resources/Shaders/BloodMist.shader`（＝Boss 開戰黑霧 `UI/BossAura` 的紅色世界版）＋ `Scripts/AI/BloodMistVisual.cs`
+
+- **外觀＝BossAura 換成紅色**（作者 2026-10-13 指定）：算式逐段照抄——**共用 BossAura 那兩張灰階煙霧密度圖**
+  （`Resources/UI/BossIntroPanel/BossIntroPanel_Smoke1`／`_Smoke2`）→ domain warp 翻騰 → 厚重層 screen 疊 → 細絮高光 → 散射光 → 吹散。
+  差別只有：全螢幕 → **包住怪物的一團**（徑向遮罩，外緣被霧體密度「啃」成煙狀，不是圓盤）、黑灰 → **暗紅 (34,2,5)→血紅 (150,14,18)**、時間用 `_Time`、多了 `_Drag`／`_WorldOffset`。
+- ⚠⚠ **不要改回純程序 noise**：同一天早上的第一版是 fbm＋Voronoi 黑斑、外型仿 mist 序列圖，被作者退回。
+  這和 BossAura 2026-09-04 被退回的是同一件事——**fbm 生得出雲斑、生不出煙的絲與捲，形狀要靠美術畫的密度圖**。
+- **premultiplied alpha**＋**散射光只給 0.14**：暗場景裡加上去的光很顯眼，numpy 預覽第一輪 0.28 就整團變霓虹。
+- `_Fade`＝BossAura 的吹散反過來用：湧出時**由下往上長出來**；吹散時往上飄、**上方先散**。**這兩段就是整個變身演出**。
+- **移動感**：`_WorldOffset`（煙的紋理 60% 跟著世界走 ⇒ 移動時煙往後流）＋ `_Drag`（霧團後半邊拉長，上限 0.3）。都由 `BloodMistVisual` 用**實際位移**每幀餵。
+- **大小與位置**：quad 是 2×2 `VisibleBodyHeight`、中心在 `FeetWorldPos` 上方 0.5 身高；看到的霧團約 1.5 身高寬、蓋得住全身。**不用 `transform.position`**（G13）。
+- **本體**：`BloodMistVisual.SetBodyVisible` 改怪物 SpriteRenderer 的 alpha（霧畫在本體 sortingOrder＋1，蓋在正在淡掉的人身上）；本體收掉時腳下影子一起收。
+  ⚠ 霧薄處約 45% 透明，本體淡掉那 0.18 秒會隱約透出人影（＝「人被霧吞沒」）；實測覺得穿幫就提高 `_FogMinAlpha`。
+- ⭐ **紅霧一定收得掉**（作者要求）：死亡那一幀 `ResetToBody`（霧歸零、本體全亮）→ 死亡流程最後 `Destroy(gameObject)` 觸發 `OnDestroy` 連霧一起銷毀；怪物被停用 → `OnDisable` 關霧；換圖拆地圖 → 霧掛同一個父節點一起清。
+- 2026-10-13 先用 numpy 照同一套算式＋真的兩張密度圖算靜態預覽，亮／暗底各看三輪才進 shader。
+
+| 調什麼 | 改哪 |
+|---|---|
+| 霧的顏色、濃淡、透明度、發光量 | shader Properties：`_DeepColor`／`_GlowColor`、`_DensityLo`(0.15)／`_DensityHi`(0.95)、`_FogMinAlpha`(0.45)／`_MaxOpacity`(0.95)、`_Scatter`(0.14)、`_WispBoost`(0.45) |
+| 霧團大小與輪廓 | shader `_OuterRadius`(0.36)／`_InnerRadius`(0.10)／`_EdgeBite`(0.28)、`_TexScale`(1.0，越大煙越碎)；或 `BloodMistVisual` 的 `WidthFactor`／`HeightFactor`(2.0) |
+| 翻騰快慢、往後拖多長 | shader `_FlowSpeed`(0.8)／`_WarpAmount`(0.12)／`_MaxStretch`(0.3)；`BloodMistVisual` 的 `WorldFlowFollow`(0.6)／`DragPerSpeed`／`MaxDrag` |
+| 變身快慢（湧出／吹散／本體淡出淡入） | `BloodMistVisual` 的 `CloudFadeInSeconds`(0.35)／`CloudFadeOutSeconds`(0.30)／`BodyFadeSeconds`(0.18)；`BloodMistBrain.HideBodyAtCloud`(0.6，霧多濃才讓人消失) |
+| 多遠才化霧、何時現身、霧態上限 | `BloodMistBrain` 檔頭常數：`MistDistance`(2.5)／`ReformSlack`(0.25)／`MaxCloudSeconds`(6) |
+| 揮刀節奏、命中 | 同 §10（CSV `AttackInterval`／`AttackHitFrame`／`ContactDamage`） |
+
+### 13.5 動到的共用元件（全部是加法，既有怪零變化）
+
+- `MonsterController`：`IsUntargetable`／`SetUntargetable`、`TakeDamage` 防線、`case "BloodMist"`。
+- `MeleeChaseBrain`：唯讀 `IsBusy`。
+- `ProjectSettings/TagManager.asset`：user layer 10 = `Mist`；`Scripts/AI/MistLayer.cs` 設碰撞。
+- （第一版為 mist 序列圖加在 `MonsterAnimator`／`MonsterSpriteLibrary`／`MapSpriteLoader` 的 `Mist` 動作、倒播、第一幀對齊，**已隨序列圖一起移除**；那個坑的通則留在 PROBLEMS **G17**。）
+
+### 13.6 加一隻新的血霧型（SOP）
+
+1. 放圖：`idle/`、`walk/`、`attack/`（**不需要額外的化霧圖**）。
+2. 量 attack 的命中幀（bbox 暴增那張）填 `AttackHitFrame`。
+3. CSV：`BrainType=BloodMist`，其餘同 §10。
+4. 霧的顏色若不是血紅，改 shader Properties 會影響所有血霧型——那時再把顏色做成每隻怪的 MaterialPropertyBlock。
+
+### 13.7 待辦 / 已知限制
+
+- [ ] **未編譯、未實機驗證**。實測看：變身 0.35／0.30 秒的節奏、2.5 的化霧距離、霧團蓋不蓋得住全身、Mist 層是否真的讓所有武器穿過。
+- [ ] **骨牢（定身）在霧態抓到牠會怎樣沒驗證**：Brain 被停住的話會一直是霧＋無敵。必要時 CSV `Controllable` 填 0。
+- [ ] **霧態不會被陣營切層影響**：若在霧態中被 `joinFaction` 改層，現身時會還原成化霧前的層。目前沒有這種劇本。
+- 🔧 手感對不上時開 `BloodMistBrain.DebugLog = true`（每次化霧／現身印邊緣距離與霧態秒數）；揮刀細節開 `MeleeChaseBrain.DebugLog`。

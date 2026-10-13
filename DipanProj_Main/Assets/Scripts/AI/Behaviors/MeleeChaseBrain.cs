@@ -81,6 +81,10 @@ public class MeleeChaseBrain : IMonsterBrain
     enum Phase { Chase, Attack, Recover }
 
     Phase _phase = Phase.Chase;
+
+    /// <summary>正在揮刀或收招（動作還沒做完，不能被打斷）。給委派本 Brain 的外層用——
+    /// 例：<see cref="BloodMistBrain"/> 要等這一刀揮完才能化霧去追。</summary>
+    public bool IsBusy => _phase != Phase.Chase;
     float _phaseUntil;
     float _nextAttackAt;         // 下一次可以揮的時間（＝攻擊節奏，見 BeginAttack）
     bool _configured;

@@ -32,7 +32,7 @@
           "scaleY": 2.06914878,
           "sortKey": -10.53357,
           "zOrder": 0,
-          "hp": -1,
+          "hp": 5,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -237,6 +237,78 @@
           ],
           "params": {
             "monsterId": "35",
+            "deathFlag": "",
+            "spawnInterval": "",
+            "maxAlive": "",
+            "maxWaves": "",
+            "waveGroup": "",
+            "nextWhen": ""
+          }
+        },
+        {
+          "id": "3e81e611",
+          "name": "怪物出生點-血術士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              16,
+              7
+            ],
+            [
+              16,
+              15
+            ],
+            [
+              5,
+              15
+            ],
+            [
+              5,
+              8
+            ]
+          ],
+          "params": {
+            "monsterId": "36",
+            "deathFlag": "",
+            "spawnInterval": "",
+            "maxAlive": "",
+            "maxWaves": "",
+            "waveGroup": "",
+            "nextWhen": ""
+          }
+        },
+        {
+          "id": "c8ff4ab6",
+          "name": "怪物出生點-血衛士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              18,
+              10
+            ],
+            [
+              19,
+              14
+            ],
+            [
+              3,
+              14
+            ],
+            [
+              4,
+              10
+            ],
+            [
+              9,
+              16
+            ],
+            [
+              14,
+              16
+            ]
+          ],
+          "params": {
+            "monsterId": "37",
             "deathFlag": "",
             "spawnInterval": "",
             "maxAlive": "",

@@ -887,3 +887,16 @@
 - [ ] **影子錨點**：跑一次 `Project Tools → 角色 → 計算影子錨點`（人形，工具應該算得準）。
 - [ ] `_claude_tmp/BloodWarlock_sheets/`（專案根目錄）放著切之前的三張精靈圖原檔，作者確認切得沒問題後可刪。
 - [ ] **血族士兵（15）影子錨點還沒算**：跑一次 `Project Tools → 角色 → 計算影子錨點`。
+
+
+## 菁英血衛士／血霧型 `BloodMistBrain`（2026-10-13）
+
+- [ ] **先重跑 `Project Tools → Sync Map Assets`**：mist 序列圖已刪，`StreamingAssets/MapAssets/catalog.json` 還列著它的幀。
+- [ ] **未編譯未實測**：`BloodMistBrain`／`BloodMistVisual`／`MistLayer`／`BloodMist.shader`／`MonsterController`（`SetUntargetable`）全是靜態核對。實測：地圖編輯器放 `monsterSpawn` 填 **37**。
+- [ ] **確認 Layer 10 = `Mist` 真的生效**：是直接改 `ProjectSettings/TagManager.asset` 加的；Unity 開著時可能沒重讀，到 Project Settings › Tags and Layers 看一眼（沒有就手動在 User Layer 10 填 `Mist`）。沒有這一層時 Console 會印 `[MistLayer]` warning，霧態會退回「子彈打得到但不扣血」。
+- [ ] **數值是起手估值**：HP 60、Scale 1.25（2026-10-13 從 1.5 調小）、AttackScale 1.28、揮刀傷害（ContactDamage）15、Speed 3.2、AnimFPS 14、AttackInterval 0.8；化霧距離 2.5、霧態上限 6 秒、湧出 0.35／吹散 0.30 秒（後幾項在 `BloodMistBrain` 檔頭與 `BloodMistVisual` Inspector）。
+- [ ] **血霧（BossAura 紅色版）只看過 numpy 靜態預覽**，還沒在 Unity 看會動的樣子；顏色／濃淡／大小／流速都在 shader Properties 與 `BloodMistVisual` Inspector 可調（BOSS_MODULE §13.4 有對照表）。暗場景（Atmosphere 2／3／9）與亮場景各看一次（VFX_GUIDELINE §5）。
+- [ ] **本體淡掉時霧薄處會透出人影**（霧最薄約 45% 不透明）；穿幫的話提高 `_FogMinAlpha`。
+- [ ] **骨牢在霧態抓到牠會怎樣沒驗證**（Brain 停住會一直是霧＋無敵）；必要時 CSV `Controllable` 填 0。
+- [ ] **影子錨點**：idle／walk／attack 跑一次 `Project Tools → 角色 → 計算影子錨點`。
+- [ ] `TempImage/_bloodguard_attack.png`、`_bloodguard_mist.png`（專案根目錄、已 gitignore）是量幀用的拼圖，作者看完可刪。

@@ -4,6 +4,25 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **菁英血衛士大小統一：attack 不再比 idle 小一圈**（2026-10-13）：作者：「idle 明顯比其他動作大（像 1.2 對 0.8），統一成 1」。實量第一幀可見高：idle 321、walk 316、**attack 411**（雙刀高舉過頭）⇒ 自動高度對齊把 attack 縮成 **0.78**，walk 其實只差 1.02。CSV `AttackScale` **1.28**（抵銷回原圖大小，三組畫布與人物本來就一樣大）、`Scale` 1.5→**1.25**（＝idle 從作者說的 1.2 調到 1）；`WalkScale` 留空。
+  **通則**：攻擊動作第一幀是「舉武器起手」的怪，自動對齊幾乎一定會把 attack 縮小——**量幀時順便比一下各動作第一幀的可見高**。
+* [x] **血衛士變身改成「idle＋紅霧蓋住／吹散」，移除 mist 序列圖與相關共用程式（⏳ 未編譯未實測）**（2026-10-13，見 [BOSS_MODULE.md](BOSS_MODULE.md) §13.1）：作者：「紅霧比 mist 序列圖好太多，mist 改用 idle 取代——先 idle、紅霧蓋住、怪物消失、紅霧移動，顯現時顛倒過來」。
+  作者另加兩條規則：**一進入紅霧就無敵**（霧開始湧出那一刻起，畫面上還看得到怪也打不到；到霧完全散掉才解除）、**任何特殊狀況下怪死了都要收掉紅霧**。
+  `BloodMistBrain` 化霧／現身改看霧濃度不看幀號（湧出 0.35 秒、霧到 0.6 時本體淡掉；現身時本體淡回、霧吹散 0.30 秒），加 1.5 秒過場保險；`BloodMistVisual` 核對四條收霧路徑（死亡那幀 `ResetToBody`、Destroy→`OnDestroy`、停用→`OnDisable`、拆地圖連父節點清）。
+  移除：`Elite Bloodguard/mist/`（含 .meta）、`MonsterAnimator` 的 `Mist` 動作與倒播、`MonsterSpriteLibrary` 預載、`MapSpriteLoader` 的 `alignByFirstFrame`（三支以 git HEAD 內容還原）。PROBLEMS **G17** 保留為通則並註明程式已移除。⚠ 要重跑 Sync Map Assets 讓 catalog 不再列 mist。
+* [x] **血霧改成 Boss 開戰黑霧的紅色版（⏳ 未編譯未實測）**（2026-10-13，見 [BOSS_MODULE.md](BOSS_MODULE.md) §13.4）：作者看了第一版：「mist 序列圖有點醜，只能用在變身階段，後面追蹤移動要靠 shader 血霧；參考打 boss 前的黑霧，換成紅色」。
+  第一版的 shader 是純程序 fbm＋Voronoi 黑斑、外型**仿 mist 序列圖**——等於把作者嫌醜的東西複製過去，而且重踩了 `UI/BossAura` 2026-09-04 就記下的坑（純 noise 做不出煙的絲與捲）。
+  `BloodMist.shader` 整支改寫成 BossAura 的世界空間版：**共用同兩張煙霧密度圖**、同一套翻騰／疊層／細絮／散射／吹散，全螢幕改成包住怪物的一團（外緣被霧體密度啃成煙狀），黑灰改暗紅→血紅；加 `_WorldOffset` 讓煙在移動時往後流。numpy 照算式＋真的密度圖預覽三輪（第一輪發光圓盤＋霓虹 → 放大霧團、壓暗、散射減半 → 收進 quad 留柔邊）。
+  **通則**：**作者已經認可過的同類特效（這裡是 BossAura），新特效先從它改**，不要從零設計；也不要拿作者嫌醜的素材當外觀參考。
+* [x] **新怪「菁英血衛士」Elite Bloodguard（37）＋血霧型模組 `BloodMistBrain`（⏳ 未編譯未實測）**（2026-10-13，見 [BOSS_MODULE.md](BOSS_MODULE.md) §13）：
+  作者規格：近戰；追擊一律化成血霧（mist 序列圖＋shader 血霧），**霧態無敵**，貼身才現身揮刀，逼玩家在牠近身時反擊；雙手同時下劈一刀，傷害要對準攻擊幀。
+  作者拍板四點：子彈**穿過**霧（不是打中無傷）、現身＝**mist 加速倒播**、**距離夠遠才化霧**（近距離用 walk、打得到）、霧態與 `Speed` 同速。<br>
+  **量幀**：四組都是 512 畫布、腳底一致（F28 無虞）。attack 第 11 幀刀光掃到最低最前（bbox 右緣 384→496）⇒ `AttackHitFrame 11`；mist 1~6 站姿、7~19 化霧、20~25 散去 ⇒ 化霧用 6~19、第 9 幀起無敵。<br>
+  **做法**：攻擊段**委派 `MeleeChaseBrain`**（不重寫踩過坑的門檻與命中判定）；無敵＝`MonsterController.SetUntargetable` 換到新的 **Layer 10 `Mist`**（所有瞄準 Enemy 層的武器天生穿過）＋`TakeDamage` 防線；血霧是程序化 shader `BloodMist`（照 mist 第 13~19 幀的色階與形狀，先用 numpy 移植版對照素材調四輪再進 shader）。<br>
+  **寫程式前攔下的坑**（PROBLEMS **G17**）：怪物載圖是**逐幀**量最低像素對齊腳底，霧往下溢出的那幾幀會被整團往上推 ⇒ `GetFrames`／`GetAnimationFrames` 加 `alignByFirstFrame`（整個動作共用第一幀 pivot），影子錨點也改沿用 idle。<br>
+  **CSV 起手值**：HP 60、Scale 1.5、ContactDamage（＝揮刀傷害）15、Speed 3.2、AnimFPS 14、AttackInterval 0.8、DetectionRange 25、掉落表 1、Faction 空。<br>
+  **動到的共用元件**（全部加法、既有怪零變化）：`MonsterAnimator`（`Mist` 動作、`PlayOneShot` 的 `reverse`）、`MonsterSpriteLibrary`、`MapSpriteLoader`、`MonsterController`、`MeleeChaseBrain.IsBusy`、`TagManager.asset`。
+  **通則**：要讓怪「某段時間打不到」，**換層比擋 TakeDamage 對**——武器找目標靠 LayerMask，只擋傷害會變成「子彈撞上去被吃掉、噴特效、卻不扣血」。
 * [x] **對話立繪大小還原回 2026-09-13 版（580/130，截到腰）**（2026-10-11）：作者發現對話立繪放大很多、只剩胸口以上。原因是 2026-09-21「新手夢境教學」那次 commit 把 `TalkPanel.cs` 改成 `AvatarHeight 880`／`AvatarOverlap 400`／內側緣距中心 140（當時沒記 PROGRESS、DRAMA.md 也沒跟著改，所以沒人發現）。只還原三個常數：580／130／**距中心 310**（＝9/13 版「距畫面邊 650」在 1920 寬的等價值）；同次加的「錨畫面中心＋外側不超出對話框」與邊緣羽化保留。DRAMA.md 一併改對。
   **通則**：露出在對話框上方的高度物理上限約 503，所以「截到身體哪裡」由 (Height − Overlap) ÷ Height 決定——兩個一起加＝特寫，不是單純放大。
 * [x] **B17 第二輪：重算時明確排除正在消失的物件（⏳ 待實測）**（2026-10-11）：第一版實測無效；加診斷 log 後確認「停用碰撞體後同一幀 OverlapCircle 仍打得到桌子自己」（Composite 延後重建）。`RefreshArea` 加 `removed` 參數，查詢結果屬於該物件的一律略過。診斷 log 保留（每打爛一個地上物印一行，確認穩定後可刪）。

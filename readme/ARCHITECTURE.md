@@ -28,6 +28,7 @@
   * `Layer 3: Environment`（環境與牆壁）
   * `Layer 6: Player`（玩家）
   * `Layer 7: Enemy`（敵人）
+  * `Layer 10: Mist`（虛體：怪物進入無法被攻擊的形態時暫時搬來這層——所有瞄準 Enemy 層的武器直接穿過；碰撞由 `MistLayer.cs` 在進場前設定＝只被牆擋。見 [BOSS_MODULE.md](BOSS_MODULE.md) §13.3）
 * **Rigidbody2D 設定**：玩家與怪物皆使用 **Dynamic** 模式，`GravityScale = 0`，`FreezeRotation Z`。
 * **Layer Collision Matrix 設定**：
   * `Enemy vs Enemy`：**關閉**（怪物之間互相穿透，不互卡）
