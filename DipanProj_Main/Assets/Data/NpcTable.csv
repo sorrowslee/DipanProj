@@ -3,3 +3,7 @@ ID,Name,DisplayName,Scale,AnimFPS,Speed,HP
 2,VampireSoldier,血族士兵,1,8,0.8,50
 3,WerewolfSoldier,狂族士兵,1,8,0.8,50
 4,Housekeeper,人族管家,1,8,0.8,50
+5,Wolf Warrior,戰狼,0.8,8,0.8,50
+6,Wolf Archers,狂族弩手,1,8,0.8,50
+7,Bloodbat,血蝠,0.6,8,0.8,50
+8,Blood Warlock,血術士,1.33,8,0.8,50
