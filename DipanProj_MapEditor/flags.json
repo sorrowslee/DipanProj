@@ -87,6 +87,94 @@
       "IsLife": false,
       "IsLevel": true,
       "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 12,
+      "name": "bfGuideStarted",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 13,
+      "name": "bfTalkDone",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 14,
+      "name": "bfWarStarted",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 15,
+      "name": "bfJoinedVampire",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 16,
+      "name": "bfJoinedWerewolf",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 17,
+      "name": "bfRefused",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 18,
+      "name": "bfBossDead",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 19,
+      "name": "bfSiegeStart",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 20,
+      "name": "bfSiegeCleared",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 21,
+      "name": "bfGalleryAmbush",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 22,
+      "name": "bfGalleryCleared",
+      "scope": "level",
+      "IsLife": false,
+      "IsLevel": true,
+      "ScopeLabel": "關卡單次"
     }
   ]
 }

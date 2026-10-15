@@ -27,7 +27,7 @@
 掛在 `MapData.cutscenes`（**清單**）。座標一律**世界座標**（同 `SceneFxInstance` 慣例）。編輯器端與遊戲端是**欄位一致的鏡像**（`CutsceneData.cs` ↔ `CutsceneModel.cs`），靠 Newtonsoft 直接序列化進 `.dipanmap`。
 
 > **⚠ 2026-08-22 起格式從單一物件改成清單**（舊欄位 `cutscene` 保留讀取相容）：讀檔時 `MapData.NormalizeCutscenes()` 把舊的單一 `cutscene` 搬進 `cutscenes`，之後永遠只寫清單。三個讀檔點都已接上（遊戲端 `MapIO.MapSerializer.Load`、編輯器 `MapSerializer.Load` 與 `MapSession.RestoreFromJson`＝Undo 還原）。
-> **但編輯器目前仍然只編輯／使用第 0 段**（`MapData.MainCutscene`）——先把檔案格式做好，之後真的要「一張圖多段劇情」時不必再動 `.dipanmap` 格式、既有地圖也不用轉檔。
+> **2026-10-15 起編輯器可編多段**：劇情面板頂端有「段落」列（◀ ▶／下拉選段、＋新增段落、複製此段、刪除此段），面板、畫布點放、走位疊層、預覽一律操作目前選取的那段（`CutsceneController.Current`）。各段用 `id` 區分，給 trigger `playCutscene` 的 `cutsceneId` 指定；遊戲端 `MapData.FindCutscene(id)` 比對忽略大小寫。⚠ **遊戲端 `autoStartOnEnter` 只看第 0 段**——第 2 段以後一律用 `playCutscene` 啟動（新增的段預設就是關自動播）。同圖 id 重複時面板會紅字警告。
 
 ### Cutscene（整段）
 
@@ -37,7 +37,7 @@
 | `autoStartOnEnter` | true | 一進圖自動開演。搭配下面兩個旗標欄就能做「只播一次」；要接進事件流程再用 `playCutscene`（見 §2.5） |
 | `requireFlag` | `""` | **播放條件旗標**：成立才播（前綴 `!`＝「沒有這個旗標才播」）。留空＝不檢查。自動播與 `playCutscene` 都吃這個條件 |
 | `setFlag` | `""` | **完成寫旗標**：演完（含被 ESC 略過）把這個旗標設成立。留空＝不寫 |
-| `skippable` | true | **可略過**：畫面右上角出現全遊戲統一樣式的 **Skip**（見 [UI_SYSTEM.md](UI_SYSTEM.md)），**ESC 同效**。⚠️ **2026-08-22 起這是玩家可見的正式功能**，不再是開發階段限定——**唯一例外是序章整段**（初始森林 13/14）：正式版全程不顯示 Skip、開發階段照跳，初始洞窟(11) 起才回到一般規則（`DevSkip.SkipAllowedHere`）。<br>⚠️ **略過＝快轉到結局，不是停在原地**——中止剩餘步驟後**仍會執行結尾的 `end` 交棒與 `setFlag`**，所以 `end='fall'` 的段落按下去會直接接墜落動畫。這是刻意的（跳過表演、流程照走），歷史說明見 [PROBLEMS.md](PROBLEMS.md) **J2**。<br>播對話時按 Skip 會**連同對話面板一起關掉**（否則「跳過」看起來像沒反應） |
+| `skippable` | true | **可略過**：畫面右上角出現全遊戲統一樣式的 **Skip**（見 [UI_SYSTEM.md](UI_SYSTEM.md)），**ESC 同效**。⚠️ **2026-08-22 起這是玩家可見的正式功能**，不再是開發階段限定——**唯一例外是序章整段**（初始森林 13/14）：正式版全程不顯示 Skip、開發階段照跳，初始洞窟(11) 起才回到一般規則（`DevSkip.SkipAllowedHere`）。<br>⚠️ **略過＝快轉到結局，不是停在原地**——中止剩餘步驟後，被跳過的走位／轉向／現身／消失／寫旗標步驟會**快轉套用到最終狀態**（2026-10-15，PROBLEMS **J6**），並**仍會執行結尾的 `end` 交棒與 `setFlag`**，所以 `end='fall'` 的段落按下去會直接接墜落動畫。這是刻意的（跳過表演、流程照走），歷史說明見 [PROBLEMS.md](PROBLEMS.md) **J2**。<br>播對話時按 Skip 會**連同對話面板一起關掉**（否則「跳過」看起來像沒反應） |
 | `lockInput` | true | 演出期間鎖玩家操作（走 `UIManager.SetExternalHold`） |
 | `memoryFx` | false | **回憶特效**：整段演出套「泛黃老照片＋柔邊暈影」全螢幕後處理，演完（含被略過、中途換圖）自動移除。見 §6 |
 | `hidePlayer` | false | **演出期間隱藏主角**：關掉外型＋影子＋碰撞＋身上光源，收尾自動現身並回到開演前的位置。見 §7 |
@@ -140,7 +140,7 @@
 
 | 欄位 | 意義 |
 |---|---|
-| `cutsceneId` | 要播哪一段（對應 Cutscene 的 `id`）。**留空＝第一段**；目前一張圖只有一段，所以通常留空 |
+| `cutsceneId` | 要播哪一段（對應 Cutscene 的 `id`，忽略大小寫）。**留空＝第一段**；一張圖有多段時填該段的段落id |
 
 - **典型接法**：走進房間的 `camZone` → `next` → `playCutscene`（重複規則＝每周目）→ `next` → `togglePortal` 開門。
 - **演完才接 next**（同 `cameraFocus`／`playScreenFx` 的慣例）。
@@ -197,6 +197,8 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 | `Main_InitialForest1` | 13 | 開場山道劇情（第一段，`IsLevelStart`） |
 | `Main_InitialForest2` | 14 | 開場山道劇情（第二段，尾段 `end` 接 `fall`） |
 | `Main_Cave` | 11 | 初始洞窟 |
+| `BloodFang_InitialScene`／`GuessLobby`／`Gallery` | 17／18／19 | 血狂之爭去程引路，**每張三段**（`guide_*_vampire`／`_werewolf`／`_human`，依玩家血統由鏈上三顆 `playCutscene` 挑一段播），`lockInput=false` 玩家可自由走（2026-10-15） |
+| `BloodFang_MainLobby` | 20 | 血狂之爭和談爭吵 `talk`（第 0 段，演完寫 `bfTalkDone`）＋首領退場 `leaders_exit`（第 1 段，利用「下一段開演清掉留場演員」） |
 
 這三張同屬 `Main` module，13/14 是 `SaveConstants.IsIntroCutsceneMap`（**不顯示血球 HUD**），初始洞窟 11 起才顯示。
 
@@ -273,7 +275,8 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 
 ## 9. 已知限制與待補
 
-- **一張圖仍只用第一段演出**：`.dipanmap` 格式已經是清單（`cutscenes`），但編輯器面板與 `playCutscene` 目前都只操作第 0 段。要真正做「一張圖多段、各自綁旗標」還要補：編輯器的演出列表 UI、`CutsceneController` 的多段選取、預覽的段落切換。
+- ~~一張圖仍只用第一段演出~~ → **2026-10-15 已解**（編輯器段落列，見 §1 開頭）。遊戲端 `playCutscene` 本來就支援依 `cutsceneId` 選段。剩下的限制：**自動播只看第 0 段**（`MaybeAutoStart` 讀 `MainCutscene`）。
+- **演出結束後留場的 npc 演員**只會在**下一段演出開演時**被清掉（`StartCutscene` 開頭清 `_standing`）——可以利用這點「接一段短演出讓他們走掉」（血狂之爭和談大廳的 `leaders_exit` 就是這樣）。
 - **沒有條件分支**：一條時間軸走到底。分支請用 `setFlag` 交給 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)。
 - **只有左右兩向**：`facing` 的 `up`/`down` 存得進去但沒有效果（角色素材沒有上下向）。
 - **`move` 的守門機制**：最長 20 秒、或「距離 < 1.0 且 0.6 秒沒進步」就視為抵達。A* 到不了精確點時會提早收，**別把目標點放在牆裡或不可走格**。

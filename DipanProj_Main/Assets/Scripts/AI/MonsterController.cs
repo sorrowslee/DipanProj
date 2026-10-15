@@ -292,6 +292,13 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Tooltip("移動時面向「移動方向」而不是玩家（NPC 巡邏用：往右走就面右）。停下時仍面向感測範圍內的玩家。")]
     public bool FaceMovement = false;
     public bool IsDead => _isDead;
+
+    /// <summary>
+    /// 劇本同伴（2026-10-15 血狂之爭：選邊後跟著玩家走的首領）。由 <see cref="CompanionService"/> 設定。
+    /// ‧ 不受任何傷害（TakeDamage 直接略過）；‧ 任何怪找目標時跳過它（FindNearestEnemy、EnemyContactDamage）；
+    /// ‧ 它自己的接觸傷害＝MonsterData 的 ContactDamage（同伴列填 0 ⇒ 會揮、沒有殺傷力）。
+    /// </summary>
+    public bool IsCompanion { get; set; }
     public float CurrentHealth => _currentHealth;                       // 目前血量（給 boss Brain 判階段用）
     public float HealthFraction => MaxHealth > 0f ? _currentHealth / MaxHealth : 0f;  // 血量比例 0~1
 
@@ -698,6 +705,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         {
             MonsterController mc = list[i];
             if (mc == null || mc == this || mc.IsDead || !FactionRelations.Hostile(Faction, mc.Faction)) continue;   // 「打得到的才是敵人」統一查 FactionRelations
+            if (mc.IsCompanion) continue;   // 劇本同伴不會被任何怪當成目標（否則玩家能拿它當無敵盾牌）
             float sq = ((Vector2)mc.transform.position - (Vector2)transform.position).sqrMagnitude;
             if (sq <= rangeSq && sq < bestSq) { bestSq = sq; best = mc.transform; }
         }
@@ -787,6 +795,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     {
         if (_isDead) return;
         if (IsUntargetable) return;   // 虛體形態（血霧）：完全無敵，不閃、不退、不跳數字（見 SetUntargetable）
+        if (IsCompanion) return;   // 劇本同伴不會受傷（見 CompanionService）
 
         if (_hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
             return;

@@ -338,6 +338,39 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型：劇本同伴——把 monsterId 的怪以「同伴」身分放在玩家身邊：跟著玩家跨圖、不受傷、任何怪都不以它為目標；
+                // 殺傷力由那一列 MonsterData 的 ContactDamage 決定（填 0＝會揮、不會傷人）。換關卡自動解散。
+                // 「召喚」不勾＝解散全部同伴。X/Y 兩個都填＝生在該世界座標（例：劇情演員剛退場的位置）。主遊戲 CompanionService。
+                typeId = "companion", displayName = "劇本同伴(鏈動作)", color = "#5CC9A7",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "monsterId", type = ParamType.Int,   label = "同伴怪物ID(MonsterData)" },
+                    new TriggerParam { key = "show",      type = ParamType.Bool,  label = "召喚(不勾=解散全部)", boolDefault = true },
+                    new TriggerParam { key = "x",         type = ParamType.Float, label = "生成X(空=玩家旁)" },
+                    new TriggerParam { key = "y",         type = ParamType.Float, label = "生成Y(空=玩家旁)" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型：二選一倒數——被鏈啟動時暫停遊戲、開選擇面板（標題/副標/兩個選項按鈕/倒數條）。
+                // 按 A → 選A接續、按 B → 選B接續、倒數歸零 → 逾時接續；三條互斥只走一條（主遊戲 TriggerChain.ExecuteTimedChoice / ChoicePanel）。
+                // 文字全部填語言表 id（主專案 LanguageTable.csv）。通用的「接續觸發」**不用**（填了遊戲端會警告並忽略）。
+                // 純鏈驅動、玩家踩不觸發；0 格或畫角落。典型：血狂之爭和談大廳「選邊」。
+                typeId = "timedChoice", displayName = "二選一倒數(鏈動作)", color = "#E0566E",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "textId",      type = ParamType.Int,    label = "標題(語言表id)" },
+                    new TriggerParam { key = "subTextId",   type = ParamType.Int,    label = "副標(語言表id/空=無)" },
+                    new TriggerParam { key = "optionA",     type = ParamType.Int,    label = "選項A(語言表id)" },
+                    new TriggerParam { key = "nextA",       type = ParamType.String, label = "選A接續",   isTriggerRef = true },
+                    new TriggerParam { key = "optionB",     type = ParamType.Int,    label = "選項B(語言表id)" },
+                    new TriggerParam { key = "nextB",       type = ParamType.String, label = "選B接續",   isTriggerRef = true },
+                    new TriggerParam { key = "seconds",     type = ParamType.Float,  label = "倒數秒(空=15)" },
+                    new TriggerParam { key = "nextTimeout", type = ParamType.String, label = "逾時接續",  isTriggerRef = true },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 進場觸發：進入這張地圖、載入完全結束（含進場效果播完）後自動觸發一次，
                 // 自己不做事、只當觸發鏈的起點（接續觸發 next 指向要做的事，例如純鏈節點的劇情觸發點）。
                 // 不用塗格子：用「＋ 手動新增空區域」建立（0 格），從區域清單選取設參數即可。
@@ -355,8 +388,13 @@ namespace DipanMapEditor.Data
                 // ⚠ 2026-09-17 語意反轉：**預設就是敵對**，所以這顆只有在先擺過「三方陣營和平」之後才有事做
                 //    （沒進過和平段按它也安全，只是重套一次 Layer）。
                 // 純鏈驅動、玩家踩不觸發；格子畫在角落或 0 格即可。典型：對話/事件 → next 接這顆 → setFlag=開戰旗（讓和平 NPC 消失）。
+                // 「兩族互打全額傷害」勾＝實戰（2026-10-15 血狂之爭）：兩族互打不打折，用來演「敵族大軍殺光我方守軍再追玩家」；
+                //  之後任何一顆沒勾的開戰／和平／換關卡都會回到演戲傷害。
                 typeId = "factionWar", displayName = "三方陣營開戰(鏈動作)", color = "#D94D6A",
-                paramSchema = new List<TriggerParam>()
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "fullDamage", type = ParamType.Bool, label = "兩族互打全額傷害", boolDefault = false },
+                }
             });
             set.types.Add(new TriggerTypeDef
             {
@@ -478,5 +516,6 @@ namespace DipanMapEditor.Data
         public bool isScreenEffectRef;   // 此欄的值是「螢幕特效 id」→ 面板加「螢幕特效表」按鈕開參照清單（可查/填 id）
         public bool isPortalList;        // 此欄是「可多筆」字串清單 → 面板渲染成多欄、按「＋」加一欄、「−」刪一欄；存成逗號分隔字串
         public bool isConditionList;     // 此欄是「偵測條件清單」→ 面板渲染成 [偵測▼][id][有/沒有][−] 多列；存成 "kind:value|kind:value" 字串
+        public bool isTriggerRef;        // 此欄的值是「本圖另一個 trigger 的名稱」（同 next 語意）→ 面板加「選」按鈕列出本圖 trigger 點選填入
     }
 }

@@ -127,7 +127,9 @@ namespace Dipan.UI
         {
             if (target == null || string.IsNullOrEmpty(text)) return;
             var p = UIManager.Instance?.Open<MonsterSpeechPanel>();
-            p?.AddBubble(target, null, text, duration);
+            // 目標被停用（劇情演員 despawn／演出被略過時快轉成消失）也要立刻收掉氣泡——
+            // 只看「沒被銷毀」的話，despawn 只是 SetActive(false)，氣泡會留在空中（2026-10-15 作者回報）。
+            p?.AddBubble(target, () => target != null && target.gameObject.activeInHierarchy, text, duration);
         }
 
         void AddBubble(Transform target, System.Func<bool> alive, string text, float duration)

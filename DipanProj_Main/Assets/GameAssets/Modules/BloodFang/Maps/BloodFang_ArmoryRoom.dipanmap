@@ -262,7 +262,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 4.42278242,
-            "markerY": -5.28709841
+            "markerY": -5.28709841,
+            "startDisabled": true
           }
         },
         {
@@ -286,7 +287,93 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 11.1917162,
-            "markerY": -13.9461422
+            "markerY": -13.9461422,
+            "startDisabled": true
+          }
+        },
+        {
+          "id": "553a5f12",
+          "name": "進場-攻略",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "requireFlag": "bfJoinedVampire",
+            "repeat": "每次",
+            "next": "結束表演戰"
+          }
+        },
+        {
+          "id": "279331ec",
+          "name": "結束表演戰",
+          "typeId": "factionWar",
+          "cells": [],
+          "params": {
+            "next": "同伴加入"
+          }
+        },
+        {
+          "id": "308aef1a",
+          "name": "怪物出生點-戰狼",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              12,
+              8
+            ],
+            [
+              17,
+              11
+            ]
+          ],
+          "params": {
+            "monsterId": "17",
+            "waveGroup": "清場"
+          }
+        },
+        {
+          "id": "12ebfbdd",
+          "name": "怪物出生點-狂族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              9,
+              10
+            ],
+            [
+              14,
+              12
+            ],
+            [
+              18,
+              8
+            ]
+          ],
+          "params": {
+            "monsterId": "16",
+            "waveGroup": "清場",
+            "next": "開前門"
+          }
+        },
+        {
+          "id": "a843d464",
+          "name": "同伴加入",
+          "typeId": "companion",
+          "cells": [],
+          "params": {
+            "monsterId": "42",
+            "show": true,
+            "x": "6.5",
+            "y": "-6.5"
+          }
+        },
+        {
+          "id": "b72cb810",
+          "name": "開前門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": true
           }
         }
       ]

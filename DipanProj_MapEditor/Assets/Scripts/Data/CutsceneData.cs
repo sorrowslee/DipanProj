@@ -4,7 +4,7 @@ namespace DipanMapEditor.Data
 {
     /// <summary>
     /// 一張地圖的「劇情演出」資料（半演出半漫畫的過場）。
-    /// 掛在 MapData.cutscenes（清單；目前編輯器只用第一段）。舊檔的單一 cutscene 欄位讀進來會自動搬進清單。
+    /// 掛在 MapData.cutscenes（清單；2026-10-15 起編輯器可編多段，見 CutsceneController.Current）。舊檔的單一 cutscene 欄位讀進來會自動搬進清單。
     /// 演員先在 actors 定義（起點/外觀），steps 依序引用演員做走位/說話/漫畫/鏡頭等動作。
     /// 座標一律為世界座標（與 SceneFxInstance 相同慣例）。
     /// </summary>

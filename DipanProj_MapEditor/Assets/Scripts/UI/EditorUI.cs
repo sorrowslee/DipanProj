@@ -1675,8 +1675,36 @@ namespace DipanMapEditor.UI
                 string cur = (r.Params.TryGetValue(p.key, out var v) && v != null) ? v.ToString() : "";
                 string next = GUILayout.TextField(cur);
                 if (next != cur) r.Params[p.key] = next;
+                // 「本圖 trigger 名稱」欄（如 timedChoice 的選A/選B/逾時接續）：旁邊一顆「選」開名單點選填入。
+                if (p.isTriggerRef && GUILayout.Button("選", GUILayout.Width(32)))
+                {
+                    string k = r.id + "/" + p.key;
+                    _trigRefPickKey = _trigRefPickKey == k ? null : k;
+                }
             }
             GUILayout.EndHorizontal();
+            if (p.isTriggerRef && _trigRefPickKey == r.id + "/" + p.key) DrawTriggerRefPicker(r, p);
+        }
+
+        // 目前開著「選」名單的是哪一顆 trigger 的哪一欄（"regionId/key"；null＝都沒開）。
+        static string _trigRefPickKey;
+
+        // 列出本圖其他 trigger 的名稱，點一下填進該欄（同 NPC「接續」的做法）。名稱是鏈的 API，所以只列有名字的。
+        static void DrawTriggerRefPicker(TriggerRegion r, TriggerParam p)
+        {
+            var regions = MapSession.Instance?.Map?.TriggerLayer?.regions;
+            if (regions == null) { _trigRefPickKey = null; return; }
+            foreach (var tr in regions)
+            {
+                if (tr == null || tr == r || string.IsNullOrWhiteSpace(tr.name)) continue;
+                if (GUILayout.Button("　" + tr.name))
+                {
+                    UndoManager.Push();
+                    r.Params[p.key] = tr.name.Trim();
+                    _trigRefPickKey = null;
+                }
+            }
+            if (GUILayout.Button("　（清空）")) { UndoManager.Push(); r.Params[p.key] = ""; _trigRefPickKey = null; }
         }
 
         // 可多筆清單欄（如 togglePortal 的傳送點名稱）：一欄一個值，最後一欄旁有「＋」加欄、每欄有「−」刪欄；
@@ -2719,6 +2747,12 @@ namespace DipanMapEditor.UI
         static readonly string[] StepTypes =
             { "move", "face", "dialogue", "bubble", "wait", "camera", "cameraFollow", "comic", "fade", "spawn", "despawn", "screenFx", "setFlag", "end" };
 
+        bool _csPickOpen;        // 段落下拉是否展開
+        bool _csConfirmDelete;   // 「刪除此段」第一次按下後等確認
+
+        static string CutsceneLabel(Cutscene c, int i)
+            => $"#{i + 1} " + (c == null || string.IsNullOrWhiteSpace(c.id) ? (i == 0 ? "（第一段，無 id）" : "（無 id）") : c.id.Trim());
+
         void DrawCutscenePanel()
         {
             var map = MapSession.Instance?.Map;
@@ -2730,28 +2764,63 @@ namespace DipanMapEditor.UI
             _csScroll = GUILayout.BeginScrollView(_csScroll);
 
             GUILayout.Label("劇情演出（半演出半漫畫）");
-            var cs = map.MainCutscene;
+            var cs = ctl.Current;   // 多段：面板一律操作「目前選取的那段」（GAP §8）
             if (cs == null)
             {
                 GUILayout.Label("此圖尚無演出。");
                 if (GUILayout.Button("＋ 建立演出")) ctl.EnsureCutscene();
                 GUILayout.EndScrollView(); GUILayout.EndArea(); return;
             }
+            int csIdx = Tools.CutsceneController.SelectedIndex;
+
+            // ── 段落列（一張圖多段演出）：選段／新增／複製 ──
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("段落", GUILayout.Width(36));
+            if (GUILayout.Button("◀", GUILayout.Width(28)) && csIdx > 0) { ctl.SelectCutscene(csIdx - 1); _csConfirmDelete = false; }
+            if (GUILayout.Button(CutsceneLabel(cs, csIdx) + $"　（{csIdx + 1}/{map.cutscenes.Count}）")) _csPickOpen = !_csPickOpen;
+            if (GUILayout.Button("▶", GUILayout.Width(28)) && csIdx < map.cutscenes.Count - 1) { ctl.SelectCutscene(csIdx + 1); _csConfirmDelete = false; }
+            GUILayout.EndHorizontal();
+            if (_csPickOpen)
+            {
+                for (int i = 0; i < map.cutscenes.Count; i++)
+                {
+                    GUI.color = i == csIdx ? Color.cyan : Color.white;
+                    if (GUILayout.Button("　" + CutsceneLabel(map.cutscenes[i], i))) { ctl.SelectCutscene(i); _csPickOpen = false; _csConfirmDelete = false; }
+                }
+                GUI.color = Color.white;
+            }
+            GUILayout.BeginHorizontal();
+            if (GUILayout.Button("＋ 新增段落")) { ctl.AddCutscene(); _csConfirmDelete = false; }
+            if (GUILayout.Button("複製此段")) { ctl.DuplicateCurrent(); _csConfirmDelete = false; }
+            GUILayout.EndHorizontal();
+            cs = ctl.Current; csIdx = Tools.CutsceneController.SelectedIndex;   // 上面可能換了段
+            cs.id = LabeledText("段落id", cs.id);
+            if (Tools.CutsceneController.IsDuplicateId(map, cs))
+            {
+                GUI.color = new Color(1f, 0.5f, 0.5f);
+                GUILayout.Label("　⚠ 這張圖已有同 id 的段落——playCutscene 只會播到第一個");
+                GUI.color = Color.white;
+            }
+            else if (csIdx > 0 && string.IsNullOrWhiteSpace(cs.id))
+                GUILayout.Label("　⚠ 第 2 段以後沒有 id 就沒有 trigger 播得到它");
+            GUILayout.Space(4);
 
             cs.autoStartOnEnter = GUILayout.Toggle(cs.autoStartOnEnter, "一進圖自動播 autoStart");
-            if (!cs.autoStartOnEnter)
-                GUILayout.Label("　↳ 關掉自動播＝改由 trigger「播放劇情(鏈動作)」啟動");
+            if (csIdx > 0 && cs.autoStartOnEnter)
+                GUILayout.Label("　↳ ⚠ 遊戲只會自動播「第 1 段」；這段請用 trigger「播放劇情(鏈動作)」＋cutsceneId 啟動");
+            else if (!cs.autoStartOnEnter)
+                GUILayout.Label("　↳ 關掉自動播＝改由 trigger「播放劇情(鏈動作)」啟動（cutsceneId＝上面的段落id）");
 
             // 條件旗標／完成寫旗標：與觸發點、地上物出現/消失旗標**完全同一套**——
             // 輸入旗標 id → 按「確認」→ 從全域 flags.json 撈出名稱並鎖定顯示（含生命週期）。
             // 只播一次的標準做法：條件＝某旗標「沒有」＋ 完成寫旗標＝同一個旗標。
             GUILayout.BeginHorizontal();
             GUILayout.Label("條件旗標", GUILayout.Width(64));
-            DrawFlagFieldCore(cs.requireFlag ?? "", "cutscene/requireFlag", true, v => cs.requireFlag = v);
+            DrawFlagFieldCore(cs.requireFlag ?? "", "cutscene/" + csIdx + "/requireFlag", true, v => cs.requireFlag = v);
             GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal();
             GUILayout.Label("完成寫旗標", GUILayout.Width(64));
-            DrawFlagFieldCore(cs.setFlag ?? "", "cutscene/setFlag", false, v => cs.setFlag = v);
+            DrawFlagFieldCore(cs.setFlag ?? "", "cutscene/" + csIdx + "/setFlag", false, v => cs.setFlag = v);
             GUILayout.EndHorizontal();
             if (!string.IsNullOrEmpty(cs.requireFlag) && !string.IsNullOrEmpty(cs.setFlag)
                 && cs.requireFlag.TrimStart('!') == cs.setFlag)
@@ -2766,7 +2835,6 @@ namespace DipanMapEditor.UI
             cs.memoryFx = GUILayout.Toggle(cs.memoryFx, "回憶特效（泛黃＋上下黑邊＋解除場景壓暗）");
             cs.hidePlayer = GUILayout.Toggle(cs.hidePlayer, "演出期間隱藏主角（演完回原位）");
             cs.hideHud = GUILayout.Toggle(cs.hideHud, "演出期間關閉血量HUD（演完恢復）");
-            cs.id = LabeledText("演出id(選填)", cs.id);
             GUILayout.Space(4);
             var pv = PreviewCtl();
             if (pv != null && pv.IsPlaying)
@@ -2782,10 +2850,27 @@ namespace DipanMapEditor.UI
                 GUI.color = Color.white;
             }
             GUILayout.Space(4);
-            if (GUILayout.Button("刪除整段演出"))
+            // 只刪目前這段；兩段式確認（第一次按變紅字「確定刪除？」，再按才刪），刪第 1 段時另外提醒。
+            if (!_csConfirmDelete)
             {
-                ctl.RemoveCutscene();
-                GUILayout.EndScrollView(); GUILayout.EndArea(); return;
+                if (GUILayout.Button("刪除此段")) _csConfirmDelete = true;
+            }
+            else
+            {
+                GUI.color = new Color(1f, 0.5f, 0.5f);
+                if (csIdx == 0 && map.cutscenes.Count > 1)
+                    GUILayout.Label("⚠ 這是第 1 段：autoStart 與 cutsceneId 留空的 trigger 都只認它，刪了之後第 2 段會遞補成第 1 段");
+                GUILayout.BeginHorizontal();
+                bool doDel = GUILayout.Button("確定刪除「" + CutsceneLabel(cs, csIdx) + "」");
+                GUI.color = Color.white;
+                if (GUILayout.Button("取消", GUILayout.Width(60))) _csConfirmDelete = false;
+                GUILayout.EndHorizontal();
+                if (doDel)
+                {
+                    _csConfirmDelete = false;
+                    ctl.RemoveCutscene();
+                    GUILayout.EndScrollView(); GUILayout.EndArea(); return;
+                }
             }
 
             GUILayout.Space(6);

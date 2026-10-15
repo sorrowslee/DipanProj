@@ -220,7 +220,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 15.5119638,
-            "markerY": -21.5411224
+            "markerY": -21.5411224,
+            "startDisabled": true
           }
         },
         {
@@ -240,7 +241,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 3.63650775,
-            "markerY": -12.9948387
+            "markerY": -12.9948387,
+            "startDisabled": true
           }
         },
         {
@@ -260,14 +262,1237 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 27.5341225,
-            "markerY": -12.66183
+            "markerY": -12.66183,
+            "startDisabled": true
+          }
+        },
+        {
+          "id": "087eb65d",
+          "name": "進場-和談",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "requireFlag": "!bfTalkDone",
+            "repeat": "每次",
+            "next": "三方和平"
+          }
+        },
+        {
+          "id": "01d5ad7c",
+          "name": "三方和平",
+          "typeId": "factionPeace",
+          "cells": [],
+          "params": {
+            "next": "和談演出"
+          }
+        },
+        {
+          "id": "1e6ef40b",
+          "name": "和談演出",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "talk"
+          }
+        },
+        {
+          "id": "5ae663e7",
+          "name": "表態-該隱",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "bfTalkDone",
+            "conditions": "bloodline:22",
+            "next": "對話-該隱入營"
+          }
+        },
+        {
+          "id": "f8875f46",
+          "name": "對話-該隱入營",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "52",
+            "next": "加入血族"
+          }
+        },
+        {
+          "id": "27c642a4",
+          "name": "表態-血族",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "bfTalkDone",
+            "conditions": "series:2|!bloodline:22",
+            "next": "對話-血族入營"
+          }
+        },
+        {
+          "id": "b6c2ce6e",
+          "name": "對話-血族入營",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "50",
+            "next": "加入血族"
+          }
+        },
+        {
+          "id": "9c4aa611",
+          "name": "表態-芬里爾",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "bfTalkDone",
+            "conditions": "bloodline:32",
+            "next": "對話-芬里爾入營"
+          }
+        },
+        {
+          "id": "6149bb00",
+          "name": "對話-芬里爾入營",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "53",
+            "next": "加入狂族"
+          }
+        },
+        {
+          "id": "bc308283",
+          "name": "表態-狂族",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "bfTalkDone",
+            "conditions": "series:3|!bloodline:32",
+            "next": "對話-狂族入營"
+          }
+        },
+        {
+          "id": "380e33ff",
+          "name": "對話-狂族入營",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "51",
+            "next": "加入狂族"
+          }
+        },
+        {
+          "id": "47d2b869",
+          "name": "表態-其他",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "bfTalkDone",
+            "conditions": "!series:2|!series:3",
+            "next": "對話-拉攏"
+          }
+        },
+        {
+          "id": "a7082435",
+          "name": "選邊",
+          "typeId": "timedChoice",
+          "cells": [],
+          "params": {
+            "textId": "3020",
+            "subTextId": "3023",
+            "optionA": "3021",
+            "nextA": "對話-選血族反應",
+            "optionB": "3022",
+            "nextB": "對話-選狂族反應",
+            "seconds": "15",
+            "nextTimeout": "拒絕選邊"
+          }
+        },
+        {
+          "id": "836957b7",
+          "name": "加入血族",
+          "typeId": "joinFaction",
+          "cells": [],
+          "params": {
+            "faction": "吸血鬼",
+            "setFlag": "bfJoinedVampire",
+            "next": "實戰開戰"
+          }
+        },
+        {
+          "id": "54d9df54",
+          "name": "加入狂族",
+          "typeId": "joinFaction",
+          "cells": [],
+          "params": {
+            "faction": "狼人",
+            "setFlag": "bfJoinedWerewolf",
+            "next": "實戰開戰"
+          }
+        },
+        {
+          "id": "cf95ba11",
+          "name": "拒絕選邊",
+          "typeId": "factionWar",
+          "cells": [],
+          "params": {
+            "setFlag": "bfRefused",
+            "next": "開戰"
+          }
+        },
+        {
+          "id": "99b87552",
+          "name": "開戰",
+          "typeId": "factionWar",
+          "cells": [],
+          "params": {
+            "setFlag": "bfWarStarted"
+          }
+        },
+        {
+          "id": "325b936b",
+          "name": "實戰開戰",
+          "typeId": "factionWar",
+          "cells": [],
+          "params": {
+            "fullDamage": true,
+            "setFlag": "bfWarStarted"
+          }
+        },
+        {
+          "id": "7ef1195b",
+          "name": "分流-血族",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "bfJoinedVampire",
+            "next": "對話-偷襲-血族"
+          }
+        },
+        {
+          "id": "81370a27",
+          "name": "對話-偷襲-血族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "44",
+            "next": "對話-殺入狂族"
+          }
+        },
+        {
+          "id": "ed112e43",
+          "name": "首領撤離-血族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "exit_vampire"
+          }
+        },
+        {
+          "id": "fa481705",
+          "name": "對話-殺入狂族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "54",
+            "next": "開東門"
+          }
+        },
+        {
+          "id": "3bf7a20d",
+          "name": "開東門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-東方",
+            "show": true,
+            "next": "首領撤離-血族"
+          }
+        },
+        {
+          "id": "21220fd1",
+          "name": "出生點-血族守軍",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              7,
+              17
+            ],
+            [
+              6,
+              18
+            ],
+            [
+              8,
+              18
+            ]
+          ],
+          "params": {
+            "monsterId": "15",
+            "requireFlag": "bfJoinedVampire"
+          }
+        },
+        {
+          "id": "6a16ee01",
+          "name": "出生點-狂族突襲",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              11
+            ],
+            [
+              7,
+              11
+            ],
+            [
+              8,
+              11
+            ],
+            [
+              4,
+              13
+            ],
+            [
+              5,
+              13
+            ],
+            [
+              6,
+              13
+            ],
+            [
+              4,
+              14
+            ],
+            [
+              5,
+              14
+            ],
+            [
+              6,
+              14
+            ],
+            [
+              4,
+              15
+            ],
+            [
+              5,
+              15
+            ],
+            [
+              6,
+              15
+            ]
+          ],
+          "params": {
+            "monsterId": "16|17",
+            "requireFlag": "bfJoinedVampire"
+          }
+        },
+        {
+          "id": "93645d0e",
+          "name": "分流-狂族",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "bfJoinedWerewolf",
+            "next": "對話-偷襲-狂族"
+          }
+        },
+        {
+          "id": "febdfcda",
+          "name": "對話-偷襲-狂族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "45",
+            "next": "對話-殺入血族"
+          }
+        },
+        {
+          "id": "b2d6cf7d",
+          "name": "首領撤離-狂族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "exit_werewolf"
+          }
+        },
+        {
+          "id": "009a2350",
+          "name": "對話-殺入血族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "55",
+            "next": "開西門"
+          }
+        },
+        {
+          "id": "5b3452b1",
+          "name": "開西門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-西方",
+            "show": true,
+            "next": "首領撤離-狂族"
+          }
+        },
+        {
+          "id": "a333bff0",
+          "name": "出生點-狂族守軍",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              23,
+              17
+            ],
+            [
+              25,
+              18
+            ],
+            [
+              22,
+              18
+            ]
+          ],
+          "params": {
+            "monsterId": "16",
+            "requireFlag": "bfJoinedWerewolf"
+          }
+        },
+        {
+          "id": "ae9529c6",
+          "name": "出生點-血族突襲",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              24,
+              11
+            ],
+            [
+              23,
+              11
+            ],
+            [
+              22,
+              11
+            ],
+            [
+              26,
+              13
+            ],
+            [
+              25,
+              13
+            ],
+            [
+              24,
+              13
+            ],
+            [
+              26,
+              14
+            ],
+            [
+              25,
+              14
+            ],
+            [
+              24,
+              14
+            ],
+            [
+              26,
+              15
+            ],
+            [
+              25,
+              15
+            ],
+            [
+              24,
+              15
+            ]
+          ],
+          "params": {
+            "monsterId": "15|35",
+            "requireFlag": "bfJoinedWerewolf"
+          }
+        },
+        {
+          "id": "db34edb7",
+          "name": "分流-拒選",
+          "typeId": "watchFlag",
+          "cells": [],
+          "params": {
+            "fireOnFlag": "bfRefused",
+            "next": "對話-看不起"
+          }
+        },
+        {
+          "id": "e7066892",
+          "name": "對話-看不起",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "46",
+            "next": "首領退場-拒選"
+          }
+        },
+        {
+          "id": "307e1c96",
+          "name": "首領退場-拒選",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "leaders_exit",
+            "next": "封南門-拒選"
+          }
+        },
+        {
+          "id": "a0182d96",
+          "name": "封南門-拒選",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": false,
+            "setFlag": "bfSiegeStart"
+          }
+        },
+        {
+          "id": "8968adb6",
+          "name": "出生點-圍攻-血族",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              4,
+              13
+            ],
+            [
+              5,
+              14
+            ],
+            [
+              4,
+              15
+            ]
+          ],
+          "params": {
+            "monsterId": "15|36",
+            "conditions": "flag:bfSiegeStart|!flag:bfSiegeCleared",
+            "spawnInterval": "5",
+            "maxAlive": "4",
+            "maxWaves": "3",
+            "waveGroup": "和談圍攻"
+          }
+        },
+        {
+          "id": "0d2c3906",
+          "name": "出生點-圍攻-狂族",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              27,
+              13
+            ],
+            [
+              26,
+              14
+            ],
+            [
+              27,
+              15
+            ]
+          ],
+          "params": {
+            "monsterId": "16|17",
+            "conditions": "flag:bfSiegeStart|!flag:bfSiegeCleared",
+            "spawnInterval": "5",
+            "maxAlive": "4",
+            "maxWaves": "3",
+            "waveGroup": "和談圍攻",
+            "next": "開南門-拒選"
+          }
+        },
+        {
+          "id": "5cc34e07",
+          "name": "開南門-拒選",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": true,
+            "setFlag": "bfSiegeCleared"
+          }
+        },
+        {
+          "id": "8ac8c318",
+          "name": "對話-拉攏",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "58",
+            "next": "選邊"
+          }
+        },
+        {
+          "id": "6ade47e3",
+          "name": "對話-選血族反應",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "59",
+            "next": "加入血族"
+          }
+        },
+        {
+          "id": "c3f754e9",
+          "name": "對話-選狂族反應",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "60",
+            "next": "加入狂族"
           }
         }
       ]
     }
   ],
   "sceneFx": [],
-  "npcs": [],
+  "npcs": [
+    {
+      "id": "13035bd7",
+      "name": "和平-血族士兵1",
+      "npcId": 2,
+      "x": 7.5,
+      "y": -17.5,
+      "behavior": "idle",
+      "faceLeft": false,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 0,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "bfWarStarted",
+      "conditions": "",
+      "conditionalDramas": []
+    },
+    {
+      "id": "17926c3b",
+      "name": "和平-血族士兵2",
+      "npcId": 2,
+      "x": 6.0,
+      "y": -18.6,
+      "behavior": "idle",
+      "faceLeft": false,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 0,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "bfWarStarted",
+      "conditions": "",
+      "conditionalDramas": []
+    },
+    {
+      "id": "be69ed0a",
+      "name": "和平-血族士兵3",
+      "npcId": 2,
+      "x": 8.6,
+      "y": -18.8,
+      "behavior": "idle",
+      "faceLeft": false,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 0,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "bfWarStarted",
+      "conditions": "",
+      "conditionalDramas": []
+    },
+    {
+      "id": "1d0d5f42",
+      "name": "和平-狂族士兵1",
+      "npcId": 3,
+      "x": 23.5,
+      "y": -17.5,
+      "behavior": "idle",
+      "faceLeft": true,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 0,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "bfWarStarted",
+      "conditions": "",
+      "conditionalDramas": []
+    },
+    {
+      "id": "2845e60c",
+      "name": "和平-狂族士兵2",
+      "npcId": 3,
+      "x": 25.0,
+      "y": -18.6,
+      "behavior": "idle",
+      "faceLeft": true,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 0,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "bfWarStarted",
+      "conditions": "",
+      "conditionalDramas": []
+    },
+    {
+      "id": "bed8cb32",
+      "name": "和平-狂族士兵3",
+      "npcId": 3,
+      "x": 22.4,
+      "y": -18.8,
+      "behavior": "idle",
+      "faceLeft": true,
+      "waypoints": [],
+      "speed": 0.0,
+      "dwellSeconds": 0.0,
+      "dramaId": 0,
+      "panelId": "",
+      "panelArg": "",
+      "next": "",
+      "setFlag": "",
+      "disappearFlag": "bfWarStarted",
+      "conditions": "",
+      "conditionalDramas": []
+    }
+  ],
   "lights": [],
-  "cutscenes": []
+  "cutscenes": [
+    {
+      "id": "talk",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "bfTalkDone",
+      "skippable": true,
+      "lockInput": true,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": true,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "Housekeeper",
+          "x": 14.2,
+          "y": -19.6,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 1.81,
+          "animFps": 8.0
+        },
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Blood Warlock",
+          "x": 14.0,
+          "y": -14.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "Wolf Royal Guard",
+          "x": 17.0,
+          "y": -14.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 5.29,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3010,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "camera",
+          "actorId": "",
+          "hasPos": true,
+          "x": 15.5,
+          "y": -15.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.8,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3011,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3012,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3013,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3014,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3015,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3016,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "cameraFollow",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "leaders_exit",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Blood Warlock",
+          "x": 14.0,
+          "y": -14.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "Wolf Royal Guard",
+          "x": 17.0,
+          "y": -14.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 5.29,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "move",
+          "actorId": "vampLeader",
+          "hasPos": true,
+          "x": 5.2,
+          "y": -13.4,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 3.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "wolfLeader",
+          "hasPos": true,
+          "x": 25.4,
+          "y": -13.4,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 3.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "exit_vampire",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Blood Warlock",
+          "x": 14.0,
+          "y": -14.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "Wolf Royal Guard",
+          "x": 17.0,
+          "y": -14.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 5.29,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "despawn",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "vampLeader",
+          "hasPos": true,
+          "x": 25.4,
+          "y": -13.4,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "exit_werewolf",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Blood Warlock",
+          "x": 14.0,
+          "y": -14.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "Wolf Royal Guard",
+          "x": 17.0,
+          "y": -14.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 5.29,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "despawn",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "wolfLeader",
+          "hasPos": true,
+          "x": 5.2,
+          "y": -13.4,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    }
+  ]
 }

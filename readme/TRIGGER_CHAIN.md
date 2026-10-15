@@ -254,8 +254,16 @@ flag:hallGateOpen        旗標成立
 - **`unlockRoll` 解鎖抽選內容(鏈動作)**：`poolId`（哪個抽選池，＝`GachaPoolTable.csv` 的 `PoolId`，例 `weapon`／`blood`）、`itemId`（要加進池的道具 ID）。被鏈啟動時把這一筆寫進存檔的 `unlockedRollEntries`，該祭壇之後就抽得到它。**永久、跨輪迴、重複執行無害**（同一筆只會有一份）。典型用法：接在 boss 死亡旗標鏈上——`紅嫁衣死 → unlockRoll(blood, 302 幽靈血統藥劑)`、`榕樹妖死 → unlockRoll(weapon, 地刺戢)`。純鏈驅動、玩家踩不觸發、格子畫在角落即可。詳見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §3。
 
 - **`factionPeace` 三方陣營和平(鏈動作)**（2026-09-17 新增）：無參數。被鏈啟動時讓狼人/吸血鬼兩族**視同中立**——不打人、不被打、玩家武器打不到（切 Ally 層），立即接 next。⚠ **部族的預設狀態是「敵對」**，所以這顆是「要他們站著別動手」時才擺的特例；典型：`onEnter 進場觸發 → factionPeace`。詳見 [FACTION.md](FACTION.md) §0。
-- **`factionWar` 三方陣營開戰(鏈動作)**：無參數。被鏈啟動時**結束和平**、回到預設的敵對——狼人/吸血鬼兩族開始互咬（演戲傷害 1/100）＋攻擊玩家、切到可被玩家攻擊的層，立即接 next。狀態＝**關卡單次**（換 module 自動重置回敵對）。**沒擺過 `factionPeace` 的地圖按它也安全**（本來就敵對，只是重套一次 Layer）。典型：`對話/事件 → factionWar（完成寫旗標=部族開戰）`——同一顆順便讓和平版 NPC 退場（NPC 的「消失旗標」填同一旗）。詳見 [FACTION.md](FACTION.md)。
+- **`factionWar` 三方陣營開戰(鏈動作)**：參數 `fullDamage`「兩族互打全額傷害」（勾＝**實戰**，2026-10-15：兩族互打不打折，演「敵族大軍殺光我方守軍再追玩家」；之後任何一顆沒勾的開戰／和平／換關卡回到演戲傷害）。被鏈啟動時**結束和平**、回到預設的敵對——狼人/吸血鬼兩族開始互咬（演戲傷害 1/100）＋攻擊玩家、切到可被玩家攻擊的層，立即接 next。狀態＝**關卡單次**（換 module 自動重置回敵對）。**沒擺過 `factionPeace` 的地圖按它也安全**（本來就敵對，只是重套一次 Layer）。典型：`對話/事件 → factionWar（完成寫旗標=部族開戰）`——同一顆順便讓和平版 NPC 退場（NPC 的「消失旗標」填同一旗）。詳見 [FACTION.md](FACTION.md)。
 - **`joinFaction` 加入陣營(鏈動作)**：`faction`（填 `狼人`/`werewolf` 或 `吸血鬼`/`vampire`）。被鏈啟動時玩家結盟該族——該族不再攻擊玩家、玩家武器打不到它（切 Ally 層），立即接 next；認不得的值印 Warning、仍接 next 不卡鏈。典型：首領 NPC 對話 → next 接這顆。詳見 [FACTION.md](FACTION.md)。
+- **`companion` 劇本同伴(鏈動作)**（2026-10-15）：`monsterId`（同伴用的 MonsterData 列）、`show`（勾＝召喚、不勾＝解散全部）、`x`/`y`（兩個都填＝生在該世界座標，否則玩家身旁）。同伴＝PlayerAlly＋`IsCompanion`：AllyBrain 跟著玩家、看到敵人就衝上去；**跨圖跟隨**、**不受傷**、**任何怪都不以它為目標**；殺傷力＝該列 `ContactDamage`（填 0＝會揮沒殺傷力）。換關卡自動解散。程式 `AI/CompanionService.cs`。
+- **`timedChoice` 二選一倒數(鏈動作)**（2026-10-15，血狂之爭「選邊」用；⏳ 未編譯未實測）：參數 `textId` 標題、`subTextId` 副標（空＝無）、`optionA`／`optionB` 兩顆按鈕的字（**全部是 `LanguageTable.csv` 的 id**）、`seconds` 倒數秒（空／0＝15）、**`nextA`／`nextB`／`nextTimeout`** 三條接續（編輯器欄旁有「選」可從本圖 trigger 名單點選）。被鏈啟動時**暫停遊戲**、開置中面板（`ChoicePanel`，Window 層）：按 A → 接 `nextA`、按 B → 接 `nextB`、倒數歸零 → 接 `nextTimeout`（留空＝歸零只關面板）。**三條互斥、只走一條**。
+  - **通用 `next` 不用**（三條路各有自己的欄），填了 Console 警告並忽略；`setFlag` 照常，在「選完那一刻」寫（三條都寫）。
+  - **不可 ESC 關閉**；倒數走 unscaled time（面板開著 `timeScale=0` 仍會倒數）；面板一開先擋 0.4 秒點擊（玩家多半是左鍵點掉上一段對話過來的，手還沒放開）。
+  - 開啟時若別的東西正鎖著輸入（對話面板、鎖輸入的演出），**延後一幀再試**，最多約 5 秒後強開並警告——所以直接接在 `drama`／`playCutscene` 後面是安全的。
+  - 面板被別的流程關掉（換圖／死亡）＝三條都不接、印 Warning。
+  - 典型（血狂之爭和談大廳）：`選邊`（textId=3020、subTextId=3023、optionA=3021／nextA=加入血族、optionB=3022／nextB=加入狂族、nextTimeout=拒絕選邊）。
+  - 程式：`TriggerChain.ExecuteTimedChoice`＋`CompleteBranch`（＝OnCompleted 但接選好的那條）、`UI/Panels/ChoicePanel.cs`；編輯器 `TriggerType.cs` 的 `TriggerParam.isTriggerRef`（「選」按鈕，目前只有這三欄用）。美術暫借 `ConfirmPopup` 的背板與 LongBtn。
 
 **位置型（靠近按 F，不是鏈動作）**
 

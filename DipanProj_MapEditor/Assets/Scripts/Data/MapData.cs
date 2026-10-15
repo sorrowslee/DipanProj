@@ -66,8 +66,8 @@ namespace DipanMapEditor.Data
 
         /// <summary>
         /// 劇情演出（半演出半漫畫的過場）清單；空＝此圖無演出。
-        /// **目前編輯器只編輯/使用第 0 段**（見 <see cref="MainCutscene"/>），但檔案格式先存成清單，
-        /// 之後要做「一張圖多段劇情、各自用旗標管」時不必再動 .dipanmap 格式、舊圖也不用轉檔。
+        /// 2026-10-15 起編輯器支援多段（劇情面板的「段落」列；選取哪段見 Tools.CutsceneController.SelectedIndex），
+        /// 遊戲端 trigger「播放劇情(鏈動作)」用 cutsceneId 對應各段的 id。<see cref="MainCutscene"/>＝第 0 段，保留給遊戲端語意（autoStart 只看它）。
         /// </summary>
         public List<Cutscene> cutscenes = new List<Cutscene>();
 

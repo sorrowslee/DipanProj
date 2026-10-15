@@ -145,7 +145,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 8.989749,
-            "markerY": -3.858677
+            "markerY": -3.858677,
+            "startDisabled": true
           }
         },
         {
@@ -165,7 +166,76 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 8.971694,
-            "markerY": -15.1724148
+            "markerY": -15.1724148,
+            "startDisabled": true
+          }
+        },
+        {
+          "id": "d50a63db",
+          "name": "怪物出生點-戰狼",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              9
+            ],
+            [
+              13,
+              9
+            ]
+          ],
+          "params": {
+            "monsterId": "17",
+            "waveGroup": "清場"
+          }
+        },
+        {
+          "id": "a4382662",
+          "name": "怪物出生點-狂族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              4,
+              12
+            ],
+            [
+              14,
+              12
+            ]
+          ],
+          "params": {
+            "monsterId": "16",
+            "waveGroup": "清場"
+          }
+        },
+        {
+          "id": "9e956868",
+          "name": "怪物出生點-狂族弩手",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              9,
+              13
+            ],
+            [
+              15,
+              6
+            ]
+          ],
+          "params": {
+            "monsterId": "18",
+            "waveGroup": "清場",
+            "next": "開前門"
+          }
+        },
+        {
+          "id": "421e96aa",
+          "name": "開前門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": true
           }
         }
       ]

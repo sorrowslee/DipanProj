@@ -34,9 +34,18 @@ public static class CombatSystem
         {
             var srcMc = info.Source.GetComponent<MonsterController>();
             var dstMc = info.Target.GetComponent<MonsterController>();
-            if (srcMc != null && dstMc != null)
+            // 來源不一定是怪物本體：揮擊／踐踏／咬擊／自爆都是另生一顆短命的 ImpactDamageArea（掛 EnemyContactDamage）去打，
+            // 那顆物件身上沒有 MonsterController ⇒ 以前這裡查不到陣營、乘數整個被略過，
+            // 兩族互打變成**全額傷害**（2026-10-15 作者回報：表演戰的血族士兵很快被打光）。改成退回讀它的 EnemyContactDamage.Faction。
+            MonsterFaction? srcFaction = srcMc != null ? srcMc.Faction : (MonsterFaction?)null;
+            if (srcFaction == null)
             {
-                float fm = FactionRelations.DamageMultiplier(srcMc.Faction, dstMc.Faction);
+                var ecd = info.Source.GetComponent<EnemyContactDamage>();
+                if (ecd != null) srcFaction = ecd.Faction;
+            }
+            if (srcFaction != null && dstMc != null)
+            {
+                float fm = FactionRelations.DamageMultiplier(srcFaction.Value, dstMc.Faction);
                 if (fm < 0.999f) { amount *= fm; theatrical = true; }
             }
         }

@@ -129,7 +129,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 10.4856377,
-            "markerY": -2.63218951
+            "markerY": -2.63218951,
+            "startDisabled": true
           }
         },
         {
@@ -149,7 +150,61 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 10.4513206,
-            "markerY": -13.3325109
+            "markerY": -13.3325109,
+            "startDisabled": true
+          }
+        },
+        {
+          "id": "a5b3fc8e",
+          "name": "怪物出生點-皇家衛士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              7,
+              9
+            ],
+            [
+              14,
+              9
+            ]
+          ],
+          "params": {
+            "monsterId": "19",
+            "waveGroup": "清場"
+          }
+        },
+        {
+          "id": "9397dbb6",
+          "name": "怪物出生點-狂族弩手",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              4,
+              8
+            ],
+            [
+              17,
+              7
+            ],
+            [
+              11,
+              11
+            ]
+          ],
+          "params": {
+            "monsterId": "18",
+            "waveGroup": "清場",
+            "next": "開前門"
+          }
+        },
+        {
+          "id": "7a910b67",
+          "name": "開前門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": true
           }
         }
       ]

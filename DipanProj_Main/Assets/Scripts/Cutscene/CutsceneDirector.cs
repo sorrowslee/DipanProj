@@ -252,6 +252,9 @@ namespace Dipan.Cutscene
             }
             foreach (var c in bg) if (c != null) yield return c;   // 等背景動作收尾（例如一家人走完）再結束
 
+            // 被略過：把「會留下狀態」的步驟快轉到結局（2026-10-15 作者回報：略過後演員留在場上發呆）。
+            if (_skip) FastForwardStates(steps);
+
             // 交棒：找最後一個 end 步驟的去向（被略過時也照它走）。
             CutsceneStep endStep = null;
             for (int k = steps.Count - 1; k >= 0; k--) if (steps[k].type == "end") { endStep = steps[k]; break; }
@@ -280,6 +283,40 @@ namespace Dipan.Cutscene
             if (!handoff) cont?.Invoke();
 
             Destroy(gameObject);
+        }
+
+        /// <summary>
+        /// 略過＝快轉到結局：被中止的步驟裡，**會留下狀態**的效果依序套到最終值——
+        /// 走位→瞬移到終點（＋抵達朝向）、轉向、現身／消失、寫旗標。說話／等待／鏡頭／漫畫／淡黑／螢幕特效不留狀態，略過。
+        /// <para>從第 0 步整段重套（不是從中斷那步）：被打斷的 move 也要落在終點；這些效果重複套用結果相同，
+        /// 旗標也只有「首次成立」才會觸發 fireOnFlag。</para>
+        /// <para>為什麼需要：沒有 end 交棒的演出，收尾時 npc 演員「留在原地」（CUTSCENE_DIRECTOR §3）——
+        /// 原本的 despawn 被略過就沒跑到，演員就這樣留在場上。</para>
+        /// </summary>
+        void FastForwardStates(List<Dipan.MapRuntime.CutsceneStep> steps)
+        {
+            if (steps == null) return;
+            for (int k = 0; k < steps.Count; k++)
+            {
+                var s = steps[k];
+                if (s == null) continue;
+                switch (s.type)
+                {
+                    case "move":
+                    {
+                        var a = Find(s.actorId);
+                        if (a == null) break;
+                        a.EnsureVisible();
+                        if (s.hasPos) a.Warp(new Vector2(s.x, s.y));
+                        if (!string.IsNullOrEmpty(s.facing)) a.Face(s.facing);
+                        break;
+                    }
+                    case "face": { var a = Find(s.actorId); if (a != null) a.Face(s.facing); break; }
+                    case "spawn": { var a = Find(s.actorId); if (a != null) a.SetActive(true); break; }
+                    case "despawn": { var a = Find(s.actorId); if (a != null) a.SetActive(false); break; }
+                    case "setFlag": if (!string.IsNullOrEmpty(s.flag)) TriggerChain.SetFlag(s.flag); break;
+                }
+            }
         }
 
         void BuildActors()

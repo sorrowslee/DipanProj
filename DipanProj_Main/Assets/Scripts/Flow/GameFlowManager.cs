@@ -185,6 +185,7 @@ namespace Dipan.Flow
         {
             { "RedBridalGown", "紅嫁衣" },
             { "BanyanTree", "榕樹妖" },
+            { "BloodFang", "血狂之爭" },
         };
         static string DisplayNameOf(string module)
             => (!string.IsNullOrEmpty(module) && ModuleDisplayNames.TryGetValue(module, out var n)) ? n : module;

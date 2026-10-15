@@ -177,7 +177,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 12.4737349,
-            "markerY": -15.5579329
+            "markerY": -15.5579329,
+            "startDisabled": true
           }
         },
         {
@@ -275,6 +276,119 @@
             "offsetX": "1",
             "offsetY": "4"
           }
+        },
+        {
+          "id": "6ae99e06",
+          "name": "引路-大門-血族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "guide_gate_vampire",
+            "next": "開北門-去程"
+          }
+        },
+        {
+          "id": "4f59c36a",
+          "name": "引路-大門-狂族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "guide_gate_werewolf",
+            "next": "開北門-去程"
+          }
+        },
+        {
+          "id": "7f8cdc1a",
+          "name": "引路-大門-管家",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "guide_gate_human",
+            "next": "開北門-去程"
+          }
+        },
+        {
+          "id": "b3622525",
+          "name": "大門過關",
+          "typeId": "clearLevel",
+          "cells": [],
+          "params": {
+            "delaySeconds": "3"
+          }
+        },
+        {
+          "id": "8b58d20d",
+          "name": "結局-血族",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "requireFlag": "bfBossDead",
+            "conditions": "flag:bfJoinedVampire",
+            "next": "對話-血族道謝"
+          }
+        },
+        {
+          "id": "a062c2da",
+          "name": "對話-血族道謝",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "56",
+            "next": "贈藥-血族"
+          }
+        },
+        {
+          "id": "37f959f3",
+          "name": "贈藥-血族",
+          "typeId": "giveItem",
+          "cells": [],
+          "params": {
+            "itemId": "302",
+            "count": "1",
+            "next": "大門過關"
+          }
+        },
+        {
+          "id": "af96c5f2",
+          "name": "結局-狂族",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "requireFlag": "bfBossDead",
+            "conditions": "flag:bfJoinedWerewolf",
+            "next": "對話-狂族道謝"
+          }
+        },
+        {
+          "id": "5ed81f17",
+          "name": "對話-狂族道謝",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "57",
+            "next": "贈藥-狂族"
+          }
+        },
+        {
+          "id": "59163d03",
+          "name": "贈藥-狂族",
+          "typeId": "giveItem",
+          "cells": [],
+          "params": {
+            "itemId": "303",
+            "count": "1",
+            "next": "大門過關"
+          }
+        },
+        {
+          "id": "2896e2cf",
+          "name": "開北門-去程",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點1",
+            "show": true
+          }
         }
       ]
     }
@@ -295,10 +409,10 @@
       "dramaId": 0,
       "panelId": "",
       "panelArg": "",
-      "next": "",
+      "next": "引路-大門-血族",
       "setFlag": "",
-      "disappearFlag": "",
-      "conditions": "series:2",
+      "disappearFlag": "bfGuideStarted",
+      "conditions": "series:2|!flag:bfTalkDone",
       "conditionalDramas": [
         {
           "conditions": "bloodline:22",
@@ -324,10 +438,10 @@
       "dramaId": 0,
       "panelId": "",
       "panelArg": "",
-      "next": "",
+      "next": "引路-大門-狂族",
       "setFlag": "",
-      "disappearFlag": "",
-      "conditions": "series:3",
+      "disappearFlag": "bfGuideStarted",
+      "conditions": "series:3|!flag:bfTalkDone",
       "conditionalDramas": [
         {
           "conditions": "bloodline:32|series:3",
@@ -353,13 +467,401 @@
       "dramaId": 28,
       "panelId": "",
       "panelArg": "",
-      "next": "",
+      "next": "引路-大門-管家",
       "setFlag": "",
-      "disappearFlag": "",
-      "conditions": "!series:2|!series:3",
+      "disappearFlag": "bfGuideStarted",
+      "conditions": "!series:2|!series:3|!flag:bfTalkDone",
       "conditionalDramas": []
     }
   ],
   "lights": [],
-  "cutscenes": []
+  "cutscenes": [
+    {
+      "id": "guide_gate_vampire",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 10.21,
+          "y": -14.871,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "setFlag",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "bfGuideStarted",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3006,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "guide",
+          "hasPos": true,
+          "x": 12.474,
+          "y": -15.45,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 2.2,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3002,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "guide_gate_werewolf",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 14.868,
+          "y": -14.972,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.59,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "setFlag",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "bfGuideStarted",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3007,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "guide",
+          "hasPos": true,
+          "x": 12.474,
+          "y": -15.45,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 2.2,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3002,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "guide_gate_human",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "Housekeeper",
+          "x": 9.058,
+          "y": -14.909,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 1.81,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "setFlag",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "bfGuideStarted",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3001,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "guide",
+          "hasPos": true,
+          "x": 12.474,
+          "y": -15.45,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 2.2,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3002,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    }
+  ]
 }

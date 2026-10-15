@@ -155,7 +155,8 @@
             "targetMapId": "18",
             "targetEntrance": "BloodFang_GuessLobby_north",
             "showMarker": true,
-            "linkedFx": ""
+            "linkedFx": "",
+            "startDisabled": true
           }
         },
         {
@@ -175,7 +176,193 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 7.46375132,
-            "markerY": -3.447495
+            "markerY": -3.447495,
+            "startDisabled": true
+          }
+        },
+        {
+          "id": "718b9f93",
+          "name": "引路-長廊-血族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "guide_gallery_vampire",
+            "conditions": "series:2",
+            "onBlocked": "跳過這顆繼續",
+            "next": "引路-長廊-狂族"
+          }
+        },
+        {
+          "id": "3da982f2",
+          "name": "引路-長廊-狂族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "guide_gallery_werewolf",
+            "conditions": "series:3",
+            "onBlocked": "跳過這顆繼續",
+            "next": "引路-長廊-管家"
+          }
+        },
+        {
+          "id": "efd52898",
+          "name": "引路-長廊-管家",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "guide_gallery_human",
+            "conditions": "!series:2|!series:3",
+            "onBlocked": "跳過這顆繼續",
+            "next": "開北門-長廊"
+          }
+        },
+        {
+          "id": "268f1fe0",
+          "name": "進場-去程",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "requireFlag": "!bfTalkDone",
+            "repeat": "每次",
+            "next": "引路-長廊-血族"
+          }
+        },
+        {
+          "id": "39c8b90b",
+          "name": "埋伏-長廊",
+          "typeId": "camZone",
+          "cells": [
+            [
+              5,
+              11
+            ],
+            [
+              5,
+              12
+            ],
+            [
+              6,
+              11
+            ],
+            [
+              6,
+              12
+            ],
+            [
+              7,
+              11
+            ],
+            [
+              7,
+              12
+            ],
+            [
+              8,
+              11
+            ],
+            [
+              8,
+              12
+            ],
+            [
+              9,
+              11
+            ],
+            [
+              9,
+              12
+            ]
+          ],
+          "params": {
+            "conditions": "flag:bfRefused|!flag:bfGalleryAmbush",
+            "next": "封長廊兩門"
+          }
+        },
+        {
+          "id": "974a78ec",
+          "name": "封長廊兩門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-北方,傳送點-南方",
+            "show": false,
+            "setFlag": "bfGalleryAmbush"
+          }
+        },
+        {
+          "id": "32124d62",
+          "name": "出生點-伏擊-北",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              4
+            ],
+            [
+              8,
+              4
+            ],
+            [
+              7,
+              5
+            ]
+          ],
+          "params": {
+            "monsterId": "15|16|36",
+            "conditions": "flag:bfGalleryAmbush|!flag:bfGalleryCleared",
+            "spawnInterval": "4",
+            "maxAlive": "5",
+            "maxWaves": "3",
+            "waveGroup": "長廊伏擊"
+          }
+        },
+        {
+          "id": "6c7dcffc",
+          "name": "出生點-伏擊-南",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              19
+            ],
+            [
+              8,
+              19
+            ],
+            [
+              7,
+              18
+            ]
+          ],
+          "params": {
+            "monsterId": "16|17|15",
+            "conditions": "flag:bfGalleryAmbush|!flag:bfGalleryCleared",
+            "spawnInterval": "4",
+            "maxAlive": "5",
+            "maxWaves": "3",
+            "waveGroup": "長廊伏擊",
+            "next": "開長廊南門"
+          }
+        },
+        {
+          "id": "f37f56d8",
+          "name": "開長廊南門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": true,
+            "setFlag": "bfGalleryCleared"
+          }
+        },
+        {
+          "id": "5b8ab802",
+          "name": "開北門-長廊",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-北方",
+            "show": true
           }
         }
       ]
@@ -184,5 +371,359 @@
   "sceneFx": [],
   "npcs": [],
   "lights": [],
-  "cutscenes": []
+  "cutscenes": [
+    {
+      "id": "guide_gallery_vampire",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 7.5,
+          "y": -18.9,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3024,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "guide",
+          "hasPos": true,
+          "x": 7.464,
+          "y": -4.95,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 2.2,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3002,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "guide_gallery_werewolf",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 7.5,
+          "y": -18.9,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.59,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3025,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "guide",
+          "hasPos": true,
+          "x": 7.464,
+          "y": -4.95,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 2.2,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3002,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "guide_gallery_human",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "Housekeeper",
+          "x": 7.5,
+          "y": -18.9,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 1.81,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3004,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3005,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "guide",
+          "hasPos": true,
+          "x": 7.464,
+          "y": -4.95,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 2.2,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3002,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    }
+  ]
 }

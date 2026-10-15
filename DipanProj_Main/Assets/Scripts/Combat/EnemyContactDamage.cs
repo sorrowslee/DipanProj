@@ -25,6 +25,9 @@ public class EnemyContactDamage : MonoBehaviour
     float _attackInterval = 0.5f;
     readonly Dictionary<int, float> _nextHit = new Dictionary<int, float>();
 
+    /// <summary>這顆傷害來源屬於哪個陣營（CombatSystem 在來源不是怪物本體時——例如揮擊的 ImpactDamageArea——用它查陣營傷害乘數）。</summary>
+    public MonsterFaction Faction => _faction;
+
     /// <summary>由 MonsterController 設定接觸傷害值（MonsterData.ContactDamage）與陣營。</summary>
     public void Configure(float contactDamage, MonsterFaction faction = MonsterFaction.Enemy, float attackInterval = 0.5f)
     {
@@ -71,6 +74,7 @@ public class EnemyContactDamage : MonoBehaviour
             MonsterController mc = list[i];
             if (mc == null || mc.IsDead || !FactionRelations.Hostile(_faction, mc.Faction)) continue;
             if (mc.gameObject == gameObject) continue;
+            if (mc.IsCompanion) continue;   // 劇本同伴（CompanionService）：誰都打不到它，免得玩家拿它當盾牌
             Collider2D col = mc.GetComponent<Collider2D>();
             if (col == null) continue;
             if (Touching(col)) Hit(mc.gameObject);

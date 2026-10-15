@@ -310,7 +310,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 22.2208214,
-            "markerY": -7.896406
+            "markerY": -7.896406,
+            "startDisabled": true
           }
         },
         {
@@ -330,7 +331,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 11.9473944,
-            "markerY": -12.3052263
+            "markerY": -12.3052263,
+            "startDisabled": true
           }
         },
         {
@@ -381,9 +383,52 @@
             "spawnInterval": "",
             "maxAlive": "",
             "maxWaves": "",
-            "waveGroup": "",
-            "nextWhen": "生出來時",
-            "startDisabled": false
+            "waveGroup": "清場",
+            "nextWhen": "",
+            "startDisabled": false,
+            "next": "開前門"
+          }
+        },
+        {
+          "id": "351ad99a",
+          "name": "進場-攻略",
+          "typeId": "onEnter",
+          "cells": [],
+          "params": {
+            "requireFlag": "bfJoinedWerewolf",
+            "repeat": "每次",
+            "next": "結束表演戰"
+          }
+        },
+        {
+          "id": "7a31de41",
+          "name": "結束表演戰",
+          "typeId": "factionWar",
+          "cells": [],
+          "params": {
+            "next": "同伴加入"
+          }
+        },
+        {
+          "id": "db4e772d",
+          "name": "同伴加入",
+          "typeId": "companion",
+          "cells": [],
+          "params": {
+            "monsterId": "43",
+            "show": true,
+            "x": "20.5",
+            "y": "-7.5"
+          }
+        },
+        {
+          "id": "e1d91a4f",
+          "name": "開前門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南邊",
+            "show": true
           }
         }
       ]

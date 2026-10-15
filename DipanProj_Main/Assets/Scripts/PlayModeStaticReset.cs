@@ -41,6 +41,7 @@ public static class PlayModeStaticReset
 
         // 觸發鏈：清 static 集合／快取／**事件訂閱**（OnTriggerFired 跨 Play 會累積 → 重複觸發、呼叫到已銷毀的 TutorialManager 等）。
         TriggerChain.ResetForPlayMode();
+        CompanionService.ResetForPlayMode();           // 劇本同伴清單（血狂之爭）
         AppearCondition.ResetForPlayMode();            // 通用條件（conditions）：清「看不懂的條件只警告一次」的記錄
 
         // 素材庫單例：走「執行期從 StreamingAssets 載入的 Texture/Sprite」的懶漢單例——static 快取會回傳

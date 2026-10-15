@@ -652,7 +652,19 @@
       "typeId": "factionWar",
       "displayName": "三方陣營開戰(鏈動作)",
       "color": "#D94D6A",
-      "params": []
+      "params": [
+        {
+          "key": "fullDamage",
+          "type": "Bool",
+          "label": "兩族互打全額傷害",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        }
+      ]
     },
     {
       "typeId": "joinFaction",
@@ -1022,6 +1034,155 @@
             "開始時",
             "吞完後"
           ],
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        }
+      ]
+    },
+    {
+      "typeId": "timedChoice",
+      "displayName": "二選一倒數(鏈動作)",
+      "color": "#E0566E",
+      "params": [
+        {
+          "key": "textId",
+          "type": "Int",
+          "label": "標題(語言表id)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "subTextId",
+          "type": "Int",
+          "label": "副標(語言表id/空=無)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "optionA",
+          "type": "Int",
+          "label": "選項A(語言表id)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "nextA",
+          "type": "String",
+          "label": "選A接續",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": true
+        },
+        {
+          "key": "optionB",
+          "type": "Int",
+          "label": "選項B(語言表id)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "nextB",
+          "type": "String",
+          "label": "選B接續",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": true
+        },
+        {
+          "key": "seconds",
+          "type": "Float",
+          "label": "倒數秒(空=15)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "nextTimeout",
+          "type": "String",
+          "label": "逾時接續",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": true
+        }
+      ]
+    },
+    {
+      "typeId": "companion",
+      "displayName": "劇本同伴(鏈動作)",
+      "color": "#5CC9A7",
+      "params": [
+        {
+          "key": "monsterId",
+          "type": "Int",
+          "label": "同伴怪物ID(MonsterData)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "show",
+          "type": "Bool",
+          "label": "召喚(不勾=解散全部)",
+          "boolDefault": true,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "x",
+          "type": "Float",
+          "label": "生成X(空=玩家旁)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "y",
+          "type": "Float",
+          "label": "生成Y(空=玩家旁)",
+          "boolDefault": false,
           "isFlagRef": false,
           "flagNegatable": false,
           "isScreenEffectRef": false,

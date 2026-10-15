@@ -122,6 +122,15 @@ namespace Dipan.Cutscene
 
         public void SetActive(bool on) { if (go != null && !isPlayer) go.SetActive(on); }
 
+        /// <summary>瞬移到某點並停下（略過演出時把走位快轉到終點用；npc 才動，主角傀儡不瞬移）。</summary>
+        public void Warp(Vector2 pos)
+        {
+            if (isPlayer || tr == null) return;
+            StopMove();
+            if (_rb != null) _rb.position = pos;
+            tr.position = new Vector3(pos.x, pos.y, tr.position.z);
+        }
+
         public void EnsureVisible() { if (go != null && !isPlayer && !go.activeSelf) go.SetActive(true); }
 
         public void Cleanup()

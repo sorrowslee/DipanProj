@@ -198,7 +198,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 7.50284052,
-            "markerY": -4.206797
+            "markerY": -4.206797,
+            "startDisabled": true
           }
         },
         {
@@ -214,13 +215,14 @@
           "params": {
             "entranceId": "BloodFang_Diningroom_south",
             "targetMapId": "23",
-            "targetEntrance": "BloodFang_Garde_north",
+            "targetEntrance": "BloodFang_Garden_north",
             "showMarker": true,
             "linkedFx": "",
             "markerX": 7.45976257,
             "markerY": -22.7809753,
             "markerW": 1.78,
-            "markerH": 1.14
+            "markerH": 1.14,
+            "startDisabled": true
           }
         },
         {
@@ -263,7 +265,7 @@
             "spawnInterval": "",
             "maxAlive": "",
             "maxWaves": "",
-            "waveGroup": "",
+            "waveGroup": "清場",
             "nextWhen": ""
           }
         },
@@ -303,8 +305,19 @@
             "spawnInterval": "",
             "maxAlive": "",
             "maxWaves": "",
-            "waveGroup": "",
-            "nextWhen": ""
+            "waveGroup": "清場",
+            "nextWhen": "",
+            "next": "開前門"
+          }
+        },
+        {
+          "id": "353a64b8",
+          "name": "開前門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": true
           }
         }
       ]

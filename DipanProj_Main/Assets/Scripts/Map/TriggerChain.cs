@@ -43,12 +43,14 @@ public static class TriggerChain
     public const string TypeUnlockRoll = "unlockRoll";     // 解鎖抽選內容（鏈動作）：把某個物品永久加進某個抽選池（跨輪迴保留）。例：打贏紅嫁衣→血統池+幽靈。pool=池代號(GachaPoolTable 的 PoolId)、entry=物品 id。見 Dipan.Gacha.GachaService
     public const string TypeSelectScript = "selectScript"; // 選擇劇本（鏈動作）：被 next 啟動時開「選擇劇本」面板（邪佛發牌），玩家按領取拿走某張劇本→加進背包→關閉→接 next。取代原本直接 giveItem 給紅嫁衣劇本。scriptIds='|' 分隔可領取劇本道具 id、specialIds='|' 分隔用特殊裂紋框的 id。見 SelectScriptPanel
     public const string TypeFactionPeace = "factionPeace"; // 三方陣營和平（鏈動作）：兩族視同中立——不打人、不被打、玩家武器打不到(切 Ally 層)，再接 next。⚠ 預設是**敵對**，和平是劇本明確要進入的特例（2026-09-17 反轉）。見 FactionRelations / readme/FACTION.md
-    public const string TypeFactionWar = "factionWar";     // 三方陣營開戰（鏈動作）＝**結束和平**、回到預設的敵對：兩族開始互咬(演戲傷害1/100)＋攻擊玩家、切到可被玩家攻擊的層，再接 next。狀態只活在這趟關卡（換 module 自動重置）。見 FactionRelations / readme/FACTION.md
+    public const string TypeFactionWar = "factionWar";     // 三方陣營開戰（鏈動作）＝**結束和平**、回到預設的敵對：兩族開始互咬(演戲傷害1/100；勾 fullDamage＝全額)＋攻擊玩家、切到可被玩家攻擊的層，再接 next。狀態只活在這趟關卡（換 module 自動重置）。見 FactionRelations / readme/FACTION.md
     public const string TypeJoinFaction = "joinFaction";   // 玩家結盟部族（鏈動作）：faction=werewolf/狼人 或 vampire/吸血鬼——該族不再攻擊玩家、玩家武器打不到它(切 Ally 層)，再接 next。典型：首領 NPC 對話 → next 接這顆。見 FactionRelations
     public const string TypePushPlayer = "pushPlayer";      // 震退玩家（鏈動作）：在 seconds 秒內把玩家「推」到自己這格（先快後慢＝被打飛），期間鎖操作＋鏡頭震，到位才接 next。給「把玩家轟回定位再開始演出」用（夢境佛掌、正式邪佛戰）
     public const string TypeMonsterNear = "monsterNear";    // 怪物逼近（鏈動作）：盯著場上指定種類的怪，身體邊緣離玩家 ≤ distance 時才接 next（可順便停住牠）。夢境佛掌「即將壓到玩家前」播對話用
     public const string TypeSceneVanish = "sceneVanish";    // 場景吞噬（鏈動作）：以玩家為中心，整張地圖由外往內被吞成血紅虛空，只剩角色／影子／HUD；**立即接 next**（吞噬在 startDelay 秒後才開始），不會自己復原。夢境佛掌段用
     public const string TypeBindPlayer = "bindPlayer";      // 束縛玩家（鏈動作）：鎖移動、**放行攻擊**（只能原地打），腳下放一個循環特效當牢籠。bind=0 ＝解除束縛。立即接 next
+    public const string TypeCompanion = "companion";        // 劇本同伴（鏈動作）：monsterId 的怪以「同伴」身分跟著玩家（跨圖、不受傷、不被當目標、無殺傷力）；show=false＝解散全部。見 CompanionService
+    public const string TypeTimedChoice = "timedChoice";    // 二選一倒數（鏈動作）：暫停＋選擇面板（標題/副標/兩個選項/倒數），按 A→nextA、按 B→nextB、歸零→nextTimeout，三條互斥只走一條；通用 next 欄不用。見 ChoicePanel / readme/bloodfang/GAP.md §2
 
     // ── 位置型 typeId（玩家踩到／按 F 才生效，被鏈啟動＝「解鎖」）──
     // 這些不進 Activate 的 switch，實際行為由 MapLoader / TeleportWatcher / InteractionManager 建點時處理。
@@ -379,8 +381,8 @@ public static class TriggerChain
                 FactionRelations.StartPeace();
                 OnCompleted(r);
                 break;
-            case TypeFactionWar:                       // 三方陣營開戰＝結束和平（沒進過和平段也安全，只是重套一次層）
-                FactionRelations.EndPeace();
+            case TypeFactionWar:                       // 三方陣營開戰＝結束和平（沒進過和平段也安全，只是重套一次層）；fullDamage 勾＝實戰（兩族互打不打折）
+                FactionRelations.EndPeace(r.GetBool("fullDamage", false));
                 OnCompleted(r);
                 break;
             case TypeJoinFaction:                      // 玩家結盟部族：faction 參數認不得就警告、仍接 next（別讓鏈卡死）
@@ -393,6 +395,8 @@ public static class TriggerChain
             }
             case TypePushPlayer: ExecutePushPlayer(r); break;
             case TypeBindPlayer: ExecuteBindPlayer(r); break;
+            case TypeTimedChoice: ExecuteTimedChoice(r); break;
+            case TypeCompanion: ExecuteCompanion(r); break;
             case TypeSceneVanish: ExecuteSceneVanish(r); break;
             case TypeMonsterNear: ExecuteMonsterNear(r); break;
             case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
@@ -796,6 +800,80 @@ public static class TriggerChain
         OnCompleted(r);   // 動作型：立即完成、接 next
     }
 
+    // 二選一倒數（鏈動作）：暫停遊戲、開 ChoicePanel（標題/副標/兩個選項/倒數條），三條路互斥只走一條：
+    //   按 A → nextA、按 B → nextB、倒數歸零 → nextTimeout（留空＝歸零只關面板）。
+    //   參數全是語言表 id：textId 標題、subTextId 副標（空＝無）、optionA／optionB 按鈕字；seconds 倒數秒（空/0＝15）。
+    // 通用欄位照常：requireFlag 等條件在 Activate 已查過；setFlag 在「選完」那一刻寫（三條路都寫）。
+    // ⚠ 通用的 next 欄**不用**（三條路各有自己的欄），填了印警告並忽略，免得作者以為它會接。
+    // 典型：血狂之爭和談大廳「選邊」——nextA=加入血族、nextB=加入狂族、nextTimeout=拒絕選邊。
+    static void ExecuteTimedChoice(TriggerRegion r)
+    {
+        int textId = r.GetInt("textId", 0);
+        int subTextId = r.GetInt("subTextId", 0);
+        int optionA = r.GetInt("optionA", 0);
+        int optionB = r.GetInt("optionB", 0);
+        float seconds = r.GetFloat("seconds", 0f);
+        string nextA = r.GetString("nextA").Trim();
+        string nextB = r.GetString("nextB").Trim();
+        string nextTimeout = r.GetString("nextTimeout").Trim();
+
+        if (!string.IsNullOrWhiteSpace(r.GetString(KeyNext)))
+            Debug.LogWarning($"[TriggerChain] timedChoice「{r.name}」填了通用的「接續觸發(next)」，這個型別不用它（請改填選A接續／選B接續／逾時接續），已忽略。");
+        if (nextA.Length == 0 && nextB.Length == 0 && nextTimeout.Length == 0)
+            Debug.LogWarning($"[TriggerChain] timedChoice「{r.name}」三個接續都沒填，選完什麼都不會發生（只是暫停一下）。");
+        if (textId <= 0 || optionA <= 0 || optionB <= 0)
+            Debug.LogWarning($"[TriggerChain] timedChoice「{r.name}」標題或選項的語言表 id 沒填（textId={textId}, optionA={optionA}, optionB={optionB}），面板上會是空字。");
+
+        // 延一幀再開：上一顆常是對話／演出，避開「面板關閉當幀又開面板」的重入（同 bossIntro）。
+        TriggerChainRunner.NextFrame(() => Dipan.UI.ChoicePanel.Show(textId, subTextId, optionA, optionB, seconds, result =>
+        {
+            string branch = result == Dipan.UI.ChoicePanel.Result.OptionA ? nextA
+                          : result == Dipan.UI.ChoicePanel.Result.OptionB ? nextB
+                          : nextTimeout;
+            CompleteBranch(r, branch, result.ToString());
+        }));
+    }
+
+    // 劇本同伴（鏈動作）：monsterId＝同伴用的 MonsterData 列（ContactDamage 填 0＝會揮沒有殺傷力）；
+    //   show 打勾（預設）＝召喚、不勾＝解散全部同伴；x／y 兩個都填＝生在該世界座標（例：劇情演員剛退場的位置），否則生在玩家身旁。
+    // 同伴＝PlayerAlly＋IsCompanion：跟玩家跨圖、不受傷、任何怪都不以它為目標；換關卡自動解散（ClearLevelFlags）。立即完成接 next。
+    static void ExecuteCompanion(TriggerRegion r)
+    {
+        if (!r.GetBool("show", true))
+        {
+            CompanionService.DismissAll();
+            OnCompleted(r);
+            return;
+        }
+        int monsterId = r.GetInt("monsterId", 0);
+        if (monsterId <= 0)
+        {
+            Debug.LogWarning($"[TriggerChain] companion「{r.name}」monsterId 無效，略過（仍接 next）。");
+            OnCompleted(r);
+            return;
+        }
+        string xs = r.GetString("x").Trim(), ys = r.GetString("y").Trim();
+        Vector2? at = null;
+        if (xs.Length > 0 && ys.Length > 0) at = new Vector2(r.GetFloat("x", 0f), r.GetFloat("y", 0f));
+        CompanionService.Summon(monsterId, at);
+        OnCompleted(r);
+    }
+
+    // 分支型動作的「完成」：同 OnCompleted（事件＋寫 setFlag），但接續的是呼叫端選好的那一條，而不是通用 next。
+    static void CompleteBranch(TriggerRegion r, string branchNext, string label)
+    {
+        if (r == null) return;
+        Debug.Log($"[TriggerChain] 「{r.name}」結果 {label} → 接「{(string.IsNullOrEmpty(branchNext) ? "（無）" : branchNext)}」");
+        if (!string.IsNullOrEmpty(r.name)) OnTriggerFired?.Invoke(r.name);
+        string set = r.GetString(KeySetFlag);
+        if (!string.IsNullOrEmpty(set))
+        {
+            SetFlag(set);
+            if (_manager != null) _manager.RefreshTriggers();
+        }
+        if (!string.IsNullOrEmpty(branchNext)) Activate(branchNext);
+    }
+
     // Boss 開戰資訊（鏈動作）：暫停遊戲播「左滑入 boss 頭像＋右滑入姓名牌匾」開場表演（BossIntroPanel），
     // 表演結束才接 next。顯示名/頭像資料在 MonsterData.csv 的 DisplayName / PortraitPath 欄，
     // 這裡只填 monsterId（與怪物出生點同一個 ID）。
@@ -1118,7 +1196,8 @@ public static class TriggerChain
     public static void ClearLevelFlags()
     {
         _levelFlags.Clear();
-        FactionRelations.ResetScenario();   // 三方陣營劇本狀態（開戰/結盟）＝關卡單次：跟關卡單次旗標同一個時機清
+        FactionRelations.ResetScenario();
+        CompanionService.DismissAll();       // 劇本同伴＝這一趟關卡：不收的話它會以 PlayerAlly 身分跟到廣場   // 三方陣營劇本狀態（開戰/結盟）＝關卡單次：跟關卡單次旗標同一個時機清
     }
 
     // ───────────────────────── 內部 ─────────────────────────

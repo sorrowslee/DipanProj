@@ -900,3 +900,23 @@
 - [ ] **骨牢在霧態抓到牠會怎樣沒驗證**（Brain 停住會一直是霧＋無敵）；必要時 CSV `Controllable` 填 0。
 - [ ] **影子錨點**：idle／walk／attack 跑一次 `Project Tools → 角色 → 計算影子錨點`。
 - [ ] `TempImage/_bloodguard_attack.png`、`_bloodguard_mist.png`（專案根目錄、已 gitignore）是量幀用的拼圖，作者看完可刪。
+
+## 血狂之爭劇本（2026-10-15，T0～T2b 完成、T3 起未動工）
+
+> 規劃文件在 [bloodfang/](bloodfang/README.md)；本節記「刻意不在這批做」的缺口（GAP §7），實測後的新缺口由接手 AI 追加。
+
+- [ ] **跟隨型／引路型 NPC**（`NpcBrain` 加 `lead` 行為：玩家在半徑內才前進、太遠就停下等）：第一輪引路用 Cutscene 演出代替，作者看過效果再決定要不要做。
+- [ ] **血狂之爭的劇本道具與正式進關途徑**：ItemTable 沒有「劇本-血狂之爭」（`TargetMapId=17`），邪佛發牌也沒接；目前只能靠 `Project Tools → 測試 → 直接進關卡 → 血狂之爭`。
+- [ ] **首領素材與 Brain**：38–41 目前是替身（圖借 19／36、Brain 借 LeapSlam／Archer、立繪借士兵 Talk 圖）；T8 寫新 Brain＋AI 自繪序列圖，產圖素材之後再換。
+- [ ] **兩族戰士與追兵的平衡數值**：規劃表裡的間隔／上限／波數全是估值。
+- [x] ~~Cutscene 一張圖多段~~ → 2026-10-15 T2b 補上編輯器段落 UI。剩：遊戲端 autoStart 只看第 0 段（本劇本不受影響）。
+- [ ] **`MonsterData` 補 `Faction` 的副作用**：17/18/19 填 Werewolf、35/36 填 Vampire 後，在競技場等其他地圖它們與一般 Enemy 怪「刻意互不敵對」（FACTION §2）——若之後要混擺要知道這點。
+- [ ] 檔名不一致：編輯器 `BloodFang_InitialScene.dipanmap` 內部 `name` 為 `BloodFang_InitialScene2`，主遊戲 StreamingAssets 同時有 `InitialScene.dipanmap` 與 `InitialScene2.dipanmap`（MapsTable 走 Path 所以不影響，但該清一次）。
+- [ ] **`ChoicePanel` 美術暫借**：背板與按鈕借 `ConfirmPopup` 的 `PopupPanelBG`／`LongBtn`，版面常數在檔頭；作者給正式圖再換。
+- [ ] **trigger 通用 `next` 欄沒有「選」按鈕**（NPC 的接續有）：`isTriggerRef` 已做好，要的話在 `TriggerType.cs` 的通用欄 `next` 加 `isTriggerRef = true` 即可（沒順手改，免得動到既有行為）。
+- [ ] **演出 `camera` 有座標時 zoom 無效**（`MapCameraController` 第 154 行：有焦點就強制 zoom 1）：血狂之爭和談演出因此只平移不推近；要推近得改那一行的優先序（會影響所有演出，先問作者）。
+- [ ] **血族玩家走血族線，結局給的是 1 階血族藥劑**（他本來就是血族、一世一次不可逆 ⇒ 喝不了）：照作者口述實作，是否改成給進階藥劑或別的獎勵待作者決定。狂族同理。
+- [ ] **同伴首領沒有自己的招式**：AllyBrain 只會貼上去揮（接觸傷害 0）；要有施法／躍擊表演得另寫，或等 T8 頭目 Brain 做好後讓同伴版也能用（需讓 Brain 支援「無殺傷力模式」）。
+- [ ] **DramaTable 44／45 舊用途已改**：原「逃向西側／東側」改成「偷襲」，群組 41／42 少一句（ID 68、71 已刪除）。
+- [x] ~~迎賓大廳回程的南門／北門進圖時會閃一下~~ → 2026-10-15 劇情圖所有傳送點改成初始停用、由劇情開門，已不會閃。
+

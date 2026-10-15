@@ -170,7 +170,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 11.3742142,
-            "markerY": -4.49056673
+            "markerY": -4.49056673,
+            "startDisabled": true
           }
         },
         {
@@ -194,7 +195,8 @@
             "showMarker": true,
             "linkedFx": "",
             "markerX": 11.5051775,
-            "markerY": -17.4721622
+            "markerY": -17.4721622,
+            "startDisabled": true
           }
         },
         {
@@ -241,8 +243,19 @@
             "spawnInterval": "",
             "maxAlive": "",
             "maxWaves": "",
-            "waveGroup": "",
-            "nextWhen": ""
+            "waveGroup": "清場",
+            "nextWhen": "",
+            "next": "開前門"
+          }
+        },
+        {
+          "id": "045f8138",
+          "name": "開前門",
+          "typeId": "togglePortal",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": true
           }
         },
         {
@@ -273,7 +286,7 @@
             "spawnInterval": "",
             "maxAlive": "",
             "maxWaves": "",
-            "waveGroup": "",
+            "waveGroup": "清場",
             "nextWhen": ""
           }
         },
@@ -313,7 +326,7 @@
             "spawnInterval": "",
             "maxAlive": "",
             "maxWaves": "",
-            "waveGroup": "",
+            "waveGroup": "清場",
             "nextWhen": ""
           }
         }
