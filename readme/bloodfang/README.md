@@ -1,6 +1,6 @@
 # 血狂之爭（BloodFang）劇本 — AI 接手指引（總覽）
 
-> 返回 [文件總覽](../README.md)｜本資料夾：**README（本檔）**／[SCRIPT.md](SCRIPT.md) 劇本事件表／[GAP.md](GAP.md) 缺口分析與功能規格／[TASKS.md](TASKS.md) 分批任務單
+> 返回 [文件總覽](../README.md)｜**通用做法已萃取到 [SCRIPTING_GUIDE.md](../SCRIPTING_GUIDE.md)（工具在 `tools/scripting/`），本資料夾是第一個實例**｜本資料夾：**README（本檔）**／[SCRIPT.md](SCRIPT.md) 劇本事件表／[GAP.md](GAP.md) 缺口分析與功能規格／[TASKS.md](TASKS.md) 分批任務單
 >
 > **狀態：📋 規劃完成（2026-10-15，Claude Fable 擬定）→ ☑ T0 查證完成、Q1–Q13 拍板、依作者補充需求修訂（2026-10-15）→ ✅ T1、T2、T2b 交付待測（2026-10-15）／⏳ T3 起未動工。** 接手的 AI 從本檔開始讀，照 [TASKS.md](TASKS.md) 的順序做。
 

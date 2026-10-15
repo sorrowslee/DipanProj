@@ -61,6 +61,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 加**飛行怪**（蝙蝠、鴉…）、或任何「一直在空中」的角色 | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§12**——飛行＝**地面點＋高度**（`IAirborneVisual`，transform 被抬高、影子與排序扣回地面）；**不能用 `MonsterActuator`／A***（它拿被抬高的 transform 查格子）；擋路只看牆（`MapNavGrid.IsFlyableWorld`）；姿勢要 `BrainPoseActive` 接管，否則懸停會被切成 idle（＝半空中坐著）；接觸傷害要關 |
 | 加「會射東西的遠程怪」時**放彈時機不對** | [readme/BOSS_MODULE.md](readme/BOSS_MODULE.md) **§8.2b** ＋ CSV `ReleaseFrame` 欄——放彈幀是**那套 attack 序列圖的性質**，逐怪量、填進 CSV（留空＝14），不要去改 `ArcherBrain` 的共用常數 |
 | 放/改 NPC、NPC 對話/開介面、未來護送 | [readme/NPC_SYSTEM.md](readme/NPC_SYSTEM.md)（NpcTable 分表、圖沿用 Monsters/SequenceImage 角色圖庫；編輯器與主遊戲的 NpcInstance 是鏡像） |
+| **做劇本**（把口述流程做成關卡：觸發鏈、旗標、演出、出生點、傳送門、分流）| [readme/SCRIPTING_GUIDE.md](readme/SCRIPTING_GUIDE.md)——AI 直接編 `.dipanmap`，改完**一定跑 `tools/scripting/validate_map.py <模組>`**；劇本地圖的傳送門一律「初始停用、劇情開門」 |
 | 陣營/多方互打劇本、動「誰能傷誰」 | [readme/FACTION.md](readme/FACTION.md)（規則單一真相＝`FactionRelations.cs`：敵對/傷害乘數/切層都只改它；擺劇本照 §3 一條龍） |
 | 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |
 | 發光／亮度／光圈／環境亮度 | [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)＋[readme/SCENE_EFFECT.md](readme/SCENE_EFFECT.md)（同框 12 盞上限寫死在兩處） |
