@@ -2,7 +2,7 @@
 
 > 返回 [文件總覽](README.md)｜怪物量產見 [MONSTER_SETUP.md](MONSTER_SETUP.md)｜武器/配方見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)｜傷害結算見 [COMBAT.md](COMBAT.md)｜劇情分支見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7
 >
-> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** ✅ **射手型 `ArcherBrain` ＋ 怪物投射武器管線 `WeaponCastService`**（2026-09-17，見 §8）程式完成、⏳未編譯未實測。** ✅ **跳躍踐踏型 `LeapSlamBrain` ＋ 程序化裂地 shader**（2026-09-18，見 §9）與 **近戰追擊 `MeleeChaseBrain`（攻擊動作要做完才能再移動，見 §10）** 程式完成、⏳未編譯未實測。** ✅ **飛行型 `FlyingBrain`＋蝙蝠 `BatBrain`**（2026-10-11，見 §12）程式完成、⏳未編譯未實測。** ✅ **血霧型 `BloodMistBrain`（菁英血衛士：遠了被紅霧吞沒化成無敵血霧追、貼身吹散紅霧現身揮刀）**（2026-10-13，見 §13）程式完成、⏳未編譯未實測。待實機微調。投射型武器供怪物使用：**`Normal` 直飛彈已打通**，其餘模式（雷射/拋物線/落雷…）仍待搬進 WeaponCastService。
+> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** ✅ **射手型 `ArcherBrain` ＋ 怪物投射武器管線 `WeaponCastService`**（2026-09-17，見 §8）程式完成、⏳未編譯未實測。** ✅ **跳躍踐踏型 `LeapSlamBrain` ＋ 程序化裂地 shader**（2026-09-18，見 §9）與 **近戰追擊 `MeleeChaseBrain`（攻擊動作要做完才能再移動，見 §10）** 程式完成、⏳未編譯未實測。** ✅ **飛行型 `FlyingBrain`＋蝙蝠 `BatBrain`**（2026-10-11，見 §12）程式完成、⏳未編譯未實測。** ✅ **血霧型 `BloodMistBrain`（菁英血衛士：遠了被紅霧吞沒化成無敵血霧追、貼身吹散紅霧現身揮刀）**（2026-10-13，見 §13）程式完成、⏳未編譯未實測。待實機微調。** ✅ **夏綠蒂公爵 `DukeCharlotteBrain`（血族頭目：慢走＋原地旋轉 8 方向血球＋會跳出畫面的跳躍砸地；50% 起每 10% 一次旋轉衝刺撞牆反彈大絕）**（2026-10-26，見 §14）程式完成、⏳未編譯未實測。投射型武器供怪物使用：**`Normal` 直飛彈已打通**，其餘模式（雷射/拋物線/落雷…）仍待搬進 WeaponCastService。
 
 「一隻強怪＝一個 Brain 模組」。第一個範例是紅嫁衣女殭屍。未來每隻 boss 都新增一個自己的 Brain 類別，其它系統不動。
 
@@ -515,6 +515,8 @@ BrainType 填 `Pounce` 即可。
 **刻意留在呼叫端、沒有一起抽進來的**（它們屬於「誰在射」而不是「怎麼射」）：瞄準與出手點、耗魔／集氣／連擊／能力珠、
 以及**命中之後的效果鏈**。硬把玩家的命中鏈搬進服務，會把 `TryTriggerSubWeapon`／`TryTriggerGroundEffect` 整串
 玩家專屬狀態一起拖過來，服務就變成第二個 `PlayerController`。
+
+> **出手點（2026-10-26）**：單發／窄扇形從「朝目標的身體框外緣」出手；**環狀爆發**（`SplitTiming=OnSpawn` 且 `SpreadAngle ≥ 180`）改從**身體中心**出手，否則整圈會偏到怪的前方（夏綠蒂公爵體型 2 時偏約 2.8 單位，見 [PROBLEMS.md](PROBLEMS.md) **F39**）。
 
 **目前只搬了 `Normal`（直飛彈）**，所以怪物能用的投射武器也只有 Normal——但分裂／反彈／追蹤／平行／穿透／軌跡
 這些配方欄位對怪物**全部有效**，因為那是同一份彈道程式。
@@ -1419,3 +1421,214 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 - [ ] **骨牢（定身）在霧態抓到牠會怎樣沒驗證**：Brain 被停住的話會一直是霧＋無敵。必要時 CSV `Controllable` 填 0。
 - [ ] **霧態不會被陣營切層影響**：若在霧態中被 `joinFaction` 改層，現身時會還原成化霧前的層。目前沒有這種劇本。
 - 🔧 手感對不上時開 `BloodMistBrain.DebugLog = true`（每次化霧／現身印邊緣距離與霧態秒數）；揮刀細節開 `MeleeChaseBrain.DebugLog`。
+
+---
+
+## 14. 夏綠蒂公爵（血族頭目）— `DukeCharlotteBrain`：慢走＋原地旋轉 8 方向血球＋跳躍砸地；50% 起每 10% 一次「血舞迴旋」
+
+> **狀態：✅ 程式完成（2026-10-26），作者已在競技場看過第一版並回饋一輪（同日改：旋轉變小、跳躍追蹤、擊退、大絕血球反彈），⏳ 第二版未實測。**
+> 怪物 **44「Duke Charlotte」**（BloodFang，競技場測試用），`BrainType=DukeCharlotte`、`Weapon=73`。
+> **2026-10-26 起取代血狂之爭的血族首領「緋夜」**：MonsterData **39／41**（首領戰／雙首領版）、**42**（同伴）、和談大廳演員 `vampLeader`、對話講者與頭像都換成夏綠蒂公爵（見 §14.8）。NPC 種類 9（NpcTable）。
+> 素材：`Modules/BloodFang/Monsters/SequenceImage/Duke Charlotte/idle｜walk｜attack｜jumpStart｜jumpLanding`（全部 512×512，F28 那關沒問題）。
+
+### 14.1 一般狀態（優先序：大絕 ＞ 跳躍 ＞ 旋轉 ＞ 走路）
+
+| 招 | 什麼時候 | 做什麼 |
+|---|---|---|
+| 走近 | 目標 > `StopDistance`(2.5) | CSV `Speed` **1.6**（作者：「速度算是挺慢的」）。她不是貼身型，太近不往前擠（貼臉時 8 方向會從玩家兩側擦過） |
+| 原地旋轉射擊 | 冷卻到（轉完後隨機 2.5~4 秒）＋目標在 `ShootRange`（CSV，**8**）內＋武器 `Ready` | attack（25 幀＝轉一圈）播一輪 one-shot，在 CSV **`ReleaseFrame`(13)** 那一幀 `TryUse` 一次 ⇒ 配方在出手瞬間分裂成 8 顆 |
+| 跳躍砸地 | 冷卻到（開戰 5 秒後；之後每次隨機 8~12 秒，＝「偶爾」）＋目標距離 2.5~6.5 | 見 §14.3 |
+
+- **只有手上沒動作時才決策**：蹲下去了就一定跳完、轉了就一定射完（§8／§9.3 的鐵則）。大絕也只在這時才檢查，所以跳到一半掉過門檻，會等落地起身後才開大絕。
+- **借用的 CSV 欄**：`ReleaseFrame`（射手的放彈幀＝這裡的旋轉放彈幀）、`ShootRange`（射手的行為射程＝這裡的旋轉射擊距離）。語意相同，沒有另開欄。
+- `BrainControlsAttackPose = true`：不設的話目標進 `AttackRange` 就會被 `HandleVisuals` 自動循環播旋轉＝**邊走邊轉**，那是大絕的樣子。
+- ⚠ **`AttackScale` 要填 1.1**（2026-10-26 作者回報「旋轉時明顯變小」）：自動對齊會把各動作的**可見高**拉成跟 idle 一樣，而旋轉時手和帽子往上揚，
+  可見高 373px vs idle 339px ⇒ 被縮成 0.91 倍。填 373÷339 ≈ 1.10 抵銷（同 PROBLEMS **G12／G14** 的機制：**動作本身改變了輪廓高度，自動對齊就會猜錯**）。
+- **擊退**：`KnockbackThreshold 40`／`KnockbackPercent 8`（原本 10／50，作者回報「太容易被擊退」）。⚠ 門檻是**累積傷害**（每累積到門檻就退一次、歸零），
+  不是單次傷害；距離是**整張畫布寬**的 %，512px 畫布 × 體型 2 的 50% ≈ 3 單位一次。現在 ≈ 0.47 單位、每 40 點傷害一次（HP 400 ⇒ 約每 10% 血一次）。
+
+### 14.2 8 方向血球是「配方」做的，不是程式
+
+- **配方 88**：`SpreadCount 8`／`SpreadAngle 315`／`SplitTiming OnSpawn`；傷害 6（武器 73）、速度 6、半徑 **0.55**（＝可見球半徑，見 PROBLEMS **F40**）、壽命 4、`FireInterval 1`（只是下限，節奏由 Brain 控）。
+- ⚠ **不能填 360**：`SplitBehavior` 的間隔是「角度 ÷ (顆數−1)」，360 時第一顆與最後一顆重疊 ⇒ 只看得到 7 個方向。**全周均分一律填 `360 − 360/N`**（8 顆＝315，泰坦「山崩地裂」配方 65 早就這樣填；見 RECIPE_DESCRIBE 的 `SpreadAngle`）。
+- 以「朝目標」為軸對稱展開 ⇒ **8 顆時沒有一顆正對玩家**（玩家站在兩顆中間）。要讓一顆正對得讓 `MonsterWeaponUser.TryUse` 吃角度偏移，作者還沒決定，沒做（TODO）。
+- **出手點＝身體中心**：`MonsterWeaponUser` 對「環狀爆發」改從中心出手（§8.4、PROBLEMS **F39**）。
+- **大絕用另一把：武器 74／配方 89**＝同一種血球，**撞牆反彈 2 次**（`BounceTarget=Environment`、`MaxBounces 2`、壽命 6；作者 2026-10-26 追加）。
+  CSV 的 `Weapon` 欄一隻怪只能填一把，所以這把由 Brain 自己再掛一個 `MonsterWeaponUser`（`DukeCharlotteBrain.UltWeaponId`；`MonsterController.WeaponUser` 用 `GetComponent` 取第一個，而它在 Initialize 就先掛好了，第二個不會被誤認成主武器）。
+  分裂出的 8 顆繼承母彈的反彈設定（`SubRecipeID` 留空＝繼承自身但不再分裂）——**待實測確認**。
+- **外觀＝`bloodMagicOrb`**（作者 2026-10-26 從四個候選選 B）：編輯器 `Effects/Super Pixel Projectiles Pack 3/pj3_magic_orb/red` 的 32 幀，**最近鄰放大 ×4**（32→128px，同掌心雷 64×48→256×192 的做法）複製進 `Resources/Weapon/animation/bloodMagicOrb/`、檔名改兩位數 `_01`~`_32`（`WeaponManager` 組路徑用 `D2`），`.meta` 照 bloodFireOrb（Sprite／Point／PPU 100）。武器 73／74：`AnimFPS 20`、`BulletScale` **12**（2026-10-26 作者要求放大一倍；⚠ 子彈判定半徑是配方 `Radius`、不吃 `BulletScale`，所以配方 88／89 的 `Radius` 要照**可見大小**另外算——一度照比例 0.6→1.2，結果還沒碰到牆就反彈（PROBLEMS **F40**），改成 0.55）、`SpriteAngleOffset` 留空（圓球不轉向）、擊中仍是 Vfx 58「血火爆」。
+
+### 14.3 跳躍：兩個資料夾、六段
+
+量幀（2026-10-26，每幀不透明像素的上／下緣，px，畫布 512）：
+
+| 動作 | 幀 | 意義 |
+|---|---|---|
+| jumpStart | 1~4 | 站立 |
+| | 5~13 | 下蹲蓄力（底邊 433→440、頂邊 91→139） |
+| | 14 | 起身離地 |
+| | 15~25 | 向上伸展（底邊 425~428，**素材本身幾乎沒往上移**——離地高度全靠程式） |
+| jumpLanding | 1~4 | **從畫面外掉進來，頂邊＝0 ⇒ 頭超出畫布被切掉**（底邊 285→349） |
+| | 5 | 將觸地（全身可見） |
+| | 6 | 觸地 |
+| | 7 | 壓到最扁 |
+| | 8~25 | 回彈、站起 |
+
+| 段 | 播什麼 | 高度 | 長度（AnimFPS 14） |
+|---|---|---|---|
+| 蓄力 | jumpStart 1~13 | 0 | 0.93s（玩家的預告窗口） |
+| 上升 | jumpStart 14~25 | 0 → 頂點（sin，接近頂點趨緩） | 0.86s |
+| 下墜 | jumpLanding **1~4**（切頭） | 頂點 → 「第 4 幀切邊剛好在鏡頭外」（越掉越快） | 4 ÷ AnimFPS ＝ 0.29s |
+| 砸落 | jumpLanding 5 | → 0（越掉越快） | `SlamSeconds` 0.12s |
+| 觸地 | jumpLanding 6 | 落地結算：裂地／傷害圈／定格／揚塵 | 瞬間 |
+| 起身 | jumpLanding 6~25 | 0 | 1.43s ＋ 停 `LandHoldSeconds` 0.4s |
+
+⭐ **切頭幀怎麼處理（作者 2026-10-26 拍板）**：照播，但讓她跳得夠高，**那條切邊一直待在鏡頭上緣以外**——玩家只看得到從畫面頂端垂下來的下半身。
+實作是 `CutFloorHeight(幀, 落點y)`：拿**那一幀真正的 Sprite** 算畫布上緣（`(rect.height − pivot.y) ÷ PPU × 體型`），
+要求 `transform.y + 上緣 ≥ 鏡頭上緣 + CutMargin(0.5)`，反推出那一幀的最低抬升量。下墜段每一幀都 `max` 一次，**用的是即時鏡頭位置**，
+所以她站在畫面哪裡、鏡頭在不在動都不會穿幫。頂點＝`max(3 個身高, 第 1 幀需求 + 0.3)` ⇒ 大多數情況她會整個跳出畫面上緣。
+
+- ⚠ 為什麼一定要拿 Sprite 算、不能用量表：**腳底對齊是逐幀補 pivot 的**（`MonsterSpriteLibrary.GetFrames`），每一幀的「畫布上緣離 transform 多高」都不一樣。
+  也因為逐幀對齊，素材自帶的下落（底邊 285→432）會被抵銷——**下落完全由程式高度演**，這反而讓高度可控。
+- ⚠ 下墜拆成三個 one-shot（1~4／5／6~25）是為了**各自控長度**：`PlayOneShot` 只吃一個倍率。
+- 砸落那 0.12 秒要從「切邊在鏡頭外」直接掉到地面，畫面上是一記很快的垂直砸落（殘影會補出軌跡）。若覺得像瞬移，調大 `SlamSeconds`。
+- ⭐ **落點在離地那一刻鎖定**（作者 2026-10-26，改了兩版才定）：
+  | 版本 | 什麼時候鎖 | 作者回饋 |
+  |---|---|---|
+  | v1 | 開始蹲下（`BeginLeap`） | 「我已經離開該點很久了，他還是跳那個位置」——蓄力 0.93 秒＋上升 0.86 秒都白預告了 |
+  | v2 | 一路追到開始下墜 | 「太難躲」——只剩 0.4 秒 |
+  | **v3（現行）** | **蓄力期間持續看目標，jumpStart 第 14 幀離地時記下位置**，上升與下墜都不再改 | 起跳後約 1.3 秒的閃避窗口 |
+
+  實作：`TrackLeapTarget` 只在蓄力段每幀呼叫（最遠離起跳點 `LeapTrackRangeMax` 9），離開蓄力段那一幀就是最後一次。
+  影子在上升與下墜時滑向這個固定落點，是玩家判斷要往哪閃的線索。
+- 沿用皇家衛士（§9）：落點規則 `LeapSlamBrain.ResolveLanding`（**2026-10-26 改成 `internal static` 共用**，皇家衛士行為不變）、
+  F19 不可中斷、半徑隨體型（F29：`LeapRadius` 1.1 × Scale 2 ＝ 2.2）、裂痕 × 1.47、定格 0.06 秒、下墜殘影、揚塵 41、視覺對腳底／判定對 transform。
+- 與皇家衛士不同：**會重複跳**。裂痕停 12.7 秒，連跳時畫面上最多同時兩片（§9.5 提醒過的 overdraw，目前量級可接受）。
+
+### 14.4 大絕「血舞迴旋」
+
+**門檻**：`UltThresholds = 0.5 / 0.4 / 0.3 / 0.2 / 0.1`，`≤` 就觸發。兩條規則（作者 2026-10-26）都是同一支 `SkipCrossedThresholds`，**開招與收招各跑一次**：
+
+| 情況 | 結果 |
+|---|---|
+| 一口氣從 50% 打到 20% | 只放 **20% 那一次**，不補 40／30 |
+| 50% 那次大絕進行中被打到 38% | **40% 那次作廢**，下一次是 30% |
+| 生成時血量已低於某些門檻（劇情半血登場） | 那些門檻視同用掉，不會一登場就連放 |
+
+**動作**：
+- `BrainPoseActive` ＋ `BrainPose = Attack` ⇒ 旋轉動畫由 `HandleVisuals` 循環播；移動由 Brain 每幀直接給 `rb.velocity`。
+- 速度＝CSV `Speed` × **3**；開招方向＝朝目標。
+- **撞牆反彈**：每幀探測前方 `UltProbe`(0.35) 是不是尋徑格的不可走格（含家具膨脹）——**撞到哪個軸就翻哪個軸**（鏡面反射，＝彈道打在牆上的反射）；
+  兩軸單獨都通、斜著卻撞上（打在凸角）⇒ 兩軸都翻、原路彈回；人已經在不可走格上（被擠進淨空）⇒ 改朝目標走脫困，避免四面都擋原地抖。
+- 每 **3 秒**射一輪 8 方向（第一輪在開招 0.5 秒）；**10 秒**後停下 → 站 1 秒（玩家的輸出窗口）→ 回一般狀態（旋轉冷卻 +1 秒、跳躍至少 3 秒後）。
+- **霸體**：`SuppressKnockbackInterrupt` ＋ 每幀覆寫 `rb.velocity`（擊退的位移一起壓掉）。接觸傷害照常——**撞到玩家會痛**。
+- ⚠ 反彈看的是 transform（畫布中心≈她的身體中心），與尋徑一致；腳底在中心下方約半個身高，撞**下方**的牆時腳會先進牆一點。
+  俯視角下可接受；要改就在探測時往下補 `FeetWorldPos` 與 transform 的差。
+
+### 14.5 動到的共用元件（全部是加法，既有怪零變化）
+
+| 元件 | 改了什麼 |
+|---|---|
+| `MonsterAnimator` | `State` 尾端加 `JumpStart`、`JumpLanding`（照 MONSTER_SETUP 的固定五處）；新增唯讀 `FrameSprite(state, 幀)` |
+| `MonsterSpriteLibrary` | `PreloadStates` 加兩個動作名 |
+| `LeapSlamBrain` | `ResolveLanding`（多一個 `minLeapDist` 參數，預設＝原值）與 `Nearest` 改 `internal static` |
+| `MonsterWeaponUser` | 環狀爆發從身體中心出手（§8.4／F39）；現有怪物武器 14／33／34／49 都不符合條件 |
+| `MonsterController` | `switch` 加 `case "DukeCharlotte"`（`IsBoss = true`） |
+
+### 14.6 手感調整位置
+
+| 想調 | 改哪 |
+|---|---|
+| 血量、走路速度、接觸傷害、體型、動畫節奏 | `MonsterData.csv` 44 列（HP 400／Speed 1.6／ContactDamage 12／Scale 2／AnimFPS 14） |
+| 旋轉射擊的距離／放彈幀 | CSV `ShootRange`／`ReleaseFrame`；間隔在 `DukeCharlotteBrain` 的 `SpinCooldownMin/Max` |
+| 血球數量、角度、速度、傷害 | RecipeTable 88（`SpreadCount`／`SpreadAngle`＝360−360/N／`Speed`）、WeaponTable 73（`Damage`）；大絕那把是 89／74（多了 `MaxBounces`） |
+| 被擊退的難易 | CSV `KnockbackThreshold`（累積傷害門檻，40）／`KnockbackPercent`（畫布寬 %，8） |
+| 跳躍落點記錄時的最遠距離 | `LeapTrackRangeMax`(9)；鎖定時機＝離地（`TakeoffFrame` 14） |
+| 跳躍頻率與距離 | `LeapCooldownMin/Max`、`LeapRangeMin/Max` |
+| 踐踏範圍／傷害 | CSV `LeapRadius`（1.1，×Scale）／`LeapDamage`（留空＝接觸傷害×2） |
+| 跳多高、砸多快 | `HopHeightInBodies`(3)、`SlamSeconds`(0.12)、`FallFpsMul` |
+| 大絕門檻、長度、速度、射擊間隔 | `UltThresholds`、`UltDuration`(10)、`UltSpeedMul`(3)、`UltFireInterval`(3) |
+
+🔧 開 `DukeCharlotteBrain.DebugLog = true`：每次旋轉、起跳（距離／頂點高／各段時間）、落地、反彈、大絕的開與收（含下一個門檻）都會印出來。
+
+### 14.7 待辦 / 已知限制
+
+見 [TODO.md](TODO.md)〈夏綠蒂公爵〉。
+
+### 14.8 取代血狂之爭的「緋夜」（2026-10-26）
+
+| 哪裡 | 換成什麼 |
+|---|---|
+| MonsterData 39／41（首領戰／雙首領版） | `Duke Charlotte`、`BrainType=DukeCharlotte`、武器 73、數值比照 44（**HP 維持 200／120**、掉落表維持 1／3、喊話句子維持） |
+| MonsterData 42（同伴） | 外觀換成公爵（Scale 2、AnimFPS 14、AttackScale 1.1）。行為＝**`CompanionBrain`＋`CompanionStyle=Spin`**（2026-10-26：交戰時原地旋轉、每 2 秒對身邊所有敵人各 1 傷害，見 §15） |
+| MainLobby 四段演出的演員 `vampLeader` | `spriteFolder=Duke Charlotte`、`scale 2.95`（＝1.95 ÷ (idle 可見高 339 ÷ 256) × 2，SCRIPTING_GUIDE 的演員大小公式）、`animFps 14` |
+| MainLobby 演出的起始站位（2026-10-26 作者指定） | 兩位首領從桌邊（14.0／17.0, −14.4）拉開到大廳左右兩側、各自靠近自己族人、隔著大廳對望：`vampLeader` **(8.7, −13.4)** 面右、`wolfLeader` **(22.3, −13.4)** 面左（四段演出的起始位置一起改，接續的離場走位不變） |
+| DramaTalkTable 18 句 | 講者 `血族首領・緋夜` → `夏綠蒂公爵`；頭像 `VampireSoldier_*` → `Duke_Charlotte_normal`，78「區區……一個外人」與 94～96（駐紮地被攻陷、求生路、走右邊）用 `anger`、106「呵呵呵」用 `laugh` |
+| 對話立繪大小 | ✅ **2026-10-26 作者確認**：`PortraitTable.csv` 三張 `Duke_Charlotte_*` ＝ `Scale 1.3`／`OffsetY −150`（先在競技場 DramaTalkTable 40／41 用逐句欄調好，之後逐句欄整個刪除、搬進 PortraitTable，並把 PortraitTable 接上 MainScene）。她是**全身像**（寬裙擺畫到腳），自動對齊把整個人正規化成標準高度 ⇒ 上半身比腰部截圖的角色小很多。放大後往下沉，頂端 ≈ 1050，仍在 1080 內 |
+| DropTable 3 | 名稱文字 |
+
+台詞內容沒改（原本就沒有稱呼「緋夜」的句子）。規劃中的 `VampireLordBrain`（bloodfang GAP §9.2／TASKS T8b）因此暫停，見那兩份的註記。
+
+---
+
+## 15. 劇本同伴 — `CompanionBrain`：很弱、但看得出在並肩作戰（所有同伴共用）
+
+> **狀態：✅ 程式完成（2026-10-26），⏳ 未編譯、未實機驗證。** 使用者：血狂之爭的同伴 42（夏綠蒂，`Spin`）、43（狂族首領，近戰）。
+> 程式 `Scripts/AI/Behaviors/CompanionBrain.cs`（`CompanionBrain`＋`ICompanionAttack`＋兩種攻擊方式），由 `CompanionService.Summon` 換上。
+
+**作者的要求（2026-10-26）**：協作的 NPC 戰鬥力要很弱，但不至於完全沒傷害；不是一直在打——打一陣子、可能追上玩家或原地發呆一下、再繼續打。
+敵人本來就不會攻擊同伴（`IsCompanion`），所以同伴的表現**無足輕重，重點是看起來在幫忙**。
+夏綠蒂特別：她不是揮砍，是轉圈圈 ⇒ 傷害要擴到身邊所有敵人。之後做狂族首領的特殊招式也會遇到同樣的問題，所以**節奏與傷害共用、「怎麼打」可替換**。
+
+### 15.1 為什麼以前「只會轉圈、沒有傷害」
+
+同伴沿用玩家召喚物的 `AllyBrain`（貼上去、靠接觸傷害），而同伴列的 `ContactDamage` 是 0 ⇒ 永遠 0 傷害。
+轉圈圈是 `HandleVisuals` 的「距離 ≤ `AttackRange` 就自動循環播 attack」——**純動畫**，和傷害無關。
+（夏綠蒂的 attack 是旋轉，所以看起來像一直在放招。）
+
+### 15.2 節奏（所有同伴共用）：排班制，**發呆 4：作戰 6，不跟隨玩家**
+
+每一段做完就**按權重抽下一段**（`PickNext`）：有敵人（20 單位內）時發呆 4：作戰 6（模擬時間比 3.6 : 6.4，作戰段稍長、含走過去的時間）；
+沒有敵人時全部發呆（站在原地，**不會走回玩家身邊**）。
+
+| 段落 | 長度 | 做什麼 |
+|---|---|---|
+| 發呆 | 2~3.5 秒 | 原地站著 |
+| 作戰 | 2.5~4 秒 | 走向最近的敵人、用自己的攻擊方式打；打的對象沒了且附近沒別的 ⇒ 提早換下一段 |
+| 跟隨 | 2~3.5 秒 | **權重 0，目前不會被抽到**（程式保留） |
+| 牽繩 | — | **關閉**（`LeashRange 0`）。換圖時 `MapManager.RepositionPlayerAllies` 會把同伴移到玩家新落點，不跟隨也不會被留在上一張圖 |
+
+演進（都是 2026-10-26 作者實機回饋）：
+1. 第一版「發呆時玩家一走開就跟上、發呆時間到才檢查要不要打」⇒ 玩家一直在移動時同伴幾乎都在跟隨——「比較像寵物，不像一起作戰的夥伴」。
+2. 改排班 3:3:4（含跟隨）。
+3. 作者：「協同的 NPC 跟玩家基本都在同一張地圖裡，他應該專注作戰就好」⇒ **4:6、不跟隨**，`AggroRange` 8→20（要自己找仗打）。
+
+調比例改 `WeightIdle／WeightFollow／WeightEngage`；要找回「跟上玩家」把 `WeightFollow` 改回非 0、`LeashRange` 改回 8。
+
+**傷害規則只有一份**：每次命中 **1**、兩次之間至少 **2 秒**（`CompanionBrain.HitDamage`／`HitInterval`），
+走 `CombatSystem.Apply`（陣營倍率、受擊閃白都照既有規則）。同伴列的 `ContactDamage` 維持 0。
+`BrainControlsAttackPose = true`：攻擊動畫由攻擊方式自己播，不再被「靠近就自動循環」接管。
+
+**朝向也由同伴自己決定**（`BrainFacing`，2026-10-26 作者回報「跟著玩家走時頭一直看著怪物」）：`MonsterController` 預設「有敵人就面向敵人、沒有才面向玩家」，那是給一直在打的怪用的；同伴大多數時間在跟隨／發呆，照預設就會**倒退著走回玩家身邊**。現在交戰＝看目標、跟隨／發呆＝看玩家（水平差 0.15 以內不轉身，免得在正上／正下方左右抖）。
+
+### 15.3 攻擊方式（MonsterData 表尾欄 `CompanionStyle`）
+
+| 值 | 類別 | 行為 |
+|---|---|---|
+| （空）／`Melee` | `MeleeCompanionAttack` | 走到可見身高一半（至少 1.4）的距離內，每 2 秒揮一次（attack one-shot），命中幀（`AttackHitFrame`，空＝張數×0.7）時打單一目標；揮的期間站定 |
+| `Spin` | `SpinCompanionAttack` | 走到半徑六成內 → **原地循環旋轉**（`BrainPose=Attack`），轉起來 0.6 秒後第一次、之後每 2 秒對**半徑內所有敵人**各打 1。半徑＝1.2 × 體型（F29；夏綠蒂 2.4），距離量到對方碰撞框邊緣。目標跑出整圈才停轉去追；轉的時候站定 |
+
+### 15.4 加一種新的攻擊方式（例：狂族首領的招式）
+
+1. 在 `CompanionBrain.cs` 新寫一個 `class XxxCompanionAttack : ICompanionAttack`（`EngageRange`／`Busy`／`HoldsPosition`／`Begin`／`Tick`／`End`）。
+   命中**一律**呼叫 `CompanionBrain.HitOne`／`HitAllAround`，間隔照 `CompanionBrain.HitInterval`——同伴的傷害規則不要各寫一份。
+2. `CompanionBrain.CreateAttack` 的 switch 加一個名字。
+3. 同伴那一列的 `CompanionStyle` 填那個名字。
+- `Busy`＝「不能中斷」（揮到一半，時間到也等它揮完）；`HoldsPosition`＝「這一刻站定」（揮刀中、旋轉中）。兩者分開是因為旋轉隨時可以收、但轉的時候不該邊走（那是大絕的樣子）。
+- 動畫可以用 one-shot（近戰）或 `BrainPoseActive`（循環，旋轉）；`End` 裡**一定要把自己開的姿勢關掉**。
+
+### 15.5 待辦 / 已知限制
+
+- [ ] **未編譯、未實機驗證**。實測看：交戰／發呆／跟隨的比例看起來像不像在幫忙；夏綠蒂旋轉半徑 2.4 是否合適（`SpinCompanionAttack.BaseRadius`）。
+- [ ] 同伴打死怪會照常觸發掉寶、波次清場（`清場` 群組），因為傷害走的是一般路徑——目前看起來是想要的。
+- 🔧 開 `CompanionBrain.DebugLog = true`：印狀態切換與每次造成的傷害／打到幾隻。

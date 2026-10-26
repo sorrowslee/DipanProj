@@ -4,6 +4,39 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **同伴節奏再改：發呆 4：作戰 6、不跟隨玩家（推翻上一條的 3:3:4，⏳ 未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §15.2）：作者：「協同 NPC 跟玩家都在同一張地圖，專注作戰就好」。`WeightFollow 0`、牽繩關閉、`AggroRange` 8→20；跟隨段程式保留。換圖仍由 `RepositionPlayerAllies` 帶過去。
+* [x] **同伴節奏改排班制：發呆 3：跟隨 3：作戰 4（⏳ 未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §15.2）：作者回報「太常跟隨、像寵物；攻擊與發呆都很少」。原因是第一版的發呆會被玩家移動打斷、只有發呆結束才會考慮作戰。改為每段做完按權重抽下一段（模擬 2.8：2.8：4.4），離玩家 > 8 才強制追回。<br>**通則**：要「比例」就直接用權重排班；用一串條件（誰打斷誰）去湊比例，比例會被最常成立的那個條件吃掉。
+* [x] **同伴朝向：跟隨／發呆看玩家、交戰才看敵人（⏳ 未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §15.2）：作者回報夏綠蒂跟著玩家走時臉一直朝著怪物。原因是 `MonsterController.Update` 的面向對象＝「敵人優先、沒有才玩家」；`CompanionBrain` 改為每幀依狀態寫 `BrainFacing`。<br>**通則**：Brain 改了「要去哪裡」時，也要問「該看哪裡」——移動與朝向在這個專案是兩條獨立的管線，預設朝向是為一直在打的怪設計的。
+* [x] **劇本同伴改用 `CompanionBrain`：很弱但有傷害、打一陣停一陣；夏綠蒂同伴原地旋轉打周圍（⏳ 未編譯未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §15）：
+  作者回報血族線的夏綠蒂同伴「只會轉圈圈、沒有實際傷害」。原因：同伴沿用玩家召喚物的 `AllyBrain`（靠接觸傷害），同伴列的 `ContactDamage` 是 0；轉圈是 `HandleVisuals` 靠近就自動循環的純動畫。<br>
+  做法：節奏（跟隨／發呆 1.5~4 秒／交戰 3~5 秒，離玩家 > 8 收手）與傷害（每 2 秒 1、走 `CombatSystem`）共用；「怎麼打」抽成 `ICompanionAttack`，MonsterData 新表尾欄 `CompanionStyle` 選（空＝近戰、`Spin`＝範圍旋轉）。`CompanionService.Summon` 生成後換腦，玩家召喚物照舊。<br>
+  **通則**：「一群角色都要同一種節奏、但每個出手方式不同」——把**節奏**與**出手方式**拆開，傷害規則只留一份在節奏那邊，出手方式只能呼叫它。之後新同伴只要寫出手方式。
+* [x] **PortraitTable 接線後第一輪實機調整：榕樹妖、邪佛（⏳ 待作者確認）**（2026-10-26，見 [DRAMA.md](DRAMA.md)〈固定微調〉）：榕樹妖兩張 1.1 倍、OffsetY −50→−10（下巴露出對話框雕飾）；邪佛 1.1→1.3（頭頂≈1071 貼齊畫面上緣），OffsetX −130→0。<br>**通則**：`TalkPanel` 會把立繪**外側緣夾在對話框外緣以內**，所以放大時多出來的寬度一律往畫面中央長；往外的 OffsetX 被夾限吃掉、等於沒填。要往中央推得超過夾限位置才看得到效果。
+* [x] **立繪微調只剩 PortraitTable 一個維護點：接上場景、刪除 DramaTalkTable 6 個逐句欄（⏳ 未實測）**（2026-10-26，見 [DRAMA.md](DRAMA.md)）：
+  作者要求「以後只要維護 PortraitTable」。盤點：逐句欄只有夏綠蒂 20 句在用、全在左側、值一致（1.3／−150）⇒ 搬成 PortraitTable 三列，沒有衝突。刪欄＝CSV 109 列去掉表尾 6 欄（逐列確認前 7 欄不變）＋`DramaTalkData` 欄位、`DramaTalkDatabase` 解析、`TalkPanel.SetAvatar` 的逐句參數一起拿掉；MainScene 的 `DramaTalkTableProvider.portraitCSV` 接上。<br>
+  **副作用**：PortraitTable 原有的 6 列（邪佛、樹臉、紅嫁衣、Girl）從此**第一次**生效，畫面會變，見 TODO。<br>
+  **通則**：同一件事有「依圖」與「依句」兩層設定時，資料自然會往比較好填的那一層流（這次全填在句子上），而另一層就沒人發現它壞了。只留一層，壞了才看得見。
+* [x] **夏綠蒂對話立繪：上一條寫進 PortraitTable 的放大其實沒生效，改用 DramaTalkTable 逐句欄位（先在競技場 40／41 試，⏳ 待作者確認）**（2026-10-26）：作者回報「還是很小」——查到 `PortraitTable.csv` 從沒拖進 MainScene 的 `DramaTalkTableProvider.portraitCSV`（DRAMA.md 寫「沒拖＝全部走自動對齊、不報錯」，所以一直沒人發現；邪佛那列也一樣無效）。撤掉夏綠蒂那三列以免日後接線時重複放大。<br>**通則**：改「選填、沒接也不報錯」的設定表之前，先確認它真的有被讀到——不然改了等於沒改，而且看不出來。
+* [x] **修：地圖編輯器看不到跨模組借來的 NPC／演員（⏳ 編輯器未重開驗證）**（2026-10-26，見 [PROBLEMS.md](PROBLEMS.md) **C16**）：Future_Arena 擺 BloodFang 的夏綠蒂，編輯器預覽只找「本 module＋Main」所以找不到；遊戲端走 catalog 不分模組所以正常。`PreviewSpriteLoader.FrameFiles` 補找其他 module（最後才找，既有預覽零變化）。
+* [x] **血狂之爭和談大廳：兩位首領拉開到大廳左右對望；夏綠蒂對話立繪放大；三句改 anger（⏳ 未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §14.8）：站位由作者截圖的紅框換算（兩首領間距 3 單位＝180px ⇒ 60px／單位、鏡頭中心 (15.5, −15.0)）。立繪變小的原因：TalkPanel 把每張立繪的不透明內容高正規化成 580，**全身像與半身像在同一個高度下，上半身大小會差很多**——用 PortraitTable 補，不改自動對齊。<br>**通則**：從截圖換算世界座標時，先找畫面裡兩個已知座標的東西量出「每單位幾像素」，比猜鏡頭大小可靠。
+* [x] **夏綠蒂公爵的血球換成 `bloodMagicOrb`（pj3_magic_orb 紅，⏳ 未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §14.2）：作者從四個候選選 B。32 幀最近鄰 ×4 匯入 `Resources/Weapon/animation/bloodMagicOrb/`（含 .meta），武器 73／74 換外觀；圓球的 `SpriteAngleOffset` 留空。
+* [x] **夏綠蒂公爵跳躍落點改成「離地那一刻鎖定」（推翻同日上一條的「追到下墜才鎖」，⏳ 未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §14.3）：
+  作者：「追到下墜才鎖太難躲；應該是準備起跳時記錄玩家位置往那裡跳，而不是時刻鎖定」。現在蓄力期間持續看目標、jumpStart 第 14 幀離地時記下位置，上升／下墜不再改 ⇒ 起跳後約 1.3 秒可閃。<br>
+  **通則**：「追蹤型」攻擊的公平性看**鎖定之後還剩多少時間**，而不是鎖不鎖——v1（剩 1.8 秒以上、但人站著不動才會中）與 v2（剩 0.4 秒）都不對，鎖在動作明顯的那一幀（離地）剛好。
+* [x] **夏綠蒂公爵第二輪（作者在競技場看過後）＋取代血狂之爭的「緋夜」（⏳ 未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §14、§14.8）：
+  競技場 Future_Arena 的測試 NPC 換成 NPC 種類 9（夏綠蒂公爵）。作者回報三點＋追加一點：<br>
+  **旋轉時變小**：自動對齊拉的是可見高，旋轉揚起手和帽子（373 vs idle 339px）⇒ 被縮 0.91 倍；`AttackScale 1.1` 抵銷。<br>
+  **跳躍沒追到人**：第一版照皇家衛士在起跳當下鎖落點，但公爵蓄力＋上升將近 1.8 秒 ⇒ 改成蓄力與上升期間每幀追、開始下墜才鎖。<br>
+  **太容易被擊退**：查程式才發現 `KnockbackThreshold` 是**累積傷害**門檻（文件寫成單次，已改正 ACTORS_AND_COMBAT），距離是整張畫布寬的 % ⇒ 大畫布＋大體型一次退 3 單位。改 40／8。<br>
+  **大絕血球反彈 2 次**：另開武器 74／配方 89，Brain 自己再掛一個 `MonsterWeaponUser`（CSV 一隻怪只能填一把）。<br>
+  **取代緋夜**：MonsterData 39／41／42、MainLobby 四段演出的演員、DramaTalkTable 18 句講者與頭像、DropTable 名稱；`validate_map.py BloodFang` 0 錯誤。bloodfang GAP §9.2／TASKS T8b 的 VampireLord 設計標為暫停。<br>
+  **通則**：① 「這隻怪的跳躍要不要追蹤」取決於**預告有多長**——預告短（皇家衛士 0.47 秒）鎖起跳點才公平，預告長（公爵 1.8 秒）不追就打不到人。② CSV 欄位的語意以程式為準，數值調不出手感時先讀它實際怎麼用。
+* [x] **血族頭目「夏綠蒂公爵」：慢走＋原地旋轉 8 方向血球＋跳出畫面再砸下來的跳躍＋50% 起每 10% 一次撞牆反彈大絕（⏳ 未編譯未實測）**（2026-10-26，見 [BOSS_MODULE.md](BOSS_MODULE.md) §14、[PROBLEMS.md](PROBLEMS.md) **F39**）：
+  新 `DukeCharlotteBrain`（`BrainType=DukeCharlotte`）＋MonsterData 44、WeaponTable 73、RecipeTable 88。8 方向是配方（`SpreadCount 8／SpreadAngle 315`），不是新程式。`MonsterAnimator` 加 `JumpStart`／`JumpLanding` 兩個狀態與 `FrameSprite`；`LeapSlamBrain` 的落點解析開放共用；`MonsterWeaponUser` 讓環狀爆發從身體中心出手。<br>
+  **量幀先於設計**：jumpStart 的 15~25 素材幾乎沒往上移（離地全靠程式）；jumpLanding 1~4 頂邊＝0、頭被畫布切掉。作者決定照播、讓切邊永遠在鏡頭外 ⇒ 每一幀用「那一幀 Sprite 的畫布上緣＋即時鏡頭位置」反推最低高度。不能用量表，因為腳底對齊是逐幀補 pivot 的。<br>
+  **審查攔下的坑**：怪物出手點在「朝目標的框外緣」，環狀爆發的圓心會被推到怪前方 2.8 單位（F39）；`SpreadAngle 360` 首尾重疊、要填 315。<br>
+  **大絕門檻**：「一次跨多格只放一次」與「大絕中跨過的作廢」（作者拍板）用同一支 `SkipCrossedThresholds`，開招、收招各跑一次。<br>
+  **通則**：素材的某幾幀有缺陷（被畫布切到）時，除了重出素材，還可以用**鏡頭**藏——前提是用即時的鏡頭與真正的 Sprite 幾何算，不要寫死高度。
 * [x] **劇本編排手冊＋工具：把血狂之爭的經驗萃取成通用做法**（2026-10-15，見 [SCRIPTING_GUIDE.md](SCRIPTING_GUIDE.md)）：作者看完血狂之爭後認為劇本編排可以整段交給 AI，要求把經驗寫成文件以便量產劇本。新增 `readme/SCRIPTING_GUIDE.md`（分工、流程、模式庫、資料落點、坑清單、協作）與 `tools/scripting/`：`dipan.py`（讀寫地圖保持格式、加觸發點、格子可走檢查、鏡像、演員大小自動算、資料表查詢）、`validate_map.py`（整個模組一次驗，含跨圖檢查）、`map_grid.py`（文字格子圖）。原本只放在 AI 工作機上的臨時腳本，下一個 AI 拿不到，所以搬進專案並通用化。用血狂之爭十張圖驗過：0 錯誤、8 個警告全是刻意的回頭門；另外故意塞錯（接續不存在、旗標未登記、入口拼錯、孤兒節點、走位到牆裡）確認全部抓得到。<br>**通則**：驗證器的每一條規則都對應一個真的踩過的坑（入口拼字、清場群組 nextWhen、初始停用＋條件旗標、clearLevel 塗格子、門初始停用卻沒人開）；之後再踩新坑，除了記 PROBLEMS，**能機械檢查的就加進 validate_map.py**。
 * [x] **血狂之爭和談大廳改演法：撤掉 0 傷害表演戰，改「敵族大軍真打、殺光守軍後追玩家」（⏳ 未編譯未實測）**（2026-10-15）：作者實測 0 傷害後兩邊隔很遠在揮、看起來很怪 ⇒ 改成選邊後敵族 12 隻湧入（血族線狂族 16|17 西側、狂族線血族 15|35 東側）對我方守軍 3 隻，互打全額傷害，守軍很快陣亡、敵軍轉追玩家，逼玩家往唯一開著的門跑。程式：`FactionRelations.ShowFightActive`→`FullTribeDamage`（不再擋「打玩家」），`factionWar` 加 `fullDamage` 勾選，刪 `factionShow` 型別（主遊戲＋編輯器兩處）。地圖 20：`表演開戰`→`實戰開戰`、四個出生點去掉「表演」字樣。
 * [x] **修：近戰招式不吃陣營傷害乘數（表演戰士兵被打光）／演員消失後頭上對話框還在（⏳ 未編譯未實測）**（2026-10-15，PROBLEMS **F38**）：`CombatSystem` 來源沒有 MonsterController 時改讀 `EnemyContactDamage.Faction`（揮擊／踐踏／咬擊／自爆都是另生 ImpactDamageArea 去打）；`MonsterSpeechPanel.Speak(Transform)` 的「還在不在」改成「沒被銷毀且 activeInHierarchy」，despawn 或略過快轉成消失時氣泡立刻收掉。

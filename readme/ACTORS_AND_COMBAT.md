@@ -83,7 +83,7 @@
 | 參數 | 說明 |
 |------|------|
 | `InvincibleTimeMs` | 受擊後無敵時間（毫秒），0 表示無無敵時間 |
-| `KnockbackThreshold` | 觸發擊退的最低傷害值，單次傷害 ≥ 此值才會擊退 |
+| `KnockbackThreshold` | 擊退門檻＝**累積傷害**：每次受擊把傷害累加，累積 ≥ 此值就擊退一次並歸零（`HitReactionHandler`）。⚠ 不是「單次傷害 ≥ 此值」——舊文件寫錯，2026-10-26 對照程式改正 |
 | `KnockbackPercent` | 擊退距離，以角色圖片世界寬度的百分比計算（例如 50 = 圖寬的 50%）。**玩家端會先除以 `WidthScaleCompensation`** |
 | `WidthScaleCompensation` | 擊退用的「圖寬」補償倍率（預設 1 = 不補償）。**玩家**由 `SetBloodline` 填入 `BodyScale` 除回去——不補償的話 1.5 倍體型的角色會被擊退 1.5 倍遠，血統體型就不再是純視覺了。**怪物不用管**：牠們的顯示大小本來就代表體型差異，大隻的被擊退得遠是合理的 |
 
@@ -95,7 +95,7 @@
 | CSV 欄位 | 說明 |
 |----------|------|
 | `InvincibleTimeMs` | 怪物受擊後的無敵時間（毫秒） |
-| `KnockbackThreshold` | 觸發怪物擊退的最低傷害值 |
+| `KnockbackThreshold` | 怪物擊退門檻（**累積傷害**，見上表） |
 | `KnockbackPercent` | 擊退距離（圖片世界寬度的 %） |
 
 ### 運作流程
@@ -103,7 +103,7 @@
 2. `HitReactionHandler.TryHitReaction()` 檢查是否在無敵中：若無敵則回傳 `false`，傷害被完全忽略。
 3. 若非無敵，同時啟動三個效果（各自獨立計時）：
    * **白光閃爍**（固定 3 次閃爍）
-   * **擊退位移**（若 `damage ≥ KnockbackThreshold` 且 `KnockbackPercent > 0`，沿受擊方向位移）
+   * **擊退位移**（若「累積傷害 ≥ `KnockbackThreshold`」且 `KnockbackPercent > 0`，沿受擊方向位移、累積歸零）
    * **無敵時間**（若 `InvincibleTimeMs > 0`，進入半透明無敵狀態）
 4. 擊退期間，怪物 AI 暫停移動決策，玩家輸入移動被忽略。
 

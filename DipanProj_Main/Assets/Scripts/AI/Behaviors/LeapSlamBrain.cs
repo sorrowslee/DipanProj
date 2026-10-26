@@ -415,11 +415,14 @@ public class LeapSlamBrain : IMonsterBrain
     /// <para>可達性走 <c>MapNavGrid.HasLineOfSight</c>——和 A* 同一份障礙圖（含家具膨脹），
     /// 與 actuator 的判定一致。**牆的另一側不該因為會跳就跳得過去**，那會破壞地圖的動線設計。</para>
     ///
+    /// <para>2026-10-26 改成 <c>internal static</c>：夏綠蒂公爵（<see cref="DukeCharlotteBrain"/>）共用同一套落點規則，
+    /// 不另抄一份（兩份會各自漂移）。<paramref name="minLeapDist"/> 留預設＝本 Brain 原本的行為，一個字都沒變。</para>
+    ///
     /// <para>⚠ 第一版只沿直線往回退，退到 0.2 都不通就回傳起跳點 ⇒ **原地跳**。
     /// 玩家站的格子對尋徑格來說常常是不可走的（家具膨脹了一圈），所以這個「退回原地」比想像中常發生，
     /// 是作者回報「準備跳但沒跳出去」的第二個來源。</para>
     /// </summary>
-    static Vector2 ResolveLanding(Vector2 from, Vector2 want, Vector2 goal)
+    internal static Vector2 ResolveLanding(Vector2 from, Vector2 want, Vector2 goal, float minLeapDist = MinLeapDist)
     {
         var nav = MapNavGrid.Instance;
         if (nav == null || !nav.Ready) return want;          // 沒有尋徑格（單場景測試）→ 直接用
@@ -440,7 +443,7 @@ public class LeapSlamBrain : IMonsterBrain
             for (float f = 1f; f >= 0.35f; f -= 0.15f)       // 由遠而近：同一個角度取跳得到的最遠處就好
             {
                 float len = maxDist * f;
-                if (len < MinLeapDist) break;
+                if (len < minLeapDist) break;
                 Vector2 p = from + dir * len;
                 if (!nav.HasLineOfSight(from, p)) continue;
                 float sq = ((Vector2)goal - p).sqrMagnitude;
@@ -458,7 +461,7 @@ public class LeapSlamBrain : IMonsterBrain
         return new Vector2(v.x * c - v.y * s, v.x * s + v.y * c);
     }
 
-    static Transform Nearest(Vector2 pos, Transform a, Transform b)
+    internal static Transform Nearest(Vector2 pos, Transform a, Transform b)
     {
         if (a == null) return b;
         if (b == null) return a;

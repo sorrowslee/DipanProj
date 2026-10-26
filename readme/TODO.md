@@ -920,3 +920,23 @@
 - [ ] **DramaTable 44／45 舊用途已改**：原「逃向西側／東側」改成「偷襲」，群組 41／42 少一句（ID 68、71 已刪除）。
 - [x] ~~迎賓大廳回程的南門／北門進圖時會閃一下~~ → 2026-10-15 劇情圖所有傳送點改成初始停用、由劇情開門，已不會閃。
 
+## 夏綠蒂公爵（2026-10-26，程式完成、⏳ 未編譯未實測）
+
+> 設計與調參見 [BOSS_MODULE.md](BOSS_MODULE.md) §14。
+
+- [ ] **先跑 `Project Tools → Sync Map Assets`**（新資料夾 `jumpStart／jumpLanding` 與 CSV 進 StreamingAssets），再跑 **`Project Tools → 角色 → 計算影子錨點`**（會多算 jumpStart／jumpLanding 兩組）。
+- [ ] **未編譯**：`DukeCharlotteBrain` 新檔、`MonsterAnimator`／`MonsterSpriteLibrary`／`LeapSlamBrain`／`MonsterWeaponUser`／`MonsterController` 都只做過語法檢查與逐行對 API。
+- [ ] **還沒放進任何地圖**：地圖編輯器放 `monsterSpawn` 填 **44** 實測。
+- [x] ~~血球外觀待作者選~~ → 2026-10-26 選 B（`pj3_magic_orb` 紅 → `bloodMagicOrb`）。大小（`BulletScale 12`／判定半徑 0.55，2026-10-26 放大一倍）與動畫節奏（`AnimFPS 20`，32 幀＝1.6 秒一輪、球會脹縮）待實測。
+- [x] ~~要不要取代 39／41「血族首領・緋夜」的替身~~ → 2026-10-26 已取代（含 42 同伴、和談演員、對話），見 BOSS_MODULE §14.8。
+- [ ] **大絕血球（配方 89）反彈 2 次待實測**：分裂出的 8 顆是否真的繼承母彈的反彈設定。
+- [ ] **同伴版（42）貼近敵人會循環旋轉**（Chase 不接管攻擊姿勢）：看起來像在放大絕的話，同伴列要另外處理。
+- [ ] **血狂之爭的首領戰數值**：39／41 沿用原本 HP 200／120，但行為換成公爵（會跳、會放大絕），難度要重新看。
+- [ ] **8 顆沒有一顆正對玩家**（以朝目標為軸對稱）；要的話得讓 `MonsterWeaponUser.TryUse` 吃角度偏移。
+- [ ] **實測重點**：① 跳出畫面＋切頭幀有沒有穿幫（地圖邊緣鏡頭被夾住時也看一次）；② 砸落 0.12 秒會不會像瞬移；③ 大絕撞牆反彈在家具多的房間會不會卡在角落來回抖；④ 落地踐踏 2.2 半徑是否太大。
+- [ ] **數值全是起手估值**：HP 400、Speed 1.6、Scale 2、AnimFPS 14、接觸 12、血球 6／顆、速度 6、`LeapRadius` 1.1。
+- [ ] **鏡頭不是正交時**（目前全專案都是正交）切頭保護不作用（`CutFloorHeight` 回 0）。
+- [ ] `DisplayName` 直接寫中文（同 MonsterData 既有慣例，未走 LanguageTable）。
+- [x] ~~夏綠蒂對話立繪大小~~ → 2026-10-26 作者確認 `LeftScale 1.3`／`LeftOffsetY −150`，已同步到血狂之爭 18 句。
+- [x] ~~`PortraitTable.csv` 沒接線~~ → 2026-10-26 MainScene 已接上；DramaTalkTable 逐句微調欄刪除、夏綠蒂三張搬進來。
+- [ ] **PortraitTable 原有列接線後的實機確認**：邪佛（→1.3／0／−130）與榕樹妖兩張（→1.1／−10）已依作者 2026-10-26 實機回饋調整；剩 `redBridalGown_angry`、`Girl_Fear／Girl_Smile`（各往下 50）還沒看，太低就刪掉那幾列。

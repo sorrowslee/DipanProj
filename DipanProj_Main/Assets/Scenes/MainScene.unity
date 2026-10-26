@@ -1744,7 +1744,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   talkCSV: {fileID: 4900000, guid: dcf39ec474d344cf3a5ddef947844989, type: 3}
-  portraitCSV: {fileID: 0}
+  portraitCSV: {fileID: 4900000, guid: 1034da1e353b44274a17ab2a80ed6b45, type: 3}
 --- !u!4 &726140661
 Transform:
   m_ObjectHideFlags: 0

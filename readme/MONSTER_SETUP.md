@@ -11,7 +11,7 @@
 ## 量產一隻新怪（重複這幾步）
 
 1. **放圖**：在 `GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/` 底下，每個動作開一個子資料夾放單張幀圖：
-   - `idle/`（**必備**）、`walk/`（**必備**）、`attack/`（可選，沒放就不會有攻擊動畫）、`hang/`（可選，倒吊；只有 `BrainType=Bat` 會播，見 [BOSS_MODULE.md](BOSS_MODULE.md) §12）、`pant/`（可選，喘息；目前只有紅嫁衣放完大絕時用，見 [BOSS_MODULE.md](BOSS_MODULE.md) §2）、`jump/`（可選，跳躍；只有 `BrainType=LeapSlam` 會播，見 [BOSS_MODULE.md](BOSS_MODULE.md) §9）。
+   - `idle/`（**必備**）、`walk/`（**必備**）、`attack/`（可選，沒放就不會有攻擊動畫）、`hang/`（可選，倒吊；只有 `BrainType=Bat` 會播，見 [BOSS_MODULE.md](BOSS_MODULE.md) §12）、`pant/`（可選，喘息；目前只有紅嫁衣放完大絕時用，見 [BOSS_MODULE.md](BOSS_MODULE.md) §2）、`jump/`（可選，跳躍；只有 `BrainType=LeapSlam` 會播，見 [BOSS_MODULE.md](BOSS_MODULE.md) §9）、`jumpStart/`＋`jumpLanding/`（可選，**起跳與落地分成兩個資料夾**的跳躍；只有 `BrainType=DukeCharlotte` 會播，倍率同 `JumpScale`，見 [BOSS_MODULE.md](BOSS_MODULE.md) §14.3）。
    - ⚠ **`jump/` 要先量幀再用**：一個資料夾未必只裝一次跳躍——狂族皇家衛士那 25 張其實是「跳兩次」，整組播完會踩兩下。量法與幀事件見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.1。
    - 檔名數字**補零**、依檔名排序＝播放順序：`idle_01.png`、`walk_01.png`…`walk_08.png`（超過 9 張務必兩位數，否則 `_10` 會排到 `_2` 前面）。
    - 不用組序列圖、不用在 Unity 切格——一張 PNG = 一幀。
@@ -73,6 +73,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | **`BombDamage`／`BombRadius`／`BombFuse`** | **自爆型專用**（表尾三欄，2026-09-22）。只有 `BrainType=SuicideBomb` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 3、半徑＝1.8、引信＝0.6 秒。<br>⚠ **半徑是「體型 1 時」的世界單位，實際會 ×`Scale`**（2026-09-22，見 [PROBLEMS.md](PROBLEMS.md) **F29**）——填表照體型 1 去想就好。另有防呆下限保證「引信點著就一定炸得到」。<br>⚠ **實際殺傷範圍 ＝ 縮放後半徑 ＋ 目標碰撞框半徑**（玩家約 0.5），同 `LeapRadius`。詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §11 |
 | **`LeapDamage`／`LeapRadius`** | **跳躍踐踏專用**（表尾兩欄，2026-09-18）。只有 `BrainType=LeapSlam` 會用到，其餘怪一律留空。<br>留空＝退路值：傷害＝`ContactDamage` × 2、半徑＝1.6。<br>⚠ **半徑是「體型 1 時」的世界單位，實際會 ×`Scale`**（2026-09-22，見 [PROBLEMS.md](PROBLEMS.md) **F29**）：皇家衛士 `Scale` 1.5 ⇒ 實際 2.4；想維持舊的 1.6 就填 1.067。<br>⚠ **實際殺傷範圍 ＝ 縮放後半徑 ＋ 目標碰撞框半徑**（玩家約 0.5），詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.4 |
 | **`ShootRange`** | **射手型行為射程**（表尾，2026-10-11，接在 `HangScale` 後面；只有 `BrainType=Archer` 用）。**留空＝5.25**（既有射手零變化）；「想站的距離」自動 × 0.78 跟著算。血術士填 7。<br>⚠ 這是「多遠開始射」不是子彈飛多遠；超過約 7（畫面寬一半）會從畫面外射人。見 [BOSS_MODULE.md](BOSS_MODULE.md) §8.2 |
+| **`CompanionStyle`** | **劇本同伴的攻擊方式**（表尾，2026-10-26，接在 `ShootRange` 後面＝索引 40）。只有被 `companion` 鏈動作叫出來的同伴會用：留空＝近戰（命中幀打單一目標）、`Spin`＝原地旋轉打身邊所有敵人。傷害一律每 2 秒 1。見 [BOSS_MODULE.md](BOSS_MODULE.md) §15 |
 | **`HangScale`** | **hang（倒吊）顯示倍率**（表尾，2026-10-11，接在 `ObserveTime` 後面）。語義同 `JumpScale`：**留空＝沿用 idle 的大小、不做自動對齊**；有填＝以 idle 為基準再乘。只有放了 `hang/` 的蝙蝠類用得到。<br>⚠ 另外，**飛行怪（`BrainType=Flying／Bat`）的 walk／attack 也不做自動對齊**（沿用 idle，`WalkScale`／`AttackScale` 有填就再乘）——振翅的可見高度每幀都在變，拿坐姿正規化會忽大忽小。見 [BOSS_MODULE.md](BOSS_MODULE.md) §12.6 |
 | **`IdleScale`／`WalkScale`／`AttackScale`** | **逐動作顯示倍率**（表尾三欄，2026-09-17）。**留空＝自動**（把該動作的可見高對齊 idle）；**有填＝在那個自動結果上「再乘」**（2026-09-22 改，見 [PROBLEMS.md](PROBLEMS.md) **G14**）——所以 **1.0 ＝ 跟留空一樣、1.1 ＝ 比平常大一成**。<br>⚠ 舊版是「有填就**覆寫**自動」，而自動倍率本來就常 > 1（攻擊／奔跑姿勢比站姿矮）⇒ **填 1.1 反而會縮小**（ZhaYu_HugeSword 的 attack 自動倍率 1.252，填 1.1 等於縮 12%）。`pant` 沿用 `IdleScale`。整體大小仍吃 `Scale` 欄，這三欄是在它之上的等比例微調。<br>⚠ **四足獸（狼/狗/豹）通常要填**：自動那套量高度，而奔跑姿勢身體壓低、高度矮 ⇒ 被**放大**。戰狼實測 walk 被自動放大 ×1.288、等效寬 221→285px（idle 才 181），填 `WalkScale=0.9` 之後差距從 57% 降到 10%。詳見 [PROBLEMS.md](PROBLEMS.md) **G12** |
 
@@ -94,7 +95,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 - ⚠️ **攻擊動畫 ≠ 攻擊邏輯**：目前「在攻擊範圍內（`AttackRange`）且有 attack 圖」就播攻擊動畫，傷害仍走既有的**接觸傷害**（`EnemyContactDamage`）。真正的「會攻擊的 AI ＋ 攻擊判定/傷害」是另一塊，之後再接。
 - **死亡 / 受傷動畫**尚未納入（目前死亡直接銷毀）。要加時照 idle/walk/attack 同模式擴充 `MonsterAnimator` 的狀態詞彙。
 - **加一個新動作要動的只有 `MonsterAnimator`**（2026-09-16 加 `pant` 時實測）：`MonsterSpriteLibrary.GetFrames(怪名, 動作)` 與 Sync 工具都是**通用字串／掃「直接含 PNG 的葉資料夾」**，載圖與同步都不必改；影子錨點工具同理（會自動多算一組，取不到時 `TryGetShadowAnchor` 退回 idle）。`MonsterAnimator` 那邊固定五處：`State` 列舉、幀陣列欄位、`Setup` 載入＋`CharacterMipBias.Register`＋影子錨點、`FramesFor`、`Resolve` 的退回規則。**沒圖的怪不會噴 log**（`GetFrames` 找不到只是靜靜回 null 並快取），所以加動作不會汙染 Console。
-  （2026-09-18 加 `jump` 時再次驗證：同樣只動那五處。）
+  （2026-09-18 加 `jump` 時再次驗證：同樣只動那五處。2026-10-26 加 `jumpStart`／`jumpLanding` 亦同，另加了唯讀的 `FrameSprite(state, 幀)` 給 Brain 查某一幀的 Sprite；新狀態一律加在列舉**尾端**。）
 - **要「播一次就停」的動作用 `MonsterAnimator.PlayOneShot(state, 起幀, 迄幀, fps倍率)`**（2026-09-18 加）：
   既有播放一律是**循環**，而且 `MonsterController.HandleVisuals` **每幀**都會依距離/位移呼叫 `SetState` 覆寫狀態 ——
   所以有頭有尾的動作（跳躍、之後的死亡/受傷）光靠 `SetState` 撐不過下一幀。

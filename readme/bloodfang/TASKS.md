@@ -183,8 +183,8 @@
 
 | 子單 | 內容 | 交付 |
 |---|---|---|
-| T8a | `WerewolfLordBrain`＋狼嚎召喚配方；38/40 `BrainType` 換過去 | 程式＋BOSS_MODULE §14（§13 已被菁英血衛士使用）＋「請作者在競技場單獨擺一隻測」的驗收清單 |
-| T8b | `VampireLordBrain`＋`BloodPool`＋扇射彈武器＋喚蝠召喚配方；39/41 換過去 | 同上，BOSS_MODULE §15 |
+| T8a | `WerewolfLordBrain`＋狼嚎召喚配方；38/40 `BrainType` 換過去 | 程式＋BOSS_MODULE §16（§13 菁英血衛士、§14 夏綠蒂公爵、§15 劇本同伴已使用）＋「請作者在競技場單獨擺一隻測」的驗收清單 |
+| T8b | ~~`VampireLordBrain`＋`BloodPool`＋扇射彈武器＋喚蝠召喚配方；39/41 換過去~~ ⏸ **2026-10-26 暫停**：39／41／42 已換成夏綠蒂公爵（`DukeCharlotteBrain`，BOSS_MODULE §14） | — |
 | T8c | AI 自繪序列圖（GAP §9.4 B 階段），附一張「各動作拼成一張」的預覽圖給作者先看 | 圖檔＋預覽；作者同意才把 `Name` 換過去 |
 
 **不要做**：改 `LeapSlamBrain`／`MeleeChaseBrain`／`ArcherBrain` 本體（要共用就抽出來或照抄，改既有 Brain 會影響其他怪）；改 `GroundEffectTable` 的傷害路徑（BOSS_MODULE §9.4）；把首領武器加進 ItemTable。
@@ -201,5 +201,5 @@
 4. 本資料夾 README 檔頭狀態列與本檔進度表更新；`readme/README.md` 文件地圖那行的狀態同步。
 5. `readme/TRIGGER_CHAIN.md` §3 加 `timedChoice` 一段（現狀文件，不是 PROGRESS）；`CUTSCENE_DIRECTOR.md` §5「目前用在哪」加血狂之爭四張圖。
 6. DOCS_GUIDE §七的收尾檢查跑一遍（連結、編號）。
-7. `readme/BOSS_MODULE.md` §13／§14（T8 時已寫）、`CUTSCENE_DIRECTOR.md` §9 把「編輯器只編第 0 段」改成已解；提醒作者專案根目錄有一個空的 `_claude_tmp/`（AI 誤建、沒刪除權限）可自行刪掉。
+7. `readme/BOSS_MODULE.md` §16／§17（T8 時已寫）、`CUTSCENE_DIRECTOR.md` §9 把「編輯器只編第 0 段」改成已解；提醒作者專案根目錄有一個空的 `_claude_tmp/`（AI 誤建、沒刪除權限）可自行刪掉。
 **交付**：改了哪些文件的清單。

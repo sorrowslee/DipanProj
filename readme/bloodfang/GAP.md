@@ -209,6 +209,8 @@ Q1–Q13 已拍板（README §4），下表是定案版。
 
 ### 9.2 血族首領「緋夜」— MonsterData 39、`BrainType=VampireLord`
 
+> ⚠ **2026-10-26 作者決定：血族首領改由「夏綠蒂公爵」擔任**（39／41／42、和談演員、對話全部換過，見 BOSS_MODULE §14.8）。下面這套 `VampireLord` 設計**暫停、不作現行依據**；要不要把其中的招式（血池、化蝠閃現、喚蝠）加到公爵身上待作者決定。
+
 | 招式 | 觸發 | 行為 | 數值（初版） |
 |---|---|---|---|
 | **保持距離** | 常駐 | 維持與玩家 5–7 的距離（紅嫁衣的「掃描可逃方向」寫法＋射手型 `CanShootFrom` 視線判斷） | 速度用 CSV |
@@ -245,7 +247,7 @@ Q1–Q13 已拍板（README §4），下表是定案版。
 | `AI/MonsterController.cs` | `Initialize` 的 BrainType switch 加兩個 case；`Die()` 呼叫 `BloodPool.CancelAll()`（§6.7 原則） |
 | `RecipeTable`／`WeaponTable` | 新增三把怪物專用武器（狼嚎召喚、喚蝠召喚、扇射彈），**ItemTable 不加**（玩家拿不到） |
 | `MonsterData.csv` | 新增 38／39／40／41 |
-| `readme/BOSS_MODULE.md` | 新增 §14 嘯月、§15 緋夜（§13 已被菁英血衛士使用）（現狀文件） |
+| `readme/BOSS_MODULE.md` | 新增 §16 嘯月、§17 緋夜（§13 菁英血衛士、§14 夏綠蒂公爵、§15 劇本同伴已使用；2026-10-26 改號）（現狀文件） |
 
 沒有 C# 編譯器：寫完跑 PROBLEMS I10 的「用到但沒宣告」檢查；跳躍段與揮擊段**照抄** LeapSlam／MeleeChase 已寫好的流程，不重新發明（那兩支的坑都記在 BOSS_MODULE §9.3、§10.3）。
 
@@ -258,6 +260,6 @@ Q1–Q13 已拍板（README §4），下表是定案版。
 | 功能 | 做法 | 程式 |
 |---|---|---|
 | ~~**表演戰** `factionShow`~~（2026-10-15 同日撤掉，改 `factionWar` 的 `fullDamage`「實戰」：`FactionRelations.FullTribeDamage`） | 原做法：FactionRelations 加 `ShowFightActive`：兩族互咬照舊（本來就 ×1/100），`AttacksPlayer(部族)` 回 false ⇒ 不打玩家、`ApplyLayer` 放 Ally 層 ⇒ 玩家打不到。`factionPeace`／`factionWar`／換關卡都會結束它 | `AI/FactionRelations.cs`、`TriggerChain` case |
-| **劇本同伴** `companion` | **重用玩家召喚物 PlayerAlly**：AllyBrain 跟玩家＋衝敵人、MapManager 換圖本來就保留 PlayerAlly 並移到新落點。只加 `MonsterController.IsCompanion`：`TakeDamage` 直接略過、`FindNearestEnemy` 與 `EnemyContactDamage` 跳過它。無殺傷力＝同伴列 `ContactDamage 0`。換關卡由 `TriggerChain.ClearLevelFlags` 呼叫 `CompanionService.DismissAll()`（不然會以 PlayerAlly 身分跟到廣場） | 新檔 `AI/CompanionService.cs`、`MonsterController`、`EnemyContactDamage`、`TriggerChain`、`PlayModeStaticReset` |
+| **劇本同伴** `companion` | （⚠ 2026-10-26 起行為改為 `CompanionBrain`、有微弱傷害，見 BOSS_MODULE §15；下列為原始規劃）**重用玩家召喚物 PlayerAlly**：AllyBrain 跟玩家＋衝敵人、MapManager 換圖本來就保留 PlayerAlly 並移到新落點。只加 `MonsterController.IsCompanion`：`TakeDamage` 直接略過、`FindNearestEnemy` 與 `EnemyContactDamage` 跳過它。無殺傷力＝同伴列 `ContactDamage 0`。換關卡由 `TriggerChain.ClearLevelFlags` 呼叫 `CompanionService.DismissAll()`（不然會以 PlayerAlly 身分跟到廣場） | 新檔 `AI/CompanionService.cs`、`MonsterController`、`EnemyContactDamage`、`TriggerChain`、`PlayModeStaticReset` |
 
 編輯器：`TriggerType.cs` 與 `triggerTypes.json` 兩處都加了 `factionShow`（已撤，改 factionWar 的 fullDamage 勾選）與 `companion`（monsterId、召喚勾選、X/Y）。

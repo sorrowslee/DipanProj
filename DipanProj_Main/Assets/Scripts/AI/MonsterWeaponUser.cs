@@ -188,10 +188,17 @@ public class MonsterWeaponUser : MonoBehaviour
 
         if (_envMask == -1) _envMask = LayerMask.GetMask("Environment", "Water");
 
+        // ⭐ 環狀爆發（發射時就分裂、扇形 ≥ 180°，例：夏綠蒂公爵的 8 方向血球 SpreadCount 8／SpreadAngle 315）
+        //   要從**身體中心**出手，不是框外緣（2026-10-26）。
+        //   分裂是在母彈的位置炸開的，從「朝目標的框外緣」出手 ⇒ 整圈的圓心偏到怪的前方（體型 2 時約 2.8 單位），
+        //   看起來是在玩家面前憑空炸開，不是從她身上散開。單發／窄扇形照舊從框外緣出手（箭不該從肚子裡冒出來）。
+        var pd = recipe.Data;
+        bool radialBurst = pd != null && pd.HasSplit && pd.Timing == SplitTiming.OnSpawn && pd.SpreadAngle >= 180f;
+
         var ctx = new WeaponCastService.CastContext
         {
             Owner        = gameObject,
-            Origin       = selfPos + dir * MuzzleOffset(),
+            Origin       = radialBurst ? selfPos : selfPos + dir * MuzzleOffset(),
             Direction    = dir,
             OwnerScale   = 1f,                              // 怪物體型不放大牠的箭（箭是武器的，不是牠身體的一部分）
             TargetLayers = 1 << target.gameObject.layer,    // 射玩家＝Player 層；射敵對怪＝Enemy 層

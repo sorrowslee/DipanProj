@@ -129,6 +129,12 @@ public class MonsterData
     /// </summary>
     public float ShootRange = 0f;
 
+    /// <summary>
+    /// 劇本同伴的攻擊方式（CSV 表尾欄 <c>CompanionStyle</c>，2026-10-26）：只有被 <c>companion</c> 鏈動作叫出來的同伴會用。
+    /// 留空／Melee＝近戰（命中幀打單一目標）；Spin＝原地旋轉、每次打身邊所有敵人（夏綠蒂）。見 CompanionBrain／BOSS_MODULE §14.9。
+    /// </summary>
+    public string CompanionStyle = "";
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

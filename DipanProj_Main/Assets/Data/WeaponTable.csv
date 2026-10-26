@@ -58,3 +58,5 @@ ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每�
 47,八卦護身印,2,85,2,,360,Weapon/animation/baguaSeal/baguaSeal,24,15,7.05,,,,,,,,,,,,,,,
 72,應龍水珠,3,86,0.5,Weapon/single/weapon_waterorb,,,,,2,,,,,,,,,,,,,38,0.8,60
 49,血火咒,4,87,2.5,,360,Weapon/animation/bloodFireOrb/bloodFireOrb,8,15,8,,,,,,58,,,,,,,,,
+73,夏綠蒂公爵-八方血球,6,88,0,,,Weapon/animation/bloodMagicOrb/bloodMagicOrb,32,20,12,,,,,,58,,,,,,,,,
+74,夏綠蒂公爵-八方血球(大絕反彈),6,89,0,,,Weapon/animation/bloodMagicOrb/bloodMagicOrb,32,20,12,,,,,,58,,,,,,,,,

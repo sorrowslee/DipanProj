@@ -233,7 +233,7 @@ LanguageTable 3001–3025 見上一版（引路與和談 bubble、選擇面板�
 
 ## 6.5 同伴與表演戰（新機制，GAP §10）
 
-- **同伴**：MonsterData **42 血族首領・緋夜（同伴）**／**43 狂族首領・嘯月（同伴）**——HP 999、`ContactDamage 0`、Speed 4.8。以 PlayerAlly 身分生成（AllyBrain：跟玩家、看到敵人就衝上去），`IsCompanion`＝不受傷、任何怪都不以它為目標。跨圖跟隨、換關卡自動解散。
+- **同伴**：MonsterData **42 夏綠蒂公爵（同伴）**（2026-10-26 取代緋夜）／**43 狂族首領・嘯月（同伴）**——HP 999、`ContactDamage 0`、Speed 4.8。以 PlayerAlly 身分生成，行為是 `CompanionBrain`（2026-10-26：發呆 4／作戰 6 排班、不跟隨玩家、每 2 秒 1 傷害；42 用 `CompanionStyle=Spin` 原地旋轉打周圍，見 BOSS_MODULE §15），`IsCompanion`＝不受傷、任何怪都不以它為目標。跨圖跟隨、換關卡自動解散。
 - **實戰開戰**：`factionWar` 勾 `fullDamage`——兩族互打全額、敵族照常打玩家。進攻略圖第一張時用沒勾的 `factionWar` 回到演戲傷害。（2026-10-15 取代 `factionShow` 表演戰。）
 
 ---

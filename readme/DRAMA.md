@@ -67,8 +67,9 @@
 | `RightAvatarPath` | **右側立繪**路徑（兩種寫法見下）。留空 = 右側不顯示立繪 |
 | `SpotlightSide` | **聚光側＝現在誰在說話**：**1 = 左、2 = 右**（其餘 / 留空視為 1）。聚光側立繪正常亮、另一側**壓暗**（保留原色相），姓名牌匾也擺聚光側 |
 | `Text` | 對話內容。含逗號用 `"..."` 包覆；`\n` 轉換行 |
-| `LeftScale`/`LeftOffsetX`/`LeftOffsetY` | **左立繪微調**（選填，空=1/0/0）：**只放「這一句」的特例**；縮放乘在標準人物高度上，位移為畫面單位、+X 往右、+Y 往上 |
-| `RightScale`/`RightOffsetX`/`RightOffsetY` | **右立繪微調**（同上，右側獨立） |
+
+> **立繪的大小／位置不在這張表調**：表尾原本有 6 個逐句微調欄（`LeftScale`／`LeftOffsetX`／`LeftOffsetY`／`Right…`），**2026-10-26 刪除**（作者：「以後只要維護 PortraitTable 就好」）。
+> 一律寫在 [`PortraitTable.csv`](#固定微調-portraittablecsv)——那是**那張圖**的屬性，同一張圖出現在哪一句、哪一側都套同一組值。舊 CSV 若還留著那 6 欄，程式只讀前 7 欄、會安靜地忽略。
 
 > ⚠ **這 6 欄平常留空**。素材尺寸/留白造成的偏差由〈立繪自動對齊〉處理，不必在這裡補；
 > 某張圖每次出現都要的固定偏移請寫 `PortraitTable.csv`（同一節）——填在句子上等於同一張圖出現幾次就要填幾次。
@@ -153,8 +154,9 @@ Main/Talk/Buddha/Buddha_normal,1.1,-130,-130,邪佛比人大一點、更沉進�
 
 - `Id` = **解析後的 catalog id**（不是 CSV 裡寫的字串）；`Actor_<情緒>` 會查到當下血統的那張圖。
 - 空欄 = 預設（Scale 1 / Offset 0）。`#` 開頭 = 註解列。**整張表選填**，沒列進來的圖完全交給自動對齊。
-- 與 `DramaTalkTable` 那 6 欄**疊加**：Scale 相乘、Offset 相加。這裡＝那張圖每次出現都要的；那邊＝只有那一句才要的特例。
-- **接線**：把 `Assets/Data/PortraitTable.csv` 拖進場景 `GameManagers` 上 `DramaTalkTableProvider` 的 **Portrait CSV** 欄。沒拖 = 全部走自動對齊（不報錯）。
+- ⭐ **立繪大小／位置唯一的維護點**（2026-10-26 起）：`DramaTalkTable` 的逐句微調欄已刪除，沒有「這一句的特例」這一層了。
+- **接線**：`Assets/Data/PortraitTable.csv` 要拖進場景 `GameManagers` 上 `DramaTalkTableProvider` 的 **Portrait CSV** 欄——**MainScene 已於 2026-10-26 接上**。
+  ⚠ 沒拖**不會報錯**、整張表靜默無效：在那之前這張表從來沒接過，邪佛等 6 列一直沒生效，直到調夏綠蒂才發現（換新場景／新 provider 時記得檢查這一欄）。
 
 ### 圖放哪（重要）：每關專屬、走地圖素材管線，不放共用 Resources
 

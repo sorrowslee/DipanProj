@@ -19,7 +19,10 @@ using UnityEngine;
 public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
 {
     // Hang（倒吊）＝2026-10-11 為飛行模組加的第六個動作：蝙蝠類休息時倒掛在高處（見 BatBrain／readme/BOSS_MODULE.md §12）。
-    public enum State { Idle, Walk, Attack, Pant, Jump, Hang }
+    // JumpStart／JumpLanding（起跳／落地）＝2026-10-26 為夏綠蒂公爵加的第七、八個動作（見 DukeCharlotteBrain／BOSS_MODULE.md §14）：
+    //   跳躍拆成兩個資料夾的怪用這兩個；一個 jump 資料夾就演完整段的怪（狂族皇家衛士）照舊用 Jump。
+    //   ⚠ 新狀態一律**加在尾端**：列舉值是 int，插在中間會讓既有的數值全部位移。
+    public enum State { Idle, Walk, Attack, Pant, Jump, Hang, JumpStart, JumpLanding }
 
     [Tooltip("基準播放幀率（幀/秒）；由 CSV 的 AnimFPS 帶入，留空＝8")]
     public float BaseFps = 8f;
@@ -52,7 +55,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     public bool PantPingPong = true;
 
     SpriteRenderer _sr;
-    Sprite[] _idle, _walk, _attack, _pant, _jump, _hang;
+    Sprite[] _idle, _walk, _attack, _pant, _jump, _hang, _jumpStart, _jumpLanding;
     bool _hasAny;
 
     State _state = State.Idle;
@@ -231,6 +234,10 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         _pant   = lib.GetFrames(monsterName, "pant",   pantTile,   idleTile);
         _jump   = lib.GetFrames(monsterName, "jump",   jumpTile,   idleTile);
         _hang   = lib.GetFrames(monsterName, "hang",   hangTile,   idleTile);
+        // 起跳／落地兩段與 jump 同一套倍率語義（JumpScale 有填＝idle × 它；留空＝沿用 idle，不做自動高度對齊）。
+        // 理由同 jump：蹲下、伸展、壓扁的身高變化**就是動作本身**，正規化會把它抵銷掉。
+        _jumpStart   = lib.GetFrames(monsterName, "jumpStart",   jumpTile, idleTile);
+        _jumpLanding = lib.GetFrames(monsterName, "jumpLanding", jumpTile, idleTile);
 
         // 【過渡期】角色取樣密度對齊背景（mipMapBias），見 CharacterMipBias 檔頭；背景解析度提上來後可拿掉這三行。
         CharacterMipBias.Register(_idle, transform);
@@ -239,6 +246,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         CharacterMipBias.Register(_pant, transform);
         CharacterMipBias.Register(_jump, transform);
         CharacterMipBias.Register(_hang, transform);
+        CharacterMipBias.Register(_jumpStart, transform);
+        CharacterMipBias.Register(_jumpLanding, transform);
 
         _shadow.Clear();
         _cageCached = false;   // 換外型後骨牢錨點要重算（見 TryGetCageAnchorLocal）
@@ -248,11 +257,14 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         _shadow[State.Pant]   = lib.GetShadowAnchor(monsterName, "pant");
         _shadow[State.Jump]   = lib.GetShadowAnchor(monsterName, "jump");
         _shadow[State.Hang]   = lib.GetShadowAnchor(monsterName, "hang");
+        _shadow[State.JumpStart]   = lib.GetShadowAnchor(monsterName, "jumpStart");
+        _shadow[State.JumpLanding] = lib.GetShadowAnchor(monsterName, "jumpLanding");
 
         // idle 是必備；萬一只給了 walk 沒給 idle，就用 walk 當待機後備（不至於沒圖）
         if (_idle == null && _walk != null) { _idle = _walk; if (!_shadow[State.Idle].ok) _shadow[State.Idle] = _shadow[State.Walk]; }
 
-        _hasAny = _idle != null || _walk != null || _attack != null || _pant != null || _jump != null || _hang != null;
+        _hasAny = _idle != null || _walk != null || _attack != null || _pant != null || _jump != null || _hang != null
+               || _jumpStart != null || _jumpLanding != null;
         if (!_hasAny)
         {
             Debug.LogWarning($"[MonsterAnimator] 怪物「{monsterName}」找不到任何動作圖。" +
@@ -306,6 +318,19 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
 
     /// <summary>這個動作有幾幀（沒圖回 0）。Brain 要把「動作播完」換算成秒時用：<c>張數 ÷ (AnimFPS × 倍率)</c>。</summary>
     public int FrameCount(State s) { var f = FramesFor(s); return f != null ? f.Length : 0; }
+
+    /// <summary>
+    /// 取某動作的某一幀（**1-based**，超出範圍會夾到兩端；沒圖回 null）。**唯讀**，不會改變目前播放的狀態。
+    /// <para>2026-10-26 為夏綠蒂公爵加：她的落地動作前幾幀頭頂超出畫布（被切掉），Brain 要知道
+    /// 「這一幀的畫布上緣在哪」才能把那條切邊一直留在鏡頭外（見 DukeCharlotteBrain）。
+    /// 每一幀的 pivot 都不一樣（腳底對齊是逐幀補 pivot 的），所以只能拿真正的 Sprite 來算，不能用量表推。</para>
+    /// </summary>
+    public Sprite FrameSprite(State s, int frame1Based)
+    {
+        var f = FramesFor(s);
+        if (f == null || f.Length == 0) return null;
+        return f[Mathf.Clamp(frame1Based - 1, 0, f.Length - 1)];
+    }
 
     /// <summary>
     /// 設定當前狀態並餵入當前速度（給走路 fps 連動）。沒有對應圖時自動退回 Attack→Walk→Idle。
@@ -409,6 +434,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         if (s == State.Jump) return Has(State.Walk) ? State.Walk : State.Idle;
         // hang 沒圖就退回 idle（倒吊是靜止的休息姿勢，退成走路會變成原地振翅）。
         if (s == State.Hang) return State.Idle;
+        // 起跳／落地沒圖：比照 jump 退回 walk（Brain 端本來就該先看 PlayOneShot 的回傳值，這裡只是保底）。
+        if (s == State.JumpStart || s == State.JumpLanding) return Has(State.Walk) ? State.Walk : State.Idle;
         if (s == State.Walk) return State.Idle;
         return State.Idle;
     }
@@ -422,6 +449,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
             case State.Pant: return _pant;
             case State.Jump: return _jump;
             case State.Hang: return _hang;
+            case State.JumpStart: return _jumpStart;
+            case State.JumpLanding: return _jumpLanding;
             default: return _idle;
         }
     }

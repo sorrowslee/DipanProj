@@ -5,9 +5,9 @@ using UnityEngine;
 /// 劇本同伴（2026-10-15，血狂之爭：選邊後「首領跟著玩家走」）。由觸發鏈動作 <c>companion</c> 呼叫。
 ///
 /// 做法＝**重用玩家召喚物（PlayerAlly）那一整套**，只多一個 <see cref="MonsterController.IsCompanion"/> 標記：
-/// ‧ 跟隨玩家、看到敵人就衝上去 ＝ <see cref="AllyBrain"/>（MonsterSpawner 對 PlayerAlly 自動掛）。
+/// ‧ 跟隨玩家、偶爾上去打一兩下 ＝ <see cref="CompanionBrain"/>（2026-10-26 起；生成後由本服務換掉 MonsterSpawner 預設給 PlayerAlly 的 AllyBrain）。
 /// ‧ 跨圖跟著走 ＝ MapManager 本來就保留 PlayerAlly、並在新落點 RepositionPlayerAllies。
-/// ‧ 沒有殺傷力 ＝ 同伴用的 MonsterData 列 ContactDamage 填 0（揮擊動畫照播，EnemyContactDamage 直接不結算）。
+/// ‧ 殺傷力很弱 ＝ 同伴用的 MonsterData 列 ContactDamage 填 0（不靠接觸傷害），傷害只來自 CompanionBrain（每 2 秒 1）。
 /// ‧ 不會受傷、不被任何怪當目標 ＝ IsCompanion（MonsterController.TakeDamage／FindNearestEnemy、EnemyContactDamage 會跳過）。
 ///
 /// 生命週期＝**這一趟關卡**：換 module（回廣場、死亡、過關）時由 <see cref="TriggerChain.ClearLevelFlags"/> 呼叫 <see cref="DismissAll"/>；
@@ -49,6 +49,10 @@ public static class CompanionService
         var mc = go != null ? go.GetComponent<MonsterController>() : null;
         if (mc == null) { Debug.LogWarning($"[CompanionService] 同伴 {monsterId} 生成失敗（MonsterData 沒有這一列？）。"); return false; }
         mc.IsCompanion = true;
+        // 換腦（2026-10-26）：生成時 MonsterSpawner 給 PlayerAlly 掛的是 AllyBrain（貼上去靠接觸傷害），
+        // 同伴的接觸傷害是 0 ⇒ 以前「只會轉圈、沒有傷害」。改用 CompanionBrain：跟隨／發呆／交戰輪流、每 2 秒 1 傷害，
+        // 攻擊方式依 CSV CompanionStyle（留空＝近戰、Spin＝夏綠蒂的旋轉打周圍）。玩家召喚物不經過這裡，照舊 AllyBrain。
+        mc.SetBrain(new CompanionBrain(CompanionBrain.CreateAttack(mc.CompanionStyle)));
         _list.Add(mc);
         Debug.Log($"[CompanionService] 同伴 {monsterId}「{mc.MonsterName}」加入。");
         return true;

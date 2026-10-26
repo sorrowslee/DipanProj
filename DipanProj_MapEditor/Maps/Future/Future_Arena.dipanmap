@@ -144,10 +144,10 @@
             ]
           ],
           "params": {
-            "monsterId": "37",
+            "monsterId": "44",
             "deathFlag": "",
             "spawnInterval": "8",
-            "maxAlive": "50",
+            "maxAlive": "1",
             "requireFlag": "startBornMonster_arena1",
             "startDisabled": false
           }
@@ -179,62 +179,6 @@
             "tipOff": "開始生怪",
             "tipOn": "停止生怪"
           }
-        },
-        {
-          "id": "fa056518",
-          "name": "進場觸發(自動)1",
-          "typeId": "onEnter",
-          "cells": [],
-          "params": {
-            "delaySeconds": "",
-            "next": "二選一倒數"
-          }
-        },
-        {
-          "id": "97f5b316",
-          "name": "二選一倒數",
-          "typeId": "timedChoice",
-          "cells": [],
-          "params": {
-            "textId": "3020",
-            "subTextId": "3023",
-            "optionA": "3021",
-            "nextA": "給予物品(鏈動作)-325",
-            "optionB": "3022",
-            "nextB": "給予物品(鏈動作)-403",
-            "seconds": "",
-            "nextTimeout": "給予物品(鏈動作)-34"
-          }
-        },
-        {
-          "id": "906b64d0",
-          "name": "給予物品(鏈動作)-325",
-          "typeId": "giveItem",
-          "cells": [],
-          "params": {
-            "itemId": "325",
-            "count": "1"
-          }
-        },
-        {
-          "id": "c1a2c711",
-          "name": "給予物品(鏈動作)-403",
-          "typeId": "giveItem",
-          "cells": [],
-          "params": {
-            "itemId": "403",
-            "count": "1"
-          }
-        },
-        {
-          "id": "e287a092",
-          "name": "給予物品(鏈動作)-34",
-          "typeId": "giveItem",
-          "cells": [],
-          "params": {
-            "itemId": "34",
-            "count": "1"
-          }
         }
       ]
     }
@@ -244,7 +188,7 @@
     {
       "id": "df480ed4",
       "name": "測試說話npc",
-      "npcId": 1,
+      "npcId": 9,
       "x": 4.86546135,
       "y": -1.987992,
       "behavior": "idle",

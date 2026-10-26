@@ -15,9 +15,9 @@ namespace Dipan.Drama
     /// <para><b>查表用「解析後的 catalog id」</b>（例 <c>Main/Talk/Buddha/Buddha_normal</c>），
     /// 不是 CSV 裡寫的原字串——所以 <c>Actor_&lt;情緒&gt;</c> 會查到當下血統的那張圖。</para>
     ///
-    /// <para><b>與每句微調的關係</b>：兩者<b>疊加</b>——最終縮放 = 這張表的 Scale × 該句的 Scale，
-    /// 位移 = 這張表的 Offset ＋ 該句的 Offset。所以 <c>DramaTalkTable</c> 那 6 欄保留給「這一句的特例」，
-    /// 平常留空即可。</para>
+    /// <para><b>唯一的維護點</b>（2026-10-26 起）：<c>DramaTalkTable</c> 的 6 個逐句微調欄已刪除，
+    /// 立繪的大小／位置只在這張表依「圖」設定一次。⚠ 必須把 CSV 拖進場景 <c>DramaTalkTableProvider</c> 的
+    /// <c>portraitCSV</c> 欄才會生效（沒拖不報錯——曾因此整張表無效好一陣子沒人發現）。</para>
     ///
     /// <para><b>沒有這張表也能跑</b>：provider 沒拖檔、或某張圖沒列進來，就是 Scale=1 / Offset=0，
     /// 完全交給自動對齊。</para>

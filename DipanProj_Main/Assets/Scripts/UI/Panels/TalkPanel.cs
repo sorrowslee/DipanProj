@@ -223,11 +223,9 @@ namespace Dipan.UI
             if (hasName)
                 Place(_plate.rectTransform, spotRight ? PlateRightCx : PlateLeftCx, PlateY, PlateW, PlateH);
 
-            // 左、右立繪各自顯示（有圖才顯示）；非聚光側壓暗（保留原色相）。可用 CSV 選填欄微調縮放/位移。
-            SetAvatar(_avatarLeft, l.LeftAvatar, l.LeftFit, dim: spotRight, right: false,
-                      scale: l.LeftScale, offX: l.LeftOffsetX, offY: l.LeftOffsetY);
-            SetAvatar(_avatarRight, l.RightAvatar, l.RightFit, dim: !spotRight, right: true,
-                      scale: l.RightScale, offX: l.RightOffsetX, offY: l.RightOffsetY);
+            // 左、右立繪各自顯示（有圖才顯示）；非聚光側壓暗（保留原色相）。大小／位置的微調只來自 PortraitTable（fit 裡）。
+            SetAvatar(_avatarLeft, l.LeftAvatar, l.LeftFit, dim: spotRight, right: false);
+            SetAvatar(_avatarRight, l.RightAvatar, l.RightFit, dim: !spotRight, right: true);
         }
 
         /// <summary>
@@ -249,12 +247,11 @@ namespace Dipan.UI
         /// <para>內容框掃不到時（圖載不到 / catalog 沒這筆）自動退化成「整張圖 = 內容」，
         /// 也就是舊的「量圖檔」行為，不會不顯示。</para>
         ///
-        /// <para>縮放/位移有兩層、<b>相乘與相加</b>：<c>fit.imgScale/imgOffset</c> 是<b>那張圖</b>的固定微調
-        /// （<see cref="PortraitTable"/>，設定一次），參數 <paramref name="scale"/>/<paramref name="offX"/>/<paramref name="offY"/>
-        /// 是<b>那一句</b>的特例（DramaTalkTable 選填欄）。位移一律以畫面為準（+X 右、+Y 上），右側鏡像不影響方向。</para>
+        /// <para>縮放/位移只有一層：<c>fit.imgScale/imgOffset</c> ＝<b>那張圖</b>的固定微調（<see cref="PortraitTable"/>）。
+        /// 位移一律以畫面為準（+X 右、+Y 上），右側鏡像不影響方向。
+        /// （2026-10-26 以前還有 DramaTalkTable 的逐句微調欄疊在上面，已刪除——同一張圖只在一個地方維護。）</para>
         /// </summary>
-        void SetAvatar(Image avatar, Sprite sprite, PortraitFit fit, bool dim, bool right,
-                       float scale = 1f, float offX = 0f, float offY = 0f)
+        void SetAvatar(Image avatar, Sprite sprite, PortraitFit fit, bool dim, bool right)
         {
             avatar.sprite = sprite;
             avatar.enabled = sprite != null;
@@ -272,13 +269,13 @@ namespace Dipan.UI
             // imgScale 用 >0 判斷而不是 Max：PortraitFit 是 struct，萬一拿到 default(struct)（imgScale=0）
             // 用 Max(0.05f, 0) 會把人物縮成 5% 這種「不像 bug 的 bug」，寧可當 1（＝沒微調）。
             float imgScale = fit.imgScale > 0f ? fit.imgScale : 1f;
-            float k = AvatarHeight * Mathf.Max(0.05f, scale) * imgScale / content.y;
+            float k = AvatarHeight * imgScale / content.y;
 
             var rt = avatar.rectTransform;
             rt.sizeDelta = new Vector2(canvas.x * k, canvas.y * k);
 
-            float px = offX + fit.imgOffset.x;
-            float py = offY + fit.imgOffset.y;
+            float px = fit.imgOffset.x;
+            float py = fit.imgOffset.y;
 
             float boxTop = BottomMargin + BgH * (DisplayWidth / BgW);
             float bottomY = boxTop - AvatarOverlap + py;                      // 人物底緣的目標 y

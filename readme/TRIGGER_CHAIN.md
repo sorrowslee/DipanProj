@@ -256,7 +256,7 @@ flag:hallGateOpen        旗標成立
 - **`factionPeace` 三方陣營和平(鏈動作)**（2026-09-17 新增）：無參數。被鏈啟動時讓狼人/吸血鬼兩族**視同中立**——不打人、不被打、玩家武器打不到（切 Ally 層），立即接 next。⚠ **部族的預設狀態是「敵對」**，所以這顆是「要他們站著別動手」時才擺的特例；典型：`onEnter 進場觸發 → factionPeace`。詳見 [FACTION.md](FACTION.md) §0。
 - **`factionWar` 三方陣營開戰(鏈動作)**：參數 `fullDamage`「兩族互打全額傷害」（勾＝**實戰**，2026-10-15：兩族互打不打折，演「敵族大軍殺光我方守軍再追玩家」；之後任何一顆沒勾的開戰／和平／換關卡回到演戲傷害）。被鏈啟動時**結束和平**、回到預設的敵對——狼人/吸血鬼兩族開始互咬（演戲傷害 1/100）＋攻擊玩家、切到可被玩家攻擊的層，立即接 next。狀態＝**關卡單次**（換 module 自動重置回敵對）。**沒擺過 `factionPeace` 的地圖按它也安全**（本來就敵對，只是重套一次 Layer）。典型：`對話/事件 → factionWar（完成寫旗標=部族開戰）`——同一顆順便讓和平版 NPC 退場（NPC 的「消失旗標」填同一旗）。詳見 [FACTION.md](FACTION.md)。
 - **`joinFaction` 加入陣營(鏈動作)**：`faction`（填 `狼人`/`werewolf` 或 `吸血鬼`/`vampire`）。被鏈啟動時玩家結盟該族——該族不再攻擊玩家、玩家武器打不到它（切 Ally 層），立即接 next；認不得的值印 Warning、仍接 next 不卡鏈。典型：首領 NPC 對話 → next 接這顆。詳見 [FACTION.md](FACTION.md)。
-- **`companion` 劇本同伴(鏈動作)**（2026-10-15）：`monsterId`（同伴用的 MonsterData 列）、`show`（勾＝召喚、不勾＝解散全部）、`x`/`y`（兩個都填＝生在該世界座標，否則玩家身旁）。同伴＝PlayerAlly＋`IsCompanion`：AllyBrain 跟著玩家、看到敵人就衝上去；**跨圖跟隨**、**不受傷**、**任何怪都不以它為目標**；殺傷力＝該列 `ContactDamage`（填 0＝會揮沒殺傷力）。換關卡自動解散。程式 `AI/CompanionService.cs`。
+- **`companion` 劇本同伴(鏈動作)**（2026-10-15）：`monsterId`（同伴用的 MonsterData 列）、`show`（勾＝召喚、不勾＝解散全部）、`x`/`y`（兩個都填＝生在該世界座標，否則玩家身旁）。同伴＝PlayerAlly＋`IsCompanion`＋**`CompanionBrain`**（2026-10-26 起）：發呆 4：作戰 6 排班（**不跟隨玩家**，換圖時照常被移到玩家落點），**每 2 秒 1 傷害**（很弱但不是零），攻擊方式看該列 `CompanionStyle`（空＝近戰、`Spin`＝原地旋轉打周圍，見 [BOSS_MODULE.md](BOSS_MODULE.md) §15）；**跨圖跟隨**、**不受傷**、**任何怪都不以它為目標**；該列 `ContactDamage` 填 0（不靠接觸傷害）。換關卡自動解散。程式 `AI/CompanionService.cs`。
 - **`timedChoice` 二選一倒數(鏈動作)**（2026-10-15，血狂之爭「選邊」用；⏳ 未編譯未實測）：參數 `textId` 標題、`subTextId` 副標（空＝無）、`optionA`／`optionB` 兩顆按鈕的字（**全部是 `LanguageTable.csv` 的 id**）、`seconds` 倒數秒（空／0＝15）、**`nextA`／`nextB`／`nextTimeout`** 三條接續（編輯器欄旁有「選」可從本圖 trigger 名單點選）。被鏈啟動時**暫停遊戲**、開置中面板（`ChoicePanel`，Window 層）：按 A → 接 `nextA`、按 B → 接 `nextB`、倒數歸零 → 接 `nextTimeout`（留空＝歸零只關面板）。**三條互斥、只走一條**。
   - **通用 `next` 不用**（三條路各有自己的欄），填了 Console 警告並忽略；`setFlag` 照常，在「選完那一刻」寫（三條都寫）。
   - **不可 ESC 關閉**；倒數走 unscaled time（面板開著 `timeScale=0` 仍會倒數）；面板一開先擋 0.4 秒點擊（玩家多半是左鍵點掉上一段對話過來的，手還沒放開）。
@@ -630,7 +630,7 @@ flag:hallGateOpen        旗標成立
 
 1. `DramaTalkTable.csv`：新開一個群組（目前最大 Group=2，用 **3**），寫紅嫁衣的對話句。
    立繪已在 catalog：`Modules/RedBridalGown/Talk/redBridalGown`；主角側用 `Actor_<情緒>`。
-   立繪大小/位置不對就用表尾六個微調欄（LeftScale/LeftOffsetX/…，見 [DRAMA.md](DRAMA.md)）。
+   立繪大小/位置不對就在 `PortraitTable.csv` 給那張圖加一列（DramaTalkTable 的逐句微調欄 2026-10-26 已刪除，見 [DRAMA.md](DRAMA.md)）。
 2. `DramaTable.csv`：新增一列（目前最大 ID=3，用 **4**）：`4,,紅嫁衣對話,2,3`（Type=2 頭像對話、TalkGroup=3）。
 
 ### 步驟 3：編輯器放 trigger（紅嫁衣的最終房間地圖，哪張由作者決定）

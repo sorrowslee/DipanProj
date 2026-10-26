@@ -100,6 +100,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Tooltip("射手型的行為射程（CSV: ShootRange）。0（留空）＝ ArcherBrain 預設 5.25。只有 BrainType=Archer 會用到")]
     public float ShootRange = 0f;
 
+    [Tooltip("劇本同伴的攻擊方式（CSV: CompanionStyle）。留空＝近戰；Spin＝原地旋轉打周圍。只有 companion 叫出來的同伴會用")]
+    public string CompanionStyle = "";
+
     /// <summary>
     /// 目前被骨牢關著。由 <see cref="MonsterCage"/> 開關——**不要自己設**，
     /// 否則沒有人負責解除，那隻怪會永遠站著不動而且沒有任何錯誤訊息。
@@ -516,6 +519,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         Controllable = data.Controllable; // 可否被骨牢那類定身抓住（留空＝可以）
         ObserveTime = data.ObserveTime;   // 射手型觀察秒數（留空＝-1＝原本的隨機；0＝不觀察）
         ShootRange = data.ShootRange;     // 射手型行為射程（留空＝0＝ArcherBrain 預設 5.25）
+        CompanionStyle = data.CompanionStyle ?? "";   // 劇本同伴的攻擊方式（留空＝近戰，見 CompanionBrain）
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
@@ -562,6 +566,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 break;
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();
+                IsBoss = true;
+                break;
+            case "DukeCharlotte":   // 夏綠蒂公爵（血族頭目）：慢走＋原地旋轉射 8 方向血球＋跳躍砸地；50% 起每 10% 放一次旋轉衝刺反彈大絕（見 DukeCharlotteBrain／BOSS_MODULE §14）
+                _brain = new DukeCharlotteBrain();
                 IsBoss = true;
                 break;
             case "BanyanTree":      // 榕樹妖 boss：不可直接打，玩家打牠的地刺反傷本體（見 BanyanTreeBrain）

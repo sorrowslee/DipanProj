@@ -120,7 +120,7 @@ public class MonsterSpriteLibrary
         Debug.Log($"[MonsterSpriteLibrary] 已預載 module「{module}」(+Main) 怪物序列圖：{names.Count} 隻、{done} 張。");
     }
 
-    static readonly string[] PreloadStates = { "idle", "walk", "attack", "pant", "jump" };
+    static readonly string[] PreloadStates = { "idle", "walk", "attack", "pant", "jump", "jumpStart", "jumpLanding" };
 
     /// <summary>這隻怪有沒有這個動作的圖（防呆判斷用）。</summary>
     public bool Has(string monsterName, string state)

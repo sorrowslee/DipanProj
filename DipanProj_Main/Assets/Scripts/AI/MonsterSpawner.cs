@@ -150,6 +150,9 @@ public class MonsterSpawner : MonoBehaviour
             // 射手型行為射程（索引 39，表尾欄，2026-10-11）：留空＝ArcherBrain 預設 5.25。
             data.ShootRange = (values.Length > 39 && !string.IsNullOrWhiteSpace(values[39])) ? float.Parse(values[39]) : 0f;
 
+            // 劇本同伴的攻擊方式（索引 40，表尾欄，2026-10-26）：留空＝近戰。見 CompanionBrain。
+            data.CompanionStyle = (values.Length > 40 && !string.IsNullOrWhiteSpace(values[40])) ? values[40].Trim() : "";
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

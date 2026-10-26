@@ -36,7 +36,7 @@
 | | `PierceCount` | 整數 | 0 | 穿透數；0＝碰到就停；-1＝無限穿透 |
 | | `BlockedByEnvironment` | 布林 | 1 | 0＝穿過牆（需 `PierceCount ≠ 0`） |
 | **多發** | `SpreadCount` | 整數 | 1 | 一發幾顆／幾道；1＝不分 |
-| | `SpreadAngle` | 小數 | 0 | 扇形總角度（度） |
+| | `SpreadAngle` | 小數 | 0 | 扇形總角度（度）。⚠ **要繞一整圈填 `360 − 360/N`**（8 顆＝315、6 顆＝300）：間隔＝角度÷(顆數−1)，填 360 時首尾兩顆重疊 |
 | | `SplitTiming` | 列舉 | OnSpawn | `OnSpawn` 發射時分／`OnHit` 打中才分／`OnDeath` 飛到底才分。**留空＝OnSpawn**（只填 `SpreadCount` 就會分裂）。Laser 只認 `OnHit` |
 | | `SubRecipeID` | 整數 | — | 分裂子彈用的配方；留空＝繼承自身（不再分裂）；SkyStrike＝落點接連鎖的 Chain 配方 |
 | **反彈** | `BounceTarget` | 列舉 | None | `None`／`Environment`（牆）／`Enemy`（怪） |

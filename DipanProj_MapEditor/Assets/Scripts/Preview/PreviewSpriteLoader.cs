@@ -6,7 +6,11 @@ namespace DipanMapEditor.Preview
 {
     /// <summary>
     /// 載入角色的逐格動畫幀（idle/walk），直接讀主專案 GameAssets 來源 PNG
-    /// （Main 與當前 module 底下的 Monsters/SequenceImage/&lt;folder&gt;/&lt;state&gt;/）。
+    /// （Monsters/SequenceImage/&lt;folder&gt;/&lt;state&gt;/；找的順序：當前 module → Main → **其他 module**）。
+    ///
+    /// ⚠ 2026-10-26 補「其他 module」：以前只找當前 module ＋ Main，跨模組借角色時（例：Future 競技場擺 BloodFang 的夏綠蒂）
+    ///   **編輯器看不到、遊戲裡卻看得到**——遊戲端走同步後的 catalog，本來就不分模組（MonsterSpriteLibrary 依「怪名/動作」索引）。
+    ///   兩邊找圖範圍不同就會出現這種「只有一邊壞」的錯覺，見 PROBLEMS C16。
     ///
     /// **兩種尺寸模式**（呼叫端用 <paramref name="normalizeHeight"/> 決定，2026-09-15 補）：
     ///  ‧ <c>normalizeHeight = 0</c>（預設，劇情演出預覽沿用）：PPU = 256/tileSize，
@@ -37,8 +41,19 @@ namespace DipanMapEditor.Preview
         {
             string ga = GameAssetsRoot();
             var bases = new List<string>();
-            if (!string.IsNullOrEmpty(module) && module != "Main") bases.Add(Path.Combine(ga, "Modules", module));
+            string own = (!string.IsNullOrEmpty(module) && module != "Main") ? Path.Combine(ga, "Modules", module) : null;
+            if (own != null) bases.Add(own);
             bases.Add(Path.Combine(ga, "Main"));
+            // 最後才找其他 module（依名稱排序，結果穩定）：同名資料夾仍以「本 module → Main」優先，既有地圖的預覽不會變
+            string modulesDir = Path.Combine(ga, "Modules");
+            if (Directory.Exists(modulesDir))
+            {
+                var others = new List<string>(Directory.GetDirectories(modulesDir));
+                others.Sort(System.StringComparer.Ordinal);
+                foreach (var m in others)
+                    if (own == null || !string.Equals(Path.GetFullPath(m), Path.GetFullPath(own), System.StringComparison.OrdinalIgnoreCase))
+                        bases.Add(m);
+            }
             foreach (var b in bases)
             {
                 string dir = Path.Combine(b, "Monsters", "SequenceImage", folder, state);
@@ -131,7 +146,7 @@ namespace DipanMapEditor.Preview
             };
             if (res.idle == null && res.walk != null) res.idle = res.walk;   // 沒 idle 用 walk 當待機（同遊戲）
             if (res.idle == null && res.walk == null)
-                Debug.LogWarning($"[CutscenePreview] 找不到演員「{folder}」的 idle/walk 圖（Main 或 Modules/{module} 底下的 Monsters/SequenceImage/{folder}/）。");
+                Debug.LogWarning($"[CutscenePreview] 找不到演員「{folder}」的 idle/walk 圖（Modules/{module}、Main、其他 Modules 底下都沒有 Monsters/SequenceImage/{folder}/）。");
             _cache[key] = res;
             return res;
         }
