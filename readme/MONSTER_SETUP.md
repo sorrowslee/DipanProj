@@ -95,7 +95,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 - ⚠️ **攻擊動畫 ≠ 攻擊邏輯**：目前「在攻擊範圍內（`AttackRange`）且有 attack 圖」就播攻擊動畫，傷害仍走既有的**接觸傷害**（`EnemyContactDamage`）。真正的「會攻擊的 AI ＋ 攻擊判定/傷害」是另一塊，之後再接。
 - **死亡 / 受傷動畫**尚未納入（目前死亡直接銷毀）。要加時照 idle/walk/attack 同模式擴充 `MonsterAnimator` 的狀態詞彙。
 - **加一個新動作要動的只有 `MonsterAnimator`**（2026-09-16 加 `pant` 時實測）：`MonsterSpriteLibrary.GetFrames(怪名, 動作)` 與 Sync 工具都是**通用字串／掃「直接含 PNG 的葉資料夾」**，載圖與同步都不必改；影子錨點工具同理（會自動多算一組，取不到時 `TryGetShadowAnchor` 退回 idle）。`MonsterAnimator` 那邊固定五處：`State` 列舉、幀陣列欄位、`Setup` 載入＋`CharacterMipBias.Register`＋影子錨點、`FramesFor`、`Resolve` 的退回規則。**沒圖的怪不會噴 log**（`GetFrames` 找不到只是靜靜回 null 並快取），所以加動作不會汙染 Console。
-  （2026-09-18 加 `jump` 時再次驗證：同樣只動那五處。2026-10-26 加 `jumpStart`／`jumpLanding` 亦同，另加了唯讀的 `FrameSprite(state, 幀)` 給 Brain 查某一幀的 Sprite；新狀態一律加在列舉**尾端**。）
+  （2026-09-18 加 `jump` 時再次驗證：同樣只動那五處。2026-10-26 加 `jumpStart`／`jumpLanding` 亦同，另加了唯讀的 `FrameSprite(state, 幀)` 給 Brain 查某一幀的 Sprite；新狀態一律加在列舉**尾端**。2026-10-27 加 `slash`／`dodge` 亦同（另見表尾新欄 **`AttackOffsetX`**：持武器動作的身體在畫布裡比 idle 往前偏時，用水平 pivot 補回，量法＝idle 與 attack 第一幀軀幹中段左右中點相減；**`AttackFootLock`** 填 1＝attack 只量第一幀對齊腳底，武器揮到腳底線以下的怪用，PROBLEMS **G18**）；這兩個身體會離地／散開，載圖傳 `alignByFirstFrame`＝只量第一幀，見 PROBLEMS **G17**、BOSS_MODULE §16.4。）
 - **要「播一次就停」的動作用 `MonsterAnimator.PlayOneShot(state, 起幀, 迄幀, fps倍率)`**（2026-09-18 加）：
   既有播放一律是**循環**，而且 `MonsterController.HandleVisuals` **每幀**都會依距離/位移呼叫 `SetState` 覆寫狀態 ——
   所以有頭有尾的動作（跳躍、之後的死亡/受傷）光靠 `SetState` 撐不過下一幀。

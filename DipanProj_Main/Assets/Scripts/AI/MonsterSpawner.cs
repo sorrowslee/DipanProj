@@ -153,6 +153,12 @@ public class MonsterSpawner : MonoBehaviour
             // 劇本同伴的攻擊方式（索引 40，表尾欄，2026-10-26）：留空＝近戰。見 CompanionBrain。
             data.CompanionStyle = (values.Length > 40 && !string.IsNullOrWhiteSpace(values[40])) ? values[40].Trim() : "";
 
+            // attack／slash 水平補償（索引 41，表尾欄，2026-10-27）：留空＝0＝不補。見 MonsterData.AttackOffsetX。
+            data.AttackOffsetX = (values.Length > 41 && !string.IsNullOrWhiteSpace(values[41])) ? float.Parse(values[41]) : 0f;
+
+            // attack 只量第一幀對齊腳底（索引 42，表尾欄，2026-10-27）：填 1 才開。見 MonsterData.AttackFootLock。
+            data.AttackFootLock = values.Length > 42 && values[42].Trim() == "1";
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();

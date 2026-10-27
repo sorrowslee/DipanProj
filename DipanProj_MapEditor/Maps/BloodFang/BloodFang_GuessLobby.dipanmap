@@ -292,7 +292,9 @@
           "cells": [],
           "params": {
             "dramaId": "47",
-            "next": "開大門"
+            "conditions": "!series:2",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-首領敗北-狂族-同族"
           }
         },
         {
@@ -349,7 +351,9 @@
           "cells": [],
           "params": {
             "dramaId": "48",
-            "next": "開大門-狂族"
+            "conditions": "!series:3",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-首領敗北-血族-同族"
           }
         },
         {
@@ -455,6 +459,54 @@
           "params": {
             "target": "傳送點-北方",
             "show": true
+          }
+        },
+        {
+          "id": "3e910dc3",
+          "name": "對話-首領敗北-狂族-同族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "64",
+            "conditions": "series:2|!bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-首領敗北-狂族-該隱"
+          }
+        },
+        {
+          "id": "9b0730e5",
+          "name": "對話-首領敗北-狂族-該隱",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "65",
+            "conditions": "bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "開大門"
+          }
+        },
+        {
+          "id": "bff4da5d",
+          "name": "對話-首領敗北-血族-同族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "71",
+            "conditions": "series:3|!bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-首領敗北-血族-芬里爾"
+          }
+        },
+        {
+          "id": "74039e34",
+          "name": "對話-首領敗北-血族-芬里爾",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "72",
+            "conditions": "bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "開大門-狂族"
           }
         }
       ]

@@ -474,7 +474,9 @@
           "cells": [],
           "params": {
             "dramaId": "44",
-            "next": "對話-殺入狂族"
+            "conditions": "!bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-偷襲-血族-該隱"
           }
         },
         {
@@ -493,7 +495,9 @@
           "cells": [],
           "params": {
             "dramaId": "54",
-            "next": "開東門"
+            "conditions": "!series:2",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-殺入狂族-同族"
           }
         },
         {
@@ -606,7 +610,9 @@
           "cells": [],
           "params": {
             "dramaId": "45",
-            "next": "對話-殺入血族"
+            "conditions": "!bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-偷襲-狂族-芬里爾"
           }
         },
         {
@@ -625,7 +631,9 @@
           "cells": [],
           "params": {
             "dramaId": "55",
-            "next": "開西門"
+            "conditions": "!series:3",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-殺入血族-同族"
           }
         },
         {
@@ -857,6 +865,78 @@
             "dramaId": "60",
             "next": "加入狂族"
           }
+        },
+        {
+          "id": "0b9b6281",
+          "name": "對話-偷襲-血族-該隱",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "61",
+            "conditions": "bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-殺入狂族"
+          }
+        },
+        {
+          "id": "227c4d8b",
+          "name": "對話-殺入狂族-同族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "62",
+            "conditions": "series:2|!bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-殺入狂族-該隱"
+          }
+        },
+        {
+          "id": "f564a1d7",
+          "name": "對話-殺入狂族-該隱",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "63",
+            "conditions": "bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "開東門"
+          }
+        },
+        {
+          "id": "10fa0e53",
+          "name": "對話-偷襲-狂族-芬里爾",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "68",
+            "conditions": "bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-殺入血族"
+          }
+        },
+        {
+          "id": "8efe9aab",
+          "name": "對話-殺入血族-同族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "69",
+            "conditions": "series:3|!bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-殺入血族-芬里爾"
+          }
+        },
+        {
+          "id": "5bef8a64",
+          "name": "對話-殺入血族-芬里爾",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "70",
+            "conditions": "bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "開西門"
+          }
         }
       ]
     }
@@ -1024,14 +1104,14 @@
         {
           "id": "wolfLeader",
           "kind": "npc",
-          "spriteFolder": "Wolf Royal Guard",
+          "spriteFolder": "17th Holy Prince – Elvin",
           "x": 22.3,
           "y": -13.4,
           "facing": "left",
           "spawnAtStart": true,
           "flying": false,
-          "scale": 5.29,
-          "animFps": 8.0
+          "scale": 3.37,
+          "animFps": 14.0
         }
       ],
       "steps": [
@@ -1233,14 +1313,14 @@
         {
           "id": "wolfLeader",
           "kind": "npc",
-          "spriteFolder": "Wolf Royal Guard",
+          "spriteFolder": "17th Holy Prince – Elvin",
           "x": 22.3,
           "y": -13.4,
           "facing": "left",
           "spawnAtStart": true,
           "flying": false,
-          "scale": 5.29,
-          "animFps": 8.0
+          "scale": 3.37,
+          "animFps": 14.0
         }
       ],
       "steps": [
@@ -1340,14 +1420,14 @@
         {
           "id": "wolfLeader",
           "kind": "npc",
-          "spriteFolder": "Wolf Royal Guard",
+          "spriteFolder": "17th Holy Prince – Elvin",
           "x": 22.3,
           "y": -13.4,
           "facing": "left",
           "spawnAtStart": true,
           "flying": false,
-          "scale": 5.29,
-          "animFps": 8.0
+          "scale": 3.37,
+          "animFps": 14.0
         }
       ],
       "steps": [
@@ -1430,14 +1510,14 @@
         {
           "id": "wolfLeader",
           "kind": "npc",
-          "spriteFolder": "Wolf Royal Guard",
+          "spriteFolder": "17th Holy Prince – Elvin",
           "x": 22.3,
           "y": -13.4,
           "facing": "left",
           "spawnAtStart": true,
           "flying": false,
-          "scale": 5.29,
-          "animFps": 8.0
+          "scale": 3.37,
+          "animFps": 14.0
         }
       ],
       "steps": [

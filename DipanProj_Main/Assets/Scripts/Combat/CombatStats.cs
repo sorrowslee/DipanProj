@@ -28,6 +28,10 @@ public class CombatStats : MonoBehaviour, ICombatModifiers
         if (on) _deathGuards.Add(owner); else _deathGuards.Remove(owner);
     }
 
+    /// <summary>某個 owner 是否開著不死保護（作弊面板的「無敵」開關用來顯示狀態）。</summary>
+    public static bool HasDeathGuard(string owner)
+        => _deathGuards.Contains(string.IsNullOrEmpty(owner) ? "__default__" : owner);
+
     /// <summary>進 Play 時清掉（Domain Reload 已關）。</summary>
     public static void ResetForPlayMode() => _deathGuards.Clear();
 

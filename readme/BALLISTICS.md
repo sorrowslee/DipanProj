@@ -38,6 +38,7 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 * `CheckSpawnOverlap()`：生成時做一次 `OverlapCircle` 近距離檢查，處理子彈起點已在 Collider 內部時偵測不到的問題。
 * `HashSet<int> _hitObjects`：**一顆子彈一輩子對同一個目標只回報一次命中**（穿透彈穿過一隻怪不會每幀都打它）。`ClearHitHistory()`（2026-09-30 加）清空它，之後同一目標可以再被打一次——迴旋每次轉向都呼叫。
 * `_isDestroyed` 旗標：`Destroy` 呼叫後立即阻止同幀繼續執行命中邏輯。
+* `static List<BulletInstance> Active`（2026-10-27 加）：場上所有還在飛的子彈（OnEnable／OnDisable 增刪），**唯讀**使用。子彈靠射線判定、身上沒有 Collider，給「預判子彈而閃避」的怪用（主專案 `HolyPrinceElvinBrain`，見 [BOSS_MODULE.md](BOSS_MODULE.md) §16.3）。
 * 穿透邏輯：命中目標在 `PierceableLayers` 內時，若 `PierceCount > 0` 則不銷毀並遞減；若 `PierceCount < 0`（例如 -1）則不銷毀且不遞減（無限穿透）。
 * 存活時間：`LifeTime < 0`（例如 -1）時不因時間銷毀；否則每幀倒數，歸零時銷毀。
 * `OnGroundLanded` 事件：拋物線彈抵達落點時觸發（見 [GROUND_EFFECT.md](GROUND_EFFECT.md) 的拋物線章節）。

@@ -120,7 +120,7 @@ public class MonsterSpriteLibrary
         Debug.Log($"[MonsterSpriteLibrary] 已預載 module「{module}」(+Main) 怪物序列圖：{names.Count} 隻、{done} 張。");
     }
 
-    static readonly string[] PreloadStates = { "idle", "walk", "attack", "pant", "jump", "jumpStart", "jumpLanding" };
+    static readonly string[] PreloadStates = { "idle", "walk", "attack", "pant", "jump", "jumpStart", "jumpLanding", "slash", "dodge" };
 
     /// <summary>這隻怪有沒有這個動作的圖（防呆判斷用）。</summary>
     public bool Has(string monsterName, string state)
@@ -136,11 +136,16 @@ public class MonsterSpriteLibrary
     /// </summary>
     /// <param name="baseTileSize">**基準動作（idle）的 tileSize**，給腳底對齊用；&lt;=0 或等於 tileSize 時等同不縮放。
     /// 各動作的 tileSize 不一樣時（逐動作縮放），只比像素會算錯，見下方註解。</param>
-    public Sprite[] GetFrames(string monsterName, string state, float tileSize = 1f, float baseTileSize = 0f)
+    /// <param name="alignByFirstFrame">true＝整個動作只量第一幀、所有幀共用同一個 pivot（身體會離地／散開的動作用，
+    /// 例：聖子艾爾文的 slash 跳劈、dodge 化風）。見 <c>MapSpriteLoader.GetAnimationFrames</c> 與 readme/PROBLEMS.md **G17**。</param>
+    /// <param name="offsetXPx">水平補償（原圖 px，身體比 idle 往右偏多少）；見 <c>MapSpriteLoader.GetAnimationFrames</c>。0＝不補。</param>
+    public Sprite[] GetFrames(string monsterName, string state, float tileSize = 1f, float baseTileSize = 0f,
+                              bool alignByFirstFrame = false, float offsetXPx = 0f)
     {
         string tail = Key(monsterName, state);
         if (baseTileSize <= 0.0001f) baseTileSize = tileSize;
-        string cacheKey = $"{tail}|{tileSize}|b{baseTileSize}";
+        string cacheKey = $"{tail}|{tileSize}|b{baseTileSize}" + (alignByFirstFrame ? "|f1" : "")
+                        + (Mathf.Abs(offsetXPx) > 0.0001f ? $"|x{offsetXPx}" : "");
         if (_frameCache.TryGetValue(cacheKey, out var cached)) return cached;
 
         Sprite[] frames = null;
@@ -158,7 +163,7 @@ public class MonsterSpriteLibrary
                 //    ⚠ 基準的「腳底 px」與「畫布高 px」必須成對傳，兩者要量自同一張圖——
                 //      只傳腳底 px、拿這一幀的畫布高去配，畫布尺寸一換就整組位移（PROBLEMS **F28**）。
                 Vector2Int bl = BaselinePx(monsterName);
-                frames = _loader.GetAnimationFrames(item, tileSize, bl.x, bl.y, baseTileSize / tileSize);
+                frames = _loader.GetAnimationFrames(item, tileSize, bl.x, bl.y, baseTileSize / tileSize, alignByFirstFrame, offsetXPx);
             }
             else
             {

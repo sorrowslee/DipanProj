@@ -16,6 +16,7 @@ namespace Dipan.UI
     ///   1.「給道具」：填入物品 ID + 數量 → 按確認 → 走 RunProgress.GiveItem(toRealBag:true)（**一律直接進真背包**，
     ///      給 101 銅錢會轉成金錢數字）。另有一鍵快捷：給錢、**取得所有武器（每種一把）**、**取得所有血統藥劑（每種一瓶）**。
     ///   2.「鑲嵌」：改裝備中武器的孔數、每種能力珠各給一顆 Lv3、給測試防具。
+    ///   3.「玩家」：無敵開關＝具名不死保護 <c>CombatStats.SetDeathGuard("CheatPanel", …)</c>（照常被打、扣血、跳數字，只是不會死；不存檔）。
     ///
     /// 風格對齊專案：全程式建構、零 prefab / Inspector 接線（同 SettingsPanel / InventoryPanel）。
     /// 開啟時暫停遊戲 + 擋輸入（方便打字），ESC 或右上 X 關閉。
@@ -120,6 +121,7 @@ namespace Dipan.UI
             // 之後要加「加錢」「回滿血」「無敵」「解鎖關卡」等都照這樣加一行 + 一個 Build 方法。
             AddSection("給道具", BuildGiveItemSection);
             AddSection("鑲嵌", BuildSocketSection);
+            AddSection("玩家", BuildPlayerSection);
 
             ShowSection(0);
         }
@@ -127,6 +129,7 @@ namespace Dipan.UI
         protected override void OnOpen()
         {
             if (_giveStatus != null) _giveStatus.text = "";   // 每次開啟清掉上次的結果提示
+            RefreshInvincibleButton();                         // 開關狀態以靜態旗標為準（換場景後面板重建也對得上）
         }
 
         // ───────────────────────── 分頁框架 ─────────────────────────
@@ -224,6 +227,55 @@ namespace Dipan.UI
             // 狀態列（本次結果）——兩組共用，放在最下面
             _giveStatus = UIBuilder.Text(root, "GiveStatus", "", 22, ColOk, TextAnchor.UpperLeft);
             Place(_giveStatus.rectTransform, 0f, 384f, GroupW, 80f);
+        }
+
+        // ───────────────────────── 分頁：玩家（無敵…）─────────────────────────
+        //
+        // 測頭目時不想一直死。**無敵＝不死，不是不受傷**（作者 2026-10-27）：照常被擊中、閃白、擊退、跳數字、扣血，
+        // 只是最多扣到剩 1 血——這樣才分得出「怪沒打到」和「打到了但我開著無敵」。
+        // 走 CombatStats 既有的具名不死保護（教學劇情也在用，具名所以互不干擾）；進 Play 時會被清掉，按鈕狀態直接讀它。
+
+        Button _invincibleBtn;
+        static readonly Color ColToggleOn = new Color(0.20f, 0.50f, 0.25f, 1f);
+
+        void BuildPlayerSection(RectTransform root)
+        {
+            var head = UIBuilder.Text(root, "Head", "玩家", 28, ColAccent, TextAnchor.UpperLeft);
+            Place(head.rectTransform, 0f, 0f, 600f, 40f);
+
+            var hint = UIBuilder.Text(root, "Hint",
+                "測試用狀態開關；不會存檔，重新進 Play／重開遊戲就恢復關閉。",
+                18, new Color(1f, 1f, 1f, 0.6f), TextAnchor.UpperLeft);
+            Place(hint.rectTransform, 0f, 46f, GroupW, 30f);
+
+            const float G1Y = 92f, G1H = 124f, Row1Y = 136f;
+            AddGroup(root, "無敵（照常受傷、扣血、跳數字，但血最多扣到 1、不會死）", G1Y, G1H, ColGroupA);
+
+            // ⚠ 標籤不能傳空字串：UIBuilder.Button 遇到空標籤**不會建 Text 子物件**，之後 RefreshInvincibleButton 就找不到字可以改（按鈕會一片空白）。
+            _invincibleBtn = UIBuilder.Button(root, "InvincibleBtn", InvincibleLabel(), OnClickToggleInvincible, ColBtn);
+            Place((RectTransform)_invincibleBtn.transform, 14f, Row1Y, 260f, 56f);
+            RefreshInvincibleButton();
+        }
+
+        void OnClickToggleInvincible()
+        {
+            bool on = !CombatStats.HasDeathGuard(CheatGuardOwner);
+            CombatStats.SetDeathGuard(CheatGuardOwner, on);
+            RefreshInvincibleButton();
+            AlertPanel.Toast(on ? "作弊：無敵 開（不會死）" : "作弊：無敵 關");
+        }
+
+        const string CheatGuardOwner = "CheatPanel";
+        static string InvincibleLabel() => CombatStats.HasDeathGuard(CheatGuardOwner) ? "無敵：開" : "無敵：關";
+
+        void RefreshInvincibleButton()
+        {
+            if (_invincibleBtn == null) return;
+            bool on = CombatStats.HasDeathGuard(CheatGuardOwner);
+            var lbl = _invincibleBtn.GetComponentInChildren<Text>();
+            if (lbl != null) lbl.text = InvincibleLabel();
+            var img = _invincibleBtn.GetComponent<Image>();
+            if (img != null) img.color = on ? ColToggleOn : ColBtn;
         }
 
         // ───────────────────────── 分頁：鑲嵌（能力珠測試）─────────────────────────

@@ -19,6 +19,13 @@ public static class CombatSystem
     public static bool CurrentHitTheatrical { get; private set; }
 
     /// <summary>
+    /// 這一次 TakeDamage 是持續傷害（DOT：燃燒、中毒…）＝ true。同 <see cref="CurrentHitTheatrical"/>，只在呼叫目標 TakeDamage 的那一瞬間成立。
+    /// 2026-10-27 為聖子艾爾文的 dodge 加：他會在「被打到的第一下」改成閃避（MonsterController.DamageInterceptor），
+    /// 但身上掛著的燃燒每跳一次都去觸發閃避會很怪——那不是「被攻擊」，是已經中了的狀態在結算。
+    /// </summary>
+    public static bool CurrentHitIsDot { get; private set; }
+
+    /// <summary>
     /// 結算一次傷害。回傳「實際打進目標的最終傷害」（被無敵時間擋掉時，IDamageable 內部會忽略，但這裡仍回傳計算值）。
     /// </summary>
     public static float Apply(in DamageInfo info)
@@ -73,8 +80,13 @@ public static class CombatSystem
         if (damageable == null) return 0f;
 
         CurrentHitTheatrical = theatrical;
+        CurrentHitIsDot = info.IsDot;
         try { damageable.TakeDamage(amount, info.HitDirection); }
-        finally { CurrentHitTheatrical = false; }
+        finally { CurrentHitTheatrical = false; CurrentHitIsDot = false; }
+
+        // 這一下被目標閃掉了（進入虛體無敵，例：聖子艾爾文的 dodge）⇒ 不播擊中特效。
+        var hitMc = info.Target.GetComponent<MonsterController>();
+        if (hitMc != null && hitMc.IsUntargetable) return 0f;
 
         // 4) 三階血統的擊中特效：玩家打中怪物時，在那隻怪身上播一次（見 BloodlineHitFx）。
         //    掛在這裡是因為**這裡是全遊戲傷害的單一入口**——子彈／雷射 tick／連鎖閃電／AOE 爆炸

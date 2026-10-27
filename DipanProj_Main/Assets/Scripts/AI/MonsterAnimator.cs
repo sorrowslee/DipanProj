@@ -22,7 +22,10 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     // JumpStart／JumpLanding（起跳／落地）＝2026-10-26 為夏綠蒂公爵加的第七、八個動作（見 DukeCharlotteBrain／BOSS_MODULE.md §14）：
     //   跳躍拆成兩個資料夾的怪用這兩個；一個 jump 資料夾就演完整段的怪（狂族皇家衛士）照舊用 Jump。
     //   ⚠ 新狀態一律**加在尾端**：列舉值是 int，插在中間會讓既有的數值全部位移。
-    public enum State { Idle, Walk, Attack, Pant, Jump, Hang, JumpStart, JumpLanding }
+    // Slash／Dodge＝2026-10-27 為聖子艾爾文加的第九、十個動作（見 HolyPrinceElvinBrain／BOSS_MODULE.md §16）：
+    //   slash＝跳起來往下劈砍、放衝擊波；dodge＝身上捲起一陣風、身形消失再出現（閃避）。
+    //   這兩個動作**身體會離地／散開**，載圖一律「只量第一幀」對齊腳底（PROBLEMS G17），影子沿用 attack／idle 的錨點。
+    public enum State { Idle, Walk, Attack, Pant, Jump, Hang, JumpStart, JumpLanding, Slash, Dodge }
 
     [Tooltip("基準播放幀率（幀/秒）；由 CSV 的 AnimFPS 帶入，留空＝8")]
     public float BaseFps = 8f;
@@ -55,7 +58,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     public bool PantPingPong = true;
 
     SpriteRenderer _sr;
-    Sprite[] _idle, _walk, _attack, _pant, _jump, _hang, _jumpStart, _jumpLanding;
+    Sprite[] _idle, _walk, _attack, _pant, _jump, _hang, _jumpStart, _jumpLanding, _slash, _dodge;
     bool _hasAny;
 
     State _state = State.Idle;
@@ -180,7 +183,7 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     /// </summary>
     public void Setup(string monsterName, float fps, float referenceSpeed, float tileSize = 1f,
                       float idleScale = 0f, float walkScale = 0f, float attackScale = 0f, float jumpScale = 0f,
-                      float hangScale = 0f, bool flyer = false)
+                      float hangScale = 0f, bool flyer = false, float attackOffsetXPx = 0f, bool attackFootLock = false)
     {
         _sr = GetComponent<SpriteRenderer>();
         BaseFps = fps > 0f ? fps : 8f;
@@ -230,7 +233,9 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         //   各動作的 tileSize 不一樣時，只比像素會錯。見 MonsterSpriteLibrary.GetFrames。
         _idle   = lib.GetFrames(monsterName, "idle",   idleTile,   idleTile);
         _walk   = lib.GetFrames(monsterName, "walk",   walkTile,   idleTile);
-        _attack = lib.GetFrames(monsterName, "attack", attackTile, idleTile);
+        // attackOffsetXPx（CSV AttackOffsetX）：持劍動作的素材裡身體比 idle 往前偏的像素，用水平 pivot 補回（attack 與 slash 共用）。
+        // attackFootLock（CSV AttackFootLock）：揮劍時劍尖掃到腳底線以下的怪，逐幀對齊會把整隻往上抬（G18）⇒ 改成只量第一幀。
+        _attack = lib.GetFrames(monsterName, "attack", attackTile, idleTile, attackFootLock, attackOffsetXPx);
         _pant   = lib.GetFrames(monsterName, "pant",   pantTile,   idleTile);
         _jump   = lib.GetFrames(monsterName, "jump",   jumpTile,   idleTile);
         _hang   = lib.GetFrames(monsterName, "hang",   hangTile,   idleTile);
@@ -238,6 +243,13 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         // 理由同 jump：蹲下、伸展、壓扁的身高變化**就是動作本身**，正規化會把它抵銷掉。
         _jumpStart   = lib.GetFrames(monsterName, "jumpStart",   jumpTile, idleTile);
         _jumpLanding = lib.GetFrames(monsterName, "jumpLanding", jumpTile, idleTile);
+        // slash（跳劈）與 dodge（化風閃避）：**整個動作只量第一幀**對齊腳底（最後一個參數，見 PROBLEMS G17）——
+        //   逐幀量會把 slash 騰空的那幾幀拉回地面（＝跳不起來）、把 dodge 散開的風推得上下亂跳。
+        //   大小：slash 是持劍姿勢（同 attack），走自動高度對齊並吃 AttackScale；
+        //         dodge 第一幀就是 idle 站姿，直接沿用 idle 的大小（中間全是風，自動對齊會被風的高度誤導）。
+        float slashTile = Tile(lib, monsterName, "slash", tileSize, idleVis, attackScale);
+        _slash = lib.GetFrames(monsterName, "slash", slashTile, idleTile, true, attackOffsetXPx);
+        _dodge = lib.GetFrames(monsterName, "dodge", idleTile,  idleTile, true);
 
         // 【過渡期】角色取樣密度對齊背景（mipMapBias），見 CharacterMipBias 檔頭；背景解析度提上來後可拿掉這三行。
         CharacterMipBias.Register(_idle, transform);
@@ -248,6 +260,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         CharacterMipBias.Register(_hang, transform);
         CharacterMipBias.Register(_jumpStart, transform);
         CharacterMipBias.Register(_jumpLanding, transform);
+        CharacterMipBias.Register(_slash, transform);
+        CharacterMipBias.Register(_dodge, transform);
 
         _shadow.Clear();
         _cageCached = false;   // 換外型後骨牢錨點要重算（見 TryGetCageAnchorLocal）
@@ -259,12 +273,17 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         _shadow[State.Hang]   = lib.GetShadowAnchor(monsterName, "hang");
         _shadow[State.JumpStart]   = lib.GetShadowAnchor(monsterName, "jumpStart");
         _shadow[State.JumpLanding] = lib.GetShadowAnchor(monsterName, "jumpLanding");
+        // slash／dodge 的影子**不自己量**：逐幀量的錨點會被騰空幀與風的碎片帶偏（G17 通則）。
+        //   slash 與 attack 是同一個持劍站姿（第一幀腳底同高）⇒ 用 attack 的；dodge 第一幀就是 idle ⇒ 用 idle 的。
+        //   騰空時影子留在地上（錨點是畫布座標、pivot 整個動作固定 ⇒ 圖往上跳、錨點不動）。
+        _shadow[State.Slash] = _shadow[State.Attack].ok ? _shadow[State.Attack] : _shadow[State.Idle];
+        _shadow[State.Dodge] = _shadow[State.Idle];
 
         // idle 是必備；萬一只給了 walk 沒給 idle，就用 walk 當待機後備（不至於沒圖）
         if (_idle == null && _walk != null) { _idle = _walk; if (!_shadow[State.Idle].ok) _shadow[State.Idle] = _shadow[State.Walk]; }
 
         _hasAny = _idle != null || _walk != null || _attack != null || _pant != null || _jump != null || _hang != null
-               || _jumpStart != null || _jumpLanding != null;
+               || _jumpStart != null || _jumpLanding != null || _slash != null || _dodge != null;
         if (!_hasAny)
         {
             Debug.LogWarning($"[MonsterAnimator] 怪物「{monsterName}」找不到任何動作圖。" +
@@ -436,6 +455,9 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         if (s == State.Hang) return State.Idle;
         // 起跳／落地沒圖：比照 jump 退回 walk（Brain 端本來就該先看 PlayOneShot 的回傳值，這裡只是保底）。
         if (s == State.JumpStart || s == State.JumpLanding) return Has(State.Walk) ? State.Walk : State.Idle;
+        // slash 沒圖退回 attack（同樣是出手動作）；dodge 沒圖退回 idle（閃避時本來就站在原地）。
+        if (s == State.Slash) return Has(State.Attack) ? State.Attack : State.Idle;
+        if (s == State.Dodge) return State.Idle;
         if (s == State.Walk) return State.Idle;
         return State.Idle;
     }
@@ -451,6 +473,8 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
             case State.Hang: return _hang;
             case State.JumpStart: return _jumpStart;
             case State.JumpLanding: return _jumpLanding;
+            case State.Slash: return _slash;
+            case State.Dodge: return _dodge;
             default: return _idle;
         }
     }

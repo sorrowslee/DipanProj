@@ -38,6 +38,8 @@
 實際抽選池 = ②（過濾條件通過的） ∪ ③
 ```
 
+> ⚠ **GM 測試武器區間 900～999 永遠不進池**（2026-10-27）：`GachaService.BuildCandidates` 組池時直接排除，就算被寫進基本表（印 warning）或解鎖清單。規則與傷害特例住在 `Scripts/Weapon/GmWeapons.cs`。
+
 - **新增一個大項** → 池登記表加一列 ＋ 做一張基本表 ＋ 把表拖進 `GachaTableProvider` ＋ 擺一座祭壇。零程式碼。
 - **刪除一個大項** → 刪那一列就好。例如日後把「裝備」併進「武器」＝刪 `armor` 列、把內容貼進 `BaseWeaponRoll.csv`。
 

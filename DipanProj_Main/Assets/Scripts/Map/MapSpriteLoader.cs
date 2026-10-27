@@ -140,16 +140,17 @@ namespace Dipan.MapRuntime
         /// AI 生成的序列圖常常每個動作把角色畫在畫布的不同高度，逐幀補償 pivot 就能讓腳底對齊，
         /// 而且**不動角色的絕對位置**（基準幀的 pivot 仍是 0.5）。見 MonsterSpriteLibrary.GetFrames。
         /// </summary>
-        public Sprite GetFrameSprite(string framePath, float tileSize, float pivotY)
+        public Sprite GetFrameSprite(string framePath, float tileSize, float pivotY, float pivotX = 0.5f)
         {
             if (string.IsNullOrEmpty(framePath)) return null;
-            if (Mathf.Abs(pivotY - 0.5f) < 0.0001f) return GetFrameSprite(framePath, tileSize);   // 沒補償 → 走原本那條（共用快取）
-            string key = $"frame|{framePath}|{tileSize}|p{pivotY:F4}";
+            bool noX = Mathf.Abs(pivotX - 0.5f) < 0.0001f;
+            if (noX && Mathf.Abs(pivotY - 0.5f) < 0.0001f) return GetFrameSprite(framePath, tileSize);   // 沒補償 → 走原本那條（共用快取）
+            string key = $"frame|{framePath}|{tileSize}|p{pivotY:F4}" + (noX ? "" : $"|x{pivotX:F4}");
             if (_sprites.TryGetValue(key, out var sp) && sp != null) return sp;
             var tex = GetFrameTexture(framePath);
             if (tex == null) return null;
             float ppu = TileNativePx / Mathf.Max(0.0001f, tileSize);
-            sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, pivotY), ppu);
+            sp = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(pivotX, pivotY), ppu);
             _sprites[key] = sp;
             return sp;
         }
@@ -219,8 +220,21 @@ namespace Dipan.MapRuntime
         /// <paramref name="baselineBottomPx"/> &lt; 0 或某幀量不到 → 那一幀退回原本的置中 pivot（不會壞）。
         /// </summary>
         /// <param name="baselineCanvasPx">**基準幀的畫布高（px）**。必須與 <paramref name="baselineBottomPx"/> 量自同一張圖。</param>
+        /// <param name="alignByFirstFrame">
+        /// <b>整個動作只量第一幀</b>、所有幀共用同一個 pivot（2026-10-27 為聖子艾爾文的 slash／dodge 加回，見 readme/PROBLEMS.md **G17**）。
+        /// 逐幀量「最低的不透明像素」的前提是「每一幀最低的像素就是腳」——對**身體會離地或散開**的動作不成立：
+        /// 跳起來劈砍（slash 第 10~13 幀腳離地約 50px）會被逐幀對齊拉回地面＝跳不起來；
+        /// 化成旋風再現身（dodge 第 11~13 幀幾乎全空、只剩幾片風）會被推得上下亂跳。
+        /// 前提：這個動作所有幀畫布同尺寸、第一幀是站姿。預設 false＝既有行為（逐幀），既有怪零變化。
+        /// </param>
+        /// <param name="offsetXPx">
+        /// <b>水平補償（原圖像素）</b>：這個動作的素材裡，身體比基準動作（idle）往右偏了多少 px（2026-10-27 為聖子艾爾文加）。
+        /// 用 pivot.x 補回去（pivot.x ＝ 0.5 ＋ offsetXPx ÷ 畫布寬），身體就落在 transform 上，切動作時不會左右跳；
+        /// SpriteRenderer.flipX 是繞 pivot 翻，所以面向左時一樣對得上。0＝不補（既有行為）。
+        /// </param>
         public Sprite[] GetAnimationFrames(CatalogItem item, float tileSize, int baselineBottomPx,
-                                           int baselineCanvasPx, float tileRatio = 1f)
+                                           int baselineCanvasPx, float tileRatio = 1f, bool alignByFirstFrame = false,
+                                           float offsetXPx = 0f)
         {
             if (item == null || !item.IsAnimated) return null;
             if (baselineBottomPx < 0 || baselineCanvasPx <= 0) return GetAnimationFrames(item, tileSize);
@@ -229,15 +243,34 @@ namespace Dipan.MapRuntime
             // 基準幀的「腳底離畫布中心」有多少 px（以**基準幀的畫布**計）。這是所有幀要對齊的那條線。
             float baseOffsetPx = baselineBottomPx - baselineCanvasPx * 0.5f;
 
+            // 只量第一幀時：先把第一幀的 pivot 算好，之後每一幀都用它（見 alignByFirstFrame）。
+            float firstPivotY = 0.5f;
+            if (alignByFirstFrame && item.frames.Count > 0)
+            {
+                var bp0 = GetFrameBottomPx(item.frames[0]);
+                if (bp0.x >= 0 && bp0.y > 0) firstPivotY = (bp0.x - baseOffsetPx * tileRatio) / bp0.y;
+            }
+
             var arr = new Sprite[item.frames.Count];
             for (int i = 0; i < arr.Length; i++)
             {
                 string fp = item.frames[i];
-                var bp = GetFrameBottomPx(fp);   // bp.x = 這一幀腳底距畫布底的 px，bp.y = 這一幀的畫布高
                 float pivotY = 0.5f;
-                if (bp.x >= 0 && bp.y > 0)
-                    pivotY = (bp.x - baseOffsetPx * tileRatio) / bp.y;
-                arr[i] = GetFrameSprite(fp, tileSize, pivotY);
+                if (alignByFirstFrame)
+                    pivotY = firstPivotY;
+                else
+                {
+                    var bp = GetFrameBottomPx(fp);   // bp.x = 這一幀腳底距畫布底的 px，bp.y = 這一幀的畫布高
+                    if (bp.x >= 0 && bp.y > 0)
+                        pivotY = (bp.x - baseOffsetPx * tileRatio) / bp.y;
+                }
+                float pivotX = 0.5f;
+                if (Mathf.Abs(offsetXPx) > 0.0001f)
+                {
+                    var tx = GetFrameTexture(fp);
+                    if (tx != null && tx.width > 0) pivotX = 0.5f + offsetXPx / tx.width;
+                }
+                arr[i] = GetFrameSprite(fp, tileSize, pivotY, pivotX);
                 if (arr[i] == null) return null;
             }
             return arr;

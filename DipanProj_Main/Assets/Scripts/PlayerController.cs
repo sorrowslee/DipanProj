@@ -1250,7 +1250,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             int key = component.gameObject.GetInstanceID();
             if (!damaged.Add(key)) continue;
             Vector2 hitDir = ((Vector2)component.transform.position - origin).normalized;
-            CombatSystem.Apply(gameObject, component.gameObject, weapon.Damage, hitDir);
+            CombatSystem.Apply(gameObject, component.gameObject, GmWeapons.DamageAgainst(weapon, component.gameObject), hitDir);
         }
 
         if (_rb != null) _rb.position = end;
@@ -1326,7 +1326,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             Vector2 hitDir = body - origin;
             hitDir = hitDir.sqrMagnitude > 0.0001f ? hitDir.normalized : aim;
             bool isEnemy = IsOnEnemyLayer(component.gameObject);
-            CombatSystem.Apply(gameObject, component.gameObject, weapon.Damage, hitDir);
+            CombatSystem.Apply(gameObject, component.gameObject, GmWeapons.DamageAgainst(weapon, component.gameObject), hitDir);
 
             // 命中特效（只有刀光樣式；舊行為已經在揮擊時播過）：在目標身上、朝「從自己指向目標」的方向。
             // HitEffectEnemyOnly／BloodlineHitFx 讓位等規則都在 TrySpawnHitEffect 裡，跟子彈命中同一套。
@@ -1649,7 +1649,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
             // 統一傷害（怪物 + 可破壞地上物若混在 _hits 中）；無敵時間由各自 TakeDamage 內部處理
             Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
-            ApplyDamage(target, firedWeapon.Damage, hitDir);
+            ApplyDamage(target, GmWeapons.DamageAgainst(firedWeapon, target), hitDir);
+            if (TargetDodged(target)) continue;   // 被打的瞬間閃開了：不噴擊中特效／不分裂（見 HandleBulletHit）
 
             TryTriggerGroundEffect(firedWeapon.Recipe, point, hitEnemy, hitEnv, false);
             TrySpawnHitEffect(firedWeapon, point, hitEnemy);
@@ -1666,7 +1667,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             GameObject target = envHits[i].Target;
             if (target == null) continue;
             Vector2 dir = (envHits[i].Point - (Vector2)transform.position).normalized;
-            ApplyDamage(target, firedWeapon.Damage, dir);
+            ApplyDamage(target, GmWeapons.DamageAgainst(firedWeapon, target), dir);
         }
     }
 
@@ -1723,6 +1724,14 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (vp.z < 0f) return false;  // 在相機後面
         return vp.x >= Margin && vp.x <= 1f - Margin
             && vp.y >= Margin && vp.y <= 1f - Margin;
+    }
+
+    /// <summary>目標是否處在「打不到」的虛體狀態（血霧、閃避…）。命中結算之後再問：受擊攔截會在 TakeDamage 裡把目標切成虛體。</summary>
+    private static bool TargetDodged(GameObject target)
+    {
+        if (target == null) return false;
+        var mc = target.GetComponentInParent<MonsterController>();
+        return mc != null && mc.IsUntargetable;
     }
 
     private void ApplyDamage(GameObject target, float damage, Vector2 hitDir)
@@ -2041,7 +2050,7 @@ public class PlayerController : MonoBehaviour, IDamageable
         {
             Vector2 tp = targets[i].position;
             Vector2 hd = (tp - prev).sqrMagnitude > 0.0001f ? (tp - prev).normalized : Vector2.up;
-            ApplyDamage(targets[i].gameObject, weapon.Damage, hd);
+            ApplyDamage(targets[i].gameObject, GmWeapons.DamageAgainst(weapon, targets[i].gameObject), hd);
             TrySpawnHitEffect(weapon, tp, IsOnEnemyLayer(targets[i].gameObject));
             prev = tp;
         }
@@ -2197,7 +2206,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             {
                 if (hits[i] == null) continue;
                 Vector2 hd = ((Vector2)hits[i].transform.position - impact).normalized;
-                CombatSystem.Apply(gameObject, hits[i].gameObject, weapon.Damage, hd, DamageType.Lightning);
+                CombatSystem.Apply(gameObject, hits[i].gameObject, GmWeapons.DamageAgainst(weapon, hits[i].gameObject), hd, DamageType.Lightning);
             }
         }
 
@@ -2240,7 +2249,10 @@ public class PlayerController : MonoBehaviour, IDamageable
 
         // 統一傷害：怪物與可破壞地上物都實作 IDamageable;牆等無此元件者自動略過
         Vector2 hitDir = ((Vector2)target.transform.position - (Vector2)transform.position).normalized;
-        ApplyDamage(target, firedWeapon.Damage, hitDir);
+        ApplyDamage(target, GmWeapons.DamageAgainst(firedWeapon, target), hitDir);
+
+        // 目標在被打中的這一瞬間閃開了（聖子艾爾文的 dodge 被受擊攔截觸發）⇒ 這一下不算：子彈穿過去、不噴擊中特效、不觸發地面特效／子武器。
+        if (TargetDodged(target)) { if (bullet != null) bullet.PassThroughCurrentHit(); return; }
 
         Vector2 spawnPos = (hit.point != Vector2.zero) ? hit.point : (Vector2)bullet.transform.position;
         TryTriggerGroundEffect(firedWeapon.Recipe, spawnPos, hitEnemy, hitEnv, false);
@@ -2336,7 +2348,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             Collider2D col = hits[i];
             if (col == null) continue;
             Vector2 hitDir = ((Vector2)col.transform.position - landPos).normalized;
-            CombatSystem.Apply(gameObject, col.gameObject, firedWeapon.Damage, hitDir);
+            CombatSystem.Apply(gameObject, col.gameObject, GmWeapons.DamageAgainst(firedWeapon, col.gameObject), hitDir);
         }
     }
 

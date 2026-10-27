@@ -45,6 +45,11 @@ namespace Dipan.Gacha
             foreach (var e in GachaRollTable.Get(pool.BaseTable))
             {
                 if (e == null || e.ItemId <= 0) continue;
+                if (GmWeapons.IsGm(e.ItemId))   // GM 測試武器區間（900~999）永遠不進抽選池，見 GmWeapons
+                {
+                    Debug.LogWarning($"[GachaService] 基本表「{pool.BaseTable}」裡的 itemId {e.ItemId} 是 GM 測試武器（{GmWeapons.IdMin}~{GmWeapons.IdMax}），略過。");
+                    continue;
+                }
                 if (e.MinCycle > 0 && cycle < e.MinCycle) continue;
                 if (!FlagOk(e.RequireFlag)) continue;
                 if (!ItemExists(e.ItemId))
@@ -62,7 +67,7 @@ namespace Dipan.Gacha
             {
                 foreach (int id in sm.GetUnlockedRollEntries(pool.PoolId))
                 {
-                    if (id <= 0 || !seen.Add(id)) continue;
+                    if (id <= 0 || GmWeapons.IsGm(id) || !seen.Add(id)) continue;   // GM 測試武器區間永遠不進池
                     if (!ItemExists(id))
                     {
                         Debug.LogWarning($"[GachaService] 池「{pool.PoolId}」的解鎖清單裡有 itemId {id}，但 ItemTable 找不到，略過。");

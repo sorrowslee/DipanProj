@@ -144,7 +144,7 @@
             ]
           ],
           "params": {
-            "monsterId": "44",
+            "monsterId": "45",
             "deathFlag": "",
             "spawnInterval": "8",
             "maxAlive": "1",

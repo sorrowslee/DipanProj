@@ -102,6 +102,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
 
     [Tooltip("劇本同伴的攻擊方式（CSV: CompanionStyle）。留空＝近戰；Spin＝原地旋轉打周圍。只有 companion 叫出來的同伴會用")]
     public string CompanionStyle = "";
+    [HideInInspector] public float AttackOffsetX;   // CSV AttackOffsetX：attack／slash 的水平補償（原圖 px），見 MonsterData
+    [HideInInspector] public bool AttackFootLock;   // CSV AttackFootLock：attack 只量第一幀對齊腳底，見 MonsterData
 
     /// <summary>
     /// 目前被骨牢關著。由 <see cref="MonsterCage"/> 開關——**不要自己設**，
@@ -210,6 +212,16 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             _layerBeforeUntargetable = -1;
         }
     }
+
+    /// <summary>
+    /// 受擊前攔截（2026-10-27 為聖子艾爾文的 dodge 加）：Brain 掛上這個 callback，**每一下傷害在結算前先問它**，
+    /// 回傳 true ＝ 這一下被攔掉（不扣血、不閃白、不擊退、不跳數字）。
+    /// <para>用途：子彈之外的攻擊（雷射、近戰、地面 AOE、落雷…）沒有「飛過來」的過程、無法提前預判，
+    /// 只能在第一下打到的瞬間改成閃避——看起來一樣是閃掉了。子彈的提前預判在 Brain 自己做。</para>
+    /// <para>呼叫順序在「虛體無敵」「劇本同伴」之後：已經無敵或是同伴就不會問。持續傷害（DOT）要不要攔由 Brain 自己看
+    /// <c>CombatSystem.CurrentHitIsDot</c> 決定。null＝不攔（所有既有怪）。</para>
+    /// </summary>
+    [HideInInspector] public System.Func<float, Vector2, bool> DamageInterceptor;
 
     /// <summary>怪物成功施放一次技能（召喚等）時由 MonsterWeaponUser 呼叫：讓 attack 動畫演一小段，
     /// 即使怪離玩家很遠（如紅嫁衣邊逃邊召）也看得到出手動作。</summary>
@@ -440,7 +452,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             }
 
             _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize, IdleScale, WalkScale, AttackScale, JumpScale,
-                           HangScale, IsFlyer);
+                           HangScale, IsFlyer, AttackOffsetX, AttackFootLock);
 
             // 碰撞框用同一個 tileSize 量 → 與放大後的 sprite 對齊（之後再 × transform.localScale = CSV Scale，一起縮放）。
             Vector2 vSize, vOff;
@@ -519,6 +531,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         Controllable = data.Controllable; // 可否被骨牢那類定身抓住（留空＝可以）
         ObserveTime = data.ObserveTime;   // 射手型觀察秒數（留空＝-1＝原本的隨機；0＝不觀察）
         ShootRange = data.ShootRange;     // 射手型行為射程（留空＝0＝ArcherBrain 預設 5.25）
+        AttackOffsetX = data.AttackOffsetX;
+        AttackFootLock = data.AttackFootLock;
         CompanionStyle = data.CompanionStyle ?? "";   // 劇本同伴的攻擊方式（留空＝近戰，見 CompanionBrain）
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
 
@@ -566,6 +580,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 break;
             case "RedBridalGown":   // 紅嫁衣女殭屍 boss：逃跑＋召喚（見 RedBridalGownBrain）
                 _brain = new RedBridalGownBrain();
+                IsBoss = true;
+                break;
+            case "HolyPrinceElvin": // 聖子艾爾文（狂族頭目）：近戰追擊＋每 5 秒跳劈三向衝擊波＋受擊前閃避（3 秒冷卻）；50% 起每 10% 放一次五波血色衝擊波（見 HolyPrinceElvinBrain／BOSS_MODULE §16）
+                _brain = new HolyPrinceElvinBrain();
                 IsBoss = true;
                 break;
             case "DukeCharlotte":   // 夏綠蒂公爵（血族頭目）：慢走＋原地旋轉射 8 方向血球＋跳躍砸地；50% 起每 10% 放一次旋轉衝刺反彈大絕（見 DukeCharlotteBrain／BOSS_MODULE §14）
@@ -804,6 +822,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         if (_isDead) return;
         if (IsUntargetable) return;   // 虛體形態（血霧）：完全無敵，不閃、不退、不跳數字（見 SetUntargetable）
         if (IsCompanion) return;   // 劇本同伴不會受傷（見 CompanionService）
+        if (DamageInterceptor != null && DamageInterceptor(amount, hitDirection)) return;   // Brain 攔下這一下（聖子艾爾文的 dodge）
 
         if (_hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
             return;

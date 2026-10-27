@@ -198,6 +198,8 @@ Q1–Q13 已拍板（README §4），下表是定案版。
 
 ### 9.1 狂族首領「嘯月」— MonsterData 38、`BrainType=WerewolfLord`
 
+> ⚠ **2026-10-27 作者決定：狂族首領改由「17 聖子・艾爾文」擔任**（38／40／43、和談演員、對話講者全部換過，見 BOSS_MODULE §16）。下面這套 `WerewolfLord` 設計**不採用、不作現行依據**。
+
 | 招式 | 觸發 | 行為 | 數值（初版） |
 |---|---|---|---|
 | **爪擊** | 貼身、冷卻 1.2s | 照 `MeleeChaseBrain` 的寫法：站定揮完（`BrainControlsAttackPose`），命中幀開 `ImpactDamageArea` | 半徑 1.1、傷害 12 |

@@ -183,7 +183,7 @@
 
 | 子單 | 內容 | 交付 |
 |---|---|---|
-| T8a | `WerewolfLordBrain`＋狼嚎召喚配方；38/40 `BrainType` 換過去 | 程式＋BOSS_MODULE §16（§13 菁英血衛士、§14 夏綠蒂公爵、§15 劇本同伴已使用）＋「請作者在競技場單獨擺一隻測」的驗收清單 |
+| T8a | ~~`WerewolfLordBrain`＋狼嚎召喚配方；38/40 `BrainType` 換過去~~ ✅ **2026-10-27 改做 17 聖子・艾爾文**（`HolyPrinceElvinBrain`，BOSS_MODULE §16；38／40／43 已換過去） | 程式＋BOSS_MODULE §16（§13 菁英血衛士、§14 夏綠蒂公爵、§15 劇本同伴已使用）＋「請作者在競技場單獨擺一隻測」的驗收清單 |
 | T8b | ~~`VampireLordBrain`＋`BloodPool`＋扇射彈武器＋喚蝠召喚配方；39/41 換過去~~ ⏸ **2026-10-26 暫停**：39／41／42 已換成夏綠蒂公爵（`DukeCharlotteBrain`，BOSS_MODULE §14） | — |
 | T8c | AI 自繪序列圖（GAP §9.4 B 階段），附一張「各動作拼成一張」的預覽圖給作者先看 | 圖檔＋預覽；作者同意才把 `Name` 換過去 |
 

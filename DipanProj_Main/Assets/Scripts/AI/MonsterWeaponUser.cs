@@ -154,6 +154,69 @@ public class MonsterWeaponUser : MonoBehaviour
         return cast;
     }
 
+    /// <summary>
+    /// 從**指定的出手點**朝 <paramref name="target"/> 射一輪，可選擇在 Brain 這邊展開成扇形（2026-10-27 為聖子艾爾文加）。
+    /// 只支援 <c>Mode=Normal</c>；冷卻規則與 <see cref="TryUse"/> 相同（配方 `FireInterval`）。
+    ///
+    /// <para><b>扇形</b>：<paramref name="fanCount"/> &gt; 1 時，以「出手點→目標」為中軸對稱展開，
+    /// 相鄰兩道相隔 <paramref name="fanSpacingDeg"/> 度（總角度＝間隔 × (道數−1)），每一道各自走一次 <c>FireNormal</c>。
+    /// 用途：大絕每一波隨機抽一組「幾道／間隔幾度」，不必每種組合各開一列配方。
+    /// 配方本身的分裂欄（`SpreadCount`）仍然有效——兩者疊加，所以拿來做扇形的配方通常不填分裂。</para>
+    ///
+    /// <para><paramref name="fanRotateDeg"/>：整個扇形再轉幾度（正＝逆時針）。偶數道時中軸上沒有一道（正中是縫），
+    /// 轉半個間隔就能讓其中一道正對目標（聖子艾爾文的大絕，2026-10-27）。</para>
+    ///
+    /// <para><b>出手點</b>：由 Brain 決定（例：劈砍落地那一刀的劍尖、貼地的高度），不走 <see cref="TryUse"/> 的「身體框外緣」。</para>
+    ///
+    /// <para>⚠ 與 <see cref="TryUse"/> 不同：<b>不呼叫 <c>NotifySkillCast</c></b>。呼叫端（Brain）自己在播出手動作，
+    /// 再通知一次會讓 `HandleVisuals` 在 one-shot 收掉之後補演 0.6 秒 attack（劈完多揮一下）。</para>
+    /// </summary>
+    public bool TryUseAt(Transform target, Vector2 origin, int fanCount = 1, float fanSpacingDeg = 0f, float fanRotateDeg = 0f)
+    {
+        EnsureResolved();
+        if (_weapon == null || _weapon.Recipe == null || target == null) return false;
+        if (_cooldown > 0f) return false;
+        RecipeEntry recipe = _weapon.Recipe;
+        if (recipe.Mode != WeaponMode.Normal)
+        {
+            Debug.LogWarning($"[MonsterWeaponUser] TryUseAt 只支援 Normal 模式（武器 '{_weapon.Name}' 是 {recipe.Mode}）。");
+            return false;
+        }
+        if (_weapon.BulletPrefab == null) return TryFireProjectile(recipe, target);   // 走原路印同一則警告
+
+        Vector2 baseDir = (Vector2)target.position - origin;
+        if (baseDir.sqrMagnitude < 0.0001f) baseDir = (Vector2)target.position - (Vector2)transform.position;
+        if (baseDir.sqrMagnitude < 0.0001f) return false;
+        baseDir.Normalize();
+
+        if (_envMask == -1) _envMask = LayerMask.GetMask("Environment", "Water");
+        int n = Mathf.Clamp(fanCount, 1, 32);
+        bool any = false;
+        for (int i = 0; i < n; i++)
+        {
+            float ang = (i - (n - 1) * 0.5f) * fanSpacingDeg + fanRotateDeg;
+            Vector2 d = (Vector2)(Quaternion.Euler(0f, 0f, ang) * baseDir);
+            var ctx = new WeaponCastService.CastContext
+            {
+                Owner        = gameObject,
+                Origin       = origin,
+                Direction    = d,
+                OwnerScale   = 1f,
+                TargetLayers = 1 << target.gameObject.layer,
+                EnvLayer     = _envMask,
+                OnHit        = OnProjectileHit,
+                OnTrailPoint = null,
+            };
+            if (WeaponCastService.FireNormal(_weapon, recipe.Data, in ctx)) any = true;
+        }
+        if (any)
+        {
+            float interval = (recipe.Data != null) ? recipe.Data.FireInterval : 1f;
+            _cooldown = Mathf.Max(0.1f, interval);
+        }
+        return any;
+    }
+
     /// <summary>擁有者（boss）死亡時呼叫：回收所有還活著的召喚分身——boss 死了、招式（召喚物）也該及時撤掉。</summary>
     public void RecallSummons()
     {

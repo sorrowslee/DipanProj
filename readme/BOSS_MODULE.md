@@ -2,7 +2,7 @@
 
 > 返回 [文件總覽](README.md)｜怪物量產見 [MONSTER_SETUP.md](MONSTER_SETUP.md)｜武器/配方見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)｜傷害結算見 [COMBAT.md](COMBAT.md)｜劇情分支見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §7
 >
-> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** ✅ **射手型 `ArcherBrain` ＋ 怪物投射武器管線 `WeaponCastService`**（2026-09-17，見 §8）程式完成、⏳未編譯未實測。** ✅ **跳躍踐踏型 `LeapSlamBrain` ＋ 程序化裂地 shader**（2026-09-18，見 §9）與 **近戰追擊 `MeleeChaseBrain`（攻擊動作要做完才能再移動，見 §10）** 程式完成、⏳未編譯未實測。** ✅ **飛行型 `FlyingBrain`＋蝙蝠 `BatBrain`**（2026-10-11，見 §12）程式完成、⏳未編譯未實測。** ✅ **血霧型 `BloodMistBrain`（菁英血衛士：遠了被紅霧吞沒化成無敵血霧追、貼身吹散紅霧現身揮刀）**（2026-10-13，見 §13）程式完成、⏳未編譯未實測。待實機微調。** ✅ **夏綠蒂公爵 `DukeCharlotteBrain`（血族頭目：慢走＋原地旋轉 8 方向血球＋會跳出畫面的跳躍砸地；50% 起每 10% 一次旋轉衝刺撞牆反彈大絕）**（2026-10-26，見 §14）程式完成、⏳未編譯未實測。投射型武器供怪物使用：**`Normal` 直飛彈已打通**，其餘模式（雷射/拋物線/落雷…）仍待搬進 WeaponCastService。
+> **狀態：✅ 框架 + 紅嫁衣 boss（逃跑＋召喚，2026-07-09；＋大絕「家人齊聚」與 pant 喘息，2026-09-16 程式完成、⏳未編譯未實測）；✅ 榕樹妖 boss（地刺／三階段／三大絕／整棵樹燃燒死亡演出）程式完成（2026-07-10）；✅ boss 死亡回收招式（地刺/召喚物）。** ✅ **射手型 `ArcherBrain` ＋ 怪物投射武器管線 `WeaponCastService`**（2026-09-17，見 §8）程式完成、⏳未編譯未實測。** ✅ **跳躍踐踏型 `LeapSlamBrain` ＋ 程序化裂地 shader**（2026-09-18，見 §9）與 **近戰追擊 `MeleeChaseBrain`（攻擊動作要做完才能再移動，見 §10）** 程式完成、⏳未編譯未實測。** ✅ **飛行型 `FlyingBrain`＋蝙蝠 `BatBrain`**（2026-10-11，見 §12）程式完成、⏳未編譯未實測。** ✅ **血霧型 `BloodMistBrain`（菁英血衛士：遠了被紅霧吞沒化成無敵血霧追、貼身吹散紅霧現身揮刀）**（2026-10-13，見 §13）程式完成、⏳未編譯未實測。待實機微調。** ✅ **夏綠蒂公爵 `DukeCharlotteBrain`（血族頭目：慢走＋原地旋轉 8 方向血球＋會跳出畫面的跳躍砸地；50% 起每 10% 一次旋轉衝刺撞牆反彈大絕）**（2026-10-26，見 §14）程式完成、⏳未編譯未實測。✅ **17 聖子・艾爾文 `HolyPrinceElvinBrain`（狂族頭目：近戰＋每 5 秒跳劈三向衝擊波＋受擊前閃避；50% 起每 10% 五波隨機扇形血色衝擊波）**（2026-10-27，見 §16）程式完成、⏳未編譯未實測。投射型武器供怪物使用：**`Normal` 直飛彈已打通**，其餘模式（雷射/拋物線/落雷…）仍待搬進 WeaponCastService。
 
 「一隻強怪＝一個 Brain 模組」。第一個範例是紅嫁衣女殭屍。未來每隻 boss 都新增一個自己的 Brain 類別，其它系統不動。
 
@@ -1632,3 +1632,107 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 - [ ] **未編譯、未實機驗證**。實測看：交戰／發呆／跟隨的比例看起來像不像在幫忙；夏綠蒂旋轉半徑 2.4 是否合適（`SpinCompanionAttack.BaseRadius`）。
 - [ ] 同伴打死怪會照常觸發掉寶、波次清場（`清場` 群組），因為傷害走的是一般路徑——目前看起來是想要的。
 - 🔧 開 `CompanionBrain.DebugLog = true`：印狀態切換與每次造成的傷害／打到幾隻。
+
+---
+
+## 16. 17 聖子・艾爾文（狂族頭目）— `HolyPrinceElvinBrain`：近戰追擊＋每 5 秒跳劈三向衝擊波＋受擊前閃避；50% 起每 10% 一次「血色劍域」
+
+> **狀態：✅ 程式完成（2026-10-27），⏳ 未編譯、未實機驗證。** `BrainType=HolyPrinceElvin`、`Weapon=75`。
+> **取代血狂之爭的狂族首領「嘯月」**（2026-10-27 作者拍板，同 §14.8 夏綠蒂取代緋夜）：MonsterData **38／40**（首領戰／雙首領版）、**43**（同伴，外觀）、和談大廳四段演出的演員 `wolfLeader`、DramaTalkTable 17 句的講者名都換過；頭像 `Modules/BloodFang/Talk/Elvin_*`（2026-10-27 作者給 normal／anger／smile，weak／sad 待補）；戰鬥喊話與劇情對話同日依角色個性重寫（bloodfang/SCRIPT.md §6）。競技場測試用 **45**（＝38 的複本）。
+> 素材：`Modules/BloodFang/Monsters/SequenceImage/17th Holy Prince – Elvin/idle｜walk｜attack｜slash｜dodge`（全部 256×256，F28 那關沒問題）。⚠ 資料夾名的「–」是 en dash（U+2013），CSV `Name` 與演員 `spriteFolder` 必須一字不差。
+
+### 16.1 一輪行為（優先序：大絕 ＞ 跳劈 ＞ 近戰追擊；閃避隨時插隊）
+
+| 招 | 什麼時候 | 做什麼 |
+|---|---|---|
+| 近戰追擊 | 平常 | **委派 `MeleeChaseBrain`**（§10）：站定揮完、命中幀（CSV `AttackHitFrame 11`）結算 |
+| 跳劈衝擊波 | 每 **5 秒**（從上一次開始算；開戰後 5 秒第一次），**不限距離**（作者：很近也會放） | slash one-shot，第 **17** 幀（劍砍進地面）朝目標放**三向**金色衝擊波（武器 75／配方 90：`SpreadCount 3`／`SpreadAngle 50`＝±25°） |
+| 閃避 | 冷卻 **3 秒**（從開始閃算起），只在手上沒動作時 | 見 §16.3 |
+| 大絕「血色劍域」 | 血量 ≤ 50／40／30／20／10% | 見 §16.2 |
+
+- **只有手上沒動作時才決策**：揮劍（`MeleeChaseBrain.IsBusy`）、跳劈、大絕中不會插別的招，也**不能閃**（作者拍板：出手不反悔，這是玩家的反擊窗口）。
+- 跳劈、大絕、閃避期間開 `SuppressKnockbackInterrupt`（F19）。
+- **衝擊波出手點**：`FeetWorldPos` 往目標那一側推「碰撞框半寬 ＋ 0.3」、再抬 **1.0**（衝擊波圖高約 2.56，中心抬 1.0 ⇒ 下緣略埋進地面＝貼地衝）。砍地同時在腳前放揚塵（Vfx 41）。
+- 衝擊波走 `MonsterWeaponUser.TryUseAt`（指定出手點），**不呼叫 `NotifySkillCast`**——否則 one-shot 收掉後 `HandleVisuals` 會補演 0.6 秒 attack。
+
+### 16.2 大絕「血色劍域」
+
+- 門檻規則與夏綠蒂公爵**同一套**（`SkipCrossedThresholds` 開招／收招各跑一次）：一口氣跨好幾格只放一次、大絕中跨過的門檻作廢、半血登場不會一出來就連放。
+- 連續 slash **5 波**（作者：射出 5 波才停），每波播放加速 **1.5 倍**（25 幀 @14fps ≈ 1.2 秒一波）、中間不停頓。
+- 每一波固定 **6 道、相鄰間隔 30°**（總角度 150°），**以放波那一刻的玩家位置為中軸**對稱展開紅色衝擊波（武器 76／配方 91 不分裂，扇形由 `TryUseAt(target, origin, 6, 30)` 在 Brain 端展開；`UltCount`／`UltSpacingDeg`）。第一版每波隨機抽組合，作者 2026-10-27 嫌不好，改固定。
+- ⭐ **每一波都有一道正對玩家**（作者 2026-10-27 第三輪：躲過第一波後站著不動，之後每一波都剛好在正中兩道的縫裡，全部躲掉）：6 是偶數，對稱展開時中軸是縫 ⇒ 整個扇形轉半個間隔（**±15°**），**單數波往一邊、雙數波往另一邊**（`UltRotateFor`；奇數道數時不轉）。站在上一波的縫裡不動，下一波一定有一道正中，非移動不可。下面「站著不動」的推算是轉之前的對稱版本，現在不管多遠，站著不動都會被正中那道打到。
+- **為什麼是 30°**（衝擊波判定半徑 0.6 ＋ 玩家碰撞圓 0.5 ⇒ 離行進線 1.1 以內就中）：6 是偶數，中軸上沒有一道，正中兩道在 ±15°，夾縫半寬＝d·tan15°≈0.27d ⇒ **離他約 4 單位內站著不動一定中**；相鄰兩道間要有「離兩邊都 > 1.1」的位置 ⇒ **約 4.3 單位外就有縫可鑽**、越遠越寬。40° 總角度 200° 會往背後打。（判定半徑還是 1.25 時這兩個數字是 6.5／6.8，見 PROBLEMS **F41**。）
+- 不無敵、霸體（被打不中斷）。收招站 1 秒（輸出窗口），之後跳劈至少再等 2 秒。
+- 一隻怪的 CSV `Weapon` 欄只能填一把 ⇒ 大絕那把由 Brain 自己再掛一個 `MonsterWeaponUser`（`UltWeaponId 76`，同 §14.2）。
+
+### 16.3 閃避（dodge）
+
+**觸發有兩條路**（作者 2026-10-27 同意）：
+
+| 攻擊種類 | 怎麼閃 |
+|---|---|
+| 子彈（所有走 `BulletInstance` 的） | **提前預判**：每幀掃 `BulletInstance.Active`（2026-10-27 新增的登記表），找「`CollisionMask` 打得到我、最接近時距離 ≤ 身體半徑×0.85 ＋ 子彈半徑、且**預計 0.3 秒內抵達**」，或**已經貼到身邊 1.2 以內、正朝我飛**（追蹤彈轉彎時直線外插不準的兜底）的子彈 ⇒ 先閃 |
+| 雷射、近戰、地面 AOE、落雷…（沒有「飛過來」的過程） | **受擊攔截**：第一下打到的瞬間改成閃避、這一下作廢（`MonsterController.DamageInterceptor`）。持續傷害（DOT，`CombatSystem.CurrentHitIsDot`）不觸發 |
+
+- **虛體＝dodge 第 1~17 幀**，走 `SetUntargetable`（換到 Mist 層 ⇒ **飛行道具直接穿過去**，同 §13.3）。**原地消失、原地出現**。
+  ⚠ 第一版是 4~17 幀：作者實測閃避中 GM 飛劍還是撞上、噴擊中特效——那一劍是在閃避前一刻打中的（走受擊攔截），而第 1~3 幀本來就還不是虛體。作者要的是「穿透」不是「無敵」⇒ 改成從第 1 幀起，`BeginDodge` 當下就切層（不能等下一次 Think，見下）。
+- **受擊攔截觸發的那一下也穿過去**：`BeginDodge` 在 `TakeDamage` 裡**當下**切成虛體 ⇒ 緊接著 `PlayerController.HandleBulletHit` 問 `TargetDodged` 為真 ⇒ 呼叫 `BulletInstance.PassThroughCurrentHit()`：這顆子彈不銷毀、不扣穿透數、不跑反彈，照原路繼續飛，也不噴擊中特效、不觸發地面特效／子武器。雷射 tick 同理（不噴特效）。
+- 第 10~14 幀（身形幾乎全空）影子一起收。
+- 攔下的那一下：不扣血、不閃白、不擊退、不跳數字；`CombatSystem` 看到目標進了虛體也不播三階血統擊中特效。
+
+### 16.4 素材量幀（2026-10-27，每幀不透明像素 bbox）
+
+| 動作 | 張數 | 內容 |
+|---|---|---|
+| attack | 25 | 1–5 起手、6–9 舉劍、**10–11 劍掃到最前**（右緣 202→252）、12–19 停在揮完、20–25 收招 ⇒ `AttackHitFrame 11` |
+| slash | 25 | 1–6 站、7–9 舉劍過頭、**10–13 騰空**（底邊 203→148，腳離地約 50px）、14 下劈、**15–17 砍地**（17 劍光最寬）、18–25 收招 ⇒ 放波幀 17 |
+| dodge | 22 | 1–3 站、4–10 旋風包住、**11–13 幾乎全空**、14–17 風中現身、18–22 回站姿 |
+
+⚠⚠ **slash／dodge 一律「只量第一幀」對齊腳底**（`MonsterAnimator` 載這兩個動作時傳 `alignByFirstFrame`，PROBLEMS **G17**）：逐幀量會把騰空那幾幀拉回地面（＝跳不起來）、把 dodge 散開的風推得上下亂跳。
+因為 pivot 整個動作固定，**騰空高度就是素材本身畫的那 50px**，不用程式抬（與夏綠蒂「下落完全由程式演」相反）。
+影子不自己量：slash 用 attack 的錨點（同一個持劍站姿），dodge 用 idle 的。大小：slash 走自動高度對齊並吃 `AttackScale`；dodge 直接沿用 idle 的大小。
+
+⚠⚠ **出手時「往前跳＋變大」**（2026-10-27 作者實測回報，PROBLEMS **G18**）：
+- **變大**：idle 背上那把劍的**劍柄高出頭頂**（idle bbox 頂 72、耳朵頂 84）⇒ 自動高度對齊量到 idle 148px、attack 136px，把 attack 放大 1.088 倍。實際上兩組的角色都是 136px（耳朵頂→腳底）⇒ **`AttackScale 0.92`**（≈136÷148）抵銷。
+- **收劍時浮起來**（同日第二輪）：attack 第 20~22 幀劍尖掃到腳底線以下（第 21 幀低 18px），逐幀對齊把整隻往上抬最多 16px ⇒ **`AttackFootLock 1`**（attack 只量第一幀）。素材本身腳一直站在同一條線上，不用刪圖。
+- **往前跳**：持劍素材（attack／slash）的身體在畫布裡比 idle **往右（面向前方）偏約 27px**（腳 +22、軀幹 +27、頭 +29）。腳底對齊只管上下 ⇒ 一出手身體往前跳約 0.4 單位。新欄 **`AttackOffsetX 27`**：載圖時把 attack／slash 的 pivot.x 設成 `0.5 + 27/256`，身體落回 transform 上；`flipX` 是繞 pivot 翻，面向左也對得上。
+
+### 16.5 衝擊波素材
+
+- 編輯器 `Effects/Super Pixel Projectiles Pack 2/pj2_ground_shockwave` 的 **yellow**（一般）與 **red**（大絕）各 5 幀（128×64），**最近鄰 ×4** 存成 `Resources/Weapon/animation/holyShockwave/`、`bloodShockwave/`（`_01`~`_05`）。
+- ⭐ **`.meta` 的 pivot 改成 (0.68, 0.5)**（`alignment: 9`）：這張圖的主體在前半、後面是拖著的尖刺。子彈的判定是以 pivot 為圓心的圓（配方 `Radius`），pivot 留在中心的話圓會落在尖刺上、前緣碰到玩家還不算中。往前移之後判定圓對齊衝擊波最厚的那一團。
+- 武器 75／76：`BulletScale 10`（＝ 5.1×2.6 世界單位）、`AnimFPS 10`、`SpriteAngleOffset 360`、**`FlipYWhenLeft 1`**（貼地的圖往左飛轉 180° 會頭下腳上）、擊中 Vfx 41（金）／58（紅）。
+- 配方 90／91：速度 **5**（慢、壓迫感）、**`Radius 0.6`**、壽命 4、**`PierceCount -1`＋被牆擋**（穿過玩家、撞牆才消失）。
+- ⚠ **判定半徑不要照圖的高度給**（PROBLEMS **F41**）：第一版 1.25 ⇒ 玩家的腳離行進線 1.75 以內就中（約一個身高），作者實測「以為躲開了還是被打到」。俯視角裡貼地衝擊波的圖高是「往上竄多高」，不是「在地上佔多寬」。子彈中心抬在腳底上方 1.0（`ShockLift`），剛好對齊玩家在胸口的碰撞圓。
+
+### 16.6 動到的共用元件（全部是加法，既有怪零變化）
+
+| 元件 | 改了什麼 |
+|---|---|
+| `MonsterAnimator` | `State` 尾端加 `Slash`、`Dodge`（MONSTER_SETUP 的固定五處）；兩者載圖只量第一幀；影子借 attack／idle 的錨點；退回規則 Slash→Attack、Dodge→Idle |
+| `MonsterSpriteLibrary`／`MapSpriteLoader` | `GetFrames`／`GetAnimationFrames` 加 `alignByFirstFrame` 參數（預設 false＝逐幀，舊行為）；PreloadStates 加兩個動作名 |
+| `MonsterWeaponUser` | 新增 `TryUseAt(target, origin, fanCount, fanSpacingDeg, fanRotateDeg)`（最後一個＝整個扇形再轉幾度）：指定出手點、可在 Brain 端展開扇形；冷卻同 `TryUse`、不通知 `NotifySkillCast` |
+| `MonsterController` | `DamageInterceptor`（受擊前攔截，null＝不攔）；`case "HolyPrinceElvin"`（`IsBoss = true`）；`AttackOffsetX` 傳給動畫器 |
+| `MonsterData`／`MonsterSpawner`／CSV | 表尾新欄 **`AttackOffsetX`**（索引 41，留空＝0＝不補）、**`AttackFootLock`**（索引 42，填 1＝attack 只量第一幀對齊腳底） |
+| `MapSpriteLoader`／`MonsterSpriteLibrary` | `GetAnimationFrames`／`GetFrames` 再加 `offsetXPx`（水平 pivot 補償）；`GetFrameSprite` 加 `pivotX`（預設 0.5） |
+| `PlayerController` | `TargetDodged`：子彈命中、雷射 tick 結算之後若目標已是虛體 ⇒ 子彈穿過、不噴特效 |
+| `CombatSystem` | `CurrentHitIsDot`（同 `CurrentHitTheatrical` 的作法）；目標在這一下進了虛體 ⇒ 不播三階血統擊中特效 |
+| `BulletInstance`（BallisticsSystem） | 靜態登記表 `Active`（OnEnable／OnDisable 增刪）——子彈靠射線判定、沒有 Collider，沒有登記表就只能每幀 `FindObjectsOfType`；`PassThroughCurrentHit()`：命中回呼裡呼叫 ⇒ 這一下不算、繼續飛 |
+
+### 16.7 手感調整位置
+
+| 想調 | 改哪 |
+|---|---|
+| 血量、走路速度、近戰傷害、體型、動畫節奏、擊退 | `MonsterData.csv` 38／40／45（HP 300／180、Speed 3.2、ContactDamage 12、**Scale 1**（作者 2026-10-27：跟主角差不多大；最初沿用嘯月的 2.1 太大）、AnimFPS 14、擊退 40／8） |
+| 揮劍命中幀 | CSV `AttackHitFrame`（11） |
+| 跳劈間隔、放波幀、出手點 | `HolyPrinceElvinBrain`：`SlashInterval`(5)／`FirstSlashDelay`(5)／`SlashReleaseFrame`(17)／`ShockForward`(0.3)／`ShockLift`(1.0) |
+| 三向的角度、衝擊波速度／大小／判定 | RecipeTable 90（`SpreadAngle 50`＝±25°、`Speed 5`、`Radius 1.25`）、WeaponTable 75（`Damage 10`、`BulletScale 10`）；大絕那把是 91／76 |
+| 大絕門檻、波數、加速、道數與間隔 | `UltThresholds`、`UltWaves`(5)、`UltSlashFpsMul`(1.5)、`UltCount`(6)、`UltSpacingDeg`(30) |
+| 閃避冷卻、虛體幀、預判 | `DodgeCooldown`(3)、`DodgeInvulnFrom/To`(1／17)、`PredictWindow`(0.3)、`PredictNearDistance`(1.2)、`PredictBodyShrink`(0.85) |
+| 出手時的大小／前後位置／收劍浮起 | CSV `AttackScale`(0.92)／`AttackOffsetX`(27，原圖 px)／`AttackFootLock`(1) |
+
+🔧 開 `HolyPrinceElvinBrain.DebugLog = true`：每次跳劈、大絕每一波的組合、閃避的觸發原因（預判子彈幾秒後抵達／受擊攔截）都會印出來。
+
+### 16.8 待辦 / 已知限制
+
+見 [TODO.md](TODO.md)〈17 聖子・艾爾文〉。

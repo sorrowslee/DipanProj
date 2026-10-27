@@ -78,6 +78,25 @@ namespace Sorrows.Ballistics
         /// </summary>
         public void ClearHitHistory() => _hitObjects.Clear();
 
+        /// <summary>
+        /// 場上所有還在飛的子彈（2026-10-27 加）。給「會預判子彈而閃避」的怪用（聖子艾爾文，見主專案 HolyPrinceElvinBrain）：
+        /// 子彈靠射線判定、身上沒有 Collider，沒有登記表就只能每幀 FindObjectsOfType。**唯讀**，不要在迭代時增刪。
+        /// </summary>
+        public static readonly List<BulletInstance> Active = new List<BulletInstance>();
+
+        // 命中回呼裡要求「這一下不算」（見 PassThroughCurrentHit）。只在 OnBulletHitObject 呼叫期間有意義。
+        [System.NonSerialized] private bool _passThrough;
+
+        /// <summary>
+        /// **在命中回呼（OnBulletHitObject）裡呼叫**：這一下不算命中——子彈不銷毀、不扣穿透數、不跑反彈等行為，照原路繼續飛
+        /// （那個目標仍記進「已命中」名單，不會再被這顆打第二次）。2026-10-27 加：目標在被打中的那一瞬間閃開了
+        /// （聖子艾爾文的 dodge 被受擊攔截觸發），子彈應該穿過去，而不是撞上一個已經不在那裡的身體。
+        /// </summary>
+        public void PassThroughCurrentHit() => _passThrough = true;
+
+        private void OnEnable() { Active.Add(this); }
+        private void OnDisable() { Active.Remove(this); }
+
         private void Awake()
         {
             _sr = GetComponent<SpriteRenderer>();
@@ -101,8 +120,10 @@ namespace Sorrows.Ballistics
             int id = col.gameObject.GetInstanceID();
             if (_hitObjects.Contains(id)) return;
 
+            _passThrough = false;
             OnBulletHitObject?.Invoke(this, col.gameObject, new RaycastHit2D());
             _hitObjects.Add(id);
+            if (_passThrough) { _passThrough = false; return; }   // 目標閃開了：這一下不算，繼續飛（見 PassThroughCurrentHit）
 
             // 穿透邏輯：PierceCount > 0 可穿透並遞減；PierceCount < 0 為無限穿透（不遞減）
             int hitLayer = col.gameObject.layer;
@@ -147,25 +168,29 @@ namespace Sorrows.Ballistics
                     int id = hit.collider.gameObject.GetInstanceID();
 
                     // 🟢 如果還沒撞過這個東西，才觸發回報
+                    bool passed = false;
                     if (!_hitObjects.Contains(id))
                     {
+                        _passThrough = false;
                         OnBulletHitObject?.Invoke(this, hit.collider.gameObject, hit);
                         _hitObjects.Add(id);
+                        passed = _passThrough;   // 目標閃開了：這一下不算，照原路繼續飛（見 PassThroughCurrentHit）
+                        _passThrough = false;
                     }
 
-                    bool shouldDestroy = true;
+                    bool shouldDestroy = !passed;
 
                     // 穿透邏輯：PierceCount > 0 可穿透並遞減；PierceCount < 0 為無限穿透（不遞減）
                     int hitLayer = hit.collider.gameObject.layer;
-                    if (((1 << hitLayer) & PierceableLayers) != 0 && (PierceCount > 0 || PierceCount < 0))
+                    if (!passed && ((1 << hitLayer) & PierceableLayers) != 0 && (PierceCount > 0 || PierceCount < 0))
                     {
                         if (PierceCount > 0)
                             PierceCount--;
                         shouldDestroy = false; // 穿透時不銷毀
                     }
 
-                    // 遍歷行為 (反彈等)
-                    foreach (var behavior in _behaviors)
+                    // 遍歷行為 (反彈等)；穿過去的那一下不算命中，不跑
+                    if (!passed) foreach (var behavior in _behaviors)
                     {
                         if (behavior.OnHit(this, hit, ref Velocity))
                         {

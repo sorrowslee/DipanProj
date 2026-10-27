@@ -135,6 +135,19 @@ public class MonsterData
     /// </summary>
     public string CompanionStyle = "";
 
+    /// <summary>
+    /// attack／slash 的水平補償（CSV 表尾欄 <c>AttackOffsetX</c>，2026-10-27）：素材裡持武器動作的身體比 idle **往面向前方**偏了多少原圖像素。
+    /// 載圖時用水平 pivot 補回 ⇒ 一出手不會整隻往前跳。留空＝0＝不補（既有怪零變化）。量法見 MONSTER_SETUP。
+    /// </summary>
+    public float AttackOffsetX = 0f;
+
+    /// <summary>
+    /// attack 的腳底對齊改成「只量第一幀」（CSV 表尾欄 <c>AttackFootLock</c>，填 1，2026-10-27）。
+    /// 揮武器時武器尖端會掃到腳底線以下的怪要開：逐幀對齊把「最低的像素」當腳，劍尖一低就把整隻往上抬（PROBLEMS G17／G18）。
+    /// 前提：attack 第一幀是站姿、所有幀畫布同尺寸。留空＝逐幀（既有行為）。
+    /// </summary>
+    public bool AttackFootLock = false;
+
     // 遊戲中怪物頭上會講的話（CSV: 句子1~句子4，最多 4 句）。每句可選前綴「N%:」＝血量剩 N% 以下才解鎖；
     // 無前綴＝一直可講（門檻 100%）。發現玩家後才會定時隨機挑一句「已解鎖」的講（見 MonsterSpeech / MonsterSpeechPanel）。
     public List<MonsterSpeechLine> SpeechLines = new List<MonsterSpeechLine>();

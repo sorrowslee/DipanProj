@@ -334,7 +334,9 @@
           "cells": [],
           "params": {
             "dramaId": "56",
-            "next": "贈藥-血族"
+            "conditions": "!series:2",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-血族道謝-同族"
           }
         },
         {
@@ -366,7 +368,9 @@
           "cells": [],
           "params": {
             "dramaId": "57",
-            "next": "贈藥-狂族"
+            "conditions": "!series:3",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-狂族道謝-同族"
           }
         },
         {
@@ -388,6 +392,54 @@
           "params": {
             "target": "傳送點1",
             "show": true
+          }
+        },
+        {
+          "id": "903663a3",
+          "name": "對話-血族道謝-同族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "66",
+            "conditions": "series:2|!bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-血族道謝-該隱"
+          }
+        },
+        {
+          "id": "bb00f903",
+          "name": "對話-血族道謝-該隱",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "67",
+            "conditions": "bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "贈藥-血族"
+          }
+        },
+        {
+          "id": "e55ec1ee",
+          "name": "對話-狂族道謝-同族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "73",
+            "conditions": "series:3|!bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "對話-狂族道謝-芬里爾"
+          }
+        },
+        {
+          "id": "c35162e5",
+          "name": "對話-狂族道謝-芬里爾",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "74",
+            "conditions": "bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "贈藥-狂族"
           }
         }
       ]
