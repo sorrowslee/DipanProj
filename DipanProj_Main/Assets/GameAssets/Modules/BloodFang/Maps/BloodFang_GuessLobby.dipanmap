@@ -256,7 +256,7 @@
           "cells": [],
           "params": {
             "requireFlag": "bfJoinedVampire",
-            "next": "首領-狂族"
+            "next": "對話-回程攔截-狂族"
           }
         },
         {
@@ -315,7 +315,7 @@
           "cells": [],
           "params": {
             "requireFlag": "bfJoinedWerewolf",
-            "next": "首領-血族"
+            "next": "對話-回程攔截-血族"
           }
         },
         {
@@ -374,7 +374,7 @@
           "cells": [],
           "params": {
             "requireFlag": "bfRefused",
-            "next": "首領-雙-狂族"
+            "next": "對話-回程攔截-雙"
           }
         },
         {
@@ -508,6 +508,36 @@
             "onBlocked": "跳過這顆繼續",
             "next": "開大門-狂族"
           }
+        },
+        {
+          "id": "fe506cdb",
+          "name": "對話-回程攔截-狂族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "75",
+            "next": "首領-狂族"
+          }
+        },
+        {
+          "id": "33ecb723",
+          "name": "對話-回程攔截-血族",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "76",
+            "next": "首領-血族"
+          }
+        },
+        {
+          "id": "e2541c87",
+          "name": "對話-回程攔截-雙",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "77",
+            "next": "首領-雙-狂族"
+          }
         }
       ]
     }
@@ -530,7 +560,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -550,7 +580,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -570,7 +600,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -590,7 +620,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -610,7 +640,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -630,7 +660,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -650,7 +680,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -670,7 +700,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -690,7 +720,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -710,7 +740,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -730,7 +760,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -750,7 +780,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -770,7 +800,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -790,7 +820,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -810,7 +840,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -830,7 +860,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -850,7 +880,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     },
@@ -870,7 +900,7 @@
       "panelArg": "",
       "next": "",
       "setFlag": "",
-      "disappearFlag": "",
+      "disappearFlag": "bfWarStarted",
       "conditions": "",
       "conditionalDramas": []
     }

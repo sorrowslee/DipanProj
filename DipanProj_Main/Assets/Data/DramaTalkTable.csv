@@ -161,3 +161,9 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 202,49,17聖子・艾爾文,Modules/BloodFang/Talk/Elvin_anger,Actor_Normal,1,所有人退後，別輕舉妄動。
 203,50,夏綠蒂公爵,Modules/BloodFang/Talk/Duke_Charlotte_fear,Actor_Normal,1,芬、芬里爾……？！
 204,50,夏綠蒂公爵,Modules/BloodFang/Talk/Duke_Charlotte_fear,Actor_Normal,1,……今晚，真是失算了。
+205,72,17聖子・艾爾文,Modules/BloodFang/Talk/Elvin_anger,Actor_Normal,1,你真以為你逃得掉嗎？
+206,73,夏綠蒂公爵,Modules/BloodFang/Talk/Duke_Charlotte_laugh,Actor_Normal,1,呵呵……你真以為你逃得掉嗎？
+207,74,夏綠蒂公爵,Modules/BloodFang/Talk/Duke_Charlotte_laugh,Actor_Normal,1,呵呵……你真以為你逃得掉嗎？
+208,74,17聖子・艾爾文,Modules/BloodFang/Talk/Elvin_anger,Actor_Normal,1,我不屑與那吸血鬼並肩——但今天，你哪裡也去不了。
+209,74,夏綠蒂公爵,Modules/BloodFang/Talk/Duke_Charlotte_normal,Actor_Normal,1,門都封死了。乖乖留下，我會讓你走得快一點。
+210,74,17聖子・艾爾文,Modules/BloodFang/Talk/Elvin_normal,Actor_Normal,1,拔劍吧。至少讓你倒下得像個戰士。
