@@ -214,10 +214,12 @@ namespace Dipan.UI
     /// 把 <see cref="SpeechBubbleShapes"/> 的輪廓畫出來：白底＋黑框，內外各 1px 漸層抗鋸齒。
     /// 每次大小變動都依輪廓重建網格（不是拉伸圖片），所以線條粗細永遠一樣、多長的台詞都清楚。
     /// <para>填色用耳切法（ear clipping）三角化——尖刺與尾巴讓輪廓凹凸不規則，從中心扇形展開會畫到外面去。</para>
-    /// <para>⚠ <b>三角形一律以「順時針」送出</b>（同 Unity UI 自己的四邊形）。輪廓是逆時針排的，照輪廓順序加三角形會全部是逆時針——
-    /// 2026-10-28 第一版就是這樣：元件在、沒有錯誤、尺寸正確，但整個外框看不到（只剩文字）。這個專案的 UI 繪製會剔除逆時針（背面）三角形。
-    /// 見 PROBLEMS E44。</para>
+    /// <para>⚠ <b>一定要 <c>[RequireComponent(typeof(CanvasRenderer))]</c></b>：基底 <c>Graphic</c>／<c>MaskableGraphic</c> 不會自動補 CanvasRenderer
+    /// （是 Image、Text 這些內建子類別自己宣告的）。少了它，Graphic 重建時看到 <c>canvasRenderer == null</c> 就直接跳過——
+    /// 元件在、沒錯誤、尺寸正確，但什麼都不畫。2026-10-28 第一版就是這樣（只剩文字），見 PROBLEMS E44。</para>
+    /// <para>三角形以順時針送出，跟 Unity 自己的四邊形一致（UI/Default 是 Cull Off，方向不影響顯示，只是慣例）。</para>
     /// </summary>
+    [RequireComponent(typeof(CanvasRenderer))]
     public class SpeechBubbleGraphic : MaskableGraphic
     {
         const float LineWidth = 3f;
@@ -243,7 +245,7 @@ namespace Dipan.UI
             // 1) 填色（耳切）
             var tris = Triangulate(_pts);
             for (int i = 0; i < n; i++) vh.AddVert(_pts[i], FillColor, Vector2.zero);
-            for (int i = 0; i + 2 < tris.Count; i += 3) vh.AddTriangle(tris[i], tris[i + 2], tris[i + 1]);   // 反轉成順時針，見類別說明
+            for (int i = 0; i + 2 < tris.Count; i += 3) vh.AddTriangle(tris[i], tris[i + 2], tris[i + 1]);   // 順時針（慣例，見類別說明）
 
             // 2) 框線：外漸層（輪廓往外 AA，透明→黑）＋線本體（輪廓→往內 LineWidth）＋內漸層（黑→透明，疊在白底上）
             var miter = new Vector2[n];

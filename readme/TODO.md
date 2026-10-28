@@ -979,11 +979,13 @@
 - [ ] **`validate_map.py` 還不認得 `intro`**：這次另用一次性腳本確認過 3026–3031 與兩張立繪都存在。要不要把 intro 的檢查（語言表 id、立繪檔、`portraitSide`）正式加進 validate_map.py／dipan.py，待作者決定。
 - [ ] **英文欄**：3026–3031 附了英文初稿，`Spaced()` 對英文不加字距；英文名字較長時會自動縮字。
 
-## 頭上對話框改版＋三種形狀（2026-10-28，程式完成、⏳ 未編譯未實測）
+## 頭上對話框改版＋三種形狀（2026-10-28，主遊戲已編譯、方形已實機顯示；圓形／尖刺與編輯器端 ⏳ 未確認）
 
 > 設計見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)〈三種形狀〉。
 
-- [ ] **未編譯**：主遊戲（`SpeechBubbleGraphic` 新檔、`MonsterSpeechPanel`、`MonsterSpawner`、`CutsceneModel`／`CutsceneDirector`）與地圖編輯器（`CutsceneData`、`EditorUI`、`CutscenePreview`）都要編譯。只做過語法剖析；外形幾何另用 Python 逐行移植合成驗證過。不用 Sync（MonsterData.csv 直接載入）。
-- [ ] **實測重點**：① 34 級夠不夠大（`FontSize`、`MaxTextWidth`）；② 線條邊緣有沒有鋸齒／尖刺尖端的框線有沒有破（`SpeechBubbleGraphic` 的 `AA`、`MiterLimit`）；③ 單行台詞的圓形／尖刺會偏扁長，看會不會太寬；④ 腳下模式尾巴朝上是否正確；⑤ 怪物台詞的標記分類是否符合作者想像（CSV 直接改）。
+- [x] ~~主遊戲未編譯~~ → 2026-10-28 晚編譯通過、實機看到方形白底黑框（外框不顯示的坑見 PROBLEMS **E44**）。
+- [ ] **地圖編輯器端未確認編譯**（以下原文保留）：主遊戲（`SpeechBubbleGraphic` 新檔、`MonsterSpeechPanel`、`MonsterSpawner`、`CutsceneModel`／`CutsceneDirector`）與地圖編輯器（`CutsceneData`、`EditorUI`、`CutscenePreview`）都要編譯。只做過語法剖析；外形幾何另用 Python 逐行移植合成驗證過。不用 Sync（MonsterData.csv 直接載入）。
+- [ ] **外觀作者還不太滿意，之後再調**（2026-10-28 實機看過方形後；具體哪裡不滿意待作者說）。
+- [ ] **實測重點**（方形已看過，**圓形／尖刺還沒在實機看過**）：① 34 級夠不夠大（`FontSize`、`MaxTextWidth`）；② 線條邊緣有沒有鋸齒／尖刺尖端的框線有沒有破（`SpeechBubbleGraphic` 的 `AA`、`MiterLimit`）；③ 單行台詞的圓形／尖刺會偏扁長，看會不會太寬；④ 腳下模式尾巴朝上是否正確；⑤ 怪物台詞的標記分類是否符合作者想像（CSV 直接改）。
 - [ ] **可以刪的舊素材**（程式已不用）：`Resources/UI/InGame/InGame_TalkBg1/2.png`、`Resources/UI/SpeechBubble/*.png`（第一版九宮格）。`tools/ui/speech_bubble/*.svg` 留作設計稿或一起刪。
 - [ ] **加分項目未做**（作者 2026-10-28 先不做）：尖刺出現時輕微震動／彈出、圓形較柔和的淡入。

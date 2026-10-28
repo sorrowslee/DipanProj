@@ -970,9 +970,11 @@
 
 ### E44. 自己寫的 UI 圖形（自訂 `Graphic`）元件在、沒錯誤、尺寸對，畫面上卻什麼都沒有
 - **症狀**（2026-10-28，頭上對話框改成程式畫外框）：泡泡的字照常出現，白底黑框完全看不到。Hierarchy 裡 `Shape` 物件與 `SpeechBubbleGraphic` 元件都在、有啟用，Fill／Line 顏色正確、RectTransform 347×183 合理，Console 0 錯誤。
-- **原因**：**三角形的繞行方向**。輪廓頂點是逆時針排的（內側在左手邊，算框線往內偏移用），照輪廓順序 `AddTriangle` 出來的填色與框線三角形全部是逆時針；Unity UI 自己的四邊形（Image、Text）都是**順時針**，這個專案的 UI 繪製會把逆時針當背面剔掉 ⇒ 整個外框消失，同一個泡泡裡的文字卻正常。
-- **解法**：`OnPopulateMesh` 送出的每個三角形都反轉成順時針（`AddTriangle(a, c, b)`），幾何計算不動。
-- ⭐ **通則**：自訂 `Graphic`／`OnPopulateMesh` 一律輸出**順時針**三角形（跟 `VertexHelper.AddUIVertexQuad` 一樣）。症狀是「元件在、無錯誤、什麼都沒畫」——先懷疑繞行方向，再懷疑顏色／材質／遮罩。
+- **原因**：**`Shape` 物件上沒有 `CanvasRenderer`**。基底的 `Graphic`／`MaskableGraphic` **不會**自動補 CanvasRenderer——`[RequireComponent(typeof(CanvasRenderer))]` 是 `Image`、`Text`、`RawImage` 這些內建子類別各自宣告的（所以同一個泡泡裡的文字有、外框沒有）。少了它，`Graphic.Rebuild` 一看到 `canvasRenderer == null` 就直接 return：**不畫、不報錯**。
+- **解法**：`SpeechBubbleGraphic` 類別加 `[RequireComponent(typeof(CanvasRenderer))]`（`AddComponent` 時自動補上）。
+- **怎麼查到的**：加暫時診斷 log 讀 `canvasRenderer.cull`，當場丟出 `MissingComponentException: There is no 'CanvasRenderer' attached to the "Shape" game object`——正式程式碼不會碰到這個例外，所以一直看起來「零錯誤」。
+- ⚠ **誤診紀錄**：第一輪以為是三角形繞行方向（逆時針被背面剔除）而全部改成順時針——**錯的**：UI 走 `UI/Default`（`Cull Off`），ScreenSpaceOverlay 下方向不影響顯示；況且框線那圈不經過三角化，真的是剔除也至少會剩黑線。「連一個像素都沒有」代表整個 Graphic 沒進渲染，不是幾何問題。順時針保留（跟 Unity 慣例一致，無害）。
+- ⭐ **通則**：自訂 `Graphic`（`OnPopulateMesh`）**一律加 `[RequireComponent(typeof(CanvasRenderer))]`**。症狀「元件在、無錯誤、什麼都沒畫」時，先看 Inspector 上**有沒有 CanvasRenderer**，再懷疑幾何／顏色／材質；同一個父物件下內建元件正常、自訂元件不見，就是這個。
 
 ### E36. 大白天每隻怪身上都掛著一圈光，而且一直閃
 - **症狀**（2026-09-17，競技場的戰狼）：把怪放進 `Atmosphere=1`、沒壓暗的**亮**地圖，每隻怪身上都有一圈青白光暈；
