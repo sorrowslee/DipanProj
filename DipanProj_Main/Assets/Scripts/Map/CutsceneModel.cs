@@ -49,6 +49,7 @@ namespace Dipan.MapRuntime
         public string facing = "";      // left / right
         public int dramaId = 0;         // dialogue → DramaTable.csv
         public int langId = 0;          // bubble → LanguageTable.csv 的 id（頭上對話框的文字）
+        public string bubbleShape = ""; // bubble → 對話框形狀：""/square 方形（預設）、round 圓形、spike 尖刺
         public float seconds = 0f;
         public float speed = 0f;        // move：走路速度（格/秒）；0＝用預設
         public string assetId = "";

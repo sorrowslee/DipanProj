@@ -418,7 +418,7 @@ namespace Dipan.Cutscene
             string text = Dipan.Localization.Language.GetText(s.langId);
             float dur = s.seconds > 0f ? s.seconds : 2f;
             a.EnsureVisible();
-            Dipan.UI.MonsterSpeechPanel.Speak(a.tr, text, dur);
+            Dipan.UI.MonsterSpeechPanel.Speak(a.tr, text, dur, Dipan.UI.SpeechBubbleShapes.FromName(s.bubbleShape));
             yield return WaitUnscaled(dur);
         }
 

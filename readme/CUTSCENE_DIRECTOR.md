@@ -69,7 +69,7 @@
 | `move` | `actorId` `x,y` `speed` `facing` | A* 走到目標，抵達才繼續；`speed` 格/秒（0＝預設 2）；`facing`＝抵達後朝向 |
 | `face` | `actorId` `facing` | 轉向 |
 | `dialogue` | `dramaId` | 播 `DramaTable` 的該筆（Type 1 大圖／Type 2 頭像對話都行），**面板關閉才繼續** |
-| `bubble` | `actorId` `langId` `seconds` | **頭上對話框**：不跳對話視窗，直接在該演員頭上冒一個水墨泡泡（沿用怪物說話那套面板與美術）。文字＝`LanguageTable.csv` 的 id；`seconds` 顯示秒數（0＝2）。預設擋住這段時間，要「邊走邊講」就勾 `background`。見 §8 |
+| `bubble` | `actorId` `langId` `seconds` `bubbleShape` | **頭上對話框**：不跳對話視窗，直接在該演員頭上冒一個白底泡泡（沿用怪物說話那套面板與美術）。文字＝`LanguageTable.csv` 的 id；`seconds` 顯示秒數（0＝2）。預設擋住這段時間，要「邊走邊講」就勾 `background`。`bubbleShape`＝形狀（空／`square` 方形、`round` 圓形、`spike` 尖刺）。見 §8 |
 | `wait` | `seconds` | 等待（unscaled） |
 | `camera` | `x,y` `zoom` `seconds` | 鏡頭移到指定點、縮放；`seconds`＝停留 |
 | `cameraFollow` | `seconds` | 鏡頭放回跟隨玩家 |
@@ -259,13 +259,14 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 
 ## 8. 頭上對話框（`bubble` 步驟）
 
-不跳對話視窗，直接在演員頭上冒一個水墨泡泡說一句話——**沿用怪物說話那一整套**（`MonsterSpeechPanel`，兩張底板隨機輪流、避邊翻面、底板鏡像、文字 best-fit）。見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)。
+不跳對話視窗，直接在演員頭上冒一個泡泡說一句話——**沿用怪物說話那一整套**（`MonsterSpeechPanel`：白底黑線、程式畫外框、三種形狀、框跟著字長、固定字級、中文斷行、避邊翻面；2026-10-28 改版）。見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)。
 
 | 欄位 | 意義 |
 |---|---|
 | `actorId` | 誰說話（npc 演員或 `player` 主角傀儡都行） |
 | `langId` | 台詞＝`Assets/Data/LanguageTable.csv` 的 id。**玩家可見字串一律走語言表**（AGENTS.md 鐵則），找不到會顯示 `[lang:id]` 佔位 |
 | `seconds` | 顯示秒數，0＝2 秒 |
+| `bubbleShape` | 對話框形狀（編輯器「形狀」按鈕）：方＝直接／官方（預設）、圓＝溫和／有感情、尖刺＝激動／憤怒。見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)〈三種形狀〉 |
 | `background` | 勾了＝**邊走邊講**（主線立刻往下一步）；不勾＝擋住這段時間 |
 
 - **`MonsterSpeechPanel` 已泛化**：內部不再綁 `MonsterController`，改成「一個 `Transform` 目標 ＋ 一個『還在不在』的判斷委派」。`Speak(MonsterController,…)` 保留成薄包裝，**怪物那端零改動**。
@@ -287,7 +288,7 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 - **`comic` 的圖走 `Resources.Load`**（不是地圖素材管線），路徑要在某個 `Resources` 資料夾下、**不含副檔名**；找不到只印 Warning。
 - ~~編輯器端 `CutsceneData.cs` 的型別註解漏列 `fade`／`background`~~ → **2026-08-22 已補齊**（順手加 `bubble`），兩端註解與本文件的表一致。
 - **回憶特效染不到 UI**：置中漫畫、對話框、HUD 都不會泛黃（相機後處理碰不到 Overlay UI），見 §6。
-- **`bubble` 的文字不會自動換行控制**：靠面板的 best-fit 縮字（40→22），一句太長會縮得很小。長台詞請用 `dialogue`。
+- **`bubble` 字級固定、框跟著長**：一行約 10 個中文字，超過自動換行（優先斷在標點後）。超過三行頭上會頂一大塊，長台詞請用 `dialogue`。
 
 ---
 

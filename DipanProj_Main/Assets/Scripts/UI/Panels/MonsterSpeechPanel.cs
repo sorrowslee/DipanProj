@@ -15,13 +15,24 @@ namespace Dipan.UI
     ///
     /// 所以內部**不綁 MonsterController**：氣泡只記一個 <c>Transform</c> 目標 ＋ 一個「還在不在」的判斷委派。
     ///
-    /// 底板美術：Resources/UI/InGame/InGame_TalkBg1、InGame_TalkBg2 兩張水墨泡泡，**隨機輪流**（載不到自動退回程序底板）。
-    /// 兩張都是「尾巴在底部、預設放在怪物右上」畫的：
-    ///   ‧ 左上（靠畫面右緣） → 底板水平鏡像（尾巴改指右下）。
-    ///   ‧ 腳下（靠畫面上緣） → 底板垂直鏡像（尾巴改指上）。
-    ///   ‧ 文字本身永遠不鏡像；用底板的「奶油色內文區」定位（鏡像時同步換到對應那側）。
-    /// 定位（螢幕座標，沿用 PlayerHintPanel 的 WorldToScreen 做法）：把「尾巴尖」對到怪物頭頂/腳下，方向在開口那一刻決定、之後固定。
-    /// 見 readme/UI_SYSTEM.md。
+    /// ── 2026-10-28 改版（作者：「NPC 跟怪物在講啥我基本上都看不清楚」）──
+    /// 舊版是固定大小的水墨泡泡圖（寬 336、能放字的奶油區只有 200×83），字級被框卡住：超過 7 個字就降到 28、
+    /// 9 個字以上只剩 22px，再加上內建字體＋假粗體，幾乎讀不到。現在改成：
+    ///   ‧ **框跟著文字長**：外框由程式依文字大小即時畫（<see cref="SpeechBubbleGraphic"/>，白底黑線、尾巴是輪廓的一部分），
+    ///     不再拉伸圖片，所以線條粗細永遠一樣、多長的台詞都清楚。
+    ///   ‧ **三種形狀**（<see cref="SpeechBubbleShape"/>）：方形＝直接／官方（預設）、圓形＝溫和／有感情、尖刺＝激動／憤怒。
+    ///     全部從「方形＝文字最小容納範圍」往外長。台詞開頭寫 <c>[刺]</c>／<c>[圓]</c>／<c>[方]</c> 指定，或由呼叫端傳入。
+    ///   ‧ **字級固定**（<see cref="FontSize"/>）：每句話都一樣大，太長就換行、框長高，不再縮字。
+    ///   ‧ **自己斷行**（<see cref="WrapText"/>）：uGUI 內建換行不懂中文禁則，會把「。」斷到行首；
+    ///     這裡優先在標點後斷（不拆詞），沒標點可斷才平均分行（最後一行不會只剩一兩個字）。
+    ///   ‧ 字型改思源宋體 Bold（同角色介紹）。
+    /// 舊的 <c>UI/InGame/InGame_TalkBg1/2</c> 與第一版的 <c>UI/SpeechBubble/*.png</c> 都沒刪，程式已不再使用
+    /// （<c>tools/ui/speech_bubble/*.svg</c> 留作外觀設計稿）。
+    ///
+    /// 定位（螢幕座標，沿用 PlayerHintPanel 的 WorldToScreen 做法）：**尾巴尖**對到目標頭頂（或腳下），
+    /// 方向在開口那一刻決定、之後固定：靠畫面左緣→框往右長、靠右緣→往左長（尾巴左右翻）、中間隨機；
+    /// 靠上緣→改到腳下（尾巴上下翻、框在下方）。
+    /// 見 readme/MONSTER_SPEECH.md。
     /// </summary>
     public class MonsterSpeechPanel : UIPanel
     {
@@ -31,63 +42,24 @@ namespace Dipan.UI
         public override bool CloseOnEscape => false;
         public override bool InStack => false;
 
-        // ── 版面常數（1920x1080 基準；要調氣泡大小改這裡）──
-        const float BubbleWidth = 336f;     // 氣泡寬（高依原圖比例自動；不拉伸變形）。280×1.2＝336
-        const int MaxFont = 40, MinFont = 22; // 字級上下限（短句大、長句自動縮）
-        const float LineHeightRatio = 1.15f;  // 行高 ÷ 字級（估算用；uGUI 內建字體大約是這個比例）
-        const float HGap = 12f, VGap = 6f;  // 尾巴尖對到頭頂後，往氣泡本體方向再推一點（讓它偏右上/左上）
+        // ── 版面常數（1920x1080 基準；要調氣泡大小改這裡；形狀本身的尺寸在 SpeechBubbleShapes）──
+        const int FontSize = 34;              // 字級（固定，所有台詞一樣大）
+        const float MaxTextWidth = 340f;      // 一行最寬（約 10 個中文字），超過就換行
+        const float PadX = 22f, PadY = 14f;   // 文字到方框線的內距（＝方形的「最小容納範圍」；圓形／尖刺從這裡往外長）
+        const float MinBoxWidth = 64f;        // 方框最窄（一兩個字的台詞，尾巴才放得下）
+        const float LineSpacing = 1.0f;       // uGUI Text 的行距倍率（思源宋體本身行高偏寬，1.0 已經夠鬆）
+        static readonly Color TextColor = new Color(0.08f, 0.08f, 0.08f, 1f);   // 近黑（純白底上對比最高）
+        const string FontPath = "Fonts/NotoSerifTC/NotoSerifTC-Bold";
+        const float HeadGap = 6f;             // 尾巴尖離頭頂（或腳下）再留一點
         const float FadeIn = 0.12f, FadeOut = 0.3f;
 
         // 邊緣判定門檻（viewport 0~1）：太靠左/右 → 對話翻到另一側；太靠上 → 改到腳下。
         const float LeftEdge = 0.25f, RightEdge = 0.75f, TopEdge = 0.80f;
 
-        static readonly Color TextColor = new Color(0.12f, 0.09f, 0.08f, 1f);   // 深墨色（奶油底板上要用深字）
-
-        // ── 兩張底板的資料（尾巴尖 + 奶油內文區，皆為原圖 0~1 比例；y 由「上」算）──
-        //   量測自 InGame_TalkBg1/2.png（577x433，透明背景）。
-        struct BubbleArt
+        static Font _font;
+        static Font SpeechFont
         {
-            public Sprite Sprite;
-            public Vector2 TailTip;   // 尾巴尖（x 從左, y 從上）
-            public Vector4 Cream;     // 內文奶油區 (x0, y0上, x1, y1上)
-        }
-        static BubbleArt[] _arts;
-
-        static BubbleArt[] Arts
-        {
-            get
-            {
-                // null-check 自動重建（關掉 Domain Reload 後上一輪 Play 的 sprite 會被銷毀，這裡自動重載）。
-                if (_arts == null || _arts.Length == 0 || _arts[0].Sprite == null)
-                {
-                    _arts = new BubbleArt[]
-                    {
-                        new BubbleArt { Sprite = LoadSprite("UI/InGame/InGame_TalkBg1"),
-                                        TailTip = new Vector2(0.46f, 0.80f),
-                                        Cream = new Vector4(0.185f, 0.229f, 0.841f, 0.619f) },
-                        new BubbleArt { Sprite = LoadSprite("UI/InGame/InGame_TalkBg2"),
-                                        TailTip = new Vector2(0.28f, 0.74f),
-                                        Cream = new Vector4(0.205f, 0.266f, 0.802f, 0.594f) },
-                    };
-                }
-                return _arts;
-            }
-        }
-
-        // Resources 載圖：優先當 Sprite；若匯入型別是 Texture 就自己 Create 一張；都失敗回 null（呼叫端退回程序底板）。
-        static Sprite LoadSprite(string path)
-        {
-            // UI/Texts/ 底下的是「圖片型文字」：實際檔案在 UI/Texts/<語言>/ 裡，
-            // 這裡解析成當前語言的路徑，缺當前語言就退回母版（繁中）。見 Localization/LocalizedArt。
-            path = Dipan.Localization.LocalizedArt.ResolveExisting(path);
-
-            var sp = Resources.Load<Sprite>(path);
-            if (sp != null) return sp;
-            var tex = Resources.Load<Texture2D>(path);
-            if (tex != null)
-                return Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), 100f);
-            Debug.LogWarning($"[MonsterSpeechPanel] 載不到底板 Resources/{path}（型別非 Sprite/Texture？）→ 暫用程序底板。");
-            return null;
+            get { if (_font == null) _font = UIBuilder.LoadFont(FontPath); return _font; }
         }
 
         class Bubble
@@ -104,18 +76,20 @@ namespace Dipan.UI
 
         readonly List<Bubble> _bubbles = new List<Bubble>();
         Camera _cam;
-        int _artFlip;   // 兩張輪流（避免連續同一張）
 
         protected override void OnBuild() { /* 氣泡動態生成，這裡不建固定版面 */ }
 
         // ───────────────────────── 對外 API ─────────────────────────
 
-        /// <summary>在某隻怪物頭上顯示一句話（duration 秒後淡出；怪物死亡立即消失）。</summary>
-        public static void Speak(MonsterController mc, string text, float duration)
+        /// <summary>
+        /// 在某隻怪物頭上顯示一句話（duration 秒後淡出；怪物死亡立即消失）。
+        /// 形狀：台詞開頭有 <c>[刺]</c>／<c>[圓]</c>／<c>[方]</c> 就照標記，否則用 <paramref name="shape"/>。
+        /// </summary>
+        public static void Speak(MonsterController mc, string text, float duration, SpeechBubbleShape shape = SpeechBubbleShape.Square)
         {
             if (mc == null || string.IsNullOrEmpty(text)) return;
             var p = UIManager.Instance?.Open<MonsterSpeechPanel>();
-            p?.AddBubble(mc.transform, () => mc != null && !mc.IsDead, text, duration);
+            p?.AddBubble(mc.transform, () => mc != null && !mc.IsDead, text, duration, shape);
         }
 
         /// <summary>
@@ -123,196 +97,268 @@ namespace Dipan.UI
         /// 頭頂/腳下位置的抓法見 <see cref="HeadWorld"/>：玩家走 PlayerController 的可見身體幾何，
         /// 其他人優先用 Collider2D，都沒有才退回 SpriteRenderer 的 bounds。
         /// </summary>
-        public static void Speak(Transform target, string text, float duration)
+        public static void Speak(Transform target, string text, float duration, SpeechBubbleShape shape = SpeechBubbleShape.Square)
         {
             if (target == null || string.IsNullOrEmpty(text)) return;
             var p = UIManager.Instance?.Open<MonsterSpeechPanel>();
             // 目標被停用（劇情演員 despawn／演出被略過時快轉成消失）也要立刻收掉氣泡——
             // 只看「沒被銷毀」的話，despawn 只是 SetActive(false)，氣泡會留在空中（2026-10-15 作者回報）。
-            p?.AddBubble(target, () => target != null && target.gameObject.activeInHierarchy, text, duration);
+            p?.AddBubble(target, () => target != null && target.gameObject.activeInHierarchy, text, duration, shape);
         }
 
-        void AddBubble(Transform target, System.Func<bool> alive, string text, float duration)
+        void AddBubble(Transform target, System.Func<bool> alive, string text, float duration, SpeechBubbleShape shape)
         {
             if (_cam == null) _cam = Camera.main;
             if (_cam == null) return;
+
+            // 台詞開頭的形狀標記優先（怪物 CSV 句子、語言表文字都能寫），並從顯示文字拿掉
+            text = (text ?? "").Replace("\\n", "\n");
+            shape = SpeechBubbleShapes.ParseTag(ref text, shape);
+            if (string.IsNullOrEmpty(text)) return;
 
             // 同一個目標若已有氣泡 → 先移除舊的（避免疊字）。
             for (int i = _bubbles.Count - 1; i >= 0; i--)
                 if (_bubbles[i].Target == target) Remove(i);
 
-            // 方向（開口這一刻決定）：靠左緣→右上、靠右緣→左上、中間隨機；靠上緣→改腳下。
+            // 方向（開口這一刻決定）：靠左緣→往右長、靠右緣→往左長、中間隨機；靠上緣→改腳下。
             Vector3 head = HeadWorld(target);
             Vector3 vp = _cam.WorldToViewportPoint(head);
             bool rightSide = vp.x < LeftEdge ? true : (vp.x > RightEdge ? false : (Random.value < 0.5f));
             bool below = vp.y > TopEdge;
 
-            // 兩張輪流挑一張
-            var arts = Arts;
-            _artFlip ^= 1;
-            var art = arts[_artFlip % arts.Length];
+            var font = SpeechFont;
+            string wrapped = WrapText(font, text, FontSize, MaxTextWidth);
+            string[] lines = wrapped.Split('\n');
 
-            // 容器（本體大小固定、保持原圖比例，不拉伸）
+            // 容器：原點＝尾巴尖（大小 0），文字框與外框都相對它擺
             var rootGo = UIBuilder.Create("SpeechBubble", transform);
             var root = (RectTransform)rootGo.transform;
             root.anchorMin = root.anchorMax = new Vector2(0.5f, 0.5f);
-            float aspectH = 433f / 577f;   // 兩張同尺寸；有 sprite 就用 sprite 實際比例
-            if (art.Sprite != null && art.Sprite.rect.width > 0f)
-                aspectH = art.Sprite.rect.height / art.Sprite.rect.width;
-            root.sizeDelta = new Vector2(BubbleWidth, BubbleWidth * aspectH);
+            root.pivot = new Vector2(0.5f, 0.5f);
+            root.sizeDelta = Vector2.zero;
 
-            // 底板（填滿容器；鏡像只作用在底板，文字不受影響）
-            Image bg;
-            if (art.Sprite != null)
-            {
-                bg = UIBuilder.Image(root, "Bg", art.Sprite, Color.white);
-                bg.type = Image.Type.Simple;
-            }
-            else
-            {
-                bg = UIBuilder.Image(root, "Bg", FallbackSprite, new Color(0.07f, 0.07f, 0.10f, 0.85f));
-                bg.type = Image.Type.Sliced;
-            }
-            bg.raycastTarget = false;
-            var bgrt = bg.rectTransform;
-            bgrt.anchorMin = Vector2.zero; bgrt.anchorMax = Vector2.one;
-            bgrt.offsetMin = Vector2.zero; bgrt.offsetMax = Vector2.zero;
-            bgrt.pivot = new Vector2(0.5f, 0.5f);
-            bgrt.localScale = new Vector3(rightSide ? 1f : -1f, below ? -1f : 1f, 1f);   // 鏡像
+            // 文字框（pivot 在中心＝形狀座標的原點）。文字先建，量出實際大小才知道框多大。
+            var body = UIBuilder.Create("Body", root);
+            var brt = (RectTransform)body.transform;
+            brt.anchorMin = brt.anchorMax = new Vector2(0.5f, 0.5f);
+            brt.pivot = new Vector2(0.5f, 0.5f);
 
-            // 文字（放進奶油內文區；鏡像時同步換到對應那側）
-            // ⚠ **刻意不用 `resizeTextForBestFit`**，理由見 ComputeFontSize 的註解（同一句話會忽大忽小）。
-            var txt = UIBuilder.Text(root, "Msg", text, ComputeFontSize(text), TextColor, TextAnchor.MiddleCenter);
+            var shapeGo = UIBuilder.Create("Shape", brt);   // 先建＝畫在文字後面
+            var txt = UIBuilder.Text(brt, "Msg", wrapped, FontSize, TextColor, TextAnchor.MiddleCenter);
+            txt.font = font;
+            txt.fontSize = FontSize;
+            txt.fontStyle = FontStyle.Normal;   // 字檔本身就是 Bold，不要再疊假粗體
+            txt.lineSpacing = LineSpacing;
             txt.raycastTarget = false;
-            txt.fontStyle = FontStyle.Bold;   // 加粗，深墨色在奶油底上更清楚
+            txt.supportRichText = false;
             txt.resizeTextForBestFit = false;
-            txt.horizontalOverflow = HorizontalWrapMode.Wrap;
-            txt.verticalOverflow = VerticalWrapMode.Overflow;   // 估算若略有偏差，寧可溢出一點也不要被裁掉
-            var ol = txt.gameObject.AddComponent<Outline>();
-            ol.effectColor = new Color(1f, 1f, 1f, 0.35f);   // 淡淺色描邊，壓在墨邊上也讀得清楚
-            ol.effectDistance = new Vector2(1f, -1f);
-            ApplyTextRect(txt.rectTransform, art.Cream, rightSide, below);
+            txt.horizontalOverflow = HorizontalWrapMode.Overflow;   // 已經自己斷好行，不讓 uGUI 再折
+            txt.verticalOverflow = VerticalWrapMode.Overflow;
+            float tw = Mathf.Ceil(txt.preferredWidth), th = Mathf.Ceil(txt.preferredHeight);
+
+            float bw = Mathf.Max(tw + PadX * 2f, MinBoxWidth);
+            float bh = th + PadY * 2f;
+            brt.sizeDelta = new Vector2(bw, bh);
+            var trt = txt.rectTransform;
+            trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+            trt.offsetMin = new Vector2(PadX, PadY); trt.offsetMax = new Vector2(-PadX, -PadY);
+
+            // 外框：從方框（文字最小容納範圍）往外長出該形狀，再依方向鏡像
+            var widths = new List<float>(lines.Length);
+            foreach (var l in lines) widths.Add(Width(font, l, FontSize));
+            float lh = lines.Length > 0 ? th / lines.Length : th;
+            var pts = SpeechBubbleShapes.Build(shape, bw, bh, widths, lh, PadX, PadY, SpeechBubbleShapes.StableHash(text), out Vector2 tip);
+            pts = SpeechBubbleShapes.Transform(pts, !rightSide, below, ref tip);
+
+            var srt = (RectTransform)shapeGo.transform;
+            srt.anchorMin = srt.anchorMax = new Vector2(0.5f, 0.5f);
+            srt.pivot = new Vector2(0.5f, 0.5f);
+            srt.anchoredPosition = Vector2.zero;
+            float ex = 0f, ey = 0f;
+            foreach (var v in pts) { ex = Mathf.Max(ex, Mathf.Abs(v.x)); ey = Mathf.Max(ey, Mathf.Abs(v.y)); }
+            srt.sizeDelta = new Vector2(ex * 2f + 4f, ey * 2f + 4f);   // 只給裁切用，畫的位置看頂點
+            var g = shapeGo.AddComponent<SpeechBubbleGraphic>();
+            g.raycastTarget = false;
+            g.SetContour(pts);
+
+            // 文字框中心放在「尾巴尖 → 中心」的位置，尾巴尖就落在容器原點
+            brt.anchoredPosition = -tip;
 
             var cg = rootGo.AddComponent<CanvasGroup>();
             cg.alpha = 0f;
-
-            // 尾巴尖當錨點：算出對應 pivot（鏡像後尾巴換角）。
-            float tx = rightSide ? art.TailTip.x : 1f - art.TailTip.x;
-            float tyTop = below ? 1f - art.TailTip.y : art.TailTip.y;
-            root.pivot = new Vector2(tx, 1f - tyTop);
 
             var b = new Bubble
             {
                 Root = root, Cg = cg, Target = target, Alive = alive,
                 Spawn = Time.time, Duration = Mathf.Max(0.3f, duration),
                 Below = below,
-                OffsetX = rightSide ? HGap : -HGap,
-                OffsetY = below ? -VGap : VGap,
+                OffsetX = 0f,
+                OffsetY = below ? -HeadGap : HeadGap,
             };
             _bubbles.Add(b);
             Reposition(b);   // 立刻擺對位置，避免第一幀出現在畫面中央
         }
 
-        // ───────────────────────── 字級：自己算，不用 best-fit ─────────────────────────
+        // ───────────────────────── 斷行：自己做，uGUI 的不懂中文 ─────────────────────────
+
+        // 不能放在行首的字（句讀、收尾括號、波浪號…）——斷行時讓它留在上一行（允許略超出最大寬度）
+        const string NoLineStart = "，。、！？；：」』）】〉》…—～~,.!?;:)]}%·";
+        // 不能放在行尾的字（開頭括號）——斷行時把它帶到下一行
+        const string NoLineEnd = "「『（【〈《([{";
+
+        // 斷句標點：優先在這些字「之後」斷行（中文台詞幾乎都有標點，斷在這裡最自然、不會把詞拆開）
+        const string BreakAfter = "，。、！？；：…—～~,.!?;";
 
         /// <summary>
-        /// 決定這句話的字級。**同一句話永遠得到同一個字級**，`\n` 只決定「在哪裡斷行」、不影響大小。
-        ///
-        /// ⚠ 為什麼不用 uGUI 的 `resizeTextForBestFit`（原本用的，換掉的理由）：
-        ///   ① **手動換行會讓字變大**：best-fit 是「找一個塞得下的最大字級」，
-        ///      作者把「這個給你吧，就剩兩張了」改寫成「這個給你吧\n就剩兩張了」只是想控制斷句位置，
-        ///      但兩行各 5 個字「塞得下更大的字」，於是同一句話忽然大一號 —— 語意上完全不該有這個差別。
-        ///   ② **抽到不同底板也會不一樣大**：兩張水墨泡泡的奶油內文區大小不同（220×98 vs 200×83），
-        ///      而底板是隨機輪流的 ⇒ 同一句台詞每次講都可能是不同字級。
-        /// 所以改成自己估算：**用固定的參考框**（兩張底板中較小的那個奶油區，這樣兩張都一定塞得下）
-        /// ＋**依總字數估行數**，得到一個只跟「這句話有多長」有關的字級。
-        ///
-        /// 估算方式：中日韓字元寬 ≈ 1 個字級，ASCII/數字 ≈ 0.55；行高 ≈ 字級 × <see cref="LineHeightRatio"/>。
-        /// 手動 `\n` 分出來的每一段各自再依寬度估要佔幾行（所以「手動斷成三行」確實會縮小，那是合理的）。
-        /// 估不準時由 `verticalOverflow = Overflow` 兜底（寧可溢出一點也不要被裁掉）。
+        /// 依實際字寬把文字斷成多行（插 <c>\n</c>）。作者手動寫的 <c>\n</c> 一律保留。一段超過一行時，兩種斷法都算、取行數少的：
+        /// <para>① <b>標點優先</b>（<see cref="PunctLines"/>）：先照斷句標點切成短句，再把短句組成行；行尾的標點可以超出最大寬度
+        /// （例：「公爵大人最討厭被拒絕。／上一個拒絕他的，／血到現在還沒流乾。」，不會變成「…被拒／絕。…」）。</para>
+        /// <para>② <b>平均分行</b>（<see cref="Balanced"/>）：沒標點可斷或標點版多出行數時用——每行約總寬 ÷ 行數，最後一行不會只剩一兩個字。</para>
+        /// <para>行數一樣時用①。兩種都遵守禁則（句讀不放行首、開括號不放行尾）、英文單字不從中間切。</para>
+        /// 字寬用 <c>Font.GetCharacterInfo</c> 量（動態字型要先 RequestCharactersInTexture）。
         /// </summary>
-        static int ComputeFontSize(string text)
+        static string WrapText(Font font, string text, int size, float maxWidth)
         {
-            if (string.IsNullOrEmpty(text)) return MaxFont;
-            GetRefTextBox(out float boxW, out float boxH);
-
-            // 依 \n 切段，量出每段的「全形字寬」總量
+            if (string.IsNullOrEmpty(text) || font == null) return text ?? "";
+            font.RequestCharactersInTexture(text, size, FontStyle.Normal);
+            var sb = new System.Text.StringBuilder();
             string[] segs = text.Split('\n');
-            var segLen = new float[segs.Length];
-            for (int i = 0; i < segs.Length; i++)
+            for (int s = 0; s < segs.Length; s++)
             {
-                float w = 0f;
-                foreach (char c in segs[i]) w += CharWidth(c);
-                segLen[i] = w;
+                if (s > 0) sb.Append('\n');
+                string seg = segs[s];
+                if (Width(font, seg, size) <= maxWidth) { sb.Append(seg); continue; }
+                var a = Balanced(font, seg, size, maxWidth);
+                var b = PunctLines(font, seg, size, maxWidth);
+                sb.Append(string.Join("\n", b.Count <= a.Count ? b : a));
             }
+            return sb.ToString();
+        }
 
-            // 第一輪（只在作者有手動換行時）：**要求每一段都剛好佔一行**，尊重作者排的斷句。
-            // 沒有這一輪的話，字級會被挑到「那一段還要再自動折一次」的大小，
-            // 手動排的「兩行」會變成三行、斷在作者不要的位置——那正是他用 \n 想避免的事。
-            if (segs.Length > 1)
+        static List<string> Balanced(Font font, string seg, int size, float maxWidth)
+        {
+            float total = Width(font, seg, size);
+            int n = Mathf.Max(1, Mathf.CeilToInt(total / maxWidth));
+            var lines = Greedy(font, seg, size, total / n, maxWidth);
+            return lines.Count > n ? Greedy(font, seg, size, maxWidth, maxWidth) : lines;
+        }
+
+        /// <summary>標點優先：短句組行；單一短句本身就超過一行才在句中平均切，切剩的最後一行可以再接下一句。</summary>
+        static List<string> PunctLines(Font font, string seg, int size, float maxWidth)
+        {
+            var lines = new List<string>();
+            string cur = ""; float w = 0f;
+            foreach (var ch in SplitChunks(seg))
             {
-                for (int size = MaxFont; size >= MinFont; size--)
+                float cw = Width(font, ch, size);
+                float slack = TailSlack(font, ch, size);
+                if (cur.Length > 0 && w + cw <= maxWidth + slack) { cur += ch; w += cw; continue; }
+                if (cur.Length > 0) lines.Add(cur);
+                if (cw <= maxWidth + slack) { cur = ch; w = cw; }
+                else
                 {
-                    float perLine = boxW / size;
-                    bool allFit = true;
-                    for (int i = 0; i < segLen.Length; i++) if (segLen[i] > perLine) { allFit = false; break; }
-                    if (!allFit) continue;
-                    if (segs.Length * size * LineHeightRatio <= boxH) return size;
+                    var l = Balanced(font, ch, size, maxWidth);
+                    for (int i = 0; i < l.Count - 1; i++) lines.Add(l[i]);
+                    cur = l[l.Count - 1]; w = Width(font, cur, size);
                 }
-                // 連 MinFont 都塞不下作者排的行 → 落到第二輪，讓它自動折（總比看不見好）。
             }
-
-            // 第二輪：允許自動折行，估總共會佔幾行。
-            for (int size = MaxFont; size > MinFont; size--)
-            {
-                float perLine = boxW / size;           // 一行放得下幾個「全形字」
-                if (perLine < 1f) continue;
-                int lines = 0;
-                for (int i = 0; i < segLen.Length; i++)
-                    lines += Mathf.Max(1, Mathf.CeilToInt(segLen[i] / perLine - 0.001f));
-                if (lines * size * LineHeightRatio <= boxH) return size;
-            }
-            return MinFont;
+            if (cur.Length > 0) lines.Add(cur);
+            return lines;
         }
 
-        /// <summary>字元的概略寬度（以字級為單位）。全形（中日韓、全形標點）算 1，半形拉丁/數字算 0.55。</summary>
-        static float CharWidth(char c) => c < 0x2E80 ? 0.55f : 1f;
-
-        /// <summary>
-        /// 字級估算用的參考框（像素）＝**所有底板的奶油內文區取最小**。
-        /// 用最小的那個，字級才不會因為隨機抽到哪張底板而改變，而且抽到大的那張一定塞得下。
-        /// </summary>
-        static void GetRefTextBox(out float w, out float h)
+        /// <summary>照斷句標點切短句（連續的標點／收尾字跟著前一句）；整片只有標點的（例：句首「……」）併進下一句。</summary>
+        static List<string> SplitChunks(string seg)
         {
-            w = float.MaxValue; h = float.MaxValue;
-            var arts = Arts;
-            for (int i = 0; i < arts.Length; i++)
+            var raw = new List<string>();
+            var cur = new System.Text.StringBuilder();
+            for (int i = 0; i < seg.Length; i++)
             {
-                float aspectH = 433f / 577f;
-                if (arts[i].Sprite != null && arts[i].Sprite.rect.width > 0f)
-                    aspectH = arts[i].Sprite.rect.height / arts[i].Sprite.rect.width;
-                var c = arts[i].Cream;
-                w = Mathf.Min(w, (c.z - c.x) * BubbleWidth);
-                h = Mathf.Min(h, (c.w - c.y) * BubbleWidth * aspectH);
+                cur.Append(seg[i]);
+                if (BreakAfter.IndexOf(seg[i]) >= 0)
+                {
+                    while (i + 1 < seg.Length && (BreakAfter.IndexOf(seg[i + 1]) >= 0 || NoLineStart.IndexOf(seg[i + 1]) >= 0))
+                        cur.Append(seg[++i]);
+                    raw.Add(cur.ToString()); cur.Clear();
+                }
             }
-            if (w >= float.MaxValue || w <= 1f) w = BubbleWidth * 0.6f;   // 底板全載不到時的後備
-            if (h >= float.MaxValue || h <= 1f) h = BubbleWidth * 0.25f;
+            if (cur.Length > 0) raw.Add(cur.ToString());
+
+            var outp = new List<string>();
+            string pend = "";
+            foreach (var c in raw)
+            {
+                if (IsAllPunct(c)) { pend += c; continue; }
+                outp.Add(pend + c); pend = "";
+            }
+            if (pend.Length > 0) { if (outp.Count > 0) outp[outp.Count - 1] += pend; else outp.Add(pend); }
+            return outp;
         }
 
-        // 把文字 RectTransform 貼到底板的「奶油內文區」（鏡像時換到對應那一側，文字本身不翻）。
-        static void ApplyTextRect(RectTransform trt, Vector4 cream, bool rightSide, bool below)
+        static bool IsAllPunct(string s)
         {
-            float cx0 = cream.x, cyTop0 = cream.y, cx1 = cream.z, cyTop1 = cream.w;
-            float ax0, ax1;
-            if (rightSide) { ax0 = cx0; ax1 = cx1; }
-            else { ax0 = 1f - cx1; ax1 = 1f - cx0; }   // 水平鏡像
-            float ay0, ay1;
-            if (!below) { ay0 = 1f - cyTop1; ay1 = 1f - cyTop0; }   // y 由上轉為由下
-            else { ay0 = cyTop0; ay1 = cyTop1; }                     // 垂直鏡像
-            trt.anchorMin = new Vector2(ax0, ay0);
-            trt.anchorMax = new Vector2(ax1, ay1);
-            trt.offsetMin = Vector2.zero;
-            trt.offsetMax = Vector2.zero;
+            foreach (char c in s) if (BreakAfter.IndexOf(c) < 0 && NoLineStart.IndexOf(c) < 0) return false;
+            return true;
+        }
+
+        /// <summary>句尾連續標點的寬度＝這一句允許超出最大寬度多少（標點掛在行尾不算擠）。</summary>
+        static float TailSlack(Font font, string s, int size)
+        {
+            float k = 0f;
+            for (int i = s.Length - 1; i >= 0 && (BreakAfter.IndexOf(s[i]) >= 0 || NoLineStart.IndexOf(s[i]) >= 0); i--)
+                k += Advance(font, s[i], size);
+            return k;
+        }
+
+        static float Width(Font font, string s, int size)
+        {
+            float w = 0f;
+            foreach (char c in s) w += Advance(font, c, size);
+            return w;
+        }
+
+        static List<string> Greedy(Font font, string seg, int size, float target, float maxWidth)
+        {
+            var lines = new List<string>();
+            var cur = new System.Text.StringBuilder();
+            float w = 0f;
+            for (int i = 0; i < seg.Length; i++)
+            {
+                char c = seg[i];
+                float a = Advance(font, c, size);
+                if (cur.Length > 0 && w + a > target + size * 0.3f)
+                {
+                    // 句讀不放行首：留在這一行（只要沒超出最大寬度一個字以上）
+                    if (NoLineStart.IndexOf(c) >= 0 && w + a <= maxWidth + size) { cur.Append(c); w += a; continue; }
+
+                    string carry = "";
+                    // 英文單字不切：往回找空白，空白之後那段帶到下一行
+                    if (IsLatin(c) && IsLatin(cur[cur.Length - 1]))
+                    {
+                        string cs = cur.ToString();
+                        int sp = cs.LastIndexOf(' ');
+                        if (sp > 0) { carry = cs.Substring(sp + 1); cur.Length = sp; }
+                    }
+                    // 開括號不放行尾：帶到下一行
+                    else if (cur.Length > 1 && NoLineEnd.IndexOf(cur[cur.Length - 1]) >= 0)
+                    {
+                        carry = cur[cur.Length - 1].ToString(); cur.Length -= 1;
+                    }
+                    lines.Add(cur.ToString().TrimEnd());
+                    cur.Clear(); cur.Append(carry); cur.Append(c);
+                    w = 0f; foreach (char cc in cur.ToString()) w += Advance(font, cc, size);
+                }
+                else { cur.Append(c); w += a; }
+            }
+            if (cur.Length > 0) lines.Add(cur.ToString());
+            return lines;
+        }
+
+        static bool IsLatin(char c) => (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '\'';
+
+        static float Advance(Font font, char c, int size)
+        {
+            if (font.GetCharacterInfo(c, out CharacterInfo ci, size, FontStyle.Normal)) return ci.advance;
+            return size * (c < 0x2E80 ? 0.55f : 1f);   // 量不到時的概估
         }
 
         // ───────────────────────── 每幀更新 ─────────────────────────
@@ -391,37 +437,6 @@ namespace Dipan.UI
             var sr = t.GetComponent<SpriteRenderer>();
             if (sr != null && sr.sprite != null) return new Vector3(sr.bounds.center.x, sr.bounds.min.y, t.position.z);
             return t.position;
-        }
-
-        // ───────────────────────── 後備底板（載不到美術時用；程序生成圓角矩形）─────────────────────────
-
-        static Sprite _fallback;
-        static Sprite FallbackSprite
-        {
-            get
-            {
-                if (_fallback == null)
-                {
-                    const int S = 64, R = 20;
-                    var tex = new Texture2D(S, S, TextureFormat.RGBA32, false)
-                    { wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear };
-                    var px = new Color32[S * S];
-                    for (int y = 0; y < S; y++)
-                        for (int x = 0; x < S; x++)
-                        {
-                            float cx = Mathf.Clamp(x, R, S - 1 - R);
-                            float cy = Mathf.Clamp(y, R, S - 1 - R);
-                            float d = Mathf.Sqrt((x - cx) * (x - cx) + (y - cy) * (y - cy));
-                            float a = Mathf.Clamp01(R + 0.5f - d);
-                            px[y * S + x] = new Color32(255, 255, 255, (byte)(a * 255f));
-                        }
-                    tex.SetPixels32(px);
-                    tex.Apply();
-                    _fallback = Sprite.Create(tex, new Rect(0, 0, S, S), new Vector2(0.5f, 0.5f),
-                        100f, 0, SpriteMeshType.FullRect, new Vector4(R + 2, R + 2, R + 2, R + 2));
-                }
-                return _fallback;
-            }
         }
     }
 }

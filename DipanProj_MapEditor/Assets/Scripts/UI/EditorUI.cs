@@ -3001,6 +3001,7 @@ namespace DipanMapEditor.UI
                     ActorPicker(cs, s, false);
                     _csBufLang = LabeledText("語言表id(LanguageTable)", _csBufLang); s.langId = ParseIntOr(_csBufLang, 0);
                     _csBufSeconds = LabeledText("顯示秒數(0=2)", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 0f);
+                    BubbleShapeRow(s);
                     s.background = GUILayout.Toggle(s.background, "背景執行（邊走邊講：主線照跑到下一步）");
                     GUILayout.Label("（頭上冒對話框，不跳對話視窗；文字寫在 LanguageTable.csv）");
                     break;
@@ -3116,6 +3117,29 @@ namespace DipanMapEditor.UI
             GUILayout.Label("（鏡頭先移到角色、到位才跳介紹；停留期間演出時間軸停住，場景照常動）", _csWrapLabel);
         }
 
+        /// <summary>頭上對話框形狀：方（直接／官方，預設）／圓（溫和、有感情）／刺（激動、憤怒）。見 readme/MONSTER_SPEECH.md。</summary>
+        static void BubbleShapeRow(CutsceneStep s)
+        {
+            string cur = (s.bubbleShape ?? "").Trim().ToLowerInvariant();
+            if (cur != "round" && cur != "spike") cur = "square";
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("形狀", GUILayout.Width(60));
+            GUI.color = cur == "square" ? Color.cyan : Color.white;
+            if (GUILayout.Button("方", GUILayout.Width(40))) s.bubbleShape = "";
+            GUI.color = cur == "round" ? Color.cyan : Color.white;
+            if (GUILayout.Button("圓", GUILayout.Width(40))) s.bubbleShape = "round";
+            GUI.color = cur == "spike" ? Color.cyan : Color.white;
+            if (GUILayout.Button("刺", GUILayout.Width(40))) s.bubbleShape = "spike";
+            GUI.color = Color.white;
+            GUILayout.EndHorizontal();
+            GUILayout.Label(cur == "round" ? "（圓：溫和、有感情）" : cur == "spike" ? "（刺：激動、憤怒）" : "（方：直接、官方）");
+        }
+
+        static string ShapeMark(string shape)
+        {
+            switch ((shape ?? "").Trim().ToLowerInvariant()) { case "round": return "(圓)"; case "spike": return "(刺)"; default: return ""; }
+        }
+
         /// <summary>一列「語言表 id」輸入＋下一行唯讀顯示對應中文（查無 id 會警告）。</summary>
         string LangIdRow(string label, string buf, ref int id)
         {
@@ -3182,7 +3206,7 @@ namespace DipanMapEditor.UI
                 case "move": return $"move {s.actorId}";
                 case "face": return $"face {s.actorId} {s.facing}";
                 case "dialogue": return $"對話 #{s.dramaId}";
-                case "bubble": return $"頭上話 {s.actorId} #{s.langId}";
+                case "bubble": return $"頭上話{ShapeMark(s.bubbleShape)} {s.actorId} #{s.langId}";
                 case "wait": return $"等 {s.seconds:0.#}s";
                 case "camera": return "運鏡";
                 case "cameraFollow": return $"鏡頭跟 {(string.IsNullOrEmpty(s.actorId) ? "玩家" : s.actorId)}";

@@ -179,6 +179,8 @@ public class MonsterSpawner : MonoBehaviour
     /// 前綴「N%:」或「N%：」（半/全形冒號皆可）＝血量比例剩 N% 以下才解鎖；無前綴＝門檻 100（一直可講）。
     /// 例：「我要殺了你~~」→ 門檻100；「30%: 你真的惹怒我了」→ 門檻30、文字「你真的惹怒我了」。
     /// 只有「開頭是數字＋%＋冒號」才當門檻，一般句子含冒號（如「他說：快跑」）不受影響。
+    /// <para>對話框形狀標記 <c>[刺]</c>／<c>[圓]</c>／<c>[方]</c>（2026-10-28）留在 Text 開頭、由 <c>MonsterSpeechPanel.Speak</c> 讀；
+    /// 寫在門檻前面（<c>[刺]30%: …</c>）也可以——這裡先拿下來、解析完門檻再接回文字前面。</para>
     /// </summary>
     private static bool ParseSpeechLine(string raw, out MonsterSpeechLine line)
     {
@@ -186,6 +188,13 @@ public class MonsterSpawner : MonoBehaviour
         if (string.IsNullOrWhiteSpace(raw)) return false;
 
         string s = raw.Trim();
+        // 形狀標記寫在門檻前面：先拿下來，最後接回 Text 開頭（顯示時由 Speak 讀掉）
+        string tag = "";
+        {
+            string probe = s;
+            Dipan.UI.SpeechBubbleShapes.ParseTag(ref probe, Dipan.UI.SpeechBubbleShape.Square);
+            if (probe.Length < s.Length) { tag = s.Substring(0, s.Length - probe.Length).Trim(); s = probe; }
+        }
         int colon = s.IndexOf(':');
         if (colon < 0) colon = s.IndexOf('：');   // 全形冒號也吃
         if (colon > 0)
@@ -199,13 +208,15 @@ public class MonsterSpawner : MonoBehaviour
                 {
                     line.UnlockAtPercent = Mathf.Clamp(pct, 0f, 100f);
                     line.Text = s.Substring(colon + 1).Trim();
-                    return !string.IsNullOrEmpty(line.Text);
+                    if (string.IsNullOrEmpty(line.Text)) return false;
+                    line.Text = tag + line.Text;
+                    return true;
                 }
             }
         }
 
-        line.Text = s;   // 無門檻前綴：整句都是文字，門檻 100（一直可講）
-        return true;
+        line.Text = tag + s;   // 無門檻前綴：整句都是文字，門檻 100（一直可講）
+        return !string.IsNullOrEmpty(s);
     }
 
     /// <summary>依 ID 取怪物配方資料（找不到回 null、不印錯誤）。給 BossIntroPanel 等 UI 端查 DisplayName / PortraitPath 用。</summary>

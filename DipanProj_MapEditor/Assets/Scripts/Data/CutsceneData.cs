@@ -65,7 +65,8 @@ namespace DipanMapEditor.Data
     ///   move         actorId 走到 (x,y)（A* 尋徑），抵達才繼續；facing＝抵達後朝向
     ///   face         actorId 轉向 facing（left/right）
     ///   dialogue     播 DramaTable 的 dramaId（沿用現有劇情系統：大圖或頭像對話），播完才繼續
-    ///   bubble       actorId 頭上冒一個對話框說一句（沿用怪物說話那套水墨泡泡）；文字＝langId 指到 LanguageTable.csv；seconds＝顯示秒數（0＝2 秒）
+    ///   bubble       actorId 頭上冒一個對話框說一句（沿用怪物說話那套）；文字＝langId 指到 LanguageTable.csv；seconds＝顯示秒數（0＝2 秒）；
+    ///                bubbleShape＝形狀（方／圓／刺，空＝方）
     ///   wait         等 seconds 秒
     ///   camera       鏡頭移到 (x,y)、縮放 zoom；seconds＝過渡秒數
     ///   cameraFollow actorId 空＝跟玩家，否則跟該演員
@@ -89,6 +90,7 @@ namespace DipanMapEditor.Data
         public string facing = "";      // face / move 抵達後朝向：left / right（空＝依移動方向）
         public int dramaId = 0;         // dialogue：對應 DramaTable.csv 的 dramaId
         public int langId = 0;          // bubble：對應 LanguageTable.csv 的 id（玩家可見字串一律走語言表，不寫死）
+        public string bubbleShape = ""; // bubble：對話框形狀 ""/square 方形（直接／官方，預設）、round 圓形（溫和）、spike 尖刺（激動／憤怒）
         public float seconds = 0f;      // wait / camera 過渡 / comic 停留 / screenFx 停留
         public float speed = 0f;        // move：走路速度（格/秒）；0＝用預設
         public string assetId = "";     // comic 置中圖路徑id / screenFx effectId / end 去向
