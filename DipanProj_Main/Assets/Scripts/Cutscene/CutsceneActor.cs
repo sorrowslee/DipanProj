@@ -133,6 +133,19 @@ namespace Dipan.Cutscene
 
         public void EnsureVisible() { if (go != null && !isPlayer && !go.activeSelf) go.SetActive(true); }
 
+        /// <summary>
+        /// 鏡頭要對準的「身體中心」（世界座標），給角色介紹（intro）用。
+        /// 主角走 <see cref="PlayerController.BodyCenterWorldPos"/>（可見身體幾何，PROBLEMS E14）；
+        /// npc 演員取 SpriteRenderer 的 bounds 中心（＝畫布中心，route B 素材通常接近身體中心；
+        /// 偏差由步驟的鏡頭偏移欄位補，不在這裡猜）。
+        /// </summary>
+        public Vector2 VisualCenter()
+        {
+            if (isPlayer && _playerCtl != null) return _playerCtl.BodyCenterWorldPos;
+            if (_sr != null && _sr.sprite != null) return _sr.bounds.center;
+            return tr != null ? (Vector2)tr.position : Vector2.zero;
+        }
+
         public void Cleanup()
         {
             if (isPlayer)

@@ -122,6 +122,16 @@ namespace DipanMapEditor.Preview
                 case "cameraFollow": _status = "鏡頭跟隨（預覽不動鏡頭）"; yield return Wait(s.seconds > 0f ? s.seconds : 0.5f); break;
                 case "setFlag": break;
                 case "end": _status = "結束交棒（預覽不換圖）"; break;
+                // 角色介紹：預覽只等秒數＋顯示是誰（作者 2026-10-28：介紹美術做好就套用到所有立繪，不需要在編輯器裡預覽版面）。
+                case "intro":
+                {
+                    string who = LanguageRefTable.Get(s.langId);
+                    if (string.IsNullOrEmpty(who)) who = s.actorId;
+                    float sec = s.seconds > 0f ? s.seconds : 4f;
+                    _status = $"角色介紹：{who} {sec:0.#} 秒（遊戲內播放）";
+                    yield return Wait(sec);
+                    break;
+                }
             }
         }
 

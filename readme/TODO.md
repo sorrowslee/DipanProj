@@ -964,3 +964,17 @@
 - [ ] **跳劈與大絕期間轉向**：`HandleVisuals` 每幀照玩家翻面，劈到一半玩家繞到背後，人會轉身但衝擊波方向已在放波那一幀定了（同 §10.5 的已知限制）。
 - [ ] **數值全是起手估值**：HP 300、Scale 1（原 2.1，作者嫌太大）、Speed 3.2、近戰 12、衝擊波 10／道、速度 5、`BulletScale 10`、AnimFPS 14。
 - [ ] 舊的 `Wolf Royal Guard` 首領／同伴列不再被血狂之爭使用（19 狂族皇家衛士仍是一般怪）；`LeapSlamBrain` 保留。
+
+## 劇情「角色介紹」intro（2026-10-28，程式完成、⏳ 未編譯未實測）
+
+> 設計見 [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) §10。
+
+- [ ] **未編譯**：兩個專案都要編譯——主遊戲（`CharacterIntroPanel` 新檔、`CutsceneDirector`／`CutsceneActor`／`CutsceneModel`）、地圖編輯器（`LanguageRefTable`／`PortraitThumbs` 新檔、`EditorUI`／`CutsceneData`／`CutscenePreview`）。只做過語法剖析與逐行對 API。
+- [ ] **要 Sync Map Assets**：改了 `BloodFang_MainLobby.dipanmap`（和談 `talk` 段插入兩個 intro）。
+- [ ] **新字型**：`Resources/Fonts/NotoSerifTC/` 兩個 TTF 各約 9MB，Unity 第一次匯入會久一點；匯入設定用預設（Dynamic）即可。
+- [ ] **版面首版待作者看**：立繪大小／位置（`PortraitTopY 70`、`PortraitHeight 1040`、`PortraitX 0.30`）、壓黑 0.85、文字欄 0.74、姓名版內兩行字的位置與字級——全在 `CharacterIntroPanel.cs` 檔頭。立繪不是全身像時（夏綠蒂、艾爾文都是）人物可能偏大，要不要另開 `PortraitTable` 的「介紹用」欄位等看結果再決定。
+- [ ] **夏綠蒂寬幅立繪（2026-10-28 重製）**：介紹面板裡被「立繪可用區」縮到寬 969、高約 700，比艾爾文（高 1040）小一截。覺得太小就把 `PortraitEdgeMargin` 改成負值（允許斗篷末端超出畫面），或把 `TextColumnX` 往外推。對話裡改用 `PortraitTable` 0.9，見 PROBLEMS **E43**。
+- [ ] **鏡頭對準點**：npc 演員取畫布中心，兩位首領縮放很大（2.95／3.37），偏了就填鏡頭偏移。
+- [ ] **`validate_map.py` 還不認得 `intro`**：這次另用一次性腳本確認過 3026–3031 與兩張立繪都存在。要不要把 intro 的檢查（語言表 id、立繪檔、`portraitSide`）正式加進 validate_map.py／dipan.py，待作者決定。
+- [ ] **英文欄**：3026–3031 附了英文初稿，`Spaced()` 對英文不加字距；英文名字較長時會自動縮字。
+

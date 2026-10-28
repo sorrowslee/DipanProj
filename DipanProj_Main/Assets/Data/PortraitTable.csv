@@ -17,6 +17,7 @@ Modules/RedBridalGown/Talk/treeFace_crazy,1.1,,-10,同上
 Modules/RedBridalGown/Talk/redBridalGown_angry,,,-50,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
 Main/Talk/Girl/Girl_Fear,,,-50,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
 Main/Talk/Girl/Girl_Smile,,,-50,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
-Modules/BloodFang/Talk/Duke_Charlotte_normal,1.3,,-150,夏綠蒂是全身像（寬裙擺畫到腳），自動對齊後上半身太小；放大＋往下沉（作者 2026-10-26 在競技場確認，從 DramaTalkTable 逐句欄搬來）
-Modules/BloodFang/Talk/Duke_Charlotte_anger,1.3,,-150,夏綠蒂是全身像（寬裙擺畫到腳），自動對齊後上半身太小；放大＋往下沉（作者 2026-10-26 在競技場確認，從 DramaTalkTable 逐句欄搬來）
-Modules/BloodFang/Talk/Duke_Charlotte_laugh,1.3,,-150,夏綠蒂是全身像（寬裙擺畫到腳），自動對齊後上半身太小；放大＋往下沉（作者 2026-10-26 在競技場確認，從 DramaTalkTable 逐句欄搬來）
+Modules/BloodFang/Talk/Duke_Charlotte_normal,0.9,,,夏綠蒂 2026-10-28 重製成寬幅全身（1536×1024、人物寬高比 1.36~1.47）：照標準高度會寬到越過畫面中線，縮成 0.9；舊的往下沉 −150 是舊圖裙擺被切時用的，拿掉
+Modules/BloodFang/Talk/Duke_Charlotte_anger,0.9,,,夏綠蒂 2026-10-28 重製成寬幅全身（1536×1024、人物寬高比 1.36~1.47）：照標準高度會寬到越過畫面中線，縮成 0.9；舊的往下沉 −150 是舊圖裙擺被切時用的，拿掉
+Modules/BloodFang/Talk/Duke_Charlotte_laugh,0.9,,,夏綠蒂 2026-10-28 重製成寬幅全身（1536×1024、人物寬高比 1.36~1.47）：照標準高度會寬到越過畫面中線，縮成 0.9；舊的往下沉 −150 是舊圖裙擺被切時用的，拿掉
+Modules/BloodFang/Talk/Duke_Charlotte_fear,0.9,,,夏綠蒂 2026-10-28 重製成寬幅全身（1536×1024、人物寬高比 1.36~1.47）：照標準高度會寬到越過畫面中線，縮成 0.9；舊的往下沉 −150 是舊圖裙擺被切時用的，拿掉

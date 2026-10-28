@@ -5,6 +5,7 @@
 > **一句話**：在地圖編輯器裡**排一段「半演出半漫畫」的過場**——演員自己走位、說話、運鏡、插入漫畫格、淡黑、播螢幕特效，最後交棒到下一張圖或墜落動畫。全部資料驅動，存在 `.dipanmap` 裡，**不寫程式**。
 >
 > 程式：編輯器端 `Tools/CutsceneController.cs`＋`Data/CutsceneData.cs`＋`Core/CutsceneOverlay.cs`＋`Preview/CutscenePreview.cs`＋`UI/EditorUI.cs` 的「劇情」分頁；遊戲端 `Scripts/Cutscene/CutsceneDirector.cs`＋`CutsceneActor.cs`＋`PlayerVisibility.cs`＋`Scripts/Map/CutsceneModel.cs`＋`Scripts/MapFx/MemoryFxController.cs`。（2026-07-20 加入；2026-08-22 加回憶特效／頭上對話／trigger 啟動／隱藏主角）
+> 角色介紹（`intro`，2026-10-28）另有：遊戲端 `Scripts/UI/Panels/CharacterIntroPanel.cs`；編輯器端 `Preview/LanguageRefTable.cs`（唯讀語言表）＋`Preview/PortraitThumbs.cs`（立繪挑選／縮圖）。見 §10。
 
 ---
 
@@ -61,7 +62,7 @@
 
 > `player` 演員的實作：停用 `PlayerController`、臨時掛一顆 `MonsterActuator` 用**同一套 A***驅動，結束時 `Cleanup` 一定還原控制權。npc 演員自動掛 `YSortByFeet`，和地上物／玩家正確交錯。
 
-### CutsceneStep（步驟）— 14 種型別
+### CutsceneStep（步驟）— 15 種型別
 
 | type | 用到的欄位 | 行為 |
 |---|---|---|
@@ -79,6 +80,7 @@
 | `screenFx` | `assetId` `seconds` | 播 `ScreenFxTable` 的螢幕特效（1 睜眼／2 破幻術／3 馬賽克），見 [MAP_ENTER_EFFECT.md](MAP_ENTER_EFFECT.md) |
 | `setFlag` | `flag` | `TriggerChain.SetFlag`，交棒給觸發鏈 |
 | `end` | `assetId` | 結束並交棒，見 §3 |
+| `intro` | `actorId` `portrait` `portraitSide` `titleLangId` `langId` `descLangId` `seconds` `offsetX,offsetY` | **角色介紹**：鏡頭對準演員身體中心（＋偏移）→ 到位後跳介紹面板（立繪＋姓名版＋說明），停 `seconds` 秒（0＝4）才往下。見 §10 |
 
 ### 兩個並行開關（差別很重要）
 
@@ -152,7 +154,7 @@
 按 **▶ 預覽演出** 直接在編輯器裡跑一次，用**移植版 A***（`NavGridPreview`）＋真實速度走位、播 idle/walk、轉向，走位路徑與落點盡量貼近遊戲。
 
 **忠實重現**：`move` / `face` / `wait` / `spawn` / `despawn` / `comic` / `fade`
-**佔位（只等秒數＋顯示提示文字）**：`dialogue`（「遊戲內播放」）、**`bubble`**（文字在遊戲端的 `LanguageTable`，編輯器沒有那張表）、`screenFx`、`camera`、`cameraFollow`（預覽不動鏡頭）、`end`（不換圖）。回憶特效與隱藏主角預覽也不套用。
+**佔位（只等秒數＋顯示提示文字）**：`dialogue`（「遊戲內播放」）、**`bubble`**（文字在遊戲端的 `LanguageTable`，編輯器沒有那張表）、**`intro`**（顯示「角色介紹：名字 N 秒」，版面只在遊戲裡看）、`screenFx`、`camera`、`cameraFollow`（預覽不動鏡頭）、`end`（不換圖）。回憶特效與隱藏主角預覽也不套用。
 
 Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 重載素材（本專案關掉了 Domain Reload，靜態快取會殘留，見 [PROBLEMS.md](PROBLEMS.md) I3/I5/I7）。
 
@@ -198,7 +200,7 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 | `Main_InitialForest2` | 14 | 開場山道劇情（第二段，尾段 `end` 接 `fall`） |
 | `Main_Cave` | 11 | 初始洞窟 |
 | `BloodFang_InitialScene`／`GuessLobby`／`Gallery` | 17／18／19 | 血狂之爭去程引路，**每張三段**（`guide_*_vampire`／`_werewolf`／`_human`，依玩家血統由鏈上三顆 `playCutscene` 挑一段播），`lockInput=false` 玩家可自由走（2026-10-15） |
-| `BloodFang_MainLobby` | 20 | 血狂之爭和談爭吵 `talk`（第 0 段，演完寫 `bfTalkDone`）＋首領退場 `leaders_exit`（第 1 段，利用「下一段開演清掉留場演員」） |
+| `BloodFang_MainLobby` | 20 | 血狂之爭和談爭吵 `talk`（第 0 段，演完寫 `bfTalkDone`；管家退場後先 **`intro` 介紹夏綠蒂（左）→ 艾爾文（右）**，再拉回中間互嗆）＋首領退場 `leaders_exit`（第 1 段，利用「下一段開演清掉留場演員」） |
 
 這三張同屬 `Main` module，13/14 是 `SaveConstants.IsIntroCutsceneMap`（**不顯示血球 HUD**），初始洞窟 11 起才顯示。
 
@@ -289,6 +291,62 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 
 ---
 
+## 10. 角色介紹（`intro` 步驟，2026-10-28）
+
+劇情演到某個角色登場時，**鏡頭先移到他身上，再跳出一張介紹**：一側是立繪，另一側是姓名版（稱號＋名字）與幾行說明。兩個人要介紹就排兩個 `intro`——第一位的介紹關掉後，鏡頭會從他身上轉到第二位再介紹。
+
+### 10.1 流程與行為
+
+1. 鏡頭 `SetFocusPoint` 到演員的**身體中心**＋（`offsetX`,`offsetY`）——主角用 `PlayerController.BodyCenterWorldPos`，npc 演員用 SpriteRenderer 的 bounds 中心（＝畫布中心；不準就用偏移補）。
+2. 等鏡頭到位（`FocusReached`，最多 2.5 秒），再停 0.3 秒讓玩家看清楚是誰。
+3. 開 `CharacterIntroPanel`，停 `seconds` 秒（0＝4 秒），關掉，時間軸往下。
+
+- **時間軸停住、場景照常動**（作者拍板）：不暫停遊戲，演員照常 idle、氛圍照常跑。這也是必要的——鏡頭的 SmoothDamp 吃 `Time.deltaTime`（PROBLEMS **E22**），暫停的話下一位的鏡頭轉場會凍住。
+- **玩家不能操作、也不能按掉**介紹（劇情演出本來就鎖輸入）；只有右上角的演出 **Skip** 有效——按下去關掉面板並照 §1 的規則快轉整段。介紹面板的層級（5050）刻意壓在 Skip（5100）之下。
+- **介紹完鏡頭留在這個角色身上**：要拉回別處請接 `camera`／`cameraFollow`；演出收尾時一定放回跟隨玩家。
+- ⚠ **兩個 `intro` 不要用 `parallelNext` 並行**：面板與鏡頭只有一份，後開的會蓋掉前一個。
+
+### 10.2 欄位（編輯器「劇情」分頁 → 步驟型別 `intro`）
+
+| 欄位 | 編輯器 | 意義 |
+|---|---|---|
+| `actorId` | 演員按鈕 | 介紹誰（鏡頭對準他） |
+| `portraitSide` | 左／右 | 立繪在畫面哪一側；姓名版與說明自動排在另一側。**右側立繪自動水平鏡像**（立繪原圖臉朝右，同 TalkPanel 慣例）。空＝左 |
+| `portrait` | 文字欄＋「從 Talk 資料夾選…」（附縮圖） | 立繪 catalog id，跟 DramaTalkTable 的立繪路徑同一種寫法（例 `Modules/BloodFang/Talk/Elvin_normal`）；遊戲端用同一支 `DramaTalkDatabase.ResolvePortrait` 載入，所以**圖要放 `GameAssets/Modules/<模組>/Talk/` 並 Sync**。不支援 `Actor_<情緒>`（那是主角依血統換的立繪） |
+| `titleLangId`／`langId`／`descLangId` | 語言表 id（旁邊唯讀顯示那句中文） | 稱號／名字／說明。**只填 id、文字在 `LanguageTable.csv` 維護**（作者拍板；鐵則：玩家可見字串走語言表）。說明用字面 `\n` 手動斷行 |
+| `seconds` | 停留秒數 | 0＝4 秒 |
+| `offsetX`／`offsetY` | 鏡頭偏移（格） | 鏡頭對準點相對身體中心的偏移，世界單位 |
+
+編輯器的語言表顯示來自直接讀主專案 `Assets/Data/LanguageTable.csv`（`LanguageRefTable`，同 `ConditionRefTables` 的作法）；表改了按「重讀語言表」。立繪清單按「重新掃描資料夾」。
+
+### 10.3 版面（`CharacterIntroPanel.cs`）
+
+全部是**參考解析度 1920×1080** 下的像素，從作者 2026-10-28 的示意圖（1672×941）×1.148 換算，**全集中在檔頭常數**，要調只改那裡：
+
+| 層（下→上） | 內容 | 常數 |
+|---|---|---|
+| 壓黑背景 | 全螢幕黑、alpha 0.85（Linear 色彩空間下比直覺重，PROBLEMS **E11**） | `BackdropAlpha` |
+| 上下裝飾線 | **同一張** `CharacterIntro_top_bottom_ornament`，水平置中、不隨左右換邊 | `OrnamentTopY`／`OrnamentBottomY` |
+| 立繪 | 量**人物**（不透明內容框，同 TalkPanel〈立繪自動對齊〉）：頂端距畫面頂 70、高 1040（底部超出畫面會被裁掉）、水平中心在畫面寬 0.30（右側 0.70）。**寬幅立繪**：人物寬度不得超出「立繪可用區」＝畫面邊 24px 到文字欄外框 24px 之間，超過就等比縮小、腳底貼近畫面底（夏綠蒂重製後寬 969、高約 660~710）；`PortraitEdgeMargin` 填負值＝允許超出畫面、人會更大（PROBLEMS **E43**） | `PortraitTopY`／`PortraitHeight`／`PortraitX`／`PortraitEdgeMargin`／`PortraitTextGap`／`PortraitBottomMargin` |
+| 姓名版 | `CharacterIntro_nameplate`（底圖已含稱號與名字之間的分隔線，所以**稱號一律要填**）；稱號 32、名字 84（太長自動縮到 40，單行） | `NameplateY`／`TitleYInPlate`／`NameYInPlate` |
+| 說明 | `description_top`／`_bottom` 兩條線之間，置中、32 字級、行距 1.45 | `DescTopLineY`／`DescBottomLineY` |
+
+- 文字欄水平中心在畫面寬 0.74（立繪在右時 0.26），`TextColumnX`。
+- 稱號與名字是中文時字與字之間自動加空白（示意圖的疏排），英文不加。
+- **字型**：思源宋體 Noto Serif TC（`Resources/Fonts/NotoSerifTC/`，Regular＋Bold，**SIL OFL 1.1，可商用、可隨遊戲散布**，授權檔 `OFL.txt` 同資料夾；原檔是 CFF 的 OTF，已轉成 TTF 給 Unity 舊版文字元件用）。名字用 Bold、稱號與說明用 Regular。
+- **`PortraitTable` 的微調刻意不套用**：那張表的值是照 TalkPanel 版面調的（例：夏綠蒂 1.3／−150），介紹面板版面不同。作者 2026-10-28：先照統一規則擺、看結果再決定要不要另開「介紹用」欄位。
+- **沒有進出場動畫**（作者：先暫定沒有）。
+- 面板不是 `UIPanel`：同置中漫畫、Skip，自建 ScreenSpaceOverlay Canvas，掛在 `CutsceneDirector` 底下，演出被硬銷毀時一起消失（`ReleaseGlobals` 也會收）。不吃滑鼠。
+
+### 10.4 已知限制
+
+- npc 演員的「身體中心」取畫布中心；素材腳下留白多的角色會偏高，用 `offsetY` 補。
+- `validate_map.py` 目前**不檢查** `intro` 步驟（語言表 id、立繪檔是否存在），見 [TODO.md](TODO.md)。
+
+---
+
 *建立於 2026-07-27：補記 2026-07-20 commit `2f53ab7`「加入劇情編輯器」的完整設計。此系統落地時未寫文件，`CutsceneDirector` 程式註解已預留指向本篇（"見 readme（CUTSCENE_DIRECTOR）"）。*
 
 *2026-08-22 擴充：① 回憶特效 `memoryFx`（§6）；② 頭上對話框 `bubble` 步驟（§8，`MonsterSpeechPanel` 泛化）；③ `playCutscene` 觸發鏈動作，劇情終於能用旗標管重複（§2.5）；④ 演出期間隱藏主角 `hidePlayer`（§7）；⑤ `.dipanmap` 的 cutscene 改存清單，為「一張圖多段劇情」預留格式。*
+
+*2026-10-28 擴充：角色介紹 `intro` 步驟（§10）——編輯器可編、遊戲端 `CharacterIntroPanel`、字型思源宋體。*

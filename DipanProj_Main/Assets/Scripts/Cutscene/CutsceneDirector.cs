@@ -42,6 +42,12 @@ namespace Dipan.Cutscene
         GameObject _skipGo;          // 右上角 Skip 覆蓋層（skippable 時才建；掛在自己身上，一起被銷毀）
         GameObject _fadeGo;
         UnityEngine.UI.Image _fadeImg;
+        CharacterIntroPanel _introPanel;   // 角色介紹面板（intro 步驟；掛在自己身上，演出被硬銷毀時一起消失）
+
+        // ── 角色介紹（intro）的時間常數 ──
+        const float IntroDefaultSeconds = 4f;   // 步驟 seconds 填 0 時的停留秒數
+        const float IntroCamTimeout = 2.5f;     // 鏡頭最多等這麼久飄到位（同 MapCameraController.FocusRoutine），避免追不到卡死
+        const float IntroLeadIn = 0.3f;         // 鏡頭到位後先停一拍再跳面板，讓玩家看清楚是誰
 
         /// <summary>載圖完成後呼叫：此圖有演出、autoStartOnEnter、且 requireFlag 條件成立就開演。</summary>
         public static void MaybeAutoStart(MapData map, GameObject player)
@@ -356,6 +362,7 @@ namespace Dipan.Cutscene
                 case "fade": yield return FadeStep(s); break;
                 case "screenFx": yield return ScreenFxStep(s); break;
                 case "setFlag": if (!string.IsNullOrEmpty(s.flag)) TriggerChain.SetFlag(s.flag); break;
+                case "intro": yield return IntroStep(s); break;
                 case "end": break;   // 在主迴圈結束後統一處理
             }
         }
@@ -428,6 +435,55 @@ namespace Dipan.Cutscene
                 else _cam.ClearCameraZone();
             }
             yield return WaitUnscaled(s.seconds > 0f ? s.seconds : 1f);
+        }
+
+        /// <summary>
+        /// 角色介紹（2026-10-28，readme/CUTSCENE_DIRECTOR.md §10）：鏡頭對準演員身體中心（＋偏移）→ 等到位 → 停一拍
+        /// → 開 <see cref="CharacterIntroPanel"/>（立繪＋姓名版＋說明）停 seconds 秒 → 關掉，時間軸才往下。
+        /// <para>作者拍板：介紹期間「時間軸停住、場景照常動」（演員照常 idle、氛圍照常跑）——所以**不暫停遊戲**。
+        /// 這也是必要的：鏡頭的 SmoothDamp 吃 Time.deltaTime（PROBLEMS E22），暫停的話下一位的鏡頭轉場會凍住。</para>
+        /// <para>鏡頭在介紹後**留在這個角色身上**：連續兩個 intro 就自然是「介紹完一位、鏡頭轉去另一位」；
+        /// 要拉回別處請接 camera / cameraFollow 步驟，演出收尾時 Cleanup 也一定會放回跟隨玩家。</para>
+        /// </summary>
+        IEnumerator IntroStep(CutsceneStep s)
+        {
+            var a = Find(s.actorId);
+            if (a == null) Debug.LogWarning($"[Cutscene] intro 步驟找不到演員「{s.actorId}」：鏡頭不動，照樣顯示介紹。");
+            if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
+            if (a != null && _cam != null)
+            {
+                a.EnsureVisible();
+                _cam.SetFocusPoint(a.VisualCenter() + new Vector2(s.offsetX, s.offsetY));
+                float t = 0f;
+                while (!_skip && !_cam.FocusReached(0.3f) && t < IntroCamTimeout) { t += Time.unscaledDeltaTime; yield return null; }
+                yield return WaitUnscaled(IntroLeadIn);
+            }
+            if (_skip) yield break;
+
+            string title = s.titleLangId > 0 ? Dipan.Localization.Language.GetText(s.titleLangId) : "";
+            string nameText = s.langId > 0 ? Dipan.Localization.Language.GetText(s.langId) : "";
+            string desc = s.descLangId > 0 ? Dipan.Localization.Language.GetText(s.descLangId) : "";
+
+            // 立繪走 DramaTalkTable 同一套（catalog id → 地圖素材管線）；fit＝人物在圖檔裡的不透明內容框。
+            // bloodline 傳 null：介紹的是 NPC，不支援 Actor_<情緒>（那是主角依血統換的立繪）。
+            Sprite portrait = null;
+            var fit = Dipan.Drama.PortraitFit.None;
+            string pid = (s.portrait ?? "").Trim();
+            if (pid.Length > 0 && Dipan.Drama.DramaTalkDatabase.Instance != null)
+            {
+                portrait = Dipan.Drama.DramaTalkDatabase.Instance.ResolvePortrait(pid, null);
+                fit = Dipan.Drama.DramaTalkDatabase.Instance.ResolveFit(pid, null);
+            }
+
+            HideIntro();
+            _introPanel = CharacterIntroPanel.Show(transform, portrait, fit, s.portraitSide == "right", title, nameText, desc);
+            yield return WaitUnscaled(s.seconds > 0f ? s.seconds : IntroDefaultSeconds);
+            HideIntro();
+        }
+
+        void HideIntro()
+        {
+            if (_introPanel != null) { Destroy(_introPanel.gameObject); _introPanel = null; }
         }
 
         IEnumerator CameraFollowStep(CutsceneStep s)
@@ -551,6 +607,7 @@ namespace Dipan.Cutscene
             HideComic();
             HideFade();
             HideSkip();
+            HideIntro();
 
             if (_cs != null && _cs.memoryFx) Dipan.MapFx.MemoryFxController.End();
 

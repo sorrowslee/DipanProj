@@ -219,6 +219,10 @@ namespace DipanMapEditor.UI
         CutsceneActor _csActorBufFor;
         CutsceneStep _csStepBufFor;
         string _csBufDrama, _csBufLang, _csBufSeconds, _csBufZoom, _csBufScale, _csBufFps, _csBufSpeed;
+        string _csBufTitle, _csBufDesc, _csBufOffX, _csBufOffY;   // intro（角色介紹）
+        bool _csPortraitPickOpen;                                 // intro 立繪清單是否展開
+        string _csPortraitModule;                                 // intro 立繪清單要列哪個模組（空＝本圖模組）
+        static GUIStyle _csWrapLabel;
 
         // 物件調色盤
         List<PlaceableObject> _objects;
@@ -2745,7 +2749,7 @@ namespace DipanMapEditor.UI
 
         // ================= 劇情演出（Cutscene）面板 =================
         static readonly string[] StepTypes =
-            { "move", "face", "dialogue", "bubble", "wait", "camera", "cameraFollow", "comic", "fade", "spawn", "despawn", "screenFx", "setFlag", "end" };
+            { "move", "face", "dialogue", "bubble", "wait", "camera", "cameraFollow", "comic", "fade", "spawn", "despawn", "screenFx", "setFlag", "end", "intro" };
 
         bool _csPickOpen;        // 段落下拉是否展開
         bool _csConfirmDelete;   // 「刪除此段」第一次按下後等確認
@@ -2969,6 +2973,10 @@ namespace DipanMapEditor.UI
                 _csBufSeconds = s.seconds.ToString("0.###");
                 _csBufZoom = s.zoom.ToString("0.###");
                 _csBufSpeed = s.speed.ToString("0.###");
+                _csBufTitle = s.titleLangId.ToString();
+                _csBufDesc = s.descLangId.ToString();
+                _csBufOffX = s.offsetX.ToString("0.###");
+                _csBufOffY = s.offsetY.ToString("0.###");
             }
 
             switch (s.type)
@@ -3041,7 +3049,83 @@ namespace DipanMapEditor.UI
                     s.assetId = LabeledText("去向(fall/mapId)", s.assetId);
                     GUILayout.Label("（結束演出並交棒）");
                     break;
+                case "intro":
+                    DrawIntroStepFields(cs, s);
+                    break;
             }
+        }
+
+        /// <summary>
+        /// 「角色介紹」步驟的欄位（2026-10-28，見 readme/CUTSCENE_DIRECTOR.md §10）。
+        /// 文字一律只填語言表 id（作者拍板，鐵則：玩家可見字串走 LanguageTable）；id 旁唯讀顯示那句中文，方便確認沒填錯。
+        /// </summary>
+        void DrawIntroStepFields(Cutscene cs, CutsceneStep s)
+        {
+            if (_csWrapLabel == null) _csWrapLabel = new GUIStyle(GUI.skin.label) { wordWrap = true };
+
+            GUILayout.Label("介紹誰（鏡頭對準他的身體中心）");
+            ActorPicker(cs, s, false);
+
+            GUILayout.BeginHorizontal();
+            GUILayout.Label("立繪在畫面", GUILayout.Width(90));
+            bool right = s.portraitSide == "right";
+            GUI.color = !right ? Color.cyan : Color.white;
+            if (GUILayout.Button("左", GUILayout.Width(40))) s.portraitSide = "left";
+            GUI.color = right ? Color.cyan : Color.white;
+            if (GUILayout.Button("右", GUILayout.Width(40))) s.portraitSide = "right";
+            GUI.color = Color.white;
+            GUILayout.EndHorizontal();
+            GUILayout.Label(right ? "（立繪在右、自動鏡像；姓名版＋說明在左）" : "（立繪在左；姓名版＋說明在右）", _csWrapLabel);
+
+            // 立繪：手打 catalog id，或從 Talk 資料夾挑
+            GUILayout.Label("立繪（catalog id，同 DramaTalkTable 立繪路徑）");
+            s.portrait = GUILayout.TextField(s.portrait ?? "", GUILayout.Width(230));
+            if (GUILayout.Button(_csPortraitPickOpen ? "收起立繪清單" : "從 Talk 資料夾選…")) _csPortraitPickOpen = !_csPortraitPickOpen;
+            if (_csPortraitPickOpen)
+            {
+                if (string.IsNullOrEmpty(_csPortraitModule)) _csPortraitModule = MapSession.Instance?.Map?.module ?? "";
+                _csPortraitModule = LabeledText("模組", _csPortraitModule);
+                if (GUILayout.Button("重新掃描資料夾")) Preview.PortraitThumbs.Clear();
+                var list = Preview.PortraitThumbs.ListTalk(_csPortraitModule);
+                if (list.Count == 0) GUILayout.Label($"（GameAssets/Modules/{_csPortraitModule}/Talk/ 下沒有 png）", _csWrapLabel);
+                foreach (var id in list)
+                {
+                    GUI.color = s.portrait == id ? Color.cyan : Color.white;
+                    if (GUILayout.Button(System.IO.Path.GetFileName(id))) s.portrait = id;
+                }
+                GUI.color = Color.white;
+            }
+            var tex = Preview.PortraitThumbs.Get(s.portrait);
+            if (tex != null)
+            {
+                const float th = 140f;
+                GUILayout.Label(tex, GUILayout.Width(th * tex.width / Mathf.Max(1, tex.height)), GUILayout.Height(th));
+            }
+            else if (!string.IsNullOrWhiteSpace(s.portrait))
+                GUILayout.Label($"⚠ 找不到 GameAssets/{s.portrait}.png", _csWrapLabel);
+
+            // 文字（語言表 id）
+            _csBufTitle = LangIdRow("稱號 語言表id", _csBufTitle, ref s.titleLangId);
+            _csBufLang = LangIdRow("名字 語言表id", _csBufLang, ref s.langId);
+            _csBufDesc = LangIdRow("說明 語言表id", _csBufDesc, ref s.descLangId);
+            if (GUILayout.Button("重讀語言表")) Preview.LanguageRefTable.Reload();
+
+            _csBufSeconds = LabeledText("停留秒數(0=4)", _csBufSeconds); s.seconds = ParseFloatOr(_csBufSeconds, 0f);
+            _csBufOffX = LabeledText("鏡頭偏移 X(格)", _csBufOffX); s.offsetX = ParseFloatOr(_csBufOffX, 0f);
+            _csBufOffY = LabeledText("鏡頭偏移 Y(格)", _csBufOffY); s.offsetY = ParseFloatOr(_csBufOffY, 0f);
+            GUILayout.Label("（鏡頭先移到角色、到位才跳介紹；停留期間演出時間軸停住，場景照常動）", _csWrapLabel);
+        }
+
+        /// <summary>一列「語言表 id」輸入＋下一行唯讀顯示對應中文（查無 id 會警告）。</summary>
+        string LangIdRow(string label, string buf, ref int id)
+        {
+            buf = LabeledText(label, buf);
+            id = ParseIntOr(buf, 0);
+            string txt = id > 0 ? Preview.LanguageRefTable.Get(id) : null;
+            if (id <= 0) GUILayout.Label("　（未填）", _csWrapLabel);
+            else if (txt == null) GUILayout.Label($"　⚠ LanguageTable 查無 id {id}", _csWrapLabel);
+            else GUILayout.Label("　" + txt.Replace("\\n", "\n"), _csWrapLabel);
+            return buf;
         }
 
         void ActorPicker(Cutscene cs, CutsceneStep s, bool allowPlayerEmpty)
@@ -3109,6 +3193,11 @@ namespace DipanMapEditor.UI
                 case "screenFx": return $"螢幕fx {s.assetId}";
                 case "setFlag": return $"旗標 {s.flag}";
                 case "end": return $"結束→{s.assetId}";
+                case "intro":
+                {
+                    string who = Preview.LanguageRefTable.Get(s.langId);
+                    return $"介紹 {(string.IsNullOrEmpty(who) ? s.actorId : who)}";
+                }
                 default: return s.type;
             }
         }

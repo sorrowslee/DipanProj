@@ -37,7 +37,7 @@ namespace Dipan.MapRuntime
     }
 
     /// <summary>
-    /// 演出步驟。type：move/face/dialogue/bubble/wait/camera/cameraFollow/comic/fade/spawn/despawn/screenFx/setFlag/end。
+    /// 演出步驟。type：move/face/dialogue/bubble/wait/camera/cameraFollow/comic/fade/spawn/despawn/screenFx/setFlag/end/intro。
     /// 預設做完才進下一步；parallelNext=true 與下一步並行。角色僅左右兩向。欄位語意見編輯器端 CutsceneData.cs。
     /// </summary>
     public class CutsceneStep
@@ -56,5 +56,13 @@ namespace Dipan.MapRuntime
         public string flag = "";
         public bool parallelNext = false;
         public bool background = false;   // 背景執行：啟動後不擋後續
+
+        // ── intro（角色介紹，2026-10-28）專用；名字用 langId、停留用 seconds（0＝4 秒） ──
+        public string portrait = "";      // 立繪 catalog id（同 DramaTalkTable 的立繪路徑）
+        public string portraitSide = "";  // left / right（空＝left）：立繪在哪一側，姓名版與說明在另一側
+        public int titleLangId = 0;       // 稱號（LanguageTable id）
+        public int descLangId = 0;        // 說明（LanguageTable id）
+        public float offsetX = 0f;        // 鏡頭對準點相對演員身體中心的偏移（世界單位）
+        public float offsetY = 0f;
     }
 }

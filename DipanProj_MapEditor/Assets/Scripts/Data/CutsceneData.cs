@@ -76,6 +76,9 @@ namespace DipanMapEditor.Data
     ///   screenFx     播 assetId 螢幕特效（柵欄碎裂/淡黑…）；seconds＝停留
     ///   setFlag      設 flag=true
     ///   end          結束演出並交棒；assetId 指定去向（"fall"＝接墜落動畫、或目標 mapId）
+    ///   intro        角色介紹（2026-10-28）：鏡頭對準 actorId 的身體中心（＋offsetX/Y）→ 到位後跳介紹面板
+    ///                （portrait 立繪放 portraitSide 那一側、另一側是姓名版＋說明），停 seconds 秒（0＝4 秒）才往下。
+    ///                文字一律填語言表 id：titleLangId 稱號、langId 名字、descLangId 說明。見 readme/CUTSCENE_DIRECTOR.md §10
     /// </summary>
     public class CutsceneStep
     {
@@ -93,5 +96,13 @@ namespace DipanMapEditor.Data
         public string flag = "";        // setFlag
         public bool parallelNext = false; // 與下一步同時開始
         public bool background = false;   // 背景執行：啟動後不擋後續（主線立刻處理下一步），角色邊跑主線照走
+
+        // ── intro（角色介紹）專用；名字用上面的 langId、停留用 seconds ──
+        public string portrait = "";      // 立繪 catalog id（相對 GameAssets、不含副檔名；同 DramaTalkTable 的立繪路徑）
+        public string portraitSide = "";  // 立繪在畫面哪一側：left / right（空＝left）；姓名版與說明自動排在另一側
+        public int titleLangId = 0;       // 稱號（LanguageTable id）
+        public int descLangId = 0;        // 說明（LanguageTable id）
+        public float offsetX = 0f;        // 鏡頭對準點相對演員身體中心的偏移（世界單位）
+        public float offsetY = 0f;
     }
 }
