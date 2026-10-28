@@ -325,9 +325,9 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 
 | 層（下→上） | 內容 | 常數 |
 |---|---|---|
-| 壓黑背景 | 全螢幕黑、alpha 0.85（Linear 色彩空間下比直覺重，PROBLEMS **E11**） | `BackdropAlpha` |
+| 壓黑背景 | 全螢幕黑，**常數填的是「場景看起來剩幾成亮度」**（現值 0.17），程式換算成 alpha（Linear 下 ≈0.98）。⚠ 別直接填 alpha：Linear 色彩空間黑色疊 α 的效果只有 (1−α)^(1/2.2)，首版 α 0.85 實際只壓到 42%、文字看不清（PROBLEMS **E11**） | `BackdropBrightness` |
 | 上下裝飾線 | **同一張** `CharacterIntro_top_bottom_ornament`，水平置中、不隨左右換邊 | `OrnamentTopY`／`OrnamentBottomY` |
-| 立繪 | 量**人物**（不透明內容框，同 TalkPanel〈立繪自動對齊〉）：頂端距畫面頂 70、高 1040（底部超出畫面會被裁掉）、水平中心在畫面寬 0.30（右側 0.70）。**寬幅立繪**：人物寬度不得超出「立繪可用區」＝畫面邊 24px 到文字欄外框 24px 之間，超過就等比縮小、腳底貼近畫面底（夏綠蒂重製後寬 969、高約 660~710）；`PortraitEdgeMargin` 填負值＝允許超出畫面、人會更大（PROBLEMS **E43**） | `PortraitTopY`／`PortraitHeight`／`PortraitX`／`PortraitEdgeMargin`／`PortraitTextGap`／`PortraitBottomMargin` |
+| 立繪 | 量**人物**（不透明內容框，同 TalkPanel〈立繪自動對齊〉）：頂端距畫面頂 70、高 1040（底部超出畫面會被裁掉）、水平中心在畫面寬 0.30（右側 0.70）。**寬幅立繪**（作者 2026-10-28：跟其他角色**同比例優先**）：內側緣絕不壓到文字欄（距外框 24px）；外側緣可以超出畫面，最多人物寬的 4 成；還放不下才等比縮小、腳底貼近畫面底。夏綠蒂四張都維持跟艾爾文同高 1040，斗篷與伸出的手會有約 3~4 成在畫面外（PROBLEMS **E43**） | `PortraitTopY`／`PortraitHeight`／`PortraitX`／`PortraitEdgeMargin`／`PortraitTextGap`／`PortraitMaxOffscreen`／`PortraitBottomMargin` |
 | 姓名版 | `CharacterIntro_nameplate`（底圖已含稱號與名字之間的分隔線，所以**稱號一律要填**）；稱號 32、名字 84（太長自動縮到 40，單行） | `NameplateY`／`TitleYInPlate`／`NameYInPlate` |
 | 說明 | `description_top`／`_bottom` 兩條線之間，置中、32 字級、行距 1.45 | `DescTopLineY`／`DescBottomLineY` |
 

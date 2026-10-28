@@ -8125,7 +8125,7 @@
       "path": "Modules/BloodFang/Talk/Duke_Charlotte_anger.png",
       "category": "Talk",
       "module": "BloodFang",
-      "pixelSize": 1024,
+      "pixelSize": 1536,
       "ppu": 256,
       "frameCount": 1
     },
@@ -8134,7 +8134,7 @@
       "path": "Modules/BloodFang/Talk/Duke_Charlotte_fear.png",
       "category": "Talk",
       "module": "BloodFang",
-      "pixelSize": 1024,
+      "pixelSize": 1536,
       "ppu": 256,
       "frameCount": 1
     },
@@ -8143,7 +8143,7 @@
       "path": "Modules/BloodFang/Talk/Duke_Charlotte_laugh.png",
       "category": "Talk",
       "module": "BloodFang",
-      "pixelSize": 1024,
+      "pixelSize": 1536,
       "ppu": 256,
       "frameCount": 1
     },
@@ -8152,7 +8152,7 @@
       "path": "Modules/BloodFang/Talk/Duke_Charlotte_normal.png",
       "category": "Talk",
       "module": "BloodFang",
-      "pixelSize": 1024,
+      "pixelSize": 1536,
       "ppu": 256,
       "frameCount": 1
     },

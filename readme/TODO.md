@@ -972,8 +972,9 @@
 - [ ] **未編譯**：兩個專案都要編譯——主遊戲（`CharacterIntroPanel` 新檔、`CutsceneDirector`／`CutsceneActor`／`CutsceneModel`）、地圖編輯器（`LanguageRefTable`／`PortraitThumbs` 新檔、`EditorUI`／`CutsceneData`／`CutscenePreview`）。只做過語法剖析與逐行對 API。
 - [ ] **要 Sync Map Assets**：改了 `BloodFang_MainLobby.dipanmap`（和談 `talk` 段插入兩個 intro）。
 - [ ] **新字型**：`Resources/Fonts/NotoSerifTC/` 兩個 TTF 各約 9MB，Unity 第一次匯入會久一點；匯入設定用預設（Dynamic）即可。
-- [ ] **版面首版待作者看**：立繪大小／位置（`PortraitTopY 70`、`PortraitHeight 1040`、`PortraitX 0.30`）、壓黑 0.85、文字欄 0.74、姓名版內兩行字的位置與字級——全在 `CharacterIntroPanel.cs` 檔頭。立繪不是全身像時（夏綠蒂、艾爾文都是）人物可能偏大，要不要另開 `PortraitTable` 的「介紹用」欄位等看結果再決定。
-- [ ] **夏綠蒂寬幅立繪（2026-10-28 重製）**：介紹面板裡被「立繪可用區」縮到寬 969、高約 700，比艾爾文（高 1040）小一截。覺得太小就把 `PortraitEdgeMargin` 改成負值（允許斗篷末端超出畫面），或把 `TextColumnX` 往外推。對話裡改用 `PortraitTable` 0.9，見 PROBLEMS **E43**。
+- [x] ~~版面首版待作者看~~ → 2026-10-28 作者實機：版面「挺棒的」，艾爾文大小正好；只回報夏綠蒂太小、黑幕不夠黑（已改，見下兩條）。版面常數全在 `CharacterIntroPanel.cs` 檔頭。
+- [ ] **夏綠蒂寬幅立繪（2026-10-28 重製）**：介紹面板改成跟艾爾文同高 1040、外側最多 4 成超出畫面（作者實機後要求同比例）。切太多就把 `PortraitMaxOffscreen` 調小（人會跟著縮）。對話裡改用 `PortraitTable` 0.9，見 PROBLEMS **E43**。
+- [ ] **介紹黑幕**：`BackdropBrightness` 0.17（≈α 0.98）待作者實機確認文字是否夠清楚。
 - [ ] **鏡頭對準點**：npc 演員取畫布中心，兩位首領縮放很大（2.95／3.37），偏了就填鏡頭偏移。
 - [ ] **`validate_map.py` 還不認得 `intro`**：這次另用一次性腳本確認過 3026–3031 與兩張立繪都存在。要不要把 intro 的檢查（語言表 id、立繪檔、`portraitSide`）正式加進 validate_map.py／dipan.py，待作者決定。
 - [ ] **英文欄**：3026–3031 附了英文初稿，`Spaced()` 對英文不加字距；英文名字較長時會自動縮字。

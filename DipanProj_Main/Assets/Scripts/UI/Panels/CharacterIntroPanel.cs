@@ -35,7 +35,10 @@ namespace Dipan.UI
         const string FontBold = "Fonts/NotoSerifTC/NotoSerifTC-Bold";
 
         // ── 背景與文字顏色 ──
-        const float BackdropAlpha = 0.85f;
+        // 壓黑後場景「看起來」剩幾成亮度（人眼看到的，0＝全黑）。
+        // ⚠ 不要直接填 alpha：專案是 Linear 色彩空間（PROBLEMS E11），黑色疊 α 的實際效果是亮度剩 (1−α)^(1/2.2)——
+        //   2026-10-28 首版填 α 0.85，看起來只壓到 42%，作者回報文字看不清楚。這裡填目標亮度，由 BackdropAlpha() 換算。
+        const float BackdropBrightness = 0.17f;   // ≈ Linear 下 α 0.98
         static readonly Color TextColor = new Color(0.94f, 0.90f, 0.82f, 1f);   // 米白（示意圖）
 
         // ── 上下裝飾線（水平置中、不隨左右換邊）──
@@ -70,11 +73,13 @@ namespace Dipan.UI
         const float PortraitX = 0.30f;       // 人物水平中心＝畫面寬的比例（立繪在左；在右取 1 − 它）；會被下面的可用區夾住
         const float PortraitTopY = 70f;      // 人物頂端距畫面頂
         const float PortraitHeight = 1040f;  // 人物高度（直幅立繪：超過畫面底的部分會被裁掉，示意圖就是這樣）
-        // 寬幅立繪（2026-10-28 夏綠蒂重製後是 1536×1024、人物寬高比 1.36~1.47）照 PortraitHeight 放會寬到 1400 多，
-        // 既出畫面又壓到姓名版 ⇒ 人物寬度不得超出「立繪可用區」，超過就整個等比縮小，並改成腳底貼近畫面底。
-        const float PortraitEdgeMargin = 24f;    // 人物外側緣距畫面邊至少多少；**填負值＝允許超出畫面被裁掉**（人會更大）
-        const float PortraitTextGap = 24f;       // 人物內側緣距文字欄（姓名版／說明的外框）至少多少
-        const float PortraitBottomMargin = 20f;  // 被縮小的寬幅立繪：人物底緣距畫面底
+        // 寬幅立繪（2026-10-28 夏綠蒂重製後是 1536×1024、人物寬高比 1.36~1.47）照 PortraitHeight 放會寬到 1400 多。
+        // 作者 2026-10-28：**跟其他角色同比例（同人物高度）優先**，身體跑出畫面外側一點沒關係 ⇒
+        //   內側緣絕不壓到文字欄；外側緣可以超出畫面，最多人物寬的 PortraitMaxOffscreen；還放不下才等比縮小。
+        const float PortraitEdgeMargin = 24f;      // 人物外側緣距畫面邊的留白（窄立繪用；寬立繪會超出去）
+        const float PortraitTextGap = 24f;         // 人物內側緣距文字欄（姓名版／說明的外框）至少多少
+        const float PortraitMaxOffscreen = 0.4f;   // 寬幅立繪的人物寬，最多這個比例可以在畫面外側（夏綠蒂四張都能維持同高）
+        const float PortraitBottomMargin = 20f;    // 還是得縮小時：人物底緣距畫面底
 
         static Font _regular, _bold;
 
@@ -112,7 +117,7 @@ namespace Dipan.UI
             bg.anchorMin = Vector2.zero; bg.anchorMax = Vector2.one;
             bg.offsetMin = bg.offsetMax = Vector2.zero;
             var bgImg = bg.gameObject.AddComponent<Image>();
-            bgImg.color = new Color(0f, 0f, 0f, BackdropAlpha);
+            bgImg.color = new Color(0f, 0f, 0f, BackdropAlpha());
             bgImg.raycastTarget = false;
 
             // 2) 上下裝飾線（立繪會蓋在它們上面，示意圖如此）
@@ -178,13 +183,16 @@ namespace Dipan.UI
             // 畫布（CanvasScaler 參考單位）的實際寬高：match 0.5 時不是固定 1920×1080，寬螢幕會更寬
             Vector2 cv = CanvasSize();
             float colPx = colX * cv.x;
+            // 可用區：內側到文字欄外框為止（硬限制）；外側先以畫面邊留白為準，寬立繪再往畫面外延伸
             float lo = onRight ? colPx + textHalf + PortraitTextGap : PortraitEdgeMargin;
             float hi = onRight ? cv.x - PortraitEdgeMargin : colPx - textHalf - PortraitTextGap;
-            float maxW = Mathf.Max(1f, hi - lo);
+            float off = Mathf.Clamp(PortraitMaxOffscreen, 0f, 0.9f);
+            float maxW = Mathf.Max(1f, hi - lo) / (1f - off);       // 人物寬 w 時外側可多出 off×w ⇒ w(1−off) ≤ 可用寬
 
             float aspect = (frac.x * px.x) / Mathf.Max(1f, frac.y * px.y);   // 人物寬高比
             float personH = PortraitHeight, personW = personH * aspect;
-            if (personW > maxW) { personW = maxW; personH = personW / aspect; }   // 寬幅立繪：等比縮小
+            if (personW > maxW) { personW = maxW; personH = personW / aspect; }   // 連超出畫面都放不下：等比縮小
+            if (onRight) hi += off * personW; else lo -= off * personW;          // 外側允許超出畫面
             float top = Mathf.Max(PortraitTopY, cv.y - PortraitBottomMargin - personH);   // 縮小了就讓腳站回下方
             float cx = Mathf.Clamp((onRight ? 1f - PortraitX : PortraitX) * cv.x, lo + personW * 0.5f, hi - personW * 0.5f);
 
@@ -206,6 +214,16 @@ namespace Dipan.UI
         }
 
         // ───────────── 小工具 ─────────────
+
+        /// <summary>
+        /// 黑幕要填的 alpha：讓場景「看起來」剩 <see cref="BackdropBrightness"/> 的亮度。
+        /// Linear 色彩空間的混色在線性光上做，黑色疊 α ⇒ 線性亮度 ×(1−α) ⇒ 人眼亮度 ×(1−α)^(1/2.2)（PROBLEMS E11）。
+        /// </summary>
+        static float BackdropAlpha()
+        {
+            float b = Mathf.Clamp01(BackdropBrightness);
+            return QualitySettings.activeColorSpace == ColorSpace.Linear ? 1f - Mathf.Pow(b, 2.2f) : 1f - b;
+        }
 
         /// <summary>畫布在參考單位下的寬高（同 CanvasScaler：ScaleWithScreenSize、1920×1080、match 0.5 ＝ 寬高比例取幾何平均）。</summary>
         static Vector2 CanvasSize()
