@@ -39,6 +39,9 @@ namespace Dipan.Drama
         /// <summary>這張圖的固定位移（<see cref="PortraitTable"/>，畫面單位，+X 右、+Y 上）。</summary>
         public Vector2 imgOffset;
 
+        /// <summary>外側緣可超出對話框、延伸到畫面邊緣（<see cref="PortraitTable"/> 的 OuterToScreen 欄）。</summary>
+        public bool outerToScreen;
+
         public static PortraitFit None => new PortraitFit { ok = false, imgScale = 1f, imgOffset = Vector2.zero };
 
         /// <summary>內容右緣相對圖檔中心的距離（+ = 在右）。右立繪鏡像後，它會變成畫面上的左緣——

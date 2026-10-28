@@ -115,7 +115,7 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
   - 每關專屬立繪放 `GameAssets/Modules/<module>/Talk/`，`LeftAvatarPath` / `RightAvatarPath` 填 **catalog id**（相對 GameAssets、不含副檔名，例 `Modules/RedBridalGown/Talk/redBridalGown`）。
   - 跑 `Project Tools → Sync Map Assets` 收進 catalog ＋ StreamingAssets。`DramaTalkDatabase.ResolvePortrait` 用 `CatalogLoader` + `MapSpriteLoader` 把每個立繪路徑載成 Sprite（同 `DramaDatabase.ResolveImages`；依解析後 catalog id 快取，同一張圖多句共用只載一次）。
   - **`Talk` 是同步分類白名單的一員**（與 `Environment/Tiles/Background/Drama` 並列）；**主角情緒立繪 `Characters/Talk/<血統>/*.png` 另由三處同步工具的 `Characters/Talk` 掃描收進 catalog**（id 例 `Main/Characters/Talk/Base/angry`，category=`Talk`）。**加新素材分類 / 掃描時三處同步產生器要一起改**（`MapAssetSyncTool.cs`、`MapIO.cs`、`Tools/sync_map_assets.sh`），否則會像 [PROBLEMS.md](PROBLEMS.md) C3 那樣「放了圖卻載不到」。
-  - TalkPanel 把左右立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、兩側都錨在畫面中心底部（2026-09-21 起，寬螢幕才不會離置中的對話框越來越遠），人物外側緣不超出對話框外緣。位置/大小常數在 `TalkPanel.cs` 上方，**三個量的都是「人物」而不是「圖檔」**（見〈立繪自動對齊〉）：`AvatarHeight`（人物高度）、`AvatarOverlap`（人物底部沉入對話框多少，**越大越往下＝露出越少**）、`AvatarInnerFromCenter`（**人物內側緣**距畫面中心，**越小兩人靠越近**）。某側沒立繪（載不到 / 留空）時那側自動隱藏。
+  - TalkPanel 把左右立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、兩側都錨在畫面中心底部（2026-09-21 起，寬螢幕才不會離置中的對話框越來越遠），人物外側緣不超出對話框外緣（多出來的寬度會被推向畫面中央；寬幅立繪可在 `PortraitTable` 標 `OuterToScreen=1` 放寬到畫面邊緣，見〈固定微調〉）。位置/大小常數在 `TalkPanel.cs` 上方，**三個量的都是「人物」而不是「圖檔」**（見〈立繪自動對齊〉）：`AvatarHeight`（人物高度）、`AvatarOverlap`（人物底部沉入對話框多少，**越大越往下＝露出越少**）、`AvatarInnerFromCenter`（**人物內側緣**距畫面中心，**越小兩人靠越近**）。某側沒立繪（載不到 / 留空）時那側自動隱藏。
   - **右側立繪一律水平翻轉**（`localScale.x=-1`，原地鏡像不位移）：因為立繪原圖臉朝右，放右邊要翻成朝左才面向畫面中央、與左側對望。所以 `RightAvatarPath` 的圖**直接放正常朝右的原圖即可**，不必自己先翻好。
 
 ### 立繪自動對齊（2026-09-13）
@@ -148,11 +148,13 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 自動對齊解掉的是**尺寸誤差**；另一種微調是**刻意的構圖選擇**（例如邪佛要比人大一點、要更沉進對話框），那是**那張圖的屬性、不是那句話的屬性**。這類寫 `Assets/Data/PortraitTable.csv`：
 
 ```
-Id,Scale,OffsetX,OffsetY,Note
-Main/Talk/Buddha/Buddha_normal,1.1,-130,-130,邪佛比人大一點、更沉進對話框
+Id,Scale,OffsetX,OffsetY,OuterToScreen,Note
+Main/Talk/Buddha/Buddha_normal,1.1,-130,-130,,邪佛比人大一點、更沉進對話框
+Modules/BloodFang/Talk/Duke_Charlotte_anger,1.2,,-90,1,寬幅全身：放大＋往下沉，外側緣可延伸到畫面邊
 ```
 
 - `Id` = **解析後的 catalog id**（不是 CSV 裡寫的字串）；`Actor_<情緒>` 會查到當下血統的那張圖。
+- `OuterToScreen`（2026-10-28 加，選填，填 `1` 才生效）：人物外側緣可超出對話框、延伸到**畫面邊緣**。預設外側緣夾在對話框外緣（±750），超出的寬度全部推向畫面中央——寬幅立繪（夏綠蒂，人物寬高比 1.36~1.47）一放大就越過中線擠到對面（[PROBLEMS.md](PROBLEMS.md) **E43**）。`OffsetX` 往外推沒用（會被夾限吃掉），要往外就用這欄。⚠ 欄位是**依位置**讀的，Note 一定在第 6 欄。
 - 空欄 = 預設（Scale 1 / Offset 0）。`#` 開頭 = 註解列。**整張表選填**，沒列進來的圖完全交給自動對齊。
 - ⭐ **立繪大小／位置唯一的維護點**（2026-10-26 起）：`DramaTalkTable` 的逐句微調欄已刪除，沒有「這一句的特例」這一層了。
 - **接線**：`Assets/Data/PortraitTable.csv` 要拖進場景 `GameManagers` 上 `DramaTalkTableProvider` 的 **Portrait CSV** 欄——**MainScene 已於 2026-10-26 接上**。

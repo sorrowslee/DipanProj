@@ -29,6 +29,9 @@ namespace Dipan.Drama
         {
             public float scale;      // 1 = 不變
             public Vector2 offset;   // 畫面單位，+X 右、+Y 上
+            /// <summary>外側緣可超出對話框、一路延伸到畫面邊緣（預設 false＝不得超出對話框外緣）。
+            /// 給寬幅立繪用：放大後多出來的寬度改往畫面外長，不再被推向畫面中央。見 TalkPanel.SetAvatar。</summary>
+            public bool outerToScreen;
             public static Entry Default => new Entry { scale = 1f, offset = Vector2.zero };
         }
 
@@ -63,7 +66,8 @@ namespace Dipan.Drama
             if (csv == null) csv = Resources.Load<TextAsset>("Data/PortraitTable");   // 後備（舊位置）
             if (csv == null) return;   // 沒有這張表＝全部走自動對齊，不是錯誤、不印警告
 
-            // 表頭：Id,Scale,OffsetX,OffsetY[,Note]。'#' 開頭 = 註解列。空欄 = 預設值。
+            // 表頭：Id,Scale,OffsetX,OffsetY,OuterToScreen[,Note]。'#' 開頭 = 註解列。空欄 = 預設值。
+            // OuterToScreen：填 1 ＝ 外側緣可超出對話框到畫面邊緣（2026-10-28 為寬幅的夏綠蒂加；空＝0）。
             // 從第 0 行開始掃、靠內容認表頭（與 BloodlineTable 一樣，註解區塊可以寫在表頭前面）。
             string[] lines = (csv.text ?? "").Split('\n');
             for (int i = 0; i < lines.Length; i++)
@@ -80,6 +84,7 @@ namespace Dipan.Drama
                 {
                     scale = F(v, 1, 1f),
                     offset = new Vector2(F(v, 2, 0f), F(v, 3, 0f)),
+                    outerToScreen = F(v, 4, 0f) > 0.5f,
                 };
             }
 

@@ -1,7 +1,8 @@
 # ─────────────────────────────────────────────────────────────────────────────
 # 立繪固定微調表。一列 = 一張立繪，記「這張圖要比標準大/小多少、往哪偏多少」。
 # Id = 解析後的 catalog id（不是 DramaTalkTable 裡寫的字串）。Actor_<情緒> 會查到當下血統的那張圖。
-# 空欄 = 預設（Scale 1 / OffsetX 0 / OffsetY 0）。位移以畫面為準：+X 往右、+Y 往上。
+# 空欄 = 預設（Scale 1 / OffsetX 0 / OffsetY 0 / OuterToScreen 0）。位移以畫面為準：+X 往右、+Y 往上。
+# OuterToScreen = 1：外側緣可超出對話框、延伸到畫面邊緣（寬幅立繪放大用；預設外側緣不得超出對話框，超出的寬度會被推向畫面中央）。
 #
 # ⚠ 排版本身已經會自動把「人物」對齊到固定落點（見 Scripts/Drama/PortraitFit.cs 與 TalkPanel.SetAvatar），
 #   素材留白與畫布比例的差異不必在這裡補。這張表只放「刻意的構圖選擇」。
@@ -10,14 +11,14 @@
 # ⭐ 立繪大小／位置**唯一的維護點就是這張表**（2026-10-26 起：DramaTalkTable 的 6 個逐句微調欄已刪除）。
 #   同一張圖不論出現在哪一句、左邊或右邊，都套用這裡的值。
 # ─────────────────────────────────────────────────────────────────────────────
-Id,Scale,OffsetX,OffsetY,Note
-Main/Talk/Buddha/Buddha_normal,1.3,0,-130,邪佛：頭頂貼齊畫面上緣（圖檔上緣就是頭頂，1.3 倍時頂端≈1071）；X 原本 -130 會被「外側緣不出對話框」的夾限抵銷，歸零（2026-10-26 作者實機調）
-Modules/RedBridalGown/Talk/treeFace_vicious,1.1,,-10,榕樹妖：稍微放大、上移，整張臉（下巴）露出對話框上緣的雕飾（2026-10-26 作者實機調；原 -50）
-Modules/RedBridalGown/Talk/treeFace_crazy,1.1,,-10,同上
-Modules/RedBridalGown/Talk/redBridalGown_angry,,,-50,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
-Main/Talk/Girl/Girl_Fear,,,-50,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
-Main/Talk/Girl/Girl_Smile,,,-50,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
-Modules/BloodFang/Talk/Duke_Charlotte_normal,0.9,,,夏綠蒂 2026-10-28 重製成寬幅全身（1536×1024、人物寬高比 1.36~1.47）：照標準高度會寬到越過畫面中線，縮成 0.9；舊的往下沉 −150 是舊圖裙擺被切時用的，拿掉
-Modules/BloodFang/Talk/Duke_Charlotte_anger,0.9,,,夏綠蒂 2026-10-28 重製成寬幅全身（1536×1024、人物寬高比 1.36~1.47）：照標準高度會寬到越過畫面中線，縮成 0.9；舊的往下沉 −150 是舊圖裙擺被切時用的，拿掉
-Modules/BloodFang/Talk/Duke_Charlotte_laugh,0.9,,,夏綠蒂 2026-10-28 重製成寬幅全身（1536×1024、人物寬高比 1.36~1.47）：照標準高度會寬到越過畫面中線，縮成 0.9；舊的往下沉 −150 是舊圖裙擺被切時用的，拿掉
-Modules/BloodFang/Talk/Duke_Charlotte_fear,0.9,,,夏綠蒂 2026-10-28 重製成寬幅全身（1536×1024、人物寬高比 1.36~1.47）：照標準高度會寬到越過畫面中線，縮成 0.9；舊的往下沉 −150 是舊圖裙擺被切時用的，拿掉
+Id,Scale,OffsetX,OffsetY,OuterToScreen,Note
+Main/Talk/Buddha/Buddha_normal,1.3,0,-130,,邪佛：頭頂貼齊畫面上緣（圖檔上緣就是頭頂，1.3 倍時頂端≈1071）；X 原本 -130 會被「外側緣不出對話框」的夾限抵銷，歸零（2026-10-26 作者實機調）
+Modules/RedBridalGown/Talk/treeFace_vicious,1.1,,-10,,榕樹妖：稍微放大、上移，整張臉（下巴）露出對話框上緣的雕飾（2026-10-26 作者實機調；原 -50）
+Modules/RedBridalGown/Talk/treeFace_crazy,1.1,,-10,,同上
+Modules/RedBridalGown/Talk/redBridalGown_angry,,,-50,,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
+Main/Talk/Girl/Girl_Fear,,,-50,,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
+Main/Talk/Girl/Girl_Smile,,,-50,,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
+Modules/BloodFang/Talk/Duke_Charlotte_normal,1.2,,-90,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 90（頭頂≈1053、下擺最寬那段藏進對話框）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）
+Modules/BloodFang/Talk/Duke_Charlotte_anger,1.2,,-90,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 90（頭頂≈1053、下擺最寬那段藏進對話框）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）
+Modules/BloodFang/Talk/Duke_Charlotte_laugh,1.2,,-90,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 90（頭頂≈1053、下擺最寬那段藏進對話框）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）
+Modules/BloodFang/Talk/Duke_Charlotte_fear,1.2,,-90,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 90（頭頂≈1053、下擺最寬那段藏進對話框）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）

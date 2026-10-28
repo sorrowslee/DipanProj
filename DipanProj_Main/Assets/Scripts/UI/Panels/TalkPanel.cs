@@ -289,6 +289,10 @@ namespace Dipan.UI
             float contentW = content.x * k;                    // 人物寬（內容框）
             float innerToImgLeft = (canvas.x * 0.5f + rightFromCenter) * k;   // 人物右緣距圖檔左緣
             float halfBox = DisplayWidth * 0.5f;
+            // 外側緣的界線：預設是對話框外緣；PortraitTable 標了 OuterToScreen 的圖（寬幅立繪）放寬到畫面邊緣，
+            // 否則放大後多出來的寬度全被推向畫面中央、擠到對面角色（PROBLEMS E43）。畫面寬取本面板（拉伸貼齊整層）。
+            float halfLimit = halfBox;
+            if (fit.outerToScreen) halfLimit = Mathf.Max(halfBox, Rect.rect.width * 0.5f);
 
             float ax;
             if (right)
@@ -297,18 +301,18 @@ namespace Dipan.UI
                 // 所以畫面上「人物內側緣」相對圖檔中心 = −rightFromCenter。
                 ax = AvatarInnerFromCenter + rightFromCenter * k + px;
 
-                // 外側緣（畫面右緣）不得超出對話框右緣。
+                // 外側緣（畫面右緣）不得超出對話框右緣（OuterToScreen 時改為畫面右緣）。
                 float outer = ax + (content.x - rightFromCenter) * k;
-                if (outer > halfBox) ax -= (outer - halfBox);
+                if (outer > halfLimit) ax -= (outer - halfLimit);
             }
             else
             {
                 // 左側：pivot (0,0)，ax 量的是「圖檔左緣」相對畫面中心。
                 ax = -AvatarInnerFromCenter - innerToImgLeft + px;
 
-                // 外側緣（畫面左緣）不得超出對話框左緣。
+                // 外側緣（畫面左緣）不得超出對話框左緣（OuterToScreen 時改為畫面左緣）。
                 float outer = ax + innerToImgLeft - contentW;
-                if (outer < -halfBox) ax += (-halfBox - outer);
+                if (outer < -halfLimit) ax += (-halfLimit - outer);
             }
 
             rt.anchoredPosition = new Vector2(ax, imgBottomY);

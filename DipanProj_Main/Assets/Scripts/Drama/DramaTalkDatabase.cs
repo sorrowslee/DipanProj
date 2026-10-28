@@ -207,6 +207,7 @@ namespace Dipan.Drama
             var tuned = PortraitTable.Instance.Get(catalogId);
             fit.imgScale = tuned.scale;
             fit.imgOffset = tuned.offset;
+            fit.outerToScreen = tuned.outerToScreen;
 
             _fitCache[catalogId] = fit;
             return fit;
