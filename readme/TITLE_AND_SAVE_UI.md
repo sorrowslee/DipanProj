@@ -224,8 +224,8 @@
 
 - **只記 `HubModule`（Main）的地圖**：開場山道 13/14、初始洞窟 11、邪佛廣場 12。由 `MapManager.PlaceAndSetup`
   在 `row.module == SaveConstants.HubModule` 時呼叫 `SaveManager.RecordLastLocation(row.id, entrance)`。
-- **關卡（其他 module）刻意不記**。關卡是 extraction 模型（`RunProgress` 純記憶體、通關才落袋、死亡/離開歸零），
-  記了會讓重開遊戲回到一個東西都不見的關卡裡。所以這兩欄的值永遠是「最後一次待在 Main 的位置」，
+- **關卡（其他 module）刻意不記**。關卡進度（`RunProgress`）純記憶體、劇本開門即消耗，中途離開＝放棄這趟（2026-11-06 起），
+  記了會讓重開遊戲回到一個進度全失的關卡裡。所以這兩欄的值永遠是「最後一次待在 Main 的位置」，
   在關卡中離開＝回到進關卡前的廣場，正好符合設計。
 - 這幾張圖一輪只經過一次，所以記完直接 `SaveNow()` 落地（不靠 dirty 自動存），
   否則玩家在山道劇情中途直接關掉視窗就可能沒存到。

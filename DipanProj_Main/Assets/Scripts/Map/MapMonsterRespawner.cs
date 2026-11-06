@@ -262,6 +262,51 @@ public class MapMonsterRespawner : MonoBehaviour
     static bool IsOn(Wave w) => w.region == null || TriggerChain.IsActive(w.region);
 
     /// <summary>
+    /// 某個出生點（trigger 區域 id）目前的狀態，給「戰鬥鏈結束噴血球」判定用（見 MapClearReward）。
+    /// started＝已經開打（生過、或條件已成立正要生）；cleared＝波數出完且場上一隻不剩（被強制中止也算）。
+    /// 回傳 false＝這個出生點不歸 respawner 管（＝進圖就當場生完的一般出生點，由呼叫端自己看場上的怪）。
+    /// </summary>
+    public bool TryGetSpawnState(string regionId, out bool started, out bool cleared)
+    {
+        started = false; cleared = false;
+        bool found = false, allCleared = true;
+        for (int i = 0; i < _waves.Count; i++)
+        {
+            var w = _waves[i];
+            if (w.chainRegion == null || w.chainRegion.id != regionId) continue;
+            found = true;
+            bool st = w.startedOnce || w.doneOneShot || w.wavesFired > 0 || (!w.aborted && IsOn(w));
+            if (st) started = true;
+            bool cl = w.aborted || w.cleared || (WavesDone(w) && !HasLiving(w));
+            if (!cl) allCleared = false;
+        }
+        cleared = found && allCleared;
+        return found;
+    }
+
+    /// <summary>這隻怪是哪個出生點（trigger 區域 id）生的；不是 respawner 生的回 null。</summary>
+    public string RegionIdOf(GameObject go)
+    {
+        if (go == null) return null;
+        for (int i = 0; i < _waves.Count; i++)
+            if (_waves[i].alive.Contains(go)) return _waves[i].chainRegion != null ? _waves[i].chainRegion.id : null;
+        return null;
+    }
+
+    // 場上還有沒死的（剛被打死、這一幀還沒 Destroy 的不算）
+    static bool HasLiving(Wave w)
+    {
+        for (int i = 0; i < w.alive.Count; i++)
+        {
+            var go = w.alive[i];
+            if (go == null) continue;
+            var mc = go.GetComponent<MonsterController>();
+            if (mc == null || !mc.IsDead) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// 生一波：每格各一隻，生到「同時存在上限」就停手。
     /// <para>⚠ <b>一隻都沒生出來的那一波不計入 <c>wavesFired</c></b>（作者 2026-09-22 拍板）：
     /// 「20 波」的語意是**實實在在 20 批怪**。被「同時存在上限」整個擋掉時若照樣計數，

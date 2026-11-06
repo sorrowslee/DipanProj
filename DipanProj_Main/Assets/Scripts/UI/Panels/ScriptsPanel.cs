@@ -8,7 +8,8 @@ namespace Dipan.UI
     /// <summary>
     /// 傳送門 UI：一個「放劇本方框」＋一顆「開啟」圓鈕（無底版，素材放 Resources/UI/ScriptsPanel/）。
     /// 開啟時**強制連背包一起開**（並排，方便把劇本從背包拖進方框）；關閉時把未使用的劇本退回背包並關掉背包。
-    /// 按下開啟：讀方框那件劇本的目的地關卡 → 開啟對應傳送點 → 劇本退回背包（不消耗，隨時可再開）→ 關閉。
+    /// 按下開啟：讀方框那件劇本的目的地關卡 → 開啟對應傳送點 → **劇本就此消耗**（方框清空、不退回背包、立刻存檔）→ 關閉。
+    /// （作者拍板 2026-11-06：劇本是消耗品，按下開門那一刻就消失。）
     /// 由 portal 互動點的 F 觸發（見 InteractionManager）。座標為量測常數，實機可微調。見 readme/TRIGGER_CHAIN.md。
     /// </summary>
     public class ScriptsPanel : UIPanel
@@ -58,6 +59,15 @@ namespace Dipan.UI
             var p = ui != null ? ui.Get<ScriptsPanel>() : null;
             return (p != null && p.IsOpen) ? p : null;
         }
+
+        /// <summary>
+        /// 「劇本已開門、但人還沒走進關卡」的旗標（關卡單次：只在記憶體、跨 module 就清）。
+        /// 按下開門時寫入。用途（作者拍板 2026-11-06）：
+        ///   ‧ 邪佛對話（Main_Square「邪佛對話」）加條件 <c>!關卡:scriptPortalOpened</c> → 開門後走回邪佛面前不會再拿到一張劇本；
+        ///   ‧ <see cref="Dipan.Flow.QuitGuard.InScript"/> 把它算進「劇本中」→ 開了門還站在廣場上離開遊戲也會跳警告。
+        /// 走進關卡（跨 module）時自動清掉；死了／返回回到廣場時又是乾淨的（邪佛照常可以重發）。
+        /// </summary>
+        public const string PortalOpenedFlag = TriggerChain.LevelPrefix + "scriptPortalOpened";
 
         /// <summary>由 portal 互動點呼叫：開啟傳送門 UI，並記住要解鎖哪個 teleport 區域。</summary>
         public static void OpenFor(string teleportRegionName)
@@ -138,7 +148,13 @@ namespace Dipan.UI
             bool ok = TriggerChain.OpenPortal(_teleportName, d.TargetMapId, d.TargetEntrance);
             if (!ok) { AlertPanel.Toast("傳送門無法開啟"); return; }
 
-            // 不消耗劇本：直接關閉，OnClose 會把方框裡的劇本退回背包（劇本一直留在玩家身上，隨時可再開）。
+            // 劇本是消耗品（作者拍板 2026-11-06）：按下開門就消失——把方框裡那一份直接拿掉、不退回背包，
+            // 並立刻存檔（否則開門後馬上關遊戲，存檔裡劇本還在）。方框清空後 OnClose 也就沒東西可退。
+            _grid.TakeOut();
+            Debug.Log($"[ScriptsPanel] 開啟傳送門 → 消耗劇本「{d.Name}」(#{d.ID})。");
+            Dipan.Save.SaveManager.Instance?.SaveNow();
+            TriggerChain.SetFlag(PortalOpenedFlag);   // 開門→進關卡之間的空窗：擋邪佛重發、離開要警告（見常數說明）
+
             OnPortalOpened?.Invoke();
             UIManager.Instance?.Close(this);
         }

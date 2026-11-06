@@ -141,7 +141,7 @@ namespace Dipan.UI
             => Show(win, showTitle, module, displayName, null);
 
         /// <summary>
-        /// 開啟結算畫面並在獎勵區顯示這趟落袋的臨時包內容（null/空＝顯示「無」）。
+        /// 開啟結算畫面並在獎勵區顯示 rewards（null/空＝顯示「無」）。2026-11-06 拿掉臨時包後呼叫端一律傳 null，等之後有正式過關獎勵再接。
         /// rewards 是完整的 ItemStack，所以有孔的裝備會在圖示下方標出孔數。
         /// </summary>
         public static void Show(bool win, bool showTitle, string module, string displayName,

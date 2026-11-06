@@ -906,7 +906,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         // 關卡進度＋掉寶：只對「地圖出生的敵怪」且在關卡 run 內處理。兩件事刻意分開判斷：
         //   ‧ 記進 RunProgress『已清』(有 SpawnKey)→ 本趟換圖回來不再重生（Boss 也走這條，死了不復生）。
         //     「重複產生」的出生點刻意不給 SpawnKey——不然第一波死光後就永遠不再生了。
-        //   ‧ 掉寶 (DropsLoot)：必掉銅錢＋機率掉藥，掉在屍體位置、按 F 撿進臨時包（見 DropRunLoot）。
+        //   ‧ 掉寶 (DropsLoot)：擲 DropTable（一般小怪表 1 目前只掉錢 30%），掉在屍體位置、按 F 撿進背包（見 DropRunLoot）；另獨立擲一次血球（見 BloodOrb）。
         // 召喚物兩者都沒有，避免無限刷。
         if (Faction == MonsterFaction.Enemy && RunProgress.Exists && RunProgress.Instance.RunActive)
         {
@@ -915,7 +915,15 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
                 RunProgress.Instance.MarkSpawnKilled(mapId, SpawnKey);
             }
-            if (DropsLoot) DropRunLoot();
+            if (DropsLoot)
+            {
+                DropRunLoot();
+                TryDropBloodOrb();
+                // 清場血球：這隻若是本圖最後一隻（含波次全部打完）→ 掉 1~2 顆。全自動，見 MapClearReward。
+                Vector2 groundPos = transform.position;
+                groundPos.y -= Mathf.Max(0f, AirborneVisualHeight);
+                MapClearReward.OnEnemyKilled(this, groundPos);
+            }
         }
 
         // 死亡特效（VfxTable 的 DeathVfxId）：獨立 GameObject，不受怪物銷毀影響。
@@ -947,6 +955,18 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     /// <para>Inspector 上的 `lootMoneyMin/Max`／`lootPotionChance` 已經沒有人讀了，
     /// 留著只是為了不動到既有 prefab 的序列化資料；要調掉落請改 CSV。</para>
     /// </summary>
+    // 血球：跟掉寶表互不相干、各擲各的（機率 BloodOrb.DropChancePercent，全域 10%）。
+    // 跟掉寶共用同一層資格：DropTableId 留空/0 的怪（夢境教學怪、刻意不給獎勵的關卡）也不掉血球——作者拍板 2026-11-06。
+    void TryDropBloodOrb()
+    {
+        if (!InteractionManager.Exists) return;
+        if (DropTableId <= 0) return;
+        if (!BloodOrb.RollDrop()) return;
+        Vector2 pos = transform.position;
+        pos.y -= Mathf.Max(0f, AirborneVisualHeight);   // 同 DropRunLoot：飛行怪掉在地面點
+        InteractionManager.Instance.DropBloodOrb(pos);
+    }
+
     void DropRunLoot()
     {
         if (!InteractionManager.Exists) return;

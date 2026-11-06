@@ -19,7 +19,7 @@ public class GroundLoot : MonoBehaviour
     /// </summary>
     public Dipan.Inventory.ItemInstance Inst { get; private set; }
 
-    /// <summary>把這一件包成可以直接放進背包/臨時包的 ItemStack。</summary>
+    /// <summary>把這一件包成可以直接放進背包的 ItemStack。</summary>
     public Dipan.Inventory.ItemStack ToStack()
         => new Dipan.Inventory.ItemStack { ItemId = ItemId, Count = Count, Inst = Inst };
 

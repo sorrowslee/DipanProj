@@ -246,6 +246,9 @@ public static class TriggerChain
     /// <summary>踩踏/互動型 watcher 的統一入口：停用中或條件不成立 → 此 trigger 視同不存在。</summary>
     public static bool IsActive(TriggerRegion r) => !IsDisabled(r) && RequirementMet(r);
 
+    /// <summary>目前地圖的所有 trigger 區域（唯讀；沒載圖回 null）。給「戰鬥鏈」分析用（MapClearReward）。</summary>
+    public static IReadOnlyList<TriggerRegion> CurrentRegions => _map?.TriggerLayer?.regions;
+
     /// <summary>是否有對話正在播（等面板關閉的鏈節點還沒結）。進場觸發依序點火時據此等待，避免兩段對話撞在一起。</summary>
     public static bool DramaPending => _pendingDramaRegion != null || _pendingDramaAction != null;
 
@@ -444,7 +447,7 @@ public static class TriggerChain
 
         var data = inv.GetData(itemId);
         string display = data != null ? data.Name : $"#{itemId}";
-        // 關卡內進臨時包（通關才落袋，恆回 0）、廣場進真背包（可能溢出）。見 RunProgress。
+        // 一律進真背包（放不下的剩餘回傳，下面掉在玩家腳下）。見 RunProgress。
         int leftover = RunProgress.Instance.GiveItem(itemId, count);
         int added = count - leftover;
         if (added > 0)

@@ -113,15 +113,14 @@ API：`SaveManager.UnlockRollEntry / GetUnlockedRollEntries / IsRollEntryUnlocke
 
 ### 4.1 但掉落還是「當道具處理」
 
-掉落物、按 F 撿、關卡臨時包**仍然把金錢當道具 101**——這樣才能沿用既有的掉落物、
-拾取、「通關才落袋／死亡歸零」那一整套，不用為金錢另做一份。
-**只有落袋那一刻才轉成數字**，攔截點只有兩個，都在 `RunProgress`：
+掉落物、按 F 撿**仍然把金錢當道具 101**——這樣才能沿用既有的掉落物、拾取那一整套，不用為金錢另做一份。
+**只有撿起來那一刻才轉成數字**，攔截點在 `RunProgress.GiveStack`：
+> 2026-11-06 起沒有臨時包了（撿到即入袋、死亡保留），下表原本「在關卡進臨時包」「`SettleIntoBag`」兩列已不存在，見 [RUN_PROGRESS.md](RUN_PROGRESS.md)。
+
 
 | 位置 | 行為 |
 |---|---|
-| `GiveItem(101, n)`，**不在關卡**（廣場） | → `SaveManager.AddCurrency(n)` |
-| `GiveItem(101, n)`，**在關卡** | → 照舊進臨時包（通關才落袋） |
-| `SettleIntoBag()` 遇到 101 | → `AddCurrency`（所以背包滿也不會掉錢） |
+| `GiveItem(101, n)`（關卡內、廣場都一樣） | → `SaveManager.AddCurrency(n)`（不佔背包格，所以背包滿也不會掉錢） |
 
 因為 `RunProgress.GiveItem` 本來就是專案裡「取得物品的統一入口」，攔在那一層，
 怪物掉落、觸發鏈 `giveItem`、抽選發獎全部自動適用。

@@ -247,7 +247,7 @@
 
 - **資料**：金錢存在角色存檔的 currency 欄（`SaveManager.AddCurrency` / `Currency`），**背包裡完全不會有銅錢道具**。
 - **顯示**：背包面板背景**底部那個銅錢 icon 後面**直接印總額（`BuildMoneyText()`／`RedrawMoney()`，座標常數 `MoneyCx/MoneyCy/MoneyW/MoneyH`）。面板訂閱 `SaveManager.OnCurrencyChanged`，抽完獎當場就會跳數字。
-- **⚠️ 掉落端刻意不動**：怪物掉寶、寶箱、觸發鏈的 `giveItem(101)` **全部照舊寫「給道具 101」**。轉換發生在唯一入口——`RunProgress.GiveItem` 與過關落袋 `SettleIntoBag` 看到 101 就改呼叫 `SaveManager.AddCurrency`。所以既有的掉落表與地圖資料一列都不用改。
+- **⚠️ 掉落端刻意不動**：怪物掉寶、寶箱、觸發鏈的 `giveItem(101)` **全部照舊寫「給道具 101」**。轉換發生在唯一入口——`RunProgress.GiveItem`／`GiveStack` 看到 101 就改呼叫 `SaveManager.AddCurrency`（2026-11-06 拿掉臨時包後，過關落袋 `SettleIntoBag` 已不存在）。所以既有的掉落表與地圖資料一列都不用改。
 - **`ItemTable` 的 101 那一列要保留**：toast 的「獲得 銅錢 ×50」還要靠它拿名稱與 icon。
 - **舊存檔遷移**：`SaveManager.ApplyToSystems` 會跑一次 `SweepMoneyIntoWallet()`，把背包/倉庫裡殘留的 101 掃進錢包。`StorageLauncher` 也不再開場塞 500 銅錢（改用作弊面板的「獲得 10000 元」）。
 

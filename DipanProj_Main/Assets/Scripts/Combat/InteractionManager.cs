@@ -113,7 +113,7 @@ public class InteractionManager : MonoBehaviour
         // pickup
         public int itemId;
         public int count;
-        public bool toRealBag;   // true＝直接進真背包 InventorySystem（不走關卡臨時包）；給起始/教學道具用（如佛燈，撿了要能當場裝備、死亡也保留）
+        public bool toRealBag;   // 舊欄位：2026-11-06 拿掉臨時包後已無作用（所有東西本來就直接進真背包），保留只為相容既有地圖資料
         public string name;
         // drama
         public int dramaId;
@@ -137,6 +137,7 @@ public class InteractionManager : MonoBehaviour
     }
 
     readonly List<GroundLoot> _loot = new List<GroundLoot>();
+    readonly List<BloodOrb> _orbs = new List<BloodOrb>();   // 地上的血球（換圖時一起清，見 BloodOrb）
     readonly List<InteractPoint> _points = new List<InteractPoint>();
     readonly HashSet<string> _consumed = new HashSet<string>();  // 本次停留已消耗的點（重建互動點時不復活）
     readonly HashSet<string> _switchWarned = new HashSet<string>();  // 開關的設定防呆警告：同一顆只印一次，別隨每次重建洗版
@@ -193,7 +194,7 @@ public class InteractionManager : MonoBehaviour
                     pt.itemId = itemId;
                     pt.count = Mathf.Max(1, r.GetInt("count", 1));
                     string toReal = r.GetString("toRealBag");
-                    pt.toRealBag = toReal == "true" || toReal == "1";   // 直接進真背包（不走臨時包）；起始/教學道具用
+                    pt.toRealBag = toReal == "true" || toReal == "1";   // 已無作用，見上方欄位註解
                     pt.name = data != null ? data.Name : $"#{itemId}";
                     return true;
                 },
@@ -421,6 +422,50 @@ public class InteractionManager : MonoBehaviour
             var loot = CreateLoot(d.itemId, d.count, new Vector2(d.x, d.y), d.inst);   // 用原座標、不散開
             if (loot != null) loot.RunDropId = d.id;
         }
+
+        // 血球也一樣：還沒被吸收的在原座標重放（沿用原 id）。
+        var orbs = RunProgress.Instance.GetBloodOrbs(mapId);
+        for (int i = 0; i < orbs.Count; i++)
+            _orbs.Add(BloodOrb.Create(orbs[i].Value, orbs[i].Key));
+    }
+
+    /// <summary>
+    /// 在 pos 附近掉一顆血球（見 <see cref="BloodOrb"/>），關卡 run 內登記進 RunProgress（換圖回來原地重放）。
+    /// 機率由呼叫端（MonsterController）用 <see cref="BloodOrb.RollDrop"/> 擲，這裡只負責生成與登記。
+    /// </summary>
+    public BloodOrb DropBloodOrb(Vector2 pos)
+    {
+        // 拉開一段距離，不要跟死亡處的掉落物（icon＋名稱文字）混在一起；落點挑可走的格子，免得掉進牆裡撿不到。
+        Vector2 p = PickOrbSpot(pos);
+        int id = 0;
+        if (RunProgress.Exists && RunProgress.Instance.RunActive)
+        {
+            int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+            id = RunProgress.Instance.RegisterBloodOrb(mapId, p);
+        }
+        var orb = BloodOrb.Create(p, id, dropFrom: pos);   // 從死亡處拋到落點（掉落動畫，落地前不能吸收）
+        _orbs.Add(orb);
+        return orb;
+    }
+
+    // 在 pos 外圈（BloodOrb.DropDistMin~Max）隨機挑一個可走、且離其他血球不太近的點；找不到就退回原地附近。
+    Vector2 PickOrbSpot(Vector2 pos)
+    {
+        var nav = MapNavGrid.Instance;
+        for (int tries = 0; tries < 16; tries++)
+        {
+            float ang = Random.value * Mathf.PI * 2f;
+            float dist = Random.Range(BloodOrb.DropDistMin, BloodOrb.DropDistMax);
+            Vector2 p = pos + new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * dist;
+            if (nav != null && !nav.IsWalkableWorld(p)) continue;
+            bool crowded = false;
+            for (int i = 0; i < _orbs.Count; i++)
+                if (_orbs[i] != null && ((Vector2)_orbs[i].transform.position - p).sqrMagnitude < BloodOrb.MinSpacing * BloodOrb.MinSpacing)
+                { crowded = true; break; }
+            if (crowded && tries < 12) continue;   // 盡量別疊在一起；試太多次就算了
+            return p;
+        }
+        return pos + Random.insideUnitCircle * 0.3f;
     }
 
     /// <summary>純建立一個地上掉落物件（不散開、不登記進度）。DropLoot 與 RestoreGroundDrops 共用。</summary>
@@ -450,6 +495,9 @@ public class InteractionManager : MonoBehaviour
         for (int i = 0; i < _loot.Count; i++)
             if (_loot[i] != null) Destroy(_loot[i].gameObject);
         _loot.Clear();
+        for (int i = 0; i < _orbs.Count; i++)
+            if (_orbs[i] != null) Destroy(_orbs[i].gameObject);
+        _orbs.Clear();
         ClearPoints();
         if (_tip != null) _tip.HideTip();
     }
@@ -732,10 +780,10 @@ public class InteractionManager : MonoBehaviour
     // 目前地圖 id（給關卡進度記錄用；沒有 MapManager 時 -1）。
     static int CurMapId => MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
 
-    // 取得物品的統一入口：關卡內進臨時包（RunProgress，回 0）、廣場進真背包（回放不下的剩餘）。
+    // 取得物品的統一入口：一律進真背包（RunProgress.GiveItem，回放不下的剩餘）。
     static int GiveToPlayer(int itemId, int count) => RunProgress.Instance.GiveItem(itemId, count);
 
-    // 從地上撿（部分撿取：吃得下多少算多少，剩的留在地上）。關卡內進臨時包、廣場進真背包。
+    // 從地上撿（部分撿取：吃得下多少算多少，剩的留在地上）。
     void TryPickUpLoot(GroundLoot loot)
     {
         if (loot == null) return;
@@ -760,12 +808,12 @@ public class InteractionManager : MonoBehaviour
         }
     }
 
-    // 撿拾取點（一律消耗該點：吃得下的進背包/臨時包、剩的掉腳下變成地上掉落物）。
+    // 撿拾取點（一律消耗該點：吃得下的進背包、剩的掉腳下變成地上掉落物）。
     void CollectPickup(InteractPoint pt)
     {
         if (pt == null) return;
 
-        // toRealBag＝直接進真背包（起始/教學道具，如佛燈：撿了要能當場開背包裝備、死亡也不丟）；否則走既有規則（關卡內臨時包/廣場真背包）。
+        // toRealBag：2026-11-06 拿掉臨時包後已無實質作用（一律進真背包），下面保留原本的分支只為了行為不變。
         // toRealBag 是給起始/教學道具用的「直接進真背包」捷徑，但金錢例外：
         // 金錢是獨立數字、不佔背包格，一律回到統一入口處理。
         // 拾取點＝憑空產生一件新東西 → 走工廠，需要孔位/等級的物品會在這裡骰好（每一件各自骰）。

@@ -223,7 +223,11 @@ namespace Dipan.UI
         void OnClickReturnHub()
         {
             // 二次確認（防手滑；中途返回＝放棄本關進度、不記過關）。
-            ConfirmPopup.Show("確定要返回廣場嗎？", DoReturnHub);
+            // 劇本中（劇本進場已消耗）改跳警告文案，見 Dipan.Flow.QuitGuard。
+            string msg = Dipan.Flow.QuitGuard.InScript
+                ? Dipan.Localization.Language.GetText(Dipan.Flow.QuitGuard.ReturnHubWarningTextId)
+                : "確定要返回廣場嗎？";
+            ConfirmPopup.Show(msg, DoReturnHub);
         }
 
         void DoReturnHub()
@@ -236,16 +240,11 @@ namespace Dipan.UI
         void OnClickExit()
         {
             // 暫時用自刻的確認彈窗（之後換正式美術，見 readme/TODO.md）
-            ConfirmPopup.Show("確定要離開遊戲嗎？", QuitGame);
-        }
-
-        void QuitGame()
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;   // 編輯器內：停止 Play 方便測試
-#else
-            Application.Quit();
-#endif
+            // 劇本中改跳「劇本已消耗」警告；確認後走 QuitGuard.QuitNow（放行視窗關閉攔截）。
+            string msg = Dipan.Flow.QuitGuard.InScript
+                ? Dipan.Localization.Language.GetText(Dipan.Flow.QuitGuard.QuitWarningTextId)
+                : "確定要離開遊戲嗎？";
+            ConfirmPopup.Show(msg, Dipan.Flow.QuitGuard.QuitNow);
         }
 
         // 座標映射：錨到 frame 左上角、anchoredPosition=(px,-py)（與 InventoryPanel 一致）

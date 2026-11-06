@@ -125,7 +125,7 @@
 
 在關卡 run 內，`DropLoot` 會自動把這筆登記進 `RunProgress`（回傳的 `GroundLoot` 帶 `RunDropId`），換圖回來由 `RestoreGroundDrops` 用**原座標**重放；部分撿取會回寫剩餘數量。
 
-> **取得物品的統一入口是 `RunProgress.Instance.GiveItem(itemId, count)`**——關卡內進臨時包、廣場進真背包。新增任何給物品的來源都走這裡，不要直接呼叫 `InventorySystem.AddItem`。
+> **取得物品的統一入口是 `RunProgress.Instance.GiveItem(itemId, count)`**——一律進真背包（2026-11-06 起沒有臨時包）。新增任何給物品的來源都走這裡，不要直接呼叫 `InventorySystem.AddItem`。
 
 ---
 

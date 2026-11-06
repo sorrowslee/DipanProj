@@ -189,8 +189,9 @@ public class MapManager : MonoBehaviour
             // 場景說明去重清空：跨 module = 新的一趟，所以每次回邪佛廣場、每次進紅嫁衣都會再跳一次名字。
             _shownSceneTips.Clear();
 
-            // 一趟關卡的臨時包/進度：進「非廣場」module = 開新的一趟（重置臨時包與已清怪/已取物/掉落物）；
+            // 一趟關卡的進度：進「非廣場」module = 開新的一趟（重置已清怪/已取物/掉落物/血球）；
             // 進廣場/教學則保險清掉殘留。同 module 房間互跳走 else 分支、不呼叫，本趟進度延續。見 RunProgress。
+            // （劇本的消耗不在這裡：在傳送門按「開啟」那一刻就扣掉了，見 ScriptsPanel.OnStartPressed。）
             RunProgress.Instance.OnEnterModule(row.module);
 
             // 預載本 module（+Main 共用）的所有素材貼圖 → 進去後房間互跳不必再讀取。進度 0~0.6。
@@ -454,8 +455,8 @@ public class MapManager : MonoBehaviour
 
         // 進 Main module 的圖（開場山道 13/14、初始洞窟 11、邪佛廣場 12）= 存檔檢查點：
         // 記下「玩家現在在哪」，讓「繼續遊戲」能接回開場流程，而不是永遠被丟到廣場。
-        // **關卡（其他 module）刻意不記**——關卡是 extraction 模型（臨時包純記憶體、離開歸零），
-        // 記了會讓重開遊戲回到一個東西都不見的關卡裡。所以這兩欄永遠是最後一次待在 Main 的位置。
+        // **關卡（其他 module）刻意不記**——關卡進度純記憶體、劇本進場就消耗，中途離開＝放棄這趟，
+        // 記了會讓重開遊戲回到一個進度全失的關卡裡。所以這兩欄永遠是最後一次待在 Main 的位置。
         if (SaveManager.Instance != null && row.module == SaveConstants.HubModule)
         {
             SaveManager.Instance.RecordLastLocation(row.id, entrance);

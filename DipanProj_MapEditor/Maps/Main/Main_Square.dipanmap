@@ -2899,6 +2899,7 @@
             "requireCycleMax": "1",
             "requireItem": "!104",
             "requireClearsMax": "0",
+            "requireFlag": "!關卡:scriptPortalOpened",
             "onBlocked": "中止整條鏈"
           }
         },

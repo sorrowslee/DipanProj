@@ -16,6 +16,9 @@
 
 **劇本＝背包道具**：一份劇本就是 `ItemTable.csv` 裡一個 `IsScript` 道具（有 `TargetMapId` 就算劇本）。紅嫁衣劇本＝道具 **104**（`TargetMapId=1` → RedBridalGown）。領取＝把該道具加進背包，跟舊的 `giveItem` 效果一樣。
 
+**劇本是消耗品（2026-11-06 作者拍板）**：在傳送門 `ScriptsPanel` 放上劇本、**按下「開啟」那一刻就消耗**（不退回背包）並立刻存檔，同時寫關卡單次旗標 `關卡:scriptPortalOpened`（邪佛對話靠它擋「開門後再領一張」）。劇本中途離開（返回廣場／離開遊戲／關視窗）會跳「劇本已消耗，離開後就無法再進入」警告。細節見 [RUN_PROGRESS.md](RUN_PROGRESS.md) §10。
+> ⚠ 目前第 1 周目、0 通關時，邪佛對話（`requireItem=!104`）會重發紅嫁衣，所以死了／跑了回廣場還能再領——等「邪佛關卡倒數」做好再改（見 [TODO.md](TODO.md)）。
+
 **與傳送門 `ScriptsPanel` 的分工**（別搞混）：
 - **本面板 `SelectScriptPanel`**＝「選 / 領劇本」（邪佛發牌）。
 - **`ScriptsPanel`**（傳送門互動點 F 開）＝「把劇本放進方框 → 開傳送門」。領劇本之後才用到它。

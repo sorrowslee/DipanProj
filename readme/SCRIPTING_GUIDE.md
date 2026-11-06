@@ -184,7 +184,7 @@
 |---|---|---|
 | 對話（頭像對話框） | `DramaTable.csv`（Type 2＋TalkGroup）＋`DramaTalkTable.csv`（Group 同號，一句一列） | 一組對話一個 dramaId；Type 1＝大圖＋文字、靠近按 F |
 | 頭上泡泡、選項文字、標題 | `LanguageTable.csv` | **每個劇本拿一個千位 id 段**，表裡用 `#` 註解列標出來（血狂之爭 3001–3099）；段落清單在 LOCALIZATION.md |
-| 旗標 | `DipanProj_MapEditor/flags.json` | `id` 接最大號；劇本旗標一般 `scope=level`（關卡單次），`IsLevel`／`IsLife`／`ScopeLabel` 跟 scope 一致；**命名加模組前綴**（`bf…`） |
+| 旗標 | `DipanProj_MapEditor/flags.json` | `id` 接最大號；劇本旗標一般 `scope=level`（關卡單次），`IsLevel`／`IsLife`／`ScopeLabel` 跟 scope 一致；**命名加模組前綴**（`bf…`）。例外：名字帶 `永久:`／`關卡:` 前綴的旗標範圍由前綴決定、不用登記（多半是程式寫的，例 `關卡:scriptPortalOpened`），`validate_map.py` 也不會報未登記 |
 | 怪 | `MonsterData.csv` 新增列 | 同一隻怪不同用途開新列（同伴版、雙首領版）；`Faction` 欄是種族標籤 |
 | 掉落 | `DropTable.csv` | 怪物列 `DropTableId` 指過去 |
 | NPC | `NpcTable.csv`＋地圖 `npcs[]` | 外觀沿用怪物序列圖庫 |
@@ -240,6 +240,8 @@ save(P, m)
 | 傳送門顯示著卻踩不動 | 演出播放中傳送點不觸發 | §3.5、CUTSCENE_DIRECTOR §4 |
 | 門該關卻開著／該開卻關著 | `togglePortal` 是執行期狀態、換圖重算；`enableFlag` 讓它永久開 | §3.5 |
 | `clearLevel` 踩了沒反應 | 它不吃踩點 | PROBLEMS **B18** |
+| 打完房間沒掉清場血球 | 無限波（`maxWaves` 留空）永遠打不完；或怪全是 `DropTableId` 留空；或這組後面還接著一個永遠不會生的出生點（被當成中間波次） | [RUN_PROGRESS.md](RUN_PROGRESS.md) §9.1（`validate_map.py` 會警告無限波） |
+| 清場血球在中間波次就掉了 | 下一波不是用「接續觸發」／旗標串起來（例：由劇情演出步驟、NPC 叫出來）⇒ 地圖資料看不出關係、各算一場 | 同上 |
 | 按 Skip 後角色還在／頭上對話框還在 | 已修：Skip 快轉到最終狀態、演員隱藏時泡泡跟著收 | PROBLEMS **J6** |
 | 兩族互打的傷害倍率沒生效（近戰全額） | 近戰招式另生傷害範圍物件結算；已修成從那個物件讀陣營 | PROBLEMS **F38** |
 | 對話期間場上的怪全停住 | 對話面板會暫停遊戲；「打起來」的時間點是對話結束後 | — |

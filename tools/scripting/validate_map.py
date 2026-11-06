@@ -50,15 +50,18 @@ def entrances_of(map_id):
     return s
 
 flag_reads, flag_writes = {}, set()
+# 名字帶「永久:」／「關卡:」前綴的旗標，範圍由前綴決定、不必登記 flags.json（同 TriggerChain.Resolve）。
+# 多半是程式寫的（例：ScriptsPanel.PortalOpenedFlag＝關卡:scriptPortalOpened）。
+def prefixed(n): return n.startswith('永久:') or n.startswith('關卡:')
 def read_flag(v, where):
     if not v: return
     n = v.strip().lstrip('!')
-    if n not in FLAGS: E(where, '旗標未登記（flags.json）', n)
+    if n not in FLAGS and not prefixed(n): E(where, '旗標未登記（flags.json）', n)
     flag_reads.setdefault(n, where)
 def write_flag(v, where):
     if not v: return
     n = v.strip().lstrip('!')
-    if n not in FLAGS: E(where, '旗標未登記（flags.json）', n)
+    if n not in FLAGS and not prefixed(n): E(where, '旗標未登記（flags.json）', n)
     flag_writes.add(n)
 def cond(c, where):
     for part in (c or '').split('|'):
@@ -110,6 +113,13 @@ for f in files:
             if p.get('startDisabled') is True and (p.get('requireFlag') or p.get('conditions')):
                 E(n, '「初始停用」＋條件旗標互斥：初始停用是一次性解鎖，沒有鏈去解鎖就永遠不生')
             if not r['cells']: W(n, '出生點 0 格＝一隻都不生（一格一隻）')
+            # 清場血球（2026-11-06，MapClearReward）：無限波一開就永遠「進行中」⇒ 這張圖不會清場、不掉清場血球
+            try: _iv = float(str(p.get('spawnInterval') or 0).strip() or 0)
+            except ValueError: _iv = 0
+            try: _mw = int(str(p.get('maxWaves') or 0).strip() or 0)
+            except ValueError: _mw = 0
+            if _iv > 0 and _mw <= 0:
+                W(n, '無限波（spawnInterval>0、maxWaves 留空）：這張圖永遠不會清場 ⇒ 不會掉清場血球；要掉就填 maxWaves')
         if t == 'giveItem' and str(p.get('itemId')) not in ITEMS: E(n, 'itemId 不存在', p.get('itemId'))
         if t == 'drama':
             d = DRAMA.get(str(p.get('dramaId')))

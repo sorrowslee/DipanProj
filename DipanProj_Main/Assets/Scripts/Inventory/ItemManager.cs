@@ -97,7 +97,7 @@ namespace Dipan.Inventory
         // ───────────────────────── 給玩家 ─────────────────────────
 
         /// <summary>
-        /// 產生並交給玩家（關卡內進臨時包、廣場進真背包）。回傳放不下的剩餘數量。
+        /// 產生並交給玩家（一律進真背包）。回傳放不下的剩餘數量。
         /// 這是「取得物品」的建議入口——它會先產生完整實例，再交給 RunProgress。
         /// </summary>
         public static int Give(int itemId, int count = 1)

@@ -397,7 +397,7 @@ namespace Dipan.UI
         /// <summary>作弊快捷鈕一次給多少錢。</summary>
         const int CheatMoneyAmount = 10000;
 
-        // 直接加金錢數字（金錢不是背包道具，所以走 SaveManager，不經過背包/臨時包）。
+        // 直接加金錢數字（金錢不是背包道具，所以走 SaveManager，不經過背包）。
         void OnClickGiveMoney()
         {
             var sm = Dipan.Save.SaveManager.Instance;
@@ -497,7 +497,7 @@ namespace Dipan.UI
             foreach (int id in ids)
             {
                 // 與「依 ID 給道具」走同一條路：統一入口 + 指定 toRealBag，
-                // 作弊給的東西不進臨時包（否則死亡歸零、要通關才落袋，測試時等於給了看不到）。
+                // 走取得物品的統一入口（toRealBag 已無作用，2026-11-06 拿掉臨時包後一律進真背包）。
                 int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, 1, toRealBag: true)
                                                   : inv.AddItem(id, 1);
                 if (leftover > 0) full++;
@@ -536,8 +536,7 @@ namespace Dipan.UI
             }
 
             // 走「取得物品的統一入口」，但**指定直接進真背包**（toRealBag）：
-            // 作弊給的東西不是「這趟關卡的收穫」，進臨時包的話死亡就歸零、要通關才落袋，
-            // 測試時（尤其在競技場裡調裝備）等於東西給了卻看不到，所以一律跳過臨時包。
+            // 走取得物品的統一入口（一律進真背包；toRealBag 已無作用，2026-11-06 拿掉臨時包）。
             // 走統一入口是為了保留另外兩件事：需要實例的物品（裝備/能力珠）會經 ItemManager 骰好孔位，
             // 給 101 銅錢會自動轉成金錢數字（不佔背包格）。
             int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, count, toRealBag: true)

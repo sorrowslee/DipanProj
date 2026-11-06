@@ -46,6 +46,6 @@
 
 1. **地上物 `disappearFlag`**（`ObjectInstance` 新欄位，兩專案都加、編輯器物件面板有「消失旗標」欄）：旗標為 true 時該地上物消失——進圖時已成立＝不生，關卡中途成立＝由 `MapObjectRevealer` 立即銷毀（碰撞一併移除）。是「出現旗標 `appearFlag`」的相反。用法：pickup `setFlag` → 撿走 X → X 的地上物消失。
 2. **地上物 `lightRadius`**（`ObjectInstance` 新欄位，世界單位）：> 0 時 `MapLoader` 幫它掛 `LightSource`，暗場景下當光圈中心。詳見 [ATMOSPHERE.md](ATMOSPHERE.md)。
-3. **pickup `toRealBag=true`**（`InteractionManager` pickup 參數）：這個拾取點直接進真背包 `InventorySystem`（不走關卡臨時包 `RunProgress`）。給「起始/教學道具」用——關卡內撿了要能**當場開背包裝備**、且**死亡也保留**（佛燈就是靠這個，否則關卡內撿到的東西只進臨時包、通關才落袋，背包 UI 看不到、無法裝備）。
+3. **pickup `toRealBag=true`**（`InteractionManager` pickup 參數）：這個拾取點直接進真背包 `InventorySystem`（不走關卡臨時包 `RunProgress`）。給「起始/教學道具」用——關卡內撿了要能**當場開背包裝備**、且**死亡也保留**（佛燈就是靠這個，否則關卡內撿到的東西只進臨時包、通關才落袋，背包 UI 看不到、無法裝備）。**2026-11-06 起臨時包已拿掉、所有東西本來就直接進真背包，這個欄位已無實質作用**（保留不刪，行為不變）。
 4. **`TutorialManager.FireOnly` ＋ `PlayerController` 分支**：`FireOnly=true` 時 `PlayerController.Update` 走一條「鎖移動、保留朝向、只放行開火」的分支（`_moveInput=Vector2.zero` 後照常 `HandleFiring`）。用來做「強制玩家開火一次才放行」這種引導，比 `SetExternalHold`（連開火都擋）細一級。
 5. **`PlayerController.IsAuraActive`**：唯讀屬性，佛光（Mode=Aura）光環是否正開著。供教學偵測「玩家真的點亮佛燈」。
