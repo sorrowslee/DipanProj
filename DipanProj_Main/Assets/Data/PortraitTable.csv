@@ -22,3 +22,4 @@ Modules/BloodFang/Talk/Duke_Charlotte_normal,1.2,,-90,1,夏綠蒂（寬幅全身
 Modules/BloodFang/Talk/Duke_Charlotte_anger,1.2,,-90,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 90（頭頂≈1053、下擺最寬那段藏進對話框）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）
 Modules/BloodFang/Talk/Duke_Charlotte_laugh,1.2,,-90,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 90（頭頂≈1053、下擺最寬那段藏進對話框）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）
 Modules/BloodFang/Talk/Duke_Charlotte_fear,1.2,,-90,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 90（頭頂≈1053、下擺最寬那段藏進對話框）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）
+Modules/BloodFang/Talk/Housekeeper_normal,1.3,,-160,,人族管家（2026-11-06 換新圖：1024×1365、畫到膝蓋以下的長身構圖）：自動對齊把整個人物塞進同一高度，臉與上半身被縮小 ⇒ 1.3 倍、往下沉 160（頭頂≈1040，約腰部以下藏進對話框）。實機看過再微調

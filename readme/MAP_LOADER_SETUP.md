@@ -15,6 +15,8 @@
 > 2. **推素材**:把 `GameAssets` 的 Environment/Tiles/Background PNG＋地圖 → `StreamingAssets/MapAssets/`,並生成 `catalog.json`。
 >
 > 之後每次在編輯器存完地圖、或加了新素材,點一下 **`Project Tools → Sync Map Assets`** 再 Play / 打包即可,不必再手動 copy 地圖。
+>
+> 🧹 **2026-11-06 起每次同步會自動清舊圖**：`StreamingAssets/MapAssets/Main|Modules` 底下「`GameAssets` 同一路徑已不存在」的 PNG（連 .meta）自動刪掉、變空的資料夾一起刪，Console 逐一列出。換角色圖／改檔名時，**把舊圖從 `GameAssets` 刪掉再同步**就乾淨了。`.dipanmap` 不自動刪、只印警告（舊地圖可能還被某個預設路徑引用）。只有 Unity 選單版會清，shell 版 `Tools/sync_map_assets.sh` 不會。
 
 ## 1. 開啟 Unity → 等套件編譯
 

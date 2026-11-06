@@ -108,9 +108,13 @@ public static class MapAssetSyncTool
                 NullValueHandling = NullValueHandling.Ignore,   // 靜態物件的 frames=null 不寫出
             }));
 
+        // 3) 清掉副本裡「來源已經沒有」的舊圖（換角色圖／改檔名後，舊檔不會再殘留、也不會被打包）。
+        int pruned = PruneStaleFiles(srcRoot, dstRoot);
+
         AssetDatabase.Refresh();
         Debug.Log($"✅ [SyncMapAssets] 從編輯器拉入 {pulled} 張地圖、{flagsPulled} 份旗標登記表;" +
-                  $"推送 {catalog.items.Count} 筆素材、{mapCount} 張地圖 → StreamingAssets/MapAssets");
+                  $"推送 {catalog.items.Count} 筆素材、{mapCount} 張地圖 → StreamingAssets/MapAssets" +
+                  (pruned > 0 ? $"；清掉 {pruned} 張來源已不存在的舊圖" : ""));
         LogSummary(catalog);
     }
 
@@ -400,6 +404,68 @@ public static class MapAssetSyncTool
     {
         Directory.CreateDirectory(Path.GetDirectoryName(dst));
         File.Copy(src, dst, true);
+    }
+
+    /// <summary>
+    /// 清理（2026-11-06，作者：常常換角色圖，舊圖不要殘留）：StreamingAssets/MapAssets 是 GameAssets 的**副本**
+    /// （git 忽略、隨時可由本工具重建），但 <see cref="CopyOverwrite"/> 只覆寫不刪，來源刪掉／改名的圖會一直留著、還被打包進遊戲。
+    /// 這裡把 <c>Main/</c>、<c>Modules/</c> 底下「GameAssets 同一路徑已不存在」的 **PNG** 連同 .meta 刪掉，再刪掉因此變空的資料夾。
+    /// <para>刻意的範圍限制（安全）：</para>
+    /// <para>‧ 只動 .png——本工具只會複製 .png 與 .dipanmap 進來，catalog.json／flags.json 在根目錄、不在掃描範圍。</para>
+    /// <para>‧ .dipanmap **不刪、只警告**：舊地圖可能還被某個 Inspector 欄位當預設路徑引用（例：MapLoader.mapPath 預設 RedBridalGown_01），交給人判斷。</para>
+    /// <para>‧ 來源是否存在用 File.Exists 判斷（macOS 不分大小寫：只改大小寫的檔名不會被誤刪）。</para>
+    /// 回傳刪掉的圖數。刪了哪些逐一印在 Console。
+    /// </summary>
+    static int PruneStaleFiles(string srcRoot, string dstRoot)
+    {
+        int deleted = 0;
+        var staleMaps = new List<string>();
+        foreach (var top in new[] { "Main", "Modules" })
+        {
+            string dTop = Path.Combine(dstRoot, top);
+            if (!Directory.Exists(dTop)) continue;
+
+            foreach (var file in Directory.GetFiles(dTop, "*.*", SearchOption.AllDirectories))
+            {
+                string ext = Path.GetExtension(file).ToLowerInvariant();
+                if (ext != ".png" && ext != ".dipanmap") continue;
+                string rel = Rel(dstRoot, file);
+                if (File.Exists(Path.Combine(srcRoot, rel))) continue;
+
+                if (ext == ".dipanmap") { staleMaps.Add(rel); continue; }
+                try
+                {
+                    File.Delete(file);
+                    if (File.Exists(file + ".meta")) File.Delete(file + ".meta");
+                    deleted++;
+                    Debug.Log($"[SyncMapAssets] 清掉舊圖（來源已不存在）：{rel}");
+                }
+                catch (System.Exception e) { Debug.LogWarning($"[SyncMapAssets] 刪不掉 {rel}：{e.Message}"); }
+            }
+
+            // 由深到淺刪掉變空的資料夾（只剩 .DS_Store 也算空），連同資料夾的 .meta
+            var dirs = new List<string>(Directory.GetDirectories(dTop, "*", SearchOption.AllDirectories));
+            dirs.Sort((a, b) => b.Length.CompareTo(a.Length));
+            foreach (var d in dirs)
+            {
+                if (!Directory.Exists(d)) continue;
+                bool empty = Directory.GetDirectories(d).Length == 0;
+                if (empty)
+                    foreach (var f in Directory.GetFiles(d))
+                        if (Path.GetFileName(f) != ".DS_Store") { empty = false; break; }
+                if (!empty) continue;
+                try
+                {
+                    Directory.Delete(d, true);
+                    if (File.Exists(d + ".meta")) File.Delete(d + ".meta");
+                }
+                catch (System.Exception e) { Debug.LogWarning($"[SyncMapAssets] 刪不掉空資料夾 {Rel(dstRoot, d)}：{e.Message}"); }
+            }
+        }
+        if (staleMaps.Count > 0)
+            Debug.LogWarning($"[SyncMapAssets] 以下地圖檔在 GameAssets 已不存在，但**沒有自動刪除**（可能還被當預設路徑引用），確認沒用後可手動刪：\n  "
+                             + string.Join("\n  ", staleMaps));
+        return deleted;
     }
 
     static string Rel(string root, string full)

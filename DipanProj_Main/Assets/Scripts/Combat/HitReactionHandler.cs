@@ -49,6 +49,14 @@ public class HitReactionHandler : MonoBehaviour
     private float _flashAmount;
     // 看過的 CharacterEnvFusion.Version；不同代表模式被切過或量到新場景數據，要重寫一次 MPB
     private int _envVersion = -1;
+    private float _envFusionScale = 1f;
+
+    /// <summary>這個角色自己的「角色環境融合」強度（1＝照全域、0＝不融合）。由 MonsterController 依 NpcTable 的 EnvFusion 欄設定。</summary>
+    public float EnvFusionScale
+    {
+        get => _envFusionScale;
+        set { _envFusionScale = Mathf.Max(0f, value); ApplyPropertyBlock(); }
+    }
 
     public void Configure(SpriteRenderer sr, Rigidbody2D rb,
         float invincibleTimeMs, float knockbackThreshold, float knockbackPercent)
@@ -229,7 +237,7 @@ public class HitReactionHandler : MonoBehaviour
         _mpb.SetFloat("_FlashAmount", _flashAmount);
         _mpb.SetFloat("_ChargeAmount", _chargeAmount);       // 0 ＝ shader 那一行不做事
         _mpb.SetColor("_ChargeColor", _chargeColor);
-        CharacterEnvFusion.FillPropertyBlock(_mpb);   // 角色環境融合：原狀／未量到場景時只寫 _EnvOn=0，shader 整段跳過
+        CharacterEnvFusion.FillPropertyBlock(_mpb, _envFusionScale);   // 角色環境融合：原狀／未量到場景時只寫 _EnvOn=0，shader 整段跳過
         _spriteRenderer.SetPropertyBlock(_mpb);
     }
 

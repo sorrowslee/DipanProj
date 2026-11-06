@@ -366,6 +366,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
              "召喚物＝false（防無限刷）。")]
     public bool DropsLoot;
 
+    /// <summary>角色環境融合強度（1＝照全域、0＝不融合）。目前只有 NPC 從 NpcTable 的 EnvFusion 欄設定（NpcSpawner）。</summary>
+    [HideInInspector] public float EnvFusionScale = 1f;
+
     [Header("Loot / 暫定掉寶（正式掉寶公式之後換；數值可調）")]
     [Tooltip("必掉金錢（銅錢）數量下限。")] public int lootMoneyMin = 1;
     [Tooltip("必掉金錢（銅錢）數量上限。")] public int lootMoneyMax = 5;
@@ -390,6 +393,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         _hitReaction = gameObject.AddComponent<HitReactionHandler>();
         _hitReaction.Configure(_spriteRenderer, _rb,
             InvincibleTimeMs, KnockbackThreshold, KnockbackPercent);
+        if (Mathf.Abs(EnvFusionScale - 1f) > 0.0001f) _hitReaction.EnvFusionScale = EnvFusionScale;   // 只有表上有填的角色才動
 
         // 接觸傷害：碰到玩家就扣血（幾何重疊判定，見 EnemyContactDamage）。ContactDamage 由 Initialize 從 CSV 設定，
         // 手動放置的怪用預設值。Initialize 在 Start 之前由 MonsterSpawner 呼叫，故此時值已就緒。

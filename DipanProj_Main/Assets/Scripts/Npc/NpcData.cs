@@ -17,6 +17,7 @@ public class NpcData
     public float AnimFPS = 8f;      // 程式逐格動畫幀率（留空＝8）
     public float Speed = 2f;        // 走動速度（留空＝2；編輯器每個擺放可覆寫）
     public float HP = 50f;          // 血量（留空＝50）。第一波 NPC 不會被打到；給未來護送任務預留
+    public float EnvFusion = 1f;    // 角色環境融合強度（2026-11-06；留空＝1＝照全域；0＝不融合）。整個人幾乎都是暗部的角色調低，避免在亮場景被洗成一片灰
 
     /// <summary>顯示用名稱（DisplayName 留空退回 Name）。</summary>
     public string ShownName => string.IsNullOrWhiteSpace(DisplayName) ? Name : DisplayName;

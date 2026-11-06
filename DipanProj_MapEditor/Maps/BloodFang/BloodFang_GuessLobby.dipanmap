@@ -1151,7 +1151,7 @@
           "facing": "right",
           "spawnAtStart": true,
           "flying": false,
-          "scale": 1.81,
+          "scale": 2.53,
           "animFps": 8.0
         }
       ],

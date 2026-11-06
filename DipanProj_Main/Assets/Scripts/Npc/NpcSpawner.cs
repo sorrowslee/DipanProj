@@ -46,6 +46,7 @@ public static class NpcSpawner
 
         var mc = go.AddComponent<MonsterController>();
         mc.Initialize(ToMonsterData(data, inst));
+        mc.EnvFusionScale = data.EnvFusion;    // 角色環境融合強度（NpcTable 的 EnvFusion；留空＝1）
         mc.Faction = MonsterFaction.Neutral;   // 中立：不打人、不被打（見 FactionRelations）
         mc.FaceMovement = true;                // 走路面向移動方向；停下時玩家在感測範圍內才面向玩家
         mc.DropsLoot = false;

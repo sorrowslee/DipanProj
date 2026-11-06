@@ -196,20 +196,23 @@ public static class CharacterEnvFusion
 
     /// <summary>
     /// 把參數寫進 <paramref name="mpb"/>。⚠ 呼叫端必須與自己的其他屬性（白閃）寫在同一個 block：SetPropertyBlock 是整包覆蓋的。
+    /// <paramref name="characterScale"/>＝這個角色自己的融合強度（2026-11-06，NpcTable 的 EnvFusion 欄；1＝照全域、0＝完全不融合）。
+    /// 給「整個人幾乎都是暗部」的角色用（例：黑外套的人族管家）——全域的黑階抬升會把他整片洗成灰、對比消失。
+    /// 等於 1 時算式跟加這個參數之前完全一樣。
     /// </summary>
-    public static void FillPropertyBlock(MaterialPropertyBlock mpb)
+    public static void FillPropertyBlock(MaterialPropertyBlock mpb, float characterScale = 1f)
     {
         if (mpb == null) return;
-        if (!ColorEnabled) { mpb.SetFloat("_EnvOn", 0f); return; }
+        if (!ColorEnabled || characterScale <= 0f) { mpb.SetFloat("_EnvOn", 0f); return; }
 
-        float k = Strength;
+        float k = Strength * characterScale;
         mpb.SetFloat("_EnvOn", 1f);
         mpb.SetVector("_EnvBase", SceneDarkTint);     // 乘法係數不是顏色：走 SetVector（Linear 專案下 SetColor 會做 gamma→linear）
         mpb.SetVector("_EnvLit", SceneLitTint);
         mpb.SetFloat("_EnvPivot", EnvPivot);
         mpb.SetFloat("_EnvSplit", EnvSplit);
         mpb.SetFloat("_EnvMix", Mathf.Min(1f, EnvMix * k));
-        mpb.SetFloat("_BlackLift", BlackLift);
+        mpb.SetFloat("_BlackLift", BlackLift * characterScale);
         mpb.SetVector("_LiftTint", SceneDarkTint);    // 抬升量帶場景暗部的色，不然角色暗部會被拉得比場景冷（E26 那次量到的）
         mpb.SetFloat("_Sat", SatDelta * k);
         mpb.SetFloat("_LumBoost", LumBoost * k);

@@ -80,6 +80,7 @@ public class NpcDatabase
                 AnimFPS = Num(v, "animfps", 8f),
                 Speed = Num(v, "speed", 2f),
                 HP = Num(v, "hp", 50f),
+                EnvFusion = Num(v, "envfusion", 1f),
             };
             if (string.IsNullOrEmpty(d.Name))
             {
