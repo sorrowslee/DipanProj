@@ -61,6 +61,7 @@ GameAssets/Modules/<關卡>/Monsters/SequenceImage/<怪名>/
 | `Scale` | 整體縮放（調大小） |
 | `BrainType` | AI 模組。**近戰分兩種**（見 [BOSS_MODULE.md](BOSS_MODULE.md) §10.0）：`Chase`＝衝撞型（一路貼上去磨，**沒有 attack 圖**的怪用這個）、`MeleeChase`＝揮舞型（追到定點站定把攻擊動畫做完，**有 attack 圖**才能用）。<br>其他：`Pounce` 撲擊（§7）、`Archer` 射手（§8）、`LeapSlam` 跳躍踐踏（§9）、**`Flying` 飛行／`Bat` 蝙蝠（§12，盤旋＋V 字俯衝；Bat 會倒吊；walk＝飛行、idle＝停在地上）**、**`SuicideBomb` 自爆（§11，走到身邊引爆、不需要 attack 圖）**、`War` 陣營戰士、`RedBridalGown`／`BanyanTree` boss |
 | `InvincibleTimeMs` / `KnockbackThreshold` / `KnockbackPercent` | 受擊反應（見 [ACTORS_AND_COMBAT.md](ACTORS_AND_COMBAT.md)） |
+| **`DisplayName`** | boss 開戰名牌上的名字（留空＝退回 `Name`）。**可填 `lang:<id>`（走語言表）或 `reveal:<旗標>:<id>`（旗標成立才顯示該名字、否則顯示「???」）**，2026-11-06 起，解析見 [DRAMA.md](DRAMA.md)〈台詞走語言表〉。例：紅嫁衣 boss（13）＝`reveal:redBridalReadLetter:1106`，看過家書才顯示「芙蓉」 |
 | **`PrefabPath`** | **route B 留空**。只有要沿用「自帶 Animator 的舊 prefab」才填（向下相容） |
 | **`AnimFPS`** | **新增**：程式動畫播放幀率，留空＝8。走路會再依實際速度連動（防腳滑；倍率夾在 `MinMul`~`MaxMul`，見下） |
 | **`JumpScale`** | **jump 顯示倍率**（表尾，接在 `AttackScale` 後面，2026-09-18）。有填就照填的走；<br>⚠ **留空的語義與上面三個不同**：其他動作留空＝走「自動依可見高對齊 idle」，**jump 留空＝直接沿用 `IdleScale`、不做自動對齊**。因為跳躍的可見高度本來就是動作的內容（蹲下時矮、騰空伸展時又不同），正規化等於把它抵銷，而且越蜷縮的幀被放得越大 ⇒ 騰空時怪會膨脹一圈（實測 1.05~1.31 倍）。詳見 [BOSS_MODULE.md](BOSS_MODULE.md) §9.7 |

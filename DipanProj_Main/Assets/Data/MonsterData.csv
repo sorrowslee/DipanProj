@@ -11,7 +11,7 @@ ID, Name , HP, BrainType, Weapon , Scale, PrefabPath, InvincibleTimeMs, Knockbac
 10,Ghost_Mother, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,[圓]我的乖女兒,[圓]寶貝，娘好想妳,[圓]求你救救我女兒,,,,,,,,,,,,,,1,,,,,
 11,Ghost_YoungBrother, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,[圓]大俠，請幫幫我們吧,[圓]我不想傷害你,[圓]求你救我,,,,,,,,,,,,,,1,,,,,
 12,Ghost_YoungSister, 3, Chase    , Contact,1,           ,                0,1,120, 10,               0,     1,       8,,25,,,[圓]大俠，請幫幫我們吧,[圓]我不想傷害你,[圓]求你救我,,,,,,,,,,,,,,1,,,,,
-13,RedBridalGown,50,RedBridalGown,14,1,,0,10,50,20,0,3.5,25,,30,紅嫁衣,Modules/RedBridalGown/Talk/redBridalGown_angry,[刺]你竟然對我家人動手,我本不想傷害你,[刺]受死吧,50%: [刺]家人們，一起出來吧,,,,,,,,,,,,,1,,,,,
+13,RedBridalGown,50,RedBridalGown,14,1,,0,10,50,20,0,3.5,25,,30,reveal:redBridalReadLetter:1106,Modules/RedBridalGown/Talk/redBridalGown_angry,[刺]你竟然對我家人動手,我本不想傷害你,[刺]受死吧,50%: [刺]家人們，一起出來吧,,,,,,,,,,,,,1,,,,,
 14,BanyanTree,100,BanyanTree,Contact,1,,0,0,0,0,0,0,8,,40,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious,不管生死，都得服侍我,這一家人的亡魂，都在我這,70%: [刺]你真的惹怒我了,30%: [刺]讓你魂歸西天，死吧!,,,,,,,,,,,,,1,,,,,
 15,VampireSoldier,30,MeleeChase, Contact,1,           ,400,10,50, 10,               0,3,14,,25,血族士兵,,,,,,Vampire,,,,,,,11,,,,,1,,,,,
 16,WerewolfSoldier,30,MeleeChase, Contact,1,           ,400,1,120, 10,               0,3,14,,25,,,,,,,Werewolf,1.1,,,,,,8,,,,,1,,,,,

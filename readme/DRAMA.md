@@ -62,7 +62,7 @@
 |---|---|
 | `ID` | **流水號**（唯一）。同群組內依此**由小到大**依序播放 |
 | `Group` | **群組編號**：同一個群組 = 一串對話。DramaTable Type=2 的 `TalkGroup` 指向這裡 |
-| `Name` | **說話人姓名**：顯示在「聚光側」姓名牌匾上（資料層只保存字串） |
+| `Name` | **說話人姓名**：顯示在「聚光側」姓名牌匾上。**可填 `lang:<id>` 或 `reveal:<旗標>:<id>`**（旗標未成立顯示「???」，見〈台詞走語言表〉） |
 | `LeftAvatarPath` | **左側立繪**路徑（兩種寫法見下）。留空 = 左側不顯示立繪 |
 | `RightAvatarPath` | **右側立繪**路徑（兩種寫法見下）。留空 = 右側不顯示立繪 |
 | `SpotlightSide` | **聚光側＝現在誰在說話**：**1 = 左、2 = 右**（其餘 / 留空視為 1）。聚光側立繪正常亮、另一側**壓暗**（保留原色相），姓名牌匾也擺聚光側 |
@@ -91,12 +91,15 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 
 > 群組 2：左固定新娘 NPC、右固定主角（`Actor_*` 依血統換情緒）；`SpotlightSide` 切換誰被打亮、誰被壓暗，營造左右對話。
 
-#### 台詞走語言表（`lang:<id>`，2026-11-06）
+#### 台詞與名字走語言表（`lang:<id>`／`reveal:<旗標>:<id>`，2026-11-06）
 
 `Text` 欄寫成 `lang:3011` → 播放時取 `Language.GetText(3011)`（當前語言；英文缺退回中文；查無 id 顯示 `[lang:3011]` 佔位）。**新寫的對話一律用這個寫法**（AGENTS.md「玩家可見字串一律走語言表」）；舊的明文列照常可用、之後再逐步搬。
 
 - 解析在**播放當下**（`DramaTalkData.DisplayText` → `Localize`），不是載表時，所以切語言立即生效、不必重載對話表。前綴不分大小寫、前後空白忽略；`lang:` 後面不是整數就原樣顯示（寫錯一眼看得出來）。
-- `TalkPanel` 與 `DramaTalkController` 的除錯 log 都改讀 `DisplayText`；**`Name` 欄目前仍是明文**（尚未支援 `lang:`）。
+- `TalkPanel` 的台詞讀 `DisplayText`、名牌讀 `DisplayName`；除錯 log 印台詞的解析結果、名字印原始欄值。
+- **`Name` 欄同樣支援**，另外多一種 **`reveal:<旗標>:<id>`**＝「玩家知道這角色叫什麼了沒」：旗標成立顯示語言表該 id，不成立顯示語言表 **8001（`???`）**。旗標可帶 `永久:`／`關卡:` 前綴。每句播放時即時查，所以同一組對話途中旗標變了，下一句就會換。
+- 解析實作是共用的 `Scripts/Drama/TextRef.cs`，**MonsterData 的 `DisplayName`（boss 開戰名牌）也用同一支**（見 [MONSTER_SETUP.md](MONSTER_SETUP.md)）。
+- 首用（reveal）：紅嫁衣 boss 真名「芙蓉」（語言表 1106）。客廳1 的家書（drama 30，觸發點 `家書所在地`）讀完寫 `redBridalReadLetter`（關卡單次）；新娘說話的 10 句（ID 1、3、4、6、7、8、19、24–26）與 MonsterData 13 都填 `reveal:redBridalReadLetter:1106`。
 - 首用：血狂之爭和談互嗆（群組 75，引用 3011–3016）。
 
 ```

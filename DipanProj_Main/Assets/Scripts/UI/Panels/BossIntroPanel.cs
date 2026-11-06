@@ -351,7 +351,8 @@ namespace Dipan.UI
             if (data == null)
                 Debug.LogWarning($"[BossIntroPanel] MonsterData 找不到 ID {monsterId}（或場上無 MonsterSpawner），名稱/頭像將缺席。");
 
-            string display = data != null && !string.IsNullOrEmpty(data.DisplayName) ? data.DisplayName
+            // DisplayName 可填 lang:<id>／reveal:<旗標>:<id>（例紅嫁衣 boss 看過家書才顯示「芙蓉」），見 TextRef。
+            string display = data != null && !string.IsNullOrEmpty(data.DisplayName) ? TextRef.Resolve(data.DisplayName)
                            : data != null ? data.Name : $"#{monsterId}";
             _name.text = display;
             _name.fontSize = NameFontSize;

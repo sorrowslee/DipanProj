@@ -459,7 +459,8 @@
           "params": {
             "dramaId": "30",
             "canSkip": false,
-            "repeat": "每次"
+            "repeat": "每次",
+            "setFlag": "redBridalReadLetter"
           }
         }
       ]

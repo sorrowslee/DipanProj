@@ -1,12 +1,12 @@
 ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
-1,1,????,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,1,你是誰?怎麼會在這裡?
+1,1,reveal:redBridalReadLetter:1106,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,1,你是誰?怎麼會在這裡?
 2,1,主角,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,2,我我我.......妳又是誰?
-3,1,????,Modules/RedBridalGown/Talk/redBridalGown_angry,Actor_Fear,1,這個氣息....你竟然傷害了我的家人，納命來!!
-4,6,????,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,1,你是誰?怎麼會在這裡?
+3,1,reveal:redBridalReadLetter:1106,Modules/RedBridalGown/Talk/redBridalGown_angry,Actor_Fear,1,這個氣息....你竟然傷害了我的家人，納命來!!
+4,6,reveal:redBridalReadLetter:1106,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,1,你是誰?怎麼會在這裡?
 5,6,主角,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,2,我我我.......我也不知道我為什麼在這裡
-6,6,????,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,1,妳看起來是一個善良的人，謝謝你沒有傷害我的家人
-7,6,????,Modules/RedBridalGown/Talk/redBridalGown_cry,Actor_Fear,1,我被一個可怕的存在控制，祂抓了我所有的家人，逼我就範
-8,6,????,Modules/RedBridalGown/Talk/redBridalGown_fear,Actor_Fear,1,大俠，快跑，祂.....祂要來了
+6,6,reveal:redBridalReadLetter:1106,Modules/RedBridalGown/Talk/redBridalGown,Actor_Fear,1,妳看起來是一個善良的人，謝謝你沒有傷害我的家人
+7,6,reveal:redBridalReadLetter:1106,Modules/RedBridalGown/Talk/redBridalGown_cry,Actor_Fear,1,我被一個可怕的存在控制，祂抓了我所有的家人，逼我就範
+8,6,reveal:redBridalReadLetter:1106,Modules/RedBridalGown/Talk/redBridalGown_fear,Actor_Fear,1,大俠，快跑，祂.....祂要來了
 9,2,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,你必須證明自己
 10,2,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Normal,1,收下這個吧
 11,3,邪佛,Main/Talk/Buddha/Buddha_normal,Actor_Fear,1,你終於來了，到我面前來
@@ -17,14 +17,14 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 16,7,主角,,Actor_Fear,2,這是怎麼樣? 發生什麼事? 房子呢? 怎麼消失了?
 17,7,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious,Actor_Fear,1,哼，那女人竟然敢放過獵物，看我不好好修理她
 18,7,榕樹妖,Modules/RedBridalGown/Talk/treeFace_crazy,Actor_Fear,1,現在，你還是乖乖化為我的氣血吧，成為我的養分，死後魂魄也要為我所用，哈哈哈
-19,8,????,Modules/RedBridalGown/Talk/redBridalGown_angry,,1,竟然被你打敗，我，我好恨啊~~
+19,8,reveal:redBridalReadLetter:1106,Modules/RedBridalGown/Talk/redBridalGown_angry,,1,竟然被你打敗，我，我好恨啊~~
 20,9,榕樹妖,Modules/RedBridalGown/Talk/treeFace_vicious,,1,可惡，可惡，我恨哪~~
 21,10,主角,Actor_Happy,,1,看吧，我超強的，榕樹妖算哪根蔥，輕輕鬆鬆就打敗它了
 22,10,主角,Actor_Normal,,1,接下來，還剩一件事情...
 23,10,主角,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_expect,1,來吧，我幫妳揭下這張符咒，讓妳恢復原狀，我揭!!
-24,10,???,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_expect,2,...
-25,10,???,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_expect2,2,...
-26,10,???,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_happy,2,我，我真的恢復了，謝謝您，我的大恩人
+24,10,reveal:redBridalReadLetter:1106,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_expect,2,...
+25,10,reveal:redBridalReadLetter:1106,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_expect2,2,...
+26,10,reveal:redBridalReadLetter:1106,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_happy,2,我，我真的恢復了，謝謝您，我的大恩人
 27,10,主角,Actor_Happy,Modules/RedBridalGown/Talk/redBridalGown_happy,1,沒什麼啦，好啦，我感覺到那傢伙要來接我了，後會有期，再見~~
 28,11,主角,Actor_Normal,,1,今天真是個神清氣爽的早晨，早起爬山真是對的，今天看我征服這座大山!
 29,12,主角,Actor_Normal,,1,一家人來爬山呀，真好，老爸老媽一定都還在睡，下次把他們也抓來一起爬山

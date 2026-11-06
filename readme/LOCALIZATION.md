@@ -161,7 +161,7 @@ id,cn,en
 2. 程式裡改成 `Language.GetText(<id>)` 取用，別再寫死中文字面。
 3. 進 Unity Reimport CSV、確認 provider 有拖檔 → Play 驗證（沒接到會顯示 `[lang:id]`）。
 
-**資料表裡的玩家字串**：不寫程式的地方用「填 id」引用——劇情演出 `bubble`／`intro` 步驟填 `langId` 等欄；**頭像對話 `DramaTalkTable.csv` 的 `Text` 欄填 `lang:<id>`**（2026-11-06，見 [DRAMA.md](DRAMA.md)〈台詞走語言表〉；`Name` 欄尚未支援）。
+**資料表裡的玩家字串**：不寫程式的地方用「填 id」引用——劇情演出 `bubble`／`intro` 步驟填 `langId` 等欄；**頭像對話 `DramaTalkTable.csv` 的 `Text` 欄填 `lang:<id>`**（2026-11-06，見 [DRAMA.md](DRAMA.md)〈台詞與名字走語言表〉；`Name` 欄與 MonsterData `DisplayName` 也支援，另有 `reveal:<旗標>:<id>`＝旗標成立才顯示真名、否則顯示 8001「???」）。通用字串段 **8001–8099**（角色名等）。
 
 ---
 

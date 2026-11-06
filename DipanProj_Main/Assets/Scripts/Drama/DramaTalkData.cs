@@ -1,5 +1,4 @@
 using UnityEngine;
-using Dipan.Localization;
 
 namespace Dipan.Drama
 {
@@ -18,7 +17,7 @@ namespace Dipan.Drama
     {
         public int Id;               // 流水號（唯一；同群組內由小到大播放）
         public int Group;            // 群組編號（一串對話 = 同一群組；DramaTable Type=2 的 TalkGroup 指向這裡）
-        public string Name;          // 說話人姓名（顯示在聚光側姓名牌匾上）
+        public string Name;          // 說話人姓名原始欄值（可填 lang:<id>／reveal:<旗標>:<id>）；顯示一律用 DisplayName
         public string LeftAvatarPath;  // 左側立繪路徑（catalog id 或 Actor_<情緒>）；留空 = 左側無立繪
         public string RightAvatarPath; // 右側立繪路徑（catalog id 或 Actor_<情緒>）；留空 = 右側無立繪
         public int SpotlightSide;    // 聚光側（說話者）：1 = 左、2 = 右（其餘 / 留空視為 1）
@@ -31,19 +30,12 @@ namespace Dipan.Drama
         /// </summary>
         public string DisplayText => Localize(Text);
 
-        /// <summary>
-        /// 欄值 → 顯示字串：<c>lang:&lt;id&gt;</c>（前綴不分大小寫、前後空白忽略）→ <see cref="Language.GetText(int)"/>；
-        /// 前綴後面不是整數就當明文原樣顯示（寫錯一眼看得出來）；找不到 id 由 GetText 回 <c>[lang:id]</c> 佔位。
-        /// </summary>
-        public static string Localize(string raw)
-        {
-            if (string.IsNullOrEmpty(raw)) return raw ?? "";
-            string t = raw.Trim();
-            if (t.Length > 5 && t.StartsWith("lang:", System.StringComparison.OrdinalIgnoreCase)
-                && int.TryParse(t.Substring(5).Trim(), out int id))
-                return Language.GetText(id);
-            return raw;
-        }
+        /// <summary>要顯示在姓名牌匾上的名字：同 <see cref="DisplayText"/>，<see cref="Name"/> 可填 <c>lang:&lt;id&gt;</c> 或
+        /// <c>reveal:&lt;旗標&gt;:&lt;id&gt;</c>（旗標未成立顯示「???」），見 <see cref="TextRef"/>。</summary>
+        public string DisplayName => Localize(Name);
+
+        /// <summary>欄值 → 顯示字串（<c>lang:</c>／<c>reveal:</c>／明文），實作在 <see cref="TextRef.Resolve"/>。</summary>
+        public static string Localize(string raw) => TextRef.Resolve(raw);
 
         // （2026-10-26 刪除逐句立繪微調欄 LeftScale/LeftOffsetX/…：立繪的大小與位置只在 PortraitTable.csv 依「圖」維護）
 

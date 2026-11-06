@@ -211,14 +211,15 @@ namespace Dipan.UI
             var l = _lines[_index];
 
             _msg.text = l.DisplayText;   // 支援 lang:<id>（走語言表），見 DramaTalkData.DisplayText
-            _name.text = l.Name ?? "";
+            string speaker = l.DisplayName;   // 支援 lang:<id>／reveal:<旗標>:<id>（未揭曉顯示 ???），見 TextRef
+            _name.text = speaker;
 
             bool spotRight = l.SpotlightSide == 2;   // 聚光（說話者）在右側
 
             // 姓名牌匾擺在聚光側、顯示說話者姓名。
             // ⚠ 沒填姓名（旁白、獨白、內心話這類「沒有說話者」的句子）→ **整片牌匾隱藏**，
             //    不要留一塊空匾額在那裡。逐句判定，所以同一組對話可以有的句子有牌匾、有的沒有。
-            bool hasName = !string.IsNullOrWhiteSpace(l.Name);
+            bool hasName = !string.IsNullOrWhiteSpace(speaker);
             _plate.gameObject.SetActive(hasName);
             if (hasName)
                 Place(_plate.rectTransform, spotRight ? PlateRightCx : PlateLeftCx, PlateY, PlateW, PlateH);
