@@ -802,9 +802,9 @@
           "typeId": "clearLevel",
           "cells": [],
           "params": {
-            "fireOnFlag": "redBridalCleared",
+            "fireOnFlag": "",
             "delaySeconds": "10",
-            "next": "紅嫁衣被打敗對話"
+            "next": ""
           }
         },
         {

@@ -31,6 +31,7 @@ namespace Dipan.UI
         // ⚠️ 這幾個名字/旗標必須跟地圖 RedBridalGown_Woodshed 的 trigger 完全一致（改編輯器就要改這裡）。
         const string LampStartTrig = "新手教學-邪佛對話"; // 這顆 drama「關閉」時＝教學開始（＝地圖上邪佛對話那顆 trigger 的名字）
         const string LampPickupTrig = "柴房佛燈拾取";      // 佛燈 pickup 觸發點名（手指指向它＋撿完由此名廣播 _lampPicked）
+        const string LampPortalTrig = "新手教學後開啟傳送點";  // 點亮佛燈完成→Activate 這顆 togglePortal 開傳送點1（同藥水教學；pickup 不再接它，否則撿起就開門）
         const int LampItemId = 8;                          // 佛燈＝道具/武器 8（佛光；ItemTable 8 WeaponID=8）
         const string LampTakenFlag = "tutorialBuddleLight"; // 撿走佛燈（＝pickup 的 setFlag；旗標管理器登記的 life 旗標）
         const string LampDoneFlag = "tutorialBuddleLight";  // 同一顆旗標：撿到即視為「這段做過」，onEnter 也 gate 這個（!tutorialBuddleLight 才播）
@@ -454,6 +455,7 @@ namespace Dipan.UI
                 TutorialHintPanel.Hide();
                 GuideFingerPanel.HidePanel();
                 TriggerChain.SetFlag(LampDoneFlag);   // 永久：整段教學完成，之後不再強制引導
+                TriggerChain.Activate(LampPortalTrig); // 點亮後才開傳送點1（地圖上的 togglePortal，requireFlag=tutorialBuddleLight 已成立）
                 _phase = Phase.Done;
             }
         }

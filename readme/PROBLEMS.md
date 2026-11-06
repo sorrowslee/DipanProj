@@ -24,7 +24,7 @@
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I10 |
 | J | 螢幕特效 / 進場過場 (Screen FX) | J1~J6 |
 | K | 互動 / 拾取 (Interaction & Pickup) | K1~K3 |
-| L | 資料表 / CSV (Data Tables) | L1~L3 |
+| L | 資料表 / CSV (Data Tables) | L1~L4 |
 
 > ⚠ 編號**不保證依閱讀順序遞增**（歷史造成，維持現狀）。新增條目：放進所屬分類、編號接該分類目前最大號；**永不重編號、永不重用舊編號**——全專案文件與 PROGRESS 大量引用這些編號。條目淘汰時整則原文搬 [archive/PROBLEMS-archive.md](archive/PROBLEMS-archive.md) 並在原位留存根（規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)）。
 
@@ -1808,3 +1808,9 @@
 - **原因**：落雷借用 `HomingTurnSpeed` 當「吸附搜尋半徑（世界單位）」、連鎖借用它當「錐半角」、拋物線借用 `Speed` 當「飛行秒數」、連鎖借用 `MaxBounces` 當「跳數」。珠子表的 `Field` 只認欄名不認模式，`PlayerAbilities` 又對所有模式無差別套用，於是「+300 度/秒」變成「+300 格半徑」。
 - **解法**：拆成獨立欄 `SnapRadius`／`AimConeAngle`／`FlightTime`／`ChainCount`；`PlayerAbilities` 依 `WeaponModeSpec.IsEffective(mode, field)` 過濾；迅捷 × 拋物線特別處理成「+% 縮短 `FlightTime`」（作者拍板，語意「丟更快」成立）；反彈 × 連鎖拍板為無效。
 - **通則**：**借用欄位省的是一個欄位，賠的是所有「按欄名操作」的系統**（珠子、模擬面板、文件）——只要有第二個系統會按欄名讀寫它，就不能再讓一個名字裝兩種意思。
+
+### L4. 劇情 Type 2 頭像對話變成跳大圖面板、或同一組對話兩句順序亂跳（DramaTable 說明欄有半形逗號／DramaTalkTable ID 重複）
+- **症狀**：① 血狂之爭血族／狂族 1、2 階的六段劇情（DramaTable 62／64／66／69／71／73）不播立繪對話，跳出大圖面板、內文是半句說明；Console 沒有錯誤。② 紅嫁衣恢復對話（群組 10）有兩句可能前後顛倒。2026-11-06 盤點表格時發現，這兩個問題都還沒有人回報過。
+- **原因**：① `DramaDatabase` 依**位置**讀欄（L1 的老問題，這張表沒改到 `CsvTable`）。說明欄寫了「(血族1,2階)」又沒加引號，整列多出一欄：`Type` 讀到「2階)」→ 無效值退回 1（大圖）、`TalkGroup` 讀到 0。② `DramaTalkTable` 有兩列 ID 都是 25；`DramaTalkDatabase` 用 `List.Sort` 依（群組, ID）排序，同號時**不保證**維持檔案順序。
+- **解法**：說明欄的逗號改成頓號「1、2階」；第二個 25 起到 49 各加 1（ID 50 剛好是空號，51 之後全部不動）。改完驗證：DramaTable 每列 5 欄、77 個 Type 2 都指到存在的群組、沒有孤兒群組；DramaTalkTable 無重複、嚴格遞增、每組播放順序與改前相同。DramaTalkTable 的 ID 只用在排序與除錯 log，**沒有任何程式、地圖或存檔用 ID 引用單句**，重新編號是安全的。
+- **通則**：中文說明欄裡最容易混進半形逗號（「1,2階」「A,B」）。依位置讀的 CSV 會靜默錯位，所以說明文字一律用全形標點或頓號；新增劇情後用 Python `csv` 數一下每列欄數。對話 ID 也要接著目前最大號往下編，不要手動插號。

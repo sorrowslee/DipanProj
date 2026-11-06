@@ -200,7 +200,7 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 | `Main_InitialForest2` | 14 | 開場山道劇情（第二段，尾段 `end` 接 `fall`） |
 | `Main_Cave` | 11 | 初始洞窟 |
 | `BloodFang_InitialScene`／`GuessLobby`／`Gallery` | 17／18／19 | 血狂之爭去程引路，**每張三段**（`guide_*_vampire`／`_werewolf`／`_human`，依玩家血統由鏈上三顆 `playCutscene` 挑一段播），`lockInput=false` 玩家可自由走（2026-10-15） |
-| `BloodFang_MainLobby` | 20 | 血狂之爭和談爭吵 `talk`（第 0 段，演完寫 `bfTalkDone`；管家退場後先 **`intro` 介紹夏綠蒂（左）→ 艾爾文（右）**，再拉回中間互嗆）＋首領退場 `leaders_exit`（第 1 段，利用「下一段開演清掉留場演員」） |
+| `BloodFang_MainLobby` | 20 | 血狂之爭和談爭吵 `talk`（第 0 段，演完寫 `bfTalkDone`；管家退場後先 **`intro` 介紹夏綠蒂（左）→ 艾爾文（右）**，再拉回中間用 **`dialogue`（drama 78，立繪對話）** 互嗆）＋首領退場 `leaders_exit`（第 1 段，利用「下一段開演清掉留場演員」） |
 
 這三張同屬 `Main` module，13/14 是 `SaveConstants.IsIntroCutsceneMap`（**不顯示血球 HUD**），初始洞窟 11 起才顯示。
 

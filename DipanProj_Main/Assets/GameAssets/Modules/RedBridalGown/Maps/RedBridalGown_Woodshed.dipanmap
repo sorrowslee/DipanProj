@@ -434,7 +434,7 @@
             "setFlag": "tutorialBuddleLight",
             "toRealBag": "true",
             "requireFlag": "!tutorialBuddleLight",
-            "next": "新手教學後開啟傳送點"
+            "next": ""
           }
         },
         {
@@ -455,7 +455,7 @@
           "cells": [],
           "params": {
             "dramaId": "20",
-            "next": "柴房教學起點"
+            "next": ""
           }
         },
         {

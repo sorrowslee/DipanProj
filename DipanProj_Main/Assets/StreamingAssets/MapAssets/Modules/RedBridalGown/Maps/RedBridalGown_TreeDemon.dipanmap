@@ -437,9 +437,9 @@
           "typeId": "clearLevel",
           "cells": [],
           "params": {
-            "fireOnFlag": "redBridalCleared",
+            "fireOnFlag": "",
             "delaySeconds": "10",
-            "next": "榕樹妖被打敗對話"
+            "next": ""
           }
         },
         {

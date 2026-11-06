@@ -12901,6 +12901,42 @@
       "frameCount": 1
     },
     {
+      "id": "Modules/RedBridalGown/Talk/Father_grateful",
+      "path": "Modules/RedBridalGown/Talk/Father_grateful.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Talk/Father_normal",
+      "path": "Modules/RedBridalGown/Talk/Father_normal.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Talk/Father_sad",
+      "path": "Modules/RedBridalGown/Talk/Father_sad.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
+      "id": "Modules/RedBridalGown/Talk/Priest_normal",
+      "path": "Modules/RedBridalGown/Talk/Priest_normal.png",
+      "category": "Talk",
+      "module": "RedBridalGown",
+      "pixelSize": 1086,
+      "ppu": 256,
+      "frameCount": 1
+    },
+    {
       "id": "Modules/RedBridalGown/Talk/redBridalGown",
       "path": "Modules/RedBridalGown/Talk/redBridalGown.png",
       "category": "Talk",

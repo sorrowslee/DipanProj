@@ -41,7 +41,7 @@ namespace Dipan.Drama
             {
                 var l = lines[i];
                 string spot = l.SpotlightSide == 2 ? "右" : "左";
-                sb.Append($"  {i + 1}. (#{l.Id}) [{l.Name}｜聚光{spot}｜左:{l.LeftAvatarPath} 右:{l.RightAvatarPath}] {l.Text}\n");
+                sb.Append($"  {i + 1}. (#{l.Id}) [{l.Name}｜聚光{spot}｜左:{l.LeftAvatarPath} 右:{l.RightAvatarPath}] {l.DisplayText}\n");
             }
             Debug.Log(sb.ToString());
         }

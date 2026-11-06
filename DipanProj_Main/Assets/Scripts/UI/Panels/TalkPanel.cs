@@ -210,7 +210,7 @@ namespace Dipan.UI
             if (_lines == null || _index < 0 || _index >= _lines.Count) { UIManager.Instance.Close(this); return; }
             var l = _lines[_index];
 
-            _msg.text = l.Text ?? "";
+            _msg.text = l.DisplayText;   // 支援 lang:<id>（走語言表），見 DramaTalkData.DisplayText
             _name.text = l.Name ?? "";
 
             bool spotRight = l.SpotlightSide == 2;   // 聚光（說話者）在右側

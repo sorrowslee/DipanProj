@@ -66,7 +66,7 @@
 | `LeftAvatarPath` | **左側立繪**路徑（兩種寫法見下）。留空 = 左側不顯示立繪 |
 | `RightAvatarPath` | **右側立繪**路徑（兩種寫法見下）。留空 = 右側不顯示立繪 |
 | `SpotlightSide` | **聚光側＝現在誰在說話**：**1 = 左、2 = 右**（其餘 / 留空視為 1）。聚光側立繪正常亮、另一側**壓暗**（保留原色相），姓名牌匾也擺聚光側 |
-| `Text` | 對話內容。含逗號用 `"..."` 包覆；`\n` 轉換行 |
+| `Text` | 對話內容。**可填 `lang:<id>`（例 `lang:3011`）＝取 `LanguageTable.csv` 該 id 的當前語言字串**（2026-11-06，見下方〈台詞走語言表〉）；其餘照原樣當明文。含逗號用 `"..."` 包覆；`\n` 轉換行 |
 
 > **立繪的大小／位置不在這張表調**：表尾原本有 6 個逐句微調欄（`LeftScale`／`LeftOffsetX`／`LeftOffsetY`／`Right…`），**2026-10-26 刪除**（作者：「以後只要維護 PortraitTable 就好」）。
 > 一律寫在 [`PortraitTable.csv`](#固定微調-portraittablecsv)——那是**那張圖**的屬性，同一張圖出現在哪一句、哪一側都套同一組值。舊 CSV 若還留著那 6 欄，程式只讀前 7 欄、會安靜地忽略。
@@ -90,6 +90,18 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 ```
 
 > 群組 2：左固定新娘 NPC、右固定主角（`Actor_*` 依血統換情緒）；`SpotlightSide` 切換誰被打亮、誰被壓暗，營造左右對話。
+
+#### 台詞走語言表（`lang:<id>`，2026-11-06）
+
+`Text` 欄寫成 `lang:3011` → 播放時取 `Language.GetText(3011)`（當前語言；英文缺退回中文；查無 id 顯示 `[lang:3011]` 佔位）。**新寫的對話一律用這個寫法**（AGENTS.md「玩家可見字串一律走語言表」）；舊的明文列照常可用、之後再逐步搬。
+
+- 解析在**播放當下**（`DramaTalkData.DisplayText` → `Localize`），不是載表時，所以切語言立即生效、不必重載對話表。前綴不分大小寫、前後空白忽略；`lang:` 後面不是整數就原樣顯示（寫錯一眼看得出來）。
+- `TalkPanel` 與 `DramaTalkController` 的除錯 log 都改讀 `DisplayText`；**`Name` 欄目前仍是明文**（尚未支援 `lang:`）。
+- 首用：血狂之爭和談互嗆（群組 75，引用 3011–3016）。
+
+```
+211,75,夏綠蒂公爵,Modules/BloodFang/Talk/Duke_Charlotte_normal,Modules/BloodFang/Talk/Elvin_normal,1,lang:3011
+```
 
 > **主角情緒立繪要進 catalog 才載得到**：`Main/Characters/Talk/<血統>/*.png` 已加進三處同步產生器的掃描（`MapIO.cs`、`MapAssetSyncTool.cs`、`Tools/sync_map_assets.sh`），放好圖後跑 `Project Tools → Sync Map Assets` 即收進 catalog ＋ StreamingAssets（打包後也讀得到）。
 

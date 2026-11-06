@@ -23,6 +23,7 @@
 |---|---|---|
 | 啟動教學的觸發點名（drama「關閉」時開始） | `新手教學-邪佛對話` | `LampStartTrig` |
 | 佛燈 pickup 觸發點名 | `柴房佛燈拾取` | `LampPickupTrig` |
+| 點亮完成後開門的 togglePortal 名 | `新手教學後開啟傳送點` | `LampPortalTrig` |
 | 佛燈道具/武器 id | `8` | `LampItemId` |
 | 撿走佛燈旗標（pickup `setFlag` ＋ 地上物 `disappearFlag`） | `tutorialBuddleLight` | `LampTakenFlag` |
 | 整段教學做過的記號（＝同一顆旗標；撿到即視為做過，`onEnter` 也 gate `!tutorialBuddleLight`） | `tutorialBuddleLight` | `LampDoneFlag` |
@@ -32,11 +33,11 @@
 ## 地圖佈置（`RedBridalGown_Woodshed.dipanmap`，現況）
 
 - **佛燈地上物**（`weapon_sacredLamp`, cell(10,4)）：`disappearFlag: "tutorialBuddleLight"`（撿走後立即消失、下次進來旗標已成立＝不生）＋ `lightRadius: 3.0`（地上時就會發光、當暗場景光圈中心，見 [ATMOSPHERE.md](ATMOSPHERE.md)〈照明：光圈由光源驅動〉）。
-- **pickup 觸發點** `柴房佛燈拾取`：cells `[[10,4]]`，params `itemId=8`、`setFlag=tutorialBuddleLight`、`requireFlag=!tutorialBuddleLight`、`toRealBag=true`、`next=新手教學結束後開啟傳送點`。
+- **pickup 觸發點** `柴房佛燈拾取`：cells `[[10,4]]`，params `itemId=8`、`setFlag=tutorialBuddleLight`、`requireFlag=!tutorialBuddleLight`、`toRealBag=true`、**`next` 留空**（2026-11-06 拿掉：原本接開門節點，撿起當下傳送點就開了）。
 - **onEnter 觸發點** `進場觸發-觸發邪佛對話`：0 格，`requireFlag=!tutorialBuddleLight`、`next=新手教學-邪佛對話`。
-- **drama 觸發點** `新手教學-邪佛對話`：`dramaId=20`、`next=柴房教學起點`。（關閉時啟動教學。）
-- **togglePortal 觸發點** `新手教學結束後開啟傳送點`：pickup 撿完由 `next` 接到，開傳送點。
-- **傳送點** `傳送點1`（去儲藏室）：`startDisabled=true`、`enableFlag=tutorialBuddleLight`——**撿到佛燈就開**。
+- **drama 觸發點** `新手教學-邪佛對話`：`dramaId=20`、`next` 留空。**對話關閉時由 `TutorialManager` 依這顆的名字（`LampStartTrig`）啟動教學**，不靠 `next`。（舊版的 `next=柴房教學起點` 指向不存在的節點，2026-11-06 清掉。）
+- **togglePortal 觸發點** `新手教學後開啟傳送點`（`requireFlag=tutorialBuddleLight`）：**點亮佛燈完成時由 `TutorialManager.TickLampLight` 以 `TriggerChain.Activate` 啟動**（同儲藏室藥水教學）。地圖上沒人接它，所以 `validate_map.py` 報「孤兒節點」是正常的。
+- **傳送點** `傳送點1`（去儲藏室）：`startDisabled=true`、`enableFlag=tutorialBuddleLight`——**點亮佛燈後才開**（上面那顆 togglePortal）。`enableFlag` 只在**重進地圖**時生效：撿了佛燈卻沒點亮就中斷（關遊戲）的話，下次進來門會直接開著，不會卡死。
 
 > 這張圖已同時寫進編輯器來源（`DipanProj_MapEditor/...`）與遊戲端 `StreamingAssets/MapAssets/...`，**dipanmap-only 改動不必再跑 Sync Map Assets**；但兩個 Unity 專案的 C# 改動需 Unity 重新編譯。
 >
