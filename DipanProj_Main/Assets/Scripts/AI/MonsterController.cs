@@ -38,7 +38,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Tooltip("角色站立顯示高度（世界單位），與主角 PlayerController.CharacterWorldHeight 同一套邏輯：" +
              "依 idle 可見高度自動換算，讓「同一張圖丟主角或怪物資料夾都一樣大」。要某隻怪特別大/小，再用 CSV 的 Scale 當倍率。" +
              "<=0 = 關閉自動換算、沿用原生像素大小。")]
-    public float CharacterWorldHeight = 1.95f;
+    public float CharacterWorldHeight = DefaultCharacterWorldHeight;
+    /// <summary>CharacterWorldHeight 的預設值（讀取頁預熱外觀時用，見 <see cref="PrewarmVisuals"/>）。</summary>
+    public const float DefaultCharacterWorldHeight = 1.95f;
     private float _currentHealth;
     private bool _isDead = false;
 
@@ -49,6 +51,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     private Vector2 _lastVisualPos;      // 上一幀量測位置（算實際位移速度用）
     private bool _lastVisualPosInit;     // 是否已初始化 _lastVisualPos
     private float _visualSpeedEma;       // 實際位移速度的指數平滑（避免單幀抖動造成走路/發呆閃爍）
+    private float _visualVelXEma;        // 實際位移「X 速度」的指數平滑（FaceMovement 面向用；與幀率無關，見 PROBLEMS F46）
 
     [Header("Hit Reaction")]
     public float InvincibleTimeMs = 0f;
@@ -320,6 +323,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Header("Speech / 說話")]
     // 遊戲中頭上會講的話（CSV: 句子1~句子4）；由 Initialize 從 MonsterData 帶入，有填才在 Start 掛 MonsterSpeech。
     [HideInInspector] public List<MonsterSpeechLine> SpeechLines;
+    // 劇本同伴台詞（CSV CompanionLines／CompanionUrgeLines，2026-11-07）：只有 companion 叫出來的同伴會用（見 CompanionSpeech）。
+    [HideInInspector] public List<string> CompanionLines;
+    [HideInInspector] public List<string> CompanionUrgeLines;
     // 是否已發現玩家（發現後才開口說話）。一旦發現就維持 true（黏著；小房間內玩家不會真的甩開）。
     public bool IsAwareOfPlayer { get; private set; }
     // 是否為 boss（劇情要角）。由 Initialize 的 BrainType 判定；MonsterSpeech 用它把說話頻率加倍、幾乎必說。
@@ -445,15 +451,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             // 顯示大小：與主角完全同一套邏輯——依 idle(取不到改 walk) 可見高度，把幀放大到 CharacterWorldHeight 世界高。
             // 所以「同一張圖丟主角或怪物資料夾，顯示就一樣大」。每隻怪特別的大小差異再用 CSV Scale（transform.localScale）當倍率。
             // CharacterWorldHeight <= 0 → 關閉自動換算（tileSize 1，沿用原生像素大小）。
-            float tileSize = 1f;
-            if (CharacterWorldHeight > 0f)
-            {
-                if (lib.TryGetVisibleBox(MonsterName, "idle", 1f, out var vb, out _) && vb.y > 0.0001f)
-                    tileSize = CharacterWorldHeight / vb.y;
-                else if (lib.TryGetVisibleBox(MonsterName, "walk", 1f, out var wb, out _) && wb.y > 0.0001f)
-                    tileSize = CharacterWorldHeight / wb.y;
-                tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
-            }
+            float tileSize = ComputeTileSize(lib, MonsterName, CharacterWorldHeight);
 
             _monAnim.Setup(MonsterName, AnimFPS, refSpeed, tileSize, IdleScale, WalkScale, AttackScale, JumpScale,
                            HangScale, IsFlyer, AttackOffsetX, AttackFootLock);
@@ -466,6 +464,41 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             else
                 AutoAdjustCollider();   // 後備：用整張 sprite bounds（Setup 已指上第 0 幀）
         }
+    }
+
+    /// <summary>顯示倍率：依 idle（取不到改 walk）可見高度，把幀放大到 characterWorldHeight 世界高；≤0＝關閉自動換算（1）。生怪與預熱共用。</summary>
+    static float ComputeTileSize(MonsterSpriteLibrary lib, string monsterName, float characterWorldHeight)
+    {
+        float tileSize = 1f;
+        if (characterWorldHeight > 0f)
+        {
+            if (lib.TryGetVisibleBox(monsterName, "idle", 1f, out var vb, out _) && vb.y > 0.0001f)
+                tileSize = characterWorldHeight / vb.y;
+            else if (lib.TryGetVisibleBox(monsterName, "walk", 1f, out var wb, out _) && wb.y > 0.0001f)
+                tileSize = characterWorldHeight / wb.y;
+            tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
+        }
+        return tileSize;
+    }
+
+    /// <summary>
+    /// **讀取頁預熱這種怪的外觀**（2026-11-07，PROBLEMS E45）：用跟生怪完全相同的參數（CSV 的 Name／逐動作倍率／
+    /// BrainType 決定的飛行旗標／AttackOffsetX／AttackFootLock）把各動作 Sprite 與碰撞框的不透明像素框先建進快取。
+    /// 之後這種怪第一次被生出來時就不必在那一幀建上百張 Sprite。⚠ 生怪那邊的參數改了，這裡要跟著改。
+    /// </summary>
+    public static void PrewarmVisuals(MonsterData d)
+    {
+        if (d == null || string.IsNullOrEmpty(d.Name)) return;
+        var lib = MonsterSpriteLibrary.Instance;
+        if (!lib.Has(d.Name, "idle") && !lib.Has(d.Name, "walk")) return;
+        float tileSize = ComputeTileSize(lib, d.Name, DefaultCharacterWorldHeight);
+        bool flyer = d.BrainType == "Flying" || d.BrainType == "Bat";   // 同 Initialize 裡設 IsFlyer 的兩個 case
+        MonsterAnimator.PrewarmFrames(d.Name, tileSize, d.IdleScale, d.WalkScale, d.AttackScale, d.JumpScale, d.HangScale,
+                                      flyer, d.AttackOffsetX, d.AttackFootLock);
+        lib.TryGetVisibleBox(d.Name, "idle", tileSize, out _, out _);
+        lib.TryGetVisibleBox(d.Name, "walk", tileSize, out _, out _);
+        // 外觀元件自己的共用資源（第一隻生出來時才 Resources.Load 的那種）也一起暖好
+        if (d.BrainType == "BloodMist") BloodMistVisual.Prewarm();
     }
 
     /// <summary>
@@ -539,6 +572,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         AttackFootLock = data.AttackFootLock;
         CompanionStyle = data.CompanionStyle ?? "";   // 劇本同伴的攻擊方式（留空＝近戰，見 CompanionBrain）
         SpeechLines = data.SpeechLines;   // 遊戲中說話用（見 MonsterSpeech）
+        CompanionLines = data.CompanionLines;         // 劇本同伴閒聊（見 CompanionSpeech）
+        CompanionUrgeLines = data.CompanionUrgeLines; // 劇本同伴催促（本圖有傳送點被打開之後）
 
         _sensor = gameObject.GetComponent<MonsterSensor>();
         if (_sensor == null) _sensor = gameObject.AddComponent<MonsterSensor>();
@@ -719,8 +754,21 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             _brain.Think(in ctx);
         }
 
-        // 面向/攻擊動畫的對象：有敵對怪目標（友軍打敵怪、部族互咬）就面向它，否則面向玩家目標。
-        Transform faceTarget = enemyTarget != null ? enemyTarget : playerTarget;
+        // 面向/攻擊動畫的對象：
+        //  ‧ PlayerAlly（召喚物）：有敵怪就面向它，否則面向玩家（playerTarget 對它是「跟隨對象」，不是攻擊對象）。
+        //  ‧ 其他（部族、一般怪）：面向**敵怪與玩家兩者較近的那個**——跟 Brain 選追擊目標的規則一致
+        //    （MeleeChase／Pounce／Archer／LeapSlam… 都是 Nearest(ctx.Enemy, ctx.Player)）。
+        //    2026-11-07 修：以前一律「有敵怪就面向敵怪」，血狂之爭狂族線的血族士兵追著玩家往左跑、臉卻一直朝右邊遠處的
+        //    狂族守軍（倒退著追），等狂族守軍死光才恢復。見 PROBLEMS F42。
+        Transform faceTarget;
+        if (Faction == MonsterFaction.PlayerAlly || enemyTarget == null || playerTarget == null)
+            faceTarget = enemyTarget != null ? enemyTarget : playerTarget;
+        else
+        {
+            Vector2 me = transform.position;
+            faceTarget = ((Vector2)enemyTarget.position - me).sqrMagnitude <= ((Vector2)playerTarget.position - me).sqrMagnitude
+                ? enemyTarget : playerTarget;
+        }
         HandleVisuals(faceTarget);
     }
 
@@ -742,6 +790,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         return best;
     }
 
+    /// <summary>FaceMovement 轉向門檻（世界單位/秒）：平滑後 X 速度超過才依移動方向轉向——擋掉幾乎純上下走時的左右亂翻。</summary>
+    const float FaceMoveMinVelX = 0.05f;
+
     private void HandleVisuals(Transform player)
     {
         if (_spriteRenderer == null) return;
@@ -759,6 +810,12 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         _visualSpeedEma = (dt > 0.0001f)
             ? Mathf.Lerp(_visualSpeedEma, rawSpeed, 1f - Mathf.Exp(-dt / 0.08f))
             : rawSpeed;
+        // X 速度同樣平滑（FaceMovement 面向用）：不能看「本幀位移 > 0.002」——慢速 NPC（0.8/s）在高幀率下
+        // 每幀位移就低於門檻，整趟都不轉向（F46）。看平滑後的速度＝與幀率無關。
+        float rawVelX = dt > 0.0001f ? moveDx / dt : 0f;
+        _visualVelXEma = (dt > 0.0001f)
+            ? Mathf.Lerp(_visualVelXEma, rawVelX, 1f - Mathf.Exp(-dt / 0.08f))
+            : rawVelX;
         float currentSpeed = _visualSpeedEma;
         bool moving = currentSpeed > MoveAnimThreshold;
 
@@ -809,9 +866,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             // Brain 指定朝向（飛行怪俯衝時鎖住方向，見 BrainFacing）
             _spriteRenderer.flipX = ((BrainFacing > 0) != SpriteSourceFacesRight);
         }
-        else if (FaceMovement && moving && Mathf.Abs(moveDx) > 0.002f)
+        else if (FaceMovement && moving && Mathf.Abs(_visualVelXEma) > FaceMoveMinVelX)
         {
-            bool faceRight = moveDx > 0f;
+            bool faceRight = _visualVelXEma > 0f;
             _spriteRenderer.flipX = (faceRight != SpriteSourceFacesRight);
         }
         else if (player != null)
@@ -912,14 +969,19 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         //     「重複產生」的出生點刻意不給 SpawnKey——不然第一波死光後就永遠不再生了。
         //   ‧ 掉寶 (DropsLoot)：擲 DropTable（一般小怪表 1 目前只掉錢 30%），掉在屍體位置、按 F 撿進背包（見 DropRunLoot）；另獨立擲一次血球（見 BloodOrb）。
         // 召喚物兩者都沒有，避免無限刷。
-        if (Faction == MonsterFaction.Enemy && RunProgress.Exists && RunProgress.Instance.RunActive)
+        // ⚠ 2026-11-07 修（PROBLEMS F45）：以前整段只認 `Faction == Enemy`，劇本部族（狼人／吸血鬼）死了**什麼都不掉**——
+        //   血狂之爭整個模組的錢、首領必掉藥劑、隨機血球、清場血球全部沒有。
+        //   現在：『已清』記錄＝任何有 SpawnKey 的地圖怪（召喚物／同伴／NPC 本來就沒有 SpawnKey）；
+        //   掉寶＝死的那一刻「會攻擊玩家」的怪（Enemy，或非和平、非玩家結盟的那族）——結盟後我方守軍被殺不掉寶。
+        if (Faction != MonsterFaction.PlayerAlly && Faction != MonsterFaction.Neutral
+            && RunProgress.Exists && RunProgress.Instance.RunActive)
         {
             if (!string.IsNullOrEmpty(SpawnKey))
             {
                 int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
                 RunProgress.Instance.MarkSpawnKilled(mapId, SpawnKey);
             }
-            if (DropsLoot)
+            if (DropsLoot && FactionRelations.AttacksPlayer(Faction))
             {
                 DropRunLoot();
                 TryDropBloodOrb();

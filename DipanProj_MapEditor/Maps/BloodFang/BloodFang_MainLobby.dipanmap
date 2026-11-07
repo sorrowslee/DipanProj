@@ -32,7 +32,7 @@
           "scaleY": 0.9948201,
           "sortKey": -13.6113815,
           "zOrder": 0,
-          "hp": -1,
+          "hp": 1,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -63,7 +63,7 @@
           "scaleY": 0.9948201,
           "sortKey": -13.6113815,
           "zOrder": 0,
-          "hp": -1,
+          "hp": 1,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -413,8 +413,7 @@
           "cells": [],
           "params": {
             "faction": "吸血鬼",
-            "setFlag": "bfJoinedVampire",
-            "next": "實戰開戰"
+            "setFlag": "bfJoinedVampire"
           }
         },
         {
@@ -424,8 +423,7 @@
           "cells": [],
           "params": {
             "faction": "狼人",
-            "setFlag": "bfJoinedWerewolf",
-            "next": "實戰開戰"
+            "setFlag": "bfJoinedWerewolf"
           }
         },
         {
@@ -435,7 +433,8 @@
           "cells": [],
           "params": {
             "setFlag": "bfRefused",
-            "next": "開戰"
+            "next": "開戰",
+            "united": true
           }
         },
         {
@@ -444,7 +443,8 @@
           "typeId": "factionWar",
           "cells": [],
           "params": {
-            "setFlag": "bfWarStarted"
+            "setFlag": "bfWarStarted",
+            "united": true
           }
         },
         {
@@ -485,7 +485,8 @@
           "typeId": "playCutscene",
           "cells": [],
           "params": {
-            "cutsceneId": "exit_vampire"
+            "cutsceneId": "exit_vampire",
+            "next": "實戰開戰"
           }
         },
         {
@@ -531,66 +532,7 @@
           ],
           "params": {
             "monsterId": "15",
-            "requireFlag": "bfJoinedVampire"
-          }
-        },
-        {
-          "id": "6a16ee01",
-          "name": "出生點-狂族突襲",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              6,
-              11
-            ],
-            [
-              7,
-              11
-            ],
-            [
-              8,
-              11
-            ],
-            [
-              4,
-              13
-            ],
-            [
-              5,
-              13
-            ],
-            [
-              6,
-              13
-            ],
-            [
-              4,
-              14
-            ],
-            [
-              5,
-              14
-            ],
-            [
-              6,
-              14
-            ],
-            [
-              4,
-              15
-            ],
-            [
-              5,
-              15
-            ],
-            [
-              6,
-              15
-            ]
-          ],
-          "params": {
-            "monsterId": "16|17",
-            "requireFlag": "bfJoinedVampire"
+            "conditions": "flag:bfWarStarted|!flag:bfRefused"
           }
         },
         {
@@ -621,7 +563,8 @@
           "typeId": "playCutscene",
           "cells": [],
           "params": {
-            "cutsceneId": "exit_werewolf"
+            "cutsceneId": "exit_werewolf",
+            "next": "實戰開戰"
           }
         },
         {
@@ -667,66 +610,7 @@
           ],
           "params": {
             "monsterId": "16",
-            "requireFlag": "bfJoinedWerewolf"
-          }
-        },
-        {
-          "id": "ae9529c6",
-          "name": "出生點-血族突襲",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              24,
-              11
-            ],
-            [
-              23,
-              11
-            ],
-            [
-              22,
-              11
-            ],
-            [
-              26,
-              13
-            ],
-            [
-              25,
-              13
-            ],
-            [
-              24,
-              13
-            ],
-            [
-              26,
-              14
-            ],
-            [
-              25,
-              14
-            ],
-            [
-              24,
-              14
-            ],
-            [
-              26,
-              15
-            ],
-            [
-              25,
-              15
-            ],
-            [
-              24,
-              15
-            ]
-          ],
-          "params": {
-            "monsterId": "15|35",
-            "requireFlag": "bfJoinedWerewolf"
+            "conditions": "flag:bfWarStarted|!flag:bfRefused"
           }
         },
         {
@@ -771,61 +655,6 @@
           }
         },
         {
-          "id": "8968adb6",
-          "name": "出生點-圍攻-血族",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              4,
-              13
-            ],
-            [
-              5,
-              14
-            ],
-            [
-              4,
-              15
-            ]
-          ],
-          "params": {
-            "monsterId": "15|36",
-            "conditions": "flag:bfSiegeStart|!flag:bfSiegeCleared",
-            "spawnInterval": "5",
-            "maxAlive": "4",
-            "maxWaves": "3",
-            "waveGroup": "和談圍攻"
-          }
-        },
-        {
-          "id": "0d2c3906",
-          "name": "出生點-圍攻-狂族",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              27,
-              13
-            ],
-            [
-              26,
-              14
-            ],
-            [
-              27,
-              15
-            ]
-          ],
-          "params": {
-            "monsterId": "16|17",
-            "conditions": "flag:bfSiegeStart|!flag:bfSiegeCleared",
-            "spawnInterval": "5",
-            "maxAlive": "4",
-            "maxWaves": "3",
-            "waveGroup": "和談圍攻",
-            "next": "開南門-拒選"
-          }
-        },
-        {
           "id": "5cc34e07",
           "name": "開南門-拒選",
           "typeId": "togglePortal",
@@ -833,7 +662,8 @@
           "params": {
             "target": "傳送點-南方",
             "show": true,
-            "setFlag": "bfSiegeCleared"
+            "setFlag": "bfSiegeCleared",
+            "next": "對話-圍攻清光"
           }
         },
         {
@@ -875,7 +705,7 @@
             "dramaId": "61",
             "conditions": "bloodline:22",
             "onBlocked": "跳過這顆繼續",
-            "next": "對話-殺入狂族"
+            "next": "突襲演出-血族"
           }
         },
         {
@@ -911,7 +741,7 @@
             "dramaId": "68",
             "conditions": "bloodline:32",
             "onBlocked": "跳過這顆繼續",
-            "next": "對話-殺入血族"
+            "next": "突襲演出-狂族"
           }
         },
         {
@@ -936,6 +766,401 @@
             "conditions": "bloodline:32",
             "onBlocked": "跳過這顆繼續",
             "next": "開西門"
+          }
+        },
+        {
+          "id": "69424370",
+          "name": "出生點-圍攻第1波-血蝠",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              8,
+              8
+            ],
+            [
+              6,
+              9
+            ],
+            [
+              4,
+              10
+            ]
+          ],
+          "params": {
+            "monsterId": "35",
+            "waveGroup": "和談圍攻-1",
+            "conditions": "flag:bfSiegeStart|!flag:bfSiegeCleared",
+            "spawnVfxId": "10",
+            "next": "等待-圍攻第2波"
+          }
+        },
+        {
+          "id": "d985a558",
+          "name": "出生點-圍攻第1波-狂族弩手",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              25,
+              13
+            ],
+            [
+              24,
+              15
+            ],
+            [
+              25,
+              17
+            ]
+          ],
+          "params": {
+            "monsterId": "18",
+            "waveGroup": "和談圍攻-1",
+            "conditions": "flag:bfSiegeStart|!flag:bfSiegeCleared",
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "0282cefe",
+          "name": "出生點-圍攻第2波-血術士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              7,
+              12
+            ],
+            [
+              4,
+              15
+            ],
+            [
+              7,
+              17
+            ]
+          ],
+          "params": {
+            "monsterId": "36",
+            "waveGroup": "和談圍攻-2",
+            "startDisabled": true,
+            "spawnVfxId": "10",
+            "next": "等待-圍攻第3波"
+          }
+        },
+        {
+          "id": "ef2d8435",
+          "name": "出生點-圍攻第2波-戰狼",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              23,
+              12
+            ],
+            [
+              26,
+              15
+            ],
+            [
+              23,
+              17
+            ]
+          ],
+          "params": {
+            "monsterId": "17",
+            "waveGroup": "和談圍攻-2",
+            "startDisabled": true,
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "e0e8f4ce",
+          "name": "出生點-圍攻第3波-血族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              13
+            ],
+            [
+              7,
+              15
+            ],
+            [
+              6,
+              17
+            ]
+          ],
+          "params": {
+            "monsterId": "15",
+            "waveGroup": "和談圍攻-3",
+            "startDisabled": true,
+            "spawnVfxId": "10",
+            "next": "開南門-拒選"
+          }
+        },
+        {
+          "id": "144ec1e6",
+          "name": "出生點-圍攻第3波-血術士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              4,
+              14
+            ],
+            [
+              4,
+              16
+            ]
+          ],
+          "params": {
+            "monsterId": "36",
+            "waveGroup": "和談圍攻-3",
+            "startDisabled": true,
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "6269a661",
+          "name": "出生點-圍攻第3波-狂族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              24,
+              13
+            ],
+            [
+              23,
+              15
+            ],
+            [
+              24,
+              17
+            ]
+          ],
+          "params": {
+            "monsterId": "16",
+            "waveGroup": "和談圍攻-3",
+            "startDisabled": true,
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "bbb1ebd9",
+          "name": "出生點-圍攻第3波-狂族弩手",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              26,
+              14
+            ],
+            [
+              26,
+              16
+            ]
+          ],
+          "params": {
+            "monsterId": "18",
+            "waveGroup": "和談圍攻-3",
+            "startDisabled": true,
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "a400a283",
+          "name": "等待-圍攻第2波",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1",
+            "targets": "出生點-圍攻第2波-血術士,出生點-圍攻第2波-戰狼"
+          }
+        },
+        {
+          "id": "979ceae7",
+          "name": "等待-圍攻第3波",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1",
+            "targets": "出生點-圍攻第3波-血族士兵,出生點-圍攻第3波-血術士,出生點-圍攻第3波-狂族士兵,出生點-圍攻第3波-狂族弩手"
+          }
+        },
+        {
+          "id": "f813c76b",
+          "name": "出生點-狂族突襲-士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              11
+            ],
+            [
+              8,
+              11
+            ],
+            [
+              5,
+              13
+            ],
+            [
+              6,
+              14
+            ],
+            [
+              5,
+              15
+            ],
+            [
+              7,
+              16
+            ],
+            [
+              9,
+              16
+            ],
+            [
+              10,
+              11
+            ]
+          ],
+          "params": {
+            "monsterId": "16",
+            "conditions": "flag:bfAssaultIn|flag:bfJoinedVampire"
+          }
+        },
+        {
+          "id": "3e2745f9",
+          "name": "出生點-狂族突襲-戰狼",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              7,
+              12
+            ],
+            [
+              6,
+              16
+            ],
+            [
+              10,
+              15
+            ],
+            [
+              4,
+              14
+            ]
+          ],
+          "params": {
+            "monsterId": "17",
+            "conditions": "flag:bfAssaultIn|flag:bfJoinedVampire"
+          }
+        },
+        {
+          "id": "2f0eeed5",
+          "name": "出生點-血族突襲-士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              24,
+              11
+            ],
+            [
+              22,
+              11
+            ],
+            [
+              25,
+              13
+            ],
+            [
+              24,
+              14
+            ],
+            [
+              25,
+              15
+            ],
+            [
+              23,
+              16
+            ],
+            [
+              21,
+              16
+            ],
+            [
+              20,
+              11
+            ]
+          ],
+          "params": {
+            "monsterId": "15",
+            "conditions": "flag:bfAssaultIn|flag:bfJoinedWerewolf"
+          }
+        },
+        {
+          "id": "f69bc8a6",
+          "name": "出生點-血族突襲-血蝠",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              23,
+              12
+            ],
+            [
+              24,
+              16
+            ],
+            [
+              20,
+              15
+            ],
+            [
+              26,
+              14
+            ]
+          ],
+          "params": {
+            "monsterId": "35",
+            "conditions": "flag:bfAssaultIn|flag:bfJoinedWerewolf"
+          }
+        },
+        {
+          "id": "f2242833",
+          "name": "突襲演出-血族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "assault_vampire",
+            "next": "對話-殺入狂族"
+          }
+        },
+        {
+          "id": "8f79e3b4",
+          "name": "突襲演出-狂族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "assault_werewolf",
+            "next": "對話-殺入血族"
+          }
+        },
+        {
+          "id": "106782be",
+          "name": "對話-圍攻清光",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "81",
+            "next": "引路-南門-拒選"
+          }
+        },
+        {
+          "id": "881345bb",
+          "name": "引路-南門-拒選",
+          "typeId": "guideFinger",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
+            "show": true
           }
         }
       ]
@@ -1361,7 +1586,7 @@
       "requireFlag": "",
       "setFlag": "",
       "skippable": true,
-      "lockInput": false,
+      "lockInput": true,
       "memoryFx": false,
       "hidePlayer": false,
       "hideHud": false,
@@ -1374,34 +1599,22 @@
           "y": -13.4,
           "facing": "right",
           "spawnAtStart": true,
-          "flying": false,
+          "flying": true,
           "scale": 2.95,
-          "animFps": 14.0
-        },
-        {
-          "id": "wolfLeader",
-          "kind": "npc",
-          "spriteFolder": "17th Holy Prince – Elvin",
-          "x": 22.3,
-          "y": -13.4,
-          "facing": "left",
-          "spawnAtStart": true,
-          "flying": false,
-          "scale": 3.37,
           "animFps": 14.0
         }
       ],
       "steps": [
         {
-          "type": "despawn",
-          "actorId": "wolfLeader",
+          "type": "cameraFollow",
+          "actorId": "vampLeader",
           "hasPos": false,
           "x": 0.0,
           "y": 0.0,
           "facing": "",
           "dramaId": 0,
           "langId": 0,
-          "seconds": 0.0,
+          "seconds": 0.6,
           "speed": 0.0,
           "assetId": "",
           "zoom": 1.0,
@@ -1424,7 +1637,8 @@
           "zoom": 1.0,
           "flag": "",
           "parallelNext": false,
-          "background": false
+          "background": false,
+          "breakObjects": true
         },
         {
           "type": "despawn",
@@ -1442,6 +1656,40 @@
           "flag": "",
           "parallelNext": false,
           "background": false
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "cameraFollow",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.6,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
         }
       ]
     },
@@ -1451,7 +1699,120 @@
       "requireFlag": "",
       "setFlag": "",
       "skippable": true,
-      "lockInput": false,
+      "lockInput": true,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "17th Holy Prince – Elvin",
+          "x": 22.3,
+          "y": -13.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": true,
+          "scale": 3.37,
+          "animFps": 14.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "cameraFollow",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.6,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "wolfLeader",
+          "hasPos": true,
+          "x": 5.2,
+          "y": -13.4,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "breakObjects": true
+        },
+        {
+          "type": "despawn",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "cameraFollow",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.6,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "assault_vampire",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": true,
       "memoryFx": false,
       "hidePlayer": false,
       "hideHud": false,
@@ -1479,9 +1840,1152 @@
           "flying": false,
           "scale": 3.37,
           "animFps": 14.0
+        },
+        {
+          "id": "raider1",
+          "kind": "npc",
+          "spriteFolder": "Wolf Warrior",
+          "x": 3.25,
+          "y": -13.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.49,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider2",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 3.75,
+          "y": -14.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider3",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 3.25,
+          "y": -15.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider4",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 3.75,
+          "y": -16.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider5",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 3.25,
+          "y": -13.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider6",
+          "kind": "npc",
+          "spriteFolder": "Wolf Warrior",
+          "x": 3.75,
+          "y": -14.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.49,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider7",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 3.25,
+          "y": -15.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider8",
+          "kind": "npc",
+          "spriteFolder": "Wolf Warrior",
+          "x": 3.75,
+          "y": -16.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.49,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider9",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 3.25,
+          "y": -13.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider10",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 3.75,
+          "y": -14.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider11",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 3.25,
+          "y": -15.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 2.57,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider12",
+          "kind": "npc",
+          "spriteFolder": "Wolf Warrior",
+          "x": 3.75,
+          "y": -16.5,
+          "facing": "right",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.49,
+          "animFps": 8.0
         }
       ],
       "steps": [
+        {
+          "type": "cameraFollow",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.6,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "wolfLeader",
+          "hasPos": true,
+          "x": 26.5,
+          "y": -13.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 3.5,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.3,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "camera",
+          "actorId": "",
+          "hasPos": true,
+          "x": 7.0,
+          "y": -14.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.4,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "face",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider1",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider2",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider3",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider4",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider1",
+          "hasPos": true,
+          "x": 4.5,
+          "y": -14.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider2",
+          "hasPos": true,
+          "x": 5.5,
+          "y": -13.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider3",
+          "hasPos": true,
+          "x": 5.5,
+          "y": -15.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider4",
+          "hasPos": true,
+          "x": 6.5,
+          "y": -11.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.35,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider5",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider6",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider7",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider8",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider5",
+          "hasPos": true,
+          "x": 6.5,
+          "y": -14.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider6",
+          "hasPos": true,
+          "x": 6.5,
+          "y": -16.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider7",
+          "hasPos": true,
+          "x": 7.5,
+          "y": -16.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider8",
+          "hasPos": true,
+          "x": 7.5,
+          "y": -12.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.35,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider9",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider10",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider11",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider12",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider9",
+          "hasPos": true,
+          "x": 8.5,
+          "y": -11.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider10",
+          "hasPos": true,
+          "x": 9.5,
+          "y": -16.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider11",
+          "hasPos": true,
+          "x": 10.5,
+          "y": -11.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider12",
+          "hasPos": true,
+          "x": 10.5,
+          "y": -15.5,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.6,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "setFlag",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "bfAssaultIn",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider1",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider2",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider3",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider4",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider5",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider6",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider7",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider8",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider9",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider10",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider11",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider12",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "assault_werewolf",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": true,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "17th Holy Prince – Elvin",
+          "x": 22.3,
+          "y": -13.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.37,
+          "animFps": 14.0
+        },
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Duke Charlotte",
+          "x": 8.7,
+          "y": -13.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.95,
+          "animFps": 14.0
+        },
+        {
+          "id": "raider1",
+          "kind": "npc",
+          "spriteFolder": "Bloodbat",
+          "x": 27.75,
+          "y": -13.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": true,
+          "scale": 1.43,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider2",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 27.25,
+          "y": -14.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider3",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 27.75,
+          "y": -15.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider4",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 27.25,
+          "y": -16.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider5",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 27.75,
+          "y": -13.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider6",
+          "kind": "npc",
+          "spriteFolder": "Bloodbat",
+          "x": 27.25,
+          "y": -14.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": true,
+          "scale": 1.43,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider7",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 27.75,
+          "y": -15.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider8",
+          "kind": "npc",
+          "spriteFolder": "Bloodbat",
+          "x": 27.25,
+          "y": -16.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": true,
+          "scale": 1.43,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider9",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 27.75,
+          "y": -13.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider10",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 27.25,
+          "y": -14.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider11",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 27.75,
+          "y": -15.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "raider12",
+          "kind": "npc",
+          "spriteFolder": "Bloodbat",
+          "x": 27.25,
+          "y": -16.5,
+          "facing": "left",
+          "spawnAtStart": false,
+          "flying": true,
+          "scale": 1.43,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "cameraFollow",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.6,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "vampLeader",
+          "hasPos": true,
+          "x": 4.5,
+          "y": -13.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 3.5,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
         {
           "type": "despawn",
           "actorId": "vampLeader",
@@ -1500,11 +3004,487 @@
           "background": false
         },
         {
-          "type": "move",
-          "actorId": "wolfLeader",
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.3,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "camera",
+          "actorId": "",
           "hasPos": true,
-          "x": 5.2,
-          "y": -13.4,
+          "x": 23.5,
+          "y": -14.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.4,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "face",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "right",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider1",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider2",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider3",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider4",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider1",
+          "hasPos": true,
+          "x": 26.5,
+          "y": -14.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider2",
+          "hasPos": true,
+          "x": 25.5,
+          "y": -13.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider3",
+          "hasPos": true,
+          "x": 25.5,
+          "y": -15.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider4",
+          "hasPos": true,
+          "x": 24.5,
+          "y": -11.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.35,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider5",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider6",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider7",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider8",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider5",
+          "hasPos": true,
+          "x": 24.5,
+          "y": -14.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider6",
+          "hasPos": true,
+          "x": 24.5,
+          "y": -16.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider7",
+          "hasPos": true,
+          "x": 23.5,
+          "y": -16.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "move",
+          "actorId": "raider8",
+          "hasPos": true,
+          "x": 23.5,
+          "y": -12.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.35,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider9",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider10",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider11",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "spawn",
+          "actorId": "raider12",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider9",
+          "hasPos": true,
+          "x": 22.5,
+          "y": -11.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider10",
+          "hasPos": true,
+          "x": 21.5,
+          "y": -16.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider11",
+          "hasPos": true,
+          "x": 20.5,
+          "y": -11.5,
+          "facing": "left",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 6.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "raider12",
+          "hasPos": true,
+          "x": 20.5,
+          "y": -15.5,
           "facing": "left",
           "dramaId": 0,
           "langId": 0,
@@ -1517,8 +3497,229 @@
           "background": false
         },
         {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.6,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "setFlag",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "bfAssaultIn",
+          "parallelNext": false,
+          "background": false
+        },
+        {
           "type": "despawn",
-          "actorId": "wolfLeader",
+          "actorId": "raider1",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider2",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider3",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider4",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider5",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider6",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider7",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider8",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider9",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider10",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider11",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": true,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "raider12",
           "hasPos": false,
           "x": 0.0,
           "y": 0.0,

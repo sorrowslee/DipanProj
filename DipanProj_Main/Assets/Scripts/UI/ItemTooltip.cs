@@ -70,12 +70,18 @@ namespace Dipan.UI
         /// ⚠ 掛在 Popup 層之後 tooltip **不再跟著面板一起隱藏**，所以面板的 `OnClose` 一定要呼叫 <see cref="Hide"/>
         /// （背包／倉庫／鍛造都已經有）。
         /// </summary>
-        public static ItemTooltip Create(Transform fallbackParent)
+        public static ItemTooltip Create(Transform fallbackParent) => Create(fallbackParent, UILayer.Popup);
+
+        /// <summary>
+        /// 指定掛在哪一層（2026-11-07）。一般面板用上面那個（Popup）。
+        /// 道具獲得提示（<see cref="AlertPanel.ToastItem"/>）在 System 層，tooltip 掛 Popup 會被 toast 的深色底壓在下面，所以傳 System。
+        /// </summary>
+        public static ItemTooltip Create(Transform fallbackParent, UILayer layer)
         {
             var t = new ItemTooltip();
 
             var mgr = UIManager.Instance;
-            Transform parent = mgr != null ? mgr.LayerRoot(UILayer.Popup) : null;
+            Transform parent = mgr != null ? mgr.LayerRoot(layer) : null;
             if (parent == null) parent = fallbackParent;
             t._panelRect = (RectTransform)parent;
 

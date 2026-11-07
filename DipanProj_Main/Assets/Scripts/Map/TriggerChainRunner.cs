@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -24,6 +25,26 @@ public class TriggerChainRunner : MonoBehaviour
         if (action == null) return;
         Ensure();
         _inst._queue.Enqueue(action);
+    }
+
+    /// <summary>
+    /// 等 <paramref name="seconds"/> 秒後執行（觸發鏈「等待」節點用）。
+    /// 用**有縮放的時間**（WaitForSeconds）：暫停面板開著（timeScale=0）時不會偷跑。
+    /// 本物件常駐不隨換圖銷毀，所以「換圖後要不要作廢」由呼叫端自己判斷（見 TriggerChain.ExecuteWait）。
+    /// </summary>
+    public static void After(float seconds, Action action)
+    {
+        if (action == null) return;
+        Ensure();
+        _inst.StartCoroutine(_inst.AfterRoutine(seconds, action));
+    }
+
+    IEnumerator AfterRoutine(float seconds, Action action)
+    {
+        if (seconds > 0f) yield return new WaitForSeconds(seconds);
+        else yield return null;   // 0 秒也延後一幀，避免在呼叫端的同一幀裡重入
+        try { action(); }
+        catch (Exception e) { Debug.LogError($"[TriggerChainRunner] 延時動作丟出例外：{e}"); }
     }
 
     static void Ensure()

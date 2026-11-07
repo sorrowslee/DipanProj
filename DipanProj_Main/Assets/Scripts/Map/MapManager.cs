@@ -198,9 +198,15 @@ public class MapManager : MonoBehaviour
             yield return StartCoroutine(mapLoader.PreloadModuleRoutine(
                 row.module, p => { if (lp != null) lp.SetProgress(p * 0.4f); }));
 
-            // 怪物序列圖另外預載（怪物庫有自己的快取，上面那支暖不到它；不預載的話第一次生怪會卡一下）。進度 0.4~0.6。
+            // 怪物序列圖另外預載（怪物庫有自己的快取，上面那支暖不到它；不預載的話第一次生怪會卡一下）。進度 0.4~0.5。
             yield return StartCoroutine(MonsterSpriteLibrary.Instance.PreloadModuleRoutine(
-                row.module, p => { if (lp != null) lp.SetProgress(0.4f + p * 0.2f); }));
+                row.module, p => { if (lp != null) lp.SetProgress(0.4f + p * 0.1f); }));
+
+            // 再把每一種怪的 Sprite／碰撞框先建好（2026-11-07：只解貼圖不夠，第二波才登場的怪種換波時會卡，PROBLEMS E45）。進度 0.5~0.6。
+            var spawnerForPrewarm = FindObjectOfType<MonsterSpawner>();
+            if (spawnerForPrewarm != null)
+                yield return StartCoroutine(MonsterSpriteLibrary.Instance.PrewarmModuleRoutine(
+                    row.module, spawnerForPrewarm.AllData, p => { if (lp != null) lp.SetProgress(0.5f + p * 0.1f); }));
 
             // 分幀建目標圖。進度 0.6~0.95。
             yield return StartCoroutine(mapLoader.LoadMapRoutine(

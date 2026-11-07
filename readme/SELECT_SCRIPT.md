@@ -14,7 +14,7 @@
 
 **設計主軸（[CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md)）**：能玩哪一關由**邪佛發牌、系統決定**，永遠免費、不花資源。每回合擺出「**3 新關 + 1 舊關（業障回響）**」四選一；玩家領一張、去打、過關回廣場，再發下一批。
 
-**劇本＝背包道具**：一份劇本就是 `ItemTable.csv` 裡一個 `IsScript` 道具（有 `TargetMapId` 就算劇本）。紅嫁衣劇本＝道具 **104**（`TargetMapId=1` → RedBridalGown）。領取＝把該道具加進背包，跟舊的 `giveItem` 效果一樣。
+**劇本＝背包道具**：一份劇本就是 `ItemTable.csv` 裡一個 `IsScript` 道具（有 `TargetMapId` 就算劇本）。紅嫁衣劇本＝道具 **104**（`TargetMapId=1` → RedBridalGown）；血狂之爭劇本＝道具 **105**（`TargetMapId=17` → BloodFang，2026-11-07）。領取＝把該道具加進背包，跟舊的 `giveItem` 效果一樣。
 
 **劇本是消耗品（2026-11-06 作者拍板）**：在傳送門 `ScriptsPanel` 放上劇本、**按下「開啟」那一刻就消耗**（不退回背包）並立刻存檔，同時寫關卡單次旗標 `關卡:scriptPortalOpened`（邪佛對話靠它擋「開門後再領一張」）。劇本中途離開（返回廣場／離開遊戲／關視窗）會跳「劇本已消耗，離開後就無法再進入」警告。細節見 [RUN_PROGRESS.md](RUN_PROGRESS.md) §10。
 > ⚠ 目前第 1 周目、0 通關時，邪佛對話（`requireItem=!104`）會重發紅嫁衣，所以死了／跑了回廣場還能再領——等「邪佛關卡倒數」做好再改（見 [TODO.md](TODO.md)）。
@@ -33,7 +33,9 @@
 | 參數 | 說明 |
 |---|---|
 | `scriptIds` | 可領取的劇本道具 id，`\|` 分隔。初始＝`104`。 |
-| `specialIds` | 其中要用特殊裂紋框的 id，`\|` 分隔。初始＝`104`。 |
+| `specialIds` | 其中要用特殊裂紋框的 id，`\|` 分隔。⚠ 文件原寫 `104`，**實際地圖上是空的**（2026-11-07 查證）＝紅嫁衣用一般框。 |
+
+> ⚠ **2026-11-07 暫時作弊**：`Main_Square` 的 `讓玩家選擇劇本` 目前是 `scriptIds=104|105`（多擺一張血狂之爭），只為讓作者看兩卡並排的排版。新手第一次選劇本應該只有紅嫁衣——看完要改回 `104`（見 [TODO.md](TODO.md)）。領 105 時傳送門新手強制引導不會出現（`TutorialManager.ScriptItemId` 寫死 104）。
 
 **面板行為**：模態、暫停遊戲、`ShowBackdrop`；**`CloseOnEscape=false`**——領取是唯一出路（比照邪佛發牌不可略過）。領取＝`InventorySystem.AddItem` → 關面板 → 回呼開啟端接鏈。
 
@@ -74,7 +76,7 @@
 > `LoadSprite` 會經 `LocalizedArt.ResolveExisting` 換成當前語言，缺圖退回繁中。
 > 見 [LOCALIZATION.md](LOCALIZATION.md) §圖片型文字。
 
-**Unity/編輯器接線**：Unity 匯入新腳本 → 重開地圖編輯器 → 在 `Main_Square` 把原本給紅嫁衣劇本的 `giveItem` 換成 `selectScript`（`scriptIds=104`、`specialIds=104`，接回原鏈位置）→ `Sync Map Assets`。
+**Unity/編輯器接線**：Unity 匯入新腳本 → 重開地圖編輯器 → 在 `Main_Square` 把原本給紅嫁衣劇本的 `giveItem` 換成 `selectScript`（`scriptIds=104`、`specialIds` 實際留空，接回原鏈位置）→ `Sync Map Assets`。
 
 ---
 

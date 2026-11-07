@@ -70,6 +70,10 @@ namespace DipanMapEditor.Data
                     // ⚠ 只對「交給 respawner 的出生點」有效（有填條件／重複產生／有接續或群組的）——有填接續觸發本來就一定走那條。
                     new TriggerParam { key = "nextWhen",  type = ParamType.String, label = "接續時機",
                                        options = new [] { "全滅後", "生出來時" } },
+                    // 出生特效（2026-11-07）：VfxTable id，生每一隻怪的同一幀在牠身上播一次（大小跟著怪的可見高度，同召喚特效）。
+                    // 留空/0＝不播。慣例：**一開始就擺在房間裡的怪不播；接續產生的怪（下一波、劇情中途冒出來的）一律播**，
+                    // 讓玩家看得到怪是「生出來的」。目前用 10（招喚怪物）。見 readme/TRIGGER_CHAIN.md §3.5b。
+                    new TriggerParam { key = "spawnVfxId", type = ParamType.Int, label = "出生特效id(VfxTable/空=不播)" },
                     // ⭐ **「全滅」之後做什麼，用下方通用欄位的「接續觸發／完成寫旗標」**——
                     //   出生點的「完成」＝這一組怪被清空的那一刻（波次出完且場上一隻不剩）。
                     //   總波數留空（無限波）＝永遠不會完成，也就永遠不會推鏈。
@@ -110,6 +114,8 @@ namespace DipanMapEditor.Data
                 {
                     new TriggerParam { key = "itemId", type = ParamType.String },
                     new TriggerParam { key = "count",  type = ParamType.Int },   // 留空 = 1
+                    // 道具圖示提示（2026-11-07）：勾＝獲得訊息上方顯示道具圖示、滑鼠停在圖示上可看說明（停著不消失）；重要獎勵用。不勾＝原本的純文字訊息
+                    new TriggerParam { key = "iconToast", type = ParamType.Bool, label = "道具圖示提示(重要獎勵用)", boolDefault = false },
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -164,6 +170,29 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "monsterId", type = ParamType.Int,   label = "怪物id(空=任何敵怪)" },
                     new TriggerParam { key = "distance",  type = ParamType.Float, label = "逼近距離(身體邊緣間/空=1.5)" },
                     new TriggerParam { key = "freeze",    type = ParamType.Bool,  label = "觸發時停住怪物", boolDefault = true },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型（2026-11-07）：玩家頭上出現引路手指，指尖朝「指向」那顆 trigger（例：剛打開的傳送點），靠近自動收、走遠又出現。
+                // 「顯示」不勾＝收起。換圖自動收。立即接 next。主遊戲 TriggerChain.ExecuteGuideFinger（手指＝GuideFingerPanel）。
+                typeId = "guideFinger", displayName = "引路手指(鏈動作)", color = "#FFD27F",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "target", type = ParamType.String, label = "指向(trigger名稱)", isTriggerRef = true },
+                    new TriggerParam { key = "show",   type = ParamType.Bool,   label = "顯示(不勾=收起)", boolDefault = true },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型（2026-11-07）：等 N 秒 → 同時啟動「同時啟動」列的每一顆 trigger → 再接自己的 next／寫 setFlag。
+                // 波次清場用：上一波最後接到這顆、停 1 秒、一次叫醒下一波好幾顆出生點（通用 next 只能接一顆）。
+                // 時間用有縮放的時間（暫停面板開著不倒數）；等待中換圖就作廢。見 readme/TRIGGER_CHAIN.md §3.5b。
+                typeId = "wait", displayName = "等待(鏈動作)", color = "#B8B8B8",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "seconds", type = ParamType.Float,  label = "等待秒數(空=1)" },
+                    new TriggerParam { key = "targets", type = ParamType.String, label = "同時啟動", isPortalList = true, isTriggerRef = true },
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -332,7 +361,8 @@ namespace DipanMapEditor.Data
                 typeId = "bossIntro", displayName = "Boss開戰資訊(鏈動作)", color = "#FF4D6A",
                 paramSchema = new List<TriggerParam>
                 {
-                    new TriggerParam { key = "monsterId", type = ParamType.Int, label = "怪物ID(MonsterData)" },
+                    // 2026-11-07：可填多位（'|' 分隔，例 40|41）＝一次開場依序介紹，黑霧只演一次
+                    new TriggerParam { key = "monsterId", type = ParamType.String, label = "怪物ID(MonsterData/多位用|分隔)" },
                     new TriggerParam { key = "warnVfxId", type = ParamType.Int, label = "警告特效id(空=14)" },
                 }
             });
@@ -348,6 +378,13 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "show",      type = ParamType.Bool,  label = "召喚(不勾=解散全部)", boolDefault = true },
                     new TriggerParam { key = "x",         type = ParamType.Float, label = "生成X(空=玩家旁)" },
                     new TriggerParam { key = "y",         type = ParamType.Float, label = "生成Y(空=玩家旁)" },
+                    // 2026-11-07（血狂之爭迎賓大廳／大門）：
+                    //   現身特效＝召喚時在同伴身上播的 VfxTable 特效（空＝不播；目前用 10 招喚怪物）。
+                    //   退場方式＝解散（召喚不勾）時：立即消失（預設）／說完往下走（頭上說「退場台詞」→ 往畫面下方走出去才消失，全部走掉才接 next）。
+                    new TriggerParam { key = "vfxId",       type = ParamType.Int,    label = "現身特效id(VfxTable/空=不播)" },
+                    new TriggerParam { key = "leave",       type = ParamType.String, label = "退場方式(解散時)",
+                                       options = new [] { "立即消失", "說完往下走" } },
+                    new TriggerParam { key = "leaveLineId", type = ParamType.Int,    label = "退場台詞(語言id/空=不說)" },
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -394,6 +431,8 @@ namespace DipanMapEditor.Data
                 paramSchema = new List<TriggerParam>
                 {
                     new TriggerParam { key = "fullDamage", type = ParamType.Bool, label = "兩族互打全額傷害", boolDefault = false },
+                    // 2026-11-07：勾＝兩族聯手對付玩家（互不敵對、只打玩家）；血狂之爭拒選線用
+                    new TriggerParam { key = "united", type = ParamType.Bool, label = "兩族聯手對付玩家(不互打)", boolDefault = false },
                 }
             });
             set.types.Add(new TriggerTypeDef

@@ -3055,7 +3055,7 @@
           "typeId": "selectScript",
           "cells": [],
           "params": {
-            "scriptIds": "104",
+            "scriptIds": "104|105",
             "specialIds": "",
             "next": "叫玩家進入傳送門"
           }

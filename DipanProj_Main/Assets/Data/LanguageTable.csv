@@ -98,8 +98,15 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 3029,狂族・第十七聖子,Seventeenth Holy Prince of the Werewolves,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 3030,艾爾文,Elvin,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 3031,狂族帝國最年輕的聖子，\n代父王出席這場和談。\n信奉騎士的榮耀與正義，\n卻從不無條件退讓。,"The youngest Holy Prince of the Werewolf Empire,\nsent in his father's stead to these talks.\nHe holds to a knight's honor and justice,\nyet never yields without cause.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3032,那麼，下次再見——但願那時，我們仍站在同一邊。,"Until next time, then — may we still stand on the same side.",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3033,下次再見！到時一起喝一杯——不加毒的那種。,Until next time! Let's share a drink then — one without poison.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3034,伏兵都被打敗了，快離開這裡。,The ambush is broken. I need to get out of here.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3035,總算甩掉追兵了……繼續往下走吧。,Finally shook them off... Keep heading down.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3036,終於……成功了。,Finally... I did it.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+3037,這下應該真的結束了吧……我快沒力了。,It should really be over now... I'm almost out of strength.,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 # ── 系統彈窗／流程警告（7001–7099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 7001,劇本已消耗，離開後就無法再進入。\n確定要返回廣場嗎？,"The script has been consumed. You cannot re-enter after leaving.\nReturn to the plaza?",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 7002,劇本已消耗，離開後就無法再進入。\n確定要離開遊戲嗎？,"The script has been consumed. You cannot re-enter after leaving.\nQuit the game?",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 # ── 通用：角色名（8001–8099）──
 8001,???,???
+8002,獲得 {0} ×{1},Obtained {0} ×{1}

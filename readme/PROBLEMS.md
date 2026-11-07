@@ -17,8 +17,8 @@
 | B | 地圖載入 (Map Loader) | B1~B18 |
 | C | 地圖編輯器 / 素材同步 | C1~C16（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E44（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前） |
-| F | 戰鬥 / 傷害 (Combat) | F1~F40（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後） |
+| E | 效能 / 顯示 (Performance & Display) | E1~E46（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後） |
+| F | 戰鬥 / 傷害 (Combat) | F1~F46（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G19（位置在 F3 之後）；**G13 在 F26 之後、H 段標題之前；G14~G18 誤接在 H 段標題之後、H1 之前**（維持原位不搬）；G19 接在 G18 之後 |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1~H2 |
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I10 |
@@ -979,6 +979,18 @@
 - ⚠ **誤診紀錄**：第一輪以為是三角形繞行方向（逆時針被背面剔除）而全部改成順時針——**錯的**：UI 走 `UI/Default`（`Cull Off`），ScreenSpaceOverlay 下方向不影響顯示；況且框線那圈不經過三角化，真的是剔除也至少會剩黑線。「連一個像素都沒有」代表整個 Graphic 沒進渲染，不是幾何問題。順時針保留（跟 Unity 慣例一致，無害）。
 - ⭐ **通則**：自訂 `Graphic`（`OnPopulateMesh`）**一律加 `[RequireComponent(typeof(CanvasRenderer))]`**。症狀「元件在、無錯誤、什麼都沒畫」時，先看 Inspector 上**有沒有 CanvasRenderer**，再懷疑幾何／顏色／材質；同一個父物件下內建元件正常、自訂元件不見，就是這個。
 
+### E45. 波次戰鬥換波時明顯卡一下（第二波才登場的怪種）——貼圖預載了，Sprite 沒有
+- **症狀**:血狂之爭多波清場，第一波打完、第二波冒出來的那一刻畫面明顯頓一下；進圖那一刻沒感覺。
+- **原因**:讀取頁的怪物預載（`MonsterSpriteLibrary.PreloadModuleRoutine`）只**解碼貼圖**、算腳底與影子錨點。真正卡的三件事都在「這種怪**第一次**被生出來」那一幀：① `MonsterAnimator.Setup` 把 10 種動作的每一幀 `Sprite.Create`——預設是貼合外形的網格（Tight），每張都要讀整張圖的透明度算輪廓，一種怪上百張；② 碰撞框的像素框（`MapSpriteLoader.GetAlphaLocalBox`）走 `GetTexture(item)`，跟幀快取不同 key ⇒ **從硬碟重讀、重解碼同一張 PNG** 再逐像素掃；③ 血衛士的 `BloodMistVisual` 第一隻生出來才 `Resources.Load` shader＋兩張煙霧密度圖。第一波進圖就在、混在讀取頁裡看不出來；**第二波才登場的怪種**（血衛士、血術士…）就集中在換波那一幀。
+- **解法**(2026-11-07):讀取頁加一段 `MonsterSpriteLibrary.PrewarmModuleRoutine`：每列「圖屬於本 module」的 MonsterData 走 `MonsterController.PrewarmVisuals`——跟生怪**共用同一份**算倍率＋取幀的程式（`MonsterAnimator.LoadFrames`、`MonsterController.ComputeTileSize`），快取 key 保證一致；順便算碰撞框、`BloodMistVisual.Prewarm()`。`GetAlphaLocalBox` 對動畫物件改用幀快取的第一幀（同一張圖，不再重讀）。**通則**：「第一次用到才建／才載」的東西，第一波看不出來，要到「後來才登場」的那一刻才炸——預載要對著**全部會出現的怪種**做，不能只看進圖時場上有誰。
+
+
+### E46. 劇情演出的演員都沒有影子（怪物、地圖 NPC 都有）
+- **症狀**：演出裡的夏綠蒂、管家腳下沒影子；同一個角色當怪物或地圖上擺的 NPC 時卻有。看起來像「某些 NPC 沒影子」，很難歸納。
+- **原因**：場上角色有三條生成路徑——怪物（`MonsterSpawner`）、地圖 NPC（`NpcSpawner`，兩者都經 `MonsterController.Start` 掛 `BlobShadow`）、**劇情演員（`CutsceneActor.Npc`）**。演員那條自己掛 `MonsterAnimator`／`YSortByFeet`，**漏了 `BlobShadow`**。截圖裡「沒影子的 NPC」其實全是演員。
+- **解法**（2026-11-07）：`CutsceneActor.Npc` 補掛 `BlobShadow`；`SetActive`（spawn／despawn／開演時先藏）同步 `SetVisible`，否則影子定格原地（E19）。**飛行生物（怪物表 BrainType=Flying／Bat，例：血蝠）刻意不掛**：演員沒有離地高度，影子只會貼身下、像貼地滑行。⚠ 第一版用演員的 `flying` 勾選判斷，結果迎賓大廳 `exit_vampire`／`exit_werewolf` 的夏綠蒂、艾爾文沒影子——那顆是「直線移動不被牆擋」，劇本拿來讓地面角色直線離場；改成用 spriteFolder 查怪物表。
+- **通則**：角色外觀相關的元件（影子、排序、體光）**不只一條生成路徑**——加或改其中一個時，三條都要看：`MonsterController.Start`、`NpcSpawner`、`CutsceneActor.Npc`。
+- **同場另一個坑**：管家 2026-11-06 換新圖（512→256 畫布）後影子錨點表沒重算，影子中心比腳底高約 41px、整個藏在身體後面——換序列圖後要跑 `Project Tools → 角色 → 計算影子錨點`（[SHADOW.md](SHADOW.md)）。⚠ **但工具只在「幀數變了」才重算 auto 列、不看畫布尺寸**：管家 walk 剛好還是 12 張 ⇒ 沒重算，一走路影子又縮回身體後面。當時處置＝刪掉那列讓工具當新的算（沒算前會退回 idle 錨點）。換圖但張數沒變時，要手動刪列或跑「重算所有 auto 影子錨點」。
 ### E36. 大白天每隻怪身上都掛著一圈光，而且一直閃
 - **症狀**（2026-09-17，競技場的戰狼）：把怪放進 `Atmosphere=1`、沒壓暗的**亮**地圖，每隻怪身上都有一圈青白光暈；
   而且圖會**一閃一閃**，像貼圖在抖。
@@ -1169,6 +1181,27 @@
 - **通則**：子彈的判定圓同時管「沿行進方向」和「垂直行進方向」兩個寬度。**飛在空中的東西**（球、箭）兩個方向看起來一樣厚，照可見大小給沒問題（F40）；
   **貼地爬的東西**（衝擊波、地刺浪）垂直方向要照「在地上佔多寬」給，通常遠小於圖的高度。
 
+### F42. 部族怪追著玩家跑、臉卻朝反方向（倒退著追），等別的敵對怪死光才恢復
+- **症狀**:血狂之爭狂族線開打後，左下角三隻血族士兵追著玩家往左跑，頭卻朝右；玩家繞幾圈後又正常了。
+- **原因**:`MonsterController` 的面向規則是「有敵對怪（`enemyTarget`）就面向它，沒有才面向玩家」，但 Brain 選**追擊目標**是 `Nearest(ctx.Enemy, ctx.Player)`（MeleeChase／Pounce／Archer／LeapSlam… 全部一樣）。兩套規則不一致：玩家比較近 ⇒ 追玩家；畫面右邊遠處還有敵對陣營的狂族守軍 ⇒ 臉朝牠。守軍被殺光後 `enemyTarget` 變 null 才面向玩家，所以「多繞幾圈就好了」。
+- **解法**(2026-11-07):面向改成同一條規則——**兩者取近的那個**（`MonsterController` 算 `faceTarget` 那段）。`PlayerAlly`（召喚物）例外維持「有敵怪就面向敵怪」：它的 `playerTarget` 是跟隨對象，不是攻擊對象。**通則**：新寫 Brain 若自己選目標的規則不是「取近者」，要自己設 `BrainFacing`（CompanionBrain／FlyingBrain 就是這樣），不要依賴 MonsterController 的預設面向。
+
+### F43. 按畫面上的按鈕（劇情演出的 Skip 等）時，玩家同時開火
+- **症狀**:劇情演出播頭上泡泡對話時按右上角 Skip，玩家朝 Skip 那個方向射了一發／一串。按對話框換下一句則不會。
+- **原因**:`PlayerController` 開火只看 `Input.GetMouseButton(0)`（左鍵按著沒），**從不管這一下是不是按在介面元件上**。對話面板（TalkPanel／DramaPanel）開著時 `BlocksGameplayInput` 擋住了，所以「點對話換下一句」不會出事；但沒勾「鎖操作」的演出（引路、頭上泡泡）期間遊戲輸入是開著的，演出自己的 Skip 是一個獨立覆蓋層、不經過 UIManager ⇒ 按下 Skip 的那一刻就被當成開火。
+- **解法**(2026-11-07):`PlayerController.UpdateMouseFireGate()`（每幀最先跑，含介面擋輸入提早 return 的幀）：左鍵**按下那一刻**若游標最上層是可點擊的介面元件（`Selectable`／`IPointerClickHandler`／`IPointerDownHandler`），或當下介面正擋著遊戲輸入 ⇒ 這一次按住到放開**都不算開火**。純顯示的圖不算（只看 RaycastAll 最上面那一個，而且要真的接點擊），所以 HUD 圖不會擋掉開火。空白鍵與教學「補一發」不受影響。**通則**：新的可點 UI 不必自己處理這件事；但若做了「整片可點、蓋在遊戲畫面上」的元件，玩家在它上面按下去就不會開火——那是預期行為。
+### F44. 怪物的投射武器「轉了圈／舉了手卻沒射出東西」——目標是另一隻怪
+- **症狀**:血狂之爭雙首領戰，夏綠蒂（`DukeCharlotteBrain`）原地旋轉、動作完整播完，卻一顆血球都沒出現；同一隻在單首領戰正常。
+- **原因**:`MonsterWeaponUser.TryUse(target)` 把子彈的 `TargetLayers` 設成**目標的層**。兩族互咬時她的目標是比較近的艾爾文（`Nearest(ctx.Enemy, ctx.Player)`），而兩位首領同在 Enemy 層 ⇒ 子彈一生出來就撞到**她自己的碰撞框**當場消失，看起來像沒射。
+- **解法**(2026-11-07):這次的根因是「兩族本來就不該互打」——`factionWar` 新增「兩族聯手對付玩家」（`FactionRelations.TribesUnited`），拒選線勾上之後她的目標變回玩家。⚠ **通則**：怪打怪時只要雙方同層，投射型武器就會撞到自己；若以後真的要做「兩隻同層的怪用飛行道具互射」，要在 `WeaponCastService` 排除施放者自己的碰撞框，不能只靠 TargetLayers。
+### F45. 劇本部族怪（狼人／吸血鬼）死了什麼都不掉：錢、必掉道具、血球、清場血球全都沒有
+- **症狀**:血狂之爭雙首領的 DropTable 2／3 寫著必掉 1 階藥劑，Sync 過、重玩兩次，地上都沒東西。其實整個血狂之爭模組的怪都不掉錢、不掉血球，最後一波打完也沒有清場血球。
+- **原因**:`MonsterController` 死亡時「記已清＋掉寶」那段只認 `Faction == MonsterFaction.Enemy`。地圖出生的怪先以 Enemy 生出，`MonsterSpawner` 再依 CSV 的 Faction 欄改成 `Werewolf`／`Vampire` ⇒ 部族怪永遠走不進那段。這條條件寫在部族陣營出現（2026-09）之前，當時「地圖怪」就等於 Enemy。
+- **解法**(2026-11-07):『已清』記錄改成「不是 PlayerAlly／Neutral 且有 SpawnKey」；掉寶（DropTable、隨機血球、`MapClearReward` 清場血球）改成「死的那一刻 `FactionRelations.AttacksPlayer(Faction)`」——Enemy 照舊；部族在非和平、非玩家結盟時才掉（選邊後我方守軍被殺不掉寶）。**通則**：判斷「這是不是敵怪」不要寫 `Faction == Enemy`，用 `FactionRelations` 的查詢。
+### F46. 慢速巡邏 NPC 往左走臉卻朝右（第一趟才這樣，走過一輪又好了）
+- **症狀**:邪佛廣場的測試 NPC（NpcTable 1，Speed 0.8）初始面右、先往右走正常；折返往左走時臉仍朝右。走過一輪後再往左就正常。
+- **原因**:`MonsterController.HandleVisuals` 的 FaceMovement 轉向條件是「本幀實際位移 |dx| > 0.002」。Rigidbody2D 開 Interpolate，位移被攤到每個畫面幀；速度 0.8／秒在 400fps 以上時每幀只走 0.002 以下 ⇒ 整趟都不轉向。何時偶爾過門檻要看當下幀率（掉幀那幾幀才轉得過來），所以看起來像「第一趟錯、之後好」。快的怪（2～3／秒）幀率要上千才會中，所以一直沒發現。
+- **解法**(2026-11-07):改看「平滑後的 X 速度」（與走路判定同一套指數平滑，時間常數 0.08s），超過 `FaceMoveMinVelX`=0.05／秒才依方向轉向——與幀率無關。**通則**：任何「移動夠不夠多」的判斷都要換算成速度（÷dt），不要拿每幀位移比固定門檻。
 ### G1. 角色進遊戲變一團黑／剪影，但在 prefab 預覽裡看得到
 - **症狀**：主角（或任何角色）放進遊戲後變成全黑剪影、只剩輪廓；但在 Prefab 編輯／預覽視窗裡卻正常（只是偏暗）。換不同角色圖都一樣黑——「從第一個角色就這樣」。
 - **原因**：`Player.prefab` 的 **SpriteRenderer 的 `Color`（色調 Tint）被設成很暗的顏色**（實際值 RGB ≈ 0.12 / 0.07 / 0.07，約 10% 亮度的暗褐色）。SpriteRenderer 會把圖片**乘上**這個顏色，等於把整張圖壓暗；再進到本來就昏暗的氛圍地圖（提燈光圈，見 [ATMOSPHERE.md](ATMOSPHERE.md)）就直接變純黑剪影。因為 Tint 綁在 prefab 上、與圖片無關，所以**換哪張角色圖都一樣黑**。材質是 `Sprites-Default`（無光照）本身沒問題，純粹是 Tint。

@@ -50,6 +50,8 @@ public static class TriggerChain
     public const string TypeSceneVanish = "sceneVanish";    // 場景吞噬（鏈動作）：以玩家為中心，整張地圖由外往內被吞成血紅虛空，只剩角色／影子／HUD；**立即接 next**（吞噬在 startDelay 秒後才開始），不會自己復原。夢境佛掌段用
     public const string TypeBindPlayer = "bindPlayer";      // 束縛玩家（鏈動作）：鎖移動、**放行攻擊**（只能原地打），腳下放一個循環特效當牢籠。bind=0 ＝解除束縛。立即接 next
     public const string TypeCompanion = "companion";        // 劇本同伴（鏈動作）：monsterId 的怪以「同伴」身分跟著玩家（跨圖、不受傷、不被當目標、無殺傷力）；show=false＝解散全部。見 CompanionService
+    public const string TypeGuideFinger = "guideFinger";    // 引路手指（鏈動作，2026-11-07）：玩家頭上出現引路手指、指尖朝 target 觸發點（例：剛打開的傳送點）；show=false 收起。換圖自動收。立即接 next
+    public const string TypeWait = "wait";                  // 等待（鏈動作，2026-11-07）：等 seconds 秒 → 同時啟動 targets 列出的每一顆（逗號分隔）→ 再走自己的完成（setFlag／next）。波次之間停頓＋一次叫醒下一波好幾顆出生點用；換圖作廢
     public const string TypeTimedChoice = "timedChoice";    // 二選一倒數（鏈動作）：暫停＋選擇面板（標題/副標/兩個選項/倒數），按 A→nextA、按 B→nextB、歸零→nextTimeout，三條互斥只走一條；通用 next 欄不用。見 ChoicePanel / readme/bloodfang/GAP.md §2
 
     // ── 位置型 typeId（玩家踩到／按 F 才生效，被鏈啟動＝「解鎖」）──
@@ -94,6 +96,22 @@ public static class TriggerChain
     static Dictionary<string, GameObject> _fxById;          // sceneFx id → 場上物件（MapLoader 提供）
     static Dictionary<string, GameObject> _teleportMarkerById; // teleport region id → 傳送點內建外型 marker（MapLoader 提供，togglePortal 隱藏/恢復用）
     static readonly HashSet<string> _disabled = new HashSet<string>();       // 目前停用中的 region id
+    static bool _chainFinger;   // 引路手指是不是觸發鏈叫出來的（只收自己叫的，不動新手教學的手指）
+    static readonly HashSet<string> _openedPortals = new HashSet<string>();  // 本圖「進來之後才被打開」的傳送點 id（2026-11-07，劇本同伴催促用；換圖清空）
+
+    /// <summary>
+    /// 本圖有沒有傳送點是「進圖之後才被劇情打開、而且現在還開著」（2026-11-07）。
+    /// 一進圖就開著的門、讀檔時靠 enableFlag 直接啟用的門都**不算**——要的是「門剛開了」這個事件之後的狀態。
+    /// 給劇本同伴改講催促台詞用（<see cref="CompanionSpeech"/>）。
+    /// </summary>
+    public static bool PortalOpenedThisMap
+    {
+        get
+        {
+            foreach (var id in _openedPortals) if (!_disabled.Contains(id)) return true;
+            return false;
+        }
+    }
     static readonly Dictionary<string, string> _memFlags = new Dictionary<string, string>(); // 無存檔時的後備旗標
     static readonly HashSet<string> _levelFlags = new HashSet<string>();                      // 關卡單次旗標（進 module 清、不進存檔）
     static readonly Dictionary<string, (int mapId, string entrance)> _teleportOverride = new Dictionary<string, (int, string)>(); // 傳送門：執行期覆寫目的地（劇本決定）
@@ -110,6 +128,8 @@ public static class TriggerChain
         _fxById = fxById;
         _teleportMarkerById = teleportMarkerById;
         _disabled.Clear();
+        _openedPortals.Clear();      // 換圖 → 「本圖剛開的門」重算
+        HideChainFinger();           // 換圖 → 上一張圖的引路手指收掉（它指的是上一張圖的位置）
         _teleportOverride.Clear();   // 换图 → 清掉上一張圖的傳送門目的地覆寫
 
         // ⚠ 換圖會**清掉未結的對話完成回呼**。這件事本身是對的（上一張圖的鏈不該接到這張圖），
@@ -148,6 +168,8 @@ public static class TriggerChain
         _fxById = null;
         _teleportMarkerById = null;
         _disabled.Clear();
+        _openedPortals.Clear();
+        _chainFinger = false;
         _memFlags.Clear();
         _levelFlags.Clear();
         _teleportOverride.Clear();
@@ -385,7 +407,8 @@ public static class TriggerChain
                 OnCompleted(r);
                 break;
             case TypeFactionWar:                       // 三方陣營開戰＝結束和平（沒進過和平段也安全，只是重套一次層）；fullDamage 勾＝實戰（兩族互打不打折）
-                FactionRelations.EndPeace(r.GetBool("fullDamage", false));
+                // united 勾＝兩族聯手對付玩家（互不敵對，2026-11-07 拒選線）；與 fullDamage 各自獨立
+                FactionRelations.EndPeace(r.GetBool("fullDamage", false), r.GetBool("united", false));
                 OnCompleted(r);
                 break;
             case TypeJoinFaction:                      // 玩家結盟部族：faction 參數認不得就警告、仍接 next（別讓鏈卡死）
@@ -402,6 +425,8 @@ public static class TriggerChain
             case TypeCompanion: ExecuteCompanion(r); break;
             case TypeSceneVanish: ExecuteSceneVanish(r); break;
             case TypeMonsterNear: ExecuteMonsterNear(r); break;
+            case TypeWait: ExecuteWait(r); break;
+            case TypeGuideFinger: ExecuteGuideFinger(r); break;
             case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
@@ -451,7 +476,11 @@ public static class TriggerChain
         int leftover = RunProgress.Instance.GiveItem(itemId, count);
         int added = count - leftover;
         if (added > 0)
-            AlertPanel.Toast(added > 1 ? $"獲得 {display} ×{added}" : $"獲得 {display}");
+        {
+            // iconToast（2026-11-07）：勾了＝道具圖示提示（圖示在上、滑鼠停在圖示上看說明），重要的獎勵用；沒勾＝原本的純文字。
+            if (r.GetBool("iconToast", false)) AlertPanel.ToastItem(itemId, added);
+            else AlertPanel.Toast(added > 1 ? $"獲得 {display} ×{added}" : $"獲得 {display}");
+        }
         if (leftover > 0 && InteractionManager.Exists)
         {
             var player = GameObject.FindGameObjectWithTag("Player");
@@ -663,6 +692,62 @@ public static class TriggerChain
                   $"逼近到 {dist:0.##} 才接 next{(freeze ? "（觸發時停住牠）" : "")}。");
     }
 
+    // 等待（鏈動作，2026-11-07 血狂之爭多波清場）：
+    //   seconds：等幾秒（空＝1）。用**有縮放的時間**——暫停面板（背包、對話…）開著時不會偷偷倒數完。
+    //   targets：時間到時「同時啟動」的 trigger 名稱，逗號分隔（編輯器是可多筆欄）。通用 next 只能接一顆，
+    //            而一波怪通常是好幾顆出生點，所以另開這欄；每一顆照 Activate 的正常語意（出生點＝解鎖「初始停用」）。
+    //   之後照常走自己的完成：寫 setFlag、接 next（兩者都可以留空）。
+    // 等待期間換了地圖（_map 換掉）＝整顆作廢：上一張圖的 trigger 不該在新圖被啟動。
+    static void ExecuteWait(TriggerRegion r)
+    {
+        float sec = Mathf.Max(0f, r.GetFloat("seconds", 1f));
+        var mapAtStart = _map;
+        TriggerChainRunner.After(sec, () =>
+        {
+            if (_map == null || !ReferenceEquals(_map, mapAtStart))
+            {
+                Debug.Log($"[TriggerChain] wait「{r.name}」等待期間換了地圖，作廢（不啟動 targets、不接 next）。");
+                return;
+            }
+            string targets = r.GetString("targets");
+            if (!string.IsNullOrEmpty(targets))
+                foreach (var raw in targets.Split(','))   // 編輯器多筆欄可能留空欄／尾逗號，空的略過
+                {
+                    string t = raw.Trim();
+                    if (t.Length > 0) Activate(t);
+                }
+            OnCompleted(r);
+        });
+    }
+
+    // 引路手指（鏈動作，2026-11-07 血狂之爭拒選線：清場開門後「指給玩家看往哪走」）：
+    //   target：本圖某個 trigger 的名稱（通常是剛打開的傳送點），手指指向它的格子中心。
+    //   show  ：不勾＝收起（只收觸發鏈自己叫出來的手指）。
+    // 用的是邪佛廣場新手教學那支 GuideFingerPanel.ShowWorldGuide：手指在玩家頭上、指尖隨時朝目標，太靠近時自動收、走遠又出現。
+    // 換圖時 Setup 會收掉（指的是上一張圖的座標）。立即接 next。
+    static void ExecuteGuideFinger(TriggerRegion r)
+    {
+        if (!r.GetBool("show", true)) { HideChainFinger(); OnCompleted(r); return; }
+        string target = r.GetString("target").Trim();
+        var player = GameObject.FindGameObjectWithTag("Player");
+        if (player == null || target.Length == 0 || !TryGetRegionCenter(target, out Vector2 c))
+        {
+            Debug.LogWarning($"[TriggerChain] guideFinger「{r.name}」找不到玩家或目標「{target}」（要填本圖 trigger 名稱、且那顆要有塗格子），略過（仍接 next）。");
+            OnCompleted(r);
+            return;
+        }
+        GuideFingerPanel.ShowWorldGuide(player.transform, new Vector3(c.x, c.y, 0f));
+        _chainFinger = true;
+        OnCompleted(r);
+    }
+
+    static void HideChainFinger()
+    {
+        if (!_chainFinger) return;
+        _chainFinger = false;
+        GuideFingerPanel.HidePanel();
+    }
+
     static Color ParseHtmlColor(string s, Color fallback, string who)
     {
         if (string.IsNullOrWhiteSpace(s)) return fallback;
@@ -840,10 +925,23 @@ public static class TriggerChain
     // 劇本同伴（鏈動作）：monsterId＝同伴用的 MonsterData 列（ContactDamage 填 0＝會揮沒有殺傷力）；
     //   show 打勾（預設）＝召喚、不勾＝解散全部同伴；x／y 兩個都填＝生在該世界座標（例：劇情演員剛退場的位置），否則生在玩家身旁。
     // 同伴＝PlayerAlly＋IsCompanion：跟玩家跨圖、不受傷、任何怪都不以它為目標；換關卡自動解散（ClearLevelFlags）。立即完成接 next。
+    // 劇本同伴（鏈動作）。2026-11-07 加三個參數（血狂之爭：迎賓大廳暫離／首領死後回來／大門道別）：
+    //   vfxId      ：召喚時在同伴身上播的 VfxTable 特效（空/0＝不播）。同出生點的「出生特效」，大小跟著同伴的可見高度。
+    //   leave      ：解散（show 不勾）時的退場方式——空/「立即消失」＝原本的直接銷毀、立即接 next；
+    //                「說完往下走」＝頭上說 leaveLineId 那句 → 往畫面下方走出去才消失，**全部走掉才接 next**。
+    //   leaveLineId：退場台詞的語言表 id（空/0＝不說）。
     static void ExecuteCompanion(TriggerRegion r)
     {
         if (!r.GetBool("show", true))
         {
+            string leave = r.GetString("leave").Trim();
+            if (leave == "說完往下走" || leave == "walk")
+            {
+                int lineId = r.GetInt("leaveLineId", 0);
+                string line = lineId > 0 ? Language.GetText(lineId) : null;
+                CompanionService.LeaveAll(line, () => OnCompleted(r));
+                return;
+            }
             CompanionService.DismissAll();
             OnCompleted(r);
             return;
@@ -858,7 +956,14 @@ public static class TriggerChain
         string xs = r.GetString("x").Trim(), ys = r.GetString("y").Trim();
         Vector2? at = null;
         if (xs.Length > 0 && ys.Length > 0) at = new Vector2(r.GetFloat("x", 0f), r.GetFloat("y", 0f));
-        CompanionService.Summon(monsterId, at);
+        bool spawned = CompanionService.Summon(monsterId, at);
+        int vfxId = r.GetInt("vfxId", 0);
+        if (spawned && vfxId > 0)
+        {
+            var mc = CompanionService.Get(monsterId);
+            var vfx = Object.FindObjectOfType<VfxManager>();
+            if (mc != null && vfx != null) SummonSystem.PlaySpawnVfx(vfx, vfxId, mc.gameObject, mc.transform.position);
+        }
         OnCompleted(r);
     }
 
@@ -883,16 +988,21 @@ public static class TriggerChain
     // ⚠ 2026-09-04：舊的 WARNING 序列圖前奏已移除（調性不搭），**參數 warnVfxId 停用**——舊地圖填過的值
     //   不會報錯、單純被忽略（不必回頭清資料）。前奏特效目前是空的、待重做，掛點在 BossIntroPanel.Begin 尾端。
     // 延後一幀開面板：此鏈常由對話面板 OnClose 續接，同步開新模態面板會重入卡死（見 PROBLEMS D8）。
+    // monsterId 可以填多位（'|' 分隔，2026-11-07 血狂之爭雙首領）：黑霧與「強敵現身」只演一次，
+    // 中間依序滑入／滑出每一位的頭像與名牌，最後黑霧才散。見 BossIntroPanel。
     static void ExecuteBossIntro(TriggerRegion r)
     {
-        int monsterId = r.GetInt("monsterId", 0);
-        if (monsterId <= 0)
+        var ids = new List<int>();
+        foreach (var part in r.GetString("monsterId").Split('|'))
+            if (int.TryParse(part.Trim(), out int id) && id > 0) ids.Add(id);
+        if (ids.Count == 0)
         {
-            Debug.LogWarning($"[TriggerChain] bossIntro「{r.name}」monsterId 無效（要填 MonsterData.csv 的怪物 ID），直接接 next。");
+            Debug.LogWarning($"[TriggerChain] bossIntro「{r.name}」monsterId 無效（要填 MonsterData.csv 的怪物 ID，多位用 | 分隔），直接接 next。");
             OnCompleted(r);
             return;
         }
-        TriggerChainRunner.NextFrame(() => Dipan.UI.BossIntroPanel.Show(monsterId, () => OnCompleted(r)));
+        var arr = ids.ToArray();
+        TriggerChainRunner.NextFrame(() => Dipan.UI.BossIntroPanel.Show(arr, () => OnCompleted(r)));
     }
 
     // 玩家提示（鏈動作）：玩家頭上左右各擺一張提示圖，指定張閃爍；到收起時機（移動/攻擊/任意鍵）自動收，收完接 next。
@@ -992,6 +1102,7 @@ public static class TriggerChain
         }
         string ef = r.GetString(KeyEnableFlag);
         if (!string.IsNullOrEmpty(ef)) SetFlag(ef);
+        if (r.typeId == TypeTeleport) _openedPortals.Add(r.id);   // 劇本同伴催促用（PortalOpenedThisMap）
         ApplyTeleportVisual(r, visible: true);
         if (_manager != null) _manager.RefreshTriggers();
         Debug.Log($"[TriggerChain] 解鎖 trigger「{r.name}」({r.typeId})。");

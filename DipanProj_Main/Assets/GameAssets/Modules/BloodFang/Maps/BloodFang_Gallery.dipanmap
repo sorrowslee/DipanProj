@@ -290,61 +290,6 @@
           }
         },
         {
-          "id": "32124d62",
-          "name": "出生點-伏擊-北",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              6,
-              4
-            ],
-            [
-              8,
-              4
-            ],
-            [
-              7,
-              5
-            ]
-          ],
-          "params": {
-            "monsterId": "15|16|36",
-            "conditions": "flag:bfGalleryAmbush|!flag:bfGalleryCleared",
-            "spawnInterval": "4",
-            "maxAlive": "5",
-            "maxWaves": "3",
-            "waveGroup": "長廊伏擊"
-          }
-        },
-        {
-          "id": "6c7dcffc",
-          "name": "出生點-伏擊-南",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              6,
-              19
-            ],
-            [
-              8,
-              19
-            ],
-            [
-              7,
-              18
-            ]
-          ],
-          "params": {
-            "monsterId": "16|17|15",
-            "conditions": "flag:bfGalleryAmbush|!flag:bfGalleryCleared",
-            "spawnInterval": "4",
-            "maxAlive": "5",
-            "maxWaves": "3",
-            "waveGroup": "長廊伏擊",
-            "next": "開長廊南門"
-          }
-        },
-        {
           "id": "f37f56d8",
           "name": "開長廊南門",
           "typeId": "togglePortal",
@@ -352,7 +297,8 @@
           "params": {
             "target": "傳送點-南方",
             "show": true,
-            "setFlag": "bfGalleryCleared"
+            "setFlag": "bfGalleryCleared",
+            "next": "對話-伏擊清光"
           }
         },
         {
@@ -362,6 +308,183 @@
           "cells": [],
           "params": {
             "target": "傳送點-北方",
+            "show": true
+          }
+        },
+        {
+          "id": "5928a9e7",
+          "name": "出生點-伏擊第1波-狂族弩手",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              5
+            ],
+            [
+              8,
+              5
+            ],
+            [
+              7,
+              7
+            ]
+          ],
+          "params": {
+            "monsterId": "18",
+            "waveGroup": "長廊伏擊-1",
+            "conditions": "flag:bfGalleryAmbush|!flag:bfGalleryCleared",
+            "spawnVfxId": "10",
+            "next": "等待-伏擊第2波"
+          }
+        },
+        {
+          "id": "564b4154",
+          "name": "出生點-伏擊第1波-血術士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              18
+            ],
+            [
+              8,
+              18
+            ],
+            [
+              7,
+              16
+            ]
+          ],
+          "params": {
+            "monsterId": "36",
+            "waveGroup": "長廊伏擊-1",
+            "conditions": "flag:bfGalleryAmbush|!flag:bfGalleryCleared",
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "17788e7c",
+          "name": "出生點-伏擊第2波-血衛士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              5,
+              17
+            ],
+            [
+              9,
+              17
+            ]
+          ],
+          "params": {
+            "monsterId": "37",
+            "waveGroup": "長廊伏擊-2",
+            "startDisabled": true,
+            "spawnVfxId": "10",
+            "next": "等待-伏擊第3波"
+          }
+        },
+        {
+          "id": "dc97cdac",
+          "name": "出生點-伏擊第2波-狂族弩手",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              6
+            ],
+            [
+              8,
+              6
+            ]
+          ],
+          "params": {
+            "monsterId": "18",
+            "waveGroup": "長廊伏擊-2",
+            "startDisabled": true,
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "c90d010f",
+          "name": "出生點-伏擊第3波-血術士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              5,
+              19
+            ],
+            [
+              9,
+              19
+            ]
+          ],
+          "params": {
+            "monsterId": "36",
+            "waveGroup": "長廊伏擊-3",
+            "startDisabled": true,
+            "spawnVfxId": "10",
+            "next": "開長廊南門"
+          }
+        },
+        {
+          "id": "c0a62980",
+          "name": "出生點-伏擊第3波-皇家衛士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              7
+            ],
+            [
+              8,
+              7
+            ]
+          ],
+          "params": {
+            "monsterId": "19",
+            "waveGroup": "長廊伏擊-3",
+            "startDisabled": true,
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "247f0751",
+          "name": "等待-伏擊第2波",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1",
+            "targets": "出生點-伏擊第2波-血衛士,出生點-伏擊第2波-狂族弩手"
+          }
+        },
+        {
+          "id": "ae2ae04e",
+          "name": "等待-伏擊第3波",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1",
+            "targets": "出生點-伏擊第3波-血術士,出生點-伏擊第3波-皇家衛士"
+          }
+        },
+        {
+          "id": "326a7b11",
+          "name": "對話-伏擊清光",
+          "typeId": "drama",
+          "cells": [],
+          "params": {
+            "dramaId": "82",
+            "next": "引路-長廊南門"
+          }
+        },
+        {
+          "id": "f1f812be",
+          "name": "引路-長廊南門",
+          "typeId": "guideFinger",
+          "cells": [],
+          "params": {
+            "target": "傳送點-南方",
             "show": true
           }
         }

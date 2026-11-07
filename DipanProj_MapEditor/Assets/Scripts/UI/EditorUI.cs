@@ -2988,6 +2988,7 @@ namespace DipanMapEditor.UI
                     FacingRow("抵達後朝向", ref s.facing);
                     s.parallelNext = GUILayout.Toggle(s.parallelNext, "與下一步同時（走位＋運鏡）");
                     s.background = GUILayout.Toggle(s.background, "背景執行（不擋後續：邊走，主線照跑到下一步）");
+                    s.breakObjects = GUILayout.Toggle(s.breakObjects, "沿路撞碎可破壞地上物（遊戲中生效；演員勾飛行＝直線衝）");
                     break;
                 case "face":
                     ActorPicker(cs, s, false);

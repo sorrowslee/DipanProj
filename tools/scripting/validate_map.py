@@ -29,6 +29,7 @@ TALK_GROUPS = {r[1].strip() for r in csv_rows('DramaTalkTable.csv')[1:] if len(r
 LANGS = csv_ids('LanguageTable.csv')
 MONS = csv_ids('MonsterData.csv')
 ITEMS = csv_ids('ItemTable.csv')
+VFX = csv_ids('VfxTable.csv')
 MAPTAB = maps_table()
 SELF_FIRING = {'onEnter', 'watchFlag', 'teleport', 'playerSpawn', 'monsterSpawn'}
 
@@ -81,7 +82,8 @@ for f in files:
     for r in rs:
         p, t, n = r['params'], r['typeId'], r['name']
         if t not in TYPES: E(n, 'typeId 不存在', t)
-        outs = [p[k] for k in REFKEYS if p.get(k)]
+        # 接續類欄位可能是逗號分隔的多筆（wait 的「同時啟動」），拆開逐筆查；名稱本身不含逗號。
+        outs = [o.strip() for k in REFKEYS if p.get(k) for o in str(p[k]).split(',') if o.strip()]
         for o in outs:
             if o not in nm: E(n, '接續找不到', o)
             referenced.add(o)
@@ -113,6 +115,8 @@ for f in files:
             if p.get('startDisabled') is True and (p.get('requireFlag') or p.get('conditions')):
                 E(n, '「初始停用」＋條件旗標互斥：初始停用是一次性解鎖，沒有鏈去解鎖就永遠不生')
             if not r['cells']: W(n, '出生點 0 格＝一隻都不生（一格一隻）')
+            vfx = str(p.get('spawnVfxId') or '').strip()
+            if vfx and vfx != '0' and vfx not in VFX: E(n, 'spawnVfxId 不在 VfxTable', vfx)
             # 清場血球（2026-11-06，MapClearReward）：無限波一開就永遠「進行中」⇒ 這張圖不會清場、不掉清場血球
             try: _iv = float(str(p.get('spawnInterval') or 0).strip() or 0)
             except ValueError: _iv = 0
@@ -121,6 +125,11 @@ for f in files:
             if _iv > 0 and _mw <= 0:
                 W(n, '無限波（spawnInterval>0、maxWaves 留空）：這張圖永遠不會清場 ⇒ 不會掉清場血球；要掉就填 maxWaves')
         if t == 'giveItem' and str(p.get('itemId')) not in ITEMS: E(n, 'itemId 不存在', p.get('itemId'))
+        if t == 'companion':
+            v = str(p.get('vfxId') or '').strip()
+            if v and v != '0' and v not in VFX: E(n, 'vfxId 不在 VfxTable', v)
+            ln = str(p.get('leaveLineId') or '').strip()
+            if ln and ln != '0' and ln not in LANGS: E(n, 'leaveLineId 語言 id 不存在', ln)
         if t == 'drama':
             d = DRAMA.get(str(p.get('dramaId')))
             if not d: E(n, 'dramaId 不在 DramaTable', p.get('dramaId'))

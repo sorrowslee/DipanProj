@@ -52,6 +52,7 @@ namespace Dipan.MapRuntime
         public string bubbleShape = ""; // bubble → 對話框形狀：""/square 方形（預設）、round 圓形、spike 尖刺
         public float seconds = 0f;
         public float speed = 0f;        // move：走路速度（格/秒）；0＝用預設
+        public bool breakObjects = false; // move：沿路撞碎可破壞地上物（2026-11-07，首領直線衝刺撞爛圓桌；搭配演員勾「飛行」＝直線不繞路）
         public string assetId = "";
         public float zoom = 1f;
         public string flag = "";

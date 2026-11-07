@@ -1627,6 +1627,12 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 - `Busy`＝「不能中斷」（揮到一半，時間到也等它揮完）；`HoldsPosition`＝「這一刻站定」（揮刀中、旋轉中）。兩者分開是因為旋轉隨時可以收、但轉的時候不該邊走（那是大絕的樣子）。
 - 動畫可以用 one-shot（近戰）或 `BrainPoseActive`（循環，旋轉）；`End` 裡**一定要把自己開的姿勢關掉**。
 
+### 15.4b 說話與退場（2026-11-07）
+
+- **說話**：同伴頭上會閒聊，本圖的門被劇情打開後改成催促（每 5~6 秒一句）——`CompanionSpeech`，台詞在 MonsterData 表尾 `CompanionLines`／`CompanionUrgeLines`，見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)〈劇本同伴的說話〉。
+- **退場**：`companion` 動作解散時選 `說完往下走` ⇒ 換成 `CompanionLeaveBrain`（收掉旋轉姿勢 → 說完話往下走 → 出鏡頭銷毀），見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3。
+- **現身特效**：`companion` 動作的 `vfxId`（同出生點的出生特效）。
+
 ### 15.5 待辦 / 已知限制
 
 - [ ] **未編譯、未實機驗證**。實測看：交戰／發呆／跟隨的比例看起來像不像在幫忙；夏綠蒂旋轉半徑 2.4 是否合適（`SpinCompanionAttack.BaseRadius`）。

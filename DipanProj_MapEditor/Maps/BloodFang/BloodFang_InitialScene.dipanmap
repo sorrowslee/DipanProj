@@ -251,7 +251,8 @@
           "params": {
             "itemId": "302",
             "count": "1",
-            "next": "大門過關"
+            "next": "同伴道別-血族",
+            "iconToast": true
           }
         },
         {
@@ -285,7 +286,8 @@
           "params": {
             "itemId": "303",
             "count": "1",
-            "next": "大門過關"
+            "next": "同伴道別-狂族",
+            "iconToast": true
           }
         },
         {
@@ -344,6 +346,30 @@
             "conditions": "bloodline:32",
             "onBlocked": "跳過這顆繼續",
             "next": "贈藥-狂族"
+          }
+        },
+        {
+          "id": "23f7c63a",
+          "name": "同伴道別-血族",
+          "typeId": "companion",
+          "cells": [],
+          "params": {
+            "show": false,
+            "leave": "說完往下走",
+            "leaveLineId": "3032",
+            "next": "大門過關"
+          }
+        },
+        {
+          "id": "518d2bd6",
+          "name": "同伴道別-狂族",
+          "typeId": "companion",
+          "cells": [],
+          "params": {
+            "show": false,
+            "leave": "說完往下走",
+            "leaveLineId": "3033",
+            "next": "大門過關"
           }
         }
       ]

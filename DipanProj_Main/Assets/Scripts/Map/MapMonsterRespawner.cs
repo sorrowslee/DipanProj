@@ -55,6 +55,9 @@ public class MapMonsterRespawner : MonoBehaviour
 
         // ── 強制中止（2026-09-23，夢境瀕死保護）──
         public bool aborted;               // true＝被 AbortActiveWaves 收掉：不再生怪、也**不推鏈**
+
+        // ── 出生特效（2026-11-07）──
+        public int spawnVfxId;             // >0＝每生一隻就在牠身上播一次 VfxTable 特效（依可見高度縮放，同召喚特效）
     }
 
     readonly List<Wave> _waves = new List<Wave>();
@@ -68,7 +71,7 @@ public class MapMonsterRespawner : MonoBehaviour
     public int Register(MonsterSpawner spawner, int[] monsterIds, List<Vector2> points, List<string> spawnKeys,
                         string deathFlag, TriggerRegion region, float interval, int maxAlive, int mapId, string regionName,
                         TriggerRegion chainRegion = null, int maxWaves = 0, string waveGroup = null,
-                        bool nextOnSpawn = false)
+                        bool nextOnSpawn = false, int spawnVfxId = 0)
     {
         if (spawner == null || monsterIds == null || monsterIds.Length == 0) return 0;
         if (points == null || points.Count == 0) return 0;
@@ -91,6 +94,7 @@ public class MapMonsterRespawner : MonoBehaviour
             maxWaves = Mathf.Max(0, maxWaves),
             waveGroup = string.IsNullOrWhiteSpace(waveGroup) ? null : waveGroup.Trim(),
             nextOnSpawn = nextOnSpawn,
+            spawnVfxId = Mathf.Max(0, spawnVfxId),
         };
         _waves.Add(w);
 
@@ -100,6 +104,7 @@ public class MapMonsterRespawner : MonoBehaviour
                    : (maxAlive > 0 ? $"一次性不設上限（填的 {maxAlive} 已忽略）" : "一次性不設上限");
         string waves = w.maxWaves > 0 ? $"、共 {w.maxWaves} 波" : "";
         string grp = w.waveGroup != null ? $"、群組「{w.waveGroup}」" : "";
+        if (w.spawnVfxId > 0) grp += $"、出生特效 {w.spawnVfxId}";
         Debug.Log($"[MapMonsterRespawner] 出生點「{regionName}」：{mode}、{gate}、每波最多 {points.Count} 隻、" +
                   $"{cap}{waves}{grp}、怪物 id [{string.Join("|", monsterIds)}]。");
 
@@ -322,6 +327,9 @@ public class MapMonsterRespawner : MonoBehaviour
         w.alive.RemoveAll(go => go == null);
 
         bool runActive = RunProgress.Exists && RunProgress.Instance.RunActive;
+        VfxManager vfx = w.spawnVfxId > 0 ? FindObjectOfType<VfxManager>() : null;
+        if (w.spawnVfxId > 0 && vfx == null)
+            Debug.LogWarning($"[MapMonsterRespawner] 出生點「{w.regionName}」填了出生特效 {w.spawnVfxId}，但場上找不到 VfxManager——只生怪、不播特效。");
         int spawned = 0;
         for (int i = 0; i < w.points.Count; i++)
         {
@@ -341,6 +349,9 @@ public class MapMonsterRespawner : MonoBehaviour
             if (go == null) continue;
             w.alive.Add(go);
             spawned++;
+
+            // 出生特效：同一幀在牠身上播（邊播邊出現），大小跟著這隻怪的可見高度——與召喚特效同一套（SummonSystem.Cast）。
+            if (vfx != null) SummonSystem.PlaySpawnVfx(vfx, w.spawnVfxId, go, w.points[i]);
         }
 
         if (spawned > 0) w.wavesFired++;   // 見本方法的註解：生不出來就不算一波

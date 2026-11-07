@@ -93,6 +93,7 @@ namespace DipanMapEditor.Data
         public string bubbleShape = ""; // bubble：對話框形狀 ""/square 方形（直接／官方，預設）、round 圓形（溫和）、spike 尖刺（激動／憤怒）
         public float seconds = 0f;      // wait / camera 過渡 / comic 停留 / screenFx 停留
         public float speed = 0f;        // move：走路速度（格/秒）；0＝用預設
+        public bool breakObjects = false; // move：沿路撞碎可破壞地上物（主遊戲才生效；搭配演員勾「飛行」＝直線衝過去）
         public string assetId = "";     // comic 置中圖路徑id / screenFx effectId / end 去向
         public float zoom = 1f;         // camera 縮放
         public string flag = "";        // setFlag

@@ -325,7 +325,11 @@ namespace Dipan.MapRuntime
             string key = $"{item.id}|alpha|{tileSize}";
             if (_alphaBoxes.TryGetValue(key, out var cached)) return cached;
 
-            var tex = GetTexture(item);
+            // 動畫物件（怪物序列圖等）的「整張圖」就是第一幀：直接用幀快取那張（讀取頁已預載），
+            // 不要走 GetTexture(item)——那條用另一個 key，會在生怪那一幀從硬碟重讀、重解碼同一張 PNG（2026-11-07，PROBLEMS E45）。
+            var tex = (item.IsAnimated && item.frames != null && item.frames.Count > 0)
+                ? GetFrameTexture(item.frames[0])
+                : GetTexture(item);
             if (tex == null) { _alphaBoxes[key] = none; return none; }
 
             int w = tex.width, h = tex.height;

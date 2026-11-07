@@ -26,6 +26,7 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 102,卷軸,Material,None,UI/Icons/Items/item_reel,99,神秘的卷軸,合成材料,紙頁泛黃，唯一能辨認的是一個「歸」字。,,,,,,,,,
 103,符紙,Consumable,None,UI/Icons/Items/item_talismanPaper,99,驅邪的符紙,消耗品　使用後短暫驅邪,貼上門楣的第七夜，符紙無火自燃。,,,,,,,,,
 104,劇本-紅嫁衣,Consumable,None,UI/Icons/Items/scripts/Script_RedBridalGown,1,劇本,邪佛給你的劇本,一夜之間，風雲變色,1,1,,,,,,,
+105,劇本-血狂之爭,Consumable,None,UI/Icons/Items/scripts/Script_BloodFang,1,劇本,邪佛給你的劇本,,,17,,,,,,,
 301,1階殭屍藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,血凝心停，死而能行,屍氣自瓶口漫出。喝下去的那一刻，就再也回不去了。,,,,,,,10,,
 302,1階血族藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,齒生尖鋒，晝伏夜出,初嘗是鐵鏽，回甘是長夜。喝下去的那一刻，太陽就與你無關了。,,,,,,,20,,
 303,1階狂族藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,月出則爪牙自生,瓶裡的東西還在低吼。喝下去的那一刻，月亮就成了你的主人。,,,,,,,30,,

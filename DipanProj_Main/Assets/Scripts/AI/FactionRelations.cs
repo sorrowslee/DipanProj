@@ -47,6 +47,14 @@ public static class FactionRelations
     /// </summary>
     public static bool FullTribeDamage { get; private set; }
 
+    /// <summary>
+    /// 「兩族聯手對付玩家」（2026-11-07，血狂之爭拒選線）：兩族**互不敵對**，只打玩家（與玩家的召喚物／同伴）。
+    /// `factionWar` 勾「兩族聯手」進入；下一次沒勾的 `factionWar`／`factionPeace`／換關卡都會關掉。
+    /// 為什麼需要：拒選線兩族都要殺玩家，但預設的「開戰」會讓兩族互咬——雙首領互打、玩家在旁邊看戲；
+    /// 夏綠蒂的血球還會因為目標是艾爾文（同一個碰撞層）一出手就撞到自己而消失（PROBLEMS F44）。
+    /// </summary>
+    public static bool TribesUnited { get; private set; }
+
     /// <summary>玩家結盟的部族；null＝未結盟（joinFaction 鏈動作設定；換關卡重置）。</summary>
     public static MonsterFaction? PlayerAllied { get; private set; }
 
@@ -66,7 +74,7 @@ public static class FactionRelations
             (a == MonsterFaction.PlayerAlly && b == MonsterFaction.Enemy)) return true;
 
         // 劇本部族：開戰才互咬；玩家召喚物視同玩家（開戰後對「非結盟」的部族敵對）
-        if (IsTribe(a) && IsTribe(b)) return !PeaceActive;
+        if (IsTribe(a) && IsTribe(b)) return !PeaceActive && !TribesUnited;
         if (a == MonsterFaction.PlayerAlly && IsTribe(b)) return !PeaceActive && PlayerAllied != b;
         if (IsTribe(a) && b == MonsterFaction.PlayerAlly) return !PeaceActive && PlayerAllied != a;
 
@@ -124,6 +132,7 @@ public static class FactionRelations
     public static void StartPeace()
     {
         FullTribeDamage = false;
+        TribesUnited = false;
         if (PeaceActive) { RefreshTribeLayers(); return; }
         PeaceActive = true;
         RefreshTribeLayers();
@@ -137,9 +146,11 @@ public static class FactionRelations
     /// 所以**沒進過和平段的地圖按它也不會有事**（本來就是敵對，只是重套一次層）。
     /// </summary>
     /// <param name="fullTribeDamage">true＝實戰：兩族互打全額傷害（見 <see cref="FullTribeDamage"/>）；false＝演戲傷害 1/100。</param>
-    public static void EndPeace(bool fullTribeDamage = false)
+    /// <param name="tribesUnited">true＝兩族聯手：互不敵對、只打玩家（見 <see cref="TribesUnited"/>）。</param>
+    public static void EndPeace(bool fullTribeDamage = false, bool tribesUnited = false)
     {
         FullTribeDamage = fullTribeDamage;
+        TribesUnited = tribesUnited;
         if (!PeaceActive) { RefreshTribeLayers(); return; }
         PeaceActive = false;
         RefreshTribeLayers();
@@ -162,9 +173,10 @@ public static class FactionRelations
     /// <summary>清掉劇本狀態（回預設的敵對、未結盟）。換 module 時由 TriggerChain.ClearLevelFlags 呼叫＝「只在這趟劇本內有效」。</summary>
     public static void ResetScenario()
     {
-        if (!PeaceActive && !FullTribeDamage && PlayerAllied == null) return;
+        if (!PeaceActive && !FullTribeDamage && !TribesUnited && PlayerAllied == null) return;
         PeaceActive = false;
         FullTribeDamage = false;
+        TribesUnited = false;
         PlayerAllied = null;
         RefreshTribeLayers();
     }
@@ -174,6 +186,7 @@ public static class FactionRelations
     {
         PeaceActive = false;
         FullTribeDamage = false;
+        TribesUnited = false;
         PlayerAllied = null;
     }
 

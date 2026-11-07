@@ -71,8 +71,8 @@ monsters/normal_father/walk,-2,54.5,69,auto,25,256,256,
 monsters/normal_priest/idle,-2.5,54.1,69,auto,25,256,256,
 monsters/normal_priest/walk,-1.5,53.3,80,auto,25,256,256,
 monsters/redbridalgown/attack,-2.5,46.1,103,auto,25,256,256,
-monsters/redbridalgown/idle,-1.5,56.5,99,auto,25,256,256,
-monsters/redbridalgown/walk,-6.5,51.8,97,auto,25,256,256,
+monsters/redbridalgown/idle,-3.5,64.7,71,auto,23,256,256,幀數 25→23 已重算
+monsters/redbridalgown/walk,0,65.6,80,auto,21,256,256,幀數 25→21 已重算
 monsters/skeletongeneral/idle,-4.2,45,101,auto,25,256,256,
 monsters/skeletongeneral/walk,6,44.5,112,auto,25,256,256,
 monsters/zhayu/idle,4.5,37.5,131,auto,21,256,256,幀數 1→21 已重算
@@ -137,8 +137,7 @@ characters/swarmborn/swarm emperor/attack,0.5,32.3,210,auto,25,256,256,
 characters/swarmborn/swarm emperor/dead,-17,63.3,202,auto,9,256,256,幀數 9→25 已重算
 characters/swarmborn/swarm emperor/idle,-8.5,39.1,131,manual,17,256,256,2026-09-14 手改：auto 的 -25.5 是離群值（同批的 parasite -3.8／ravager +1.5，全表其他角色都在 ±8 內）——垂到腿高的翅膀把「最低兩段」騙走了。離線拆最底帶：真正接地的是三段細腳（中心 -22／-8／+5，整體中心 -8.5），而 c-75 的翅膀要到距底 40px 才出現。演算法只取最低的兩段（-22 與 -8）所以偏左。填接地整體中心 -8.5
 characters/swarmborn/swarm emperor/walk,-8.5,46.2,160,manual,11,256,256,2026-09-14 手改：對齊 idle 的 -8.5（同 nidhogg 的做法），換動作時影子不會跳；auto 的 -25.1 與 idle 同一個誤判
-monsters/housekeeper/idle,-6.8,135.6,91,auto,16,512,512,
-monsters/housekeeper/walk,-7.2,133.2,144,auto,12,512,512,
+monsters/housekeeper/idle,-11.2,34,82,auto,21,256,256,幀數 16→21 已重算
 monsters/redbridalgown/pant,-20.5,134.3,166,auto,25,512,512,
 monsters/vampiresoldier/attack,-3,58.6,123,auto,25,256,256,
 monsters/vampiresoldier/idle,-1.5,64,58,auto,16,256,256,
@@ -181,3 +180,8 @@ monsters/duke charlotte/walk,0.5,98.5,324,auto,25,512,512,
 monsters/elite bloodguard/attack,2.8,84.5,283,auto,25,512,512,
 monsters/elite bloodguard/idle,-8.8,83,227,auto,23,512,512,
 monsters/elite bloodguard/walk,-18.8,85.5,242,auto,13,512,512,
+monsters/17th holy prince – elvin/attack,30.8,54,125,auto,25,256,256,
+monsters/17th holy prince – elvin/dodge,-3.5,44.8,133,auto,21,256,256,
+monsters/17th holy prince – elvin/idle,-2,45.7,91,auto,23,256,256,
+monsters/17th holy prince – elvin/slash,12.5,54.5,138,auto,25,256,256,
+monsters/17th holy prince – elvin/walk,-1,46.9,90,auto,21,256,256,

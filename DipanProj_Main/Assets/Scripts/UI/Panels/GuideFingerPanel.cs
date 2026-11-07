@@ -24,6 +24,7 @@ namespace Dipan.UI
         const float HeadWorldOffset = 1.2f; // 手指「根部」擺在玩家頭上多高（世界單位）
         const float TipBaseAngle = 135f;    // 手指圖未旋轉時指尖朝的角度（左上）；旋轉量 = 目標角度 - 此值
         const float HideNearDistance = 2.5f; // 太靠近目標就收起手指（避免角度亂飄）；離遠了自動再出現
+        const float DownTipGap = 14f;       // 目標在下方時，指尖離頭頂多遠（畫面座標）
 
         enum Mode { None, UiTarget, World }
         Mode _mode;
@@ -62,6 +63,20 @@ namespace Dipan.UI
         {
             _mode = Mode.World; _worldAnchor = anchor; _worldTarget = target;
             UIManager.Instance?.Open<GuideFingerPanel>();
+        }
+
+        /// <summary>
+        /// 錨點的「頭頂」換成本面板的畫面座標。玩家走 <c>PlayerController</c> 的可見身體幾何（腳底＋可見身高，PROBLEMS E14），
+        /// 不同血統體型都對得準；不是玩家就退回 transform.position＋2×HeadWorldOffset 的估計。
+        /// </summary>
+        bool TryHeadTopLocal(out Vector2 local)
+        {
+            Vector3 top;
+            var pc = _worldAnchor != null ? _worldAnchor.GetComponent<PlayerController>() : null;
+            if (pc != null) top = (Vector3)(pc.FeetWorldPos + Vector2.up * pc.VisibleBodyHeight);
+            else top = _worldAnchor.position + Vector3.up * (HeadWorldOffset * 2f);
+            Vector2 screen = _cam.WorldToScreenPoint(top);
+            return RectTransformUtility.ScreenPointToLocalPointInRectangle(_self, screen, null, out local);
         }
 
         public static void ShowAtUI(RectTransform target) => UIManager.Instance?.Open<GuideFingerPanel>()?.PointAtUI(target);
@@ -112,7 +127,20 @@ namespace Dipan.UI
                 {
                     _rt.anchorMin = _rt.anchorMax = new Vector2(0.5f, 0.5f);
                     Vector2 tipDir = new Vector2(Mathf.Cos(theta * Mathf.Deg2Rad), Mathf.Sin(theta * Mathf.Deg2Rad));
-                    _rt.anchoredPosition = local + tipDir * bob;   // 沿指向方向輕點（根部大致仍在頭上）
+                    Vector2 root = local;
+
+                    // 目標在下方（2026-11-07 作者回報：血狂之爭清場後指向南門，手指整隻蓋在玩家身上）：
+                    // 根部擺在頭上、手指往下轉 ⇒ 手會從胸口往下伸、壓在身體上。改成讓**指尖停在頭頂上方**：
+                    // 根部往「指尖的反方向」退一整根手指長。用 -tipDir.y 當權重平滑過渡——正下方完全套用、水平方向 0，
+                    // 所以目標在上方（邪佛廣場那種）位置完全不變，也不會在左右兩側跳一下。
+                    float down = Mathf.Clamp01(-tipDir.y);
+                    if (down > 0f && TryHeadTopLocal(out Vector2 headTop))
+                    {
+                        float len = _rt.rect.size.magnitude + DownTipGap;          // 根部(右下)到指尖(左上)＝圖的對角線
+                        Vector2 rootForDown = headTop - tipDir * len;              // 指尖剛好停在頭頂上方 DownTipGap
+                        root = Vector2.Lerp(local, rootForDown, down);
+                    }
+                    _rt.anchoredPosition = root + tipDir * bob;   // 沿指向方向輕點
                 }
             }
         }

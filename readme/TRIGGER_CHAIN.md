@@ -194,7 +194,7 @@ flag:hallGateOpen        旗標成立
 
 ## 3. 新增的動作型類型
 
-- **`giveItem` 給予物品(鏈動作)**：`itemId`、`count`（留空=1）。直接進背包＋中央 toast「獲得 XX」，裝不下的掉玩家腳下。**不用按 F**。
+- **`giveItem` 給予物品(鏈動作)**：`itemId`、`count`（留空=1）、`iconToast`（**道具圖示提示**，2026-11-07：勾＝訊息上方顯示道具圖示、滑鼠停在圖示上看說明時不消失，重要獎勵用；見 [UI_SYSTEM.md](UI_SYSTEM.md)〈System 層〉）。直接進背包＋中央 toast「獲得 XX」，裝不下的掉玩家腳下。**不用按 F**。
 - **`teleportTo` 直接傳送(鏈動作)**：`targetMapId`、`targetEntrance`。直接換圖。**不用踩傳送點**。
   ⚠️ 換圖 = 鏈的終點（setFlag 會先寫掉，next 填了也不會執行）。cutscene 同理。
 - **`cameraFocus` 鏡頭聚焦(鏈動作)**：`holdSeconds`（停留秒數，留空=1.6）、`dim`（黑幕樣式：`中央留洞`(預設)／`整片全黑`／`無`）、**`focusX`/`focusY`（聚焦點世界座標，2026-09-07 新增）**。被鏈啟動時**飄鏡頭到聚焦點＋壓黑幕、停留、再拉回**，全程定住玩家；**表演完才接 next**。純靠鏈驅動，**玩家踩不觸發**。
@@ -232,7 +232,7 @@ flag:hallGateOpen        旗標成立
     - 目前用在：夢境邪佛廣場「左鍵發射教學」（`進場對話(41) → 左鍵發射教學 → 怪物出生點1`，`textId=1011`、`hideOn=攻擊`、`pause=✓`）。
 - **`togglePortal` 開關傳送點(鏈動作)**：`target`（要開關的**傳送點名稱**，＝該傳送點的「名稱」欄；**可多筆**——編輯器按「＋」加一欄、「−」刪一欄，存成逗號分隔字串，一次開關多個門）、`show`（打勾＝顯示解鎖／不打勾＝**隱藏封鎖**，預設隱藏）。被鏈啟動時把這些 target 傳送點**逐一隱藏封鎖或顯示解鎖**——同時處理**踩踏功能**（進/移出停用集）＋**視覺**（`linkedFx` 綠幕＋`showMarker` 傳送點外型都跟著開關，看起來真的消失/出現）。Boss 房封門用：`onEnter → 對話 → togglePortal(target=門A,門B…, show=off)` 進門一次封多個門；打贏後接在 Boss 死亡旗標鏈上 `togglePortal(show=on)` 一次復原；最終關不接復原＝永久封著。（傳送點名稱請勿含逗號。）
   ⚠️ 隱藏是**執行期狀態、刻意不寫存檔**——換圖/重進房間會依 `startDisabled`＋`enableFlag` 重算（所以每次進 Boss 房靠 onEnter 重新封即可）。`show=on` 走既有解鎖邏輯，會順便寫該傳送點的 `enableFlag`（若有設）跨存讀檔記住開著。另：「一開始就封、打贏才開」其實不必用這個——傳送點設 `startDisabled`＋`enableFlag`、Boss 死亡旗標鏈接解鎖它即可（本動作是給「本來看得到、中途才封」的情境）。
-- **`bossIntro` Boss開戰資訊(鏈動作)**：`monsterId`（**MonsterData.csv 的怪物 ID**，與怪物出生點同一個 id）。⚠ 舊參數 `warnVfxId` **已停用**（2026-09-04 起被忽略，舊地圖不必回頭清）。被鏈啟動時播**開戰表演**：暫停遊戲 → 上下**電影黑邊**滑入、**黑霧**（`UI/BossAura`）湧入**籠罩整個畫面**翻騰 → **「強敵現身」文字從霧裡凝聚成形**（`UI/SmokeDissolve` 反向跑）→ 撐一拍 → **只有文字被吹散、霧繼續籠罩** → 左側滑入 boss **頭像**（Talk 立繪）、右側滑入**空白姓名牌匾**（專屬圖 `Resources/UI/BossIntroPanel/BossIntroPanelNameBG`），**疊在霧上面**演 → 名字以**扭曲抖動的半透明毛筆字**漸漸復原＋淡入浮現在牌匾上 → 停留一拍 → 頭像/名牌各自往左右**滑出**畫面 → **最後才輪到霧被吹散** → 整體淡出，**表演完才接 next**。全長約 8.7 秒（節奏欄位全在面板 Inspector）。**不可跳過**——刻意讓玩家完整看完開戰資訊才開打，沒有任何按鍵/點擊捷徑。純鏈驅動、玩家踩不觸發；格子畫在角落即可（0 格也可）。
+- **`bossIntro` Boss開戰資訊(鏈動作)**：`monsterId`（**MonsterData.csv 的怪物 ID**，與怪物出生點同一個 id；**2026-11-07 起可填多位，`|` 分隔**，例 `40|41`＝黑霧與「強敵現身」只演一次，中間依序滑入／滑出每一位的頭像與名牌，最後一位滑出後霧才散；後面接的出生點用「生出來時」串起來就能同時現身。編輯器欄位因此改成文字欄）。⚠ 舊參數 `warnVfxId` **已停用**（2026-09-04 起被忽略，舊地圖不必回頭清）。被鏈啟動時播**開戰表演**：暫停遊戲 → 上下**電影黑邊**滑入、**黑霧**（`UI/BossAura`）湧入**籠罩整個畫面**翻騰 → **「強敵現身」文字從霧裡凝聚成形**（`UI/SmokeDissolve` 反向跑）→ 撐一拍 → **只有文字被吹散、霧繼續籠罩** → 左側滑入 boss **頭像**（Talk 立繪）、右側滑入**空白姓名牌匾**（專屬圖 `Resources/UI/BossIntroPanel/BossIntroPanelNameBG`），**疊在霧上面**演 → 名字以**扭曲抖動的半透明毛筆字**漸漸復原＋淡入浮現在牌匾上 → 停留一拍 → 頭像/名牌各自往左右**滑出**畫面 → **最後才輪到霧被吹散** → 整體淡出，**表演完才接 next**。全長約 8.7 秒（節奏欄位全在面板 Inspector）。**不可跳過**——刻意讓玩家完整看完開戰資訊才開打，沒有任何按鍵/點擊捷徑。純鏈驅動、玩家踩不觸發；格子畫在角落即可（0 格也可）。
   **資料在表、trigger 只填 id**：顯示名／頭像填 `MonsterData.csv` 新增的 `DisplayName`／`PortraitPath` 欄（PortraitPath＝Talk 立繪的 catalog id，例 `Modules/RedBridalGown/Talk/redBridalGown_angry`；頭像與對話立繪同一條管線 `DramaTalkDatabase.ResolvePortrait`，**不用新素材分類**）。⚠️ `Name` 欄是程式鍵（動畫資料夾索引），不能拿來顯示，所以才另開 DisplayName。
   程式：`BossIntroPanel`（UIPanel，Overlay 層、PausesGame）＋前奏的兩支 **uGUI Image 用 shader**：`Resources/Shaders/BossAura.shader`（黑霧）與 `Resources/Shaders/SmokeDissolve.shader`（煙霧凝聚／消散，**一支做正反兩個方向**，同 `UI/BloodlineDissolve` 的設計）。掛 material 的範式同 `BloodlineIntroPanel`；shader、密度圖或文字圖載不到都會退化（沒有前奏或只剩死板漸層），表演仍完整跑完。
   ⚠ **紅霧的形狀來自兩張灰階密度圖**（`Resources/UI/BossIntroPanel/BossIntroPanel_Smoke1` 厚重霧體、`_Smoke2` 細絮煙流），shader 只負責行為（翻騰／聚攏／上色／吹散）。**不要為了省素材把它改回純程序 noise**——那條路試過並被退回：fbm 生得出雲斑、生不出煙的絲與捲，而那是形狀不是噪聲（見 [PROGRESS.md](PROGRESS.md) 與 [ART_DIRECTION.md](ART_DIRECTION.md) 紀律四）。
@@ -257,6 +257,7 @@ flag:hallGateOpen        旗標成立
 - **`factionWar` 三方陣營開戰(鏈動作)**：參數 `fullDamage`「兩族互打全額傷害」（勾＝**實戰**，2026-10-15：兩族互打不打折，演「敵族大軍殺光我方守軍再追玩家」；之後任何一顆沒勾的開戰／和平／換關卡回到演戲傷害）。被鏈啟動時**結束和平**、回到預設的敵對——狼人/吸血鬼兩族開始互咬（演戲傷害 1/100）＋攻擊玩家、切到可被玩家攻擊的層，立即接 next。狀態＝**關卡單次**（換 module 自動重置回敵對）。**沒擺過 `factionPeace` 的地圖按它也安全**（本來就敵對，只是重套一次 Layer）。典型：`對話/事件 → factionWar（完成寫旗標=部族開戰）`——同一顆順便讓和平版 NPC 退場（NPC 的「消失旗標」填同一旗）。詳見 [FACTION.md](FACTION.md)。
 - **`joinFaction` 加入陣營(鏈動作)**：`faction`（填 `狼人`/`werewolf` 或 `吸血鬼`/`vampire`）。被鏈啟動時玩家結盟該族——該族不再攻擊玩家、玩家武器打不到它（切 Ally 層），立即接 next；認不得的值印 Warning、仍接 next 不卡鏈。典型：首領 NPC 對話 → next 接這顆。詳見 [FACTION.md](FACTION.md)。
 - **`companion` 劇本同伴(鏈動作)**（2026-10-15）：`monsterId`（同伴用的 MonsterData 列）、`show`（勾＝召喚、不勾＝解散全部）、`x`/`y`（兩個都填＝生在該世界座標，否則玩家身旁）。同伴＝PlayerAlly＋`IsCompanion`＋**`CompanionBrain`**（2026-10-26 起）：發呆 4：作戰 6 排班（**不跟隨玩家**，換圖時照常被移到玩家落點），**每 2 秒 1 傷害**（很弱但不是零），攻擊方式看該列 `CompanionStyle`（空＝近戰、`Spin`＝原地旋轉打周圍，見 [BOSS_MODULE.md](BOSS_MODULE.md) §15）；**跨圖跟隨**、**不受傷**、**任何怪都不以它為目標**；該列 `ContactDamage` 填 0（不靠接觸傷害）。換關卡自動解散。程式 `AI/CompanionService.cs`。
+  **2026-11-07 加三個參數**：`vfxId`（**現身特效**，召喚時在同伴身上播的 VfxTable 特效，大小跟著同伴的可見高度；空＝不播）；`leave`（**退場方式**，只在解散時看：空／`立即消失`＝原本的直接銷毀、立即接 next；`說完往下走`＝頭上說 `leaveLineId` 那句 → 站約 1.3 秒 → 往畫面下方走、走出鏡頭就消失，**全部走掉才接 next**；走 6 秒還在畫面裡就原地淡出，鏈不會卡住）；`leaveLineId`（退場台詞的語言表 id）。程式 `CompanionService.LeaveAll`／`CompanionLeaveBrain`。同伴平常也會頭上說話（閒聊／門開了就催），台詞在 MonsterData 表尾，見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)〈劇本同伴的說話〉。
 - **`timedChoice` 二選一倒數(鏈動作)**（2026-10-15，血狂之爭「選邊」用；⏳ 未編譯未實測）：參數 `textId` 標題、`subTextId` 副標（空＝無）、`optionA`／`optionB` 兩顆按鈕的字（**全部是 `LanguageTable.csv` 的 id**）、`seconds` 倒數秒（空／0＝15）、**`nextA`／`nextB`／`nextTimeout`** 三條接續（編輯器欄旁有「選」可從本圖 trigger 名單點選）。被鏈啟動時**暫停遊戲**、開置中面板（`ChoicePanel`，Window 層）：按 A → 接 `nextA`、按 B → 接 `nextB`、倒數歸零 → 接 `nextTimeout`（留空＝歸零只關面板）。**三條互斥、只走一條**。
   - **通用 `next` 不用**（三條路各有自己的欄），填了 Console 警告並忽略；`setFlag` 照常，在「選完那一刻」寫（三條都寫）。
   - **不可 ESC 關閉**；倒數走 unscaled time（面板開著 `timeScale=0` 仍會倒數）；面板一開先擋 0.4 秒點擊（玩家多半是左鍵點掉上一段對話過來的，手還沒放開）。
@@ -269,6 +270,11 @@ flag:hallGateOpen        旗標成立
 
 - **`openPanel` 開啟介面(按F)**：`panelId`（要開哪個面板，目前只有 `gacha`）、`poolId`（`panelId=gacha` 時用：要開哪個抽選池）。玩家走到這幾格附近會出現星星＋「按 F」提示，按 F 開該面板。**地上物與觸發是兩件事**——祭壇的圖是地圖上的地上物（`rockAltar.png` ＋ `rockSlate_weapon.png` 之類的牌子），互動是**另外畫一顆 `openPanel` 觸發**蓋在祭壇前方玩家站得到的地板格上（跟 pickup 一樣要留意 [PROBLEMS.md](PROBLEMS.md) K1：感應格別只畫在實心物上）。條件欄位照常有效——祭壇填 `最低完成關卡數=1` ＝ 打過一關才開放，未達門檻走過去不會出現提示。
   > 程式端：`InteractionManager` 原本是寫死的 `enum PointKind` + 三處 switch，這次改成**可註冊的 `InteractKind` 表**（`TypeId`／`MarkerColor`／`Setup`／`Tip`／`Activate`），之後加互動型別只要在 `BuildKindRegistry()` 加一筆。
+
+- **`guideFinger` 引路手指(鏈動作)**（2026-11-07）：`target`（本圖某個 trigger 的**名稱**，通常是剛打開的傳送點；要有塗格子）、`show`（不勾＝收起）。玩家頭上出現邪佛廣場新手教學那支引路手指（`GuideFingerPanel.ShowWorldGuide`），指尖隨時朝目標、太靠近自動收、走遠又出現；**換圖自動收**（只收觸發鏈自己叫出來的，不動新手教學的手指）。立即接 next。典型：清場 `togglePortal` 開門 → 主角一句台詞 → `guideFinger` 指向那扇門（玩家看不到畫面外的門時用）。
+- **`wait` 等待(鏈動作)**（2026-11-07）：`seconds`（等待秒數，留空＝1）、`targets`（**同時啟動**，可多筆欄＝逗號分隔的 trigger 名稱）。被鏈啟動時等 N 秒 → **依序啟動 `targets` 的每一顆**（照 `Activate` 的正常語意：出生點＝解鎖「初始停用」、動作型＝執行）→ 再走自己的完成（寫 `setFlag`、接 `next`，兩者都可留空）。
+  **為什麼需要它**：通用 `next` 只能接**一顆**，而「下一波怪」通常是好幾顆出生點（一種怪一顆）要同時叫醒；另外波與波之間要停頓一下。典型用法見 §3.5b〈多波清場〉。
+  時間用**有縮放的時間**（暫停面板開著不倒數）；**等待中換圖＝整顆作廢**（不啟動 targets、不接 next）。程式：`TriggerChain.ExecuteWait` ＋ `TriggerChainRunner.After`。清場血球的戰鬥鏈分析也認得 `targets`（`MapClearReward`）。
 
 ## 3.5 怪物出生點（`monsterSpawn`）：一次性／重複產生／隨機怪種
 
@@ -452,6 +458,32 @@ flag:hallGateOpen        旗標成立
 `MapLoader.SpawnMonstersFromMap`（讀欄位；**有填鏈的一次性出生點也會交給 respawner** 才追蹤得到存活）。
 
 ---
+
+### 出生特效（`spawnVfxId`，2026-11-07）
+
+出生點參數區的 **「出生特效id(VfxTable/空=不播)」**：填 VfxTable 的 ID ＝ 生每一隻怪的同一幀在牠身上播一次特效（邊播邊出現），大小跟著這隻怪的可見高度——跟召喚武器的 `SummonEffectID` 是同一套（共用 `SummonSystem.PlaySpawnVfx`）。留空／0＝不播。
+有填的出生點一律交給 `MapMonsterRespawner`（輕量的「進圖當場生完」路徑不播特效）。
+
+> ⭐ **慣例（作者 2026-11-07 拍板）**：**一開始就擺在房間裡的怪不播；凡是「接續產生」的怪一律播**——下一波、劇情走到才冒出來的伏兵／圍攻（就算是那場戰鬥的第 1 波）都算。讓玩家看得到怪是「生出來的」，不會憑空出現。目前統一用 **VfxTable 10「招喚怪物」**。
+
+### 多波清場（每波怪種不同，清光才出下一波）——標準接法（2026-11-07）
+
+「第 1 波清光 → 停 1 秒 → 第 2 波 … → 最後一波清光 → 開門」不用新欄位，用**一次性出生點＋`wait`** 串：
+
+| 節點 | 怎麼填 |
+|---|---|
+| 第 N 波的每顆出生點 | **一種怪一顆**（格數＝隻數）、**一次性**（`spawnInterval` 留空）、同一個 `waveGroup`（例：`清場-1`、`清場-2`）。第 2 波以後勾 **`初始停用`**＋**`spawnVfxId=10`** |
+| 每波**其中一顆**的 `next` | 不是最後一波 → 接 `等待-第N+1波`；最後一波 → 接開門那顆（`togglePortal`） |
+| `等待-第N+1波`（`wait`，0 格） | `seconds=1`、`targets`＝第 N+1 波的**每一顆**出生點名稱 |
+
+```
+第1波(一次性/清場-1) ─全滅─▶ 等待-第2波(1秒) ─同時啟動▶ 第2波各顆(初始停用/清場-2/特效10) ─全滅─▶ 等待-第3波 ▶ … ─全滅─▶ 開前門
+```
+
+- 第 1 波若是「劇情走到才開打」（伏擊、圍攻），照原本的方式用 `conditions` 旗標叫出來，並且也填 `spawnVfxId`（見上面的慣例）。
+- 跟「單一出生點 `spawnInterval`＋`maxWaves`」的差別：那種是**計時湧怪、每波同一組怪種、不等清光**；這種是**每波怪種不同、清光才出下一波**。
+- 清場血球只在最後一波打完掉（`MapClearReward` 順著 `next`→`wait.targets` 追鏈，見 [RUN_PROGRESS.md](RUN_PROGRESS.md) §9.1）。
+- 實例：血狂之爭八間房（[bloodfang/SCRIPT.md](bloodfang/SCRIPT.md) §3.10）。
 
 ### 強制中止：`MapMonsterRespawner.AbortActiveWaves()`（2026-09-23，程式 API、沒有 trigger 欄位）
 

@@ -34,6 +34,7 @@ namespace Dipan.Cutscene
         float _tileSize = 1f;
         readonly Dictionary<string, CutsceneActor> _actors = new Dictionary<string, CutsceneActor>();
         MapCameraController _cam;
+        CutsceneActor _camFollowActor;   // cameraFollow 指定了演員：每幀把鏡頭對準他（2026-11-07）；null＝沒在跟演員
         bool _skip;
         System.Action _onFinished;   // 由 playCutscene 帶進來：演完（且沒交棒換圖）才接觸發鏈的 next
         bool _hudWasOpen;            // 開演前底部血量 HUD 是不是開著（hideHud 收尾要還原成原樣，不是無條件打開）
@@ -139,6 +140,15 @@ namespace Dipan.Cutscene
                 RequestSkip();
 
             EnforceHudHidden();
+        }
+
+        // 鏡頭跟演員（cameraFollow 填了 actorId）：每幀更新對準點。用 LateUpdate——演員本幀已經移動過了。
+        // 演員消失（despawn）後就不再更新，鏡頭停在他最後的位置，直到下一個 camera／cameraFollow／intro 或演出結束。
+        void LateUpdate()
+        {
+            var a = _camFollowActor;
+            if (a == null || _cam == null || a.go == null || !a.go.activeInHierarchy) return;
+            _cam.SetFocusPoint(a.VisualCenter());
         }
 
         /// <summary>
@@ -313,6 +323,8 @@ namespace Dipan.Cutscene
                         var a = Find(s.actorId);
                         if (a == null) break;
                         a.EnsureVisible();
+                        // 撞碎沿路：略過時演員直接瞬移，沒經過的那段路也要掃一遍，否則跳過的人會看到桌子完好如初
+                        if (s.breakObjects && s.hasPos && a.tr != null) BreakObjectsAlong(a.tr.position, new Vector2(s.x, s.y));
                         if (s.hasPos) a.Warp(new Vector2(s.x, s.y));
                         if (!string.IsNullOrEmpty(s.facing)) a.Face(s.facing);
                         break;
@@ -367,6 +379,31 @@ namespace Dipan.Cutscene
             }
         }
 
+        // ── move 的「沿路撞碎可破壞地上物」（2026-11-07，血狂之爭首領突圍撞爛和談圓桌）──
+        // 演員沒有碰撞體，自己不會撞到東西；這裡用圓形掃掠找路線上的 DestructibleObject，一次打爆（碎片順著衝刺方向飛）。
+        // 只碰得到「可破壞」的地上物（hp ≥ 0 才有 DestructibleObject）；不可摧毀（hp=-1）的照樣留著——演員會直接穿過去。
+        const float BreakRadius = 0.7f;
+        static void BreakObjectsAlong(Vector2 from, Vector2 to)
+        {
+            Vector2 d = to - from;
+            float len = d.magnitude;
+            Vector2 dir = len > 0.0001f ? d / len : Vector2.right;
+            Collider2D[] cols;
+            if (len > 0.0001f)
+            {
+                var hits = Physics2D.CircleCastAll(from, BreakRadius, dir, len);
+                cols = new Collider2D[hits.Length];
+                for (int i = 0; i < hits.Length; i++) cols[i] = hits[i].collider;
+            }
+            else cols = Physics2D.OverlapCircleAll(from, BreakRadius);
+
+            foreach (var c in cols)
+            {
+                var o = c != null ? c.GetComponentInParent<DestructibleObject>() : null;
+                if (o != null) o.TakeDamage(1e9f, dir);   // 一次打爆；已經壞了的 TakeDamage 自己會略過
+            }
+        }
+
         IEnumerator MoveStep(CutsceneStep s)
         {
             var a = Find(s.actorId);
@@ -375,9 +412,17 @@ namespace Dipan.Cutscene
             Vector2 target = new Vector2(s.x, s.y);
             a.SetMoveSpeed(s.speed > 0f ? s.speed : 2f);
             float guard = 0f, stall = 0f, best = float.MaxValue;
+            Vector2 breakFrom = a.tr.position;
             while (!a.Reached(target, 0.3f) && !_skip && guard < 20f)
             {
                 a.TickMove(target);
+                if (s.breakObjects)
+                {
+                    // 撞碎沿路地上物：用「上一幀→這一幀」的掃掠，不是只看當下位置——衝得快時一幀可能跨過整張薄桌子。
+                    Vector2 now = a.tr.position;
+                    BreakObjectsAlong(breakFrom, now);
+                    breakFrom = now;
+                }
                 float dist = ((Vector2)a.tr.position - target).magnitude;
                 if (dist < best - 0.02f) { best = dist; stall = 0f; }   // 有進步就重置
                 else stall += Time.deltaTime;
@@ -428,6 +473,7 @@ namespace Dipan.Cutscene
         IEnumerator CameraStep(CutsceneStep s)
         {
             if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
+            _camFollowActor = null;   // 定點運鏡＝不再跟演員
             if (_cam != null)
             {
                 if (s.hasPos) _cam.SetFocusPoint(new Vector2(s.x, s.y));
@@ -450,6 +496,7 @@ namespace Dipan.Cutscene
             var a = Find(s.actorId);
             if (a == null) Debug.LogWarning($"[Cutscene] intro 步驟找不到演員「{s.actorId}」：鏡頭不動，照樣顯示介紹。");
             if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
+            _camFollowActor = null;   // 介紹＝鏡頭定在這個角色身上（含偏移），不跟
             if (a != null && _cam != null)
             {
                 a.EnsureVisible();
@@ -486,10 +533,25 @@ namespace Dipan.Cutscene
             if (_introPanel != null) { Destroy(_introPanel.gameObject); _introPanel = null; }
         }
 
+        // 鏡頭跟隨：actorId 空＝放回跟隨玩家（原行為）；填了演員＝之後每幀跟著那個演員（LateUpdate），
+        // 直到下一個 camera／cameraFollow／intro 或演出結束（2026-11-07 補上——編輯器早就能選演員，遊戲端以前忽略它）。
+        // seconds＝這一步擋住多久（鏡頭平移過去的時間），之後鏡頭繼續跟、主線往下走。
         IEnumerator CameraFollowStep(CutsceneStep s)
         {
             if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
-            if (_cam != null) { _cam.SetFocusPoint(null); _cam.ClearCameraZone(); }   // 放回跟隨玩家
+            _camFollowActor = string.IsNullOrEmpty(s.actorId) ? null : Find(s.actorId);
+            if (!string.IsNullOrEmpty(s.actorId) && _camFollowActor == null)
+                Debug.LogWarning($"[Cutscene] cameraFollow 找不到演員「{s.actorId}」，改成跟隨玩家。");
+            if (_cam != null)
+            {
+                _cam.ClearCameraZone();
+                if (_camFollowActor != null && _camFollowActor.go != null)
+                {
+                    _camFollowActor.EnsureVisible();
+                    _cam.SetFocusPoint(_camFollowActor.VisualCenter());
+                }
+                else _cam.SetFocusPoint(null);   // 放回跟隨玩家
+            }
             yield return WaitUnscaled(s.seconds > 0f ? s.seconds : 0.5f);
         }
 
@@ -643,6 +705,7 @@ namespace Dipan.Cutscene
                 if (a.go != null) _standing.Add(a.go);       // 記著，下次開演前清掉，避免重進時堆疊
             }
             _actors.Clear();
+            _camFollowActor = null;
             if (_cam == null) _cam = FindObjectOfType<MapCameraController>();
             if (_cam != null) { _cam.SetFocusPoint(null); _cam.ClearCameraZone(); }
         }

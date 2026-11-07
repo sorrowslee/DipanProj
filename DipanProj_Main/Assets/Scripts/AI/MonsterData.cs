@@ -136,6 +136,13 @@ public class MonsterData
     public string CompanionStyle = "";
 
     /// <summary>
+    /// 劇本同伴的台詞（CSV 表尾欄 <c>CompanionLines</c>／<c>CompanionUrgeLines</c>，2026-11-07）：只有被 <c>companion</c> 叫出來的同伴會講（<see cref="CompanionSpeech"/>）。
+    /// 一格多句用全形「／」分隔；句首可加 [刺]／[圓]。閒聊＝平常隨機講；催促＝本圖有傳送點被打開之後改講這組。留空＝不講。
+    /// </summary>
+    public List<string> CompanionLines = new List<string>();
+    public List<string> CompanionUrgeLines = new List<string>();
+
+    /// <summary>
     /// attack／slash 的水平補償（CSV 表尾欄 <c>AttackOffsetX</c>，2026-10-27）：素材裡持武器動作的身體比 idle **往面向前方**偏了多少原圖像素。
     /// 載圖時用水平 pivot 補回 ⇒ 一出手不會整隻往前跳。留空＝0＝不補（既有怪零變化）。量法見 MONSTER_SETUP。
     /// </summary>

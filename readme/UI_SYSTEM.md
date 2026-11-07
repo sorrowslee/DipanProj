@@ -108,6 +108,9 @@ public class InventoryPanel : UIPanel
 | 30000 | `ScreenFader` 黑幕 | 蓋過一切 |
 
 - **`System` 層是給「絕對不能被吃掉的回饋」用的**，目前只有 `AlertPanel`。放進去的東西**一律 `raycastTarget = false`**——它蓋在所有視窗之上，會擋掉底下的點擊。
+- **在可點擊的介面元件上按下左鍵＝這一下不開火**（2026-11-07，PROBLEMS **F43**）：`PlayerController` 在左鍵按下時看游標最上層是不是按鈕／會接點擊的元件（或介面正擋著輸入），是的話這次按住到放開都不算開火。新的按鈕不用自己處理。
+- **道具獲得提示 `AlertPanel.ToastItem(itemId, count)`**（2026-11-07）：一般 toast 的另一種樣式——文字「獲得 名稱 ×數量」（語言表 8002）上方多一個 96px 道具圖示（走 `ItemIcons.Apply`），停 3 秒（一般訊息 1.6 秒）後淡出；**滑鼠移到圖示上**＝跳出全遊戲共用的 `ItemTooltip`，期間訊息不消失，移開後再撐 0.6 秒才淡出。hover **不靠 raycast**（本層一律 `raycastTarget=false`），每幀用 `RectangleContainsScreenPoint` 判斷游標；tooltip 用 `ItemTooltip.Create(parent, UILayer.System)` 掛在同一層，否則會被 toast 的深色底壓住。觸發鏈 `giveItem` 勾「道具圖示提示」就走這個。
+  ⚠ **hover 時不會自己消失，所以「要離開這裡」的流程一定要收掉它**：`AlertPanel.DismissItemToasts()`——目前在 `GameFlowManager` 卍字離場開始時與 `LoadSceneRoutine` 開頭呼叫；換圖（`MapManager.IsLoading` 或 `CurrentMapId` 變了）由提示自己每幀偵測。新增別的「離開」流程時記得也叫一次（2026-11-07 作者實測：看著說明時倒數到了，提示一路掛到邪佛廣場）。
 - 這層是 2026-08-22 加的：`AlertPanel` 原本掛在 `HUD`，於是「開著背包點一個不能用的道具」時提示被背包整個蓋住，玩家看到的是「點了沒反應」（見 [PROBLEMS.md](PROBLEMS.md) **E18**）。
 - ⚠ `ScreenFxPlayer` 播全螢幕特效時會 `SetLayerVisible(HUD, false)`，**只藏 HUD**；系統訊息現在不在 HUD，所以特效期間照樣看得到。若哪天覺得不該，請一併藏 `System`。
 

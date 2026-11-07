@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using Sorrows.Ballistics;
 
 public class PlayerController : MonoBehaviour, IDamageable
@@ -333,8 +334,45 @@ public class PlayerController : MonoBehaviour, IDamageable
         }
     }
 
+    // ── 左鍵開火閘門（2026-11-07）──
+    // 作者實測：演出播頭上泡泡對話時（沒鎖操作）按右上角 Skip，玩家同時開火。原因是開火只看「左鍵按著沒」，
+    // 從不管這一下是按在按鈕上。規則：**左鍵是在可點擊的介面元件上按下去、或按下時介面正擋著遊戲輸入**
+    // ⇒ 這一次按住到放開都不算開火。空白鍵開火不受影響。
+    bool _mouseFireSuppressed;
+    bool _mouseFireHeld, _mouseFirePressed;   // 本幀「可以算開火」的左鍵狀態（UpdateMouseFireGate 算好，下面四處共用）
+    static readonly List<RaycastResult> _uiHits = new List<RaycastResult>();
+
+    void UpdateMouseFireGate()
+    {
+        if (Input.GetMouseButtonDown(0))
+            _mouseFireSuppressed = Dipan.UI.UIManager.IsGameplayInputBlocked || PressedOnClickableUI();
+        bool held = Input.GetMouseButton(0);
+        if (!held) _mouseFireSuppressed = false;
+        _mouseFireHeld = held && !_mouseFireSuppressed;
+        _mouseFirePressed = Input.GetMouseButtonDown(0) && !_mouseFireSuppressed;
+    }
+
+    /// <summary>游標最上層的介面元件是不是「點得下去的東西」（按鈕、會接點擊的格子…）。純顯示的圖不算，免得 HUD 圖擋掉開火。</summary>
+    static bool PressedOnClickableUI()
+    {
+        var es = EventSystem.current;
+        if (es == null) return false;
+        var ped = new PointerEventData(es) { position = Input.mousePosition };
+        _uiHits.Clear();
+        es.RaycastAll(ped, _uiHits);
+        if (_uiHits.Count == 0) return false;
+        var top = _uiHits[0].gameObject;   // RaycastAll 已依前後排好，只看最上面那個（被它蓋住的本來就點不到）
+        return top != null
+            && (top.GetComponentInParent<UnityEngine.UI.Selectable>() != null
+                || ExecuteEvents.GetEventHandler<IPointerClickHandler>(top) != null
+                || ExecuteEvents.GetEventHandler<IPointerDownHandler>(top) != null);
+    }
+
     void Update()
     {
+        // 左鍵開火閘門要每幀都更新（含下面「介面擋輸入」提早 return 的幀），按下那一刻的判斷才不會漏。
+        UpdateMouseFireGate();
+
         // 死亡後鎖住一切操作（移動/攻擊/切武器）；死亡動畫已在 Die() 觸發、Death 狀態定住。
         if (_isDead) { _moveInput = Vector2.zero; return; }
 
@@ -359,7 +397,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             // 不能開火時按攻擊鍵不該有任何反應，包含轉身。目前柴房教學此階段必定已裝備佛燈、
             // 且教學地圖沒設 NoWeapon，所以實務上恆為 true；寫上去是避免未來「禁武地圖 + FireOnly 教學」時行為不一致。
             if (_spriteRenderer != null && Camera.main != null && CanFire
-                && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0)))
+                && (Input.GetKey(KeyCode.Space) || _mouseFireHeld))
             {
                 float dx = Camera.main.ScreenToWorldPoint(Input.mousePosition).x - transform.position.x;
                 if (dx < 0) SetFacing(false); else if (dx > 0) SetFacing(true);
@@ -388,7 +426,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             // 不能開火時按攻擊鍵不該有任何反應——包含「轉身面向滑鼠」。
             // （否則空手／禁武地圖邊走邊按左鍵，人物朝向會跟移動方向不一致。）
             // （武器欄裝的是浮游等被動型武器時 CanFire 為 false ⇒ 按了也不轉身，否則邊走邊按左鍵，朝向會跟移動方向對不上。）
-            bool isAttacking = CanFire && (Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0));
+            bool isAttacking = CanFire && (Input.GetKey(KeyCode.Space) || _mouseFireHeld);
             if (isAttacking)
             {
                 Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
@@ -671,8 +709,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             _forceFireUntil = 0f;
         }
 
-        bool firing = forced || Input.GetKey(KeyCode.Space) || Input.GetMouseButton(0);
-        bool firePressed = forcedPressed || Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0);
+        bool firing = forced || Input.GetKey(KeyCode.Space) || _mouseFireHeld;
+        bool firePressed = forcedPressed || Input.GetKeyDown(KeyCode.Space) || _mouseFirePressed;
 
         // 放開開火 → 解除攻擊姿勢的「持有」。⚠ 這只是解除持有，**動畫不會被切斷**：
         // HandleVisuals 還會看 IsAttackPlaying，所以點一下也一定看得到完整的攻擊動作。

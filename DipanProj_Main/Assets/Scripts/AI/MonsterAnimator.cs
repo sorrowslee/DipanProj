@@ -190,66 +190,11 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         ReferenceSpeed = referenceSpeed > 0f ? referenceSpeed : 3f;
 
         var lib = MonsterSpriteLibrary.Instance;
-        // 逐動作縮放：**留空＝自動依可見高對齊 idle；有填＝在那個自動結果上「再乘」**（2026-09-22 改，見 Tile()）。
-        //   ⚠ 舊版手填是「覆寫自動」⇒ 填 1.1 常常反而變小（自動倍率本來就 > 1）。
-        // ⚠ 自動那套量的是可見高度，對「同一視角、只是畫粗一圈」很準，但對**四足獸**會適得其反——
-        //   idle 是 3/4 正面站姿、walk 是側面奔跑**壓低身體**，高度矮就被放大：戰狼實測 walk ×1.288、
-        //   等效寬 221→285px（idle 才 181），作者實機回報「walk 明顯比 idle 大很多」。
-        //   這種「視角本身換了」的素材演算法永遠猜不準，所以開放 MonsterData 的 IdleScale/WalkScale/AttackScale 手填。
-        float idleVis = StateVisH(lib, monsterName, "idle");
-        float idleTile   = Tile(lib, monsterName, "idle",   tileSize, idleVis, idleScale);
-        float walkTile   = Tile(lib, monsterName, "walk",   tileSize, idleVis, walkScale);
-        float attackTile = Tile(lib, monsterName, "attack", tileSize, idleVis, attackScale);
-        float pantTile   = Tile(lib, monsterName, "pant",   tileSize, idleVis, idleScale);   // pant 是站著喘 → 沿用 idle 的倍率
-        // jump 的倍率語義**與其他動作不同**（2026-09-18 加 JumpScale 欄時保留這個設計）：
-        //   ‧ 有填 → 照填的走（× tileSize），和其他動作一樣。
-        //   ‧ **留空 → 沿用 idle 的 tileSize，不走自動高度對齊**（其他動作留空是走自動）。
-        // ⚠ 為什麼 jump 不能用自動：自動那套是「把這個動作的可見高度拉成跟 idle 一樣」，
-        //   而跳躍的可見高度**本來就是動作的內容**（蹲下蓄力時矮、騰空伸展時又不同）。
-        //   對它做正規化＝把跳躍最重要的那段身體變化整個抵銷掉，而且越蜷縮的幀被放得越大
-        //   ⇒ 騰空時怪會忽然膨脹一圈（同 PROBLEMS G12 的機制，但這裡發生在幀與幀之間）。
-        //   狂族皇家衛士實測：jump 的可見高在 152~190px 之間跳動、idle 是 199 ⇒ 自動對齊會逐幀放大 1.05~1.31 倍。
-        // jump 有填 → **以 idle 的最終大小為基準再乘**（與其他動作同語意：「比平常大幾倍」）；
-        // 留空 → 直接沿用 idleTile。兩種情況都不走自動高度對齊（理由見上）。
-        // ⚠ 基準是 idleTile 不是 tileSize：IdleScale 有填時，jump 也該跟著那個大小走。
-        float jumpTile   = jumpScale > 0.0001f ? Mathf.Clamp(idleTile * jumpScale, 0.1f, 30f) : idleTile;
-
-        // hang（倒吊）與 jump 同語義：留空＝沿用 idle 的大小、不做自動高度對齊；有填＝以 idle 為基準再乘。
-        //   倒吊的身體比坐姿長得多（血蝠：hang 可見高 335px、idle 坐姿 209px），自動對齊會把牠縮成 0.63 倍。
-        float hangTile   = hangScale > 0.0001f ? Mathf.Clamp(idleTile * hangScale, 0.1f, 30f) : idleTile;
-
-        // ⭐ 飛行怪（flyer，2026-10-11）：walk（＝飛行）與 attack（＝俯衝）也比照 jump，**不做自動高度對齊**。
-        //   飛行怪的 idle 是「停在地上」的姿勢（血蝠＝坐著），而振翅的可見高度每一幀都在變（翅膀上揚／下壓），
-        //   拿坐姿去正規化展翅 ⇒ 整組被縮放成另一個大小，切 hang→walk→attack 時忽大忽小。
-        //   所以飛行怪全部沿用 idle 的大小（＝同一張畫布、同一個縮放），WalkScale/AttackScale 有填就再乘。
-        //   旗標由 MonsterController 依 BrainType（Flying／Bat）傳入；非飛行怪零變化。
-        if (flyer)
-        {
-            walkTile   = walkScale   > 0.0001f ? Mathf.Clamp(idleTile * walkScale,   0.1f, 30f) : idleTile;
-            attackTile = attackScale > 0.0001f ? Mathf.Clamp(idleTile * attackScale, 0.1f, 30f) : idleTile;
-        }
-
-        // ⚠ 第 4 個參數是 **idle 的 tileSize**：腳底對齊（pivot 補償）要知道「基準動作被放大多少」才算得對，
-        //   各動作的 tileSize 不一樣時，只比像素會錯。見 MonsterSpriteLibrary.GetFrames。
-        _idle   = lib.GetFrames(monsterName, "idle",   idleTile,   idleTile);
-        _walk   = lib.GetFrames(monsterName, "walk",   walkTile,   idleTile);
-        // attackOffsetXPx（CSV AttackOffsetX）：持劍動作的素材裡身體比 idle 往前偏的像素，用水平 pivot 補回（attack 與 slash 共用）。
-        // attackFootLock（CSV AttackFootLock）：揮劍時劍尖掃到腳底線以下的怪，逐幀對齊會把整隻往上抬（G18）⇒ 改成只量第一幀。
-        _attack = lib.GetFrames(monsterName, "attack", attackTile, idleTile, attackFootLock, attackOffsetXPx);
-        _pant   = lib.GetFrames(monsterName, "pant",   pantTile,   idleTile);
-        _jump   = lib.GetFrames(monsterName, "jump",   jumpTile,   idleTile);
-        _hang   = lib.GetFrames(monsterName, "hang",   hangTile,   idleTile);
-        // 起跳／落地兩段與 jump 同一套倍率語義（JumpScale 有填＝idle × 它；留空＝沿用 idle，不做自動高度對齊）。
-        // 理由同 jump：蹲下、伸展、壓扁的身高變化**就是動作本身**，正規化會把它抵銷掉。
-        _jumpStart   = lib.GetFrames(monsterName, "jumpStart",   jumpTile, idleTile);
-        _jumpLanding = lib.GetFrames(monsterName, "jumpLanding", jumpTile, idleTile);
-        // slash（跳劈）與 dodge（化風閃避）：**整個動作只量第一幀**對齊腳底（最後一個參數，見 PROBLEMS G17）——
-        //   逐幀量會把 slash 騰空的那幾幀拉回地面（＝跳不起來）、把 dodge 散開的風推得上下亂跳。
-        //   大小：slash 是持劍姿勢（同 attack），走自動高度對齊並吃 AttackScale；
-        //         dodge 第一幀就是 idle 站姿，直接沿用 idle 的大小（中間全是風，自動對齊會被風的高度誤導）。
-        float slashTile = Tile(lib, monsterName, "slash", tileSize, idleVis, attackScale);
-        _slash = lib.GetFrames(monsterName, "slash", slashTile, idleTile, true, attackOffsetXPx);
-        _dodge = lib.GetFrames(monsterName, "dodge", idleTile,  idleTile, true);
+        // 算各動作的倍率＋取幀：抽成 LoadFrames（2026-11-07），讀取頁的預熱（PrewarmFrames）走同一條 ⇒ 快取 key 一定相同。
+        var fs = LoadFrames(lib, monsterName, tileSize, idleScale, walkScale, attackScale, jumpScale, hangScale,
+                            flyer, attackOffsetXPx, attackFootLock);
+        _idle = fs.idle; _walk = fs.walk; _attack = fs.attack; _pant = fs.pant; _jump = fs.jump; _hang = fs.hang;
+        _jumpStart = fs.jumpStart; _jumpLanding = fs.jumpLanding; _slash = fs.slash; _dodge = fs.dodge;
 
         // 【過渡期】角色取樣密度對齊背景（mipMapBias），見 CharacterMipBias 檔頭；背景解析度提上來後可拿掉這三行。
         CharacterMipBias.Register(_idle, transform);
@@ -296,6 +241,93 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         _idx = 0;
         _timer = 0f;
         ApplyFrame();   // 先把第 0 幀指上去，讓 MonsterController 的 AutoAdjustCollider 量得到尺寸
+    }
+
+    struct FrameSet
+    {
+        public Sprite[] idle, walk, attack, pant, jump, hang, jumpStart, jumpLanding, slash, dodge;
+    }
+
+    /// <summary>
+    /// **預熱**（2026-11-07，作者：「第一波結束、第二波要出來時非常明顯的卡頓」）：不建任何元件，
+    /// 只用跟 <see cref="Setup"/> 完全相同的參數把各動作的 Sprite 建進 <see cref="MonsterSpriteLibrary"/> 的快取。
+    /// 讀取頁呼叫（見 <c>MonsterController.PrewarmVisuals</c>）；之後真正生怪時 GetFrames 全部命中快取。
+    /// <para>為什麼貼圖預載了還會卡：Sprite.Create 預設是貼合外形的網格（Tight），建立時要讀整張圖的透明度算輪廓——
+    /// 一種怪所有動作加起來上百張，全部擠在牠第一次被生出來的那一幀。</para>
+    /// </summary>
+    public static void PrewarmFrames(string monsterName, float tileSize, float idleScale, float walkScale, float attackScale,
+                                     float jumpScale, float hangScale, bool flyer, float attackOffsetXPx, bool attackFootLock)
+        => LoadFrames(MonsterSpriteLibrary.Instance, monsterName, tileSize, idleScale, walkScale, attackScale, jumpScale, hangScale,
+                      flyer, attackOffsetXPx, attackFootLock);
+
+    // 算各動作的倍率並取幀（原本寫在 Setup 裡，原樣搬出來；Setup 與 PrewarmFrames 共用）。
+    static FrameSet LoadFrames(MonsterSpriteLibrary lib, string monsterName, float tileSize,
+                               float idleScale, float walkScale, float attackScale, float jumpScale, float hangScale,
+                               bool flyer, float attackOffsetXPx, bool attackFootLock)
+    {
+        var fs = new FrameSet();
+        // 逐動作縮放：**留空＝自動依可見高對齊 idle；有填＝在那個自動結果上「再乘」**（2026-09-22 改，見 Tile()）。
+        //   ⚠ 舊版手填是「覆寫自動」⇒ 填 1.1 常常反而變小（自動倍率本來就 > 1）。
+        // ⚠ 自動那套量的是可見高度，對「同一視角、只是畫粗一圈」很準，但對**四足獸**會適得其反——
+        //   idle 是 3/4 正面站姿、walk 是側面奔跑**壓低身體**，高度矮就被放大：戰狼實測 walk ×1.288、
+        //   等效寬 221→285px（idle 才 181），作者實機回報「walk 明顯比 idle 大很多」。
+        //   這種「視角本身換了」的素材演算法永遠猜不準，所以開放 MonsterData 的 IdleScale/WalkScale/AttackScale 手填。
+        float idleVis = StateVisH(lib, monsterName, "idle");
+        float idleTile   = Tile(lib, monsterName, "idle",   tileSize, idleVis, idleScale);
+        float walkTile   = Tile(lib, monsterName, "walk",   tileSize, idleVis, walkScale);
+        float attackTile = Tile(lib, monsterName, "attack", tileSize, idleVis, attackScale);
+        float pantTile   = Tile(lib, monsterName, "pant",   tileSize, idleVis, idleScale);   // pant 是站著喘 → 沿用 idle 的倍率
+        // jump 的倍率語義**與其他動作不同**（2026-09-18 加 JumpScale 欄時保留這個設計）：
+        //   ‧ 有填 → 照填的走（× tileSize），和其他動作一樣。
+        //   ‧ **留空 → 沿用 idle 的 tileSize，不走自動高度對齊**（其他動作留空是走自動）。
+        // ⚠ 為什麼 jump 不能用自動：自動那套是「把這個動作的可見高度拉成跟 idle 一樣」，
+        //   而跳躍的可見高度**本來就是動作的內容**（蹲下蓄力時矮、騰空伸展時又不同）。
+        //   對它做正規化＝把跳躍最重要的那段身體變化整個抵銷掉，而且越蜷縮的幀被放得越大
+        //   ⇒ 騰空時怪會忽然膨脹一圈（同 PROBLEMS G12 的機制，但這裡發生在幀與幀之間）。
+        //   狂族皇家衛士實測：jump 的可見高在 152~190px 之間跳動、idle 是 199 ⇒ 自動對齊會逐幀放大 1.05~1.31 倍。
+        // jump 有填 → **以 idle 的最終大小為基準再乘**（與其他動作同語意：「比平常大幾倍」）；
+        // 留空 → 直接沿用 idleTile。兩種情況都不走自動高度對齊（理由見上）。
+        // ⚠ 基準是 idleTile 不是 tileSize：IdleScale 有填時，jump 也該跟著那個大小走。
+        float jumpTile   = jumpScale > 0.0001f ? Mathf.Clamp(idleTile * jumpScale, 0.1f, 30f) : idleTile;
+
+        // hang（倒吊）與 jump 同語義：留空＝沿用 idle 的大小、不做自動高度對齊；有填＝以 idle 為基準再乘。
+        //   倒吊的身體比坐姿長得多（血蝠：hang 可見高 335px、idle 坐姿 209px），自動對齊會把牠縮成 0.63 倍。
+        float hangTile   = hangScale > 0.0001f ? Mathf.Clamp(idleTile * hangScale, 0.1f, 30f) : idleTile;
+
+        // ⭐ 飛行怪（flyer，2026-10-11）：walk（＝飛行）與 attack（＝俯衝）也比照 jump，**不做自動高度對齊**。
+        //   飛行怪的 idle 是「停在地上」的姿勢（血蝠＝坐著），而振翅的可見高度每一幀都在變（翅膀上揚／下壓），
+        //   拿坐姿去正規化展翅 ⇒ 整組被縮放成另一個大小，切 hang→walk→attack 時忽大忽小。
+        //   所以飛行怪全部沿用 idle 的大小（＝同一張畫布、同一個縮放），WalkScale/AttackScale 有填就再乘。
+        //   旗標由 MonsterController 依 BrainType（Flying／Bat）傳入；非飛行怪零變化。
+        if (flyer)
+        {
+            walkTile   = walkScale   > 0.0001f ? Mathf.Clamp(idleTile * walkScale,   0.1f, 30f) : idleTile;
+            attackTile = attackScale > 0.0001f ? Mathf.Clamp(idleTile * attackScale, 0.1f, 30f) : idleTile;
+        }
+
+        // ⚠ 第 4 個參數是 **idle 的 tileSize**：腳底對齊（pivot 補償）要知道「基準動作被放大多少」才算得對，
+        //   各動作的 tileSize 不一樣時，只比像素會錯。見 MonsterSpriteLibrary.GetFrames。
+        fs.idle   = lib.GetFrames(monsterName, "idle",   idleTile,   idleTile);
+        fs.walk   = lib.GetFrames(monsterName, "walk",   walkTile,   idleTile);
+        // attackOffsetXPx（CSV AttackOffsetX）：持劍動作的素材裡身體比 idle 往前偏的像素，用水平 pivot 補回（attack 與 slash 共用）。
+        // attackFootLock（CSV AttackFootLock）：揮劍時劍尖掃到腳底線以下的怪，逐幀對齊會把整隻往上抬（G18）⇒ 改成只量第一幀。
+        fs.attack = lib.GetFrames(monsterName, "attack", attackTile, idleTile, attackFootLock, attackOffsetXPx);
+        fs.pant   = lib.GetFrames(monsterName, "pant",   pantTile,   idleTile);
+        fs.jump   = lib.GetFrames(monsterName, "jump",   jumpTile,   idleTile);
+        fs.hang   = lib.GetFrames(monsterName, "hang",   hangTile,   idleTile);
+        // 起跳／落地兩段與 jump 同一套倍率語義（JumpScale 有填＝idle × 它；留空＝沿用 idle，不做自動高度對齊）。
+        // 理由同 jump：蹲下、伸展、壓扁的身高變化**就是動作本身**，正規化會把它抵銷掉。
+        fs.jumpStart   = lib.GetFrames(monsterName, "jumpStart",   jumpTile, idleTile);
+        fs.jumpLanding = lib.GetFrames(monsterName, "jumpLanding", jumpTile, idleTile);
+        // slash（跳劈）與 dodge（化風閃避）：**整個動作只量第一幀**對齊腳底（最後一個參數，見 PROBLEMS G17）——
+        //   逐幀量會把 slash 騰空的那幾幀拉回地面（＝跳不起來）、把 dodge 散開的風推得上下亂跳。
+        //   大小：slash 是持劍姿勢（同 attack），走自動高度對齊並吃 AttackScale；
+        //         dodge 第一幀就是 idle 站姿，直接沿用 idle 的大小（中間全是風，自動對齊會被風的高度誤導）。
+        float slashTile = Tile(lib, monsterName, "slash", tileSize, idleVis, attackScale);
+        fs.slash = lib.GetFrames(monsterName, "slash", slashTile, idleTile, true, attackOffsetXPx);
+        fs.dodge = lib.GetFrames(monsterName, "dodge", idleTile,  idleTile, true);
+
+        return fs;
     }
 
     /// <summary>這隻怪有沒有這個動作的圖。</summary>

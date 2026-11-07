@@ -26,8 +26,8 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 25,10,reveal:redBridalReadLetter:1106,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_expect2,2,...
 26,10,reveal:redBridalReadLetter:1106,Actor_Normal,Modules/RedBridalGown/Talk/redBridalGown_happy,2,我，我真的恢復了，謝謝您，我的大恩人
 27,10,主角,Actor_Happy,Modules/RedBridalGown/Talk/redBridalGown_happy,1,沒什麼啦，好啦，我感覺到那傢伙要來接我了，後會有期，再見~~
-28,11,主角,Actor_Normal,,1,今天真是個神清氣爽的早晨，早起爬山真是對的，今天看我征服這座大山!
-29,12,主角,Actor_Normal,,1,一家人來爬山呀，真好，老爸老媽一定都還在睡，下次把他們也抓來一起爬山
+28,11,主角,Actor_Happy,,1,今天真是個神清氣爽的早晨，早起爬山真是對的，今天看我征服這座大山!
+29,12,主角,Actor_Happy,,1,一家人來爬山呀，真好，老爸老媽一定都還在睡，下次把他們也抓來一起爬山
 30,13,主角,Actor_Happy,,1,做了好事心情真是舒暢，休息一下再繼續爬吧
 31,14,主角,,,1,啊啊啊啊啊啊啊啊啊~~~~
 32,15,主角,,,1,又是這個夢...真的好真實
@@ -64,8 +64,8 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 63,38,謎之音,,,1,先打敗這些傢伙再來找我吧
 64,39,謎之音,,,1,這次好像有點長進，不過我看遠遠不夠，先接下我這掌吧
 65,40,,Actor_Angry,,1,不，我不會失敗的，絕對不會
-81,46,,,Actor_Normal,2,兩族的首領都倒下了。
-82,46,,,Actor_Normal,2,這座府邸裡，再也沒有人攔得住我。
+81,46,,,Actor_Normal,2,lang:3036
+82,46,,,Actor_Normal,2,lang:3037
 110,26,人族接待員,Modules/BloodFang/Talk/Housekeeper_normal,Actor_Normal,1,恭迎貴客光臨……兩位大人談了一整晚，還沒談出個結果。
 111,26,人族接待員,Modules/BloodFang/Talk/Housekeeper_normal,Actor_Normal,1,請跟我來吧。
 112,41,血族士兵,Modules/BloodFang/Talk/VampireSoldier_fear,Actor_Normal,1,公爵大人！狂族大軍殺進來了，我們的防線……全被攻破了！
@@ -179,3 +179,5 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 220,77,道長,Modules/RedBridalGown/Talk/Priest_normal,Modules/RedBridalGown/Talk/Father_sad,1,lang:1103
 221,77,道長,Modules/RedBridalGown/Talk/Priest_normal,Modules/RedBridalGown/Talk/Father_sad,1,lang:1104
 222,77,父親,Modules/RedBridalGown/Talk/Priest_normal,Modules/RedBridalGown/Talk/Father_grateful,2,lang:1105
+223,78,,,Actor_Normal,2,lang:3034
+224,79,,,Actor_Normal,2,lang:3035

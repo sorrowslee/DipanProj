@@ -207,6 +207,16 @@ public class BloodMistVisual : MonoBehaviour
         if (_shadow != null) _shadow.SetVisible(!hide);
     }
 
+    /// <summary>
+    /// 讀取頁預熱（2026-11-07，PROBLEMS E45）：把共用材質（shader＋兩張煙霧密度圖，Resources 同步載入）與共用 sprite 先建好。
+    /// 不預熱的話是**第一隻血衛士生出來那一幀**才載——血狂之爭好幾間房的血衛士都是第 2 波才登場，正好卡在換波。
+    /// </summary>
+    public static void Prewarm()
+    {
+        GetSharedMaterial();
+        GetSharedSprite();
+    }
+
     static Material GetSharedMaterial()
     {
         if (_sharedMat != null) return _sharedMat;

@@ -213,8 +213,21 @@ namespace Dipan.UI
         // 滑入的起點/終點（anchoredPosition.x）
         float _portraitFromX, _portraitToX, _plateFromX, _plateToX;
 
+        // ── 多位首領（2026-11-07）──
+        [Tooltip("多位首領一起開場時，前一位滑出到下一位滑入之間的間隔（秒）")]
+        public float BossGapSeconds = 0.25f;
+        int[] _ids;          // 這次要介紹的首領（MonsterData ID）
+        int _bossIdx;        // 目前在演第幾位
+        float _bossSpan;     // 每一位「滑入→撐住→滑出＋間隔」的長度
+
         /// <summary>播放 boss 開戰資訊。onFinished 在面板關閉後（延一幀）呼叫。</summary>
-        public static void Show(int monsterId, System.Action onFinished)
+        public static void Show(int monsterId, System.Action onFinished) => Show(new[] { monsterId }, onFinished);
+
+        /// <summary>
+        /// 多位首領一起開場（2026-11-07，血狂之爭雙首領）：黑霧與「強敵現身」只演一次，
+        /// 中間**依序**滑入／撐住／滑出每一位的頭像與名牌，最後一位滑出後黑霧才散。一位時與舊行為完全相同。
+        /// </summary>
+        public static void Show(int[] monsterIds, System.Action onFinished)
         {
             if (UIManager.Instance == null)
             {
@@ -224,7 +237,7 @@ namespace Dipan.UI
             }
             var p = UIManager.Instance.Open<BossIntroPanel>();
             if (p == null) { onFinished?.Invoke(); return; }
-            p.Begin(monsterId, onFinished);
+            p.Begin(monsterIds, onFinished);
         }
 
         // OnBuild 只建物件骨架；所有尺寸/座標/圖在每次 Begin 重算（讓 Inspector 調完重觸發就生效）。
@@ -341,28 +354,12 @@ namespace Dipan.UI
         }
 
         // 解析資料、套版面、啟動表演。找不到的部分各自略過（無頭像＝只滑名牌），不擋流程。
-        void Begin(int monsterId, System.Action onFinished)
+        void Begin(int[] monsterIds, System.Action onFinished)
         {
             _onFinished = onFinished;
-
-            // ── MonsterData：顯示名＋頭像 catalog id ──
-            var spawner = Object.FindObjectOfType<MonsterSpawner>();
-            var data = spawner != null ? spawner.GetData(monsterId) : null;
-            if (data == null)
-                Debug.LogWarning($"[BossIntroPanel] MonsterData 找不到 ID {monsterId}（或場上無 MonsterSpawner），名稱/頭像將缺席。");
-
-            // DisplayName 可填 lang:<id>／reveal:<旗標>:<id>（例紅嫁衣 boss 看過家書才顯示「芙蓉」），見 TextRef。
-            string display = data != null && !string.IsNullOrEmpty(data.DisplayName) ? TextRef.Resolve(data.DisplayName)
-                           : data != null ? data.Name : $"#{monsterId}";
-            _name.text = display;
-            _name.fontSize = NameFontSize;
-            // 姓名專用字型（毛筆字只用在名牌，全 UI 其他文字維持預設字型）；留空或載不到退回預設。
-            _name.font = string.IsNullOrEmpty(NameFontPath) ? UIBuilder.DefaultFont : UIBuilder.LoadFont(NameFontPath);
-
-            Sprite portrait = null;
-            if (data != null && !string.IsNullOrEmpty(data.PortraitPath))
-                portrait = DramaTalkDatabase.Instance.ResolvePortrait(data.PortraitPath, CurrentBloodline());
-            _portrait.sprite = portrait;
+            _ids = (monsterIds != null && monsterIds.Length > 0) ? monsterIds : new[] { 0 };
+            _bossIdx = 0;
+            // 首領自己的資料（名字、頭像、頭像版面）在 ApplyBoss 套——多位首領時換人要重套一次。
 
             // ── 壓黑底版／血色暈影／黑邊（每次套用，Inspector 調完重觸發即生效）──
             // 霧本身就是全畫面的不透明暗底、兼任壓黑，所以霧在的時候壓黑底版一定是 0
@@ -403,17 +400,7 @@ namespace Dipan.UI
             if (plateSprite == null) plateSprite = UIBuilder.LoadSprite("UI/DramaPanel/DramaPanelNameBG");   // 後備：對話姓名牌
             _plate.sprite = plateSprite;
 
-            // ── 版面＋滑入起點/終點（每次重算，Inspector 調完重觸發即生效）──
-            if (portrait != null)
-            {
-                float h = PortraitHeight;
-                float aspect = portrait.rect.height > 0f ? portrait.rect.width / portrait.rect.height : 0.75f;
-                float w = h * aspect;
-                _portrait.rectTransform.sizeDelta = new Vector2(w, h);
-                _portraitToX = PortraitMargin + w * 0.5f;   // 距左緣 PortraitMargin
-                _portraitFromX = -w;                        // 完全在畫面外
-                _portrait.rectTransform.anchoredPosition = new Vector2(_portraitFromX, PortraitY);
-            }
+            // ── 版面＋滑入起點/終點（每次重算，Inspector 調完重觸發即生效）──（頭像的版面在 ApplyBoss）
             _plate.rectTransform.sizeDelta = new Vector2(PlateW, PlateH);
             _plateToX = -(PlateMargin + PlateW * 0.5f);     // 距右緣 PlateMargin（右錨、負向為畫面內）
             _plateFromX = PlateW;                            // 完全在畫面外
@@ -424,16 +411,7 @@ namespace Dipan.UI
             nrt.anchorMax = new Vector2(NameArea.x + NameArea.width, NameArea.y + NameArea.height);
             nrt.offsetMin = nrt.offsetMax = Vector2.zero;
 
-            // 名字浮現初始狀態：效果開啟＝先全透明＋滿扭曲（等牌匾到位後在 Update 邊復原邊淡入）；關閉＝直接顯示。
-            bool nameFx = NameFadeSeconds > 0f;
-            _name.color = nameFx ? new Color(NameColor.r, NameColor.g, NameColor.b, 0f) : NameColor;
-            _warp.Strength = nameFx ? Mathf.Max(0f, NameWarpAmount) : 0f;
-            _warp.Speed = NameWarpSpeed;
-            _name.SetVerticesDirty();
-
-            // ── 初始可見性 ──
-            _portrait.enabled = false;
-            _plate.enabled = false;
+            ApplyBoss(_ids[0]);   // 第一位的名字／頭像／版面＋名字浮現初始狀態＋初始隱藏
             _t = 0f;
             _running = true;
 
@@ -477,11 +455,60 @@ namespace Dipan.UI
 
             _slideOutStart = infoReady + Mathf.Max(0f, HoldSeconds);
             _slideOutEnd = _slideOutStart + Mathf.Max(0.01f, SlideOutSeconds);
-            _fogBlowStart = _slideOutEnd;
+            // 多位首領：「滑入→撐住→滑出」整段（加一點間隔）依序重複，每位一段；霧等最後一位滑出才散
+            _bossSpan = (_slideOutEnd - _slideStart) + Mathf.Max(0f, BossGapSeconds);
+            _fogBlowStart = _slideOutEnd + (_ids.Length - 1) * _bossSpan;
             _fogBlowEnd = _fogBlowStart + fogBlow;
             _endTime = _fogBlowEnd;
 
             if (_fogRunning) PushPreludeUniforms();   // 第一幀就推一次，避免用到材質的預設值閃一格
+        }
+
+        /// <summary>
+        /// 套用某一位首領：名字（DisplayName，支援 lang:／reveal:）、頭像（PortraitPath）、頭像大小與滑入起訖點、
+        /// 名字浮現的初始狀態，並把頭像／名牌放回畫面外、先隱藏（Update 到時間才滑入）。
+        /// 找不到資料就各自缺席（無頭像＝只滑名牌），不擋流程。
+        /// </summary>
+        void ApplyBoss(int monsterId)
+        {
+            var spawner = Object.FindObjectOfType<MonsterSpawner>();
+            var data = spawner != null ? spawner.GetData(monsterId) : null;
+            if (data == null)
+                Debug.LogWarning($"[BossIntroPanel] MonsterData 找不到 ID {monsterId}（或場上無 MonsterSpawner），名稱/頭像將缺席。");
+
+            // DisplayName 可填 lang:<id>／reveal:<旗標>:<id>（例紅嫁衣 boss 看過家書才顯示「芙蓉」），見 TextRef。
+            string display = data != null && !string.IsNullOrEmpty(data.DisplayName) ? TextRef.Resolve(data.DisplayName)
+                           : data != null ? data.Name : $"#{monsterId}";
+            _name.text = display;
+            _name.fontSize = NameFontSize;
+            // 姓名專用字型（毛筆字只用在名牌，全 UI 其他文字維持預設字型）；留空或載不到退回預設。
+            _name.font = string.IsNullOrEmpty(NameFontPath) ? UIBuilder.DefaultFont : UIBuilder.LoadFont(NameFontPath);
+
+            Sprite portrait = null;
+            if (data != null && !string.IsNullOrEmpty(data.PortraitPath))
+                portrait = DramaTalkDatabase.Instance.ResolvePortrait(data.PortraitPath, CurrentBloodline());
+            _portrait.sprite = portrait;
+            if (portrait != null)
+            {
+                float h = PortraitHeight;
+                float aspect = portrait.rect.height > 0f ? portrait.rect.width / portrait.rect.height : 0.75f;
+                float w = h * aspect;
+                _portrait.rectTransform.sizeDelta = new Vector2(w, h);
+                _portraitToX = PortraitMargin + w * 0.5f;   // 距左緣 PortraitMargin
+                _portraitFromX = -w;                        // 完全在畫面外
+                _portrait.rectTransform.anchoredPosition = new Vector2(_portraitFromX, PortraitY);
+            }
+            _plate.rectTransform.anchoredPosition = new Vector2(_plateFromX, PlateY);
+
+            // 名字浮現初始狀態：效果開啟＝先全透明＋滿扭曲（等牌匾到位後在 Update 邊復原邊淡入）；關閉＝直接顯示。
+            bool nameFx = NameFadeSeconds > 0f;
+            _name.color = nameFx ? new Color(NameColor.r, NameColor.g, NameColor.b, 0f) : NameColor;
+            _warp.Strength = nameFx ? Mathf.Max(0f, NameWarpAmount) : 0f;
+            _warp.Speed = NameWarpSpeed;
+            _name.SetVerticesDirty();
+
+            _portrait.enabled = false;
+            _plate.enabled = false;
         }
 
         void Update()
@@ -523,20 +550,29 @@ namespace Dipan.UI
                 var vc = _vignette.color; vc.a = va; _vignette.color = vc;
             }
 
+            // 多位首領：算出現在演第幾位，換人時重套資料；之後的滑入／名字浮現都用「這一位自己的時間」tl。
+            float tl = _t;
+            if (_ids != null && _ids.Length > 1 && _t >= _slideStart && _bossSpan > 0.01f)
+            {
+                int idx = Mathf.Clamp(Mathf.FloorToInt((_t - _slideStart) / _bossSpan), 0, _ids.Length - 1);
+                if (idx != _bossIdx) { _bossIdx = idx; ApplyBoss(_ids[idx]); }
+                tl = _t - idx * _bossSpan;
+            }
+
             // ── 頭像/名牌：滑入（ease-out cubic）→ 撐住 → 滑出（ease-in，像被抽走）──
             // 兩段共用同一組起點/終點座標，只是方向相反；滑出用 ease-in 才有「被拉走」的力道，
             // 用 ease-out 會變成「慢慢飄出去」，收尾軟掉。
-            if (_t >= _slideStart)
+            if (tl >= _slideStart)
             {
                 float e;
-                if (_t < _slideOutStart)
+                if (tl < _slideOutStart)
                 {
-                    float k = Mathf.Clamp01((_t - _slideStart) / Mathf.Max(0.01f, SlideDuration));
+                    float k = Mathf.Clamp01((tl - _slideStart) / Mathf.Max(0.01f, SlideDuration));
                     e = 1f - Mathf.Pow(1f - k, 3f);        // 進場：ease-out
                 }
                 else
                 {
-                    float k = Mathf.Clamp01((_t - _slideOutStart) / Mathf.Max(0.01f, SlideOutSeconds));
+                    float k = Mathf.Clamp01((tl - _slideOutStart) / Mathf.Max(0.01f, SlideOutSeconds));
                     e = 1f - k * k * k;                    // 退場：ease-in（1→0，回到畫面外的起點）
                 }
 
@@ -554,9 +590,9 @@ namespace Dipan.UI
             // 名字浮現：扭曲抖動的半透明字 → 漸漸復原＋淡入（牌匾到位＋NameDelay 之後）。
             // 抖動要「動」必須每幀重建文字頂點（SetVerticesDirty → NameWarpEffect.ModifyMesh），
             // 窗口多留 0.2s 讓最後一次以 Strength=0 重建、字形乾淨歸位。
-            if (NameFadeSeconds > 0f && _t >= _nameStart && _t < _nameStart + NameFadeSeconds + 0.2f)
+            if (NameFadeSeconds > 0f && tl >= _nameStart && tl < _nameStart + NameFadeSeconds + 0.2f)
             {
-                float k = Mathf.Clamp01((_t - _nameStart) / NameFadeSeconds);
+                float k = Mathf.Clamp01((tl - _nameStart) / NameFadeSeconds);
                 float e = 1f - Mathf.Pow(1f - k, 3f);   // ease-out：扭曲先快後慢地收斂
                 _name.color = new Color(NameColor.r, NameColor.g, NameColor.b, e);
                 _warp.Strength = (1f - e) * Mathf.Max(0f, NameWarpAmount);

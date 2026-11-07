@@ -226,91 +226,6 @@
           }
         },
         {
-          "id": "4dd212b0",
-          "name": "怪物出生點-血術士",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              11,
-              12
-            ],
-            [
-              3,
-              14
-            ],
-            [
-              3,
-              20
-            ],
-            [
-              12,
-              21
-            ],
-            [
-              3,
-              8
-            ],
-            [
-              8,
-              7
-            ],
-            [
-              3,
-              22
-            ]
-          ],
-          "params": {
-            "monsterId": "36",
-            "deathFlag": "",
-            "spawnInterval": "",
-            "maxAlive": "",
-            "maxWaves": "",
-            "waveGroup": "清場",
-            "nextWhen": ""
-          }
-        },
-        {
-          "id": "0a3e07f8",
-          "name": "怪物出生點-血族士兵",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              11,
-              10
-            ],
-            [
-              3,
-              12
-            ],
-            [
-              3,
-              18
-            ],
-            [
-              12,
-              19
-            ],
-            [
-              10,
-              22
-            ],
-            [
-              4,
-              5
-            ]
-          ],
-          "params": {
-            "monsterId": "15",
-            "deathFlag": "",
-            "spawnInterval": "",
-            "maxAlive": "",
-            "maxWaves": "",
-            "waveGroup": "清場",
-            "nextWhen": "",
-            "next": "開前門"
-          }
-        },
-        {
           "id": "353a64b8",
           "name": "開前門",
           "typeId": "togglePortal",
@@ -318,6 +233,119 @@
           "params": {
             "target": "傳送點-南方",
             "show": true
+          }
+        },
+        {
+          "id": "ff124b5c",
+          "name": "出生點-第1波-血族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              5,
+              12
+            ],
+            [
+              8,
+              14
+            ],
+            [
+              10,
+              12
+            ]
+          ],
+          "params": {
+            "monsterId": "15",
+            "waveGroup": "清場-1",
+            "next": "等待-第2波"
+          }
+        },
+        {
+          "id": "c74c767e",
+          "name": "出生點-第2波-血術士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              4,
+              17
+            ],
+            [
+              10,
+              17
+            ],
+            [
+              6,
+              20
+            ]
+          ],
+          "params": {
+            "monsterId": "36",
+            "waveGroup": "清場-2",
+            "startDisabled": true,
+            "spawnVfxId": "10",
+            "next": "等待-第3波"
+          }
+        },
+        {
+          "id": "313d46f2",
+          "name": "出生點-第3波-血族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              5,
+              8
+            ],
+            [
+              10,
+              8
+            ]
+          ],
+          "params": {
+            "monsterId": "15",
+            "waveGroup": "清場-3",
+            "startDisabled": true,
+            "spawnVfxId": "10",
+            "next": "開前門"
+          }
+        },
+        {
+          "id": "6d3d65cb",
+          "name": "出生點-第3波-血術士",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              4,
+              19
+            ],
+            [
+              10,
+              19
+            ]
+          ],
+          "params": {
+            "monsterId": "36",
+            "waveGroup": "清場-3",
+            "startDisabled": true,
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "c309d229",
+          "name": "等待-第2波",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1",
+            "targets": "出生點-第2波-血術士"
+          }
+        },
+        {
+          "id": "1d605b29",
+          "name": "等待-第3波",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1",
+            "targets": "出生點-第3波-血族士兵,出生點-第3波-血術士"
           }
         }
       ]

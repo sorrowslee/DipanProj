@@ -256,7 +256,7 @@
           "cells": [],
           "params": {
             "requireFlag": "bfJoinedVampire",
-            "next": "對話-回程攔截-狂族"
+            "next": "同伴暫離-血族"
           }
         },
         {
@@ -282,7 +282,7 @@
           "params": {
             "monsterId": "38",
             "startDisabled": true,
-            "next": "對話-首領敗北-狂族"
+            "next": "同伴回來-血族"
           }
         },
         {
@@ -315,7 +315,7 @@
           "cells": [],
           "params": {
             "requireFlag": "bfJoinedWerewolf",
-            "next": "對話-回程攔截-血族"
+            "next": "同伴暫離-狂族"
           }
         },
         {
@@ -341,7 +341,7 @@
           "params": {
             "monsterId": "39",
             "startDisabled": true,
-            "next": "對話-首領敗北-血族"
+            "next": "同伴回來-狂族"
           }
         },
         {
@@ -379,11 +379,11 @@
         },
         {
           "id": "13246da0",
-          "name": "首領-雙-狂族",
+          "name": "首領-雙",
           "typeId": "bossIntro",
           "cells": [],
           "params": {
-            "monsterId": "40",
+            "monsterId": "40|41",
             "next": "出生點-狂族首領-雙"
           }
         },
@@ -402,16 +402,6 @@
             "startDisabled": true,
             "nextWhen": "生出來時",
             "waveGroup": "雙首領",
-            "next": "首領-雙-血族"
-          }
-        },
-        {
-          "id": "a2595232",
-          "name": "首領-雙-血族",
-          "typeId": "bossIntro",
-          "cells": [],
-          "params": {
-            "monsterId": "41",
             "next": "出生點-血族首領-雙"
           }
         },
@@ -536,7 +526,51 @@
           "cells": [],
           "params": {
             "dramaId": "77",
-            "next": "首領-雙-狂族"
+            "next": "首領-雙"
+          }
+        },
+        {
+          "id": "aff0759c",
+          "name": "同伴暫離-血族",
+          "typeId": "companion",
+          "cells": [],
+          "params": {
+            "show": false,
+            "next": "對話-回程攔截-狂族"
+          }
+        },
+        {
+          "id": "aa2e5eaf",
+          "name": "同伴回來-血族",
+          "typeId": "companion",
+          "cells": [],
+          "params": {
+            "monsterId": "42",
+            "show": true,
+            "vfxId": "10",
+            "next": "對話-首領敗北-狂族"
+          }
+        },
+        {
+          "id": "79fd4152",
+          "name": "同伴暫離-狂族",
+          "typeId": "companion",
+          "cells": [],
+          "params": {
+            "show": false,
+            "next": "對話-回程攔截-血族"
+          }
+        },
+        {
+          "id": "82943e4d",
+          "name": "同伴回來-狂族",
+          "typeId": "companion",
+          "cells": [],
+          "params": {
+            "monsterId": "43",
+            "show": true,
+            "vfxId": "10",
+            "next": "對話-首領敗北-血族"
           }
         }
       ]
@@ -545,11 +579,11 @@
   "sceneFx": [],
   "npcs": [
     {
-      "id": "f3383fc6",
-      "name": "血族士兵1",
+      "id": "8677da3f",
+      "name": "血族門衛-上",
       "npcId": 2,
-      "x": 6.12330151,
-      "y": -5.23075676,
+      "x": 4.5,
+      "y": -9.5,
       "behavior": "idle",
       "faceLeft": false,
       "waypoints": [],
@@ -565,11 +599,11 @@
       "conditionalDramas": []
     },
     {
-      "id": "83a77c64",
-      "name": "血族士兵2",
+      "id": "2606c174",
+      "name": "血族門衛-下",
       "npcId": 2,
-      "x": 6.08421946,
-      "y": -8.833117,
+      "x": 4.5,
+      "y": -11.5,
       "behavior": "idle",
       "faceLeft": false,
       "waypoints": [],
@@ -585,151 +619,11 @@
       "conditionalDramas": []
     },
     {
-      "id": "b31013d2",
-      "name": "血族士兵3",
-      "npcId": 2,
-      "x": 6.050452,
-      "y": -12.6488733,
-      "behavior": "idle",
-      "faceLeft": false,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "c3b80e4d",
-      "name": "血術士1",
-      "npcId": 8,
-      "x": 6.18552542,
-      "y": -6.345559,
-      "behavior": "idle",
-      "faceLeft": false,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "88a682a7",
-      "name": "血術士2",
-      "npcId": 8,
-      "x": 6.0937,
-      "y": -13.8082333,
-      "behavior": "idle",
-      "faceLeft": false,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "9ceca4de",
-      "name": "血術士3",
-      "npcId": 8,
-      "x": 6.11799,
-      "y": -10.04876,
-      "behavior": "idle",
-      "faceLeft": false,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "25312cc0",
-      "name": "血蝠1",
-      "npcId": 7,
-      "x": 6.05045462,
-      "y": -7.89888144,
-      "behavior": "idle",
-      "faceLeft": false,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "30e0efba",
-      "name": "血蝠2",
-      "npcId": 7,
-      "x": 6.05045462,
-      "y": -11.5232849,
-      "behavior": "idle",
-      "faceLeft": false,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "a10d3fc4",
-      "name": "血蝠3",
-      "npcId": 7,
-      "x": 6.0617094,
-      "y": -15.42909,
-      "behavior": "idle",
-      "faceLeft": false,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "4e5fae4f",
-      "name": "狂族士兵1",
+      "id": "c1fa1eca",
+      "name": "狂族門衛-上",
       "npcId": 3,
-      "x": 16.2258015,
-      "y": -4.94983244,
+      "x": 18.5,
+      "y": -9.5,
       "behavior": "idle",
       "faceLeft": true,
       "waypoints": [],
@@ -745,151 +639,11 @@
       "conditionalDramas": []
     },
     {
-      "id": "8efba5ea",
-      "name": "狂族士兵2",
+      "id": "6b0e7b42",
+      "name": "狂族門衛-下",
       "npcId": 3,
-      "x": 16.3156872,
-      "y": -7.134975,
-      "behavior": "idle",
-      "faceLeft": true,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "c3ea95fe",
-      "name": "狂族士兵3",
-      "npcId": 3,
-      "x": 16.5198956,
-      "y": -12.41101,
-      "behavior": "idle",
-      "faceLeft": true,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "f046b369",
-      "name": "狂族弩手1",
-      "npcId": 6,
-      "x": 16.3263321,
-      "y": -8.308577,
-      "behavior": "idle",
-      "faceLeft": true,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "8c2a44db",
-      "name": "狂族弩手2",
-      "npcId": 6,
-      "x": 16.41795,
-      "y": -10.961504,
-      "behavior": "idle",
-      "faceLeft": true,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "e1f43f8d",
-      "name": "狂族弩手3",
-      "npcId": 6,
-      "x": 16.4629745,
-      "y": -15.1527605,
-      "behavior": "idle",
-      "faceLeft": true,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "0d150f6e",
-      "name": "戰狼1",
-      "npcId": 5,
-      "x": 16.3078556,
-      "y": -6.166699,
-      "behavior": "idle",
-      "faceLeft": true,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "11c519c0",
-      "name": "戰狼2",
-      "npcId": 5,
-      "x": 16.5772362,
-      "y": -13.7582989,
-      "behavior": "idle",
-      "faceLeft": true,
-      "waypoints": [],
-      "speed": 0.0,
-      "dwellSeconds": 0.0,
-      "dramaId": 0,
-      "panelId": "",
-      "panelArg": "",
-      "next": "",
-      "setFlag": "",
-      "disappearFlag": "bfWarStarted",
-      "conditions": "",
-      "conditionalDramas": []
-    },
-    {
-      "id": "6e3b6739",
-      "name": "戰狼3",
-      "npcId": 5,
-      "x": 16.4334354,
-      "y": -9.488738,
+      "x": 18.5,
+      "y": -11.5,
       "behavior": "idle",
       "faceLeft": true,
       "waypoints": [],

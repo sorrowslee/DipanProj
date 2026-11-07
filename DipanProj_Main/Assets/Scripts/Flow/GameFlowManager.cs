@@ -254,6 +254,8 @@ namespace Dipan.Flow
             }
 
             // 階段二：暫停（怪物/子彈定住）＋播卍字離場特效（吞玩家、飛上天；特效用 unscaledTime）。
+            // 道具獲得提示在滑鼠停在圖示上時不會自己消失（AlertPanel.ToastItem），離場一開始就收掉，不然會一路掛到廣場。
+            AlertPanel.DismissItemToasts();
             if (UIManager.Instance != null) UIManager.Instance.SetExternalHold(true, true);
             bool fxDone = false;
             LevelExitManjiController.Play(_endPlayer, () => fxDone = true);
@@ -345,6 +347,7 @@ namespace Dipan.Flow
 
         IEnumerator LoadSceneRoutine(string sceneName)
         {
+            AlertPanel.DismissItemToasts();   // 道具獲得提示 hover 時不會自己消失，換場景前一律收掉（AlertPanel 跨場景常駐）
             if (SceneManager.GetActiveScene().name != sceneName)
             {
                 var op = SceneManager.LoadSceneAsync(sceneName);

@@ -159,6 +159,10 @@ public class MonsterSpawner : MonoBehaviour
             // attack 只量第一幀對齊腳底（索引 42，表尾欄，2026-10-27）：填 1 才開。見 MonsterData.AttackFootLock。
             data.AttackFootLock = values.Length > 42 && values[42].Trim() == "1";
 
+            // 劇本同伴台詞（索引 43／44，表尾欄，2026-11-07）：一格多句、全形「／」分隔。見 CompanionSpeech。
+            data.CompanionLines = SplitCompanionLines(values.Length > 43 ? values[43] : null);
+            data.CompanionUrgeLines = SplitCompanionLines(values.Length > 44 ? values[44] : null);
+
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
             data.SpeechLines.Clear();
@@ -182,6 +186,19 @@ public class MonsterSpawner : MonoBehaviour
     /// <para>對話框形狀標記 <c>[刺]</c>／<c>[圓]</c>／<c>[方]</c>（2026-10-28）留在 Text 開頭、由 <c>MonsterSpeechPanel.Speak</c> 讀；
     /// 寫在門檻前面（<c>[刺]30%: …</c>）也可以——這裡先拿下來、解析完門檻再接回文字前面。</para>
     /// </summary>
+    /// <summary>同伴台詞格：全形「／」分隔多句，去頭尾空白、略過空句。空格回空清單。</summary>
+    private static List<string> SplitCompanionLines(string raw)
+    {
+        var list = new List<string>();
+        if (string.IsNullOrWhiteSpace(raw)) return list;
+        foreach (var part in raw.Split('／'))
+        {
+            string t = part.Trim();
+            if (t.Length > 0) list.Add(t);
+        }
+        return list;
+    }
+
     private static bool ParseSpeechLine(string raw, out MonsterSpeechLine line)
     {
         line = new MonsterSpeechLine { UnlockAtPercent = 100f, Text = "" };
@@ -221,6 +238,8 @@ public class MonsterSpawner : MonoBehaviour
 
     /// <summary>依 ID 取怪物配方資料（找不到回 null、不印錯誤）。給 BossIntroPanel 等 UI 端查 DisplayName / PortraitPath 用。</summary>
     public MonsterData GetData(int id) => _monsterDatabase.Find(m => m.ID == id);
+    /// <summary>全部 MonsterData（讀取頁預熱外觀用，見 MonsterSpriteLibrary.PrewarmModuleRoutine）。</summary>
+    public IReadOnlyList<MonsterData> AllData => _monsterDatabase;
 
     /// <summary>
     /// 生一隻怪。

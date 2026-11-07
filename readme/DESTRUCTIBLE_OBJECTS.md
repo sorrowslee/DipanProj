@@ -32,6 +32,8 @@
 - **地面特效(火堆/毒霧等)**:`GroundEffectInstance` 的範圍傷害改打 `IDamageable`,範圍層含 Environment(`GroundEffectManager.EnvironmentLayer`,留空自動以名稱解析)。
 - 血量歸零 → **把自己那張圖炸成碎片**(`ShatterBurst.Play`)→ `Destroy(gameObject)`。碰撞隨之消失,玩家/子彈即可通過。
 
+- **劇情演出撞碎**（2026-11-07）：演出 `move` 步驟勾「沿路撞碎可破壞地上物」＝演員經過時一次打爆（同一條 `TakeDamage` 路徑，破壞旗標／碎片／尋路更新都照走）。例：血狂之爭和談大廳首領突圍直線衝過去撞爛圓桌，見 [CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) 步驟表。
+
 ### 打爛之後怪物的路會跟著更新（2026-10-11）
 `Die` 會先停用自己的碰撞體、呼叫 `MapNavGrid.RefreshArea(碰撞框)` 局部重算怪物尋徑格，怪物（`MonsterActuator`）看到格子版本變了就重新找路。
 沒有這一步的話，怪物會一直繞著已經打爛的桌子走（見 [PROBLEMS.md](PROBLEMS.md) **B17**）。

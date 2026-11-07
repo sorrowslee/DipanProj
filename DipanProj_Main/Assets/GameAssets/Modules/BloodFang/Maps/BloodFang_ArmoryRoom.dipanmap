@@ -312,49 +312,6 @@
           }
         },
         {
-          "id": "308aef1a",
-          "name": "怪物出生點-戰狼",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              12,
-              8
-            ],
-            [
-              17,
-              11
-            ]
-          ],
-          "params": {
-            "monsterId": "17",
-            "waveGroup": "清場"
-          }
-        },
-        {
-          "id": "12ebfbdd",
-          "name": "怪物出生點-狂族士兵",
-          "typeId": "monsterSpawn",
-          "cells": [
-            [
-              9,
-              10
-            ],
-            [
-              14,
-              12
-            ],
-            [
-              18,
-              8
-            ]
-          ],
-          "params": {
-            "monsterId": "16",
-            "waveGroup": "清場",
-            "next": "開前門"
-          }
-        },
-        {
           "id": "a843d464",
           "name": "同伴加入",
           "typeId": "companion",
@@ -374,6 +331,119 @@
           "params": {
             "target": "傳送點-南方",
             "show": true
+          }
+        },
+        {
+          "id": "4f39af65",
+          "name": "出生點-第1波-狂族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              12,
+              8
+            ],
+            [
+              18,
+              8
+            ],
+            [
+              16,
+              12
+            ]
+          ],
+          "params": {
+            "monsterId": "16",
+            "waveGroup": "清場-1",
+            "next": "等待-第2波"
+          }
+        },
+        {
+          "id": "d4eac985",
+          "name": "出生點-第2波-戰狼",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              8,
+              12
+            ],
+            [
+              14,
+              9
+            ],
+            [
+              18,
+              12
+            ]
+          ],
+          "params": {
+            "monsterId": "17",
+            "waveGroup": "清場-2",
+            "startDisabled": true,
+            "spawnVfxId": "10",
+            "next": "等待-第3波"
+          }
+        },
+        {
+          "id": "2d693ff7",
+          "name": "出生點-第3波-狂族士兵",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              9,
+              9
+            ],
+            [
+              17,
+              8
+            ]
+          ],
+          "params": {
+            "monsterId": "16",
+            "waveGroup": "清場-3",
+            "startDisabled": true,
+            "spawnVfxId": "10",
+            "next": "開前門"
+          }
+        },
+        {
+          "id": "ef03d50c",
+          "name": "出生點-第3波-戰狼",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              12,
+              12
+            ],
+            [
+              19,
+              11
+            ]
+          ],
+          "params": {
+            "monsterId": "17",
+            "waveGroup": "清場-3",
+            "startDisabled": true,
+            "spawnVfxId": "10"
+          }
+        },
+        {
+          "id": "57651f14",
+          "name": "等待-第2波",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1",
+            "targets": "出生點-第2波-戰狼"
+          }
+        },
+        {
+          "id": "8260a708",
+          "name": "等待-第3波",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1",
+            "targets": "出生點-第3波-狂族士兵,出生點-第3波-戰狼"
           }
         }
       ]

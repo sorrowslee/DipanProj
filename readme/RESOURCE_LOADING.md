@@ -45,7 +45,9 @@
 **A. 跨 module（進入新大地圖，如 Main→RedBridalGown、回 Main、首次進場）：**
 1. 開 `LoadingPanel`、`SetModule(row.module)`、停留 `loadingScreenHoldSeconds` 秒（預設 2，`WaitForSecondsRealtime`）。
 2. `ClearTransientGameplay()` 清暫態物件。
-3. **預載整個 module 資源**：`mapLoader.PreloadModuleRoutine(module, …)`——把 catalog 內屬於該 `module`＋`Main`（共用）的每筆圖先解碼快取（最重的磁碟讀取＋PNG 解碼一次做完）。進度 0~0.6。
+3. **預載整個 module 資源**：`mapLoader.PreloadModuleRoutine(module, …)`——把 catalog 內屬於該 `module`＋`Main`（共用）的每筆圖先解碼快取（最重的磁碟讀取＋PNG 解碼一次做完）。進度 0~0.4。
+3b. **怪物序列圖**：`MonsterSpriteLibrary.PreloadModuleRoutine`——解碼每一幀、算腳底與影子錨點（2026-09-23）。進度 0.4~0.5。
+3c. **怪物外觀預熱**：`MonsterSpriteLibrary.PrewarmModuleRoutine`——對每一列「圖屬於本 module」的 MonsterData 走 `MonsterController.PrewarmVisuals`，用**跟生怪完全相同的參數**把各動作 Sprite、碰撞框像素框、外觀元件的共用資源（血衛士的血霧材質）先建好（2026-11-07，PROBLEMS **E45**）。進度 0.5~0.6。
 4. 分幀建目標圖 `mapLoader.LoadMapRoutine`。進度 0.6~0.95。
 5. 放玩家／相機／氛圍／場景特效／怪／觸發點（`PlaceAndSetup`）。
 6. `_loadedModule = row.module`；關 `LoadingPanel`。
@@ -57,7 +59,7 @@
 
 > **記憶體取捨**：預載＝把整個 module 的圖解碼常駐記憶體，換到別 module 也不會自動釋放（為了房間互跳零讀取）。若記憶體吃緊，可加「離開 module 時清掉上一包快取」。
 >
-> **怪物貼圖**目前不在預載範圍（走 `MonsterSpriteLibrary` 另一套快取，該怪第一次出現時載入、之後快取）；要連怪一起預載可再擴充。
+> **怪物**：貼圖（3b）與 Sprite／碰撞框／外觀共用資源（3c）都在讀取頁做完。⚠ **只解貼圖不夠**——Sprite.Create 預設建「貼合外形」的網格，要讀整張圖的透明度算輪廓，一種怪上百張全擠在牠第一次被生出來的那一幀（第二波才登場的怪種＝換波卡頓）。⚠ 生怪的參數（逐動作倍率、飛行旗標、AttackOffsetX／FootLock…）若改了，`MonsterController.PrewarmVisuals` 要跟著改，否則預熱的快取 key 對不上、又會回到生怪時才建。外觀元件若在第一隻生出來時才 `Resources.Load` 東西，也要在 `PrewarmVisuals` 裡暖（目前只有 `BloodMistVisual.Prewarm`）。
 
 ---
 

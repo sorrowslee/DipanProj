@@ -177,6 +177,17 @@
           "isScreenEffectRef": false,
           "isPortalList": false,
           "isConditionList": false
+        },
+        {
+          "key": "spawnVfxId",
+          "type": "Int",
+          "label": "出生特效id(VfxTable/空=不播)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
         }
       ]
     },
@@ -273,6 +284,17 @@
         {
           "key": "count",
           "type": "Int",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "iconToast",
+          "type": "Bool",
+          "label": "道具圖示提示(重要獎勵用)",
           "boolDefault": false,
           "isFlagRef": false,
           "flagNegatable": false,
@@ -626,8 +648,8 @@
       "params": [
         {
           "key": "monsterId",
-          "type": "Int",
-          "label": "怪物ID(MonsterData)",
+          "type": "String",
+          "label": "怪物ID(MonsterData/多位用|分隔)",
           "boolDefault": false,
           "isFlagRef": false,
           "flagNegatable": false,
@@ -657,6 +679,17 @@
           "key": "fullDamage",
           "type": "Bool",
           "label": "兩族互打全額傷害",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "united",
+          "type": "Bool",
+          "label": "兩族聯手對付玩家(不互打)",
           "boolDefault": false,
           "isFlagRef": false,
           "flagNegatable": false,
@@ -1183,6 +1216,103 @@
           "type": "Float",
           "label": "生成Y(空=玩家旁)",
           "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "vfxId",
+          "type": "Int",
+          "label": "現身特效id(VfxTable/空=不播)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "leave",
+          "type": "String",
+          "label": "退場方式(解散時)",
+          "boolDefault": false,
+          "options": [
+            "立即消失",
+            "說完往下走"
+          ],
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "leaveLineId",
+          "type": "Int",
+          "label": "退場台詞(語言id/空=不說)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        }
+      ]
+    },
+    {
+      "typeId": "wait",
+      "displayName": "等待(鏈動作)",
+      "color": "#B8B8B8",
+      "params": [
+        {
+          "key": "seconds",
+          "type": "Float",
+          "label": "等待秒數(空=1)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "targets",
+          "type": "String",
+          "label": "同時啟動",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": true,
+          "isConditionList": false,
+          "isTriggerRef": true
+        }
+      ]
+    },
+    {
+      "typeId": "guideFinger",
+      "displayName": "引路手指(鏈動作)",
+      "color": "#FFD27F",
+      "params": [
+        {
+          "key": "target",
+          "type": "String",
+          "label": "指向(trigger名稱)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": true
+        },
+        {
+          "key": "show",
+          "type": "Bool",
+          "label": "顯示(不勾=收起)",
+          "boolDefault": true,
           "isFlagRef": false,
           "flagNegatable": false,
           "isScreenEffectRef": false,

@@ -71,12 +71,7 @@ public static class SummonSystem
             aliveTracker.Add(go); spawned++;
 
             // 召喚特效：同一幀在生怪點播，並依這隻怪的可見大小縮放（大怪大特效、小怪小特效）。
-            if (vfx != null)
-            {
-                float targetH = MonsterVisibleHeight(go);
-                if (targetH > 0f) vfx.SpawnSizedToHeight(summonVfxId, pos, targetH);
-                else vfx.Spawn(summonVfxId, pos, 0f, go.transform.localScale.x);
-            }
+            if (vfx != null) PlaySpawnVfx(vfx, summonVfxId, go, pos);
         }
         return spawned > 0;
     }
@@ -154,6 +149,18 @@ public static class SummonSystem
     }
 
     // 怪物在畫面上的「可見高度」（世界單位）：route B 怪一律正規化到 CharacterWorldHeight × transform.Scale。取不到回 0。
+    /// <summary>
+    /// 在生怪點播一次「出生／召喚」特效，依這隻怪的可見高度縮放（大怪大特效、小怪小特效）。
+    /// 召喚武器與地圖出生點（MapMonsterRespawner 的「出生特效」欄）共用，兩邊外觀一致。
+    /// </summary>
+    public static void PlaySpawnVfx(VfxManager vfx, int vfxId, GameObject go, Vector2 pos)
+    {
+        if (vfx == null || vfxId <= 0 || go == null) return;
+        float targetH = MonsterVisibleHeight(go);
+        if (targetH > 0f) vfx.SpawnSizedToHeight(vfxId, pos, targetH);
+        else vfx.Spawn(vfxId, pos, 0f, go.transform.localScale.x);
+    }
+
     private static float MonsterVisibleHeight(GameObject go)
     {
         if (go == null) return 0f;

@@ -122,6 +122,38 @@ public class MonsterSpriteLibrary
 
     static readonly string[] PreloadStates = { "idle", "walk", "attack", "pant", "jump", "jumpStart", "jumpLanding", "slash", "dodge" };
 
+    /// <summary>
+    /// **預熱某 module 每一種怪的 Sprite**（2026-11-07，PROBLEMS E45）：上面那支只解了貼圖；Sprite（含腳底 pivot、
+    /// 貼合外形的網格）與碰撞框像素框還是在「這種怪第一次被生出來」那一幀才建——第一波進圖就在、看不出來，
+    /// **第二波才登場的怪種**就在換波那一刻集中卡一下。這裡對每一列 MonsterData（名字的圖屬於本 module 的）
+    /// 走 <see cref="MonsterController.PrewarmVisuals"/>，一隻一幀分攤在讀取頁。Main 的怪在進 Main 時才預熱。
+    /// </summary>
+    public IEnumerator PrewarmModuleRoutine(string module, IReadOnlyList<MonsterData> all, System.Action<float> onProgress)
+    {
+        if (_loader == null || all == null) { onProgress?.Invoke(1f); yield break; }
+        var names = new HashSet<string>();
+        foreach (var kv in _byTail)
+        {
+            if (kv.Value == null || kv.Value.module != module) continue;
+            int slash = kv.Key.IndexOf('/');
+            if (slash > 0) names.Add(kv.Key.Substring(0, slash));
+        }
+        var rows = new List<MonsterData>();
+        foreach (var d in all)
+            if (d != null && !string.IsNullOrEmpty(d.Name) && names.Contains(d.Name.Trim().ToLowerInvariant())) rows.Add(d);
+
+        var t0 = Time.realtimeSinceStartup;
+        for (int i = 0; i < rows.Count; i++)
+        {
+            MonsterController.PrewarmVisuals(rows[i]);
+            onProgress?.Invoke((float)(i + 1) / Mathf.Max(1, rows.Count));
+            yield return null;
+        }
+        onProgress?.Invoke(1f);
+        Debug.Log($"[MonsterSpriteLibrary] 已預熱 module「{module}」怪物外觀：{rows.Count} 列 MonsterData，" +
+                  $"{(Time.realtimeSinceStartup - t0) * 1000f:0} ms（分攤在讀取頁）。");
+    }
+
     /// <summary>這隻怪有沒有這個動作的圖（防呆判斷用）。</summary>
     public bool Has(string monsterName, string state)
     {

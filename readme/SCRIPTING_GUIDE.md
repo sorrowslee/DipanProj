@@ -130,9 +130,14 @@
 同一張圖所有出生點填**同一個 `waveGroup`**（例：`清場`），其中一顆的 `next` 接 `開前門`。群組全滅才推鏈。
 ⚠ 群組裡接 `next` 的那顆**不能是 `nextWhen=生出來時`**——那是給不會死的怪用的，生成當下就推鏈、全滅時反而不推（血狂之爭 21 血蝠踩過；驗證會抓）。
 
+**多波（每波怪種不同、清光才出下一波）**：每波一個群組（`清場-1`／`清場-2`…），一種怪一顆一次性出生點；每波其中一顆 `next` 接 `wait`（`seconds=1`、`targets`＝下一波每一顆的名稱），下一波勾「初始停用」；最後一波 `next` 接開門。完整接法見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.5b〈多波清場〉。
+
+⭐ **出生特效規則（作者 2026-11-07）**：**一開始就擺在房間裡的怪不播；凡是接續產生的怪一律播**——下一波、劇情走到才冒出來的伏兵／圍攻（就算是那場的第 1 波）都要填 `spawnVfxId=10`（VfxTable「招喚怪物」），玩家才知道有怪生出來。
+
 ### 3.7 封門伏擊
 
 `camZone`（塗踩點區、`zoom` 留空＝純踩點）`setFlag=xxAmbush` → `togglePortal` 關兩扇門 → 出生點用 `conditions=flag:xxAmbush|!flag:xxCleared`＋同一 `waveGroup`（可用重複產生：`spawnInterval`／`maxAlive`／`maxWaves`）→ 全滅 `next` → `togglePortal` 開出口 `setFlag=xxCleared`。
+要多波、每波怪種不同時：只有第 1 波掛 `conditions`，後面幾波照 §3.6 多波接法（`wait`＋初始停用）；**伏兵第 1 波也是接續產生的，要填出生特效**（血狂之爭長廊／和談大廳就是這樣）。
 
 ### 3.8 首領戰
 

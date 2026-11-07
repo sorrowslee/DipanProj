@@ -60,19 +60,19 @@
 | `scale` | 1 | 縮放 |
 | `animFps` | 8 | 逐格動畫速度 |
 
-> `player` 演員的實作：停用 `PlayerController`、臨時掛一顆 `MonsterActuator` 用**同一套 A***驅動，結束時 `Cleanup` 一定還原控制權。npc 演員自動掛 `YSortByFeet`，和地上物／玩家正確交錯。
+> `player` 演員的實作：停用 `PlayerController`、臨時掛一顆 `MonsterActuator` 用**同一套 A***驅動，結束時 `Cleanup` 一定還原控制權。npc 演員自動掛 `YSortByFeet`，和地上物／玩家正確交錯；**非飛行**的 npc 演員也掛 `BlobShadow` 腳下影子（2026-11-07，PROBLEMS **E46**）；**怪物表上是飛行生物（BrainType=Flying／Bat）的不掛**——演員沒有離地高度，影子只會貼身下。⚠ 判斷看怪物表、不看演員的 `flying` 勾選（那顆是「直線移動不被牆擋」，地面角色直線離場也會勾）。
 
 ### CutsceneStep（步驟）— 15 種型別
 
 | type | 用到的欄位 | 行為 |
 |---|---|---|
-| `move` | `actorId` `x,y` `speed` `facing` | A* 走到目標，抵達才繼續；`speed` 格/秒（0＝預設 2）；`facing`＝抵達後朝向 |
+| `move` | `actorId` `x,y` `speed` `facing` `breakObjects` | A* 走到目標，抵達才繼續；`speed` 格/秒（0＝預設 2）；`facing`＝抵達後朝向。**`breakObjects`（沿路撞碎可破壞地上物，2026-11-07）**：每幀用半徑 0.7 的圓沿「上一幀→這一幀」掃掠，路線上的可破壞地上物（`hp ≥ 0`）一次打爆、碎片順著前進方向飛；**Skip 快轉時也會把整條路線掃一遍**。演員自己沒有碰撞，要「直線衝過去」就把演員勾 `flying`（關 A*／避障，直線前進）。不可摧毀（`hp=-1`）的不會被撞壞、演員直接穿過 |
 | `face` | `actorId` `facing` | 轉向 |
 | `dialogue` | `dramaId` | 播 `DramaTable` 的該筆（Type 1 大圖／Type 2 頭像對話都行），**面板關閉才繼續** |
 | `bubble` | `actorId` `langId` `seconds` `bubbleShape` | **頭上對話框**：不跳對話視窗，直接在該演員頭上冒一個白底泡泡（沿用怪物說話那套面板與美術）。文字＝`LanguageTable.csv` 的 id；`seconds` 顯示秒數（0＝2）。預設擋住這段時間，要「邊走邊講」就勾 `background`。`bubbleShape`＝形狀（空／`square` 方形、`round` 圓形、`spike` 尖刺）。見 §8 |
 | `wait` | `seconds` | 等待（unscaled） |
 | `camera` | `x,y` `zoom` `seconds` | 鏡頭移到指定點、縮放；`seconds`＝停留 |
-| `cameraFollow` | `seconds` | 鏡頭放回跟隨玩家 |
+| `cameraFollow` | `actorId` `seconds` | `actorId` 空＝鏡頭放回跟隨玩家；**填演員＝之後每幀跟著那個演員**（2026-11-07 遊戲端補上，編輯器原本就能選），直到下一個 `camera`／`cameraFollow`／`intro` 或演出結束；演員 `despawn` 後鏡頭停在他最後的位置。`seconds`＝這一步擋多久（鏡頭平移過去），之後鏡頭繼續跟、主線往下。典型：`cameraFollow(演員)` → `move(演員)` → `despawn` → `cameraFollow()` 回玩家 |
 | `comic` | `assetId` `seconds` | 把 `Resources` 下的圖**置中**顯示（保持比例、約螢幕 90%×80%，不加黑底），期間演員暫停 |
 | `fade` | `assetId` `seconds` | `out`（預設）＝淡出到全黑並**維持**；`in`＝從黑淡回並移除黑幕 |
 | `spawn` | `actorId` | 現身（配合 `spawnAtStart=false`） |

@@ -974,12 +974,15 @@ public class MapLoader : MonoBehaviour
             // 接續時機（2026-09-23）：空／「全滅後」＝舊行為；「生出來時」＝第一次生出怪就接 next（給不會死的怪用，例：夢境佛掌）
             string nextWhen = r.GetString("nextWhen").Trim();
             bool nextOnSpawn = nextWhen == "生出來時" || nextWhen == "spawn";
+            // 出生特效（2026-11-07）：VfxTable id，生每隻怪時播一次。只有 respawner 那條路會播，所以有填就一律交給它。
+            int spawnVfxId = r.GetInt("spawnVfxId", 0);
 
             // 「這一組怪被清空」要推鏈（＝通用欄位的 接續觸發／完成寫旗標）的，也得交給 respawner 追蹤存活。
             // 沒填鏈、也沒填波次群組的一次性出生點，維持原本「當場生完就不管」的輕量路徑。
             bool wantsClearChain = !string.IsNullOrEmpty(r.GetString("next"))
                                 || !string.IsNullOrEmpty(r.GetString("setFlag"))
-                                || !string.IsNullOrEmpty(waveGroup);
+                                || !string.IsNullOrEmpty(waveGroup)
+                                || spawnVfxId > 0;
 
             if (interval > 0f || gated || wantsClearChain)
             {
@@ -1007,7 +1010,7 @@ public class MapLoader : MonoBehaviour
                 spawned += _respawner.Register(spawner, monsterIds, points, keys, deathFlag, gated ? r : null,
                                                interval, maxAlive, mapId, r.name,
                                                chainRegion: r, maxWaves: maxWaves, waveGroup: waveGroup,
-                                               nextOnSpawn: nextOnSpawn);
+                                               nextOnSpawn: nextOnSpawn, spawnVfxId: spawnVfxId);
                 continue;
             }
 

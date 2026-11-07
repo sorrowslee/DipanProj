@@ -7,7 +7,7 @@ using Dipan.MapRuntime;
 /// 與「每隻怪 10% 隨機掉」並存（那條照舊，見 <see cref="BloodOrb"/>）。
 ///
 /// ⭐ **直接讀地圖編輯器的資料判斷，不用逐張設定、也不用等待**（作者 2026-11-06 拍板的規則）：
-///   ‧ 怪物出生點靠「接續觸發」（next／nextA／nextB／nextTimeout，中間可以經過對話、選擇等任何節點）
+///   ‧ 怪物出生點靠「接續觸發」（next／nextA／nextB／nextTimeout／等待節點的 targets，中間可以經過對話、選擇、等待等任何節點）
 ///     或「完成寫旗標／死亡寫旗標 → watchFlag／以該旗標為條件的出生點」串起來的，算**同一條戰鬥鏈**。
 ///   ‧ **一路追到鏈上最後一個出生點**：還接著別的出生點的那一組打完不掉（＝中間的波次），
 ///     最後一組（後面沒有再接出生點）的怪全部死光那一刻才掉。
@@ -100,7 +100,8 @@ public static class MapClearReward
         static IReadOnlyList<TriggerRegion> _cachedFor;
         static Graph _cached;
 
-        static readonly string[] NextKeys = { "next", "nextA", "nextB", "nextTimeout" };
+        // targets＝「等待(鏈動作)」的同時啟動（2026-11-07，逗號分隔多筆）；其餘都是單筆，Split 後也只有一個元素。
+        static readonly string[] NextKeys = { "next", "nextA", "nextB", "nextTimeout", "targets" };
         static readonly string[] FlagOutKeys = { "setFlag", "deathFlag" };
         static readonly string[] ConditionKeys =
             { "requireFlag", "requireCycleMin", "requireCycleMax", "requireItem", "requireClearsMin", "requireClearsMax", "conditions" };
@@ -142,7 +143,9 @@ public static class MapClearReward
             }
             foreach (var r in byId.Values)
             {
-                foreach (var k in NextKeys) Edge(r, Find(r.GetString(k)));
+                foreach (var k in NextKeys)
+                    foreach (var part in r.GetString(k).Split(','))
+                        Edge(r, Find(part));
                 foreach (var k in FlagOutKeys)
                 {
                     string flag = r.GetString(k).Trim();
