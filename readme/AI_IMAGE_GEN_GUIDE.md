@@ -2,6 +2,7 @@
 
 > **給未來的 AI / Cowork：** 本專案要產任何圖片素材時，**先讀完這份文件再動手**。
 > 這份文件記錄了實際跑過一輪後驗證可行的流程、踩過的坑、以及各種注意事項。
+> **用 ChatGPT 網頁產圖（2026-11 起主要流程）看 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md)**；本檔是 Scenario 版。
 > 通用流程對「任何圖」都適用；最後一節「飛行道具專屬」只有在產**會飛出去的投射道具**時才需要額外遵守。
 
 ---
@@ -93,6 +94,9 @@
 ---
 
 ## 6. 風格基準（對齊現有素材）
+
+> **適用範圍：遊戲世界內的素材（投射物、地上物等）。** UI 面板與物品／裝備 icon **不是**像素風，
+> 一律照 [art_direction/UI_ICON_GUIDELINE.md](art_direction/UI_ICON_GUIDELINE.md)（2026-11-08 起；icon 也不可直接借用 `Weapon/` 的投射物圖）。
 
 - 風格：**像素藝術（pixel art）**，搭配熔岩/餘燼般的橘紅發光點綴（參考 `../DipanProj_Main/Assets/Resources/Weapon/weapon_sword.png` 等，路徑相對本檔所在的 `readme/`）。
 - 世界觀：佛教 × 恐怖（燃燈古佛、隧道邪能、《無限恐怖》風），俯視角 2D。

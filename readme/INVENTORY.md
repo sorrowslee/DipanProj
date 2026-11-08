@@ -19,7 +19,7 @@
 
 ## icon 規格（美術）
 
-- **統一正方形 `256×256` 透明 PNG**（單體置中、去背）。裝備與道具共用同一規格、同一張圖——同一件裝備在道具格是道具、裝到左欄是裝備。
+- **正方形透明 PNG，新圖一律 `500×500`**（單體置中、去背；舊圖有 256×256 的，大小差異由 `IconFit` 吸收）。畫風、色票與出圖規範見 [art_direction/UI_ICON_GUIDELINE.md](art_direction/UI_ICON_GUIDELINE.md)；**不可借用 `Weapon/` 投射物圖或特效幀當 icon**（2026-11-08 起把原本借用的 26 件陸續改成 `UI/Icons/Equipment/icon_*` 專用圖）。裝備與道具共用同一規格、同一張圖——同一件裝備在道具格是道具、裝到左欄是裝備。
 - 放置位置（相對 `Resources/`）：
   - `UI/Icons/Equipment/`：可裝備（武器/胸甲/鞋子/手套/護身符/戒指）
   - `UI/Icons/Items/`：非裝備（消耗品/材料/任務物…）
@@ -151,7 +151,7 @@
 | 檔名（`Resources/UI/InventoryPanel/`） | 原圖 | 不透明邊界框 (x, y, w, h) | 用途 |
 |---|---|---|---|
 | `inventoryPanel_Bg` | 1254×1254 | — | 面板底圖 |
-| `inventoryPanel_Cell_Selected` | 867×288 | 26, 34, 803, 244 | 頁籤（選中，紫色） |
+| `inventoryPanel_Cell_Selected` | 867×288 | 26, 34, 803, 244 | 頁籤（選中，深緋紅；2026-11-08 前是紫色） |
 | `inventoryPanel_Cell_UnSelected` | 822×278 | 24, 36, 776, 227 | 頁籤（未選中） |
 | `inventoryPanel_Cell_EquipmentIcom` | 555×449 | 20, 35, 507, 402 | 裝備頁籤圖示 |
 | `inventoryPanel_Cell_ItemIcom` | 482×518 | 69, 46, 349, 453 | 消耗品頁籤圖示 |

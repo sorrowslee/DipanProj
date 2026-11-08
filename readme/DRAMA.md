@@ -145,7 +145,7 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 | 人物**內側緣**（朝畫面中央那一邊） | 距畫面左/右邊固定 | `AvatarInnerX` |
 | 人物底緣 | 對話框上緣 − 固定值 | `AvatarOverlap` |
 
-於是留白多寡、畫布大小、畫布比例全部被吸收掉：**留白多的圖只是圖檔被放得比較大，人物一樣大、一樣的位置**。美術之後給什麼尺寸都不用管。
+於是留白多寡、畫布大小、畫布比例全部被吸收掉：**留白多的圖只是圖檔被放得比較大，人物一樣大、一樣的位置**。程式對任何尺寸都能排，但**臉的大小只有在構圖一致時才一致**——2026-11-08 起新立繪一律照 [art_direction/CHARACTER_ART_SPEC.md](art_direction/CHARACTER_ART_SPEC.md) §2 的固定畫布與對齊線交圖，PortraitTable 只留給刻意的構圖選擇。
 
 > ⚠ **三個常數的上限是畫面高 1080**（CanvasScaler 參考解析度）：
 > 人物頂端 = `576.9 − AvatarOverlap + AvatarHeight`，**超過 1080 頭頂就被切掉**。

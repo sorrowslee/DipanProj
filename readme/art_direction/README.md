@@ -14,7 +14,8 @@
 | 場景地上物／家具／裝飾物 | ChatGPT | [SCENE_PROP_GUIDELINE.md](SCENE_PROP_GUIDELINE.md) |
 | 人物／怪物遊戲內角色圖（序列圖用原圖） | ChatGPT | [CHARACTER_SPRITE_GUIDELINE.md](CHARACTER_SPRITE_GUIDELINE.md) |
 | 人物／怪物對話立繪 | ChatGPT | [CHARACTER_PORTRAIT_GUIDELINE.md](CHARACTER_PORTRAIT_GUIDELINE.md) |
-| UI／裝備／道具／技能 icon | ChatGPT | [UI_ICON_GUIDELINE.md](UI_ICON_GUIDELINE.md) |
+| 立繪＋遊戲內角色圖的**技術規格**（畫布、對齊線、比例、交付；可整份貼給 ChatGPT） | ChatGPT | [CHARACTER_ART_SPEC.md](CHARACTER_ART_SPEC.md)（2026-11-08，與上兩份衝突時以它為準） |
+| UI／裝備／道具／技能 icon | ChatGPT | [UI_ICON_GUIDELINE.md](UI_ICON_GUIDELINE.md)（2026-11-08 依 UI 改版結果重寫為硬性規範，可整份貼給 ChatGPT） |
 | **場景特效**（SceneFx／VfxTable／地面特效等世界端表演） | **Claude（Cowork）** | [VFX_GUIDELINE.md](VFX_GUIDELINE.md) |
 | **氛圍 shader**（Atmosphere 後處理／照明／全屏效果） | **Claude（Cowork）** | [SHADER_GUIDELINE.md](SHADER_GUIDELINE.md) |
 

@@ -34,7 +34,8 @@
 | [PASSIVE_WEAPON.md](PASSIVE_WEAPON.md) | **被動武器掛載系統**（2026-10-01）：「裝備著就自己運作、沒有扳機」的武器（目前＝浮游 `Familiar`）不佔當前武器、可與主武器並存；`ItemTable`／`BloodlineTable` 同名欄 **`PassiveWeaponIds`**（分號分隔）決定誰帶著它；`PassiveWeaponSet` 收集三種來源、每把過珠子容器（珠子影響全身）、`WeaponFamiliar` 一元件管多組 | 做／改應龍水珠這類被動武器、要讓某件裝備或某個血統附帶被動武器、加新的被動型模式 |
 | [WEAPON_WORKBENCH.md](WEAPON_WORKBENCH.md) | **武器工坊**（Unity EditorWindow，`Project Tools → 武器工坊`）：選外型／選 Mode／只顯示有效欄／名稱下拉／範圍提示，Play 中改值立刻射出去（`SimulationOverride`），真鑲珠子有效，一鍵存回 CSV | **做／改任何武器或配方時優先用它，不要手改 CSV**；接新欄位／新模式後看視窗有沒有跟上 |
 | [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（**倒序，最新在最上**；較舊條目原文封存在 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭有逐條索引） | 想了解歷史脈絡 |
-| [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) | 產圖流程與規範 | **任何產圖前** |
+| [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) | 產圖流程與規範（Scenario 版） | **任何產圖前** |
+| [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) | **AI 自行操作 ChatGPT 網頁產圖→下載→去背驗證→放進專案**的操作手冊（要先跟作者要的權限、工具、單張迴圈、踩雷表） | 作者請你「自己開 GPT 畫圖」時 |
 | [ART_DIRECTION.md](ART_DIRECTION.md) | **美術紀律**（畫面經營規則書：色彩劇本、明度階層、邊框剪影、特效語言、全屏質感、接地與生命感、UI 語彙；含給繪圖 AI 的產圖檢核表與截圖自檢表） | **委託產任何素材前**、調場景觀感、覺得「畫面組起來不漂亮」時 |
 | [art_direction/](art_direction/README.md) | **美術規範準則資料夾**：8 份分域準則——場景／地上物／角色圖／立繪／UI icon（ChatGPT 繪製域）＋場景特效／氛圍 shader（Claude 域）＋AI 委託工作流程 SOP；索引含分工表 | 委託/動手做任何領域的素材、特效、shader 前 |
 | [MapEditor_DESIGN.md](MapEditor_DESIGN.md) | 地圖編輯器設計與 `.dipanmap` 格式 | 改編輯器、看地圖格式 |
