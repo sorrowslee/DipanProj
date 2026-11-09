@@ -181,7 +181,20 @@ monsters/elite bloodguard/attack,2.8,84.5,283,auto,25,512,512,
 monsters/elite bloodguard/idle,-8.8,83,227,auto,23,512,512,
 monsters/elite bloodguard/walk,-18.8,85.5,242,auto,13,512,512,
 monsters/17th holy prince – elvin/attack,30.8,54,125,auto,25,256,256,
-monsters/17th holy prince – elvin/dodge,-3.5,44.8,133,auto,21,256,256,
+monsters/17th holy prince – elvin/dodge,-3.5,44.8,133,auto,21,256,256,幀數 21→22 已重算
 monsters/17th holy prince – elvin/idle,-2,45.7,91,auto,23,256,256,
 monsters/17th holy prince – elvin/slash,12.5,54.5,138,auto,25,256,256,
 monsters/17th holy prince – elvin/walk,-1,46.9,90,auto,21,256,256,
+characters/soulborn/warden/attack,-6.8,54,94,auto,25,256,256,暫代：複製自 blazeborn/thrall，換正式序列圖後重跑計算影子錨點
+characters/soulborn/warden/dead,18,153.2,188,auto,9,512,512,幀數 9→25 已重算
+characters/soulborn/warden/idle,-1.8,125.5,126,auto,23,512,512,幀數 19→23 已重算
+characters/soulborn/warden/walk,4.4,127.5,126,auto,22,512,512,幀數 21→22 已重算
+characters/soulborn/zhongkui/attack,1,53.5,97,auto,25,256,256,暫代：複製自 blazeborn/nidhogg，換正式序列圖後重跑計算影子錨點
+characters/soulborn/zhongkui/dead,9,156.9,246,auto,9,512,512,幀數 9→25 已重算
+characters/soulborn/zhongkui/idle,3.4,121.5,240,auto,14,512,512,幀數 15→14 已重算
+characters/soulborn/zhongkui/walk,5.5,128.8,238,auto,22,512,512,幀數 14→22 已重算
+characters/soulborn/fengdu/attack,-0.5,69.2,70,auto,25,256,256,暫代：複製自 bloodborn/cain，換正式序列圖後重跑計算影子錨點
+characters/soulborn/fengdu/dead,7,158.3,262,auto,9,512,512,幀數 9→25 已重算
+characters/soulborn/fengdu/idle,0.2,123.5,223,auto,16,512,512,幀數 19→16 已重算
+characters/soulborn/fengdu/walk,-6.2,125,206,auto,12,512,512,幀數 25→12 已重算
+monsters/housekeeper/walk,-6.2,36,92,auto,12,256,256,

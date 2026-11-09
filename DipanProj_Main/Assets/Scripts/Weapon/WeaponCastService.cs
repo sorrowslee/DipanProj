@@ -135,7 +135,8 @@ public static class WeaponCastService
                 collisionMask, pierceableLayers, nonBounceLayers,
                 ctx.OnHit,
                 weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-                ctx.OnTrailPoint, boomerang ?? lane, weapon.FlipYWhenLeft);
+                ctx.OnTrailPoint, boomerang ?? lane, weapon.FlipYWhenLeft,
+                homingLayers: ctx.TargetLayers);   // 追蹤只找目標層，不追牆（穿牆配方的 PierceableLayers 含牆）
             if (b != null) spawned++;
         }
         return spawned > 0;

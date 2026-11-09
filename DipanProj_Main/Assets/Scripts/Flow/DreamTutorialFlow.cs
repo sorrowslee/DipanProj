@@ -26,9 +26,9 @@ namespace Dipan.Flow
     ///      玩家此時已經站在那裡、是三階外貌。
     ///
     /// ⚠ **對話 id 與系列 id 是隱含契約**：drama 32~39 依序對應系列 1~8（殭屍→蟲族），
-    ///   所以 <c>dramaId = 31 + SeriesId</c>。以後在 BloodlineSeriesTable 新增第 9 個系列，
-    ///   要記得同步在 DramaTable 補 drama 40 那一列（與 DramaTalkTable 的對應 group），
-    ///   否則那個系列被抽到時會找不到台詞（會印警告、流程照走）。
+    ///   所以 <c>dramaId = 31 + SeriesId</c>。⚠ **drama 40 起已被其他夢境對話佔用**，第 9 個系列（萬魂）以後
+    ///   改在表A 的 <c>DreamDramaId</c> 欄直接填 drama id（萬魂＝83），留空才走 31+SeriesId。
+    ///   新系列要同步在 DramaTable 補那一列（與 DramaTalkTable 的對應 group），否則抽到時找不到台詞（會印警告、流程照走）。
     ///
     /// 生命週期：由 <see cref="GameFlowManager"/> 在新建遊戲帶圖後呼叫 <see cref="Begin"/> 生成，
     /// 跑完開場後**不會馬上銷毀**——它還要守著「離開夢境地圖就解除血統覆寫」這道保險（見 Update）。
@@ -274,6 +274,8 @@ namespace Dipan.Flow
                 Debug.LogWarning($"[DreamTutorial] 血統 id {bloodlineId} 在表A 查不到系列，退回開頭對話。");
                 return DramaIntro;
             }
+            // 表A 有填 DreamDramaId 就用它（第 9 個系列起 31+SeriesId 會撞到既有的 drama 40，見 BloodlineSeriesDef.DreamDramaId）。
+            if (series.DreamDramaId > 0) return series.DreamDramaId;
             return DramaBloodlineBase + series.SeriesId;
         }
 

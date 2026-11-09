@@ -62,4 +62,5 @@ ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每�
 74,夏綠蒂公爵-八方血球(大絕反彈),6,89,0,,,,Weapon/animation/bloodMagicOrb/bloodMagicOrb,32,20,12,,,,,,58,,,,,,,,
 75,聖子艾爾文-三向聖光衝擊波,10,90,0,,360,1,Weapon/animation/holyShockwave/holyShockwave,5,10,10,,,,,,41,,,,,,,,
 76,聖子艾爾文-血色衝擊波(大絕),10,91,0,,360,1,Weapon/animation/bloodShockwave/bloodShockwave,5,10,10,,,,,,58,,,,,,,,
+77,萬魂鬼手,4,92,0,,360,1,Weapon/animation/soulGhostSkull/soulGhostSkull,10,15,5.5,,,,,,,,,,,,,,
 900,GM測試-追蹤飛劍(扣最大血量10%),1,900,0,Weapon/single/weapon_sword,134,,,,,3.9,,,,,,2,,,,,,,,

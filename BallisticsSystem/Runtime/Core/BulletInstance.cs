@@ -12,6 +12,9 @@ namespace Sorrows.Ballistics
     [HideInInspector] public LayerMask CollisionMask;
     [HideInInspector] public LayerMask PierceableLayers;
     [HideInInspector] public LayerMask NonBounceLayers;
+    /// <summary>追蹤（<see cref="HomingBehavior"/>）只找這些層的目標（2026-11-09 加）。發射端沒給＝沿用 PierceableLayers（舊行為）。
+    /// ⚠ 為什麼要分開：配方勾了穿牆（BlockedByEnvironment=0）時 PierceableLayers 會含牆，追蹤就會去追牆——萬魂鬼手的鬼頭往上飄走繞一圈才回來打怪就是這個。</summary>
+    [HideInInspector] public LayerMask HomingLayers;
     [HideInInspector] public int PierceCount = 0;
     [HideInInspector] public float SpriteAngleOffset = 0f;
     // 往左飛（Velocity.x < 0）時把圖上下翻轉：有「上下之分」的子彈圖（骷髏鬼頭…）跟著飛行角度轉 180° 會變倒立。

@@ -16,7 +16,7 @@
 
 | 規則 | 內容 |
 |---|---|
-| 系列 | 一個系列 = 三個階段。目前有八個系列：殭屍系列 **殭屍 → 毛殭 → 旱魃**、血族系列 **覓血者 → 血伯爵 → 該隱**、狂族系列 **狼人 → 望月者 → 芬里爾**、土裔系列 **石像鬼 → 山嶽巨人 → 泰坦**、靈根系列 **築基期 → 元嬰期 → 化神期**、雲龍系列 **蛟人 → 螭吻 → 應龍**、熾龍系列 **龍奴 → 法夫納 → 尼德霍格**、蟲族系列 **寄生體 → 獵殺者 → 蟲皇**（英文：血族系列 **Bloodborn**、第一階 **Bloodseeker**（也是外型資料夾名）；狂族系列 **Feralborn**、三階 `Werewolf`／`Moonwatcher`／`Fenrir`（2026-08-27 加）。2026-08-27 前叫「夜裔系列／夜裔／Nightborn」，PROBLEMS／PROGRESS 歷史條目裡的 Nightborn 就是它；土裔系列 **Gaiaborn**、三階 `Gargoyle`／`MountainGiant`／`Titan`（2026-09-09 加）；靈根系列 **SpiritRoot**、三階 `Foundation`／`Nascent Soul`／`Divine Form`（2026-09-10 加，後兩個資料夾名含空白）；雲龍系列 **Cloudborn**、三階 `Jiao`／`Chiwen`／`Yinglong`，熾龍系列 **Blazeborn**、三階 `Thrall`／`Fafnir`／`Nidhogg`（兩個系列 2026-09-13 加）；蟲族系列 **Swarmborn**、三階 `Parasite`／`Ravager`／`Swarm Emperor`（2026-09-14 加，第三階資料夾名含空白）。⚠ **靈根系列在 2026-09-10 當天曾短暫叫「靈脈／SpiritVein」**，同日全面改名為靈根／SpiritRoot；資料夾、icon、兩張表與文件都已一併更新，專案裡不該再有 SpiritVein 這個字） |
+| 系列 | 一個系列 = 三個階段。目前有九個系列：殭屍系列 **殭屍 → 毛殭 → 旱魃**、血族系列 **覓血者 → 血伯爵 → 該隱**、狂族系列 **狼人 → 望月者 → 芬里爾**、土裔系列 **石像鬼 → 山嶽巨人 → 泰坦**、靈根系列 **築基期 → 元嬰期 → 化神期**、雲龍系列 **蛟人 → 螭吻 → 應龍**、熾龍系列 **龍奴 → 法夫納 → 尼德霍格**、蟲族系列 **寄生體 → 獵殺者 → 蟲皇**、萬魂系列 **鬼差 → 鍾馗 → 酆都大帝**（英文：血族系列 **Bloodborn**、第一階 **Bloodseeker**（也是外型資料夾名）；狂族系列 **Feralborn**、三階 `Werewolf`／`Moonwatcher`／`Fenrir`（2026-08-27 加）。2026-08-27 前叫「夜裔系列／夜裔／Nightborn」，PROBLEMS／PROGRESS 歷史條目裡的 Nightborn 就是它；土裔系列 **Gaiaborn**、三階 `Gargoyle`／`MountainGiant`／`Titan`（2026-09-09 加）；靈根系列 **SpiritRoot**、三階 `Foundation`／`Nascent Soul`／`Divine Form`（2026-09-10 加，後兩個資料夾名含空白）；雲龍系列 **Cloudborn**、三階 `Jiao`／`Chiwen`／`Yinglong`，熾龍系列 **Blazeborn**、三階 `Thrall`／`Fafnir`／`Nidhogg`（兩個系列 2026-09-13 加）；蟲族系列 **Swarmborn**、三階 `Parasite`／`Ravager`／`Swarm Emperor`（2026-09-14 加，第三階資料夾名含空白）；萬魂系列 **Soulborn**、三階 `Warden`／`ZhongKui`／`Fengdu`（2026-11-09 加；設計討論時暫稱「鬼王血統／Netherborn」，TempImage 工作資料夾仍叫 `bloodline_Netherborn`）。⚠ **靈根系列在 2026-09-10 當天曾短暫叫「靈脈／SpiritVein」**，同日全面改名為靈根／SpiritRoot；資料夾、icon、兩張表與文件都已一併更新，專案裡不該再有 SpiritVein 這個字） |
 | 起點 | 所有角色從「人類」（血統 Id 1、外型 Base）開始 |
 | 選系列 | 喝**系列起始藥劑**（例：血統藥劑・殭屍）→ 變成那瓶藥劑指定的血統。**本世只能選一次，不可逆，不能改吃別的系列** |
 | 直達 | 起始藥劑指定的**不一定是第一階**（2026-09-10 起）：`BloodlineID` 指到第 2／3 階的藥劑＝**跳過前面階段直接變成那一階**（例「血統藥劑・旱魃」一口變旱魃）。仍然算「選系列」，所以一樣一世一次、喝完就定型 |
@@ -38,7 +38,7 @@
 ### 表A `Assets/Data/BloodlineSeriesTable.csv` — 系列 → 三階段
 
 ```
-SeriesId,Key,DisplayName,Stage1Id,Stage2Id,Stage3Id,Note
+SeriesId,Key,DisplayName,Stage1Id,Stage2Id,Stage3Id,Note,DreamDramaId
 1,Jiangshi,殭屍,10,11,12,殭屍系列：殭屍 → 毛殭 → 旱魃
 2,Bloodborn,血族,20,21,22,血族系列：覓血者 → 血伯爵 → 該隱
 3,Feralborn,狂族,30,31,32,狂族系列：狼人 → 望月者 → 芬里爾
@@ -47,12 +47,16 @@ SeriesId,Key,DisplayName,Stage1Id,Stage2Id,Stage3Id,Note
 6,Cloudborn,雲龍,60,61,62,雲龍系列：蛟人 → 螭吻 → 應龍
 7,Blazeborn,熾龍,70,71,72,熾龍系列：龍奴 → 法夫納 → 尼德霍格
 8,Swarmborn,蟲族,80,81,82,蟲族系列：寄生體 → 獵殺者 → 蟲皇
+9,Soulborn,萬魂,90,91,92,萬魂系列：鬼差 → 鍾馗 → 酆都大帝,83
 ```
+
+`DreamDramaId`（第 8 欄，2026-11-09 加）：新手夢境抽到這個系列時播的 drama id。留空＝舊規則 `31 + SeriesId`（系列 1~8 → drama 32~39）。
+⚠ **drama 40 起已被其他夢境對話（初始洞窟、邪佛廣場…）佔用**，所以第 9 個系列起一定要填這欄（萬魂＝83「新手夢境教學-酆都大帝」）。
 
 這是「系列 ↔ 階段 ↔ 血統 Id」的**唯一真相**。`BloodlineSeriesTable.cs` 載入時順便建一份
 「血統 Id → (系列, 第幾階)」的反查索引，`TryLocate()` 就是查它。
 
-**血統 Id 慣例**：一個系列吃一個十位段（殭屍 10~12、血族 20~22、狂族 30~32、土裔 40~42、靈根 50~52、雲龍 60~62、熾龍 70~72、蟲族 80~82、下一個系列 90~92…），**Id 1 保留給人類**。
+**血統 Id 慣例**：一個系列吃一個十位段（殭屍 10~12、血族 20~22、狂族 30~32、土裔 40~42、靈根 50~52、雲龍 60~62、熾龍 70~72、蟲族 80~82、萬魂 90~92、下一個系列 100~102…），**Id 1 保留給人類**。
 
 ### 表B `Assets/Data/BloodlineTable.csv` — 每種血統的外型與屬性
 
@@ -74,7 +78,7 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 50,Foundation,築基期,SpiritRoot/Foundation,1,,15,20,30,15,,靈根系列 第一階
 51,NascentSoul,元嬰期,SpiritRoot/Nascent Soul,1,,25,30,55,30,,靈根系列 第二階
 52,DivineForm,化神期,SpiritRoot/Divine Form,1,,40,45,85,50,,靈根系列 第三階
-（雲龍 60~62、熾龍 70~72、蟲族 80~82 同樣格式，此處略，完整內容以 CSV 為準）
+（雲龍 60~62、熾龍 70~72、蟲族 80~82、萬魂 90~92 同樣格式，此處略，完整內容以 CSV 為準）
 ```
 
 ⚠ **`SpriteFolder` 允許含空白**（`Crimson Count`）。catalog 存的是相對路徑、載圖走 `File.ReadAllBytes`，
@@ -178,6 +182,12 @@ Unity 怎麼算 bounds 影響。
 > 這兩條路都是走 catalog（StreamingAssets），沒同步的話執行期一張圖都載不到，
 > 角色會變成**只剩影子**，Console 會有 `[PlayerAnimator] 血統「X」找不到任何外型圖`。
 
+### `AttackAnimSpeed`：攻擊動畫播放倍率（2026-11-09 加，第 29 欄＝索引 28）
+
+- 只改**動畫**節奏（PlayerAnimator 的 attack 幀率 = `BaseFps` 12 × 倍率），不改武器的實際攻速（那在武器表）。
+- 留空／≤0 ＝ 1；夾在 0.1～3。每次套用血統都寫入 `PlayerAnimator.AttackFpsMul`，換回別的血統自動恢復 1。
+- 目前只有鍾馗（91）填 **0.6**：他的攻擊是全力由上往下劈的大動作（20 幀），12fps 看起來太急（作者 2026-11-09 回饋）。⏳ 實機再定。
+
 ### 舊版三個數值欄已移除
 
 表B 原本有 `MaxHpAdd` / `MoveSpeedMul` / `OutgoingDamageBonusPercent` 三個**會真的生效**的欄位，
@@ -198,8 +208,9 @@ Unity 怎麼算 bounds 影響。
 | `BloodlineID` | **系列起始藥劑**：指到 BloodlineTable 的 Id。**指哪一階都可以**——第一階＝一般的選系列藥劑；第 2／3 階＝**直達藥劑**，跳過前面階段一口變成那一階（2026-09-10 起） |
 | `BloodlineUpgrade` | **進階藥劑**：目標階數（2 = 中階、3 = 高階）。不指定血統，實際變成什麼由表A 決定 |
 
-目前二十六瓶。**ID 編號規則**：`30x` ＝各系列第一階、`32x` ＝第二階直達、`33x` ＝第三階直達，
-末位固定是系列序（1 殭屍／2 血族／3 狂族／4 土裔／5 靈根／6 雲龍／7 熾龍／8 蟲族）；`310`／`311` 是兩瓶全系列通用的進階藥劑。
+目前二十九瓶。**ID 編號規則**：`30x` ＝各系列第一階、`32x` ＝第二階直達、`33x` ＝第三階直達，
+末位固定是系列序（1 殭屍／2 血族／3 狂族／4 土裔／5 靈根／6 雲龍／7 熾龍／8 蟲族／9 萬魂）；`310`／`311` 是兩瓶全系列通用的進階藥劑。
+⚠ **第 10 個系列會撞號**：末位＝系列序的規則只容得下 9 個系列，第 10 個系列的第一階會是 `310`，撞到中階進階藥劑。加第 10 個系列前要先改編號規則（作者決定）。
 
 | 系列 | 第一階（30x） | 第二階直達（32x） | 第三階直達（33x） |
 |---|---|---|---|
@@ -211,6 +222,7 @@ Unity 怎麼算 bounds 影響。
 | 雲龍 | 306 1階雲龍藥劑 `=60` | 326 2階雲龍藥劑 `=61` | 336 3階雲龍藥劑 `=62` |
 | 熾龍 | 307 1階熾龍藥劑 `=70` | 327 2階熾龍藥劑 `=71` | 337 3階熾龍藥劑 `=72` |
 | 蟲族 | 308 1階蟲族藥劑 `=80` | 328 2階蟲族藥劑 `=81` | 338 3階蟲族藥劑 `=82` |
+| 萬魂 | 309 1階萬魂藥劑 `=90` | 329 2階萬魂藥劑 `=91` | 339 3階萬魂藥劑 `=92` |
 
 > **命名與文案的規矩**（2026-09-10 作者拍板）：
 > - **名稱寫「幾階＋系列」，不寫會變成什麼**：`<階>階<系列>藥劑`（例「2階殭屍藥劑」）。
@@ -424,7 +436,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | 2.08s | 趴地定格；雷柱從畫面外生成 |
 | 2.20s | **擊中**：螢幕震動 0.25s + 白閃（0.05 進 / 0.20 退） |
 | 2.25s | 煙塵爆開（放大到玩家身高 ×1.6）+ 環繞電弧亮起 |
-| 2.58s | 煙最濃 → **換成新血統，仍趴著** |
+| 2.58s | 煙最濃 → **換成新血統，仍趴著**（新外型的序列圖與揭示面板立繪在 0.00s 起就由 `BloodlineSystem.PrewarmTransform` 分幀預熱，這一刻只剩建 Sprite，不再卡，見 PROBLEMS E47） |
 | 2.95s | 煙塵播完消散，露出新外貌 |
 | 2.95s | 電弧殘留繼續繞 0.60s |
 | 3.75s | 倒播 `dead`，爬起來（≈ 2.08s） |
@@ -476,6 +488,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
   （對準腳），煙霧與電弧用 `BodyCenterWorldPos`（罩住身體），覆蓋高度用 `VisibleBodyHeight`。
   ⚠ **不要用 `transform.position`**（那是畫布中心，拿它當擊中點電柱會停在胸口／肩膀高度，實測症狀），
   也**不要自己讀 `SpriteRenderer.bounds`**（含不含透明留白沒有保證）。詳見 [PROBLEMS.md](PROBLEMS.md) **E14**。
+- ⚠ 倒地期間這三個屬性查的是 **Dead 的幾何**，而 dead 的**第一幀還站著**——2026-11-09 前 Dead 幾何量的是第一幀，身體中心＝站姿半身高，煙塵與電弧就飄在趴著的身體上方（作者回報「爆炸比玩家高一些」；之前換外型會卡一下，這個偏差被卡頓蓋過去沒人注意）。現在 `PlayerAnimator.CacheGeometry` 的 Dead 改量**最後一幀（趴姿）**（`PlayerSpriteLibrary.TryGetVisibleBoxLastFrame` → `MapSpriteLoader.GetFrameAlphaBox`）；sprite 的 pivot 仍用第一幀算，不受影響。
 
 ### 重用的既有機制（都是這次順便補上的通用能力）
 
@@ -608,6 +621,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | `OrbitSize` | 單顆高度 = 角色高 × 此值（2026-09-13 加） | 用元件預設（0.13） |
 | `AttackVfxId` | **攻擊時才播一次**的罩身特效 id（2026-09-13 加；那列要 `Loop=0`、`Duration` 留空） | 沒有這一層 |
 | `AttackFxGap` | 兩次播放的最短間隔（秒）——壓住連射時就是每隔這麼久播一次 | 用元件預設（3 秒） |
+| `MistStyle` | **身後黑霧**（2026-11-09 加，第 28 欄＝索引 27）：`SoulSkull`＝黑霧＋霧中週期凝結骷髏頭；其他非空值＝只有黑霧。見下方〈`MistStyle`：身後黑霧〉 | 沒有這一層 |
 
 ⚠ **刻意不在程式裡判斷「是不是第三階」。** 誰有特效由表決定——之後想給二階也加一點光、
 或讓某隻 boss 共用同一套，都只要填表，程式一行不用改（專案的 CSV 資料驅動鐵則）。
@@ -629,6 +643,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | 應龍（62） | （留空） | （留空） | — | （留空） | — ／ 神格三層**全空**（2026-10-01 拿掉原本的環繞水球 `OrbitVfxId`=38）：三階特效改由血統附帶的被動武器「應龍水珠」撐起（`PassiveWeaponIds`=72，§5e），不然兩種水球疊在一起 |
 | 尼德霍格（72） | （留空） | （留空） | — | （留空） | — ／ **`AttackVfxId`=39**（攻擊時罩身熔岩爆，`AttackFxGap`=3） |
 | 蟲皇（82） | （留空） | （留空） | — | （留空） | — ／ **`HitVfxId`=40**（擊中怪物時在怪身上播咬擊，見 **§5c**） |
+| 酆都大帝（92） | （留空） | （留空） | — | （留空） | — ／ **`MistStyle`=SoulSkull**（身後黑霧＋霧中凝結骷髏，2026-11-09；⏳ 先用該隱的暫代序列圖對位，正式圖到了要重看位置） |
 
 ### ⭐ 一個血統只掛一層（2026-09-10 作者拍板）
 
@@ -921,6 +936,34 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 全部走 §2「位置要用哪個座標」那三個屬性：圓盤與電光用 `BodyCenterWorldPos`、大小用 `ScaledCharacterHeight`。
 **兩層「撐過體型變更」的效果已登記在 `PlayerController.RefreshBodyScaledVisuals()`**——芬里爾 1.5 倍、
 望月者 1.3 倍，不重建的話特效會停在舊尺寸（**E14**）。殘影不必登記：它每生一個都當場讀角色高度。
+黑霧（`BloodlineMist`）也不必登記：它每幀讀 `ScaledCharacterHeight` 與 `BodyCenterWorldPos`。
+
+### `MistStyle`：身後黑霧（`BloodlineMist`，2026-11-09，酆都大帝）
+
+作者要的是「身上不斷散發黑霧，黑霧能凝結成骷髏頭」。拼法：
+
+| 部件 | 檔案 | 說明 |
+|---|---|---|
+| 元件 | `Scripts/Gacha/BloodlineMist.cs` | 照 `BloodlineHalo` 的模式：獨立物件（parent＝玩家的父節點）、1×1 白點 sprite 用 localScale 撐成 quad、`SortOffset=-1` 畫在角色之下、`BodyFxVisible` 為 false 時整層關 |
+| shader | `Resources/Shaders/BloodlineMist.shader`（`Custom/BloodlineMist`） | **複製 `BloodMist`（血霧衛士）的骨架**，原檔不動。兩張煙霧密度圖 `UI/BossIntroPanel/BossIntroPanel_Smoke1/2` ＋ domain warp；改成往上竄的焰形、整體往上流、本體近黑、只有最外緣一窄條紫色冥光 |
+| 骷髏貼圖 | `Resources/VfxEffects/BloodlineMist/soul_skull.png` | 256×256，RGB＝灰階亮度、A＝形狀（ChatGPT 產＋去背；原檔在 `TempImage/bloodline_Netherborn/fx/`） |
+
+**骷髏的一輪**（全在元件 Inspector 可調，`Time.deltaTime` 驅動 ⇒ 暫停會凍住）：
+等待 `SkullWaitMin`～`SkullWaitMax`（2.5～4.5 秒）→ 凝結 `SkullFormTime` 1.2 秒（shader 拿 SmokeB 當溶解門檻，霧一絲一絲聚成骷髏）
+→ 停留 `SkullHoldTime` 1.0 秒 → 散去 `SkullFadeTime` 1.5 秒（上方先散、整顆往上飄 `SkullDrift`）。左右肩後輪流出現。
+
+**大小與位置**（元件欄位，× 角色高度）：quad 寬 `WidthFactor` 1.7、高 `HeightFactor` 1.55、中心 `CenterAboveBody` −0.125（身體中心往下）；
+骷髏中心 `SkullUv` (0.37, 0.74)（quad 的 uv，約肩膀高度，另一側自動鏡射）、`SkullDrift` 0.14、大小 `SkullSize` 0.24（佔 quad 寬；shader 用 `_SkullPos.w`＝寬/高修正成正方形）。
+最初（高 2.4、中心 +0.30、骷髏 y 0.56）是 2026-11-09 用**該隱 idle** 在 numpy 預覽裡對的；同日放進酆都正式序列圖實機看，霧頂約 1.5 個角色高，作者要約 1.2 ⇒ **底部不動、頂端往下收**成上面的數字（骷髏換算到同樣的世界高度）。⏳ 待作者再看一次。
+
+**顏色與霧的濃淡在 shader 的 Properties**（不在表格——目前只有一個樣式）：`_DeepColor` sRGB(5,3,9)、`_GlowColor` (96,48,156)、`_SkullColor` (140,122,180)、
+`_RimAmount` 0.55（輪廓冥光）、`_WispBoost` 0.35（紫色細絲）、`_BodyTint` 0.15、`_DensityLo/Hi` 0.10／0.85、`_FogMinAlpha` 0.55、`_MaxOpacity` 0.95、`_InnerRadius/_OuterRadius` 0.10／0.33。
+⚠ 材質是元件執行期 new 出來的，Play 中在 Inspector 調不到 ⇒ 改 shader 檔的預設值後重進 Play。
+
+⚠ 三個調參時踩過的坑（numpy 預覽四輪，照同一套算式＋真密度圖＋該隱合成在暗底上看）：
+① **純黑在暗地板上讀不出形狀**——一定要留一窄條紫色勾邊（`_RimAmount`）。② 勾邊一寬、或本體帶太多紫，整團就變成「紫火」，不是黑霧。
+③ 骷髏的 uv 要用寬高比修正（quad 是 1.7×2.4，不修會變成長臉）。
+對照腳本 `TempImage/bloodline_Netherborn/fx/preview.py`：**改 shader 算式要兩邊一起改**，否則預覽會騙人。
 
 ---
 
@@ -1036,6 +1079,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 | 泰坦 42 | **山崩地裂** 65／65 | Normal 隱形載體：8 道放射（`SpreadAngle 315`＝每 45° 一道）、不追蹤、傷害 8（2026-09-23 從 5 加強）、沿路每 1 單位長地刺（`TrailEffectID 3`）、飛 0.8 秒 |
 | 應龍 62 | **雷雨天罰** 66／66 | SkyStrike：5 道落雷（80° 扇形、吸附 3）、分段雷柱，每道落點再接連鎖閃電（子配方 **67**，跳 3 次、藍色閃電） |
 | 蟲皇 82 | **萬蟲巢** 67／68 | Normal：一次 4 個蜂巢（50°），打到怪或牆各迸出子武器 **蟲群 68／69**（6 隻、`SpreadAngle 300`＝每 60° 一隻、追蹤 360） |
+| 酆都大帝 92 | **萬魂鬼手** 77／92（2026-11-09，取代暫借的萬蟲巢 67） | Normal「萬鬼追魂」（2026-11-09 第二版）：扣一次 **2 波 × 5 顆**（`BurstCount 2`／間隔 0.25）、**往前 100° 扇形**、**慢速 4.5**、穿透 3、穿牆、飛 4.5 秒、間隔 0.9；**每顆左右飄（`WanderAngle 35`）**、**只追 5 格內的怪且在最近 3 隻裡隨機挑（`HomingRadius 5`，追蹤 200）** ⇒ 鬼魂各自飄著散開、分頭咬不同的怪；咬穿後 0.5 秒清命中名單，繞回來可再咬同一隻（第三版，同時修掉「追蹤會追牆」的舊 bug，見 BALLISTICS.md）。⚠ 第一版（放射 288°＋全場鎖最近）作者退件：往左射卻有鬼頭從右邊出來、5 顆一起慢慢轉向同一隻，像操控不靈的飛彈——這就是加 `WanderAngle`／`HomingRadius` 兩欄（彈道套件 `WanderBehavior`＋`HomingBehavior` 分散模式）的原因。子彈是素材庫 `pj3_death_wave/black`（灰黑鬼頭，刻意不用引魂幡那個紫色版）10 幀，**匯入時放大 4 倍（最近鄰）**存成 `Weapon/animation/soulGhostSkull/`，`BulletScale 5.5`（引魂幡 8.4，第一版照抄太大，第二版縮小）／`SpriteAngleOffset 360`／`FlipYWhenLeft 1` 照引魂幡 37；判定 `Radius 0.5`；**沒有命中特效**（第一版填了 56 骷髏煙，跟怪物死亡特效重複，作者 2026-11-09 要求拿掉）。傷害 4、耗魔 0。**是正式道具**（ItemTable 77，icon `UI/Icons/Equipment/icon_soulhand`，ChatGPT 依酆都鬼手產），沒進抽選池 |
 
 ⚠ **放射狀要用 `360 − 360/N`，不要填 360**：分裂角度是「頭尾兩顆各在 ±角度/2」，填 360 會讓第一顆和最後一顆重疊在同一個方向。
 
@@ -1085,9 +1129,12 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
    「血瓶＋這張圖騰＋一/二/三階星星」（見 §3〈背包圖示〉）
 6. `BaseBloodRoll.csv` 加一列（只放 `30x` 那瓶；直達藥劑目前不進池，見 §8）（或做成 `unlockRoll` 觸發解鎖）
 7. 第三階那一列填 **`DreamWeaponId`**（新手夢境教學會抽到它，留空＝夢裡空手），見 §5d
+7b. **夢境台詞**：DramaTable 加一列（Type 2、TalkGroup 新號）＋ DramaTalkTable 一句（`Text` 填 `lang:<id>`，字串放 LanguageTable 1011–1099「夢境」段，句型「在夢中，我是……」），再把那個 drama id 填進表A 的 **`DreamDramaId`**——⚠ 不填就走 `31+SeriesId`，第 9 個系列起會撞到既有對話
 8. 想讓某一階自動帶被動武器（像應龍的水珠）→ 填 **`PassiveWeaponIds`**，見 §5e
 
 **進階藥劑不用動**——它是全系列通用的。程式碼一行都不用改。
+
+> 測某個三階血統的夢境：`DreamTutorialFlow.DebugForceBloodlineId` 填它的 id（0＝正常隨機），測完改回 0。
 
 ---
 
@@ -1097,7 +1144,9 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 - **表B 現有的 `WalkSpeed` 數字是屬性系統前的佔位值**（人類 5、其他 12 個血統一律 10），接上之後等於「一喝藥就兩倍速」。要嘛重填成實際想要的速度、要嘛清空該格（＝不改速度），實機調過再定
 - **玩家沒地方「事後」查自己的血統與階段**——喝下去當下有立繪揭示面板，但之後就沒地方看了。等角色資訊面板
 - `SkillId` 仍是死欄（技能系統不存在）
-- 目前八個系列（殭屍、血族、狂族、土裔、靈根、雲龍、熾龍、蟲族），資料都齊；再加系列照 §7 走。**雲龍／熾龍的 `BodyScale` 全填 1、`WalkSpeed` 留空、五屬性是佔位值，六個血統都還沒實機看過**；尼德霍格的神格特效已填（§5b）、應龍的神格三層已清空改由被動武器應龍水珠撐（§5e），都還沒實機看過。狂族的立繪除了 `normal` 之外目前是暫代圖（與旱魃同一張），美術到了直接覆蓋檔案即可
+- 目前九個系列（殭屍、血族、狂族、土裔、靈根、雲龍、熾龍、蟲族、萬魂），資料都齊（萬魂的序列圖暫代，見下）；再加系列照 §7 走。**雲龍／熾龍的 `BodyScale` 以鬼差為 1：鍾馗 1.7、酆都 1.3（2026-11-09 作者看過正式序列圖後指定）、`WalkSpeed` 留空、五屬性是佔位值，六個血統都還沒實機看過**；尼德霍格的神格特效已填（§5b）、應龍的神格三層已清空改由被動武器應龍水珠撐（§5e），都還沒實機看過。狂族的立繪除了 `normal` 之外目前是暫代圖（與旱魃同一張），美術到了直接覆蓋檔案即可
+- **萬魂系列（2026-11-09 加）目前的狀態**：兩張表、三瓶藥劑（309／329／339）、血統池 309（權重 10）、icon 成品瓶 `bloodline_Soulborn`、三組立繪（6 情緒）都齊，⚠ **序列圖是暫代**：`SequenceImage/Soulborn/{Warden,ZhongKui,Fengdu}` 目前是複製自龍奴／尼德霍格／該隱（只複製 png、沒帶 .meta），作者用 AutoSprite 產好正式圖後**整個資料夾覆蓋**即可。影子錨點表那 12 列也是從暫代來源複製的（Source=auto）——⚠ 錨點工具只用幀數判斷換圖，換正式圖後**先刪掉 `characters/soulborn/*` 那 12 列再跑「計算影子錨點」**，否則幀數相同時不會重算。`BodyScale` 以鬼差為 1：鍾馗 1.7、酆都 1.3（2026-11-09 作者看過正式序列圖後指定）、`WalkSpeed` 留空、五屬性是佔位值（鬼差弱、鍾馗力、酆都魔）。神格特效＝`MistStyle`=SoulSkull（身後黑霧＋凝結骷髏，§5b；用該隱對位，⏳ 未實測）、酆都夢境武器＝萬魂鬼手 77（§5d，⏳ 未實測）。
+- 萬魂系列的三張 1024 角色圖、立繪、icon 都是 AI 操作 ChatGPT 產的（流程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md)），工作檔與舊版在 `TempImage/bloodline_Netherborn/`（gitignore）。
 - **蟲族系列（2026-09-14 加）目前的狀態**：兩張表、三瓶藥劑（308／328／338）、血統池 308、icon 成品瓶 `bloodline_Swarmborn` 都齊，素材四個動作與六種情緒立繪也都在。`BodyScale` 三階全填 1、`WalkSpeed` 留空（＝不改速度）、五屬性是佔位值（寄生體偏敏捷、蟲皇全面高），**都還沒實機看過**；第三階蟲皇的神格特效已指派＝**第六層擊中特效**（`HitVfxId`=40 咬擊，2026-09-14 加，見 §5c），§5b 那五個常駐層仍全空。
 - ~~⚠ 蟲皇的 `dead/` 只有一張圖~~ → **2026-09-14 已解決**：那張其實是 AutoSprite 合圖，被切割工具的舊防呆誤判而拒切（[PROBLEMS.md](PROBLEMS.md) **C14**），工具修好後切出 25 張。⚠ **要在 Unity 跑一次 `Project Tools → Sync Map Assets`**，catalog 目前還記著舊的「單張」。
 - **狂族的 `BodyScale`（狼人 1／望月者 1.3／芬里爾 1.5）是憑印象給的，實機看過再定**

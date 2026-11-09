@@ -236,6 +236,8 @@ public static class WeaponModeSpec
 
             // ── 追蹤 ──
             F(R, "HomingTurnSpeed", FieldKind.Float, "追蹤", "追蹤轉向速度（度/秒）", "0", 0f, 3600f, "0＝不追蹤；90 慢 180 中 360 快"),
+            F(R, "HomingRadius",    FieldKind.Float, "追蹤", "追蹤索敵半徑", "50", 0.5f, 50f, "只追這個半徑內的怪；50＝全場鎖最近（舊行為）；小於 50 時每顆在最近 3 隻裡隨機挑一隻，一群子彈會分散咬不同的怪"),
+            F(R, "WanderAngle",     FieldKind.Float, "追蹤", "飄移幅度（度）", "0", 0f, 90f, "每顆子彈左右蛇行擺盪的角度（各自隨機相位）；0＝直飛。冤魂、螢火這類「飄」的子彈用"),
 
             // ── 射程／範圍（語意一致的共用欄）──
             F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）／Familiar 索敵半徑（空=8）"),
@@ -378,7 +380,7 @@ public static class WeaponModeSpec
         // 一般子彈：全套彈道行為
         M(d, WeaponMode.Normal, "一般子彈", "會飛的子彈；穿透／反彈／追蹤／分裂／軌跡／命中迸發全吃", bullets: true)
             .Eff("FireInterval", "Speed", "Radius", "LifeTime", "RotationSpeed", "PierceCount", "BlockedByEnvironment")
-            .Eff(Multi).Eff("SplitTiming", "SubRecipeID", "BounceTarget", "MaxBounces", "HomingTurnSpeed")
+            .Eff(Multi).Eff("SplitTiming", "SubRecipeID", "BounceTarget", "MaxBounces", "HomingTurnSpeed", "HomingRadius", "WanderAngle")
             .Eff("GroundEffectID", "GroundEffectHitTarget", "TrailStep", "SubWeaponOnHit", "SubWeaponHitTarget")
             .Eff(Charge).Eff(Burst).Eff(Parallel)
             .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "TrailEffectID").Eff(BulletVisual);

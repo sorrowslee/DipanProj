@@ -50,6 +50,8 @@ Spawn(def, prefab, position, direction, collisionMask, pierceableLayers, nonBoun
 | `BounceBehavior` | 牆壁反彈（`Vector2.Reflect`），命中 `NonBounceLayers` 內的目標時不反彈 |
 | `SplitBehavior` | 扇形分裂，支援 OnSpawn / OnHit / OnDeath 三種觸發時機 |
 | `RotationBehavior` | 飛行中持續自轉 |
+| `HomingBehavior` | 追蹤：轉向目標（`HomingTurnSpeed`）。**只找 `BulletInstance.HomingLayers`**（2026-11-09：發射端傳 `homingLayers`＝目標層；沒傳＝沿用 PierceableLayers 的舊行為。⚠ 穿牆配方的 PierceableLayers 含牆，以前追蹤會去追牆）。分散模式下咬到目標 0.5 秒後清命中名單，鬼魂繞回來能再咬同一隻（仍受穿透數限制）。索敵半徑 `HomingRadius` 預設 50＝鎖全場最近；**&lt;50 時改成只追半徑內、在最近 3 隻裡隨機挑**，且半徑內沒怪時每 0.15 秒才重找（2026-11-09） |
+| `WanderBehavior` | 飄移（2026-11-09）：行進方向繞原方向做 `WanderAngle`·sin 擺盪，每顆隨機相位／頻率 ±30%，每幀只轉「擺盪角的變化量」所以平均方向不偏；掛在追蹤之後 |
 | `OrbitalBehavior` | 以指定 Transform 為圓心環繞飛行，穿透時繼續環繞，反彈時脫軌飛出 |
 | `ParabolicBehavior` | 接管移動的拋物線（假高度視覺、飛行中不撞 layer）；見 [GROUND_EFFECT.md](GROUND_EFFECT.md) |
 | `BoomerangBehavior` | 迴旋：直線飛 range → 每幀追擁有者飛回 → 還有趟數就穿過擁有者往身後再飛（鐘擺）→ 最後一趟碰到擁有者銷毀；每次轉向清命中名單；壽命自己管（每趟保險上限、超時淡出）。見下節 |

@@ -185,6 +185,8 @@ public class RecipeEntry
         // ── 追蹤 ──
         float homing = Fl("HomingTurnSpeed", 0f);
         if (homing > 0f) { d.HasHoming = true; d.HomingTurnSpeed = homing; }
+        d.HomingRadius = Fl("HomingRadius", HomingBehavior.DefaultAcquireRadius);   // 2026-11-09：<50＝只追附近、在最近 3 隻裡隨機挑
+        d.WanderAngle = Math.Max(0f, Fl("WanderAngle", 0f));                          // 2026-11-09：左右蛇行幅度（度）
 
         // ── 射程 / 範圍 ──
         d.BeamRange = Fl("Range", mode == WeaponMode.GroundCast ? 8f : mode == WeaponMode.Boomerang ? BoomerangDefaultRange
@@ -305,6 +307,8 @@ public class RecipeEntry
             MaxBounces = src.MaxBounces,
             HasHoming = src.HasHoming,
             HomingTurnSpeed = src.HomingTurnSpeed,
+            HomingRadius = src.HomingRadius,
+            WanderAngle = src.WanderAngle,
             HasSplit = src.HasSplit,
             Timing = src.Timing,
             SplitCount = src.SplitCount,

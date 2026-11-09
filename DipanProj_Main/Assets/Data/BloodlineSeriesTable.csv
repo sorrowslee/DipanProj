@@ -1,4 +1,4 @@
-SeriesId,Key,DisplayName,Stage1Id,Stage2Id,Stage3Id,Note
+SeriesId,Key,DisplayName,Stage1Id,Stage2Id,Stage3Id,Note,DreamDramaId
 # ─────────────────────────────────────────────────────────────────────────────
 # 血統「系列」表（表A）。一列 = 一個系列 = 三個階段。
 #
@@ -30,3 +30,4 @@ SeriesId,Key,DisplayName,Stage1Id,Stage2Id,Stage3Id,Note
 6,Cloudborn,雲龍,60,61,62,雲龍系列：蛟人 → 螭吻 → 應龍
 7,Blazeborn,熾龍,70,71,72,熾龍系列：龍奴 → 法夫納 → 尼德霍格
 8,Swarmborn,蟲族,80,81,82,蟲族系列：寄生體 → 獵殺者 → 蟲皇
+9,Soulborn,萬魂,90,91,92,萬魂系列：鬼差 → 鍾馗 → 酆都大帝,83

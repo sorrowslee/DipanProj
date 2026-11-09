@@ -1,5 +1,7 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Collections;
 using Dipan.MapRuntime;   // 玩家外型走「地圖素材管線」(catalog + StreamingAssets)，與怪物同套
 
 /// <summary>
@@ -56,6 +58,77 @@ public class PlayerSpriteLibrary
     static string Key(string bloodline, string state)
         => $"{(bloodline ?? "").Trim().ToLowerInvariant()}/{(state ?? "").Trim().ToLowerInvariant()}";
 
+    static readonly string[] PrewarmStates = { "idle", "walk", "attack", "dead" };
+
+    /// <summary>
+    /// **分幀預熱**某血統的外型（2026-11-09，PROBLEMS E47）：把 <see cref="PlayerAnimator.Setup"/> 會用到的重活先做掉——
+    /// ① 每一幀 PNG 讀檔＋解碼（<c>MapSpriteLoader.GetFrameTexture</c>，512×512＋mipmap，一張約數毫秒）、
+    /// ② 各動作的體積尺度、可見框、攻擊起訖幀（都要 GetPixels32 掃全部幀）。
+    /// 這些結果本來就有快取，所以預熱完之後 Setup 只剩建 Sprite，換外型那一幀不再卡。
+    ///
+    /// 為什麼要：喝藥變身在「煙最濃」那一刻才呼叫 SetBloodline，一個三階血統 4 個動作約 80 幀 512px 圖，
+    /// 全部同步讀檔＋解碼＋掃像素擠在同一幀 ⇒ 畫面整個停住（作者 2026-11-09 回報）。
+    /// 讀檔解碼每幀最多花 <paramref name="frameBudgetMs"/> 毫秒（用真實時間量，遊戲暫停中照樣跑）；
+    /// 統計那幾項各占一幀。中途被打斷沒關係：沒做完的部分 Setup 會照舊同步補做（＝原本的行為）。
+    /// </summary>
+    public IEnumerator PrewarmRoutine(string bloodline, float targetHeight = 0f, float bodyScale = 1f, float frameBudgetMs = 6f)
+    {
+        if (string.IsNullOrEmpty(bloodline) || _loader == null) yield break;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+
+        // ① 讀檔＋解碼（最重的一段，按時間預算切）
+        foreach (var st in PrewarmStates)
+        {
+            if (!_byTail.TryGetValue(Key(bloodline, st), out var item) || item == null) continue;
+            if (item.IsAnimated)
+            {
+                foreach (var f in item.frames)
+                {
+                    _loader.GetFrameTexture(f);
+                    if (sw.Elapsed.TotalMilliseconds >= frameBudgetMs) { yield return null; sw.Restart(); }
+                }
+            }
+            else
+            {
+                _loader.GetTexture(item);
+                if (sw.Elapsed.TotalMilliseconds >= frameBudgetMs) { yield return null; sw.Restart(); }
+            }
+        }
+
+        // ② 各種統計（每項一幀；貼圖都在快取裡了，只剩掃像素）
+        foreach (var st in PrewarmStates)
+        {
+            if (!_byTail.ContainsKey(Key(bloodline, st))) continue;
+            GetActionSize(bloodline, st);
+            yield return null;
+            TryGetVisibleBox(bloodline, st, out _, out _);
+            yield return null;
+        }
+        GetActionStartFrame(bloodline, "attack");   // 起訖幀同一次掃描
+        yield return null;
+        TryGetVisibleBoxLastFrame(bloodline, "dead", out _, out _, out _);   // 趴姿幾何（PlayerAnimator.CacheGeometry 的 Dead）
+        yield return null;
+
+        // ③ 建 Sprite（2026-11-09 第二輪）：Sprite.Create 預設產 Tight 網格，512px 圖一張就要好幾毫秒——只預熱前兩段時還是卡，主因在這。
+        //    tileSize 用跟 Setup 同一支 PlayerAnimator.ResolveTiles、pivot 用同一支 FootPivotFor ⇒ 快取鍵完全相同，
+        //    換外型時 GetFrames 全部命中。沒給目標高度就算不出 tileSize，這段跳過（交給 Setup 當場建）。
+        if (targetHeight <= 0f) yield break;
+        if (bodyScale <= 0.01f) bodyScale = 1f;
+        PlayerAnimator.ResolveTiles(this, bloodline, targetHeight, out float tile, out float walkTile, out float attackTile);
+        sw.Restart();
+        foreach (var st in PrewarmStates)
+        {
+            if (!_byTail.TryGetValue(Key(bloodline, st), out var item) || item == null || !item.IsAnimated) continue;
+            float t = st == "walk" ? walkTile : st == "attack" ? attackTile : tile;
+            float pivotY = FootPivotFor(bloodline, st, bodyScale);
+            foreach (var f in item.frames)
+            {
+                _loader.GetFrameSprite(f, t, pivotY);
+                if (sw.Elapsed.TotalMilliseconds >= frameBudgetMs) { yield return null; sw.Restart(); }
+            }
+        }
+    }
+
     /// <summary>這個血統有沒有這個動作的圖（防呆判斷用）。</summary>
     public bool Has(string bloodline, string state)
     {
@@ -86,14 +159,23 @@ public class PlayerSpriteLibrary
         {
             if (item.IsAnimated)
             {
-                frames = _loader.GetAnimationFrames(item, tileSize);
+                // 逐幀從 loader 取「已套好腳底 pivot」的 sprite（各幀各自快取）。
+                // 以前是先建一套置中 pivot 的、bodyScale≠1 再整套重建一次——Sprite.Create（Tight 網格）在 512px 圖上很貴，
+                // 等於白做一倍；而且逐幀快取才能讓變身預熱分幀先建好（PROBLEMS E47）。輸出的 sprite 與舊寫法完全相同。
+                float pivotY = FootPivotFor(bloodline, state, bodyScale);
+                frames = new Sprite[item.frames.Count];
+                for (int i = 0; i < frames.Length; i++)
+                {
+                    frames[i] = _loader.GetFrameSprite(item.frames[i], tileSize, pivotY);
+                    if (frames[i] == null) { frames = null; break; }
+                }
             }
             else
             {
                 var sp = _loader.GetWholeSprite(item, tileSize);
                 if (sp != null) frames = new[] { sp };
+                frames = ApplyFootPivot(frames, bloodline, state, bodyScale);
             }
-            frames = ApplyFootPivot(frames, bloodline, state, bodyScale);
         }
         _frameCache[cacheKey] = frames;
         return frames;
@@ -118,6 +200,14 @@ public class PlayerSpriteLibrary
     {
         if (bodyScale <= 0.01f) bodyScale = 1f;
         return Mathf.Clamp(fy - (fy - 0.5f) / bodyScale, -1f, 2f);   // 極端倍率的保險，正常落在 0~0.5
+    }
+
+    /// <summary>這個動作在這個體型下的 pivot.y（體型 1 或量不到可見框＝0.5 置中）。與 <see cref="ApplyFootPivot"/> 同一套算法。</summary>
+    float FootPivotFor(string bloodline, string state, float bodyScale)
+    {
+        if (bodyScale <= 0.01f || Mathf.Approximately(bodyScale, 1f)) return 0.5f;
+        if (!TryGetVisibleBox(bloodline, state, out var size, out var offset, out var canvas)) return 0.5f;
+        return FootPivotY(VisibleBottomFraction(size, offset, canvas), bodyScale);
     }
 
     /// <summary>
@@ -169,6 +259,23 @@ public class PlayerSpriteLibrary
         if (!box.ok) return false;
         size = box.size;
         offset = box.offset;
+        if (box.canvas.y > 0.0001f) canvas = box.canvas;
+        return true;
+    }
+
+    /// <summary>
+    /// 同 <see cref="TryGetVisibleBox(string,string,out Vector2,out Vector2,out Vector2)"/>，但量的是動作的**最後一幀**（2026-11-09）。
+    /// dead 的第一幀還站著、最後一幀才是趴姿；倒地／趴著期間的身體中心要用這個（PlayerAnimator.CacheGeometry）。單張圖＝同一張。
+    /// </summary>
+    public bool TryGetVisibleBoxLastFrame(string bloodline, string state, out Vector2 size, out Vector2 offset, out Vector2 canvas)
+    {
+        size = default; offset = default; canvas = Vector2.one;
+        if (_loader == null || !_byTail.TryGetValue(Key(bloodline, state), out var item) || item == null) return false;
+        if (!item.IsAnimated || item.frames == null || item.frames.Count == 0)
+            return TryGetVisibleBox(bloodline, state, out size, out offset, out canvas);
+        var box = _loader.GetFrameAlphaBox(item.frames[item.frames.Count - 1], 1f);
+        if (!box.ok) return false;
+        size = box.size; offset = box.offset;
         if (box.canvas.y > 0.0001f) canvas = box.canvas;
         return true;
     }
@@ -283,7 +390,7 @@ public class PlayerSpriteLibrary
     {
         height = 0; area = 0;
         if (tex == null || tex.width <= 0 || tex.height <= 0) return false;
-        var px = tex.GetPixels32();
+        var px = PixelsNoAlloc(tex);
         int w = tex.width, hgt = tex.height;
         int minY = hgt, maxY = -1;
         for (int y = 0; y < hgt; y++)
@@ -297,6 +404,22 @@ public class PlayerSpriteLibrary
         if (maxY < 0) return false;
         height = maxY - minY + 1;
         return true;
+    }
+
+    /// <summary>
+    /// 讀像素但不製造垃圾（2026-11-09，PROBLEMS E47）：RGBA32 貼圖把 CPU 端資料 memcpy 進一個**重複使用**的暫存陣列。
+    /// 舊寫法 GetPixels32() 每呼叫一次就配置一個 512×512×4＝1MB 的新陣列，變身時要掃好幾百次 ⇒ 幾百 MB 垃圾、GC 在換外型附近停頓。
+    /// ⚠ 回傳的陣列**下次呼叫就會被覆寫**，而且長度可能大於 w×h——只能在當下用、只讀前 w×h 格。主執行緒專用。
+    /// 其他格式（沒有 alpha 的 PNG 會被 LoadImage 解成 RGB24）退回 GetPixels32（會配置，但很少見）。
+    /// </summary>
+    static Color32[] _pixelScratch;
+    static Color32[] PixelsNoAlloc(Texture2D tex)
+    {
+        if (tex.format != TextureFormat.RGBA32) return tex.GetPixels32();
+        var data = tex.GetPixelData<Color32>(0);
+        if (_pixelScratch == null || _pixelScratch.Length < data.Length) _pixelScratch = new Color32[data.Length];
+        NativeArray<Color32>.Copy(data, _pixelScratch, data.Length);
+        return _pixelScratch;
     }
 
     static float Median(List<float> v)
@@ -505,7 +628,7 @@ public class PlayerSpriteLibrary
     static bool[] BuildPoseMask(Texture2D tex)
     {
         if (tex == null || tex.width <= 0 || tex.height <= 0) return null;
-        var px = tex.GetPixels32();
+        var px = PixelsNoAlloc(tex);
         int w = tex.width, h = tex.height;
         var mask = new bool[PoseGrid * PoseGrid];
         for (int y = 0; y < h; y++)

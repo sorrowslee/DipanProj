@@ -12,6 +12,12 @@ namespace Dipan.Gacha
         public string DisplayName;    // 系列名（例：殭屍）
         public string Note;
 
+        /// <summary>
+        /// 新手夢境教學裡抽到這個系列時要播的 drama id（2026-11-09 加，表A 第 8 欄）。0／留空 ＝ 沿用舊的隱含契約 <c>31 + SeriesId</c>。
+        /// 為什麼要這欄：drama 32~39 依序對應系列 1~8，但 **40 已經被「初始洞窟對話」佔走**，第 9 個系列（萬魂）算出來會撞號。
+        /// </summary>
+        public int DreamDramaId;
+
         /// <summary>三個階段的血統 Id，index 0 = 第一階。0 = 這一階沒填（系列可以只有 1~2 階）。</summary>
         public readonly int[] StageIds = new int[BloodlineSeriesTable.MaxStage];
 
@@ -143,6 +149,7 @@ namespace Dipan.Gacha
                 for (int s = 0; s < MaxStage; s++)
                     d.StageIds[s] = CsvUtil.FieldInt(v, 3 + s, 0);
                 d.Note = CsvUtil.Field(v, 3 + MaxStage);
+                d.DreamDramaId = CsvUtil.FieldInt(v, 4 + MaxStage, 0);   // 表A 第 8 欄；留空＝31+SeriesId
 
                 if (d.DisplayName.Length == 0) d.DisplayName = d.Key.Length > 0 ? d.Key : $"#{sid}";
 

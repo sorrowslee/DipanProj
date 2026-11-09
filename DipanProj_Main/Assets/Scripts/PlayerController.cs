@@ -1816,7 +1816,7 @@ public class PlayerController : MonoBehaviour, IDamageable
                 collisionMask, pierceableLayers, nonBounceLayers,
                 (b, t2, h) => HandleBulletHit(fw, b, t2, h),
                 fw.WeaponSprite, fw.SpriteAngleOffset, scale, fw.WeaponSprites, fw.AnimFPS,
-                flipYWhenMovingLeft: fw.FlipYWhenLeft);
+                flipYWhenMovingLeft: fw.FlipYWhenLeft, homingLayers: EnemyLayer);
         }
     }
 
@@ -2359,7 +2359,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             collisionMask, pierceableLayers, nonBounceLayers,
             (b, t, h) => HandleBulletHit(fired, b, t, h),
             subWeapon.WeaponSprite, subWeapon.SpriteAngleOffset, scale, subWeapon.WeaponSprites, subWeapon.AnimFPS,
-            (b, p) => TrySpawnTrailEffect(fired, p), flipYWhenMovingLeft: subWeapon.FlipYWhenLeft);
+            (b, p) => TrySpawnTrailEffect(fired, p), flipYWhenMovingLeft: subWeapon.FlipYWhenLeft, homingLayers: EnemyLayer);
     }
 
     private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)

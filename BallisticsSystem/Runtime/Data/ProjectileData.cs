@@ -18,6 +18,12 @@ namespace Sorrows.Ballistics
 
         public bool HasHoming;
         public float HomingTurnSpeed = 180f;
+        /// <summary>追蹤的索敵半徑（世界單位）。預設 50＝全場鎖最近的（舊行為）。
+        /// &lt; 50 時改成「只追這個半徑內的、在最近 3 隻裡隨機挑」——一群子彈會分散咬不同的怪（2026-11-09，萬魂鬼手）。</summary>
+        public float HomingRadius = HomingBehavior.DefaultAcquireRadius;
+
+        /// <summary>飄移幅度（度）：&gt; 0 時子彈左右蛇行（<see cref="WanderBehavior"/>）。0＝直飛。</summary>
+        public float WanderAngle = 0f;
 
         public bool HasSplit;
         public SplitTiming Timing;
@@ -52,7 +58,8 @@ namespace Sorrows.Ballistics
             if (HasBounce) list.Add(new BounceBehavior(MaxBounces));
             if (HasSplit) list.Add(new SplitBehavior(SubProjectileData, SplitCount, SpreadAngle, Timing));
             if (RotationSpeed != 0) list.Add(new RotationBehavior(RotationSpeed));
-            if (HasHoming) list.Add(new HomingBehavior(HomingTurnSpeed));
+            if (HasHoming) list.Add(new HomingBehavior(HomingTurnSpeed, HomingRadius));
+            if (WanderAngle > 0f) list.Add(new WanderBehavior(WanderAngle));   // 放在追蹤之後：先轉向目標、再疊上擺盪
             if (IsOrbital) list.Add(new OrbitalBehavior(OrbitalRadius, Speed));
             // 拋物線：FlightTime = 飛行秒數，不論遠近都飛這麼久才落地（Speed 對拋物線無意義）
             if (IsParabolic) list.Add(new ParabolicBehavior(ArcHeight, FlightTime));

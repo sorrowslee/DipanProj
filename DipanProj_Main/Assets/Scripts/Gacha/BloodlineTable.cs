@@ -124,6 +124,18 @@ namespace Dipan.Gacha
         /// 留空 = 沒有。見 readme/PASSIVE_WEAPON.md。
         /// </summary>
         public int[] PassiveWeaponIds = System.Array.Empty<int>();
+
+        /// <summary>
+        /// **身後黑霧**（第 28 欄，2026-11-09，<see cref="BloodlineMist"/>）：<c>SoulSkull</c> = 黑霧＋霧中週期凝結骷髏頭；
+        /// 其他非空值 = 只有黑霧。留空 = 無。目前只有酆都大帝（92）。見 readme/BLOODLINE.md §5b。
+        /// </summary>
+        public string MistStyle;
+
+        /// <summary>
+        /// **攻擊動畫播放倍率**（第 29 欄，2026-11-09）：&lt;1 = 慢（0.6 ＝ 6 成速）。留空／≤0 = 1。
+        /// 只改動畫節奏，不改武器攻速。目前只有鍾馗（91）填。
+        /// </summary>
+        public float AttackAnimSpeed = 1f;
     }
 
     /// <summary>
@@ -244,10 +256,17 @@ namespace Dipan.Gacha
 
                     // 被動武器掛載（26 欄，2026-10-01）。分號分隔；留空 = 沒有。ID 的有效性由 PassiveWeaponSet 解析時檢查。
                     PassiveWeaponIds = Dipan.Inventory.ItemDatabase.ParseIdList(CsvUtil.Field(v, 26), $"血統 {id} 的 PassiveWeaponIds"),
+
+                    // 身後黑霧（27 欄，2026-11-09）。留空 = 無。
+                    MistStyle = CsvUtil.Field(v, 27),
+
+                    // 攻擊動畫播放倍率（28 欄，2026-11-09）。留空 = 1。
+                    AttackAnimSpeed = CsvUtil.FieldFloat(v, 28, 1f),
                 };
                 if (d.DisplayName.Length == 0) d.DisplayName = d.Key.Length > 0 ? d.Key : $"#{id}";
                 // 留空/0/負數一律當 1；上限擋在 5 倍，填錯一個 0 不會讓角色大到蓋滿整個畫面。
                 d.BodyScale = d.BodyScale <= 0.01f ? 1f : Mathf.Clamp(d.BodyScale, 0.2f, 5f);
+                d.AttackAnimSpeed = d.AttackAnimSpeed <= 0.01f ? 1f : Mathf.Clamp(d.AttackAnimSpeed, 0.1f, 3f);
 
                 _byId[id] = d;
             }

@@ -396,6 +396,50 @@ namespace Dipan.MapRuntime
         }
 
         /// <summary>
+        /// 某一幀（相對路徑）的不透明內容框，算法同 <see cref="GetAlphaLocalBox"/>，依「幀路徑＋tileSize」快取（2026-11-09）。
+        /// 給「這個動作的代表姿勢不是第一幀」的場合用——例：玩家 dead 的第一幀還站著、最後一幀才是趴姿。
+        /// </summary>
+        public LocalBox GetFrameAlphaBox(string framePath, float tileSize)
+        {
+            var none = new LocalBox { ok = false };
+            if (string.IsNullOrEmpty(framePath)) return none;
+            string key = $"frame|{framePath}|alpha|{tileSize}";
+            if (_alphaBoxes.TryGetValue(key, out var cached)) return cached;
+            var tex = GetFrameTexture(framePath);
+            if (tex == null) { _alphaBoxes[key] = none; return none; }
+
+            int w = tex.width, h = tex.height;
+            Color32[] px = tex.GetPixels32();
+            int minX = w, minY = h, maxX = -1, maxY = -1;
+            for (int y = 0; y < h; y++)
+            {
+                int rowBase = y * w;
+                for (int x = 0; x < w; x++)
+                {
+                    if (px[rowBase + x].a > AlphaThreshold)
+                    {
+                        if (x < minX) minX = x;
+                        if (x > maxX) maxX = x;
+                        if (y < minY) minY = y;
+                        if (y > maxY) maxY = y;
+                    }
+                }
+            }
+            if (maxX < 0) { _alphaBoxes[key] = none; return none; }
+
+            float ppu = TileNativePx / Mathf.Max(0.0001f, tileSize);
+            var box = new LocalBox
+            {
+                ok = true,
+                size = new Vector2((maxX - minX + 1) / ppu, (maxY - minY + 1) / ppu),
+                offset = new Vector2(((minX + maxX + 1) * 0.5f - w * 0.5f) / ppu, ((minY + maxY + 1) * 0.5f - h * 0.5f) / ppu),
+                canvas = new Vector2(w / ppu, h / ppu),
+            };
+            _alphaBoxes[key] = box;
+            return box;
+        }
+
+        /// <summary>
         /// 取這個素材的「佔位遮罩」（給地上物碰撞貼合圖形用），解析度 = subdiv。取不到回 null。
         ///
         /// <para><b>永遠走同一條計算路徑</b>：先取得 <see cref="ObjectFootprint.BakeSubdiv"/> 解析度的遮罩

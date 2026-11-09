@@ -133,6 +133,8 @@ public class RecipeManager : MonoBehaviour
         sub.MaxBounces = data.MaxBounces;
         sub.HasHoming = data.HasHoming;
         sub.HomingTurnSpeed = data.HomingTurnSpeed;
+        sub.HomingRadius = data.HomingRadius;
+        sub.WanderAngle = data.WanderAngle;
         sub.IsOrbital = data.IsOrbital;
         sub.OrbitalRadius = data.OrbitalRadius;
         sub.OrbitalCount = data.OrbitalCount;

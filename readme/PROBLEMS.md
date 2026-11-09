@@ -17,7 +17,7 @@
 | B | 地圖載入 (Map Loader) | B1~B18 |
 | C | 地圖編輯器 / 素材同步 | C1~C16（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E46（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後） |
+| E | 效能 / 顯示 (Performance & Display) | E1~E47（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F46（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G19（位置在 F3 之後）；**G13 在 F26 之後、H 段標題之前；G14~G18 誤接在 H 段標題之後、H1 之前**（維持原位不搬）；G19 接在 G18 之後 |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1~H2 |
@@ -991,6 +991,16 @@
 - **解法**（2026-11-07）：`CutsceneActor.Npc` 補掛 `BlobShadow`；`SetActive`（spawn／despawn／開演時先藏）同步 `SetVisible`，否則影子定格原地（E19）。**飛行生物（怪物表 BrainType=Flying／Bat，例：血蝠）刻意不掛**：演員沒有離地高度，影子只會貼身下、像貼地滑行。⚠ 第一版用演員的 `flying` 勾選判斷，結果迎賓大廳 `exit_vampire`／`exit_werewolf` 的夏綠蒂、艾爾文沒影子——那顆是「直線移動不被牆擋」，劇本拿來讓地面角色直線離場；改成用 spriteFolder 查怪物表。
 - **通則**：角色外觀相關的元件（影子、排序、體光）**不只一條生成路徑**——加或改其中一個時，三條都要看：`MonsterController.Start`、`NpcSpawner`、`CutsceneActor.Npc`。
 - **同場另一個坑**：管家 2026-11-06 換新圖（512→256 畫布）後影子錨點表沒重算，影子中心比腳底高約 41px、整個藏在身體後面——換序列圖後要跑 `Project Tools → 角色 → 計算影子錨點`（[SHADOW.md](SHADOW.md)）。⚠ **但工具只在「幀數變了」才重算 auto 列、不看畫布尺寸**：管家 walk 剛好還是 12 張 ⇒ 沒重算，一走路影子又縮回身體後面。當時處置＝刪掉那列讓工具當新的算（沒算前會退回 idle 錨點）。換圖但張數沒變時，要手動刪列或跑「重算所有 auto 影子錨點」。
+### E47. 喝血統藥劑變身時，換外型那一刻整個畫面停住
+- **症狀**：每次喝血統藥，雷打下來、煙最濃要換成新外型的那一瞬間，畫面明顯停頓（作者 2026-11-09 回報，每次都會）。
+- **原因**：換外型（`BloodlineTransformFx` 的 onSwap → `BloodlineSystem.ApplyTo` → `PlayerController.SetBloodline` → `PlayerAnimator.Setup`）是**第一次用到才載**：一個血統 4 個動作（idle／walk／attack／dead）約 80 幀、每幀 **512×512 PNG**，全部在同一幀裡 `File.ReadAllBytes` ＋ `LoadImage`（含產生 mipmap）＋ 好幾輪 `GetPixels32` 全幀掃描（體積尺度 `GetActionSize`、可見框、攻擊起訖幀 `ComputeActionRange` 又把 idle 全部掃一次）。同類問題見 E45（波次怪第一次登場才載）。
+- **解法**（2026-11-09）：`PlayerSpriteLibrary.PrewarmRoutine(血統)`——分幀把讀檔解碼（每幀最多 6ms，用真實時間量）與各項統計先做掉，結果進既有快取；`BloodlineSystem.Transform` 開演時 `StartCoroutine(PrewarmTransform)`，趁倒地那 2.5 秒跑完，順便把揭示面板要用的新舊兩張 normal 立繪也載好。演出期間 `timeScale=0`，協程用 `yield return null` 不受影響。沒趕上的部分到 Setup 時照舊同步補做（最壞＝原本的行為）。
+- **第二輪**（同日，作者：好一點但還是明顯卡）：還有兩個大頭沒處理——
+  ① **`Sprite.Create` 預設產 Tight 網格**（描出不透明輪廓再三角化），512px 圖一張要好幾毫秒，80 張就是幾百毫秒；而且 `BodyScale≠1`（鍾馗 1.7、酆都 1.3…）時 `ApplyFootPivot` 會**整套再建一次**。
+  ② **`GetPixels32()` 每次配置 1MB 新陣列**，預熱＋Setup 要掃好幾百次 ⇒ 幾百 MB 垃圾，GC 剛好在換外型附近停頓。
+  解法：`PlayerSpriteLibrary.GetFrames` 改成逐幀向 loader 要「已套好腳底 pivot」的 sprite（`MapSpriteLoader.GetFrameSprite(path, tile, pivotY)`，各幀各自快取；輸出跟舊寫法一模一樣，只是不再白建一套置中的）；`PrewarmRoutine` 多一段**分幀建 Sprite**，tileSize 用跟 Setup 共用的 `PlayerAnimator.ResolveTiles`、pivot 用同一支 `FootPivotFor`，目標高度由 `BloodlineSystem` 傳 `CharacterWorldHeight × 新體型`（＝Setup 收到的 ScaledCharacterHeight）⇒ 快取鍵相同、換外型時全部命中；像素掃描改 `PixelsNoAlloc`（`GetPixelData` memcpy 進重複使用的暫存陣列，零垃圾）。
+  ⚠ 刻意**沒改成 FullRect 網格**（建得快很多）：玩家有幾處讀 `SpriteRenderer.bounds`／`sprite.bounds`（擊退距離 `HitReactionHandler`、集氣與喝藥特效大小），FullRect 會把透明留白算進去、行為跟著變。
+- **通則**：任何「演出中途才換外型／換素材」的地方，都要在演出開頭就分幀預熱，不要等要用的那一幀才載。**預熱要預到最後一步（建 Sprite）**，只預熱讀檔解碼不夠。
 ### E36. 大白天每隻怪身上都掛著一圈光，而且一直閃
 - **症狀**（2026-09-17，競技場的戰狼）：把怪放進 `Atmosphere=1`、沒壓暗的**亮**地圖，每隻怪身上都有一圈青白光暈；
   而且圖會**一閃一閃**，像貼圖在抖。

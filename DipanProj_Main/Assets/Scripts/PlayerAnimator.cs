@@ -41,6 +41,12 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
     /// </summary>
     [System.NonSerialized] public bool AttackLoops = false;
 
+    /// <summary>
+    /// 攻擊動畫的播放倍率（&lt;1 = 慢）。由血統表B 的 <c>AttackAnimSpeed</c> 經 BloodlineSystem 每次套用時寫入（2026-11-09 加）。
+    /// 只影響**動畫**，不影響武器的實際攻速（那在武器表）。例：鍾馗是全力由上往下劈的大動作，12fps 看起來太急。
+    /// </summary>
+    [System.NonSerialized] public float AttackFpsMul = 1f;
+
     /// <summary>攻擊從第幾幀開始播（0 起算）。循環模式（舊行為）恆為 0。</summary>
     public int AttackStartFrame => AttackLoops ? 0 : _attackStart;
 
@@ -207,23 +213,9 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
 
         var lib = PlayerSpriteLibrary.Instance;
 
-        // 自動換算顯示縮放：用 idle（取不到改 walk）的「可見高度」把幀放大到 targetHeight 世界高。
-        // box.size.y 是世界單位 @ tileSize 1（= 可見像素 / 256）；tileSize = targetHeight / box.size.y。
-        float tileSize = 1f;
-        if (lib.TryGetVisibleBox(bloodline, "idle", out var vbox, out _) && vbox.y > 0.0001f)
-            tileSize = targetHeight / vbox.y;
-        else if (lib.TryGetVisibleBox(bloodline, "walk", out var wbox, out _) && wbox.y > 0.0001f)
-            tileSize = targetHeight / wbox.y;
-        tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
-
-        // 逐動作尺度正規化：walk/attack 對齊 idle 的「體積尺度」（掃全幀取中位數的 √(高×√面積)，見
-        // PlayerSpriteLibrary.GetActionSize），消除 AutoSprite 各動作大小落差；dead 維持躺姿用 idle 縮放、不正規化。
-        // ⚠ 以前只對齊「第一幀的可見高度」——Base 的 attack 高度只多 4%、整個人卻粗了 14%，玩家一出手角色就長大
-        //   （PROBLEMS G7）。
-        float idleSize = StateSize(lib, bloodline, "idle");
+        // 顯示縮放（idle 可見高度換算＋walk/attack 體積正規化）抽到 ResolveTiles，變身預熱也用同一支（PROBLEMS E47）。
+        ResolveTiles(lib, bloodline, targetHeight, out float tileSize, out float walkTile, out float attackTile);
         if (bodyScale <= 0.01f) bodyScale = 1f;
-        float walkTile = StateTile(lib, bloodline, "walk", tileSize, idleSize);
-        float attackTile = StateTile(lib, bloodline, "attack", tileSize, idleSize);
         _idle = lib.GetFrames(bloodline, "idle", tileSize, bodyScale);
         _walk = lib.GetFrames(bloodline, "walk", walkTile, bodyScale);
         _dead = lib.GetFrames(bloodline, "dead", tileSize, bodyScale);
@@ -277,13 +269,48 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
     {
         if (!lib.TryGetVisibleBox(bloodline, state, out var size, out var offset, out var canvas)) return;
         float fy = PlayerSpriteLibrary.VisibleBottomFraction(size, offset, canvas);
-        float pivotY = PlayerSpriteLibrary.FootPivotY(fy, bodyScale);
+        float pivotY = PlayerSpriteLibrary.FootPivotY(fy, bodyScale);   // sprite 的 pivot 是用第一幀算的（GetFrames 同一套），這裡不能變
+
+        // Dead（倒下／趴著／爬起期間的幾何）改量**最後一幀＝趴姿**（2026-11-09）：
+        // dead 的第一幀還站著，用它算的「身體中心」是站姿的半身高——人已經趴在地上，
+        // 喝藥變身的煙塵／電弧（BodyCenterWorldPos）就會飄在趴著的身體上方（作者回報「爆炸比玩家高一些」）。
+        if (key == State.Dead && lib.TryGetVisibleBoxLastFrame(bloodline, state, out var lsize, out var loffset, out var lcanvas))
+        {
+            size = lsize;
+            fy = PlayerSpriteLibrary.VisibleBottomFraction(lsize, loffset, lcanvas);
+        }
         _visH[key] = size.y * stateTile;
         _footRel[key] = (fy - pivotY) * stateTile;
     }
 
     // 逐動作尺度正規化助手：讓某動作的顯示縮放(tileSize)使其「體積尺度」= idle 的體積尺度。
     // 尺度算不出來（沒圖／全透明）就用 idle 的縮放，行為同改動前的退路。
+    /// <summary>
+    /// 各動作的顯示縮放（tileSize）。<see cref="Setup"/> 與變身預熱（<see cref="PlayerSpriteLibrary.PrewarmRoutine"/>）共用，
+    /// 兩邊算出來的值一定相同 ⇒ 預熱時建好的 Sprite 會被 Setup 的快取命中（PROBLEMS E47）。
+    /// </summary>
+    public static void ResolveTiles(PlayerSpriteLibrary lib, string bloodline, float targetHeight,
+                                    out float tileSize, out float walkTile, out float attackTile)
+    {
+        // 自動換算顯示縮放：用 idle（取不到改 walk）的「可見高度」把幀放大到 targetHeight 世界高。
+        // box.size.y 是世界單位 @ tileSize 1（= 可見像素 / 256）；tileSize = targetHeight / box.size.y。
+        if (targetHeight <= 0f) targetHeight = 1.95f;
+        tileSize = 1f;
+        if (lib.TryGetVisibleBox(bloodline, "idle", out var vbox, out _) && vbox.y > 0.0001f)
+            tileSize = targetHeight / vbox.y;
+        else if (lib.TryGetVisibleBox(bloodline, "walk", out var wbox, out _) && wbox.y > 0.0001f)
+            tileSize = targetHeight / wbox.y;
+        tileSize = Mathf.Clamp(tileSize, 0.1f, 30f);
+
+        // 逐動作尺度正規化：walk/attack 對齊 idle 的「體積尺度」（掃全幀取中位數的 √(高×√面積)，見
+        // PlayerSpriteLibrary.GetActionSize），消除 AutoSprite 各動作大小落差；dead 維持躺姿用 idle 縮放、不正規化。
+        // ⚠ 以前只對齊「第一幀的可見高度」——Base 的 attack 高度只多 4%、整個人卻粗了 14%，玩家一出手角色就長大
+        //   （PROBLEMS G7）。
+        float idleSize = StateSize(lib, bloodline, "idle");
+        walkTile = StateTile(lib, bloodline, "walk", tileSize, idleSize);
+        attackTile = StateTile(lib, bloodline, "attack", tileSize, idleSize);
+    }
+
     static float StateSize(PlayerSpriteLibrary lib, string b, string state)
         => lib.GetActionSize(b, state).Scale;
     static float StateTile(PlayerSpriteLibrary lib, string b, string state, float baseTile, float idleSize)
@@ -526,6 +553,8 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
         float fps = BaseFps;
         if (_state == State.Walk && ReferenceSpeed > 0.01f)
             fps = BaseFps * Mathf.Clamp(_currentSpeed / ReferenceSpeed, MinMul, 1f);
+        else if (_state == State.Attack)
+            fps = BaseFps * Mathf.Max(0.05f, AttackFpsMul);
         if (fps <= 0.01f) return;
 
         float frameDur = 1f / fps;

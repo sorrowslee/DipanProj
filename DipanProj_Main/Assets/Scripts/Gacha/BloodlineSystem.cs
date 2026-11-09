@@ -512,10 +512,40 @@ namespace Dipan.Gacha
             var fromDef = BloodlineTable.Get(fromId);
             var toDef = BloodlineTable.Get(toId);
 
+            // 趁倒地演出那 2.5 秒把新外型與立繪預熱掉，換外型那一幀才不會整個停住（PROBLEMS E47）。
+            StartCoroutine(PrewarmTransform(fromDef, toDef));
+
             BloodlineTransformFx.Play(
                 _pc, fromDef, toDef,
                 onSwap: () => ApplyTo(_pc, toId),
                 onFinished: () => ShowIntro(fromDef, toDef, toId));
+        }
+
+        /// <summary>
+        /// 變身前的分幀預熱（2026-11-09，PROBLEMS E47）：① 新血統的序列圖（讀檔＋解碼＋統計，見
+        /// <see cref="PlayerSpriteLibrary.PrewarmRoutine"/>）——換外型（onSwap，約 2.58 秒）用；
+        /// ② 揭示面板的新舊兩張 normal 立繪（1024×1536 解碼＋掃內容框）——演出結束開面板用。
+        /// 全程 yield return null（不吃 timeScale，演出中遊戲是暫停的照樣跑）。沒趕上的部分到時候照舊同步做，不會出錯。
+        /// </summary>
+        System.Collections.IEnumerator PrewarmTransform(BloodlineDef fromDef, BloodlineDef toDef)
+        {
+            yield return null;   // 讓演出第一幀（關面板、倒地起手）先跑
+            if (toDef != null && !string.IsNullOrEmpty(toDef.SpriteFolder))
+            {
+                // 目標高度＝SetBloodline 傳給 PlayerAnimator.Setup 的 ScaledCharacterHeight（＝CharacterWorldHeight × 新體型），
+                // 必須一致，預熱建的 Sprite 才會被命中。
+                float scale = toDef.BodyScale > 0.01f ? toDef.BodyScale : 1f;
+                float targetH = _pc != null ? _pc.CharacterWorldHeight * scale : 0f;
+                yield return PlayerSpriteLibrary.Instance.PrewarmRoutine(toDef.SpriteFolder, targetH, scale);
+            }
+
+            var db = Dipan.Drama.DramaTalkDatabase.Instance;
+            if (db == null) yield break;
+            string toBlood = toDef != null && !string.IsNullOrEmpty(toDef.SpriteFolder) ? toDef.SpriteFolder.Trim() : "Base";
+            string fromBlood = fromDef != null && !string.IsNullOrEmpty(fromDef.SpriteFolder) ? fromDef.SpriteFolder.Trim() : "Base";
+            db.ResolvePortrait("Actor_normal", toBlood);
+            yield return null;
+            db.ResolvePortrait("Actor_normal", fromBlood);
         }
 
         /// <summary>世界演出結束 → 開立繪揭示面板。面板收掉才真正還玩家自由。</summary>
@@ -600,6 +630,10 @@ namespace Dipan.Gacha
             //    ⚠ 一定要走 SetMoveSpeed()，不能直接寫 pc.MoveSpeed——「正常走＝動畫 1 倍速」的基準有兩份，
             //      只改速度不改基準會讓走路動畫跟著變速，理由寫在 SetMoveSpeed 的註解裡。
             pc.SetMoveSpeed(def.WalkSpeed);
+
+            //    攻擊動畫播放倍率（表B AttackAnimSpeed，留空＝1）。每次套用都寫，所以換回別的血統會自動恢復 1。
+            var anim = pc.GetComponent<PlayerAnimator>();
+            if (anim != null) anim.AttackFpsMul = def.AttackAnimSpeed;
 
             //    其餘四個屬性（力量／敏捷／魔力／體力）仍然只存不套用——遊戲裡還沒有對應的東西：
             //    力量沒有攻擊力欄位（傷害在武器表）、敏捷沒有任何對應；魔力／體力若要接到 CombatStats 的
@@ -686,6 +720,15 @@ namespace Dipan.Gacha
                 trail.SetStyle(def.TrailStyle, def.TrailColor, def.TrailVfxId);
             }
             else if (trail != null) trail.SetStyle(null, Color.white, 0);
+
+            // ⑦ 身後黑霧（畫在角色之下；SoulSkull 會在霧裡週期凝結骷髏頭）
+            var mist = go.GetComponent<BloodlineMist>();
+            if (!string.IsNullOrEmpty(def.MistStyle))
+            {
+                if (mist == null) mist = go.AddComponent<BloodlineMist>();
+                mist.SetStyle(def.MistStyle);
+            }
+            else if (mist != null) mist.SetStyle(null);
         }
     }
 }

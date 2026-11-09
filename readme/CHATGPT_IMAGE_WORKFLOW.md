@@ -200,6 +200,7 @@ Mac：圖落到 ~/Downloads → grab.sh 收進 work/ → post.py 裁切／縮回
 | 新圖放進 Resources 但 Unity 抓不到 Sprite | 新檔沒有 .meta，或匯入成 Texture | 用同資料夾現有圖的 .meta 當範本（`textureType: 8`、`spriteMode: 1`），換新 GUID 寫一份 |
 | 灰色系角色（灰毛狼人、石像）去背會吃掉身體 | 背景是 #808080 灰，與毛色太接近 | prompt 改要「plain flat solid MAGENTA #FF00FF background」，用 `tools/cutout_magenta.py` 去背（含全圖去洋紅溢色，紅布、紅眼不受影響） |
 | 立繪去背 | 立繪是 RGB 灰底；人物碰到畫布底邊，腿間、腋下有封閉灰區 | `tools/cutout.py <in> <out>`：從四邊（含底邊）flood fill，加上與底色幾乎相同的封閉灰區 |
+| 扛在肩上／穿過頭後的長柄武器擺錯（鍾馗立繪，2026-11-09 作者連退兩次） | GPT 不保證被遮住的物件前後連續；表情差分以母版為準，母版錯就六張全錯 | ⚠ **只驗「刀刃在柄的延長線上」不夠**——第二次就是柄斜著穿過臉、數學上共線卻根本沒扛在肩上。要用文字寫死物理擺法（例：pole lies almost horizontally across his shoulders, rests on top of his right shoulder, passes BEHIND his neck, blade sticks out behind his head on the left），收圖時用**人眼看「柄有沒有靠在肩上、從後頸過去」**。母版最好請作者過目（這次最後是作者自己產母版），差分寫 LOCKED 武器與握武器的手，每張與母版並排比對 |
 | 下載檔名是中文 | ChatGPT 依內容自動命名 | 不用管，grab.sh 只看「最新那一張」 |
 
 ### Mac 端

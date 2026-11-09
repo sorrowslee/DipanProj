@@ -42,6 +42,8 @@
 | **反彈** | `BounceTarget` | 列舉 | None | `None`／`Environment`（牆）／`Enemy`（怪） |
 | | `MaxBounces` | 整數 | 0 | 最大反彈次數（需 `BounceTarget ≠ None`） |
 | **追蹤** | `HomingTurnSpeed` | 小數 | 0 | 追蹤轉向（度/秒）；0＝不追蹤；90 慢／180 中／360 快；Laser＝光束彎曲速度 |
+| | `HomingRadius` | 小數 | 50 | 追蹤索敵半徑（2026-11-09）：50＝全場鎖最近（舊行為，一群子彈會一起撲同一隻）；**小於 50 時只追這個半徑內的、在最近 3 隻裡隨機挑**——一群子彈分散咬不同的怪。只對 Normal |
+| | `WanderAngle` | 小數 | 0 | 飄移幅度（度，2026-11-09）：每顆子彈左右蛇行（各自隨機相位與頻率），長期平均方向不變、追蹤照樣拉得回來；0＝直飛。冤魂、螢火這類「飄」的子彈用。只對 Normal |
 | **射程／範圍** | `Range` | 小數 | 20（法陣 8、迴旋 5） | Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（≤0 也當 5）／Familiar 索敵半徑（空＝8，從玩家身上量） |
 | | `AreaRadius` | 小數 | 0 | Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑 |
 | **命中附加** | `GroundEffectID` | 整數 | 0 | 命中／落地時放一個 `GroundEffectTable` 的特效；**Aura／GroundCast 是本體、必填** |
@@ -101,6 +103,7 @@
 | SubRecipeID | ✓ | ✓ | | ✓ | | | ✓(接連鎖) | | | | |
 | BounceTarget／MaxBounces | ✓ | ✓ | | ✓ | | | | | | | |
 | HomingTurnSpeed | ✓ | ✓ | | ✓(彎曲) | | | | | | | |
+| HomingRadius／WanderAngle | ✓ | | | | | | | | | | |
 | Range | | | | ✓(長度) | | ✓(首段) | | | ✓(施放距離) | | |
 | AreaRadius | | | ✓(爆炸) | | | | ✓(AOE) | | | ✓(半徑) | |
 | GroundEffectID | ✓ | ✓ | ✓ | ✓ | ★(本體) | | ✓(留痕) | | ★(本體) | | |
