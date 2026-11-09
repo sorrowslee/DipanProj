@@ -40,7 +40,7 @@ ID(武器 ID/與 ItemTable 同號),Name(武器名稱),Damage(傷害/Laser＝每�
 42,掌心雷,4,79,2.5,,360,,Weapon/animation/palmThunderOrb/palmThunderOrb,8,15,8,,,,,,54,,,,,,,,
 43,無間輪,4,81,3,,360,,Weapon/animation/avichiWheel/avichiWheel,40,20,8.55,,,,,,,,,,,,,,
 44,落星羅盤,7,82,3,,360,,Weapon/animation/fallingMeteor/fallingMeteor,8,15,9.4,,,,,,43,,,,,,,,
-45,屍毒葫蘆,2,83,2,,360,,Weapon/animation/corpsePoisonBlob/corpsePoisonBlob,14,15,8.4,,,,,,,,,,,,,,
+45,屍毒葫蘆,2,83,2,,360,,Weapon/animation/corpsePoisonBlob/corpsePoisonBlob,14,15,8.4,,,,,,59,,,,,,,,
 46,霹靂火彈,6,84,2.5,Weapon/single/weapon_thunderbomb,,,,,,2,,,,,,55,,,,,,,,
 47,八卦護身印,2,85,2,,360,,Weapon/animation/baguaSeal/baguaSeal,24,15,7.05,,,,,,,,,,,,,,
 48,掌心雷電弧(子武器),1.5,80,0,,360,,Weapon/animation/thunderSpark/thunderSpark,16,20,4,,,,,,,,,,,,,,

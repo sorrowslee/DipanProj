@@ -141,6 +141,7 @@ WeaponTable → RecipeTable(Mode) → GroundEffectID → GroundEffectTable.Sigil
 ## 執行單元
 * `GroundEffectManager`（場景單例，掛在主物件上）：CSV 載入、序列圖預載、`Spawn(id, position)` / `Spawn(id, position, damageOverride)` API
 * `GroundEffectInstance`（掛在 Prefab 上）：採 **真實圓形掃描（aligned scanline）**渲染——以原點為中心掃整數網格 `(i, j)`，當 `(i*TileSize)² + (j*TileSize)² ≤ Radius²` 就放一個 tile，嚴格對齊網格、上下左右對稱。每個 tile 動態 `AddComponent<SpriteRenderer>` 並繼承 prefab 範本的排序設定，動畫由父物件統一切幀同步顯示。**鋪面範圍嚴格貼齊 Radius**（與 `OverlapCircleAll` 傷害判定一致）。圓滑度取決於解析度：`R / TileSize ≥ 4` 才看得出明顯圓形，例如 `R=1.5、TileSize=0.3` ≈ 81 顆呈圓形；`R=1.5、TileSize=1` 只有 3×3 = 9 顆是 resolution 限制。實際 tile 數 > 500 時會在 Console 印一次 LogWarning，但仍照生成
+* ⚠ **會「立起來」的特效不要做成地面特效的圖**（2026-11-09 作者定）：地面特效一律被所有東西蓋住，只放平鋪在地上的東西（火痕、符陣、毒灘）。像屍毒葫蘆那種從落點冒起、往上翻騰的骷髏毒雲，**畫面放 VfxTable**（一般特效預設畫在角色之上，同其他爆炸），地面特效那一列只留傷害（AniPath 留空＝看不見，`BuildTiles` 沒圖就不建）。實例：GroundEffect 10（屍毒雲，只管半徑 3 的 DOT）＋ VfxTable 59（同一組 `CorpsePoison` 圖，Scale 4.69＝原本單圖縮到直徑 6 的大小）由武器 45 的 `HitEffectID` 在落點播。
 * **排序（火在地上物之上或之下）**：分兩種：
   * **地板型（tile 火/毒、靜態單圖）**：固定 `GroundEffectSortingOrder = 8`——**高於「可走地上物」(`MapLoader.WalkableObjectSortingOrder = 5`)、低於角色與一般（不可走）地上物（Y 排序帶）**。效果：火在**可踩的石板/地毯（可走物）之上**燃燒、卻在**祭壇/柱子（不可走立體物）與角色之下**。這正好用地上物的「可走與否」自動分了「火該在其上或其下」，不必逐一判斷。（曾試整團依中心 Y 進 Y 排序帶，但單一排序值會讓大範圍 AOE 後方 tile 也蓋過地上物，已改回固定值。）
   * **佛光（`RenderMode = Glow`，跟著玩家的光環）**：例外——依**中心 Y（跟著玩家）每幀進 Y 排序帶**（`ApplyAuraYSort`，帶小幅 `AuraYSortBias` 讓玩家畫在光環之上）。所以玩家走到祭壇**前面**時光環也在前、走到**後面**時被祭壇擋——和玩家同進退，而不是壓在地板層被祭壇一律蓋住。單張圖、無大範圍 tile 問題。（見 `MapDepthSort` / [PROBLEMS.md](PROBLEMS.md) 排序相關。）
