@@ -14,8 +14,13 @@ namespace Dipan.UI
     /// 由 <c>CutsceneDirector</c> 開關並掛在 director 底下（演出被硬銷毀時一起消失，不會殘留在畫面上）。
     /// 不暫停遊戲、不吃滑鼠（沒有 GraphicRaycaster），所以右上角的演出 Skip 照樣按得到。</para>
     ///
-    /// <para><b>沒有進出場動畫</b>（作者：先暫定沒有）。要加的話在 <see cref="Show"/> 之後做淡入即可，
-    /// 一律用 unscaled 時間。</para>
+    /// <para><b>本身沒有進出場動畫</b>（劇情 intro：作者先暫定沒有）。但開了兩個給呼叫端驅動的把手
+    /// （2026-11-09，Boss 開戰資訊改用本版面時加的）：<see cref="Alpha"/>＝整張淡入淡出、
+    /// <see cref="SetNameReveal"/>＝名字扭曲浮現（<see cref="NameWarpEffect"/>）。不呼叫就跟原本一模一樣。
+    /// 呼叫端一律用 unscaled 時間驅動。</para>
+    ///
+    /// <para><b>兩個使用者</b>：劇情 <c>intro</c>（CutsceneDirector，壓黑背景、立繪可左可右）、
+    /// Boss 開戰資訊（<see cref="BossIntroPanel"/>，**不壓黑**——底下的黑霧就是背景；立繪固定在左）。</para>
     ///
     /// <para>⚠ 所有版面數字都是「參考解析度 1920×1080」下的像素，從示意圖（1672×941）×1.148 換算；
     /// 要調整只改下面的常數。背景透明度在 Linear 色彩空間下會比直覺重（PROBLEMS E11），要進遊戲看。</para>
@@ -83,6 +88,34 @@ namespace Dipan.UI
 
         static Font _regular, _bold;
 
+        CanvasGroup _group;          // 整張淡入淡出（Alpha）
+        Text _nameText;              // 名字（SetNameReveal 用）
+        NameWarpEffect _warp;        // 名字扭曲（Strength=0 時零開銷；劇情 intro 不會去動它）
+
+        /// <summary>整張面板的不透明度（0~1）。預設 1。</summary>
+        public float Alpha
+        {
+            get => _group != null ? _group.alpha : 1f;
+            set { if (_group != null) _group.alpha = Mathf.Clamp01(value); }
+        }
+
+        /// <summary>
+        /// 名字浮現進度：<paramref name="e"/>＝0 全透明＋滿扭曲、1 完全浮現且字形歸位。
+        /// 扭曲要「動」得每幀呼叫（本方法會 SetVerticesDirty）。<paramref name="warpAmount"/> 是 e=0 時的扭曲強度（參考解析度像素）。
+        /// </summary>
+        public void SetNameReveal(float e, float warpAmount, float speed)
+        {
+            if (_nameText == null) return;
+            e = Mathf.Clamp01(e);
+            var c = _nameText.color; c.a = e; _nameText.color = c;
+            if (_warp != null)
+            {
+                _warp.Strength = (1f - e) * Mathf.Max(0f, warpAmount);
+                _warp.Speed = speed;
+            }
+            _nameText.SetVerticesDirty();
+        }
+
         /// <summary>
         /// 建一張介紹面板並顯示。<paramref name="portraitOnRight"/>＝立繪在右（自動鏡像），文字欄在左。
         /// <paramref name="fit"/> 只用它的內容框（人物在圖檔裡的位置大小）；<c>PortraitTable</c> 的縮放／位移
@@ -90,6 +123,15 @@ namespace Dipan.UI
         /// </summary>
         public static CharacterIntroPanel Show(Transform parent, Sprite portrait, PortraitFit fit, bool portraitOnRight,
                                                string title, string name, string desc)
+            => Show(parent, portrait, fit, portraitOnRight, title, name, desc, true);
+
+        /// <summary>
+        /// 同上，多一個 <paramref name="backdrop"/>：false＝不鋪壓黑背景（Boss 開戰資訊：底下已經是黑霧）。
+        /// ⚠ <paramref name="parent"/> 不要給另一張 Canvas 底下的物件——巢狀 Canvas 會忽略本面板自己的
+        /// ScreenSpaceOverlay／sortingOrder／CanvasScaler。沒有合適的父物件就給 null（掛在場景根）。
+        /// </summary>
+        public static CharacterIntroPanel Show(Transform parent, Sprite portrait, PortraitFit fit, bool portraitOnRight,
+                                               string title, string name, string desc, bool backdrop)
         {
             if (_regular == null) _regular = UIBuilder.LoadFont(FontRegular);
             if (_bold == null) _bold = UIBuilder.LoadFont(FontBold);
@@ -106,19 +148,25 @@ namespace Dipan.UI
             scaler.matchWidthOrHeight = 0.5f;   // 同 UIManager／SkipButton
 
             var panel = go.AddComponent<CharacterIntroPanel>();
-            panel.Build(go.transform, portrait, fit, portraitOnRight, title, name, desc);
+            panel._group = go.AddComponent<CanvasGroup>();
+            panel._group.interactable = false;
+            panel._group.blocksRaycasts = false;
+            panel.Build(go.transform, portrait, fit, portraitOnRight, title, name, desc, backdrop);
             return panel;
         }
 
-        void Build(Transform root, Sprite portrait, PortraitFit fit, bool portraitOnRight, string title, string name, string desc)
+        void Build(Transform root, Sprite portrait, PortraitFit fit, bool portraitOnRight, string title, string name, string desc, bool backdrop)
         {
-            // 1) 壓黑背景
-            var bg = NewRect("Backdrop", root);
-            bg.anchorMin = Vector2.zero; bg.anchorMax = Vector2.one;
-            bg.offsetMin = bg.offsetMax = Vector2.zero;
-            var bgImg = bg.gameObject.AddComponent<Image>();
-            bgImg.color = new Color(0f, 0f, 0f, BackdropAlpha());
-            bgImg.raycastTarget = false;
+            // 1) 壓黑背景（Boss 開戰資訊不鋪：底下的黑霧就是背景）
+            if (backdrop)
+            {
+                var bg = NewRect("Backdrop", root);
+                bg.anchorMin = Vector2.zero; bg.anchorMax = Vector2.one;
+                bg.offsetMin = bg.offsetMax = Vector2.zero;
+                var bgImg = bg.gameObject.AddComponent<Image>();
+                bgImg.color = new Color(0f, 0f, 0f, BackdropAlpha());
+                bgImg.raycastTarget = false;
+            }
 
             // 2) 上下裝飾線（立繪會蓋在它們上面，示意圖如此）
             var orn = Resources.Load<Sprite>(OrnamentArt);
@@ -141,6 +189,10 @@ namespace Dipan.UI
                       new Vector2(0f, -TitleYInPlate * NameplateScale), new Vector2(PlateTextWidth * NameplateScale, TitleFontSize * 1.6f), false);
                 var nm = Label("Name", pr, Spaced(name, NameGap), _bold, NameFontSize, NameMinFontSize,
                       new Vector2(0f, -NameYInPlate * NameplateScale), new Vector2(PlateTextWidth * NameplateScale, NameFontSize * 1.25f), false);
+                _nameText = nm;
+                // ⚠ 扭曲一定要比 Shadow 先掛：mesh effect 照元件順序跑，先扭再複製影子，影子才會跟著字一起扭
+                //   （反過來的話影子的頂點也被當成「字」各自亂扭，字和影子會分家）。
+                _warp = nm.gameObject.AddComponent<NameWarpEffect>();
                 var sh = nm.gameObject.AddComponent<Shadow>();
                 sh.effectColor = new Color(0f, 0f, 0f, 0.8f);
                 sh.effectDistance = new Vector2(2f, -3f);

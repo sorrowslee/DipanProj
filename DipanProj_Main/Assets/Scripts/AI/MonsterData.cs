@@ -22,6 +22,11 @@ public class MonsterData
 
     public string DisplayName = "";     // 顯示名稱（boss 開戰資訊等 UI 用；留空＝退回 Name）。注意 Name 是程式鍵（動畫資料夾/GameObject 名），不能拿來顯示。
     public string PortraitPath = "";    // 頭像立繪 catalog id（例 Modules/RedBridalGown/Talk/redBridalGown_angry；boss 開戰資訊用，與 Talk 立繪同一條管線）
+    // Boss 開戰資訊的稱號／說明（CSV 索引 45／46，表尾欄，2026-11-09；版面＝CharacterIntroPanel）。
+    // 一律填 lang:<id> 或 reveal:<旗標>:<id>（見 TextRef）：CSV 是純逗號切欄，句子裡的逗號會把欄位切壞，所以文字放 LanguageTable。
+    // 留空＝那一格不顯示（姓名版只剩名字、說明欄空白）。
+    public string IntroTitle = "";
+    public string IntroDesc = "";
 
     public float ContactDamage = 10f;   // 碰到玩家造成的傷害（留空 = 10）
     public float AttackInterval = 0.5f; // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval，越小攻越快，留空 = 0.5）

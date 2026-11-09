@@ -141,7 +141,7 @@
 | `UI/SelectSavePanel/SelectSavePanel_Bg` | 1672×941 | 整張 | 滿版背景（佛殿）＝版面座標系本身 |
 | `UI/SelectSavePanel/SelectSavePanel_Frame` | 692×886 | 24,10,639,862 | 一張卡片的外框。**頂端「欄位」紅底牌與背後的圓形佛像浮雕都畫在這張圖裡**，程式只疊字 |
 | `UI/SelectSavePanel/SelectSavePanel_ActorBase` | 612×408 | 112,156,385,135 | 角色腳下的圓台 |
-| `UI/Common/SelectSavePanel_Btn` | 914×273 | 19,35,865,209 | 按鈕底板（只有一張圖、沒有按下版 → 用 `ColorTint` 做回饋，同 `CloseBtn_2`） |
+| `UI/Common/SelectSavePanel_Btn` | 914×273 | 19,35,865,209 | 按鈕底板（只有一張圖、沒有按下版 → 用 `ColorTint` 做回饋） |
 
 **卡片內容**
 

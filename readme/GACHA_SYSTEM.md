@@ -260,7 +260,7 @@ Resources/UI/GachaPanel/GachaPanel_Bg           整個面板最底層的殿堂�
 Resources/UI/GachaPanel/GachaPanel_GachaBg      機台本體（含內窗、層板、兩側滾筒、底座）
 Resources/UI/GachaPanel/GachaPanel_TitleBg      頂部標題橫幅（放池名）
 Resources/UI/GachaPanel/GachaPanel_CoinBg       金錢橫條
-Resources/UI/GachaPanel/GachaPanel_SelectFrame  中選欄位（金框 + 兩側蓮花旋鈕）
+Resources/UI/GachaPanel/GachaPanel_SelectFrame  中選欄位（金框 + 兩側蓮花旋鈕；2026-11-09 壓成暗古金）
 Resources/UI/GachaPanel/GachaPanel_StartIcon    抽選鈕上的法輪圖示
 Resources/UI/Common/GachaPanel_StartBtn         抽選鈕底板
 Resources/UI/ClearStagePanel/*                  十連結算沿用過關結算那套框與牌匾

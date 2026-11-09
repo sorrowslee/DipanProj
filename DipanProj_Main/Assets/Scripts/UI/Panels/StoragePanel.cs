@@ -40,7 +40,10 @@ namespace Dipan.UI
         const float TabWidthRatio = 0.92f;           // 頁籤寬 ＝ 一欄的 92%
         const float TabAspect = 408f / 612f;         // 頁籤圖 CellBG_normal 是 612×408
         // 重整鈕「中心」位置（底圖原生像素，左上為原點，X→右、Y→下）。要往上就調小 RefreshCy、往右就調大 RefreshCx。
-        const float RefreshCx = 765f, RefreshCy = 1250f, RefreshSize = 130f;
+        // 2026-11-09 外框收緊後改放右上角：寶箱徽右側、第 V 頁籤正上方，右緣對齊格網右緣（897.5）。
+        const float RefreshCx = 852f, RefreshCy = 250f, RefreshSize = 90f;
+        /// <summary>語言表：重整鈕的 hover 小提示「重新整理」（9001，通用 UI 小提示段）。</summary>
+        const int TxtRefreshTip = 9001;
 
         /// <summary>一個格單元的邊長（含縫）。由格線區與欄列數算出來 ⇒ 改欄列數不必重量座標。</summary>
         static float CellPitch => Mathf.Min((GridX1 - GridX0 - GridPad * 2f) / StorageSystem.DefaultCols,
@@ -58,9 +61,9 @@ namespace Dipan.UI
         // ── 擺位 ──
         const float FrameScale = 0.72f;
         const float SoloX = 0f;          // 單獨開啟：置中
-        // 與背包並排：左移。值是用「看得見的美術」算的（底圖 1122 裡不透明內容是 x 52~1070，
-        // 左右各約 52px 透明留白），讓兩邊美術中間只留約 40 單位的縫。見 InventoryPanel.PairRightX 的註解。
-        const float PairLeftX = -416f;
+        // 與背包並排：左移。值是用「看得見的美術」算的，讓兩邊美術中間只留約 40 單位的縫。見 InventoryPanel.PairRightX 的註解。
+        // 2026-11-09 外框收緊：底圖 1122 裡不透明內容由 x 52~1070 縮成 131~991（左右各收 70px ×0.72 ≈ 50 單位）⇒ -416 → -366。
+        const float PairLeftX = -366f;
 
         Sprite _cellNormal, _cellPressed;
         Sprite[] _cellNum;
@@ -132,7 +135,9 @@ namespace Dipan.UI
             PlaceTL((RectTransform)rb.transform, RefreshCx - RefreshSize / 2f, RefreshCy - RefreshSize / 2f, RefreshSize, RefreshSize);
             var ic = UIBuilder.Image(rb.transform, "Icon", L("RefreshIcon"));
             ic.preserveAspect = true; ic.raycastTarget = false;
-            UIBuilder.Stretch(ic.rectTransform, 30, 30, 30, 30);
+            float icInset = RefreshSize * 0.23f;   // 原本寫死 30（＝130 的 23%）；按比例才不會在鈕縮小時圖示跟著變很小
+            UIBuilder.Stretch(ic.rectTransform, icInset, icInset, icInset, icInset);
+            HoverTip.Attach(rb.gameObject, TxtRefreshTip);   // 滑鼠停在鈕上浮出「重新整理」
 
             BuildGridArt();   // 蓋掉底圖畫死的 10×9 格線 ＋ 依欄列數鋪新格線（**一定要在格子之前**）
 

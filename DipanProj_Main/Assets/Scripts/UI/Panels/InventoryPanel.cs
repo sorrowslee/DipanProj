@@ -98,6 +98,10 @@ namespace Dipan.UI
         // 金錢：**靠左**對齊擺在牌子前段。右界一定要停在 x≈872 之前——背景圖從 x≈878 開始畫錢幣，
         // 壓過去就會疊在錢幣上。長數字靠 resizeTextForBestFit 自動縮字級，不會撐出這個框。
         const float MoneyCx = 812f, MoneyCy = 937f, MoneyW = 108f, MoneyH = 46f;
+        // 金錢牌整塊（含右側錢幣圖）的範圍，量自底圖金線 x 747~920、y 906~972：給 hover 小提示當感應區。
+        const float MoneyPlateCx = 834f, MoneyPlateW = 176f, MoneyPlateH = 68f;
+        /// <summary>語言表：hover 小提示（通用 UI 小提示段）。9001＝重新整理、9002＝通用貨幣（刻意不寫「金錢」，之後貨幣可能換）。</summary>
+        const int TxtRefreshTip = 9001, TxtCurrencyTip = 9002;
 
         // ── 兩種格子提示：一定要一眼分得出來 ──
         // 以前兩者都是「整片鋪滿的黃色」、只差 0.08 的 alpha，玩家根本分不出來，拖曳提示等於白做。
@@ -316,10 +320,17 @@ namespace Dipan.UI
                 var b = MakeGhostButton($"TabHit_{bag}", TabCx[i], TabCy, TabHitW, TabHitH, () => SetBag(bag));
                 b.name = $"TabHit_{bag}";
             }
-            MakeGhostButton("RefreshHit", RefreshCx, BarCy, RefreshHitW, RefreshHitH,
+            var refreshBtn = MakeGhostButton("RefreshHit", RefreshCx, BarCy, RefreshHitW, RefreshHitH,
                             () => InventorySystem.Instance.SortBag(_bag));
+            HoverTip.Attach(refreshBtn.gameObject, TxtRefreshTip);   // 滑鼠停著浮出「重新整理」
             _prevBtn = MakeGhostButton("PrevPageHit", PrevCx, BarCy, NavHitW, NavHitH, () => StepPage(-1));
             _nextBtn = MakeGhostButton("NextPageHit", NextCx, BarCy, NavHitW, NavHitH, () => StepPage(+1));
+
+            // 金錢牌：本身是底圖畫的、數字 Text 不接事件 ⇒ 疊一塊全透明、只負責接 hover 的感應區（不是按鈕、點了沒事）。
+            var moneyHover = UIBuilder.Image(_frame, "MoneyHover", null, new Color(1f, 1f, 1f, 0f));
+            moneyHover.raycastTarget = true;
+            Place(moneyHover.rectTransform, MoneyPlateCx, BarCy, MoneyPlateW, MoneyPlateH);
+            HoverTip.Attach(moneyHover.gameObject, TxtCurrencyTip);   // 「通用貨幣」
         }
 
         /// <summary>透明按鈕：美術照樣露出，只用輕微 tint 當 hover / 按下的回饋。</summary>

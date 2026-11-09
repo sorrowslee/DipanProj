@@ -61,7 +61,9 @@ namespace Dipan.UI
         const float BtnCx1 = 290f, BtnCx2 = 768f, BtnCx3 = 1246f;
 
         // 關閉鈕與標題
-        const float CloseCx = 1355f, CloseCy = 103f, CloseW = 88f;
+        // 2026-11-09 關閉鈕統一用 CloseBtn_normal/pressed（原 CloseBtn_2 已移除）。CloseW＝可見內容寬（底圖像素）：
+        // 106 × (636/1024) ≈ 66 單位，與設定面板的關閉鈕（110 × 402/500 × 1040/1401 ≈ 66）在螢幕上一樣大。
+        const float CloseCx = 1355f, CloseCy = 103f, CloseW = 106f;
         const float TitleCx = 766f, TitleCy = 100f;
 
         // 物品圖佔格子的比例。
@@ -226,17 +228,12 @@ namespace Dipan.UI
                                      Color.white, LoadArt(ArtClose));
             var img = b.GetComponent<Image>();
             b.targetGraphic = img;                          // 程式建鈕必須手動指（見 PROBLEMS D4）
-            // CloseBtn_2 只有一張圖（沒有按下版），所以用 ColorTint 做回饋：移入微亮、按下壓暗。
-            // 之後若補了 CloseBtn_2_pressed，再改回 SpriteSwap 即可（作法同 StoragePanel 的重整鈕）。
-            b.transition = Selectable.Transition.ColorTint;
-            var cb = b.colors;
-            cb.normalColor = Color.white;
-            cb.highlightedColor = new Color(1f, 0.94f, 0.80f);
-            cb.pressedColor = new Color(0.66f, 0.62f, 0.56f);
-            cb.selectedColor = Color.white;
-            cb.colorMultiplier = 1f;
-            cb.fadeDuration = 0.08f;
-            b.colors = cb;
+            // 兩態 SpriteSwap（與 SettingsPanel 的關閉鈕同一款、同一套做法）
+            b.transition = Selectable.Transition.SpriteSwap;
+            var ss = b.spriteState;
+            ss.pressedSprite = UIBuilder.LoadSprite(CommonDir + "CloseBtn_pressed");
+            ss.highlightedSprite = img.sprite; ss.selectedSprite = img.sprite;
+            b.spriteState = ss;
             PlaceArt(img, ArtClose, CloseW, new Vector2(CloseCx, CloseCy));
         }
 
@@ -519,7 +516,7 @@ namespace Dipan.UI
         static readonly ArtSpec ArtFrame = new ArtSpec(Dir + "ForgingPanel_ItemFrame", 1448, 1296, 145, 60, 1153, 1176);
         static readonly ArtSpec ArtFrameLocked = new ArtSpec(Dir + "ForgingPanel_ItemFrameWithChain", 1412, 1302, 109, 65, 1171, 1185);
         static readonly ArtSpec ArtBtn = new ArtSpec(CommonDir + "ForgingPanel_Btn", 2416, 676, 7, 66, 2388, 559);
-        static readonly ArtSpec ArtClose = new ArtSpec(CommonDir + "CloseBtn_2", 519, 481, 17, 14, 475, 459);
+        static readonly ArtSpec ArtClose = new ArtSpec(CommonDir + "CloseBtn_normal", 500, 500, 49, 51, 402, 390);   // 2026-11-09 由 CloseBtn_2 換成統一款
 
         /// <summary>建一張美術圖（不擋點擊）。載不到就留一個透明的殼，版面不會塌。</summary>
         static Image MakeArt(Transform parent, string name, ArtSpec spec)

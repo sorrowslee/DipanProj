@@ -36,6 +36,7 @@
 | 檔案（`Assets/Scripts/UI/`） | 角色 |
 |---|---|
 | `ItemTooltip.cs` | **物品浮動 tooltip 的唯一一份**（背包／倉庫／鍛造共用）。大圖預覽＋名稱＋功能＋劇情、一律開在游標上方並夾在畫面內。**掛在 `UILayer.Popup` 層、不掛在面板底下**——掛面板底下的話兩個面板同開時會被另一個蓋住（[PROBLEMS.md](PROBLEMS.md) **E34**）。新面板要 tooltip 一律用它，不要自己再建一個。 |
+| `HoverTip.cs` | **通用文字小提示（hover tip）的唯一一份**（2026-11-09）：滑鼠停在 UI 元件上 0.3 秒，元件正上方浮出一行字（深石底＋細古金框）。用法一行 `HoverTip.Attach(go, 語言表id)`（或 `Attach(go, () => "動態字")`）；移開／按下／元件停用（面板關閉）自動收，**面板不用在 OnClose 收**。掛 `UILayer.Popup`、本體 raycast 全關。與 `ItemTooltip` 分工：物品說明用 ItemTooltip，一行短字用這個。字串放語言表 **9001–9099**。目前使用者：倉庫與背包的重整鈕（9001「重新整理」）、背包金錢牌（9002「通用貨幣」）。**不接事件的元件**（底圖畫的牌子、純 Text）要先疊一塊全透明 `raycastTarget=true` 的 Image 當感應區再 Attach（範例：`InventoryPanel` 的 `MoneyHover`）。 |
 | `ItemIcons.cs` | **畫物品圖示的唯一入口**（背包/倉庫/鍛造/結算/抽選/HUD/地上掉落物）。處理能力珠的兩層疊圖與血統藥劑的三層疊圖（血瓶＋系列圖騰＋階級星星，見 [BLOODLINE.md](BLOODLINE.md) §3），並在裡面呼叫 `IconFit`。**不要繞過它直接讀 `data.Icon`**。 |
 | `IconFit.cs` ＋ `IconFitBox.cs` | **icon 大小正規化**：用 `Sprite.vertices`（Tight 網格頂點）量出不透明內容的外接框，反推 Image 的大小與偏移，讓「看得見的那塊」塞滿呼叫端給的內容框。不需要貼圖開 Read/Write。`IconFitBox` 是掛在 icon 上的小元件，記住呼叫端最初給的框（否則每次重算會越畫越大）。 |
 | `SlotOutline.cs` | **格子外框高亮**：四條細線圍一圈、不填滿。錨點各貼一邊，所以貼滿任何大小的格子都成立、線粗不變。背包與倉庫的 hover 高亮、以及「可放這格」的呼吸外框都用它。 |

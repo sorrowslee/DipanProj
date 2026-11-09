@@ -336,13 +336,22 @@ Esc 略過、跑完自動清除。每次預覽會 `PreviewSpriteLoader.Clear()` 
 - 稱號與名字是中文時字與字之間自動加空白（示意圖的疏排），英文不加。
 - **字型**：思源宋體 Noto Serif TC（`Resources/Fonts/NotoSerifTC/`，Regular＋Bold，**SIL OFL 1.1，可商用、可隨遊戲散布**，授權檔 `OFL.txt` 同資料夾；原檔是 CFF 的 OTF，已轉成 TTF 給 Unity 舊版文字元件用）。名字用 Bold、稱號與說明用 Regular。
 - **`PortraitTable` 的微調刻意不套用**：那張表的值是照 TalkPanel 版面調的（例：夏綠蒂 1.3／−150），介紹面板版面不同。作者 2026-10-28：先照統一規則擺、看結果再決定要不要另開「介紹用」欄位。
-- **沒有進出場動畫**（作者：先暫定沒有）。
+- **劇情 intro 沒有進出場動畫**（作者：先暫定沒有）；Boss 開戰資訊用的淡入＋名字浮現見 §10.5。
 - 面板不是 `UIPanel`：同置中漫畫、Skip，自建 ScreenSpaceOverlay Canvas，掛在 `CutsceneDirector` 底下，演出被硬銷毀時一起消失（`ReleaseGlobals` 也會收）。不吃滑鼠。
 
 ### 10.4 已知限制
 
 - npc 演員的「身體中心」取畫布中心；素材腳下留白多的角色會偏高，用 `offsetY` 補。
 - `validate_map.py` 目前**不檢查** `intro` 步驟（語言表 id、立繪檔是否存在），見 [TODO.md](TODO.md)。
+
+### 10.5 也用在 Boss 開戰資訊（2026-11-09）
+
+作者：這個版面比舊的「左頭像＋右水墨名牌」好看 ⇒ `bossIntro`（[TRIGGER_CHAIN.md](TRIGGER_CHAIN.md)）的中段改用同一個 `CharacterIntroPanel`。黑霧、「強敵現身」、電影黑邊、霧散都保留。
+
+- 呼叫多載 `Show(..., backdrop:false)`：**不鋪壓黑**（底下的黑霧就是背景）；立繪固定在**左**（`portraitOnRight=false`）。
+- 兩個給呼叫端驅動的把手（劇情 `intro` 不呼叫＝行為不變）：`Alpha`（root 的 CanvasGroup，整張淡入淡出）、`SetNameReveal(e, warpAmount, speed)`（名字 alpha＋`NameWarpEffect` 扭曲，e=0 全透明滿扭曲、1 歸位）。`NameWarpEffect` 掛在 `Shadow` **之前**——mesh effect 照元件順序跑，反過來影子會和字各扭各的。
+- `BossIntroPanel` 把介紹面板掛在**場景根**（不能掛在自己那張 UIManager Canvas 底下：巢狀 Canvas 會失去自己的 Overlay 排序與 CanvasScaler），所以換下一位／關閉／銷毀時自己 `Destroy`。
+- 資料：名字＝`DisplayName`、稱號＝`IntroTitle`、說明＝`IntroDesc`、立繪＝`PortraitPath`（`ResolvePortrait`＋`ResolveFit`），見 [MONSTER_SETUP.md](MONSTER_SETUP.md)。
 
 ---
 

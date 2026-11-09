@@ -4,6 +4,37 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **Boss 開戰資訊改用劇情「角色介紹」版面（分支 `feat/ui-restyle2`，未 commit；⏳ 未編譯未實測）**（2026-11-09，作者委託）：作者看了艾爾文的 `intro` 覺得比舊的「左頭像＋右水墨名牌」好看 ⇒ `bossIntro` 中段換成 `CharacterIntroPanel`。作者拍板：① 黑霧、「強敵現身」保留；② 進場＝整張淡入＋名字扭曲浮現（沿用 `NameWarpEffect`）；③ 名字統一宋體（思源宋體，不再用毛筆字）；④ **立繪一律在左**、說明在右；⑤ 芙蓉／榕樹妖的稱號與說明由作者提供。
+  程式：`CharacterIntroPanel` 加 `Show(..., backdrop)` 多載（Boss 用 false：底下是黑霧）、`Alpha`（CanvasGroup）、`SetNameReveal`——劇情 intro 不呼叫＝行為不變。`BossIntroPanel` 拿掉頭像／名牌／滑入滑出與相關欄位（`PortraitHeight`…`NameFontPath`），改 `IntroFadeInSeconds` 0.6／`NameDelay` 0.3（從淡入起點算）／`HoldSeconds` 1.2→**3.0**（要讀說明）／`IntroFadeOutSeconds` 0.5；介紹面板掛場景根，換人／OnClose／OnDestroy 自己清。全長約 8.7→10 秒。
+  資料：`MonsterData.csv` 表尾加 `IntroTitle`／`IntroDesc`（索引 45／46，填 `lang:`／`reveal:`），只填 13、14、38、39、40；語言表新增 1107 倖存長女、1108 芙蓉說明、1109 千年成精、1110 榕樹妖說明（英文是我先翻的，作者可改）。芙蓉的名字與稱號都走 `reveal:redBridalReadLetter`，沒看過家書兩者都是 ???、說明照常顯示。
+  舊名牌圖 `BossIntroPanelNameBG` 不再使用（檔案保留）。文件：[TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) `bossIntro`、[CUTSCENE_DIRECTOR.md](CUTSCENE_DIRECTOR.md) §10.5、[MONSTER_SETUP.md](MONSTER_SETUP.md)、[LOCALIZATION.md](LOCALIZATION.md)。
+  ⏳ 待作者：Unity 編譯、Reimport `LanguageTable.csv`／`MonsterData.csv`，打紅嫁衣（看過／沒看過家書各一次）、榕樹妖、血狂之爭雙首領各看一次。
+
+* [x] **UI 外框改版第二＋三批：設定／抽選背景去冥婚造型、關閉鈕統一、小元件去流蘇與壓暗（對話框試換後退回）（分支 `feat/ui-restyle2`，未 commit；⏳ 未編譯未實測）**（2026-11-09，作者委託）：做法同第一批（鎖內容區、外框重畫、逐張量內容區），ChatGPT 燃燈劫專案出圖、以已核准的 Popup 為風格錨點。
+  ① `SettingPanelBG`：拿掉屋瓦／帷幔／燭台／銅錢／獸面，改單一暗銅外框＋頂端小蓮花＋底部紅菱；兩條音量列（🎵／🔔圓章＋刻度凹槽）照原位重畫。GPT 版兩條凹槽比程式 `MusicRailY/SfxRailY`（528／772）高 12～13px ⇒ 程式把兩列整段下移 12px（上方空帶用平面補），量過凹槽中心回到 528／771，程式不動。
+     同日作者嫌上下留白太多 ⇒ **比照倉庫收緊**：上框（含蓮花）下移 183px、下框（含紅菱）上移 133px，內框到音量列／離開鈕各留 70px；畫布與其他座標不變，只有 `SettingsPanel.CloseCy` 150 → **333**（關閉鈕跟著框角下移）。
+  ② ~~`DramaPanelBG`／`DramaPanelNameBG`~~：曾換成新外框（名牌用切角牌母版），**作者看過預覽覺得舊的好很多，同日退回 11-08 版**（與 HEAD 相同），對話 UI 不換。
+  ③ `GachaPanel_Bg`（作者選「保留場景插圖」）：只做最小修改——四條紅流蘇改成銅鈴墜、兩支蠟燭換成青銅酥油燈（呼應燃燈），佛像浮雕／蓮花燈／地磚高度／暗度不變。
+  ④ **關閉鈕統一**（作者指定）：`ForgingPanel` 改用 `CloseBtn_normal/pressed`（兩態 SpriteSwap，同 SettingsPanel），`ArtClose` 換規格、`CloseW` 88→106（螢幕上與設定面板的關閉鈕同為約 66 單位）；`Common/CloseBtn_2.png`＋.meta **已刪除**（作者授權；備份在 `TempImage/ui_restyle2/applied_backup/`）。[FORGING.md](FORGING.md)、[TITLE_AND_SAVE_UI.md](TITLE_AND_SAVE_UI.md) 的引用已改。
+  組裝預覽 `TempImage/ui_restyle2/preview/`（settings_cmp／settings_tight／gacha_cmp；dialog_cmp 是已退回的版本）。作者決定不換：滑桿把手 `DragIcon`（獅面）、返回圖示（佛像）。保留：`SelectScriptPanel_SpecialFrame` 的「囍」（紅嫁衣專用框，刻意）。
+  **第三批（同日接著做，零程式改動、零出圖額度）**：
+  ⑤ `ClearStagePanel_ReturnBtn`（結算＋抽選總結鈕）：只把左右鍊子＋紅珠＋紅流蘇的像素設透明（量過鍊子欄 x 180~213 與外框本體 x≥214 分得開），牌子本體逐像素不動；GachaPanel 的 `ArtSumBtn` 規格仍沿用舊邊界框，牌子位置不變。
+  ⑥ `LoadingBarPanel_ProgressBarBg`：只擦兩端蓮花端蓋下方（y≥135）的吊飾，進度條與端蓋逐像素不動（程式以整張比例對齊軌道，不受影響）。⚠ `LoadingPanel.BarBottomMargin` 原本把吊穗算在離底距離裡，拿掉後進度條視覺上約高 50 單位；要貼回原位改這個常數即可（未改，待作者實機看）。
+  ⑦ `ScriptsPanel_Input`：石磚框 → 背包頁碼底板同款（等比縮成與舊框同為可見 320/500，內面約 160 單位，裝得下 150 的劇本格）。
+  ⑧ `GachaPanel_SelectFrame`（亮金）亮度 ×0.74、`GachaPanel_StartIcon` ×0.80（只壓亮度、幾乎不降飽和——降飽和會讓金色發綠）。
+  對照圖 `preview/batch3_cmp.png`、`batch3_fix.png`。原圖都在 `applied_backup/`。
+
+* [x] **新增通用 hover 小提示 `HoverTip`；倉庫重整鈕第一個用（⏳ 未編譯未實測）**（2026-11-09，作者委託；作者說之後很多地方會用到）：新檔 `Scripts/UI/HoverTip.cs`——全遊戲共用一份的「一行短字」提示（深石底＋細古金框、淡骨色字），滑鼠停 0.3 秒後浮在元件**正上方**（上方放不下才放下方、左右夾在畫面內），移開／按下／元件停用就收，面板關閉不用手動收。掛法一行 `HoverTip.Attach(go, 語言表id)`，也有 `Func<string>` 版。掛 `UILayer.Popup`（同 ItemTooltip 的理由，PROBLEMS E34）、本體 raycast 全關；static 只存單一 Unity 物件，關 Domain Reload 也會自動重建（I2／I8）。刻意不併進 `ItemTooltip`：那個是物品說明（大圖＋屬性、跟游標），兩者用途不同。語言表新開 **9001–9099 通用 UI 小提示**段，9001＝「重新整理」／英文暫定 `Sort`（功能其實是排序整理）。`StoragePanel` 重整鈕加一行 Attach。同日追加（作者實機看過倉庫後）：背包重整鈕也掛「重新整理」；背包金錢牌掛 **9002「通用貨幣」／Currency**（作者要求寫泛用，之後貨幣可能不是錢）——金錢牌是底圖畫的，另疊透明感應區 `MoneyHover`（見 [INVENTORY.md](INVENTORY.md)）。[UI_SYSTEM.md](UI_SYSTEM.md)〈共用視覺元件〉、[LOCALIZATION.md](LOCALIZATION.md) 分段、[STORAGE.md](STORAGE.md) 已同步。**要在 Unity Reimport LanguageTable.csv**。
+
+* [x] **UI 外框改版第一批：倉庫＋Popup 去掉冥婚造型、改成背包語彙（分支 `feat/ui-restyle2`，未 commit；⏳ 待作者實機看）**（2026-11-09，作者委託）：11-08 那輪是「鎖外形只換材質」，所以倉庫／Popup／設定等介面還留著紅嫁衣冥婚的**造型**（屋瓦、帷幔、紅燭、銅錢、獸面門環、流蘇、牌位）。這批改成「**鎖內容區、外框重畫**」：內容窗口／格網／按鈕位置不動 ⇒ **零程式改動**，外輪廓允許變。換了 10 張：
+  ① `StoragePanelBG`、`PopupPanelBG`（ChatGPT 燃燈劫專案，附舊圖＋背包底圖當錨點）：單一暗銅外框＋切角尖刺＋細古金雙線；頂端焦點倉庫＝小寶箱徽、Popup＝小蓮花，底部小紅菱。逐張量內容區（`tools/verify.py`：關鍵矩形須不透明、平整深色）。Popup 第一版內框底線比舊圖高 27px、會被確定／取消鈕壓到 ⇒ 程式把 y≥600 整段下移 30px（內框中段是平面，看不出接縫），底線回到與舊圖一致的 y≈881。
+  ② 頁籤 `CellBG_normal/pressed`、`Common/LongBtn_normal/pressed`：同一張 GPT 切角牌母版衍生——normal 頁籤＝深面，選中頁籤與 LongBtn＝程式把內面換成背包選中頁籤的深緋紅（`tools/redface.py`），LongBtn 按下＝更暗。四張外框完全一致。⚠ **LongBtn 連動**：ConfirmPopup、ChoicePanel、SettingsPanel 的離開／返回鈕一起變（作者已同意）。
+  ③ 重整鈕底 `RefreshBG_normal/pressed`：圓舷窗＋鉚釘 → 直接沿用背包 `inventoryPanel_Cell_PageNum_Bg`（按下＝紅面版）。
+  ④ 格線 `StoragePanel_GridBlank`（從新底圖同位置裁）、`StoragePanel_CellFrame`（改用背包格線單元，色調微調 ≤3）。[STORAGE.md](STORAGE.md) 素材表已同步。
+  ⑤ **倉庫外框收緊＋重整鈕移右上（同日，作者看預覽後要求；⏳ 未編譯未實測）**：外框換新後四周留白太大。作者否決「放大格子」（格子刻意與背包等大）與「塞裝飾」，選收緊——內面是平面，程式把四邊框往內平移（左右 70、上 70、下 168px），畫布與內容座標不變；`GridBlank` 跟著從收緊後的底圖重裁。`StoragePanel.cs` 改常數：重整鈕 `RefreshCx/Cy/Size` 765/1250/130 → **852/250/90**（寶箱徽右側、第 V 頁籤正上方）、`PairLeftX` -416 → **-366**；重整鈕圖示內縮由寫死 30 改成 `RefreshSize×0.23`（130 時結果不變）。⚠ 收緊後倉庫可見範圍上下不對稱（上收 70、下收 168），並排時倉庫視覺中心會比背包高約 50 單位——要對齊需加一個 Y 偏移（`anchoredPosition` 目前寫死 y=0），待作者實機看再決定。
+  `Cell_number` I～V、`RefreshIcon`、Popup 勾／叉 icon 本來就符合，保留。原圖（11-08 版）備份在 `TempImage/ui_restyle2/applied_backup/`，組裝預覽（照程式座標拼的舊／新對照）在 `TempImage/ui_restyle2/preview/`；退回單張可 `git checkout -- <路徑>`。工具複製在 `TempImage/ui_restyle2/tools/`（gitignore）。
+  **下一批（作者已分批）**：SettingPanelBG（底圖畫死兩條滑桿槽）、DramaPanelBG／NameBG、GachaPanel_Bg（重畫；ForgingPanel_Bg 不動）、ClearStage_ReturnBtn／LoadingBar_ProgressBarBg 的紅流蘇、關閉鈕兩款統一、ScriptsPanel_Input、Gacha 亮金件；SelectScriptPanel_SpecialFrame 角落的「囍」字待作者確認是否刻意。
+
 * [x] **立繪整理＋立繪省記憶體（⏳ 程式未編譯未實測）**（2026-11-08，作者委託）：
   ① **程式**：立繪載入後先量內容框、再 `MapSpriteLoader.CompressAndLock`（DXT5＋丟 CPU 副本，每張約 17MB→2MB）；進新關卡時 `DramaTalkDatabase.ReleaseLoadedPortraits()` 釋放上一關的立繪貼圖。只動立繪路徑（`DramaTalkDatabase` 專用 loader），地圖素材／怪物／主角序列圖不受影響（它們之後還要讀像素算碰撞與影子）。見 [DRAMA.md](DRAMA.md)〈立繪的記憶體〉。
   ② **只調畫布、不重畫**（9 張）：Base 的 fear／happy／hurt／normal（1122×1402 等 → 1024×1536，內容等比縮到不超寬、貼底置中）、該隱 cry／happy／hurt 與血伯爵 fear（1023×1537 → 1024×1536，平移 1px）、紅嫁衣 `redBridalGown_cry`（2000×2000 → 同組的 1254×1254，4.7MB→1.5MB）。遊戲內排版靠內容框自動對齊，畫面上的大小與位置不變。

@@ -22,6 +22,11 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 1104,用或是不用\n全看你,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 1105,多謝道長恩賜\n在下感恩不盡,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 1106,芙蓉,Furong
+# ── Boss 開戰資訊的稱號／說明（MonsterData.csv 的 IntroTitle／IntroDesc 引用）──
+1107,倖存長女,Surviving Eldest Daughter
+1108,家族中唯一的倖存者，\n為了活下來，\n變成人不人鬼不鬼的存在,The only survivor of her family.\nTo stay alive she became\nsomething neither human nor ghost.
+1109,千年成精,Thousand-Year Spirit
+1110,歷經了千載歲月，\n建立在它身邊的凡人家族\n換了一批又一批，\n凡人的魂魄使它茁壯，\n這滋味，太難忘懷,A thousand years have passed.\nMortal families rose around it\nand fell one after another.\nTheir souls made it strong —\na taste too sweet to forget.
 # ── 鍛造介面（4001–4099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4001,鍛造,Forge,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4002,移除鑲嵌,Remove Gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -110,3 +115,6 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 # ── 通用：角色名（8001–8099）──
 8001,???,???
 8002,獲得 {0} ×{1},Obtained {0} ×{1}
+# ── 通用：UI 小提示 hover tip（9001–9099）──
+9001,重新整理,Sort
+9002,通用貨幣,Currency

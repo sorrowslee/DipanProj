@@ -39,7 +39,7 @@
 | `Resources/UI/ForgingPanel/ForgingPanel_ItemFrame.png` | 方框：**沒有鎖鏈**的版本（鐵砧＋已開啟的孔） | 1448×1296 |
 | `Resources/UI/ForgingPanel/ForgingPanel_ItemFrameWithChain.png` | 方框：**有鎖鏈**的版本（上鎖的孔） | 1412×1302 |
 | `Resources/UI/Common/ForgingPanel_Btn.png` | 底部兩顆長按鈕的底板 | 2416×676 |
-| `Resources/UI/Common/CloseBtn_2.png` | 右上關閉鈕（只有一張，沒有按下版 → 走 ColorTint） | 519×481 |
+| `Resources/UI/Common/CloseBtn_normal.png`／`CloseBtn_pressed.png` | 右上關閉鈕（2026-11-09 起與設定面板統一同一款、兩態 SpriteSwap；原 `CloseBtn_2` 已移除） | 500×500 |
 
 ---
 
@@ -82,7 +82,7 @@ ForgingPanel_Bg                  1536×1024   內容 (0,0,1536,1024)     ← 整
 ForgingPanel_ItemFrame           1448×1296   內容 (145,60,1153,1176)  ← 只記「方形本體」，兩側尖角自然凸出去
 ForgingPanel_ItemFrameWithChain  1412×1302   內容 (109,65,1171,1185)  ← 同上，本體對齊靠這組數字
 ForgingPanel_Btn                 2416×676    內容 (7,66,2388,559)
-CloseBtn_2                       519×481     內容 (17,14,475,459)
+CloseBtn_normal                  500×500     內容 (49,51,402,390)   ← 2026-11-09 取代 CloseBtn_2；CloseW 88→106（螢幕上與設定面板的關閉鈕同大）
 ```
 
 ### 上鎖＝換一張外框圖，不是疊鎖鏈

@@ -35,7 +35,8 @@ namespace Dipan.UI
         const float HandleSize = 92f;
 
         // 右上關閉鈕（中心 + 大小）
-        const float CloseCx = 1018f, CloseCy = 150f, CloseSize = 110f;
+        // 2026-11-09 外框上下收緊（上框下移 183px、下框上移 133px，畫布與其他座標不變）⇒ 關閉鈕跟著框角下移：150 → 333。
+        const float CloseCx = 1018f, CloseCy = 333f, CloseSize = 110f;
         // 底部離開遊戲鈕（寬高；LongBtn 原圖 612x408，比例 1.5:1）
         const float ExitCy = 985f, ExitW = 312f, ExitH = 208f;
         const float ExitIconSize = 130f;   // 門 icon 疊在離開鈕上的大小
