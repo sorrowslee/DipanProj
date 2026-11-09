@@ -172,6 +172,7 @@ Mac：圖落到 ~/Downloads → grab.sh 收進 work/ → post.py 裁切／縮回
 | 「你目前的圖片生成次數已用完。請於晚上 X 再試一次」 | Plus 額度：一下午約 50～60 次生圖 | 停手，用 `send_later` 排一個到時間後的排程任務接著做；先告訴作者剩什麼、何時續做 |
 | 瀏覽器工具報「Multiple Chrome browsers are connected… none has been selected」 | 作者有兩個以上 Chrome 連著擴充功能（顯示名只有 Browser 1／2，作者也分不出來） | 作者同意「兩個都找找看」後：逐一 `select_browser` → `tabs_context_mcp`，**看得到之前在用的 ChatGPT 分頁（燃燈劫專案）的那個就是對的**（2026-11-08 是 Browser 1）。作者沒同意前要先問 |
 | 檢視器的下載鈕點了沒反應、下載到舊圖 | 視窗大小變了（759→734 高），右上角按鈕位置跟著移 | 開檢視器後先 `zoom` 右上角 (1180,0)-(1568,50) 看下載圖示的實際位置再點；**切圖表（sheet.py）沒有新鮮度檢查**，一定要先確認下載檔 < 40 秒再切（2026-11-08 晚上因此誤把上一張的半邊套進兩個 icon，馬上重下載覆蓋才修正） |
+| 附件顯示「上傳失敗」或跳「因網路問題，上傳失敗」 | 偶發網路問題 | 滑鼠移到失敗的縮圖上，點右上角 ✕ 移除，`find` 重新取 ref 再上傳那一張；確認兩張縮圖都正常顯示再打字 |
 
 ### 取得檔案
 
@@ -197,6 +198,8 @@ Mac：圖落到 ~/Downloads → grab.sh 收進 work/ → post.py 裁切／縮回
 | 血統藥重畫後看起來跟沒換一樣 | 鎖了外形＋設計，只降了光暈 | 圖示類要真的換風格，就**不要鎖外形**（程式的 IconFit 會自動正規化），改用圖示表重畫 |
 | 背包武器圖示完全沒換 | 圖示借用了 `Resources/Weapon/` 的投射物圖和特效幀，不在 `Resources/UI/` 底下 | 先查 ItemTable `IconPath` 的實際路徑；**不覆蓋投射物圖**，另出 `UI/Icons/Equipment/icon_*.png` 並改表 |
 | 新圖放進 Resources 但 Unity 抓不到 Sprite | 新檔沒有 .meta，或匯入成 Texture | 用同資料夾現有圖的 .meta 當範本（`textureType: 8`、`spriteMode: 1`），換新 GUID 寫一份 |
+| 灰色系角色（灰毛狼人、石像）去背會吃掉身體 | 背景是 #808080 灰，與毛色太接近 | prompt 改要「plain flat solid MAGENTA #FF00FF background」，用 `tools/cutout_magenta.py` 去背（含全圖去洋紅溢色，紅布、紅眼不受影響） |
+| 立繪去背 | 立繪是 RGB 灰底；人物碰到畫布底邊，腿間、腋下有封閉灰區 | `tools/cutout.py <in> <out>`：從四邊（含底邊）flood fill，加上與底色幾乎相同的封閉灰區 |
 | 下載檔名是中文 | ChatGPT 依內容自動命名 | 不用管，grab.sh 只看「最新那一張」 |
 
 ### Mac 端

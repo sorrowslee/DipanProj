@@ -83,6 +83,35 @@ namespace Dipan.MapRuntime
             return tex;
         }
 
+        /// <summary>
+        /// 把一張「只拿來顯示」的貼圖壓縮並丟掉 CPU 端副本（2026-11-08，立繪省記憶體）。
+        ///
+        /// <para>LoadImage 出來的貼圖是未壓縮 RGBA32＋mipmap，而且 CPU 端還留一份可讀副本：
+        /// 一張 1024×1536 的立繪約 8.4MB（GPU）＋8.4MB（CPU）。壓成 DXT5 並丟掉 CPU 副本後約 2.1MB。</para>
+        ///
+        /// <para>⚠ 之後這張貼圖就<b>不能再讀像素</b>（<see cref="GetAlphaLocalBox"/>、<see cref="GetFootprint"/> 等）——
+        /// 呼叫前要先把需要讀像素的東西算好並快取。長寬不是 4 的倍數時無法 DXT 壓縮，只丟 CPU 副本。
+        /// 地圖素材（地上物、怪物、主角序列圖）<b>不要</b>用：它們之後還會被讀像素算碰撞與影子。</para>
+        /// </summary>
+        public static void CompressAndLock(Texture2D tex)
+        {
+            if (tex == null || !tex.isReadable) return;
+            if ((tex.width & 3) == 0 && (tex.height & 3) == 0) tex.Compress(true);
+            tex.Apply(false, true);   // 不重算 mipmap（壓縮已含各級）、丟掉 CPU 副本
+        }
+
+        /// <summary>
+        /// 銷毀這個 loader 載過的所有貼圖與 sprite（內容框、佔位遮罩快取保留）。
+        /// 給「用完即丟」的素材用（立繪：進新關卡時由 DramaTalkDatabase 呼叫）；之後再要會重新從磁碟載入。
+        /// </summary>
+        public void ReleaseTextures()
+        {
+            foreach (var s in _sprites.Values) if (s != null) Object.Destroy(s);
+            foreach (var t in _textures.Values) if (t != null) Object.Destroy(t);
+            _sprites.Clear();
+            _textures.Clear();
+        }
+
         /// <summary>整張 sprite（單體物件 / 背景用），pivot 置中，PPU=256/tileSize。</summary>
         public Sprite GetWholeSprite(CatalogItem item, float tileSize)
         {

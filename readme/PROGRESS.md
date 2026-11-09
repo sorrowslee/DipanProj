@@ -4,6 +4,11 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **立繪整理＋立繪省記憶體（⏳ 程式未編譯未實測）**（2026-11-08，作者委託）：
+  ① **程式**：立繪載入後先量內容框、再 `MapSpriteLoader.CompressAndLock`（DXT5＋丟 CPU 副本，每張約 17MB→2MB）；進新關卡時 `DramaTalkDatabase.ReleaseLoadedPortraits()` 釋放上一關的立繪貼圖。只動立繪路徑（`DramaTalkDatabase` 專用 loader），地圖素材／怪物／主角序列圖不受影響（它們之後還要讀像素算碰撞與影子）。見 [DRAMA.md](DRAMA.md)〈立繪的記憶體〉。
+  ② **只調畫布、不重畫**（9 張）：Base 的 fear／happy／hurt／normal（1122×1402 等 → 1024×1536，內容等比縮到不超寬、貼底置中）、該隱 cry／happy／hurt 與血伯爵 fear（1023×1537 → 1024×1536，平移 1px）、紅嫁衣 `redBridalGown_cry`（2000×2000 → 同組的 1254×1254，4.7MB→1.5MB）。遊戲內排版靠內容框自動對齊，畫面上的大小與位置不變。
+  ③ **重畫**（3 張，ChatGPT 燃燈劫專案）：寄生蟲 `normal`（485×514 → 1024×1536，以同組 angry 為母版、換平靜表情）、狼人士兵 normal／fear（768×921 → 1024×1536，照新規範構圖；灰毛改用洋紅底去背）。
+  原圖備份在 `TempImage/ui_restyle/portrait_backup/`；`GameAssets` 與 `StreamingAssets` 兩份已同步、`catalog.json` 的 `pixelSize` 已改（保險起見可再跑一次 Sync Map Assets）。規範補「寬體型例外」（作者指定才可用 1536×1024）與「灰色系角色用洋紅底」。
 * [x] **背包圖示第二批：26 件武器／技能改用專用圖示、血統藥 10 張重畫、讀取條左端修正（分支 `feat/ui-restyle`，未 commit；⏳ 待作者實機看）**（2026-11-08，作者委託；ChatGPT「燃燈劫」專案內產圖）：
   ① 背包裡 26 件武器／技能的 icon 原本借用 `Resources/Weapon/single/` 的投射物圖（19 件）或特效動畫第一幀（21 血月鬼爪、22 虛空吞口、24 九霄雷獄、25 幽影突、27 冰封法陣、28 死字咒、29 鏡界折光），不在 `UI/` 底下所以第一輪沒換到。改成新出 `UI/Icons/Equipment/icon_*.png`（500×500，各配 .meta），ItemTable 這 26 列只改 `IconPath`；投射物圖與特效幀完全不動，戰鬥畫面不受影響。特效類 7 件是依名稱重新設計的物件圖示。
   ② 血統藥 8 系列＋`lvup_middle/high` 重畫成同一款粗壯圓肚瓶（系列色＋瓶塞造型＋腹部銅章圖騰），原地覆蓋（原圖在 `applied_backup/`）。7～10 號是第二張圖示表，瓶頸略高、銅籠略華麗，若嫌與前 6 瓶不一致可再重出 SpiritRoot／Swarmborn。

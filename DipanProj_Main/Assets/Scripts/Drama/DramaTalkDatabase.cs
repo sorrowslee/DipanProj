@@ -31,6 +31,19 @@ namespace Dipan.Drama
             }
         }
 
+        /// <summary>
+        /// 釋放所有已載入的立繪貼圖（2026-11-08，立繪省記憶體）。進新關卡（module）時由 MapManager 在讀取頁呼叫；
+        /// 下次播放對話會重新從磁碟載入（對話是模態暫停的，重新解一張 PNG 感覺不到）。
+        /// 內容框與 PortraitTable 的排版快取保留。單例還沒建立就什麼都不做（不會為了釋放而去載表）。
+        /// </summary>
+        public static void ReleaseLoadedPortraits()
+        {
+            var db = _instance;
+            if (db == null || db._loader == null) return;
+            db._loader.ReleaseTextures();
+            db._spriteCache.Clear();
+        }
+
         /// <summary>進入 Play 模式時丟掉單例（已關 Domain Reload；否則快取的立繪 Sprite 是上一輪被銷毀的 → 對話立繪變空白）。由 PlayModeStaticReset 呼叫。</summary>
         public static void ResetForPlayMode() => _instance = null;
 
@@ -147,7 +160,15 @@ namespace Dipan.Drama
 
             EnsureLoader();
             var item = _catalog?.Find(catalogId);
-            Sprite sp = item != null ? _loader.GetWholeSprite(item, 1f) : null;
+            Sprite sp = null;
+            if (item != null)
+            {
+                // 省記憶體（2026-11-08）：立繪只拿來顯示，載入後壓成 DXT5、丟掉 CPU 副本（每張約 17MB → 2MB）。
+                // 丟掉之後就不能再讀像素，所以**先**在這裡把內容框量好——ResolveFit 用同一個快取鍵（tileSize 1），之後不會再讀像素。
+                _loader.GetAlphaLocalBox(item, 1f);
+                sp = _loader.GetWholeSprite(item, 1f);
+                if (sp != null) MapSpriteLoader.CompressAndLock(sp.texture);
+            }
             if (sp == null)
                 Debug.LogWarning($"[DramaTalkDatabase] 找不到立繪（catalog id：{catalogId}）。" +
                     (rawPath.StartsWith(ActorPrefix, System.StringComparison.OrdinalIgnoreCase)

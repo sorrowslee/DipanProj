@@ -133,6 +133,19 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
   - TalkPanel 把左右立繪當**站姿**擺在對話框**後方**（z-order：對話框蓋在立繪上、立繪下半身沉入框後）、兩側都錨在畫面中心底部（2026-09-21 起，寬螢幕才不會離置中的對話框越來越遠），人物外側緣不超出對話框外緣（多出來的寬度會被推向畫面中央；寬幅立繪可在 `PortraitTable` 標 `OuterToScreen=1` 放寬到畫面邊緣，見〈固定微調〉）。位置/大小常數在 `TalkPanel.cs` 上方，**三個量的都是「人物」而不是「圖檔」**（見〈立繪自動對齊〉）：`AvatarHeight`（人物高度）、`AvatarOverlap`（人物底部沉入對話框多少，**越大越往下＝露出越少**）、`AvatarInnerFromCenter`（**人物內側緣**距畫面中心，**越小兩人靠越近**）。某側沒立繪（載不到 / 留空）時那側自動隱藏。
   - **右側立繪一律水平翻轉**（`localScale.x=-1`，原地鏡像不位移）：因為立繪原圖臉朝右，放右邊要翻成朝左才面向畫面中央、與左側對望。所以 `RightAvatarPath` 的圖**直接放正常朝右的原圖即可**，不必自己先翻好。
 
+### 立繪的記憶體（2026-11-08）
+
+`DramaTalkDatabase.ResolvePortrait` 載入立繪後：
+
+1. **先**量好內容框（`GetAlphaLocalBox`，`ResolveFit` 用同一個快取鍵）；
+2. 再呼叫 `MapSpriteLoader.CompressAndLock`：壓成 DXT5（長寬是 4 的倍數才壓）並丟掉 CPU 端副本。
+
+一張 1024×1536 的立繪從約 17MB（RGBA32＋mipmap，GPU＋CPU 各一份）降到約 2MB。
+
+進新關卡（module）時，`MapManager.LoadMapRoutine` 在讀取頁呼叫 `DramaTalkDatabase.ReleaseLoadedPortraits()`，把已載入的立繪貼圖全部銷毀；之後要用會重新從磁碟載入。
+
+⚠ 壓縮後的立繪貼圖**不能再讀像素**。日後若有新功能要讀立繪像素，必須在 `CompressAndLock` 之前做完並快取。
+
 ### 立繪自動對齊（2026-09-13）
 
 **問題**：立繪的**圖檔外框 ≠ 人物**。實測 132 張立繪，不透明內容佔畫布的比例從 **0.717 到 1.000**、左右留白 **0~16%**、畫布比例也不統一（1024×1536 之外還有 1122×1402、1149×1369、500×500…）。舊排版量的是圖檔——高度固定 660、寬度＝高×圖檔長寬比、左立繪把**圖檔左緣**貼邊——所以換一張圖＝換一組留白，人物就在畫面上飄。**同一個角色的兩張表情就會跳**（`Girl_Fear` 右留白 0%、`Girl_Smile` 15.8%）。舊算法下人物內側緣的散佈實測是 **217px**。

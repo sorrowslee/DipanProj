@@ -182,6 +182,9 @@ public class MapManager : MonoBehaviour
 
             ClearTransientGameplay();
 
+            // 上一個關卡的對話立繪貼圖全部釋放（2026-11-08，立繪省記憶體；之後用到會重新載入）。
+            Dipan.Drama.DramaTalkDatabase.ReleaseLoadedPortraits();
+
             // 進入新關卡（module）：清掉「關卡單次」旗標——所以像 killedFamily 這種「這趟有沒有殺家人」每次進關重算。
             // （同 module 房間互跳走 else 分支、不清，旗標在整趟關卡內延續。）
             TriggerChain.ClearLevelFlags();
