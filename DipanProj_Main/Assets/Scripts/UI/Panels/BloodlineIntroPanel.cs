@@ -32,7 +32,7 @@ namespace Dipan.UI
     /// 與 <c>SelectScriptPanel</c> 的 <c>Text_Gain</c>／<c>Text_StageName_&lt;module&gt;</c> 同一個資料夾。
     /// **凡是「畫成圖的字」都要放那裡**，之後做多語系時只換那一個資料夾就好，
     /// 不必翻遍各面板自己的素材夾。（純美術的框、石碑、按鈕底不算，那些不隨語言變。）
-    /// 字型則是全專案共用的毛筆字 <c>Fonts/Bakudai/Bakudai-Bold</c>。
+    /// 字型與 CharacterIntroPanel 姓名同為思源宋體粗 <c>Fonts/NotoSerifTC/NotoSerifTC-Bold</c>（原毛筆字 Bakudai）。
     ///
     /// ⚠ <b>四個要知道的點</b>：
     /// <list type="number">
@@ -161,7 +161,7 @@ namespace Dipan.UI
         [Tooltip("血統名顏色。⚠ 石碑是淺色的，用亮色字會看不見——預設是深血紅")]
         public Color NameColor = new Color(0.30f, 0.035f, 0.035f);
         [Tooltip("姓名專用字型（Resources 路徑，不含副檔名；留空＝用全 UI 預設字型）")]
-        public string NameFontPath = "Fonts/Bakudai/Bakudai-Bold";
+        public string NameFontPath = "Fonts/NotoSerifTC/NotoSerifTC-Bold";
 
         const string ShaderPath = "Shaders/BloodlineDissolve";
         const string PortraitEmotion = "Actor_normal";   // 揭示用的是 normal.png
@@ -282,7 +282,7 @@ namespace Dipan.UI
         /// <summary>
         /// 把字級夾到「這個字數在石碑上不會換行」的大小。回傳值永遠 ≤ <paramref name="maxSize"/>，
         /// 所以只會讓長名字變小、不會把短名字放大（版面其餘部分都是照 NameFontSize 算的）。
-        /// 估寬用「一個字 ≈ 一個字級」——毛筆字 Bakudai 是全形等寬，中文血統名這樣估就夠準。
+        /// 估寬用「一個字 ≈ 一個字級」——思源宋體的中文字同樣是全形等寬，中文血統名這樣估就夠準。
         /// </summary>
         int FitFontSize(string text, int maxSize)
         {

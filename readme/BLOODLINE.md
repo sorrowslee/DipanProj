@@ -560,7 +560,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 程式裡的 `標題圖` 欄位寫的是**邏輯路徑** `UI/Texts/BloodlinePanel_Title`，
 由 `UIBuilder.LoadSprite` → `LocalizedArt.ResolveExisting` 換成當前語言，缺圖退回繁中。
 見 [LOCALIZATION.md](LOCALIZATION.md) §圖片型文字。
-| 毛筆字型 | `Fonts/Bakudai/Bakudai-Bold`（同 BossIntroPanel／GachaPanel／ForgingPanel） |
+| 字型 | `Fonts/NotoSerifTC/NotoSerifTC-Bold` 思源宋體粗（同 CharacterIntroPanel 姓名／GachaPanel／ForgingPanel；原為毛筆字 Bakudai） |
 
 **斑駁溶解著色器** `Resources/Shaders/BloodlineDissolve.shader`：uGUI 材質，hash 值噪 2 個八度
 （粗塊決定哪一片先掉、細粒讓邊緣毛躁），**不吃任何貼圖**。單一參數 `_Cutoff` 同時做正反兩個方向，
@@ -582,7 +582,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 4. **姓名石碑是淺色的 ⇒ 字必須是深色。** `NameColor` 預設深血紅 `(0.30, 0.035, 0.035)`，
    **不是** `BossIntroPanel` 那個暖金色（那張牌匾是深色的）。連帶地，石碑圖萬一載不到，
    後備的純色底也刻意是**淺石色**而不是半透明黑——墊深色底的話字會整個看不見。
-   字型仍然是全專案共用的毛筆字 `Fonts/Bakudai/Bakudai-Bold`。
+   字型與 CharacterIntroPanel 姓名同為思源宋體粗 `Fonts/NotoSerifTC/NotoSerifTC-Bold`（原為毛筆字 Bakudai）。
 
 **版面預設值**（1920×1080 參考解析度；都可在 Inspector 調）：
 

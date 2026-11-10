@@ -34,7 +34,7 @@ namespace Dipan.UI
 
         const string Dir = "UI/ForgingPanel/";
         const string CommonDir = "UI/Common/";
-        const string TitleFontPath = "Fonts/Bakudai/Bakudai-Bold";   // 毛筆字（同 GachaPanel / BossIntroPanel）
+        const string TitleFontPath = "Fonts/NotoSerifTC/NotoSerifTC-Bold";   // 思源宋體粗（同 GachaPanel / CharacterIntroPanel；原毛筆字 Bakudai）
 
         // ── 語言表 id（LanguageTable.csv 的 4001–4099「鍛造介面」段）──
         const int TxtTitle = 4001, TxtRemoveGem = 4002, TxtDismantle = 4003;

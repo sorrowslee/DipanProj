@@ -44,7 +44,7 @@ namespace Dipan.UI
         const string CommonDir = "UI/Common/";
         const string ClearDir = "UI/ClearStagePanel/";   // 十連結算沿用過關結算的框與牌匾（純美術）
         const string TextDir  = "UI/Texts/";             // 圖片型文字（依語言解析，見 LocalizedArt）
-        const string TitleFontPath = "Fonts/Bakudai/Bakudai-Bold";   // 毛筆字（同 BossIntroPanel 姓名牌）
+        const string TitleFontPath = "Fonts/NotoSerifTC/NotoSerifTC-Bold";   // 思源宋體粗（同 CharacterIntroPanel 姓名；原毛筆字 Bakudai）
 
         // ── 顯示字串（正式多語系時改走 Dipan.Localization.Language.GetText）──
         const string TxtSingle = "抽 選";
