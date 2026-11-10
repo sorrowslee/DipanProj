@@ -31,6 +31,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 - **git 由作者自己掌控**：AI 不主動 commit／開分支／merge／push，除非作者該次明確要求（講一次做一次）。唯讀查詢一律加 `--no-optional-locks`（如 `git --no-optional-locks status --short`）——Cowork 橋接器刪不掉 `index.lock`，留下會擋住作者（見 PROBLEMS **I** 段）。
 - **固定 sortingOrder 的排序層配置表寫在 `Assets/Scripts/Map/MapDepthSort.cs` 檔頭**；地圖編輯器 `ObjectView.cs` 有鏡像——**改一邊要兩邊一起改**。
 - **溝通、註解、文件一律繁體中文**；跟作者提 Unity Inspector 上的欄位時要給**英文標籤**（Inspector 標籤是自動生成的英文，給中文他找不到）。
+- **主角台詞不分性別**（2026-11-10 作者定）：主角可能是男是女（第十個系列「青丘」第三階是第一個女性血統，之後還會有），對主角說的話、主角自己的話都**不准用指定性別的稱呼**（他／她、小夥子、姑娘、兄弟、公子…）。寫法見 [readme/DRAMA.md](readme/DRAMA.md)〈主角台詞不分性別〉。
 - 做完事情**一定要記錄**（見下方「記錄工作流」）——這個專案的文件是接手的命脈。
 
 ---

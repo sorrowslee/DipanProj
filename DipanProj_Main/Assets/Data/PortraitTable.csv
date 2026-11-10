@@ -45,3 +45,21 @@ Main/Characters/Talk/Soulborn/ZhongKui/angry,1.35,,-255,1,鍾馗：作者要放�
 Main/Characters/Talk/Soulborn/ZhongKui/cry,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
 Main/Characters/Talk/Soulborn/ZhongKui/fear,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
 Main/Characters/Talk/Soulborn/ZhongKui/hurt,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
+Main/Characters/Talk/Qingqiuborn/SpiritFox/normal,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
+Main/Characters/Talk/Qingqiuborn/SpiritFox/happy,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
+Main/Characters/Talk/Qingqiuborn/SpiritFox/angry,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
+Main/Characters/Talk/Qingqiuborn/SpiritFox/cry,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
+Main/Characters/Talk/Qingqiuborn/SpiritFox/fear,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
+Main/Characters/Talk/Qingqiuborn/SpiritFox/hurt,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
+Main/Characters/Talk/Qingqiuborn/MysticFox/normal,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
+Main/Characters/Talk/Qingqiuborn/MysticFox/happy,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
+Main/Characters/Talk/Qingqiuborn/MysticFox/angry,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
+Main/Characters/Talk/Qingqiuborn/MysticFox/cry,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
+Main/Characters/Talk/Qingqiuborn/MysticFox/fear,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
+Main/Characters/Talk/Qingqiuborn/MysticFox/hurt,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
+Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/normal,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
+Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/happy,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
+Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/angry,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
+Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/cry,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
+Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/fear,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
+Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/hurt,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調

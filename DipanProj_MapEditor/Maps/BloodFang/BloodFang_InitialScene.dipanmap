@@ -249,7 +249,7 @@
           "typeId": "giveItem",
           "cells": [],
           "params": {
-            "itemId": "302",
+            "itemId": "3020",
             "count": "1",
             "next": "同伴道別-血族",
             "iconToast": true
@@ -284,7 +284,7 @@
           "typeId": "giveItem",
           "cells": [],
           "params": {
-            "itemId": "303",
+            "itemId": "3030",
             "count": "1",
             "next": "同伴道別-狂族",
             "iconToast": true

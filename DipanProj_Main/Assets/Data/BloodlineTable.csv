@@ -95,3 +95,6 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 90,Warden,鬼差,Soulborn/Warden,1,,12,20,15,12,,萬魂系列 第一階（五屬性為佔位；BodyScale 以鬼差為 1（鍾馗 1.7／酆都 1.3，作者 2026-11-09 定）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝龍奴 Thrall，正式圖到了直接覆蓋資料夾）
 91,ZhongKui,鍾馗,Soulborn/ZhongKui,1.7,,60,35,20,55,,萬魂系列 第二階（五屬性為佔位；BodyScale 以鬼差為 1（鍾馗 1.7／酆都 1.3，作者 2026-11-09 定）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝尼德霍格 Nidhogg，正式圖到了直接覆蓋資料夾）,,,,,,,,,,,,,,,,,0.6,5-17
 92,Fengdu,酆都大帝,Soulborn/Fengdu,1.3,,55,55,85,60,,萬魂系列 第三階（五屬性為佔位；BodyScale 以鬼差為 1（鍾馗 1.7／酆都 1.3，作者 2026-11-09 定）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝該隱 Cain，正式圖到了直接覆蓋資料夾）；DreamWeaponId＝萬魂鬼手 77（2026-11-09）,,,,,,,,,,,,,,77,,SoulSkull
+100,SpiritFox,靈狐,Qingqiuborn/SpiritFox,1,,15,25,20,12,,青丘系列 第一階（五屬性為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝靈根 築基期 Foundation，作者 AutoSprite 正式圖到了直接覆蓋資料夾）
+101,MysticFox,玄狐,Qingqiuborn/MysticFox,1,,25,45,55,30,,青丘系列 第二階（五屬性為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝靈根 元嬰期 Nascent Soul，作者 AutoSprite 正式圖到了直接覆蓋資料夾）
+102,NineTailedCelestialFox,九尾天狐,Qingqiuborn/NineTailedCelestialFox,1,,40,70,90,50,,青丘系列 第三階（五屬性為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝靈根 化神期 Divine Form，作者 AutoSprite 正式圖到了直接覆蓋資料夾）；DreamWeaponId 暫借焚獄炎杖 69（專屬夢境武器待設計：幻術／分身／狐火）,,,,,,,,,,,,,,69

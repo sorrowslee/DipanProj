@@ -343,7 +343,7 @@ namespace DipanMapEditor.Data
             set.types.Add(new TriggerTypeDef
             {
                 // 動作型：把某個物品「永久」加進某個抽選池（跨輪迴保留），之後在對應祭壇就抽得到。
-                // 典型：紅嫁衣 boss 死亡旗標 → watchFlag → next 接這顆（pool=blood、entry=302 幽靈血統藥劑）。
+                // 典型：紅嫁衣 boss 死亡旗標 → watchFlag → next 接這顆（pool=blood、entry=3020 血族 1 階藥劑）。
                 // 不用玩家踩，格子畫在角落或用「＋ 手動新增空區域」建 0 格即可。重複觸發不會重複加。
                 typeId = "unlockRoll", displayName = "解鎖抽選內容(鏈動作)", color = "#59C7B0",
                 paramSchema = new List<TriggerParam>

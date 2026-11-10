@@ -1045,7 +1045,24 @@
 - [ ] **萬魂三階立繪的 PortraitTable 18 列（2026-11-09）**：三階全部照〈頂端 975 規則〉：鬼差／酆都 `Scale 1.15／OffsetY −139`、鍾馗 `1.35／−255／OuterToScreen 1`（作者 2026-11-09 同意統一）。⏳ 實機確認。原本：鬼差／酆都 `OffsetY -90`（作者嫌頭頂到畫面最上面）、鍾馗 `Scale 1.35／OffsetY -270／OuterToScreen 1`（要放大有威猛感）。⏳ 實機看過再微調，數字都在 PortraitTable.csv 表尾。
 - [ ] **立繪偏差待作者實機確認**：鬼差頭身偏修長（頭高約 235px，規範 300，臉會比別人小）；鍾馗刀尖碰畫布頂、angry／fear／hurt 左右較寬（最寬 6～1021）；酆都頭高約 250、左右 35～920。程式用內容框排版，實機看了再決定要不要重畫或在 PortraitTable 補。
 - [ ] **鍾馗攻擊動畫倍率 `AttackAnimSpeed`=0.6**（⏳ 未編譯未實測）：實機看劈砍節奏，太慢／太快直接改表B 91 那格。⚠ 0.6 是在「只播得到 3 格」時調的；2026-11-10 改成 `AttackFrameRange 5-17`（13 格）後，0.6 倍＝每次約 1.8 秒，可能要調回 1（約 1.1 秒）。
-- [ ] **直達藥劑 329／339 沒進任何池**（同其他系列的既有缺口）。
-- [ ] **第 10 個系列的藥劑編號會撞 310**（見 BLOODLINE §3）。
-- [ ] **新增血統流程的完整 SOP＋AI 產圖經驗**：等序列圖完成、整條流程跑完後寫進 BLOODLINE §7 與 CHATGPT_IMAGE_WORKFLOW（作者要求）。
+- [ ] **直達藥劑 3091／3092 沒進任何池**（同其他系列的既有缺口）。
+- [x] ~~第 10 個系列的藥劑編號會撞 310~~ → 2026-11-10 全面改號：系列藥劑 ID＝`3000 + 血統 Id`（舊 29 瓶一併搬遷）（見 BLOODLINE §3）。
+- [x] ~~新增血統流程的完整 SOP＋AI 產圖經驗~~ → 2026-11-10 寫進 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7（產圖部分；序列圖由作者 AutoSprite 做，不在 AI 流程內）。
+
+## 既有台詞盤查：主角性別稱呼（2026-11-10）
+
+- [ ] 青丘系列第三階「九尾天狐」是第一個女性血統，作者定下規則：主角台詞不分性別（見 [DRAMA.md](DRAMA.md)〈主角台詞不分性別〉）。2026-11-10 之前的台詞（DramaTalkTable、LanguageTable、MonsterData 怪物台詞、NPC）還沒盤查，可能有對主角使用他／她、小夥子、姑娘等稱呼。作者尚未要求盤查，等交辦再做。
+
+## 青丘血統（2026-11-10，⏳ 未在 Unity 實測）
+
+> 見 [BLOODLINE.md](BLOODLINE.md) §8、[PROGRESS.md](PROGRESS.md) 2026-11-10 條。
+
+- [ ] **先跑 `Project Tools → Sync Map Assets`**，否則新立繪與暫代序列圖載不到。
+- [ ] **正式序列圖**：作者以 `TempImage/bloodline_Qingqiuborn/out/{SpiritFox,MysticFox,NineTailedCelestialFox}_base_1024.png` 用 AutoSprite 產圖，整個覆蓋 `SequenceImage/Qingqiuborn/<血統>/`（目前暫代＝靈根三階）→ 刪 `ShadowAnchorTable` 的 `characters/qingqiuborn/*` 12 列 → 跑「計算影子錨點」→ 再 Sync。
+- [ ] **九尾天狐角色圖的裙擺垂到 y≈800**（規範要求 780 以下只有腳），作者 2026-11-10 看過接受；序列圖做好後看影子，偏了再填 ShadowAnchor manual。
+- [ ] **立繪實機確認**：PortraitTable 起手值（靈狐／玄狐 1.15／−139、九尾天狐 1.2／−180／OuterToScreen 1）；玄狐 cry 頂端比其他張低 60px、玄狐 angry 法器超過右界到 x=966，實機看會不會大小或位置跳動，跳就單張補 PortraitTable 或重畫。
+- [ ] **九尾天狐專屬夢境武器**（幻術／分身／狐火），目前 `DreamWeaponId` 暫借焚獄炎杖 69。神格特效也還沒指派。
+- [ ] `BodyScale`（全 1）、`WalkSpeed`（留空）、五屬性（佔位）都要實機看過再定。
+- [ ] 直達藥劑 3101／3102 沒進任何池（同其他系列）。
+- [ ] 萬魂的鬼差是照錯的參考圖（靈根鍊氣期）畫的，像的不是主角——作者決定要不要重畫（2026-11-10 發現）。
 

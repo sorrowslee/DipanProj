@@ -97,7 +97,7 @@
 **寫入方式＝地圖編輯器的 `unlockRoll` 觸發**，不寫程式：
 
 ```
-紅嫁衣 boss 死亡旗標 → watchFlag → next = unlockRoll(pool=blood, entry=302)
+紅嫁衣 boss 死亡旗標 → watchFlag → next = unlockRoll(pool=blood, entry=3020)
 ```
 
 `entry` 可用 `|` 分隔一次解鎖多個。idempotent，重複觸發不會重複加。

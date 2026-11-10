@@ -520,7 +520,7 @@ public static class TriggerChain
     // 解鎖抽選內容（鏈動作）：把某個物品永久加進某個抽選池，之後在對應祭壇就抽得到。
     //   pool  ：池代號（GachaPoolTable.csv 的 PoolId，例 blood / weapon）
     //   entry ：要解鎖的物品 id，可用 '|' 分隔一次解鎖多個
-    // 典型用法：紅嫁衣 boss 死亡旗標 → watchFlag → next 接這顆（pool=blood、entry=302 幽靈血統藥劑）。
+    // 典型用法：紅嫁衣 boss 死亡旗標 → watchFlag → next 接這顆（pool=blood、entry=3020 血族 1 階藥劑）。
     // 解鎖寫進存檔頂層（跨輪迴保留），idempotent——重複觸發不會重複加。無效參數也照樣接 next，不卡鏈。
     static void ExecuteUnlockRoll(TriggerRegion r)
     {

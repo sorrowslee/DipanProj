@@ -197,4 +197,16 @@ characters/soulborn/fengdu/attack,-0.5,69.2,70,auto,25,256,256,暫代：複製�
 characters/soulborn/fengdu/dead,7,158.3,262,auto,9,512,512,幀數 9→25 已重算
 characters/soulborn/fengdu/idle,0.2,123.5,223,auto,16,512,512,幀數 19→16 已重算
 characters/soulborn/fengdu/walk,-6.2,125,206,auto,12,512,512,幀數 25→12 已重算
+characters/qingqiuborn/ninetailedcelestialfox/attack,1.5,40.5,114,auto,25,256,256,暫代：複製自 spiritroot/divine form，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/ninetailedcelestialfox/dead,-6,56.1,134,auto,9,256,256,暫代：複製自 spiritroot/divine form，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/ninetailedcelestialfox/idle,-4.5,46.7,85,auto,23,256,256,暫代：複製自 spiritroot/divine form，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/ninetailedcelestialfox/walk,-7.8,43,92,auto,12,256,256,暫代：複製自 spiritroot/divine form，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/spiritfox/attack,-5,54.5,64,auto,25,256,256,暫代：複製自 spiritroot/foundation，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/spiritfox/dead,4.5,70.8,99,auto,9,256,256,暫代：複製自 spiritroot/foundation，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/spiritfox/idle,-1.8,54.5,62,auto,23,256,256,暫代：複製自 spiritroot/foundation，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/spiritfox/walk,-3.2,56,66,auto,22,256,256,暫代：複製自 spiritroot/foundation，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/mysticfox/attack,-1.5,47.4,98,auto,25,256,256,暫代：複製自 spiritroot/nascent soul，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/mysticfox/dead,0.5,55.6,91,auto,9,256,256,暫代：複製自 spiritroot/nascent soul，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/mysticfox/idle,-7,49.3,89,auto,16,256,256,暫代：複製自 spiritroot/nascent soul，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/mysticfox/walk,-5.5,49.4,86,auto,20,256,256,暫代：複製自 spiritroot/nascent soul，換正式序列圖後先刪這 12 列再重跑計算影子錨點
 monsters/housekeeper/walk,-6.2,36,92,auto,12,256,256,

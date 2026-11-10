@@ -560,7 +560,7 @@ flag:hallGateOpen        旗標成立
 | `武器祭壇` | openPanel（祭壇**前方**玩家站得到那排地板格） | panelId=`gacha`, poolId=`weapon`, **requireClearsMin=1**（打過一關才開放） |
 | `裝備祭壇` | openPanel | panelId=`gacha`, poolId=`armor`, requireClearsMin=1 |
 | `血統祭壇` | openPanel | panelId=`gacha`, poolId=`blood`, requireClearsMin=1 |
-| `紅嫁衣死→給幽靈血統` | unlockRoll（角落 1 格，接在 boss 死亡旗標鏈上） | poolId=`blood`, itemId=302 |
+| `紅嫁衣死→給幽靈血統` | unlockRoll（角落 1 格，接在 boss 死亡旗標鏈上） | poolId=`blood`, itemId=302（舊號；2026-11-10 起血統藥劑改為 3000＋血統 Id，見 BLOODLINE §3） |
 
 > 祭壇的**圖**是地上物（`rockAltar.png` ＋ `rockSlate_weapon.png` 等牌子），要在地圖編輯器另外擺；觸發只是蓋在它前面的一片感應格。整套抽選見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md)。
 
