@@ -74,6 +74,12 @@ namespace DipanMapEditor.Data
                     // 留空/0＝不播。慣例：**一開始就擺在房間裡的怪不播；接續產生的怪（下一波、劇情中途冒出來的）一律播**，
                     // 讓玩家看得到怪是「生出來的」。目前用 10（招喚怪物）。見 readme/TRIGGER_CHAIN.md §3.5b。
                     new TriggerParam { key = "spawnVfxId", type = ParamType.Int, label = "出生特效id(VfxTable/空=不播)" },
+                    // 清光才出下一波（2026-11-10，血狂之爭和談大廳）：只對「重複產生」有效。勾了＝場上這個出生點的怪全死光
+                    // 之後才開始倒數「重複間隔秒」、時間到再生一整波；不勾＝舊行為（每 N 秒把少的補到同時存在上限）。
+                    new TriggerParam { key = "waitClear", type = ParamType.Bool, label = "清光才出下一波(重複產生用)" },
+                    // 不掉落（2026-11-10）：勾了＝這裡生的怪死了不掉寶、不掉血球、不算清場血球（MonsterController.DropsLoot=false）。
+                    // 給「用來逼玩家離開、殺不完」的無限湧怪用，免得變成刷錢點。⚠ 未來若加經驗值，這種怪也不能給經驗。
+                    new TriggerParam { key = "noLoot", type = ParamType.Bool, label = "不掉落(寶物/血球/經驗)" },
                     // ⭐ **「全滅」之後做什麼，用下方通用欄位的「接續觸發／完成寫旗標」**——
                     //   出生點的「完成」＝這一組怪被清空的那一刻（波次出完且場上一隻不剩）。
                     //   總波數留空（無限波）＝永遠不會完成，也就永遠不會推鏈。

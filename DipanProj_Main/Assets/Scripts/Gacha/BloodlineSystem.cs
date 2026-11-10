@@ -723,6 +723,7 @@ namespace Dipan.Gacha
             {
                 if (trail == null) trail = go.AddComponent<BloodlineTrail>();
                 trail.SetStyle(def.TrailStyle, def.TrailColor, def.TrailVfxId);
+                trail.SetStepFrames(def.StepFrames);   // 表B StepFrames（留空＝null＝舊的 25%／75% 相位）
             }
             else if (trail != null) trail.SetStyle(null, Color.white, 0);
 

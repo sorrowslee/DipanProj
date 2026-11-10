@@ -39,7 +39,12 @@ namespace Dipan.Cutscene
             a._rb.gravityScale = 0f; a._rb.freezeRotation = true;
 
             a._npcAnim = go.AddComponent<MonsterAnimator>();
-            a._npcAnim.Setup(spriteFolder, animFps, moveSpeed, tileSize);
+            // 逐動作倍率跟同名怪物一致（相對 idle；idle 大小仍由 scale 決定）。以前沒傳 ⇒ 狂族士兵等「走路姿勢比站姿矮」的
+            // 角色走起來比站著大一圈（2026-11-10，見 MonsterAnimator.RelativeScalesFor）。查不到同名怪物＝照舊只做自動對齊。
+            if (MonsterAnimator.RelativeScalesFor(spriteFolder, out var rw, out var ra, out var rj, out var rh, out var rfly))
+                a._npcAnim.Setup(spriteFolder, animFps, moveSpeed, tileSize, 0f, rw, ra, rj, rh, rfly);
+            else
+                a._npcAnim.Setup(spriteFolder, animFps, moveSpeed, tileSize);
 
             a._act = go.AddComponent<MonsterActuator>();
             a._act.MoveSpeed = moveSpeed > 0f ? moveSpeed : 3f;

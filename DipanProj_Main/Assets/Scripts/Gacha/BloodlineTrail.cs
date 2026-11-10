@@ -80,6 +80,8 @@ public class BloodlineTrail : MonoBehaviour
     VfxManager _vfx;
     int _footSide = 1;          // 左右腳交替
     float _lastPhase = -1f;     // 上一幀的走路循環相位（-1 = 沒在走／拿不到幀）
+    int[] _stepFrames;          // 表B StepFrames（0 起算）；null＝走舊的 StepPhaseA/B 相位
+    int _lastWalkFrame = -1;    // 上一幀的走路幀（-1 = 沒在走）
 
     PlayerController _pc;
     PlayerAnimator _anim;
@@ -107,6 +109,32 @@ public class BloodlineTrail : MonoBehaviour
         _src = GetComponent<SpriteRenderer>();
         if (_src == null) _src = GetComponentInChildren<SpriteRenderer>();
         _lastPos = transform.position;
+    }
+
+    /// <summary>
+    /// 指定走路序列圖裡「腳著地」的幀（0 起算）。有填 ⇒ 動畫**走到**這幾幀時各放一個腳印（左右交替），
+    /// 取代 <see cref="StepPhaseA"/>／<see cref="StepPhaseB"/> 的「一圈兩個」假設；null／空 ⇒ 舊行為。
+    /// 由 BloodlineSystem 每次套用血統時寫入（表B `StepFrames`），換成別的血統會被清掉。
+    /// </summary>
+    public void SetStepFrames(int[] frames0)
+    {
+        _stepFrames = (frames0 != null && frames0.Length > 0) ? frames0 : null;
+        _lastWalkFrame = -1;
+        _lastPhase = -1f;
+    }
+
+    /// <summary>從上一幀走到這一幀（中間可能跳格、也可能繞回第 0 幀）有沒有經過任何一個踏地幀。</summary>
+    bool PassedStepFrame(int prev, int cur, int count)
+    {
+        if (prev < 0 || cur == prev) return false;
+        int steps = (cur - prev + count) % count;          // 前進了幾格（含繞回）
+        for (int k = 1; k <= steps; k++)
+        {
+            int f = (prev + k) % count;
+            for (int i = 0; i < _stepFrames.Length; i++)
+                if (_stepFrames[i] == f) return true;     // 一次最多放一個（跳格時也只放一個，免得疊在同一點）
+        }
+        return false;
     }
 
     /// <summary>設定樣式與顏色；樣式留空 = 關掉這一層。</summary>
@@ -146,7 +174,7 @@ public class BloodlineTrail : MonoBehaviour
         _lastPos = pos;
 
         // 只有真的在移動時才留（站著不動不該一直冒）。
-        if (moved <= 0.0001f) return;
+        if (moved <= 0.0001f) { _lastWalkFrame = -1; return; }   // 停下：下次起步從頭算，不會一起步就補放一個
 
         float h = _pc != null ? _pc.ScaledCharacterHeight : 2f;
         Vector2 dir = delta / moved;
@@ -155,6 +183,17 @@ public class BloodlineTrail : MonoBehaviour
         // 腳步特效跟**走路動畫的幀**同步（＝腳真正踏地的節奏）；殘影仍走距離（它要的是均勻的軌跡）。
         int wf = _anim != null ? _anim.WalkFrame : -1;
         int wn = _anim != null ? _anim.WalkFrameCount : 0;
+
+        // 有填踏地幀（表B StepFrames）：走到那幾幀才放——跟序列圖裡腳真正著地的時刻一致，不管一圈跑了幾步。
+        if (footFx && _stepFrames != null && wf >= 0 && wn >= 2)
+        {
+            bool step = PassedStepFrame(_lastWalkFrame, wf, wn);
+            _lastWalkFrame = wf;
+            _accum = 0f;
+            if (step) SpawnFootFx(dir, h);
+            return;
+        }
+        _lastWalkFrame = -1;
 
         if (footFx && wf >= 0 && wn >= 4)
         {

@@ -188,6 +188,28 @@
           "isScreenEffectRef": false,
           "isPortalList": false,
           "isConditionList": false
+        },
+        {
+          "key": "waitClear",
+          "type": "Bool",
+          "label": "清光才出下一波(重複產生用)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        },
+        {
+          "key": "noLoot",
+          "type": "Bool",
+          "label": "不掉落(寶物/血球/經驗)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
         }
       ]
     },

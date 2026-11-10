@@ -292,7 +292,10 @@
           "typeId": "playCutscene",
           "cells": [],
           "params": {
-            "cutsceneId": "talk"
+            "cutsceneId": "talk",
+            "conditions": "!series:2|!series:3",
+            "onBlocked": "跳過這顆繼續",
+            "next": "和談演出-血族"
           }
         },
         {
@@ -1023,7 +1026,9 @@
           ],
           "params": {
             "monsterId": "16",
-            "conditions": "flag:bfAssaultIn|flag:bfJoinedVampire"
+            "conditions": "flag:bfAssaultIn|flag:bfJoinedVampire",
+            "waveGroup": "突襲-狂族",
+            "next": "等待-湧怪-狂族"
           }
         },
         {
@@ -1050,7 +1055,8 @@
           ],
           "params": {
             "monsterId": "17",
-            "conditions": "flag:bfAssaultIn|flag:bfJoinedVampire"
+            "conditions": "flag:bfAssaultIn|flag:bfJoinedVampire",
+            "waveGroup": "突襲-狂族"
           }
         },
         {
@@ -1093,12 +1099,14 @@
           ],
           "params": {
             "monsterId": "15",
-            "conditions": "flag:bfAssaultIn|flag:bfJoinedWerewolf"
+            "conditions": "flag:bfAssaultIn|flag:bfJoinedWerewolf",
+            "waveGroup": "突襲-血族",
+            "next": "等待-湧怪-血族"
           }
         },
         {
           "id": "f69bc8a6",
-          "name": "出生點-血族突襲-血蝠",
+          "name": "出生點-血族突襲-血術士",
           "typeId": "monsterSpawn",
           "cells": [
             [
@@ -1119,8 +1127,9 @@
             ]
           ],
           "params": {
-            "monsterId": "35",
-            "conditions": "flag:bfAssaultIn|flag:bfJoinedWerewolf"
+            "monsterId": "36",
+            "conditions": "flag:bfAssaultIn|flag:bfJoinedWerewolf",
+            "waveGroup": "突襲-血族"
           }
         },
         {
@@ -1161,6 +1170,201 @@
           "params": {
             "target": "傳送點-南方",
             "show": true
+          }
+        },
+        {
+          "id": "e42e10ef",
+          "name": "和談演出-血族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "talk_vampire",
+            "conditions": "series:2|!bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "和談演出-該隱"
+          }
+        },
+        {
+          "id": "fe48ce8b",
+          "name": "和談演出-該隱",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "talk_cain",
+            "conditions": "bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "和談演出-狂族"
+          }
+        },
+        {
+          "id": "2fe4fa08",
+          "name": "和談演出-狂族",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "talk_werewolf",
+            "conditions": "series:3|!bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "和談演出-芬里爾"
+          }
+        },
+        {
+          "id": "d8c07ac7",
+          "name": "和談演出-芬里爾",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "talk_fenrir",
+            "conditions": "bloodline:32",
+            "onBlocked": "跳過這顆繼續"
+          }
+        },
+        {
+          "id": "0dcc127d",
+          "name": "等待-湧怪-狂族",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "2",
+            "targets": "湧怪-狂族"
+          }
+        },
+        {
+          "id": "0b4a3641",
+          "name": "湧怪-狂族",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              6,
+              11
+            ],
+            [
+              8,
+              11
+            ],
+            [
+              5,
+              13
+            ],
+            [
+              6,
+              14
+            ],
+            [
+              5,
+              15
+            ],
+            [
+              7,
+              16
+            ],
+            [
+              9,
+              16
+            ],
+            [
+              10,
+              11
+            ],
+            [
+              7,
+              12
+            ],
+            [
+              6,
+              16
+            ],
+            [
+              10,
+              15
+            ],
+            [
+              4,
+              14
+            ]
+          ],
+          "params": {
+            "monsterId": "16|16|17",
+            "spawnInterval": "2",
+            "maxAlive": "12",
+            "spawnVfxId": "10",
+            "startDisabled": true,
+            "waitClear": true,
+            "noLoot": true
+          }
+        },
+        {
+          "id": "2fc597b9",
+          "name": "等待-湧怪-血族",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "2",
+            "targets": "湧怪-血族"
+          }
+        },
+        {
+          "id": "42c4ce65",
+          "name": "湧怪-血族",
+          "typeId": "monsterSpawn",
+          "cells": [
+            [
+              24,
+              11
+            ],
+            [
+              22,
+              11
+            ],
+            [
+              25,
+              13
+            ],
+            [
+              24,
+              14
+            ],
+            [
+              25,
+              15
+            ],
+            [
+              23,
+              16
+            ],
+            [
+              21,
+              16
+            ],
+            [
+              20,
+              11
+            ],
+            [
+              23,
+              12
+            ],
+            [
+              24,
+              16
+            ],
+            [
+              20,
+              15
+            ],
+            [
+              26,
+              14
+            ]
+          ],
+          "params": {
+            "monsterId": "15|15|36",
+            "spawnInterval": "2",
+            "maxAlive": "12",
+            "spawnVfxId": "10",
+            "startDisabled": true,
+            "waitClear": true,
+            "noLoot": true
           }
         }
       ]
@@ -2809,13 +3013,13 @@
         {
           "id": "raider1",
           "kind": "npc",
-          "spriteFolder": "Bloodbat",
+          "spriteFolder": "Blood Warlock",
           "x": 27.75,
           "y": -13.5,
           "facing": "left",
           "spawnAtStart": false,
-          "flying": true,
-          "scale": 1.43,
+          "flying": false,
+          "scale": 1.83,
           "animFps": 8.0
         },
         {
@@ -2869,13 +3073,13 @@
         {
           "id": "raider6",
           "kind": "npc",
-          "spriteFolder": "Bloodbat",
+          "spriteFolder": "Blood Warlock",
           "x": 27.25,
           "y": -14.5,
           "facing": "left",
           "spawnAtStart": false,
-          "flying": true,
-          "scale": 1.43,
+          "flying": false,
+          "scale": 1.83,
           "animFps": 8.0
         },
         {
@@ -2893,13 +3097,13 @@
         {
           "id": "raider8",
           "kind": "npc",
-          "spriteFolder": "Bloodbat",
+          "spriteFolder": "Blood Warlock",
           "x": 27.25,
           "y": -16.5,
           "facing": "left",
           "spawnAtStart": false,
-          "flying": true,
-          "scale": 1.43,
+          "flying": false,
+          "scale": 1.83,
           "animFps": 8.0
         },
         {
@@ -2941,13 +3145,13 @@
         {
           "id": "raider12",
           "kind": "npc",
-          "spriteFolder": "Bloodbat",
+          "spriteFolder": "Blood Warlock",
           "x": 27.25,
           "y": -16.5,
           "facing": "left",
           "spawnAtStart": false,
-          "flying": true,
-          "scale": 1.43,
+          "flying": false,
+          "scale": 1.83,
           "animFps": 8.0
         }
       ],
@@ -3727,6 +3931,734 @@
           "dramaId": 0,
           "langId": 0,
           "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "talk_vampire",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "bfTalkDone",
+      "skippable": true,
+      "lockInput": true,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": true,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 14.2,
+          "y": -19.6,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Duke Charlotte",
+          "x": 8.7,
+          "y": -13.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.95,
+          "animFps": 14.0
+        },
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "17th Holy Prince – Elvin",
+          "x": 22.3,
+          "y": -13.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.37,
+          "animFps": 14.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3056,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "intro",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3027,
+          "seconds": 4.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "portrait": "Modules/BloodFang/Talk/Duke_Charlotte_normal",
+          "portraitSide": "left",
+          "titleLangId": 3026,
+          "descLangId": 3028,
+          "offsetX": 0.0,
+          "offsetY": 0.0
+        },
+        {
+          "type": "intro",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3030,
+          "seconds": 4.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "portrait": "Modules/BloodFang/Talk/Elvin_normal",
+          "portraitSide": "right",
+          "titleLangId": 3029,
+          "descLangId": 3031,
+          "offsetX": 0.0,
+          "offsetY": 0.0
+        },
+        {
+          "type": "camera",
+          "actorId": "",
+          "hasPos": true,
+          "x": 15.5,
+          "y": -15.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.8,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "dialogue",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 85,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "cameraFollow",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "talk_cain",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "bfTalkDone",
+      "skippable": true,
+      "lockInput": true,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": true,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 14.2,
+          "y": -19.6,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        },
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Duke Charlotte",
+          "x": 8.7,
+          "y": -13.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.95,
+          "animFps": 14.0
+        },
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "17th Holy Prince – Elvin",
+          "x": 22.3,
+          "y": -13.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.37,
+          "animFps": 14.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3058,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "intro",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3027,
+          "seconds": 4.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "portrait": "Modules/BloodFang/Talk/Duke_Charlotte_normal",
+          "portraitSide": "left",
+          "titleLangId": 3026,
+          "descLangId": 3028,
+          "offsetX": 0.0,
+          "offsetY": 0.0
+        },
+        {
+          "type": "intro",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3030,
+          "seconds": 4.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "portrait": "Modules/BloodFang/Talk/Elvin_normal",
+          "portraitSide": "right",
+          "titleLangId": 3029,
+          "descLangId": 3031,
+          "offsetX": 0.0,
+          "offsetY": 0.0
+        },
+        {
+          "type": "camera",
+          "actorId": "",
+          "hasPos": true,
+          "x": 15.5,
+          "y": -15.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.8,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "dialogue",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 86,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "cameraFollow",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "talk_werewolf",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "bfTalkDone",
+      "skippable": true,
+      "lockInput": true,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": true,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 14.2,
+          "y": -19.6,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.59,
+          "animFps": 8.0
+        },
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Duke Charlotte",
+          "x": 8.7,
+          "y": -13.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.95,
+          "animFps": 14.0
+        },
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "17th Holy Prince – Elvin",
+          "x": 22.3,
+          "y": -13.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.37,
+          "animFps": 14.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3057,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "intro",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3027,
+          "seconds": 4.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "portrait": "Modules/BloodFang/Talk/Duke_Charlotte_normal",
+          "portraitSide": "left",
+          "titleLangId": 3026,
+          "descLangId": 3028,
+          "offsetX": 0.0,
+          "offsetY": 0.0
+        },
+        {
+          "type": "intro",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3030,
+          "seconds": 4.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "portrait": "Modules/BloodFang/Talk/Elvin_normal",
+          "portraitSide": "right",
+          "titleLangId": 3029,
+          "descLangId": 3031,
+          "offsetX": 0.0,
+          "offsetY": 0.0
+        },
+        {
+          "type": "camera",
+          "actorId": "",
+          "hasPos": true,
+          "x": 15.5,
+          "y": -15.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.8,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "dialogue",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 85,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "cameraFollow",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "talk_fenrir",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "bfTalkDone",
+      "skippable": true,
+      "lockInput": true,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": true,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 14.2,
+          "y": -19.6,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.59,
+          "animFps": 8.0
+        },
+        {
+          "id": "vampLeader",
+          "kind": "npc",
+          "spriteFolder": "Duke Charlotte",
+          "x": 8.7,
+          "y": -13.4,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.95,
+          "animFps": 14.0
+        },
+        {
+          "id": "wolfLeader",
+          "kind": "npc",
+          "spriteFolder": "17th Holy Prince – Elvin",
+          "x": 22.3,
+          "y": -13.4,
+          "facing": "left",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.37,
+          "animFps": 14.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3059,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "intro",
+          "actorId": "vampLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3027,
+          "seconds": 4.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "portrait": "Modules/BloodFang/Talk/Duke_Charlotte_normal",
+          "portraitSide": "left",
+          "titleLangId": 3026,
+          "descLangId": 3028,
+          "offsetX": 0.0,
+          "offsetY": 0.0
+        },
+        {
+          "type": "intro",
+          "actorId": "wolfLeader",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3030,
+          "seconds": 4.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false,
+          "portrait": "Modules/BloodFang/Talk/Elvin_normal",
+          "portraitSide": "right",
+          "titleLangId": 3029,
+          "descLangId": 3031,
+          "offsetX": 0.0,
+          "offsetY": 0.0
+        },
+        {
+          "type": "camera",
+          "actorId": "",
+          "hasPos": true,
+          "x": 15.5,
+          "y": -15.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.8,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "dialogue",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 87,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "cameraFollow",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.5,
           "speed": 0.0,
           "assetId": "",
           "zoom": 1.0,

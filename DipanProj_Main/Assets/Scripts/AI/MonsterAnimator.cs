@@ -177,6 +177,47 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
     }
 
     /// <summary>
+    /// **演出演員／地圖 NPC 用**：查怪物表裡同名（＝同一套序列圖）的那一列，換算成「**相對於 idle**」的逐動作倍率
+    /// （2026-11-10，作者回報狂族士兵帶路時走路比站著大一圈）。
+    ///
+    /// <para>為什麼要換算：怪物表的 `IdleScale／WalkScale／AttackScale` 是在「自動高度對齊」之上再乘的微調，
+    /// 而演員與 NPC 以前呼叫 <see cref="Setup"/> 時**完全沒傳這幾欄**、只做自動對齊。自動對齊會把姿勢比站姿矮的動作放大
+    /// （狂族士兵 walk ×1.109、戰狼 ×1.336，PROBLEMS **G12**）——怪物本體靠表裡的手填值抵銷了，演員／NPC 沒有 ⇒ 走路比 idle 大。</para>
+    ///
+    /// <para>為什麼是「相對 idle」而不是直接照抄：演員的整體大小是 `scale` 欄（`dipan.actor_scale` 依 idle 量出來的）、
+    /// NPC 是 NpcTable 的 `Scale`，idle 本來就對了；直接傳 `IdleScale` 會讓 idle 也跟著變大
+    /// （大門 NPC 換成帶路演員那一刻會突然變大）。所以 idle 不動，其他動作照怪物本體的「相對 idle」比例走：
+    /// 非飛行 `walk = (WalkScale 或 1) ÷ (IdleScale 或 1)`；飛行怪 walk／attack 本來就以 idle 為基準 ⇒ 直接用手填值。
+    /// jump／hang 在怪物本體也是以 idle 為基準 ⇒ 照抄。</para>
+    ///
+    /// 找不到同名的怪（純演出角色、或場上沒有 MonsterSpawner）回 false，呼叫端照舊（只做自動對齊）。
+    /// </summary>
+    public static bool RelativeScalesFor(string monsterName, out float walk, out float attack, out float jump,
+                                         out float hang, out bool flyer)
+    {
+        walk = attack = jump = hang = 0f; flyer = false;
+        if (string.IsNullOrWhiteSpace(monsterName)) return false;
+        var spawner = Object.FindObjectOfType<MonsterSpawner>();
+        if (spawner == null || spawner.AllData == null) return false;
+        string key = monsterName.Trim();
+        foreach (var d in spawner.AllData)
+        {
+            if (d == null || d.Name == null) continue;
+            if (!string.Equals(d.Name.Trim(), key, System.StringComparison.OrdinalIgnoreCase)) continue;
+            flyer = d.BrainType == "Flying" || d.BrainType == "Bat";
+            float idle = d.IdleScale > 0.0001f ? d.IdleScale : 1f;
+            float w = d.WalkScale > 0.0001f ? d.WalkScale : 1f;
+            float a = d.AttackScale > 0.0001f ? d.AttackScale : 1f;
+            walk   = flyer ? w : w / idle;
+            attack = flyer ? a : a / idle;
+            jump   = d.JumpScale;     // ≤0＝留空＝沿用 idle（Setup 的語意，與怪物本體相同）
+            hang   = d.HangScale;
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// 依怪名載入各動作的幀。fps≤0 用 8、referenceSpeed≤0 用 3。
     /// <paramref name="tileSize"/> 決定顯示大小（PPU=256/tileSize），由 MonsterController 依 idle 可見高度自動換算後傳入
     /// → 與主角同一套：同一張圖在主角/怪物資料夾顯示一樣大。

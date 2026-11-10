@@ -124,6 +124,114 @@ def spawn(m, name, monsterId, cells, **params):
     return add(m, name, 'monsterSpawn', p, cells_ok(m, cells))
 
 
+# ───────────────────────── 地上物碰撞 ─────────────────────────
+# 可走層只管牆/水；地上物擋路靠的是自己身上的碰撞（PROBLEMS B9），map_grid 不算這個就會把家具當空地。
+# 這裡照遊戲端 MapLoader.BuildObjectCollision 算：catalog 烘好的 footprint 遮罩（沒有就照
+# ObjectFootprint.Scan 當場掃）× 擺放的縮放／翻轉／旋轉 × 位置；遮罩近實心（填滿率 ≥0.9）走 alpha 外接框。
+# 需要 Pillow。walkable／passThrough 的物件不擋路、略過；有出現條件／旗標的一律當作會出現（保守）。
+_CATALOG = None
+_ASSET_ROOTS = [os.path.join(MAIN, 'Assets', 'StreamingAssets', 'MapAssets'),
+                os.path.join(EDITOR, 'Assets', 'StreamingAssets', 'MapAssets')]
+
+
+def _catalog():
+    global _CATALOG
+    if _CATALOG is None:
+        _CATALOG = {}
+        for root in reversed(_ASSET_ROOTS):   # 主遊戲那份（Sync 產的、有 footprint）優先，蓋過編輯器那份
+            p = os.path.join(root, 'catalog.json')
+            if os.path.exists(p):
+                for it in load(p)['items']:
+                    if root == _ASSET_ROOTS[0] or it['id'] not in _CATALOG:
+                        _CATALOG[it['id']] = it
+    return _CATALOG
+
+
+def _scan_footprint(im, subdiv=8, coverage=0.25):
+    """ObjectFootprint.Scan 的 Python 版（catalog 沒烘到時的退路）。"""
+    cell = 256 // subdiv; w, h = im.size; a = im.getchannel('A').load()
+    cols, rows = -(-w // cell), -(-h // cell); need = max(1, round(cell * cell * coverage)); out = []
+    for cy in range(rows):
+        row = ''
+        for cx in range(cols):
+            n = 0
+            for y in range(cy * cell, min(h, cy * cell + cell)):
+                for x in range(cx * cell, min(w, cx * cell + cell)):
+                    if a[x, y] > 10:
+                        n += 1
+                if n >= need:
+                    break
+            row += '1' if n >= need else '0'
+        out.append(row)
+    return {'subdiv': subdiv, 'cols': cols, 'rows': rows, 'cells': out}
+
+
+def object_blockers(m):
+    """回傳 [(x0, y0, x1, y1, assetId), ...]：每個擋路地上物碰撞條的世界座標外接框。找不到素材的會印警告。"""
+    from PIL import Image
+    import math
+    cat, ts = _catalog(), m['tileSize']
+    ppu = 256 / ts
+    out = []
+    for L in m['layers']:
+        if L['type'] != 'Game':
+            continue
+        for o in L.get('objects', []):
+            if o.get('walkable') or o.get('passThrough'):
+                continue
+            it = cat.get(o['assetId'])
+            src = it and next((os.path.join(r, it['path']) for r in _ASSET_ROOTS
+                               if os.path.exists(os.path.join(r, it['path']))), None)
+            if not src:
+                print('⚠ 找不到地上物素材（沒 Sync？），不計入碰撞：' + o['assetId'])
+                continue
+            im = Image.open(src).convert('RGBA')
+            cw, ch = im.size[0] / ppu, im.size[1] / ppu
+            fp = it.get('footprint') or _scan_footprint(im)
+            cs = ts / fp['subdiv']
+            sol = [(x, y) for y, r in enumerate(fp['cells']) for x, c in enumerate(r) if c == '1']
+            loc = []
+            if sol:
+                xs = [x for x, _ in sol]; ys = [y for _, y in sol]
+                fill = len(sol) / ((max(xs) - min(xs) + 1) * (max(ys) - min(ys) + 1))
+            if not sol or fill >= 0.9:   # 近實心 → 單一 alpha 外接框（同遊戲端）
+                bb = im.getchannel('A').point(lambda v: 255 if v > 10 else 0).getbbox()
+                if bb:
+                    loc = [(-cw / 2 + bb[0] / ppu, ch / 2 - bb[1] / ppu, -cw / 2 + bb[2] / ppu, ch / 2 - bb[3] / ppu)]
+            else:
+                for x, y in sol:   # 最右欄／最下列要夾回畫布（PROBLEMS B9）
+                    xa, xb, ya, yb = x * cs, min((x + 1) * cs, cw), y * cs, min((y + 1) * cs, ch)
+                    if xb > xa and yb > ya:
+                        loc.append((-cw / 2 + xa, ch / 2 - ya, -cw / 2 + xb, ch / 2 - yb))
+            sx = (-1 if o.get('flipX') else 1) * o.get('scaleX', 1.0)
+            sy = (-1 if o.get('flipY') else 1) * o.get('scaleY', 1.0)
+            th = math.radians(o.get('rot', 0.0)); c, s = math.cos(th), math.sin(th)
+            for l, t, r, b in loc:
+                pts = [(o['x'] + px * sx * c - py * sy * s, o['y'] + px * sx * s + py * sy * c)
+                       for px, py in ((l, t), (r, t), (r, b), (l, b))]
+                out.append((min(p[0] for p in pts), min(p[1] for p in pts),
+                            max(p[0] for p in pts), max(p[1] for p in pts), o['assetId']))
+    return out
+
+
+def obj_clearance(m, blockers, x, y):
+    """格子 (x, y) 中心到最近地上物碰撞的距離（世界單位，0＝中心就在碰撞裡）。出生點建議 ≥0.5。"""
+    import math
+    wx, wy = center(m, x, y)
+    return min([math.hypot(max(b[0] - wx, 0, wx - b[2]), max(b[1] - wy, 0, wy - b[3])) for b in blockers] or [99.0])
+
+
+def obj_cover(m, blockers, x, y):
+    """格子 (x, y) 內 4×4 取樣點有幾點落在地上物碰撞裡（0～16）。"""
+    ox, oy, ts = m['origin']['x'], m['origin']['y'], m['tileSize']
+    n = 0
+    for i in range(4):
+        for j in range(4):
+            wx, wy = ox + (x + (i + .5) / 4) * ts, oy - (y + (j + .5) / 4) * ts
+            n += any(b[0] <= wx <= b[2] and b[1] <= wy <= b[3] for b in blockers)
+    return n
+
+
 # ───────────────────────── 演出（cutscenes） ─────────────────────────
 TARGET_VISIBLE_HEIGHT = 1.95   # 遊戲把一般角色可見高度對齊到 1.95 世界單位
 

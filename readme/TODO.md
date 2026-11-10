@@ -1059,7 +1059,8 @@
 
 - [ ] **先跑 `Project Tools → Sync Map Assets`**，否則新立繪與暫代序列圖載不到。
 - [ ] **正式序列圖**：作者以 `TempImage/bloodline_Qingqiuborn/out/{SpiritFox,MysticFox,NineTailedCelestialFox}_base_1024.png` 用 AutoSprite 產圖，整個覆蓋 `SequenceImage/Qingqiuborn/<血統>/`（目前暫代＝靈根三階）→ 刪 `ShadowAnchorTable` 的 `characters/qingqiuborn/*` 12 列 → 跑「計算影子錨點」→ 再 Sync。
-- [ ] **九尾天狐角色圖的裙擺垂到 y≈800**（規範要求 780 以下只有腳），作者 2026-11-10 看過接受；序列圖做好後看影子，偏了再填 ShadowAnchor manual。
+- [x] ~~九尾天狐影子對不準~~ → 2026-11-10 idle／walk／attack 三列手填 manual（X +2、Y 69、寬 60；auto 被尾巴拉到 −20.5）。⏳ 實機確認。
+- [ ] **還要作者跑一次「計算影子錨點」**：靈狐 idle、玄狐 attack 兩列暫代已刪（正式圖幀數剛好與暫代相同，工具沒重算），跑一次就會補回正確的 auto 值。
 - [ ] **立繪實機確認**：PortraitTable 起手值（靈狐／玄狐 1.15／−139、九尾天狐 1.2／−180／OuterToScreen 1）；玄狐 cry 頂端比其他張低 60px、玄狐 angry 法器超過右界到 x=966，實機看會不會大小或位置跳動，跳就單張補 PortraitTable 或重畫。
 - [ ] **九尾天狐專屬夢境武器**（幻術／分身／狐火），目前 `DreamWeaponId` 暫借焚獄炎杖 69。神格特效也還沒指派。
 - [ ] `BodyScale` 已定（靈狐 1.1／玄狐 1.4／九尾天狐 1.5，作者 2026-11-10）；玄狐 `AttackAnimSpeed` 0.7（⏳ 實測快慢）；`WalkSpeed`（留空）、五屬性（佔位）待定。
@@ -1067,3 +1068,7 @@
 - [ ] 直達藥劑 3101／3102 沒進任何池（同其他系列）。
 - [ ] 萬魂的鬼差是照錯的參考圖（靈根鍊氣期）畫的，像的不是主角——作者決定要不要重畫（2026-11-10 發現）。
 
+
+## 經驗值（未來，2026-11-10 作者交代先記下）
+
+- [ ] 遊戲目前沒有經驗值。**未來若加經驗值：出生點勾了「不掉落」（`noLoot`）的怪不能給經驗**——它們是「殺不完、用來逼玩家離開」的無限湧怪（血狂之爭和談大廳 `湧怪-*`），給經驗就變成刷經驗點。判斷點同掉寶：`MonsterController.DropsLoot`（noLoot ⇒ false），經驗值的發放請一起掛在這個判斷底下。

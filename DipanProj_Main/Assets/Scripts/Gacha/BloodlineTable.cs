@@ -145,6 +145,16 @@ namespace Dipan.Gacha
         /// 解析後存成 0 起算：<see cref="AttackFrameStart"/>／<see cref="AttackFrameEnd"/>，-1＝沒填。
         /// </summary>
         public int AttackFrameStart = -1, AttackFrameEnd = -1;
+
+        /// <summary>
+        /// **腳步特效的踏地幀**（第 31 欄 `StepFrames`，2026-11-10）：走路序列圖裡「腳著地」的那幾幀，**1 起算**、以 <c>;</c> 分隔
+        /// （數字＝檔名編號，例 <c>4;8;12;16;20;24</c>）。動畫走到這幾幀時 <see cref="BloodlineTrail"/> 各放一個腳印、左右交替。
+        /// 留空 ＝ 舊行為（一個走路循環固定在 25%／75% 放兩個）。
+        /// ⚠ 為什麼要手填：舊做法假設「一個循環＝左右各一步」，但芬里爾 25 幀的跑步裡其實跑了 **6 步**（每 4 幀一步），
+        /// 每圈只放 2 團火 ⇒ 跟腳步對不上、火又只燒 0.67 秒，畫面上常常只剩一團（作者 2026-11-10 回報「只剩一道」）。
+        /// 「腳何時著地」不靠程式猜（PROBLEMS E28 的教訓），由作者／AI 看圖填。解析後存 0 起算；null＝沒填。
+        /// </summary>
+        public int[] StepFrames;
     }
 
     /// <summary>
@@ -170,6 +180,24 @@ namespace Dipan.Gacha
                 return;
             }
             Debug.LogWarning($"[BloodlineTable] 血統 {id} 的 AttackFrameRange「{raw}」格式不對（要寫 起-迄，例 5-17，1 起算），改用自動判斷。");
+        }
+
+        /// <summary>解析 StepFrames「4;8;12」（1 起算，; 或 , 或空白分隔）→ 0 起算陣列。空白 → null；有壞的數字就整欄不用（印警告）。</summary>
+        static int[] ParseStepFrames(string raw, int id)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return null;
+            var parts = raw.Split(new[] { ';', ',', ' ', '|' }, System.StringSplitOptions.RemoveEmptyEntries);
+            var list = new List<int>();
+            foreach (var p in parts)
+            {
+                if (!int.TryParse(p.Trim(), out int f) || f < 1)
+                {
+                    Debug.LogWarning($"[BloodlineTable] 血統 {id} 的 StepFrames「{raw}」格式不對（要寫 4;8;12 這種 1 起算的幀號），改用舊的相位做法。");
+                    return null;
+                }
+                if (!list.Contains(f - 1)) list.Add(f - 1);
+            }
+            return list.Count > 0 ? list.ToArray() : null;
         }
 
         /// <summary>初始外型（人類）的血統 Id。輪迴後回到這個狀態。</summary>
@@ -291,6 +319,7 @@ namespace Dipan.Gacha
                 d.BodyScale = d.BodyScale <= 0.01f ? 1f : Mathf.Clamp(d.BodyScale, 0.2f, 5f);
                 d.AttackAnimSpeed = d.AttackAnimSpeed <= 0.01f ? 1f : Mathf.Clamp(d.AttackAnimSpeed, 0.1f, 3f);
                 ParseFrameRange(CsvUtil.Field(v, 29), id, out d.AttackFrameStart, out d.AttackFrameEnd);
+                d.StepFrames = ParseStepFrames(CsvUtil.Field(v, 30), id);   // 腳步特效踏地幀（30 欄，2026-11-10）
 
                 _byId[id] = d;
             }

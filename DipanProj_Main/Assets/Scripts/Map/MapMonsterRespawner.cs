@@ -58,6 +58,12 @@ public class MapMonsterRespawner : MonoBehaviour
 
         // ── 出生特效（2026-11-07）──
         public int spawnVfxId;             // >0＝每生一隻就在牠身上播一次 VfxTable 特效（依可見高度縮放，同召喚特效）
+        // 清光才出下一波（2026-11-10）：只對重複產生有效。true＝場上這顆的怪全死光才開始倒數 interval，時間到生一整波；
+        // false＝舊行為（每 interval 秒把少的補到 maxAlive）。給「殺完一波又湧一波、逼玩家離開」的房間用（血狂之爭和談大廳）。
+        public bool waitClear;
+        // 不掉落（2026-11-10）：true＝這顆生的怪 DropsLoot=false ⇒ 不掉寶、不掉血球、不算清場血球。
+        // 給無限湧怪用，避免變成刷錢點（重複產生預設是照常掉寶，見 Fire）。⚠ 未來若加經驗值，這種怪也不能給經驗（作者 2026-11-10）。
+        public bool noLoot;
     }
 
     readonly List<Wave> _waves = new List<Wave>();
@@ -71,7 +77,7 @@ public class MapMonsterRespawner : MonoBehaviour
     public int Register(MonsterSpawner spawner, int[] monsterIds, List<Vector2> points, List<string> spawnKeys,
                         string deathFlag, TriggerRegion region, float interval, int maxAlive, int mapId, string regionName,
                         TriggerRegion chainRegion = null, int maxWaves = 0, string waveGroup = null,
-                        bool nextOnSpawn = false, int spawnVfxId = 0)
+                        bool nextOnSpawn = false, int spawnVfxId = 0, bool waitClear = false, bool noLoot = false)
     {
         if (spawner == null || monsterIds == null || monsterIds.Length == 0) return 0;
         if (points == null || points.Count == 0) return 0;
@@ -95,6 +101,8 @@ public class MapMonsterRespawner : MonoBehaviour
             waveGroup = string.IsNullOrWhiteSpace(waveGroup) ? null : waveGroup.Trim(),
             nextOnSpawn = nextOnSpawn,
             spawnVfxId = Mathf.Max(0, spawnVfxId),
+            waitClear = waitClear,
+            noLoot = noLoot,
         };
         _waves.Add(w);
 
@@ -105,6 +113,8 @@ public class MapMonsterRespawner : MonoBehaviour
         string waves = w.maxWaves > 0 ? $"、共 {w.maxWaves} 波" : "";
         string grp = w.waveGroup != null ? $"、群組「{w.waveGroup}」" : "";
         if (w.spawnVfxId > 0) grp += $"、出生特效 {w.spawnVfxId}";
+        if (w.waitClear) grp += "、清光才出下一波";
+        if (w.noLoot) grp += "、不掉落";
         Debug.Log($"[MapMonsterRespawner] 出生點「{regionName}」：{mode}、{gate}、每波最多 {points.Count} 隻、" +
                   $"{cap}{waves}{grp}、怪物 id [{string.Join("|", monsterIds)}]。");
 
@@ -152,6 +162,9 @@ public class MapMonsterRespawner : MonoBehaviour
 
             // 第一次啟動：立刻先來一波，不用等滿 N 秒（暫停後恢復不算，會接續原本的倒數）。
             if (!w.startedOnce) { Fire(w); continue; }
+
+            // 清光才出下一波：場上還有活的就不倒數（計時歸零），全死光才開始數 interval 秒。
+            if (w.waitClear && HasLiving(w)) { w.timer = 0f; continue; }
 
             w.timer += Time.deltaTime;
             if (w.timer < w.interval) continue;
@@ -344,8 +357,9 @@ public class MapMonsterRespawner : MonoBehaviour
                    : w.monsterIds[Random.Range(0, w.monsterIds.Length)];
 
             // 重複產生：spawnKey 留空＝不記 RunProgress『已清』（不然死一次就永遠不再生），dropsLoot 明確給 true＝照常掉寶。
+            // 不掉落（noLoot）優先：明確給 false。
             var go = _spawner.SpawnMonster(id, w.points[i], w.deathFlag, MonsterFaction.Enemy, key,
-                                           dropsLoot: string.IsNullOrEmpty(key) ? true : (bool?)null);
+                                           dropsLoot: w.noLoot ? false : (string.IsNullOrEmpty(key) ? true : (bool?)null));
             if (go == null) continue;
             w.alive.Add(go);
             spawned++;

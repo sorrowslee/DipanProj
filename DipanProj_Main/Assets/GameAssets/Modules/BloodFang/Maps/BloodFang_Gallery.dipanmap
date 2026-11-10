@@ -187,9 +187,9 @@
           "cells": [],
           "params": {
             "cutsceneId": "guide_gallery_vampire",
-            "conditions": "series:2",
+            "conditions": "series:2|!bloodline:22",
             "onBlocked": "跳過這顆繼續",
-            "next": "引路-長廊-狂族"
+            "next": "引路-長廊-該隱"
           }
         },
         {
@@ -199,9 +199,9 @@
           "cells": [],
           "params": {
             "cutsceneId": "guide_gallery_werewolf",
-            "conditions": "series:3",
+            "conditions": "series:3|!bloodline:32",
             "onBlocked": "跳過這顆繼續",
-            "next": "引路-長廊-管家"
+            "next": "引路-長廊-芬里爾"
           }
         },
         {
@@ -487,6 +487,30 @@
             "target": "傳送點-南方",
             "show": true
           }
+        },
+        {
+          "id": "542f2a1e",
+          "name": "引路-長廊-該隱",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "guide_gallery_cain",
+            "conditions": "bloodline:22",
+            "onBlocked": "跳過這顆繼續",
+            "next": "引路-長廊-狂族"
+          }
+        },
+        {
+          "id": "54d1689d",
+          "name": "引路-長廊-芬里爾",
+          "typeId": "playCutscene",
+          "cells": [],
+          "params": {
+            "cutsceneId": "guide_gallery_fenrir",
+            "conditions": "bloodline:32",
+            "onBlocked": "跳過這顆繼續",
+            "next": "引路-長廊-管家"
+          }
         }
       ]
     }
@@ -562,7 +586,7 @@
           "y": 0.0,
           "facing": "",
           "dramaId": 0,
-          "langId": 3002,
+          "langId": 3050,
           "seconds": 2.0,
           "speed": 0.0,
           "assetId": "",
@@ -674,7 +698,7 @@
           "y": 0.0,
           "facing": "",
           "dramaId": 0,
-          "langId": 3002,
+          "langId": 3051,
           "seconds": 2.0,
           "speed": 0.0,
           "assetId": "",
@@ -804,6 +828,230 @@
           "facing": "",
           "dramaId": 0,
           "langId": 3002,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "guide_gallery_cain",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "VampireSoldier",
+          "x": 7.5,
+          "y": -18.9,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 3.7,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3052,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "guide",
+          "hasPos": true,
+          "x": 7.464,
+          "y": -4.95,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 2.2,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3053,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": true
+        },
+        {
+          "type": "wait",
+          "actorId": "",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 2.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "despawn",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        }
+      ]
+    },
+    {
+      "id": "guide_gallery_fenrir",
+      "autoStartOnEnter": false,
+      "requireFlag": "",
+      "setFlag": "",
+      "skippable": true,
+      "lockInput": false,
+      "memoryFx": false,
+      "hidePlayer": false,
+      "hideHud": false,
+      "actors": [
+        {
+          "id": "guide",
+          "kind": "npc",
+          "spriteFolder": "WerewolfSoldier",
+          "x": 7.5,
+          "y": -18.9,
+          "facing": "right",
+          "spawnAtStart": true,
+          "flying": false,
+          "scale": 2.59,
+          "animFps": 8.0
+        }
+      ],
+      "steps": [
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3054,
+          "seconds": 2.5,
+          "speed": 0.0,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "move",
+          "actorId": "guide",
+          "hasPos": true,
+          "x": 7.464,
+          "y": -4.95,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 0,
+          "seconds": 0.0,
+          "speed": 2.2,
+          "assetId": "",
+          "zoom": 1.0,
+          "flag": "",
+          "parallelNext": false,
+          "background": false
+        },
+        {
+          "type": "bubble",
+          "actorId": "guide",
+          "hasPos": false,
+          "x": 0.0,
+          "y": 0.0,
+          "facing": "",
+          "dramaId": 0,
+          "langId": 3055,
           "seconds": 2.0,
           "speed": 0.0,
           "assetId": "",

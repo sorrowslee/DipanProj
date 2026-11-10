@@ -188,7 +188,7 @@
     {
       "id": "df480ed4",
       "name": "測試說話npc",
-      "npcId": 9,
+      "npcId": 1,
       "x": 4.86546135,
       "y": -1.987992,
       "behavior": "idle",

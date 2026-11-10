@@ -85,8 +85,14 @@ public static class NpcSpawner
     /// <summary>把 NpcTable 的一列＋這個擺放的覆寫，換成怪物地基吃的 MonsterData。</summary>
     static MonsterData ToMonsterData(NpcData d, NpcInstance inst)
     {
+        // 逐動作倍率跟同名怪物一致（相對 idle；idle 大小仍由 NpcTable 的 Scale 決定）——同演出演員，見 MonsterAnimator.RelativeScalesFor。
+        // NPC 的 BrainType 固定是 "Npc"（不會走飛行怪那條），所以飛行外觀的 NPC 不套（walk/attack 留空＝照舊自動對齊）。
+        float rw = 0f, ra = 0f, rj = 0f, rh = 0f;
+        if (MonsterAnimator.RelativeScalesFor(d.Name, out var w, out var a, out var j, out var h, out var fly) && !fly)
+        { rw = w; ra = a; rj = j; rh = h; }
         return new MonsterData
         {
+            WalkScale = rw, AttackScale = ra, JumpScale = rj, HangScale = rh,
             ID = d.ID,
             Name = d.Name,                 // ＝序列圖資料夾名（Monsters/SequenceImage/<Name>/）
             HP = d.HP > 0f ? d.HP : 50f,
