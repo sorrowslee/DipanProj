@@ -592,6 +592,9 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | `TitleW` | 370 | 標題（高依原圖比例＝123） |
 | `TitleYFromFrameTop` | 78 | 標題中心距框**頂**邊 78px ⇒ 底邊落在距框頂 140px |
 | `PortraitBox` | (0.78, 0.70) | 立繪等比縮到「框寬 ×0.78、框高 ×0.70」之內 |
+| `WideAspectThreshold` | 1.0 | 寬/高 超過它＝**寬體型立繪**（1536×1024，例：九尾天狐）：改成**只照高度縮**（2026-11-10；照寬度縮時人只剩一半高、被尾巴擠到右下角）。直式與 Base 不受影響 |
+| `PortraitClipLeft` / `PortraitClipRight` | 0.225 / 0.80 | 立繪外層 `PortraitClip`（`RectMask2D`）的左右邊界，以框寬比例表示：對齊**框內黑底**（原圖量得 0.217～0.81，左右不對稱），**只裁左右、不裁上下**；**只有新舊立繪裡有寬體型時才啟用**，直式血統排版不變（作者 2026-11-10：先是凸出框外太誇張，改 0.8 置中後又蓋到左邊框）。容器若水平位移，立繪會反向補回、仍以框中心為準。`BloodlineDissolve` shader 本來就支援 `UNITY_UI_CLIP_RECT`，不用改 shader |
+| `PortraitClipSoftness` | 28 | 裁切邊的柔邊寬（px），0＝硬切 |
 | `PortraitBottomInset` | 0.13 | 立繪底邊距框底 ＝ 框高 ×0.13（114px）。石碑上緣在 165px，所以石碑會蓋住立繪最下面約 50px（與示意圖一致） |
 | `PlateW` / `PlateH` | 360 / 120 | 石碑（維持 866:288 ＝ 3.007 的比例，改寬要同步改高） |
 | `PlateYFromFrameBottom` | 105 | 石碑中心距框底 105px ⇒ 正好壓在框的下緣裡 |
@@ -1161,7 +1164,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 - **玩家沒地方「事後」查自己的血統與階段**——喝下去當下有立繪揭示面板，但之後就沒地方看了。等角色資訊面板
 - `SkillId` 仍是死欄（技能系統不存在）
 - 目前十個系列（殭屍、血族、狂族、土裔、靈根、雲龍、熾龍、蟲族、萬魂、青丘），資料都齊（萬魂、青丘的序列圖暫代，見下）；再加系列照 §7 走。**雲龍／熾龍的 `BodyScale` 以鬼差為 1：鍾馗 1.7、酆都 1.3（2026-11-09 作者看過正式序列圖後指定）、`WalkSpeed` 留空、五屬性是佔位值，六個血統都還沒實機看過**；尼德霍格的神格特效已填（§5b）、應龍的神格三層已清空改由被動武器應龍水珠撐（§5e），都還沒實機看過。狂族的立繪除了 `normal` 之外目前是暫代圖（與旱魃同一張），美術到了直接覆蓋檔案即可
-- **青丘系列（2026-11-10 加）目前的狀態**：表A 第 10 列（`DreamDramaId`=84）、表B 100～102（五屬性佔位、`BodyScale` 全 1、`WalkSpeed` 留空）、三瓶藥劑 3100／3101／3102、血統池 3100（權重 10）、成品瓶 `bloodline_Qingqiuborn`、三組立繪（6 情緒；**九尾天狐是寬體型 1536×1024**，PortraitTable 比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，另兩階 1.15／−139）、夢境台詞 drama 84（`lang:1014`）。⚠ **序列圖是暫代**：`SequenceImage/Qingqiuborn/*` 複製自靈根三階（築基期／元嬰期／化神期，只複製 png）；作者用 AutoSprite 以 `TempImage/bloodline_Qingqiuborn/out/*_base_1024.png` 產正式圖後整個覆蓋，**先刪 `ShadowAnchorTable` 的 `characters/qingqiuborn/*` 12 列再跑「計算影子錨點」**。⚠ 九尾天狐 `DreamWeaponId` **暫借焚獄炎杖 69**（§5d 規定三階一定要填，否則夢裡空手卡在發射教學），專屬夢境武器（幻術／分身／狐火）待設計；神格特效未指派。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7。
+- **青丘系列（2026-11-10 加）目前的狀態**：表A 第 10 列（`DreamDramaId`=84）、表B 100～102（五屬性佔位、`BodyScale` 靈狐 1.1／玄狐 1.4／九尾天狐 1.5（作者 2026-11-10 實機後定）、玄狐 `AttackAnimSpeed` 0.7、`WalkSpeed` 留空）、三瓶藥劑 3100／3101／3102、血統池 3100（權重 10）、成品瓶 `bloodline_Qingqiuborn`、三組立繪（6 情緒；**九尾天狐是寬體型 1536×1024**，PortraitTable 比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，另兩階 1.15／−139）、夢境台詞 drama 84（`lang:1014`）。⚠ **序列圖是暫代**：`SequenceImage/Qingqiuborn/*` 複製自靈根三階（築基期／元嬰期／化神期，只複製 png）；作者用 AutoSprite 以 `TempImage/bloodline_Qingqiuborn/out/*_base_1024.png` 產正式圖後整個覆蓋，**先刪 `ShadowAnchorTable` 的 `characters/qingqiuborn/*` 12 列再跑「計算影子錨點」**。⚠ 九尾天狐 `DreamWeaponId` **暫借焚獄炎杖 69**（§5d 規定三階一定要填，否則夢裡空手卡在發射教學），專屬夢境武器（幻術／分身／狐火）待設計；神格特效未指派。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7。
 - **萬魂系列（2026-11-09 加）目前的狀態**：兩張表、三瓶藥劑（3090／3091／3092）、血統池 3090（權重 10）、icon 成品瓶 `bloodline_Soulborn`、三組立繪（6 情緒）都齊，⚠ **序列圖是暫代**：`SequenceImage/Soulborn/{Warden,ZhongKui,Fengdu}` 目前是複製自龍奴／尼德霍格／該隱（只複製 png、沒帶 .meta），作者用 AutoSprite 產好正式圖後**整個資料夾覆蓋**即可。影子錨點表那 12 列也是從暫代來源複製的（Source=auto）——⚠ 錨點工具只用幀數判斷換圖，換正式圖後**先刪掉 `characters/soulborn/*` 那 12 列再跑「計算影子錨點」**，否則幀數相同時不會重算。`BodyScale` 以鬼差為 1：鍾馗 1.7、酆都 1.3（2026-11-09 作者看過正式序列圖後指定）、`WalkSpeed` 留空、五屬性是佔位值（鬼差弱、鍾馗力、酆都魔）。神格特效＝`MistStyle`=SoulSkull（身後黑霧＋凝結骷髏，§5b；用該隱對位，⏳ 未實測）、酆都夢境武器＝萬魂鬼手 77（§5d，⏳ 未實測）。
 - 萬魂系列的三張 1024 角色圖、立繪、icon 都是 AI 操作 ChatGPT 產的（流程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md)），工作檔與舊版在 `TempImage/bloodline_Netherborn/`（gitignore）。
 - **蟲族系列（2026-09-14 加）目前的狀態**：兩張表、三瓶藥劑（3080／3081／3082）、血統池 3080、icon 成品瓶 `bloodline_Swarmborn` 都齊，素材四個動作與六種情緒立繪也都在。`BodyScale` 三階全填 1、`WalkSpeed` 留空（＝不改速度）、五屬性是佔位值（寄生體偏敏捷、蟲皇全面高），**都還沒實機看過**；第三階蟲皇的神格特效已指派＝**第六層擊中特效**（`HitVfxId`=40 咬擊，2026-09-14 加，見 §5c），§5b 那五個常駐層仍全空。

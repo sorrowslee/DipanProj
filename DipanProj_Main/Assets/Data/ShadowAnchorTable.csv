@@ -201,7 +201,7 @@ characters/qingqiuborn/ninetailedcelestialfox/attack,1.5,40.5,114,auto,25,256,25
 characters/qingqiuborn/ninetailedcelestialfox/dead,-8,76.1,114,auto,9,256,256,幀數 9→25 已重算
 characters/qingqiuborn/ninetailedcelestialfox/idle,-20.5,68.6,93,auto,17,256,256,幀數 23→17 已重算
 characters/qingqiuborn/ninetailedcelestialfox/walk,-17.5,69.5,100,auto,22,256,256,幀數 12→22 已重算
-characters/qingqiuborn/spiritfox/attack,-5,54.5,64,auto,25,256,256,暫代：複製自 spiritroot/foundation，換正式序列圖後先刪這 12 列再重跑計算影子錨點
+characters/qingqiuborn/spiritfox/attack,0.5,63.5,92,auto,8,256,256,幀數 25→8 已重算
 characters/qingqiuborn/spiritfox/dead,8,75.3,102,auto,9,256,256,幀數 9→25 已重算
 characters/qingqiuborn/spiritfox/idle,-1.8,54.5,62,auto,23,256,256,暫代：複製自 spiritroot/foundation，換正式序列圖後先刪這 12 列再重跑計算影子錨點
 characters/qingqiuborn/spiritfox/walk,-4.5,65.5,80,auto,13,256,256,幀數 22→13 已重算

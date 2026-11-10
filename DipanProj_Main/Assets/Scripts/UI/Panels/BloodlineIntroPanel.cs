@@ -133,6 +133,15 @@ namespace Dipan.UI
         public float TitleYFromFrameTop = 78f;
         [Tooltip("立繪可用區佔底版的比例（寬, 高）。立繪等比縮到這個框內、靠下對齊")]
         public Vector2 PortraitBox = new Vector2(0.78f, 0.70f);
+        [Tooltip("寬/高 超過這個值就當成寬體型立繪：照高度縮、寬出的部分（尾巴）由 PortraitClipLeft／Right 左右裁到框內黑底（直式 0.667、Base 0.80、寬體型 1.5）")]
+        public float WideAspectThreshold = 1.0f;
+        [Tooltip("寬體型立繪的左右裁切邊界，以破碎框寬的比例表示（0＝框左緣、1＝框右緣）。"
+               + "預設對齊框內黑底（原圖量得約 0.217～0.81，左邊框比右邊框寬、不對稱），各往內留一點讓金邊露出。"
+               + "只裁左右、不裁上下；只有新舊立繪裡有寬體型時才啟用，直式血統不受影響")]
+        public float PortraitClipLeft = 0.225f;
+        public float PortraitClipRight = 0.80f;
+        [Tooltip("左右裁切邊緣的柔邊寬度（px）。0＝硬切")]
+        public int PortraitClipSoftness = 28;
         [Tooltip("立繪底邊距破碎框底邊的距離，佔框高度的比例。要比姓名底版高，否則下半身會被石碑蓋住")]
         public float PortraitBottomInset = 0.13f;
         [Tooltip("姓名底版圖（Resources 路徑，不含副檔名）。血統專用的淺色石碑，原圖 866×288")]
@@ -158,6 +167,8 @@ namespace Dipan.UI
         const string PortraitEmotion = "Actor_normal";   // 揭示用的是 normal.png
 
         Image _dim, _frame, _oldPortrait, _newPortrait, _plate, _title;
+        RectTransform _portraitClip;    // 立繪的左右裁切容器（RectMask2D；BloodlineDissolve shader 有支援 UNITY_UI_CLIP_RECT）
+        RectMask2D _portraitMask;
         Text _name;
         NameWarpEffect _warp;
         Material _oldMat, _newMat;      // instance 欄位：兩張立繪各自的 _Cutoff 不能共用
@@ -210,6 +221,14 @@ namespace Dipan.UI
             var frt = _frame.rectTransform;
             frt.anchorMin = frt.anchorMax = frt.pivot = new Vector2(0.5f, 0.5f);
 
+            // 立繪先掛進一個只裁左右的容器（底邊＝底版底邊），寬幅立繪的尾巴超出框時被裁掉（2026-11-10 作者：凸出框外太誇張）。
+            var clipGo = new GameObject("PortraitClip", typeof(RectTransform));
+            clipGo.transform.SetParent(_frame.transform, false);
+            _portraitClip = (RectTransform)clipGo.transform;
+            _portraitClip.anchorMin = _portraitClip.anchorMax = new Vector2(0.5f, 0f);
+            _portraitClip.pivot = new Vector2(0.5f, 0f);
+            _portraitMask = clipGo.AddComponent<RectMask2D>();
+
             // 兩張立繪掛在底版底下 → 調底版位置時立繪自動跟著走。
             // 新的先建＝畫在下面：舊立繪剝落露出的破口，底下就是新血統。
             _newPortrait = MakePortrait("PortraitNew");
@@ -250,7 +269,7 @@ namespace Dipan.UI
 
         Image MakePortrait(string name)
         {
-            var img = UIBuilder.Image(_frame.transform, name, null);
+            var img = UIBuilder.Image(_portraitClip, name, null);
             img.raycastTarget = false;
             img.enabled = false;
             var rt = img.rectTransform;
@@ -321,6 +340,15 @@ namespace Dipan.UI
             // ⚠ 不能照高度縮：Base 是 1122×1402（比例 0.80）、殭屍三階是 1024×1536（0.667），
             //   照高度縮的話 Base 會比框還寬、直接撐出破碎框外面。
             Vector2 box = new Vector2(fw * Mathf.Clamp01(PortraitBox.x), fh * Mathf.Clamp01(PortraitBox.y));
+            // 裁切容器：左右對齊框內黑底（PortraitClipLeft～Right）、高＝整個框高（上下不裁），底邊貼底版底邊。
+            // 只有新舊立繪裡有寬體型時才啟用（2026-11-10：裁 0.8 置中時尾巴蓋到左邊框；直式血統維持原本不裁）。
+            // 內框左右不對稱，所以容器會水平位移；LayoutPortrait 會把這個位移反向補回，立繪位置不因裁切而移動。
+            bool anyWide = IsWide(oldSp) || IsWide(newSp);
+            _portraitMask.enabled = anyWide;
+            float l = Mathf.Clamp01(PortraitClipLeft), r = Mathf.Clamp(PortraitClipRight, l, 1f);
+            _portraitClip.sizeDelta = new Vector2(fw * (r - l), fh);
+            _portraitClip.anchoredPosition = new Vector2(fw * ((l + r) * 0.5f - 0.5f), 0f);
+            _portraitMask.softness = new Vector2Int(Mathf.Max(0, PortraitClipSoftness), 0);
             LayoutPortrait(_oldPortrait, oldSp, box, fh);
             LayoutPortrait(_newPortrait, newSp, box, fh);
 
@@ -390,9 +418,15 @@ namespace Dipan.UI
             float a = Aspect(sp, 0.75f);                              // 寬/高
             float h = box.y;
             float w = h * a;
-            if (w > box.x) { w = box.x; h = w / Mathf.Max(0.0001f, a); }   // 太寬 → 改由寬度決定
+            // 寬體型立繪（1536×1024 橫式，CHARACTER_ART_SPEC §2.1，例：九尾天狐）一律照高度縮：
+            // 它的人物本來就畫滿畫布高度，多出來的寬是尾巴／裙撐，由外層 PortraitClip（RectMask2D）左右裁掉（2026-11-10 作者回報
+            // 照寬度縮時人只剩一般立繪一半高、還被尾巴擠到右下角）。直式／接近直式的照舊 contain。
+            bool wide = a > WideAspectThreshold;
+            if (!wide && w > box.x) { w = box.x; h = w / Mathf.Max(0.0001f, a); }   // 太寬 → 改由寬度決定
             img.rectTransform.sizeDelta = new Vector2(w, h);
-            img.rectTransform.anchoredPosition = new Vector2(0f, frameHeight * PortraitBottomInset);
+            // 父物件 PortraitClip 可能為了對齊內框而水平位移，這裡反向補回，立繪仍以破碎框中心為準。
+            float clipX = _portraitClip != null ? _portraitClip.anchoredPosition.x : 0f;
+            img.rectTransform.anchoredPosition = new Vector2(-clipX, frameHeight * PortraitBottomInset);
         }
 
         void ApplyDissolve(Material m, float cutoff, float seed)
@@ -473,6 +507,8 @@ namespace Dipan.UI
             if (img == null) return;
             var c = img.color; c.a = Mathf.Clamp01(a); img.color = c;
         }
+
+        bool IsWide(Sprite sp) => sp != null && Aspect(sp, 0.75f) > WideAspectThreshold;
 
         static float Aspect(Sprite sp, float fallback)
             => sp != null && sp.rect.height > 0f ? sp.rect.width / sp.rect.height : fallback;

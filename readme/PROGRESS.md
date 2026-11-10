@@ -4,6 +4,9 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **揭示面板裁切改對齊框內黑底（⏳ 未編譯未實測）**（2026-11-10，作者：尾巴蓋住左邊框）：0.8 置中裁切比內框寬，而內框左右不對稱（原圖量得 0.217～0.81）。改成 `PortraitClipLeft` 0.225／`PortraitClipRight` 0.80，容器跟著位移、立繪反向補回；且只在新舊立繪有寬體型時啟用 `RectMask2D`。另：第一次出現的青色方塊是編輯器非同步 shader 編譯的替代 shader（裁切變體第一次用到），打包版不會有。
+* [x] **血統揭示面板：寬幅立繪改成左右裁切（⏳ 未編譯未實測）**（2026-11-10，作者看了上一版：尾巴整個凸出框外太誇張，問能否遮蔽）：`BloodlineIntroPanel` 的兩張立繪改掛在新的 `PortraitClip`（`RectMask2D`）底下，寬＝框寬 × `PortraitClipWidth` 0.80、高＝整個框高（只裁左右），柔邊 `PortraitClipSoftness` 28px。直式立繪寬 ≤ 0.78 不會被切到。shader 已支援 `UNITY_UI_CLIP_RECT`，沒改。
+* [x] **青丘實機回饋：體型、玄狐攻速、揭示面板寬幅立繪（⏳ 未編譯未實測）**（2026-11-10，作者實機）：① 表B `BodyScale` 靈狐 1.1／玄狐 1.4／九尾天狐 1.5（作者指定）；② 玄狐 `AttackAnimSpeed` 0.7（作者嫌攻擊太快）；③ **血統揭示面板的九尾天狐立繪又小又擠在右下角**：`BloodlineIntroPanel.LayoutPortrait` 是「contain 進框（寬 0.78／高 0.70）」，1536×1024 寬體型立繪會先撞寬度上限 ⇒ 人只剩一般立繪一半高、左半邊尾巴把人推到右邊。修法：新增 `WideAspectThreshold`（預設 1.0），寬/高超過它就只照高度縮、允許尾巴超出破碎框；直式與 Base（0.80）行為不變。圖本身沒問題。文件：[BLOODLINE.md](BLOODLINE.md) §5 版面表。
 * [x] **新增青丘血統（Qingqiuborn：靈狐 → 玄狐 → 九尾天狐），序列圖暫代（⏳ 未在 Unity 實測）**（2026-11-10，作者給血統概述、AI 主導產圖；第一個女性血統）：
   ① **美術（ChatGPT「燃燈劫」專案，約 24 次額度、零被擋）**：三張 1024 角色圖（洋紅底去背＋程式對齊；靈狐重產兩次——先拿錯參考圖畫成靈根鍊氣期的臉、再退件「太像原本主角」，定稿＝第一版造型＋主角的臉＋衣服不破＋炭灰髮帶；玄狐發光眼由程式改成全黑）；18 張立繪（九尾天狐用寬體型 1536×1024，作者指定）；成品瓶 `bloodline_Qingqiuborn`（深青綠液、九尾狐紋章、坐狐瓶塞）。
   ② **進專案**：`Talk/Qingqiuborn/{SpiritFox,MysticFox,NineTailedCelestialFox}/<情緒>.png`、`Resources/.../bloodline/bloodline_Qingqiuborn.png`（.meta 以 Swarmborn 為範本換 GUID）、**序列圖暫代**＝靈根三階（只複製 png）。
