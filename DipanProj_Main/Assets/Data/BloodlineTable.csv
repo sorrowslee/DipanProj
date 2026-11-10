@@ -1,4 +1,4 @@
-Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vitality,SkillId,Note,AuraVfxId,HaloStyle,HaloColor,TrailStyle,TrailColor,TrailVfxId,OrbitVfxId,OrbitCount,OrbitSize,AttackVfxId,AttackFxGap,HitVfxId,HitFxGap,DreamWeaponId,PassiveWeaponIds,MistStyle,AttackAnimSpeed
+Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vitality,SkillId,Note,AuraVfxId,HaloStyle,HaloColor,TrailStyle,TrailColor,TrailVfxId,OrbitVfxId,OrbitCount,OrbitSize,AttackVfxId,AttackFxGap,HitVfxId,HitFxGap,DreamWeaponId,PassiveWeaponIds,MistStyle,AttackAnimSpeed,AttackFrameRange
 # ─────────────────────────────────────────────────────────────────────────────,,,,,,,,,,,,,,,,,,,,,,,,,
 # 血統表（表B）。一列 = 一種血統（= 某個系列的某一階，或「人類」）。,,,,,,,,,,,,,,,,,,,,,,,,,
 #,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -93,5 +93,5 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 81,Ravager,獵殺者,Swarmborn/Ravager,1.3,,45,50,20,35,,蟲族系列 第二階（同上）,,,,,,,,,,,,,,
 82,SwarmEmperor,蟲皇,Swarmborn/Swarm Emperor,1.2,,70,60,55,70,,蟲族系列 第三階（同上；SpriteFolder 含空白＝照資料夾實際名稱，勿去掉；神格特效＝擊中怪物時在怪身上播咬擊 HitVfxId 40，見 §5c）,,,,,,,,,,,,40,,67
 90,Warden,鬼差,Soulborn/Warden,1,,12,20,15,12,,萬魂系列 第一階（五屬性為佔位；BodyScale 以鬼差為 1（鍾馗 1.7／酆都 1.3，作者 2026-11-09 定）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝龍奴 Thrall，正式圖到了直接覆蓋資料夾）
-91,ZhongKui,鍾馗,Soulborn/ZhongKui,1.7,,60,35,20,55,,萬魂系列 第二階（五屬性為佔位；BodyScale 以鬼差為 1（鍾馗 1.7／酆都 1.3，作者 2026-11-09 定）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝尼德霍格 Nidhogg，正式圖到了直接覆蓋資料夾）,,,,,,,,,,,,,,,,,0.6
+91,ZhongKui,鍾馗,Soulborn/ZhongKui,1.7,,60,35,20,55,,萬魂系列 第二階（五屬性為佔位；BodyScale 以鬼差為 1（鍾馗 1.7／酆都 1.3，作者 2026-11-09 定）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝尼德霍格 Nidhogg，正式圖到了直接覆蓋資料夾）,,,,,,,,,,,,,,,,,0.6,5-17
 92,Fengdu,酆都大帝,Soulborn/Fengdu,1.3,,55,55,85,60,,萬魂系列 第三階（五屬性為佔位；BodyScale 以鬼差為 1（鍾馗 1.7／酆都 1.3，作者 2026-11-09 定）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝該隱 Cain，正式圖到了直接覆蓋資料夾）；DreamWeaponId＝萬魂鬼手 77（2026-11-09）,,,,,,,,,,,,,,77,,SoulSkull

@@ -633,7 +633,12 @@ namespace Dipan.Gacha
 
             //    攻擊動畫播放倍率（表B AttackAnimSpeed，留空＝1）。每次套用都寫，所以換回別的血統會自動恢復 1。
             var anim = pc.GetComponent<PlayerAnimator>();
-            if (anim != null) anim.AttackFpsMul = def.AttackAnimSpeed;
+            if (anim != null)
+            {
+                anim.AttackFpsMul = def.AttackAnimSpeed;
+                // 手填攻擊播放範圍（表B AttackFrameRange，留空＝-1＝自動判斷）。每次套用都寫，換回別的血統會自動清掉。
+                anim.SetAttackRangeOverride(def.AttackFrameStart, def.AttackFrameEnd);
+            }
 
             //    其餘四個屬性（力量／敏捷／魔力／體力）仍然只存不套用——遊戲裡還沒有對應的東西：
             //    力量沒有攻擊力欄位（傷害在武器表）、敏捷沒有任何對應；魔力／體力若要接到 CombatStats 的

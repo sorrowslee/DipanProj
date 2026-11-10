@@ -33,6 +33,30 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
     bool _oneShotDone;   // 一次性動作（dead/attack）是否已播到最後一幀定格
     int _attackStart;    // 攻擊的起播幀索引（跳過起手；由 PlayerSpriteLibrary 從圖自動算出）
     int _attackEnd = -1;   // 攻擊結束幀（含）＝最大幀＋尾巴；-1＝最後一幀（同上自動算）
+    int _autoAttackStart, _autoAttackEnd = -1;              // 自動算出來的那組（覆寫清掉時還原用）
+    int _overrideAttackStart = -1, _overrideAttackEnd = -1; // 血統表 AttackFrameRange（0 起算、含）；-1＝不覆寫
+
+    /// <summary>
+    /// 手填攻擊播放範圍（2026-11-09，表B <c>AttackFrameRange</c>）：蓋過自動判斷的起播幀／結束幀。
+    /// 傳 -1 ＝ 清掉覆寫、還原自動值。由 <c>BloodlineSystem.ApplyTo</c> 每次套用血統時寫入；Setup 換外型後會自動重套。
+    /// ⚠ 為什麼要有手填：自動判斷假設「輪廓跟站姿差最多的那格＝出手到底」，**由上往下劈**的動作（鍾馗）
+    /// 刀舉最高時輪廓最大、真正劈下去反而比較小，會被截在刀舉到半空（PROBLEMS G20）。
+    /// </summary>
+    public void SetAttackRangeOverride(int start0, int end0)
+    {
+        _overrideAttackStart = start0;
+        _overrideAttackEnd = end0;
+        if (start0 < 0) { _attackStart = _autoAttackStart; _attackEnd = _autoAttackEnd; return; }
+        ApplyAttackRangeOverride();
+    }
+
+    void ApplyAttackRangeOverride()
+    {
+        if (_overrideAttackStart < 0 || _attack == null || _attack.Length == 0) return;
+        int last = _attack.Length - 1;
+        _attackStart = Mathf.Clamp(_overrideAttackStart, 0, last);
+        _attackEnd = _overrideAttackEnd < 0 ? last : Mathf.Clamp(Mathf.Max(_overrideAttackEnd, _attackStart), 0, last);
+    }
 
     /// <summary>
     /// 攻擊動畫是否要循環播（<b>舊行為</b>）。預設 false＝一次性：從起播幀播到最後一幀後定格，
@@ -246,6 +270,8 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
                      : 0;
         // 攻擊結束幀：播到「動作最大幀＋尾巴」就當播完（PlayerSpriteLibrary.ActionEndPeakRatio），-1＝播到最後一幀。
         _attackEnd = (_attack != null && _attack.Length > 0) ? lib.GetActionEndFrame(bloodline, "attack") : -1;
+        _autoAttackStart = _attackStart; _autoAttackEnd = _attackEnd;
+        ApplyAttackRangeOverride();   // 血統表手填的播放範圍（AttackFrameRange）優先
 
         if (_idle == null && _walk != null) { _idle = _walk; if (!_shadow[State.Idle].ok) _shadow[State.Idle] = _shadow[State.Walk]; }   // 沒給 idle 就用 walk 當待機後備
 

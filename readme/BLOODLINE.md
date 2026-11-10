@@ -182,6 +182,13 @@ Unity 怎麼算 bounds 影響。
 > 這兩條路都是走 catalog（StreamingAssets），沒同步的話執行期一張圖都載不到，
 > 角色會變成**只剩影子**，Console 會有 `[PlayerAnimator] 血統「X」找不到任何外型圖`。
 
+### `AttackFrameRange`：手填攻擊播放範圍（2026-11-10 加，第 30 欄＝索引 29）
+
+- 格式 `起-迄`，**1 起算、含頭尾**，數字就是序列圖檔名的編號（`5-17`＝播 `_05`～`_17`）。**留空＝自動判斷**（起播幀跳過起手、結束幀＝輪廓差第一次到峰值 90% 再多 1 格，見 ACTORS_AND_COMBAT 2b）。
+- 目前只有鍾馗（91）填 `5-17`：他是先高舉再往下劈，刀舉最高時輪廓最大，自動判斷會在舉刀那格就停（[PROBLEMS.md](PROBLEMS.md) **G20**）。
+- ⭐ **作者定的規則：之後新序列圖被自動判斷抓錯（播太短、停在半空、播到多餘的第二拳），一律填這欄解決**，不改全域規則、不重做圖。
+- 寫入點：`BloodlineSystem.ApplyTo` → `PlayerAnimator.SetAttackRangeOverride`（每次套用血統都寫；換回別的血統自動清掉）。格式錯會印警告並退回自動判斷。
+
 ### `AttackAnimSpeed`：攻擊動畫播放倍率（2026-11-09 加，第 29 欄＝索引 28）
 
 - 只改**動畫**節奏（PlayerAnimator 的 attack 幀率 = `BaseFps` 12 × 倍率），不改武器的實際攻速（那在武器表）。
@@ -1129,6 +1136,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
    「血瓶＋這張圖騰＋一/二/三階星星」（見 §3〈背包圖示〉）
 6. `BaseBloodRoll.csv` 加一列（只放 `30x` 那瓶；直達藥劑目前不進池，見 §8）（或做成 `unlockRoll` 觸發解鎖）
 7. 第三階那一列填 **`DreamWeaponId`**（新手夢境教學會抽到它，留空＝夢裡空手），見 §5d
+7c. **看一次攻擊動畫**：自動判斷的播放範圍抓錯（停在半空、只播幾格）就在表B 填 **`AttackFrameRange`**（見 §2）
 7b. **夢境台詞**：DramaTable 加一列（Type 2、TalkGroup 新號）＋ DramaTalkTable 一句（`Text` 填 `lang:<id>`，字串放 LanguageTable 1011–1099「夢境」段，句型「在夢中，我是……」），再把那個 drama id 填進表A 的 **`DreamDramaId`**——⚠ 不填就走 `31+SeriesId`，第 9 個系列起會撞到既有對話
 8. 想讓某一階自動帶被動武器（像應龍的水珠）→ 填 **`PassiveWeaponIds`**，見 §5e
 

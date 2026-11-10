@@ -136,6 +136,15 @@ namespace Dipan.Gacha
         /// 只改動畫節奏，不改武器攻速。目前只有鍾馗（91）填。
         /// </summary>
         public float AttackAnimSpeed = 1f;
+
+        /// <summary>
+        /// **手填攻擊播放範圍**（第 30 欄 `AttackFrameRange`，2026-11-10）：格式 <c>起-迄</c>，**1 起算、含頭尾**，
+        /// 數字就是序列圖檔名的編號（例：<c>5-17</c>＝播 _05 到 _17）。留空 ＝ 自動判斷（PlayerSpriteLibrary.ComputeActionRange）。
+        /// ⭐ 作者 2026-11-10 定：**自動判斷抓錯的序列圖一律用這欄解決**（以前的決定是「不手填、重做圖」，鍾馗起改了）。
+        /// 典型會抓錯的：由上往下劈、先高舉再出手的動作——刀舉最高時輪廓最大，會被當成「出手到底」。
+        /// 解析後存成 0 起算：<see cref="AttackFrameStart"/>／<see cref="AttackFrameEnd"/>，-1＝沒填。
+        /// </summary>
+        public int AttackFrameStart = -1, AttackFrameEnd = -1;
     }
 
     /// <summary>
@@ -149,6 +158,20 @@ namespace Dipan.Gacha
     /// </summary>
     public static class BloodlineTable
     {
+        /// <summary>解析 AttackFrameRange「起-迄」（1 起算、含）→ 0 起算。空白或格式錯 → -1／-1（格式錯印警告）。</summary>
+        static void ParseFrameRange(string raw, int id, out int start0, out int end0)
+        {
+            start0 = -1; end0 = -1;
+            if (string.IsNullOrWhiteSpace(raw)) return;
+            var parts = raw.Trim().Split('-');
+            if (parts.Length == 2 && int.TryParse(parts[0].Trim(), out int a) && int.TryParse(parts[1].Trim(), out int b) && a >= 1 && b >= a)
+            {
+                start0 = a - 1; end0 = b - 1;
+                return;
+            }
+            Debug.LogWarning($"[BloodlineTable] 血統 {id} 的 AttackFrameRange「{raw}」格式不對（要寫 起-迄，例 5-17，1 起算），改用自動判斷。");
+        }
+
         /// <summary>初始外型（人類）的血統 Id。輪迴後回到這個狀態。</summary>
         public const int HumanId = 1;
 
@@ -267,6 +290,7 @@ namespace Dipan.Gacha
                 // 留空/0/負數一律當 1；上限擋在 5 倍，填錯一個 0 不會讓角色大到蓋滿整個畫面。
                 d.BodyScale = d.BodyScale <= 0.01f ? 1f : Mathf.Clamp(d.BodyScale, 0.2f, 5f);
                 d.AttackAnimSpeed = d.AttackAnimSpeed <= 0.01f ? 1f : Mathf.Clamp(d.AttackAnimSpeed, 0.1f, 3f);
+                ParseFrameRange(CsvUtil.Field(v, 29), id, out d.AttackFrameStart, out d.AttackFrameEnd);
 
                 _byId[id] = d;
             }
