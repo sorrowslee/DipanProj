@@ -96,6 +96,7 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 70,血鳴古鐘,Weapon,Weapon,UI/Icons/Equipment/icon_ancientbell,1,古鐘,傷害 10　鐘聲一路直線炸開、穿透所有敵人,鐘響一聲，血便碎成一地。,70,,,,,,,,
 71,魔狼爪,Weapon,Weapon,UI/Icons/Equipment/icon_wolfclaw,1,狼爪,傷害 8　一次揮出五道焰刃、穿透敵人、命中爆出火焰,魔狼一抓，傷口裡燒的是牠吞下的月光。,71,,,,,,,,
 77,萬魂鬼手,Weapon,Weapon,UI/Icons/Equipment/icon_soulhand,1,鬼手,傷害 4　一次放出五顆追魂鬼頭，慢慢追著敵人、穿透啃咬,酆都一握，枉死城裡的冤魂都得跟著走。,77,,,,,,,,
+78,路西法之怒,Weapon,Weapon,UI/Icons/Equipment/icon_luciferwrath,1,長劍,傷害 8　頭頂光束劈落腳底、沿地面掃向前方，掃過之處接連爆炸,墮落之王揮劍的那一刻，大地替他記下了每一道傷痕。,78,,,,,,,,,
 36,血滴子,Weapon,Weapon,UI/Icons/Equipment/icon_xuedizi,1,血滴子,傷害 3　旋轉鋸盤、撞牆反彈、穿透 3,鏈頭一收，落地的只剩沒了頭的影子。,36,,,,,,,,
 37,引魂幡,Weapon,Weapon,UI/Icons/Equipment/icon_soulbanner,1,招魂幡,傷害 2　放出一顆會追人的厲鬼頭,幡上每一道褶，都是一個沒走成的魂。,37,,,,,,,,
 38,餓鬼牙符,Weapon,Weapon,UI/Icons/Equipment/icon_ghostfangtalisman,1,牙符,傷害 5　短程飛出一副獠牙、咬住就不放,符上的牙印，是牠自己咬的。,38,,,,,,,,

@@ -11,11 +11,11 @@ characters/base/dead,2.5,72.2,183,auto,9,256,256,幀數 9→25 已重算
 characters/base/idle,1,41,99,auto,25,256,256,
 characters/base/walk,-1.8,39.7,110,auto,25,256,256,
 characters/bloodborn/bloodseeker/attack,-7.5,54.5,165,auto,25,256,256,
-characters/bloodborn/bloodseeker/dead,5,46.2,128,auto,9,256,256,幀數 9→25 已重算
+characters/bloodborn/bloodseeker/dead,5,34.2,128,auto,9,256,256,幀數 9→25 已重算
 characters/bloodborn/bloodseeker/idle,1.2,43.5,81,auto,25,256,256,
 characters/bloodborn/bloodseeker/walk,2.2,58.5,79,auto,25,256,256,
 characters/bloodborn/cain/attack,-0.5,69.2,70,auto,25,256,256,
-characters/bloodborn/cain/dead,-1,79.9,86,auto,9,256,256,幀數 9→25 已重算
+characters/bloodborn/cain/dead,-1,72.9,86,auto,9,256,256,幀數 9→25 已重算
 characters/bloodborn/cain/idle,-0.5,68.3,73,auto,19,256,256,幀數 25→19 已重算
 characters/bloodborn/cain/walk,-5,72.9,66,auto,25,256,256,
 characters/bloodborn/crimson count/attack,-7.5,56,112,auto,25,256,256,
@@ -78,23 +78,23 @@ monsters/skeletongeneral/walk,6,44.5,112,auto,25,256,256,
 monsters/zhayu/idle,4.5,37.5,131,auto,21,256,256,幀數 1→21 已重算
 monsters/zhayu/walk,-3.2,44,324,auto,8,500,500,
 characters/gaiaborn/gargoyle/attack,-13,55.5,136,auto,25,256,256,
-characters/gaiaborn/gargoyle/dead,2,68.6,124,auto,9,256,256,幀數 9→25 已重算
+characters/gaiaborn/gargoyle/dead,2,62.6,124,auto,9,256,256,幀數 9→25 已重算
 characters/gaiaborn/gargoyle/idle,-0.5,55,83,auto,15,256,256,幀數 1→15 已重算
 characters/gaiaborn/gargoyle/walk,-5.9,56.8,99,auto,22,256,256,
 characters/gaiaborn/mountaingiant/attack,-11.2,53,165,auto,25,256,256,
-characters/gaiaborn/mountaingiant/dead,6,60,120,auto,9,256,256,幀數 9→25 已重算
+characters/gaiaborn/mountaingiant/dead,6,55,120,auto,9,256,256,幀數 9→25 已重算
 characters/gaiaborn/mountaingiant/idle,-3.2,47.9,144,auto,22,256,256,
 characters/gaiaborn/mountaingiant/walk,-4.2,55.3,110,auto,14,256,256,幀數 1→14 已重算
 characters/gaiaborn/titan/attack,-0.2,37.5,183,auto,23,256,256,
-characters/gaiaborn/titan/dead,-28.5,60.2,155,auto,9,256,256,幀數 9→25 已重算
+characters/gaiaborn/titan/dead,-28.5,51.2,155,auto,9,256,256,幀數 9→25 已重算
 characters/gaiaborn/titan/idle,7.8,39.5,147,auto,24,256,256,
 characters/gaiaborn/titan/walk,8,37,129,manual,24,256,256,2026-09-09 手改：原本 -23.8 是把左後方一段 4~5px 寬的窄剪影（拖在後面的布條／髮絲）當成第二隻腳，錨點被拉到身體後方約 33px；濾掉寬度 <10px 的段後，24 幀的真實兩腳中點中位數是 +9，對齊 idle 的 7.8 取 8，換動作時不會跳。⚠ WidthPx 129 也是被那段窄剪影撐出來的（idle 是 147），先沒動
 characters/blazeborn/fafnir/attack,-13,52,132,auto,25,256,256,
-characters/blazeborn/fafnir/dead,-12,73.7,178,auto,9,256,256,幀數 9→25 已重算
+characters/blazeborn/fafnir/dead,-12,55.7,178,auto,9,256,256,幀數 9→25 已重算
 characters/blazeborn/fafnir/idle,8,46.5,118,manual,21,256,256,2026-09-13 三修：+8。這隻龍的剪影量不出可靠答案——最底層抓到的是拖地的尾尖、上半身重心被左後張開的翅膀拉偏、粗段法對同批人形校驗又給不出一致的校正量（+15.7/+9.5/+14.0/-2.5），所以四種量法各給一個數（-32.5/-5/-15/-3.5）。改成照作者實機回饋直接調：-15 偏左 → 往右。⚠ 要再動就以 4~8px 為一步（256px=一格），別再用演算法推
 characters/blazeborn/fafnir/walk,8,46.5,119,manual,15,256,256,2026-09-13 三修：+8。這隻龍的剪影量不出可靠答案——最底層抓到的是拖地的尾尖、上半身重心被左後張開的翅膀拉偏、粗段法對同批人形校驗又給不出一致的校正量（+15.7/+9.5/+14.0/-2.5），所以四種量法各給一個數（-32.5/-5/-15/-3.5）。改成照作者實機回饋直接調：-15 偏左 → 往右。⚠ 要再動就以 4~8px 為一步（256px=一格），別再用演算法推
 characters/blazeborn/nidhogg/attack,1,53.5,97,auto,25,256,256,
-characters/blazeborn/nidhogg/dead,-2,74.8,132,auto,9,256,256,幀數 9→25 已重算
+characters/blazeborn/nidhogg/dead,-2,68.8,132,auto,9,256,256,幀數 9→25 已重算
 characters/blazeborn/nidhogg/idle,-2,50.5,91,manual,15,256,256,2026-09-13 手改：auto 算出 -36（同批素材的 base/thrall/jiao idle 都在 ±1.2 內，這是離群值）——披風/尾巴那類窄剪影被當成第二隻腳，錨點被拉到身體後方；離線量最底 8px、濾掉寬<10px 的段後，真實接地中點與 thrall/jiao 同一水準，換算回表的尺規是 -2。walk 對齊 idle，換動作時不會跳
 characters/blazeborn/nidhogg/walk,-2,54,98,manual,14,256,256,2026-09-13 手改：auto 算出 -23.9（同批素材的 base/thrall/jiao idle 都在 ±1.2 內，這是離群值）——披風/尾巴那類窄剪影被當成第二隻腳，錨點被拉到身體後方；離線量最底 8px、濾掉寬<10px 的段後，真實接地中點與 thrall/jiao 同一水準，換算回表的尺規是 -2。walk 對齊 idle，換動作時不會跳
 characters/blazeborn/thrall/attack,-6.8,54,94,auto,25,256,256,
@@ -118,7 +118,7 @@ characters/spiritroot/divine form/dead,-6,56.1,134,auto,9,256,256,幀數 9→25 
 characters/spiritroot/divine form/idle,-4.5,46.7,85,auto,23,256,256,
 characters/spiritroot/divine form/walk,-7.8,43,92,auto,12,256,256,
 characters/spiritroot/foundation/attack,-5,54.5,64,auto,25,256,256,
-characters/spiritroot/foundation/dead,4.5,70.8,99,auto,9,256,256,幀數 9→25 已重算
+characters/spiritroot/foundation/dead,4.5,65.8,99,auto,9,256,256,幀數 9→25 已重算
 characters/spiritroot/foundation/idle,-1.8,54.5,62,auto,23,256,256,
 characters/spiritroot/foundation/walk,-3.2,56,66,auto,22,256,256,
 characters/spiritroot/nascent soul/attack,-1.5,47.4,98,auto,25,256,256,
@@ -126,15 +126,15 @@ characters/spiritroot/nascent soul/dead,0.5,55.6,91,auto,9,256,256,幀數 9→25
 characters/spiritroot/nascent soul/idle,-7,49.3,89,auto,16,256,256,
 characters/spiritroot/nascent soul/walk,-5.5,49.4,86,auto,20,256,256,
 characters/swarmborn/parasite/attack,-5.8,49.5,126,auto,23,256,256,
-characters/swarmborn/parasite/dead,10,61,120,auto,9,256,256,幀數 9→25 已重算
+characters/swarmborn/parasite/dead,10,41,120,auto,9,256,256,幀數 9→25 已重算
 characters/swarmborn/parasite/idle,-3.8,34,95,auto,24,256,256,
 characters/swarmborn/parasite/walk,-2,46.5,101,auto,19,256,256,
 characters/swarmborn/ravager/attack,-10.5,42,142,auto,25,256,256,
-characters/swarmborn/ravager/dead,8.5,70.8,179,auto,9,256,256,幀數 9→25 已重算
+characters/swarmborn/ravager/dead,8.5,47.8,179,auto,9,256,256,幀數 9→25 已重算
 characters/swarmborn/ravager/idle,1.5,35.5,95,auto,21,256,256,
 characters/swarmborn/ravager/walk,-4,51.8,122,auto,13,256,256,
 characters/swarmborn/swarm emperor/attack,0.5,32.3,210,auto,25,256,256,
-characters/swarmborn/swarm emperor/dead,-17,63.3,202,auto,9,256,256,幀數 9→25 已重算
+characters/swarmborn/swarm emperor/dead,-17,54.3,202,auto,9,256,256,幀數 9→25 已重算
 characters/swarmborn/swarm emperor/idle,-8.5,39.1,131,manual,17,256,256,2026-09-14 手改：auto 的 -25.5 是離群值（同批的 parasite -3.8／ravager +1.5，全表其他角色都在 ±8 內）——垂到腿高的翅膀把「最低兩段」騙走了。離線拆最底帶：真正接地的是三段細腳（中心 -22／-8／+5，整體中心 -8.5），而 c-75 的翅膀要到距底 40px 才出現。演算法只取最低的兩段（-22 與 -8）所以偏左。填接地整體中心 -8.5
 characters/swarmborn/swarm emperor/walk,-8.5,46.2,160,manual,11,256,256,2026-09-14 手改：對齊 idle 的 -8.5（同 nidhogg 的做法），換動作時影子不會跳；auto 的 -25.1 與 idle 同一個誤判
 monsters/housekeeper/idle,-11.2,34,82,auto,21,256,256,幀數 16→21 已重算
@@ -209,7 +209,7 @@ characters/qingqiuborn/mysticfox/idle,-0.2,62.5,85,auto,15,256,256,幀數 16→1
 characters/qingqiuborn/mysticfox/walk,-0.5,63.5,91,auto,21,256,256,幀數 20→21 已重算
 monsters/housekeeper/walk,-6.2,36,92,auto,12,256,256,
 characters/angelborn/angel/attack,-31,62.5,125,auto,25,256,256,
-characters/angelborn/angel/dead,17.5,119,261,auto,9,308,308,幀數 9→25 已重算
+characters/angelborn/angel/dead,17.5,77,261,auto,9,308,308,幀數 9→25 已重算
 characters/angelborn/angel/idle,-2.5,30,160,auto,24,256,256,
 characters/angelborn/angel/walk,-21.5,73.5,121,auto,25,256,256,
 characters/angelborn/lucifer/attack,-0.8,65.5,102,auto,25,256,256,
@@ -217,7 +217,7 @@ characters/angelborn/lucifer/dead,7,83.6,151,auto,9,256,256,幀數 9→25 已重
 characters/angelborn/lucifer/idle,-2,61,153,auto,21,256,256,
 characters/angelborn/lucifer/walk,-6.5,60.5,111,auto,25,256,256,
 characters/angelborn/oracle/attack,-7.8,74.8,111,auto,12,256,256,幀數 25→12 已重算
-characters/angelborn/oracle/dead,11.5,73,105,auto,9,256,256,幀數 9→25 已重算
+characters/angelborn/oracle/dead,11.5,83,105,auto,9,256,256,幀數 9→25 已重算
 characters/angelborn/oracle/idle,0.2,71,75,auto,23,256,256,
 characters/angelborn/oracle/walk,0.2,62.5,89,auto,24,256,256,
 characters/qingqiuborn/mysticfox/attack,0.8,62,90,auto,25,256,256,

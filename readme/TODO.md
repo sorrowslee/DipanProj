@@ -1080,7 +1080,12 @@
 - [ ] **先跑 `Project Tools → Sync Map Assets`**，否則新立繪與暫代序列圖載不到。
 - [ ] **正式序列圖**：作者以 `TempImage/bloodline_Angelborn/out/{Oracle,Angel,Lucifer}_base_1024.png` 用 AutoSprite 產圖，整個覆蓋 `SequenceImage/Angelborn/<血統>/`（暫代＝靈根築基期／血伯爵／該隱）→ 刪 `ShadowAnchorTable` 的 `characters/angelborn/*` 12 列 → 跑「計算影子錨點」→ 再 Sync。⚠ 三張角色圖的長兵器／布擺伸進腳底帶（神諭者杖尾 y≈850、天使劍尖 y≈840），影子 auto 可能被拉偏，要用 manual 補。
 - [ ] **立繪實機確認**：天使、路西法寬體型（1.2／−180／OuterToScreen 1 起手）——天使母版畫得偏大（只到膝蓋、兜帽頂 y≈90），翅膀都碰到左右界附近；喝藥揭示面板看大小與左右裁切。神諭者 1.15／−139。
-- [ ] **路西法專屬夢境武器**（光暗雙屬性斬擊／黑白羽刃／六翼範圍裁決），目前 `DreamWeaponId` 暫借雷雨天罰 66；神格特效（六翼緩慢開合、黑白能量流）未指派。
+- [ ] **路西法之怒（`Mode=Sweep`，武器 78／配方 93）⏳ 未編譯未實測**：Unity 編譯過（新檔 `Scripts/Weapon/SweepStrike.cs`）→ 夢境教學選天使系列實機看：光束源點高度（1.8 身高）、掃描速度 12、間距 1.2、延遲 0.3、爆炸半徑 1、傷害 8、紅光束粗細 0.25 是否好看；按住時是否真的要等最後一顆爆炸播完才發下一發；撞牆是否停。
+  - [x] 爆炸特效：作者挑 `Explosions/stylized_explosion_003` 紅色 → VfxTable **60**（14 張／15fps；作者看過後定 `Scale` 4、`AreaRadius` 2）。
+  - [ ] 武器工坊：確認「掃射」模式與 4 個新欄出現、Play 中試射正常。
+  - [ ] 之後可考慮：其他光束外觀、首領用掃射（`MonsterWeaponUser` 已接好，填 WeaponId=78 或新武器即可）。
+- [ ] 道具 78 路西法之怒（長劍）目前沒進任何掉落／商店／抽卡池，只能作弊面板給；要不要放、放哪由作者決定。
+- [ ] 路西法神格特效（六翼緩慢開合、黑白能量流）未指派。
 - [ ] `BodyScale`（三階全 1；路西法角色圖比規格小 ~9%，可能要放大）、`WalkSpeed`（留空）、五屬性（佔位）待實機定。
 - [ ] 直達藥劑 3111／3112 沒進任何池（同其他系列）。
 - [ ] 新工具 `cutout_magenta_keep.py`／`defringe.py`／`fill_small_holes.py`／`fit_manual.py`／`do_portrait.sh` 在 `TempImage/`（gitignore）——要不要搬進 repo（例 `Tools/ai_image/`）作者決定。

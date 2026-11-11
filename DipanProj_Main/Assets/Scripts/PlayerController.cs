@@ -1194,6 +1194,29 @@ public class PlayerController : MonoBehaviour, IDamageable
             return true;
         }
 
+        // 掃射（巨神兵式）：不發射子彈、不需要 BulletPrefab。光束＋沿線排程爆炸全在 SweepStrike（玩家怪物共用）。
+        // 冷卻＝FireInterval，從施放算起（2026-11-11 起不再等整發播完；原本的「播完才能再發」發射鎖已拿掉，多發會疊在一起）。
+        // 集氣／連擊對這個模式是無效欄（WeaponModeSpec），所以 burstShot 實際上不會是 true。
+        if (weapon.Recipe.Mode == WeaponMode.Sweep)
+        {
+            if (!burstShot && _stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
+            TrySpawnFireEffect(weapon, AimDirectionToMouse());
+            var sweep = new SweepStrike.Context
+            {
+                Owner        = gameObject,
+                Feet         = FeetWorldPos,
+                BodyHeight   = VisibleBodyHeight,
+                LiveFeet     = () => FeetWorldPos,
+                AimPoint     = AimWorldPoint(),
+                OwnerScale   = PlayerScale,
+                TargetLayers = EnemyLayer,
+                EnvLayer     = EnvLayer,
+            };
+            SweepStrike.Cast(weapon, in sweep);
+            AfterShot(weapon, burstShot);   // 冷卻＝FireInterval，從施放算起（不等整發播完；疾發珠才有感）
+            return true;
+        }
+
         if (weapon.BulletPrefab == null) return false;
 
         ProjectileData recipe = weapon.Recipe.Data;

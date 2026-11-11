@@ -103,6 +103,18 @@ public class RecipeEntry
     /// <summary>趟數：飛出去再回到玩家身上＝1；&gt;1 會穿過玩家往身後再飛（鐘擺）。每趟往外距離＝<c>Data.BeamRange</c>（CSV 的 Range）。</summary>
     public int BoomerangCount = 1;
 
+    // ── 掃射（Mode=Sweep）──
+    /// <summary>掃射的 Range 留空時的最遠掃描距離（從腳底量）。</summary>
+    public const float SweepDefaultRange = 12f;
+    /// <summary>光束落點沿地面往前推的速度（每秒世界單位）。</summary>
+    public float SweepSpeed = 12f;
+    /// <summary>光束源點高度：從施放者腳底往上幾個「可見身高」。</summary>
+    public float SweepOriginHeight = 1.8f;
+    /// <summary>掃過的線上每隔多遠排一顆爆炸（世界單位）。</summary>
+    public float ExplodeSpacing = 1.2f;
+    /// <summary>光束掃過某一點之後再過幾秒才在那裡爆炸。</summary>
+    public float ExplodeDelay = 0.3f;
+
     /// <summary>持續型（按住生效）：Laser / Aura。沒有發射間隔、不吃集氣。</summary>
     public bool IsContinuous => WeaponModeSpec.Get(Mode).Continuous;
 
@@ -190,7 +202,8 @@ public class RecipeEntry
 
         // ── 射程 / 範圍 ──
         d.BeamRange = Fl("Range", mode == WeaponMode.GroundCast ? 8f : mode == WeaponMode.Boomerang ? BoomerangDefaultRange
-                                 : mode == WeaponMode.Familiar ? FamiliarDefaultRange : 20f);
+                                 : mode == WeaponMode.Familiar ? FamiliarDefaultRange
+                                 : mode == WeaponMode.Sweep ? SweepDefaultRange : 20f);
         e.AreaRadius = Fl("AreaRadius", 0f);
 
         // ── 命中附加 ──
@@ -264,6 +277,13 @@ public class RecipeEntry
             e.BlockedByEnvironment = false;
             if (d.BeamRange <= 0f) d.BeamRange = BoomerangDefaultRange;   // Range 填 -1／0 對迴旋沒有意義
         }
+
+        // ── 掃射 ──
+        e.SweepSpeed = Math.Max(0.5f, Fl("SweepSpeed", 12f));
+        e.SweepOriginHeight = Math.Max(0f, Fl("SweepOriginHeight", 1.8f));
+        e.ExplodeSpacing = Math.Max(0.1f, Fl("ExplodeSpacing", 1.2f));
+        e.ExplodeDelay = Math.Max(0f, Fl("ExplodeDelay", 0.3f));
+        if (mode == WeaponMode.Sweep && e.AreaRadius <= 0f) e.AreaRadius = 1f;   // 爆炸半徑留空＝1
 
         // 規格檢查（必填缺 / 無效卻有填）
         if (fields != null) problems.AddRange(WeaponModeSpec.Validate(mode, fields, FieldTable.Recipe));

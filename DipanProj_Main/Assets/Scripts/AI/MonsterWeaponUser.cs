@@ -142,6 +142,8 @@ public class MonsterWeaponUser : MonoBehaviour
             cast = TrySummon(recipe);
         else if (recipe.Mode == WeaponMode.Normal)
             cast = TryFireProjectile(recipe, target);
+        else if (recipe.Mode == WeaponMode.Sweep)
+            cast = TrySweep(target);
         else
             Debug.LogWarning($"[MonsterWeaponUser] 武器 '{_weapon.Name}' 的模式 {recipe.Mode} 還沒搬進 WeaponCastService（見該檔說明），怪物暫時不能用。");
 
@@ -323,6 +325,33 @@ public class MonsterWeaponUser : MonoBehaviour
                 _vfx.Spawn(_weapon.HitEffectID, at, 0f, _weapon.CastVisualScale);
             }
         }
+    }
+
+    // ── 掃射（巨神兵式）：委派給玩家／怪物共用的 SweepStrike ─────────────────────
+    /// <summary>
+    /// 從自己頭頂上方的源點劈到腳底，再沿地面掃向 <paramref name="target"/>。
+    /// 冷卻同其他武器＝配方 FireInterval（不等整發播完）。
+    /// </summary>
+    private bool TrySweep(Transform target)
+    {
+        if (target == null) return false;
+        // 擋光束的只有牆（Environment）；水面不擋——光束是沿地面「照過去」的，不是在地上走。
+        int wallMask = LayerMask.GetMask("Environment");
+
+        MonsterController owner = _owner;
+        Vector2 feet = owner != null ? owner.FeetWorldPos : (Vector2)transform.position;
+        var ctx = new SweepStrike.Context
+        {
+            Owner        = gameObject,
+            Feet         = feet,
+            BodyHeight   = owner != null ? owner.VisibleBodyHeight : 1f,
+            LiveFeet     = owner != null ? (System.Func<Vector2>)(() => owner.FeetWorldPos) : null,
+            AimPoint     = target.position,
+            OwnerScale   = 1f,                              // 同箭：光束是武器的，不隨怪物體型放大
+            TargetLayers = 1 << target.gameObject.layer,    // 射玩家＝Player 層；射敵對怪＝Enemy 層
+            EnvLayer     = wallMask,
+        };
+        return SweepStrike.Cast(_weapon, in ctx) >= 0f;
     }
 
     // 召喚：委派給玩家/怪物共用的 SummonSystem（同時上限用本元件自己的 _summoned 清單追蹤）。

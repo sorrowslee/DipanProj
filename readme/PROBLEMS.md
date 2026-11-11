@@ -19,7 +19,7 @@
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
 | E | 效能 / 顯示 (Performance & Display) | E1~E47（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F46（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後） |
-| G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G23（位置在 F3 之後）；**G13 在 F26 之後、H 段標題之前；G14~G18 誤接在 H 段標題之後、H1 之前**（維持原位不搬）；G19 接在 G18 之後；G20 接在 G19 之後；G21、G22 接在 G20 之後；G23 接在 G22 之後 |
+| G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G24（位置在 F3 之後）；**G13 在 F26 之後、H 段標題之前；G14~G18 誤接在 H 段標題之後、H1 之前**（維持原位不搬）；G19 接在 G18 之後；G20 接在 G19 之後；G21、G22 接在 G20 之後；G23 接在 G22 之後；G24 接在 G23 之後 |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1~H2 |
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I10 |
 | J | 螢幕特效 / 進場過場 (Screen FX) | J1~J6 |
@@ -1639,6 +1639,15 @@
   - **放大**：會撞 256 畫布邊 ⇒ **畫布對稱加大**（天使 ×1.348 → 308×308，四邊各 +26px），水平中心不能動（腳底 pivotX 固定 0.5）。這是安全的：sprite 的 PPU＝`TileNativePx / tileSize` 與畫布大小無關（像素世界大小不變），腳底 pivotY 用 `VisibleBottomFraction`（有除以畫布高），影子錨點表每列自帶 CanvasW/H。
   - 改完跑 **Sync Map Assets** ＋ **計算影子錨點**（dead 的錨點要重算）。
 - **檢查習慣**：加新血統時三個動作的 √(高×√面積) 第一幀比值都量一下，dead 偏離 idle 超過一成就照上面修。檢查用作弊面板 **L →「動作」→ dead** 看最快。
+
+### G24. 喝藥變身時，換成新血統那一下**人物往上跳一截**（趴著的新外型浮在空中）——dead 的腳底在畫布裡的位置跟 idle 不一樣
+- **症狀**（2026-11-11，神諭者 → 天使）：神諭者倒下、雷打下來、煙裡換成天使的那一刻，天使明顯比神諭者高一截；天使 → 路西法沒有。
+- **原因**：每個動作的 sprite pivot 是 `FootPivotY(該動作第一幀的可見底緣, bodyScale)`，體型 1 時就是畫布中心（0.5）——**程式沒有把各動作的腳底對齊到同一點**，腳底離 transform 多遠完全看素材把人畫在畫布哪裡。換算成世界單位：腳底位移 ＝（腳底 px − 畫布高/2）× 角色高 ÷ idle 可見高 px（與 bodyScale 無關）。
+  - 天使 dead：腳底在 308 畫布的 89px（中心下 65px），idle 是 256 畫布的 21px（中心下 107px）⇒ 趴著時比站著**高 0.20 個身高**。原始 AutoSprite 的 dead 就畫得偏高；G23 那次以腳底為中心放大、畫布對稱加大，**沒改到這個位移**（G23 文中「pivot 用 VisibleBottomFraction 所以安全」只對「畫布大小」成立，對「腳底位置」不成立）。
+  - 神諭者 dead：腳底比 idle **低 10px（0.09 身高）**。兩個加起來，換外型那一下跳了約 0.3 個身高。
+  - 路西法 dead／idle 腳底都在 61px，所以天使 → 路西法看不出來（天使當時是往下掉，煙蓋住）。
+- **解法**：**修素材，不改程式**。dead 整組 25 張整數像素平移（不重取樣），讓 dead 第一幀腳底距畫布中心的 px ＝ idle 第一幀：天使往下 42px（89→47）、神諭者往上 10px（60→70）。`GameAssets` 與 `StreamingAssets/MapAssets` 兩份都改；`ShadowAnchorTable` 兩列 dead 的 `AnchorY` 同步平移（天使 119→77、神諭者 73→83）。原圖備份在 `TempImage/bloodline_Angelborn/backup_dead_shift/`。
+- **檢查習慣**：加新血統時量「dead 第一幀腳底 − 畫布高/2」與 idle 的同一個值，差超過約 0.05 身高就平移 dead。2026-11-11 全血統量過一次並修掉：差 ≥5px（≈0.03 身高）的 11 個 dead 全部往下平移——Ravager 23、Parasite 20、Fafnir 18、Bloodseeker 12、Titan 9、Swarm Emperor 9、Cain 7、Nidhogg 6、Gargoyle 6、MountainGiant 5、Foundation 5（px），影子錨點 dead 那列 `AnchorY` 同步減；1～4px 的看不出來，沒動。備份同上資料夾（`GA_`／`SA_` 前綴）。
 
 ### H1. 加了標題流程後，開場墜落動畫結束、進 MainScene 卻一片黑（沒有任何關卡被載入）
 - **症狀**：接上「標題→存讀檔」流程後，新建遊戲會正常播開場漫畫＋墜落動畫，但墜落結束載入 MainScene 後**整個畫面全黑、無錯誤訊息**；改流程前墜落後會正常出現在 Main_Cave（地圖 11）。

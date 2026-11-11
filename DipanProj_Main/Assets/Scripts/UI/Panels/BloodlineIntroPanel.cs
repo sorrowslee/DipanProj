@@ -155,7 +155,7 @@ namespace Dipan.UI
         [Tooltip("姓名底版從多低的地方飄上來（相對到位位置往下的距離）")]
         public float PlateSlideFrom = 260f;
         [Tooltip("名字在牌匾上的區域（牌匾相對錨點：x,y=左下角、w,h=寬高，0~1）。避開左右尖刺與上下中央的裝飾")]
-        public Rect NameArea = new Rect(0.20f, 0.22f, 0.60f, 0.56f);
+        public Rect NameArea = new Rect(0.20f, 0.255f, 0.60f, 0.56f);   // 2026-11-11 作者：字偏下。從截圖量：y 0.22 字心比石碑淺色區中心低 3.5px、0.32 高 7px（每 0.01≈1px）⇒ 0.255 置中
         [Tooltip("顯示名字級")]
         public int NameFontSize = 56;
         [Tooltip("血統名顏色。⚠ 石碑是淺色的，用亮色字會看不見——預設是深血紅")]

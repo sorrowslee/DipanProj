@@ -6,6 +6,7 @@
 > 借用欄位改成獨立欄，所有數值欄**空白＝預設**。舊表填法對照見文末[遷移對照](#從舊表遷移對照)。
 > **2026-09-30**：加 **`Mode=Boomerang` 迴旋**＋新欄 **`BoomerangCount`**（CSV 現為 56 欄，含之後加的骨牢 4 欄），見 [§3 Boomerang 迴旋](#boomerang-迴旋)。
 > **2026-10-01**：加 **`Mode=Familiar` 浮游**（裝備就自動攻擊：本體繞身、各自朝最近的怪射子彈）。**RecipeTable 沒有加欄**（全部沿用 `OrbitalCount`／`OrbitalRadius`／`Range`／`FireInterval`…），本體外觀三欄加在 **WeaponTable**（`FamiliarVfxId`／`FamiliarSize`／`FamiliarSpin`），見 [§3 Familiar 浮游](#familiar-浮游)。
+> **2026-11-11**：加 **`Mode=Sweep` 掃射**（巨神兵式：光束劈到腳底再沿地面掃、沿線延遲爆炸）＋新欄 **`SweepSpeed`／`SweepOriginHeight`／`ExplodeSpacing`／`ExplodeDelay`**（CSV 現為 62 欄，加在表頭最後，既有列一律留空），見 [§3 Sweep 掃射](#sweep-掃射)。⏳ 未編譯未實測。
 
 ---
 
@@ -13,7 +14,7 @@
 
 > **不想手填 CSV？用 [武器工坊](WEAPON_WORKBENCH.md)**（Unity `Project Tools → 武器工坊`）：選外型、選模式、只顯示有效欄、名稱下拉、範圍提示，Play 中立刻射出去看，滿意再存回 CSV。本文是欄位的意義與規則，工坊畫的每一欄都從同一份 `WeaponModeSpec` 來。
 
-1. **一列一種模式**：`Mode` 欄決定這列是什麼武器（一般子彈／環繞／拋物線／雷射／佛光／連鎖／落雷／召喚／法陣／近戰／突進／骨牢／迴旋），**留空＝一般子彈**。一列只能一種，互斥由結構保證，不會再有「兩個旗標都填 1 看程式先判哪個」的事。
+1. **一列一種模式**：`Mode` 欄決定這列是什麼武器（一般子彈／環繞／拋物線／雷射／佛光／連鎖／落雷／召喚／法陣／近戰／突進／骨牢／迴旋／浮游／掃射），**留空＝一般子彈**。一列只能一種，互斥由結構保證，不會再有「兩個旗標都填 1 看程式先判哪個」的事。
 2. **每種模式只吃它那幾欄**：其餘欄位就算填了也**不會被讀**（不只是警告——`RecipeEntry.FromFields` 根本不讀無效欄），Console 會在載入時印 `[RecipeTable] 配方 N：「X」對某模式無效，會被忽略`。哪些欄對哪個模式有效的**唯一真相是程式 `Assets/Scripts/Weapon/WeaponModeSpec.cs`**——本文的表是從它抄出來的；兩者不一致時以程式為準並回來修文件。
 3. **空白＝預設值**：不再有必填的數值欄。每欄的預設寫在下面總覽表；只有「本體必填」（佛光／法陣的 `GroundEffectID`、召喚的 `SummonIds`）缺了會印 Error。
 4. **欄位依名字讀、不依位置**：解析器讀第一列表頭（括號前的名字），所以欄位可以任意重排、中間插新欄；表頭括號裡的說明隨你改。`#` 開頭整列是註解。
@@ -27,7 +28,7 @@
 |---|---|---|---|---|
 | **通用** | `ID` | 整數 | — | 配方唯一識別碼，武器表用 `RecipeID` 引用 |
 | | `Name` | 字串 | — | 只給人看，程式不讀 |
-| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`／`Boomerang`／`Familiar`（不分大小寫，也接受中文名） |
+| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`／`Boomerang`／`Familiar`／`Sweep`（不分大小寫，也接受中文名） |
 | | `FireInterval` | 小數 | 0.3 | 發射間隔（秒）；Laser／Aura 無效（按住就在）；Summon＝召喚冷卻 |
 | **子彈本體** | `Speed` | 小數 | 15 | 飛行速度（世界單位/秒）；Orbital＝繞圈的切線速度 |
 | | `Radius` | 小數 | 0.1 | 碰撞半徑；Laser 改用武器表 `BeamWidth` |
@@ -44,7 +45,7 @@
 | **追蹤** | `HomingTurnSpeed` | 小數 | 0 | 追蹤轉向（度/秒）；0＝不追蹤；90 慢／180 中／360 快；Laser＝光束彎曲速度 |
 | | `HomingRadius` | 小數 | 50 | 追蹤索敵半徑（2026-11-09）：50＝全場鎖最近（舊行為，一群子彈會一起撲同一隻）；**小於 50 時只追這個半徑內的、在最近 3 隻裡隨機挑**——一群子彈分散咬不同的怪。只對 Normal |
 | | `WanderAngle` | 小數 | 0 | 飄移幅度（度，2026-11-09）：每顆子彈左右蛇行（各自隨機相位與頻率），長期平均方向不變、追蹤照樣拉得回來；0＝直飛。冤魂、螢火這類「飄」的子彈用。只對 Normal |
-| **射程／範圍** | `Range` | 小數 | 20（法陣 8、迴旋 5） | Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（≤0 也當 5）／Familiar 索敵半徑（空＝8，從玩家身上量） |
+| **射程／範圍** | `Range` | 小數 | 20（法陣 8、迴旋 5、掃射 12） | Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（≤0 也當 5）／Familiar 索敵半徑（空＝8，從玩家身上量） |
 | | `AreaRadius` | 小數 | 0 | Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑 |
 | **命中附加** | `GroundEffectID` | 整數 | 0 | 命中／落地時放一個 `GroundEffectTable` 的特效；**Aura／GroundCast 是本體、必填** |
 | | `GroundEffectHitTarget` | 列舉 | Enemy | `Enemy`／`Environment`／`Any`／`Ground`（Parabolic 落地專用） |
@@ -82,6 +83,10 @@
 | | `ParallelSpacing` | 小數 | 0.45 | 相鄰兩道的距離（世界單位） |
 | | `ParallelMaxWidth` | 小數 | 3 | 整排最寬幾單位；道數多到超過就壓縮間距 |
 | **迴旋** | `BoomerangCount` | 整數 | 1 | 趟數：飛出去再回到玩家身上＝1 趟；>1 會穿過玩家往身後再飛（鐘擺）；只有 `Mode=Boomerang`（2026-09-30 新增，見 [§3](#boomerang-迴旋)） |
+| **掃射** | `SweepSpeed` | 小數 | 12 | 光束落點沿地面往前推的速度（每秒世界單位）；只有 `Mode=Sweep`（2026-11-11 新增，見 [§3](#sweep-掃射)） |
+| | `SweepOriginHeight` | 小數 | 1.8 | 光束源點高度：從施放者腳底往上幾個「可見身高」（1.8≈頭頂上方三四個頭） |
+| | `ExplodeSpacing` | 小數 | 1.2 | 掃過的線上每隔多遠排一顆爆炸；掃描距離比間距短時只在終點炸一顆 |
+| | `ExplodeDelay` | 小數 | 0.3 | 光束掃過某一點後再過幾秒才在那裡爆炸 |
 
 ---
 
@@ -306,6 +311,27 @@ ID=86 Name=應龍水珠-浮游射擊 Mode=Familiar FireInterval=1.2 Speed=9 Radi
 道具 503 應龍護身符：EquipSlot=Amulet IconPath=UI/Icons/Equipment/amulet_waterorb PassiveWeaponIds=72   ← 掛載在護身符上，WeaponID 留空（武器型的道具 72 已移除）
 ```
 
+### Sweep 掃射
+（2026-11-11 新增，路西法之怒；作者規格：宮崎駿動畫巨神兵的大砲。⏳ 未編譯未實測。）
+
+**一發的流程**：施放者頭頂上方（腳底＋可見身高×`SweepOriginHeight`）有一個源點 → 光束 0.1 秒內**劈到自己腳底** → 落點**沿地面一路掃向瞄準點**（`SweepSpeed`）→ 掃過的線上每隔 `ExplodeSpacing` 排一顆爆炸，光束經過該點 `ExplodeDelay` 秒後炸開。
+
+- **光束本身不傷人**，傷害全在爆炸：每顆爆炸對半徑 `AreaRadius`（空＝1）×`BulletScale` 內的每個目標各結算一次武器 `Damage`；**同一隻怪被好幾顆炸到，每顆都吃**。可破壞地上物也會被炸（走 `IDamageable`）。
+- **分裂**：`SpreadCount`／`SpreadAngle` ＝ 幾道光束、扇形總角度；全部從同一個源點出發、同時掃，各道各自排爆炸。
+- **射程與牆**：朝瞄準方向**固定掃 `Range` 那麼遠**（空＝12，從腳底量；2026-11-11 作者改：只掃到滑鼠位置常常太短）；填 **-1** 才是舊行為「只掃到瞄準點」。每道從腳底朝終點打一條細射線，**撞牆就停在牆前**；配方 `BlockedByEnvironment=0` 則**不檢查牆、直接掃過牆與不可走區域**（路西法之怒是 0）。遠射珠加的就是 `Range`。
+- **冷卻**：＝`FireInterval`，**從施放那一刻算**，不等整發播完——上一發還在掃，下一發就能出去，好幾發會疊在一起（2026-11-11 作者改，讓疾發珠有感；原本的「整發播完才能再發」發射鎖已拿掉）。按一下或按住都行。
+- **源點跟著人走**（光束上端會隨施放者移動），但地面掃描路徑在施放當下就鎖定。施放者中途死亡／被移除 ⇒ 光束淡出、還沒炸的全部取消。
+- **源點光球**：源點有一顆同 `BeamColor` 的能量球（直徑＝可見身高×0.16≈一顆頭，外圈柔光＋偏白亮芯、輕微脈動），光束從它射出；光束掃完時跟著淡出。程式生成、不吃素材，常數在 `SweepStrike` 檔頭（`OrbDiameterRatio` 等）。
+- **外觀（WeaponTable）**：光束吃 `BeamStyle`／`BeamColor`／`BeamWidth`（同雷射，見 [LASER.md](LASER.md)）；爆炸特效＝`HitEffectID`；`BulletScale`＝爆炸大小（半徑與特效一起放大，須彌珠）。
+- **玩家與怪物共用**：`Scripts/Weapon/SweepStrike.cs`（`SweepStrike.Cast` 回傳整發秒數）。玩家走 `PlayerController.Shoot`（不需要 BulletPrefab），怪物走 `MonsterWeaponUser.TryUse`（擋光束的只有 Environment 層，水不擋）。首領／怪物填 `WeaponId` 指到 Sweep 武器即可。
+- 刻意不吃：集氣、連擊（整發本來就長，疊上去發射鎖語意會亂；要開再談）。光束本身用 `LaserBeam` 靜態折線每幀重餵（同連鎖閃電的視覺），沒有改 BallisticsSystem。
+
+```
+ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 SpreadCount=3 SpreadAngle=30 Range=18 AreaRadius=2 SweepSpeed=12 SweepOriginHeight=1.15 ExplodeSpacing=1.2 ExplodeDelay=0.3   （Range 18 ≈ 一個畫面寬：正交 size 5 ⇒ 高 10、16:9 寬 17.8）
+武器 78 路西法之怒：Damage=8 ManaCost=0 BeamStyle=2 BeamColor=1（紅）BeamWidth=0.25 HitEffectID=60（路西法之怒爆炸＝Explosions/stylized_explosion_003 紅，2026-11-11 作者在特效預覽器挑的）
+道具 78 路西法之怒（長劍）：EquipSlot=Weapon WeaponID=78 IconPath=UI/Icons/Equipment/icon_luciferwrath
+```
+
 ### 3.12 `SubRecipeID` vs `SubWeaponOnHit`（兩個都叫 Sub，別搞混）
 
 | | `SubRecipeID` | `SubWeaponOnHit` |
@@ -389,6 +415,7 @@ ID=86 Name=應龍水珠-浮游射擊 Mode=Familiar FireInterval=1.2 Speed=9 Radi
 - 聚氣珠改的 `ChargeTimeReduction` 表裡存百分點（30＝縮短 30%），所以珠子填**固定值** 10/20/40 就是加百分點；`ChargeMode=0` 的武器鑲了沒感覺（模式判有效，但集氣沒開）。
 - **迴旋（Boomerang，不在上表）**：迅捷（`Speed`）、遠射（`Range`＝每趟距離）、銳利、須彌、疾發、省魔有效；反彈、穿透、綿延、追蹤、分裂、廣角、聚氣、連擊、平行**無效**（穿透本來就無限、壽命自動算）。
 - **浮游（Familiar，不在上表）**：**群環**（`OrbitalCount`＝本體數量）、**環距**（`OrbitalRadius`）、**疾發**（每個本體的間隔）、**銳利**、**須彌**（＝子彈大小，本體不變）、**遠射**（`Range`＝索敵半徑），以及一般子彈那一套（反彈、穿透、迅捷、追蹤、分裂、廣角、綿延、平行）、省魔都有效；**聚氣、連擊無效**（沒有扳機）。
+- **掃射（Sweep，不在上表）**：銳利（每顆爆炸傷害）、須彌（爆炸半徑與特效）、分裂／廣角（光束道數與扇形）、遠射（`Range`＝最遠掃描距離）、疾發（＝冷卻，從施放算起）、省魔有效；`AreaRadius` 的珠子也會吃。四個掃射專屬欄目前沒有對應珠子；聚氣、連擊無效。
 - 每顆珠子的白話說明與範例（拿現有武器算數字）見 [GEM_CATALOG.md](GEM_CATALOG.md)。
 - 要加新珠子：`GemTable.Field` 填 RecipeTable／WeaponTable 的欄名，有效性自動從 `WeaponModeSpec` 推導，**不用另外維護**。填了不存在的欄名載入時會 Warning。
 

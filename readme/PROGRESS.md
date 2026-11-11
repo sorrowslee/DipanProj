@@ -4,6 +4,31 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **夢境教學血統改回隨機**（2026-11-11，作者測完路西法之怒）：`DreamTutorialFlow.DebugForceBloodlineId` 112→0。
+* [x] **掃射可穿牆＋冷卻改從施放算起（⏳ 未編譯未實測）**（2026-11-11，作者：光束被不可走區域擋住很怪、冷卻要短且能靠珠子調）：Sweep 開放 `BlockedByEnvironment`（0＝不檢查牆、直接掃過）；冷卻改成單純 `FireInterval` 從施放算起（拿掉「整發播完才能再發」的發射鎖，玩家與怪物都是），疾發珠才有感。配方 93：`BlockedByEnvironment`=0、`FireInterval` 0.3→1（實際出手間隔約 2.8→1 秒）。
+* [x] **掃射改成「朝滑鼠方向固定掃 Range 那麼遠」（⏳ 未編譯未實測）**（2026-11-11，作者試打：只掃到滑鼠位置常常太短）：`SweepStrike.Cast` 掃描長度改成 `Range`（>0 時不管滑鼠多近都掃滿；-1＝舊行為只到滑鼠）；遠射珠可加。配方 93 `Range`=18（≈ 一個畫面寬）。整發變長：掃描 18÷12＝1.5 秒＋延遲＋爆炸，約 2.8 秒才能再發。
+* [x] **路西法之怒光球畫成方塊 → 修正（⏳ 未實測）**（2026-11-11，作者回報）：`Custom/AdditiveGlow` 只讀貼圖 rgb、不看 alpha，第一版貼圖 rgb 全白、只有 alpha 是圓 ⇒ 整張方形都亮。改成亮度寫進 rgb（預乘）、衰減改 (1−r²)² 連續柔光（無硬邊）；外圈 1.6 倍、亮芯 0.5 倍。
+* [x] **其他血統的 dead 腳底一併對齊 idle（⏳ 未實測）**（2026-11-11，作者要求，接 G24）：差 ≥5px 的 11 個血統 dead 整組往下平移（Ravager 23、Parasite 20、Fafnir 18、Bloodseeker 12、Titan 9、Swarm Emperor 9、Cain 7、Nidhogg 6、Gargoyle 6、MountainGiant 5、Foundation 5 px），GameAssets／StreamingAssets 兩份，影子錨點 dead 列同步；1～4px 的沒動。
+* [x] **路西法之怒：源點加紅色能量球（⏳ 未編譯未實測）**（2026-11-11，作者要求）：`SweepStrike` 在光束源點畫一顆同 `BeamColor` 的光球（直徑＝可見身高×0.16≈一顆頭；程式生成圓形柔光貼圖、加色材質 `Custom/AdditiveGlow`，外圈＋偏白亮芯兩層、6Hz 輕微脈動），跟著施放者移動，光束掃完時一起淡出；材質 OnDestroy 收掉。
+* [x] **神諭者 → 天使變身時人物往上跳一截（⏳ 未實測）**（2026-11-11，作者回報）：dead 素材的腳底位置跟 idle 不一致（天使趴姿高 0.20 身高、神諭者低 0.09），換外型那一下差約 0.3 身高。天使 dead 整組往下 42px、神諭者往上 10px（整數像素平移，GameAssets／StreamingAssets 兩份），影子錨點 dead 兩列同步。詳見 PROBLEMS **G24**。
+* [x] **血統揭示面板：石碑上的名字往上移（⏳ 未實測）**（2026-11-11，作者截圖回報名字偏下）：`BloodlineIntroPanel.NameArea.y` 0.22→0.32（作者看過太高）→ **0.255**（量兩張實機截圖：0.22 低 3.5px、0.32 高 7px，內插讓字心對齊石碑淺色區中心；全部血統共用）。⚠ 一開始誤會成移整塊石碑（`PlateYFromFrameBottom` 105→150→220），已改回 105。
+* [x] **天使系列 BodyScale 再調（⏳ 未實測）**（2026-11-11，作者指定）：表B 神諭者 1.3→1.2、天使 1.5→1.6、路西法 1.4→1.5，Note 與 BLOODLINE §8 同步。
+* [x] **路西法之怒實機調整（⏳ 未實測）**（2026-11-11，作者看過第一版）
+  - 爆炸放大：VfxTable 60 `Scale` 2→6、配方 93 `AreaRadius` 1→3；作者再看覺得太大，縮 1/3 → **`Scale` 4、`AreaRadius` 2**。
+  - 光束源點太高：`SweepOriginHeight` 1.8→1.15（頭頂再往上約一顆頭）。
+  - 加分散：`SpreadCount`=3、`SpreadAngle`=30（三道光束同時掃）。夢境教學用的也是武器 78，一起生效。
+* [x] **路西法之怒換爆炸特效（⏳ 未實測）**（2026-11-11，作者在特效預覽器挑 `Explosions/stylized_explosion_003` 紅色）
+  - 14 幀原圖（128×96 像素風）複製到 `Resources/VfxEffects/LuciferWrathExplosion/`，改名 `_01`～`_14`；每張 `.meta` 與資料夾 `.meta` 以 BloodFireBurst 為範本（Point 濾鏡、PPU 100）換新 GUID。
+  - VfxTable 新增 **60**（14 張、15fps、`Scale` 2＝畫面約 2.6 寬，配爆炸半徑 1；實機再調），WeaponTable 78 `HitEffectID` 1→60。整發的發射鎖會自動把爆炸長度算成 14÷15≈0.93 秒。
+* [x] **路西法之怒做成道具長劍＋夢境教學暫時固定路西法（⏳ 未實測）**（2026-11-11，作者要求）
+  - ItemTable 新增 **78 路西法之怒**（`EquipSlot=Weapon`、`WeaponID=78`、說明「長劍」），作弊面板（L）「給道具」輸入 78 就能拿到、一般裝備使用。
+  - 新 icon `UI/Icons/Equipment/icon_luciferwrath.png`（500×500，ChatGPT 燃燈劫專案出圖：黑鋼長劍、骨白／黑雙翼護手、深紅血槽、柄頭紅寶石；灰底去背，`.meta` 以 icon_soulhand 為範本換新 GUID）。原圖在 `TempImage/bloodline_Angelborn/work/luciferwrath_icon_gpt.png`。
+  - ⚠ `DreamTutorialFlow.DebugForceBloodlineId` 暫改 **112**（每次夢境教學都是路西法，Console 會印黃色警告），**測完要改回 0**。
+* [x] **新武器模式 `Sweep` 掃射＋路西法專屬武器「路西法之怒」（⏳ 未編譯未實測）**（2026-11-11，作者規格：巨神兵的大砲）
+  - 一發：頭頂上方（腳底＋可見身高×`SweepOriginHeight`）的源點，光束先劈到腳底，再沿地面掃向滑鼠；掃過的線上每隔 `ExplodeSpacing` 排爆炸、延遲 `ExplodeDelay` 炸開。光束不傷人，每顆爆炸對半徑內每個目標各吃一次 `Damage`；吃 `SpreadCount`／`SpreadAngle`（多道同掃）；撞牆就停；整發（含最後一顆爆炸特效）播完才能再發（冷卻＝整發秒數＋`FireInterval`）。
+  - 程式：`WeaponModeSpec` 加模式＋4 欄（工坊自動跟上）、`RecipeEntry` 讀欄（Range 空＝12、AreaRadius 空＝1）、**新檔 `Scripts/Weapon/SweepStrike.cs`**（玩家怪物共用：光束用 `SpawnChainVisual` 靜態折線每幀重餵，爆炸排程，擁有者死亡即中止）、`PlayerController.Shoot` 與 `MonsterWeaponUser.TryUse` 各加一個分支。BallisticsSystem 沒動。
+  - 資料：RecipeTable 表頭最後加 4 欄（62 欄，既有列留空）＋配方 93；WeaponTable 78（傷害 8、紅色標準光束 0.25、爆炸特效暫代 VfxTable 1）；表B 112 路西法 `DreamWeaponId` 66→78。
+  - 文件：RECIPE_DESCRIBE〈Sweep 掃射〉、RECIPE_AND_WEAPON、LASER、BLOODLINE §8、TODO。
 * [x] **神諭者攻擊只播到「收杖」→ 表B `AttackFrameRange`=`1-12`（⏳ 未實測）**（2026-11-11，作者回報；作者同日換成 12 幀新攻擊圖）
   - 自動判斷只播 #1-4（後拉蓄力段），前揮 #6-10 完全沒播。原因同 G20 類：12 格跟站姿的輪廓差全在 0.45～0.65、曲線平（振幅 31%），「第一次到峰值 90%」落在 #4；保底要「振幅 <35% **且** 播放比 <20%」才整段照播，這組 33% 沒觸發。照作者規則填覆寫欄不改全域規則；取整段 1-12（#12≈#1，按住連發接得順）。
   - ⚠ 順手修正本人前一筆的失誤：更新天使三階 Note 時用了字串全域取代，誤把 50 築基期／60 蛟人／70 龍奴／80 寄生體 的 Note 也改成「2026-11-11 作者實機定」——已從 git HEAD 還原這 4 行（只有 Note 文字被改、數值未動）。

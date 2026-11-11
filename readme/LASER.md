@@ -4,6 +4,8 @@
 
 > 返回 [文件總覽](README.md)
 
+> **掃射（`Mode=Sweep`，2026-11-11）** 的光束也用本文的 `BeamStyle`／`BeamColor`／`BeamWidth` 與 `SpawnChainVisual` 靜態折線（每幀重餵兩點：源點→地面落點），但光束不傷人、傷害在沿線爆炸，見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Sweep 掃射〉。
+
 > Pack 4 像素化、可無限延伸並在牆面多次反射的實作與武器「鏡界折光」，另見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
 
 持續掃射型雷射武器。與「會飛的子彈」本質不同——它是「一條當下就存在的線」，不適用 `BulletInstance`（會移動的點）與 `IBulletBehavior`（為移動設計），因此**新增獨立的 `LaserBeam` 核心元件**，與 `BulletInstance` 平級。設計上仍嚴守解耦邊界：**彈道系統只管幾何 + 渲染 + 回報命中，絕不結算傷害**。

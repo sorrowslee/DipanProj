@@ -36,6 +36,8 @@ public enum WeaponMode
     Boomerang,
     /// <summary>浮游：裝備就常駐，本體繞著玩家轉，射程內有怪就各自從本體射子彈（不用按攻擊鍵）。</summary>
     Familiar,
+    /// <summary>掃射（巨神兵式）：頭頂上方一道光束先連到腳底，再沿地面掃向滑鼠；掃過的線上每隔一段排程爆炸，光束本身不傷人。</summary>
+    Sweep,
 }
 
 /// <summary>欄位值的型別（給載入檢查與未來「武器效果模擬」面板產輸入框用）。</summary>
@@ -240,7 +242,7 @@ public static class WeaponModeSpec
             F(R, "WanderAngle",     FieldKind.Float, "追蹤", "飄移幅度（度）", "0", 0f, 90f, "每顆子彈左右蛇行擺盪的角度（各自隨機相位）；0＝直飛。冤魂、螢火這類「飄」的子彈用"),
 
             // ── 射程／範圍（語意一致的共用欄）──
-            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）／Familiar 索敵半徑（空=8）"),
+            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）／Familiar 索敵半徑（空=8）／Sweep 掃描長度（空=12、-1＝只到滑鼠）"),
             F(R, "AreaRadius", FieldKind.Float, "射程範圍", "範圍半徑", "", 0f, 50f, "Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑"),
 
             // ── 命中附加 ──
@@ -315,6 +317,16 @@ public static class WeaponModeSpec
             // ── 迴旋（只有 Mode=Boomerang）──
             F(R, "BoomerangCount", FieldKind.Int, "迴旋", "迴旋次數", "1", 1, 16,
               "飛出去再回到玩家身上算一次；大於 1 會穿過玩家往身後再飛（像鐘擺）；最後一次回到手上才消失"),
+
+            // ── 掃射（只有 Mode=Sweep）──
+            F(R, "SweepSpeed",        FieldKind.Float, "掃射", "掃描速度", "12", 0.5f, 200f,
+              "光束落點沿地面往前推的速度（每秒世界單位）；越快整發越短"),
+            F(R, "SweepOriginHeight", FieldKind.Float, "掃射", "光束源點高度（身高倍數）", "1.8", 0f, 20f,
+              "從施放者腳底往上算幾個「可見身高」；1.8≈頭頂上方三四個頭"),
+            F(R, "ExplodeSpacing",    FieldKind.Float, "掃射", "爆炸間距", "1.2", 0.1f, 50f,
+              "掃過的線上每隔多遠排一顆爆炸（世界單位）；掃描距離短於間距時只在終點炸一顆"),
+            F(R, "ExplodeDelay",      FieldKind.Float, "掃射", "爆炸延遲（秒）", "0.3", 0f, 10f,
+              "光束掃過某一點之後再過幾秒才在那裡爆炸"),
 
             // ── WeaponTable：通用 ──
             F(W, "ID",       FieldKind.Int,   "通用", "武器 ID", "", 1, 99999, "與 ItemTable 同號", universal: true),
@@ -486,6 +498,17 @@ public static class WeaponModeSpec
             .Lbl("FireInterval", "每個本體的發射間隔（秒）").Lbl("Range", "索敵半徑（空=8）")
             .Lbl("OrbitalRadius", "環繞半徑").Lbl("OrbitalCount", "本體數量").Lbl("Speed", "子彈飛行速度")
             .Lbl("BulletScale", "子彈大小").Lbl("FireEffectID", "發射特效 ID（在本體位置播）");
+
+        // 掃射（巨神兵式）：光束本身不傷人，傷害全在沿線排程的爆炸（每顆對半徑內每個目標各結算一次 Damage）。
+        // 冷卻＝FireInterval，從施放算起（2026-11-11 起不等整發播完，疾發珠才有感）；BlockedByEnvironment=0 ⇒ 掃過牆。
+        // ⚠ 刻意不吃：集氣／連擊（整發本來就長，再疊連擊會把發射鎖的語意弄亂；要開再談）。
+        M(d, WeaponMode.Sweep, "掃射", "頭頂上方的光束先連到腳底，再沿地面朝滑鼠方向掃出 Range 的長度；掃過的線上每隔一段延遲爆炸。光束不傷人、預設撞牆就停（BlockedByEnvironment=0 掃過牆）；冷卻從施放算起，多發可以疊在一起")
+            .Eff("FireInterval", "Range", "AreaRadius", "BlockedByEnvironment").Eff(Multi)
+            .Eff("SweepSpeed", "SweepOriginHeight", "ExplodeSpacing", "ExplodeDelay")
+            .Eff("Damage", "HitEffectID", "BulletScale").Eff(BeamVisual)
+            .Lbl("FireInterval", "冷卻（秒，從施放算起，不等整發播完）").Lbl("BlockedByEnvironment", "光束被牆擋（0＝掃過牆與不可走區域）").Lbl("Range", "掃描長度（朝滑鼠方向固定掃這麼遠，從腳底量；空＝12；-1＝只掃到滑鼠位置；撞牆提前停）")
+            .Lbl("AreaRadius", "每顆爆炸半徑").Lbl("SpreadCount", "光束道數").Lbl("SpreadAngle", "多道光束的扇形總角度（度）")
+            .Lbl("Damage", "每顆爆炸的傷害").Lbl("HitEffectID", "爆炸特效 ID").Lbl("BulletScale", "爆炸大小（半徑與特效）");
 
         return d;
     }
