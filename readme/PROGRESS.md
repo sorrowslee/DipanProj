@@ -4,6 +4,19 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **神諭者攻擊只播到「收杖」→ 表B `AttackFrameRange`=`1-12`（⏳ 未實測）**（2026-11-11，作者回報；作者同日換成 12 幀新攻擊圖）
+  - 自動判斷只播 #1-4（後拉蓄力段），前揮 #6-10 完全沒播。原因同 G20 類：12 格跟站姿的輪廓差全在 0.45～0.65、曲線平（振幅 31%），「第一次到峰值 90%」落在 #4；保底要「振幅 <35% **且** 播放比 <20%」才整段照播，這組 33% 沒觸發。照作者規則填覆寫欄不改全域規則；取整段 1-12（#12≈#1，按住連發接得順）。
+  - ⚠ 順手修正本人前一筆的失誤：更新天使三階 Note 時用了字串全域取代，誤把 50 築基期／60 蛟人／70 龍奴／80 寄生體 的 Note 也改成「2026-11-11 作者實機定」——已從 git HEAD 還原這 4 行（只有 Note 文字被改、數值未動）。
+* [x] **天使血統實機調整：神諭者 dead 縮小、三階 BodyScale（⏳ 未實測）**（2026-11-11，作者截圖回報）
+  - 神諭者 dead 比其他動作大：量第一幀（站姿）人物高 idle 113px vs dead 134px（大 19%，寬也大 15%）。原因是 `PlayerAnimator.Setup` 對 dead **刻意不做體積正規化**（躺姿本來就矮，正規化會被放大），所以素材畫大就直接大。修素材：25 張以腳底（x=128, y=195）為中心縮 113/134≈0.84 倍、畫布維持 256×256（RGBa 預乘縮放避免黑邊）；縮完 dead 第一幀 114px≈idle。原圖在 git。
+  - 表B `BodyScale`：神諭者 1→1.3、天使 1→1.5、路西法 1→1.4（作者指定），Note 欄同步。
+  - 同日追加：**天使 dead 反而小三成**——idle 有展開的翅膀，改用程式同一把尺 √(高×√面積) 比第一幀：idle/dead＝1.348（同法量神諭者縮後 0.993、路西法 0.992，都不用動）。放大會撞 256 畫布 ⇒ 25 張以腳底 (128,193) 為中心放大 1.348、**畫布對稱加大成 308×308**（水平中心不動）；縮完比值 1.000、零裁切。畫布變大是安全的（PPU 與畫布無關、pivotY 有除畫布高、影子表自帶 CanvasW/H），寫成 PROBLEMS **G23**。
+  - 通則（G23）：新血統要量「dead 第一幀 vs idle 第一幀」的體積尺度，偏離超過一成就修素材，別期待程式補。
+* [x] **作弊面板加「動作」分頁：主角輪播指定動作（含 dead）（⏳ 未編譯未實測）**（2026-11-11，作者需求：地圖裡測得到 idle/walk/attack，dead 看不到）
+  - 作者定的 UI：L 面板新分頁，idle／walk／attack／dead 四顆**互斥** toggle、可全關；開一顆主角就一直輪播。
+  - `PlayerAnimator.PreviewState`（static `State?`）：預覽中忽略 PlayerController 每幀的 `SetState`（真死 Dead 例外＝關預覽照常死）、`StartAttack` 不受理；姿勢表演（倒下／爬起）優先、演完回到預覽；Setup（換血統）重設狀態後下一幀自動重新進入。dead／attack 本為一次性，預覽時末幀停 `PreviewEndHold`=0.6 秒再重播；attack 播全部幀（逐張檢查素材，不是實戰的起播～結束幀）；walk 用滿速（站著不動照實戰會被速度連動壓慢）。幾何跟著預覽走（dead 時影子用 dead 錨點、血統特效關）。
+  - 同日追加（作者）：玩家用 WASD 移動或真的攻擊出去就自動結束預覽，再開 L 按鈕是關的。`PlayerController.HandleVisuals` 看 `_moveInput`（被擊退不算）、`TriggerAttackPose` 開頭（真的發射成功才算）各呼叫一次 `PlayerAnimator.EndPreview()`——它同時清 static 與 `_inPreview`，否則 Update 的「剛關預覽」分支會在同一幀後把狀態重設成 Idle，吃掉剛起手的攻擊。
+  - 面板顯示目前血統與四個動作的幀數，沒圖的動作會 toast 提示。說明寫進 BLOODLINE.md〈新血統素材的實機檢查〉。
 * [x] **立繪測試 NPC：跟它講話會用「目前血統」輪播主角六種情緒立繪（⏳ 未實測）**（2026-11-11，作者需求：新增血統後一輪對話就能檢查該角色每張立繪）
   - **純資料、零程式**：每個血統的 `Characters/Talk/<血統>/` 都是同一組 6 張（normal/happy/angry/cry/fear/hurt），`Actor_<情緒>` 本來就會依當下血統解析 ⇒ 開一個對話群組 6 句、每句換一個 `Actor_*` 即可。
   - 落點：`DramaTalkTable` 253～258（群組 86，主角放**右側**＝實際劇情最常見的位置、會被鏡像，順便驗翻轉後的對齊）、`DramaTable` 89（TalkGroup 86）、`LanguageTable` 9901～9906（新開「開發測試用 9901–9999」段）、`Maps/Future/Future_Arena.dipanmap` 的「測試說話npc」dramaId 23→89（原本借用邪佛廣場的測試對話）。
@@ -13,6 +26,7 @@
   ② **進專案**：`Talk/Angelborn/{Oracle,Angel,Lucifer}/<情緒>.png`、`Resources/.../bloodline/bloodline_Angelborn.png`（.meta 以 Qingqiuborn 為範本換 GUID）、**序列圖暫代**＝靈根築基期／血伯爵／該隱（只複製 png）。
   ③ **資料（只新增列、零程式改動）**：表A 第 11 列（`DreamDramaId`=88）、表B 110～112（路西法 `DreamWeaponId` 暫借雷雨天罰 66）、ItemTable 3110～3112、BaseBloodRoll 3110、ShadowAnchorTable 12 列（暫代複製）、PortraitTable 18 列、夢境台詞 drama 88／TalkGroup 85／DramaTalk 252／LanguageTable 1015（中英）。`git diff --stat`：9 檔 41 行，全是新增。
   ④ **新坑**：這次瀏覽器工具的 `file_upload`、`browser_batch` 都被關掉（核准無法彈出），改請作者拖兩次圖；紫色系角色用舊去背會把紫色洗成灰——新工具 `cutout_magenta_keep.py`／`defringe.py`／`fill_small_holes.py`／`fit_manual.py`（在 `TempImage/bloodline_Angelborn/tools/`）。寫進 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.5（含作者這次的審稿口味）；現況 [BLOODLINE.md](BLOODLINE.md) §8；待辦 [TODO.md](TODO.md)〈天使血統〉。工作檔在 `TempImage/bloodline_Angelborn/`（各版本 `out/*_vN.png` 都留著）。**作者要做：Unity 跑 Sync Map Assets；AutoSprite 用 `out/{Oracle,Angel,Lucifer}_base_1024.png`。**
+  - 2026-11-11 後續：作者換正式序列圖，已刪除 `ShadowAnchorTable.csv` 的 `characters/angelborn/*` 12 列暫代錨點（222→210 行）；⏳ 待作者跑「計算影子錨點」重算。
 * [x] **血狂之爭實測第二輪五項（⏳ 未編譯未實測）**（2026-11-10，作者回報）：
   ① **該隱大門引路第二句**「屬下就送到這兒了」跟後面還是他帶路矛盾 → LanguageTable 3041 改「前面就是迎賓大廳……請您隨屬下來。」。
   ② **狂族士兵走路比站著大**：演出演員與地圖 NPC 沒吃怪物表的逐動作倍率（[PROBLEMS.md](PROBLEMS.md) **G21**）。新增 `MonsterAnimator.RelativeScalesFor`，`CutsceneActor.Npc`／`NpcSpawner` 改傳「相對 idle」的倍率（idle 大小不變）。⚠ 連帶影響所有演出演員／NPC 的 walk／attack 大小（戰狼、血術士等表裡有填倍率的都會跟怪物本體一致）。

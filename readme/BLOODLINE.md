@@ -186,7 +186,8 @@ Unity 怎麼算 bounds 影響。
 ### `AttackFrameRange`：手填攻擊播放範圍（2026-11-10 加，第 30 欄＝索引 29）
 
 - 格式 `起-迄`，**1 起算、含頭尾**，數字就是序列圖檔名的編號（`5-17`＝播 `_05`～`_17`）。**留空＝自動判斷**（起播幀跳過起手、結束幀＝輪廓差第一次到峰值 90% 再多 1 格，見 ACTORS_AND_COMBAT 2b）。
-- 目前只有鍾馗（91）填 `5-17`：他是先高舉再往下劈，刀舉最高時輪廓最大，自動判斷會在舉刀那格就停（[PROBLEMS.md](PROBLEMS.md) **G20**）。
+- 目前有填的：鍾馗（91）`5-17`：他是先高舉再往下劈，刀舉最高時輪廓最大，自動判斷會在舉刀那格就停（[PROBLEMS.md](PROBLEMS.md) **G20**）。
+  神諭者（110）`1-12`（2026-11-11，12 幀）：後拉蓄力 #1-4 → 舉杖 #5 → 前揮刺到底 #6-10 → 收回 #11-12。每格跟站姿的輪廓差都在 0.45～0.65（曲線平、振幅 31%），自動判斷把 #4（後拉到底）當成出手到底、只播 #1-4＝玩家看到的是「收杖」；而播放比 33% ≥ 保底門檻 20%，「曲線平就整段照播」的保底沒觸發。
 - ⭐ **作者定的規則：之後新序列圖被自動判斷抓錯（播太短、停在半空、播到多餘的第二拳），一律填這欄解決**，不改全域規則、不重做圖。
 - 寫入點：`BloodlineSystem.ApplyTo` → `PlayerAnimator.SetAttackRangeOverride`（每次套用血統都寫；換回別的血統自動清掉）。格式錯會印警告並退回自動判斷。
 
@@ -212,6 +213,13 @@ Unity 怎麼算 bounds 影響。
 現在血統不碰數值，這個坑自然不存在；未來接屬性系統時要記得這件事。
 
 ---
+
+### 新血統素材的實機檢查（2026-11-11）
+
+加完一個血統後，兩個工具可以一輪看完它的所有素材（都依**主角目前血統**，先把主角換成要測的血統）：
+
+- **立繪**：`Maps/Future/Future_Arena.dipanmap` 的「測試說話npc」（DramaTable 89 → DramaTalkTable 群組 86）——6 句對話依序輪播 `Actor_Normal/Happy/Angry/Cry/Fear/Hurt`，主角放右側（會被鏡像）。日後若加第 7 種情緒，要在群組 86 補一句。
+- **序列圖動作**：作弊面板（**L**）→「動作」分頁，idle／walk／attack／dead 四顆互斥開關，開一顆主角就一直輪播那個動作（關掉面板觀看；再按亮著的那顆＝全關，玩家用 WASD 移動或真的攻擊出去也會自動關）。dead／attack 播完停 0.6 秒再重播，attack 播**全部幀**；預覽 dead 時影子用 dead 錨點、身上血統特效關閉，跟真的倒地一樣，可順便驗影子錨點。實作：`PlayerAnimator.PreviewState`（static，換血統持續生效、真死會自動關掉、不存檔）；自動關由 `PlayerController` 呼叫 `PlayerAnimator.EndPreview()`——看玩家輸入 `_moveInput` 不看速度（被擊退不算），攻擊看 `TriggerAttackPose`（真的發射成功才算）。
 
 ## 3. 道具
 
@@ -1172,7 +1180,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 - **玩家沒地方「事後」查自己的血統與階段**——喝下去當下有立繪揭示面板，但之後就沒地方看了。等角色資訊面板
 - `SkillId` 仍是死欄（技能系統不存在）
 - 目前十一個系列（殭屍、血族、狂族、土裔、靈根、雲龍、熾龍、蟲族、萬魂、青丘、天使），資料都齊（萬魂、天使的序列圖暫代，見下）；再加系列照 §7 走。**雲龍／熾龍的 `BodyScale` 以鬼差為 1：鍾馗 1.7、酆都 1.3（2026-11-09 作者看過正式序列圖後指定）、`WalkSpeed` 留空、五屬性是佔位值，六個血統都還沒實機看過**；尼德霍格的神格特效已填（§5b）、應龍的神格三層已清空改由被動武器應龍水珠撐（§5e），都還沒實機看過。狂族的立繪除了 `normal` 之外目前是暫代圖（與旱魃同一張），美術到了直接覆蓋檔案即可
-- **天使系列（2026-11-11 加）目前的狀態**：表A 第 11 列（`DreamDramaId`=88）、表B 110～112（`BodyScale` 全填 1、`WalkSpeed` 留空、五屬性佔位，都待實機）、三瓶藥劑 3110／3111／3112、血統池 3110（權重 10）、成品瓶 `bloodline_Angelborn`（乳白微金液、雙翼光環紋章、銀白尖頂瓶塞＋金光環）、三組立繪（6 情緒；**天使、路西法都是寬體型 1536×1024**，作者 2026-11-11 指定，PortraitTable 比照九尾天狐 1.2／−180／OuterToScreen 1 起手；神諭者 1.15／−139）、夢境台詞 drama 88（`lang:1015`）。⚠ **序列圖是暫代**：`SequenceImage/Angelborn/{Oracle,Angel,Lucifer}` 複製自靈根築基期／血伯爵／該隱（只複製 png）；作者用 AutoSprite 以 `TempImage/bloodline_Angelborn/out/{Oracle,Angel,Lucifer}_base_1024.png` 產正式圖後整個覆蓋，**先刪 `ShadowAnchorTable` 的 `characters/angelborn/*` 12 列再跑「計算影子錨點」**。⚠ 路西法 `DreamWeaponId` **暫借雷雨天罰 66**，專屬夢境武器（光暗雙屬性斬擊／黑白羽刃）與神格特效（六翼緩慢開合、黑白能量流）待設計。路西法的角色圖因六翼太寬，人物比規格小約 9%，`BodyScale` 實機時可補。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.5。
+- **天使系列（2026-11-11 加）目前的狀態**：表A 第 11 列（`DreamDramaId`=88）、表B 110～112（`BodyScale` 2026-11-11 作者實機定：神諭者 1.3／天使 1.5／路西法 1.4；`WalkSpeed` 留空、五屬性佔位，待實機）、三瓶藥劑 3110／3111／3112、血統池 3110（權重 10）、成品瓶 `bloodline_Angelborn`（乳白微金液、雙翼光環紋章、銀白尖頂瓶塞＋金光環）、三組立繪（6 情緒；**天使、路西法都是寬體型 1536×1024**，作者 2026-11-11 指定，PortraitTable 比照九尾天狐 1.2／−180／OuterToScreen 1 起手；神諭者 1.15／−139）、夢境台詞 drama 88（`lang:1015`）。（2026-11-11 正式序列圖已到；神諭者 `dead` 原圖人物比 idle 大 19%——dead 不做體積正規化，所以 25 張以腳底為中心縮到 113/134≈0.84 倍，與 idle 等高；天使 `dead` 反而小三成，25 張放大 1.348 倍、畫布加大成 308×308，見 PROBLEMS **G23**。）⚠ 以下為暫代期的原紀錄：**序列圖是暫代**：`SequenceImage/Angelborn/{Oracle,Angel,Lucifer}` 複製自靈根築基期／血伯爵／該隱（只複製 png）；作者用 AutoSprite 以 `TempImage/bloodline_Angelborn/out/{Oracle,Angel,Lucifer}_base_1024.png` 產正式圖後整個覆蓋，**先刪 `ShadowAnchorTable` 的 `characters/angelborn/*` 12 列再跑「計算影子錨點」**。⚠ 路西法 `DreamWeaponId` **暫借雷雨天罰 66**，專屬夢境武器（光暗雙屬性斬擊／黑白羽刃）與神格特效（六翼緩慢開合、黑白能量流）待設計。路西法的角色圖因六翼太寬，人物比規格小約 9%，`BodyScale` 實機時可補。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.5。
 - **青丘系列（2026-11-10 加）目前的狀態**：表A 第 10 列（`DreamDramaId`=84）、表B 100～102（五屬性佔位、`BodyScale` 靈狐 1.1／玄狐 1.4／九尾天狐 1.5（作者 2026-11-10 實機後定）、玄狐 `AttackAnimSpeed` 0.7、`WalkSpeed` 留空）、三瓶藥劑 3100／3101／3102、血統池 3100（權重 10）、成品瓶 `bloodline_Qingqiuborn`、三組立繪（6 情緒；**九尾天狐是寬體型 1536×1024**，PortraitTable 比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，另兩階 1.15／−139）、夢境台詞 drama 84（`lang:1014`）。⚠ **序列圖是暫代**：`SequenceImage/Qingqiuborn/*` 複製自靈根三階（築基期／元嬰期／化神期，只複製 png）；作者用 AutoSprite 以 `TempImage/bloodline_Qingqiuborn/out/*_base_1024.png` 產正式圖後整個覆蓋，**先刪 `ShadowAnchorTable` 的 `characters/qingqiuborn/*` 12 列再跑「計算影子錨點」**。⚠ 九尾天狐 `DreamWeaponId` **暫借焚獄炎杖 69**（§5d 規定三階一定要填，否則夢裡空手卡在發射教學），專屬夢境武器（幻術／分身／狐火）待設計；神格特效未指派。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7。
 - **萬魂系列（2026-11-09 加）目前的狀態**：兩張表、三瓶藥劑（3090／3091／3092）、血統池 3090（權重 10）、icon 成品瓶 `bloodline_Soulborn`、三組立繪（6 情緒）都齊，⚠ **序列圖是暫代**：`SequenceImage/Soulborn/{Warden,ZhongKui,Fengdu}` 目前是複製自龍奴／尼德霍格／該隱（只複製 png、沒帶 .meta），作者用 AutoSprite 產好正式圖後**整個資料夾覆蓋**即可。影子錨點表那 12 列也是從暫代來源複製的（Source=auto）——⚠ 錨點工具只用幀數判斷換圖，換正式圖後**先刪掉 `characters/soulborn/*` 那 12 列再跑「計算影子錨點」**，否則幀數相同時不會重算。`BodyScale` 以鬼差為 1：鍾馗 1.7、酆都 1.3（2026-11-09 作者看過正式序列圖後指定）、`WalkSpeed` 留空、五屬性是佔位值（鬼差弱、鍾馗力、酆都魔）。神格特效＝`MistStyle`=SoulSkull（身後黑霧＋凝結骷髏，§5b；用該隱對位，⏳ 未實測）、酆都夢境武器＝萬魂鬼手 77（§5d，⏳ 未實測）。
 - 萬魂系列的三張 1024 角色圖、立繪、icon 都是 AI 操作 ChatGPT 產的（流程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md)），工作檔與舊版在 `TempImage/bloodline_Netherborn/`（gitignore）。

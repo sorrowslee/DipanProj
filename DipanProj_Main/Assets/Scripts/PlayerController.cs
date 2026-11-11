@@ -459,6 +459,10 @@ public class PlayerController : MonoBehaviour, IDamageable
         float currentSpeed = (_rb != null) ? _rb.velocity.magnitude : 0f;
         if (_playerAnim == null) return;
 
+        // 作弊面板「動作」預覽中，玩家按 WASD 移動 → 自動結束預覽（攻擊的那一半在 TriggerAttackPose）。
+        // 看的是 _moveInput（玩家輸入）而不是速度：被擊退／推開不算「玩家自己動了」。UI 開著、教學鎖移動時它已被清成零。
+        if (_moveInput.sqrMagnitude > 0.01f) _playerAnim.EndPreview();
+
         // 攻擊動畫「只有真的攻擊出去」才擺：
         //  ‧ 離散武器：由 HandleFiring 在每次「實際發射成功」時呼叫 TriggerAttackPose()。
         //  ‧ 持續武器（雷射/佛光）：只在「開始放的那一下」（上升緣）擺**一次**；按住的期間不再重擺（後面一直擺很怪）。
@@ -508,6 +512,8 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// </summary>
     private void TriggerAttackPose()
     {
+        // 作弊面板「動作」預覽中，真的攻擊出去 → 自動結束預覽（要放在下面兩個 return 之前，否則按住連發時不會停）。
+        if (_playerAnim != null) _playerAnim.EndPreview();
         if (AttackAnimLegacyMode) { _attackAnimUntil = Time.time + AttackAnimLinger; return; }
         if (_attackPoseHeld) return;
         _attackPoseHeld = true;

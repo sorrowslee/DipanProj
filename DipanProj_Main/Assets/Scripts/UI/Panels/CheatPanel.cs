@@ -17,6 +17,8 @@ namespace Dipan.UI
     ///      給 101 銅錢會轉成金錢數字）。另有一鍵快捷：給錢、**取得所有武器（每種一把）**、**取得所有血統藥劑（每種一瓶）**。
     ///   2.「鑲嵌」：改裝備中武器的孔數、每種能力珠各給一顆 Lv3、給測試防具。
     ///   3.「玩家」：無敵開關＝具名不死保護 <c>CombatStats.SetDeathGuard("CheatPanel", …)</c>（照常被打、扣血、跳數字，只是不會死；不存檔）。
+    ///   4.「動作」：idle／walk／attack／dead 四顆互斥開關，開一顆＝主角一直輪播那個動作（測序列圖用，dead 也看得到）；
+    ///      再按一次同一顆＝全關；玩家按 WASD 移動或真的攻擊出去也會自動關。實作在 <c>PlayerAnimator.PreviewState</c>。不存檔。
     ///
     /// 風格對齊專案：全程式建構、零 prefab / Inspector 接線（同 SettingsPanel / InventoryPanel）。
     /// 開啟時暫停遊戲 + 擋輸入（方便打字），ESC 或右上 X 關閉。
@@ -122,6 +124,7 @@ namespace Dipan.UI
             AddSection("給道具", BuildGiveItemSection);
             AddSection("鑲嵌", BuildSocketSection);
             AddSection("玩家", BuildPlayerSection);
+            AddSection("動作", BuildAnimSection);
 
             ShowSection(0);
         }
@@ -130,6 +133,7 @@ namespace Dipan.UI
         {
             if (_giveStatus != null) _giveStatus.text = "";   // 每次開啟清掉上次的結果提示
             RefreshInvincibleButton();                         // 開關狀態以靜態旗標為準（換場景後面板重建也對得上）
+            RefreshAnimButtons();                              // 同上：以 PlayerAnimator.PreviewState 為準
         }
 
         // ───────────────────────── 分頁框架 ─────────────────────────
@@ -276,6 +280,101 @@ namespace Dipan.UI
             if (lbl != null) lbl.text = InvincibleLabel();
             var img = _invincibleBtn.GetComponent<Image>();
             if (img != null) img.color = on ? ColToggleOn : ColBtn;
+        }
+
+        // ───────────────────────── 分頁：動作（序列圖預覽）─────────────────────────
+        //
+        // 測新血統的序列圖用（作者 2026-11-11）：地圖裡平常只看得到 idle／walk／attack，dead 要真的死才看得到。
+        // 四顆**互斥**開關：開一顆＝主角一直輪播那個動作；開另一顆＝前一顆自動關；再按亮著的那顆＝全關、回正常。
+        // 玩家一操作（WASD 移動／真的攻擊出去）也自動全關（PlayerController 呼叫 PlayerAnimator.EndPreview）——
+        // 按鈕外觀每次開面板都從 PreviewState 重讀，所以再開 L 時自然顯示成關閉。
+        // 狀態存在 static 的 PlayerAnimator.PreviewState（換圖、換血統都持續生效），按鈕外觀一律從它讀。
+        // 面板開著時遊戲暫停，所以要**關掉面板**才看得到動畫。
+
+        static readonly (PlayerAnimator.State state, string label)[] AnimOptions =
+        {
+            (PlayerAnimator.State.Idle,   "idle"),
+            (PlayerAnimator.State.Walk,   "walk"),
+            (PlayerAnimator.State.Attack, "attack"),
+            (PlayerAnimator.State.Dead,   "dead"),
+        };
+        readonly List<Button> _animButtons = new List<Button>();
+        Text _animStatus;
+
+        void BuildAnimSection(RectTransform root)
+        {
+            var head = UIBuilder.Text(root, "Head", "動作", 28, ColAccent, TextAnchor.UpperLeft);
+            Place(head.rectTransform, 0f, 0f, 600f, 40f);
+
+            var hint = UIBuilder.Text(root, "Hint",
+                "開一個動作，主角就會一直輪播它（關掉面板才看得到）。一次只能開一個；再按一次亮著的那顆、或用 WASD 移動／攻擊，就會關閉。\n" +
+                "dead／attack 播完會在最後一幀停 " + PlayerAnimator.PreviewEndHold.ToString("0.#") + " 秒再重播；attack 播全部幀（不是實戰的起播～結束幀）。不存檔。",
+                18, new Color(1f, 1f, 1f, 0.6f), TextAnchor.UpperLeft);
+            Place(hint.rectTransform, 0f, 46f, GroupW, 56f);
+
+            const float G1Y = 116f, G1H = 124f, Row1Y = 160f;
+            const float BtnW = 200f, BtnGap = 16f;
+            AddGroup(root, "輪播動作（互斥，可全關）", G1Y, G1H, ColGroupB);
+
+            _animButtons.Clear();
+            for (int i = 0; i < AnimOptions.Length; i++)
+            {
+                var opt = AnimOptions[i];
+                // ⚠ 標籤不能傳空字串（理由同 InvincibleBtn：空標籤不會建 Text 子物件）。
+                var btn = UIBuilder.Button(root, $"AnimBtn_{opt.label}", opt.label, () => OnClickAnim(opt.state), ColBtn);
+                Place((RectTransform)btn.transform, 14f + i * (BtnW + BtnGap), Row1Y, BtnW, 56f);
+                _animButtons.Add(btn);
+            }
+
+            _animStatus = UIBuilder.Text(root, "AnimStatus", "", 20, new Color(1f, 1f, 1f, 0.85f), TextAnchor.UpperLeft);
+            Place(_animStatus.rectTransform, 14f, G1Y + G1H + 16f, GroupW - 28f, 90f);
+
+            RefreshAnimButtons();
+        }
+
+        void OnClickAnim(PlayerAnimator.State s)
+        {
+            bool turnOff = PlayerAnimator.PreviewState.HasValue && PlayerAnimator.PreviewState.Value == s;
+            PlayerAnimator.PreviewState = turnOff ? (PlayerAnimator.State?)null : s;
+            RefreshAnimButtons();
+
+            if (turnOff) { AlertPanel.Toast("作弊：動作預覽 關"); return; }
+            var anim = FindPlayerAnimator();
+            if (anim != null && anim.FrameCount(s) == 0)
+                AlertPanel.Toast($"作弊：目前血統沒有 {s.ToString().ToLowerInvariant()} 的圖，畫面不會變");
+            else
+                AlertPanel.Toast($"作弊：輪播 {s.ToString().ToLowerInvariant()}（關掉面板觀看）");
+        }
+
+        void RefreshAnimButtons()
+        {
+            var cur = PlayerAnimator.PreviewState;
+            for (int i = 0; i < _animButtons.Count && i < AnimOptions.Length; i++)
+            {
+                var img = _animButtons[i] != null ? _animButtons[i].GetComponent<Image>() : null;
+                if (img != null) img.color = (cur.HasValue && cur.Value == AnimOptions[i].state) ? ColToggleOn : ColBtn;
+            }
+            if (_animStatus == null) return;
+
+            var anim = FindPlayerAnimator();
+            var pc = anim != null ? anim.GetComponent<PlayerController>() : null;
+            if (anim == null) { _animStatus.text = "找不到主角（不在地圖裡？）"; return; }
+            var sb = new System.Text.StringBuilder();
+            sb.Append("目前血統：").Append(pc != null ? pc.Bloodline : "?").Append('\n');
+            sb.Append("幀數　");
+            foreach (var opt in AnimOptions)
+            {
+                int n = anim.FrameCount(opt.state);
+                sb.Append(opt.label).Append(' ').Append(n > 0 ? n.ToString() : "（無圖）").Append("　");
+            }
+            sb.Append('\n').Append("預覽中：").Append(cur.HasValue ? cur.Value.ToString().ToLowerInvariant() : "無");
+            _animStatus.text = sb.ToString();
+        }
+
+        static PlayerAnimator FindPlayerAnimator()
+        {
+            var pc = UnityEngine.Object.FindObjectOfType<PlayerController>();
+            return pc != null ? pc.GetComponent<PlayerAnimator>() : null;
         }
 
         // ───────────────────────── 分頁：鑲嵌（能力珠測試）─────────────────────────

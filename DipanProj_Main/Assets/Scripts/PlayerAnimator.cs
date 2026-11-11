@@ -106,6 +106,50 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
     /// <summary>表演中（倒下正播、趴地定格或爬起倒播）。</summary>
     public bool IsWakeUpBusy => _lyingHold || _wakePlaying || _fallPlaying;
 
+    // ── 動作預覽（作弊面板「動作」分頁，2026-11-11）──
+    // 測素材用：指定一個動作讓玩家一直輪播，不管玩家在不在走、有沒有開火。
+    // 刻意做成 static：玩家物件換圖／重建、換血統（Setup 會把狀態重設成 Idle）都不必重新指定，
+    // 下一幀自動重新進入。不存檔、進 Play 會清掉（見 ResetPreviewOnPlay）。
+    //
+    // 規則：
+    //  ‧ 預覽中 SetState（PlayerController 每幀塞的 Idle/Walk/Attack）全部忽略；**真死（Dead）例外**——會關掉預覽、照常死亡。
+    //  ‧ 姿勢表演（倒下／趴地／爬起）優先於預覽，演完自動回到預覽。
+    //  ‧ idle／walk 照常循環；**dead／attack 本來是一次性的，預覽時播完最後一幀停 PreviewEndHold 秒再從第 0 幀重播**，
+    //    不停的話倒地那一幀一閃就跳回站姿、看不清楚。
+    //  ‧ attack 預覽播**全部幀**（0 → 最後一幀），不是實戰的「起播幀 → 結束幀」——目的是逐張檢查素材。
+    //  ‧ 幾何（GeomState）跟著預覽動作走：預覽 dead 時影子用 dead 的錨點、身上的血統特效會關——跟真的倒地一樣，正好拿來驗。
+
+    /// <summary>目前預覽中的動作；null＝沒在預覽（正常遊戲）。由 CheatPanel 設定。</summary>
+    public static State? PreviewState;
+
+    /// <summary>一次性動作（dead／attack）預覽時，播到最後一幀後停多久（秒）再重播。</summary>
+    public const float PreviewEndHold = 0.6f;
+
+    bool _inPreview;          // 這個 instance 目前是否已進入預覽（用來偵測「剛開／剛關」）
+    float _previewHold;       // 一次性動作停在最後一幀已經多久
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    static void ResetPreviewOnPlay() => PreviewState = null;   // 關掉 Domain Reload 時 static 不會自己清
+
+    /// <summary>
+    /// 玩家自己動了（WASD 移動／真的攻擊出去）→ 結束預覽，**當場**把畫面交還給呼叫端接下來的 SetState／StartAttack。
+    /// 由 PlayerController 呼叫（作者 2026-11-11：一操作就自動停，再開作弊面板按鈕也是關的）。
+    /// ⚠ 不能只把 PreviewState 設成 null：那樣 Update 的「剛關掉預覽」分支會在同一幀之後把狀態重設成 Idle，
+    ///   蓋掉呼叫端剛設的 Walk／剛起手的 Attack（閃一幀 idle、攻擊動作被吃掉）。這裡同時清 _inPreview 就不會走那條。
+    /// 沒在預覽時什麼都不做。
+    /// </summary>
+    public void EndPreview()
+    {
+        if (!PreviewState.HasValue && !_inPreview) return;
+        PreviewState = null;
+        _inPreview = false;
+        _oneShotDone = false;   // 預覽可能停在 dead／attack 的定格上；交還後讓一般流程從乾淨狀態接手
+        _previewHold = 0f;
+    }
+
+    /// <summary>某個動作有幾幀（0＝這個血統沒有這個動作的圖）。給作弊面板顯示用。</summary>
+    public int FrameCount(State s) { var f = FramesFor(s); return f != null ? f.Length : 0; }
+
     // ── 可見身體的幾何（Setup 時一次算好，不用每幀量貼圖）──
     // ⚠ 為什麼不直接讀 SpriteRenderer.bounds：那個含不含四周的透明留白，取決於 sprite 的 mesh 型別
     //   （Tight/FullRect），在這條「執行期 Sprite.Create」的管線上並不保證。
@@ -351,6 +395,13 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
     public void SetState(State s, float currentSpeed)
     {
         _currentSpeed = currentSpeed;
+        // 動作預覽中：忽略一般狀態切換；真死（Dead）關掉預覽、照常往下走。
+        if (PreviewState.HasValue)
+        {
+            if (s != State.Dead) return;
+            PreviewState = null;
+            _inPreview = false;
+        }
         // 甦醒表演中：忽略一般狀態切換（趴姿/爬起不被 Idle/Walk 蓋掉）；真死（Dead）例外，打斷表演。
         if (IsWakeUpBusy)
         {
@@ -383,6 +434,7 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
     public bool StartAttack()
     {
         if (IsWakeUpBusy) return false;
+        if (PreviewState.HasValue) return false;   // 動作預覽中：畫面由預覽接管
         if (_attack == null || _attack.Length == 0 || _sr == null) return false;
         _state = State.Attack;
         _idx = EntryIndex(State.Attack);
@@ -569,6 +621,15 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
             return;
         }
 
+        if (PreviewState.HasValue) { UpdatePreview(PreviewState.Value); return; }
+        if (_inPreview)
+        {
+            // 剛關掉預覽：回 Idle，下一幀起交還 PlayerController.HandleVisuals。
+            _inPreview = false;
+            _state = State.Idle; _idx = 0; _timer = 0f; _oneShotDone = false;
+            ApplyFrame();
+        }
+
         var frames = FramesFor(_state);
         if (frames == null || frames.Length == 0) return;
         if (frames.Length == 1) { ApplyFrame(); return; }
@@ -599,6 +660,50 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
                 else if (_state == State.Attack && AttackRepeats) _idx = EntryIndex(State.Attack);   // 按住 → 從起播幀再來一次
                 else { _oneShotDone = true; break; }   // 停在結束幀
             }
+        }
+        ApplyFrame();
+    }
+
+    /// <summary>動作預覽的每幀推進（規則見 <see cref="PreviewState"/> 上方註解）。</summary>
+    void UpdatePreview(State s)
+    {
+        var frames = FramesFor(s);
+        if (frames == null || frames.Length == 0) return;   // 這個血統沒有這個動作：維持原畫面（面板會提示）
+
+        // 剛開預覽、換了預覽動作、或 Setup（換血統）把狀態重設過 → 從第 0 幀重新開始
+        if (!_inPreview || _state != s)
+        {
+            _inPreview = true;
+            _state = s; _idx = 0; _timer = 0f; _previewHold = 0f; _oneShotDone = false;
+            ApplyFrame();
+            return;
+        }
+        if (frames.Length == 1) { ApplyFrame(); return; }
+
+        // 一次性動作停在最後一幀中：停滿 PreviewEndHold 再從頭
+        if (_oneShotDone)
+        {
+            _previewHold += Time.deltaTime;
+            if (_previewHold < PreviewEndHold) return;
+            _oneShotDone = false; _previewHold = 0f; _idx = 0; _timer = 0f;
+            ApplyFrame();
+            return;
+        }
+
+        // 速度：walk 用滿速（預覽時多半站著不動，照實戰會被速度連動壓到 MinMul）；attack 照實戰倍率
+        float fps = BaseFps;
+        if (s == State.Attack) fps = BaseFps * Mathf.Max(0.05f, AttackFpsMul);
+        if (fps <= 0.01f) return;
+
+        bool loop = s == State.Idle || s == State.Walk;
+        float frameDur = 1f / fps;
+        _timer += Time.deltaTime;
+        while (_timer >= frameDur)
+        {
+            _timer -= frameDur;
+            if (loop) _idx = (_idx + 1) % frames.Length;
+            else if (_idx < frames.Length - 1) _idx++;
+            else { _oneShotDone = true; _previewHold = 0f; _timer = 0f; break; }
         }
         ApplyFrame();
     }
