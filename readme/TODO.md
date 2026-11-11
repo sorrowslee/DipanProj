@@ -1072,3 +1072,16 @@
 ## 經驗值（未來，2026-11-10 作者交代先記下）
 
 - [ ] 遊戲目前沒有經驗值。**未來若加經驗值：出生點勾了「不掉落」（`noLoot`）的怪不能給經驗**——它們是「殺不完、用來逼玩家離開」的無限湧怪（血狂之爭和談大廳 `湧怪-*`），給經驗就變成刷經驗點。判斷點同掉寶：`MonsterController.DropsLoot`（noLoot ⇒ false），經驗值的發放請一起掛在這個判斷底下。
+
+## 天使血統（2026-11-11，⏳ 未在 Unity 實測）
+
+> 見 [BLOODLINE.md](BLOODLINE.md) §8、[PROGRESS.md](PROGRESS.md) 2026-11-11 條。
+
+- [ ] **先跑 `Project Tools → Sync Map Assets`**，否則新立繪與暫代序列圖載不到。
+- [ ] **正式序列圖**：作者以 `TempImage/bloodline_Angelborn/out/{Oracle,Angel,Lucifer}_base_1024.png` 用 AutoSprite 產圖，整個覆蓋 `SequenceImage/Angelborn/<血統>/`（暫代＝靈根築基期／血伯爵／該隱）→ 刪 `ShadowAnchorTable` 的 `characters/angelborn/*` 12 列 → 跑「計算影子錨點」→ 再 Sync。⚠ 三張角色圖的長兵器／布擺伸進腳底帶（神諭者杖尾 y≈850、天使劍尖 y≈840），影子 auto 可能被拉偏，要用 manual 補。
+- [ ] **立繪實機確認**：天使、路西法寬體型（1.2／−180／OuterToScreen 1 起手）——天使母版畫得偏大（只到膝蓋、兜帽頂 y≈90），翅膀都碰到左右界附近；喝藥揭示面板看大小與左右裁切。神諭者 1.15／−139。
+- [ ] **路西法專屬夢境武器**（光暗雙屬性斬擊／黑白羽刃／六翼範圍裁決），目前 `DreamWeaponId` 暫借雷雨天罰 66；神格特效（六翼緩慢開合、黑白能量流）未指派。
+- [ ] `BodyScale`（三階全 1；路西法角色圖比規格小 ~9%，可能要放大）、`WalkSpeed`（留空）、五屬性（佔位）待實機定。
+- [ ] 直達藥劑 3111／3112 沒進任何池（同其他系列）。
+- [ ] 新工具 `cutout_magenta_keep.py`／`defringe.py`／`fill_small_holes.py`／`fit_manual.py`／`do_portrait.sh` 在 `TempImage/`（gitignore）——要不要搬進 repo（例 `Tools/ai_image/`）作者決定。
+

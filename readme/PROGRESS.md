@@ -4,6 +4,11 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **新增天使血統（Angelborn：神諭者 → 天使 → 路西法），序列圖暫代（⏳ 未在 Unity 實測）**（2026-11-11，作者給血統概述、AI 主導產圖；第十一個系列）：
+  ① **美術（ChatGPT「燃燈劫」專案同一個對話，約 30 次額度、零被擋）**：三張 1024 角色圖——第一版第一、二階被退（太樸素），作者給兩張參考圖（華麗白金祭司／兜帽空洞面罩天使）後重做通過；路西法改了五版：黑白分身「難看的根源」→ 短白髮＋參考圖盔甲 → 加蛇眼紫火紋、獸人式誇張盔甲 → 變瘦 → 露腹（定稿 v6，程式去紫邊）。18 張立繪（天使、路西法寬體型 1536×1024，作者指定）、成品瓶 `bloodline_Angelborn`。
+  ② **進專案**：`Talk/Angelborn/{Oracle,Angel,Lucifer}/<情緒>.png`、`Resources/.../bloodline/bloodline_Angelborn.png`（.meta 以 Qingqiuborn 為範本換 GUID）、**序列圖暫代**＝靈根築基期／血伯爵／該隱（只複製 png）。
+  ③ **資料（只新增列、零程式改動）**：表A 第 11 列（`DreamDramaId`=88）、表B 110～112（路西法 `DreamWeaponId` 暫借雷雨天罰 66）、ItemTable 3110～3112、BaseBloodRoll 3110、ShadowAnchorTable 12 列（暫代複製）、PortraitTable 18 列、夢境台詞 drama 88／TalkGroup 85／DramaTalk 252／LanguageTable 1015（中英）。`git diff --stat`：9 檔 41 行，全是新增。
+  ④ **新坑**：這次瀏覽器工具的 `file_upload`、`browser_batch` 都被關掉（核准無法彈出），改請作者拖兩次圖；紫色系角色用舊去背會把紫色洗成灰——新工具 `cutout_magenta_keep.py`／`defringe.py`／`fill_small_holes.py`／`fit_manual.py`（在 `TempImage/bloodline_Angelborn/tools/`）。寫進 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.5（含作者這次的審稿口味）；現況 [BLOODLINE.md](BLOODLINE.md) §8；待辦 [TODO.md](TODO.md)〈天使血統〉。工作檔在 `TempImage/bloodline_Angelborn/`（各版本 `out/*_vN.png` 都留著）。**作者要做：Unity 跑 Sync Map Assets；AutoSprite 用 `out/{Oracle,Angel,Lucifer}_base_1024.png`。**
 * [x] **血狂之爭實測第二輪五項（⏳ 未編譯未實測）**（2026-11-10，作者回報）：
   ① **該隱大門引路第二句**「屬下就送到這兒了」跟後面還是他帶路矛盾 → LanguageTable 3041 改「前面就是迎賓大廳……請您隨屬下來。」。
   ② **狂族士兵走路比站著大**：演出演員與地圖 NPC 沒吃怪物表的逐動作倍率（[PROBLEMS.md](PROBLEMS.md) **G21**）。新增 `MonsterAnimator.RelativeScalesFor`，`CutsceneActor.Npc`／`NpcSpawner` 改傳「相對 idle」的倍率（idle 大小不變）。⚠ 連帶影響所有演出演員／NPC 的 walk／attack 大小（戰狼、血術士等表裡有填倍率的都會跟怪物本體一致）。

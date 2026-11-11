@@ -208,3 +208,15 @@ characters/qingqiuborn/mysticfox/dead,1.5,77.4,109,auto,9,256,256,幀數 9→25 
 characters/qingqiuborn/mysticfox/idle,-0.2,62.5,85,auto,15,256,256,幀數 16→15 已重算
 characters/qingqiuborn/mysticfox/walk,-0.5,63.5,91,auto,21,256,256,幀數 20→21 已重算
 monsters/housekeeper/walk,-6.2,36,92,auto,12,256,256,
+characters/angelborn/oracle/attack,-5,54.5,64,auto,25,256,256,2026-11-11 暫代：複製自 characters/spiritroot/foundation/attack（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/oracle/dead,4.5,70.8,99,auto,9,256,256,2026-11-11 暫代：複製自 characters/spiritroot/foundation/dead（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/oracle/idle,-1.8,54.5,62,auto,23,256,256,2026-11-11 暫代：複製自 characters/spiritroot/foundation/idle（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/oracle/walk,-3.2,56,66,auto,22,256,256,2026-11-11 暫代：複製自 characters/spiritroot/foundation/walk（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/angel/attack,-7.5,56,112,auto,25,256,256,2026-11-11 暫代：複製自 characters/bloodborn/crimson count/attack（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/angel/dead,-8.5,55.6,137,auto,9,256,256,2026-11-11 暫代：複製自 characters/bloodborn/crimson count/dead（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/angel/idle,-0.5,53.5,91,auto,25,256,256,2026-11-11 暫代：複製自 characters/bloodborn/crimson count/idle（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/angel/walk,-6,53.5,90,auto,25,256,256,2026-11-11 暫代：複製自 characters/bloodborn/crimson count/walk（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/lucifer/attack,-0.5,69.2,70,auto,25,256,256,2026-11-11 暫代：複製自 characters/bloodborn/cain/attack（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/lucifer/dead,-1,79.9,86,auto,9,256,256,2026-11-11 暫代：複製自 characters/bloodborn/cain/dead（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/lucifer/idle,-0.5,68.3,73,auto,19,256,256,2026-11-11 暫代：複製自 characters/bloodborn/cain/idle（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
+characters/angelborn/lucifer/walk,-5,72.9,66,auto,25,256,256,2026-11-11 暫代：複製自 characters/bloodborn/cain/walk（序列圖暫代）；作者正式圖到了先刪 characters/angelborn/* 這 12 列再跑「計算影子錨點」
