@@ -209,3 +209,9 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 250,84,17聖子・艾爾文,Modules/BloodFang/Talk/Duke_Charlotte_normal,Modules/BloodFang/Talk/Elvin_anger,2,lang:3063
 251,84,夏綠蒂公爵,Modules/BloodFang/Talk/Duke_Charlotte_fear,Modules/BloodFang/Talk/Elvin_normal,1,lang:3065
 252,85,,,,1,lang:1015
+253,86,,,Actor_Normal,2,lang:9901
+254,86,,,Actor_Happy,2,lang:9902
+255,86,,,Actor_Angry,2,lang:9903
+256,86,,,Actor_Cry,2,lang:9904
+257,86,,,Actor_Fear,2,lang:9905
+258,86,,,Actor_Hurt,2,lang:9906

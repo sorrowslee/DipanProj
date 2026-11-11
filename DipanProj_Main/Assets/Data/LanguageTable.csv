@@ -149,3 +149,10 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 9001,重新整理,Sort
 9002,通用貨幣,Currency
 1015,在夢中，我是背棄神明的六翼之王，黑白雙翼一展，天國與深淵都向我俯首,"In my dream, I am the six-winged king who forsook the gods. When my black and white wings unfold, both heaven and the abyss bow before me."
+# ── 開發測試用（9901–9999）：測試 NPC 台詞，不會出現在正式流程 ──
+9901,立繪測試 1/6：normal（平常）,Portrait test 1/6: normal
+9902,立繪測試 2/6：happy（開心）,Portrait test 2/6: happy
+9903,立繪測試 3/6：angry（生氣）,Portrait test 3/6: angry
+9904,立繪測試 4/6：cry（哭泣）,Portrait test 4/6: cry
+9905,立繪測試 5/6：fear（害怕）,Portrait test 5/6: fear
+9906,立繪測試 6/6：hurt（受傷）,Portrait test 6/6: hurt
