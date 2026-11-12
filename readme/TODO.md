@@ -1061,7 +1061,7 @@
 - [ ] **正式序列圖**：作者以 `TempImage/bloodline_Qingqiuborn/out/{SpiritFox,MysticFox,NineTailedCelestialFox}_base_1024.png` 用 AutoSprite 產圖，整個覆蓋 `SequenceImage/Qingqiuborn/<血統>/`（目前暫代＝靈根三階）→ 刪 `ShadowAnchorTable` 的 `characters/qingqiuborn/*` 12 列 → 跑「計算影子錨點」→ 再 Sync。
 - [x] ~~九尾天狐影子對不準~~ → 2026-11-10 idle／walk／attack 三列手填 manual（X +2、Y 69、寬 60；auto 被尾巴拉到 −20.5）。⏳ 實機確認。
 - [ ] **還要作者跑一次「計算影子錨點」**：靈狐 idle、玄狐 attack 兩列暫代已刪（正式圖幀數剛好與暫代相同，工具沒重算），跑一次就會補回正確的 auto 值。
-- [ ] **立繪實機確認**：PortraitTable 起手值（靈狐／玄狐 1.15／−139、九尾天狐 1.2／−180／OuterToScreen 1）；玄狐 cry 頂端比其他張低 60px、玄狐 angry 法器超過右界到 x=966，實機看會不會大小或位置跳動，跳就單張補 PortraitTable 或重畫。
+- [ ] **立繪實機確認**（happy～hurt 已換 GPT 版）：PortraitTable 起手值（靈狐／玄狐 1.15／−139、九尾天狐 1.2／−180／OuterToScreen 1）；玄狐 cry 頂端比其他張低 60px、玄狐 angry 法器超過右界到 x=966，實機看會不會大小或位置跳動，跳就單張補 PortraitTable 或重畫。
 - [ ] **九尾天狐專屬夢境武器**（幻術／分身／狐火），目前 `DreamWeaponId` 暫借焚獄炎杖 69。神格特效也還沒指派。
 - [ ] `BodyScale` 已定（靈狐 1.1／玄狐 1.4／九尾天狐 1.5，作者 2026-11-10）；玄狐 `AttackAnimSpeed` 0.7（⏳ 實測快慢）；`WalkSpeed`（留空）、五屬性（佔位）待定。
 - [ ] **血統揭示面板的寬體型立繪**（2026-11-10 改 `BloodlineIntroPanel.LayoutPortrait`，⏳ 未編譯未實測）：喝到九尾天狐，看人物大小是否與其他血統一致、左右裁切（`PortraitClipLeft/Right` 0.225／0.80 對齊內框、柔邊 28px）的位置好不好看、溶解剝落時裁切有沒有正常、標題有沒有被壓到。
@@ -1102,6 +1102,6 @@
 - [ ] **饕餮神格特效「吞噬領域」**（周圍光影與空間被吸向身邊扭曲、暗紅與深黑的空間裂隙）：現有神格層（光環、圓盤、足跡、環繞物、攻擊罩身、擊中、黑霧）都做不到，需新的空間扭曲 shader 層——新程式，先跟作者討論規格。
 - [ ] **跑「計算影子錨點」**：2026-11-12 刪了 5 列過時錨點（年 attack；饕餮 attack／idle／walk／dead——前四列是暫代時的值，幀數相同或 manual 沒被重算；dead 剛縮過）。
 - [ ] `BodyScale`：年 1.4、饕餮 1.5（作者 2026-11-12 實機定），餓鬼仍 1；`WalkSpeed`（留空）、五屬性（佔位）待實機定。
-- [ ] 立繪右緣超過 880（對話框會偏左）：餓鬼 angry 929／fear 985、饕餮 happy 994／angry 977／cry 908；年 happy／fear 1460 超過寬體型右界 1440——實機看。
+- [ ] **年的立繪換表情仍會左右晃**（2026-11-12 傍晚換成 GPT 版後）：餓鬼右緣全部 796～797、饕餮 824～882 已沒問題；年 normal 1299／happy 1483／angry 1448／cry 1212／fear 1339／hurt 1210——happy、angry 雙爪張開，cry、hurt 縮起來。TalkPanel 以內容框內側緣（原圖右緣）對齊，所以身體會被推進推出。解法二選一：GPT 重出 happy／angry（請它把右手收在 x≤1340 內），或程式加選填 `AnchorX` 欄（PortraitTable 指定對齊用的原圖 x）。實機看了再決定。
 - [ ] 直達藥劑 3121／3122 沒進任何池（同其他系列）。
 - [ ] 餓鬼、年的夢境台詞（作者有給：「在夢中，我是餓鬼，飢火焚身，永無飽足之日」「在夢中，我是年，凶威所至，血肉皆為食糧」）沒有用到——新手夢境只抽三階，留著備用。
