@@ -4,6 +4,12 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **暴食血統：第二階「年」重做外型（⏳ 未在 Unity 實測）**（2026-11-12 下午，作者認為 v1 獸頭太醜、怕玩家抵觸）：先試「主角人頭＋獸角」（v2）被退——要的是**有人性輪廓的獸首**；出三種頭型概念圖（石獅／舞獅／偏人形）→ 選石獅，但「沒有暴食感」→ 加兩個暴食元素：①閉嘴但寬到不合理、整排獠牙沿唇線 ②頭後對稱的**獠牙形骨冠**（暗紅漆＋暗金，只在冠上）；另做了 ③喉頭第二張巨口的對照版，作者選不加（A 版）。身體維持 v1 設計（腹部的嘴、骨刺肩、草繩腰帶）。角色圖 `out/Nian_base_1024.png` 已換成新版（舊版留 `Nian_base_1024_old_v1.png`），立繪 normal／happy 重畫（寬體型，負面四張仍複製 normal），覆蓋 `Talk/Gluttonborn/Nian/`；PortraitTable、其他資料不動。約 7 次額度、零被擋（都在第三個對話）。
+* [x] **新增暴食血統（Gluttonborn：餓鬼 → 年 → 饕餮），序列圖暫代、立繪負面表情暫代（⏳ 未在 Unity 實測）**（2026-11-12，作者給血統概述、AI 主導產圖；第十二個系列）：
+  ① **美術（ChatGPT「燃燈劫」專案，三個對話、約 16 次額度、被擋 6 次）**：角色圖——餓鬼 v2（作者要求赤裸上身＋上身也長嘴）、年 v1（使徒式倒三角巨獸，一次通過）、饕餮 v6（古銅神將版被退「像神將」→ 中年鬍鬚赤腳＋胸口水墨饕餮巨口＋墨紋到手、黑手掌 → 北歐白衣被退 → 純白褲＋**黑腰帶**；黑腰帶與紅腰帶對照版都是程式在 v4 上改色，零額度）。立繪只有三階的 normal／happy（年寬體型 1536×1024），angry／cry／fear／hurt 先複製 normal——GPT 對「滿身長嘴＋負面情緒」一律以暴力規範拒絕。成品瓶 `bloodline_Gluttonborn`（暗紅褐液、古銅饕餮紋章、帶角獸首瓶塞）。
+  ② **進專案**：`Talk/Gluttonborn/{Preta,Nian,Taotie}/<情緒>.png`、`Resources/.../bloodline/bloodline_Gluttonborn.png`（.meta 以 Angelborn 為範本換 GUID）、**序列圖暫代**＝寄生體／望月者／尼德霍格（只複製 png）。
+  ③ **資料（只新增列、零程式改動）**：表A 第 12 列（`DreamDramaId`=90）、表B 120～122（BodyScale 1、WalkSpeed 空、五屬性佔位；饕餮 `DreamWeaponId` 暫借魔狼爪 71）、ItemTable 3120～3122（外型短句用作者給的）、BaseBloodRoll 3120、ShadowAnchorTable 12 列（暫代複製）、PortraitTable 18 列、夢境台詞 drama 90／TalkGroup 87／DramaTalk 259／LanguageTable 1016（中英）。`git diff --stat`：9 檔 41 行，全是新增。
+  ④ **新坑**：Chrome 擴充連到作者公司那台（家裡那台被登出）→ 用 `onThisComputer` 判斷；長對話抓不到母版、被拒後同對話審核變嚴 → 立繪另開新對話；寫進 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.6（含作者這次的審稿口味）。現況 [BLOODLINE.md](BLOODLINE.md) §8；待辦 [TODO.md](TODO.md)〈暴食血統〉。工作檔在 `TempImage/bloodline_Gluttonborn/`（各版本都留著）。**作者要做：Unity 跑 Sync Map Assets；AutoSprite 用 `out/{Preta,Nian,Taotie}_base_1024.png`。**
 * [x] **夢境教學血統改回隨機**（2026-11-11，作者測完路西法之怒）：`DreamTutorialFlow.DebugForceBloodlineId` 112→0。
 * [x] **掃射可穿牆＋冷卻改從施放算起（⏳ 未編譯未實測）**（2026-11-11，作者：光束被不可走區域擋住很怪、冷卻要短且能靠珠子調）：Sweep 開放 `BlockedByEnvironment`（0＝不檢查牆、直接掃過）；冷卻改成單純 `FireInterval` 從施放算起（拿掉「整發播完才能再發」的發射鎖，玩家與怪物都是），疾發珠才有感。配方 93：`BlockedByEnvironment`=0、`FireInterval` 0.3→1（實際出手間隔約 2.8→1 秒）。
 * [x] **掃射改成「朝滑鼠方向固定掃 Range 那麼遠」（⏳ 未編譯未實測）**（2026-11-11，作者試打：只掃到滑鼠位置常常太短）：`SweepStrike.Cast` 掃描長度改成 `Range`（>0 時不管滑鼠多近都掃滿；-1＝舊行為只到滑鼠）；遠射珠可加。配方 93 `Range`=18（≈ 一個畫面寬）。整發變長：掃描 18÷12＝1.5 秒＋延遲＋爆炸，約 2.8 秒才能再發。

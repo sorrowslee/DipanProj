@@ -101,3 +101,6 @@ Id,Key,DisplayName,SpriteFolder,BodyScale,WalkSpeed,Strength,Agility,Magic,Vital
 110,Oracle,神諭者,Angelborn/Oracle,1.2,,15,15,30,15,,天使系列 第一階（五屬性為佔位；BodyScale 2026-11-11 作者實機定（同日再調 1.3→1.2）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝靈根 築基期 Foundation，作者 AutoSprite 正式圖到了直接覆蓋資料夾）,,,,,,,,,,,,,,,,,,1-12
 111,Angel,天使,Angelborn/Angel,1.6,,40,30,45,40,,天使系列 第二階（五屬性為佔位；BodyScale 2026-11-11 作者實機定（同日再調 1.5→1.6）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝血族 血伯爵 Crimson Count，作者 AutoSprite 正式圖到了直接覆蓋資料夾）
 112,Lucifer,路西法,Angelborn/Lucifer,1.5,,65,55,80,55,,天使系列 第三階（五屬性為佔位；BodyScale 2026-11-11 作者實機定（同日再調 1.4→1.5）、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝血族 該隱 Cain，作者 AutoSprite 正式圖到了直接覆蓋資料夾）；DreamWeaponId＝78 路西法之怒（2026-11-11 新模式 Sweep：巨神兵式掃射光束＋沿線延遲爆炸）,,,,,,,,,,,,,,78
+120,Preta,餓鬼,Gluttonborn/Preta,1,,20,15,8,18,,暴食系列 第一階（五屬性為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝蟲族 寄生體 Parasite，作者 AutoSprite 正式圖到了直接覆蓋資料夾）
+121,Nian,年,Gluttonborn/Nian,1,,55,25,10,55,,暴食系列 第二階（五屬性為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝狂族 望月者 Moonwatcher，作者 AutoSprite 正式圖到了直接覆蓋資料夾）
+122,Taotie,饕餮,Gluttonborn/Taotie,1,,75,40,45,70,,暴食系列 第三階（五屬性為佔位；BodyScale 先填 1、WalkSpeed 留空＝不改速度，實機看過再定；⚠ 序列圖暫代＝熾龍 尼德霍格 Nidhogg，作者 AutoSprite 正式圖到了直接覆蓋資料夾）；DreamWeaponId 暫借魔狼爪 71（專屬夢境武器「吞噬之口」待設計）；神格特效「吞噬領域」需新的空間扭曲層，待討論,,,,,,,,,,,,,,71

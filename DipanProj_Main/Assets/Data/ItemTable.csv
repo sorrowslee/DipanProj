@@ -114,3 +114,6 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 3110,1階天使藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,白袍加身，耳畔常聞神諭,瓶中的乳白液體帶著淡淡金光，靜置時隱約聽得見遠處的鐘聲。,,,,,,,110,,
 3111,2階天使藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,面覆銀甲，背生白翼,瓶身摸起來是溫的，像有人剛剛為它祝禱過。,,,,,,,111,,
 3112,3階天使藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,六翼分作黑白，再不向任何神祇屈膝,瓶底沉著一黑一白兩根羽毛，怎麼搖也不會混在一起。,,,,,,,112,,
+3120,1階暴食藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,飢火蝕身，雙臂異口，終日索食不得飽,瓶中的暗紅褐液體總是少了一點，像被什麼偷偷喝過。,,,,,,,120,,
+3121,2階暴食藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,獸骨覆身，裂口生獠，凶威暴起而噬眾生,瓶塞上布滿細碎的齒痕，夜深時偶爾聽得見瓶中傳出低吼。,,,,,,,121,,
+3122,3階暴食藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,古銅為甲，獸紋鎮身，萬物皆入其腹,瓶底的古銅獸紋張著嘴，倒進多少液體都不見滿。,,,,,,,122,,

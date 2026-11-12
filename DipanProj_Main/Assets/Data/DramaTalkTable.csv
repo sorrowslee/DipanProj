@@ -215,3 +215,4 @@ ID,Group,Name,LeftAvatarPath,RightAvatarPath,SpotlightSide,Text
 256,86,,,Actor_Cry,2,lang:9904
 257,86,,,Actor_Fear,2,lang:9905
 258,86,,,Actor_Hurt,2,lang:9906
+259,87,,,,1,lang:1016
