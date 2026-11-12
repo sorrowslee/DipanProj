@@ -735,6 +735,15 @@ namespace Dipan.Gacha
                 mist.SetStyle(def.MistStyle);
             }
             else if (mist != null) mist.SetStyle(null);
+
+            // ⑧ 身邊幽靈（一左一右若隱若現；畫在角色之下）
+            var ghost = go.GetComponent<BloodlineGhost>();
+            if (!string.IsNullOrEmpty(def.GhostStyle))
+            {
+                if (ghost == null) ghost = go.AddComponent<BloodlineGhost>();
+                ghost.SetStyle(def.GhostStyle);
+            }
+            else if (ghost != null) ghost.SetStyle(null);
         }
     }
 }

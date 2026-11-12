@@ -87,12 +87,12 @@ Main/Characters/Talk/Gluttonborn/Preta/angry,1.15,,-139,,餓鬼：照〈頂端 9
 Main/Characters/Talk/Gluttonborn/Preta/cry,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
 Main/Characters/Talk/Gluttonborn/Preta/fear,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
 Main/Characters/Talk/Gluttonborn/Preta/hurt,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Nian/normal,1.2,,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：比照天使 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Gluttonborn/Nian/happy,1.2,,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：比照天使 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Gluttonborn/Nian/angry,1.2,,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：比照天使 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Gluttonborn/Nian/cry,1.2,,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：比照天使 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Gluttonborn/Nian/fear,1.2,,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：比照天使 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Gluttonborn/Nian/hurt,1.2,,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：比照天使 1.2／−180／OuterToScreen 1 起手，實機看過再調
+Main/Characters/Talk/Gluttonborn/Nian/normal,1.2,-154,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
+Main/Characters/Talk/Gluttonborn/Nian/happy,1.2,-278,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
+Main/Characters/Talk/Gluttonborn/Nian/angry,1.2,-254,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
+Main/Characters/Talk/Gluttonborn/Nian/cry,1.2,-93,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
+Main/Characters/Talk/Gluttonborn/Nian/fear,1.2,-181,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
+Main/Characters/Talk/Gluttonborn/Nian/hurt,1.2,-105,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
 Main/Characters/Talk/Gluttonborn/Taotie/normal,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
 Main/Characters/Talk/Gluttonborn/Taotie/happy,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
 Main/Characters/Talk/Gluttonborn/Taotie/angry,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調

@@ -155,6 +155,13 @@ namespace Dipan.Gacha
         /// 「腳何時著地」不靠程式猜（PROBLEMS E28 的教訓），由作者／AI 看圖填。解析後存 0 起算；null＝沒填。
         /// </summary>
         public int[] StepFrames;
+
+        /// <summary>
+        /// **身邊幽靈**（第 32 欄 `GhostStyle`，2026-11-12，<see cref="BloodlineGhost"/>）：一左一右兩隻若隱若現的幽靈，
+        /// 隨機只出左邊／只出右邊／兩隻一起。目前只有一個樣式 <c>TaotieInk</c>（水墨饕餮，饕餮 122）；任何非空值都用同一張貼圖。
+        /// 留空 = 無。見 readme/BLOODLINE.md §5b-2。
+        /// </summary>
+        public string GhostStyle;
     }
 
     /// <summary>
@@ -320,6 +327,7 @@ namespace Dipan.Gacha
                 d.AttackAnimSpeed = d.AttackAnimSpeed <= 0.01f ? 1f : Mathf.Clamp(d.AttackAnimSpeed, 0.1f, 3f);
                 ParseFrameRange(CsvUtil.Field(v, 29), id, out d.AttackFrameStart, out d.AttackFrameEnd);
                 d.StepFrames = ParseStepFrames(CsvUtil.Field(v, 30), id);   // 腳步特效踏地幀（30 欄，2026-11-10）
+                d.GhostStyle = CsvUtil.Field(v, 31);   // 身邊幽靈（31 欄，2026-11-12）。留空 = 無。
 
                 _byId[id] = d;
             }
