@@ -7,6 +7,7 @@
 > **2026-09-30**：加 **`Mode=Boomerang` 迴旋**＋新欄 **`BoomerangCount`**（CSV 現為 56 欄，含之後加的骨牢 4 欄），見 [§3 Boomerang 迴旋](#boomerang-迴旋)。
 > **2026-10-01**：加 **`Mode=Familiar` 浮游**（裝備就自動攻擊：本體繞身、各自朝最近的怪射子彈）。**RecipeTable 沒有加欄**（全部沿用 `OrbitalCount`／`OrbitalRadius`／`Range`／`FireInterval`…），本體外觀三欄加在 **WeaponTable**（`FamiliarVfxId`／`FamiliarSize`／`FamiliarSpin`），見 [§3 Familiar 浮游](#familiar-浮游)。
 > **2026-11-11**：加 **`Mode=Sweep` 掃射**（巨神兵式：光束劈到腳底再沿地面掃、沿線延遲爆炸）＋新欄 **`SweepSpeed`／`SweepOriginHeight`／`ExplodeSpacing`／`ExplodeDelay`**（CSV 現為 62 欄，加在表頭最後，既有列一律留空），見 [§3 Sweep 掃射](#sweep-掃射)。⏳ 未編譯未實測。
+> **2026-11-12**：加 **`Mode=Overhead` 頭頂投彈**（饕餮印：範圍內每個目標頭上冒出投彈者、吐炸彈追著目標落下爆炸，玩家怪物共用）＋RecipeTable 新欄 **`MaxTargets`／`DropStagger`**、WeaponTable 新欄 **`DropperStyle`／`DropperVfxId`／`DropperSize`**（都加在表頭最後，既有列一律留空），見 [§3 Overhead 頭頂投彈](#overhead-頭頂投彈)。⏳ 未編譯未實測。
 
 ---
 
@@ -14,7 +15,7 @@
 
 > **不想手填 CSV？用 [武器工坊](WEAPON_WORKBENCH.md)**（Unity `Project Tools → 武器工坊`）：選外型、選模式、只顯示有效欄、名稱下拉、範圍提示，Play 中立刻射出去看，滿意再存回 CSV。本文是欄位的意義與規則，工坊畫的每一欄都從同一份 `WeaponModeSpec` 來。
 
-1. **一列一種模式**：`Mode` 欄決定這列是什麼武器（一般子彈／環繞／拋物線／雷射／佛光／連鎖／落雷／召喚／法陣／近戰／突進／骨牢／迴旋／浮游／掃射），**留空＝一般子彈**。一列只能一種，互斥由結構保證，不會再有「兩個旗標都填 1 看程式先判哪個」的事。
+1. **一列一種模式**：`Mode` 欄決定這列是什麼武器（一般子彈／環繞／拋物線／雷射／佛光／連鎖／落雷／召喚／法陣／近戰／突進／骨牢／迴旋／浮游／掃射／頭頂投彈），**留空＝一般子彈**。一列只能一種，互斥由結構保證，不會再有「兩個旗標都填 1 看程式先判哪個」的事。
 2. **每種模式只吃它那幾欄**：其餘欄位就算填了也**不會被讀**（不只是警告——`RecipeEntry.FromFields` 根本不讀無效欄），Console 會在載入時印 `[RecipeTable] 配方 N：「X」對某模式無效，會被忽略`。哪些欄對哪個模式有效的**唯一真相是程式 `Assets/Scripts/Weapon/WeaponModeSpec.cs`**——本文的表是從它抄出來的；兩者不一致時以程式為準並回來修文件。
 3. **空白＝預設值**：不再有必填的數值欄。每欄的預設寫在下面總覽表；只有「本體必填」（佛光／法陣的 `GroundEffectID`、召喚的 `SummonIds`）缺了會印 Error。
 4. **欄位依名字讀、不依位置**：解析器讀第一列表頭（括號前的名字），所以欄位可以任意重排、中間插新欄；表頭括號裡的說明隨你改。`#` 開頭整列是註解。
@@ -28,7 +29,7 @@
 |---|---|---|---|---|
 | **通用** | `ID` | 整數 | — | 配方唯一識別碼，武器表用 `RecipeID` 引用 |
 | | `Name` | 字串 | — | 只給人看，程式不讀 |
-| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`／`Boomerang`／`Familiar`／`Sweep`（不分大小寫，也接受中文名） |
+| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`／`Boomerang`／`Familiar`／`Sweep`／`Overhead`（不分大小寫，也接受中文名） |
 | | `FireInterval` | 小數 | 0.3 | 發射間隔（秒）；Laser／Aura 無效（按住就在）；Summon＝召喚冷卻 |
 | **子彈本體** | `Speed` | 小數 | 15 | 飛行速度（世界單位/秒）；Orbital＝繞圈的切線速度 |
 | | `Radius` | 小數 | 0.1 | 碰撞半徑；Laser 改用武器表 `BeamWidth` |
@@ -87,6 +88,8 @@
 | | `SweepOriginHeight` | 小數 | 1.8 | 光束源點高度：從施放者腳底往上幾個「可見身高」（1.8≈頭頂上方三四個頭） |
 | | `ExplodeSpacing` | 小數 | 1.2 | 掃過的線上每隔多遠排一顆爆炸；掃描距離比間距短時只在終點炸一顆 |
 | | `ExplodeDelay` | 小數 | 0.3 | 光束掃過某一點後再過幾秒才在那裡爆炸 |
+| **頭頂投彈** | `MaxTargets` | 整數 | 0 | 一發最多打幾個目標（由近到遠）；0／空＝不限（程式另有 64 的效能上限）；只有 `Mode=Overhead`（2026-11-12） |
+| | `DropStagger` | 小數 | 0.4 | 各目標頭上的投彈者在 0～此秒數內隨機陸續冒出；0＝同時 |
 
 ---
 
@@ -332,6 +335,32 @@ ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 Spre
 道具 78 路西法之怒（長劍）：EquipSlot=Weapon WeaponID=78 IconPath=UI/Icons/Equipment/icon_luciferwrath
 ```
 
+### Overhead 頭頂投彈
+（2026-11-12 新增，饕餮的專屬武器「饕餮印」；作者規格：範圍內每隻怪頭上出現饕餮鬼魂，從嘴裡吐出炸彈往下掉、掉到怪身上爆炸。⏳ 未編譯未實測。）
+
+**一發的流程**：找出施放者身邊 `Range` 內的目標（**玩家放＝畫面內的敵怪**，友軍與中立 NPC 不算；**怪物放＝玩家與玩家的召喚物**）→ 由近到遠取 `MaxTargets` 個 → 每個目標頭上在 0～`DropStagger` 秒內陸續冒出投彈者（凝結 0.35 秒）→ 從嘴裡吐出炸彈，**`FlightTime` 秒內追著目標落下**（空＝0.35）→ 落在目標身體中心爆炸 → 投彈者停 0.15 秒後散去（尾巴先散）。
+
+- **打得到移動中的怪**：投彈者整段黏在目標頭頂跟著走；炸彈每一幀都對準目標**當下**的位置（吐出時的偏移隨落下縮到 0），怪跑再快也躲不掉。目標中途死掉 ⇒ 落在牠最後的位置。
+- **傷害**：每顆炸彈以武器 `Damage` 炸半徑 `AreaRadius`（空＝1）×`BulletScale` 內的每個目標各一次（被追的那隻一定吃到），可破壞地上物也會被炸（玩家放才炸）。陣營由 `CombatSystem` 擋，怪物放的不會炸到自己人。
+- **巨大的目標**（佛掌 Scale 6 這類）：距離與「在不在畫面內」都用身體那一條（腳底到頭頂）算，不用身體中心——中心常在畫面外，但身體明明有一段在畫面裡。玩家放的投彈者**一律收進畫面內**（頭頂在畫面外時壓到畫面上緣內側），落點也跟著收在投彈者下方的身體上。
+- **不看 `Controllable`**：那是「能不能被骨牢定身」，boss 填 0 是免疫控制、不是打不到（第一版照抄骨牢的篩選，新手夢境的佛掌就被漏掉了）。
+- **範圍內沒有目標**：不扣魔、不進冷卻（按著不放，有怪走進範圍就馬上放）；玩家剛按下時跳「範圍內沒有目標」。
+- **分裂**（`SpreadCount`）＝每個投彈者吐幾顆（間隔 0.08 秒），`LandingScatterRadius`＝多顆時的落點散開；**連擊**（`BurstCount`／`BurstInterval`）＝**同一批投彈者連吐幾輪**（由 `OverheadDrop` 自己排程，不走玩家的連擊流程、不會重新冒一批）。
+- **冷卻**＝`FireInterval`，從施放算起，不等整發播完（多發會疊在一起）。
+- **外觀（WeaponTable）**：
+  - 投彈者：`DropperStyle`（shader 樣式，有填優先；目前只有 `TaotieInk`＝水墨饕餮幽靈，墨煙溶解＋尾巴擺動，跟饕餮身邊漂浮的那兩隻同一個 shader 與貼圖）或 `DropperVfxId`（任何 VfxTable 序列特效，Loop=1；沒有溶解，散去時直接收掉）；兩個都空＝炸彈憑空出現在頭頂。`DropperSize`＝投彈者高度（世界單位，空＝1.1；饕餮印 1.8）；投彈者底部離頭頂 0.6 × 大小（`OverheadDrop.GapAboveHead`；玩家放的太靠畫面上緣會被壓回畫面內）。新的 shader 樣式加在 `OverheadDrop.StyleTex` 一行。
+  - 炸彈：武器自己的子彈圖（`WeaponSpritePath`／`WeaponAniPath`，配方 `RotationSpeed` 讓它翻滾）；大小＝子彈預製物縮放 × `BulletScale` × 施放者體型。
+  - 爆炸：`HitEffectID`（大小 × `BulletScale`）。
+- **玩家與怪物共用**：`Scripts/Weapon/OverheadDrop.cs`。玩家走 `PlayerController.Shoot`、怪物走 `MonsterWeaponUser.TryUse`（`TryOverhead`）。
+- 刻意不吃：集氣、廣角（沒有扇形）、地面特效（怪物放的會變成友傷問題，要開再談）。
+- **一般版 vs 專武**：一般拿到的這種武器 `Range` 填小（空＝6，只炸身邊幾隻，遠射珠可以加）；饕餮印填 18（約一個畫面寬）＝全畫面。
+
+```
+ID=94 Name=饕餮印 Mode=Overhead FireInterval=1 SpreadCount=3 Range=18 AreaRadius=1.2 FlightTime=0.35 LandingScatterRadius=0.7   （MaxTargets、DropStagger 留空＝不限、0.4；SpreadCount 3＝每隻幽靈吐 3 顆，2026-11-12 作者要震撼感）
+武器 79 饕餮印：Damage=6 ManaCost=0 WeaponSpritePath=Weapon/single/weapon_bomb（借火焰拋擲彈的炸彈）BulletScale=1.5 HitEffectID=61（饕餮印爆炸＝Explosions/stylized_explosion_006 blue＋冷藍套色，2026-11-12 作者在特效預覽器挑的；原本借的 1 號爆炸作者嫌太糟）DropperStyle=TaotieInk DropperSize=1.8（2026-11-12 作者實機：1.1 看不清楚）
+道具 79 饕餮印（法印）：EquipSlot=Weapon WeaponID=79 IconPath=UI/Icons/Equipment/icon_taotieseal
+```
+
 ### 3.12 `SubRecipeID` vs `SubWeaponOnHit`（兩個都叫 Sub，別搞混）
 
 | | `SubRecipeID` | `SubWeaponOnHit` |
@@ -416,6 +445,7 @@ ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 Spre
 - **迴旋（Boomerang，不在上表）**：迅捷（`Speed`）、遠射（`Range`＝每趟距離）、銳利、須彌、疾發、省魔有效；反彈、穿透、綿延、追蹤、分裂、廣角、聚氣、連擊、平行**無效**（穿透本來就無限、壽命自動算）。
 - **浮游（Familiar，不在上表）**：**群環**（`OrbitalCount`＝本體數量）、**環距**（`OrbitalRadius`）、**疾發**（每個本體的間隔）、**銳利**、**須彌**（＝子彈大小，本體不變）、**遠射**（`Range`＝索敵半徑），以及一般子彈那一套（反彈、穿透、迅捷、追蹤、分裂、廣角、綿延、平行）、省魔都有效；**聚氣、連擊無效**（沒有扳機）。
 - **掃射（Sweep，不在上表）**：銳利（每顆爆炸傷害）、須彌（爆炸半徑與特效）、分裂／廣角（光束道數與扇形）、遠射（`Range`＝最遠掃描距離）、疾發（＝冷卻，從施放算起）、省魔有效；`AreaRadius` 的珠子也會吃。四個掃射專屬欄目前沒有對應珠子；聚氣、連擊無效。
+- **頭頂投彈（Overhead，不在上表）**：遠射（`Range`＝索敵半徑，打到幾隻）、銳利、須彌（炸彈＋爆炸半徑與特效）、迅捷（換算成縮短 `FlightTime`＝掉得更快）、分裂（每個投彈者吐幾顆）、連擊（同一批連吐幾輪）、疾發、省魔有效；反彈、穿透、追蹤、綿延、廣角、平行、聚氣**無效**。
 - 每顆珠子的白話說明與範例（拿現有武器算數字）見 [GEM_CATALOG.md](GEM_CATALOG.md)。
 - 要加新珠子：`GemTable.Field` 填 RecipeTable／WeaponTable 的欄名，有效性自動從 `WeaponModeSpec` 推導，**不用另外維護**。填了不存在的欄名載入時會 Warning。
 

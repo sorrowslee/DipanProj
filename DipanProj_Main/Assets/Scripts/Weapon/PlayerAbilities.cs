@@ -56,13 +56,13 @@ public class PlayerAbilities
 
     /// <summary>
     /// 這顆珠子對這個發射模式有沒有效果。屬性珠（Target=Player）一律有效（跟武器無關）。
-    /// 「迅捷 × 拋物線」算有效（換算成縮短飛行秒數）。
+    /// 「迅捷 × 拋物線／頭頂投彈」算有效（換算成縮短飛行／掉落秒數）。
     /// </summary>
     public static bool IsGemEffective(WeaponMode mode, GemData gem)
     {
         if (gem == null || string.IsNullOrEmpty(gem.Field)) return false;
         if (gem.Target == GemTarget.Player) return true;
-        if (mode == WeaponMode.Parabolic && gem.Field.Equals("Speed", System.StringComparison.OrdinalIgnoreCase)) return true;
+        if ((mode == WeaponMode.Parabolic || mode == WeaponMode.Overhead) && gem.Field.Equals("Speed", System.StringComparison.OrdinalIgnoreCase)) return true;
         return WeaponModeSpec.IsEffective(mode, gem.Field);
     }
 
@@ -211,7 +211,7 @@ public class PlayerAbilities
         var speed = Get(_recipe, "Speed");
         if (!speed.IsZero)
         {
-            if (mode == WeaponMode.Parabolic)
+            if (mode == WeaponMode.Parabolic || mode == WeaponMode.Overhead)   // 頭頂投彈：迅捷＝炸彈掉得更快
                 d.FlightTime = Mathf.Max(SafeMinFlightTime, d.FlightTime / Mathf.Max(0.01f, 1f + speed.percent));
             else if (Eff(mode, "Speed"))
                 d.Speed = Mathf.Max(SafeMinSpeed, speed.Apply(d.Speed));
@@ -297,6 +297,7 @@ public class PlayerAbilities
         FireEffectID = s.FireEffectID, HitEffectID = s.HitEffectID,
         TrailEffectID = s.TrailEffectID, SummonEffectID = s.SummonEffectID,
         FamiliarVfxId = s.FamiliarVfxId, FamiliarSize = s.FamiliarSize, FamiliarSpin = s.FamiliarSpin,
+        DropperStyle = s.DropperStyle, DropperVfxId = s.DropperVfxId, DropperSize = s.DropperSize,
         Recipe = s.Recipe, BulletPrefab = s.BulletPrefab,
         WeaponSprite = s.WeaponSprite, WeaponSprites = s.WeaponSprites,
         BeamMuzzleSprite = s.BeamMuzzleSprite, BeamImpactSprite = s.BeamImpactSprite,

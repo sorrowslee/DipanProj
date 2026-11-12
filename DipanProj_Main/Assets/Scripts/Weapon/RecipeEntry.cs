@@ -115,6 +115,14 @@ public class RecipeEntry
     /// <summary>光束掃過某一點之後再過幾秒才在那裡爆炸。</summary>
     public float ExplodeDelay = 0.3f;
 
+    // ── 頭頂投彈（Mode=Overhead）──
+    /// <summary>頭頂投彈的 Range 留空時的索敵半徑（從施放者量）。</summary>
+    public const float OverheadDefaultRange = 6f;
+    /// <summary>一發最多打幾個目標（由近到遠）；0＝不限（OverheadDrop 另有效能上限）。</summary>
+    public int MaxTargets = 0;
+    /// <summary>各目標頭上的投彈者在 0～此秒數內隨機陸續冒出。</summary>
+    public float DropStagger = 0.4f;
+
     /// <summary>持續型（按住生效）：Laser / Aura。沒有發射間隔、不吃集氣。</summary>
     public bool IsContinuous => WeaponModeSpec.Get(Mode).Continuous;
 
@@ -203,7 +211,8 @@ public class RecipeEntry
         // ── 射程 / 範圍 ──
         d.BeamRange = Fl("Range", mode == WeaponMode.GroundCast ? 8f : mode == WeaponMode.Boomerang ? BoomerangDefaultRange
                                  : mode == WeaponMode.Familiar ? FamiliarDefaultRange
-                                 : mode == WeaponMode.Sweep ? SweepDefaultRange : 20f);
+                                 : mode == WeaponMode.Sweep ? SweepDefaultRange
+                                 : mode == WeaponMode.Overhead ? OverheadDefaultRange : 20f);
         e.AreaRadius = Fl("AreaRadius", 0f);
 
         // ── 命中附加 ──
@@ -220,7 +229,7 @@ public class RecipeEntry
 
         // ── 拋物線 ──
         d.IsParabolic = mode == WeaponMode.Parabolic;
-        d.FlightTime = Fl("FlightTime", 1f);
+        d.FlightTime = Fl("FlightTime", mode == WeaponMode.Overhead ? 0.35f : 1f);   // 頭頂投彈＝炸彈掉落秒數，預設要短
         d.ArcHeight = Fl("ArcHeight", 2f);
         e.LaunchSource = ParseLaunchSource(G("LaunchSource"));
         d.LandingScatterRadius = Fl("LandingScatterRadius", 0f);
@@ -284,6 +293,12 @@ public class RecipeEntry
         e.ExplodeSpacing = Math.Max(0.1f, Fl("ExplodeSpacing", 1.2f));
         e.ExplodeDelay = Math.Max(0f, Fl("ExplodeDelay", 0.3f));
         if (mode == WeaponMode.Sweep && e.AreaRadius <= 0f) e.AreaRadius = 1f;   // 爆炸半徑留空＝1
+
+        // ── 頭頂投彈 ──
+        e.MaxTargets = Math.Max(0, In("MaxTargets", 0));
+        e.DropStagger = Math.Max(0f, Fl("DropStagger", 0.4f));
+        if (mode == WeaponMode.Overhead && e.AreaRadius <= 0f) e.AreaRadius = 1f;   // 爆炸半徑留空＝1
+        if (mode == WeaponMode.Overhead && d.BeamRange <= 0f) d.BeamRange = OverheadDefaultRange;
 
         // 規格檢查（必填缺 / 無效卻有填）
         if (fields != null) problems.AddRange(WeaponModeSpec.Validate(mode, fields, FieldTable.Recipe));

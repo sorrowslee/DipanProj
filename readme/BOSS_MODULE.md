@@ -519,6 +519,7 @@ BrainType 填 `Pounce` 即可。
 > **出手點（2026-10-26）**：單發／窄扇形從「朝目標的身體框外緣」出手；**環狀爆發**（`SplitTiming=OnSpawn` 且 `SpreadAngle ≥ 180`）改從**身體中心**出手，否則整圈會偏到怪的前方（夏綠蒂公爵體型 2 時偏約 2.8 單位，見 [PROBLEMS.md](PROBLEMS.md) **F39**）。
 
 **目前只搬了 `Normal`（直飛彈）**，所以怪物能用的投射武器也只有 Normal——但分裂／反彈／追蹤／平行／穿透／軌跡
+> **2026-11-11／12 補**：另外兩種模式是一開始就寫成「玩家怪物共用」的獨立類別，`MonsterWeaponUser.TryUse` 直接分派：**`Sweep`**（`SweepStrike`，路西法之怒）、**`Overhead` 頭頂投彈**（`OverheadDrop`，饕餮印——怪物放時目標＝範圍內的玩家與玩家召喚物，投彈者冒在玩家頭上；範圍內沒目標不算施放、不進冷卻）。
 這些配方欄位對怪物**全部有效**，因為那是同一份彈道程式。
 Laser／Parabolic／SkyStrike／Chain／Orbital／Melee／Dash／GroundCast 仍住在 `PlayerController`；
 之後一種一種搬進來，**搬完 `MonsterWeaponUser` 不用改就會自動支援**（它是照 `recipe.Mode` 分派的）。

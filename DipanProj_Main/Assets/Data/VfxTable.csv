@@ -52,3 +52,4 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 58,血火爆,VfxEffects/BloodFireBurst/BloodFireBurst,9,20,2.5,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 59,屍毒雲爆(屍毒葫蘆落地；原本是地面特效10的圖，2026-11-09 改成一般特效畫在角色之上),GroundEffect/CorpsePoison/CorpsePoison,17,8,4.69,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 60,路西法之怒爆炸(Explosions/stylized_explosion_003 紅),VfxEffects/LuciferWrathExplosion/LuciferWrathExplosion,14,15,4,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+61,饕餮印爆炸(Explosions/stylized_explosion_006 blue＋冷藍；作者 2026-11-12 在特效預覽器挑的),VfxEffects/TaotieSealExplosion/TaotieSealExplosion,12,15,2.8,0,,,,,,,,,,,,,,,,,,,

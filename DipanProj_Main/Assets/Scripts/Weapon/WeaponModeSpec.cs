@@ -38,6 +38,8 @@ public enum WeaponMode
     Familiar,
     /// <summary>掃射（巨神兵式）：頭頂上方一道光束先連到腳底，再沿地面掃向滑鼠；掃過的線上每隔一段排程爆炸，光束本身不傷人。</summary>
     Sweep,
+    /// <summary>頭頂投彈（饕餮印，2026-11-12）：範圍內每個目標頭上冒出一個投彈者，吐出炸彈追著目標掉下去爆炸。</summary>
+    Overhead,
 }
 
 /// <summary>欄位值的型別（給載入檢查與未來「武器效果模擬」面板產輸入框用）。</summary>
@@ -242,7 +244,7 @@ public static class WeaponModeSpec
             F(R, "WanderAngle",     FieldKind.Float, "追蹤", "飄移幅度（度）", "0", 0f, 90f, "每顆子彈左右蛇行擺盪的角度（各自隨機相位）；0＝直飛。冤魂、螢火這類「飄」的子彈用"),
 
             // ── 射程／範圍（語意一致的共用欄）──
-            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）／Familiar 索敵半徑（空=8）／Sweep 掃描長度（空=12、-1＝只到滑鼠）"),
+            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）／Familiar 索敵半徑（空=8）／Sweep 掃描長度（空=12、-1＝只到滑鼠）／Overhead 索敵半徑（空=6）"),
             F(R, "AreaRadius", FieldKind.Float, "射程範圍", "範圍半徑", "", 0f, 50f, "Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑"),
 
             // ── 命中附加 ──
@@ -328,6 +330,12 @@ public static class WeaponModeSpec
             F(R, "ExplodeDelay",      FieldKind.Float, "掃射", "爆炸延遲（秒）", "0.3", 0f, 10f,
               "光束掃過某一點之後再過幾秒才在那裡爆炸"),
 
+            // ── 頭頂投彈（只有 Mode=Overhead）──
+            F(R, "MaxTargets",  FieldKind.Int,   "頭頂投彈", "同時目標上限", "0", 0, 64,
+              "一發最多打幾個目標（由近到遠取）；空／0＝不限（程式另有 64 的效能上限）"),
+            F(R, "DropStagger", FieldKind.Float, "頭頂投彈", "陸續冒出的時間差（秒）", "0.4", 0f, 5f,
+              "各目標頭上的投彈者在 0～此秒數內隨機陸續冒出；0＝全部同時"),
+
             // ── WeaponTable：通用 ──
             F(W, "ID",       FieldKind.Int,   "通用", "武器 ID", "", 1, 99999, "與 ItemTable 同號", universal: true),
             F(W, "Name",     FieldKind.Text,  "通用", "武器名稱", "", universal: true),
@@ -367,6 +375,14 @@ public static class WeaponModeSpec
               "單顆本體的顯示高度（世界單位，會再乘血統體型）；子彈大小另看 BulletScale"),
             F(W, "FamiliarSpin",  FieldKind.Float, "浮游本體", "本體轉速（度/秒）", "60", -720f, 720f,
               "正＝逆時針、負＝順時針、0＝停在原位不轉"),
+
+            // ── 投彈者外型（只有 Mode=Overhead）──
+            F(W, "DropperStyle", FieldKind.Text,  "投彈者", "投彈者樣式（shader）", "",
+              help: "TaotieInk＝水墨饕餮幽靈（墨煙溶解＋尾巴擺動）；有填就優先用它。新樣式加在 OverheadDrop.StyleTex"),
+            F(W, "DropperVfxId", FieldKind.Int,   "投彈者", "投彈者外型（VfxTable ID）", "0", 0, 99999,
+              "DropperStyle 留空時用：任何 VfxTable 序列特效（那一列 Loop=1）；兩個都空＝炸彈憑空出現在頭頂"),
+            F(W, "DropperSize",  FieldKind.Float, "投彈者", "投彈者大小", "1.1", 0.1f, 10f,
+              "投彈者的顯示高度（世界單位）；炸彈大小看 BulletScale"),
         };
         return L;
     }
@@ -509,6 +525,20 @@ public static class WeaponModeSpec
             .Lbl("FireInterval", "冷卻（秒，從施放算起，不等整發播完）").Lbl("BlockedByEnvironment", "光束被牆擋（0＝掃過牆與不可走區域）").Lbl("Range", "掃描長度（朝滑鼠方向固定掃這麼遠，從腳底量；空＝12；-1＝只掃到滑鼠位置；撞牆提前停）")
             .Lbl("AreaRadius", "每顆爆炸半徑").Lbl("SpreadCount", "光束道數").Lbl("SpreadAngle", "多道光束的扇形總角度（度）")
             .Lbl("Damage", "每顆爆炸的傷害").Lbl("HitEffectID", "爆炸特效 ID").Lbl("BulletScale", "爆炸大小（半徑與特效）");
+
+        // 頭頂投彈（饕餮印，2026-11-12）：範圍內每個目標頭上冒出投彈者、吐出炸彈追著目標落下爆炸。玩家怪物共用 OverheadDrop。
+        // 分裂＝每個投彈者吐幾顆、連擊＝同一批投彈者連吐幾輪（由 OverheadDrop 自己排程，不走 PlayerController 的連擊）。
+        // ⚠ 刻意不吃：集氣（要開再談）、廣角（沒有扇形）、地面特效（怪物放的會變成友傷問題，要開再談）。
+        M(d, WeaponMode.Overhead, "頭頂投彈", "範圍內（玩家放＝畫面內）每個目標頭上冒出投彈者，吐出炸彈追著目標落下爆炸；Range 決定打到幾隻（遠射珠），MaxTargets 設上限")
+            .Eff("FireInterval", "Range", "AreaRadius", "FlightTime", "LandingScatterRadius", "RotationSpeed", "SpreadCount")
+            .Eff("MaxTargets", "DropStagger").Eff(Burst)
+            .Eff("Damage", "HitEffectID", "DropperStyle", "DropperVfxId", "DropperSize").Eff(BulletVisual)
+            .Lbl("FireInterval", "冷卻（秒，從施放算起）").Lbl("Range", "索敵半徑（從施放者量；玩家放只算畫面內的怪；空＝6）")
+            .Lbl("AreaRadius", "每顆爆炸半徑（空＝1）").Lbl("FlightTime", "炸彈掉落秒數（空＝0.35）")
+            .Lbl("SpreadCount", "每個投彈者吐幾顆").Lbl("LandingScatterRadius", "多顆時的落點散開半徑")
+            .Lbl("BurstCount", "同一批投彈者連吐幾輪").Lbl("BurstInterval", "每輪間隔（秒）")
+            .Lbl("Damage", "每顆炸彈的傷害").Lbl("HitEffectID", "爆炸特效 ID").Lbl("BulletScale", "炸彈與爆炸大小（半徑與特效）")
+            .Lbl("WeaponSpritePath", "炸彈圖路徑");
 
         return d;
     }

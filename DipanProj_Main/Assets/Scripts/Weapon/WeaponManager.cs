@@ -241,6 +241,13 @@ public class WeaponManager : MonoBehaviour
             weapon.FamiliarSize = Mathf.Clamp(CsvFieldParse.Float(S("FamiliarSize"), 0.8f), 0.05f, 10f);
             weapon.FamiliarSpin = Mathf.Clamp(CsvFieldParse.Float(S("FamiliarSpin"), 60f), -720f, 720f);
         }
+        // 頭頂投彈的投彈者外型：只有 Overhead 讀
+        if (WeaponModeSpec.IsEffective(wmode, "DropperSize"))
+        {
+            weapon.DropperStyle = S("DropperStyle");
+            weapon.DropperVfxId = Mathf.Max(0, CsvFieldParse.Int(S("DropperVfxId"), 0));
+            weapon.DropperSize = Mathf.Clamp(CsvFieldParse.Float(S("DropperSize"), 1.1f), 0.1f, 10f);
+        }
 
         weapon.Recipe = recipe;
         weapon.BulletPrefab = BulletPrefab;

@@ -907,6 +907,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             FireEffectID = source.FireEffectID, HitEffectID = source.HitEffectID,
             TrailEffectID = source.TrailEffectID, SummonEffectID = source.SummonEffectID,
             FamiliarVfxId = source.FamiliarVfxId, FamiliarSize = source.FamiliarSize, FamiliarSpin = source.FamiliarSpin,
+            DropperStyle = source.DropperStyle, DropperVfxId = source.DropperVfxId, DropperSize = source.DropperSize,
             Recipe = source.Recipe, BulletPrefab = source.BulletPrefab, WeaponSprite = source.WeaponSprite,
             WeaponSprites = source.WeaponSprites, BeamMuzzleSprite = source.BeamMuzzleSprite,
             BeamImpactSprite = source.BeamImpactSprite, PixelBeamSet = source.PixelBeamSet
@@ -1214,6 +1215,36 @@ public class PlayerController : MonoBehaviour, IDamageable
             };
             SweepStrike.Cast(weapon, in sweep);
             AfterShot(weapon, burstShot);   // 冷卻＝FireInterval，從施放算起（不等整發播完；疾發珠才有感）
+            return true;
+        }
+
+        // 頭頂投彈（饕餮印）：範圍內畫面中的每隻敵怪頭上冒出投彈者、吐炸彈追著牠落下。全在 OverheadDrop（玩家怪物共用）。
+        // 範圍內沒有怪 ⇒ 不扣魔、不進冷卻（按著不放會每幀再試，有怪走進來就馬上放）。
+        // 連擊（同一批投彈者連吐幾輪）由 OverheadDrop 自己排程，所以這裡不走 AfterShot 的連擊——直接起冷卻。
+        if (weapon.Recipe.Mode == WeaponMode.Overhead)
+        {
+            float range = weapon.Recipe.Data != null ? weapon.Recipe.Data.BeamRange : RecipeEntry.OverheadDefaultRange;
+            OverheadDrop.CollectEnemiesOfPlayer(BodyCenterWorldPos, range, _overheadTargets);
+            if (_overheadTargets.Count == 0)
+            {
+                if (pressed) ShowSkillAlert("範圍內沒有目標");
+                return false;
+            }
+            if (!burstShot && _stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
+            TrySpawnFireEffect(weapon, AimDirectionToMouse());
+            var oh = new OverheadDrop.Context
+            {
+                Owner        = gameObject,
+                Center       = BodyCenterWorldPos,
+                Targets      = _overheadTargets,
+                TargetLayers = EnemyLayer,
+                EnvLayer     = EnvLayer,
+                OwnerScale   = PlayerScale,
+                ClampToView  = true,
+            };
+            OverheadDrop.Cast(weapon, in oh);
+            CancelBurst();
+            _fireTimer = weapon.Recipe.Data != null ? weapon.Recipe.Data.FireInterval : 1f;
             return true;
         }
 
@@ -1740,6 +1771,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // 統一傷害入口：所有武器命中都走中央 CombatSystem（玩家加成 → 目標減傷 → 結算）。
     // 來源 = 玩家本身（讓玩家的傷害加成生效）；牆等無 IDamageable 者由 CombatSystem 自動略過。見 readme/COMBAT.md
+    readonly List<OverheadDrop.Target> _overheadTargets = new List<OverheadDrop.Target>();   // 頭頂投彈每發重用的目標清單（OverheadDrop.Cast 內部只讀、不留參照）
     /// <summary>骨牢的候選名單（重用，避免每次施放都配置）。</summary>
     readonly System.Collections.Generic.List<MonsterController> _cageCandidates
         = new System.Collections.Generic.List<MonsterController>();

@@ -144,6 +144,8 @@ public class MonsterWeaponUser : MonoBehaviour
             cast = TryFireProjectile(recipe, target);
         else if (recipe.Mode == WeaponMode.Sweep)
             cast = TrySweep(target);
+        else if (recipe.Mode == WeaponMode.Overhead)
+            cast = TryOverhead(target);
         else
             Debug.LogWarning($"[MonsterWeaponUser] 武器 '{_weapon.Name}' 的模式 {recipe.Mode} 還沒搬進 WeaponCastService（見該檔說明），怪物暫時不能用。");
 
@@ -352,6 +354,36 @@ public class MonsterWeaponUser : MonoBehaviour
             EnvLayer     = wallMask,
         };
         return SweepStrike.Cast(_weapon, in ctx) >= 0f;
+    }
+
+    // ── 頭頂投彈（饕餮印）：委派給玩家／怪物共用的 OverheadDrop ─────────────────────
+    readonly List<OverheadDrop.Target> _overheadTargets = new List<OverheadDrop.Target>();
+
+    /// <summary>
+    /// 範圍（配方 Range，從自己身上量）內的 <paramref name="target"/>（通常是玩家）與玩家的召喚物頭上冒出投彈者、吐炸彈落下。
+    /// 範圍內沒有目標 ⇒ 不算施放（不進冷卻）。
+    /// </summary>
+    private bool TryOverhead(Transform target)
+    {
+        MonsterController owner = _owner;
+        Vector2 center = owner != null ? owner.BodyCenterWorldPos : (Vector2)transform.position;
+        float range = (_weapon.Recipe.Data != null) ? _weapon.Recipe.Data.BeamRange : RecipeEntry.OverheadDefaultRange;
+        OverheadDrop.CollectFoesOfMonster(center, range, target, _overheadTargets);
+        if (_overheadTargets.Count == 0) return false;
+
+        // 打得到的層＝每個目標所在的層（玩家層＋友軍所在層）；陣營再由 CombatSystem 擋一次（不會炸到自己人）
+        int mask = 0;
+        foreach (var t in _overheadTargets) if (t.Go != null) mask |= 1 << t.Go.layer;
+        var ctx = new OverheadDrop.Context
+        {
+            Owner        = gameObject,
+            Center       = center,
+            Targets      = _overheadTargets,
+            TargetLayers = mask,
+            EnvLayer     = 0,      // 怪物放的不炸地上物（同箭）
+            OwnerScale   = 1f,     // 炸彈是武器的，不隨怪物體型放大
+        };
+        return OverheadDrop.Cast(_weapon, in ctx) > 0;
     }
 
     // 召喚：委派給玩家/怪物共用的 SummonSystem（同時上限用本元件自己的 _summoned 清單追蹤）。

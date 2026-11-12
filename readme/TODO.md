@@ -1098,7 +1098,8 @@
 - [x] **正式序列圖**（作者 2026-11-12 15:06 commit `5a693a30`）。饕餮 dead 比 idle 大 26.6% → 25 張以腳底為中心縮 0.79 倍＋下移 3px（PROBLEMS **G23**，原檔備份在 `TempImage/bloodline_Gluttonborn/backup_dead_Taotie/`）；餓鬼／年 dead 只差 2～3%、腳底差 0～1px，不動。
 - [x] **立繪負面表情**（2026-11-12）：GPT 一律拒絕 → 作者改請其他 AI 畫（`DipanProj_Main/封存 (1)/`，JPEG、1.645 倍、純黑底）；AI 用 `tools/cutout_black.py`（四邊 flood fill 純黑 T=14＋邊緣 2px 半透明）去背、預乘縮回原尺寸、清碎塊，**happy／angry／cry／fear／hurt 15 張全換成他的版本**（作者選），normal 維持 GPT 版。⚠ 餓鬼、年的 angry 帶暗紅煙霧特效，去背後是硬邊暗紅色塊，作者選照用；舊版留 `portrait/before_other_ai/`。
 - [ ] **立繪實機確認**：年寬體型（1.2／−180／OuterToScreen 1 起手；2026-11-12 下午重做的新版母版頂端 y≈5，骨冠比規格 27 高）；餓鬼母版人物偏小（頭頂 y≈236）、饕餮 1.15／−139；饕餮 happy 抬手伸到 x≈980（超過右界 880），看對話框會不會因此偏左。
-- [ ] **饕餮專屬夢境武器「吞噬之口」**（巨爪撕裂／無形獸口咬合／饕餮獸面虛影張口吞噬）待設計；目前暫借魔狼爪 71。
+- [ ] **`DreamTutorialFlow.DebugForceBloodlineId` 暫時寫死 122（饕餮）**：2026-11-12 作者測饕餮印用，測完改回 0（隨機）。
+- [ ] **饕餮專屬武器＝饕餮印（武器／道具 79、配方 94，新模式 `Mode=Overhead` 頭頂投彈，2026-11-12 寫好，⏳ 未編譯未實測）**：取代原本登記的「吞噬之口」與暫借的魔狼爪 71。實測重點：① 能編譯、武器工坊看得到「頭頂投彈」模式與新欄 ② 畫面內每隻怪頭上都有幽靈、炸彈追得到移動中的怪 ③ 大小：`DropperSize` 1.1、炸彈 `BulletScale` 1.5（借武器 4 的炸彈圖）、爆炸半徑 1.2 ④ 怪多時效能（`MaxTargets` 留空＝不限，卡的話填上限）⑤ 新手夢境用它教發射是否順（範圍內沒怪會跳「範圍內沒有目標」）⑥ 怪物版：找一隻怪 `Weapon` 填 79 試，幽靈冒在玩家頭上。
 - [ ] **饕餮神格特效＝水墨饕餮幽靈（`GhostStyle`=TaotieInk，2026-11-12 寫好，⏳ 未編譯未實測）**：見 BLOODLINE §5b〈`GhostStyle`：身邊幽靈〉。實測重點：① 能編譯、Console 沒有「找不到 shader／貼圖」警告 ② 兩隻的位置與大小（`SideOffset`／`HeightAboveBody`／`GhostSize`，元件 Inspector 可調）③ 若隱若現的程度（shader `_Opacity`／`_Flicker`）④ 暗紅外圍微光會不會太紅。原本登記的「吞噬領域」（空間扭曲）作者沒印象，已撤掉。
 - [ ] **跑「計算影子錨點」**：2026-11-12 刪了 5 列過時錨點（年 attack；饕餮 attack／idle／walk／dead——前四列是暫代時的值，幀數相同或 manual 沒被重算；dead 剛縮過）。
 - [ ] `BodyScale`：年 1.4、饕餮 1.5（作者 2026-11-12 實機定），餓鬼仍 1；`WalkSpeed`（留空）、五屬性（佔位）待實機定。

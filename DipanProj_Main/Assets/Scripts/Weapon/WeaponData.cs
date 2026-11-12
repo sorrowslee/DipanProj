@@ -39,6 +39,11 @@ public class WeaponData
     public float FamiliarSize = 0.8f;  // 單顆本體顯示高度（世界單位，再乘血統體型）
     public float FamiliarSpin = 60f;   // 繞行轉速（度/秒，正＝逆時針）
 
+    // ── 頭頂投彈的投彈者（只有 Mode=Overhead 讀；見 OverheadDrop）──
+    public string DropperStyle;        // shader 樣式（TaotieInk＝水墨饕餮幽靈）；有填優先
+    public int DropperVfxId;           // DropperStyle 留空時用的 VfxTable 序列特效（Loop=1）
+    public float DropperSize = 1.1f;   // 投彈者顯示高度（世界單位）
+
     public RecipeEntry Recipe;
     public GameObject BulletPrefab;
     public Sprite WeaponSprite;
