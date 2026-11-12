@@ -222,14 +222,9 @@ characters/angelborn/oracle/idle,0.2,71,75,auto,23,256,256,
 characters/angelborn/oracle/walk,0.2,62.5,89,auto,24,256,256,
 characters/qingqiuborn/mysticfox/attack,0.8,62,90,auto,25,256,256,
 characters/qingqiuborn/spiritfox/idle,0,62.5,75,auto,23,256,256,
-characters/gluttonborn/nian/attack,-4.8,44,123,auto,25,256,256,
 characters/gluttonborn/nian/dead,9.5,75.8,119,auto,9,256,256,幀數 9→25 已重算
 characters/gluttonborn/nian/idle,-1.2,63,113,auto,16,256,256,幀數 25→16 已重算
 characters/gluttonborn/nian/walk,-0.5,62,99,auto,13,256,256,幀數 25→13 已重算
-characters/gluttonborn/taotie/attack,1,53.5,97,auto,25,256,256,
-characters/gluttonborn/taotie/dead,3,74.4,116,auto,9,256,256,幀數 9→25 已重算
-characters/gluttonborn/taotie/idle,-2,50.5,91,manual,15,256,256,2026-09-13 手改：auto 算出 -36（同批素材的 base/thrall/jiao idle 都在 ±1.2 內，這是離群值）——披風/尾巴那類窄剪影被當成第二隻腳，錨點被拉到身體後方；離線量最底 8px、濾掉寬<10px 的段後，真實接地中點與 thrall/jiao 同一水準，換算回表的尺規是 -2。walk 對齊 idle，換動作時不會跳
-characters/gluttonborn/taotie/walk,-2,54,98,manual,14,256,256,2026-09-13 手改：auto 算出 -23.9（同批素材的 base/thrall/jiao idle 都在 ±1.2 內，這是離群值）——披風/尾巴那類窄剪影被當成第二隻腳，錨點被拉到身體後方；離線量最底 8px、濾掉寬<10px 的段後，真實接地中點與 thrall/jiao 同一水準，換算回表的尺規是 -2。walk 對齊 idle，換動作時不會跳
 characters/gluttonborn/preta/attack,-0.8,70,77,auto,25,256,256,幀數 23→25 已重算
 characters/gluttonborn/preta/dead,10.5,71,87,auto,9,256,256,幀數 9→25 已重算
 characters/gluttonborn/preta/idle,-0.8,62,60,auto,15,256,256,幀數 24→15 已重算

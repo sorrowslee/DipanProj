@@ -1057,7 +1057,7 @@
 
 > 見 [BLOODLINE.md](BLOODLINE.md) §8、[PROGRESS.md](PROGRESS.md) 2026-11-10 條。
 
-- [ ] **先跑 `Project Tools → Sync Map Assets`**，否則新立繪與暫代序列圖載不到。
+- [ ] **先跑 `Project Tools → Sync Map Assets`**（立繪、饕餮 dead 有更新）。
 - [ ] **正式序列圖**：作者以 `TempImage/bloodline_Qingqiuborn/out/{SpiritFox,MysticFox,NineTailedCelestialFox}_base_1024.png` 用 AutoSprite 產圖，整個覆蓋 `SequenceImage/Qingqiuborn/<血統>/`（目前暫代＝靈根三階）→ 刪 `ShadowAnchorTable` 的 `characters/qingqiuborn/*` 12 列 → 跑「計算影子錨點」→ 再 Sync。
 - [x] ~~九尾天狐影子對不準~~ → 2026-11-10 idle／walk／attack 三列手填 manual（X +2、Y 69、寬 60；auto 被尾巴拉到 −20.5）。⏳ 實機確認。
 - [ ] **還要作者跑一次「計算影子錨點」**：靈狐 idle、玄狐 attack 兩列暫代已刪（正式圖幀數剛好與暫代相同，工具沒重算），跑一次就會補回正確的 auto 值。
@@ -1095,11 +1095,13 @@
 > 見 [BLOODLINE.md](BLOODLINE.md) §8、[PROGRESS.md](PROGRESS.md) 2026-11-12 條。
 
 - [ ] **先跑 `Project Tools → Sync Map Assets`**，否則新立繪與暫代序列圖載不到。
-- [ ] **正式序列圖**：作者以 `TempImage/bloodline_Gluttonborn/out/{Preta,Nian,Taotie}_base_1024.png` 用 AutoSprite 產圖，整個覆蓋 `SequenceImage/Gluttonborn/<血統>/`（暫代＝寄生體／望月者／尼德霍格）→ 刪 `ShadowAnchorTable` 的 `characters/gluttonborn/*` 12 列 → 跑「計算影子錨點」→ 再 Sync。⚠ 年的手臂很長、爪子垂到 y≈730，影子 auto 可能被拉偏。
-- [ ] **立繪負面表情（12 張）**：三階的 angry／cry／fear／hurt 目前都是 normal 的複本。ChatGPT 對這個系列的負面情緒一律拒絕（暴力規範），要補得換方法（例：請 GPT 畫「沒有嘴的同一人」的表情臉，再用程式把頭部貼回母版；或作者另找工具）。
+- [x] **正式序列圖**（作者 2026-11-12 15:06 commit `5a693a30`）。饕餮 dead 比 idle 大 26.6% → 25 張以腳底為中心縮 0.79 倍＋下移 3px（PROBLEMS **G23**，原檔備份在 `TempImage/bloodline_Gluttonborn/backup_dead_Taotie/`）；餓鬼／年 dead 只差 2～3%、腳底差 0～1px，不動。
+- [x] **立繪負面表情**（2026-11-12）：GPT 一律拒絕 → 作者改請其他 AI 畫（`DipanProj_Main/封存 (1)/`，JPEG、1.645 倍、純黑底）；AI 用 `tools/cutout_black.py`（四邊 flood fill 純黑 T=14＋邊緣 2px 半透明）去背、預乘縮回原尺寸、清碎塊，**happy／angry／cry／fear／hurt 15 張全換成他的版本**（作者選），normal 維持 GPT 版。⚠ 餓鬼、年的 angry 帶暗紅煙霧特效，去背後是硬邊暗紅色塊，作者選照用；舊版留 `portrait/before_other_ai/`。
 - [ ] **立繪實機確認**：年寬體型（1.2／−180／OuterToScreen 1 起手；2026-11-12 下午重做的新版母版頂端 y≈5，骨冠比規格 27 高）；餓鬼母版人物偏小（頭頂 y≈236）、饕餮 1.15／−139；饕餮 happy 抬手伸到 x≈980（超過右界 880），看對話框會不會因此偏左。
 - [ ] **饕餮專屬夢境武器「吞噬之口」**（巨爪撕裂／無形獸口咬合／饕餮獸面虛影張口吞噬）待設計；目前暫借魔狼爪 71。
 - [ ] **饕餮神格特效「吞噬領域」**（周圍光影與空間被吸向身邊扭曲、暗紅與深黑的空間裂隙）：現有神格層（光環、圓盤、足跡、環繞物、攻擊罩身、擊中、黑霧）都做不到，需新的空間扭曲 shader 層——新程式，先跟作者討論規格。
-- [ ] `BodyScale`（三階全 1）、`WalkSpeed`（留空）、五屬性（佔位）待實機定。
+- [ ] **跑「計算影子錨點」**：2026-11-12 刪了 5 列過時錨點（年 attack；饕餮 attack／idle／walk／dead——前四列是暫代時的值，幀數相同或 manual 沒被重算；dead 剛縮過）。
+- [ ] `BodyScale`：年 1.4、饕餮 1.5（作者 2026-11-12 實機定），餓鬼仍 1；`WalkSpeed`（留空）、五屬性（佔位）待實機定。
+- [ ] 立繪右緣超過 880（對話框會偏左）：餓鬼 angry 929／fear 985、饕餮 happy 994／angry 977／cry 908；年 happy／fear 1460 超過寬體型右界 1440——實機看。
 - [ ] 直達藥劑 3121／3122 沒進任何池（同其他系列）。
 - [ ] 餓鬼、年的夢境台詞（作者有給：「在夢中，我是餓鬼，飢火焚身，永無飽足之日」「在夢中，我是年，凶威所至，血肉皆為食糧」）沒有用到——新手夢境只抽三階，留著備用。
