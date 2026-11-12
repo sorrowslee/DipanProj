@@ -4,6 +4,7 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **夢境教學血統改回隨機**（2026-11-12 晚，作者測完饕餮印）：`DreamTutorialFlow.DebugForceBloodlineId` 122→0。另：頭上幽靈再拉高，`OverheadDrop.GapAboveHead` 0.3→0.6。
 * [x] **饕餮印第二輪：打不到新手夢境佛掌＋一次吐 3 顆（⏳ 未實測）**（2026-11-12 晚，作者回報）：① 佛掌（MonsterData 34，Scale 6、`Controllable=0`）進場後按了沒反應——找目標時照抄了骨牢的 `!Controllable` 篩選，那欄的意思是「免疫定身」不是「打不到」⇒ 拿掉；另外改用「腳底到頭頂這條身體」判斷距離與在不在畫面內（巨大 boss 的中心常在畫面外），玩家放的投彈者壓進畫面上緣內側、落點收在它下方的身體上（`Context.ClampToView`）。進場前一直跳「範圍內沒有目標」是正常的（佛掌真的還在畫面外）。② 配方 94 `SpreadCount` 3、`LandingScatterRadius` 0.7，同一隻幽靈連吐間隔 0.08→0.1 秒（`OverheadDrop.SpreadSpitGap`）。⚠ 傷害也跟著變 3 倍（每顆 6）。
 * [x] **饕餮夢境台詞重寫**（2026-11-12 晚，作者嫌太短太敷衍）：`LanguageTable` 1016 →「在夢中，我是吞盡天地的饕餮，山河日月不過一口，諸天神佛皆是我腹中之物」（英文同步），長度比照路西法 1015。
 * [x] **饕餮印實機第一輪調整**（2026-11-12 晚）：① 編譯錯誤：`OverheadDrop.cs` 少 `using Sorrows.Ballistics`（ProjectileData）。② 頭上幽靈看不清楚 → `DropperSize` 1.1→**1.8**、離頭頂空隙 `GapAboveHead` 0.08→**0.3**（× 大小）。③ 爆炸換掉（作者嫌 1 號太糟）→ 新 VfxTable **61**「饕餮印爆炸」：地圖編輯器特效庫 `Explosions/stylized_explosion_006` blue 12 幀，照 `EffectRecolor` 的「冷藍」公式（亮度 × (0.42, 0.60, 1.00) × 0.95）烤成 `Resources/VfxEffects/TaotieSealExplosion/_01～_12`（.meta 以 LuciferWrathExplosion 為範本換 GUID），`Scale` 2.8（96px，再乘 BulletScale 1.5 ≈ 4 單位寬），武器 79 `HitEffectID` 1→61。
