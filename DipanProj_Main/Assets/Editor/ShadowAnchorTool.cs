@@ -98,6 +98,17 @@ public static class ShadowAnchorTool
                 bool isManual = row != null && row.TryGetValue("Source", out var src) && src.Trim().ToLowerInvariant() == "manual";
                 int oldFrames = row != null && row.TryGetValue("Frames", out var fr) && int.TryParse(fr, out int fv) ? fv : -1;
                 bool framesChanged = row != null && oldFrames >= 0 && oldFrames != s.files.Count;
+                // 2026-11-13：換圖時常常幀數不變、只有畫布從 256 變 512（AutoSprite 新版輸出），只看幀數會漏掉——
+                // 表裡的像素值還是舊畫布的，影子整個掉到腳下方（望月者 attack、殭屍、毛殭實機）。畫布尺寸變了一樣算「換過圖」。
+                bool canvasChanged = false;
+                if (row != null && s.files.Count > 0
+                    && row.TryGetValue("CanvasW", out var cwS) && int.TryParse(cwS, out int oldCw)
+                    && row.TryGetValue("CanvasH", out var chS) && int.TryParse(chS, out int oldCh)
+                    && TryPngSize(s.files[0], out int nowW, out int nowH))
+                    canvasChanged = oldCw != nowW || oldCh != nowH;
+                if (canvasChanged && isManual)
+                    log.AppendLine($"  ⚠ {s.key}：畫布已換成新尺寸，但這列是 manual（不會自動覆寫）——表裡的像素值是舊畫布的，請改回 auto 重算或手填");
+                framesChanged |= canvasChanged;
 
                 bool needCompute = row == null || (!isManual && (!onlyNew || framesChanged));
                 if (!writeTable) needCompute = row == null;   // 只出圖：有列的用表裡的值畫，沒列的當場算（不寫）
@@ -111,7 +122,7 @@ public static class ShadowAnchorTool
                     if (writeTable)
                     {
                         var d = row ?? new Dictionary<string, string>();
-                        string note = (row != null && framesChanged) ? $"幀數 {oldFrames}→{s.files.Count} 已重算" : (row != null ? "" : "");
+                        string note = (row != null && canvasChanged) ? $"畫布換成新尺寸已重算" : (row != null && framesChanged) ? $"幀數 {oldFrames}→{s.files.Count} 已重算" : (row != null ? "" : "");
                         FillRow(d, s.key, a, note);
                         existing[s.key] = d;
                         if (row == null) order.Add(s.key);
@@ -194,6 +205,24 @@ public static class ShadowAnchorTool
         string d = Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar);
         if (d.Length <= r.Length) return "";
         return d.Substring(r.Length + 1).Replace('\\', '/');
+    }
+
+    /// <summary>只讀 PNG 檔頭（IHDR）取寬高，不解碼整張圖。</summary>
+    static bool TryPngSize(string path, out int w, out int h)
+    {
+        w = h = 0;
+        try
+        {
+            using (var fs = File.OpenRead(path))
+            {
+                var b = new byte[24];
+                if (fs.Read(b, 0, 24) < 24) return false;
+                w = (b[16] << 24) | (b[17] << 16) | (b[18] << 8) | b[19];
+                h = (b[20] << 24) | (b[21] << 16) | (b[22] << 8) | b[23];
+                return w > 0 && h > 0;
+            }
+        }
+        catch { return false; }
     }
 
     static Texture2D LoadPng(string path)

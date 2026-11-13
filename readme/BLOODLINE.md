@@ -592,6 +592,15 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 2. **立繪比例不保證一致。** `Base` 是 1122×1402（比例 0.80），殭屍三階與血族三階都是 1024×1536（0.667）。
    所以立繪一律「**等比縮到框內的 `PortraitBox` 並靠下對齊**」，不能照高度縮——照高度縮的話
    Base 會比破碎框還寬、直接撐出框外。哪天把 Base 重畫成 1024×1536 就能拿掉這個顧慮。
+   **2026-11-13 起**：Base 已重畫成 1024×1536；符合 [CHARACTER_ART_SPEC](art_direction/CHARACTER_ART_SPEC.md) §2.0 標準尺寸
+   （1024×1536 或寬版 1536×1024）的立繪改走 **Spec 路徑**（`SpecCrop`），下緣以 `SpecCropSoftness` 柔邊裁在腹部——
+   比照作者給的主角範例「放大只切到腹部」。其他尺寸的舊立繪仍走上面的等比縮放。
+   **2026-11-13 第三版＝單一規則**（作者：第二版依條件分岔，同一張玄狐 1→2 不裁、2→3 被裁，毛殭全身、其他人半身，測不完）：
+   - **遮罩固定**：`PortraitClip` 一律啟用，範圍＝框內黑底（左右 `PortraitClipLeft/Right` 0.225～0.80、上 `PortraitClipTop` 0.12、下 `PortraitBottomInset` 0.13），不看新舊立繪尺寸。
+   - **規格立繪固定倍率、固定位置**：頭頂線 235（寬版 ×2/3）→ 框頂下 `SpecHeadFromFrameTop` 165；腹部線 `SpecCropBottom` 800 → 立繪底線；中心線 `SpecCenterX` 470／`SpecCenterXWide` 700 → 破碎框中心。不量內容、不依寬度縮放 ⇒ 每個人頭一樣大、都到腰部。
+   - **臉要在中心線上**：視窗只有中心線 −152～+166 畫布 px（直式；寬版 ÷1.5），臉的右緣要 ≤ +120。面向右 3/4 側的角色頭常偏右，**不合格就修圖（整組表情水平平移），不改程式**。2026-11-13 平移過（直式 px，負＝左）：法夫納 −140、望月者（駝背前傾、頭在 y≈400 且偏右，平移救不了 → 作者選擇**換新設計**：挺直站姿、部族彩繪取代血傷，六張表情重畫；遊戲角色圖 `remake/Moonwatcher /Moonwatcher_v2.png` 交作者重做序列圖，舊立繪備份 `backup/moonwatcher_redraw/`）、泰坦（之後改成以臉為中心縮 0.9 倍、頭頂→235、臉→x500：原圖撐滿畫布、頭頂在 115，平移只會讓頭被標題蓋住）、芬里爾 −80、玄狐 −70、山巨人 −60、靈狐 −50、應龍 −40、餓鬼 −40、石像鬼 −30、劫掠者 −30、饕餮 −20、九尾天狐 −27／萬蟲帝 −27（寬版 px）、毛殭 −110（寬版 px，前一輪）；左緣有內容被推出畫布的加 32px 漸層，備份 `TempImage/art_remake/backup/intro_head_shift/`。
+   - 驗收：`python3 tools/art/art_remake/tools/sim_intro.py <out.jpg> <立繪>...`（與程式同一規則；全血統總覽 `TempImage/art_remake/work/sim_all/v3_*.jpg`）。**新立繪進來先跑這個，臉被裁就平移圖。**
+   - 拿掉了第二版的量寬縮放、GPU 讀回（立繪貼圖被 `CompressAndLock` 鎖成不可讀，執行期量像素本來就不可靠）。
 3. **兩張立繪各自一份 `Material`。** `_Cutoff` 是材質參數，共用一份的話兩張會一起溶解。
    材質是 instance 欄位 ＋ `HideAndDontSave`，隨面板生滅（關掉 Domain Reload 後 static 快取
    會拿到上一輪已銷毀的物件，見 PROBLEMS I 系）。
@@ -982,7 +991,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 |---|---|---|
 | 元件 | `Scripts/Gacha/BloodlineMist.cs` | 照 `BloodlineHalo` 的模式：獨立物件（parent＝玩家的父節點）、1×1 白點 sprite 用 localScale 撐成 quad、`SortOffset=-1` 畫在角色之下、`BodyFxVisible` 為 false 時整層關 |
 | shader | `Resources/Shaders/BloodlineMist.shader`（`Custom/BloodlineMist`） | **複製 `BloodMist`（血霧衛士）的骨架**，原檔不動。兩張煙霧密度圖 `UI/BossIntroPanel/BossIntroPanel_Smoke1/2` ＋ domain warp；改成往上竄的焰形、整體往上流、本體近黑、只有最外緣一窄條紫色冥光 |
-| 骷髏貼圖 | `Resources/VfxEffects/BloodlineMist/soul_skull.png` | 256×256，RGB＝灰階亮度、A＝形狀（ChatGPT 產＋去背；原檔在 `TempImage/bloodline_Netherborn/fx/`） |
+| 骷髏貼圖 | `Resources/VfxEffects/BloodlineMist/soul_skull.png` | 256×256，RGB＝灰階亮度、A＝形狀（ChatGPT 產＋去背；原始檔當時在 `TempImage/bloodline_Netherborn/fx/`（2026-11-13 隨 TempImage 清除，成品即此檔）） |
 
 **骷髏的一輪**（全在元件 Inspector 可調，`Time.deltaTime` 驅動 ⇒ 暫停會凍住）：
 等待 `SkullWaitMin`～`SkullWaitMax`（2.5～4.5 秒）→ 凝結 `SkullFormTime` 1.2 秒（shader 拿 SmokeB 當溶解門檻，霧一絲一絲聚成骷髏）
@@ -999,7 +1008,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 ⚠ 三個調參時踩過的坑（numpy 預覽四輪，照同一套算式＋真密度圖＋該隱合成在暗底上看）：
 ① **純黑在暗地板上讀不出形狀**——一定要留一窄條紫色勾邊（`_RimAmount`）。② 勾邊一寬、或本體帶太多紫，整團就變成「紫火」，不是黑霧。
 ③ 骷髏的 uv 要用寬高比修正（quad 是 1.7×2.4，不修會變成長臉）。
-對照腳本 `TempImage/bloodline_Netherborn/fx/preview.py`：**改 shader 算式要兩邊一起改**，否則預覽會騙人。
+對照腳本 `tools/art/bloodline_Netherborn/fx/preview.py`：**改 shader 算式要兩邊一起改**，否則預覽會騙人。
 
 ---
 
@@ -1018,7 +1027,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 
 **大小與位置**（× 角色高度）：邊長 `GhostSize` 0.6、離身體中心水平 `SideOffset` 0.56、比身體中心高 `HeightAboveBody` 0.22。貼圖的墨煙往右上飄 ⇒ `TailToLeftInTexture`=false，**左邊那隻鏡射**，兩隻尾巴都往外。
 顏色在 shader Properties：墨 sRGB(8,6,8)、留白 (225,216,196)、微光 (112,20,20)；`_Opacity` 0.88、`_Flicker` 0.35、`_HeadUv` (0.5, 0.36)、`_TailStart` 0.26、`_TailWarp` 0.07。
-對照腳本 `TempImage/bloodline_Gluttonborn/fx/preview.py`（饕餮 idle 第一幀合成在暗底上）：**改 shader 算式要兩邊一起改**。
+對照腳本 `tools/art/bloodline_Gluttonborn/fx/preview.py`（饕餮 idle 第一幀合成在暗底上）：**改 shader 算式要兩邊一起改**。
 
 ---
 

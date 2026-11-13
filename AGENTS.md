@@ -68,6 +68,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |
 | 發光／亮度／光圈／環境亮度 | [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)＋[readme/SCENE_EFFECT.md](readme/SCENE_EFFECT.md)（同框 12 盞上限寫死在兩處） |
 | 產任何圖片素材 | [readme/AI_IMAGE_GEN_GUIDE.md](readme/AI_IMAGE_GEN_GUIDE.md) |
+| **處理美術圖**（去背、立繪／角色圖對齊、表情差分、模擬轉換面板與對話框、量序列圖大小、修 dead、算影子、UI 圖示換風格） | **先查 [tools/art/README.md](tools/art/README.md)「要做什麼→用哪支」，用現成工具，不要重寫**；工作夾開在 `TempImage/<任務>/`（不進 git）；美術原始檔（角色基礎圖等）放 `ArtSource/`（進 git、Unity 不讀） |
 | 素材風格／場景調色／畫面觀感（「組起來不漂亮」） | [readme/ART_DIRECTION.md](readme/ART_DIRECTION.md)（畫面經營六紀律＋繪圖 AI 檢核表；產圖操作仍看 AI_IMAGE_GEN_GUIDE） |
 | 加／改「直接進關卡」測試選單、想換某關卡從哪張圖開始 | [readme/TITLE_AND_SAVE_UI.md](readme/TITLE_AND_SAVE_UI.md)〈測試快捷〉——**關卡入口一律用 module 型 `Set("<module>")`，進哪張由 MapsTable `IsLevelStart` 決定（改 CSV 即可、不用動程式）**；`map:<id>` 只給非模組首圖。踩過見 PROBLEMS **B15** |
 | 第一次接觸專案／遇到怪問題 | [readme/PROBLEMS.md](readme/PROBLEMS.md)（檔頭有分類索引；踩過的坑幾乎都在裡面） |

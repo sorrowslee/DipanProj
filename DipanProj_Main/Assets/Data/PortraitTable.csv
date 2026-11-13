@@ -8,6 +8,8 @@
 #   素材留白與畫布比例的差異不必在這裡補。這張表只放「刻意的構圖選擇」。
 #   整張表都是選填的——沒列進來的圖就是完全交給自動對齊。
 #
+# ⭐⭐⭐ 2026-11-13 起「主角血統立繪」（Main/Characters/Talk/…，標準全身圖）改用半身排法（TalkPanel.SetAvatarWaistUp）：照 CHARACTER_ART_SPEC §2.0 的標準線，頭頂線→畫面 y975、腰線→對話框上緣、身體中心距畫面中心 500，
+#   不再量內容框，所以下面〈頂端 975 規則〉只適用其他立繪（NPC／怪物）。血統立繪的 Scale 以頭頂線為中心放大（往下長）、Offset 照常平移、OuterToScreen 不作用（外側緣不夾）。原本為了 975 規則逐張填的 1.15／−139、寬版 1.2／−180 已全部移除。
 # ⭐⭐ 〈頂端 975 規則〉（2026-11-09 作者定：先決定要放多大，再用公式算 OffsetY，人物頂端一律落在 y≈975）：
 #   自動對齊後人物頂端 = 446.9 + 580×Scale + OffsetY（畫面高 1080；不填任何值時＝1027，太高、頭頂貼畫面上緣）
 #   ⇒ OffsetY = 528 − 580 × Scale    （Scale 1 → −52、1.1 → −110、1.15 → −139、1.2 → −168、1.3 → −226、1.35 → −255）
@@ -16,7 +18,7 @@
 #   同一張圖不論出現在哪一句、左邊或右邊，都套用這裡的值。
 # ─────────────────────────────────────────────────────────────────────────────
 Id,Scale,OffsetX,OffsetY,OuterToScreen,Note
-Main/Talk/Buddha/Buddha_normal,1.3,0,-230,,邪佛：頭頂原貼齊畫面上緣（圖檔上緣就是頭頂，-130 時頂端≈1071）；2026-11-07 作者：寬螢幕下頭被切，再沉 100（頭頂≈971，比照夏綠蒂留白）；X 原本 -130 會被「外側緣不出對話框」的夾限抵銷，歸零（2026-10-26 作者實機調）
+Main/Talk/Buddha/Buddha_normal,1.3,0,-170,,2026-11-13 主角對話立繪改成腰部以上後邪佛顯得太低 → -230 改 -170（頭頂≈1031）；邪佛：頭頂原貼齊畫面上緣（圖檔上緣就是頭頂，-130 時頂端≈1071）；2026-11-07 作者：寬螢幕下頭被切，再沉 100（頭頂≈971，比照夏綠蒂留白）；X 原本 -130 會被「外側緣不出對話框」的夾限抵銷，歸零（2026-10-26 作者實機調）
 Modules/RedBridalGown/Talk/treeFace_vicious,1.1,,-10,,榕樹妖：稍微放大、上移，整張臉（下巴）露出對話框上緣的雕飾（2026-10-26 作者實機調；原 -50）
 Modules/RedBridalGown/Talk/treeFace_crazy,1.1,,-10,,同上
 Modules/RedBridalGown/Talk/redBridalGown_angry,,,-50,,舊補償值：自動對齊後可能可歸零（2026-10-26 接線後才開始生效，實機看過再決定）
@@ -27,75 +29,13 @@ Modules/BloodFang/Talk/Duke_Charlotte_anger,1.2,,-180,1,夏綠蒂（寬幅全身
 Modules/BloodFang/Talk/Duke_Charlotte_laugh,1.2,,-180,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 180（2026-11-07 作者：寬螢幕下帽尖被切掉，從 -90 再沉 90；頭頂≈963）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）
 Modules/BloodFang/Talk/Duke_Charlotte_fear,1.2,,-180,1,夏綠蒂（寬幅全身 1536×1024）：作者 2026-10-28 要有壓迫感 ⇒ 1.2 倍、往下沉 180（2026-11-07 作者：寬螢幕下帽尖被切掉，從 -90 再沉 90；頭頂≈963）；OuterToScreen=1 讓多出來的寬度往畫面左外長、不擠過中線（原 0.9 版見 PROBLEMS E43）
 Modules/BloodFang/Talk/Housekeeper_normal,1.3,,-160,,人族管家（2026-11-06 換新圖：1024×1365、畫到膝蓋以下的長身構圖）：自動對齊把整個人物塞進同一高度，臉與上半身被縮小 ⇒ 1.3 倍、往下沉 160（頭頂≈1040，約腰部以下藏進對話框）。實機看過再微調
-Main/Characters/Talk/Soulborn/Warden/normal,1.15,,-139,,鬼差：2026-11-09 照〈頂端 975 規則〉1.15／−139（頂端≈975；原本只沉 90、頂端 937）
-Main/Characters/Talk/Soulborn/Warden/happy,1.15,,-139,,鬼差：2026-11-09 照〈頂端 975 規則〉1.15／−139（頂端≈975；原本只沉 90、頂端 937）
-Main/Characters/Talk/Soulborn/Warden/angry,1.15,,-139,,鬼差：2026-11-09 照〈頂端 975 規則〉1.15／−139（頂端≈975；原本只沉 90、頂端 937）
-Main/Characters/Talk/Soulborn/Warden/cry,1.15,,-139,,鬼差：2026-11-09 照〈頂端 975 規則〉1.15／−139（頂端≈975；原本只沉 90、頂端 937）
-Main/Characters/Talk/Soulborn/Warden/fear,1.15,,-139,,鬼差：2026-11-09 照〈頂端 975 規則〉1.15／−139（頂端≈975；原本只沉 90、頂端 937）
-Main/Characters/Talk/Soulborn/Warden/hurt,1.15,,-139,,鬼差：2026-11-09 照〈頂端 975 規則〉1.15／−139（頂端≈975；原本只沉 90、頂端 937）
-Main/Characters/Talk/Soulborn/Fengdu/normal,1.15,,-139,,酆都大帝：2026-11-09 作者實機——先沉 90 後頭離畫面頂太遠、人也偏小 ⇒ 照〈頂端 975 規則〉放大 1.15、OffsetY＝528−580×1.15≈−139（頂端≈975）
-Main/Characters/Talk/Soulborn/Fengdu/happy,1.15,,-139,,酆都大帝：2026-11-09 作者實機——先沉 90 後頭離畫面頂太遠、人也偏小 ⇒ 照〈頂端 975 規則〉放大 1.15、OffsetY＝528−580×1.15≈−139（頂端≈975）
-Main/Characters/Talk/Soulborn/Fengdu/angry,1.15,,-139,,酆都大帝：2026-11-09 作者實機——先沉 90 後頭離畫面頂太遠、人也偏小 ⇒ 照〈頂端 975 規則〉放大 1.15、OffsetY＝528−580×1.15≈−139（頂端≈975）
-Main/Characters/Talk/Soulborn/Fengdu/cry,1.15,,-139,,酆都大帝：2026-11-09 作者實機——先沉 90 後頭離畫面頂太遠、人也偏小 ⇒ 照〈頂端 975 規則〉放大 1.15、OffsetY＝528−580×1.15≈−139（頂端≈975）
-Main/Characters/Talk/Soulborn/Fengdu/fear,1.15,,-139,,酆都大帝：2026-11-09 作者實機——先沉 90 後頭離畫面頂太遠、人也偏小 ⇒ 照〈頂端 975 規則〉放大 1.15、OffsetY＝528−580×1.15≈−139（頂端≈975）
-Main/Characters/Talk/Soulborn/Fengdu/hurt,1.15,,-139,,酆都大帝：2026-11-09 作者實機——先沉 90 後頭離畫面頂太遠、人也偏小 ⇒ 照〈頂端 975 規則〉放大 1.15、OffsetY＝528−580×1.15≈−139（頂端≈975）
-Main/Characters/Talk/Soulborn/ZhongKui/normal,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
-Main/Characters/Talk/Soulborn/ZhongKui/happy,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
-Main/Characters/Talk/Soulborn/ZhongKui/angry,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
-Main/Characters/Talk/Soulborn/ZhongKui/cry,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
-Main/Characters/Talk/Soulborn/ZhongKui/fear,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
-Main/Characters/Talk/Soulborn/ZhongKui/hurt,1.35,,-255,1,鍾馗：作者要放大有威猛感 ⇒ 1.35，照〈頂端 975 規則〉OffsetY −255（頂端≈975）；OuterToScreen=1 讓放大多出的寬度往畫面外長、不擠過中線
-Main/Characters/Talk/Qingqiuborn/SpiritFox/normal,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
-Main/Characters/Talk/Qingqiuborn/SpiritFox/happy,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
-Main/Characters/Talk/Qingqiuborn/SpiritFox/angry,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
-Main/Characters/Talk/Qingqiuborn/SpiritFox/cry,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
-Main/Characters/Talk/Qingqiuborn/SpiritFox/fear,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
-Main/Characters/Talk/Qingqiuborn/SpiritFox/hurt,1.15,,-139,,靈狐：照〈頂端 975 規則〉起手 1.15／−139（同鬼差），實機看過再調
-Main/Characters/Talk/Qingqiuborn/MysticFox/normal,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
-Main/Characters/Talk/Qingqiuborn/MysticFox/happy,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
-Main/Characters/Talk/Qingqiuborn/MysticFox/angry,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
-Main/Characters/Talk/Qingqiuborn/MysticFox/cry,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
-Main/Characters/Talk/Qingqiuborn/MysticFox/fear,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
-Main/Characters/Talk/Qingqiuborn/MysticFox/hurt,1.15,,-139,,玄狐：照〈頂端 975 規則〉起手 1.15／−139，實機看過再調
-Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/normal,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/happy,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/angry,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/cry,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/fear,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Qingqiuborn/NineTailedCelestialFox/hurt,1.2,,-180,1,九尾天狐（寬幅 1536×1024，作者 2026-11-10 指定寬體型）：比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Oracle/normal,1.15,,-139,,神諭者：照〈頂端 975 規則〉起手 1.15／−139（同靈狐），實機看過再調
-Main/Characters/Talk/Angelborn/Oracle/happy,1.15,,-139,,神諭者：照〈頂端 975 規則〉起手 1.15／−139（同靈狐），實機看過再調
-Main/Characters/Talk/Angelborn/Oracle/angry,1.15,,-139,,神諭者：照〈頂端 975 規則〉起手 1.15／−139（同靈狐），實機看過再調
-Main/Characters/Talk/Angelborn/Oracle/cry,1.15,,-139,,神諭者：照〈頂端 975 規則〉起手 1.15／−139（同靈狐），實機看過再調
-Main/Characters/Talk/Angelborn/Oracle/fear,1.15,,-139,,神諭者：照〈頂端 975 規則〉起手 1.15／−139（同靈狐），實機看過再調
-Main/Characters/Talk/Angelborn/Oracle/hurt,1.15,,-139,,神諭者：照〈頂端 975 規則〉起手 1.15／−139（同靈狐），實機看過再調
-Main/Characters/Talk/Angelborn/Angel/normal,1.2,,-180,1,天使（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Angel/happy,1.2,,-180,1,天使（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Angel/angry,1.2,,-180,1,天使（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Angel/cry,1.2,,-180,1,天使（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Angel/fear,1.2,,-180,1,天使（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Angel/hurt,1.2,,-180,1,天使（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Lucifer/normal,1.2,,-180,1,路西法（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Lucifer/happy,1.2,,-180,1,路西法（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Lucifer/angry,1.2,,-180,1,路西法（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Lucifer/cry,1.2,,-180,1,路西法（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Lucifer/fear,1.2,,-180,1,路西法（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Angelborn/Lucifer/hurt,1.2,,-180,1,路西法（寬幅 1536×1024，作者 2026-11-11 指定寬體型）：比照九尾天狐 1.2／−180／OuterToScreen 1 起手，實機看過再調
-Main/Characters/Talk/Gluttonborn/Preta/normal,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Preta/happy,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Preta/angry,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Preta/cry,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Preta/fear,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Preta/hurt,1.15,,-139,,餓鬼：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Nian/normal,1.2,-154,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
-Main/Characters/Talk/Gluttonborn/Nian/happy,1.2,-278,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
-Main/Characters/Talk/Gluttonborn/Nian/angry,1.2,-254,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
-Main/Characters/Talk/Gluttonborn/Nian/cry,1.2,-93,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
-Main/Characters/Talk/Gluttonborn/Nian/fear,1.2,-181,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
-Main/Characters/Talk/Gluttonborn/Nian/hurt,1.2,-105,-180,1,年（寬幅 1536×1024，作者 2026-11-12 指定寬體型）：1.2／−180／OuterToScreen 1；OffsetX 2026-11-12 作者要求往內推——六張都讓圖中心落在距畫面中心 520（normal 原本 618），各張值不同是因為內容框寬度不同
-Main/Characters/Talk/Gluttonborn/Taotie/normal,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Taotie/happy,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Taotie/angry,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Taotie/cry,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Taotie/fear,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
-Main/Characters/Talk/Gluttonborn/Taotie/hurt,1.15,,-139,,饕餮：照〈頂端 975 規則〉起手 1.15／−139（同神諭者），實機看過再調
+Main/Characters/Talk/Soulborn/ZhongKui/normal,1.1,,,,鍾馗：作者要放大有威猛感（舊排法 1.35）。2026-11-13 起血統立繪改半身排法（TalkPanel.SetAvatarWaistUp），這裡只保留「比別人大一點」＝1.1，以頭頂線為中心放大
+Main/Characters/Talk/Soulborn/ZhongKui/happy,1.1,,,,鍾馗：作者要放大有威猛感（舊排法 1.35）。2026-11-13 起血統立繪改半身排法（TalkPanel.SetAvatarWaistUp），這裡只保留「比別人大一點」＝1.1，以頭頂線為中心放大
+Main/Characters/Talk/Soulborn/ZhongKui/angry,1.1,,,,鍾馗：作者要放大有威猛感（舊排法 1.35）。2026-11-13 起血統立繪改半身排法（TalkPanel.SetAvatarWaistUp），這裡只保留「比別人大一點」＝1.1，以頭頂線為中心放大
+Main/Characters/Talk/Soulborn/ZhongKui/cry,1.1,,,,鍾馗：作者要放大有威猛感（舊排法 1.35）。2026-11-13 起血統立繪改半身排法（TalkPanel.SetAvatarWaistUp），這裡只保留「比別人大一點」＝1.1，以頭頂線為中心放大
+Main/Characters/Talk/Soulborn/ZhongKui/fear,1.1,,,,鍾馗：作者要放大有威猛感（舊排法 1.35）。2026-11-13 起血統立繪改半身排法（TalkPanel.SetAvatarWaistUp），這裡只保留「比別人大一點」＝1.1，以頭頂線為中心放大
+Main/Characters/Talk/Soulborn/ZhongKui/hurt,1.1,,,,鍾馗：作者要放大有威猛感（舊排法 1.35）。2026-11-13 起血統立繪改半身排法（TalkPanel.SetAvatarWaistUp），這裡只保留「比別人大一點」＝1.1，以頭頂線為中心放大
+
+
+
+

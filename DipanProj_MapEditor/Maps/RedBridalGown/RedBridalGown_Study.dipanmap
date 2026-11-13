@@ -45,6 +45,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -76,6 +77,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -107,6 +109,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -138,6 +141,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -169,6 +173,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -200,6 +205,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -231,6 +237,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -262,6 +269,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -293,6 +301,7 @@
           "appearDelaySeconds": 0.0,
           "appearFade": false,
           "disappearFlag": "",
+          "conditions": "",
           "lightRadius": 0.0,
           "lightIntensity": 1.0,
           "lightColor": "",
@@ -424,6 +433,14 @@
             [
               7,
               5
+            ],
+            [
+              6,
+              7
+            ],
+            [
+              7,
+              7
             ]
           ],
           "params": {
@@ -557,13 +574,21 @@
           "facing": "",
           "dramaId": 79,
           "langId": 0,
+          "bubbleShape": "",
           "seconds": 0.0,
           "speed": 0.0,
+          "breakObjects": false,
           "assetId": "",
           "zoom": 1.0,
           "flag": "",
           "parallelNext": false,
-          "background": false
+          "background": false,
+          "portrait": "",
+          "portraitSide": "",
+          "titleLangId": 0,
+          "descLangId": 0,
+          "offsetX": 0.0,
+          "offsetY": 0.0
         },
         {
           "type": "move",
@@ -574,13 +599,21 @@
           "facing": "right",
           "dramaId": 0,
           "langId": 0,
+          "bubbleShape": "",
           "seconds": 1.0,
           "speed": 1.0,
+          "breakObjects": false,
           "assetId": "",
           "zoom": 1.0,
           "flag": "",
           "parallelNext": false,
-          "background": false
+          "background": false,
+          "portrait": "",
+          "portraitSide": "",
+          "titleLangId": 0,
+          "descLangId": 0,
+          "offsetX": 0.0,
+          "offsetY": 0.0
         },
         {
           "type": "dialogue",
@@ -591,13 +624,21 @@
           "facing": "",
           "dramaId": 80,
           "langId": 0,
+          "bubbleShape": "",
           "seconds": 0.0,
           "speed": 0.0,
+          "breakObjects": false,
           "assetId": "",
           "zoom": 1.0,
           "flag": "",
           "parallelNext": false,
-          "background": false
+          "background": false,
+          "portrait": "",
+          "portraitSide": "",
+          "titleLangId": 0,
+          "descLangId": 0,
+          "offsetX": 0.0,
+          "offsetY": 0.0
         },
         {
           "type": "end",
@@ -608,13 +649,21 @@
           "facing": "",
           "dramaId": 0,
           "langId": 0,
+          "bubbleShape": "",
           "seconds": 1.0,
           "speed": 0.0,
+          "breakObjects": false,
           "assetId": "",
           "zoom": 1.0,
           "flag": "",
           "parallelNext": false,
-          "background": false
+          "background": false,
+          "portrait": "",
+          "portraitSide": "",
+          "titleLangId": 0,
+          "descLangId": 0,
+          "offsetX": 0.0,
+          "offsetY": 0.0
         }
       ]
     }

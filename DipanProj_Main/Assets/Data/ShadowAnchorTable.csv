@@ -7,19 +7,19 @@
 "# 演算法（ShadowAnchorMath）：在最底 15% 帶內找腳（連成段）；兩段以上=取最低兩段當腳、中點/兩腳底平均、一段=可見框中心/該段底；全幀取中位數；Width=max(兩腳跨距, 框寬×0.75)。披風/長袍/爪子垂到腳邊會算歪，這就是 manual 存在的理由。",,,,,,,,
 "# 演算法（ShadowAnchorMath）：在最底 15% 帶內找腳（連成段）；兩段以上=兩腳中點/兩腳底平均、一段=可見框中心/該段底；全幀取中位數；Width=max(兩腳跨距, 框寬×0.75)。披風/長袍/爪子垂到腳邊會算歪，這就是 manual 存在的理由。",,,,,,,,
 characters/base/attack,-14,32,156,auto,25,256,256,
-characters/base/dead,2.5,72.2,183,auto,9,256,256,幀數 9→25 已重算
+characters/base/dead,2.5,51.2,183,auto,25,256,256,dead 縮放／平移對齊 idle 後重算（2026-11-13）
 characters/base/idle,1,41,99,auto,25,256,256,
 characters/base/walk,-1.8,39.7,110,auto,25,256,256,
-characters/bloodborn/bloodseeker/attack,-7.5,54.5,165,auto,25,256,256,
-characters/bloodborn/bloodseeker/dead,5,34.2,128,auto,9,256,256,幀數 9→25 已重算
-characters/bloodborn/bloodseeker/idle,1.2,43.5,81,auto,25,256,256,
-characters/bloodborn/bloodseeker/walk,2.2,58.5,79,auto,25,256,256,
+characters/bloodborn/bloodseeker/attack,-4.2,141.5,202,auto,25,512,512,2026-11-13 畫布 256→512 換圖後重算
+characters/bloodborn/bloodseeker/dead,-3,153.6,224,auto,9,512,512,幀數 9→25 已重算
+characters/bloodborn/bloodseeker/idle,-1,123.5,134,auto,14,512,512,幀數 25→14 已重算
+characters/bloodborn/bloodseeker/walk,-7.4,126.5,132,auto,22,512,512,幀數 25→22 已重算
 characters/bloodborn/cain/attack,-0.5,69.2,70,auto,25,256,256,
 characters/bloodborn/cain/dead,-1,72.9,86,auto,9,256,256,幀數 9→25 已重算
 characters/bloodborn/cain/idle,-0.5,68.3,73,auto,19,256,256,幀數 25→19 已重算
-characters/bloodborn/cain/walk,-5,72.9,66,auto,25,256,256,
-characters/bloodborn/crimson count/attack,-7.5,56,112,auto,25,256,256,
-characters/bloodborn/crimson count/dead,-8.5,55.6,137,auto,9,256,256,幀數 9→25 已重算
+characters/bloodborn/cain/walk,-12,148.5,197,manual,25,512,512,2026-11-13 畫布 256→512 換圖後重算；auto X -51.5 被披風騙走（上 55% 重心 -14.7），手填 -12
+characters/bloodborn/crimson count/attack,-10.5,107,213,auto,25,512,512,2026-11-13 畫布 256→512 換圖後重算
+characters/bloodborn/crimson count/dead,-13,196.9,146,auto,9,512,512,幀數 9→25 已重算
 characters/bloodborn/crimson count/idle,-0.5,53.5,91,auto,25,256,256,
 characters/bloodborn/crimson count/walk,-6,53.5,90,auto,25,256,256,
 characters/feralborn/fenrir/attack,3,49.5,151,auto,25,256,256,
@@ -30,21 +30,21 @@ characters/jiangshi/hanba/attack,-8,43.5,105,manual,25,256,256,2026-09-03 手改
 characters/jiangshi/hanba/dead,9.5,40.2,141,auto,9,256,256,幀數 9→25 已重算
 characters/jiangshi/hanba/idle,-2,42,88,manual,25,256,256,2026-09-03 手改：自動算把破布條當成第二隻腳 → 影子壓在近腳上偏左；改成真正兩腳的中點
 characters/jiangshi/hanba/walk,-1,43,90,manual,25,256,256,2026-09-03 手改：同 idle：改成兩腳中點；寬去掉外張的衣襬
-characters/jiangshi/jiangshi/attack,-4,49,92,manual,25,256,256,2026-09-03 手改：原本 130 是把前伸的雙臂算進框寬；改成跨距×1.15，跟 idle/walk 不會爆掉
-characters/jiangshi/jiangshi/dead,11.5,49.5,141,auto,9,256,256,幀數 9→25 已重算
-characters/jiangshi/jiangshi/idle,0,50.4,86,manual,25,256,256,2026-09-03 手改：站姿窄、自動算只取到框寬 64 偏小；寬拉到 ≈可見身高一半（對齊主角 Base 的比例）
-characters/jiangshi/jiangshi/walk,1,51,86,manual,25,256,256,2026-09-03 手改：同 idle：寬對齊 Base 比例，避免換動作時影子跳大小
-characters/jiangshi/maojiang/attack,-16,48,100,manual,25,256,256,2026-09-03 手改：原本 X 正值把影子推到身體右邊；改成兩腳中點，寬去掉前伸毛爪
-characters/jiangshi/maojiang/dead,-1.5,46.8,185,auto,9,256,256,幀數 9→25 已重算
-characters/jiangshi/maojiang/idle,0,44,99,manual,25,256,256,2026-09-03 手改：自動算只抓到近腳（毛爪垂到腳邊）→ X 用了框中心、Y 只取近腳底；改成兩腳中點 / 兩腳底平均
-characters/jiangshi/maojiang/walk,3,42,98,manual,25,256,256,2026-09-03 手改：同 idle：改用兩腳中點；寬對齊可見身高一半
-characters/feralborn/moonwatcher/attack,-4.8,44,123,auto,25,256,256,
-characters/feralborn/moonwatcher/dead,-10,59.2,181,auto,9,256,256,幀數 9→25 已重算
-characters/feralborn/moonwatcher/idle,-7,42,128,auto,25,256,256,
-characters/feralborn/moonwatcher/walk,-10,58.5,157,auto,25,256,256,
+characters/jiangshi/jiangshi/attack,-3.5,123.8,131,manual,25,512,512,2026-11-13 同 idle：換 512 圖重算、寬對齊（auto 143 含前伸雙臂）
+characters/jiangshi/jiangshi/dead,4.5,156.8,199,auto,9,512,512,幀數 9→25 已重算
+characters/jiangshi/jiangshi/idle,-3.5,120.5,131,manual,17,512,512,2026-11-13 換 512 正式圖後重算（舊 manual 是 256 畫布的值→影子太低）；寬拉到≈可見身高一半，idle/walk/attack 同寬
+characters/jiangshi/jiangshi/walk,-4.6,128.5,131,manual,22,512,512,2026-11-13 同 idle：換 512 圖重算、寬對齊
+characters/jiangshi/maojiang/attack,-1,121,175,manual,25,512,512,2026-11-13 同 idle：換 512 圖重算、寬對齊（auto 224 含前伸毛爪）
+characters/jiangshi/maojiang/dead,3,125.7,238,auto,25,512,512,dead 縮放／平移對齊 idle 後重算（2026-11-13）
+characters/jiangshi/maojiang/idle,0.8,101.5,175,manual,17,512,512,2026-11-13 換 512 正式圖後重算（舊 manual 是 256 畫布的值→太低、idle/walk 落差造成浮動）；寬三動作統一 175
+characters/jiangshi/maojiang/walk,-8,114.5,175,manual,23,512,512,2026-11-13 同 idle：換 512 圖重算、寬對齊
+characters/feralborn/moonwatcher/attack,6.5,126.1,177,auto,25,512,512,新序列圖 v3（同幀數同畫布，工具不會自己重算）重算 2026-11-13
+characters/feralborn/moonwatcher/dead,8.5,133.4,163,auto,25,512,512,新序列圖 v3 dead 縮 0.72 倍對齊 idle 後重算 2026-11-13
+characters/feralborn/moonwatcher/idle,1,123,104,auto,20,512,512,幀數 21→20 已重算
+characters/feralborn/moonwatcher/walk,-17.5,145.8,239,auto,14,512,512,幀數 18→14 已重算
 characters/feralborn/werewolf/attack,-17,44.5,151,auto,25,256,256,
 characters/feralborn/werewolf/dead,17.5,34.2,155,auto,9,256,256,幀數 9→25 已重算
-characters/feralborn/werewolf/idle,-4,39.2,74,auto,25,256,256,
+characters/feralborn/werewolf/idle,-4,39.2,110,manual,25,256,256,2026-11-13 作者嫌影子太小：auto 74 只有框寬（站姿窄），拉到≈可見身高一半
 characters/feralborn/werewolf/walk,-5,55.7,149,auto,25,256,256,
 monsters/butterfly/idle,9.5,60.8,162,auto,25,256,256,
 monsters/butterfly/walk,9.5,60.8,162,auto,25,256,256,
@@ -126,19 +126,19 @@ characters/spiritroot/nascent soul/dead,0.5,55.6,91,auto,9,256,256,幀數 9→25
 characters/spiritroot/nascent soul/idle,-7,49.3,89,auto,16,256,256,
 characters/spiritroot/nascent soul/walk,-5.5,49.4,86,auto,20,256,256,
 characters/swarmborn/parasite/attack,-5.8,49.5,126,auto,23,256,256,
-characters/swarmborn/parasite/dead,10,41,120,auto,9,256,256,幀數 9→25 已重算
+characters/swarmborn/parasite/dead,11.5,42.1,141,auto,25,256,256,dead 縮放／平移對齊 idle 後重算（2026-11-13）
 characters/swarmborn/parasite/idle,-3.8,34,95,auto,24,256,256,
 characters/swarmborn/parasite/walk,-2,46.5,101,auto,19,256,256,
 characters/swarmborn/ravager/attack,-10.5,42,142,auto,25,256,256,
 characters/swarmborn/ravager/dead,8.5,47.8,179,auto,9,256,256,幀數 9→25 已重算
 characters/swarmborn/ravager/idle,1.5,35.5,95,auto,21,256,256,
 characters/swarmborn/ravager/walk,-4,51.8,122,auto,13,256,256,
-characters/swarmborn/swarm emperor/attack,0.5,32.3,210,auto,25,256,256,
-characters/swarmborn/swarm emperor/dead,-17,54.3,202,auto,9,256,256,幀數 9→25 已重算
-characters/swarmborn/swarm emperor/idle,-8.5,39.1,131,manual,17,256,256,2026-09-14 手改：auto 的 -25.5 是離群值（同批的 parasite -3.8／ravager +1.5，全表其他角色都在 ±8 內）——垂到腿高的翅膀把「最低兩段」騙走了。離線拆最底帶：真正接地的是三段細腳（中心 -22／-8／+5，整體中心 -8.5），而 c-75 的翅膀要到距底 40px 才出現。演算法只取最低的兩段（-22 與 -8）所以偏左。填接地整體中心 -8.5
-characters/swarmborn/swarm emperor/walk,-8.5,46.2,160,manual,11,256,256,2026-09-14 手改：對齊 idle 的 -8.5（同 nidhogg 的做法），換動作時影子不會跳；auto 的 -25.1 與 idle 同一個誤判
+characters/swarmborn/swarm emperor/attack,-4,114.4,285,manual,25,512,512,2026-11-13 換 512 圖重算；auto X -15.5 被翼披風拉偏，對齊 idle/walk
+characters/swarmborn/swarm emperor/dead,-3.5,118,420,auto,25,512,512,dead 縮放／平移對齊 idle 後重算（2026-11-13）
+characters/swarmborn/swarm emperor/idle,-2.2,81.5,234,manual,22,512,512,2026-11-13 換 512 正式圖後重算（舊 manual 是 256 畫布）
+characters/swarmborn/swarm emperor/walk,-3.9,128.5,196,manual,22,512,512,2026-11-13 換 512 正式圖後重算
 monsters/housekeeper/idle,-11.2,34,82,auto,21,256,256,幀數 16→21 已重算
-monsters/redbridalgown/pant,-20.5,134.3,166,auto,25,512,512,
+monsters/redbridalgown/pant,-3.5,63.7,74,auto,25,256,256,畫布換成新尺寸已重算
 monsters/vampiresoldier/attack,-3,58.6,123,auto,25,256,256,
 monsters/vampiresoldier/idle,-1.5,64,58,auto,16,256,256,
 monsters/vampiresoldier/walk,-1,64,72,auto,21,256,256,
@@ -185,15 +185,15 @@ monsters/17th holy prince – elvin/dodge,-3.5,44.8,133,auto,21,256,256,幀數 2
 monsters/17th holy prince – elvin/idle,-2,45.7,91,auto,23,256,256,
 monsters/17th holy prince – elvin/slash,12.5,54.5,138,auto,25,256,256,
 monsters/17th holy prince – elvin/walk,-1,46.9,90,auto,21,256,256,
-characters/soulborn/warden/attack,-6.8,54,94,auto,25,256,256,暫代：複製自 blazeborn/thrall，換正式序列圖後重跑計算影子錨點
+characters/soulborn/warden/attack,-5.8,124.5,159,auto,25,512,512,2026-11-13 換正式 512 序列圖後重算（原為暫代）
 characters/soulborn/warden/dead,18,153.2,188,auto,9,512,512,幀數 9→25 已重算
 characters/soulborn/warden/idle,-1.8,125.5,126,auto,23,512,512,幀數 19→23 已重算
 characters/soulborn/warden/walk,4.4,127.5,126,auto,22,512,512,幀數 21→22 已重算
-characters/soulborn/zhongkui/attack,1,53.5,97,auto,25,256,256,暫代：複製自 blazeborn/nidhogg，換正式序列圖後重跑計算影子錨點
+characters/soulborn/zhongkui/attack,3.5,140,235,auto,25,512,512,2026-11-13 換正式 512 序列圖後重算（原為暫代）
 characters/soulborn/zhongkui/dead,9,156.9,246,auto,9,512,512,幀數 9→25 已重算
 characters/soulborn/zhongkui/idle,3.4,121.5,240,auto,14,512,512,幀數 15→14 已重算
 characters/soulborn/zhongkui/walk,5.5,128.8,238,auto,22,512,512,幀數 14→22 已重算
-characters/soulborn/fengdu/attack,-0.5,69.2,70,auto,25,256,256,暫代：複製自 bloodborn/cain，換正式序列圖後重跑計算影子錨點
+characters/soulborn/fengdu/attack,12.5,126.9,324,auto,25,512,512,2026-11-13 換正式 512 序列圖後重算（原為暫代）
 characters/soulborn/fengdu/dead,7,158.3,262,auto,9,512,512,幀數 9→25 已重算
 characters/soulborn/fengdu/idle,0.2,123.5,223,auto,16,512,512,幀數 19→16 已重算
 characters/soulborn/fengdu/walk,-6.2,125,206,auto,12,512,512,幀數 25→12 已重算
@@ -229,3 +229,8 @@ characters/gluttonborn/preta/attack,-0.8,70,77,auto,25,256,256,幀數 23→25 �
 characters/gluttonborn/preta/dead,10.5,71,87,auto,9,256,256,幀數 9→25 已重算
 characters/gluttonborn/preta/idle,-0.8,62,60,auto,15,256,256,幀數 24→15 已重算
 characters/gluttonborn/preta/walk,-3.5,64,65,auto,21,256,256,幀數 19→21 已重算
+characters/gluttonborn/nian/attack,-1,62.5,141,auto,25,256,256,
+characters/gluttonborn/taotie/attack,0,65,98,auto,25,256,256,
+characters/gluttonborn/taotie/dead,2,68.8,92,auto,9,256,256,幀數 9→25 已重算
+characters/gluttonborn/taotie/idle,1,60.2,68,auto,16,256,256,
+characters/gluttonborn/taotie/walk,-3.2,62.5,79,auto,21,256,256,

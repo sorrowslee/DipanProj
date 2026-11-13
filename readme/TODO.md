@@ -1011,7 +1011,7 @@
 
 > 見 [SCENE_TIP.md](SCENE_TIP.md) §5、[SELECT_SCRIPT.md](SELECT_SCRIPT.md) §2。
 
-- [ ] **邪佛發牌作弊要改回**：`DipanProj_MapEditor/Maps/Main/Main_Square.dipanmap` 的 `讓玩家選擇劇本` `scriptIds` 目前 `104|105`，作者看完排版後改回 `104`（新手第一次只給紅嫁衣）→ Sync Map Assets。
+- [x] **邪佛發牌作弊要改回**（2026-11-13 已改回 `104`：MapEditor 原檔＋GameAssets＋StreamingAssets 三份）：`DipanProj_MapEditor/Maps/Main/Main_Square.dipanmap` 的 `讓玩家選擇劇本` `scriptIds` 目前 `104|105`，作者看完排版後改回 `104`（新手第一次只給紅嫁衣）→ Sync Map Assets。
 - [ ] **道具 105 的 `TipLore`（風味文字）留空**：作者沒給文案，不自行代填（紅嫁衣是「一夜之間，風雲變色」）。
 - [ ] **道具名稱／說明的英文版**：ItemTable 全表仍只吃中文（同上方「物品名稱沒走 LanguageTable」），之後統一做英文時一起處理。
 - [ ] **icon 匯入 Max Size**：`Script_BloodFang.png` 的 .meta 是 2048（規則值 256、紅嫁衣 128），功能無影響；跑 `Project Tools → 素材 → UI 貼圖設定：套用建議值` 即可。

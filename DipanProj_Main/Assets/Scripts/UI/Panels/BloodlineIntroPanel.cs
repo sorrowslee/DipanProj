@@ -39,9 +39,13 @@ namespace Dipan.UI
     /// <item><b>解除暫停不歸本面板管。</b>本面板 PausesGame=true，但真正橫跨「變身演出＋本面板」
     ///   的鎖是 BloodlineSystem 掛的具名 external hold。面板關閉到 hold 解除之間若有空窗，
     ///   玩家會有一兩幀可動；所以 onFinished 一定要被呼叫（OnClose 保證）。</item>
-    /// <item><b>立繪比例不保證一致。</b>Base 是 1122×1402、三個殭屍階段是 1024×1536。
-    ///   所以立繪一律「等比縮到框內的 PortraitBox 並靠下對齊」，不能直接照高度縮
-    ///   （Base 會爆寬撐出框外）。</item>
+    /// <item><b>立繪一律只顯示在框內黑底（單一規則，2026-11-13 第三版）。</b>
+    ///   PortraitClip（RectMask2D）固定＝內框黑底（左右 PortraitClipLeft～Right、上 PortraitClipTop、下 PortraitBottomInset），
+    ///   **不看新舊立繪是什麼尺寸**（第二版依「新舊有沒有寬體型」切換遮罩，同一張玄狐 1→2 不裁、2→3 被裁，作者退回）。
+    ///   畫布剛好 1024×1536／1536×1024 的＝規格立繪（CHARACTER_ART_SPEC §2.0）：**固定倍率、固定位置**——
+    ///   頭頂線 235 → 框頂下 SpecHeadFromFrameTop、腹部線 SpecCropBottom → 立繪底線、身體中心線 470／700 → 破碎框中心；
+    ///   不量內容、不依寬度縮放，所以每個人頭一樣大、位置一樣。人物超出黑底的部分（手、翅膀、尾巴）就被裁掉；
+    ///   臉不在中心線附近的立繪要修圖，不是改程式。其他尺寸（舊素材）照舊「等比縮到 PortraitBox 內、靠下對齊」。</item>
     /// <item><b>兩張立繪各自一份材質。</b>_Cutoff 是材質參數，共用一份的話兩張會一起溶解。
     ///   材質用 instance 欄位、HideAndDontSave，隨面板生滅（關掉 Domain Reload 後
     ///   static 快取會拿到上一輪已銷毀的物件，見 PROBLEMS I 系）。</item>
@@ -137,13 +141,32 @@ namespace Dipan.UI
         public float WideAspectThreshold = 1.0f;
         [Tooltip("寬體型立繪的左右裁切邊界，以破碎框寬的比例表示（0＝框左緣、1＝框右緣）。"
                + "預設對齊框內黑底（原圖量得約 0.217～0.81，左邊框比右邊框寬、不對稱），各往內留一點讓金邊露出。"
-               + "只裁左右、不裁上下；只有新舊立繪裡有寬體型時才啟用，直式血統不受影響")]
+               + "所有立繪一律裁在這個範圍內（2026-11-13 第三版起不分直式／寬體型）")]
         public float PortraitClipLeft = 0.225f;
         public float PortraitClipRight = 0.80f;
+        [Tooltip("裁切上緣，距破碎框頂邊的比例（原圖內框黑底約 0.117；標題會蓋在上面）")]
+        public float PortraitClipTop = 0.12f;
         [Tooltip("左右裁切邊緣的柔邊寬度（px）。0＝硬切")]
         public int PortraitClipSoftness = 28;
         [Tooltip("立繪底邊距破碎框底邊的距離，佔框高度的比例。要比姓名底版高，否則下半身會被石碑蓋住")]
         public float PortraitBottomInset = 0.13f;
+
+        [Header("規格立繪：只顯示到腹部（CHARACTER_ART_SPEC §2；直式 1024×1536 的畫布像素，寬體型自動乘 2/3）")]
+        [Tooltip("關掉＝規格立繪也照舊整張等比縮（回到 2026-11-13 以前的樣子）")]
+        public bool SpecCrop = true;
+        [Tooltip("（2026-11-13 第二版起不再使用，保留欄位免得 Inspector 序列化值失效）")]
+        public float SpecBandTop = 60f;
+        [Tooltip("規格頭頂線（直式畫布 y≈235）在畫面上距破碎框頂邊多遠。標題底邊約 140，再往下留一點。"
+               + "頭頂線→這裡、腹部線（SpecCropBottom）→立繪底線，兩條決定放大倍率（2026-11-13 作者：人物只到框的一半，要往上）")]
+        public float SpecHeadFromFrameTop = 165f;
+        [Tooltip("裁切底線（直式畫布 y）＝腹部。規格立繪頭頂約 235、頭高約 185 ⇒ 肚臍約 790")]
+        public float SpecCropBottom = 800f;
+        [Tooltip("直式畫布的身體中心線 x（對齊破碎框中心）。固定值、不量內容")]
+        public float SpecCenterX = 470f;
+        [Tooltip("寬體型畫布的身體中心線 x")]
+        public float SpecCenterXWide = 700f;
+        [Tooltip("上下裁切線的柔邊高度（px）。0＝硬切")]
+        public int SpecCropSoftness = 24;
         [Tooltip("姓名底版圖（Resources 路徑，不含副檔名）。血統專用的淺色石碑，原圖 866×288")]
         public string PlateSpritePath = "UI/BloodlinePanel/BloodlinePanel_NameBg";
         [Tooltip("姓名底版顯示寬（原圖 866×288＝比例 3.007，改寬記得同步改高）")]
@@ -340,17 +363,19 @@ namespace Dipan.UI
             // ⚠ 不能照高度縮：Base 是 1122×1402（比例 0.80）、殭屍三階是 1024×1536（0.667），
             //   照高度縮的話 Base 會比框還寬、直接撐出破碎框外面。
             Vector2 box = new Vector2(fw * Mathf.Clamp01(PortraitBox.x), fh * Mathf.Clamp01(PortraitBox.y));
-            // 裁切容器：左右對齊框內黑底（PortraitClipLeft～Right）、高＝整個框高（上下不裁），底邊貼底版底邊。
-            // 只有新舊立繪裡有寬體型時才啟用（2026-11-10：裁 0.8 置中時尾巴蓋到左邊框；直式血統維持原本不裁）。
-            // 內框左右不對稱，所以容器會水平位移；LayoutPortrait 會把這個位移反向補回，立繪位置不因裁切而移動。
-            bool anyWide = IsWide(oldSp) || IsWide(newSp);
-            _portraitMask.enabled = anyWide;
+            // 裁切容器＝框內黑底，固定、一律啟用（2026-11-13 第三版：不再依新舊立繪是否寬體型切換，
+            // 否則同一張立繪在不同轉換裡一次被裁、一次不裁）。內框左右不對稱，所以容器會水平位移；
+            // LayoutPortrait 會把這個位移反向補回，立繪位置不因裁切而移動。
+            _portraitMask.enabled = true;
             float l = Mathf.Clamp01(PortraitClipLeft), r = Mathf.Clamp(PortraitClipRight, l, 1f);
-            _portraitClip.sizeDelta = new Vector2(fw * (r - l), fh);
-            _portraitClip.anchoredPosition = new Vector2(fw * ((l + r) * 0.5f - 0.5f), 0f);
-            _portraitMask.softness = new Vector2Int(Mathf.Max(0, PortraitClipSoftness), 0);
-            LayoutPortrait(_oldPortrait, oldSp, box, fh);
-            LayoutPortrait(_newPortrait, newSp, box, fh);
+            float bottomY = fh * Mathf.Clamp01(PortraitBottomInset);                // 容器底邊＝立繪底線（規格立繪腹部切在這裡）
+            float topY = fh * (1f - Mathf.Clamp01(PortraitClipTop));                // 容器頂邊＝內框黑底頂
+            float clipX = fw * ((l + r) * 0.5f - 0.5f);
+            _portraitClip.sizeDelta = new Vector2(fw * (r - l), Mathf.Max(1f, topY - bottomY));
+            _portraitClip.anchoredPosition = new Vector2(clipX, bottomY);
+            _portraitMask.softness = new Vector2Int(Mathf.Max(0, PortraitClipSoftness), Mathf.Max(0, SpecCropSoftness));
+            LayoutPortrait(_oldPortrait, oldSp, box, fh, fw);
+            LayoutPortrait(_newPortrait, newSp, box, fh, fw);
 
             // ── 溶解材質參數（每次 Begin 重套，Inspector 調完重觸發即生效）──
             // 種子刻意給兩個不同值：兩張圖的破法一樣的話，交替看起來像同一張圖在原地換色。
@@ -409,11 +434,33 @@ namespace Dipan.UI
         }
 
         /// <summary>把立繪等比縮到 box 內（contain），底邊貼在底版底部往上 PortraitBottomInset。</summary>
-        void LayoutPortrait(Image img, Sprite sp, Vector2 box, float frameHeight)
+        void LayoutPortrait(Image img, Sprite sp, Vector2 box, float frameHeight, float frameWidth)
         {
             img.sprite = sp;
             img.enabled = sp != null;
             if (sp == null) return;
+
+            var rt = img.rectTransform;
+            // 父物件 PortraitClip 可能為了對齊內框而水平位移，這裡反向補回，立繪仍以破碎框中心為準。
+            float clipX = _portraitClip != null ? _portraitClip.anchoredPosition.x : 0f;
+
+            if (IsSpec(sp))
+            {
+                // 規格立繪（第三版：固定倍率、固定位置，不量內容）：
+                // 頭頂線（直式 235，寬體型 ×2/3）→ 框頂往下 SpecHeadFromFrameTop；腹部線 SpecCropBottom → 立繪底線（容器底邊）。
+                // 兩條線決定倍率 ⇒ 每個血統頭一樣大。身體中心線（直式 SpecCenterX、寬體型 SpecCenterXWide）對齊破碎框中心。
+                float W = sp.rect.width, H = sp.rect.height;
+                bool wideSp = W > H;
+                float u = H / 1536f;                                  // 直式 1、寬體型 2/3
+                float headY = 235f * u, cropY = Mathf.Min(SpecCropBottom * u, H);
+                float topTarget = frameHeight * (1f - PortraitBottomInset) - SpecHeadFromFrameTop;   // 相對容器底邊
+                float s = topTarget / Mathf.Max(1f, cropY - headY);
+                float cx = wideSp ? SpecCenterXWide : SpecCenterX;
+                rt.sizeDelta = new Vector2(W * s, H * s);
+                rt.pivot = new Vector2(cx / W, 1f - headY / H);
+                rt.anchoredPosition = new Vector2(-clipX, topTarget);
+                return;
+            }
 
             float a = Aspect(sp, 0.75f);                              // 寬/高
             float h = box.y;
@@ -423,10 +470,9 @@ namespace Dipan.UI
             // 照寬度縮時人只剩一般立繪一半高、還被尾巴擠到右下角）。直式／接近直式的照舊 contain。
             bool wide = a > WideAspectThreshold;
             if (!wide && w > box.x) { w = box.x; h = w / Mathf.Max(0.0001f, a); }   // 太寬 → 改由寬度決定
-            img.rectTransform.sizeDelta = new Vector2(w, h);
-            // 父物件 PortraitClip 可能為了對齊內框而水平位移，這裡反向補回，立繪仍以破碎框中心為準。
-            float clipX = _portraitClip != null ? _portraitClip.anchoredPosition.x : 0f;
-            img.rectTransform.anchoredPosition = new Vector2(-clipX, frameHeight * PortraitBottomInset);
+            rt.sizeDelta = new Vector2(w, h);
+            rt.pivot = new Vector2(0.5f, 0f);                         // 以立繪底邊為基準往上長
+            rt.anchoredPosition = new Vector2(-clipX, 0f);            // 容器底邊已經是「框底＋PortraitBottomInset」
         }
 
         void ApplyDissolve(Material m, float cutoff, float seed)
@@ -508,7 +554,14 @@ namespace Dipan.UI
             var c = img.color; c.a = Mathf.Clamp01(a); img.color = c;
         }
 
-        bool IsWide(Sprite sp) => sp != null && Aspect(sp, 0.75f) > WideAspectThreshold;
+
+        /// <summary>規格立繪＝畫布剛好 1024×1536 或 1536×1024（CHARACTER_ART_SPEC §2），且 SpecCrop 開著。</summary>
+        bool IsSpec(Sprite sp)
+        {
+            if (!SpecCrop || sp == null) return false;
+            int w = Mathf.RoundToInt(sp.rect.width), h = Mathf.RoundToInt(sp.rect.height);
+            return (w == 1024 && h == 1536) || (w == 1536 && h == 1024);
+        }
 
         static float Aspect(Sprite sp, float fallback)
             => sp != null && sp.rect.height > 0f ? sp.rect.width / sp.rect.height : fallback;

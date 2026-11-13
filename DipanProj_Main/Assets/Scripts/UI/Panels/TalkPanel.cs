@@ -67,6 +67,20 @@ namespace Dipan.UI
         const float AvatarOverlap = 130f;                      // **人物底部**沉入對話框多少（**越大越往下＝被對話框蓋住越多、露出越少**；負值＝往上露出更多）
         const float AvatarAspect = 1086f / 1448f;              // 建立時的暫定比例（實際尺寸每次 SetAvatar 依圖重算）
 
+        // ── 主角血統立繪的「半身」排法（2026-11-13，作者：對話立繪不要全身，放大到腰部以上）──
+        // 血統立繪全部照 CHARACTER_ART_SPEC §2.0 畫成標準全身圖：頭頂在畫布高 235/1536、腰在約 800/1536、
+        // 身體中心在畫布寬 470/1024（寬版 3:2 是長版的 2/3 縮放，頭頂 157/1024、中心 700/1536——換成「佔畫布高」的比例跟長版相同）。
+        // 所以不量內容框，直接用這幾條標準線排：頭頂線 → WaistUpHeadY、腰線 → 對話框上緣，身體中心 → 距畫面中心 WaistUpBodyX。
+        // 角／高帽／翹髮超出畫面頂時整張往下推（WaistUpTopLimit）。外側緣不設上限（翅膀、尾巴可以出畫面，身體不會被推過中線）。
+        // PortraitTable 照樣疊上去：Scale 以頭頂線為中心放大（＝往下長、頭不會頂出畫面）、Offset 平移。
+        const float WaistUpHeadFrac = 235f / 1536f;            // 標準頭頂線（佔畫布高，長版／寬版相同）
+        const float WaistUpWaistFrac = 800f / 1536f;           // 標準腰線（佔畫布高）——對話框上緣切在這裡
+        const float WaistUpCenterFracTall = 470f / 1024f;      // 身體中心（佔畫布寬，長版）
+        const float WaistUpCenterFracWide = 700f / 1536f;      // 身體中心（佔畫布寬，寬版）
+        const float WaistUpHeadY = 975f;                       // 頭頂線落在畫面的高度（畫面高 1080；沿用〈頂端 975 規則〉）
+        const float WaistUpTopLimit = 1072f;                   // 內容頂緣（含角、帽）最高到這裡，超過就整張往下推
+        const float WaistUpBodyX = 500f;                       // 身體中心距畫面中心（越小兩人越靠近）
+
         // ── 立繪邊緣羽化（2026-09-21）──
         // 部分素材的人物一路畫到畫布邊界才被切斷（蟲皇左緣 69%、法夫納左緣 40% 的畫布邊是不透明的），
         // 去背再乾淨也救不回來——邊緣就是一條硬切直線。這裡讓靠近圖檔左右邊界的像素 alpha 漸層淡出，
@@ -259,6 +273,8 @@ namespace Dipan.UI
             avatar.color = dim ? DimmedColor : SpotlightColor;
             if (sprite == null) return;
 
+            if (fit.waistUp) { SetAvatarWaistUp(avatar.rectTransform, fit, right); return; }
+
             // 內容框（掃不到就當「整張圖都是內容」＝舊行為）。單位隨來源，下面只用比值。
             Vector2 canvas = fit.ok ? fit.canvas : new Vector2(sprite.rect.width, sprite.rect.height);
             Vector2 content = fit.ok ? fit.content : canvas;
@@ -316,6 +332,36 @@ namespace Dipan.UI
                 if (outer < -halfLimit) ax += (-halfLimit - outer);
             }
 
+            rt.anchoredPosition = new Vector2(ax, imgBottomY);
+        }
+
+        /// <summary>
+        /// 主角血統立繪的半身排法（見常數 WaistUp* 的說明）。圖檔顯示高 H 由「頭頂線到腰線」這段＝頭頂到對話框上緣決定，
+        /// 所以每個血統的人物大小一致（臉一樣大），腰以下沉在對話框後面。
+        /// 座標同 SetAvatar：anchor 在畫面中心底部；左側 pivot (0,0)、右側 pivot (0.5,0) 且水平鏡像。
+        /// </summary>
+        void SetAvatarWaistUp(RectTransform rt, PortraitFit fit, bool right)
+        {
+            float boxTop = BottomMargin + BgH * (DisplayWidth / BgW);
+            float imgScale = fit.imgScale > 0f ? fit.imgScale : 1f;
+            float H = (WaistUpHeadY - boxTop) / (WaistUpWaistFrac - WaistUpHeadFrac) * imgScale;
+            float aspect = fit.canvas.x / fit.canvas.y;
+            float W = H * aspect;
+            rt.sizeDelta = new Vector2(W, H);
+
+            // 縱向：頭頂線 → WaistUpHeadY（Scale 以頭頂線為中心）；內容頂緣超出 WaistUpTopLimit 就往下推。
+            float imgTop = WaistUpHeadY + WaistUpHeadFrac * H;
+            float contentTop = imgTop - fit.ContentTopFraction * H;
+            if (contentTop > WaistUpTopLimit) imgTop -= contentTop - WaistUpTopLimit;
+            float imgBottomY = imgTop - H + fit.imgOffset.y;
+
+            // 橫向：身體中心距畫面中心 WaistUpBodyX（左負右正），不夾外側緣。
+            float cxFrac = aspect > 1f ? WaistUpCenterFracWide : WaistUpCenterFracTall;
+            float ax;
+            if (right)
+                ax = WaistUpBodyX + (cxFrac - 0.5f) * W + fit.imgOffset.x;   // pivot 0.5、鏡像：圖內 f 處落在 ax − (f−0.5)·W
+            else
+                ax = -WaistUpBodyX - cxFrac * W + fit.imgOffset.x;           // pivot 0：ax 是圖檔左緣
             rt.anchoredPosition = new Vector2(ax, imgBottomY);
         }
 

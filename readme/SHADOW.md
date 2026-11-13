@@ -100,7 +100,7 @@ attack √(199×144)=169，**差異只有 8%**。強制做高度正規化會把 
 | `AnchorY` | 影子中心 Y（px，從畫布底往上＝可見腳底） |
 | `WidthPx` | 影子寬（px；`BlobShadow.WidthFactor` 再乘上去） |
 | `Source` | `auto`＝工具算的、重算會被覆寫；**`manual`＝手改的、永不覆寫** |
-| `Frames` / `CanvasW` / `CanvasH` | 算時的幀數與畫布尺寸（幀數變了＝換過圖，「只算新的」也會重算 auto 列） |
+| `Frames` / `CanvasW` / `CanvasH` | 算時的幀數與畫布尺寸（幀數**或畫布尺寸**變了＝換過圖，「只算新的」也會重算 auto 列；manual 列只在 Console 警告。2026-11-13 前只看幀數，見 [PROBLEMS.md](PROBLEMS.md) **G25**） |
 
 **工具**（`Assets/Editor/ShadowAnchorTool.cs`，Project Tools → 角色）：
 - **計算影子錨點（只算新的、出檢視圖）**：遞迴掃 `GameAssets/**/(Characters|Monsters)/SequenceImage/<角色>/<動作>/*.png`，表裡沒有的算進去、已有的不動；

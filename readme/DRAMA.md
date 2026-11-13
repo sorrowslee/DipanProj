@@ -181,6 +181,12 @@ Main/Talk/Buddha/Buddha_normal,1.1,-130,-130,,邪佛比人大一點、更沉進�
 Modules/BloodFang/Talk/Duke_Charlotte_anger,1.2,,-90,1,寬幅全身：放大＋往下沉，外側緣可延伸到畫面邊
 ```
 
+- ⭐⭐⭐ **〈腰部以上版面〉（2026-11-13 作者：對話立繪不要全身，放大到腰部以上）**：catalog id 在 `Main/Characters/Talk/` 底下、畫布 2:3 或 3:2 的立繪（[CHARACTER_ART_SPEC](art_direction/CHARACTER_ART_SPEC.md) §2.0 規格）**不走下面的自動對齊與 PortraitTable**，改走 `TalkPanel.SetAvatarWaistUp`：
+  - 頭頂線（畫布高 235/1536）→ 畫面 y `WaistUpHeadY`=975；腰線（800/1536）→ 對話框內容頂（≈577）。兩條線決定倍率，腰以下被對話框蓋住。
+  - 身體中心線（長版 470/1024、寬版 700/1536）放在離畫面中心 `WaistUpBodyX`=500；不夾外側緣。
+  - 角、耳、頭飾凸出時，內容頂最多到 `WaistUpTopLimit`=1072（超過整張往下推）。
+  - 判定在 `DramaTalkDatabase.ResolveFit`（`PortraitFit.waistUp`）；這類 id 若仍在 PortraitTable 裡，只吃 `Scale`（乘在倍率上）與 `OffsetX/Y`。原本的 216 列 Talk 立繪已從表中刪除（鍾馗留 `Scale 1.1`），備份 `TempImage/art_remake/backup/PortraitTable.csv.orig`。
+  - 下面〈頂端 975 規則〉只剩其他路徑的舊立繪（`Main/Talk/*`、`Modules/*`）適用。
 - ⭐⭐ **〈頂端 975 規則〉（2026-11-09 作者定）**：要調一張立繪的大小，**只決定 `Scale`，`OffsetY` 用公式算**，人物頂端一律落在畫面 y≈975：
   - 人物頂端 ＝ `446.9 + 580 × Scale + OffsetY`（畫面高 1080）。什麼都不填 ＝ 1027，頭頂貼畫面上緣（萬魂三階第一次實機就是這樣）。
   - ⇒ **`OffsetY = 528 − 580 × Scale`**：1 → −52、1.1 → −110、1.15 → −139、1.2 → −168、1.3 → −226、1.35 → −255。

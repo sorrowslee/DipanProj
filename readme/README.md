@@ -35,7 +35,8 @@
 | [WEAPON_WORKBENCH.md](WEAPON_WORKBENCH.md) | **武器工坊**（Unity EditorWindow，`Project Tools → 武器工坊`）：選外型／選 Mode／只顯示有效欄／名稱下拉／範圍提示，Play 中改值立刻射出去（`SimulationOverride`），真鑲珠子有效，一鍵存回 CSV | **做／改任何武器或配方時優先用它，不要手改 CSV**；接新欄位／新模式後看視窗有沒有跟上 |
 | [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（**倒序，最新在最上**；較舊條目原文封存在 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭有逐條索引） | 想了解歷史脈絡 |
 | [AI_IMAGE_GEN_GUIDE.md](AI_IMAGE_GEN_GUIDE.md) | 產圖流程與規範（Scenario 版） | **任何產圖前** |
-| [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) | **AI 自行操作 ChatGPT 網頁產圖→下載→去背驗證→放進專案**的操作手冊（要先跟作者要的權限、工具、單張迴圈、踩雷表） | 作者請你「自己開 GPT 畫圖」時 |
+| [../tools/art/README.md](../tools/art/README.md) | **美術工具箱總表**：去背、立繪／角色圖對齊、表情差分、轉換面板／對話框模擬、序列圖量測與 dead 修正、影子錨點、UI 圖示換風格——「要做什麼→用哪支」＋開工作夾指令 | 要處理任何圖片前（先找現成工具） |
+| [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) | **AI 自行操作 ChatGPT 網頁產圖→下載→去背驗證→放進專案**的操作手冊（要先跟作者要的權限、工具、單張迴圈、踩雷表）；⚠️ **開工前先確認 Claude 對話是「自動核准（Auto）」模式，否則無法上傳參考圖** | 作者請你「自己開 GPT 畫圖」時 |
 | [ART_DIRECTION.md](ART_DIRECTION.md) | **美術紀律**（畫面經營規則書：色彩劇本、明度階層、邊框剪影、特效語言、全屏質感、接地與生命感、UI 語彙；含給繪圖 AI 的產圖檢核表與截圖自檢表） | **委託產任何素材前**、調場景觀感、覺得「畫面組起來不漂亮」時 |
 | [art_direction/](art_direction/README.md) | **美術規範準則資料夾**：8 份分域準則——場景／地上物／角色圖／立繪／UI icon（ChatGPT 繪製域）＋場景特效／氛圍 shader（Claude 域）＋AI 委託工作流程 SOP；索引含分工表 | 委託/動手做任何領域的素材、特效、shader 前 |
 | [MapEditor_DESIGN.md](MapEditor_DESIGN.md) | 地圖編輯器設計與 `.dipanmap` 格式 | 改編輯器、看地圖格式 |

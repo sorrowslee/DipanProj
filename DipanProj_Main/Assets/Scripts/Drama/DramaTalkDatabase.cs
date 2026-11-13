@@ -225,6 +225,13 @@ namespace Dipan.Drama
                 }
             }
 
+            // 主角血統立繪＝標準全身圖（2:3 長版或 3:2 寬版）→ 半身排法（見 PortraitFit.waistUp）。
+            if (fit.ok && catalogId.StartsWith(CharacterTalkRoot + "/", System.StringComparison.OrdinalIgnoreCase))
+            {
+                float aspect = fit.canvas.y > 0f ? fit.canvas.x / fit.canvas.y : 0f;
+                fit.waistUp = Mathf.Abs(aspect - 2f / 3f) < 0.02f || Mathf.Abs(aspect - 1.5f) < 0.03f;
+            }
+
             var tuned = PortraitTable.Instance.Get(catalogId);
             fit.imgScale = tuned.scale;
             fit.imgOffset = tuned.offset;

@@ -42,6 +42,16 @@ namespace Dipan.Drama
         /// <summary>外側緣可超出對話框、延伸到畫面邊緣（<see cref="PortraitTable"/> 的 OuterToScreen 欄）。</summary>
         public bool outerToScreen;
 
+        /// <summary>
+        /// 主角血統立繪（<c>Main/Characters/Talk/</c> 底下、畫布 2:3 或 3:2 的標準全身圖，CHARACTER_ART_SPEC §2.0）：
+        /// TalkPanel 改用「半身」排法——依標準對齊線放大、對話框上緣切在腰部（2026-11-13 作者：對話立繪不要全身）。
+        /// 其他立繪（NPC／怪物）維持內容框對齊的舊排法。
+        /// </summary>
+        public bool waistUp;
+
+        /// <summary>內容頂緣離圖檔頂緣多遠（佔畫布高的比例）；內容框掃不到時回 0。</summary>
+        public float ContentTopFraction => (ok && canvas.y > 0f) ? Mathf.Clamp01((canvas.y * 0.5f - (center.y + content.y * 0.5f)) / canvas.y) : 0f;
+
         public static PortraitFit None => new PortraitFit { ok = false, imgScale = 1f, imgOffset = Vector2.zero };
 
         /// <summary>內容右緣相對圖檔中心的距離（+ = 在右）。右立繪鏡像後，它會變成畫面上的左緣——

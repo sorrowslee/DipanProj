@@ -63,6 +63,27 @@
 
 ## 2. 對話立繪（Talk Portrait）
 
+### 2.0 ⭐ 現行標準（2026-11-13 全血統統一重繪後；與下方 §2.1～§2.3、§5.1、§5.2 衝突時以本節為準）
+
+> 舊版 §2.2 的「頭頂 180／頭高 300／畫到腳踝」跟作者已核准的立繪（餓鬼、神諭者、靈狐、鬼差）對不上，
+> 2026-11-13 改以**已核准立繪的實際量測值**為標準，全血統照此重繪。
+
+| 項目 | 長版 1024×1536（預設） | 寬版 1536×1024（寬體型） |
+|---|---|---|
+| 構圖 | **全身**，腳掌（或小腿）碰到畫布底邊 | 同左 |
+| 頭頂（頭髮／頭骨最高點，不含角、耳、帽飾） | y ≈ 235（約畫布高 15%） | y ≈ 157 |
+| 人形頭高 | 約 165～230px（依體格） | 約 2/3 |
+| 身體中心線 | x ≈ 470（約 46%） | x ≈ 700 |
+| 面向側右界 | ≤ x880（約 86%） | ≤ x1440 |
+| 面向 | 3/4 側、面向右 | 同左 |
+
+- **寬版怎麼選**：角色設計上很寬（巨翼、九尾、巨大斗篷、橫向巨軀），塞進長版會被縮得太小時才用。寬版＝長版的 2/3 縮放，所以兩種在遊戲裡人物大小一致。
+- **對話框只顯示腰部以上（2026-11-13 作者）**：`Main/Characters/Talk/*` 底下符合本節尺寸的立繪，程式直接用「頭頂線 235 → 畫面 y 975、腰線 800 → 對話框頂」放大、身體中心線對齊離畫面中心 ±500，**不再查 PortraitTable**（那些列已刪）；所以腰線 y≈800 以上要畫完整，頭頂一定要在 235 附近。詳見 [../DRAMA.md](../DRAMA.md)〈腰部以上版面〉。
+- **PortraitTable**：上一條以外的舊立繪才用。舊值長版 `1.15／−139`、寬版 `1.2／−180／OuterToScreen 1`（已不適用於本節立繪）。
+- **背景**：母版用純洋紅 #FF00FF（紫／粉色系角色改用灰 #808080），表情差分用純黑底；去背由開發端工具處理（`tools/art/art_remake/tools/autocut.py`）。
+- **血統轉換面板**：符合本節尺寸的立繪會自動放大、裁到腹部顯示（`BloodlineIntroPanel` 的 Spec 路徑：頭頂線 235 對齊標題下方、腹部線 800 對齊立繪底線；上半身太寬會縮小），所以臉與上半身務必在 y < 800 內完整。**臉要落在中心線附近**：面板固定對齊中心線 470（寬版 700）、只露出 −152～+166 px（寬版 ÷1.5），臉的右緣不可超過中心線 +120。面向右的 3/4 側臉常偏右（獸頭、前傾、巨人更明顯），交件前用 `sim_intro.py` 檢查，超出就整組表情一起水平平移。
+- 母版／差分的實際 prompt 見 [../CHATGPT_IMAGE_WORKFLOW.md](../CHATGPT_IMAGE_WORKFLOW.md)「立繪統一重繪流程」。
+
 ### 2.1 畫布
 
 - **固定 1024 × 1536（2:3 直式）**，ChatGPT 的 2:3 輸出剛好是這個尺寸。
@@ -89,7 +110,7 @@
 - 同角色所有表情都用同一個橫式畫布與對齊線。
 - 交付時註明「寬體型」。開發端會在 `PortraitTable.csv` 給這個角色固定的放大倍率與 `OuterToScreen`，這是表格的正當用途，不算補素材誤差。
 
-### 2.2 對齊線（y 從畫布頂端往下量）
+### 2.2 對齊線（y 從畫布頂端往下量）（⚠ 舊版數值，已被 §2.0 取代；保留供對照）
 
 ```
 y = 0 ─────────────── 畫布頂
@@ -161,6 +182,8 @@ x = 1024     ┃ 畫布右緣
 ## 3. 遊戲內角色圖（Sprite／序列圖）
 
 遊戲內動畫的流程是：先畫一張**基礎圖**，再交給 AutoSprite 產生各動作序列，最後切成 256×256 的單幀。本節同時規範基礎圖與序列成品。
+
+> 📁 **基礎圖（及其他「遊戲用不到、但重做時需要」的美術原始檔）放 repo 根目錄 `ArtSource/`**（2026-11-13 作者定）：在 Unity 專案外（不匯入、不產 .meta、不打包），但**要進 git**。血統角色圖放 `ArtSource/Bloodlines/<系列>/`（系列名同 `SequenceImage/` 底下的英文資料夾：Jiangshi、Bloodborn、Feralborn…；主角放 `Base/`），每個系列放三階角色圖。`TempImage/` 才是真正的暫存（不進 git）。
 
 ### 3.1 基礎圖畫布
 
@@ -239,8 +262,8 @@ x = 512  ┃            中心線：兩腳中點、身體重心
 ### 立繪
 
 4. 畫布不是 1024×1536（作者指定的寬體型才可用 1536×1024，見 §2.1）。
-5. 頭頂不在 y=180、眼睛不在 y=330，或頭高不在 280～320px（人形）。
-6. 人物沒有碰到畫布底邊；坐姿、蹲姿，或畫到膝蓋就停。
+5. 頭頂不在 y≈235（寬版 157）±25，或明顯比其他已核准立繪大／小（見 §2.0）。
+6. 人物沒有碰到畫布底邊；坐姿、蹲姿，或畫到膝蓋就停（§2.0 起改為全身入畫，腳碰底邊）。
 7. 有東西高過 y=40；面向側的手或武器超過 x=880。
 8. 同角色各表情的大小、站位、帽子高度不一致。
 
@@ -255,13 +278,13 @@ x = 512  ┃            中心線：兩腳中點、身體重心
 
 ## 5. Prompt 範本（單行貼上，換行會讓訊息提前送出）
 
-### 5.1 新角色立繪母版
+### 5.1 新角色立繪母版（⚠ 舊版；現行 prompt 見 CHATGPT_IMAGE_WORKFLOW.md「立繪統一重繪流程」）
 
 ```
 Generate an image now, no questions. Dialogue portrait of <角色描述>, dark fantasy Buddhist-horror game, same rendering style as the attached approved portraits, 4 to 4.5 heads tall, 3/4 view FACING RIGHT, standing, full figure from head down to the ankles with the bottom edge of the canvas cutting through the ankles (no feet visible, figure touches the bottom edge). STRICT LAYOUT on a 1024x1536 canvas: top of the skull at y=180 px, eyes at y=330 px, head height about 300 px, only hat/horns/ears may go above y=180 and nothing above y=40; body centerline at x=470; nothing on the right (facing) side beyond x=880, nothing on the left beyond x=64. No ground, no shadow, no effects, no text; plain flat grey #808080 background; 2:3 portrait output.
 ```
 
-### 5.2 表情差分（附母版）
+### 5.2 表情差分（附母版）（⚠ 舊版；現行 prompt 見同上）
 
 ```
 Generate an image now, no questions. Use the attached MASTER portrait. Change ONLY the facial expression and hand gesture to <情緒>. LOCKED: identical canvas, size, position, head height, eye line, hat height, outfit, colors and silhouette as the master; the figure still touches the bottom edge; plain flat grey #808080 background; 2:3 portrait output.
@@ -277,7 +300,7 @@ Generate an image now, no questions. In-game character base sprite of <角色描
 
 ## 6. 驗收（開發端收圖時用程式量，交圖前請自己先對一次）
 
-- [ ] **立繪**：畫布 1024×1536；內容碰到底邊；最高點 ≥ y40；右緣 ≤ x880；眼線約在 y330。
+- [ ] **立繪**：畫布 1024×1536（或寬版 1536×1024）；內容碰到底邊；頭頂 y≈235（寬版 157）；中心 x≈470（寬版 700）；右緣 ≤ x880。
 - [ ] **立繪**：同角色各表情疊在一起，大小、位置、帽子高度一致。
 - [ ] **基礎圖**：腳底 y=864、兩腳中點 x=512、頭頂 y≈176，最底帶只有腳。
 - [ ] **序列**：每個動作第 1 幀的腳底 y=216±3、中心 x=128±6、身高是 idle 的 ±4%，所有幀都不碰邊。
