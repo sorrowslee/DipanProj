@@ -27,6 +27,7 @@ namespace Dipan.UI
         {
             var ui = UIManager.Instance;
             if (ui == null) return;
+            if (UIManager.TextInputFocused) return;   // 打字中不吃熱鍵
             if (Input.GetKeyDown(openKey))
                 ui.Toggle<CheatPanel>();
         }

@@ -17,13 +17,13 @@
 | B | 地圖載入 (Map Loader) | B1~B18 |
 | C | 地圖編輯器 / 素材同步 | C1~C16（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E47（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後） |
+| E | 效能 / 顯示 (Performance & Display) | E1~E48（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後；E48 接在 E47 之後） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F46（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G25（位置在 F3 之後）；**G13 在 F26 之後、H 段標題之前；G14~G18 誤接在 H 段標題之後、H1 之前**（維持原位不搬）；G19 接在 G18 之後；G20 接在 G19 之後；G21、G22 接在 G20 之後；G23 接在 G22 之後；G24 接在 G23 之後；G25 接在 G24 之後 |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1~H2 |
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I10 |
 | J | 螢幕特效 / 進場過場 (Screen FX) | J1~J6 |
-| K | 互動 / 拾取 (Interaction & Pickup) | K1~K3 |
+| K | 互動 / 拾取 (Interaction & Pickup) | K1~K4 |
 | L | 資料表 / CSV (Data Tables) | L1~L4 |
 
 > ⚠ 編號**不保證依閱讀順序遞增**（歷史造成，維持現狀）。新增條目：放進所屬分類、編號接該分類目前最大號；**永不重編號、永不重用舊編號**——全專案文件與 PROGRESS 大量引用這些編號。條目淘汰時整則原文搬 [archive/PROBLEMS-archive.md](archive/PROBLEMS-archive.md) 並在原位留存根（規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)）。
@@ -1001,6 +1001,13 @@
   解法：`PlayerSpriteLibrary.GetFrames` 改成逐幀向 loader 要「已套好腳底 pivot」的 sprite（`MapSpriteLoader.GetFrameSprite(path, tile, pivotY)`，各幀各自快取；輸出跟舊寫法一模一樣，只是不再白建一套置中的）；`PrewarmRoutine` 多一段**分幀建 Sprite**，tileSize 用跟 Setup 共用的 `PlayerAnimator.ResolveTiles`、pivot 用同一支 `FootPivotFor`，目標高度由 `BloodlineSystem` 傳 `CharacterWorldHeight × 新體型`（＝Setup 收到的 ScaledCharacterHeight）⇒ 快取鍵相同、換外型時全部命中；像素掃描改 `PixelsNoAlloc`（`GetPixelData` memcpy 進重複使用的暫存陣列，零垃圾）。
   ⚠ 刻意**沒改成 FullRect 網格**（建得快很多）：玩家有幾處讀 `SpriteRenderer.bounds`／`sprite.bounds`（擊退距離 `HitReactionHandler`、集氣與喝藥特效大小），FullRect 會把透明留白算進去、行為跟著變。
 - **通則**：任何「演出中途才換外型／換素材」的地方，都要在演出開頭就分幀預熱，不要等要用的那一幀才載。**預熱要預到最後一步（建 Sprite）**，只預熱讀檔解碼不夠。
+
+### E48. 物品 icon 往右下偏、溢出格子（透明留白多的圖偏最多：能力珠、藥瓶）
+- **症狀**：（2026-11-15 兌換所，作者截圖）列表／縮圖／大圖的 icon 整個往右下歪，能力珠與藥瓶甚至溢出格框、壓到下面的名字；武器類（圖幾乎塞滿畫布）看起來只是略偏。
+- **原因**：`ItemIcons.Apply` 內建的 `IconFit.Fit` 會把 Image 的 rect 放大成「整張圖」的大小，再用 `anchoredPosition` 把不透明內容拉回方框中心——**這套算式假設 pivot 在中心**。呼叫端用「左上角 pivot」擺 icon 的話，放大出來的部分全部往右下長；留白越多、放大倍率越大，偏得越多。
+- **解法**：交給 `ItemIcons.Apply` 的 Image 一律 **pivot (0.5,0.5)**、anchorMin＝anchorMax（`ExchangePanel.PlaceCenter`：同樣給左上角＋寬高，內部換成中心定位）。
+- **通則**：**要畫物品 icon 的 Image，pivot 必須在中心**；想用左上角座標排版就包一層容器或用 `PlaceCenter`。
+
 ### E36. 大白天每隻怪身上都掛著一圈光，而且一直閃
 - **症狀**（2026-09-17，競技場的戰狼）：把怪放進 `Atmosphere=1`、沒壓暗的**亮**地圖，每隻怪身上都有一圈青白光暈；
   而且圖會**一閃一閃**，像貼圖在抖。
@@ -1873,6 +1880,12 @@
   改完在 Unity 跑 `Project Tools → Sync Map Assets`。**不必清存檔**——`關卡單次` 的記錄是純記憶體，不寫檔。
 - **通則**：**「可以反覆閱讀」的東西（家書、告示、族譜、石碑）一律要明寫 `重複規則=每次`**，
   預設值是給「撿一次就沒了」的道具用的。順帶一提：`重複規則` 對**怪物出生點無效**（見 TRIGGER_CHAIN §2.5.1 下方）。
+
+### K4. 在輸入框打字，按到的字母順便觸發了熱鍵（搜尋「b」→ 背包跳出來）
+- **症狀**：（2026-11-15 做兌換所搜尋框時預先發現，尚未實測重現）在 uGUI `InputField` 裡打字，B／K／Y／N／O／L／U／P…這些單鍵熱鍵照樣觸發：背包、倉庫、設定面板跟著開關。
+- **原因**：各熱鍵腳本直接 `Input.GetKeyDown(KeyCode.X)`，不知道玩家正在打字；`UIManager.IsGameplayInputBlocked` 只擋「玩家移動／射擊」，擋不到選單熱鍵。以前遊戲裡沒有讓玩家在遊玩中打字的地方，所以一直沒事。
+- **解法**：`UIManager.TextInputFocused`（EventSystem 目前選取的物件是 `InputField` 且 `isFocused`）。`StorageBagCoordinator`、`SettingsLauncher`、`CheatLauncher`、`UIDemoLauncher`、`PerfHud` 都已在按鍵判斷前查它（PerfHud 只跳過按鍵、量測照跑）。
+- **通則**：**新寫任何單鍵熱鍵都要加 `!UIManager.TextInputFocused`**（AGENTS 路由表已登記）。
 
 ---
 

@@ -1106,3 +1106,18 @@
 - [ ] **年的立繪位置（待實機確認）**：作者實測後認為不是晃動，是年的身體**突出對話框太多**。2026-11-12 在 PortraitTable 給年六張各自的 OffsetX（normal −154／happy −278／angry −254／cry −93／fear −181／hurt −105），讓六張的圖中心都落在距畫面中心 520（normal 原本 618）；各張值不同是因為內容框寬度不同（happy／angry 爪子張開，原本就被「外側不超出畫面」夾往內推）。⚠ OffsetX 是畫面方向，年若出現在**左側**，這組負值會變成往外推（再被畫面邊緣夾住）——目前只在右側測過。
 - [ ] 直達藥劑 3121／3122 沒進任何池（同其他系列）。
 - [ ] 餓鬼、年的夢境台詞（作者有給：「在夢中，我是餓鬼，飢火焚身，永無飽足之日」「在夢中，我是年，凶威所至，血肉皆為食糧」）沒有用到——新手夢境只抽三階，留著備用。
+
+## 兌換系統（2026-11-15，⏳ 未編譯、未實測）
+
+> 見 [EXCHANGE.md](EXCHANGE.md)、[PROGRESS.md](PROGRESS.md) 2026-11-15 條。分支 `feat/exchange`、未 commit。
+
+- [ ] **開 Unity 編譯**：新檔 `Scripts/Exchange/*.cs`、`UI/Panels/ExchangePanel.cs`、`ExchangeDetailPopup.cs`、`UI/ExchangeEntryView.cs` 都沒被編譯過（只做過語法剖析與 API 核對）。
+- [ ] **實測**（按 N）：三種檢視切換、列表／縮圖 hover tooltip、大圖說明、分類／排序下拉（點清單外會收起）、稀有度複選、只看買得起／收藏、搜尋中文與英文、重設篩選、捲動；點品項 → 數量／最大／合計／兌換後剩餘、買不起時按鈕反灰、兌換後錢包與「持有」即時更新、背包滿時掉腳下。
+- [ ] **確認場景的 provider 有掛到兌換表**：`MainScene.unity` 的 `GachaTableProvider` 是 AI 直接改 YAML 加的 `exchangeTableCSV`（GUID 對 `ExchangeTable.csv.meta`）；Console 若出現「找不到 ExchangeTable.csv」就手動拖一次。
+- [ ] **打字不吃熱鍵**（PROBLEMS K4）：在搜尋框打 b／k／o／n 確認不會開關其他面板。
+- [ ] **版面微調**：座標是照底圖量的，實機可能要調（`ExchangePanel` 檔頭常數；字級、格子大小、FrameScale 1.08）。
+- [ ] **定價與稀有度**：118 列全是暫定值；要刪掉不賣的（劇本道具、GM 測試武器 900～999、直達藥劑…）。
+- [ ] **新貨幣（勳章＋點數）**：規範定案後在 `ExchangeCurrencies` 補 `Held/TrySpend/Refund`＋圖示；錢包改多組並排、`Subscribe` 接上新貨幣的變動事件（EXCHANGE.md §5）。
+- [ ] 正式入口：在邪佛廣場擺兌換點（`openPanel`，`panelId=exchange`）或做兌換 NPC；之後拿掉 N 鍵。
+- [ ] 兌換所開著時按 B 會把背包疊在上面（`StorageBagCoordinator` 的並排邏輯不認得兌換所），要不要並排或擋掉待定。
+

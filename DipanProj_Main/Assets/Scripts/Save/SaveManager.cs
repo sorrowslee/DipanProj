@@ -561,6 +561,12 @@ namespace Dipan.Save
                && _current.lifetimeFlags != null
                && _current.lifetimeFlags.TryGetValue(key, out var v) && v == "1";
 
+        /// <summary>讀終身旗標的原始字串（沒有就回 null）。給存「不只是 0/1」的資料用，例如兌換收藏清單。</summary>
+        public string GetLifetimeFlagValue(string key)
+            => _current != null && !string.IsNullOrEmpty(key)
+               && _current.lifetimeFlags != null
+               && _current.lifetimeFlags.TryGetValue(key, out var v) ? v : null;
+
         /// <summary>寫終身旗標（預設 "1"）。跨輪迴保存（ReincarnateInPlace 不動 lifetimeFlags）。</summary>
         public void SetLifetimeFlag(string key, string value = "1")
         {

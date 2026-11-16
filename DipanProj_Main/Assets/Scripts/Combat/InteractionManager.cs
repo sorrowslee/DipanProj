@@ -654,9 +654,12 @@ public class InteractionManager : MonoBehaviour
             case "gacha":   // 祭壇抽選：arg = GachaPoolTable.csv 的 PoolId
                 Dipan.UI.GachaPanel.OpenFor(arg);
                 break;
+            case "exchange":   // 兌換所（2026-11-15）：arg 可留空，或填分類英文名（Bloodline／Weapon…）開啟時先切到那類
+                Dipan.UI.ExchangePanel.OpenWith(arg);
+                break;
             default:
                 Debug.LogWarning($"[InteractionManager] {caller} 的 panelId=「{panelId}」沒有對應的面板。" +
-                                 "可用值目前只有 gacha；要加新的請到 InteractionManager.OpenPanelById 補一個 case。");
+                                 "可用值：gacha、exchange；要加新的請到 InteractionManager.OpenPanelById 補一個 case。");
                 break;
         }
     }

@@ -56,6 +56,23 @@ namespace Dipan.UI
         /// <summary>玩家選單（背包／倉庫／鍛造／設定）目前是否被鎖住。</summary>
         public static bool PlayerMenusLocked => _menuLocks.Count > 0;
 
+        /// <summary>
+        /// 玩家正在輸入框裡打字（2026-11-15，兌換所的搜尋框帶進來的）。
+        /// 單鍵熱鍵（B/K/Y/N/O/L/U/P…）在這時一律不該觸發，否則搜尋「b」會順便打開背包。
+        /// 新寫熱鍵時記得也查這個。
+        /// </summary>
+        public static bool TextInputFocused
+        {
+            get
+            {
+                var es = UnityEngine.EventSystems.EventSystem.current;
+                var go = es != null ? es.currentSelectedGameObject : null;
+                if (go == null) return false;
+                var field = go.GetComponent<UnityEngine.UI.InputField>();
+                return field != null && field.isFocused;
+            }
+        }
+
         /// <summary>鎖／解鎖玩家選單（具名：只影響自己這一份）。</summary>
         public static void SetPlayerMenuLock(string owner, bool locked)
         {

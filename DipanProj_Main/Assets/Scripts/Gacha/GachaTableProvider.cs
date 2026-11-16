@@ -26,6 +26,9 @@ namespace Dipan.Gacha
         [Tooltip("把 Assets/Data/BloodlineSeriesTable.csv 拖進來（表A：系列 → 三個階段）")]
         public TextAsset bloodlineSeriesTableCSV;
 
+        [Tooltip("把 Assets/Data/ExchangeTable.csv 拖進來（兌換系統：可兌換的品項、價格、稀有度；見 readme/EXCHANGE.md）")]
+        public TextAsset exchangeTableCSV;
+
         // ── 靜態表的取用入口（找不到 provider 時回 null，各表會自己印指引警告）──
 
         static GachaTableProvider Find() => FindObjectOfType<GachaTableProvider>();
@@ -48,6 +51,11 @@ namespace Dipan.Gacha
         public static TextAsset BloodlineSeriesTableCsv
         {
             get { var p = Find(); return p != null ? p.bloodlineSeriesTableCSV : null; }
+        }
+
+        public static TextAsset ExchangeTableCsv
+        {
+            get { var p = Find(); return p != null ? p.exchangeTableCSV : null; }
         }
     }
 }

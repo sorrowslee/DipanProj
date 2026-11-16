@@ -188,6 +188,12 @@ Mac：圖落到 ~/Downloads → grab.sh 收進 work/ → post.py 裁切／縮回
 | 第 3～4 張開始下載無聲失敗 | Chrome 擋多檔下載 | 見 §1 第 5 項的白名單 |
 | `file_upload` 說路徑不允許 | 它只吃雲端容器路徑，不吃 Mac 路徑 | 先 `device_stage_files` 送進 `/mnt/user-data/uploads/...` |
 | `file_upload` 回「上傳需要本人核准，這裡還無法核准」（路徑已是容器路徑） | Claude 對話不是「自動核准（Auto）」模式 | 請作者切 Auto，見 §1 第 0 項 |
+| `device_stage_files` 回 `too deeply nested to stage: 8 folders below the connected folder, and at most 7 are supported`（2026-11-15 實測） | 搬運上限＝檔案距**連線資料夾**最多 7 層；`DipanProj_Main/Assets/GameAssets/Main/Characters/SequenceImage/<血統>/idle/xxx.png` 剛好 8 層，序列圖一律搬不動。再申請子資料夾權限也沒用（已在連線範圍內的不算新根） | 用 `device_bash` 先 `cp` 到 `TempImage/<任務>/ref/`（淺、不進 git）再 stage；`ArtSource/`、`remake/`、`TempImage/` 本來就夠淺，可直接 stage |
+| `file_upload` 回 `only files this session is allowed to read can be uploaded`（給的是 Mac 路徑） | Chrome 雖然跑在同一台 Mac，`file_upload` 仍不能直接讀 Mac 路徑 | 同上一列：一律先 stage 進容器 |
+| 一次上傳多張參考圖被拒（工具規格寫明，尚未實際撞到） | `file_upload` 單次呼叫所有檔案合計上限 **3.8 MB** | 分次上傳；血統角色圖目前最大約 0.9 MB，一般 2～3 張一次沒問題 |
+| 新對話一開始 `get_device_info` 的 `connectedFolders` 是空的，`device_list_dir` 只回資料夾名稱（`skeleton:true`）——即使 Project 設定裡寫著已連線 DipanProj（2026-11-15） | 這次對話還沒真正掛上資料夾 | `device_request_folder_access` 申請 DipanProj 根目錄（作者手機／桌面會跳授權），**開工前一次辦好** |
+| `device_request_folder_access` 申請 `~/Downloads` 直接被拒：`denied by the Claude Code auto mode classifier. Reason: [Cowork Folder Access]`，手機上沒有跳授權（2026-11-15） | Auto 模式下，作者不在對話裡時，自動核准機制不放行資料夾授權 | **開工時、作者還在場就一次申請好 DipanProj＋`~/Downloads`**。被擋了就先照樣在 ChatGPT 產圖（圖會留在對話裡），等作者回來重新申請，再從對話的圖片檢視器左側縮圖列逐張點開下載，不用重產 |
+| Chrome 工具連到公司那台的瀏覽器（2026-11-12 發生過） | 家裡、公司兩台 Mac 的 Chrome 擴充都連著同一帳號 | 開工先 `list_connected_browsers`：要用 `onThisComputer:true` 那台（＝家裡 SorrowsLeedeMacBook-Pro）；不是的話問作者後 `select_browser` |
 
 ### 圖本身
 

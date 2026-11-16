@@ -15,6 +15,7 @@ namespace Dipan.UI
         public KeyCode storageKey = KeyCode.K;
         public KeyCode bagKey = KeyCode.B;
         public KeyCode forgeKey = KeyCode.Y;   // TODO(NPC)：鐵匠做好後改走互動點，這顆熱鍵可拿掉
+        public KeyCode exchangeKey = KeyCode.N;   // 兌換所（2026-11-15）：暫用測試熱鍵，正式入口是 openPanel／NPC 的 panelId=exchange
 
         void Awake()
         {
@@ -39,9 +40,12 @@ namespace Dipan.UI
             // 玩家選單鎖（新手夢境教學）：三顆全鎖、連 AllowBag 的例外也不放行。
             bool menusLocked = UIManager.PlayerMenusLocked;
             bool hotkeysFree = !TutorialManager.HardLock && !performing && !menusLocked;
+            bool typing = UIManager.TextInputFocused;   // 在輸入框打字時單鍵熱鍵全部不吃（例：兌換所搜尋框）
+            if (typing) hotkeysFree = false;
             if (hotkeysFree && Input.GetKeyDown(storageKey)) ui.Toggle<StoragePanel>();
             if (hotkeysFree && Input.GetKeyDown(forgeKey)) ui.Toggle<ForgingPanel>();
-            if ((hotkeysFree || (TutorialManager.AllowBag && !performing && !menusLocked))
+            if (hotkeysFree && Input.GetKeyDown(exchangeKey)) ui.Toggle<ExchangePanel>();
+            if ((hotkeysFree || (TutorialManager.AllowBag && !performing && !menusLocked && !typing))
                 && Input.GetKeyDown(bagKey)) ui.Toggle<InventoryPanel>();
 
             // 依當前開啟狀態套用版面（idempotent，每幀套無妨）

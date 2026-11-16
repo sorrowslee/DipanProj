@@ -4,6 +4,14 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **兌換所排版修正（⏳ 未實測）**（2026-11-15 下午，作者實機截圖：功能 OK、icon 與文字歪）：① icon 往右下偏、溢出格子壓到名字——IconFit 需要中心 pivot，改用新的 `ExchangePanel.PlaceCenter`（列表／縮圖／大圖／錢包／詳情彈窗），PROBLEMS **E48**。② 縮圖與大圖左右留白對稱：先試 `childAlignment=UpperCenter`，但物品少時整排擠到中間（2026-11-16 作者截圖：護身符／戒指／道具）→ 改回 UpperLeft，由 `Rebuild` 依「一列實際寬度」算出左右對稱的 padding。③ 下拉選單文字左距 22→36，讓開輸入條左端尖角。 ④（2026-11-16）關閉鈕從外框右上角外面移進標題帶右端（錢包整組左移 70 讓位）；排序下拉的小圖示 x 18→36 讓開尖角。⑤（2026-11-16）**收藏改成右鍵**（作者：所有模式都用右鍵加入、再按一次取消，tip 要說明）：`ExchangeEntryView.OnRightClick`；列表／大圖的星星從按鈕改成純標記（`FavMark`），縮圖沒收藏不畫星；列表／縮圖 tooltip 加第三行「右鍵：加入收藏／取消收藏」，大圖改掛 HoverTip 說同一句；切換後當場重畫星星與 tooltip，「只看收藏」開著時直接重建清單。語言表 10053／10054。
+* [x] **兌換系統（兌換所）第一版（⏳ 未編譯、未實測；分支 `feat/exchange`、未 commit）**（2026-11-15，作者不在場、AI 全自動）：作者要一個「主神空間式」兌換介面，可當電商頁做、可自由發揮。
+  ① **稀有度第一次有定義**：白（凡品）→藍（良品）→黃（珍品）→紫（神品），單一真相 `RarityInfo`（`Scripts/Exchange/ExchangeData.cs`），規格見 [EXCHANGE.md](EXCHANGE.md) §2。稀有度紫是 UI 規範「禁紫」的例外，只准細線／文字／小色塊。
+  ② **資料**：新表 `Assets/Data/ExchangeTable.csv`（`ExchangeId,ItemId,Category,Rarity,Cost,SortOrder,Note`；`Cost` 可多種貨幣 `medal:2;point:300`），118 列**全部暫定值**（ItemTable 除銅錢外每件都列、依類型套公式定價），掛在 `GachaTableProvider` 新欄並直接寫進 `MainScene.unity`。貨幣做成登記表：銅錢可用，勳章／點數只登記名字（＝尚未開放），規範定案後補三個委派即可。
+  ③ **面板**（`ExchangePanel` ＋ `ExchangeDetailPopup` ＋ `ExchangeEntryView`）：分類下拉、名稱搜尋（打字即篩）、稀有度複選、只看買得起、只看收藏、六種排序、列表／縮圖（hover 跳共用 ItemTooltip，附稀有度與價格）／大圖（說明直接列在卡片下）三種檢視、詳情彈窗（數量 －／＋／最大、合計、兌換後剩餘、買不起標紅）。兌換走 `RunProgress.GiveItem`，背包滿掉腳下。收藏存終身旗標 `兌換收藏`（`SaveManager.GetLifetimeFlagValue` 新增）。入口：測試熱鍵 **N**、`openPanel`／NPC 的 `panelId=exchange`。語言表 10001–10052。
+  ④ **美術**：ChatGPT「燃燈劫」專案新對話〈Generate Exchange Shop Frame〉，4 次額度零被擋：面板底（蓮花頂飾＋標題帶）、九宮格格框、九宮格輸入條、6 個按鈕圖示（列表／縮圖／大圖／搜尋／收藏／排序），去背後放 `Resources/UI/ExchangePanel/`（兩張九宮格 meta 已設邊界與 Full Rect）。
+  ⑤ **順手修的坑（PROBLEMS K4）**：在輸入框打字會觸發 B/K/O/L 等單鍵熱鍵 → 新增 `UIManager.TextInputFocused`，`StorageBagCoordinator`／`SettingsLauncher`／`CheatLauncher`／`UIDemoLauncher`／`PerfHud` 都查它。
+  ⑥ **為什麼沒編譯**：這台環境沒有 C# 編譯器，申請讀 Unity 安裝目錄的 DLL 被自動核准擋下、NuGet 也連不到；改用 tree-sitter 剖析 11 個新／改過的檔（語法全過）＋逐一對照原始碼核對每個呼叫的 API。**作者要做**：開 Unity 看 Console、按 N 實測（清單見 TODO〈兌換系統〉）。
 * [x] **立繪統一重繪：作者審稿第二輪 8 項（⏳ 程式未編譯、未實測）**（2026-11-13 晚）：
   ① **對話立繪只顯示腰部以上**：`TalkPanel.SetAvatarWaistUp`（新）＋`PortraitFit.waistUp`／`ContentTopFraction`＋`DramaTalkDatabase.ResolveFit` 判定；`Main/Characters/Talk/*` 的 2:3／3:2 立繪照「頭頂 235→y975、腰 800→對話框頂、身體中心 ±500」放大。PortraitTable 刪 216 列 Talk 列（鍾馗留 1.1），見 DRAMA〈腰部以上版面〉。
   ⑭ **美術工具收進 git**：`TempImage/**/tools/`（art_remake 41 支＋各血統、UI、標題共 ~110 支）與畫風錨點圖複製到 `tools/art/`，新增 `seq_measure.py`（量各動作大小與腳底）、`head_scale.py`（頭部模板比對量真實大小）；總表 [tools/art/README.md](../tools/art/README.md) 依任務列工具，AGENTS.md 路由表與 README 文件地圖加入口，文件內工具路徑改指新位置。之後 `TempImage/` 可整個刪。

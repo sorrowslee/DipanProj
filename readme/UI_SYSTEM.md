@@ -193,6 +193,12 @@ public class InventoryPanel : UIPanel
 - 設定面板**已經開著時 O 仍然能關**，免得卡在面板上。
 - 目前唯一使用者：新手夢境教學（`DreamTutorialFlow`，owner＝`DreamTutorialFlow`），離開夢境或流程物件銷毀時解鎖。
 - 作弊面板（L）、UI Demo（U）是開發工具，**刻意不鎖**。
+
+### 打字中不吃熱鍵（`UIManager.TextInputFocused`，2026-11-15）
+
+游標在任何 `InputField` 裡打字時為真。單鍵熱鍵（背包 B、倉庫 K、鍛造 Y、兌換所 N、設定 O、作弊 L、UI Demo U、效能面板 P 與它的 V/T/F/C/G/M）
+都已經查它——兌換所的搜尋框是第一個玩家會在遊戲中打字的地方，沒擋的話搜尋「b」會順便打開背包（[PROBLEMS.md](PROBLEMS.md) **K4**）。
+**新寫任何單鍵熱鍵都要加 `!UIManager.TextInputFocused`。**
   - ⚠ `pause` 要不要開，取決於**演出本身吃哪種時間**：用 `Time.deltaTime` 的（玩家動畫、`VfxInstance`、
     雷柱）暫停就會整段凍住，這時 `pause` 必須是 `false`（見 [PROBLEMS.md](PROBLEMS.md) **D14**）。
 - **輸入閘門怎麼接到玩家**：`PlayerController.Update` 開頭查一次 `UIManager.IsGameplayInputBlocked`，為真就清掉移動輸入並 return（最小侵入，沒有重構玩家的 input）。**任何之後要在開 UI 時停手的系統，都查這個靜態旗標即可。**

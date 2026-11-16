@@ -12,7 +12,7 @@ namespace Dipan.UI
 
         void Update()
         {
-            if (Input.GetKeyDown(toggleKey) && UIManager.Instance != null)
+            if (Input.GetKeyDown(toggleKey) && UIManager.Instance != null && !UIManager.TextInputFocused)
                 UIManager.Instance.Toggle<UIDemoPanel>();
         }
     }

@@ -209,7 +209,7 @@ API：`SaveManager.UnlockRollEntry / GetUnlockedRollEntries / IsRollEntryUnlocke
 
 | 參數 | 說明 |
 |---|---|
-| `panelId` | 要開哪個面板。目前只有 `gacha` |
+| `panelId` | 要開哪個面板：`gacha`（祭壇抽選）、`exchange`（兌換所，2026-11-15，見 [EXCHANGE.md](EXCHANGE.md)） |
 | `arg` | 傳給面板的參數。祭壇＝抽選池代號（`weapon`/`armor`/`blood`/`item`） |
 | `tipName` | 選填。提示文字後綴，例填「抽選」→ 顯示「按 F 鍵抽選」 |
 

@@ -92,6 +92,8 @@ public static class PlayModeStaticReset
         Dipan.Gacha.GachaRollTable.ResetForPlayMode();
         Dipan.Gacha.BloodlineTable.ResetForPlayMode();
         Dipan.Gacha.BloodlineSeriesTable.ResetForPlayMode();   // 血統系列表（表A：系列 → 三階段的反查索引）
+        Dipan.Exchange.ExchangeTable.ResetForPlayMode();         // 兌換表（ExchangeTable.csv）
+        Dipan.Exchange.ExchangeService.ResetForPlayMode();       // 兌換收藏的解析快取
         Dipan.Gacha.BloodlineSystem.ResetForPlayMode();
         Dipan.Flow.DreamTutorialFlow.ResetForPlayMode();   // 新手夢境教學開場：單例參考＋IsPlaying 旗標
         Dipan.Gacha.BloodlineTransformFxRunner.ResetForPlayMode();   // 變身演出的 IsPlaying（殘留會鎖死背包熱鍵）

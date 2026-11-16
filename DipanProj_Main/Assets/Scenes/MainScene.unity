@@ -1339,6 +1339,7 @@ MonoBehaviour:
   - {fileID: 4900000, guid: 9aefce22e721d46c7a43a2738bf81d35, type: 3}
   bloodlineTableCSV: {fileID: 4900000, guid: cc5b5d22279bd45898a8450215ae1fc7, type: 3}
   bloodlineSeriesTableCSV: {fileID: 4900000, guid: a96aae419e4d54e6289c155244dc2bfb, type: 3}
+  exchangeTableCSV: {fileID: 4900000, guid: 43f5110aa8a14e86bcea43683e7ec659, type: 3}
 --- !u!114 &537006697
 MonoBehaviour:
   m_ObjectHideFlags: 0

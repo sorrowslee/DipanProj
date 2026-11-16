@@ -157,3 +157,58 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 9905,立繪測試 5/6：fear（害怕）,Portrait test 5/6: fear
 9906,立繪測試 6/6：hurt（受傷）,Portrait test 6/6: hurt
 1016,在夢中，我是吞盡天地的饕餮，山河日月不過一口，諸天神佛皆是我腹中之物,"In my dream, I am Taotie, devourer of heaven and earth. Mountains, rivers, sun and moon are but a single bite, and every god and Buddha ends up in my belly."
+# ── 兌換系統（10001–10099，2026-11-15）：見 readme/EXCHANGE.md ──
+10001,兌換所,Exchange
+10002,搜尋物品名稱…,Search by name...
+10003,全部,All
+10004,血統,Bloodlines
+10005,武器,Weapons
+10006,盔甲,Armor
+10007,護身符,Amulets
+10008,戒指,Rings
+10009,能力珠,Gems
+10010,道具,Items
+10011,材料,Materials
+10012,其他,Other
+10013,白,White
+10014,藍,Blue
+10015,黃,Yellow
+10016,紫,Purple
+10017,凡品,Common
+10018,良品,Fine
+10019,珍品,Rare
+10020,神品,Divine
+10021,推薦排序,Recommended
+10022,價格：低→高,Price: Low to High
+10023,價格：高→低,Price: High to Low
+10024,稀有度：高→低,Rarity: High to Low
+10025,稀有度：低→高,Rarity: Low to High
+10026,依名稱,By Name
+10027,只看買得起,Affordable
+10028,只看收藏,Favorites only
+10029,共 {0} 件,{0} items
+10030,沒有符合條件的物品,No matching items
+10031,重設篩選,Reset filters
+10032,列表,List view
+10033,縮圖,Thumbnail view
+10034,大圖,Card view
+10035,兌換,Exchange
+10036,取消,Cancel
+10037,單價,Price
+10038,數量,Quantity
+10039,合計,Total
+10040,兌換後,After
+10041,持有 {0},Owned {0}
+10042,{0}不足,Not enough {0}
+10043,最大,Max
+10044,加入收藏,Add to favorites
+10045,取消收藏,Remove from favorites
+10046,銅錢,Copper
+10047,勳章,Medals
+10048,點數,Points
+10049,尚未開放,Not available yet
+10050,背包已滿，{0} 件掉落在腳下,"Bag full: {0} dropped at your feet"
+10051,稀有度,Rarity
+10052,價格,Price
+10053,右鍵：加入收藏,Right-click: add to favorites
+10054,右鍵：取消收藏,Right-click: remove from favorites

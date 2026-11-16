@@ -75,11 +75,12 @@ namespace Dipan.Diagnostics
 
         private void Update()
         {
-            if (Input.GetKeyDown(toggleKey))
+            bool typing = Dipan.UI.UIManager.TextInputFocused;   // 打字中不吃熱鍵（P／V／T／F／C／G／M），量測照跑
+            if (!typing && Input.GetKeyDown(toggleKey))
                 _visible = !_visible;
 
             // 面板開著時，V 切 VSync、T 切目標幀率（也可用面板上的按鈕點）
-            if (_visible)
+            if (_visible && !typing)
             {
                 if (Input.GetKeyDown(KeyCode.V)) CycleVSync();
                 if (Input.GetKeyDown(KeyCode.T)) CycleTarget();

@@ -37,6 +37,7 @@ namespace Dipan.UI
             }
 
             // 玩家選單鎖（新手夢境教學）：開不起來；但**已經開著的要能關**，否則會卡在面板上。
+            if (UIManager.TextInputFocused) return;   // 打字中不吃熱鍵
             if (Input.GetKeyDown(openKey) && (!UIManager.PlayerMenusLocked || ui.IsOpen<SettingsPanel>()))
                 ui.Toggle<SettingsPanel>();
         }
