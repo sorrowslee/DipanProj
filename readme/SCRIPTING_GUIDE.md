@@ -143,6 +143,7 @@
 
 `bossIntro`（頭目登場演出）→ 出生點（一次性）→ 全滅 `next` → 對話 → 開門／給道具／過關。
 **兩隻首領同時打**：A 出生點 `nextWhen=生出來時` 接 B 的 `bossIntro`，A、B 同一 `waveGroup`，B 的 `next` 接戰後 ⇒ 兩隻都死才推。
+**發劇本證明**（2026-11-16）：首領死亡的 `next` 先接 `grantProof`（B／A／S）再接敗北對話——打倒當下就入帳存檔，結算才顯示；條件分級用「偵測條件＋跳過這顆繼續」串成 A→B。新劇本還要在 `Assets/Data/ProofTable.csv` 加三列條件文字（＋語言表），否則結算畫面不顯示證明區。見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3〈grantProof〉、[CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) §8。
 同一隻怪在不同場合要不同掉落／數值 ⇒ **MonsterData 開新列**（雙首領版 39／40 只差 `DropTableId`），不要改原列。
 
 ### 3.9 引路 NPC（劇情演出版，零程式）

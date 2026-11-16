@@ -35,9 +35,13 @@ namespace Dipan.UI
         public override bool PausesGame => true;
         public override bool BlocksGameplayInput => true;
         public override bool ShowBackdrop => true;
-        // ESC 不關：抽選中途被 ESC 關掉會讓表演斷在一半（東西其實已經到手了，但玩家不知道），
-        // 而且十連結算也會跟著消失。一律要按「離開」才收起來。
-        public override bool CloseOnEscape => false;
+        // ESC（2026-11-16 作者要求所有介面都能 ESC 關）：
+        //   ‧ 待機中 ＝ 關閉（同「離開」）
+        //   ‧ 表演中 ＝ 跳過（不關：中途關掉會讓表演斷在一半，東西其實已經到手了但玩家不知道）
+        //   ‧ 十連結算開著 ＝ 確定（收結算，不關面板）
+        // 後兩種由本面板的 Update 自己處理；同一幀 UIManager 也會看到 ESC，所以那一幀一律回 false，避免連關兩層。
+        public override bool CloseOnEscape => !_spinning && !SummaryOpen && Time.frameCount != _escHandledFrame;
+        int _escHandledFrame = -1;
 
         // ── 素材路徑 ──
         const string Dir = "UI/GachaPanel/";
@@ -105,14 +109,24 @@ namespace Dipan.UI
         const float TitleInnerYOffset = -0.085f;     // 橫幅內凹面板的中心（佔橫幅高，往下為負）
         const float CoinW = 430f, CoinAspect = 925f / 185f, CoinY = 322f;
         const float CoinTextXOffset = 0.045f;        // 錢幣數字中心 x（佔錢條寬，避開左側圓座）
+        const float CoinSeatX = 470f, CoinSeatY = 488f;   // 錢條左側圓座中心（GachaPanel_CoinBg 圖檔座標）
+        const float CoinIconSize = 34f;                   // 圓座裡的功德值 icon 大小（UI；圓座內徑約 37）
         // 抽選鈕：兩顆並排時的總寬要控制在機台寬度以內，不然按鈕會比機台還寬、看起來像兩塊招牌。
-        const float BtnAspect = 1857f / 398f, BtnY = -360f;
+        const float BtnAspect = 1857f / 398f, BtnY = -320f;   // 2026-11-16 從 -360 上移 40：離開鈕附近太擠（作者截圖）
         const float BtnWSingle = 430f, BtnWDual = 330f, BtnDualGapX = 175f;
-        const float ResultRowY = -270f, ResultCell = 52f, ResultGap = 6f;
-        const float CloseY = -462f;
-        // 提示文字擺最下面：它是次要訊息（真的按不動時另有中央 Toast），
-        // 放在錢條下方會壓到機台的門楣浮雕，放這裡才不會跟任何東西打架。
-        const float HintY = -505f;
+        const float ResultRowY = -254f, ResultCell = 52f, ResultGap = 6f;
+        // 離開鈕（2026-11-16 從工程版灰塊換成正式按鈕）：借用共用的深緋紅漆長鈕 UI/Common/LongBtn_normal／_pressed
+        // （確認彈窗、設定、二選一面板都用它），字用標題字型。CloseW＝圖檔整張的寬；可見內容只佔中間一塊（量自原圖 612×408：
+        // 內容 x 22～591、y 98～329），點擊範圍用 raycastPadding 縮到可見內容。
+        const float CloseW = 190f, CloseY = -462f;
+        const float LongBtnW = 612f, LongBtnH = 408f, LongBtnL = 22f, LongBtnR = 591f, LongBtnT = 98f, LongBtnB = 329f;
+        // 提示文字（功德值不足、祭壇沒東西可抽…）：2026-11-16 從 -505 上移到抽選鈕與離開鈕之間——
+        // 原本太低，畫面比 16:9 寬時會被裁掉（作者截圖）。它是次要訊息（真的按不動時另有中央 Toast）。
+        const float HintY = -386f;   // 2026-11-16 跟著抽選鈕上移（-411 → -386），與離開鈕拉開距離
+        const int HintFontSize = 25;
+        const float HintPlateH = 36f, HintPlatePadX = 26f;
+        static readonly Color HintColor = new Color(1f, 0.86f, 0.56f, 1f);            // 暖金（原本灰褐 0.72/0.66/0.6 太暗）
+        static readonly Color HintPlateColor = new Color(0.03f, 0.02f, 0.02f, 0.78f); // 深色半透明底板
 
         // ── 單抽中獎特寫 ──
         // 放大的道具圖如果直接疊在還亮著的直欄上，會讓人分不清是「中獎特寫」還是「圖跑版」，
@@ -142,6 +156,7 @@ namespace Dipan.UI
 
         // ── 版面元件 ──
         Text _title, _moneyText, _hintText, _resultName;
+        Image _hintPlate;
         RectTransform _strip, _resultRow, _frameRt, _resultRoot;
         Vector2 _frameHome;   // 中選框的原位（抖動以它為基準）
         Image[] _cellIcons;
@@ -268,12 +283,35 @@ namespace Dipan.UI
             float h = CoinW / CoinAspect;
             PlaceArt(MakeArt(transform, "CoinBg", ArtCoin), ArtCoin, h, new Vector2(0f, CoinY));
 
+            // 功德值圖示（2026-11-16）：錢條左側圓座原本畫死一枚方孔銅錢，已從 GachaPanel_CoinBg.png 擦成素面圓座
+            // （原圖備份 TempImage/merit_proof/backup/），改由程式放道具 101（功德值）的 icon——換貨幣圖只要改 ItemTable。
+            // 圓座中心量自原圖：(470, 488)；錢條內容中心＝(bx+bw/2, by+bh/2)，依顯示倍率換成 UI 偏移。
+            float coinScale = CoinW / ArtCoin.bw;
+            var coinPos = new Vector2((CoinSeatX - (ArtCoin.bx + ArtCoin.bw * 0.5f)) * coinScale,
+                                      CoinY + ((ArtCoin.by + ArtCoin.bh * 0.5f) - CoinSeatY) * coinScale);
+            var coinIcon = UIBuilder.Image(transform, "CoinIcon", null, Color.white);
+            coinIcon.raycastTarget = false;
+            UIBuilder.Center(coinIcon.rectTransform, CoinIconSize, CoinIconSize, coinPos);
+            ItemIcons.Apply(coinIcon, RunProgress.MoneyItemId);
+
             _moneyText = UIBuilder.Text(transform, "Money", "", 30, new Color(1f, 0.88f, 0.55f));
             UIBuilder.Center(_moneyText.rectTransform, CoinW * 0.6f, h * 0.7f,
                              new Vector2(CoinW * CoinTextXOffset, CoinY));
 
-            _hintText = UIBuilder.Text(transform, "Hint", "", 22, new Color(0.72f, 0.66f, 0.6f));
-            UIBuilder.Center(_hintText.rectTransform, 900f, 28f, new Vector2(0f, HintY));
+            // 提示字（2026-11-16 作者：不夠清楚）：壓在機台底座的浮雕上 → 底下墊一塊深色半透明底板（寬度跟著字）、
+            // 改用標題字型加大、暖金色、黑色描邊。沒有提示時底板一起隱藏。內容一律走 SetHint。
+            _hintPlate = UIBuilder.Image(transform, "HintPlate", null, HintPlateColor);
+            _hintPlate.raycastTarget = false;
+            _hintText = UIBuilder.Text(transform, "Hint", "", HintFontSize, HintColor);
+            _hintText.font = UIBuilder.LoadFont(TitleFontPath);
+            _hintText.raycastTarget = false;
+            _hintText.horizontalOverflow = HorizontalWrapMode.Overflow;
+            var hintOl = _hintText.gameObject.AddComponent<Outline>();
+            hintOl.effectColor = new Color(0f, 0f, 0f, 0.9f);
+            hintOl.effectDistance = new Vector2(1.5f, -1.5f);
+            UIBuilder.Center(_hintText.rectTransform, 900f, HintPlateH, new Vector2(0f, HintY));
+            UIBuilder.Center(_hintPlate.rectTransform, 200f, HintPlateH, new Vector2(0f, HintY));
+            SetHint("");
         }
 
         void BuildResultOverlay()
@@ -432,11 +470,34 @@ namespace Dipan.UI
 
             _skipBtn = MakeArtButton("SkipBtn", TxtSkip, () => _skip = true);
 
-            var close = UIBuilder.Button(transform, "CloseBtn", TxtClose,
-                                         () => UIManager.Instance?.Close(this),
-                                         new Color(0.16f, 0.14f, 0.17f, 0.9f));
-            close.targetGraphic = close.GetComponent<Image>();   // 程式建鈕需手動指（見 PROBLEMS D4）
-            UIBuilder.Center((RectTransform)close.transform, 190f, 52f, new Vector2(0f, CloseY));
+            Sprite closeN = UIBuilder.LoadSprite("UI/Common/LongBtn_normal");
+            Sprite closeP = UIBuilder.LoadSprite("UI/Common/LongBtn_pressed");
+            var close = UIBuilder.Button(transform, "CloseBtn", "", () => UIManager.Instance?.Close(this),
+                                         closeN != null ? Color.white : new Color(0.16f, 0.14f, 0.17f, 0.9f), closeN);
+            var closeImg = close.GetComponent<Image>();
+            closeImg.preserveAspect = true;
+            close.targetGraphic = closeImg;   // 程式建鈕需手動指（見 PROBLEMS D4）
+            if (closeN != null)
+            {
+                close.transition = Selectable.Transition.SpriteSwap;
+                var ss = close.spriteState;
+                ss.pressedSprite = closeP; ss.highlightedSprite = closeN; ss.selectedSprite = closeN;
+                close.spriteState = ss;
+            }
+            float closeH = CloseW * LongBtnH / LongBtnW;
+            UIBuilder.Center((RectTransform)close.transform, CloseW, closeH, new Vector2(0f, CloseY));
+            // 點擊範圍縮到看得到的按鈕本體（圖檔四周是透明邊；不縮的話會蓋到上面的提示字與抽選鈕的下緣）
+            float k = CloseW / LongBtnW;
+            closeImg.raycastPadding = new Vector4(LongBtnL * k, (LongBtnH - LongBtnB) * k, (LongBtnW - LongBtnR) * k, LongBtnT * k);
+
+            var closeLabel = UIBuilder.Text(close.transform, "Label", TxtClose, 28, new Color(1f, 0.92f, 0.72f));
+            closeLabel.font = UIBuilder.LoadFont(TitleFontPath);
+            closeLabel.raycastTarget = false;
+            var clrt = closeLabel.rectTransform;
+            clrt.anchorMin = clrt.anchorMax = clrt.pivot = new Vector2(0.5f, 0.5f);
+            clrt.sizeDelta = new Vector2(CloseW, closeH * 0.5f);
+            // 圖的可見內容中心比整張圖中心低一點（圖檔座標 y 往下：內容 98～329 → 中心 213.5，整張中心 204）⇒ 字往下挪約 3px
+            clrt.anchoredPosition = new Vector2(0f, (LongBtnH * 0.5f - (LongBtnT + LongBtnB) * 0.5f) * k);
         }
 
         // 一顆「底板 + 法輪圖示 + 文字」的抽選鈕。
@@ -535,7 +596,7 @@ namespace Dipan.UI
             {
                 if (_title != null) _title.text = "祭 壇";
                 if (_moneyText != null) _moneyText.text = "";
-                if (_hintText != null) _hintText.text = TxtBadPool;
+                SetHint(TxtBadPool);
                 _candidates.Clear();
                 SetInteractable(_singleBtn, false);
                 SetInteractable(_multiBtn, false);
@@ -559,12 +620,9 @@ namespace Dipan.UI
             SetInteractable(_singleBtn, canSingle && !_spinning);
             SetInteractable(_multiBtn, canMulti && !_spinning);
 
-            if (_hintText != null)
-            {
-                if (_spinning) _hintText.text = "";
-                else if (_candidates.Count == 0) _hintText.text = TxtEmptyPool;
-                else _hintText.text = canSingle ? "" : whySingle;
-            }
+            if (_spinning) SetHint("");
+            else if (_candidates.Count == 0) SetHint(TxtEmptyPool);
+            else SetHint(canSingle ? "" : whySingle);
         }
 
         // 反灰要染「底板美術」，不是按鈕本體（本體是全透明的點擊區，染它看不出來）。
@@ -631,9 +689,32 @@ namespace Dipan.UI
             ApplyOffset();
         }
 
+        /// <summary>設定提示字；底板寬度跟著字長，空字串＝連底板一起藏起來。</summary>
+        void SetHint(string text)
+        {
+            if (_hintText == null) return;
+            _hintText.text = text ?? "";
+            bool show = !string.IsNullOrEmpty(text);
+            _hintText.enabled = show;
+            if (_hintPlate == null) return;
+            _hintPlate.enabled = show;
+            if (show)
+            {
+                var rt = _hintPlate.rectTransform;
+                rt.sizeDelta = new Vector2(_hintText.preferredWidth + HintPlatePadX * 2f, HintPlateH);
+            }
+        }
+
         void Update()
         {
             if (!IsOpen) return;
+
+            // ESC：表演中＝跳過、十連結算開著＝確定（待機中的 ESC＝關閉，由 UIManager 照 CloseOnEscape 處理）。
+            if (Input.GetKeyDown(KeyCode.Escape) && Time.frameCount != _escHandledFrame)
+            {
+                if (SummaryOpen) { _escHandledFrame = Time.frameCount; HideMultiSummary(); }
+                else if (_spinning) { _escHandledFrame = Time.frameCount; _skip = true; }
+            }
 
             // 中選框在表演中上下抖動，模仿機器運轉。停下就回正位。
             if (_frameRt != null)

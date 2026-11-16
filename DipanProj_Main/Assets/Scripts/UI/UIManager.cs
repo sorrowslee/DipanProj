@@ -222,6 +222,10 @@ namespace Dipan.UI
                 return p;
             }
 
+            // 彈窗記下「主介面」＝開啟當下最上層的視窗；主介面關掉時一併關掉（見 Close）。
+            p.OwnerPanel = p.Layer == UILayer.Popup ? TopStackPanel() : null;
+            if (p.OwnerPanel == p) p.OwnerPanel = null;
+
             p.transform.SetParent(_layerCanvas[(int)p.Layer].transform, false);
             p.DoOpen();
             if (p.InStack && !_stack.Contains(p)) _stack.Add(p);
@@ -235,6 +239,12 @@ namespace Dipan.UI
         public void Close(UIPanel p)
         {
             if (p == null || !p.IsOpen) return;
+
+            // 先關掉它名下的彈窗（2026-11-16 作者：兌換所開著詳情彈窗時按 N，兌換所關了、彈窗卻還在）。
+            // 不論主介面是怎麼被關的（熱鍵、ESC、按鈕、劇情流程）都會走到這裡，所以只在這一處處理。
+            foreach (var child in _stack.ToArray())   // 複本：遞迴關閉會改動 _stack
+                if (child != null && child != p && child.IsOpen && child.OwnerPanel == p) Close(child);
+
             p.DoClose();
             _stack.Remove(p);
             UpdateBackdrop();

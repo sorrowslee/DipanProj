@@ -24,6 +24,8 @@ public class InteractionManager : MonoBehaviour
     [Header("互動")]
     public KeyCode interactKey = KeyCode.F;
     public float pickupRadius = 1.2f;     // 玩家進入此半徑才顯示提示、可互動
+    [Tooltip("功德值自動拾取半徑（世界單位）：玩家靠近到這個距離內，地上的功德值自己飛過來入帳、頭上跳「功德值 +N」（2026-11-16）")]
+    public float meritAutoPickupRadius = 1.2f;
     public float dramaTouchRadius = 0.6f; // Type 2 劇情點：玩家進入此半徑就「碰到自動觸發」（不需按鍵）
 
     [Header("掉落物外觀")]
@@ -534,6 +536,9 @@ public class InteractionManager : MonoBehaviour
         if (_player == null) { HideTip(); return; }
         Vector2 p = _player.position;
 
+        // 功德值：靠近自動拾取（不用按 F）。同一幀撿到好幾堆合併成一個頭上提示。
+        AutoPickupMerit(p);
+
         // 先處理「碰到自動觸發」的劇情點（Type 2）：踏進區域就觸發，不需按鍵、不顯示提示。
         float touchSqr = dramaTouchRadius * dramaTouchRadius;
         for (int i = 0; i < _points.Count; i++)
@@ -570,6 +575,7 @@ public class InteractionManager : MonoBehaviour
 
         for (int i = 0; i < _loot.Count; i++)
         {
+            if (_loot[i].ItemId == RunProgress.MoneyItemId) continue;   // 功德值是自動拾取，不參與「按 F」
             float d = ((Vector2)_loot[i].transform.position - p).sqrMagnitude;
             if (d <= best)
             {
@@ -782,6 +788,37 @@ public class InteractionManager : MonoBehaviour
 
     // 目前地圖 id（給關卡進度記錄用；沒有 MapManager 時 -1）。
     static int CurMapId => MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
+
+    static readonly Color MeritTipColor = new Color(1f, 0.84f, 0.42f, 1f);   // 頭上「功德值 +N」：暖金
+
+    /// <summary>
+    /// 功德值自動拾取（2026-11-16 作者定）：玩家進入 <see cref="meritAutoPickupRadius"/> 就入帳（走 GiveStack＝統一入口，
+    /// 結算畫面的「這一趟功德值」也會算到），掉落記錄刪掉，掉落物飛向玩家淡出，頭上跳「功德值 +N」。
+    /// ⚠ 沒撿到的也不會少：結束關卡時 RunProgress.EndRun 會把地上剩的功德值補進錢包（過關、死亡、離開都算）。
+    /// </summary>
+    void AutoPickupMerit(Vector2 p)
+    {
+        float r2 = meritAutoPickupRadius * meritAutoPickupRadius;
+        int total = 0;
+        for (int i = _loot.Count - 1; i >= 0; i--)
+        {
+            var loot = _loot[i];
+            if (loot == null || loot.Absorbing || loot.ItemId != RunProgress.MoneyItemId) continue;
+            if (((Vector2)loot.transform.position - p).sqrMagnitude > r2) continue;
+
+            int n = loot.Count;
+            RunProgress.Instance.GiveStack(loot.ToStack());   // 功德值在 GiveStack 裡直接加進錢包、不進背包
+            if (RunProgress.Exists) RunProgress.Instance.RemoveGroundDrop(CurMapId, loot.RunDropId);
+            _loot.RemoveAt(i);
+            loot.Absorb(_player);
+            total += n;
+        }
+        if (total > 0)
+        {
+            var name = InventorySystem.Instance != null ? InventorySystem.Instance.GetData(RunProgress.MoneyItemId)?.Name : null;
+            DamageNumberManager.ShowText(_player.gameObject, $"{(string.IsNullOrEmpty(name) ? "功德值" : name)} +{total:N0}", MeritTipColor);
+        }
+    }
 
     // 取得物品的統一入口：一律進真背包（RunProgress.GiveItem，回放不下的剩餘）。
     static int GiveToPlayer(int itemId, int count) => RunProgress.Instance.GiveItem(itemId, count);

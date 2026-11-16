@@ -95,9 +95,11 @@ namespace Dipan.UI
         const float RefreshCx = 410f, RefreshContentW = 190f, RefreshHitW = 190f, RefreshHitH = 70f;
         const float PrevCx = 551f, PageNumCx = 627f, NextCx = 703f;
         const float NavContentH = 66f, NavHitW = 58f, NavHitH = 70f;
-        // 金錢：**靠左**對齊擺在牌子前段。右界一定要停在 x≈872 之前——背景圖從 x≈878 開始畫錢幣，
-        // 壓過去就會疊在錢幣上。長數字靠 resizeTextForBestFit 自動縮字級，不會撐出這個框。
+        // 金錢（功德值）：**靠左**對齊擺在牌子前段。右界一定要停在 x≈872 之前——x≈876 起是功德值圖示，
+        // 壓過去就會疊在圖示上。長數字靠 resizeTextForBestFit 自動縮字級，不會撐出這個框。
         const float MoneyCx = 812f, MoneyCy = 937f, MoneyW = 108f, MoneyH = 46f;
+        // 功德值圖示：放在原本底圖錢幣的位置（x 876～922、y 918～958，2026-11-16 錢幣已從底圖擦掉）
+        const float MoneyIconCx = 899f, MoneyIconCy = 938f, MoneyIconSize = 46f;
         // 金錢牌整塊（含右側錢幣圖）的範圍，量自底圖金線 x 747~920、y 906~972：給 hover 小提示當感應區。
         const float MoneyPlateCx = 834f, MoneyPlateW = 176f, MoneyPlateH = 68f;
         /// <summary>語言表：hover 小提示（通用 UI 小提示段）。9001＝重新整理、9002＝通用貨幣（刻意不寫「金錢」，之後貨幣可能換）。</summary>
@@ -309,6 +311,13 @@ namespace Dipan.UI
             _moneyText.resizeTextMinSize = 14;
             _moneyText.resizeTextMaxSize = 30;
             Place(_moneyText.rectTransform, MoneyCx, MoneyCy, MoneyW, MoneyH);
+
+            // 功德值圖示（2026-11-16）：原本底圖畫死的一疊銅錢已從 inventoryPanel_Bg.png 擦掉，
+            // 改由程式放道具 101（功德值）的 icon——之後換貨幣圖只要換 ItemTable 的 IconPath，不用再改底圖。
+            var moneyIcon = UIBuilder.Image(_frame, "MoneyIcon", null, Color.white);
+            moneyIcon.raycastTarget = false;
+            Place(moneyIcon.rectTransform, MoneyIconCx, MoneyIconCy, MoneyIconSize, MoneyIconSize);
+            ItemIcons.Apply(moneyIcon, RunProgress.MoneyItemId);
         }
 
         /// <summary>透明命中區（頁籤、重整、上下頁）。圖是 raycastTarget=false 的，點擊全靠這些方框。</summary>

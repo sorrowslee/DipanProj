@@ -130,6 +130,19 @@ RunProgress.Instance.GiveItem(itemId, count, toRealBag: true)
 
 ---
 
+### 功德值：自動拾取＋沒撿的結束時補給（2026-11-16，⏳ 未實測）
+
+作者定：「只要打怪、怪物有掉功德值，不管玩家有沒有撿，結算時都算給玩家」。
+- **自動拾取**：地上的功德值（道具 101）玩家靠近 `InteractionManager.meritAutoPickupRadius`（1.2）就自己飛過來入帳（`GroundLoot.Absorb`，0.25 秒），掉落記錄刪掉，玩家頭上跳「功德值 +N」（`DamageNumberManager.ShowText`，暖金，同一幀撿好幾堆合併成一個）。功德值不參與「按 F 拾取」。
+- **沒撿的也算**：`EndRun()` 先跑 `CreditUnpickedMerit()`——把這一趟所有地圖（`_maps`）上**還沒撿的功德值**加總補進錢包。過關、死亡、中途離開、從其他路徑回到廣場（`OnEnterModule` 裡的 `EndRun`）一律都算。其他道具沒撿就沒了（照舊）。
+
+### 這一趟的收穫（2026-11-16，給結算畫面）
+
+`GiveStack`（取得物品的統一入口）在 run 期間順便累計：
+- `RunMerit`：這一趟拿到的功德值總額（含 `CreditUnpickedMerit` 補的）。
+- `RunItems`：這一趟拿到的道具（功德值與證明除外）；可疊的依 itemId 合併，有實例的裝備／珠子一件一筆。地上撿的、頭目必掉、劇情 `giveItem`、作弊面板全部都會進來。
+- `BeginRun` 清空、**`EndRun` 不清**（結算畫面在 EndRun 之後才開）。證明另外看 `ScriptRecords.GrantedThisRun`。
+
 ## 7. 接線一覽（改東西前先看這張）
 
 | 檔案 | 做什麼 |

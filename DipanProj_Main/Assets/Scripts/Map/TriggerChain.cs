@@ -40,6 +40,7 @@ public static class TriggerChain
     public const string TypeBossIntro = "bossIntro";       // Boss開戰資訊（鏈動作）：暫停＋電視雜訊斷訊＋左滑入頭像＋右滑入姓名牌匾，表演完再接 next（見 BossIntroPanel）
     public const string TypeClearLevel = "clearLevel";     // 過關（鏈動作）：被 next 呼叫到就啟動「延時倒數（玩家可動）→ 卍字離場 → 結算 → 返回廣場」流程並記過關（見 GameFlowManager.EndLevel）。旗標偵測已抽到 watchFlag，這裡純鏈動作
     public const string TypeWatchFlag = "watchFlag";       // 觀察旗標變動（自動）：監聽 fireOnFlag 指定的旗標，該旗標「首次成立(false→true)」時觸發自己的 next。本身不做事，只當「旗標驅動的鏈起點」（同 onEnter，改由旗標驅動）。見 AutoFireOnFlag
+    public const string TypeGrantProof = "grantProof";     // 發放劇本證明（鏈動作，2026-11-16）：tier=B/A/S（拿高階連帶低階、已領過的跳過），module 留空＝目前所在劇本。打倒頭目當下就入帳＋存檔，不跳提示（玩家在結算畫面才看到）。見 Dipan.Progress.ScriptRecords、readme/CORE_LOOP_DESIGN.md §8
     public const string TypeUnlockRoll = "unlockRoll";     // 解鎖抽選內容（鏈動作）：把某個物品永久加進某個抽選池（跨輪迴保留）。例：打贏紅嫁衣→血統池+幽靈。pool=池代號(GachaPoolTable 的 PoolId)、entry=物品 id。見 Dipan.Gacha.GachaService
     public const string TypeSelectScript = "selectScript"; // 選擇劇本（鏈動作）：被 next 啟動時開「選擇劇本」面板（邪佛發牌），玩家按領取拿走某張劇本→加進背包→關閉→接 next。取代原本直接 giveItem 給紅嫁衣劇本。scriptIds='|' 分隔可領取劇本道具 id、specialIds='|' 分隔用特殊裂紋框的 id。見 SelectScriptPanel
     public const string TypeFactionPeace = "factionPeace"; // 三方陣營和平（鏈動作）：兩族視同中立——不打人、不被打、玩家武器打不到(切 Ally 層)，再接 next。⚠ 預設是**敵對**，和平是劇本明確要進入的特例（2026-09-17 反轉）。見 FactionRelations / readme/FACTION.md
@@ -400,6 +401,7 @@ public static class TriggerChain
             case TypeTogglePortal: ExecuteTogglePortal(r); break;
             case TypeSelectScript: ExecuteSelectScript(r); break;
             case TypeUnlockRoll: ExecuteUnlockRoll(r); break;
+            case TypeGrantProof: ExecuteGrantProof(r); break;
             case TypeBossIntro: ExecuteBossIntro(r); break;
             case TypeClearLevel: ExecuteClearLevel(r); break;
             case TypeFactionPeace:                     // 三方陣營和平：切狀態＋刷部族 Layer，立即完成接 next
@@ -522,6 +524,28 @@ public static class TriggerChain
     //   entry ：要解鎖的物品 id，可用 '|' 分隔一次解鎖多個
     // 典型用法：紅嫁衣 boss 死亡旗標 → watchFlag → next 接這顆（pool=blood、entry=3020 血族 1 階藥劑）。
     // 解鎖寫進存檔頂層（跨輪迴保留），idempotent——重複觸發不會重複加。無效參數也照樣接 next，不卡鏈。
+    // 發放劇本證明（鏈動作，2026-11-16）：
+    //   tier   ：B／A／S。拿高階會連帶低階（S ⇒ S＋A＋B），這個角色一輩子已領過的那幾級跳過。
+    //   module ：留空＝目前所在的劇本（MapsTable 的 Module）；只有「在別的劇本的地圖裡發」才需要填。
+    // 典型：boss 死亡（出生點「接續觸發」或 watchFlag）→ 這顆 → 敗北對話 → clearLevel。
+    // 條件依劇本而異，用通用條件欄做：例「看過家書才給 A」＝conditions 填 flag:redBridalReadLetter、條件不成立時＝跳過這顆繼續。
+    // **不跳任何提示**：玩家在結算畫面才看到（readme/CORE_LOOP_DESIGN.md §8.7）。入帳後立刻存檔（打完頭目閃退也不會少給）。
+    // 參數錯也照樣接 next，不卡鏈。
+    static void ExecuteGrantProof(TriggerRegion r)
+    {
+        string tierS = r.GetString("tier");
+        if (!Dipan.Progress.ProofTierInfo.TryParse(tierS, out var tier))
+        {
+            Debug.LogWarning($"[TriggerChain] grantProof「{r.name}」等級「{tierS}」看不懂（要填 B／A／S），不發證明、直接接 next。");
+            OnCompleted(r);
+            return;
+        }
+        string module = r.GetString("module").Trim();
+        if (string.IsNullOrEmpty(module) && MapManager.Instance != null) module = MapManager.Instance.CurrentModule;
+        Dipan.Progress.ScriptRecords.Grant(module, tier);
+        OnCompleted(r);
+    }
+
     static void ExecuteUnlockRoll(TriggerRegion r)
     {
         string pool = r.GetString("pool").Trim();

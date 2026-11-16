@@ -251,6 +251,7 @@ flag:hallGateOpen        旗標成立
   - **一次性控制**：預設 `關卡單次` = 每次進這張圖都觸發。只想觸發一次用 `重複規則=每周目/永久`，或 `周目上限=1`，或 條件旗標/道具條件。
   - **同圖多顆**：依區域清單順序依序點火，各自查條件；前一顆的鏈若開了對話，會**等對話關閉**才點下一顆。仍建議用條件把多顆錯開（例：一顆 `requireFlag=!x`、另一顆 `requireFlag=x`）。
   - 邊界：換圖時進行中的點火中止（新圖有自己的一輪）；被別的鏈 `next` 指到時＝純轉接（直接完成、接自己的 next）；單場景測試（無 MapManager）不會點火。
+- **`grantProof` 發放劇本證明(鏈動作)**（2026-11-16）：`tier`＝B／A／S（循環按鈕）、`module`（留空＝目前所在劇本）。拿高階會連帶低階（S ⇒ S＋A＋B）；**每個劇本每一級這個角色一輩子只給一次**，已領過的自動跳過，所以重複觸發無害。入帳後立刻存檔、**不跳任何提示**（玩家在結算畫面才看到，[LEVEL_END_FLOW.md](LEVEL_END_FLOW.md)〈劇本證明三行〉）。典型：boss 出生點「接續觸發」或 `watchFlag` → 這顆 → 敗北對話 → `clearLevel`。依條件給不同等級＝通用「偵測條件」＋「條件不成立時＝跳過這顆繼續」，`next` 接下一級。範例：紅嫁衣新娘房 `證明-A-芙蓉本名`（條件 `flag:redBridalReadLetter`）→ `證明-B-紅嫁衣`；血狂之爭迎賓大廳 `證明-B-血族線`（`setFlag=bfClearedAsVampire`，終身旗標）→ `證明-A-血族線`（條件兩族終身旗標都有）。規則見 [CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) §8。
 - **`unlockRoll` 解鎖抽選內容(鏈動作)**：`poolId`（哪個抽選池，＝`GachaPoolTable.csv` 的 `PoolId`，例 `weapon`／`blood`）、`itemId`（要加進池的道具 ID）。被鏈啟動時把這一筆寫進存檔的 `unlockedRollEntries`，該祭壇之後就抽得到它。**永久、跨輪迴、重複執行無害**（同一筆只會有一份）。典型用法：接在 boss 死亡旗標鏈上——`紅嫁衣死 → unlockRoll(blood, 302 幽靈血統藥劑)`、`榕樹妖死 → unlockRoll(weapon, 地刺戢)`。純鏈驅動、玩家踩不觸發、格子畫在角落即可。詳見 [GACHA_SYSTEM.md](GACHA_SYSTEM.md) §3。
 
 - **`factionPeace` 三方陣營和平(鏈動作)**（2026-09-17 新增）：無參數。被鏈啟動時讓狼人/吸血鬼兩族**視同中立**——不打人、不被打、玩家武器打不到（切 Ally 層），立即接 next。⚠ **部族的預設狀態是「敵對」**，所以這顆是「要他們站著別動手」時才擺的特例；典型：`onEnter 進場觸發 → factionPeace`。詳見 [FACTION.md](FACTION.md) §0。

@@ -125,6 +125,8 @@ for f in files:
             if _iv > 0 and _mw <= 0:
                 W(n, '無限波（spawnInterval>0、maxWaves 留空）：這張圖永遠不會清場 ⇒ 不會掉清場血球；要掉就填 maxWaves')
         if t == 'giveItem' and str(p.get('itemId')) not in ITEMS: E(n, 'itemId 不存在', p.get('itemId'))
+        if t == 'grantProof' and str(p.get('tier') or '').strip().upper() not in ('B', 'A', 'S'):
+            E(n, 'grantProof 的 tier 要填 B／A／S', p.get('tier'))
         if t == 'companion':
             v = str(p.get('vfxId') or '').strip()
             if v and v != '0' and v not in VFX: E(n, 'vfxId 不在 VfxTable', v)

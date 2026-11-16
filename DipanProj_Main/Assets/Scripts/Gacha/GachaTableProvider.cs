@@ -29,6 +29,9 @@ namespace Dipan.Gacha
         [Tooltip("把 Assets/Data/ExchangeTable.csv 拖進來（兌換系統：可兌換的品項、價格、稀有度；見 readme/EXCHANGE.md）")]
         public TextAsset exchangeTableCSV;
 
+        [Tooltip("把 Assets/Data/ProofTable.csv 拖進來（劇本證明 B／A／S 達成後在結算畫面顯示的條件文字；見 readme/CORE_LOOP_DESIGN.md §8）")]
+        public TextAsset proofTableCSV;
+
         // ── 靜態表的取用入口（找不到 provider 時回 null，各表會自己印指引警告）──
 
         static GachaTableProvider Find() => FindObjectOfType<GachaTableProvider>();
@@ -56,6 +59,11 @@ namespace Dipan.Gacha
         public static TextAsset ExchangeTableCsv
         {
             get { var p = Find(); return p != null ? p.exchangeTableCSV : null; }
+        }
+
+        public static TextAsset ProofTableCsv
+        {
+            get { var p = Find(); return p != null ? p.proofTableCSV : null; }
         }
     }
 }

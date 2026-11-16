@@ -147,6 +147,40 @@ public class GroundLoot : MonoBehaviour
         if (_labelShadowTm != null) _labelShadowTm.text = t;
     }
 
+    /// <summary>正在被吸走（自動拾取的功德值，2026-11-16）：InteractionManager 已經把它移出清單、記錄也刪了，只剩飛過去的動畫。</summary>
+    public bool Absorbing { get; private set; }
+
+    const float AbsorbDuration = 0.25f;   // 飛向玩家＋縮小＋淡出（同血球的吸收手感）
+
+    /// <summary>飛向玩家身體中心、縮小淡出後自我銷毀。名稱標籤立刻拿掉。</summary>
+    public void Absorb(Transform player)
+    {
+        if (Absorbing) return;
+        Absorbing = true;
+        if (_labelGo != null) { Destroy(_labelGo); _labelGo = null; }
+        StartCoroutine(AbsorbRoutine(player));
+    }
+
+    System.Collections.IEnumerator AbsorbRoutine(Transform player)
+    {
+        Vector3 from = transform.position;
+        Vector3 s0 = transform.localScale;
+        var pc = player != null ? player.GetComponent<PlayerController>() : null;
+        Color c0 = _sr != null ? _sr.color : Color.white;
+        float t = 0f;
+        while (t < AbsorbDuration)
+        {
+            t += Time.deltaTime;
+            float k = Mathf.Clamp01(t / AbsorbDuration);
+            Vector3 to = pc != null ? (Vector3)pc.BodyCenterWorldPos : (player != null ? player.position : from);
+            transform.position = Vector3.Lerp(from, to, k * k);
+            transform.localScale = s0 * (1f - 0.7f * k);
+            if (_sr != null) _sr.color = new Color(c0.r, c0.g, c0.b, c0.a * (1f - k));
+            yield return null;
+        }
+        Destroy(gameObject);
+    }
+
     void OnDestroy()
     {
         if (_labelGo != null) Destroy(_labelGo);   // 標籤是獨立物件，隨掉落物一起銷毀

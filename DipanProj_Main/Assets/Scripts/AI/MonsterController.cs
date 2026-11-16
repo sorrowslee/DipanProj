@@ -368,7 +368,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
              "死亡時記進 RunProgress『已清』（本趟不再重生）；空＝召喚物、或「重複產生」的出生點，不記進度。")]
     public string SpawnKey;
 
-    [Tooltip("死亡時掉寶（銅錢＋機率藥）。由 MonsterSpawner 設定：一次性出生點＝true；重複產生的出生點＝true（但不記進度）；" +
+    [Tooltip("死亡時掉寶（功德值＋機率藥）。由 MonsterSpawner 設定：一次性出生點＝true；重複產生的出生點＝true（但不記進度）；" +
              "召喚物＝false（防無限刷）。")]
     public bool DropsLoot;
 
@@ -376,8 +376,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [HideInInspector] public float EnvFusionScale = 1f;
 
     [Header("Loot / 暫定掉寶（正式掉寶公式之後換；數值可調）")]
-    [Tooltip("必掉金錢（銅錢）數量下限。")] public int lootMoneyMin = 1;
-    [Tooltip("必掉金錢（銅錢）數量上限。")] public int lootMoneyMax = 5;
+    [Tooltip("必掉功德值數量下限。")] public int lootMoneyMin = 1;
+    [Tooltip("必掉功德值數量上限。")] public int lootMoneyMax = 5;
     [Tooltip("機率掉一瓶藥（小回血 201 / 小回魔 202，各半）。0~1。")]
     [Range(0f, 1f)] public float lootPotionChance = 0.35f;
 

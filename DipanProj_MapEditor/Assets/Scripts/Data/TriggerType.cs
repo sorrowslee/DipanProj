@@ -360,6 +360,22 @@ namespace DipanMapEditor.Data
             });
             set.types.Add(new TriggerTypeDef
             {
+                // 動作型（2026-11-16）：發放劇本證明 B／A／S。拿高階會連帶低階（S ⇒ S＋A＋B）；
+                // 每個劇本每一級**整個角色一輩子只給一次**，已領過的自動跳過，所以重複觸發無害。
+                // 打倒頭目的當下就入帳並存檔、**不跳提示**（玩家在結算畫面才看到）。
+                // 典型：boss 出生點「接續觸發」或 watchFlag → 這顆 → 敗北對話 → 過關。
+                // 依條件給不同等級＝用上面的「偵測條件」＋「條件不成立時＝跳過這顆繼續」
+                // （例：紅嫁衣「看過家書才給 A」＝偵測條件 旗標 redBridalReadLetter，next 接一顆給 B 的）。
+                // 劇本代號留空＝目前所在劇本；達成後顯示的文字在主專案 Assets/Data/ProofTable.csv。見主專案 readme/CORE_LOOP_DESIGN.md §8。
+                typeId = "grantProof", displayName = "發放劇本證明(鏈動作)", color = "#E6C35C",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "tier",   type = ParamType.String, label = "證明等級", options = new [] { "B", "A", "S" } },
+                    new TriggerParam { key = "module", type = ParamType.String, label = "劇本代號(空=目前劇本)" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
                 // 動作型：被觸發鏈（next）啟動時播「Boss 開戰資訊」表演——暫停遊戲 → 螢幕中央 Warning 特效 →
                 // 左側滑入 boss 頭像（Talk 立繪）、右側滑入姓名牌匾＋顯示名，停留後淡出、接 next。
                 // 顯示名/頭像填在主專案 MonsterData.csv 的 DisplayName / PortraitPath 欄，這裡只填怪物 ID（與怪物出生點同一個 ID）。

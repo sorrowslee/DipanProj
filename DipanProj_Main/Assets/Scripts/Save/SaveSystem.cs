@@ -115,6 +115,7 @@ namespace Dipan.Save
             if (save.progress.inheritedItems == null) save.progress.inheritedItems = new System.Collections.Generic.List<int>();
             if (save.progress.flags == null) save.progress.flags = new System.Collections.Generic.Dictionary<string, string>();
             if (save.lifetimeFlags == null) save.lifetimeFlags = new System.Collections.Generic.Dictionary<string, string>();
+            if (save.scriptRecords == null) save.scriptRecords = new System.Collections.Generic.Dictionary<string, ScriptRecordDTO>();
             return save;
         }
 

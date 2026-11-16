@@ -17,7 +17,7 @@
 | B | 地圖載入 (Map Loader) | B1~B18 |
 | C | 地圖編輯器 / 素材同步 | C1~C16（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E48（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後；E48 接在 E47 之後） |
+| E | 效能 / 顯示 (Performance & Display) | E1~E49（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後；E48 接在 E47 之後；E49 接在 E48 之後） |
 | F | 戰鬥 / 傷害 (Combat) | F1~F46（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G25（位置在 F3 之後）；**G13 在 F26 之後、H 段標題之前；G14~G18 誤接在 H 段標題之後、H1 之前**（維持原位不搬）；G19 接在 G18 之後；G20 接在 G19 之後；G21、G22 接在 G20 之後；G23 接在 G22 之後；G24 接在 G23 之後；G25 接在 G24 之後 |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1~H2 |
@@ -1008,6 +1008,10 @@
 - **解法**：交給 `ItemIcons.Apply` 的 Image 一律 **pivot (0.5,0.5)**、anchorMin＝anchorMax（`ExchangePanel.PlaceCenter`：同樣給左上角＋寬高，內部換成中心定位）。
 - **通則**：**要畫物品 icon 的 Image，pivot 必須在中心**；想用左上角座標排版就包一層容器或用 `PlaceCenter`。
 
+### E49. 結算畫面的物品說明（tooltip）回到邪佛廣場還掛在畫面上、關不掉
+- **症狀**：結算畫面滑鼠停在獎勵圖示上跳出說明，按「返回廣場」回到邪佛廣場後，說明框還停在畫面中央，怎麼移滑鼠都不會消失（2026-11-16 作者實測）。
+- **原因**：共用 `ItemTooltip` 掛在 **System 層**（結算畫面在 Overlay 層，掛 Popup 會被壓住），所以它**不屬於面板、不會跟著面板消失**。面板關閉時 `OnClose` 有收它，但 `UIPanel.DoClose` 之後還有 0.12 秒淡出，**這段時間面板仍是 active、`Update` 照跑**——hover 判斷看到游標在圖示上，又把 tooltip 打開；淡出結束面板被停用，`Update` 不再跑，從此沒人收它。
+- **解法**：`ResultPanel.Update` 開頭加 `if (!IsOpen)` 就收掉並 return；另加 `OnDisable` 保險再收一次。**通則：自己在 `Update` 裡做 hover 判斷、而 tooltip 掛在面板外層（Popup／System）的面板，`Update` 一定要先檢查 `IsOpen`，並在 `OnDisable` 收 tooltip**——關閉後的淡出期間 Update 仍會執行。
 ### E36. 大白天每隻怪身上都掛著一圈光，而且一直閃
 - **症狀**（2026-09-17，競技場的戰狼）：把怪放進 `Atmosphere=1`、沒壓暗的**亮**地圖，每隻怪身上都有一圈青白光暈；
   而且圖會**一閃一閃**，像貼圖在抖。

@@ -14,7 +14,7 @@ PoolId,DisplayName,BaseTable,SlateSprite,CostSingle,CostMulti,MultiCount,CostIte
 #   CostSingle  單抽價格。
 #   CostMulti   連抽價格；填 0 = 這個池不開放連抽（血統是一次性藥劑，一次給十瓶不合理）。
 #   MultiCount  連抽一次抽幾個（CostMulti 為 0 時忽略）。
-#   CostItemId  用哪個道具當錢；留空 = 銅錢 101。
+#   CostItemId  用哪個道具當錢；留空 = 功德值 101（2026-11-16 銅錢改名功德值）。
 # ─────────────────────────────────────────────────────────────────────────────
 weapon,武器,BaseWeaponRoll,rockSlate_weapon,100,900,10,101,
 armor,裝備,BaseArmorRoll,rockSlate_armor,100,900,10,101,ItemTable 目前還沒有防具，基本表是空的（面板會顯示「這座祭壇還沒有可抽的東西」）

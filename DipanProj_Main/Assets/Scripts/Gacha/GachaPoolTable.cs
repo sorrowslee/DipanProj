@@ -23,7 +23,7 @@ namespace Dipan.Gacha
     /// <summary>抽選系統的共用常數。</summary>
     public static class GachaConstants
     {
-        /// <summary>預設拿來當錢的道具：銅錢（與 RunProgress.MoneyItemId 同一個）。</summary>
+        /// <summary>預設拿來當錢的道具：功德值（道具 101，原銅錢；與 RunProgress.MoneyItemId 同一個）。</summary>
         public const int DefaultCostItemId = 101;
 
         /// <summary>

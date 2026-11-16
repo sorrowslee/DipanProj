@@ -122,7 +122,7 @@ namespace Dipan.Exchange
             }
         }
 
-        /// <summary>「500 銅錢＋2 勳章」這種文字（log 與提示用）。</summary>
+        /// <summary>「1 B級證明＋100 功德值」這種文字（log 與提示用）。</summary>
         public static string CostText(List<CostPart> cost)
         {
             var sb = new StringBuilder();

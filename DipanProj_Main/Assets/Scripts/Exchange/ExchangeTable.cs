@@ -10,7 +10,7 @@ namespace Dipan.Exchange
     /// 兌換表（Assets/Data/ExchangeTable.csv，由場景上的 <see cref="GachaTableProvider"/> 的「兌換表」欄提供）。
     ///
     /// 欄位：<c>ExchangeId,ItemId,Category,Rarity,Cost,SortOrder,Note</c>（說明見 readme/EXCHANGE.md §3）
-    /// - <b>Cost</b>：<c>貨幣:數量</c>，多種貨幣用分號分隔（例 <c>medal:2;point:300</c>）。
+    /// - <b>Cost</b>：<c>貨幣:數量</c>，多種貨幣用分號分隔（例 <c>proofB:1;merit:100</c>）。只寫數字＝功德值。
     /// - <b>Category</b> 留空 ＝ 依 ItemTable 推斷；<b>Rarity</b> 留空 ＝ 白。
     ///
     /// 懶漢載入一次、快取（同 GachaPoolTable 的套路；provider 還沒就緒時不建快取，避免黏住空表）。
@@ -92,7 +92,7 @@ namespace Dipan.Exchange
                 ParseCost(CsvUtil.Field(v, 4), e.Cost, i + 1);
                 if (e.Cost.Count == 0)
                 {
-                    Debug.LogWarning($"[ExchangeTable] 第 {i + 1} 行（{d.Name}）沒有填價格，略過。格式：copper:500");
+                    Debug.LogWarning($"[ExchangeTable] 第 {i + 1} 行（{d.Name}）沒有填價格，略過。格式：merit:500");
                     continue;
                 }
 
@@ -103,7 +103,7 @@ namespace Dipan.Exchange
             Debug.Log($"[ExchangeTable] 載入 {_all.Count} 個兌換品項。");
         }
 
-        /// <summary>解析 <c>copper:500</c> 或 <c>medal:2;point:300</c>。只寫數字 ＝ 銅錢。</summary>
+        /// <summary>解析 <c>merit:500</c> 或 <c>proofB:1;merit:100</c>（別名：copper＝merit、B／A／S＝proofB／A／S）。只寫數字 ＝ 功德值。</summary>
         static void ParseCost(string s, List<CostPart> into, int lineNo)
         {
             if (string.IsNullOrWhiteSpace(s)) return;
@@ -111,9 +111,9 @@ namespace Dipan.Exchange
             {
                 string part = raw.Trim();
                 if (part.Length == 0) continue;
-                string key = ExchangeCurrencies.Copper, num = part;
+                string key = ExchangeCurrencies.Merit, num = part;
                 int colon = part.IndexOf(':');
-                if (colon >= 0) { key = part.Substring(0, colon).Trim(); num = part.Substring(colon + 1).Trim(); }
+                if (colon >= 0) { key = ExchangeCurrencies.Normalize(part.Substring(0, colon)); num = part.Substring(colon + 1).Trim(); }
 
                 if (!int.TryParse(num, out int amount) || amount < 0)
                 {
@@ -121,7 +121,7 @@ namespace Dipan.Exchange
                     continue;
                 }
                 if (ExchangeCurrencies.Get(key) == null)
-                    Debug.LogWarning($"[ExchangeTable] 第 {lineNo} 行：未登記的貨幣「{key}」（可用 copper／medal／point），這個品項會顯示成尚未開放。");
+                    Debug.LogWarning($"[ExchangeTable] 第 {lineNo} 行：未登記的貨幣「{key}」（可用 merit／proofB／proofA／proofS，或 B／A／S），這個品項會顯示成尚未開放。");
                 into.Add(new CostPart { CurrencyKey = key, Amount = amount });
             }
         }

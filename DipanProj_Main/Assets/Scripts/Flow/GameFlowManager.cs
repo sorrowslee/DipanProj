@@ -262,12 +262,13 @@ namespace Dipan.Flow
             while (!fxDone) yield return null;
 
             // 結束這趟關卡的進度（過關/死亡/返回同一支）。2026-11-06 起沒有臨時包：撿到的東西早已在真背包，
-            // 死亡也保留，這裡不結算也不丟棄。見 readme/RUN_PROGRESS.md。
+            // 死亡也保留，這裡不丟棄。2026-11-16 起 EndRun 會把**地上沒撿的功德值**補進錢包（三種結束方式都算）。見 readme/RUN_PROGRESS.md。
             if (RunProgress.Exists) RunProgress.Instance.EndRun();
 
-            // 結算畫面的獎勵區：作者拍板「先不顯示」——等之後有正式的過關獎勵再接（見 readme/TODO.md）。
-            // 傳 null → ResultPanel 獎勵框顯示「無」。
-            List<Dipan.Inventory.ItemStack> rewards = null;
+            // 結算畫面的獎勵區（2026-11-16 作者要求開啟）：這一趟拿到的**功德值總額 → 新拿到的證明 → 所有道具**。
+            // 功德值含 EndRun 剛補進來的「地上沒撿的功德值」；道具＝經 RunProgress.GiveStack 取得的全部（地上撿的、頭目必掉、劇情給的…）。
+            // 過關、死亡、中途返回都一樣顯示（撿到的本來就保留）。空的 → ResultPanel 顯示「無」。
+            var rewards = BuildRunRewards(_endModule);
 
             // 只有過關記進度（存檔）。死亡與主動返回都不算過關。
             if (kind == LevelEndKind.Clear && SaveManager.Instance != null && !string.IsNullOrEmpty(_endModule))
@@ -277,8 +278,23 @@ namespace Dipan.Flow
             }
 
             // 開結算畫面（覆蓋全螢幕、暫停）。玩家此時縮到 ~0 且在畫面外，被結算面板蓋住。
-            // 獎勵區目前一律 rewards=null（見上方）。
+            // 獎勵區＝上面組好的 rewards（功德值、證明、道具）。
             ResultPanel.Show(win, showTitle, _endModule, DisplayNameOf(_endModule), rewards);
+        }
+
+        /// <summary>組結算畫面的獎勵清單（見 EndLevelRoutine 的說明）。證明只列這個劇本這一趟**新拿到的**（張數 1）。</summary>
+        static List<Dipan.Inventory.ItemStack> BuildRunRewards(string module)
+        {
+            var list = new List<Dipan.Inventory.ItemStack>();
+            if (!RunProgress.Exists) return list;
+            var rp = RunProgress.Instance;
+            if (rp.RunMerit > 0)
+                list.Add(new Dipan.Inventory.ItemStack { ItemId = RunProgress.MoneyItemId, Count = rp.RunMerit });
+            foreach (var kv in Dipan.Progress.ScriptRecords.GrantedThisRun)
+                if (kv.Key == module)
+                    list.Add(new Dipan.Inventory.ItemStack { ItemId = Dipan.Progress.ProofTierInfo.ItemIdOf(kv.Value), Count = 1 });
+            list.AddRange(rp.RunItems);
+            return list;
         }
 
         /// <summary>

@@ -82,6 +82,63 @@ public class DamageNumberManager : MonoBehaviour
         if (mgr != null) mgr.SpawnText(worldPos, amount, color);
     }
 
+    /// <summary>
+    /// 泛用：在目標頭上飄一行**文字**（2026-11-16，撿功德值時的「功德值 +5」用）。
+    /// 跟傷害數字同一套世界 TextMesh＋描邊，但動畫是溫和的「輕輕彈出→上飄→淡出」，不抖、不閃白（拾取不是受擊）。
+    /// 連續撿好幾次會各跳一個，起點微抖錯開。
+    /// </summary>
+    public static void ShowText(GameObject target, string text, Color color)
+    {
+        if (target == null || string.IsNullOrEmpty(text)) return;
+        var mgr = Instance;
+        if (mgr == null) return;
+        Vector3 pos = mgr.HeadPosition(target);
+        pos.x += Random.Range(-0.12f, 0.12f);
+
+        var go = new GameObject("FloatText");
+        go.transform.position = pos;
+        var shadowGo = new GameObject("Shadow");
+        shadowGo.transform.SetParent(go.transform, false);
+        shadowGo.transform.localPosition = new Vector3(ShadowOffset, -ShadowOffset, 0f);
+        mgr.BuildText(shadowGo, text, CharacterSize * TextScale, new Color(0f, 0f, 0f, 0.85f), SortingOrder - 1);
+        mgr.BuildText(go, text, CharacterSize * TextScale, color, SortingOrder);
+        go.AddComponent<FloatTextInstance>();
+    }
+
+    const float TextScale = 0.85f;        // 文字提示比傷害數字小一點（字比數字多）
+
+    /// <summary>文字提示的動畫：0.12 秒彈到原大 → 上飄 → 後半段淡出（共 1.1 秒，用遊戲時間）。</summary>
+    sealed class FloatTextInstance : MonoBehaviour
+    {
+        const float Life = 1.1f, Rise = 0.9f, PopTime = 0.12f;
+        float _t;
+        TextMesh[] _tms;
+        Color[] _c0;
+        Vector3 _p0;
+
+        void Start()
+        {
+            _p0 = transform.position;
+            _tms = GetComponentsInChildren<TextMesh>();
+            _c0 = new Color[_tms.Length];
+            for (int i = 0; i < _tms.Length; i++) _c0[i] = _tms[i].color;
+            transform.localScale = Vector3.one * 0.5f;
+        }
+
+        void Update()
+        {
+            _t += Time.deltaTime;
+            float k = Mathf.Clamp01(_t / Life);
+            float pop = Mathf.Clamp01(_t / PopTime);
+            transform.localScale = Vector3.one * Mathf.Lerp(0.5f, 1f, 1f - (1f - pop) * (1f - pop));
+            transform.position = _p0 + Vector3.up * (Rise * (1f - (1f - k) * (1f - k)));
+            float a = k < 0.5f ? 1f : 1f - (k - 0.5f) / 0.5f;
+            for (int i = 0; i < _tms.Length; i++)
+                if (_tms[i] != null) { var c = _c0[i]; c.a *= a; _tms[i].color = c; }
+            if (k >= 1f) Destroy(gameObject);
+        }
+    }
+
     // 取頭頂位置：優先碰撞框頂端、其次繪製框頂端，皆無則 transform + 預設高度
     Vector3 HeadPosition(GameObject target)
     {

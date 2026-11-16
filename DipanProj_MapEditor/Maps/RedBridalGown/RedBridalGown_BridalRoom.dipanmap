@@ -824,6 +824,28 @@
           "cells": [],
           "params": {
             "fireOnFlag": "redBridalCleared",
+            "next": "證明-A-芙蓉本名"
+          }
+        },
+        {
+          "id": "fa0c5c32",
+          "name": "證明-A-芙蓉本名",
+          "typeId": "grantProof",
+          "cells": [],
+          "params": {
+            "tier": "A",
+            "conditions": "flag:redBridalReadLetter",
+            "onBlocked": "跳過這顆繼續",
+            "next": "證明-B-紅嫁衣"
+          }
+        },
+        {
+          "id": "00289de9",
+          "name": "證明-B-紅嫁衣",
+          "typeId": "grantProof",
+          "cells": [],
+          "params": {
+            "tier": "B",
             "next": "紅嫁衣被打敗對話"
           }
         }

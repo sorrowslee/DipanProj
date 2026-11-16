@@ -32,6 +32,8 @@ namespace Dipan.UI
         const float FrameW = 1483f, FrameH = 955f;
         const float FrameScale = 1.08f;                       // 1483×1.08 ≈ 1600、955×1.08 ≈ 1031（1920×1080 參考解析度）
         const float HeadY = 72f, HeadH = 110f;                // 上方標題帶（金線分隔之上）
+        // 搜尋框寬與錢包起點（2026-11-16 錢包從一組變四組：搜尋框 540→450，錢包 x 890～1334，關閉鈕在 1340）
+        const float SearchW = 450f, WalletX0 = 890f, WalletGap = 6f;
         const float BodyX = 62f, BodyR = 1422f;               // 內容區左右（內框 46~1437 各留 16）
         const float ToolY = 200f, ToolH = 56f;                // 工具列
         const float ResultsY = 268f, ResultsH = 590f;         // 結果捲動區
@@ -75,8 +77,7 @@ namespace Dipan.UI
         // ══════════════════ 元件 ══════════════════
         Sprite _tile, _field;
         RectTransform _frame;
-        Text _walletText;
-        Image _walletIcon;
+        readonly Dictionary<string, Text> _walletTexts = new Dictionary<string, Text>();   // 貨幣代號 → 數字
         InputField _search;
         DropMenu _catDrop, _sortDrop;
         RectTransform _rarityAllOutline;
@@ -146,7 +147,7 @@ namespace Dipan.UI
 
             // 搜尋框：輸入條底圖＋放大鏡＋InputField（打字即篩）
             var box = Sliced(_frame, "SearchBox", _field);
-            PlaceTL(box.rectTransform, 420f, HeadY + 27f, 540f, 56f);
+            PlaceTL(box.rectTransform, 420f, HeadY + 27f, SearchW, 56f);
             var mag = UIBuilder.Image(box.transform, "Icon", L("ExchangePanel_Icon_Search"));
             mag.preserveAspect = true; mag.raycastTarget = false;
             PlaceTL(mag.rectTransform, 22f, 8f, 40f, 40f);
@@ -156,19 +157,33 @@ namespace Dipan.UI
             _search.textComponent.color = TextLight;
             _search.onValueChanged.AddListener(s => { _query = s ?? ""; Refresh(); });
 
-            // 錢包：銅錢圖示＋數字（之後多貨幣時改成並排多組，見 EXCHANGE.md §5）
-            _walletIcon = UIBuilder.Image(_frame, "WalletIcon", null, Color.white);
-            _walletIcon.raycastTarget = false;
-            PlaceCenter(_walletIcon.rectTransform, 1080f, HeadY + 27f, 56f, 56f);
-            var cur = ExchangeCurrencies.Get(ExchangeCurrencies.Copper);
-            if (cur != null && cur.IconItemId > 0) ItemIcons.Apply(_walletIcon, cur.IconItemId);
+            // 錢包（2026-11-16）：功德值＋B／A／S 證明四組並排（順序 ExchangeCurrencies.WalletOrder）。
+            // 功德值數字可能很長、給寬一點並自動縮字；證明一輩子最多幾十張，給窄格。
+            float x = WalletX0;
+            foreach (var key in ExchangeCurrencies.WalletOrder)
+            {
+                var cur = ExchangeCurrencies.Get(key);
+                if (cur == null) continue;
+                bool merit = key == ExchangeCurrencies.Merit;
+                float icon = merit ? 48f : 38f, textW = merit ? 130f : 40f;
+                var ic = UIBuilder.Image(_frame, "WalletIcon_" + key, null, Color.white);
+                ic.raycastTarget = false;
+                PlaceCenter(ic.rectTransform, x, HeadY + 55f - icon * 0.5f, icon, icon);
+                if (cur.IconItemId > 0) ItemIcons.Apply(ic, cur.IconItemId);
 
-            _walletText = Txt(_frame, "Wallet", "0", 40, Gold, TextAnchor.MiddleLeft);
-            PlaceTL(_walletText.rectTransform, 1144f, HeadY + 22f, 180f, 66f);
-            var hover = UIBuilder.Image(_frame, "WalletHover", null, new Color(0f, 0f, 0f, 0f));
-            hover.raycastTarget = true;
-            PlaceTL(hover.rectTransform, 1080f, HeadY + 22f, 244f, 66f);
-            HoverTip.Attach(hover.gameObject, () => cur != null ? cur.Name : "");
+                var t = Txt(_frame, "Wallet_" + key, "0", merit ? 36 : 32, Gold, TextAnchor.MiddleLeft);
+                t.resizeTextForBestFit = true; t.resizeTextMinSize = 16; t.resizeTextMaxSize = merit ? 36 : 32;
+                PlaceTL(t.rectTransform, x + icon + 4f, HeadY + 22f, textW, 66f);
+                _walletTexts[key] = t;
+
+                float groupW = icon + 4f + textW;
+                var hover = UIBuilder.Image(_frame, "WalletHover_" + key, null, new Color(0f, 0f, 0f, 0f));
+                hover.raycastTarget = true;
+                PlaceTL(hover.rectTransform, x, HeadY + 22f, groupW, 66f);
+                var c = cur;
+                HoverTip.Attach(hover.gameObject, () => c.Name);
+                x += groupW + WalletGap;
+            }
 
             // 關閉鈕：標題帶右端（原本放在外框右上角外面、壓在角飾上，作者 2026-11-16 要求下移）
             var cb = UIBuilder.Button(_frame, "Close", "", () => UIManager.Instance.Close(this), Color.white,
@@ -342,8 +357,11 @@ namespace Dipan.UI
 
         void UpdateWallet()
         {
-            var cur = ExchangeCurrencies.Get(ExchangeCurrencies.Copper);
-            if (_walletText != null) _walletText.text = cur != null ? cur.HeldNow.ToString("N0") : "0";
+            foreach (var kv in _walletTexts)
+            {
+                var cur = ExchangeCurrencies.Get(kv.Key);
+                if (kv.Value != null) kv.Value.text = cur != null ? cur.HeldNow.ToString("N0") : "0";
+            }
         }
 
         void Update()

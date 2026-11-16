@@ -1,0 +1,8 @@
+Module,Tier,TextLangId,Note
+# 劇本證明表（2026-11-16）：達成某級證明後，結算畫面顯示的金色條件文字（語言表 id）。證明「什麼時候給」寫在地圖觸發鏈的 grantProof，不在這裡。見 readme/CORE_LOOP_DESIGN.md §8,,,
+RedBridalGown,B,11011,打敗紅嫁衣女殭屍
+RedBridalGown,A,11012,取得本名，打敗芙蓉
+RedBridalGown,S,11013,打敗榕樹妖
+BloodFang,B,11014,站隊一方，通關劇本
+BloodFang,A,11015,兩方都協助過，通關劇本
+BloodFang,S,11016,兩方都不幫，通關劇本

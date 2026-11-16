@@ -46,6 +46,13 @@ namespace Dipan.UI
         // ───────────── 狀態 ─────────────
 
         public bool IsOpen { get; private set; }
+
+        /// <summary>
+        /// 開啟這個彈窗（Popup 層）時，底下最上層的視窗＝它的「主介面」（2026-11-16）。主介面被關掉時，
+        /// UIManager 會先把它名下的彈窗一起關掉——例：兌換所開著詳情彈窗時按 N 關兌換所，詳情彈窗不能留在畫面上。
+        /// 非 Popup 層、或開啟時底下沒有視窗的，為 null（獨立存在，不受影響）。
+        /// </summary>
+        public UIPanel OwnerPanel { get; internal set; }
         protected CanvasGroup CanvasGroup { get; private set; }
         protected RectTransform Rect { get; private set; }
 

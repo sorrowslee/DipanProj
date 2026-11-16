@@ -191,6 +191,22 @@
       "IsLife": false,
       "IsLevel": true,
       "ScopeLabel": "關卡單次"
+    },
+    {
+      "id": 25,
+      "name": "bfClearedAsVampire",
+      "scope": "life",
+      "IsLife": true,
+      "IsLevel": false,
+      "ScopeLabel": "永久"
+    },
+    {
+      "id": 26,
+      "name": "bfClearedAsWerewolf",
+      "scope": "life",
+      "IsLife": true,
+      "IsLevel": false,
+      "ScopeLabel": "永久"
     }
   ]
 }

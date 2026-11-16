@@ -43,13 +43,38 @@ namespace Dipan.Save
         // 曾達到過的最高「完成關卡數」（跨輪迴保存，同 lifetimeFlags 放頂層＝ReincarnateInPlace 不重置）。
         // 給地上物「出現條件＝永久（lifetime）」判定用：只要某周目曾完成 N 關，該物件就永久出現。缺欄＝0。
         public int lifetimeMaxClears = 0;
+
+        // ── 劇本紀錄（角色紀錄層，2026-11-16；跨輪迴保存，同 lifetimeFlags 放頂層＝ReincarnateInPlace 不重置）──
+        // key = 劇本 module（MapsTable 的 Module）。目前只記「哪幾級證明領過、第幾世領的」。
+        // ⚠ 一律透過 Dipan.Progress.ScriptRecords 讀寫，不要直接碰這個欄位（之後的成就系統、通關筆記也讀它）。
+        // 缺欄（舊存檔）= 空字典，不需要遷移。架構見 readme/SAVE_SYSTEM.md §15。
+        public Dictionary<string, ScriptRecordDTO> scriptRecords = new Dictionary<string, ScriptRecordDTO>();
+    }
+
+    /// <summary>一個劇本的紀錄（見 readme/SAVE_SYSTEM.md §15.3）。之後要加欄位（進入次數…）直接加，不用遷移。</summary>
+    public class ScriptRecordDTO
+    {
+        /// <summary>領過的證明：key = "B"／"A"／"S"。沒有這個 key ＝ 沒領過。</summary>
+        public Dictionary<string, ProofClaimDTO> proofs = new Dictionary<string, ProofClaimDTO>();
+    }
+
+    /// <summary>一次證明領取的紀錄：第幾世（周目）、什麼時間（UTC，ISO 8601）。</summary>
+    public class ProofClaimDTO
+    {
+        public int gen;
+        public string utc;
     }
 
     /// <summary>角色屬性（待屬性系統，先佔位）。</summary>
     /// <remarks>HP/MP 刻意不存檔——玩家每次進遊戲都滿血滿魔（方便測試），見 readme/COMBAT.md §7。</remarks>
     public class StatsDTO
     {
-        public int currency = 0;            // 金錢（存錢抽關卡用）
+        public int currency = 0;            // 功德值（2026-11-16 起銅錢改名功德值；欄位名沿用以免遷移）
+        // 手上的劇本證明張數（貨幣，2026-11-16）。輪迴會清空，除非選了「全部證明」當帶物。
+        // 「領過沒」是另一回事，記在 CharacterSave.scriptRecords（輪迴不清）。見 readme/SAVE_SYSTEM.md §15.4。
+        public int proofB = 0;
+        public int proofA = 0;
+        public int proofS = 0;
     }
 
     /// <summary>
@@ -88,5 +113,19 @@ namespace Dipan.Save
 
         // ── 其他劇情/狀態旗標（彈性擴充，免改結構）──
         public Dictionary<string, string> flags = new Dictionary<string, string>();
+    }
+
+    /// <summary>
+    /// 輪迴要帶走的東西（2026-11-16）：物品（一疊算 1 件）＋功德值整筆（1 件）＋全部證明（1 件）。
+    /// 交給 <see cref="SaveManager.ReincarnateInPlace(ReincarnateCarry)"/>。見 readme/CORE_LOOP_DESIGN.md §8.6。
+    /// </summary>
+    public class ReincarnateCarry
+    {
+        public List<ItemStack> items = new List<ItemStack>();
+        public bool keepMerit;    // 功德值整筆
+        public bool keepProofs;   // 全部證明（B＋A＋S）
+
+        /// <summary>目前選了幾件（給選物畫面顯示「已選 N／上限」）。</summary>
+        public int Count => items.Count + (keepMerit ? 1 : 0) + (keepProofs ? 1 : 0);
     }
 }

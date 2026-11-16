@@ -216,7 +216,7 @@ namespace Dipan.UI
             const float G2Y = 246f, G2H = 118f;
             AddGroup(root, "一鍵快捷", G2Y, G2H, ColGroupB);
 
-            var moneyBtn = UIBuilder.Button(root, "MoneyBtn", $"獲得 {CheatMoneyAmount:N0} 元",
+            var moneyBtn = UIBuilder.Button(root, "MoneyBtn", $"獲得 {CheatMoneyAmount:N0} 功德值",
                                             OnClickGiveMoney, ColBtn);
             Place((RectTransform)moneyBtn.transform, 14f, 288f, 260f, 56f);
 
@@ -506,8 +506,8 @@ namespace Dipan.UI
                 return;
             }
             sm.AddCurrency(CheatMoneyAmount);
-            SetGiveStatus($"已獲得 {CheatMoneyAmount:N0} 元（目前 {sm.Currency:N0}）。", true);
-            AlertPanel.Toast($"作弊：獲得 {CheatMoneyAmount:N0} 元");
+            SetGiveStatus($"已獲得 {CheatMoneyAmount:N0} 功德值（目前 {sm.Currency:N0}）。", true);
+            AlertPanel.Toast($"作弊：獲得 {CheatMoneyAmount:N0} 功德值");
         }
 
         /// <summary>

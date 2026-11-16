@@ -489,3 +489,62 @@ static int CarryCountForCycle(int cycle);// = min(cycle, MaxCarryOnReincarnate)
 - 輪迴後 `progress` 整個換掉 ⇒ 標記是 false ⇒ **不會再做一次夢**（符合「同一個存檔只體驗一次」）。
 
 **動到的檔**：`Save/CharacterSave.cs`、`Save/SaveConstants.cs`（版本號 4）、`Save/SaveManager.cs`、`Map/MapManager.cs`、`Flow/GameFlowManager.cs`。
+
+---
+
+## 15. 終身紀錄層與帳號成就（架構定案 2026-11-16）
+
+> 起因：劇本證明（[CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) §8）要「整個角色一輩子每劇本每級只能領一次」，
+> 而作者之後還會做**成就系統**與**通關筆記**。先把「資料存哪、誰能讀」定下來，避免這次做出一個之後要大改的陽春版成就系統。
+
+### 15.1 兩層，分開
+
+| 層 | 是什麼 | 存哪裡 | 誰讀 |
+|---|---|---|---|
+| **① 角色紀錄**（這次做） | 這個角色**發生過什麼**——唯一真相 | `character.json` 頂層 `scriptRecords`（與 `lifetimeFlags` 同級＝輪迴不清，開新角色才空） | 結算畫面、通關筆記、發牌、兌換所、（之後）成就 |
+| **② 帳號成就**（之後做） | 玩家**達成了哪些里程碑** | 存檔根目錄 `achievements.json`（跟 `profiles.json` 並列，不屬於任何角色；刪角色也保留） | 成就 UI、Steam 成就（Steam 只是鏡像，不是真相） |
+
+### 15.2 五條規則
+
+1. **成就只讀紀錄，不自己存遊戲事實**（「通關幾次」只存在 ①，② 不另記一份）。
+2. **遊戲機制不讀成就**：證明、發牌、兌換只看 ①。成就晚做、甚至不做都不影響玩法。
+   成就若之後要給遊戲內獎勵，**在解鎖那一刻一次性發給角色**（變成物品或寫進 ①），不讓遊戲機制回頭查「有沒有這個成就」。
+3. **其他系統透過查詢 API 讀 ①**（`Dipan.Progress.ScriptRecords`），不直接碰存檔欄位——之後改存法只改一處。
+4. **紀錄變動要發事件**（`ScriptRecords.OnProofClaimed`）：成就系統之後訂閱它就能即時解鎖，不用改證明的程式。
+5. **紀錄存得夠細**（第幾世、什麼時間）：成就系統第一次上線時可以掃所有角色的舊紀錄補解鎖。
+
+### 15.3 ① 的資料格式
+
+```json
+"scriptRecords": {
+  "RedBridalGown": { "proofs": { "B": { "gen": 1, "utc": "2026-11-16T08:00:00Z" },
+                                 "S": { "gen": 2, "utc": "..." } } },
+  "BloodFang":     { "proofs": { } }
+}
+```
+
+- key ＝ 劇本的 module（MapsTable 的 Module）。
+- **劇本專屬的條件**（例：血狂之爭「曾協助血族通關」）**用終身旗標**（`flags.json` 的 `scope=life`），不放進 `scriptRecords`——那是劇本內部判斷用的，不是對外公開的紀錄。
+- 進入次數、通關次數等**目前沒人用的欄位先不加**；之後要加是純新增欄位、不用遷移。
+- 缺欄（舊存檔）＝空字典。
+
+### 15.4 證明「持有數」放哪
+
+- 手上的證明數量（B／A／S 各幾張）是**貨幣**，跟功德值一樣放 `stats`（`StatsDTO.proofB/proofA/proofS`），**輪迴會清空**——除非玩家選「全部證明」當帶物（§15.5）。
+- 「領過沒」是**紀錄**（`scriptRecords`），輪迴不清。兩者不要混：花掉證明不會讓劇本變回「沒領過」。
+
+### 15.5 輪迴帶物（存檔 API）
+
+`SaveManager.ReincarnateInPlace(ReincarnateCarry carry)`：`carry` 裡有物品清單＋`keepMerit`（功德值整筆，算 1 件）＋`keepProofs`（全部證明，算 1 件）；
+三者合計受 `min(周目, 7)` 限制，超過的部分依「功德值 → 證明 → 物品」的順序保留。
+⏳ 選物畫面、「帶血統」都還沒做（見 [TODO.md](TODO.md)〈功德值與證明〉）。
+
+### 15.6 查詢 API（`Scripts/Progress/ScriptRecords.cs`）
+
+| API | 用途 |
+|---|---|
+| `IsClaimed(module, tier)` | 這個角色領過這劇本的這一級沒 |
+| `GetClaim(module, tier)` | 領取紀錄（第幾世、時間）；沒領過回 null |
+| `StateOf(module)` | 新劇本／迴響／畢業（給之後的發牌） |
+| `Grant(module, tier)` | 發證明：連帶低階、跳過已領、入帳、寫紀錄、**立刻存檔**、發 `OnProofClaimed`；回傳這次新拿到的等級 |
+| `GrantedThisRun` | 這一趟關卡新拿到的（結算畫面播動畫用）；`RunProgress.BeginRun` 時清空 |

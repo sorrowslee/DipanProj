@@ -177,6 +177,19 @@ public class InventoryPanel : UIPanel
     做法是讓上層（`BloodlineSystem`）自己掛一份從頭壓到尾，兩段各自的 hold 照舊不動——
     `Recompute` 是 OR，多壓一層不會有副作用。
 
+### 彈窗跟著主介面一起關（2026-11-16 作者定）
+
+Popup 層的面板（兌換詳情、確認彈窗…）開啟時，`UIManager.Open` 把**當下最上層的視窗**記成它的 `OwnerPanel`；
+`UIManager.Close(主介面)` 會先關掉名下所有彈窗（遞迴）。所以不管主介面是被熱鍵（例：兌換所開著詳情時按 N）、ESC、按鈕還是劇情流程關掉，彈窗都不會留在畫面上。開啟時底下沒有視窗的彈窗 `OwnerPanel=null`，獨立存在。
+面板自己的浮動說明（`ItemTooltip`）不是面板、不走這條——照舊在 `OnClose`（必要時 `OnDisable`）裡 `Hide()`（見 PROBLEMS **E49**）。
+
+### 所有介面都要能 ESC 關（2026-11-16 作者定）
+
+玩家打開的介面（背包、倉庫、鍛造、兌換所、抽選、傳送門、設定、結算…）**一律要支援 ESC**：新做的視窗維持 `CloseOnEscape = true`（基底預設）。
+- 有「中途不能關」的狀態時，不要整個關掉 ESC，而是讓 ESC 在那個狀態做合理的事：例 `GachaPanel`——待機＝關閉、表演中＝跳過、十連結算開著＝確定。自己在 `Update` 接 ESC 的面板，同一幀要讓 `CloseOnEscape` 回 false（`_escHandledFrame`），否則 UIManager 會連帶把面板也關掉。
+- 不入堆疊（`InStack=false`）的面板 UIManager 的 ESC 不會處理，要自己在 `Update` 接：例 `ResultPanel`＝ESC 返回廣場（與按鈕共用 `RequestReturn`，只送一次）。
+- **刻意不能 ESC 的**（作者拍板過的）：`SelectScriptPanel`（邪佛發牌，領取是唯一出路）、`ChoicePanel`（二選一倒數，三條路之外沒有第四條）、標題畫面。HUD、提示、演出類面板不算「介面」。
+
 ### ESC 只在「真的沒有東西在進行」時才開設定面板
 
 `UIManager.Update` 的 ESC 有兩個分支：有入堆疊的視窗 → 關最上層；沒有 → 開 `_escapeRootPanel`（設定）。

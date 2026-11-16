@@ -147,7 +147,7 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 8002,獲得 {0} ×{1},Obtained {0} ×{1}
 # ── 通用：UI 小提示 hover tip（9001–9099）──
 9001,重新整理,Sort
-9002,通用貨幣,Currency
+9002,功德值,Merit
 1015,在夢中，我是背棄神明的六翼之王，黑白雙翼一展，天國與深淵都向我俯首,"In my dream, I am the six-winged king who forsook the gods. When my black and white wings unfold, both heaven and the abyss bow before me."
 # ── 開發測試用（9901–9999）：測試 NPC 台詞，不會出現在正式流程 ──
 9901,立繪測試 1/6：normal（平常）,Portrait test 1/6: normal
@@ -203,12 +203,24 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 10043,最大,Max
 10044,加入收藏,Add to favorites
 10045,取消收藏,Remove from favorites
-10046,銅錢,Copper
-10047,勳章,Medals
-10048,點數,Points
+10046,功德值,Merit
 10049,尚未開放,Not available yet
 10050,背包已滿，{0} 件掉落在腳下,"Bag full: {0} dropped at your feet"
 10051,稀有度,Rarity
 10052,價格,Price
 10053,右鍵：加入收藏,Right-click: add to favorites
 10054,右鍵：取消收藏,Right-click: remove from favorites
+# ── 功德值與劇本證明（11001–11099，2026-11-16）：證明名稱、結算畫面、各劇本 B／A／S 的條件文字。見 readme/CORE_LOOP_DESIGN.md §8 ──
+11001,B級證明,B-Rank Proof
+11002,A級證明,A-Rank Proof
+11003,S級證明,S-Rank Proof
+11004,已領取,Claimed
+11005,?????,?????
+11006,劇本證明,Script Proofs
+11007,{0}：{1},{0}: {1}
+11011,打敗紅嫁衣女殭屍,Defeat the zombie bride
+11012,取得本名，打敗芙蓉,Learn her true name and defeat Furong
+11013,打敗榕樹妖,Defeat the Banyan Demon
+11014,站隊一方，通關劇本,Side with one clan and clear the script
+11015,兩方都協助過，通關劇本,Clear the script having aided both clans
+11016,兩方都不幫，通關劇本,Clear the script siding with neither clan

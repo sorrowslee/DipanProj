@@ -352,14 +352,35 @@ namespace Dipan.Save
         /// </summary>
         public void ReincarnateInPlace(IList<Dipan.Inventory.ItemStack> carryItems)
         {
+            var carry = new ReincarnateCarry();
+            if (carryItems != null) carry.items.AddRange(carryItems);
+            ReincarnateInPlace(carry);
+        }
+
+        /// <summary>
+        /// 輪迴（完整版，2026-11-16）：除了物品，還能選「功德值整筆」與「全部證明（B＋A＋S）」，**各算 1 件**，
+        /// 跟物品一起受 min(周目, 上限) 限制；超過時依 功德值 → 證明 → 物品 的順序保留（選物畫面應該自己擋，這裡只是保險）。
+        /// 一疊道具算 1 件。沒選的功德值／證明歸零。見 readme/CORE_LOOP_DESIGN.md §8.6、readme/SAVE_SYSTEM.md §15.5。
+        /// ⏳ 選物畫面還沒做；「帶血統」另需設計（本世血統在 progress.flags，輪迴會被清）。
+        /// </summary>
+        public void ReincarnateInPlace(ReincarnateCarry carry)
+        {
             if (_current == null) return;
+            if (carry == null) carry = new ReincarnateCarry();
 
             int leavingCycle = _current.generation;                 // 要離開的周目
             int allowed = CarryCountForCycle(leavingCycle);         // 這次可帶幾件
+            int used = 0;
+
+            var oldStats = _current.stats ?? new StatsDTO();
+            bool keepMerit = carry.keepMerit && used < allowed;
+            if (keepMerit) used++;
+            bool keepProofs = carry.keepProofs && used < allowed;
+            if (keepProofs) used++;
+
             var carried = new List<Dipan.Inventory.ItemStack>();
-            if (carryItems != null)
-                for (int i = 0; i < carryItems.Count && carried.Count < allowed; i++)
-                    if (!carryItems[i].IsEmpty) carried.Add(carryItems[i]);
+            for (int i = 0; i < carry.items.Count && used < allowed; i++)
+                if (!carry.items[i].IsEmpty) { carried.Add(carry.items[i]); used++; }
 
             var carriedIds = new List<int>();
             foreach (var st in carried) carriedIds.Add(st.ItemId);
@@ -367,13 +388,22 @@ namespace Dipan.Save
             // 重置：周目 +1、屬性/進度全新（記錄本代帶入物品），背包清空後塞回帶入物品。倉庫保留不動。
             _current.generation = leavingCycle + 1;
             _current.stats = new StatsDTO();
+            if (keepMerit) _current.stats.currency = oldStats.currency;
+            if (keepProofs)
+            {
+                _current.stats.proofB = oldStats.proofB;
+                _current.stats.proofA = oldStats.proofA;
+                _current.stats.proofS = oldStats.proofS;
+            }
             _current.progress = new ProgressDTO { inheritedItems = carriedIds };
 
             Inv.RestoreState(null);                                 // 清空背包/裝備
             foreach (var st in carried) Inv.AddStack(st);           // 帶入物品（含孔位與鑲嵌）
 
             SaveNow();
-            Debug.Log($"[SaveManager] 輪迴 → 第 {_current.generation} 周目（帶入 {carried.Count} 件），進度已重置。");
+            OnCurrencyChanged?.Invoke();
+            Debug.Log($"[SaveManager] 輪迴 → 第 {_current.generation} 周目（帶入 {carried.Count} 件物品"
+                      + (keepMerit ? "＋功德值" : "") + (keepProofs ? "＋全部證明" : "") + "），進度已重置。");
         }
 
         /// <summary>從背包格或裝備欄找出這個 itemId 實際持有的那一件（含實例）；找不到就回一件全新的。</summary>
@@ -598,6 +628,77 @@ namespace Dipan.Save
             _current.stats.currency -= amount;
             MarkDirty();
             OnCurrencyChanged?.Invoke();
+            return true;
+        }
+
+        // ───────────── 劇本證明（貨幣）與劇本紀錄（2026-11-16）─────────────
+        // 證明張數＝貨幣（stats，輪迴會清）；「領過沒」＝紀錄（scriptRecords，輪迴不清）。
+        // 遊戲端一律走 Dipan.Progress.ScriptRecords，不要直接呼叫這幾支以外的東西。見 readme/SAVE_SYSTEM.md §15。
+
+        /// <summary>手上持有幾張某級證明。</summary>
+        public int GetProofs(Dipan.Progress.ProofTier t)
+        {
+            if (_current == null) return 0;
+            switch (t)
+            {
+                case Dipan.Progress.ProofTier.A: return _current.stats.proofA;
+                case Dipan.Progress.ProofTier.S: return _current.stats.proofS;
+                default: return _current.stats.proofB;
+            }
+        }
+
+        void SetProofs(Dipan.Progress.ProofTier t, int v)
+        {
+            v = Mathf.Max(0, v);
+            switch (t)
+            {
+                case Dipan.Progress.ProofTier.A: _current.stats.proofA = v; break;
+                case Dipan.Progress.ProofTier.S: _current.stats.proofS = v; break;
+                default: _current.stats.proofB = v; break;
+            }
+        }
+
+        /// <summary>加證明張數（只動錢包，不寫「領過」紀錄——發證明請用 ScriptRecords.Grant）。會觸發 OnCurrencyChanged。</summary>
+        public void AddProofs(Dipan.Progress.ProofTier t, int amount)
+        {
+            if (_current == null || amount == 0) return;
+            SetProofs(t, GetProofs(t) + amount);
+            MarkDirty();
+            OnCurrencyChanged?.Invoke();
+        }
+
+        /// <summary>花證明；不足回 false、不扣。會觸發 OnCurrencyChanged。</summary>
+        public bool TrySpendProofs(Dipan.Progress.ProofTier t, int amount)
+        {
+            if (_current == null || amount < 0) return false;
+            if (GetProofs(t) < amount) return false;
+            SetProofs(t, GetProofs(t) - amount);
+            MarkDirty();
+            OnCurrencyChanged?.Invoke();
+            return true;
+        }
+
+        /// <summary>劇本紀錄的原始資料（給 ScriptRecords 用；沒有角色時回 null）。</summary>
+        public Dictionary<string, ScriptRecordDTO> ScriptRecordsData
+        {
+            get
+            {
+                if (_current == null) return null;
+                if (_current.scriptRecords == null) _current.scriptRecords = new Dictionary<string, ScriptRecordDTO>();
+                return _current.scriptRecords;
+            }
+        }
+
+        /// <summary>寫一筆證明領取紀錄（已存在就不覆蓋，回 false）。存檔由呼叫端（ScriptRecords.Grant）負責。</summary>
+        public bool RecordProofClaim(string module, string tierKey, int gen, string utc)
+        {
+            var map = ScriptRecordsData;
+            if (map == null || string.IsNullOrEmpty(module) || string.IsNullOrEmpty(tierKey)) return false;
+            if (!map.TryGetValue(module, out var rec) || rec == null) map[module] = rec = new ScriptRecordDTO();
+            if (rec.proofs == null) rec.proofs = new Dictionary<string, ProofClaimDTO>();
+            if (rec.proofs.ContainsKey(tierKey)) return false;
+            rec.proofs[tierKey] = new ProofClaimDTO { gen = gen, utc = utc };
+            MarkDirty();
             return true;
         }
 

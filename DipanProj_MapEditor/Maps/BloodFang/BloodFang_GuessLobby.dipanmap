@@ -347,7 +347,7 @@
           "params": {
             "monsterId": "38",
             "startDisabled": true,
-            "next": "同伴回來-血族"
+            "next": "證明-B-血族線"
           }
         },
         {
@@ -406,7 +406,7 @@
           "params": {
             "monsterId": "39",
             "startDisabled": true,
-            "next": "同伴回來-狂族"
+            "next": "證明-B-狂族線"
           }
         },
         {
@@ -484,7 +484,7 @@
             "monsterId": "41",
             "startDisabled": true,
             "waveGroup": "雙首領",
-            "next": "對話-雙首領敗北"
+            "next": "證明-S-拒選"
           }
         },
         {
@@ -660,6 +660,62 @@
             "conditions": "bloodline:32",
             "onBlocked": "跳過這顆繼續",
             "next": "引路-迎賓-管家"
+          }
+        },
+        {
+          "id": "b0809b30",
+          "name": "證明-B-血族線",
+          "typeId": "grantProof",
+          "cells": [],
+          "params": {
+            "tier": "B",
+            "setFlag": "bfClearedAsVampire",
+            "next": "證明-A-血族線"
+          }
+        },
+        {
+          "id": "08804e36",
+          "name": "證明-A-血族線",
+          "typeId": "grantProof",
+          "cells": [],
+          "params": {
+            "tier": "A",
+            "conditions": "flag:bfClearedAsVampire|flag:bfClearedAsWerewolf",
+            "onBlocked": "跳過這顆繼續",
+            "next": "同伴回來-血族"
+          }
+        },
+        {
+          "id": "d2135a56",
+          "name": "證明-B-狂族線",
+          "typeId": "grantProof",
+          "cells": [],
+          "params": {
+            "tier": "B",
+            "setFlag": "bfClearedAsWerewolf",
+            "next": "證明-A-狂族線"
+          }
+        },
+        {
+          "id": "fc27e113",
+          "name": "證明-A-狂族線",
+          "typeId": "grantProof",
+          "cells": [],
+          "params": {
+            "tier": "A",
+            "conditions": "flag:bfClearedAsVampire|flag:bfClearedAsWerewolf",
+            "onBlocked": "跳過這顆繼續",
+            "next": "同伴回來-狂族"
+          }
+        },
+        {
+          "id": "3eac6a8f",
+          "name": "證明-S-拒選",
+          "typeId": "grantProof",
+          "cells": [],
+          "params": {
+            "tier": "S",
+            "next": "對話-雙首領敗北"
           }
         }
       ]

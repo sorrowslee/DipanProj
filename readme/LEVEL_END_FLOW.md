@@ -61,6 +61,16 @@ watchFlag(fireOnFlag=redBridalCleared) → next → 被打敗對話
 
 `fireOnFlag` 的底層：`TriggerChain.SetFlag` 在旗標**首次成立**時掃描本圖 `fireOnFlag` 對上的 trigger（現在＝watchFlag）、延一幀 `Activate`。
 
+## 劇本證明三行（2026-11-16，⏳ 未實測）
+
+規則見 [CORE_LOOP_DESIGN.md](CORE_LOOP_DESIGN.md) §8.7；資料來源 `ScriptRecords`（[SAVE_SYSTEM.md](SAVE_SYSTEM.md) §15）。
+
+- **位置**：獎勵框下方，三行由上到下 B／A／S（`ResultPanel` 常數 `ProofRowY0=-290`、`ProofRowGap=46`、字級 32）；有證明時返回鈕從 y −430 移到 −472 讓位。
+- **顯示哪個劇本**：結算的 module 在 `ProofTable.csv` 有登記才顯示；沒登記（例：邪佛廣場、教學）整區隱藏、返回鈕留在原位。
+- **三種狀態**：沒達成＝灰「B級證明：?????」；以前就領過＝一開始就是金色條件字＋小字「（已領取）」；**這一趟新拿到的**（`ScriptRecords.GrantedThisRun`，`RunProgress.BeginRun` 時清空）＝先灰，面板開 0.8 秒後依序播：搖擺 0.55 秒 → 整行字一顆顆飛散＋碎屑（0.65 秒）→ 金色條件字從 1.35 倍縮回＋背後閃一道金光。全部用真實時間（結算畫面暫停遊戲）。
+- 過關、死亡、中途返回一律顯示。證明在打倒頭目當下就入帳＋存檔（`grantProof`），所以打完頭目才死，那一行一樣會播。
+- ⚠ **沒達成的一律只顯示 `?????`，絕不顯示條件**（作者：不提示怎麼達成）。條件文字在 `ProofTable.csv`＋語言表 11011 起。
+
 ## 雷點 / 已知限制（PROBLEMS 類）
 - **卍字被特效蓋住 → 排序**：世界特效（`VfxManager` 預設 `SortingOrder=22000`，如榕樹妖死亡火焰）比角色排序（Y 排序帶 ~1~1.7 萬）高。卍字若只設「玩家+5」會被蓋住。**卍字固定用 `SortingOrder=25000`**（>22000、<32767 16-bit 安全；UI 覆蓋層永遠更上層不受影響）。（2026-07-14 榕樹妖火焰蓋住卍字修正）
 - **接續觸發(`next`)不能接成環**：例如過關 `next` 接對話、對話 `next` 又接回過關 → 無限互觸發、對話狂彈。**整條鏈的 `next` 不要形成環**。旗標也一樣：別讓某步的「完成寫旗標」設成 watchFlag 正在監聽的同名旗標（會再觸發一次那條鏈）。
@@ -70,6 +80,7 @@ watchFlag(fireOnFlag=redBridalCleared) → next → 被打敗對話
 - **打包鐵則沿用既有**：Intro/MainScene 都要在 Build、MainScene 排第 0（見 INTRO_COMIC / CUTSCENE_TUNNEL）。
 
 ## 尚未做（待補）
+- ~~**過關獎勵**~~ → **2026-11-16 已接**：獎勵區列出這一趟的**功德值總額 → 新拿到的證明 → 所有取得的道具**（`GameFlowManager.BuildRunRewards`，資料來源 `RunProgress.RunMerit／RunItems`＋`ScriptRecords.GrantedThisRun`，見 [RUN_PROGRESS.md](RUN_PROGRESS.md)〈這一趟的收穫〉）。過關、死亡、中途返回都顯示；功德值含結束時補進來的「地上沒撿的」。超過兩排會自動縮小格子。**滑鼠停在圖示上會跳物品說明**（共用 `ItemTooltip`，掛 System 層才不會被結算畫面壓住；每幀用游標座標判斷，暫停中照樣運作）。以下是舊紀錄：
 - **過關獎勵（2026-11-06 改）**：臨時包已拿掉（撿到即入袋、死亡也保留），`GameFlowManager` 改成過關/死亡/返回一律 `RunProgress.EndRun()`（只清進度、不動背包），結算獎勵區**先不顯示**（傳 null → 「無」）。作者之後會加正式的過關獎勵，屆時再把內容傳給 `ResultPanel.Show(..., rewards)`。見 [TODO.md](TODO.md)。
   - *歷史：2026-07-18～2026-11-05 獎勵區顯示的是臨時包 `SettleIntoBag()` 的快照，死亡/返回 `EndRunDiscard()` 零收穫。*
 - 卍字吞人時玩家腳下影子是獨立物件、不會跟著縮（約 3 秒特效期間的小瑕疵）。

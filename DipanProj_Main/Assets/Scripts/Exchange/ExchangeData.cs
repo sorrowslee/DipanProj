@@ -4,6 +4,7 @@ using UnityEngine;
 using Dipan.Inventory;
 using Dipan.Localization;
 using Dipan.Save;
+using Dipan.Progress;
 
 namespace Dipan.Exchange
 {
@@ -152,17 +153,17 @@ namespace Dipan.Exchange
     }
 
     // ═══════════════════════════════════════════════════════════════════════
-    //  貨幣登記表
-    //  現在只有「銅錢」真的能用（＝SaveManager 的金錢數字）。勳章、點數先登記名字與排序權重，
-    //  等貨幣規範定案後在這裡補上 Held / TrySpend / Refund 三個委派就能用，兌換表與面板都不用改。
+    //  貨幣登記表（2026-11-16 定案：功德值＋B／A／S 劇本證明，見 readme/CORE_LOOP_DESIGN.md §8）
+    //  功德值＝SaveManager 的金錢數字（原銅錢）；證明＝SaveManager 的證明張數（經 ScriptRecords 讀）。
+    //  原本預留的「勳章／點數」已撤銷，改由證明取代。
     // ═══════════════════════════════════════════════════════════════════════
 
     public sealed class ExchangeCurrency
     {
-        public string Key;          // CSV 用的代號（copper／medal／point）
+        public string Key;          // CSV 用的代號（merit／proofB／proofA／proofS）
         public int NameLangId;      // 顯示名稱（語言表）
         public int IconItemId;      // 圖示借用哪個道具的 icon（0 ＝ 沒有，只顯示文字）
-        public float SortWeight;    // 價格排序時換算成「銅錢等值」的倍率
+        public float SortWeight;    // 價格排序時換算成「功德值等值」的倍率
         public Func<int> Held;            // 玩家持有多少；null ＝ 尚未開放
         public Func<int, bool> TrySpend;  // 扣款；不足回 false 且不扣
         public Action<int> Refund;        // 退款（多種貨幣一起付、後面那種失敗時把前面的退回去）
@@ -174,9 +175,19 @@ namespace Dipan.Exchange
 
     public static class ExchangeCurrencies
     {
-        public const string Copper = "copper", Medal = "medal", Point = "point";
+        public const string Merit = "merit", ProofB = "proofB", ProofA = "proofA", ProofS = "proofS";
+
+        /// <summary>錢包的顯示順序（兌換所標題列由左到右）。</summary>
+        public static readonly string[] WalletOrder = { Merit, ProofB, ProofA, ProofS };
 
         static Dictionary<string, ExchangeCurrency> _map;
+
+        // CSV 的別名：舊表的 copper（2026-11-15 版）＝功德值；證明可以只寫 B／A／S。
+        static readonly Dictionary<string, string> Aliases = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            { "copper", Merit }, { "功德", Merit }, { "功德值", Merit },
+            { "B", ProofB }, { "A", ProofA }, { "S", ProofS },
+        };
 
         static Dictionary<string, ExchangeCurrency> Map
         {
@@ -186,28 +197,57 @@ namespace Dipan.Exchange
                 _map = new Dictionary<string, ExchangeCurrency>(StringComparer.OrdinalIgnoreCase);
                 Add(new ExchangeCurrency
                 {
-                    Key = Copper, NameLangId = 10046, IconItemId = 101, SortWeight = 1f,   // 101 ＝ 銅錢（RunProgress.MoneyItemId）
+                    Key = Merit, NameLangId = 10046, IconItemId = RunProgress.MoneyItemId, SortWeight = 1f,   // 101 ＝ 功德值
                     Held = () => SaveManager.Instance != null ? SaveManager.Instance.Currency : 0,
                     TrySpend = amt => SaveManager.Instance != null && SaveManager.Instance.TrySpendCurrency(amt),
                     Refund = amt => { if (SaveManager.Instance != null) SaveManager.Instance.AddCurrency(amt); },
                 });
-                // ⏳ 之後的新貨幣：先登記，Held/TrySpend/Refund 留 null ＝ 尚未開放（面板會顯示「尚未開放」、不能兌換）。
-                Add(new ExchangeCurrency { Key = Medal, NameLangId = 10047, SortWeight = 1000f });
-                Add(new ExchangeCurrency { Key = Point, NameLangId = 10048, SortWeight = 1f });
+                // 價格排序用的功德值等值（暫定，數值平衡時再調）：B 500、A 1500、S 5000。
+                AddProof(ProofB, ProofTier.B, 500f);
+                AddProof(ProofA, ProofTier.A, 1500f);
+                AddProof(ProofS, ProofTier.S, 5000f);
                 return _map;
             }
         }
 
         static void Add(ExchangeCurrency c) => _map[c.Key] = c;
 
-        /// <summary>依代號取貨幣；找不到回 null。</summary>
+        static void AddProof(string key, ProofTier tier, float weight)
+        {
+            Add(new ExchangeCurrency
+            {
+                Key = key, NameLangId = 11001 + (int)tier - 1, IconItemId = ProofTierInfo.ItemIdOf(tier), SortWeight = weight,
+                Held = () => ScriptRecords.Held(tier),
+                TrySpend = amt =>
+                {
+                    var sm = SaveManager.Instance;
+                    return sm != null && sm.Current != null ? sm.TrySpendProofs(tier, amt) : ScriptRecords.TrySpendMem(tier, amt);
+                },
+                Refund = amt =>
+                {
+                    var sm = SaveManager.Instance;
+                    if (sm != null && sm.Current != null) sm.AddProofs(tier, amt); else ScriptRecords.AddMem(tier, amt);
+                },
+            });
+        }
+
+        /// <summary>依代號（或別名）取貨幣；找不到回 null。</summary>
         public static ExchangeCurrency Get(string key)
         {
             if (string.IsNullOrEmpty(key)) return null;
-            return Map.TryGetValue(key.Trim(), out var c) ? c : null;
+            key = Normalize(key);
+            return Map.TryGetValue(key, out var c) ? c : null;
         }
 
-        /// <summary>貨幣變動時通知 UI。目前只有銅錢會變，所以直接轉接 SaveManager 的事件。</summary>
+        /// <summary>別名 → 正式代號（copper → merit、B → proofB…）；不是別名就原樣回傳（去頭尾空白）。</summary>
+        public static string Normalize(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return key;
+            key = key.Trim();
+            return Aliases.TryGetValue(key, out var k) ? k : key;
+        }
+
+        /// <summary>貨幣變動時通知 UI。功德值與證明的變動都走 SaveManager.OnCurrencyChanged。</summary>
         public static void Subscribe(Action onChanged)
         {
             if (SaveManager.Instance != null) SaveManager.Instance.OnCurrencyChanged += onChanged;
@@ -223,7 +263,7 @@ namespace Dipan.Exchange
     //  兌換表的一列
     // ═══════════════════════════════════════════════════════════════════════
 
-    /// <summary>價格的一個組成：多少個哪種貨幣。一個品項可以要好幾種（例：勳章 2＋點數 300）。</summary>
+    /// <summary>價格的一個組成：多少個哪種貨幣。一個品項可以要好幾種（例：B 級證明 1＋功德值 100）。</summary>
     public struct CostPart
     {
         public string CurrencyKey;
@@ -245,7 +285,7 @@ namespace Dipan.Exchange
 
         public string Name => Item != null ? Item.Name : $"#{ItemId}";
 
-        /// <summary>價格排序用的「銅錢等值」：每種貨幣 × 它的 SortWeight 加總。</summary>
+        /// <summary>價格排序用的「功德值等值」：每種貨幣 × 它的 SortWeight 加總。</summary>
         public float PriceSortKey
         {
             get

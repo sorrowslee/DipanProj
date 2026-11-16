@@ -28,7 +28,7 @@ public class RunProgress : MonoBehaviour
     /// 但**取得時會轉成獨立的金錢數字**，不佔背包格——見 <see cref="GiveStack"/>。
     /// ItemTable 的這一列仍然要保留（圖示與名稱還要用）。
     /// </summary>
-    public const int MoneyItemId = 101;
+    public const int MoneyItemId = 101;   // 功德值（2026-11-16 前叫銅錢）：取得時不進背包、直接加進錢包數字
 
     static RunProgress _instance;
     public static bool Exists => _instance != null;
@@ -53,6 +53,33 @@ public class RunProgress : MonoBehaviour
     public bool RunActive { get; private set; }
     /// <summary>本趟關卡的 module（BeginRun 時記下；用來判斷「同一趟」不重置進度）。</summary>
     public string RunModule { get; private set; }
+
+    // ── 這一趟的收穫（2026-11-16，結算畫面獎勵區用）──
+    // 由「取得物品的統一入口」GiveStack 累計，所以地上撿的、頭目必掉、劇情 giveItem、作弊面板…全部自動算進來。
+    // **EndRun 不清**（結算畫面在 EndRun 之後才開）；下一趟 BeginRun 才清。
+
+    /// <summary>這一趟拿到的功德值總額（含結束時補進來的「地上沒撿的功德值」）。</summary>
+    public int RunMerit { get; private set; }
+
+    readonly List<ItemStack> _runItems = new List<ItemStack>();
+
+    /// <summary>這一趟拿到的道具（功德值與證明除外）：可疊的依 itemId 合併，有實例的裝備／珠子一件一筆。依取得順序。</summary>
+    public IReadOnlyList<ItemStack> RunItems => _runItems;
+
+    void RecordRunItem(ItemStack st, int added)
+    {
+        if (!RunActive || added <= 0) return;
+        if (st.Inst == null)
+        {
+            for (int i = 0; i < _runItems.Count; i++)
+                if (_runItems[i].ItemId == st.ItemId && _runItems[i].Inst == null)
+                {
+                    var m = _runItems[i]; m.Count += added; _runItems[i] = m;
+                    return;
+                }
+        }
+        _runItems.Add(new ItemStack { ItemId = st.ItemId, Count = added, Inst = st.Inst });
+    }
 
     /// <summary>一筆躺在地上、還沒被撿走的掉落物（換圖回來要在原座標重放）。</summary>
     public class GroundDrop
@@ -126,6 +153,9 @@ public class RunProgress : MonoBehaviour
         _nextDropId = 1;
         RunActive = true;
         RunModule = module;
+        RunMerit = 0;
+        _runItems.Clear();
+        Dipan.Progress.ScriptRecords.BeginRun();   // 結算畫面「這一趟新拿到的證明」從零算起
         Debug.Log($"[RunProgress] 開始一趟關卡：{module}（進度已重置）。");
     }
 
@@ -135,9 +165,29 @@ public class RunProgress : MonoBehaviour
     /// </summary>
     public void EndRun()
     {
+        CreditUnpickedMerit();
         _maps.Clear();
         RunActive = false;
         RunModule = null;
+    }
+
+    /// <summary>
+    /// 結束一趟關卡時（過關、死亡、中途離開都一樣，作者 2026-11-16 定）：把這一趟**地上還沒撿的功德值**全部補進錢包——
+    /// 「怪物有掉、玩家有沒有撿都算」。掉在別張圖、換圖後沒回去撿的也算（記錄在 _maps 裡）。
+    /// 其他道具沒撿就沒了（照舊）。
+    /// </summary>
+    void CreditUnpickedMerit()
+    {
+        if (!RunActive) return;
+        int sum = 0;
+        foreach (var m in _maps.Values)
+            foreach (var d in m.drops.Values)
+                if (d.itemId == MoneyItemId && d.count > 0) sum += d.count;
+        if (sum <= 0) return;
+        var sm = Dipan.Save.SaveManager.Instance;
+        if (sm != null) sm.AddCurrency(sum);
+        RunMerit += sum;
+        Debug.Log($"[RunProgress] 結束關卡：地上沒撿的功德值 {sum} 一併入帳。");
     }
 
     // ───────────────────────── 取得物品（一律進真背包）─────────────────────────
@@ -182,13 +232,26 @@ public class RunProgress : MonoBehaviour
         if (st.ItemId == MoneyItemId)
         {
             var sm = Dipan.Save.SaveManager.Instance;
-            if (sm != null) { sm.AddCurrency(st.Count); return 0; }
+            if (sm != null) { sm.AddCurrency(st.Count); if (RunActive) RunMerit += st.Count; return 0; }
             Debug.LogWarning("[RunProgress] 沒有 SaveManager，金錢無處可放（本次遊玩不會保存）。");
             return st.Count;
         }
 
+        // 劇本證明（道具 106／107／108）同理：是錢包裡的數字，不進背包（2026-11-16）。
+        // ⚠ 這條只動錢包、不寫「領過」紀錄——正規發證明一律走觸發鏈 grantProof（ScriptRecords.Grant）。
+        //    會走到這裡的是作弊面板、或有人在 giveItem／掉落表誤填了證明的道具 id。
+        if (Dipan.Progress.ProofTierInfo.FromItemId(st.ItemId, out var proofTier))
+        {
+            var sm = Dipan.Save.SaveManager.Instance;
+            if (sm != null && sm.Current != null) { sm.AddProofs(proofTier, st.Count); return 0; }
+            Debug.LogWarning("[RunProgress] 沒有存檔，證明無處可放（本次遊玩不會保存）。");
+            return st.Count;
+        }
+
         var inv = InventorySystem.Instance;
-        return inv != null ? inv.AddStack(st) : st.Count;
+        int leftover = inv != null ? inv.AddStack(st) : st.Count;
+        RecordRunItem(st, st.Count - leftover);
+        return leftover;
     }
 
     // ───────────────────────── 怪物：已清出生點 ─────────────────────────

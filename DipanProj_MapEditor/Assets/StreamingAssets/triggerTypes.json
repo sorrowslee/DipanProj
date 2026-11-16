@@ -877,6 +877,40 @@
       ]
     },
     {
+      "typeId": "grantProof",
+      "displayName": "發放劇本證明(鏈動作)",
+      "color": "#E6C35C",
+      "params": [
+        {
+          "key": "tier",
+          "type": "String",
+          "label": "證明等級",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "options": [
+            "B",
+            "A",
+            "S"
+          ]
+        },
+        {
+          "key": "module",
+          "type": "String",
+          "label": "劇本代號(空=目前劇本)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false
+        }
+      ]
+    },
+    {
       "typeId": "switch",
       "displayName": "開關(按F)",
       "color": "#4DD9C0",
