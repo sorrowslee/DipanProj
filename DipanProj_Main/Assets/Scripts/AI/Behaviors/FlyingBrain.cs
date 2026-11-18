@@ -479,7 +479,7 @@ public class FlyingBrain : IMonsterBrain
         Physics2D.SyncTransforms();
         ColliderDistance2D d = Physics2D.Distance(_selfCol, _atkTargetCol);
         bool hit = d.isValid && (d.isOverlapped || d.distance <= BiteReachSlack);
-        if (hit) ImpactDamageArea.Spawn(_atkTargetCol.bounds.center, BiteHitRadius, _self.ContactDamage, _self.Faction);
+        if (hit) ImpactDamageArea.Spawn(_atkTargetCol.bounds.center, BiteHitRadius, _self.ContactDamage, _self.Faction, _self.gameObject);
         if (DebugLog) Debug.Log($"[Flying] {_self.MonsterName} {(hit ? "咬中" : "咬空")}：邊緣距離 {(d.isValid ? d.distance : -1f):F2}（門檻 {BiteReachSlack}）");
     }
 
@@ -566,7 +566,7 @@ public class FlyingBrain : IMonsterBrain
         Vector2 d = goal - _ground;
         float dist = d.magnitude;
         if (dist <= ArriveDist) return true;
-        float step = Mathf.Min(dist, speed * dt);
+        float step = Mathf.Min(dist, speed * dt * (_self != null ? _self.StatusMoveMultiplier : 1f));   // 減速／疾行（飛行不經過 Actuator，自己乘）
         Vector2 next = _ground + d / dist * step;
         if (Flyable(next) || !Flyable(_ground)) { _ground = next; return dist - step <= ArriveDist; }
         Vector2 nx = new Vector2(next.x, _ground.y), ny = new Vector2(_ground.x, next.y);

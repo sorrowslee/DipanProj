@@ -150,7 +150,7 @@ public class WeaponFamiliar : MonoBehaviour
 
     /// <summary>
     /// 射程內離玩家最近、可以打的怪。射程從玩家身上量（<c>transform.position</c>＝碰撞位置，PROBLEMS **B13**）。
-    /// 「可以打」＝活著、可控（不是劇情演員）、在玩家子彈打得到的層（結盟方被切到 Ally 層 ⇒ 自動排除，
+    /// 「可以打」＝活著、在玩家子彈打得到的層（結盟方被切到 Ally 層 ⇒ 自動排除，
     /// 陣營規則單一真相仍在 FactionRelations），並排除友軍召喚物與中立。
     /// </summary>
     MonsterController FindNearestTarget(WeaponData w)
@@ -167,7 +167,9 @@ public class WeaponFamiliar : MonoBehaviour
         for (int i = 0; i < all.Count; i++)
         {
             var m = all[i];
-            if (m == null || m.IsDead || !m.Controllable) continue;
+            // ⚠ 不看 Controllable：那是「免疫行動控制」（骨牢、暈眩、減速…），頭目填 0 是免疫控制、不是打不到
+            //   （2026-11-18 修：以前把它當成「劇情演員」排除 ⇒ 浮游武器打不到艾爾文／夏綠蒂；同 OverheadDrop 2026-11-12 的坑）
+            if (m == null || m.IsDead) continue;
             if (m.Faction == MonsterFaction.PlayerAlly || m.Faction == MonsterFaction.Neutral) continue;
             if (((1 << m.gameObject.layer) & enemyMask) == 0) continue;
             float d2 = ((Vector2)m.transform.position - origin).sqrMagnitude;

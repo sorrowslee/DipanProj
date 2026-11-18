@@ -212,6 +212,24 @@ public class HitReactionHandler : MonoBehaviour
     /// <summary>關掉充能發光。</summary>
     public void ClearCharge() => SetCharge(0f, _chargeColor);
 
+    // ── 狀態效果染色（SpriteFlash shader 的 _StatusTint*；2026-11-18，readme/STATUS_EFFECT.md）──
+    float _statusTintAmount;
+    Color _statusTint = Color.white;
+
+    /// <summary>
+    /// **狀態效果染色**（燃燒、中毒、減速…，由 <c>StatusVisuals</c> 呼叫）：0 ＝關掉。
+    /// 跟充能發光同理，<b>一定要走這支</b>——這個 renderer 的 MPB 只有 <see cref="ApplyPropertyBlock"/> 一個寫入點。
+    /// 受擊重置（ResetVisuals）不清它：狀態還在身上就要一直有顏色。
+    /// </summary>
+    public void SetStatusTint(Color color, float amount)
+    {
+        amount = Mathf.Max(0f, amount);
+        if (Mathf.Approximately(amount, _statusTintAmount) && color == _statusTint) return;
+        _statusTintAmount = amount;
+        _statusTint = color;
+        ApplyPropertyBlock();
+    }
+
     // 角色環境融合：模式被切換（P → G）或量到新場景數據時重寫一次 MPB。只是一個 int 比較，成本可忽略。
     private void Update()
     {
@@ -237,6 +255,8 @@ public class HitReactionHandler : MonoBehaviour
         _mpb.SetFloat("_FlashAmount", _flashAmount);
         _mpb.SetFloat("_ChargeAmount", _chargeAmount);       // 0 ＝ shader 那一行不做事
         _mpb.SetColor("_ChargeColor", _chargeColor);
+        _mpb.SetFloat("_StatusTintAmount", _statusTintAmount);   // 0 ＝ shader 那一段不做事
+        _mpb.SetColor("_StatusTint", _statusTint);
         CharacterEnvFusion.FillPropertyBlock(_mpb, _envFusionScale);   // 角色環境融合：原狀／未量到場景時只寫 _EnvOn=0，shader 整段跳過
         _spriteRenderer.SetPropertyBlock(_mpb);
     }

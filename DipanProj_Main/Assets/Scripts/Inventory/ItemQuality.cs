@@ -8,9 +8,10 @@ namespace Dipan.Inventory
     public enum EquipClass
     {
         None,      // 不是裝備
-        Weapon,    // 武器：只有武器類效果，且要對這把的發射模式有效
-        Armor,     // 防具（胸甲／鞋子／手套）：只有防具類效果
-        Jewelry,   // 珠寶（護身符／戒指）：兩類都可以
+        Weapon,    // 武器：只有攻擊類效果，且要對這把的發射模式有效
+        Armor,     // 防具（胸甲／手套）：只有防禦類效果
+        Boots,     // 鞋子：只有輔助類效果（2026-11-18 從防具拆出來，作者定三類對應）
+        Jewelry,   // 珠寶（護身符／戒指）：三類都可以
     }
 
     /// <summary>
@@ -39,7 +40,8 @@ namespace Dipan.Inventory
             switch (d.EquipSlot)
             {
                 case EquipSlot.Weapon: return EquipClass.Weapon;
-                case EquipSlot.Chest: case EquipSlot.Boots: case EquipSlot.Gloves: return EquipClass.Armor;
+                case EquipSlot.Chest: case EquipSlot.Gloves: return EquipClass.Armor;
+                case EquipSlot.Boots: return EquipClass.Boots;
                 case EquipSlot.Amulet: case EquipSlot.Ring: return EquipClass.Jewelry;
                 default: return EquipClass.None;
             }
@@ -112,15 +114,16 @@ namespace Dipan.Inventory
 
         /// <summary>
         /// 這種效果的**類別**能不能出現在這件裝備上（生成與鑲嵌共用）：
-        /// 武器只吃武器類、防具只吃防具類、珠寶兩類都吃。不是裝備回 false。
+        /// 武器只吃攻擊類、胸甲手套只吃防禦類、鞋子只吃輔助類、珠寶三類都吃。不是裝備回 false。
         /// </summary>
         public static bool ClassAllows(ItemData equip, GemData effect)
         {
             if (effect == null) return false;
             switch (ClassOf(equip))
             {
-                case EquipClass.Weapon: return !effect.IsArmorClass;
-                case EquipClass.Armor: return effect.IsArmorClass;
+                case EquipClass.Weapon: return effect.IsAttackClass;
+                case EquipClass.Armor: return effect.IsDefenseClass;
+                case EquipClass.Boots: return effect.IsSupportClass;
                 case EquipClass.Jewelry: return true;
                 default: return false;
             }
@@ -166,11 +169,11 @@ namespace Dipan.Inventory
         }
 
         /// <summary>鑲嵌被擋的原因。</summary>
-        public enum SocketBlock { None, WrongClassWeapon, WrongClassArmor, ModeIneffective }
+        public enum SocketBlock { None, WrongClassWeapon, WrongClassArmor, WrongClassBoots, ModeIneffective }
 
         /// <summary>
         /// 鍛造鑲嵌時：這顆珠子能不能鑲在這件裝備上。
-        /// 武器擋「防具類珠子」與「對這把模式無效的珠子」；防具擋「武器類珠子」；珠寶一律可以（無效只提示，見 ForgingPanel）。
+        /// 武器擋「非攻擊類珠子」與「對這把模式無效的珠子」；胸甲手套擋非防禦類、鞋子擋非輔助類；珠寶一律可以（無效只提示，見 ForgingPanel）。
         /// 廣角缺分裂**不擋**（可能靠戒指上的分裂生效）。
         /// </summary>
         public static SocketBlock CheckSocket(ItemData equip, GemData gem)
@@ -179,11 +182,13 @@ namespace Dipan.Inventory
             switch (ClassOf(equip))
             {
                 case EquipClass.Weapon:
-                    if (gem.IsArmorClass) return SocketBlock.WrongClassWeapon;
+                    if (!gem.IsAttackClass) return SocketBlock.WrongClassWeapon;
                     if (!ModeAllows(equip, gem)) return SocketBlock.ModeIneffective;
                     return SocketBlock.None;
                 case EquipClass.Armor:
-                    return gem.IsArmorClass ? SocketBlock.None : SocketBlock.WrongClassArmor;
+                    return gem.IsDefenseClass ? SocketBlock.None : SocketBlock.WrongClassArmor;
+                case EquipClass.Boots:
+                    return gem.IsSupportClass ? SocketBlock.None : SocketBlock.WrongClassBoots;
                 default:
                     return SocketBlock.None;
             }

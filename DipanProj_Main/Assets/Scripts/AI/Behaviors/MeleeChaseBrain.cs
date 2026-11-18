@@ -275,7 +275,7 @@ public class MeleeChaseBrain : IMonsterBrain
         }
 
         // 開在**目標的碰撞框中心**、半徑很小 ⇒ 必定重疊，不會因為圈心算錯而 miss。
-        ImpactDamageArea.Spawn(_targetCol.bounds.center, SwingHitRadius, damage, self.Faction);
+        ImpactDamageArea.Spawn(_targetCol.bounds.center, SwingHitRadius, damage, self.Faction, self.gameObject);
 
         if (DebugLog)
             Debug.Log($"[MeleeChase] 揮中：邊緣距離 {edge:F2} ≤ {SwingReachSlack}　傷害 {damage:F0}");

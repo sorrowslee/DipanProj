@@ -83,6 +83,7 @@ Diablo 風的底部操控列：整條石雕框（燃燈佛、法輪、血瓶槽�
 
 - ✅ **血瓶槽已接玩法**：鏡像顯示背包綁定的藥水、按 **1/2** 喝（見下方 §7 與 [INVENTORY.md](INVENTORY.md) 藥水系統）。藥水冷卻未做。
 - 技能列（框中段）先留空，按鈕內容未定。
+- **狀態列（buff／debuff／DoT 小圖示）建在這個面板底下**（`StatusBarView.Create`，2026-11-18）：HUD 隱藏時一起消失；位置與外觀見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §5。
 
 ---
 

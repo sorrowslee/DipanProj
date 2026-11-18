@@ -74,6 +74,28 @@ public class DamageNumberManager : MonoBehaviour
         mgr.SpawnText(mgr.HeadPosition(target), amount, isPlayer ? PlayerHurtColor : EnemyHurtColor);
     }
 
+    const float DotSizeMul = 0.8f;                                        // 狀態 DoT 數字比一般命中小一號
+    static readonly Color HealColor = new Color(0.55f, 1f, 0.6f, 1f);     // 持續回復＝綠
+
+    /// <summary>
+    /// 狀態效果 DoT 的數字（2026-11-18，見 readme/STATUS_EFFECT.md）：**同一隻身上同一跳的多種 DoT 已由 StatusController 加總成一個**，
+    /// 這裡只負責畫——小一號、用傷害最大那種狀態的代表色。大批怪物同時燃燒時，數字量＝怪數 × 每秒 2 個，不會再乘 DoT 種類數。
+    /// </summary>
+    public static void ShowDot(GameObject target, float amount, Color color)
+    {
+        if (target == null || amount <= 0f) return;
+        var mgr = Instance;
+        if (mgr == null) return;
+        mgr.SpawnText(mgr.HeadPosition(target), amount, color, DotSizeMul);
+    }
+
+    /// <summary>持續回復（回春）：頭上飄綠色「+N」。</summary>
+    public static void ShowHeal(GameObject target, float amount)
+    {
+        if (target == null || amount <= 0f) return;
+        ShowText(target, "+" + FormatAmount(amount), HealColor);
+    }
+
     /// <summary>泛用：在指定世界座標、用指定顏色顯示一個傷害數字。</summary>
     public static void ShowAt(Vector3 worldPos, float amount, Color color)
     {
@@ -151,11 +173,11 @@ public class DamageNumberManager : MonoBehaviour
         return target.transform.position + Vector3.up * 0.6f;
     }
 
-    void SpawnText(Vector3 pos, float amount, Color color)
+    void SpawnText(Vector3 pos, float amount, Color color, float sizeMul = 1f)
     {
         pos.x += Random.Range(-0.18f, 0.18f);   // 微抖：避免多個數字完全重疊
 
-        float charSize = CharacterSize * TierScale(amount);   // 份量分級
+        float charSize = CharacterSize * TierScale(amount) * sizeMul;   // 份量分級
         string text = "-" + FormatAmount(amount);
 
         var go = new GameObject("DamageNumber");

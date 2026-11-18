@@ -84,7 +84,7 @@ GemID,Name,Calc,Attribute,Target,Lv1,PerLv,MaxLv,Icon,BaseColor,Note
 |---|---|
 | `Calc` | 算法：`Percent`（百分比，強化基礎屬性）／`Level`（純等級，行為）／`Add`（加值，模式參數的數量或角度） |
 | `Attribute` | 改哪個**屬性**（Damage／AttackRate／Pierce…），不是 CSV 欄名——同一屬性在不同模式對應不同欄位，對應表在 `EquipAttributes.cs`（單一真相） |
-| `Target` | 分類：`Recipe`／`Weapon`＝武器類效果；`Player`＝防具類效果（**效果尚未接**，先累加著） |
+| `Target` | 分類（2026-11-18 起三類，見 [EQUIPMENT.md](EQUIPMENT.md) §2）：`Recipe`／`Weapon`＝攻擊類；`Player`（或 `Defense`）＝防禦類；`Support`＝輔助類（防禦／輔助**效果尚未接**，先累加著） |
 | `Lv1`／`PerLv`／`MaxLv` | 數值曲線：數值＝`Lv1 ＋（總等級－1）× PerLv`，總等級超過 `MaxLv` 照 `MaxLv` 算。百分比填 `5%` |
 
 每種效果的初版數值與說明見 [EQUIPMENT.md](EQUIPMENT.md) §4.2。
@@ -253,7 +253,7 @@ GemID,Name,Calc,Attribute,Target,Lv1,PerLv,MaxLv,Icon,BaseColor,Note
 8 種能力 × 3 個等級只要 **3 + 8 = 11 張圖**，不是 24 張成品圖；加新能力珠只要多一張符號圖。
 所以珠子那幾列的 `ItemTable.IconPath` **是空的**，路徑由 `GemTable` 的 `Icon` / `BaseColor` 兩欄組出來。
 
-`BaseColor` 留空會**自動推導**：`Target = Recipe/Weapon` → `red`（技能珠）、`Target = Player` → `blue`（屬性珠）。
+`BaseColor` 留空會**自動推導**：`Target = Recipe/Weapon` → `red`（攻擊類）、`Target = Player` → `blue`（防禦類）、`Target = Support` → `green`（輔助類）。藍、綠珠身 lv1~3 是 2026-11-18 用程式從紅珠身換色做的（只換寶石、外框不動；`TempImage/status_icons/tools/recolor_gem.py`）。
 想把屬性珠再細分（藍=生命、黃=防禦）才需要在表裡明寫。
 
 ### ⚠ 鐵則：畫物品圖示一律走 `ItemIcons`

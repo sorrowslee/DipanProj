@@ -11,5 +11,8 @@ namespace Dipan.Inventory
     {
         [Tooltip("Assets/Data/GemTable.csv")]
         public TextAsset gemCSV;
+
+        [Tooltip("Assets/Data/StatusEffectTable.csv（buff／debuff／DoT 的狀態定義，見 readme/STATUS_EFFECT.md）")]
+        public TextAsset statusEffectCSV;
     }
 }

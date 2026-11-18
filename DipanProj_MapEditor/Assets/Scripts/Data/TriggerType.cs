@@ -504,6 +504,28 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "delaySeconds", type = ParamType.Float, label = "延時觸發(空=2秒)" },   // 倒數幾秒才進結算（玩家這段可自由操作/撿戰利品）；留空＝2 秒
                 }
             });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型（2026-11-18）：施加狀態效果。對象＝玩家／全部敵怪（場上活著、會攻擊玩家的怪）；
+                // 狀態＝清單「名稱:等級;名稱:等級」（StatusEffectTable 的名稱，例 燃燒:2;減速），等級省略＝1。立即接 next。
+                // 主遊戲 TriggerChain.ExecuteStatus，見主專案 readme/STATUS_EFFECT.md §4。
+                typeId = "applyStatus", displayName = "施加狀態(鏈動作)", color = "#C06030",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "target", type = ParamType.String, label = "對象", options = new [] { "player", "monsters" } },
+                    new TriggerParam { key = "status", type = ParamType.String, label = "狀態(名稱:等級;…)" },
+                }
+            });
+            set.types.Add(new TriggerTypeDef
+            {
+                // 動作型（2026-11-18）：清除狀態效果。對象同上；狀態留空＝全部清掉，填清單＝只清那幾種。立即接 next。
+                typeId = "clearStatus", displayName = "清除狀態(鏈動作)", color = "#8C8C8C",
+                paramSchema = new List<TriggerParam>
+                {
+                    new TriggerParam { key = "target", type = ParamType.String, label = "對象", options = new [] { "player", "monsters" } },
+                    new TriggerParam { key = "status", type = ParamType.String, label = "狀態(空=全部)" },
+                }
+            });
             return set;
         }
 

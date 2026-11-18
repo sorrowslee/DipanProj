@@ -30,8 +30,9 @@ public class ImpactDamageArea : MonoBehaviour
     // 重擊間隔給一個遠大於存活時間的值 ⇒ 同一個目標在這一次打擊裡**只會被打一次**。
     const float HitInterval = 99f;
 
-    /// <summary>在 <paramref name="pos"/> 開一次傷害判定。<paramref name="faction"/> 傳攻擊者的陣營。</summary>
-    public static void Spawn(Vector2 pos, float radius, float damage, MonsterFaction faction)
+    /// <summary>在 <paramref name="pos"/> 開一次傷害判定。<paramref name="faction"/> 傳攻擊者的陣營；
+    /// <paramref name="owner"/> 傳攻擊者本人（狀態效果：攻擊者的增傷／虛弱、命中給狀態都靠它，2026-11-18）。</summary>
+    public static void Spawn(Vector2 pos, float radius, float damage, MonsterFaction faction, GameObject owner = null)
     {
         if (radius <= 0.01f || damage <= 0f) return;
 
@@ -44,6 +45,7 @@ public class ImpactDamageArea : MonoBehaviour
 
         var dmg = go.AddComponent<EnemyContactDamage>();
         dmg.Configure(damage, faction, HitInterval);
+        dmg.Owner = owner;
 
         Object.Destroy(go, LifeSeconds);
     }

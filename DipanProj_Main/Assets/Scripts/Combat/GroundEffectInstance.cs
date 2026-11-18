@@ -97,6 +97,8 @@ public class GroundEffectInstance : MonoBehaviour
                            float radiusScale = 1f)
     {
         _data = data;
+        _statusFx = string.IsNullOrWhiteSpace(data.StatusFx) ? null
+                  : StatusSpec.ParseStatuses(data.StatusFx, $"地面特效 {data.ID}「{data.Name}」的 StatusFx");
         _damageMask = damageMask;
         _damageOverride = damageOverride;
         _radiusScale = radiusScale > 0.01f ? radiusScale : 1f;
@@ -513,9 +515,16 @@ public class GroundEffectInstance : MonoBehaviour
             // 走中央 CombatSystem（isDot=true）：套用目標減傷/抗性後結算；牆等無 IDamageable 者由 CombatSystem 自動略過。
             // 來源未知（地面特效是脫離武器的獨立物件）→ source = null（攻擊加成已在生成時透過 damageOverride 帶入）。見 readme/COMBAT.md
             Vector2 hitDir = ((Vector2)col.transform.position - center).normalized;
-            CombatSystem.Apply(null, col.gameObject, damage, hitDir, DamageType.Physical, isDot: true);
+            float dealt = CombatSystem.Apply(null, col.gameObject, damage, hitDir, DamageType.Physical, isDot: true);
+            // 順便給狀態（StatusFx）：只給單位（怪物／玩家；StatusSystem 會自己略過其他東西），DoT 用固定值
+            if (_statusFx != null && dealt > 0f)
+                for (int k = 0; k < _statusFx.Count; k++)
+                    StatusSystem.Apply(col.gameObject, _statusFx[k].Id, _statusFx[k].Level, null, 0f, flatDot: true);
         }
     }
+
+    // 每次傷害順便給的狀態（GroundEffectTable.StatusFx 解析後；null＝無）
+    private System.Collections.Generic.List<StatusSpec.Entry> _statusFx;
 
     private void OnDestroy()
     {

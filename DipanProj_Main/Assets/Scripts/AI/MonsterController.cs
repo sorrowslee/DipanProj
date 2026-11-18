@@ -318,6 +318,12 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     /// </summary>
     public bool IsCompanion { get; set; }
     public float CurrentHealth => _currentHealth;                       // 目前血量（給 boss Brain 判階段用）
+
+    StatusController _status;   // 狀態效果（buff／debuff／DoT），Start 掛上；見 readme/STATUS_EFFECT.md
+    /// <summary>身上的狀態效果（沒有狀態時元件是停用的，不花 Update）。</summary>
+    public StatusController Status => _status;
+    /// <summary>狀態效果的移速倍率（減速／疾行）。走 MonsterActuator 的移動已自動套用；飛行怪那類自己算位移的要自己乘。</summary>
+    public float StatusMoveMultiplier => _status != null ? _status.MoveSpeedMultiplier : 1f;
     public float HealthFraction => MaxHealth > 0f ? _currentHealth / MaxHealth : 0f;  // 血量比例 0~1
 
     [Header("Speech / 說話")]
@@ -405,6 +411,10 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         // 手動放置的怪用預設值。Initialize 在 Start 之前由 MonsterSpawner 呼叫，故此時值已就緒。
         var contact = gameObject.AddComponent<EnemyContactDamage>();
         contact.Configure(ContactDamage, Faction, AttackInterval);
+
+        // 狀態效果（buff／debuff／DoT）：每隻都掛，沒有狀態時元件停用、零 Update 成本（見 readme/STATUS_EFFECT.md）
+        _status = GetComponent<StatusController>();
+        if (_status == null) _status = gameObject.AddComponent<StatusController>();
 
         // 腳下影子（見 readme/SHADOW.md）
         if (GetComponent<BlobShadow>() == null) gameObject.AddComponent<BlobShadow>();
@@ -648,6 +658,13 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             WeaponUser.Configure(this, WeaponId);
         }
 
+        // 攻擊命中時給目標的狀態（MonsterData.ContactStatus，2026-11-18）：有填才掛觸發器（武器配方的 StatusLv 由 MonsterWeaponUser 解析時補）
+        if (!string.IsNullOrWhiteSpace(data.ContactStatus))
+        {
+            var list = StatusSpec.ParseStatuses(data.ContactStatus, $"怪物 {data.ID}「{data.Name}」的 ContactStatus");
+            if (list.Count > 0) StatusAttacker.Ensure(gameObject).SetDirectStatuses(list);
+        }
+
         // 移動拖尾（CSV: MoveTrailFx）：填了才掛；解析不出任何一層時元件會自己停用。
         // ⚠ 這裡只 Configure，身寬是在 Update 才讀 collider 的——此刻碰撞框可能還沒量好（Setup 在後）。
         if (!string.IsNullOrWhiteSpace(MoveTrailFx))
@@ -700,9 +717,37 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         }
     }
 
+    // 上一幀是不是被控制（暈眩／冰凍）：解除的那一幀要把動畫定格解開
+    bool _wasControlled;
+
     void Update()
     {
         if (_isDead) return;
+
+        // ── 被控制（狀態效果：暈眩／冰凍，第⑤階段，readme/STATUS_EFFECT.md §2.8）──
+        // 跟骨牢同一個思路：在總入口攔，不進各 Brain。不同的是**連攻擊一起鎖**（Brain 不想、不揮、接觸傷害也停，見 EnemyContactDamage）。
+        // ‧ 冰凍：動畫定格在被凍的那一幀（MonsterAnimator.Paused）。
+        // ‧ 暈眩：正在揮的那一下當場收掉、站回 idle（看得出「被打斷」）；頭上的漩渦圖示由 StatusVisuals 畫。
+        // 速度每幀歸零（擊退也會被吃掉——凍住、暈住的怪原地不動）。Brain 的階段都有時間保底，解除後自己接得回去（同骨牢）。
+        // 頭目（Controllable=0）根本不會上身，所以不用另外排除。
+        if (_status != null && _status.IsControlled)
+        {
+            if (_rb != null) _rb.velocity = Vector2.zero;
+            bool frozen = _status.IsFrozen;
+            if (_monAnim != null)
+            {
+                _monAnim.Paused = frozen;
+                if (!frozen && _monAnim.OneShotPlaying) _monAnim.CancelOneShot();
+            }
+            if (!frozen) HandleVisuals(null);   // 不看任何目標：不舉刀、不轉身
+            _wasControlled = true;
+            return;
+        }
+        if (_wasControlled)
+        {
+            _wasControlled = false;
+            if (_monAnim != null) _monAnim.Paused = false;
+        }
 
         // ── 被定身（骨牢）：只鎖移動、**放行攻擊**（與玩家端 PlayerController.Bound 同一套規則）──
         // ⚠ 為什麼在這裡而不是在各 Brain 裡：移動是 Brain 透過 Actuator 下的，逐一去改每個 Brain
@@ -883,13 +928,16 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         if (_isDead) return;
         if (IsUntargetable) return;   // 虛體形態（血霧）：完全無敵，不閃、不退、不跳數字（見 SetUntargetable）
         if (IsCompanion) return;   // 劇本同伴不會受傷（見 CompanionService）
-        if (DamageInterceptor != null && DamageInterceptor(amount, hitDirection)) return;   // Brain 攔下這一下（聖子艾爾文的 dodge）
+        // 狀態效果 DoT 的一跳：不問閃避、不觸發受擊反應（無敵／閃白／擊退）、不跳一般數字（StatusController 合成一個 DoT 數字）
+        bool statusTick = CombatSystem.CurrentHitIsStatusTick;
+        if (!statusTick && DamageInterceptor != null && DamageInterceptor(amount, hitDirection)) return;   // Brain 攔下這一下（聖子艾爾文的 dodge）
 
-        if (_hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
+        if (!statusTick && _hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
             return;
 
         _currentHealth -= amount;
-        if (!CombatSystem.CurrentHitTheatrical)   // 演戲傷害（兩族互打 1/100）：不跳數字、不印 log（30 隻互毆會洗版）；白光閃爍照舊
+        CombatSystem.MarkHitLanded();   // 確實打進去了（狀態效果的「命中給狀態」看這個，見 CombatSystem.Apply）
+        if (!CombatSystem.CurrentHitTheatrical && !statusTick)   // 演戲傷害（兩族互打 1/100）：不跳數字、不印 log（30 隻互毆會洗版）；白光閃爍照舊
         {
             DamageNumberManager.Show(gameObject, amount);   // 頭上跳傷害數字（已過無敵判定 = 確實吃到傷害）
             Debug.Log($"{MonsterName} took {amount} damage. HP: {_currentHealth}/{MaxHealth}");
@@ -919,6 +967,21 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     /// 不該讓「自爆會不會成功」取決於另一個欄位（同 PROBLEMS **F19**「無敵時間是一份隱形的行為預算」）。</para>
     /// </summary>
     public void Kill() => Die();
+
+    /// <summary>作弊面板壓測用（第⑥階段）：把血量上限與目前血量直接設成指定值。正式流程不要呼叫。</summary>
+    public void DebugSetHealth(float hp)
+    {
+        if (_isDead || hp <= 0f) return;
+        MaxHealth = hp;
+        _currentHealth = hp;
+    }
+
+    /// <summary>回血（狀態效果「回春」用）：不超過上限、死了不回。</summary>
+    public void Heal(float amount)
+    {
+        if (_isDead || amount <= 0f) return;
+        _currentHealth = Mathf.Min(MaxHealth, _currentHealth + amount);
+    }
 
     // ── ICombatModifiers：怪物作為攻擊方無加成（1）；作為受擊方套用減傷掛勾（目前 CSV 預設 0 = 不減傷）──
     public float OutgoingDamageMultiplier(in DamageInfo info) => 1f;

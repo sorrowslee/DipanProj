@@ -111,7 +111,17 @@ namespace Dipan.Inventory
                 return Dipan.Gacha.BloodlineSystem.TryDrink(itemId, out message);
 
             if (d.IsPotion)
+            {
+                // 被暈眩／冰凍時不能喝藥（作者 2026-11-18：先不行，之後看狀況調）。藥不會被扣。
+                var ps = LivePlayerStats();
+                var st = ps != null ? ps.GetComponent<StatusController>() : null;
+                if (st != null && st.IsControlled)
+                {
+                    message = Dipan.Localization.Language.GetText(StatusSystem.TxtCantDrinkControlled);
+                    return false;
+                }
                 return DrinkPotion(inv, d, itemId);
+            }
 
             return false;
         }
@@ -132,6 +142,10 @@ namespace Dipan.Inventory
 
             if (d.HealHp > 0) stats.Heal(d.HealHp);
             if (d.HealMp > 0) stats.RestoreMana(d.HealMp);
+            // 喝下時給的狀態（UseStatus，2026-11-18）：狀態清單，DoT 固定值
+            if (!string.IsNullOrEmpty(d.UseStatus))
+                foreach (var e in StatusSpec.ParseStatuses(d.UseStatus, $"道具 {d.ID}「{d.Name}」的 UseStatus"))
+                    StatusSystem.Apply(stats.gameObject, e.Id, e.Level, stats.gameObject, 0f, flatDot: true);
             inv.RemoveItem(itemId, 1);
 
             var pc = stats.GetComponent<PlayerController>();

@@ -51,8 +51,9 @@ namespace Dipan.UI
             if (!plan.Ok || !string.IsNullOrEmpty(plan.ConfirmText)) return;
 
             // 效果／扣瓶／喝藥特效／用完清空快捷格全部在 ItemUse 裡，與背包右鍵共用同一段。
-            // 藥水不需要對玩家說什麼，所以訊息直接丟掉。
-            ItemUse.TryUse(id, out _);
+            // 喝成功不需要對玩家說什麼；有訊息只會是「喝不了」的原因（例：被暈眩／冰凍，2026-11-18）。
+            ItemUse.TryUse(id, out string msg);
+            if (!string.IsNullOrEmpty(msg)) AlertPanel.Toast(msg);
         }
     }
 }

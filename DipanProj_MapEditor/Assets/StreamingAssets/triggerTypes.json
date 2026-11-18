@@ -1496,6 +1496,76 @@
           "isTriggerRef": false
         }
       ]
+    },
+    {
+      "typeId": "applyStatus",
+      "displayName": "施加狀態(鏈動作)",
+      "color": "#C06030",
+      "params": [
+        {
+          "key": "target",
+          "type": "String",
+          "label": "對象",
+          "boolDefault": false,
+          "options": [
+            "player",
+            "monsters"
+          ],
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": false
+        },
+        {
+          "key": "status",
+          "type": "String",
+          "label": "狀態(名稱:等級;…)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": false
+        }
+      ]
+    },
+    {
+      "typeId": "clearStatus",
+      "displayName": "清除狀態(鏈動作)",
+      "color": "#8C8C8C",
+      "params": [
+        {
+          "key": "target",
+          "type": "String",
+          "label": "對象",
+          "boolDefault": false,
+          "options": [
+            "player",
+            "monsters"
+          ],
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": false
+        },
+        {
+          "key": "status",
+          "type": "String",
+          "label": "狀態(空=全部)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": false
+        }
+      ]
     }
   ]
 }

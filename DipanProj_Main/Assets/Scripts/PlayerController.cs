@@ -59,6 +59,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     private VfxManager _vfxManager;
     private HitReactionHandler _hitReaction;
     private CombatStats _stats;            // HP/MP 數值層（血/魔條訂閱它的事件）；見 readme/COMBAT.md
+    private StatusController _status;      // 狀態效果（buff／debuff／DoT）；見 readme/STATUS_EFFECT.md
+    private bool _wasControlled;           // 上一幀被暈眩／冰凍（剛進入時收招、解除時解開動畫定格）
+    /// <summary>身上的狀態效果。</summary>
+    public StatusController Status => _status;
     private float _fireTimer = 0f;
     // ── 連擊（RecipeTable BurstCount / BurstInterval）：扣一次扳機連射 N 發。第一發走正常 Shoot，
     //    其餘由 HandleFiring 依 BurstInterval 一發一發補出去（不看按鍵、不看冷卻）；冷卻 FireInterval 從最後一發算起。
@@ -188,6 +192,55 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// 刻意用「比對」而不是事件——來源的變動路徑太多（換裝備／改珠子／喝藥／夢境覆寫／讀檔／工坊每幀改值），
     /// 每幀比三個值反而最不會漏。
     /// </summary>
+    // ── 狀態效果觸發器（readme/STATUS_EFFECT.md §4）──
+    private StatusAttacker _statusAttacker;
+    private int _saLoadout = int.MinValue, _saBloodline = int.MinValue;
+    private WeaponData _saWeapon;
+    private readonly Dictionary<int, int> _saLevels = new Dictionary<int, int>();
+
+    /// <summary>
+    /// 重算玩家的狀態效果觸發器：**全身等級相加**＝裝備內建效果＋珠子（<see cref="PlayerAbilities.Levels"/>）
+    /// ＋目前武器配方的 <c>StatusLv</c>＋血統的 <c>Effects</c>。同 <see cref="SyncPassiveWeapons"/>，用比對而不是事件。
+    /// DoT 算法（百分比／固定值）跟著目前武器的配方 <c>StatusDmgCalc</c>。
+    /// </summary>
+    private void SyncStatusAttacker()
+    {
+        if (_statusAttacker == null) return;
+        int loadout = _abilities.BuiltVersion;
+        int bloodline = Dipan.Gacha.BloodlineSystem.CurrentBloodlineId;
+        var weapon = _weaponManager != null ? _weaponManager.GetCurrentWeapon() : null;
+        if (loadout == _saLoadout && bloodline == _saBloodline && ReferenceEquals(weapon, _saWeapon)) return;
+        var gems = Dipan.Inventory.ItemManager.Gems;
+        if (gems == null || !gems.Loaded) return;   // 效果表還沒載入：下一幀再試
+        _saLoadout = loadout; _saBloodline = bloodline; _saWeapon = weapon;
+
+        _saLevels.Clear();
+        foreach (var kv in _abilities.Levels)
+        {
+            var g = gems.Get(kv.Key);
+            if (g != null && g.IsStatusEffect) AddSaLevel(kv.Key, kv.Value);
+        }
+        var recipe = weapon != null ? weapon.Recipe : null;
+        // 召喚型武器：召喚物用自己的武器，配方上的狀態不給玩家（同 EquipAttributes 的規則）
+        if (recipe != null && recipe.Mode != WeaponMode.Summon && !string.IsNullOrEmpty(recipe.StatusLv))
+            foreach (var e in StatusSpec.ParseEffects(recipe.StatusLv, $"配方 {recipe.ID}「{recipe.Name}」的 StatusLv")) AddSaLevel(e.Id, e.Level);
+        var bl = Dipan.Gacha.BloodlineTable.Get(bloodline);
+        if (bl != null && !string.IsNullOrEmpty(bl.Effects))
+            foreach (var e in StatusSpec.ParseEffects(bl.Effects, $"血統 {bl.Id}「{bl.DisplayName}」的 Effects")) AddSaLevel(e.Id, e.Level);
+
+        _statusAttacker.SetEffects(_saLevels);
+        _statusAttacker.DmgFlat = recipe != null && recipe.StatusDmgFlat;
+    }
+
+    private void AddSaLevel(int gemId, int lv)
+    {
+        _saLevels.TryGetValue(gemId, out int n);
+        _saLevels[gemId] = n + lv;
+    }
+
+    /// <summary>狀態效果觸發器（作弊面板／除錯讀）。</summary>
+    public StatusAttacker StatusTriggers => _statusAttacker;
+
     private void SyncPassiveWeapons()
     {
         if (_weaponManager == null) return;
@@ -273,6 +326,12 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_stats == null) _stats = gameObject.AddComponent<CombatStats>();
         _stats.Init(PlayerMaxHealth, PlayerMaxMana, HealthRegenPerSec, ManaRegenPerSec);
         _stats.OnDeath += Die;
+
+        // 狀態效果（buff／debuff／DoT）：見 readme/STATUS_EFFECT.md。玩家跨圖不重生，所以換圖時狀態自然保留。
+        _status = GetComponent<StatusController>();
+        if (_status == null) _status = gameObject.AddComponent<StatusController>();
+        // 狀態效果觸發器（命中／發射／擊殺／受擊時給狀態）：內容由 SyncStatusAttacker 每幀比對後重算
+        _statusAttacker = StatusAttacker.Ensure(gameObject);
 
         _hitReaction = gameObject.AddComponent<HitReactionHandler>();
         _hitReaction.Configure(_spriteRenderer, _rb,
@@ -376,6 +435,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 死亡後鎖住一切操作（移動/攻擊/切武器）；死亡動畫已在 Die() 觸發、Death 狀態定住。
         if (_isDead) { _moveInput = Vector2.zero; return; }
 
+        SyncStatusAttacker();   // 狀態效果觸發器：裝備／血統／武器任一變了才重算（三個值比對，便宜）
+
         // UI 輸入閘門：開啟背包等視窗時，停止移動/攻擊/切武器（最小侵入；旗標由 UIManager 統合）。
         if (Dipan.UI.UIManager.IsGameplayInputBlocked)
         {
@@ -384,6 +445,33 @@ public class PlayerController : MonoBehaviour, IDamageable
             _moveInput = Vector2.zero;
             HandleVisuals();
             return;
+        }
+
+        // 被控制（狀態效果：暈眩／冰凍，第⑤階段，readme/STATUS_EFFECT.md §2.8）：鎖移動＋鎖攻擊（喝藥由 ItemUse 擋）。
+        // 剛被控制的那一幀把進行中的東西全部收掉：集氣、連擊補射、雷射／佛光（不然放開才發現集氣滿了一口氣打出去）。
+        // 冰凍：動畫定格；暈眩：站回 idle。發射冷卻照走（解除後不會多等一輪）。
+        if (_status != null && _status.IsControlled)
+        {
+            _moveInput = Vector2.zero;
+            if (!_wasControlled)
+            {
+                _wasControlled = true;
+                if (_isCharging) CancelCharge();
+                CancelBurst();
+                ClearActiveBeams();
+                ClearActiveAura();
+                _attackPoseHeld = false;
+            }
+            bool frozen = _status.IsFrozen;
+            if (_playerAnim != null) _playerAnim.Paused = frozen;
+            if (_fireTimer > 0) _fireTimer -= Time.deltaTime;
+            if (!frozen) HandleVisuals();
+            return;
+        }
+        if (_wasControlled)
+        {
+            _wasControlled = false;
+            if (_playerAnim != null) _playerAnim.Paused = false;
         }
 
         // 教學「鎖移動、只允許開火」：佛燈教學最後一步——玩家不能走（走不掉），但要能按住左鍵/空白鍵開佛光。
@@ -982,7 +1070,10 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_hitReaction != null && _hitReaction.IsKnockedBack)
             return;   // 擊退期間完全交給物理，移動平滑化也不介入
 
-        _rb.velocity = ResolveMoveVelocity(_moveInput * MoveSpeed);
+        // 狀態效果的移速倍率（減速／疾行）乘在這裡，不改 MoveSpeed 本身——MoveSpeed 同時是動畫的「正常走＝1 倍速」基準（見 SetMoveSpeed），
+        // 只乘實際速度的話，減速時走路動畫自然跟著變慢。
+        float statusMul = _status != null ? _status.MoveSpeedMultiplier : 1f;
+        _rb.velocity = ResolveMoveVelocity(_moveInput * (MoveSpeed * statusMul));
     }
 
     // ==================== 移動平滑化（沿牆滑動 ＋ 角落校正）====================
@@ -1143,6 +1234,14 @@ public class PlayerController : MonoBehaviour, IDamageable
     // 回傳是否「真的發射出去」：魔力不足／召喚已滿 → false（CD 中此函式不會被呼叫）。用來決定要不要擺攻擊動作。
     // burstShot = 這一發是連擊補出來的（不重新排一串連擊、發完最後一發才起冷卻）。
     bool Shoot(bool pressed, WeaponData overrideWeapon = null, bool burstShot = false)
+    {
+        bool fired = ShootCore(pressed, overrideWeapon, burstShot);
+        // 發射時觸發的狀態效果（發射增傷、發射疾行…）：真的射出去才算（魔力不足／召喚已滿不算）。連擊每一發都算。
+        if (fired && _statusAttacker != null) _statusAttacker.NotifyFire();
+        return fired;
+    }
+
+    bool ShootCore(bool pressed, WeaponData overrideWeapon, bool burstShot)
     {
         if (_weaponManager == null) return false;
 
@@ -1541,13 +1640,16 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (justStarted)
         {
             _contManaTimer = 0f;
-            return _stats.TrySpendMana(weapon.ManaCost);
+            bool ok = _stats.TrySpendMana(weapon.ManaCost);
+            if (ok && _statusAttacker != null) _statusAttacker.NotifyFire();   // 持續型：開始放＋之後每秒扣魔各算一次「發射」
+            return ok;
         }
         _contManaTimer += Time.deltaTime;
         while (_contManaTimer >= 1f)
         {
             _contManaTimer -= 1f;
             if (!_stats.TrySpendMana(weapon.ManaCost)) return false;
+            if (_statusAttacker != null) _statusAttacker.NotifyFire();
         }
         return true;
     }
@@ -2578,13 +2680,19 @@ public class PlayerController : MonoBehaviour, IDamageable
         if (_isDead) return;
 
         // 無敵時間 / 白光閃爍 / 擊退由 HitReactionHandler 處理；無敵中回 false → 完全忽略本次傷害
-        if (_hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
+        // 狀態效果 DoT 的一跳：不觸發受擊反應（無敵／閃白／擊退）、不跳一般數字（StatusController 合成一個 DoT 數字）
+        bool statusTick = CombatSystem.CurrentHitIsStatusTick;
+        if (!statusTick && _hitReaction != null && !_hitReaction.TryHitReaction(amount, hitDirection))
             return;
 
-        DamageNumberManager.Show(gameObject, amount);   // 頭上跳傷害數字（已過無敵判定 = 確實吃到傷害）
+        if (!statusTick) DamageNumberManager.Show(gameObject, amount);   // 頭上跳傷害數字（已過無敵判定 = 確實吃到傷害）
 
+        CombatSystem.MarkHitLanded();   // 確實吃到了（怪物的「命中給狀態」看這個，見 CombatSystem.Apply）
         // 扣血走 CombatStats（血條訂閱其事件重繪）；死亡由 CombatStats.OnDeath → Die() 處理
         if (_stats != null) _stats.ApplyHealthDelta(-amount);
+
+        // 受擊時觸發的狀態效果（受擊護體、受擊回春…）：狀態 DoT 的一跳不算。打我的人目前拿不到（減益類的受擊效果暫時沒有對象）。
+        if (!statusTick && !_isDead && _statusAttacker != null) _statusAttacker.NotifyHurt(null);
     }
 
     private void Die()

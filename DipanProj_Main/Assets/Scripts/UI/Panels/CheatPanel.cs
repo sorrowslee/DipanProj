@@ -125,6 +125,7 @@ namespace Dipan.UI
             AddSection("鑲嵌", BuildSocketSection);
             AddSection("玩家", BuildPlayerSection);
             AddSection("動作", BuildAnimSection);
+            AddSection("狀態", BuildStatusSection);   // buff／debuff／DoT（2026-11-18，readme/STATUS_EFFECT.md）
 
             ShowSection(0);
         }
@@ -134,6 +135,7 @@ namespace Dipan.UI
             if (_giveStatus != null) _giveStatus.text = "";   // 每次開啟清掉上次的結果提示
             RefreshInvincibleButton();                         // 開關狀態以靜態旗標為準（換場景後面板重建也對得上）
             RefreshAnimButtons();                              // 同上：以 PlayerAnimator.PreviewState 為準
+            RefreshStatusInfo();                               // 狀態分頁：玩家目前身上的狀態
         }
 
         // ───────────────────────── 分頁框架 ─────────────────────────
@@ -696,6 +698,291 @@ namespace Dipan.UI
             if (_giveStatus == null) return;
             _giveStatus.text = msg;
             _giveStatus.color = ok ? ColOk : ColErr;
+        }
+
+        // ───────────────────────── 分頁：狀態效果（buff／debuff／DoT）─────────────────────────
+        //
+        // 第②階段驗收用（2026-11-18，readme/STATUS_EFFECT.md）：直接對玩家或附近怪物上狀態。
+        // ‧ DoT 一律用「固定值型」（作弊沒有一下命中傷害可以當百分比基準）。
+        // ‧ 控制類（暈眩、冰凍）：作弊按鈕略過機率必中（第⑤階段）；控制中／剛解除的免疫期內按了會顯示 Ignored。
+        // ‧ 狀態列 UI 第③階段才做；現在靠下方文字＋頭上的 DoT 數字、移速、傷害數字變化來看。
+
+        int _statusLv = 1;
+        Button _statusLvBtn;
+        Text _statusInfo;
+        static readonly int[] StatusLvSteps = { 1, 3, 5, 10 };
+        const float StatusMonsterRadius = 8f;
+        readonly List<StatusController.View> _statusViews = new List<StatusController.View>();
+        readonly List<string> _triggerSummary = new List<string>();
+
+        static List<StatusEffectDef> TestableStatuses()
+        {
+            var list = new List<StatusEffectDef>();
+            foreach (var d in StatusEffectDatabase.All) list.Add(d);   // 第⑤階段起暈眩、冰凍也有行為了，一起放
+            return list;
+        }
+
+        void BuildStatusSection(RectTransform root)
+        {
+            var head = UIBuilder.Text(root, "Head", "狀態效果", 28, ColAccent, TextAnchor.UpperLeft);
+            Place(head.rectTransform, 0f, 0f, 600f, 40f);
+
+            var hint = UIBuilder.Text(root, "Hint",
+                "面板開著時遊戲暫停，關掉才看得到效果。DoT 用固定值型；暈眩、冰凍略過機率必中（解除後 2 秒內免疫）。",
+                18, new Color(1f, 1f, 1f, 0.6f), TextAnchor.UpperLeft);
+            Place(hint.rectTransform, 0f, 46f, GroupW, 30f);
+
+            var defs = TestableStatuses();
+            const float BtnW = 156f, BtnH = 46f, GapX = 10f, GapY = 10f;
+            const int PerRow = 6;   // 11 種狀態排兩列（第⑤階段多了暈眩、冰凍）
+            int rows = Mathf.Max(1, (defs.Count + PerRow - 1) / PerRow);
+            float groupH = 40f + rows * (BtnH + GapY) + 8f;
+
+            float g1Y = 92f;
+            AddGroup(root, "給玩家", g1Y, groupH, ColGroupA);
+            float g2Y = g1Y + groupH + 14f;
+            AddGroup(root, $"給附近怪物（玩家 {StatusMonsterRadius:0} 格內所有敵對怪；頭目對減速免疫）", g2Y, groupH, ColGroupB);
+
+            for (int i = 0; i < defs.Count; i++)
+            {
+                var d = defs[i];
+                float x = 14f + (i % PerRow) * (BtnW + GapX);
+                float dy = 40f + (i / PerRow) * (BtnH + GapY);
+                var bp = UIBuilder.Button(root, $"StP_{d.Key}", d.Name, () => OnClickStatusToPlayer(d), ColBtn);
+                Place((RectTransform)bp.transform, x, g1Y + dy, BtnW, BtnH);
+                var bm = UIBuilder.Button(root, $"StM_{d.Key}", d.Name, () => OnClickStatusToMonsters(d), ColBtn);
+                Place((RectTransform)bm.transform, x, g2Y + dy, BtnW, BtnH);
+            }
+
+            float rowY = g2Y + groupH + 14f;
+            _statusLvBtn = UIBuilder.Button(root, "StLv", StatusLvLabel(), OnClickStatusLv, ColBtn);
+            Place((RectTransform)_statusLvBtn.transform, 0f, rowY, 180f, 52f);
+            var clrP = UIBuilder.Button(root, "StClrP", "清除玩家狀態", OnClickStatusClearPlayer, ColBtn);
+            Place((RectTransform)clrP.transform, 194f, rowY, 220f, 52f);
+            var clrM = UIBuilder.Button(root, "StClrM", "清除附近怪物狀態", OnClickStatusClearMonsters, ColBtn);
+            Place((RectTransform)clrM.transform, 428f, rowY, 260f, 52f);
+            // 第④階段（2026-11-18）：狀態珠（GemTable 的狀態效果列）各給一顆，鑲上去測命中／發射／受擊觸發
+            var gemsBtn = UIBuilder.Button(root, "StGems", "狀態珠各給一顆（Lv3）", OnClickGiveStatusGems, ColBtn);
+            Place((RectTransform)gemsBtn.transform, 702f, rowY, 320f, 52f);
+            // 第⑥階段（2026-11-18）：三件狀態測試裝備（良品、內建效果寫死 Lv3、6 孔），只從這裡拿
+            var eqBtn = UIBuilder.Button(root, "StEquip", "給狀態測試裝備（蓮華鱗甲＝受擊護體・青芽護手＝受擊回春・風翎行靴＝發射疾行）", OnClickGiveStatusEquip, ColBtn);
+            Place((RectTransform)eqBtn.transform, 0f, rowY + 62f, 1022f, 52f);
+
+            // 第⑥階段：效能壓測（玩家四周生一圈怪、每隻上滿狀態；左上角顯示幀時間）
+            var s50 = UIBuilder.Button(root, "StStress50", "壓測：生 50 隻上狀態", () => OnClickStress(50), ColBtn);
+            Place((RectTransform)s50.transform, 0f, rowY + 124f, 250f, 52f);
+            var s100 = UIBuilder.Button(root, "StStress100", "壓測：生 100 隻", () => OnClickStress(100), ColBtn);
+            Place((RectTransform)s100.transform, 264f, rowY + 124f, 230f, 52f);
+            var sClr = UIBuilder.Button(root, "StStressClr", "清掉壓測怪", OnClickStressClear, ColBtn);
+            Place((RectTransform)sClr.transform, 508f, rowY + 124f, 200f, 52f);
+            var sProbe = UIBuilder.Button(root, "StProbe", "效能顯示 開／關", () => StatusPerfProbe.Toggle(), ColBtn);
+            Place((RectTransform)sProbe.transform, 722f, rowY + 124f, 300f, 52f);
+
+            _statusInfo = UIBuilder.Text(root, "StInfo", "", 20, ColOk, TextAnchor.UpperLeft);
+            Place(_statusInfo.rectTransform, 0f, rowY + 190f, GroupW, 160f);
+            RefreshStatusInfo();
+        }
+
+        string StatusLvLabel() => $"等級：Lv{_statusLv}（點我切換）";
+
+        void OnClickStatusLv()
+        {
+            int idx = Array.IndexOf(StatusLvSteps, _statusLv);
+            _statusLv = StatusLvSteps[(idx + 1) % StatusLvSteps.Length];
+            var lbl = _statusLvBtn != null ? _statusLvBtn.GetComponentInChildren<Text>() : null;
+            if (lbl != null) lbl.text = StatusLvLabel();
+        }
+
+        static PlayerController FindPlayer() => UnityEngine.Object.FindObjectOfType<PlayerController>();
+
+        void OnClickStatusToPlayer(StatusEffectDef d)
+        {
+            var pc = FindPlayer();
+            if (pc == null) { AlertPanel.Toast("找不到玩家"); return; }
+            var r = StatusSystem.Apply(pc.gameObject, d, _statusLv, null, 0f, true, forceChance: true);
+            AlertPanel.Toast($"玩家：{d.Name} Lv{_statusLv}（{r}）");
+            RefreshStatusInfo();
+        }
+
+        void OnClickStatusToMonsters(StatusEffectDef d)
+        {
+            int n = 0, immune = 0;
+            var srcPc = FindPlayer();
+            GameObject srcGo = srcPc != null ? srcPc.gameObject : null;
+            ForEachNearbyFoe(m =>
+            {
+                var r = StatusSystem.Apply(m.gameObject, d, _statusLv, srcGo, 0f, true, forceChance: true);
+                if (r == StatusController.ApplyResult.Immune) immune++; else n++;
+            });
+            AlertPanel.Toast($"{d.Name} Lv{_statusLv}：{n} 隻怪" + (immune > 0 ? $"（{immune} 隻免疫）" : ""));
+        }
+
+        /// <summary>狀態測試裝備：ItemTable 504～506，內建效果＝GemTable 37／38／39（Lv3，單一來源上限），6 孔全開。</summary>
+        static readonly (int itemId, string spec)[] StatusTestEquip =
+        {
+            (504, "fx=37@3;s=6"),   // 蓮華鱗甲（胸甲）：受擊護體
+            (505, "fx=38@3;s=6"),   // 青芽護手（手套）：受擊回春
+            (506, "fx=39@3;s=6"),   // 風翎行靴（鞋子）：發射疾行
+        };
+
+        void OnClickGiveStatusEquip()
+        {
+            var inv = Dipan.Inventory.InventorySystem.Instance;
+            if (inv == null) { AlertPanel.Toast("找不到背包系統"); return; }
+            int ok = 0, full = 0;
+            foreach (var (id, spec) in StatusTestEquip)
+            {
+                if (inv.GetData(id) == null) continue;
+                var sp = Dipan.Inventory.ItemSpec.Parse(spec, $"作弊面板狀態測試裝備 {id}");
+                if (inv.AddStack(Dipan.Inventory.ItemManager.Create(id, 1, sp)) == 0) ok++; else full++;
+            }
+            AlertPanel.Toast(full > 0 ? $"作弊：狀態測試裝備 ×{ok}（{full} 件放不下）" : $"作弊：狀態測試裝備 ×{ok}");
+        }
+
+        // ── 效能壓測（第⑥階段）──
+        // 用 2～12 號小怪輪流（不同外觀＝不同貼圖，比較接近實戰的合批情況）；血量拉高，免得 DoT 幾秒就把壓測怪燒光。
+        // 狀態在「下一幀」才上：怪物的受擊反應、影子等是在 Start 才掛，同一幀上狀態，身上的染色會找不到元件。
+        static readonly int[] StressMonsterIds = { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 };
+        const float StressHp = 100000f;
+        readonly List<MonsterController> _stressMonsters = new List<MonsterController>();
+        readonly List<MonsterController> _stressPending = new List<MonsterController>();
+        int _stressPendingFrame;
+
+        void OnClickStress(int count)
+        {
+            var pc = FindPlayer();
+            var spawner = UnityEngine.Object.FindObjectOfType<MonsterSpawner>();
+            if (pc == null || spawner == null) { AlertPanel.Toast("找不到玩家或怪物生成器（要在關卡裡用）"); return; }
+            Vector2 o = pc.transform.position;
+            int made = 0;
+            for (int i = 0; i < count; i++)
+            {
+                float ang = i * Mathf.PI * 2f / count;
+                float r = 4f + (i % 3) * 1.6f;   // 三圈：4／5.6／7.2 格
+                var go = spawner.SpawnMonster(StressMonsterIds[i % StressMonsterIds.Length],
+                    o + new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * r, null, MonsterFaction.Enemy, null, false);
+                var mc = go != null ? go.GetComponent<MonsterController>() : null;
+                if (mc == null) continue;
+                mc.DebugSetHealth(StressHp);
+                _stressMonsters.Add(mc);
+                _stressPending.Add(mc);
+                made++;
+            }
+            _stressPendingFrame = Time.frameCount;
+            if (!StatusPerfProbe.Visible) StatusPerfProbe.Toggle();
+            AlertPanel.Toast($"壓測：生了 {made} 隻（下一幀上狀態；關掉面板後開始動）");
+        }
+
+        void Update()
+        {
+            if (_stressPending.Count == 0 || Time.frameCount <= _stressPendingFrame) return;
+            var defs = new[] { "Burn", "Poison", "Slow", "Vulnerable", "Weak" };
+            var pc = FindPlayer();
+            GameObject src = pc != null ? pc.gameObject : null;
+            foreach (var mc in _stressPending)
+            {
+                if (mc == null || mc.IsDead) continue;
+                foreach (var key in defs)
+                {
+                    var d = StatusEffectDatabase.Get(key);
+                    if (d == null) continue;
+                    // 中毒疊 3 層（測頭上層數字）；DoT 用固定值
+                    int times = key == "Poison" ? 3 : 1;
+                    for (int t = 0; t < times; t++) StatusSystem.Apply(mc.gameObject, d, 1, src, 0f, true);
+                }
+            }
+            _stressPending.Clear();
+        }
+
+        void OnClickStressClear()
+        {
+            int n = 0;
+            foreach (var mc in _stressMonsters)
+                if (mc != null && !mc.IsDead) { mc.Kill(); n++; }
+            _stressMonsters.Clear();
+            _stressPending.Clear();
+            AlertPanel.Toast($"清掉 {n} 隻壓測怪");
+        }
+
+        void OnClickGiveStatusGems()
+        {
+            var inv = Dipan.Inventory.InventorySystem.Instance;
+            var gems = Dipan.Inventory.ItemManager.Gems;
+            if (inv == null || gems == null) { AlertPanel.Toast("找不到背包系統"); return; }
+            int given = 0, full = 0;
+            foreach (var kv in inv.Db.Items)
+            {
+                var d = kv.Value;
+                if (d == null || !d.IsGem) continue;
+                var g = gems.Get(d.GemID);
+                if (g == null || !g.IsStatusEffect) continue;
+                var st = Dipan.Inventory.ItemManager.CreateGem(kv.Key, 3);
+                if (st.IsEmpty) continue;
+                if (inv.AddStack(st) > 0) full++; else given++;
+            }
+            AlertPanel.Toast(full > 0 ? $"作弊：狀態珠 ×{given}（{full} 顆放不下）" : $"作弊：狀態珠 ×{given}");
+        }
+
+        void OnClickStatusClearPlayer()
+        {
+            StatusSystem.ClearPlayer();
+            RefreshStatusInfo();
+        }
+
+        void OnClickStatusClearMonsters()
+        {
+            int n = 0;
+            ForEachNearbyFoe(m => { if (m.Status != null) { m.Status.ClearAll(); n++; } });
+            AlertPanel.Toast($"清除 {n} 隻怪的狀態");
+        }
+
+        void ForEachNearbyFoe(Action<MonsterController> act)
+        {
+            var pc = FindPlayer();
+            if (pc == null) return;
+            Vector2 o = pc.transform.position;
+            float r2 = StatusMonsterRadius * StatusMonsterRadius;
+            var all = MonsterController.Active;
+            for (int i = all.Count - 1; i >= 0; i--)
+            {
+                var m = all[i];
+                if (m == null || m.IsDead || m.IsCompanion) continue;
+                if (m.Faction == MonsterFaction.PlayerAlly || m.Faction == MonsterFaction.Neutral) continue;
+                if (((Vector2)m.transform.position - o).sqrMagnitude > r2) continue;
+                act(m);
+            }
+        }
+
+        void RefreshStatusInfo()
+        {
+            if (_statusInfo == null) return;
+            var pc = FindPlayer();
+            var sc = pc != null ? pc.Status : null;
+            if (sc == null) { _statusInfo.text = "玩家目前沒有狀態。"; return; }
+            sc.GetViews(_statusViews);
+            var sb = new System.Text.StringBuilder();
+            // 觸發器（第④階段）：全身相加後目前生效的狀態效果
+            if (pc.StatusTriggers != null)
+            {
+                pc.StatusTriggers.GetSummary(_triggerSummary);
+                sb.Append(_triggerSummary.Count == 0 ? "觸發效果：無\n" : $"觸發效果：{string.Join("、", _triggerSummary)}\n");
+            }
+            sb.Append($"玩家倍率：造成傷害 ×{sc.OutgoingMultiplier:0.00}　受到傷害 ×{sc.IncomingMultiplier:0.00}　移速 ×{sc.MoveSpeedMultiplier:0.00}\n");
+            if (_statusViews.Count == 0) sb.Append("玩家目前沒有狀態。");
+            foreach (var v in _statusViews)
+            {
+                sb.Append($"{v.Def.Name} Lv{v.Level}");
+                if (v.Stacks > 1) sb.Append($" ×{v.Stacks}層");
+                sb.Append($"　剩 {v.Remaining:0.0} 秒");
+                switch (v.Def.Category)
+                {
+                    case StatusCategory.Dot: sb.Append($"　每秒 {v.Magnitude:0.#} 傷害"); break;
+                    case StatusCategory.Hot: sb.Append($"　每秒回 {v.Magnitude:0.#}"); break;
+                    case StatusCategory.Stat: sb.Append($"　{v.Magnitude * 100f:+0;-0}%"); break;
+                }
+                sb.Append('\n');
+            }
+            _statusInfo.text = sb.ToString();
         }
 
         // ───────────────────────── 版面小工具 ─────────────────────────

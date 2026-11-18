@@ -76,7 +76,8 @@
 
 * 地面特效（火堆/毒霧等，見 [GROUND_EFFECT.md](GROUND_EFFECT.md)）的範圍傷害現在也走 `CombatSystem.Apply(..., isDot: true)`——所以**減傷/抗性對 DOT 一樣生效**。
 * `DamageInfo.IsDot` 旗標已備好，供未來區分「DOT 的 i-frame 規則」「debuff 專屬表現」用。
-* 完整的「狀態效果（中毒/燃燒/流血）框架」尚未做——目前 DOT＝地面特效的週期傷害。要做獨立 debuff 系統時，讓它每拍呼叫 `CombatSystem.Apply(..., isDot:true)` 即可接上同一條管線。
+* **狀態效果框架（buff／debuff／DoT）2026-11-18 已做**，見 [STATUS_EFFECT.md](STATUS_EFFECT.md)：每 0.5 秒一跳走 `CombatSystem.Apply`，帶 **`DamageInfo.IsStatusTick`**——照吃受擊方減傷／易傷，但**不觸發無敵時間、不閃白、不擊退**、不跳一般數字（由 StatusController 合成一個 DoT 數字）、不播三階血統擊中特效。狀態的增傷／易傷／護體／虛弱在管線**步驟 2b**，跟上面的加成／減傷層相乘。第④階段（同日）：`Apply` 結算後通知攻擊者的 `StatusAttacker`（命中／擊殺給狀態）；目標確實扣到血要呼叫 `CombatSystem.MarkHitLanded()`（無敵時間、閃避不算命中）；步驟 2b 的攻擊方用 `StatusAttacker.ResolveAttacker`（傷害圈追回那隻怪）。
+* 地面特效的週期傷害**不是**狀態 DoT，行為不變（一般命中＋`IsDot`）。
 
 ---
 
@@ -155,7 +156,7 @@
 
 - [ ] 玩家死亡流程（`PlayerController.Die`）：重生 / 讀檔 / 結束畫面。
 - [ ] 加成/減傷的實際來源：裝備屬性、buff、CSV 數值（管線已就位）。
-- [ ] 獨立狀態效果（debuff）框架：中毒/燃燒/流血計時器，每拍走 `CombatSystem.Apply(isDot:true)`。
+- [x] 獨立狀態效果（debuff）框架 → 2026-11-18 做了，見 [STATUS_EFFECT.md](STATUS_EFFECT.md)。
 - [ ] 屬性克制 / 抗性：用 `DamageType` 做表。
 - [ ] 暴擊（在 `CombatSystem` 管線加一步、來源 `ICombatModifiers` 提供暴擊率）。
 - [ ] 回血/回魔道具、MP 不足的玩家提示（可用 `AlertPanel.Toast`）。

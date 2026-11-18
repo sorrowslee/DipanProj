@@ -101,11 +101,13 @@ public static class EquipAttributes
         return false;
     }
 
-    /// <summary>某個效果對這個模式有沒有作用。防具類效果跟武器無關，一律 true；null 回 false。</summary>
+    /// <summary>某個效果對這個模式有沒有作用。非攻擊類（防禦／輔助）跟武器無關，一律 true；null 回 false。</summary>
     public static bool IsEffective(WeaponMode mode, GemData gem)
     {
         if (gem == null) return false;
-        if (gem.IsArmorClass) return true;
+        // 狀態效果（命中時燃燒…）對所有會打到東西的模式都有效；召喚的傷害來自召喚物、不是玩家，所以無效（readme/STATUS_EFFECT.md §4）
+        if (gem.IsStatusEffect) return mode != WeaponMode.Summon;
+        if (!gem.IsAttackClass) return true;
         return IsEffective(mode, gem.Attribute);
     }
 

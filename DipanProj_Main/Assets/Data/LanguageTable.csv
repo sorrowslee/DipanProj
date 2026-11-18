@@ -56,9 +56,10 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4014,對目前武器「{0}」沒有效果,No effect on the current weapon {0},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4015,對目前武器沒有效果的珠子：{0},Gems with no effect on the current weapon: {0},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4016,（對目前武器無效）,(no effect on current weapon),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-4017,武器只能鑲武器類的珠子,Weapons only accept weapon gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
-4018,防具只能鑲防具類的珠子,Armor only accepts armor gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4017,武器只能鑲攻擊類的珠子,Weapons only accept attack gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4018,胸甲與手套只能鑲防禦類的珠子,Chests and gloves only accept defense gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4019,{0}對{1}沒有作用，不能鑲在這把武器上,{0} has no effect on {1} and cannot be socketed into it,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4020,鞋子只能鑲輔助類的珠子,Boots only accept support gems
 # ── 血統系統（2001–2099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 2001,這不是血統藥劑,This is not a bloodline elixir,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 2002,你的血脈已定為「{0}」，這一世不能再改變,"Your bloodline is set to ""{0}"" and cannot change this life",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -229,3 +230,29 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 11014,站隊一方，通關劇本,Side with one clan and clear the script
 11015,兩方都協助過，通關劇本,Clear the script having aided both clans
 11016,兩方都不幫，通關劇本,Clear the script siding with neither clan
+# ── 狀態效果 buff／debuff／DoT（12001–12099，2026-11-18）：名稱 12001–12019、狀態列說明 12021–12039（{0}＝強度數字、{1}＝層數）、其他 12041 起；見 readme/STATUS_EFFECT.md ──
+12001,燃燒,Burn
+12002,中毒,Poison
+12003,減速,Slow
+12004,易傷,Vulnerable
+12005,虛弱,Weakness
+12006,暈眩,Stun
+12007,冰凍,Freeze
+12008,增傷,Might
+12009,護體,Guard
+12010,疾行,Haste
+12011,回春,Regeneration
+12021,每秒受到 {0} 點傷害,Takes {0} damage per second
+12022,每秒受到 {0} 點傷害（{1} 層）,Takes {0} damage per second ({1} stacks)
+12023,移動速度降低 {0}%,Movement speed reduced by {0}%
+12024,受到的傷害增加 {0}%,Takes {0}% more damage
+12025,造成的傷害降低 {0}%,Deals {0}% less damage
+12026,暈眩中：無法移動與攻擊,Stunned: cannot move or attack
+12027,冰凍中：無法移動與攻擊,Frozen: cannot move or attack
+12028,造成的傷害增加 {0}%,Deals {0}% more damage
+12029,受到的傷害降低 {0}%,Takes {0}% less damage
+12030,移動速度增加 {0}%,Movement speed increased by {0}%
+12031,每秒回復 {0} 點生命,Restores {0} health per second
+12041,免疫,Immune
+12042,剩餘 {0} 秒,{0}s left
+12043,被控制時不能喝藥,Can't drink while controlled

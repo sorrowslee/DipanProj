@@ -127,6 +127,9 @@ public class GroundEffectManager : MonoBehaviour
             // 地上燃燒外觀（2026-11-18）：填了就改畫 DipanVfx 的焦土＋火舌，序列圖不畫
             data.FireStyleID = row.GetInt("FireStyleID", 0);
 
+            // 每次傷害順便給的狀態（2026-11-18）：狀態清單，見 GroundEffectData.StatusFx
+            data.StatusFx = row.Get("StatusFx");
+
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)
             {
                 var sprites = new Sprite[data.AniNumber];

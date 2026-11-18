@@ -106,6 +106,10 @@ namespace Dipan.Inventory
                 d.Rarity = string.IsNullOrWhiteSpace(rarStr) ? Dipan.Exchange.ItemRarity.White : Dipan.Exchange.RarityInfo.Parse(rarStr);
                 if (d.EquipSlot != EquipSlot.None && !string.IsNullOrWhiteSpace(rarStr))
                     Debug.LogWarning($"[ItemDatabase] item {d.ID} {d.Name} 是裝備，Rarity 欄會被忽略（裝備的品質＝身上幾條內建效果，見 readme/EQUIPMENT.md §1）。");
+                // 喝下時給的狀態（第 21 欄 / index 20，2026-11-18）：只存字串，用的時候才查 StatusEffectTable
+                d.UseStatus = Field(v, 20);
+                if (!string.IsNullOrEmpty(d.UseStatus) && !d.IsPotion)
+                    Debug.LogWarning($"[ItemDatabase] item {d.ID} {d.Name} 填了 UseStatus，但只有 Category=Potion 的道具能喝，這欄不會有作用。");
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

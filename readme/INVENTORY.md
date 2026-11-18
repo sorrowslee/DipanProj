@@ -229,6 +229,7 @@
 | `GemID` | **能力珠**（第 17 欄 / index 16）：對應 `GemTable` 的 GemID。見 [GEM_SOCKET.md](GEM_SOCKET.md) |
 | `PassiveWeaponIds` | **被動武器掛載**（第 19 欄 / index 18，2026-10-01）：裝備這件就自動帶著的被動武器（WeaponTable ID，被動型模式如 `Familiar`），分號分隔可多把（`72;73`）；任何可裝備列都能填。目前只有 **503 應龍護身符**（`EquipSlot=Amulet`）填 `72`（＝WeaponTable 的應龍水珠）。見 [PASSIVE_WEAPON.md](PASSIVE_WEAPON.md) |
 | `BloodlineUpgrade` | **血統進階藥劑**（第 18 欄 / index 17）：值 = 目標階數（`2` 中階、`3` 高階）。**全系列通用**——不指定血統、只指定階數，實際變成哪一種由 `BloodlineSeriesTable.csv` 決定。程式端 `ItemData.IsBloodlineUpgrade` |
+| `UseStatus` | **喝下時給的狀態**（第 21 欄 / index 20，2026-11-18）：狀態清單 `名稱:等級;…`（StatusEffectTable 的中文名／Key／ID），DoT 一律固定值；只有 `Category=Potion` 會喝。目前全部留空。見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §4 |
 
 > `IsBloodline` = 起始或進階任一（UI 用這個決定要不要走喝藥流程）。
 > **血統的完整規則、兩張表、逐階限制一律以 [BLOODLINE.md](BLOODLINE.md) 為準**，這裡只記欄位。

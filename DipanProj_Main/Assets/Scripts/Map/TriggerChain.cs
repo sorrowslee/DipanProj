@@ -53,6 +53,8 @@ public static class TriggerChain
     public const string TypeCompanion = "companion";        // 劇本同伴（鏈動作）：monsterId 的怪以「同伴」身分跟著玩家（跨圖、不受傷、不被當目標、無殺傷力）；show=false＝解散全部。見 CompanionService
     public const string TypeGuideFinger = "guideFinger";    // 引路手指（鏈動作，2026-11-07）：玩家頭上出現引路手指、指尖朝 target 觸發點（例：剛打開的傳送點）；show=false 收起。換圖自動收。立即接 next
     public const string TypeWait = "wait";                  // 等待（鏈動作，2026-11-07）：等 seconds 秒 → 同時啟動 targets 列出的每一顆（逗號分隔）→ 再走自己的完成（setFlag／next）。波次之間停頓＋一次叫醒下一波好幾顆出生點用；換圖作廢
+    public const string TypeApplyStatus = "applyStatus";    // 施加狀態（鏈動作，2026-11-18）：target=player（玩家）／monsters（場上所有敵對怪），status＝狀態清單「名稱:等級;…」（例 燃燒:2;減速）。DoT 用固定值；頭目照樣免疫控制。立即接 next。見 readme/STATUS_EFFECT.md §4
+    public const string TypeClearStatus = "clearStatus";    // 清除狀態（鏈動作，2026-11-18）：target 同上；status 留空＝全部清掉，填清單＝只清那幾種（等級不看）。立即接 next
     public const string TypeTimedChoice = "timedChoice";    // 二選一倒數（鏈動作）：暫停＋選擇面板（標題/副標/兩個選項/倒數），按 A→nextA、按 B→nextB、歸零→nextTimeout，三條互斥只走一條；通用 next 欄不用。見 ChoicePanel / readme/bloodfang/GAP.md §2
 
     // ── 位置型 typeId（玩家踩到／按 F 才生效，被鏈啟動＝「解鎖」）──
@@ -429,6 +431,8 @@ public static class TriggerChain
             case TypeMonsterNear: ExecuteMonsterNear(r); break;
             case TypeWait: ExecuteWait(r); break;
             case TypeGuideFinger: ExecuteGuideFinger(r); break;
+            case TypeApplyStatus: ExecuteStatus(r, true); break;
+            case TypeClearStatus: ExecuteStatus(r, false); break;
             case TypeWatchFlag: OnCompleted(r); break;   // 觀察旗標變動：被 AutoFireOnFlag 觸發＝純轉接（寫 setFlag、接它的 next）
             case TypeOnEnter: OnCompleted(r); break;   // 進場觸發被鏈到＝純轉接：直接完成（寫 setFlag、接它的 next）
             default:
@@ -751,6 +755,52 @@ public static class TriggerChain
     //   show  ：不勾＝收起（只收觸發鏈自己叫出來的手指）。
     // 用的是邪佛廣場新手教學那支 GuideFingerPanel.ShowWorldGuide：手指在玩家頭上、指尖隨時朝目標，太靠近時自動收、走遠又出現。
     // 換圖時 Setup 會收掉（指的是上一張圖的座標）。立即接 next。
+    /// <summary>
+    /// 施加／清除狀態（applyStatus／clearStatus，2026-11-18）。對象 target：<c>player</c>（玩家，預設）或 <c>monsters</c>（場上所有活著、會攻擊玩家的怪；
+    /// 劇本同伴除外）。status 是狀態清單（StatusEffectTable 的名稱／Key／ID），清除時留空＝全部。做完立即接 next。
+    /// </summary>
+    static void ExecuteStatus(TriggerRegion r, bool apply)
+    {
+        string who = r.GetString("target").Trim().ToLowerInvariant();
+        bool monsters = who == "monsters" || who == "monster" || who == "全部敵怪" || who == "敵怪";
+        string raw = r.GetString("status");
+        var list = StatusSpec.ParseStatuses(raw, $"{r.typeId}「{r.name}」的 status");
+        if (apply && list.Count == 0)
+            Debug.LogWarning($"[TriggerChain] applyStatus「{r.name}」status=「{raw}」沒有任何認得的狀態，什麼都沒做（仍接 next）。");
+
+        var targets = new List<GameObject>();
+        if (monsters)
+        {
+            var act = MonsterController.Active;
+            for (int i = 0; i < act.Count; i++)
+            {
+                var mc = act[i];
+                if (mc == null || mc.IsDead || mc.IsCompanion || !FactionRelations.AttacksPlayer(mc.Faction)) continue;
+                targets.Add(mc.gameObject);
+            }
+        }
+        else
+        {
+            var player = GameObject.FindGameObjectWithTag("Player");
+            if (player != null) targets.Add(player);
+        }
+
+        foreach (var go in targets)
+        {
+            if (apply)
+            {
+                foreach (var e in list) StatusSystem.Apply(go, e.Id, e.Level, null, 0f, flatDot: true);
+                continue;
+            }
+            var sc = StatusSystem.ControllerOf(go, false);
+            if (sc == null) continue;
+            if (string.IsNullOrWhiteSpace(raw)) sc.ClearAll();
+            else foreach (var e in list) sc.Remove(e.Id);
+        }
+        Debug.Log($"[TriggerChain] {r.typeId}「{r.name}」：{(monsters ? "敵怪" : "玩家")} {targets.Count} 個，status=「{raw}」。");
+        OnCompleted(r);
+    }
+
     static void ExecuteGuideFinger(TriggerRegion r)
     {
         if (!r.GetBool("show", true)) { HideChainFinger(); OnCompleted(r); return; }

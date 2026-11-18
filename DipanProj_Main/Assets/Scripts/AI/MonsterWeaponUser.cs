@@ -89,6 +89,20 @@ public class MonsterWeaponUser : MonoBehaviour
             Debug.LogWarning($"[MonsterWeaponUser] 武器 ID {_weaponId} 在 WeaponTable 找不到。");
             return;
         }
+        // 武器配方的狀態效果（StatusLv，2026-11-18）：怪物沒有珠子，配方起點就是總等級。有填才掛觸發器。
+        var rcp = _weapon.Recipe;
+        if (_owner != null && rcp != null && !string.IsNullOrEmpty(rcp.StatusLv))
+        {
+            var list = StatusSpec.ParseEffects(rcp.StatusLv, $"怪物武器 {_weaponId} 的配方 {rcp.ID} StatusLv");
+            if (list.Count > 0)
+            {
+                var lv = new Dictionary<int, int>();
+                foreach (var e in list) { lv.TryGetValue(e.Id, out int n); lv[e.Id] = n + e.Level; }
+                var sa = StatusAttacker.Ensure(_owner.gameObject);
+                sa.SetEffects(lv);
+                sa.DmgFlat = rcp.StatusDmgFlat;
+            }
+        }
         // 起手緩衝：生成後先等一個冷卻週期才第一次施放，避免一冒出來就立刻出手。
         // 例外：CSV `ObserveTime` 填 0（射手「不觀察」）⇒ 連起手緩衝一起取消，一進射程就能出手（作者 2026-09-23 拍板）。
         //   只看 ==0：留空是 -1、填正數都照舊有緩衝。
@@ -154,6 +168,7 @@ public class MonsterWeaponUser : MonoBehaviour
             float interval = (recipe.Data != null) ? recipe.Data.FireInterval : 1f;
             _cooldown = Mathf.Max(0.1f, interval);
             if (_owner != null) _owner.NotifySkillCast();   // 施法成功 → 讓怪演 attack 出手動作
+            if (_owner != null && _owner.TryGetComponent<StatusAttacker>(out var sa)) sa.NotifyFire();   // 發射時觸發的狀態效果
         }
         return cast;
     }

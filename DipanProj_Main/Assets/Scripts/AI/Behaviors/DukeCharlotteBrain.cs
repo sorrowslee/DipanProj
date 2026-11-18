@@ -462,7 +462,7 @@ public class DukeCharlotteBrain : IMonsterBrain
             if (_vfx == null) _vfx = Object.FindObjectOfType<VfxManager>();
             if (_vfx != null) _vfx.Spawn(LandDustVfxId, foot + new Vector2(0f, LandDustLiftY));
         }
-        ImpactDamageArea.Spawn(_to, _radius, _damage, self.Faction);
+        ImpactDamageArea.Spawn(_to, _radius, _damage, self.Faction, self.gameObject);
         _phaseUntil = 0f;   // Land 段用來記「起身播完後停到幾點」
 
         if (DebugLog) Debug.Log($"[Duke] 落地 @{Time.time - _phaseStart:F2}s 腳底={foot}");

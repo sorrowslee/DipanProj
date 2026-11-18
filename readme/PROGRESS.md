@@ -4,6 +4,51 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **狀態效果系統第⑥階段：三件測試裝備、壓測工具、效能修正（⏳ 已編譯、實測待作者；`feat/status-effect`、未 commit）**（2026-11-18）
+  ① **測試裝備**：ItemTable 504 蓮華鱗甲（胸甲＝受擊護體）、505 青芽護手（手套＝受擊回春）、506 風翎行靴（鞋子＝發射疾行）；作弊面板「狀態」分頁一鍵給（良品、`fx=37@3;s=6` 這類規格寫死 Lv3、6 孔）。圖示：同一個 ChatGPT 對話附上 4 個既有裝備圖當風格參考，一張 3 格（1 次額度），`UI/Icons/Equipment/armor_lotusChest／gloves_jadeSprout／boots_windWing`（.meta 抄 icon_wolfclaw）。沒進任何掉落／兌換／抽選池。
+  ② **壓測工具**：「壓測：生 50／100 隻」（2～12 號小怪三圈、血量 10 萬、下一幀上五種狀態含中毒 3 層）、「清掉壓測怪」、`StatusPerfProbe` 左上角效能顯示（平均／最差幀時間、怪物數、有狀態數、被控制數）；`MonsterController.DebugSetHealth`。
+  ③ **效能修正**（靜態檢查熱路徑後）：刷新但層數等級沒變就不重算／不重畫／不發事件；DoT／回春數字全場預算（每 0.5 秒 24 個、畫面外不跳、玩家必跳）；`CombatSystem.Apply` 攻擊者只解析一次。
+  ④ 發現但沒動的：傷害數字系統沒有物件池（原有系統），記在 TODO 等壓測結果再決定。
+  ⑤ 全專案（含地圖編輯器）Roslyn 編譯 0 錯誤。
+  <br>**作者要做的**：Reimport ItemTable 與三張裝備圖；穿上測試裝備驗 buff；跑壓測、回報幀時間。
+
+* [x] **狀態效果系統第⑤階段：暈眩、冰凍的行為（⏳ 已編譯、未實測；`feat/status-effect`、未 commit）**（2026-11-18，作者同時定：狀態珠稀有度＝一般、狀態圖示不換備選）
+  ① **怪物**：`MonsterController.Update` 總入口攔（同骨牢的做法）——Brain 不想、速度每幀歸零、接觸傷害停（`EnemyContactDamage` 查攻擊者的狀態；揮擊圈靠第④階段的 `Owner` 找回那隻怪）。冰凍＝`MonsterAnimator.Paused` 定格；暈眩＝收掉正在揮的那一下、站回 idle。
+  ② **玩家**：`PlayerController.Update` 攔——鎖移動與攻擊，剛被控制那一幀收掉集氣／連擊補射／雷射／佛光；冰凍＝`PlayerAnimator.Paused`。**不能喝藥**：`ItemUse.TryUse` 擋（藥不扣），快捷鍵也改成有訊息就 toast（語言 12043「被控制時不能喝藥」）。
+  ③ **防連鎖鎖死**：控制中不疊、不續時間；解除後 2 秒免疫控制（`StatusSystem.ControlImmuneSeconds`）。
+  ④ 作弊面板「狀態」分頁放回暈眩、冰凍按鈕（略過機率必中；按鈕改一列 6 個）。表上暈眩／冰凍的備註拿掉「第⑤階段才接」。
+  ⑤ 全專案（含地圖編輯器）Roslyn 編譯 0 錯誤。
+  <br>**作者要做的**：Reimport LanguageTable／StatusEffectTable／GemTable；L →「狀態」對附近怪物、對自己各按暈眩、冰凍驗收（TODO 有清單）。
+
+* [x] **狀態效果系統第④階段：狀態效果拆成珠子、四種觸發時機、各種施加來源（⏳ 已編譯、未實測；`feat/status-effect`、未 commit）**（2026-11-18，作者選定 Q1～Q5：一欄清單、12 列、金色符號、機率冷卻照提案、觸發鏈對玩家／全部敵怪）
+  ① **資料**：GemTable 加 `StatusID／Trigger／Chance／Cooldown` 四欄＋28～39 十二種狀態效果（`Calc=Level`、`Attribute=Status`）；ItemTable 428～439 十二顆珠子＋`UseStatus` 欄；RecipeTable `StatusLv`（效果清單）／`StatusDmgCalc`；MonsterData `ContactStatus`；GroundEffectTable `StatusFx`；BloodlineTable `Effects`——**只有 Nidhogg（72）填 `發射增傷:1`，其他既有列全部留空**。
+  ② **清單語法** `StatusSpec`：`名稱:等級;名稱:等級`（CSV 不能有逗號；全形也行）。效果清單查 GemTable、狀態清單查 StatusEffectTable。
+  ③ **觸發器** `StatusAttacker`：命中／擊殺由 `CombatSystem.Apply` 通知（目標 `MarkHitLanded` 才算命中；狀態 DoT 一跳不算命中、但打死算擊殺）；發射由玩家 `Shoot`（包一層 `ShootCore`）與持續型扣魔、怪物 `MonsterWeaponUser.TryUse` 通知；受擊由玩家 `TakeDamage`。Buff 給自己、Debuff 給對方；機率＋冷卻每種各自計時。玩家每幀比對「裝備版本／血統／目前武器」才重算（全身相加＝珠子＋內建效果＋配方＋血統）。
+  ④ **攻擊者歸屬**：`ImpactDamageArea.Spawn` 加 `owner`（6 個呼叫點），`EnemyContactDamage.Owner` ⇒ 怪物揮擊等傷害圈也吃得到攻擊者的增傷／虛弱、也能給 `ContactStatus`（第②階段的已知限制解掉）。
+  ⑤ **其他來源**：地面特效每次傷害順便給、藥劑喝下給、觸發鏈 `applyStatus`／`clearStatus`（地圖編輯器 `TriggerType.cs`＋`triggerTypes.json`、`validate_map.py` 檢查狀態名稱）。
+  ⑥ **珠子符號**：同一個 ChatGPT 對話產 2 張金色浮雕表（2 次額度），切成 `gemIcons/gemIcon_<burn…haste>.png`，疊在紅／藍／綠珠身上預覽可讀。珠子 tooltip 顯示「命中增傷 Lv2（命中時 20%，冷卻 5 秒）」。作弊面板「狀態」分頁加「狀態珠各給一顆」＋第一行列出目前生效的觸發效果。
+  ⑦ 全專案 Roslyn 編譯 0 錯誤（這次把**地圖編輯器**也加進編譯；打包時 `grep -v Library` 誤排 `EffectLibrary.cs` 的坑記進 PROBLEMS I12）。資料一致性腳本檢查過：12 列 StatusID 都存在、12 顆珠子 GemID 都對得上、圖示都在、各表沒有多出來的欄。
+  <br>**作者要做的**：Reimport GemTable／ItemTable／RecipeTable／MonsterData／GroundEffectTable／BloodlineTable 與 12 張 `gemIcon_*.png`；L →「狀態」→「狀態珠各給一顆」鑲上去驗收（STATUS_EFFECT §4、§8）；**12 顆珠子的稀有度要你定**（目前留空＝一般）。
+
+* [x] **狀態效果系統第③階段：圖示、玩家狀態列、怪物頭上圖示、染色、燃燒／中毒身上特效（⏳ 已編譯、未實測；`feat/status-effect`、未 commit）**（2026-11-18，作者說「繼續做」；見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §5）
+  ① **圖示**：同一個 ChatGPT 對話延續作者選定的 A 版（純符號）再產 2 張圖示表（2 次額度）：減速＝凍在霜裡的腳印、易傷＝裂盾、虛弱＝下垂的劍、冰凍＝冰晶、增傷＝上揚的劍、護體＝蓮花盾、疾行＝帶速度線的綠腳印、回春＝新芽露珠；另有減速／虛弱／增傷／護體 4 個備選（`TempImage/status_icons/out/icons_preview.png`）。
+  ② **合成一張貼圖**：專案沒開 Sprite Atlas 資產，怪物頭上的 SpriteRenderer 要同貼圖才會合批 ⇒ `tools/build_atlas.py` 合成 `Resources/UI/Icons/Status/status_atlas.png`（4×4、128px）＋索引檔，`StatusIcons` 執行期切 Sprite。
+  ③ **藍／綠珠身**：沒用 GPT，程式從紅珠身換色（`tools/recolor_gem.py`）。第一版用純色相判斷，lv1／lv2 偏紅褐的外框也被染到；改成「寶石圓盤內放寬色相＋其他地方只換很紅的像素」，外框一像素不動、lv3 框頂小寶石跟著換。
+  ④ **玩家狀態列** `StatusBarView`（建在 BottomHudPanel 底下）；**身上** `StatusVisuals`：染色走 SpriteFlash 新參數 `_StatusTint*`（經 `HitReactionHandler.SetStatusTint`，MPB 唯一寫入點；只看減益）、燃燒＝FlameTable 新列 4「身上燃燒」、中毒＝`VfxEmbers` 綠泡；怪物頭上圖示（世界空間、不掛在怪物底下以免被 Scale 放大）。
+  ⑤ 全專案 Roslyn 編譯 0 錯誤；用底部 HUD 原圖做了狀態列位置模擬（`out/statusbar_mock.png`）。shader 改動在 Unity 外沒辦法編，要開 Unity 看 Console。
+  ⑥ **作者實測修正（同日）**：狀態列沒出現——圖示貼圖的 `.meta` 是拿珠身的當範本，預設平台上限 256 ⇒ 512 的貼圖被縮成 256，`Sprite.Create` 超出範圍丟例外（PROBLEMS **E50**）。上限改 512＋程式照實際匯入尺寸換算。同一個例外還讓**所有怪物的 DoT 都不扣血**（作者在艾爾文身上測到：例外發生在元件被打開之前）⇒ 改成先打開元件、畫面那段包 `try/catch`。
+  ⑦ 作者看過：**燃燒不要身上的火、只靠變色**（玩家與怪物都是）⇒ 拿掉 `StatusVisuals` 的火，FlameTable 第 4 列一併刪除（回到改動前）。多種減益同時在身上時只染一種（先上身的），作者說可以。
+  <br>**作者要做的**：Reimport `status_atlas.png`、`status_atlas_index.txt`；進關卡用作弊面板「狀態」分頁上狀態，看狀態列、tip、怪物頭上圖示、染色、燃燒的火與中毒的泡；挑不挑備選圖示。
+
+* [x] **狀態效果系統 buff／debuff／DoT：第①②階段（⏳ 已編譯、未實測；`feat/status-effect`、未 commit）**（2026-11-18，作者交辦較大的系統：先研究運作與呈現、討論四輪才開工；見 [STATUS_EFFECT.md](STATUS_EFFECT.md)）
+  ① **拍板的設計**（全部寫進 STATUS_EFFECT）：雙向；第一批 11 種；有強度的效果等級加強度、控制類等級加機率；觸發時機屬於效果本身（同一 buff 不同時機＝不同珠子）；頭目免疫行動控制含減速；換圖保留、離開關卡清空；DoT 數字合併；效果分**攻擊／防禦／輔助**三類（手套＝防禦、鞋子＝輔助）。
+  ② **第①階段**：開分支（用 `git branch`＋`git symbolic-ref`，不碰 index、不留 lock）；`GemTarget.Support`、`EquipClass.Boots`、鑲嵌擋輔助類（語言 4020；4017／4018 改成「攻擊類」「防禦類」）；MonsterData 芙蓉 13、榕樹妖 14 的 `Controllable` 補 0。**順手修 F48**：浮游武器把 `Controllable` 當「劇情演員」過濾 ⇒ 一直打不到艾爾文／夏綠蒂，補 0 後連芙蓉、榕樹妖也會打不到。
+  ③ **第②階段**：新表 `StatusEffectTable`（MainScene `GemTableProvider` 直接改 YAML 掛上）、`Combat/Status/` 三檔、`DamageInfo.IsStatusTick`、CombatSystem 步驟 2b（狀態乘數，跟裝備層相乘）、兩個 `TakeDamage` 遇到狀態 DoT 跳過受擊反應、移速（玩家 FixedUpdate、`MonsterActuator.SpeedMultiplier`、FlyingBrain）、`DamageNumberManager.ShowDot／ShowHeal`、RunProgress 開始／結束一趟清空、作弊面板「狀態」分頁、語言表 12001–12042。
+  ④ **為什麼 DoT 要另一個旗標**：原本的 `IsDot`（地面特效）照樣走 `TryHitReaction`——每跳都觸發無敵＋閃白，而且 `TryHitReaction` 一開頭 `StopAllCoroutines` 會打斷正在進行的擊退。燃燒每 0.5 秒一跳的話，玩家的武器會一直撞在 DoT 留下的無敵時間上（燒著的怪反而更難打）。
+  ⑤ **GPT 產圖流程測試**（2 次額度，正常）：第一版畫成器物（火盆、毒葫蘆、鈴鐺），縮到 32px 看不出是什麼；作者要純符號 ⇒ 第二版火焰／一攤綠液／漩渦（作者看過，中排 A 版）。工作夾 `TempImage/status_icons/`。
+  ⑥ 全專案 Roslyn 編譯（DipanVfx、Ballistics、主遊戲有／無 UNITY_EDITOR、主遊戲 Editor）0 錯誤。
+  <br>**作者要做的**：Reimport StatusEffectTable／MonsterData／LanguageTable／GemTable；按 L →「狀態」分頁驗收（STATUS_EFFECT §8）。
+
 * [x] **特效巡視＋傳送點外型重製（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-18，作者：巡視有沒有粗製濫造的特效、傳送點不好看要重做（外型差不多、漂亮一點）；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4c）：
   ① **巡視**：VfxTable 53 列＋地面特效抽幀總覽（`TempImage/dipanvfx_work/audit/`），清單已給作者挑、**沒動任何東西**——優先：7 怪物死亡、10 招喚怪物、5 地上物破壞、30 變身煙塵；卡通火 4/47/16/17/48/33；卡通爆炸 43（**血魔重炮、落星羅盤還在用舊爆炸圖**，填 `HitBurstID` 即可換）/26/42/50/55；其他 11/2/44/59、地面特效 3/6；32/34/35 圖資料夾是空的但沒人用。
   ② **傳送點**：DipanVfx 新增 `TeleportMarkerFx`（全程序：深色光池＋流動亮邊＋漣漪＋漩渦絲＋中央光柱＋升起光點，出現時淡入）、shader `Custom/DipanPortalPool`／`Custom/DipanLightBeam`、新表 `TeleportFxTable`（1 列，留空＝預設）；`MapLoader.teleportFxStyleId`（預設 1，沒這列退回 VfxTable 6），`TeleportMarkerById`／togglePortal／冷光照舊；MainScene VfxManager 接表。

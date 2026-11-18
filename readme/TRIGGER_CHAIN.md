@@ -276,6 +276,10 @@ flag:hallGateOpen        旗標成立
 - **`wait` 等待(鏈動作)**（2026-11-07）：`seconds`（等待秒數，留空＝1）、`targets`（**同時啟動**，可多筆欄＝逗號分隔的 trigger 名稱）。被鏈啟動時等 N 秒 → **依序啟動 `targets` 的每一顆**（照 `Activate` 的正常語意：出生點＝解鎖「初始停用」、動作型＝執行）→ 再走自己的完成（寫 `setFlag`、接 `next`，兩者都可留空）。
   **為什麼需要它**：通用 `next` 只能接**一顆**，而「下一波怪」通常是好幾顆出生點（一種怪一顆）要同時叫醒；另外波與波之間要停頓一下。典型用法見 §3.5b〈多波清場〉。
   時間用**有縮放的時間**（暫停面板開著不倒數）；**等待中換圖＝整顆作廢**（不啟動 targets、不接 next）。程式：`TriggerChain.ExecuteWait` ＋ `TriggerChainRunner.After`。清場血球的戰鬥鏈分析也認得 `targets`（`MapClearReward`）。
+- **`applyStatus` 施加狀態／`clearStatus` 清除狀態(鏈動作)**（2026-11-18）：`target`（`player`＝玩家，預設；`monsters`＝場上所有活著、會攻擊玩家的怪，劇本同伴除外）、
+  `status`（狀態清單 `名稱:等級;名稱:等級`，StatusEffectTable 的中文名／英文 Key／ID 都認，等級省略＝1；例 `燃燒:2;減速`）。施加的 DoT 用固定值；頭目照樣免疫控制。
+  `clearStatus` 的 `status` 留空＝全部清掉、填清單＝只清那幾種（等級不看）。**立即接 next**。典型：Boss 開戰前 `applyStatus(player, 增傷:3)` 給玩家打氣；陷阱房 `applyStatus(player, 中毒:2)`。
+  程式：`TriggerChain.ExecuteStatus`；`validate_map.py` 會檢查 target 與狀態名稱。見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §4。
 
 ## 3.5 怪物出生點（`monsterSpawn`）：一次性／重複產生／隨機怪種
 

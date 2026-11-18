@@ -28,6 +28,12 @@ public class EnemyContactDamage : MonoBehaviour
     /// <summary>這顆傷害來源屬於哪個陣營（CombatSystem 在來源不是怪物本體時——例如揮擊的 ImpactDamageArea——用它查陣營傷害乘數）。</summary>
     public MonsterFaction Faction => _faction;
 
+    /// <summary>
+    /// 真正的攻擊者（2026-11-18）：揮擊／踐踏／咬擊／自爆另生的 <see cref="ImpactDamageArea"/> 填那隻怪；怪物本體上的這個元件留空（自己就是）。
+    /// CombatSystem 用它找攻擊者身上的增傷／虛弱（狀態效果）與「命中給狀態」的觸發器。
+    /// </summary>
+    public GameObject Owner { get; set; }
+
     /// <summary>由 MonsterController 設定接觸傷害值（MonsterData.ContactDamage）與陣營。</summary>
     public void Configure(float contactDamage, MonsterFaction faction = MonsterFaction.Enemy, float attackInterval = 0.5f)
     {
@@ -37,9 +43,19 @@ public class EnemyContactDamage : MonoBehaviour
         _myCol = GetComponent<Collider2D>();
     }
 
+    // 攻擊者身上的狀態（被暈眩／冰凍時不打人，第⑤階段）：第一次 Update 才找（StatusController 跟本元件同在 Start 掛上）
+    StatusController _ownerStatus;
+    bool _ownerStatusLooked;
+
     void Update()
     {
         if (_damage <= 0f) return;
+        if (!_ownerStatusLooked)
+        {
+            _ownerStatusLooked = true;
+            _ownerStatus = (Owner != null ? Owner : gameObject).GetComponent<StatusController>();
+        }
+        if (_ownerStatus != null && _ownerStatus.IsControlled) return;   // 被控制的怪連接觸傷害也停（作者定：控制＝鎖移動與攻擊）
         if (_myCol == null)
         {
             _myCol = GetComponent<Collider2D>();

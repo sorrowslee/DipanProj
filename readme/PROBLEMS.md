@@ -17,8 +17,8 @@
 | B | 地圖載入 (Map Loader) | B1~B18 |
 | C | 地圖編輯器 / 素材同步 | C1~C16（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
-| E | 效能 / 顯示 (Performance & Display) | E1~E49（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後；E48 接在 E47 之後；E49 接在 E48 之後） |
-| F | 戰鬥 / 傷害 (Combat) | F1~F47（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後；F47 接在 F46 之後） |
+| E | 效能 / 顯示 (Performance & Display) | E1~E50（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後；E48 接在 E47 之後；E49 接在 E48 之後；E50 接在 E49 之後） |
+| F | 戰鬥 / 傷害 (Combat) | F1~F48（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後；F47 接在 F46 之後；F48 接在 F47 之後） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G25（位置在 F3 之後）；**G13 在 F26 之後、H 段標題之前；G14~G18 誤接在 H 段標題之後、H1 之前**（維持原位不搬）；G19 接在 G18 之後；G20 接在 G19 之後；G21、G22 接在 G20 之後；G23 接在 G22 之後；G24 接在 G23 之後；G25 接在 G24 之後 |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1~H2 |
 | I | 開發環境 / 工具（Cowork 橋接器） | I1~I12 |
@@ -1012,6 +1012,13 @@
 - **症狀**：結算畫面滑鼠停在獎勵圖示上跳出說明，按「返回廣場」回到邪佛廣場後，說明框還停在畫面中央，怎麼移滑鼠都不會消失（2026-11-16 作者實測）。
 - **原因**：共用 `ItemTooltip` 掛在 **System 層**（結算畫面在 Overlay 層，掛 Popup 會被壓住），所以它**不屬於面板、不會跟著面板消失**。面板關閉時 `OnClose` 有收它，但 `UIPanel.DoClose` 之後還有 0.12 秒淡出，**這段時間面板仍是 active、`Update` 照跑**——hover 判斷看到游標在圖示上，又把 tooltip 打開；淡出結束面板被停用，`Update` 不再跑，從此沒人收它。
 - **解法**：`ResultPanel.Update` 開頭加 `if (!IsOpen)` 就收掉並 return；另加 `OnDisable` 保險再收一次。**通則：自己在 `Update` 裡做 hover 判斷、而 tooltip 掛在面板外層（Popup／System）的面板，`Update` 一定要先檢查 `IsOpen`，並在 `OnDisable` 收 tooltip**——關閉後的淡出期間 Update 仍會執行。
+### E50. 程式切圖時丟 `Could not create sprite (...) from a 256x256 texture`（拿別張圖的 .meta 當範本，貼圖被縮小）
+- **症狀**：狀態列整個沒出現，Console 紅字 `Could not create sprite (128, 384, 128, 128) from a 256x256 texture`（2026-11-18 狀態效果圖示，作者實測）。
+- **原因**：AI 新增 png 時複製了珠身的 `.meta` 當範本，裡面**預設平台的 `maxTextureSize` 是 256**——512 的合成貼圖被 Unity 匯入成 256，程式照原始 512 的像素座標 `Sprite.Create` 就超出範圍丟例外，後面的 UI 建置一起中斷。
+- **解法**：`.meta` 的 `DefaultTexturePlatform` 上限改 512；`StatusIcons` 讀索引檔的 `size` 行，照**實際匯入尺寸**換算切圖範圍與 PPU（再被縮也只會變糊、不會崩）。
+- **連帶災情**：怪物上狀態時會順便建頭上圖示，例外一路往上丟、發生在 `StatusController` 被打開（`enabled = true`）之前 ⇒ 狀態記上了卻永遠不計時 ⇒ **所有怪物的燃燒／中毒都不扣血**（作者在艾爾文身上測到；玩家沒有頭上圖示所以正常）。改成先打開元件再處理畫面，畫面那段 `try/catch` 只印錯誤。
+- **通則**：**拿現成 `.meta` 當範本時，檢查每個平台的 `maxTextureSize` ≥ 圖的尺寸**；執行期用像素座標切圖的程式，一律以 `texture.width/height` 換算，不要相信合成時的尺寸。**呈現（圖示、染色、特效）出錯絕不能拖垮邏輯**：先讓邏輯生效，畫面放在最後、包住例外。
+
 ### E36. 大白天每隻怪身上都掛著一圈光，而且一直閃
 - **症狀**（2026-09-17，競技場的戰狼）：把怪放進 `Atmosphere=1`、沒壓暗的**亮**地圖，每隻怪身上都有一圈青白光暈；
   而且圖會**一閃一閃**，像貼圖在抖。
@@ -1229,6 +1236,12 @@
 - **原因**：程式用「`_host != null`」判斷「我是不是跟著某個宿主」，再在裡面檢查宿主是否還在。但宿主被 `Destroy` 之後，Unity 覆寫的 `==` 讓它**等於 null**——外層條件直接變 false，「宿主沒了要熄滅」那段根本進不去。
 - **解法**：另外存一個 `bool _attached`（綁上宿主時設 true），用它判斷要不要檢查宿主；宿主 `== null` 或 `!activeInHierarchy` 才熄滅並清掉旗標。
 - **通則**：**「曾經有過」要用自己的旗標記，不能拿 Unity 物件參照 `!= null` 代替**——被 Destroy 的物件跟「從來沒指定」長得一模一樣。
+
+### F48. 浮游武器（應龍水珠那類）打不到頭目：把 `Controllable` 當成「劇情演員」過濾
+- **症狀**：裝著浮游武器去打艾爾文、夏綠蒂，水珠完全不理頭目、只打小怪（2026-11-18 做 buff／debuff 時讀程式發現；當天把芙蓉、榕樹妖也補成 `Controllable`=0 後會一起中招）。
+- **原因**：`WeaponFamiliar` 索敵寫了 `if (!m.Controllable) continue;`，註解說是排除「劇情演員」。但 `Controllable` 的意思是**免疫行動控制**（骨牢；2026-11-18 起還有暈眩、冰凍、減速），頭目一律填 0——等於把所有頭目從目標裡拿掉。跟 2026-11-12 饕餮印打不到新手夢境佛掌（`OverheadDrop`）是**同一個錯**，那次只修了那一支。
+- **解法**：`WeaponFamiliar` 拿掉這個條件（照 `OverheadDrop.CollectEnemiesOfPlayer` 的寫法：活著、不是友軍召喚物或中立、在打得到的層）。剩下用到 `Controllable` 的兩處（`PlayerController` 找骨牢目標、`MonsterCage`）都是真的「要不要被控制」，正確。
+- **通則**：**`Controllable` 只能用在「能不能被控制」**。選目標、索敵、判斷打不打得到，一律不看它；新寫任何索敵前先 grep 一次 `.Controllable`，確認沒人又拿它當過濾條件。
 
 ### G1. 角色進遊戲變一團黑／剪影，但在 prefab 預覽裡看得到
 - **症狀**：主角（或任何角色）放進遊戲後變成全黑剪影、只剩輪廓；但在 Prefab 編輯／預覽視窗裡卻正常（只是偏暗）。換不同角色圖都一樣黑——「從第一個角色就這樣」。
@@ -1819,6 +1832,8 @@
   4. 依 asmdef 依賴順序逐個編：套件 → Assembly-CSharp（帶 `UNITY_EDITOR` 一次、不帶一次模擬打包）→ Assembly-CSharp-Editor。
   - 指令範本見 [DIPAN_VFX.md](DIPAN_VFX.md) §7。這次 DipanVfx、Ballistics、主遊戲、地圖編輯器（含兩邊 Editor）全部 0 錯誤。
 - **通則**：**能真編譯就真編譯**；四件套（I11）留給拿不到 Unity dll 的時候。
+- **2026-11-18 補（打包原始碼的坑）**：打包時用 `find … | grep -v Library` 排除 Unity 的 `Library/` 資料夾，會**連檔名含 Library 的原始碼一起排掉**（地圖編輯器 `EffectLibrary.cs`），編譯就報「找不到 EffectLibrary」。要寫 `grep -v "/Library/"`。
+  地圖編輯器沒有自己的 `Library/ScriptAssemblies`：借主專案的套件 dll＋Newtonsoft，再加 `-r:DipanVfx.Runtime.dll`（它 `file:` 引用 DipanVfx 套件）就能編過。
 
 ---
 

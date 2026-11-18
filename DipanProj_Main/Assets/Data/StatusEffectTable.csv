@@ -1,0 +1,13 @@
+ID(狀態 ID/GemTable 的狀態效果與各施加來源用這個號),Key(英文代號/程式與作弊面板辨識用),NameId(名稱/LanguageTable 的 id),DescId(狀態列 tip 說明/LanguageTable 的 id；{0}＝強度數字),Kind(Buff 增益／Debuff 減益/決定狀態列放哪一列、外框顏色；DoT 也算 Debuff),Category(Stat 數值修正／Dot 持續傷害／Hot 持續回復／Control 控制),Attribute(Stat 改哪個數值：Outgoing 造成的傷害／Incoming 受到的傷害／MoveSpeed 移動速度；Control 填 Stun 或 Freeze；Dot／Hot 留空),Stack(同一種再上身時：Refresh 刷新時間且等級取高／Stack 疊層、每層各自計時／Strongest 只留最強那一個／Extend 延長時間/空=Refresh),MaxStack(Stack 的層數上限；Extend 的時間上限＝Duration×這個數/空=1),Duration(持續秒數),Lv1(第 1 級的強度：Stat＝百分比、負數是減益／Dot＝每秒傷害佔命中傷害的百分比（武器 DoT 算法＝百分比時用）／Hot＝每秒回復最大血量的百分比／Control＝觸發機率),PerLv(每多一級加多少/單位同 Lv1),MaxLv(總等級上限、超過照這一級算/空=50),FlatLv1(DoT 固定值型：第 1 級每秒傷害/武器 DoT 算法＝固定值、或怪物／地面／劇本施加時用；數值尺度已 ×10),FlatPerLv(DoT 固定值型：每級加多少),DamageType(Dot 的傷害類型：Physical／Fire／Ice／Lightning／Poison/空=Physical),Color(代表色/DoT 數字、身上染色用),Icon(圖示檔名/放 Resources/UI/Icons/Status/；空＝還沒有圖),Note(備註)
+# 狀態效果表（2026-11-18，見 readme/STATUS_EFFECT.md）：buff／debuff／DoT 共用一套框架，一列＝一種狀態。數值是初版、平衡大後期再調。DoT／HoT 一律每 0.5 秒結算一次（全域共用時鐘，同一隻身上多種 DoT 合成一個數字）。
+1,Burn,12001,12021,Debuff,Dot,,Strongest,1,4,25%,10%,50,20,10,Fire,#FF7A2E,status_burn,只留最強的一個；lv1＝4 秒共 100% 命中傷害
+2,Poison,12002,12022,Debuff,Dot,,Stack,10,5,8%,4%,50,10,5,Poison,#8CC63F,status_poison,每層各自計時、最多 10 層；滿了換掉最快到期的那層
+3,Slow,12003,12023,Debuff,Stat,MoveSpeed,Refresh,1,3,-20%,-5%,13,,,,#7FA7C9,status_slow,lv13＝-80% 封頂（程式另夾最低 ×0.2）；頭目免疫
+4,Vulnerable,12004,12024,Debuff,Stat,Incoming,Refresh,1,5,10%,5%,50,,,,#C0392B,status_vuln,
+5,Weak,12005,12025,Debuff,Stat,Outgoing,Refresh,1,5,-10%,-5%,17,,,,#9E9E9E,status_weak,lv17＝-90% 封頂
+6,Stun,12006,12026,Debuff,Control,Stun,Refresh,1,1,10%,5%,19,,,,#E0C068,status_stun,等級＝觸發機率（lv19＝100%）；鎖移動與攻擊、收招站著；解除後 2 秒免疫控制；頭目免疫
+7,Freeze,12007,12027,Debuff,Control,Freeze,Refresh,1,1.5,10%,5%,19,,,,#9FD8FF,status_freeze,同暈眩，但動作定格；頭目免疫
+8,Might,12008,12028,Buff,Stat,Outgoing,Refresh,1,4,10%,5%,50,,,,#E8A33A,status_might,
+9,Guard,12009,12029,Buff,Stat,Incoming,Refresh,1,4,-10%,-5%,17,,,,#D9B26A,status_guard,lv17＝-90% 封頂（程式另夾最低 ×0.1）
+10,Haste,12010,12030,Buff,Stat,MoveSpeed,Refresh,1,3,15%,5%,50,,,,#6FCF97,status_haste,程式夾最高 ×3
+11,Regen,12011,12031,Buff,Hot,,Refresh,1,5,1%,0.5%,50,,,,#7BD88F,status_regen,每秒回最大血量的百分比

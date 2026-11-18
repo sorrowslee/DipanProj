@@ -1354,6 +1354,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gemCSV: {fileID: 4900000, guid: d2561b02a3a6d42bbbdf4259fbae3b78, type: 3}
+  statusEffectCSV: {fileID: 4900000, guid: 28f7678d6b2b42a8b4894bd39a2e8c41, type: 3}
 --- !u!114 &537006698
 MonoBehaviour:
   m_ObjectHideFlags: 0

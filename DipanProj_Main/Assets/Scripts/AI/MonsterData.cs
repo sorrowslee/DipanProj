@@ -27,6 +27,8 @@ public class MonsterData
     // 留空＝那一格不顯示（姓名版只剩名字、說明欄空白）。
     public string IntroTitle = "";
     public string IntroDesc = "";
+    /// <summary>攻擊命中時給目標的狀態（CSV 索引 47 <c>ContactStatus</c>，2026-11-18）：狀態清單「名稱:等級;…」，DoT 一律固定值。留空＝無。見 readme/STATUS_EFFECT.md §4。</summary>
+    public string ContactStatus = "";
 
     public float ContactDamage = 100f;  // 碰到玩家造成的傷害（留空 = 100（×10：2026-11-17 數值尺度放大，見 readme/EQUIPMENT.md §8））
     public float AttackInterval = 0.5f; // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval，越小攻越快，留空 = 0.5）

@@ -43,7 +43,7 @@ namespace Dipan.UI
         const int TxtNoGems = 4010, TxtBagFull = 4011, TxtGemsRemoved = 4012;
         // 鑲嵌有效性提示（提示不擋）：珠子對參考武器無效時的 toast / tooltip
         const int TxtGemNoEffect = 4013, TxtGemNoEffectOnWeapon = 4014, TxtIneffectiveGems = 4015;
-        const int TxtWeaponOnlyWeaponGem = 4017, TxtArmorOnlyArmorGem = 4018, TxtGemModeBlocked = 4019;
+        const int TxtWeaponOnlyWeaponGem = 4017, TxtArmorOnlyArmorGem = 4018, TxtGemModeBlocked = 4019, TxtBootsOnlySupportGem = 4020;
 
         // ───────── 底圖原生座標（量自示意圖，1536×1024；左上為原點、y 向下）─────────
         const float BgW = 1536f, BgH = 1024f;
@@ -413,6 +413,8 @@ namespace Dipan.UI
                     AlertPanel.Toast(Language.GetText(TxtWeaponOnlyWeaponGem)); break;
                 case ItemQuality.SocketBlock.WrongClassArmor:
                     AlertPanel.Toast(Language.GetText(TxtArmorOnlyArmorGem)); break;
+                case ItemQuality.SocketBlock.WrongClassBoots:
+                    AlertPanel.Toast(Language.GetText(TxtBootsOnlySupportGem)); break;
                 case ItemQuality.SocketBlock.ModeIneffective:
                     var host = _anvil.Data;
                     AlertPanel.Toast(string.Format(Language.GetText(TxtGemModeBlocked), d.Name, host != null ? host.Name : "")); break;

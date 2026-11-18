@@ -69,6 +69,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 發光／亮度／光圈／環境亮度 | [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)＋[readme/SCENE_EFFECT.md](readme/SCENE_EFFECT.md)（同框 12 盞上限寫死在兩處） |
 | **裝備體系**：武器數值、能力珠效果、品質稀有度、內建特殊效果、給道具時寫死或動態骰、**任何傷害／血量／魔力數字** | [readme/EQUIPMENT.md](readme/EQUIPMENT.md)（單一真相）——**配方的行為欄填等級**（`PierceLv` 等，換算看 GemTable）；全身同種效果**等級相加**；屬性 → 欄位對應只認 `EquipAttributes.cs`；**2026-11-17 起數值尺度 ×10**，新增任何傷害／血量欄或常數照新尺度填，**CSV「留空時的預設值」也要照新尺度**（最容易漏） |
 | 兌換所／**物品稀有度（白藍黃紫）**／新增貨幣 | [readme/EXCHANGE.md](readme/EXCHANGE.md)——稀有度的顏色與名稱只認 `RarityInfo`（`Scripts/Exchange/ExchangeData.cs`），別再各自定義一套 |
+| **buff／debuff／DoT／控制**（燃燒、中毒、減速、易傷、增傷、暈眩…）、任何「持續一段時間掛在角色身上」的效果、**加頭目** | [readme/STATUS_EFFECT.md](readme/STATUS_EFFECT.md)——施加一律走 `StatusSystem.Apply`（不要自己寫計時器扣血）；狀態 DoT 帶 `IsStatusTick`，**不觸發無敵／閃白／擊退**；**頭目一律在 MonsterData 填 `Controllable`=0**（免疫行動控制含減速），但它不是「打不到」，索敵別拿它過濾（PROBLEMS **F48**）；效果分攻擊／防禦／輔助三類（武器／胸甲手套／鞋子，珠寶全可） |
 | **功德值／劇本證明（B/A/S）**、發證明、劇本的新／迴響／畢業、輪迴帶物、成就 | [readme/CORE_LOOP_DESIGN.md](readme/CORE_LOOP_DESIGN.md) **§8**（規則）＋[readme/SAVE_SYSTEM.md](readme/SAVE_SYSTEM.md) **§15**（紀錄層：一律走 `Dipan.Progress.ScriptRecords`，**成就只讀紀錄、遊戲機制不讀成就**）——證明「領過沒」跟「手上幾張」是兩回事，別混 |
 | 新增**單鍵熱鍵**、或做有**輸入框**的 UI | PROBLEMS **K4**——熱鍵判斷要加 `!UIManager.TextInputFocused`，否則玩家在輸入框打字會順便觸發熱鍵 |
 | **做／改 shader 特效**（火焰、地上燃燒、地刺…）、或要讓特效能在地圖編輯器預覽 | [readme/DIPAN_VFX.md](readme/DIPAN_VFX.md)——特效程式與 shader 一律放共用套件 `DipanVfx/`（主遊戲＋地圖編輯器共用，**不得引用主遊戲類別**），表放主遊戲 `Assets/Data/`，並接進預覽器「自製特效」分頁（§5 固定流程）；**會發光的素材請 GPT 用純黑底** |

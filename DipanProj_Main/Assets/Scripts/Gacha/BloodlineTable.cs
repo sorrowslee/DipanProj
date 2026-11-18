@@ -162,6 +162,12 @@ namespace Dipan.Gacha
         /// 留空 = 無。見 readme/BLOODLINE.md §5b-2。
         /// </summary>
         public string GhostStyle;
+
+        /// <summary>
+        /// **血統內建效果**（第 33 欄 `Effects`，2026-11-18，readme/STATUS_EFFECT.md §4）：效果清單「名稱:等級;…」，
+        /// 查 GemTable 的效果（目前只用在狀態效果列，例 Nidhogg＝<c>發射增傷:1</c>）。跟裝備、珠子全身等級相加。留空 = 無。
+        /// </summary>
+        public string Effects = "";
     }
 
     /// <summary>
@@ -328,6 +334,7 @@ namespace Dipan.Gacha
                 ParseFrameRange(CsvUtil.Field(v, 29), id, out d.AttackFrameStart, out d.AttackFrameEnd);
                 d.StepFrames = ParseStepFrames(CsvUtil.Field(v, 30), id);   // 腳步特效踏地幀（30 欄，2026-11-10）
                 d.GhostStyle = CsvUtil.Field(v, 31);   // 身邊幽靈（31 欄，2026-11-12）。留空 = 無。
+                d.Effects = CsvUtil.Field(v, 32) ?? "";  // 血統內建效果（32 欄，2026-11-18）。留空 = 無。
 
                 _byId[id] = d;
             }

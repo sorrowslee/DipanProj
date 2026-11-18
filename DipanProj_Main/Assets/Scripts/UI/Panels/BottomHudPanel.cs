@@ -86,6 +86,9 @@ namespace Dipan.UI
             _potionCounts = new Text[2];
             MakePotionDisplay(0, Slot0Center);
             MakePotionDisplay(1, Slot1Center);
+
+            // 玩家狀態列（buff／debuff／DoT 小圖示），建在 HUD 底下 ⇒ HUD 隱藏時一起消失（見 readme/STATUS_EFFECT.md §5）
+            StatusBarView.Create(transform);
         }
 
         // 在一格血瓶槽上放 icon＋剩餘數量（顯示用；拖放/綁定都在背包做）。

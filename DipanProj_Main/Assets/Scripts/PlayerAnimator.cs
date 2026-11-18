@@ -583,9 +583,12 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
         if (invokeDone) { done?.Invoke(); fallDone?.Invoke(); }
     }
 
+    /// <summary>定格（狀態效果「冰凍」，第⑤階段）：停在目前這一幀。由 PlayerController 設定與解除。</summary>
+    [System.NonSerialized] public bool Paused;
+
     void Update()
     {
-        if (!_hasAny) return;
+        if (!_hasAny || Paused) return;
 
         // 甦醒表演：倒下＝正播 dead（播完轉趴地定格）；趴地定格＝什麼都不做（sprite 已定在倒地幀）；
         // 爬起＝倒播 dead。三者走 PoseDt——預設等同 Time.deltaTime，但演出方把 UnscaledPose 設 true

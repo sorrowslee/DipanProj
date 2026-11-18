@@ -133,7 +133,7 @@ public class PlayerAbilities
         foreach (var kv in _levels)
         {
             var g = gems.Get(kv.Key);
-            if (g == null || g.IsArmorClass) continue;                       // 防具類：等屬性系統接上
+            if (g == null || !g.IsAttackClass || g.IsStatusEffect) continue; // 防禦／輔助類、狀態效果：不改武器數值（由 StatusAttacker 處理，見 STATUS_EFFECT.md）
             if (!EquipAttributes.IsEffective(mode, g.Attribute)) continue;   // 對這個模式沒作用
             switch (EquipAttributes.CalcOf(g.Attribute))
             {

@@ -1,17 +1,23 @@
-GemID,Name,Calc,Attribute,Target,Lv1,PerLv,MaxLv,Icon,BaseColor,Note
+GemID,Name,Calc,Attribute,Target,Lv1,PerLv,MaxLv,Icon,BaseColor,Note,StatusID,Trigger,Chance,Cooldown
 # 效果定義表（2026-11-17 裝備體系改版，見 readme/EQUIPMENT.md）。一種效果一列；能力珠與裝備的「內建特殊效果」共用這張表。
 # Calc      ＝ 算法：Percent（百分比，強化基礎屬性）／Level（純等級，行為；武器起點也填等級）／Add（加值，模式參數的數量或角度）。
 # Attribute ＝ 改哪個屬性（程式 EquipAttributes.cs 依武器模式對應到實際欄位）：
 #             Percent：Damage／AttackRate／Speed／Range／Size／ManaCost／OrbitalRadius／ChainRadius／DashDistance／ChargeTime
 #             Level  ：Pierce／Bounce／Split／Homing／Burst／Parallel
 #             Add    ：OrbitalCount／SummonCount／SummonMaxAlive／ChainCount／SpreadAngle／MeleeAngle／AimConeAngle／SnapRadius
-# Target    ＝ 分類：Recipe／Weapon＝武器類效果；Player＝防具類效果（減傷、增防…之後才規劃，效果尚未接）。
+# Target    ＝ 分類（2026-11-18 起三類，見 readme/STATUS_EFFECT.md）：Recipe／Weapon＝攻擊類（武器、珠寶）；Player（或 Defense）＝防禦類（胸甲、手套、珠寶）；Support＝輔助類（鞋子、珠寶）。
 # 疊加規則：**全身等級相加**（武器起點＋各部位內建效果＋所有鑲嵌珠，同一種效果的等級加總），再查一次表：
 #             數值＝Lv1 ＋（總等級－1）× PerLv；總等級超過 MaxLv 照 MaxLv 算。單一來源（一顆珠子／一條內建效果）最高 Lv3。
 # Percent 的值是「加多少百分比」：同一屬性全部加總後套一次；越小越好的屬性（攻擊間隔、耗魔、集氣時間）用除法：基礎 ÷（1＋總和）。
 # Icon      ＝ 珠子上疊的能力符號檔名後半段（gemIcon_<這裡>），放 UI/Icons/Items/gems/gemIcons/。
 # BaseColor ＝ 珠身顏色（gemBase_<這裡>_lv1~3）；留空自動推導：Recipe/Weapon → red、Player → blue。
 # 2026-11-17 合併：綿延(9)→遠射(10)、頻擊(14)→疾發(8)、粗束(25)→須彌(7)，這三個 GemID 作廢、永不重用。
+# ── 狀態效果列（2026-11-18，見 readme/STATUS_EFFECT.md §4）：StatusID ＞ 0 的列＝「觸發時給一個狀態」，不改武器數值。Calc 一律 Level、Attribute 一律 Status。
+#   全身等級相加後的「總等級」＝給出去的狀態等級（再查 StatusEffectTable 的強度；暈眩／冰凍的等級加的是機率）。
+# StatusID ＝ StatusEffectTable 的 ID。舊列留空＝不是狀態效果。
+# Trigger  ＝ 觸發時機：OnHit（武器命中敵人，給敵人）／OnFire（發射時，給自己）／OnKill（擊殺時，給自己）／OnHurt（受擊時，給自己）。
+#            同一個狀態不同時機＝不同效果、不同珠子。
+# Chance   ＝ 每次觸發的機率（留空＝100%）；Cooldown＝觸發後幾秒內不再觸發（留空＝0）。給敵人的 DoT／減益照設計必定上身（留空）；buff 才用這兩欄防常駐。
 1,反彈,Level,Bounce,Recipe,1,1,50,bounce,,反彈次數（lv n＝n 次）。原本不反彈的武器也會打開反彈（預設對牆）
 2,穿透,Level,Pierce,Recipe,1,1,50,pierce,,穿透數（lv n＝穿 n 隻）。迴旋天生無限穿透，不受影響
 3,迅捷,Percent,Speed,Recipe,5%,5%,30,speed,,飛行速度。拋物線／頭頂投彈換算成縮短落下秒數。太快會穿過小碰撞框，先封 30 級
@@ -36,3 +42,15 @@ GemID,Name,Calc,Attribute,Target,Lv1,PerLv,MaxLv,Icon,BaseColor,Note
 24,省魔,Percent,ManaCost,Weapon,4%,4%,50,damage,,耗魔 ÷（1＋總和）。所有模式都吃
 26,連擊,Level,Burst,Recipe,1,1,50,rapid,,扣一次扳機多連 n 發（lv n）。雷射／佛光／環繞不吃
 27,平行,Level,Parallel,Recipe,1,1,50,split,,多 n 道並排（lv n）。只有一般子彈、拋物線、浮游吃
+28,燃燒,Level,Status,Recipe,1,1,20,burn,,命中時讓敵人燃燒（等級＝燃燒強度）,1,OnHit,,
+29,中毒,Level,Status,Recipe,1,1,20,poison,,命中時讓敵人中毒（可疊層）,2,OnHit,,
+30,減速,Level,Status,Recipe,1,1,13,slow,,命中時讓敵人減速（頭目免疫）,3,OnHit,,
+31,易傷,Level,Status,Recipe,1,1,20,vuln,,命中時讓敵人易傷（受到傷害增加）,4,OnHit,,
+32,虛弱,Level,Status,Recipe,1,1,17,weak,,命中時讓敵人虛弱（造成傷害降低）,5,OnHit,,
+33,暈眩,Level,Status,Recipe,1,1,19,stun,,命中時機率暈眩（等級加的是機率；頭目免疫）,6,OnHit,,
+34,冰凍,Level,Status,Recipe,1,1,19,freeze,,命中時機率冰凍（等級加的是機率；頭目免疫）,7,OnHit,,
+35,命中增傷,Level,Status,Recipe,1,1,20,might_hit,,命中時 20% 機率自己增傷，冷卻 5 秒,8,OnHit,20%,5
+36,發射增傷,Level,Status,Recipe,1,1,20,might_fire,,發射時自己增傷（每發都刷新）。Nidhogg 血統內建 lv1,8,OnFire,100%,0
+37,受擊護體,Level,Status,Player,1,1,20,guard,,受擊時自己護體（受到傷害降低），冷卻 8 秒,9,OnHurt,100%,8
+38,受擊回春,Level,Status,Player,1,1,20,regen,,受擊時自己回春（持續回血），冷卻 8 秒,11,OnHurt,100%,8
+39,發射疾行,Level,Status,Support,1,1,20,haste,,發射時自己疾行（移動加速，每發都刷新）,10,OnFire,100%,0

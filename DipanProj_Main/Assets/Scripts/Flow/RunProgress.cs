@@ -156,6 +156,7 @@ public class RunProgress : MonoBehaviour
         RunMerit = 0;
         _runItems.Clear();
         Dipan.Progress.ScriptRecords.BeginRun();   // 結算畫面「這一趟新拿到的證明」從零算起
+        StatusSystem.ClearPlayer();                // 狀態效果：換圖保留、進新的一趟關卡清空（見 readme/STATUS_EFFECT.md）
         Debug.Log($"[RunProgress] 開始一趟關卡：{module}（進度已重置）。");
     }
 
@@ -168,6 +169,7 @@ public class RunProgress : MonoBehaviour
         CreditUnpickedMerit();
         _maps.Clear();
         RunActive = false;
+        StatusSystem.ClearPlayer();                // 狀態效果：離開關卡全部清空（過關／死亡／中途離開都一樣）
         RunModule = null;
     }
 

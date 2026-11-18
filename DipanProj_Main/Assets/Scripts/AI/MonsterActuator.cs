@@ -6,6 +6,9 @@ using UnityEngine;
 public class MonsterActuator : MonoBehaviour
 {
     public float MoveSpeed = 3f;
+    /// <summary>狀態效果的移速倍率（減速／疾行），由 StatusController 在狀態增減時寫入；1＝正常。
+    /// 乘在實際速度上、不改 MoveSpeed（MoveSpeed 是動畫基準，也會被 PounceBrain 暫時改寫再還原）。見 readme/STATUS_EFFECT.md。</summary>
+    [HideInInspector] public float SpeedMultiplier = 1f;
     public bool IsMoving { get; private set; }
 
 
@@ -76,7 +79,7 @@ public class MonsterActuator : MonoBehaviour
 
         if (!AvoidObstacles)
         {
-            _rb.velocity = toTarget.normalized * MoveSpeed; IsMoving = true; _lastPos = pos; return;
+            _rb.velocity = toTarget.normalized * (MoveSpeed * SpeedMultiplier); IsMoving = true; _lastPos = pos; return;
         }
 
         // 放棄期：連側滑都救不回來 → 這段時間完全不動（不要硬頂著牆磨出假走路）。
@@ -104,7 +107,7 @@ public class MonsterActuator : MonoBehaviour
         }
 
         _lastPos = pos;
-        _rb.velocity = dir * MoveSpeed;
+        _rb.velocity = dir * (MoveSpeed * SpeedMultiplier);
         IsMoving = true;
     }
 
@@ -151,7 +154,7 @@ public class MonsterActuator : MonoBehaviour
     {
         if (!IsMoving) { _stuckTime = 0f; return; }
         float moved = (pos - _lastPos).magnitude;
-        float expected = MoveSpeed * Time.deltaTime * 0.4f;
+        float expected = MoveSpeed * SpeedMultiplier * Time.deltaTime * 0.4f;
 
         // 側滑期間：只要真的挪動了就算脫困成功，失敗計數歸零（不會被誤送進放棄期）。
         if (Time.time < _unstickUntil) { if (moved >= expected) _unstickFails = 0; return; }

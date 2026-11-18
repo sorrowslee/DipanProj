@@ -26,6 +26,19 @@ public static class CombatSystem
     public static bool CurrentHitIsDot { get; private set; }
 
     /// <summary>
+    /// 這一次 TakeDamage 是狀態效果 DoT 的一跳（<see cref="DamageInfo.IsStatusTick"/>）。只在呼叫目標 TakeDamage 的那一瞬間成立。
+    /// 目標據此**跳過受擊反應**（無敵時間／閃白／擊退）與一般傷害數字——否則每 0.5 秒一跳的燃燒會一直觸發無敵，把玩家的武器傷害擋掉。
+    /// </summary>
+    public static bool CurrentHitIsStatusTick { get; private set; }
+
+    /// <summary>
+    /// 目標在 TakeDamage 裡「確實扣到血」時呼叫（MonsterController／PlayerController）。被無敵時間擋掉、被閃避、劇本同伴⋯⋯都不會呼叫。
+    /// <see cref="Apply"/> 用它決定要不要觸發狀態效果（命中給狀態、受擊 buff）——打在無敵時間裡不該上毒。
+    /// </summary>
+    public static void MarkHitLanded() => _hitLanded = true;
+    static bool _hitLanded;
+
+    /// <summary>
     /// 結算一次傷害。回傳「實際打進目標的最終傷害」（被無敵時間擋掉時，IDamageable 內部會忽略，但這裡仍回傳計算值）。
     /// </summary>
     public static float Apply(in DamageInfo info)
@@ -57,10 +70,13 @@ public static class CombatSystem
             }
         }
 
+        // 真正的攻擊者（狀態效果用；揮擊等傷害圈追回那隻怪）。算一次，步驟 2b 與結算後的觸發共用。
+        GameObject attackerGo = StatusAttacker.ResolveAttacker(info.Source);
+
         if (!info.IgnoreModifiers && info.Type != DamageType.True)
         {
-            // 1) 攻擊方加成（讀來源身上的 ICombatModifiers；沒有 = 乘 1）
-            if (info.Source != null)
+            // 1) 攻擊方加成（讀來源身上的 ICombatModifiers；沒有 = 乘 1）。狀態 DoT 的一跳不吃（施加當下已算好）。
+            if (info.Source != null && !info.IsStatusTick)
             {
                 var dealer = info.Source.GetComponent<ICombatModifiers>();
                 if (dealer != null)
@@ -71,6 +87,17 @@ public static class CombatSystem
             var receiver = info.Target.GetComponent<ICombatModifiers>();
             if (receiver != null)
                 amount *= Mathf.Max(0f, receiver.IncomingDamageMultiplier(info));
+
+            // 2b) 狀態效果（buff／debuff，見 readme/STATUS_EFFECT.md）：跟上面的裝備／加成層**相乘**。
+            //     攻擊方：增傷／虛弱（DoT 一跳不吃）；受擊方：易傷／護體。乘數是快取值，這裡只是讀欄位。
+            //     攻擊方用「真正的攻擊者」：怪物揮擊／踐踏／咬擊是另生的傷害圈（EnemyContactDamage.Owner 指回那隻怪）。
+            if (info.Source != null && !info.IsStatusTick)
+            {
+                var srcStatus = attackerGo.GetComponent<StatusController>();
+                if (srcStatus != null) amount *= srcStatus.OutgoingMultiplier;
+            }
+            var dstStatus = info.Target.GetComponent<StatusController>();
+            if (dstStatus != null) amount *= dstStatus.IncomingMultiplier;
         }
 
         if (amount <= 0f) return 0f;
@@ -79,10 +106,31 @@ public static class CombatSystem
         var damageable = info.Target.GetComponent<IDamageable>();
         if (damageable == null) return 0f;
 
+        // 狀態效果的觸發者（readme/STATUS_EFFECT.md §4）：揮擊等另生的傷害圈要追回那隻怪。沒有觸發器＝什麼都不做。
+        StatusAttacker attacker = null;
+        if (attackerGo != null) attackerGo.TryGetComponent(out attacker);
+        MonsterController victim = null;
+        bool victimWasAlive = false;
+        if (attacker != null && attacker.HasOnKill && info.Target.TryGetComponent(out victim)) victimWasAlive = !victim.IsDead;
+
         CurrentHitTheatrical = theatrical;
         CurrentHitIsDot = info.IsDot;
+        CurrentHitIsStatusTick = info.IsStatusTick;
+        _hitLanded = false;
         try { damageable.TakeDamage(amount, info.HitDirection); }
-        finally { CurrentHitTheatrical = false; CurrentHitIsDot = false; }
+        finally { CurrentHitTheatrical = false; CurrentHitIsDot = false; CurrentHitIsStatusTick = false; }
+        bool landed = _hitLanded;
+        _hitLanded = false;
+
+        if (attacker != null && attacker.gameObject != info.Target)
+        {
+            // 命中：狀態 DoT 的一跳不算（否則燃燒會自己一直續燒、中毒自己疊層）。DoT 的每秒傷害用「原始武器傷害」算（施加當下決定）。
+            if (landed && !info.IsStatusTick && attacker.HasOnHit) attacker.NotifyHit(info.Target, info.BaseAmount);
+            // 擊殺：狀態 DoT 打死的也算（施加者記在狀態上）
+            if (victimWasAlive && victim != null && victim.IsDead) attacker.NotifyKill(info.Target);
+        }
+
+        if (info.IsStatusTick) return amount;   // 狀態 DoT：不播擊中特效
 
         // 這一下被目標閃掉了（進入虛體無敵，例：聖子艾爾文的 dodge）⇒ 不播擊中特效。
         var hitMc = info.Target.GetComponent<MonsterController>();

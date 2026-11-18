@@ -166,6 +166,8 @@ public class MonsterSpawner : MonoBehaviour
             // Boss 開戰資訊的稱號／說明（索引 45／46，表尾欄，2026-11-09）：填 lang:／reveal: 參照，見 MonsterData.IntroTitle。
             data.IntroTitle = (values.Length > 45 && !string.IsNullOrWhiteSpace(values[45])) ? values[45].Trim() : "";
             data.IntroDesc  = (values.Length > 46 && !string.IsNullOrWhiteSpace(values[46])) ? values[46].Trim() : "";
+            // 攻擊命中時給目標的狀態（索引 47，表尾欄，2026-11-18）：狀態清單，見 MonsterData.ContactStatus。
+            data.ContactStatus = (values.Length > 47 && !string.IsNullOrWhiteSpace(values[47])) ? values[47].Trim() : "";
 
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。

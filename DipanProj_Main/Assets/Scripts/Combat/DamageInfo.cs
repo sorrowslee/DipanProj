@@ -26,6 +26,14 @@ public struct DamageInfo
 
     /// <summary>真實傷害：跳過所有加成／減傷修正，直接以 BaseAmount 結算（仍受目標無敵時間影響）。</summary>
     public bool IgnoreModifiers;
+
+    /// <summary>
+    /// 狀態效果 DoT 的一跳（2026-11-18，見 readme/STATUS_EFFECT.md）：照吃受擊方減傷／易傷，
+    /// 但**不觸發無敵時間、不閃白、不擊退、不跳一般傷害數字**（StatusController 自己合成一個 DoT 數字）、
+    /// 不播三階血統擊中特效，也不再吃施加者的攻擊加成（施加當下已算進每秒傷害）。
+    /// 地面特效的週期傷害不是這個（它仍是一般命中＋IsDot）。
+    /// </summary>
+    public bool IsStatusTick;
 }
 
 /// <summary>傷害類型。目前僅 Physical 在用，其餘為未來的屬性／抗性系統預留。</summary>

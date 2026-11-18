@@ -5,15 +5,31 @@ using Dipan.Data;
 
 namespace Dipan.Inventory
 {
-    /// <summary>效果的分類（2026-11-17 起只用來分「武器類／防具類」，見 readme/EQUIPMENT.md §2）。</summary>
+    /// <summary>效果的分類（2026-11-18 起分三類：攻擊／防禦／輔助，見 readme/EQUIPMENT.md §2、readme/STATUS_EFFECT.md）。
+    /// Recipe／Weapon 都算攻擊類（差別只是改配方層或武器表層）。</summary>
     public enum GemTarget
     {
         /// <summary>武器類（配方層：反彈、穿透、速度、分裂…）。</summary>
         Recipe = 0,
         /// <summary>武器類（武器表層：傷害、大小、耗魔…）。</summary>
         Weapon = 1,
-        /// <summary>防具類（減傷、增防、法抗、增速…預留，效果尚未接）。</summary>
+        /// <summary>防禦類（護體、回春…；能出現在胸甲／手套／珠寶）。CSV 填 Player 或 Defense。</summary>
         Player = 2,
+        /// <summary>輔助類（疾行…；能出現在鞋子／珠寶）。CSV 填 Support。2026-11-18 加。</summary>
+        Support = 3,
+    }
+
+    /// <summary>狀態效果什麼時候觸發（2026-11-18，readme/STATUS_EFFECT.md §4）。觸發時機屬於效果本身：同一個狀態不同時機＝不同效果、不同珠子。</summary>
+    public enum StatusTrigger
+    {
+        /// <summary>命中時：減益上在被打中的那一方、增益上在自己身上。</summary>
+        OnHit = 0,
+        /// <summary>發射時（每一發；持續型武器啟動時與之後每秒）：增益上在自己身上。</summary>
+        OnFire = 1,
+        /// <summary>擊殺時（最後一下是自己打的，DoT 燒死也算）：增益上在自己身上。</summary>
+        OnKill = 2,
+        /// <summary>受擊時（被一般攻擊打到；DoT 的一跳不算）：增益上在自己身上、減益上在打我的人身上。</summary>
+        OnHurt = 3,
     }
 
     /// <summary>
@@ -62,9 +78,26 @@ namespace Dipan.Inventory
 
         public string Note;
 
+        // ── 狀態效果（2026-11-18，readme/STATUS_EFFECT.md §4）：StatusID ＞ 0 的列是「觸發時給某個狀態」，不改武器數值 ──
+        /// <summary>對應 StatusEffectTable 的狀態 ID；0＝不是狀態效果（一般的穿透、銳利…）。</summary>
+        public int StatusId;
+        /// <summary>什麼時候觸發。</summary>
+        public StatusTrigger Trigger = StatusTrigger.OnHit;
+        /// <summary>觸發機率（0～1；空＝1）。暈眩／冰凍另外由狀態表的等級決定機率，這裡留 1。</summary>
+        public float Chance = 1f;
+        /// <summary>內建冷卻（秒；空＝0）：觸發成功後這麼久內不再觸發（增益防常駐用）。</summary>
+        public float Cooldown;
+
+        /// <summary>這一列是狀態效果（觸發時給狀態），等級＝狀態的等級（全身相加後查 StatusEffectTable）。</summary>
+        public bool IsStatusEffect => StatusId > 0;
+
         public bool IsPercent => Calc == EffectCalc.Percent;
-        /// <summary>防具類效果（只能出現在防具與珠寶上）。</summary>
-        public bool IsArmorClass => Target == GemTarget.Player;
+        /// <summary>攻擊類（Recipe／Weapon）：能出現在武器與珠寶上，會改武器數值或替武器加命中效果。</summary>
+        public bool IsAttackClass => Target == GemTarget.Recipe || Target == GemTarget.Weapon;
+        /// <summary>防禦類：能出現在胸甲／手套／珠寶上。</summary>
+        public bool IsDefenseClass => Target == GemTarget.Player;
+        /// <summary>輔助類：能出現在鞋子／珠寶上。</summary>
+        public bool IsSupportClass => Target == GemTarget.Support;
 
         /// <summary>
         /// 某個「總等級」對應的數值。等級 ≤ 0 回 0（沒有這個效果）；超過 <see cref="MaxLv"/> 照 MaxLv 算。
@@ -81,6 +114,14 @@ namespace Dipan.Inventory
         public string Describe(int level)
         {
             float v = ValueAt(level);
+            if (IsStatusEffect)
+            {
+                // 狀態效果：「命中增傷 Lv2（命中時 20%，冷卻 5 秒）」——等級＝給出去的狀態等級（全身相加）
+                string when = Trigger == StatusTrigger.OnFire ? "發射時" : Trigger == StatusTrigger.OnKill ? "擊殺時"
+                            : Trigger == StatusTrigger.OnHurt ? "受擊時" : "命中時";
+                string extra = (Chance < 0.999f ? $" {Chance * 100f:0.#}%" : "") + (Cooldown > 0f ? $"，冷卻 {Cooldown:0.#} 秒" : "");
+                return $"{Name} Lv{level}（{when}{extra}）";
+            }
             switch (Calc)
             {
                 case EffectCalc.Percent: return $"{Name} Lv{level}（+{v * 100f:0.#}%）";
@@ -176,6 +217,17 @@ namespace Dipan.Inventory
                 g.BaseColor = row.Get("BaseColor");
                 if (string.IsNullOrEmpty(g.BaseColor)) g.BaseColor = DefaultColorFor(g.Target);
                 g.Note = row.Get("Note");
+                // 狀態效果（選填的四欄；舊表沒有這四欄也照常讀）
+                g.StatusId = row.GetInt("StatusID", 0);
+                if (g.IsStatusEffect)
+                {
+                    string trig = row.Get("Trigger").Trim();
+                    if (!string.IsNullOrEmpty(trig) && !System.Enum.TryParse(trig, true, out g.Trigger))
+                        Debug.LogWarning($"[GemDatabase] 效果 {id} '{g.Name}' 的 Trigger「{trig}」不認得（OnHit／OnFire／OnKill／OnHurt），改用 OnHit。");
+                    string ch = row.Get("Chance").Trim();
+                    g.Chance = string.IsNullOrEmpty(ch) ? 1f : Mathf.Clamp01(ParseValue(ch));
+                    g.Cooldown = Mathf.Max(0f, row.GetFloat("Cooldown", 0f));
+                }
 
                 if (string.IsNullOrEmpty(g.Attribute))
                 {
@@ -183,11 +235,12 @@ namespace Dipan.Inventory
                     continue;
                 }
                 // 武器類的屬性必須是程式認得的，否則這個效果永遠不會生效（而且不會報錯）
-                if (!g.IsArmorClass && !EquipAttributes.IsKnown(g.Attribute))
+                if (g.IsAttackClass && !g.IsStatusEffect && !EquipAttributes.IsKnown(g.Attribute))
                     Debug.LogWarning($"[GemDatabase] 效果 {id} '{g.Name}' 的 Attribute「{g.Attribute}」程式不認得，不會有效果。可用屬性見 EquipAttributes.cs。");
-                if (!g.IsArmorClass && EquipAttributes.IsKnown(g.Attribute) && EquipAttributes.CalcOf(g.Attribute) != g.Calc)
+                if (g.IsAttackClass && !g.IsStatusEffect && EquipAttributes.IsKnown(g.Attribute) && EquipAttributes.CalcOf(g.Attribute) != g.Calc)
                     Debug.LogWarning($"[GemDatabase] 效果 {id} '{g.Name}'：屬性 {g.Attribute} 的算法應該是 {EquipAttributes.CalcOf(g.Attribute)}，表上填 {g.Calc}，以程式為準。");
-                if (_byAttribute.ContainsKey(g.Attribute))
+                if (g.IsStatusEffect) { }   // 狀態效果都填 Attribute=Status、彼此靠 GemID 區分，不進「一個屬性一種效果」的檢查
+                else if (_byAttribute.ContainsKey(g.Attribute))
                     Debug.LogWarning($"[GemDatabase] 屬性 {g.Attribute} 有兩種效果（{_byAttribute[g.Attribute].GemID} 與 {id}），全身等級相加會分不清，請合併。");
                 else
                     _byAttribute[g.Attribute] = g;
@@ -196,8 +249,8 @@ namespace Dipan.Inventory
             Debug.Log($"[GemDatabase] 載入 {_gems.Count} 種效果。");
         }
 
-        /// <summary>沒填 BaseColor 時的預設珠身顏色：技能珠（配方/武器欄位）紅、屬性珠藍。</summary>
-        static string DefaultColorFor(GemTarget t) => t == GemTarget.Player ? "blue" : "red";
+        /// <summary>沒填 BaseColor 時的預設珠身顏色：攻擊類紅、防禦類藍、輔助類綠。</summary>
+        static string DefaultColorFor(GemTarget t) => t == GemTarget.Player ? "blue" : t == GemTarget.Support ? "green" : "red";
 
         static GemTarget ParseTarget(string s)
         {
@@ -206,6 +259,8 @@ namespace Dipan.Inventory
             {
                 case "weapon": return GemTarget.Weapon;
                 case "player": return GemTarget.Player;
+                case "defense": return GemTarget.Player;
+                case "support": return GemTarget.Support;
                 default: return GemTarget.Recipe;
             }
         }

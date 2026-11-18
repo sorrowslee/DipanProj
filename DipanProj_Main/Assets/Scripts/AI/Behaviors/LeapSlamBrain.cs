@@ -329,7 +329,7 @@ public class LeapSlamBrain : IMonsterBrain
                 if (_vfx == null) _vfx = Object.FindObjectOfType<VfxManager>();
                 if (_vfx != null) _vfx.Spawn(LandDustVfxId, foot + new Vector2(0f, LandDustLiftY));
             }
-            ImpactDamageArea.Spawn(hitCenter, _radius, _damage, self != null ? self.Faction : MonsterFaction.Enemy);
+            ImpactDamageArea.Spawn(hitCenter, _radius, _damage, self != null ? self.Faction : MonsterFaction.Enemy, self != null ? self.gameObject : null);
 
             if (DebugLog) Debug.Log($"[LeapSlam] 落地 @{e:F2}s　判定中心={hitCenter}　視覺(腳底)={foot}" +
                                     $"（深度差 {(_to.y - foot.y):F2}＝pivot 不一致，見 PROBLEMS F27）");
@@ -356,7 +356,7 @@ public class LeapSlamBrain : IMonsterBrain
             Vector2 atVisual = (self != null) ? self.FeetWorldPos : here;   // 視覺＝腳底、判定＝transform（見落地那段）
             var sr = act != null ? act.GetComponent<SpriteRenderer>() : null;
             GroundCrackFx.Spawn(atVisual, _radius * CrackRadiusMul, sr);
-            ImpactDamageArea.Spawn(here, _radius, _damage, self != null ? self.Faction : MonsterFaction.Enemy);
+            ImpactDamageArea.Spawn(here, _radius, _damage, self != null ? self.Faction : MonsterFaction.Enemy, self != null ? self.gameObject : null);
         }
 
         if (self != null)

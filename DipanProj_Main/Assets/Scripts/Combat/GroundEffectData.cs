@@ -60,5 +60,8 @@ public class GroundEffectData
     /// </summary>
     public int FireStyleID;
 
+    /// <summary>每次傷害順便給的狀態（2026-11-18，CSV <c>StatusFx</c>）：狀態清單「名稱:等級;…」，DoT 一律固定值。留空＝無。見 readme/STATUS_EFFECT.md §4。</summary>
+    public string StatusFx = "";
+
     public Sprite[] AnimationSprites;
 }

@@ -444,9 +444,12 @@ public class MonsterAnimator : MonoBehaviour, IShadowAnchorSource
         }
     }
 
+    /// <summary>定格（狀態效果「冰凍」，第⑤階段）：停在目前這一幀，不推進、不切狀態以外的任何事。由 MonsterController 設定與解除。</summary>
+    [System.NonSerialized] public bool Paused;
+
     void Update()
     {
-        if (!_hasAny) return;
+        if (!_hasAny || Paused) return;
         var frames = FramesFor(_state);
         if (frames == null || frames.Length == 0) return;
         if (frames.Length == 1) { ApplyFrame(); if (_osActive) _osDone = true; return; }   // 靜態姿勢（one-shot 視同播完）

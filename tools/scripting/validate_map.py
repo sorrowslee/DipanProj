@@ -32,6 +32,20 @@ ITEMS = csv_ids('ItemTable.csv')
 VFX = csv_ids('VfxTable.csv')
 MAPTAB = maps_table()
 SELF_FIRING = {'onEnter', 'watchFlag', 'teleport', 'playerSpawn', 'monsterSpawn'}
+# 狀態效果（applyStatus／clearStatus 用，2026-11-18）：ID、英文 Key、中文名稱（LanguageTable 的 NameId）都認
+_LANG_CN = {r[0].strip(): (r[1].strip() if len(r) > 1 else '') for r in csv_rows('LanguageTable.csv')[1:]}
+STATUS_NAMES = set()
+for _r in csv_rows('StatusEffectTable.csv')[1:]:
+    if len(_r) > 2 and _r[0].strip():
+        STATUS_NAMES |= {_r[0].strip(), _r[1].strip(), _LANG_CN.get(_r[2].strip(), '')}
+STATUS_NAMES.discard('')
+def status_list_bad(raw):
+    """狀態清單「名稱:等級;…」裡認不得的名稱。"""
+    bad = []
+    for part in str(raw or '').replace('；', ';').split(';'):
+        k = part.replace('：', ':').split(':')[0].strip()
+        if k and k not in STATUS_NAMES: bad.append(k)
+    return bad
 
 errs = warns = 0
 def E(*a):
@@ -141,6 +155,11 @@ for f in files:
             for k in ('textId', 'subTextId', 'optionA', 'optionB'):
                 if p.get(k) and str(p[k]) not in LANGS: E(n, k, '語言 id 不存在', p[k])
             if p.get('next'): W(n, 'timedChoice 不吃通用 next（遊戲端會忽略），用 nextA/nextB/nextTimeout')
+        if t in ('applyStatus', 'clearStatus'):
+            tg = str(p.get('target') or 'player').strip().lower()
+            if tg not in ('player', 'monsters', 'monster', '全部敵怪', '敵怪'): E(n, f'{t} 的 target 要填 player／monsters', p.get('target'))
+            for b in status_list_bad(p.get('status')): E(n, f'{t} 的 status 在 StatusEffectTable 找不到', b)
+            if t == 'applyStatus' and not str(p.get('status') or '').strip(): E(n, 'applyStatus 沒填 status，什麼都不會發生')
         if t == 'watchFlag' and not p.get('fireOnFlag'): E(n, 'watchFlag 沒填 fireOnFlag，永遠不會觸發')
         if t == 'clearLevel' and r['cells']: W(n, 'clearLevel 塗格子不會踩點過關（PROBLEMS B18），要用 camZone/onEnter 接過來')
 

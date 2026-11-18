@@ -337,6 +337,12 @@ public static class WeaponModeSpec
             F(R, "DropStagger", FieldKind.Float, "頭頂投彈", "陸續冒出的時間差（秒）", "0.4", 0f, 5f,
               "各目標頭上的投彈者在 0～此秒數內隨機陸續冒出；0＝全部同時"),
 
+            // ── 狀態效果（2026-11-18，readme/STATUS_EFFECT.md §4）：所有模式都吃（召喚除外：召喚物用自己的武器）──
+            F(R, "StatusLv",      FieldKind.Text, "狀態", "狀態效果起點", "",
+              help: "效果清單「名稱:等級;名稱:等級」查 GemTable 的狀態效果列（例 燃燒:2;減速:1）；跟裝備內建效果、珠子全身等級相加；留空＝無", universal: true),
+            F(R, "StatusDmgCalc", FieldKind.Enum, "狀態", "DoT 算法", "Percent",
+              help: "Percent＝命中那一下的傷害×狀態表百分比；Flat＝狀態表固定值；留空＝Percent", options: new[] { "Percent", "Flat" }, universal: true),
+
             // ── WeaponTable：通用 ──
             F(W, "ID",       FieldKind.Int,   "通用", "武器 ID", "", 1, 99999, "與 ItemTable 同號", universal: true),
             F(W, "Name",     FieldKind.Text,  "通用", "武器名稱", "", universal: true),

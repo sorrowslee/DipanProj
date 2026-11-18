@@ -210,7 +210,7 @@ public class SuicideBombBrain : IMonsterBrain
             if (_vfx != null) _vfx.Spawn(BombVfxId, visualPos, 0f, radius / RadiusFallback);
         }
 
-        ImpactDamageArea.Spawn(hitCenter, radius, damage, self != null ? self.Faction : MonsterFaction.Enemy);
+        ImpactDamageArea.Spawn(hitCenter, radius, damage, self != null ? self.Faction : MonsterFaction.Enemy, self != null ? self.gameObject : null);
 
         if (DebugLog)
             Debug.Log($"[SuicideBomb] 引爆　傷害={damage:F0}　半徑={radius:F2}" +

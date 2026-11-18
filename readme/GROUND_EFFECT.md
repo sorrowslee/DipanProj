@@ -176,3 +176,8 @@ WeaponTable → RecipeTable(Mode) → GroundEffectID → GroundEffectTable.Sigil
 
 GroundEffectTable 最後一欄 `FireStyleID`（GroundFireTable ID）：填了就**不畫序列圖**，改由 DipanVfx 的 `GroundFireBurst` 畫焦土＋火舌＋火星；傷害、範圍、時間仍照這張表。
 目前 8 焚地、9 焚地（大）都填 1。說明與調法見 [DIPAN_VFX.md](DIPAN_VFX.md) §4、§6。
+
+## 順便給狀態（StatusFx，2026-11-18）
+
+GroundEffectTable 最後一欄 `StatusFx`：狀態清單 `名稱:等級;…`（StatusEffectTable 的中文名／Key／ID），每次傷害打到單位時順便給（DoT 一律固定值）。留空＝無，目前全部留空。
+注意地面特效本身的週期傷害**不是**狀態 DoT（照舊是一般命中＋`IsDot`）。見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §4。

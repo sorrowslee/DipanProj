@@ -1,0 +1,14 @@
+# 名稱,x,y,w,h（像素、左下原點）。由 TempImage/status_icons/tools/build_atlas.py 產生，不要手改
+# size＝合成時的原始尺寸；Unity 匯入若被縮小（.meta 的 maxTextureSize），程式會照實際尺寸換算
+size,512,512
+status_burn,0,384,128,128
+status_poison,128,384,128,128
+status_slow,256,384,128,128
+status_vuln,384,384,128,128
+status_weak,0,256,128,128
+status_stun,128,256,128,128
+status_freeze,256,256,128,128
+status_might,384,256,128,128
+status_guard,0,128,128,128
+status_haste,128,128,128,128
+status_regen,256,128,128,128

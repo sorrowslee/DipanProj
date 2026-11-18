@@ -41,6 +41,8 @@ namespace Dipan.Inventory
         /// 之後新增道具時要先問作者稀有度（readme/EQUIPMENT.md §1）。
         /// </summary>
         public Dipan.Exchange.ItemRarity Rarity = Dipan.Exchange.ItemRarity.White;
+        /// <summary>藥劑喝下時給玩家的狀態（第 21 欄 / index 20 <c>UseStatus</c>，2026-11-18）：狀態清單「名稱:等級;…」，DoT 一律固定值。留空＝無。見 readme/STATUS_EFFECT.md §4。</summary>
+        public string UseStatus = "";
         /// <summary>
         /// **被動武器掛載**（2026-10-01，第 19 欄）：裝備這件就自動帶著的被動武器（WeaponTable ID，被動型模式如 Familiar）。
         /// 分號分隔可填多把（<c>72;73</c>）。任何可裝備列都能填（護身符、戒指、胸甲…）；

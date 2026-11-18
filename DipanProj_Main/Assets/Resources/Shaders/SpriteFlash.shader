@@ -27,6 +27,11 @@ Shader "Custom/SpriteFlash"
         _LiftTint ("Black lift color (Vector, normalized)", Vector) = (1,1,1,1)
         _Sat ("Saturation delta", Float) = 0
         _LumBoost ("Lit boost (push over bloom threshold)", Float) = 0
+
+        // ── 狀態效果染色（2026-11-18，readme/STATUS_EFFECT.md；StatusVisuals → HitReactionHandler.SetStatusTint 以 MPB 餵值）──
+        // 預設 0 ＝**這一段不做事**，畫面與加這功能之前逐位元相同。
+        _StatusTint ("Status tint color", Color) = (1,1,1,1)
+        _StatusTintAmount ("Status tint amount (0=off)", Float) = 0
     }
 
     SubShader
@@ -81,6 +86,8 @@ Shader "Custom/SpriteFlash"
             float _EnvOn, _EnvMix, _EnvPivot, _EnvSplit;
             float _BlackLift, _Sat, _LumBoost;
             float4 _EnvBase, _EnvLit, _LiftTint;
+            fixed4 _StatusTint;
+            float _StatusTintAmount;
 
             v2f SpriteVert(appdata_t IN)
             {
@@ -145,6 +152,16 @@ Shader "Custom/SpriteFlash"
                     // （原本的 (e) 邊緣融合 Test C 已於 2026-09-03 砍除：兩輪實測貢獻在雜訊級。）
 
                     c.rgb = e;
+                }
+
+                // 狀態效果染色（燃燒橘、中毒綠、減速藍灰…）：單色化後乘上狀態色，再墊一點底亮度。
+                // ⚠ 為什麼要墊底：這些角色本體幾乎全黑，純乘色（黑 × 綠 = 黑）根本看不出來（同下面充能發光的理由）。
+                //   0.06 是 Linear 空間的量（PROBLEMS E11），在暗場景裡剛好看得出一層色、不會變成發光。
+                if (_StatusTintAmount > 0.001)
+                {
+                    float sl = dot(c.rgb, float3(0.299, 0.587, 0.114));
+                    float3 st = _StatusTint.rgb * (sl * 1.2 + 0.06);
+                    c.rgb = lerp(c.rgb, st, _StatusTintAmount);
                 }
 
                 // 充能發光：往 _ChargeColor **加亮**。

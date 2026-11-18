@@ -1171,7 +1171,7 @@
 - [ ] **地刺特效重做待作者 Play 驗收**（2026-11-17，見 GROUND_SPIKE.md）：大小、刺出／停留／收回時間是估的；收回不好看就把 GroundSpikeTable 的 `RetractMode` 改 `Fade`。
 - [ ] **重寫 [GEM_CATALOG.md](GEM_CATALOG.md)**：數值與範例全部是改版前的（24 種、新曲線、新尺度）。
 - [ ] 子彈乘積（分裂 × 平行 × 連擊）的極限測試——體系完成後（EQUIPMENT §13）。
-- [ ] 防具類效果（減傷、增防、法抗、增速）＋`GemTarget.Player` 的套用——之後才規劃。
+- [ ] ~~防具類效果＋`GemTarget.Player` 的套用~~ → 改由狀態效果系統做（2026-11-18 起分攻擊／防禦／輔助三類，見 [STATUS_EFFECT.md](STATUS_EFFECT.md) 與本檔尾〈狀態效果系統〉）。
 - [ ] ⚠ [PROGRESS.md](PROGRESS.md) 已約 260KB，遠超封存門檻（~96KB，DOCS_GUIDE §5），需要把最舊條目搬到 archive（不屬於裝備體系，順手記一下）。
 
 ## DipanVfx 火焰重製（2026-11-18）
@@ -1180,3 +1180,17 @@
 - [ ] 確認沒問題後可刪舊序列圖 `Resources/Weapon/animation/fire/`、`Resources/GroundEffect/ScorchedGround/`（目前還被 GroundEffectTable 8／9 的 AniPath 指著，只是不畫；要刪先清那兩格）。
 - [ ] **傳送點新外型**實機看（亮度、池身深淺、光柱高度；暗場景 Atmosphere 壓暗後是否仍清楚）；確認後 VfxTable 6 與 `Resources/VfxEffects/Teleport/`（48 張）可刪——刪之前先把 `MapLoader.teleportVfxId` 與編輯器 `TeleportMarkerPreview` 的序列圖退路一起拿掉。
 - [ ] 特效巡視清單（2026-11-18，PROGRESS 同日條目）等作者挑要換哪些。
+
+## 狀態效果系統（buff／debuff／DoT，2026-11-18，分支 `feat/status-effect`，見 [STATUS_EFFECT.md](STATUS_EFFECT.md)）
+
+- [ ] **第①②階段待作者 Play 驗收**：L →「狀態」分頁（玩家／附近怪物、Lv1/3/5/10）；看 DoT 合併數字、移速、傷害數字變化、頭目跳「免疫」、換圖保留、離開關卡清空。
+- [ ] **第③階段待作者 Play 驗收**（2026-11-18 已做）：狀態列位置與大小、tip、怪物頭上圖示大小、染色強度（`StatusVisuals.TintStrength` 0.35）、中毒泡數量。（備選圖示：作者 2026-11-18 定**不換**，維持原圖。）
+- [ ] **第④階段待作者 Play 驗收**（2026-11-18 已做，見 STATUS_EFFECT §4）：狀態分頁「狀態珠各給一顆」→ 鑲上武器／胸甲／鞋子，看命中上 DoT、發射增傷／疾行、受擊護體／回春（冷卻 8 秒）、作弊面板第一行「觸發效果」；換 Nidhogg 血統看狀態列有沒有增傷；珠子 tooltip 文字。
+- [x] 12 顆狀態珠（ItemTable 428–439）的 `Rarity`：作者 2026-11-18 定**一般**（留空即可）。
+- [ ] 狀態效果的數值（GemTable 35–39 的機率／冷卻、狀態表強度）都是起手值，待平衡。
+- [ ] 受擊時的減益效果沒有對象（`TakeDamage` 拿不到攻擊者）；第一批都是 buff 沒影響。
+- [ ] **第⑤階段待作者 Play 驗收**（2026-11-18 已做，見 STATUS_EFFECT §2.8）：作弊面板對附近怪物按暈眩／冰凍（必中）——怪物不動、不打、碰到不痛，冰凍定格、暈眩收招站著，解除後 2 秒內再按顯示 Ignored；對玩家按——不能走、不能攻擊、按 1 喝藥跳「被控制時不能喝藥」；頭目跳免疫。
+- [ ] 被控制的玩家頭上沒有漩渦／冰的圖示（只有狀態列）——要不要加看實測感受。
+- [ ] **第⑥階段待作者 Play 驗收**（2026-11-18 已做）：「狀態」分頁「給狀態測試裝備」穿上看三種 buff；「壓測：生 50／100 隻」看左上角幀時間（最好打 Development Build 或開 Profiler），把數字回報給 AI。
+- [ ] 傷害數字（`DamageNumberManager`）沒有物件池，大量怪物時可能是瓶頸——壓測若卡在這裡再改（原有系統，先沒動）。
+- [ ] 已知限制：`PounceBrain` 撲擊被減速時距離變短（截止時間沒乘減速）。

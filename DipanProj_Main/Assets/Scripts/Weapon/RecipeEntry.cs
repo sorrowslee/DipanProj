@@ -135,6 +135,12 @@ public class RecipeEntry
     /// <summary>各目標頭上的投彈者在 0～此秒數內隨機陸續冒出。</summary>
     public float DropStagger = 0.4f;
 
+    // ── 狀態效果（2026-11-18，readme/STATUS_EFFECT.md §4、§6）──
+    /// <summary>配方上的狀態效果起點（原始清單字串「名稱:等級;…」，查 GemTable 狀態效果列）。能力容器把它跟全身效果等級相加；怪物武器直接用。</summary>
+    public string StatusLv = "";
+    /// <summary>DoT 算法：true＝狀態表固定值；false（預設）＝命中那一下的傷害×狀態表百分比。</summary>
+    public bool StatusDmgFlat;
+
     /// <summary>持續型（按住生效）：Laser / Aura。沒有發射間隔、不吃集氣。</summary>
     public bool IsContinuous => WeaponModeSpec.Get(Mode).Continuous;
 
@@ -330,6 +336,16 @@ public class RecipeEntry
         e.DropStagger = Math.Max(0f, Fl("DropStagger", 0.4f));
         if (mode == WeaponMode.Overhead && e.AreaRadius <= 0f) e.AreaRadius = 1f;   // 爆炸半徑留空＝1
         if (mode == WeaponMode.Overhead && d.BeamRange <= 0f) d.BeamRange = OverheadDefaultRange;
+
+        // ── 狀態效果（通用欄）──
+        e.StatusLv = G("StatusLv") ?? "";
+        string dmgCalc = G("StatusDmgCalc");
+        if (!string.IsNullOrEmpty(dmgCalc))
+        {
+            if (string.Equals(dmgCalc, "Flat", StringComparison.OrdinalIgnoreCase)) e.StatusDmgFlat = true;
+            else if (!string.Equals(dmgCalc, "Percent", StringComparison.OrdinalIgnoreCase))
+                problems.Add($"[Warning] StatusDmgCalc「{dmgCalc}」不認得（Percent／Flat），先當 Percent。");
+        }
 
         // 規格檢查（必填缺 / 無效卻有填）
         if (fields != null) problems.AddRange(WeaponModeSpec.Validate(mode, fields, FieldTable.Recipe));
