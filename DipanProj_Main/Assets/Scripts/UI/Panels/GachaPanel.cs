@@ -170,6 +170,9 @@ namespace Dipan.UI
         GachaPoolDef _pool;
         List<GachaRollEntry> _candidates = new List<GachaRollEntry>();
         readonly int[] _contents = new int[StripCells];
+
+        /// <summary>單抽結果名稱的退路色（查不到物品時）；平常用品質色（readme/EQUIPMENT.md §7）。</summary>
+        static readonly Color ResultNameColor = new Color(1f, 0.93f, 0.72f);
         float _offset;
         Coroutine _spin;
         bool _spinning, _skip;
@@ -329,7 +332,7 @@ namespace Dipan.UI
 
             // 名稱不放在會旋轉的 root 底下，否則會跟著轉。
             // 用描邊而不是底板來保證可讀性——底板會變成畫面上多一個看不出用途的黑方塊。
-            _resultName = UIBuilder.Text(transform, "ResultName", "", 26, new Color(1f, 0.93f, 0.72f));
+            _resultName = UIBuilder.Text(transform, "ResultName", "", 26, ResultNameColor);
             _resultName.font = UIBuilder.LoadFont(TitleFontPath);
             UIBuilder.Center(_resultName.rectTransform, ResultNameW, 44f, new Vector2(0f, ResultNameY));
             var outline = _resultName.gameObject.AddComponent<Outline>();
@@ -377,19 +380,26 @@ namespace Dipan.UI
             rootGo.SetActive(false);
         }
 
-        /// <summary>把這一輪十連的結果攤成清單顯示。相同的東西會合併成「名稱 ×N」。</summary>
-        void ShowMultiSummary(List<int> results)
+        /// <summary>
+        /// 把這一輪十連的結果攤成清單顯示。**一般可疊道具**相同的會合併成「名稱 ×N」；
+        /// 有實例的（裝備、珠子）每件品質／等級都不同，所以**不合併**，一件一格照實際那一件畫。
+        /// </summary>
+        void ShowMultiSummary(List<ItemStack> results)
         {
             if (_summaryRoot == null || _summaryGrid == null || results == null) return;
 
             // 合併重複（保持第一次抽到的順序，看起來比較自然）
-            var order = new List<int>();
-            var count = new Dictionary<int, int>();
-            foreach (int id in results)
+            var order = new List<ItemStack>();
+            var countOf = new List<int>();
+            foreach (var st in results)
             {
-                if (id <= 0) continue;
-                if (!count.ContainsKey(id)) { count[id] = 0; order.Add(id); }
-                count[id]++;
+                if (st.IsEmpty) continue;
+                int at = -1;
+                if (st.Inst == null)
+                    for (int k = 0; k < order.Count; k++)
+                        if (order[k].Inst == null && order[k].ItemId == st.ItemId) { at = k; break; }
+                if (at < 0) { order.Add(st); countOf.Add(0); at = order.Count - 1; }
+                countOf[at]++;
             }
 
             for (int i = _summaryGrid.childCount - 1; i >= 0; i--) Destroy(_summaryGrid.GetChild(i).gameObject);
@@ -413,7 +423,8 @@ namespace Dipan.UI
                     float x = -rowW * 0.5f + cellW * 0.5f + col * cellW;
                     float y = rows == 1 ? 0f : (row == 0 ? cellH * 0.52f : -cellH * 0.52f);
 
-                    int id = order[i];
+                    var st = order[i];
+                    int id = st.ItemId;
                     var d = inv != null ? inv.GetData(id) : null;
 
                     var cell = UIBuilder.Create($"Sum{i}", _summaryGrid);
@@ -423,19 +434,24 @@ namespace Dipan.UI
                     icon.preserveAspect = true;
                     icon.raycastTarget = false;
                     UIBuilder.Center(icon.rectTransform, iconS, iconS, new Vector2(0f, cellH * 0.14f));
-                    ItemIcons.Apply(icon, id);
+                    ItemIcons.Apply(icon, st);
 
-                    if (count[id] > 1)
+                    // 品質框：icon 的 rect 會被 IconFit 放大，框另外掛一個固定 iconS 的容器
+                    var frameHost = UIBuilder.Rect(UIBuilder.Create("Frame", cell.transform));
+                    UIBuilder.Center(frameHost, iconS, iconS, new Vector2(0f, cellH * 0.14f));
+                    ItemIcons.ApplyQualityFrame(frameHost, st);
+
+                    if (countOf[i] > 1)
                     {
-                        var cnt = UIBuilder.Text(cell.transform, "Count", $"×{count[id]}", 24,
+                        var cnt = UIBuilder.Text(cell.transform, "Count", $"×{countOf[i]}", 24,
                                                  new Color(1f, 0.88f, 0.5f), TextAnchor.LowerRight);
                         cnt.fontStyle = FontStyle.Bold;
                         UIBuilder.Center(cnt.rectTransform, iconS, iconS,
                                          new Vector2(cellW * 0.16f, cellH * 0.14f - iconS * 0.12f));
                     }
 
-                    var nameT = UIBuilder.Text(cell.transform, "Name", d != null ? d.Name : $"#{id}",
-                                               rows == 1 ? 22 : 18, new Color(0.94f, 0.88f, 0.74f));
+                    var nameT = UIBuilder.Text(cell.transform, "Name", d != null ? ItemQuality.DisplayName(d, st.Inst) : $"#{id}",
+                                               rows == 1 ? 22 : 18, d != null ? ItemQuality.ColorOf(d, st.Inst) : new Color(0.94f, 0.88f, 0.74f));
                     UIBuilder.Center(nameT.rectTransform, cellW - 6f, 30f, new Vector2(0f, -cellH * 0.34f));
                 }
             }
@@ -757,10 +773,10 @@ namespace Dipan.UI
             RefreshStatic();
 
             if (_spin != null) StopCoroutine(_spin);
-            _spin = StartCoroutine(PlayRoll(res.ItemIds, multi));
+            _spin = StartCoroutine(PlayRoll(res.Stacks, multi));   // 演的是實際拿到的那一件（含品質、珠子等級）
         }
 
-        IEnumerator PlayRoll(List<int> results, bool multi)
+        IEnumerator PlayRoll(List<ItemStack> results, bool multi)
         {
             float fastDur = multi ? FastDurMulti : FastDurSingle;
             float decelDur = multi ? DecelDurMulti : DecelDurSingle;
@@ -768,7 +784,8 @@ namespace Dipan.UI
 
             for (int n = 0; n < results.Count; n++)
             {
-                int result = results[n];
+                var resultStack = results[n];
+                int result = resultStack.ItemId;   // 轉盤格子只認 id；落定後的結果圖／小縮圖／結算才畫實際那一件
 
                 if (!_skip)
                 {
@@ -818,8 +835,8 @@ namespace Dipan.UI
                     ApplyOffset();
                 }
 
-                if (multi) AddToResultRow(result);
-                if (!multi) yield return ShowResult(result, animate: !_skip, dur: landDur);
+                if (multi) AddToResultRow(resultStack);
+                if (!multi) yield return ShowResult(resultStack, animate: !_skip, dur: landDur);
                 else if (!_skip)
                 {
                     float t = 0f;
@@ -836,18 +853,20 @@ namespace Dipan.UI
             if (multi) ShowMultiSummary(results);
         }
 
-        IEnumerator ShowResult(int itemId, bool animate, float dur)
+        IEnumerator ShowResult(ItemStack st, bool animate, float dur)
         {
             var inv = InventorySystem.Instance;
-            var d = inv != null ? inv.GetData(itemId) : null;
+            var d = inv != null ? inv.GetData(st.ItemId) : null;
 
             if (_resultIcon != null)
             {
-                ItemIcons.Apply(_resultIcon, itemId);
+                ItemIcons.Apply(_resultIcon, st);   // 珠子畫實際等級（舊版固定 Lv1）
             }
             if (_resultName != null)
             {
-                _resultName.text = d != null ? d.Name : $"#{itemId}";
+                // 品質系統：裝備「品名 名稱」、整串品質色（readme/EQUIPMENT.md §7）
+                _resultName.text = d != null ? ItemQuality.DisplayName(d, st.Inst) : $"#{st.ItemId}";
+                _resultName.color = d != null ? ItemQuality.ColorOf(d, st.Inst) : ResultNameColor;
                 _resultName.gameObject.SetActive(true);
             }
             if (_stageDim != null) _stageDim.gameObject.SetActive(true);
@@ -888,11 +907,9 @@ namespace Dipan.UI
             for (int i = _resultRow.childCount - 1; i >= 0; i--) Destroy(_resultRow.GetChild(i).gameObject);
         }
 
-        void AddToResultRow(int itemId)
+        void AddToResultRow(ItemStack st)
         {
             if (_resultRow == null) return;
-            var inv = InventorySystem.Instance;
-            var d = inv != null ? inv.GetData(itemId) : null;
 
             var cell = UIBuilder.Create($"R{_resultRow.childCount}", _resultRow);
             var bgImg = cell.AddComponent<Image>();
@@ -903,7 +920,8 @@ namespace Dipan.UI
             icon.preserveAspect = true;
             icon.raycastTarget = false;
             UIBuilder.Center(icon.rectTransform, ResultCell - 10f, ResultCell - 10f, Vector2.zero);
-            ItemIcons.Apply(icon, itemId);
+            ItemIcons.Apply(icon, st);
+            ItemIcons.ApplyQualityFrame(UIBuilder.Rect(cell), st, icon);   // 良品以上的裝備畫品質框
 
             int n = _resultRow.childCount;
             float totalW = n * ResultCell + (n - 1) * ResultGap;

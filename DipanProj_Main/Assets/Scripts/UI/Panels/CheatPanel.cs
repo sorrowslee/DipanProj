@@ -64,7 +64,7 @@ namespace Dipan.UI
         readonly List<GameObject> _contents = new List<GameObject>();
 
         // 「給道具」分頁的欄位
-        InputField _idInput, _countInput;
+        InputField _idInput, _countInput, _specInput;
         Text _giveStatus;
 
         protected override void OnBuild()
@@ -185,13 +185,13 @@ namespace Dipan.UI
             Place(head.rectTransform, 0f, 0f, 600f, 40f);
 
             var hint = UIBuilder.Text(root, "Hint",
-                "物品 ID 見 Assets/Data/ItemTable.csv（例：201 回血藥）。下方一鍵快捷不用填欄位。",
+                "物品 ID 見 Assets/Data/ItemTable.csv（例：201 回血藥）。規格：q=品質1~4、s=孔數、fx=效果ID@等級|…、lv=珠子等級，用 ; 分隔；留空＝裝備給一般 6 孔、填「隨機」＝照遊戲規則骰。",
                 18, new Color(1f, 1f, 1f, 0.6f), TextAnchor.UpperLeft);
             Place(hint.rectTransform, 0f, 46f, GroupW, 30f);
 
             // ── 第一組：依 ID 給道具 ──
             //    ID、數量、確認是同一件事的三個步驟，排成一列才好操作（填、填、按）。
-            const float G1Y = 92f, G1H = 124f, Row1Y = 136f, RowH = 48f;
+            const float G1Y = 92f, G1H = 180f, Row1Y = 136f, Row2Y = 192f, RowH = 48f;
             AddGroup(root, "依 ID 給道具", G1Y, G1H, ColGroupA);
 
             var idLabel = UIBuilder.Text(root, "IdLabel", "物品 ID", 22, Color.white, TextAnchor.MiddleLeft);
@@ -210,27 +210,33 @@ namespace Dipan.UI
             var giveBtn = UIBuilder.Button(root, "GiveBtn", "確認給予", OnClickGive, ColBtn);
             Place((RectTransform)giveBtn.transform, 579f, Row1Y, 230f, RowH);
 
-            AddDivider(root, 232f);
+            // 第二列：生成規格（品質系統，readme/EQUIPMENT.md §6）——跟兌換表、掉落表、劇本 giveItem 同一個解析器
+            var specLabel = UIBuilder.Text(root, "SpecLabel", "規格", 22, Color.white, TextAnchor.MiddleLeft);
+            Place(specLabel.rectTransform, 14f, Row2Y, 110f, RowH);
+            _specInput = UIBuilder.InputField(root, "SpecInput", "例：q=4　或　fx=6@2|1@3（留空＝一般 6 孔；隨機＝照規則骰）", 22, 64, ColInputBg);
+            Place((RectTransform)_specInput.transform, 129f, Row2Y, 680f, RowH);
+
+            AddDivider(root, 288f);
 
             // ── 第二組：一鍵快捷（不用填任何欄位）──
-            const float G2Y = 246f, G2H = 118f;
+            const float G2Y = 302f, G2H = 118f;
             AddGroup(root, "一鍵快捷", G2Y, G2H, ColGroupB);
 
             var moneyBtn = UIBuilder.Button(root, "MoneyBtn", $"獲得 {CheatMoneyAmount:N0} 功德值",
                                             OnClickGiveMoney, ColBtn);
-            Place((RectTransform)moneyBtn.transform, 14f, 288f, 260f, 56f);
+            Place((RectTransform)moneyBtn.transform, 14f, 344f, 260f, 56f);
 
             var allWeaponBtn = UIBuilder.Button(root, "AllWeaponBtn", "取得所有武器（每種一把）",
                                                 OnClickGiveAllWeapons, ColBtn);
-            Place((RectTransform)allWeaponBtn.transform, 289f, 288f, 330f, 56f);
+            Place((RectTransform)allWeaponBtn.transform, 289f, 344f, 330f, 56f);
 
             var allBloodBtn = UIBuilder.Button(root, "AllBloodBtn", "獲得所有血統藥劑",
                                                OnClickGiveAllBloodlinePotions, ColBtn);
-            Place((RectTransform)allBloodBtn.transform, 634f, 288f, 330f, 56f);
+            Place((RectTransform)allBloodBtn.transform, 634f, 344f, 330f, 56f);
 
             // 狀態列（本次結果）——兩組共用，放在最下面
             _giveStatus = UIBuilder.Text(root, "GiveStatus", "", 22, ColOk, TextAnchor.UpperLeft);
-            Place(_giveStatus.rectTransform, 0f, 384f, GroupW, 80f);
+            Place(_giveStatus.rectTransform, 0f, 440f, GroupW, 80f);
         }
 
         // ───────────────────────── 分頁：玩家（無敵…）─────────────────────────
@@ -479,6 +485,12 @@ namespace Dipan.UI
             AlertPanel.Toast($"作弊：能力珠 ×{given}");
         }
 
+        /// <summary>
+        /// 作弊面板給裝備的預設規格：**一般品質（沒有任何內建效果）＋ 6 孔全開**（2026-11-17 作者定）。
+        /// 測試時要什麼效果自己鑲珠子，或在規格欄寫死；想要全隨機在規格欄填「隨機」。
+        /// </summary>
+        static ItemSpec CheatEquipSpec => new ItemSpec { Quality = 1, Sockets = ItemInstance.SocketMax };
+
         // 測試用防具（護身符/戒指）——驗證「珠子鑲在別的裝備上也會加到武器身上」。
         void OnClickGiveArmor()
         {
@@ -488,7 +500,7 @@ namespace Dipan.UI
             foreach (int id in new[] { 501, 502 })
             {
                 if (inv.GetData(id) == null) continue;
-                if (inv.AddStack(Dipan.Inventory.ItemManager.Create(id, 1)) == 0) ok++;
+                if (inv.AddStack(Dipan.Inventory.ItemManager.Create(id, 1, CheatEquipSpec)) == 0) ok++;
             }
             SetSocketStatus(ok > 0 ? $"已給予 {ok} 件測試防具。" : "背包已滿或物品表裡沒有 501/502。", ok > 0);
         }
@@ -548,7 +560,7 @@ namespace Dipan.UI
                 if (inv.HasAnywhere(id)) { already++; continue; }
                 // 一定要走 ItemManager.Create——武器需要實例資料（孔位要現場骰），
                 // 直接 AddItem(id) 會拿到一把沒有孔的裸裝。見 readme/GEM_SOCKET.md。
-                if (inv.AddStack(ItemManager.Create(id, 1)) > 0) full++;
+                if (inv.AddStack(ItemManager.Create(id, 1, CheatEquipSpec)) > 0) full++;   // 一般、6 孔（沒有內建效果）
                 else given++;
             }
 
@@ -634,21 +646,49 @@ namespace Dipan.UI
                 return;
             }
 
+            // 解析規格。格式錯就不給，直接說哪裡錯。
+            // 留空：裝備＝一般品質＋6 孔（CheatEquipSpec，作者 2026-11-17 定：作弊給的裝備一律沒有內建效果）；其他物品＝照規則骰。
+            // 填「隨機」＝完全照遊戲規則骰（品質、效果、孔數都隨機）。
+            string specText = (_specInput != null ? _specInput.text : "").Trim();
+            ItemSpec spec;
+            bool fullRandom = specText == "隨機" || specText == "随机" || specText.Equals("random", System.StringComparison.OrdinalIgnoreCase);
+            if (fullRandom) spec = null;
+            else
+            {
+                if (!ItemSpec.TryParse(specText, out spec, out var specErr))
+                {
+                    SetGiveStatus($"規格有誤：{specErr}", false);
+                    return;
+                }
+                if (spec.IsEmpty) spec = data.IsEquippable ? CheatEquipSpec : null;
+            }
+
             // 走「取得物品的統一入口」，但**指定直接進真背包**（toRealBag）：
             // 走取得物品的統一入口（一律進真背包；toRealBag 已無作用，2026-11-06 拿掉臨時包）。
             // 走統一入口是為了保留另外兩件事：需要實例的物品（裝備/能力珠）會經 ItemManager 骰好孔位，
             // 給 101 銅錢會自動轉成金錢數字（不佔背包格）。
-            int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, count, toRealBag: true)
-                                              : inv.AddItem(id, count);
+            int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, count, toRealBag: true, spec: spec)
+                                              : GiveWithoutRun(inv, data, id, count, spec);
             int added = count - leftover;
             string name = string.IsNullOrEmpty(data.Name) ? $"#{id}" : data.Name;
+            string specNote = spec == null ? ""
+                : ItemManager.NeedsInstance(data) ? $"，規格 [{spec}]" : "；它不是裝備或能力珠，規格沒有作用";
 
             if (leftover > 0)
                 SetGiveStatus($"背包已滿：{name} 放入 {added} 個，還有 {leftover} 個放不下。", added > 0);
             else
-                SetGiveStatus($"已給予 {name} ×{added}（ID {id}）。", true);
+                SetGiveStatus($"已給予 {name} ×{added}（ID {id}{specNote}）。滑鼠移到那一件上可看品質與效果。", true);
 
             AlertPanel.Toast(added > 0 ? $"作弊：獲得 {name} ×{added}" : $"背包已滿，{name} 放不下");
+        }
+
+        /// <summary>沒有 RunProgress（單獨測場景）時的退路：需要實例的物品一件一件照規格產生，其餘直接加。</summary>
+        static int GiveWithoutRun(InventorySystem inv, ItemData data, int id, int count, ItemSpec spec)
+        {
+            if (!ItemManager.NeedsInstance(data)) return inv.AddItem(id, count);
+            int left = 0;
+            for (int i = 0; i < count; i++) left += inv.AddStack(ItemManager.Create(id, 1, spec));
+            return left;
         }
 
         void SetGiveStatus(string msg, bool ok)

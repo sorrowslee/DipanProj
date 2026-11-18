@@ -96,7 +96,7 @@
           "scaleY": 0.99,
           "sortKey": -12.3261166,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -128,7 +128,7 @@
           "scaleY": 1.0,
           "sortKey": -13.2968922,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -160,7 +160,7 @@
           "scaleY": 1.61051011,
           "sortKey": -6.01434755,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -192,7 +192,7 @@
           "scaleY": 1.61051011,
           "sortKey": -10.7412748,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -441,7 +441,8 @@
           ],
           "params": {
             "dramaId": "1",
-            "repeat": "每次"
+            "repeat": "每次",
+            "next": "家族合照-藥水"
           }
         },
         {
@@ -503,6 +504,17 @@
           "params": {
             "dramaId": "29",
             "canSkip": true
+          }
+        },
+        {
+          "id": "89acfd38",
+          "name": "家族合照-藥水",
+          "typeId": "giveItem",
+          "cells": [],
+          "params": {
+            "itemId": "201",
+            "count": "3",
+            "iconToast": true
           }
         }
       ]

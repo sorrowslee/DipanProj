@@ -23,7 +23,7 @@
   > 以及落地爆炸與施放點的視覺仍照播武器自己的**。所以「武器的擊中特效沒出現」先確認玩家是不是三階血統。
   > 規則與六個呼叫點的分類見 [BLOODLINE.md](BLOODLINE.md) **§5c**。
 * **軌跡特效 (`TrailEffectID`)**：沿路徑每隔配方 `TrailStep` 距離鋪一個特效。兩種載體：
-  * **子彈**（一般飛行道具）→ 由 `BulletInstance.OnTrailPoint` 觸發，做**地刺類武器**（隱形子彈沿路種尖刺，自動吃滿反彈/分裂/追蹤）。見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 的 `TrailStep`。
+  * **子彈**（一般飛行道具）→ 由 `BulletInstance.OnTrailPoint` 觸發（隱形子彈沿路種特效，自動吃滿反彈/分裂/追蹤）。⚠ **地刺類武器 2026-11-17 起改用武器表 `TrailSpikeID`**（從地底刺出的尖刺，見 [GROUND_SPIKE.md](GROUND_SPIKE.md)），舊的地刺序列圖（VfxTable 3、`VfxEffects/EarthSpik`）已刪除。見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 的 `TrailStep`。
   * **雷射光束**（`Mode=Laser` + `TrailEffectID>0`）→ 沿光束路徑鋪**循環**火焰，做**火焰噴射器**（按住掃射、持續 DOT）。此時火焰 Vfx 須 `Loop=1` + `Duration=-1`（持續循環、由 PlayerController 管理生死）。見 [LASER.md](LASER.md) 的「火焰噴射器」。
 
 三者都引用同一張 `VfxTable.csv`、用同一個 `VfxManager.Spawn(id, position, angle)`。

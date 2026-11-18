@@ -86,7 +86,7 @@ public class MapLoader : MonoBehaviour
 
     [Header("地上物可破壞")]
     public bool objectsDestructible = true;
-    public float objectMaxHP = 20f;
+    public float objectMaxHP = 200f;
     public int objectDestroyVfxId = 5;   // 對應 VfxTable.csv;檔名/張數/FPS 在那一列設定
 
     [Header("傳送點特效（VfxTable ID，須為 Loop=1/Duration=-1 的循環特效；0 = 不放）")]

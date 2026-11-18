@@ -35,13 +35,13 @@
 * `ParabolicBehavior`（彈道系統）：完全接管移動，`OnSpawn` 把 `CollisionMask = 0` / `LifeTime = -1` / `Velocity = 0`，飛行中不撞任何 layer。地面位置線性插值，視覺加 `4 * ArcHeight * t * (1 - t)` 的 Y 偏移製造弧線；抵達目標時呼叫 `instance.RaiseGroundLanded(landPos)` 並把 `LifeTime` 設為 0 讓 `BulletInstance` 自動清理
 * `BulletInstance.cs` 新增 `Action<BulletInstance, Vector2> OnGroundLanded` 事件，`PlayerController.ShootParabolic` 在 Spawn 後訂閱
 * `PlayerController.ShootParabolic`：
-  - **吃 `SpreadCount` / `SpreadAngle`**：以「玩家 → 滑鼠」為基準軸，N 顆炸彈在 ±SpreadAngle/2 範圍內等角度分布，扇形目標到玩家距離 = 玩家到滑鼠距離（拋物線**不需要**填 `SplitTiming`，是另一條獨立分裂路徑，不走 SplitBehavior）
+  - **吃 `SplitLv` / `SpreadSpacing` / `SpreadMaxAngle`**（2026-11-17 起 CSV 填等級，見 [EQUIPMENT.md](EQUIPMENT.md)）：以「玩家 → 滑鼠」為基準軸，1＋lv 顆炸彈在扇形內等角度分布，扇形目標到玩家距離 = 玩家到滑鼠距離（拋物線**不需要**填 `SplitTiming`，是另一條獨立分裂路徑，不走 SplitBehavior）
   - **吃 `LandingScatterRadius`**：每顆炸彈在自己的扇形目標 + `Random.insideUnitCircle * 半徑` 內找一個落點（圓盤內均勻分布），多顆獨立隨機，避免堆疊在同一點
   - 為了讓 `SpreadCount` / `SpreadAngle` 在拋物線下生效，`RecipeManager.LoadRecipes` 改為**始終**把 SpreadCount / SpreadAngle 寫入 `ProjectileData`（不再只在 HasSplit 路徑下記錄）
 * `PlayerController.ResolveParabolicStartPos`：`LaunchSource = Player` 從玩家位置出發；`Offscreen` 用攝影機 `orthographicSize × aspect` 算 viewport 邊界，從攝影機中心射隨機方向找出視野邊界距離 + 1 單位緩衝；多顆炸彈時 `Offscreen` 每顆都**獨立重抽**起點
 * **落地殺傷 `AreaRadius`（新增）**：留空 / 0 時拋物線飛行中與落地都**不對怪物造成傷害**（純地面特效觸發載體，原行為）；填 > 0 時，**落地瞬間**以**武器表 `Damage`** 對落點 `AreaRadius` 半徑內怪物做一次性 AOE 殺傷（`Physics2D.OverlapCircleAll` 打 `EnemyLayer`，吃怪物無敵時間、擊退方向由爆心朝外）。在 `PlayerController.HandleParabolicLanded` 結算，**不碰彈道系統**（維持「彈道絕不算傷害」邊界，`AreaRadius` 存在主遊戲側的 `RecipeEntry`）。
 * **`AreaRadius` 與地面特效獨立、可並存**：一顆炸彈可以「落地炸一次（AreaRadius，瞬間）＋ 再留一灘火延燒（GroundEffect 的 `Damage` / `DamageInterval`，持續）」；也可只要其中一個。兩者傷害分別計算（互不串接）
-* `Mode=Parabolic` 與其他模式天生互斥（一列一種）；`PierceCount` / `BounceTarget` / `MaxBounces` 在拋物線下無意義（飛行中不參與命中）；`SplitTiming` / `SubRecipeID` 不建議混搭（拋物線自己處理 SpreadCount，SplitBehavior 的 OnHit 不會觸發、OnSpawn 又會再炸一輪）
+* `Mode=Parabolic` 與其他模式天生互斥（一列一種）；`PierceLv` / `BounceTarget` / `BounceLv` 在拋物線下無意義（飛行中不參與命中）；`SplitTiming` / `SubRecipeID` 不建議混搭（拋物線自己處理分裂數，SplitBehavior 的 OnHit 不會觸發、OnSpawn 又會再炸一輪）
 
 > **地刺類武器不在這裡**：早期曾用「沿線連續生成 GroundEffect」做地刺（IsGroundWave），但地表特效不會飛、吃不到反彈/分裂等行為，已移除。地刺改用「軌跡特效」——一顆隱形子彈沿路種尖刺 Vfx，自動繼承所有彈道行為。見 [BALLISTICS.md](BALLISTICS.md) 的 `OnTrailPoint` 與 [VFX.md](VFX.md) 的 `TrailEffectID`。
 

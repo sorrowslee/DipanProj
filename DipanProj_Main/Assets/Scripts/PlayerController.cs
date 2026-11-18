@@ -13,10 +13,10 @@ public class PlayerController : MonoBehaviour, IDamageable
     public float PlayerScale = 1f;
 
     [Header("Player Stats")]
-    public float PlayerMaxHealth = 100f;
-    public float PlayerMaxMana = 50f;
+    public float PlayerMaxHealth = 1000f;   // ×10：2026-11-17 數值尺度放大（readme/EQUIPMENT.md §8）；實際值看 Player.prefab
+    public float PlayerMaxMana = 500f;
     public float HealthRegenPerSec = 0f;
-    public float ManaRegenPerSec = 5f;
+    public float ManaRegenPerSec = 50f;
 
     [Header("Hit Reaction (hardcoded for now)")]
     public float PlayerInvincibleTimeMs = 1000f;
@@ -905,7 +905,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             BulletScale = source.BulletScale * 2f, CastVisualScale = 2f,
             BeamStyle = source.BeamStyle, BeamColor = source.BeamColor, BeamWidth = source.BeamWidth * 2f,
             FireEffectID = source.FireEffectID, HitEffectID = source.HitEffectID,
-            TrailEffectID = source.TrailEffectID, SummonEffectID = source.SummonEffectID,
+            TrailEffectID = source.TrailEffectID, TrailSpikeID = source.TrailSpikeID, SummonEffectID = source.SummonEffectID,
             FamiliarVfxId = source.FamiliarVfxId, FamiliarSize = source.FamiliarSize, FamiliarSpin = source.FamiliarSpin,
             DropperStyle = source.DropperStyle, DropperVfxId = source.DropperVfxId, DropperSize = source.DropperSize,
             Recipe = source.Recipe, BulletPrefab = source.BulletPrefab, WeaponSprite = source.WeaponSprite,
@@ -947,6 +947,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             // 用 radiusScale 而不是 visualScale——後者只放大視覺、傷害仍是原半徑，畫面會騙人。
             _activeAura = _groundEffectManager.Spawn(auraId, BodyCenterWorldPos, weapon.Damage,
                                                      1f, BodyScale * weapon.BulletScale);   // 須彌珠：光圈半徑與圖一起放大
+            // 疾發珠（攻速）：佛光的節拍寫在地面特效表，倍率由能力容器算好放在配方拷貝上
+            if (_activeAura != null && weapon.Recipe != null) _activeAura.IntervalScale = weapon.Recipe.AuraIntervalScale;
             _activeAuraWeapon = weapon;
             // 發射特效（可選）：佛光在按下瞬間播一次（持續存在期間不每幀重播）
             TrySpawnFireEffect(weapon, AimDirectionToMouse());
@@ -1466,7 +1468,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             TargetLayers = EnemyLayer,
             EnvLayer     = EnvLayer,
             OnHit        = (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
-            OnTrailPoint = (b, pos) => TrySpawnTrailEffect(firedWeapon, pos),
+            OnTrailPoint = (b, pos) => TrySpawnTrailEffect(firedWeapon, pos, b),
             ReturnPoint  = () => BodyCenterWorldPos,   // 迴旋回程飛回身體中心（只有 Mode=Boomerang 會用到）
         };
         WeaponCastService.FireNormal(weapon, recipe, in ctx);
@@ -1513,7 +1515,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             TargetLayers = EnemyLayer,
             EnvLayer     = EnvLayer,
             OnHit        = (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
-            OnTrailPoint = (b, pos) => TrySpawnTrailEffect(firedWeapon, pos),
+            OnTrailPoint = (b, pos) => TrySpawnTrailEffect(firedWeapon, pos, b),
         };
         return WeaponCastService.FireNormal(weapon, weapon.Recipe.Data, in ctx);
         // 不擺攻擊動作：本體在射，角色沒有出招（否則角色會一直卡在攻擊姿勢）。
@@ -1951,7 +1953,7 @@ public class PlayerController : MonoBehaviour, IDamageable
                 collisionMask, pierceableLayers, nonBounceLayers,
                 null, // 拋物線不走 OnHit 流程
                 weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos), flipYWhenMovingLeft: weapon.FlipYWhenLeft);
+                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos, b), flipYWhenMovingLeft: weapon.FlipYWhenLeft);
 
             if (bullet == null) continue;
 
@@ -2017,7 +2019,7 @@ public class PlayerController : MonoBehaviour, IDamageable
                 collisionMask, pierceableLayers, nonBounceLayers,
                 (b, t, h) => HandleBulletHit(firedWeapon, b, t, h),
                 weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
-                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos), flipYWhenMovingLeft: weapon.FlipYWhenLeft);
+                (b, pos) => TrySpawnTrailEffect(firedWeapon, pos, b), flipYWhenMovingLeft: weapon.FlipYWhenLeft);
 
             if (bullet != null)
             {
@@ -2420,7 +2422,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             collisionMask, pierceableLayers, nonBounceLayers,
             (b, t, h) => HandleBulletHit(fired, b, t, h),
             subWeapon.WeaponSprite, subWeapon.SpriteAngleOffset, scale, subWeapon.WeaponSprites, subWeapon.AnimFPS,
-            (b, p) => TrySpawnTrailEffect(fired, p), flipYWhenMovingLeft: subWeapon.FlipYWhenLeft, homingLayers: EnemyLayer);
+            (b, p) => TrySpawnTrailEffect(fired, p, b), flipYWhenMovingLeft: subWeapon.FlipYWhenLeft, homingLayers: EnemyLayer);
     }
 
     private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)
@@ -2544,10 +2546,17 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // 沿子彈飛行路徑每隔 TrailStep 距離種一個特效（地刺武器：載體隱形、靠這個沿路長出尖刺）。
     // 由 BulletInstance.OnTrailPoint 觸發；子彈反彈/分裂/追蹤後的彎折路徑都會跟著種。
-    private void TrySpawnTrailEffect(WeaponData firedWeapon, Vector2 pos)
+    // 地刺（TrailSpikeID，2026-11-17）：要子彈的前進方向決定尖刺往哪邊倒，所以多帶 BulletInstance。
+    private void TrySpawnTrailEffect(WeaponData firedWeapon, Vector2 pos, BulletInstance bullet = null)
     {
-        if (_vfxManager == null || firedWeapon == null || firedWeapon.TrailEffectID <= 0) return;
-        _vfxManager.Spawn(firedWeapon.TrailEffectID, pos, 0f, firedWeapon.CastVisualScale);
+        if (_vfxManager == null || firedWeapon == null) return;
+        if (firedWeapon.TrailEffectID > 0)
+            _vfxManager.Spawn(firedWeapon.TrailEffectID, pos, 0f, firedWeapon.CastVisualScale);
+        if (firedWeapon.TrailSpikeID > 0)
+        {
+            Vector2 dir = bullet != null ? bullet.Velocity : Vector2.right;
+            _vfxManager.SpawnGroundSpikes(firedWeapon.TrailSpikeID, pos, dir, firedWeapon.CastVisualScale);
+        }
     }
 
     // IDamageable：玩家受傷統一入口（怪物接觸傷害、未來陷阱/DOT 都走這）。傷害修正已由 CombatSystem 算好，這裡只結算。

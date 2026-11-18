@@ -18,10 +18,10 @@ namespace Dipan.Exchange
     /// <summary>物品稀有度。數字越大越稀有；0 ＝ 未指定（當成白）。</summary>
     public enum ItemRarity
     {
-        White = 1,   // 白・凡品
+        White = 1,   // 白・一般
         Blue = 2,    // 藍・良品
         Yellow = 3,  // 黃・珍品
-        Purple = 4,  // 紫・神品
+        Purple = 4,  // 紫・極品（「神品」保留給未來更高一階，見 readme/EQUIPMENT.md §1）
     }
 
     /// <summary>稀有度的顯示資訊：顏色、色名、品名、CSV 解析。</summary>
@@ -55,7 +55,7 @@ namespace Dipan.Exchange
         /// <summary>色名（白／藍／黃／紫）。</summary>
         public static string ColorName(ItemRarity r) => Language.GetText(TxtColorWhite + Index(r));
 
-        /// <summary>品名（凡品／良品／珍品／神品）。</summary>
+        /// <summary>品名（一般／良品／珍品／極品；2026-11-17 改名，原本是凡品／神品）。</summary>
         public static string GradeName(ItemRarity r) => Language.GetText(TxtGradeWhite + Index(r));
 
         /// <summary>「黃・珍品」這種完整標籤。</summary>
@@ -77,10 +77,10 @@ namespace Dipan.Exchange
             if (int.TryParse(s, out int n)) return Normalize((ItemRarity)n);
             switch (s.ToLowerInvariant())
             {
-                case "白": case "凡品": case "white": case "w": return ItemRarity.White;
+                case "白": case "一般": case "凡品": case "white": case "w": return ItemRarity.White;
                 case "藍": case "蓝": case "良品": case "blue": case "b": return ItemRarity.Blue;
                 case "黃": case "黄": case "珍品": case "yellow": case "y": return ItemRarity.Yellow;
-                case "紫": case "神品": case "purple": case "p": return ItemRarity.Purple;
+                case "紫": case "極品": case "极品": case "神品": case "purple": case "p": return ItemRarity.Purple;
             }
             Debug.LogWarning($"[RarityInfo] 看不懂的稀有度「{s}」，當成白。可用：1–4／白藍黃紫。");
             return ItemRarity.White;
@@ -276,14 +276,63 @@ namespace Dipan.Exchange
         public int ExchangeId;
         public int ItemId;
         public ExchangeCategory Category;
-        public ItemRarity Rarity;
         public List<CostPart> Cost = new List<CostPart>();
         public int SortOrder;
+
+        /// <summary>生成規格（兌換表 Spec 欄）；null ＝ 全隨機。兌換那一刻才照它產生物品（readme/EQUIPMENT.md §6）。</summary>
+        public ItemSpec Spec;
+
+        /// <summary>
+        /// 列表上顯示、篩選、排序用的品質（<see cref="ResolveRarity"/> 算好）：
+        /// 裝備＝規格寫死的品質（q 或 fx 條數＋1）；裝備沒寫死＝白（同時 <see cref="RandomQuality"/> 為 true）；非裝備＝ItemTable 的 Rarity。
+        /// </summary>
+        public ItemRarity Rarity { get; private set; } = ItemRarity.White;
+
+        /// <summary>裝備而且規格沒寫死品質 → 兌換時才隨機（列表顯示「隨機品質」、不上色）。</summary>
+        public bool RandomQuality { get; private set; }
+
+        /// <summary>規格寫死的品質（1~4）；沒寫死回 -1。</summary>
+        public int FixedQuality => Spec == null ? -1 : (Spec.Quality > 0 ? Spec.Quality : Spec.QualityFromEffects);
 
         /// <summary>物品定義（ItemTable）。表載入時就查好；找不到的列會被略過，所以這裡不會是 null。</summary>
         public ItemData Item;
 
-        public string Name => Item != null ? Item.Name : $"#{ItemId}";
+        /// <summary>依規格與物品表決定 <see cref="Rarity"/>／<see cref="RandomQuality"/>。載表時呼叫一次。</summary>
+        public void ResolveRarity()
+        {
+            if (Item != null && Item.IsEquippable)
+            {
+                int q = FixedQuality;
+                RandomQuality = q <= 0;
+                Rarity = q > 0 ? RarityInfo.Normalize((ItemRarity)q) : ItemRarity.White;
+            }
+            else
+            {
+                RandomQuality = false;
+                Rarity = RarityInfo.Normalize(Item != null ? Item.Rarity : ItemRarity.White);
+            }
+        }
+
+        /// <summary>
+        /// 顯示名稱：寫死品質的裝備＝「品名 名稱」（例：極品 樹妖的枯枝）；隨機品質的裝備與非裝備＝原名。
+        /// 搜尋、排序也用這個。
+        /// </summary>
+        public string Name
+        {
+            get
+            {
+                if (Item == null) return $"#{ItemId}";
+                return (Item.IsEquippable && !RandomQuality) ? RarityInfo.GradeName(Rarity) + " " + Item.Name : Item.Name;
+            }
+        }
+
+        /// <summary>「紫・極品」這種完整標籤；隨機品質的裝備顯示「隨機品質」（語言表 10055）。</summary>
+        public string RarityLabel => RandomQuality ? Language.GetText(TxtRandomQuality) : RarityInfo.Label(Rarity);
+
+        /// <summary>只有品名（「極品」）；隨機品質的裝備顯示「隨機品質」。</summary>
+        public string GradeLabel => RandomQuality ? Language.GetText(TxtRandomQuality) : RarityInfo.GradeName(Rarity);
+
+        const int TxtRandomQuality = 10055;
 
         /// <summary>價格排序用的「功德值等值」：每種貨幣 × 它的 SortWeight 加總。</summary>
         public float PriceSortKey

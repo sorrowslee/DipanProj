@@ -108,10 +108,10 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 128
   PlayerScale: 0.8
-  PlayerMaxHealth: 100
-  PlayerMaxMana: 50
+  PlayerMaxHealth: 1000
+  PlayerMaxMana: 500
   HealthRegenPerSec: 0
-  ManaRegenPerSec: 5
+  ManaRegenPerSec: 50
   PlayerInvincibleTimeMs: 1000
   PlayerKnockbackThreshold: 0
   PlayerKnockbackPercent: 10

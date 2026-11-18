@@ -5,35 +5,51 @@ using Dipan.Data;
 
 namespace Dipan.Inventory
 {
-    /// <summary>珠子的能力要套到哪一層。</summary>
+    /// <summary>效果的分類（2026-11-17 起只用來分「武器類／防具類」，見 readme/EQUIPMENT.md §2）。</summary>
     public enum GemTarget
     {
-        /// <summary>配方（RecipeTable / ProjectileData 的欄位）：反彈、穿透、速度、分裂…</summary>
+        /// <summary>武器類（配方層：反彈、穿透、速度、分裂…）。</summary>
         Recipe = 0,
-        /// <summary>武器（WeaponTable 的欄位）：傷害、子彈大小、耗魔…</summary>
+        /// <summary>武器類（武器表層：傷害、大小、耗魔…）。</summary>
         Weapon = 1,
-        /// <summary>角色屬性：最大生命、減傷、移動速度…（預留，效果尚未接）</summary>
+        /// <summary>防具類（減傷、增防、法抗、增速…預留，效果尚未接）。</summary>
         Player = 2,
     }
 
     /// <summary>
-    /// 一種能力珠的定義（GemTable.csv 一列 = 一種珠子，三個等級共用同一列）。
+    /// 效果的算法（readme/EQUIPMENT.md §4）。
+    /// </summary>
+    public enum EffectCalc
+    {
+        /// <summary>百分比：強化基礎屬性（傷害、攻速、射程…）。同一屬性的百分比全部加總後套一次；越小越好的屬性用除法。</summary>
+        Percent = 0,
+        /// <summary>純等級：行為（穿透、反彈、分裂…）。武器起點也填等級，全身等級相加後查表得到數值。</summary>
+        Level = 1,
+        /// <summary>加值：模式參數的數量或角度（環繞數、召喚數、扇形角度…）。起點填數值，效果查表得到的值加上去。</summary>
+        Add = 2,
+    }
+
+    /// <summary>
+    /// 一種效果的定義（GemTable.csv 一列）。**能力珠與裝備的「內建特殊效果」共用這一份定義**。
     ///
-    /// <see cref="Field"/> 刻意**原文照抄 RecipeTable / WeaponTable 的欄位名**——
-    /// 這樣「反彈」這個功能在兩邊叫同一個名字，不會出現同一件事兩種命名的情況。
-    /// 見 readme/GEM_SOCKET.md。
+    /// 等級曲線：數值＝<see cref="Lv1"/> ＋（等級－1）× <see cref="PerLv"/>；等級超過 <see cref="MaxLv"/> 照 MaxLv 算；等級 0＝沒有。
+    /// 疊加規則是「全身等級相加後查一次表」——所以曲線一路定義到 MaxLv，不再只有 Lv1~Lv3 三格。
+    /// 見 readme/EQUIPMENT.md。
     /// </summary>
     public class GemData
     {
         public int GemID;
         public string Name;
-        /// <summary>要改的欄位名，原文照抄目標表的欄位（例：MaxBounces / PierceCount / Speed / Damage）。</summary>
-        public string Field;
+        public EffectCalc Calc = EffectCalc.Percent;
+        /// <summary>改哪個屬性（Damage／AttackRate／Pierce…）；依武器模式對應到實際欄位由 <see cref="EquipAttributes"/> 決定。</summary>
+        public string Attribute;
         public GemTarget Target = GemTarget.Recipe;
-        /// <summary>Lv1~Lv3 的數值。表裡填 30% 就是百分比（見 <see cref="IsPercent"/>）。</summary>
-        public readonly float[] Levels = new float[3];
-        /// <summary>這顆珠子是不是百分比加成（表裡的值帶 %）。百分比會累加後乘上基礎值，不是直接相加。</summary>
-        public bool IsPercent;
+        /// <summary>第 1 級的數值。百分比型存小數（5% → 0.05）。</summary>
+        public float Lv1;
+        /// <summary>每多一級加多少。百分比型存小數。</summary>
+        public float PerLv;
+        /// <summary>總等級的上限；超過照這一級算。</summary>
+        public int MaxLv = 50;
 
         /// <summary>疊在珠身上的能力符號檔名後半段（<c>gemIcon_&lt;這裡&gt;</c>）。空 = 不疊符號。</summary>
         public string Icon;
@@ -41,33 +57,64 @@ namespace Dipan.Inventory
         /// <summary>
         /// 珠身顏色（<c>gemBase_&lt;這裡&gt;_lv1~3</c>）。
         /// CSV 留空時由 <see cref="Target"/> 自動推導：Recipe/Weapon → red（技能珠）、Player → blue（屬性珠）。
-        /// 想把屬性珠再細分（藍=生命、黃=防禦）才需要在表裡明寫。
         /// </summary>
         public string BaseColor;
 
         public string Note;
 
-        /// <summary>取某等級的數值（等級夾在 1~3）。</summary>
+        public bool IsPercent => Calc == EffectCalc.Percent;
+        /// <summary>防具類效果（只能出現在防具與珠寶上）。</summary>
+        public bool IsArmorClass => Target == GemTarget.Player;
+
+        /// <summary>
+        /// 某個「總等級」對應的數值。等級 ≤ 0 回 0（沒有這個效果）；超過 <see cref="MaxLv"/> 照 MaxLv 算。
+        /// 百分比型回小數（lv1 的 5% → 0.05）。
+        /// </summary>
         public float ValueAt(int level)
         {
-            int i = Mathf.Clamp(level, 1, 3) - 1;
-            return Levels[i];
+            if (level <= 0) return 0f;
+            int lv = Mathf.Min(level, Mathf.Max(1, MaxLv));
+            return Lv1 + (lv - 1) * PerLv;
+        }
+
+        /// <summary>給 UI 看的一行：「穿透 Lv2（穿 2 隻）」這類。<paramref name="level"/> 是這一個來源的等級。</summary>
+        public string Describe(int level)
+        {
+            float v = ValueAt(level);
+            switch (Calc)
+            {
+                case EffectCalc.Percent: return $"{Name} Lv{level}（+{v * 100f:0.#}%）";
+                case EffectCalc.Add:     return $"{Name} Lv{level}（+{v:0.##}）";
+                default:                 return $"{Name} Lv{level}";
+            }
         }
     }
 
     /// <summary>
-    /// 能力珠定義表（Assets/Data/GemTable.csv）。
+    /// 效果定義表（Assets/Data/GemTable.csv）。
     /// 由場景上的 <see cref="GemTableProvider"/> 把 CSV 拖進來提供，與其他資料表同慣例。
     /// </summary>
     public class GemDatabase
     {
         readonly Dictionary<int, GemData> _gems = new Dictionary<int, GemData>();
+        readonly Dictionary<string, GemData> _byAttribute = new Dictionary<string, GemData>(System.StringComparer.OrdinalIgnoreCase);
 
         public IReadOnlyDictionary<int, GemData> Gems => _gems;
+
+        /// <summary>有沒有成功讀到表（讀不到時讀表層會改用 <see cref="EquipAttributes"/> 的備援曲線）。</summary>
+        public bool Loaded => _gems.Count > 0;
 
         public GemData Get(int gemId)
         {
             _gems.TryGetValue(gemId, out var g);
+            return g;
+        }
+
+        /// <summary>依屬性找效果（例：「Pierce」→ 穿透）。一個屬性只會有一種效果。</summary>
+        public GemData FindByAttribute(string attribute)
+        {
+            if (string.IsNullOrEmpty(attribute)) return null;
+            _byAttribute.TryGetValue(attribute, out var g);
             return g;
         }
 
@@ -77,11 +124,17 @@ namespace Dipan.Inventory
             LoadFromText(csv.text);
         }
 
-        /// <summary>找不到直接的 TextAsset 時：先找場景上的 provider，再退回 Resources。</summary>
+        /// <summary>找不到直接的 TextAsset 時：先找場景上的 provider，（編輯器）再直接讀資產，最後退回 Resources。</summary>
         public void LoadAuto(string resourcesPath = "Data/GemTable")
         {
             var provider = Object.FindObjectOfType<GemTableProvider>();
             if (provider != null && provider.gemCSV != null) { LoadFromText(provider.gemCSV.text); return; }
+
+#if UNITY_EDITOR
+            // 編輯器下沒開 MainScene 時（例如武器工坊在別的場景開著），直接讀資產，讓等級換算照樣正確。
+            var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Data/GemTable.csv");
+            if (asset != null) { LoadFromText(asset.text); return; }
+#endif
 
             var csv = Resources.Load<TextAsset>(resourcesPath);
             if (csv == null)
@@ -96,9 +149,9 @@ namespace Dipan.Inventory
         void LoadFromText(string text)
         {
             _gems.Clear();
-            // 2026-08-26 起依表頭名稱取值（欄位可重排、# 註解列、空白=預設），見 CsvTable。
+            _byAttribute.Clear();
             var table = CsvTable.Parse(text ?? "", "GemTable");
-            table.Require("GemID", "Name", "Field", "Target", "Lv1", "Lv2", "Lv3");
+            table.Require("GemID", "Name", "Calc", "Attribute", "Target", "Lv1", "PerLv", "MaxLv");
             foreach (var err in table.Errors) Debug.LogError(err);
 
             foreach (var row in table.Rows)
@@ -109,29 +162,38 @@ namespace Dipan.Inventory
                 var g = new GemData();
                 g.GemID = id;
                 g.Name = row.Get("Name");
-                g.Field = row.Get("Field");
+                g.Attribute = row.Get("Attribute");
                 g.Target = ParseTarget(row.Get("Target"));
-                for (int lv = 0; lv < 3; lv++)
+                if (!TryParseCalc(row.Get("Calc"), out g.Calc))
                 {
-                    g.Levels[lv] = ParseValue(row.Get("Lv" + (lv + 1)), out bool pct);
-                    if (pct) g.IsPercent = true;
+                    Debug.LogWarning($"[GemDatabase] 效果 {id} '{g.Name}' 的 Calc「{row.Get("Calc")}」不認得（Percent／Level／Add），已略過。");
+                    continue;
                 }
+                g.Lv1 = ParseValue(row.Get("Lv1"));
+                g.PerLv = ParseValue(row.Get("PerLv"));
+                g.MaxLv = Mathf.Max(1, row.GetInt("MaxLv", 50));
                 g.Icon = row.Get("Icon");
                 g.BaseColor = row.Get("BaseColor");
                 if (string.IsNullOrEmpty(g.BaseColor)) g.BaseColor = DefaultColorFor(g.Target);
                 g.Note = row.Get("Note");
 
-                if (string.IsNullOrEmpty(g.Field))
+                if (string.IsNullOrEmpty(g.Attribute))
                 {
-                    Debug.LogWarning($"[GemDatabase] 珠子 {g.GemID} '{g.Name}' 沒填 Field（要改哪個欄位），已略過。");
+                    Debug.LogWarning($"[GemDatabase] 效果 {id} '{g.Name}' 沒填 Attribute（要改哪個屬性），已略過。");
                     continue;
                 }
-                // Field 必須是 RecipeTable / WeaponTable 真的有的欄名，否則這顆珠子永遠不會生效（而且不會報錯）
-                if (g.Target != GemTarget.Player && WeaponModeSpec.GetField(g.Field) == null)
-                    Debug.LogWarning($"[GemDatabase] 珠子 {g.GemID} '{g.Name}' 的 Field「{g.Field}」不是 RecipeTable/WeaponTable 的欄名，鑲上去不會有效果。可用欄名見 WeaponModeSpec。");
+                // 武器類的屬性必須是程式認得的，否則這個效果永遠不會生效（而且不會報錯）
+                if (!g.IsArmorClass && !EquipAttributes.IsKnown(g.Attribute))
+                    Debug.LogWarning($"[GemDatabase] 效果 {id} '{g.Name}' 的 Attribute「{g.Attribute}」程式不認得，不會有效果。可用屬性見 EquipAttributes.cs。");
+                if (!g.IsArmorClass && EquipAttributes.IsKnown(g.Attribute) && EquipAttributes.CalcOf(g.Attribute) != g.Calc)
+                    Debug.LogWarning($"[GemDatabase] 效果 {id} '{g.Name}'：屬性 {g.Attribute} 的算法應該是 {EquipAttributes.CalcOf(g.Attribute)}，表上填 {g.Calc}，以程式為準。");
+                if (_byAttribute.ContainsKey(g.Attribute))
+                    Debug.LogWarning($"[GemDatabase] 屬性 {g.Attribute} 有兩種效果（{_byAttribute[g.Attribute].GemID} 與 {id}），全身等級相加會分不清，請合併。");
+                else
+                    _byAttribute[g.Attribute] = g;
                 _gems[g.GemID] = g;
             }
-            Debug.Log($"[GemDatabase] 載入 {_gems.Count} 種能力珠。");
+            Debug.Log($"[GemDatabase] 載入 {_gems.Count} 種效果。");
         }
 
         /// <summary>沒填 BaseColor 時的預設珠身顏色：技能珠（配方/武器欄位）紅、屬性珠藍。</summary>
@@ -148,20 +210,30 @@ namespace Dipan.Inventory
             }
         }
 
-        /// <summary>解析數值；支援尾端百分比（"30%" → 0.30 且 isPercent = true）。</summary>
-        static float ParseValue(string s, out bool isPercent)
+        static bool TryParseCalc(string s, out EffectCalc calc)
         {
-            isPercent = false;
+            calc = EffectCalc.Percent;
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            switch (s.Trim().ToLowerInvariant())
+            {
+                case "percent": calc = EffectCalc.Percent; return true;
+                case "level":   calc = EffectCalc.Level;   return true;
+                case "add":     calc = EffectCalc.Add;     return true;
+                default: return false;
+            }
+        }
+
+        /// <summary>解析數值；尾端帶 % 就除以 100（"5%" → 0.05）。</summary>
+        static float ParseValue(string s)
+        {
             if (string.IsNullOrWhiteSpace(s)) return 0f;
             s = s.Trim();
             if (s.EndsWith("%"))
             {
-                isPercent = true;
                 s = s.Substring(0, s.Length - 1).Trim();
                 return float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out float p) ? p / 100f : 0f;
             }
             return float.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out float f) ? f : 0f;
         }
-
     }
 }

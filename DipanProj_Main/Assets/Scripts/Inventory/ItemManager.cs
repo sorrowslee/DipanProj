@@ -43,32 +43,42 @@ namespace Dipan.Inventory
         /// <summary>
         /// 產生一件全新的物品（含依規則骰出來的實例資料）。
         /// count 只對可疊道具有意義；有實例資料的物品一律一件一格，count 會被夾成 1。
+        /// <paramref name="spec"/>：生成規格（寫死品質／孔數／效果／珠子等級，見 <see cref="ItemSpec"/>）；null ＝ 全隨機。
         /// </summary>
-        public static ItemStack Create(int itemId, int count = 1)
+        public static ItemStack Create(int itemId, int count = 1, ItemSpec spec = null)
         {
             var inv = InventorySystem.Instance;
             var d = inv != null ? inv.GetData(itemId) : null;
             if (d == null || count <= 0) return ItemStack.Empty;
 
-            var inst = CreateInstance(d);
+            var inst = CreateInstance(d, spec);
             if (inst != null) count = 1;   // 有實例 → 不可疊
             return new ItemStack { ItemId = itemId, Count = count, Inst = inst };
         }
 
         /// <summary>
-        /// 依物品定義骰出實例資料；不需要實例的物品（一般可疊道具）回 null。
-        /// 裝備 → 骰孔數 + 隨機孔位；能力珠 → 骰等級。
+        /// 依物品定義（＋規格）產生實例資料；不需要實例的物品（一般可疊道具）回 null，規格也不看。
+        /// 裝備 → 孔數＋隨機孔位、內建特殊效果（＝品質，見 <see cref="ItemQuality.RollAffixes"/>）；能力珠 → 等級。
+        /// 規格寫死的就用寫死的，其餘照 <see cref="RandomRules"/> 骰。見 readme/EQUIPMENT.md §6。
         /// </summary>
-        public static ItemInstance CreateInstance(ItemData d)
+        public static ItemInstance CreateInstance(ItemData d, ItemSpec spec = null)
         {
             if (d == null) return null;
             int cycle = CurrentCycle();
 
             if (d.IsGem)
-                return ItemInstance.ForGem(RandomRules.RollGemLevel(cycle));
+            {
+                int lv = (spec != null && spec.GemLevel > 0) ? Mathf.Clamp(spec.GemLevel, 1, 3) : RandomRules.RollGemLevel(cycle);
+                return ItemInstance.ForGem(lv);
+            }
 
             if (d.IsEquippable)
-                return ItemInstance.FromSocketLayout(RandomRules.RollSocketLayout(cycle));
+            {
+                var layout = (spec != null && spec.Sockets >= 0) ? RandomRules.LayoutFor(spec.Sockets) : RandomRules.RollSocketLayout(cycle);
+                var inst = ItemInstance.FromSocketLayout(layout);
+                inst.affixes = ItemQuality.RollAffixes(d, spec, cycle);
+                return inst;
+            }
 
             return null;
         }
@@ -81,7 +91,9 @@ namespace Dipan.Inventory
             var inv = InventorySystem.Instance;
             var d = inv != null ? inv.GetData(itemId) : null;
             if (d == null || !d.IsEquippable) return st;
+            var affixes = st.Inst != null ? st.Inst.affixes : null;   // 只重開孔位，品質（內建效果）保留
             st.Inst = ItemInstance.FromSocketLayout(RandomRules.LayoutFor(socketCount));
+            st.Inst.affixes = affixes;
             return st;
         }
 
@@ -100,7 +112,7 @@ namespace Dipan.Inventory
         /// 產生並交給玩家（一律進真背包）。回傳放不下的剩餘數量。
         /// 這是「取得物品」的建議入口——它會先產生完整實例，再交給 RunProgress。
         /// </summary>
-        public static int Give(int itemId, int count = 1)
+        public static int Give(int itemId, int count = 1, ItemSpec spec = null)
         {
             var inv = InventorySystem.Instance;
             var d = inv != null ? inv.GetData(itemId) : null;
@@ -111,7 +123,7 @@ namespace Dipan.Inventory
             {
                 int left = 0;
                 for (int i = 0; i < count; i++)
-                    left += GiveStack(Create(itemId, 1));
+                    left += GiveStack(Create(itemId, 1, spec));
                 return left;
             }
             return GiveStack(new ItemStack { ItemId = itemId, Count = count, Inst = null });

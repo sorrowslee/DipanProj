@@ -199,9 +199,9 @@ public class WeaponManager : MonoBehaviour
         var weapon = new WeaponData();
         weapon.ID = CsvFieldParse.Int(S("ID"), 0);
         weapon.Name = S("Name");
-        weapon.Damage = CsvFieldParse.Float(S("Damage"), 1f);
+        weapon.Damage = CsvFieldParse.Float(S("Damage"), 10f);   // 留空＝10（×10：2026-11-17）
         weapon.RecipeID = CsvFieldParse.Int(S("RecipeID"), 0);
-        weapon.ManaCost = CsvFieldParse.Float(S("ManaCost"), 1f);   // 留空 = 1（見 readme/COMBAT.md）
+        weapon.ManaCost = CsvFieldParse.Float(S("ManaCost"), 10f);   // 留空 = 10（×10：2026-11-17；見 readme/COMBAT.md）
 
         weapon.WeaponSpritePath = S("WeaponSpritePath");
         weapon.SpriteAngleOffset = CsvFieldParse.Float(S("SpriteAngleOffset"), 0f);
@@ -231,6 +231,7 @@ public class WeaponManager : MonoBehaviour
         weapon.FireEffectID = CsvFieldParse.Int(S("FireEffectID"), 0);
         weapon.HitEffectID = CsvFieldParse.Int(S("HitEffectID"), 0);
         weapon.TrailEffectID = CsvFieldParse.Int(S("TrailEffectID"), 0);
+        weapon.TrailSpikeID = CsvFieldParse.Int(S("TrailSpikeID"), 0);
         weapon.SummonEffectID = CsvFieldParse.Int(S("SummonEffectID"), 0);
 
         // 浮游本體：只有 Familiar 讀（其他模式填了也不讀，載入時 Warning——同「無效欄不讀」原則）

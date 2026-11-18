@@ -16,6 +16,7 @@ namespace Dipan.UI
     /// 過關＝顯示「通關結算」標題圖；死亡＝沒有專屬圖 → 退回文字「殞命」（暗紅）。
     /// 獎勵格區（<see cref="RewardsArea"/>）：2026-11-16 起列出這一趟的功德值總額、新拿到的證明、所有取得的道具（GameFlowManager.BuildRunRewards）。
     /// 開關由 GameFlowManager 驅動；「返回廣場」→ GameFlowManager.ReturnToHubFromResult()。
+    /// 這一趟有新證明時有一段完整演出（返回鈕先藏、證明最後才閃光接上），見 <see cref="SequenceRoutine"/>、readme/LEVEL_END_FLOW.md。
     /// </summary>
     public class ResultPanel : UIPanel
     {
@@ -59,12 +60,50 @@ namespace Dipan.UI
         RectTransform _proofArea;
         Coroutine _proofAnim;
 
+        // ── 新證明的完整演出（2026-11-17 作者規格）──
+        // 這一趟有新證明時：返回鈕先藏 → 獎勵框只排非證明的東西 → 條件字依序破碎變金 →
+        // 證明一張張接到列表最後（舊格子先讓位、該格閃光、證明淡入）→ 返回鈕淡入。
+        // 演出中 ESC／左鍵＝跳過，直接到結束狀態；結束後 ESC 才是返回廣場。
+        const float RewardRevealDelay = 0.35f;   // 條件字全部變金後，隔多久開始接證明
+        const float ProofSlideTime = 0.25f;      // 舊格子讓位的時間
+        const float FlashUpTime = 0.22f, FlashDownTime = 0.38f;   // 閃光放大到最亮／收掉；最亮那一刻證明出現
+        const float BackBtnFadeTime = 0.30f;
+        static readonly Color FlashGlowColor = new Color(1f, 0.90f, 0.62f, 1f);
+        static readonly Color FlashStarColor = new Color(1f, 0.97f, 0.86f, 1f);
+        bool _seqRunning;
+        CanvasGroup _backBtnCg;
+        List<ProofRow> _pendingRows;
+        readonly List<ItemStack> _deferredProofs = new List<ItemStack>();   // 等條件演出完才接上去的證明（B→A→S）
+        int _shownProofs;
+        // 演出開的協程都記在這裡，跳過／重開時只停這些。⚠ 不能 StopAllCoroutines：UIPanel 的開關淡入淡出也是這個物件上的協程。
+        readonly List<Coroutine> _seqRoutines = new List<Coroutine>();
+
+        Coroutine Run(IEnumerator r)
+        {
+            var c = StartCoroutine(r);
+            if (c != null) _seqRoutines.Add(c);
+            return c;
+        }
+
+        void StopSeqRoutines()
+        {
+            foreach (var c in _seqRoutines) if (c != null) StopCoroutine(c);
+            _seqRoutines.Clear();
+        }
+
+        // 獎勵格：每格一個容器（圖示＋品質框＋數量），讓位時整格移動
+        sealed class RewardCell { public RectTransform Root; public CanvasGroup Cg; }
+        readonly List<RewardCell> _cells = new List<RewardCell>();
+        float _cellW = 120f, _gap = 24f, _iconSize = 84f, _rowH = 120f;
+        int _cntFont = 30, _perRow = 1;
+
         /// <summary>一行證明：外層（搖擺用）＋文字。</summary>
         sealed class ProofRow
         {
             public RectTransform Root;
             public Text Label;
             public string Revealed;   // 達成後的金色字（「B級證明：打敗紅嫁衣女殭屍」）
+            public Vector2 Home;      // 原位（搖擺被跳過打斷時歸位用）
         }
 
         /// <summary>獎勵內容容器（這版留空）。之後往這底下加「圖示＋名稱＋×數量」的 UI 即可。</summary>
@@ -117,6 +156,7 @@ namespace Dipan.UI
             brt.sizeDelta = new Vector2(440f, 110f);
             brt.anchoredPosition = new Vector2(0f, BackBtnY);
             _backBtnRt = brt;
+            _backBtnCg = btn.gameObject.AddComponent<CanvasGroup>();
 
             // 劇本證明三行的容器（內容每次開結算時重建）
             var pa = UIBuilder.Create("ProofArea", transform);
@@ -192,79 +232,125 @@ namespace Dipan.UI
                                 IList<ItemStack> rewards)
         {
             var p = UIManager.Instance?.Open<ResultPanel>();
-            p?.Setup(win, showTitle, module, displayName);
-            p?.PopulateRewards(rewards);
-            p?.BuildProofRows(module);
+            if (p == null) return;
+            p.ResetSequence();
+            p.Setup(win, showTitle, module, displayName);
+            var pending = p.BuildProofRows(module);
+            p.PopulateRewards(rewards, pending.Count > 0);
+            p.BeginSequence(pending);
         }
 
-        /// <summary>把過關落袋的道具鋪進獎勵區（圖示＋×數量、置中排列、自動換行）。空 → 顯示大「無」字。</summary>
-        void PopulateRewards(IList<ItemStack> rewards)
+        /// <summary>
+        /// 把過關落袋的道具鋪進獎勵區（圖示＋×數量、置中排列、自動換行）。空 → 顯示大「無」字。
+        /// deferProofs＝true（這一趟有新證明要演出）時，證明先不排，留給 <see cref="SequenceRoutine"/> 一張張接到最後。
+        /// 格子大小一開始就照「全部（含證明）」算，接上證明時只會讓位、不會突然縮小。
+        /// </summary>
+        void PopulateRewards(IList<ItemStack> rewards, bool deferProofs)
         {
             if (_rewardsArea == null) return;
 
             // 清掉上一次的獎勵格子（面板常駐複用）。
             for (int i = _rewardsArea.childCount - 1; i >= 0; i--)
                 Destroy(_rewardsArea.GetChild(i).gameObject);
+            _cells.Clear();
             _rewardHover.Clear();
             _hoverIdx = -1;
             _tip?.Hide();
+            _deferredProofs.Clear();
+            _shownProofs = 0;
 
-            int n = rewards != null ? rewards.Count : 0;
-            if (n > 0)
+            var normal = new List<ItemStack>();
+            if (rewards != null)
+                foreach (var kv in rewards)
+                {
+                    if (deferProofs && ProofTierInfo.FromItemId(kv.ItemId, out _)) _deferredProofs.Add(kv);
+                    else normal.Add(kv);
+                }
+            _deferredProofs.Sort((a, b) => TierOrder(a).CompareTo(TierOrder(b)));
+
+            int total = normal.Count + _deferredProofs.Count;
+            ComputeGrid(total);
+            for (int i = 0; i < normal.Count; i++)
+                AddCell(normal[i], SlotPos(i, normal.Count));
+
+            if (_emptyText != null) _emptyText.enabled = total == 0;
+        }
+
+        static int TierOrder(ItemStack s)
+            => ProofTierInfo.FromItemId(s.ItemId, out var t) ? System.Array.IndexOf(ProofTierInfo.All, t) : 99;
+
+        // 格子尺寸：超過兩排就整體縮小，塞得進獎勵框（2026-11-16 開始列出這一趟所有收穫）
+        void ComputeGrid(int n)
+        {
+            _cellW = 120f; _gap = 24f; _iconSize = 84f; _rowH = 120f; _cntFont = 30;
+            float areaW = _rewardsArea.sizeDelta.x;
+            _perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + _gap) / (_cellW + _gap)));
+            if (Mathf.CeilToInt(n / (float)_perRow) > 2)
             {
-                var inv = InventorySystem.Instance;
-                float cell = 120f, gap = 24f, iconSize = 84f, rowH = 120f;
-                int cntFont = 30;
-                float areaW = _rewardsArea.sizeDelta.x;
-                int perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + gap) / (cell + gap)));
-                int rows = Mathf.CeilToInt(n / (float)perRow);
-                if (rows > 2)
-                {
-                    // 東西多（超過兩排）就整體縮小，塞得進獎勵框（2026-11-16 開始列出這一趟所有收穫）
-                    cell = 92f; gap = 14f; iconSize = 62f; rowH = 92f; cntFont = 24;
-                    perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + gap) / (cell + gap)));
-                    rows = Mathf.CeilToInt(n / (float)perRow);
-                }
-
-                for (int i = 0; i < n; i++)
-                {
-                    var kv = rewards[i];
-                    var data = inv != null ? inv.GetData(kv.ItemId) : null;
-                    int row = i / perRow, col = i % perRow;
-                    int rowCount = Mathf.Min(perRow, n - row * perRow);
-                    float totalW = rowCount * cell + (rowCount - 1) * gap;
-                    float x = -totalW / 2f + cell / 2f + col * (cell + gap);
-                    float y = (rows - 1) * rowH * 0.5f - row * rowH;
-
-                    // 圖示
-                    var icon = UIBuilder.Image(_rewardsArea, $"Reward{i}", null, Color.white);
-                    icon.raycastTarget = false;
-                    icon.preserveAspect = true;
-                    var irt = icon.rectTransform;
-                    irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
-                    irt.sizeDelta = new Vector2(iconSize, iconSize);
-                    irt.anchoredPosition = new Vector2(x, y + 12f);
-                    ItemIcons.Apply(icon, kv);   // 珠子會連能力符號一起畫（見 readme/GEM_SOCKET.md）
-                    _rewardHover.Add(new KeyValuePair<RectTransform, ItemStack>(irt, kv));
-
-                    // ×數量（有孔的裝備改標孔數，讓玩家一眼看到這趟打到什麼好貨）
-                    string label = $"×{kv.Count:N0}";
-                    if (kv.Inst != null)
-                    {
-                        if (kv.Inst.HasSockets && kv.Inst.UnlockedCount > 0) label = $"{kv.Inst.UnlockedCount} 孔";
-                        else if (kv.Inst.level > 0) label = $"Lv{kv.Inst.level}";
-                    }
-                    var ct = UIBuilder.Text(_rewardsArea, $"RewardCnt{i}", label, cntFont,
-                        new Color(0.96f, 0.90f, 0.66f, 1f), TextAnchor.MiddleCenter);
-                    var crt = ct.rectTransform;
-                    crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);
-                    crt.sizeDelta = new Vector2(cell, 34f);
-                    crt.anchoredPosition = new Vector2(x, y - iconSize * 0.5f - 6f);
-                    ct.raycastTarget = false;
-                }
+                _cellW = 92f; _gap = 14f; _iconSize = 62f; _rowH = 92f; _cntFont = 24;
+                _perRow = Mathf.Max(1, Mathf.FloorToInt((areaW + _gap) / (_cellW + _gap)));
             }
+        }
 
-            if (_emptyText != null) _emptyText.enabled = _rewardsArea.childCount == 0;
+        // 第 i 格在「目前共 n 格」時的中心位置（每排置中、整體垂直置中）
+        Vector2 SlotPos(int i, int n)
+        {
+            int rows = Mathf.Max(1, Mathf.CeilToInt(n / (float)_perRow));
+            int row = i / _perRow, col = i % _perRow;
+            int rowCount = Mathf.Min(_perRow, n - row * _perRow);
+            float totalW = rowCount * _cellW + (rowCount - 1) * _gap;
+            float x = -totalW / 2f + _cellW / 2f + col * (_cellW + _gap);
+            float y = (rows - 1) * _rowH * 0.5f - row * _rowH;
+            return new Vector2(x, y);
+        }
+
+        RewardCell AddCell(ItemStack kv, Vector2 pos)
+        {
+            int idx = _cells.Count;
+            var root = UIBuilder.Rect(UIBuilder.Create($"Reward{idx}", _rewardsArea));
+            root.anchorMin = root.anchorMax = root.pivot = new Vector2(0.5f, 0.5f);
+            root.sizeDelta = new Vector2(_cellW, _rowH);
+            root.anchoredPosition = pos;
+            var cg = root.gameObject.AddComponent<CanvasGroup>();
+            cg.blocksRaycasts = false;
+            cg.interactable = false;
+
+            // 圖示
+            var icon = UIBuilder.Image(root, "Icon", null, Color.white);
+            icon.raycastTarget = false;
+            icon.preserveAspect = true;
+            var irt = icon.rectTransform;
+            irt.anchorMin = irt.anchorMax = irt.pivot = new Vector2(0.5f, 0.5f);
+            irt.sizeDelta = new Vector2(_iconSize, _iconSize);
+            irt.anchoredPosition = new Vector2(0f, 12f);
+            ItemIcons.Apply(icon, kv);   // 珠子會連能力符號一起畫（見 readme/GEM_SOCKET.md）
+
+            // 品質框：icon 的 rect 會被 IconFit 依內容放大，所以框另外掛一個固定 iconSize 的容器上
+            var frameHost = UIBuilder.Rect(UIBuilder.Create("Frame", root));
+            frameHost.anchorMin = frameHost.anchorMax = frameHost.pivot = new Vector2(0.5f, 0.5f);
+            frameHost.sizeDelta = new Vector2(_iconSize, _iconSize);
+            frameHost.anchoredPosition = new Vector2(0f, 12f);
+            ItemIcons.ApplyQualityFrame(frameHost, kv);
+            _rewardHover.Add(new KeyValuePair<RectTransform, ItemStack>(irt, kv));
+
+            // ×數量（有孔的裝備改標孔數，讓玩家一眼看到這趟打到什麼好貨）
+            string label = $"×{kv.Count:N0}";
+            if (kv.Inst != null)
+            {
+                if (kv.Inst.HasSockets && kv.Inst.UnlockedCount > 0) label = $"{kv.Inst.UnlockedCount} 孔";
+                else if (kv.Inst.level > 0) label = $"Lv{kv.Inst.level}";
+            }
+            var ct = UIBuilder.Text(root, "Count", label, _cntFont,
+                new Color(0.96f, 0.90f, 0.66f, 1f), TextAnchor.MiddleCenter);
+            var crt = ct.rectTransform;
+            crt.anchorMin = crt.anchorMax = crt.pivot = new Vector2(0.5f, 0.5f);
+            crt.sizeDelta = new Vector2(_cellW, 34f);
+            crt.anchoredPosition = new Vector2(0f, -_iconSize * 0.5f - 6f);
+            ct.raycastTarget = false;
+
+            var cell = new RewardCell { Root = root, Cg = cg };
+            _cells.Add(cell);
+            return cell;
         }
 
         void Setup(bool win, bool showTitle, string module, string displayName)
@@ -301,7 +387,9 @@ namespace Dipan.UI
 
         protected override void OnClose()
         {
-            if (_proofAnim != null) { StopCoroutine(_proofAnim); _proofAnim = null; }
+            StopSeqRoutines();
+            _proofAnim = null;
+            _seqRunning = false;
             _tip?.Hide();
             _hoverIdx = -1;
         }
@@ -322,6 +410,8 @@ namespace Dipan.UI
         // 所以 UIManager 的 ESC 不會處理它，在這裡自己接。
         void Update()
         {
+            // 證明演出中：ESC／左鍵＝跳過演出（不回廣場）；演出結束、返回鈕出來後 ESC 才是返回廣場。
+            if (IsOpen && _seqRunning && (Input.GetKeyDown(KeyCode.Escape) || Input.GetMouseButtonDown(0))) { SkipSequence(); return; }
             if (IsOpen && !_returnRequested && Input.GetKeyDown(KeyCode.Escape)) { RequestReturn(); return; }
             if (_tip == null) return;
             // ⚠ 關閉後還有 0.12 秒淡出，這段時間面板仍是 active、Update 照跑——不擋的話游標若停在圖示上，
@@ -352,18 +442,18 @@ namespace Dipan.UI
         /// 沒達成＝灰「?????」；以前就領過＝一開始就是金色條件字＋「已領取」；這一趟新拿到＝先灰色，再依序播搖擺→破碎→變金。
         /// 過關、死亡、中途離開一律顯示（資料來源 ScriptRecords，見 readme/SAVE_SYSTEM.md §15）。
         /// </summary>
-        void BuildProofRows(string module)
+        /// 回傳這一趟新拿到、要演出的列（沒有＝空清單）；演出由 <see cref="BeginSequence"/> 開始。
+        List<ProofRow> BuildProofRows(string module)
         {
-            if (_proofArea == null) return;
-            if (_proofAnim != null) { StopCoroutine(_proofAnim); _proofAnim = null; }
+            var pending = new List<ProofRow>();
+            if (_proofArea == null) return pending;
             for (int i = _proofArea.childCount - 1; i >= 0; i--) Destroy(_proofArea.GetChild(i).gameObject);
 
             bool show = ProofTable.HasModule(module);
             _proofArea.gameObject.SetActive(show);
             if (_backBtnRt != null) _backBtnRt.anchoredPosition = new Vector2(0f, show ? BackBtnYWithProofs : BackBtnY);
-            if (!show) return;
+            if (!show) return pending;
 
-            var pending = new List<ProofRow>();
             int idx = 0;
             foreach (var tier in ProofTierInfo.All)
             {
@@ -386,7 +476,7 @@ namespace Dipan.UI
                     if (newly) pending.Add(row);
                 }
             }
-            if (pending.Count > 0) _proofAnim = StartCoroutine(RevealRoutine(pending));
+            return pending;
         }
 
         static string Fmt(string name, string body)
@@ -413,23 +503,295 @@ namespace Dipan.UI
             var sh = t.gameObject.AddComponent<Shadow>();
             sh.effectColor = new Color(0f, 0f, 0f, 0.85f);
             sh.effectDistance = new Vector2(2f, -2f);
-            return new ProofRow { Root = rt, Label = t };
+            return new ProofRow { Root = rt, Label = t, Home = rt.anchoredPosition };
         }
 
-        // 依序揭示：搖擺 → 破碎（字一顆顆飛散＋碎片）→ 金色字彈出。全部用真實時間（結算畫面暫停遊戲）。
-        IEnumerator RevealRoutine(List<ProofRow> rows)
+        // 停掉上一次結算殘留的演出（面板常駐複用）。
+        void ResetSequence()
+        {
+            StopSeqRoutines();
+            _proofAnim = null;
+            _seqRunning = false;
+            _pendingRows = null;
+        }
+
+        // 沒有新證明＝返回鈕直接出現（跟以前一樣）；有＝藏起來、開始演出。
+        void BeginSequence(List<ProofRow> pending)
+        {
+            _pendingRows = pending;
+            bool anim = (pending != null && pending.Count > 0) || _deferredProofs.Count > 0;
+            SetBackButton(!anim, 1f);
+            if (!anim) return;
+            _seqRunning = true;
+            _proofAnim = Run(SequenceRoutine());
+        }
+
+        void SetBackButton(bool on, float alpha)
+        {
+            if (_backBtnRt != null) _backBtnRt.gameObject.SetActive(on);
+            if (_backBtnCg != null) _backBtnCg.alpha = alpha;
+        }
+
+        // 完整演出：條件字依序 搖擺 → 破碎 → 變金；全部變完後證明一張張「讓位 → 閃光 → 出現」接到列表最後；最後返回鈕淡入。
+        // 全部用真實時間（結算畫面暫停遊戲）。
+        IEnumerator SequenceRoutine()
         {
             yield return Wait(ProofStartDelay);
-            foreach (var row in rows)
+            if (_pendingRows != null)
+                foreach (var row in _pendingRows)
+                {
+                    if (row.Root == null) continue;
+                    yield return Shake(row);
+                    Shatter(row);
+                    yield return Wait(ProofShatterTime * 0.45f);
+                    yield return Pop(row);
+                    yield return Wait(ProofBetween);
+                }
+
+            if (_deferredProofs.Count > 0) yield return Wait(RewardRevealDelay);
+            while (_shownProofs < _deferredProofs.Count)
             {
-                if (row.Root == null) yield break;
-                yield return Shake(row);
-                Shatter(row);
-                yield return Wait(ProofShatterTime * 0.45f);
-                yield return Pop(row);
+                int n = _cells.Count + 1;
+                yield return Relayout(n, ProofSlideTime);   // 已在列表上的格子先讓出位置
+                yield return FlashAndReveal(SlotPos(n - 1, n), _deferredProofs[_shownProofs]);
                 yield return Wait(ProofBetween);
             }
+
+            SetBackButton(true, 0f);
+            float t = 0f;
+            while (t < BackBtnFadeTime)
+            {
+                t += Time.unscaledDeltaTime;
+                if (_backBtnCg != null) _backBtnCg.alpha = Mathf.Clamp01(t / BackBtnFadeTime);
+                yield return null;
+            }
+            SetBackButton(true, 1f);
+            _seqRunning = false;
             _proofAnim = null;
+        }
+
+        // 現有格子移到「共 n 格」時的位置（新的一格是第 n-1 格，還沒建）。
+        IEnumerator Relayout(int n, float dur)
+        {
+            int m = _cells.Count;
+            var from = new Vector2[m];
+            bool moved = false;
+            for (int i = 0; i < m; i++)
+            {
+                from[i] = _cells[i].Root.anchoredPosition;
+                if ((from[i] - SlotPos(i, n)).sqrMagnitude > 0.01f) moved = true;
+            }
+            if (!moved) yield break;
+            float t = 0f;
+            while (t < dur)
+            {
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / dur);
+                float e = 1f - (1f - k) * (1f - k);   // ease-out
+                for (int i = 0; i < m; i++)
+                    if (_cells[i].Root != null) _cells[i].Root.anchoredPosition = Vector2.Lerp(from[i], SlotPos(i, n), e);
+                yield return null;
+            }
+            for (int i = 0; i < m; i++)
+                if (_cells[i].Root != null) _cells[i].Root.anchoredPosition = SlotPos(i, n);
+        }
+
+        // 在證明要出現的格子上閃一下（跟圖示一樣大：光暈＋十字星芒，最亮時證明淡入、彈回原尺寸，順便噴幾顆金點）。
+        IEnumerator FlashAndReveal(Vector2 slot, ItemStack proof)
+        {
+            Vector2 c = slot + new Vector2(0f, 12f);   // 圖示中心（同 AddCell）
+            var glow = MakeFx("ProofFx_Glow", GlowSprite(), c, _iconSize, FlashGlowColor);
+            var star = MakeFx("ProofFx_Star", StarSprite(), c, _iconSize, FlashStarColor);
+
+            float t = 0f;
+            while (t < FlashUpTime)
+            {
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / FlashUpTime);
+                float e = 1f - (1f - k) * (1f - k);
+                SetFx(glow, Mathf.Lerp(0.3f, 1.25f, e), 0f, k);
+                SetFx(star, Mathf.Lerp(0.2f, 1.35f, e), 45f * k, k);
+                yield return null;
+            }
+
+            var cell = AddCell(proof, slot);
+            _shownProofs++;
+            cell.Cg.alpha = 0f;
+            cell.Root.localScale = new Vector3(1.25f, 1.25f, 1f);
+            if (glow != null) glow.transform.SetAsLastSibling();
+            if (star != null) star.transform.SetAsLastSibling();
+            for (int i = 0; i < 10; i++) Run(Spark(c));
+
+            t = 0f;
+            while (t < FlashDownTime)
+            {
+                t += Time.unscaledDeltaTime;
+                float k = Mathf.Clamp01(t / FlashDownTime);
+                float e = 1f - (1f - k) * (1f - k);
+                SetFx(glow, Mathf.Lerp(1.25f, 1.6f, k), 0f, 1f - k);
+                SetFx(star, Mathf.Lerp(1.35f, 0.5f, e), 45f + 90f * k, 1f - k);
+                if (cell.Root != null)
+                {
+                    cell.Cg.alpha = Mathf.Clamp01(k * 1.8f);
+                    float s = Mathf.Lerp(1.25f, 1f, e);
+                    cell.Root.localScale = new Vector3(s, s, 1f);
+                }
+                yield return null;
+            }
+            if (glow != null) Destroy(glow.gameObject);
+            if (star != null) Destroy(star.gameObject);
+            if (cell.Root != null) { cell.Cg.alpha = 1f; cell.Root.localScale = Vector3.one; }
+        }
+
+        Image MakeFx(string name, Sprite sp, Vector2 pos, float size, Color col)
+        {
+            var img = UIBuilder.Image(_rewardsArea, name, sp, new Color(col.r, col.g, col.b, 0f));
+            img.raycastTarget = false;
+            var rt = img.rectTransform;
+            rt.anchorMin = rt.anchorMax = rt.pivot = new Vector2(0.5f, 0.5f);
+            rt.sizeDelta = new Vector2(size, size);
+            rt.anchoredPosition = pos;
+            rt.SetAsLastSibling();
+            return img;
+        }
+
+        static void SetFx(Image img, float scale, float rot, float alpha)
+        {
+            if (img == null) return;
+            var rt = img.rectTransform;
+            rt.localScale = new Vector3(scale, scale, 1f);
+            rt.localRotation = Quaternion.Euler(0f, 0f, rot);
+            var c = img.color;
+            img.color = new Color(c.r, c.g, c.b, alpha);
+        }
+
+        // 閃光最亮時往外噴的小金點（減速、淡出）
+        IEnumerator Spark(Vector2 c)
+        {
+            var img = MakeFx("ProofFx_Spark", GlowSprite(), c, Random.Range(8f, 14f), FlashGlowColor);
+            var rt = img.rectTransform;
+            float ang = Random.Range(0f, Mathf.PI * 2f);
+            Vector2 v = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * Random.Range(110f, 240f);
+            const float Life = 0.45f;
+            float t = 0f;
+            while (t < Life && rt != null)
+            {
+                float dt = Time.unscaledDeltaTime;
+                t += dt;
+                rt.anchoredPosition += v * dt;
+                v *= Mathf.Exp(-4f * dt);
+                SetFx(img, 1f, 0f, 1f - Mathf.Clamp01(t / Life));
+                yield return null;
+            }
+            if (rt != null) Destroy(rt.gameObject);
+        }
+
+        // 跳過（ESC／左鍵）：停掉所有演出，直接擺成結束狀態——條件字全金、證明全部接在最後、返回鈕出現。
+        void SkipSequence()
+        {
+            if (!_seqRunning) return;
+            StopSeqRoutines();
+            _proofAnim = null;
+            _seqRunning = false;
+
+            // 證明三行：飛散的字和碎片清掉，待演出的列直接變金、歸位
+            if (_proofArea != null)
+                for (int i = _proofArea.childCount - 1; i >= 0; i--)
+                {
+                    var ch = _proofArea.GetChild(i);
+                    if (ch.name == "Frag" || ch.name == "Shard") Destroy(ch.gameObject);
+                }
+            if (_pendingRows != null)
+                foreach (var row in _pendingRows)
+                {
+                    if (row.Root == null) continue;
+                    row.Root.anchoredPosition = row.Home;
+                    row.Root.localRotation = Quaternion.identity;
+                    row.Root.localScale = Vector3.one;
+                    var f = row.Root.Find("Flash");
+                    if (f != null) Destroy(f.gameObject);
+                    row.Label.text = row.Revealed;
+                    row.Label.color = ProofGold;
+                    row.Label.enabled = true;
+                }
+
+            // 獎勵：閃光清掉，剩下的證明直接補上，全部擺到最終位置
+            if (_rewardsArea != null)
+                for (int i = _rewardsArea.childCount - 1; i >= 0; i--)
+                {
+                    var ch = _rewardsArea.GetChild(i);
+                    if (ch.name.StartsWith("ProofFx")) Destroy(ch.gameObject);
+                }
+            while (_shownProofs < _deferredProofs.Count)
+            {
+                AddCell(_deferredProofs[_shownProofs], Vector2.zero);
+                _shownProofs++;
+            }
+            int n = _cells.Count;
+            for (int i = 0; i < n; i++)
+            {
+                var cell = _cells[i];
+                if (cell.Root == null) continue;
+                cell.Root.anchoredPosition = SlotPos(i, n);
+                cell.Root.localScale = Vector3.one;
+                cell.Cg.alpha = 1f;
+            }
+
+            SetBackButton(true, 1f);
+        }
+
+        // ── 閃光用的程式產生圖（第一次用到才建；被卸掉時 Unity 的 == null 會是 true，自動重建）──
+        static Sprite s_glowSprite, s_starSprite;
+
+        static Sprite GlowSprite()
+        {
+            if (s_glowSprite != null) return s_glowSprite;
+            const int N = 64;
+            var px = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float dx = (x + 0.5f) / N * 2f - 1f, dy = (y + 0.5f) / N * 2f - 1f;
+                    float a = Mathf.Clamp01(1f - Mathf.Sqrt(dx * dx + dy * dy));
+                    a = a * a * (3f - 2f * a);   // smoothstep：邊緣柔
+                    px[y * N + x] = new Color32(255, 255, 255, (byte)(a * a * 255f));
+                }
+            s_glowSprite = MakeSprite(px, N, "ProofFlashGlow");
+            return s_glowSprite;
+        }
+
+        // 四芒星：橫豎兩道越往外越細的光束＋中心亮點
+        static Sprite StarSprite()
+        {
+            if (s_starSprite != null) return s_starSprite;
+            const int N = 128;
+            var px = new Color32[N * N];
+            for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float dx = (x + 0.5f) / N * 2f - 1f, dy = (y + 0.5f) / N * 2f - 1f;
+                    float ax = Mathf.Abs(dx), ay = Mathf.Abs(dy);
+                    float rayH = Mathf.Clamp01(1f - ax) * Mathf.Exp(-(dy * dy) / (0.003f * (1f - ax) + 0.0002f));
+                    float rayV = Mathf.Clamp01(1f - ay) * Mathf.Exp(-(dx * dx) / (0.003f * (1f - ay) + 0.0002f));
+                    float core = Mathf.Exp(-(dx * dx + dy * dy) / 0.03f);
+                    float a = Mathf.Clamp01(Mathf.Max(rayH, rayV) * 0.95f + core);
+                    px[y * N + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+                }
+            s_starSprite = MakeSprite(px, N, "ProofFlashStar");
+            return s_starSprite;
+        }
+
+        static Sprite MakeSprite(Color32[] px, int n, string name)
+        {
+            var tex = new Texture2D(n, n, TextureFormat.RGBA32, false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear,
+                name = name,
+            };
+            tex.SetPixels32(px);
+            tex.Apply(false, true);
+            return Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
         }
 
         static IEnumerator Wait(float sec)
@@ -478,7 +840,7 @@ namespace Dipan.UI
                 crt.sizeDelta = new Vector2(Mathf.Max(charW, 10f) + 8f, ProofRowH);
                 crt.anchoredPosition = center + new Vector2(-width * 0.5f + charW * (i + 0.5f), 0f);
                 var v = new Vector2(Random.Range(-260f, 260f), Random.Range(120f, 420f));
-                StartCoroutine(Fly(crt, c, v, Random.Range(-540f, 540f)));
+                Run(Fly(crt, c, v, Random.Range(-540f, 540f)));
             }
             for (int i = 0; i < 14; i++)
             {
@@ -490,7 +852,7 @@ namespace Dipan.UI
                 irt.sizeDelta = new Vector2(sz, sz * Random.Range(0.4f, 1.2f));
                 irt.anchoredPosition = center + new Vector2(Random.Range(-width * 0.5f, width * 0.5f), Random.Range(-10f, 10f));
                 var v = new Vector2(Random.Range(-320f, 320f), Random.Range(80f, 460f));
-                StartCoroutine(Fly(irt, img, v, Random.Range(-720f, 720f)));
+                Run(Fly(irt, img, v, Random.Range(-720f, 720f)));
             }
         }
 

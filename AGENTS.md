@@ -67,6 +67,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 陣營/多方互打劇本、動「誰能傷誰」 | [readme/FACTION.md](readme/FACTION.md)（規則單一真相＝`FactionRelations.cs`：敵對/傷害乘數/切層都只改它；擺劇本照 §3 一條龍） |
 | 血統／角色外型／立繪／體型 | [readme/BLOODLINE.md](readme/BLOODLINE.md)（表A 唯一真相；`BodyScale` 純視覺；五屬性只存不套用） |
 | 發光／亮度／光圈／環境亮度 | [readme/ATMOSPHERE.md](readme/ATMOSPHERE.md)＋[readme/SCENE_EFFECT.md](readme/SCENE_EFFECT.md)（同框 12 盞上限寫死在兩處） |
+| **裝備體系**：武器數值、能力珠效果、品質稀有度、內建特殊效果、給道具時寫死或動態骰、**任何傷害／血量／魔力數字** | [readme/EQUIPMENT.md](readme/EQUIPMENT.md)（單一真相）——**配方的行為欄填等級**（`PierceLv` 等，換算看 GemTable）；全身同種效果**等級相加**；屬性 → 欄位對應只認 `EquipAttributes.cs`；**2026-11-17 起數值尺度 ×10**，新增任何傷害／血量欄或常數照新尺度填，**CSV「留空時的預設值」也要照新尺度**（最容易漏） |
 | 兌換所／**物品稀有度（白藍黃紫）**／新增貨幣 | [readme/EXCHANGE.md](readme/EXCHANGE.md)——稀有度的顏色與名稱只認 `RarityInfo`（`Scripts/Exchange/ExchangeData.cs`），別再各自定義一套 |
 | **功德值／劇本證明（B/A/S）**、發證明、劇本的新／迴響／畢業、輪迴帶物、成就 | [readme/CORE_LOOP_DESIGN.md](readme/CORE_LOOP_DESIGN.md) **§8**（規則）＋[readme/SAVE_SYSTEM.md](readme/SAVE_SYSTEM.md) **§15**（紀錄層：一律走 `Dipan.Progress.ScriptRecords`，**成就只讀紀錄、遊戲機制不讀成就**）——證明「領過沒」跟「手上幾張」是兩回事，別混 |
 | 新增**單鍵熱鍵**、或做有**輸入框**的 UI | PROBLEMS **K4**——熱鍵判斷要加 `!UIManager.TextInputFocused`，否則玩家在輸入框打字會順便觸發熱鍵 |

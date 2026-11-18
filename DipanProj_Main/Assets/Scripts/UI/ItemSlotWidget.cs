@@ -77,6 +77,7 @@ namespace Dipan.UI
         public void Refresh()
         {
             var st = Container != null ? Container.GetAt(Index) : ItemStack.Empty;
+            ItemIcons.ApplyQualityFrame(Rt, st, _icon);   // 良品以上的裝備畫品質色細框（空格會藏起來）
             if (st.IsEmpty) { _icon.enabled = false; _count.text = ""; return; }
             // 珠子是「珠身＋能力符號」兩層，一律走 ItemIcons（見 readme/GEM_SOCKET.md）
             ItemIcons.Apply(_icon, st);

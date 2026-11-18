@@ -27,10 +27,11 @@
 | [LASER.md](LASER.md) | 雷射光束系統 ＋ 雷射外型（BeamStyle 種類／調色盤） | 改雷射、加雷射種類或顏色 |
 | [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md) | Pack 4 像素雷射素材拆解、平鋪折線渲染、無限延伸／反射與武器「鏡界折光」 | 改像素雷射、反射上限或擴充 Pack 4 顏色／造型 |
 | [VFX.md](VFX.md) | 一次性特效：發射特效（玩家身上）＋ 擊中特效（命中點），VfxTable 原語 | 加／改發射或擊中特效 |
+| [GROUND_SPIKE.md](GROUND_SPIKE.md) | **地刺**（2026-11-17）：子彈沿路從地底刺出一排尖刺（GroundSpikeTable＋shader `Custom/GroundSpike`＋物件池），石刺／樹根刺兩組圖，每點根數、高度、傾斜、刺出／停留／收回時間全部可調 | 改地刺外觀或手感、做新的「從地裡冒出來」的特效 |
 | [EFFECT_LIBRARY.md](EFFECT_LIBRARY.md) | 地圖編輯器端「特效素材庫＋預覽器」：原始包(`allEffects/`)→通用整理腳本(`organize_bundle.py`)→`Effects/`→特效預覽器（瀏覽/換色/匯出）；放 Assets 外、不被 sync、挑好再手動貼進遊戲 | 整理/瀏覽買來的特效包、挑特效貼進遊戲前 |
 | [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md) | Effects 全庫審閱、特效武器化原則、已實作武器與下一批候選 | 從特效庫設計／擴充武器、查新武器素材來源 |
 | [CHARGE_MODE.md](CHARGE_MODE.md) | RecipeTable 集氣模式：按住／放開流程、3 秒倍率、藍紅集氣特效與持續武器互斥規則 | 啟用集氣武器、調整集氣倍率／特效或排查輸入互斥 |
-| [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) | **RecipeTable 填表手冊**（2026-08-26 新表：一列一種 `Mode`、50 欄分群（含 2026-08-26 晚加的連擊 2 欄、平行 3 欄）、空白＝預設；2026-09-30 加迴旋模式 `Boomerang`＋`BoomerangCount`；2026-10-01 加浮游模式 `Familiar`（裝備就自動攻擊，本體外觀三欄在 WeaponTable）；模式 × 欄位矩陣、能力珠 × 模式矩陣、GroundEffectID 在各模式的角色、舊表遷移對照） | 填／改配方表、加新模式或新欄位、想知道某顆珠子對某武器有沒有用 |
+| [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) | **RecipeTable 填表手冊**（2026-11-17 起行為欄填等級 `PierceLv`／`SplitLv`… 、分裂角度改 `SpreadSpacing`＋`SpreadMaxAngle`；2026-08-26 新表：一列一種 `Mode`、50 欄分群（含 2026-08-26 晚加的連擊 2 欄、平行 3 欄）、空白＝預設；2026-09-30 加迴旋模式 `Boomerang`＋`BoomerangCount`；2026-10-01 加浮游模式 `Familiar`（裝備就自動攻擊，本體外觀三欄在 WeaponTable）；模式 × 欄位矩陣、能力珠 × 模式矩陣、GroundEffectID 在各模式的角色、舊表遷移對照） | 填／改配方表、加新模式或新欄位、想知道某顆珠子對某武器有沒有用 |
 | [PASSIVE_WEAPON.md](PASSIVE_WEAPON.md) | **被動武器掛載系統**（2026-10-01）：「裝備著就自己運作、沒有扳機」的武器（目前＝浮游 `Familiar`）不佔當前武器、可與主武器並存；`ItemTable`／`BloodlineTable` 同名欄 **`PassiveWeaponIds`**（分號分隔）決定誰帶著它；`PassiveWeaponSet` 收集三種來源、每把過珠子容器（珠子影響全身）、`WeaponFamiliar` 一元件管多組 | 做／改應龍水珠這類被動武器、要讓某件裝備或某個血統附帶被動武器、加新的被動型模式 |
 | [WEAPON_WORKBENCH.md](WEAPON_WORKBENCH.md) | **武器工坊**（Unity EditorWindow，`Project Tools → 武器工坊`）：選外型／選 Mode／只顯示有效欄／名稱下拉／範圍提示，Play 中改值立刻射出去（`SimulationOverride`），真鑲珠子有效，一鍵存回 CSV | **做／改任何武器或配方時優先用它，不要手改 CSV**；接新欄位／新模式後看視窗有沒有跟上 |
 | [PROGRESS.md](PROGRESS.md) | 已完成項目的變更日誌（**倒序，最新在最上**；較舊條目原文封存在 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭有逐條索引） | 想了解歷史脈絡 |
@@ -49,13 +50,14 @@
 | [INVENTORY.md](INVENTORY.md) | 背包系統（InventorySystem 資料層 + InventoryPanel、**裝備包/消耗品包雙頁籤＋分頁**、ItemTable.csv、icon 規格與**自動正規化**、格子座標） | 改背包、物品、裝備欄、加 icon、動格子提示 |
 | [STORAGE.md](STORAGE.md) | 倉庫系統（StorageSystem + IItemGrid、倉庫+背包並排面板、點擊/拖放搬運、每角色獨立、存檔接線） | 改倉庫、做搬運 UI、套倉庫圖 |
 | [GEM_SOCKET.md](GEM_SOCKET.md) | **能力珠鑲嵌系統**（物品實例：表格只是模板、玩家手上那一件另外存；能力容器：攻擊讀容器不讀武器表；GemTable 一種珠子一列；ItemManager 唯一工廠骰孔數/等級；RandomRules 全遊戲機率） | **動武器/裝備/背包/掉落/存檔之前**；加能力珠、改鑲嵌、調孔數機率 |
-| [GEM_CATALOG.md](GEM_CATALOG.md) | **能力珠圖鑑**（25 顆珠子每一顆：改哪個欄、對哪些模式有效、三級數值、拿現有武器算的範例、坑、流派搭配）— 企劃／測試看這份，系統原理看 GEM_SOCKET |
+| [GEM_CATALOG.md](GEM_CATALOG.md) | ⚠ **數值與範例已過期（2026-11-17 改版，待重寫；現行看 EQUIPMENT §4.2）** **能力珠圖鑑**（25 顆珠子每一顆：改哪個欄、對哪些模式有效、三級數值、拿現有武器算的範例、坑、流派搭配）— 企劃／測試看這份，系統原理看 GEM_SOCKET |
 | [FORGING.md](FORGING.md) | 鍛造介面（Y 鍵開；鐵砧中央放武器/裝備、左右 6 個鑲嵌孔依裝備孔位數解鎖、底部兩顆按鈕尚未接功能；重用 ISlotView/SlotDragController 拖放地基） | 改鍛造介面、做鑲嵌/拆裝備、接鐵匠 NPC、加裝備孔位數 |
 | [INTERACTION.md](INTERACTION.md) | 互動系統（InteractionManager：靠近按 F、道具拾取點、地上掉落物、星星標示、中央 toast） | 改拾取/掉落/觸發點、星星特效、提示 |
 | [NPC_SYSTEM.md](NPC_SYSTEM.md) | **NPC 系統**（編輯器 NPC 分頁放置、原地/來回走動、按 F 交談走 DramaTable、對話後開介面 panelId、接觸發鏈；NpcTable.csv 分表、圖沿用 Monsters/SequenceImage、陣營 Neutral＋FactionRelations 單一判定） | 放/改 NPC、加 NPC 種類、做對話商人、未來護送/陣營前 |
 | [FACTION.md](FACTION.md) | **陣營系統**（三方陣營劇本：狼人×吸血鬼×主角——和平/開戰/結盟三態、factionWar·joinFaction 鏈動作、演戲傷害 1/100、結盟切 Ally 層打不到；規則單一真相在 FactionRelations.cs） | 做多方陣營劇本、動「誰能傷誰」、加陣營前 |
 | [GACHA_SYSTEM.md](GACHA_SYSTEM.md) | **祭壇抽選系統**（邪佛廣場走到祭壇按 F 抽選：四層資料架構讓「武器/裝備/血統/道具」大項可隨時增刪、打通關卡解鎖新內容進池、老虎機表演＋十連結算面板；**金錢改成獨立數字不再是背包道具**、血統藥劑一次性換外型；新觸發 `openPanel`／`unlockRoll`、新條件「最低/最高完成關卡數」＋「條件不成立時」） | 加/改抽選大項或池內容、放新祭壇、改抽選介面表演、動金錢或血統 |
 | [EXCHANGE.md](EXCHANGE.md) | **兌換系統（兌換所）**（2026-11-15，⏳ 未實測；2026-11-16 貨幣定案＝**功德值＋B／A／S 劇本證明**，§5）：主神空間式兌換——分類下拉、名稱搜尋、稀有度篩選、只看買得起／收藏、排序、列表／縮圖／大圖三種檢視、詳情兌換彈窗；`ExchangeTable.csv`（價格可多種貨幣）；**稀有度白藍黃紫的全遊戲定義（§2）**；貨幣登記表（銅錢可用、勳章／點數預留） | 改兌換所、定價、**任何要顯示稀有度的地方**、開放新貨幣 |
+| [EQUIPMENT.md](EQUIPMENT.md) | **裝備體系**（2026-11-17，分支 `feat/equipment-rarity`；第①階段地基已做、⏳ 待驗收，②～④未動工）：品質＝特殊效果數（一般／良品／珍品／極品）、部位 × 效果類別的有效性、24 種效果三種算法（百分比／純等級／加值）＋全身等級相加、基礎屬性填數值、生成規格 `[q;s;fx;lv]`（寫死或動態骰）、數值尺度 ×10、舊武器遷移、四階段實作 | **動武器／裝備／珠子／掉落／兌換／抽選的數值或品質之前** |
 | [BLOODLINE.md](BLOODLINE.md) | **血統系統**（系列＝三階段：殭屍→毛殭→旱魃；表A 系列表＋表B 血統表、系列起始藥劑一世一次不可逆、進階藥劑全系列通用且必須逐階、SpriteFolder 同時決定序列圖與立繪、輪迴歸零回人類；**`BodyScale` 體型倍率＝腳底錨點放大、純視覺**；**變身演出已完成**：倒下→天雷→煙霧→換裝→爬起；⚠ 五屬性只存不套用）<br>**也是玩家可見身體幾何的正典**（`FeetWorldPos` / `BodyCenterWorldPos` / `VisibleBodyHeight`） | 加/改血統或系列、動血統藥劑、換角色外型與立繪、改變身演出、**要定位或縮放任何「掛在玩家身上」的特效** |
 | [DRAMA.md](DRAMA.md) | 劇情系統（drama 觸發點、DramaTable.csv、DramaPanel 模態檢視介面） | 加/改劇情、做劇情圖文 |
 | [LOCALIZATION.md](LOCALIZATION.md) | 多語系／語言表（`Language.GetText(id)` 唯一取用入口、`LanguageTable.csv` id,cn,en、LanguageTableProvider、預設中文支援英文、id 分段慣例） | 加/改玩家可見字串、切語言、做多語系前 |

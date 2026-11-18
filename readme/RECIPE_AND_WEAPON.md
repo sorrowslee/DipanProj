@@ -53,7 +53,8 @@
 | `BeamWidth` | 雷射粗細（**視覺與命中判定共用此欄**，所見即所得）；留空 = 0.5 |
 | `FireEffectID` | 發射特效 ID（引用 `VfxTable`）：發射時在玩家身上播一次、朝瞄準方向；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `HitEffectID` | 擊中特效 ID（引用 `VfxTable`）：子彈／光束命中怪物、障礙物、拋物線落地時在命中點播一次；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
-| `TrailEffectID` | 軌跡特效 ID（引用 `VfxTable`）：沿子彈飛行路徑每隔配方的 `TrailStep` 距離種一個（**地刺類武器**靠這個沿路長出尖刺）；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
+| `TrailEffectID` | 軌跡特效 ID（引用 `VfxTable`）：沿子彈飛行路徑每隔配方的 `TrailStep` 距離種一個；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
+| `TrailSpikeID` | 軌跡地刺 ID（引用 `GroundSpikeTable`，2026-11-17）：沿子彈飛行路徑每隔 `TrailStep` 從地底刺出一組尖刺（**地刺類武器**用這個）；留空 / 0 = 不觸發。見 [GROUND_SPIKE.md](GROUND_SPIKE.md) |
 | `SummonEffectID` | 召喚特效 ID（引用 `VfxTable`）：**召喚型武器**（`Mode=Summon`）施放時在**每個生怪點**播一次，怪物**同一幀一起出現**（邊播特效邊出現）；留空 / 0 = 不播、無特效直接生怪。見 [VFX.md](VFX.md)、[BOSS_MODULE.md](BOSS_MODULE.md) |
 
 ## 序列圖動畫設定說明

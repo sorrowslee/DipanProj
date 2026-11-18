@@ -30,8 +30,8 @@ Resources/VfxEffects/PixelLaserA_Blue/
 - 每秒魔力：2
 - `PixelBeamSet=A_Blue`
 - `Range=-1`：無限延伸語意
-- `BounceTarget=Environment, MaxBounces=3`：由配方精確控制，最多反射 3 次
-- `PierceCount=-1`：穿過沿途敵人，讓整條折線都能造成傷害
+- `BounceTarget=Environment, BounceLv=3`：由配方精確控制，最多反射 3 次
+- `PierceLv=50`（2026-11-17 前是 -1 無限）：穿過沿途敵人，讓整條折線都能造成傷害
 
 按住攻擊鍵時，雷射會朝滑鼠方向射出，沿牆面法線反射並繼續延伸。放開後整條雷射消失。這是持續型 `Mode=Laser` 武器，因此依集氣互斥規則不能開啟 `ChargeMode`（原「集氣模式」欄）。
 
@@ -43,9 +43,9 @@ Resources/VfxEffects/PixelLaserA_Blue/
 
 ## 射程與反射欄位
 
-`Range=-1` 只代表射程延伸到實用安全距離（內部 200 世界單位），不影響反射次數。反射完全服從 RecipeTable：`BounceTarget=None` 不反射；`BounceTarget=Environment` 才會在牆面反射；`MaxBounces=N` 就最多反射 N 次。「鏡界折光」目前明確設定為 3 次，不再對反射次數使用隱藏上限或 `-1` 特例。
+`Range=-1` 只代表射程延伸到實用安全距離（內部 200 世界單位），不影響反射次數。反射完全服從 RecipeTable：`BounceTarget=None` 不反射；`BounceTarget=Environment` 才會在牆面反射；`BounceLv=N` 就最多反射 N 次（2026-11-17 起 CSV 填等級，見 [EQUIPMENT.md](EQUIPMENT.md)）。「鏡界折光」目前明確設定為 3 次，不再對反射次數使用隱藏上限或 `-1` 特例。
 
-它與武器 5「雷射追蹤光束」走同一條既有雷射生成路徑，因此也完整支援 `SpreadCount`／`SpreadAngle` 多道扇形、`HomingTurnSpeed` 曲線追蹤、`PierceCount` 穿透、`DotInterval` 傷害節拍，以及 `BounceTarget`／`MaxBounces` 反射。像素元件只替換渲染，不接管任何一項配方行為。
+它與武器 5「雷射追蹤光束」走同一條既有雷射生成路徑，因此也完整支援 `SplitLv`／`SpreadSpacing`／`SpreadMaxAngle` 多道扇形、`HomingLv` 曲線追蹤、`PierceLv` 穿透、`DotInterval` 傷害節拍，以及 `BounceTarget`／`BounceLv` 反射。像素元件只替換渲染，不接管任何一項配方行為。
 
 ## 資料驅動欄位
 

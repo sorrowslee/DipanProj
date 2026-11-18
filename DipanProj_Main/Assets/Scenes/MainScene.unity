@@ -4521,6 +4521,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   VfxCSV: {fileID: 4900000, guid: 47f9d0ae98720462496b32a9a1c753b4, type: 3}
+  GroundSpikeCSV: {fileID: 4900000, guid: 1c593cedad2f4129adbf9d93eb2006d4, type: 3}
   SortingLayerName: Default
   SortingOrder: 22000
   VfxMaterial: {fileID: 0}
@@ -4591,7 +4592,7 @@ MonoBehaviour:
   objectSolidFillThreshold: 0.9
   objectColliderScale: 1
   objectsDestructible: 1
-  objectMaxHP: 20
+  objectMaxHP: 200
   objectDestroyVfxId: 5
   teleportVfxId: 6
   teleportLightRadius: 1.6

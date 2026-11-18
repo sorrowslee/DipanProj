@@ -4,6 +4,45 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **紅嫁衣調整（作者實測回饋）**（2026-11-17）：① 客廳 2 家族合照劇情接 giveItem「家族合照-藥水」（201 小回血瓶 ×3，一趟一次；三份地圖同步）② 兒童彈弓配方 10001 `FireInterval` 留空 → 1.5 → **0.7** 秒（1.5 打起來太痛苦） ③ 芙蓉（MonsterData 13 紅嫁衣）HP 500 → **300**（彈弓打中 30 發）。艾爾文太硬的問題見同日對話：×10 是血量與傷害一起放大、比例沒變，是枯枝輸出（每秒 30）對這隻 boss 太低，待作者決定怎麼平衡。**要 Reimport RecipeTable、MonsterData**。
+* [x] **掉寶落在牆裡撿不到（⏳ 未編譯未實測）**（2026-11-18 作者實測：榕樹妖的枯枝掉在樹幹後面）：`InteractionManager.DropStack` 落地前挪到最近的「可走＋玩家走得到」的點。見 [PROBLEMS.md](PROBLEMS.md) K5。
+* [x] **結算畫面新證明演出（⏳ 未編譯未實測）**（2026-11-17 作者規格）：有新證明時返回鈕先藏 → 獎勵列表先只排非證明的東西 → 條件字破碎變金 → 證明 B→A→S 一張張接到列表最後（讓位 → 該格閃光 → 淡入）→ 返回鈕淡入；ESC／左鍵跳過。只改 `ResultPanel.cs`，細節見 [LEVEL_END_FLOW.md](LEVEL_END_FLOW.md)〈劇本證明三行〉。
+* [x] **HP 血球左緣露出紅色**（2026-11-17）：框圖 `BottomControlPanel_Bg` 本身畫了一顆實心紅球（圓心≈196,355、r≈100），液體圓盤原本放在 (210,350) r115，偏右上，殘血時（圓盤上半是暗玻璃）左緣就露出底圖的紅球。`BottomHudPanel.HpCenter` 改 **(196,355)**、`OrbRadius` 115→**110**（藍球 r≈101，110 仍全蓋住，圓心不動）。
+* [x] **地刺特效重做（⏳ 未編譯、未實測；分支 `feat/equipment-rarity`、未 commit）**（2026-11-17，作者覺得舊地刺很糟，要像遁地獸那樣一整排從地底刺出；見 [GROUND_SPIKE.md](GROUND_SPIKE.md)）：
+  ① **圖**：ChatGPT 燃燈劫專案出兩張 3×2 圖示表（附紅嫁衣榕樹場景＋主角圖當風格錨點、洋紅底），石刺／樹根刺各 4 根＋裂口＋揚塵，放 `Resources/VfxEffects/GroundSpike/`（新檔）。
+  ② **shader** `Custom/GroundSpike`：世界座標地平線以下不畫、貼地壓暗、淡出。**元件** `GroundSpikeBurst`（物件池）：沿刺軸推出＋縱向拉長彈回 → 停留 → 縮回地底（或淡出），一叢錯開冒出、朝前進方向傾斜、往左飛自動翻。
+  ③ **新表** `GroundSpikeTable.csv`（每點根數、高度、散開、傾斜、時間、收尾方式全可調，單根武器填 1/1）；武器表新欄 `TrailSpikeID`（地裂刺、山崩地裂＝1 石刺，樹妖的枯枝＝2 樹根刺；三把的 `TrailEffectID` 清空）。MainScene 的 VfxManager 已拖好新表。
+  ④ **移除**舊地刺序列圖 `VfxEffects/EarthSpik`（7 張＋meta）與 VfxTable 第 3 列；查過沒有其他引用。榕樹妖自己的地刺（VfxTable 11、`EarthSpik2`）沒動。
+  <br>**要在 Unity Reimport WeaponTable／RecipeTable／VfxTable／GroundSpikeTable**；大小與時間都是估的，Play 後調 GroundSpikeTable。
+  ⑤ **同日作者回饋「刺出／收回慢一點、往前延伸慢一點，要一陣一陣往前刺」**：GroundSpikeTable 刺出 0.08→0.18、停留 0.25→0.3、收回 0.15→0.3 秒；配方子彈速度 地裂刺／枯枝 20→8、山崩地裂 15→6（LifeTime 0.8→2 維持射程），TrailStep 都改 2 ⇒ 每 0.25～0.33 秒冒一陣。傷害跟著子彈變慢（畫面和傷害仍對得上）。見 GROUND_SPIKE.md §3.1。
+* [x] **裝備體系第④階段：新內容（⏳ 未編譯、未實測；分支 `feat/equipment-rarity`、未 commit）**（2026-11-17，見 [EQUIPMENT.md](EQUIPMENT.md) §10.2、§17）：
+  ① **三把新武器**（ID 10001~10003，配方同號）：兒童彈弓（傷害 10、耗魔 10、單發）、一般佛燈（照抄佛光）、樹妖的枯枝（照地裂刺：傷害 30、1 秒一發、單道不反彈、起點穿透 Lv1、沿路地刺特效）。
+  ② **給道具都能帶規格**：劇本 giveItem 與拾取點新增 `spec` 參數；掉落表槽位尾巴可接 `[q=3]`（`DropTable.RollWithSpec`）；地圖編輯器的兩種觸發點加「生成規格」欄。
+  ③ **紅嫁衣**：柴房佛燈改 10002 `[q=1;s=0]`（`TutorialManager.LampItemId` 一起改）；客廳 1 看完家書給兒童彈弓 `[q=1;s=1]`；書房看封靈符給穿透珠 `[lv=1]`（giveItem 一趟只給一次）；榕樹妖改用新掉落表 4、必掉珍品枯枝 `[q=3]`。三份地圖檔同步。
+  ④ **美術**：ChatGPT「燃燈劫」專案一次出 3×2 圖示表（附既有圖示當風格錨點＋榕樹妖兩張參考），去背後放進 `UI/Icons/Equipment/weapon_childSlingshot.png`、`weapon_banyanBranch.png`、`Weapon/single/weapon_slingshotPellet.png`（新檔，沒有覆蓋任何舊圖；.meta 照同資料夾範本生成）。備選設計在 `TempImage/weapon_icons/out/*_B.png`。
+  <br>**注意**：榕樹妖死後 10 秒自動過關，枯枝要在這段時間內撿起來。**要在 Unity Reimport ItemTable／WeaponTable／RecipeTable／DropTable／MonsterData**。
+* [x] **裝備體系第③階段：兌換與抽選（⏳ 未編譯、未實測；分支 `feat/equipment-rarity`、未 commit）**（2026-11-17，見 [EQUIPMENT.md](EQUIPMENT.md) §16）：
+  ① **ItemTable 加 `Rarity` 欄**（只改表頭，現有列全部留空＝一般）；非裝備的品質讀它，裝備填了會警告。
+  ② **兌換表重建**：`Rarity` 欄換成 `Spec`（生成規格，兌換那一刻才產生）；舊 118 列下架，留 65 列（極品樹妖的枯枝 `q=4`／B 證明 1＋功德值 100、24 種珠子、小回血／回魔瓶、38 列血統），沿用原 ExchangeId 與價格。枯枝的物品 10003 第④階段才建，之前載表有一條預期內的略過警告。列表寫死品質的裝備顯示「極品 名稱」、沒寫死的顯示「隨機品質」（10055）；tooltip 多一行「兌換時才決定」（10056）。
+  ③ **抽選先產生再演**：`RollResult.Stacks` 是實際那一件，發獎與表演都用它；單抽結果、十連小縮圖、十連結算顯示實際品質與珠子等級（修掉固定 Lv1），十連結算裝備／珠子不合併。
+  <br>**檢查**：tree-sitter 語法 0 錯；改動行未宣告識別字只剩 Unity API；寫回前比對 Mac 端檔案未被改動。**要在 Unity Reimport LanguageTable.csv、ItemTable.csv、ExchangeTable.csv**。
+* [x] **裝備體系第②階段：品質系統（⏳ 未編譯、未實測；分支 `feat/equipment-rarity`、未 commit）**（2026-11-17，見 [EQUIPMENT.md](EQUIPMENT.md) §15）：作者說「請繼續吧」時第①階段還沒回報驗收，直接疊上去。
+  ① **資料**：`ItemInstance.affixes`（`Affix { effectId＝GemTable 的 GemID, level }`），品質＝條數＋1、不另存，舊存檔 null＝一般。
+  ② **規格語法** `[q=;s=;fx=;lv=]` 唯一解析器 `ItemSpec`（錯誤回中文原因；用 Python 鏡像跑過 16 組測資）；工廠 `ItemManager.Create(id, count, spec)`、`RunProgress.GiveItem(…, spec)`、`InteractionManager.DropLoot(…, spec)` 都吃規格。
+  ③ **規則**集中在新檔 `ItemQuality`：部位類別（武器／防具／珠寶）× 效果類別 × 武器模式、廣角要先有分裂、平均補骰、不夠就降級並警告；`RandomRules` 加品質與效果等級的佔位權重。
+  ④ **鍛造**：武器擋防具珠與模式無效珠、防具擋武器珠，toast 說原因（語言表 4017–4019）；珠寶維持提示不擋。舊存檔已鑲的不受影響。
+  ⑤ **顯示**：tip 名稱「品名 名稱」＋品質色、品質細外框、三區（基礎屬性用 `PlayerAbilities.ForItem` 只算這一件、特殊能力品質色、鑲嵌）；格子品質框（良品以上）接背包／裝備欄／倉庫／鍛造鐵砧／結算；地上標籤品質色。作弊面板加「規格」欄。品名改一般／極品（10017／10020）。
+  <br>**檢查**：tree-sitter 全專案語法 0 錯；改動行未宣告識別字只剩 Unity API。**要在 Unity Reimport LanguageTable.csv**。
+* [x] **裝備體系第①階段：數值等級化＋效果表改版＋全遊戲數值 ×10（⏳ 未編譯、未實測；分支 `feat/equipment-rarity`）**（2026-11-17，見 [EQUIPMENT.md](EQUIPMENT.md)、[PROBLEMS.md](PROBLEMS.md) **I11**、**L5**）：
+  作者定的裝備體系（品質＝這一件骰到幾個特殊效果：一般／良品／珍品／極品；四階段實作）的地基。
+  ① **效果表改版**：GemTable 改成 `Calc／Attribute／Lv1／PerLv／MaxLv`、24 種（綿延→遠射、頻擊→疾發、粗束→須彌；道具 409／414／425 保留並轉向，讀舊檔不用轉換程式）；疊加從「數值相加」改成**全身等級相加**；三種算法（百分比／純等級／加值），越小越好的屬性用除法永不歸零。屬性 → 欄位的對應集中在新檔 `EquipAttributes.cs`。
+  ② **配方等級化**：`PierceLv`／`BounceLv`／`SplitLv`／`HomingLv`／`BurstLv`／`ParallelLv`＋`SpreadSpacing`／`SpreadMaxAngle`（取代 `SpreadAngle`，到 360° 自動平均一整圈）。
+  ③ **能力容器重寫**；佛光吃攻速（`GroundEffectInstance.IntervalScale`）。
+  ④ **舊配方遷移**：75 筆，另用獨立腳本「舊表舊規則 vs 新表新規則」逐筆比對，只差 1 項（酆都大帝追蹤 200→210°/秒）＋16 項無限穿透→lv50。
+  ⑤ **數值 ×10**：CSV 5 張表 222 格、程式常數與留空預設 17 處、`Player.prefab`／`Monster.prefab`／`MainScene`、51 個地圖檔 227 個地上物血量（三份地圖都改）、傷害數字分級門檻與一律取整。
+  <br>**為什麼等級換算放讀表層**：配方被玩家、怪物、同伴、被動武器、子武器共用；換算放在能力容器只有玩家算對。放在 `RecipeEntry.FromFields`、程式內部欄位名（`ProjectileData.PierceCount` 等）不改 → 下游 30 多處讀取點一行都不用動。
+  <br>**作者推翻過的設計**（留給之後調平衡的人）：傷害曾考慮「起點也填等級、每級 +1」與「每級 ×1.1」——作者否決：+1 太少，前中後期怪物血量拉不開、強化沒感覺；×1.1 一顆珠子沒感覺。定案＝**基礎屬性填數值、效果用百分比**（傷害珠每級 +5%、堆滿 +250%），強度梯度交給新武器的基礎值；同時全遊戲 ×10 讓百分比看得到。
+  <br>**通則**：①多方共用的資料改語意，換算放在最上游的讀取點、保留下游欄位名；②改尺度時「CSV 留空的預設值」一定要一起改（L5）；③沒有編譯器時的自我檢查組合（I11）。
 * [x] **彈窗跟著主介面一起關（⏳ 未編譯、未實測；同分支）**（2026-11-16 晚，作者：兌換所看詳情時按 N，兌換所關了、詳情彈窗還在）：做在 UI 框架層、一次解決所有面板——`UIPanel.OwnerPanel`（Popup 層開啟時記下當下最上層的視窗）＋`UIManager.Close` 先遞迴關掉名下彈窗。熱鍵、ESC、按鈕、劇情流程關主介面都適用；確認彈窗也受惠。見 [UI_SYSTEM.md](UI_SYSTEM.md)〈彈窗跟著主介面一起關〉。
 * [x] **抽選提示字加強＋介面 ESC 統一（⏳ 未編譯、未實測；同分支）**（2026-11-16 晚，作者：「提示還是不夠清楚」「希望所有介面都支援 ESC 關閉」）：
   ① 抽選提示字：標題字型 25、暖金 `HintColor`、黑描邊，底下墊深色半透明底板（寬度跟著字，`SetHint`）。

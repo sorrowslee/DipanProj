@@ -61,6 +61,7 @@ namespace Dipan.UI
         const int TxtAffordable = 10027, TxtFavOnly = 10028, TxtCount = 10029, TxtEmpty = 10030, TxtReset = 10031;
         const int TxtViewList = 10032, TxtViewThumb = 10033, TxtViewCard = 10034;
         const int TxtOwned = 10041, TxtNotOpen = 10049, TxtRarity = 10051, TxtPrice = 10052;
+        const int TxtRolledOnExchange = 10056;
         const int TxtRightFavAdd = 10053, TxtRightFavDel = 10054;           // 「右鍵：加入收藏／取消收藏」
 
         enum ViewMode { List, Thumb, Card }
@@ -512,7 +513,7 @@ namespace Dipan.UI
             name.verticalOverflow = VerticalWrapMode.Truncate;
             PlaceTL(name.rectTransform, 100f, 4f, 520f, ListRowH - 8f);
 
-            var cat = Txt(root, "Cat", ExchangeCategoryInfo.Name(e.Category) + "・" + RarityInfo.GradeName(e.Rarity), 22, TextDim, TextAnchor.MiddleLeft);
+            var cat = Txt(root, "Cat", ExchangeCategoryInfo.Name(e.Category) + "・" + e.GradeLabel, 22, TextDim, TextAnchor.MiddleLeft);
             PlaceTL(cat.rectTransform, 640f, 0f, 220f, ListRowH);
 
             int owned = OwnedCount(e);
@@ -552,7 +553,7 @@ namespace Dipan.UI
             name.verticalOverflow = VerticalWrapMode.Truncate;
             PlaceTL(name.rectTransform, 14f, 222f, CardW - 28f, 40f);
 
-            var sub = Txt(root, "Sub", RarityInfo.Label(e.Rarity) + "　" + ExchangeCategoryInfo.Name(e.Category), 20, TextDim, TextAnchor.MiddleCenter);
+            var sub = Txt(root, "Sub", e.RarityLabel + "　" + ExchangeCategoryInfo.Name(e.Category), 20, TextDim, TextAnchor.MiddleCenter);
             PlaceTL(sub.rectTransform, 14f, 262f, CardW - 28f, 26f);
 
             string desc = e.Item.TipStats;
@@ -615,7 +616,7 @@ namespace Dipan.UI
             _tipFor = (e != null && tooltip) ? e : null;
             if (_tip == null) return;
             if (_tipFor == null) { _tip.Hide(); return; }
-            _tip.Show(e.ItemId, TipExtra(e));
+            _tip.Show(e.ItemId, TipExtra(e), e.Name, RarityInfo.ColorOf(e.Rarity));   // 名稱用兌換表的品質（東西還沒產生，沒有實例）
         }
 
         /// <summary>tooltip 在物品說明後面補的三行：稀有度＋分類、價格（買不起標紅）、右鍵收藏的操作提示。</summary>
@@ -623,7 +624,9 @@ namespace Dipan.UI
         {
             string price = e.CurrenciesAvailable ? ExchangeService.CostText(e.Cost) : Language.GetText(TxtNotOpen);
             if (!ExchangeService.CanAfford(e)) price = $"<color=#E0614F>{price}</color>";
-            return $"{Language.GetText(TxtRarity)}：<color=#{ColorUtility.ToHtmlStringRGB(RarityInfo.ColorOf(e.Rarity))}>{RarityInfo.Label(e.Rarity)}</color>　{ExchangeCategoryInfo.Name(e.Category)}\n"
+            string rolled = (e.Item != null && Dipan.Inventory.ItemManager.NeedsInstance(e.Item))
+                ? $"<color=#9E998C>{Language.GetText(TxtRolledOnExchange)}</color>\n" : "";   // 裝備的效果／孔數、珠子的等級兌換時才骰
+            return rolled + $"{Language.GetText(TxtRarity)}：<color=#{ColorUtility.ToHtmlStringRGB(RarityInfo.ColorOf(e.Rarity))}>{e.RarityLabel}</color>　{ExchangeCategoryInfo.Name(e.Category)}\n"
                  + $"{Language.GetText(TxtPrice)}：{price}\n"
                  + $"<color=#9E998C>{RightClickHint(e)}</color>";
         }
@@ -720,7 +723,7 @@ namespace Dipan.UI
                 ExchangeService.ToggleFavorite(e);
                 if (_favOnly) { Refresh(); return; }               // 「只看收藏」開著：取消的要從清單消失
                 PaintFav(mark, e, showWhenOff);
-                if (_tipFor == e && _tip != null) _tip.Show(e.ItemId, TipExtra(e));   // 提示行改成另一句
+                if (_tipFor == e && _tip != null) _tip.Show(e.ItemId, TipExtra(e), e.Name, RarityInfo.ColorOf(e.Rarity));   // 提示行改成另一句
             };
         }
 

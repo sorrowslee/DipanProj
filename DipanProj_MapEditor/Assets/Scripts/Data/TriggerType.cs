@@ -38,6 +38,8 @@ namespace DipanMapEditor.Data
                 {
                     new TriggerParam { key = "itemId", type = ParamType.String },
                     new TriggerParam { key = "count",  type = ParamType.Int },   // 一次給幾個（留空 = 1）
+                    // 生成規格（2026-11-17 品質系統，見主專案 readme/EQUIPMENT.md §6）：q=品質1~4、s=孔數0~6、fx=效果ID@等級|…、lv=珠子等級1~3，用 ; 分隔；留空＝全隨機。例：q=1;s=1
+                    new TriggerParam { key = "spec", type = ParamType.String, label = "生成規格(q;s;fx;lv，留空=隨機)" },
                 }
             });
             set.types.Add(new TriggerTypeDef
@@ -122,6 +124,8 @@ namespace DipanMapEditor.Data
                     new TriggerParam { key = "count",  type = ParamType.Int },   // 留空 = 1
                     // 道具圖示提示（2026-11-07）：勾＝獲得訊息上方顯示道具圖示、滑鼠停在圖示上可看說明（停著不消失）；重要獎勵用。不勾＝原本的純文字訊息
                     new TriggerParam { key = "iconToast", type = ParamType.Bool, label = "道具圖示提示(重要獎勵用)", boolDefault = false },
+                    // 生成規格（2026-11-17 品質系統，見主專案 readme/EQUIPMENT.md §6）：q=品質1~4、s=孔數0~6、fx=效果ID@等級|…、lv=珠子等級1~3，用 ; 分隔；留空＝全隨機。例：q=1;s=1
+                    new TriggerParam { key = "spec", type = ParamType.String, label = "生成規格(q;s;fx;lv，留空=隨機)" },
                 }
             });
             set.types.Add(new TriggerTypeDef

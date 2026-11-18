@@ -35,7 +35,7 @@
 
 `CombatStats` 掛在玩家身上，持有 HP、MP、回復速率、加成/減傷掛勾，**任何變動發事件**（`OnHealthChanged` / `OnManaChanged` / `OnDeath`）讓血/魔條訂閱重繪（同 InventorySystem 的資料/呈現分離）。
 
-* 在 `PlayerController` 的 Inspector 調：`PlayerMaxHealth`（預設 100）、`PlayerMaxMana`（預設 50）、`HealthRegenPerSec`（預設 0）、`ManaRegenPerSec`（預設 5）。
+* 在 `PlayerController` 的 Inspector 調：`PlayerMaxHealth`（預設 1000）、`PlayerMaxMana`（預設 500）、`HealthRegenPerSec`（預設 0）、`ManaRegenPerSec`（預設 50）。⚠ 2026-11-17 起全遊戲數值尺度 ×10（傷害、血量、魔力、耗魔、藥水），見 [EQUIPMENT.md](EQUIPMENT.md) §8。
 * `PlayerController` 現在實作 `IDamageable`——所以**玩家是可被傷害的目標**（怪物接觸、未來陷阱/DOT 都打得到）。受傷時：先過 `HitReactionHandler`（無敵中則完全忽略），再 `CombatStats.ApplyHealthDelta(-傷害)`；血量歸零 → `OnDeath` → `PlayerController.Die()`（目前僅標記死亡，重生/讀檔流程之後接）。
 * 怪物維持**輕量 HP**（`MonsterController` 自管，不掛 `CombatStats`），只實作 `ICombatModifiers` 提供減傷掛勾。
 * **不死保護 `CombatStats.SetDeathGuard(owner, bool)`**（2026-09-23）：開著時受傷最多扣到 1 滴血、**永遠不觸發 `OnDeath`**（不進死亡流程）。具名持有者、static（`CombatStats` 只掛在玩家身上）。目前唯一使用者：新手夢境教學（`DreamTutorialFlow`，進夢開、醒來關），見 [TRIGGER_CHAIN.md](TRIGGER_CHAIN.md) §3.5b〈強制中止〉。
@@ -68,7 +68,7 @@
 * **關鍵陷阱**：專案的 Layer Collision Matrix 把 **Enemy×Player 關閉**（怪物穿過玩家、不互推），所以 `OnCollision` / `IsTouching` 都**不會**回報。改用 `Physics2D.Distance(怪collider, 玩家collider)` 做**幾何重疊判定**（不受碰撞矩陣影響）。
 * 反覆接觸由**玩家自己的無敵時間**（`PlayerInvincibleTimeMs`，預設 1000ms）節流：碰到扣一次血 → 進入無敵 → 期間貼著也不再扣。
 * 傷害一律走 `CombatSystem.Apply(怪物, 玩家, ContactDamage, 方向)`，所以吃玩家減傷、未來也吃怪物攻擊加成。
-* `MonsterData.csv` 新增 `ContactDamage`（留空 = 10）、`DamageReduction`（留空 = 0）兩欄。
+* `MonsterData.csv` 新增 `ContactDamage`（留空 = 100；2026-11-17 ×10 前是 10）、`DamageReduction`（留空 = 0）兩欄。
 
 ---
 

@@ -222,6 +222,40 @@ namespace Dipan.UI
             return d != null && TryBloodlineArt(d, out _, out _);
         }
 
+        // ══════════════════ 品質框（2026-11-17，readme/EQUIPMENT.md §7）══════════════════
+
+        /// <summary>品質框子物件的名稱（掛在格子底下、重複使用）。</summary>
+        const string QualityFrameName = "QualityFrame";
+
+        /// <summary>
+        /// 在一個格子上畫（或藏起）**品質框**：四條細線貼著格子邊、品質色（<see cref="SlotOutline"/>）。
+        /// 只有裝備、而且品質達 <see cref="ItemQuality.FrameMinRarity"/> 才畫；空格、非裝備、一般品質都會藏起來。
+        /// <paramref name="host"/> ＝ 格子本身（框會拉伸貼滿它）；<paramref name="icon"/> 有給、而且是 host 的直接子物件時，
+        /// 框第一次建立會排在 icon 正後面（畫在圖上面、但在數量字／拖曳高亮底下）。
+        /// 線粗用 SlotOutline 預設值（呼叫端座標系，背包是底圖像素）。
+        /// </summary>
+        public static void ApplyQualityFrame(RectTransform host, ItemStack st, Image icon = null)
+        {
+            if (host == null) return;
+            var inv = InventorySystem.Instance;
+            var d = (!st.IsEmpty && inv != null) ? inv.GetData(st.ItemId) : null;
+            var frame = host.Find(QualityFrameName) as RectTransform;
+
+            if (!ItemQuality.WantsFrame(d, st.Inst))
+            {
+                if (frame != null) frame.gameObject.SetActive(false);
+                return;
+            }
+            if (frame == null)
+            {
+                frame = SlotOutline.Create(host, QualityFrameName, Color.white);
+                if (icon != null && icon.transform.parent == host)
+                    frame.SetSiblingIndex(icon.transform.GetSiblingIndex() + 1);
+            }
+            SlotOutline.SetColor(frame, ItemQuality.ColorOf(d, st.Inst));
+            frame.gameObject.SetActive(true);
+        }
+
         // ══════════════════ uGUI ══════════════════
 
         /// <summary>把某一格的內容畫到一個 Image 上（含珠子／血統的疊圖）。空的就關掉顯示。</summary>

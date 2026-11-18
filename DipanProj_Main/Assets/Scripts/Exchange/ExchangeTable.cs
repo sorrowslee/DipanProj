@@ -9,9 +9,12 @@ namespace Dipan.Exchange
     /// <summary>
     /// 兌換表（Assets/Data/ExchangeTable.csv，由場景上的 <see cref="GachaTableProvider"/> 的「兌換表」欄提供）。
     ///
-    /// 欄位：<c>ExchangeId,ItemId,Category,Rarity,Cost,SortOrder,Note</c>（說明見 readme/EXCHANGE.md §3）
+    /// 欄位：<c>ExchangeId,ItemId,Category,Spec,Cost,SortOrder,Note</c>（說明見 readme/EXCHANGE.md §3）
     /// - <b>Cost</b>：<c>貨幣:數量</c>，多種貨幣用分號分隔（例 <c>proofB:1;merit:100</c>）。只寫數字＝功德值。
-    /// - <b>Category</b> 留空 ＝ 依 ItemTable 推斷；<b>Rarity</b> 留空 ＝ 白。
+    /// - <b>Category</b> 留空 ＝ 依 ItemTable 推斷。
+    /// - <b>Spec</b>（2026-11-17 取代原本的 Rarity 欄，同一個位置）：生成規格 <c>q=4</c> 這類（語法見 <see cref="ItemSpec"/>），
+    ///   **兌換那一刻才照它產生**——效果與孔數每次兌換各骰各的。留空＝全隨機。
+    ///   品質不再寫在兌換表：裝備看 Spec、非裝備看 ItemTable 的 Rarity 欄（readme/EQUIPMENT.md §6.3）。
     ///
     /// 懶漢載入一次、快取（同 GachaPoolTable 的套路；provider 還沒就緒時不建快取，避免黏住空表）。
     /// </summary>
@@ -80,15 +83,30 @@ namespace Dipan.Exchange
                     continue;
                 }
 
+                string specText = CsvUtil.Field(v, 3);
+                var spec = ItemSpec.Parse(specText, $"兌換表第 {i + 1} 行（{d.Name}）");
+                if (spec != null && !ItemManager.NeedsInstance(d))
+                {
+                    Debug.LogWarning($"[ExchangeTable] 第 {i + 1} 行（{d.Name}）不是裝備或能力珠，Spec「{specText}」沒有作用。");
+                    spec = null;
+                }
+
                 var e = new ExchangeEntry
                 {
                     ExchangeId = exId,
                     ItemId = itemId,
                     Item = d,
                     Category = ExchangeCategoryInfo.Parse(CsvUtil.Field(v, 2), d),
-                    Rarity = RarityInfo.Parse(CsvUtil.Field(v, 3)),
+                    Spec = spec,
                     SortOrder = CsvUtil.FieldInt(v, 5, exId * 10),
                 };
+                e.ResolveRarity();
+                if (d.IsEquippable && e.FixedQuality > 0)
+                {
+                    int max = ItemQuality.MaxQuality(d);
+                    if (e.FixedQuality > max)
+                        Debug.LogWarning($"[ExchangeTable] 第 {i + 1} 行（{d.Name}）寫死品質 {e.FixedQuality}，但這件能長的效果最多只到品質 {max}——兌換出來會被降級。");
+                }
                 ParseCost(CsvUtil.Field(v, 4), e.Cost, i + 1);
                 if (e.Cost.Count == 0)
                 {

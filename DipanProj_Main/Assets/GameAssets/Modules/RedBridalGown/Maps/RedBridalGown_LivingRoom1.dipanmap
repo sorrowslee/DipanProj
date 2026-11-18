@@ -32,7 +32,7 @@
           "scaleY": 1.61051011,
           "sortKey": -2.986908,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -64,7 +64,7 @@
           "scaleY": 0.8558909,
           "sortKey": -4.27193546,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -96,7 +96,7 @@
           "scaleY": 0.8558909,
           "sortKey": -4.27193546,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -128,7 +128,7 @@
           "scaleY": 1.33100009,
           "sortKey": -2.713949,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -160,7 +160,7 @@
           "scaleY": 1.33100009,
           "sortKey": -2.713949,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -256,7 +256,7 @@
           "scaleY": 1.0,
           "sortKey": -2.986908,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -460,7 +460,20 @@
             "dramaId": "30",
             "canSkip": false,
             "repeat": "每次",
-            "setFlag": "redBridalReadLetter"
+            "setFlag": "redBridalReadLetter",
+            "next": "家書-兒童彈弓"
+          }
+        },
+        {
+          "id": "a0958198",
+          "name": "家書-兒童彈弓",
+          "typeId": "giveItem",
+          "cells": [],
+          "params": {
+            "itemId": "10001",
+            "count": "1",
+            "spec": "q=1;s=1",
+            "iconToast": true
           }
         }
       ]

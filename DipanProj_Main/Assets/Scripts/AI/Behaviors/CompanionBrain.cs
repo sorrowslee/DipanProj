@@ -31,7 +31,7 @@ using UnityEngine;
 public class CompanionBrain : IMonsterBrain
 {
     // ── 傷害（所有同伴共用；作者：「每 2 秒才會跳 1 滴血」）──
-    public const float HitDamage   = 1f;
+    public const float HitDamage   = 10f;   // ×10（2026-11-17 數值尺度放大）
     public const float HitInterval = 2f;
 
     // ── 節奏 ──

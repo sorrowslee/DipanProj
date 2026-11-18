@@ -23,6 +23,12 @@ namespace Dipan.Gacha
             public bool Ok;
             public string Reason;        // Ok=false 時的失敗原因（拿去 Toast）
             public List<int> ItemIds = new List<int>();   // 抽到的道具 id（依序）
+            /// <summary>
+            /// 抽到的**實際那一件**（依序，跟 ItemIds 一一對應）：品質、內建效果、孔數、珠子等級在抽的當下就產生好了，
+            /// 發到背包的就是這一份——面板拿它來演，所以表演與結算顯示的跟玩家拿到的完全一樣（readme/EQUIPMENT.md §7）。
+            /// 抽選不帶規格＝全隨機（作者定：抽選從四種品質隨機給）。
+            /// </summary>
+            public List<ItemStack> Stacks = new List<ItemStack>();
             public int SpentAmount;
             public int CostItemId;
         }
@@ -168,10 +174,15 @@ namespace Dipan.Gacha
             }
 
             for (int i = 0; i < count; i++)
-                res.ItemIds.Add(PickWeighted(candidates));
+            {
+                int id = PickWeighted(candidates);
+                res.ItemIds.Add(id);
+                // 先產生實際那一件（品質／效果／孔數／珠子等級在這裡骰定），再發、再演
+                res.Stacks.Add(id > 0 ? ItemManager.Create(id, 1) : ItemStack.Empty);
+            }
 
             // 允許重複：不從池裡移除、不做保底，抽到已經有的就是再拿一份。
-            Grant(res.ItemIds);
+            Grant(res.Stacks);
 
             res.Ok = true;
             res.SpentAmount = cost;
@@ -197,19 +208,21 @@ namespace Dipan.Gacha
 
         // 走 RunProgress.GiveItem（取得物品的統一入口）：祭壇在廣場 → 直接進真背包；
         // 背包滿的部分掉在玩家腳下，比照觸發鏈 giveItem 的處理。
-        static void Grant(List<int> itemIds)
+        // 發的是 Roll 已經產生好的那一份（GiveStack，不重新骰）；背包滿的整件原封不動掉在腳下（DropStack）。
+        static void Grant(List<ItemStack> stacks)
         {
-            if (itemIds == null) return;
+            if (stacks == null) return;
             var inv = InventorySystem.Instance;
             int dropped = 0;   // 連抽時背包滿可能一次溢出好幾件，Toast 聚合成一條，不要連噴十次
 
-            for (int i = 0; i < itemIds.Count; i++)
+            for (int i = 0; i < stacks.Count; i++)
             {
-                int id = itemIds[i];
-                if (id <= 0) continue;
+                var st = stacks[i];
+                if (st.IsEmpty) continue;
+                int id = st.ItemId;
 
-                int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(id, 1)
-                                                  : (inv != null ? inv.AddItem(id, 1) : 1);
+                int leftover = RunProgress.Exists ? RunProgress.Instance.GiveStack(st)
+                                                  : (inv != null ? inv.AddStack(st) : st.Count);
                 if (leftover <= 0) continue;
 
                 var d = inv != null ? inv.GetData(id) : null;
@@ -218,7 +231,7 @@ namespace Dipan.Gacha
                 {
                     var player = GameObject.FindGameObjectWithTag("Player");
                     Vector2 pos = player != null ? (Vector2)player.transform.position : Vector2.zero;
-                    InteractionManager.Instance.DropLoot(id, leftover, pos);
+                    InteractionManager.Instance.DropStack(new ItemStack { ItemId = id, Count = leftover, Inst = st.Inst }, pos);
                     dropped += leftover;
                 }
                 else

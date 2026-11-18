@@ -6,7 +6,9 @@ using Dipan.Inventory;
 ///
 /// 珠子可以鑲在護身符／戒指上跨裝備疊加到當前武器（GEM_SOCKET §3），所以「有沒有效」不是珠子或裝備的屬性，
 /// 而是**珠子 × 參考武器**——鐵砧上是武器就看那把；否則看目前裝備的武器；換武器答案就變。
-/// 因此鍛造介面的做法是**提示不擋**：允許鑲，但灰顯＋toast＋tooltip 說明。判斷本身走
+/// 因此鍛造介面對**珠寶**（護身符／戒指）的做法是**提示不擋**：允許鑲，但灰顯＋toast＋tooltip 說明。
+/// （2026-11-17 品質系統起，武器與防具改成**擋**：武器不收防具珠與對自己模式無效的珠、防具不收武器珠——
+///  那個判斷在 <see cref="Dipan.Inventory.ItemQuality.CheckSocket"/>，見 readme/EQUIPMENT.md §2.3。）判斷本身走
 /// <see cref="PlayerAbilities.IsGemEffective(WeaponMode, GemData)"/>（與實際套用同一份規則）。見 readme/GEM_SOCKET.md。
 /// </summary>
 public static class GemEffectiveness

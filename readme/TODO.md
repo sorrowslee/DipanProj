@@ -1153,3 +1153,24 @@
 - [ ] **成就系統**（帳號層 `achievements.json`，讀 `scriptRecords`＋訂閱 `ScriptRecords.OnProofClaimed`）；會不會給遊戲內獎勵未定。
 - [ ] **通關筆記 UI**：翻閱各劇本拿過哪幾級、條件文字、第幾世拿到（資料來源 `ScriptRecords`）。
 - [ ] 劇本頭目專屬掉落（例：艾爾文之劍）的 DropTable 與「兌換所不賣」要在定價時一併處理。
+
+## 裝備體系（2026-11-17 起，見 [EQUIPMENT.md](EQUIPMENT.md)；分支 `feat/equipment-rarity`）
+
+- [ ] **第①階段待作者 Play 驗收**：玩起來要跟改版前差不多（×10 後手感不變、舊武器行為不變）；Unity 編譯先看 Console（這個環境沒有編譯器，見 PROBLEMS **I11**）。
+- [x] 第②階段 品質系統（2026-11-17 做完，⏳ 未編譯、未實測）：`ItemInstance.affixes`、`ItemSpec` 規格解析、`ItemQuality` 規則、工廠吃規格、能力容器加內建效果、鍛造擋珠、名稱／框／tip 三區／地上標籤／結算、作弊面板規格欄、品名改名。見 EQUIPMENT §15。
+- [ ] **第②階段待作者 Play 驗收**：照 EQUIPMENT §15 最後的驗收清單用作弊面板試。
+- [ ] 道具獲得提示（`AlertPanel.ToastItem`、giveItem 文字 toast、地上撿取 toast）的名稱改成「品名 名稱」＋品質色——它們目前只拿得到 itemId，要改成傳 ItemStack。抽選、兌換所列表已改好（第③階段）。
+- [x] 第③階段（2026-11-17 做完，⏳ 未編譯、未實測）：兌換所重建（`Spec` 欄取代 `Rarity`、65 列）、ItemTable 加 `Rarity`、兌換時才骰、抽選先產生實際那一件再演（單抽與十連）。見 EQUIPMENT §16。
+- [ ] **第③階段待作者 Play 驗收**：照 EQUIPMENT §16 最後的驗收清單。
+- [x] 第④階段（2026-11-17 做完，⏳ 未編譯、未實測）：三把新武器、紅嫁衣兩個給予點、柴房教學改 10002、榕樹妖必掉珍品枯枝、地圖編輯器 `spec` 欄、GPT 產三張圖。見 EQUIPMENT §10.2、§17。
+- [ ] **第④階段待作者 Play 驗收**：照 EQUIPMENT §17 最後的驗收清單。
+- [ ] 彈丸子彈大小實機看過再調（WeaponTable 10001 `BulletScale`）；三把新武器的 `TipLore` 是 AI 暫寫。
+- [ ] 榕樹妖死後 10 秒自動過關，枯枝沒撿到就沒了——要不要改成直接進背包或延長，等作者實測決定。
+- [ ] 鑲嵌教學（回邪佛大廳後，用兒童彈弓的 1 孔＋書房的穿透珠）——之後的工作。
+- [x] ~~**⚠ 測試用、看完要還原**：樹妖的枯枝（RecipeTable 10003）暫時加了反彈＋三分散~~（2026-11-17 作者測完，已清空還原）（`SplitLv` 2、`SpreadSpacing` 25、`SpreadMaxAngle` 50、`SplitTiming` OnSpawn、`BounceTarget` Environment、`BounceLv` 3，照地裂刺）。還原＝這 6 格清空（2026-11-17 作者說看完就取消）。
+- [ ] **地刺特效重做待作者 Play 驗收**（2026-11-17，見 GROUND_SPIKE.md）：大小、刺出／停留／收回時間是估的；收回不好看就把 GroundSpikeTable 的 `RetractMode` 改 `Fade`。
+- [ ] **重寫 [GEM_CATALOG.md](GEM_CATALOG.md)**：數值與範例全部是改版前的（24 種、新曲線、新尺度）。
+- [ ] 子彈乘積（分裂 × 平行 × 連擊）的極限測試——體系完成後（EQUIPMENT §13）。
+- [ ] 防具類效果（減傷、增防、法抗、增速）＋`GemTarget.Player` 的套用——之後才規劃。
+- [ ] ⚠ [PROGRESS.md](PROGRESS.md) 已約 260KB，遠超封存門檻（~96KB，DOCS_GUIDE §5），需要把最舊條目搬到 archive（不屬於裝備體系，順手記一下）。
+

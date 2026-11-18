@@ -36,12 +36,12 @@ public class CombatStats : MonoBehaviour, ICombatModifiers
     public static void ResetForPlayMode() => _deathGuards.Clear();
 
     // ── 血量 ──
-    public float MaxHealth { get; private set; } = 100f;
+    public float MaxHealth { get; private set; } = 1000f;
     public float Health { get; private set; } = 100f;
     public float HealthRegenPerSec { get; private set; } = 0f;
 
     // ── 魔力 ──
-    public float MaxMana { get; private set; } = 50f;
+    public float MaxMana { get; private set; } = 500f;
     public float Mana { get; private set; } = 50f;
     public float ManaRegenPerSec { get; private set; } = 0f;
 

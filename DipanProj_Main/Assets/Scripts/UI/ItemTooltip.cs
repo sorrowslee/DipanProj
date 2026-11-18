@@ -20,8 +20,12 @@ namespace Dipan.UI
     ///   void Update() => _tip.Follow();         // 跟著游標
     /// </code>
     ///
-    /// 版面：**大圖預覽** ＋ 名稱（粗體金）＋ `TipStats`（正楷）＋ `TipLore`（斜體）。
+    /// 版面：**大圖預覽** ＋ 名稱（粗體、品質色）＋ `TipStats`＋三區（正楷）＋ `TipLore`（斜體）。
     /// 高度由 `VerticalLayoutGroup + ContentSizeFitter` 自動撐開，空的段落自動隱藏。
+    ///
+    /// 品質系統（2026-11-17，readme/EQUIPMENT.md §7）：名稱＝「品名 名稱」用品質色、外框細線用品質色；
+    /// 內文分三區——① 基礎屬性（含配方起點的行為）② 特殊能力（內建效果，品質色）③ 鑲嵌孔。
+    /// 數值是**這一件自己的**（基礎＋這件的內建效果＋這件的珠子），不含身上其他部位。
     /// </summary>
     public class ItemTooltip
     {
@@ -46,6 +50,12 @@ namespace Dipan.UI
         /// <summary>語言表：鑲嵌珠對目前武器無效的標記（4016，鍛造介面段）。</summary>
         const int TxtGemIneffectiveMark = 4016;
 
+        /// <summary>品質外框線粗（tooltip 座標系；細線，遵守「稀有度色不大面積鋪色」）。</summary>
+        const float FrameThickness = 2.5f;
+
+        /// <summary>三區小標題的顏色（富文字色碼）。</summary>
+        const string SectionHex = "A89F8A";
+
         // ══════════════════ 狀態 ══════════════════
 
         RectTransform _root;        // tooltip 本體
@@ -53,6 +63,7 @@ namespace Dipan.UI
         RectTransform _previewBox;  // 預覽圖的版面容器（關的是這個，才不會在 layout 裡留一段空白）
         Image _preview;
         Text _name, _stats, _lore;
+        RectTransform _frame;       // 品質外框（不參與排版）
 
         public bool Visible => _root != null && _root.gameObject.activeSelf;
 
@@ -129,8 +140,13 @@ namespace Dipan.UI
             t._name.fontStyle = FontStyle.Bold;
             t._stats = UIBuilder.Text(go.transform, "Stats", "", StatsSize, new Color(0.92f, 0.92f, 0.95f), TextAnchor.UpperLeft);
             t._stats.fontStyle = FontStyle.Normal;   // 正楷
+            t._stats.supportRichText = true;          // 特殊能力那幾行用品質色（<color>），見 BuildStats
             t._lore = UIBuilder.Text(go.transform, "Lore", "", LoreSize, new Color(0.72f, 0.69f, 0.62f), TextAnchor.UpperLeft);
             t._lore.fontStyle = FontStyle.Italic;    // 斜體
+
+            // 品質外框：四條細線貼邊，**不參與 VerticalLayoutGroup 排版**（否則會被當成一列撐出空白）
+            t._frame = SlotOutline.Create(go.transform, "QualityFrame", Color.white, FrameThickness);
+            t._frame.gameObject.AddComponent<LayoutElement>().ignoreLayout = true;
 
             go.SetActive(false);
             return t;
@@ -139,22 +155,26 @@ namespace Dipan.UI
         // ══════════════════ 開關 ══════════════════
 
         /// <summary>只知道 itemId 的場合（沒有物品實例，例如鍛造的孔位）。</summary>
-        public void Show(int itemId, string extraStats = null)
-            => Show(new ItemStack { ItemId = itemId, Count = 1, Inst = null }, extraStats);
+        public void Show(int itemId, string extraStats = null, string titleOverride = null, Color? titleColor = null)
+            => Show(new ItemStack { ItemId = itemId, Count = 1, Inst = null }, extraStats, titleOverride, titleColor);
 
         /// <summary>
         /// 顯示某一件東西的說明。
         /// <paramref name="extraStats"/> ＝ 面板自己要補的一段話（鍛造用它講「這顆珠子對這把武器無效」），
         /// 會接在 `TipStats` 後面；一般面板傳 null 就好。
         /// </summary>
-        public void Show(ItemStack st, string extraStats = null)
+        /// <paramref name="titleOverride"/>／<paramref name="titleColor"/>：沒有實例、但呼叫端知道品質的場合（兌換所列表：
+        /// 規格寫死極品，東西還沒產生）用來顯示「極品 名稱」；平常傳 null，名稱與顏色由這一件的品質決定。
+        public void Show(ItemStack st, string extraStats = null, string titleOverride = null, Color? titleColor = null)
         {
             var inv = InventorySystem.Instance;
             var d = (st.ItemId > 0 && inv != null) ? inv.GetData(st.ItemId) : null;
             if (d == null) { Hide(); return; }
 
-            // 名稱後面標出「這一件」的資訊——孔數／珠子等級是每一件各自不同的，表格裡查不到。
-            string title = d.Name;
+            // 名稱：裝備＝「品名 名稱」、整串品質色；非裝備只上色（readme/EQUIPMENT.md §7）。
+            // 後面標出「這一件」的資訊——孔數／珠子等級是每一件各自不同的，表格裡查不到。
+            var qColor = titleColor ?? ItemQuality.ColorOf(d, st.Inst);
+            string title = titleOverride ?? ItemQuality.DisplayName(d, st.Inst);
             if (st.Inst != null)
             {
                 if (st.Inst.HasSockets && st.Inst.UnlockedCount > 0)
@@ -163,6 +183,9 @@ namespace Dipan.UI
                     title += $"  Lv{st.Inst.level}";
             }
             _name.text = title;
+            _name.color = qColor;
+            SlotOutline.SetColor(_frame, qColor);
+            _frame.SetAsLastSibling();   // 線畫在內容上面（ignoreLayout，不影響排版）
 
             string stats = BuildStats(d, st.Inst);
             if (!string.IsNullOrEmpty(extraStats))
@@ -226,8 +249,12 @@ namespace Dipan.UI
         // ══════════════════ 內文 ══════════════════
 
         /// <summary>
-        /// tooltip 上半：表格寫死的說明 ＋「這一件」的鑲嵌內容。
-        /// 能力珠會顯示它這一級實際給多少（直接查 GemTable，不用另外維護一份文案）。
+        /// tooltip 上半：表格寫死的說明 ＋「這一件」的三區（readme/EQUIPMENT.md §7）：
+        ///   ① 基礎屬性：武器才有。用 <see cref="PlayerAbilities.ForItem"/> 只算這一件（內建效果＋這件的珠子）後的數值，
+        ///      跟實際戰鬥同一套 Resolve；再列出配方起點的行為（例：枯枝的「穿透 Lv1」）。
+        ///   ② 特殊能力：內建效果，一行一條、品質色。
+        ///   ③ 鑲嵌孔：鑲了什麼；對參考武器沒效果的珠子標出來。
+        /// 能力珠則顯示它這一級實際給多少（直接查 GemTable，不用另外維護一份文案）。
         /// </summary>
         static string BuildStats(ItemData d, ItemInstance inst)
         {
@@ -240,17 +267,32 @@ namespace Dipan.UI
                 if (gd != null)
                 {
                     if (sb.Length > 0) sb.Append('\n');
-                    float v = gd.ValueAt(inst.level);
-                    string val = gd.IsPercent ? $"{(v >= 0 ? "+" : "")}{(v * 100f):0.#}%" : $"{(v >= 0 ? "+" : "")}{v:0.##}";
-                    sb.Append($"Lv{inst.level}：{gd.Name} {val}");
+                    sb.Append(gd.Describe(inst.level));   // 「銳利 Lv2（+10%）」「穿透 Lv2」——全身同種效果的等級會相加（readme/EQUIPMENT.md）
                 }
             }
 
-            // 裝備：列出目前鑲了什麼；對參考武器（這件是武器→它自己；防具→目前裝備的武器）沒效果的珠子標出來
+            // ① 基礎屬性（武器）
+            if (d.WeaponID > 0) AppendBaseStats(sb, d, inst);
+
+            // ② 特殊能力（內建效果）
+            if (inst != null && inst.AffixCount > 0)
+            {
+                Section(sb, "特殊能力");
+                string hex = ItemQuality.Hex(ItemQuality.ColorOf(d, inst));
+                var gems = ItemManager.Gems;
+                foreach (var a in inst.affixes)
+                {
+                    if (a == null) continue;
+                    var g = gems.Get(a.effectId);
+                    string line = g != null ? g.Describe(a.level) : $"#{a.effectId} Lv{a.level}";
+                    sb.Append('\n').Append("<color=#").Append(hex).Append('>').Append("　・").Append(line).Append("</color>");
+                }
+            }
+
+            // ③ 鑲嵌孔：列出目前鑲了什麼；對參考武器（這件是武器→它自己；防具→目前裝備的武器）沒效果的珠子標出來
             if (inst != null && inst.HasSockets && inst.UnlockedCount > 0)
             {
-                if (sb.Length > 0) sb.Append('\n');
-                sb.Append($"鑲嵌 {inst.GemCount}/{inst.UnlockedCount}");
+                Section(sb, $"鑲嵌 {inst.GemCount}/{inst.UnlockedCount}");
                 var inv = InventorySystem.Instance;
                 var refW = GemEffectiveness.ReferenceWeapon(d.WeaponID > 0 ? d.ID : 0);
                 for (int i = 0; i < inst.sockets.Count; i++)
@@ -264,6 +306,62 @@ namespace Dipan.UI
                 }
             }
             return sb.ToString();
+        }
+
+        /// <summary>一區的小標題（暗色）。前面有內容就先空一行隔開。</summary>
+        static void Section(System.Text.StringBuilder sb, string title)
+        {
+            if (sb.Length > 0) sb.Append('\n');
+            sb.Append("<color=#").Append(SectionHex).Append(">【").Append(title).Append("】</color>");
+        }
+
+        /// <summary>
+        /// ① 基礎屬性：這把武器套上「這一件自己的」內建效果與珠子之後的數值。
+        /// 只列對這把的模式有意義的欄位（佛光沒有飛行速度、雷射沒有子彈大小…，跟 <see cref="WeaponModeSpec"/> 同一份規則）。
+        /// </summary>
+        static void AppendBaseStats(System.Text.StringBuilder sb, ItemData d, ItemInstance inst)
+        {
+            var baseW = ItemQuality.WeaponOf(d);
+            if (baseW == null) return;
+            var w = PlayerAbilities.ForItem(inst).Resolve(baseW);
+            var r = w.Recipe;
+            var pd = r != null ? r.Data : null;
+            WeaponMode mode = r != null ? r.Mode : WeaponMode.Normal;
+
+            Section(sb, "基礎屬性");
+            if (WeaponModeSpec.IsEffective(mode, "Damage")) Stat(sb, "傷害", w.Damage.ToString("0.#"));
+            if (pd != null && WeaponModeSpec.IsEffective(mode, "FireInterval") && pd.FireInterval > 0f)
+                Stat(sb, "攻擊頻率", $"{1f / pd.FireInterval:0.##} 次/秒");
+            if (pd != null && WeaponModeSpec.IsEffective(mode, "Speed")) Stat(sb, "飛行速度", pd.Speed.ToString("0.#"));
+            if (pd != null && WeaponModeSpec.IsEffective(mode, "LifeTime") && WeaponModeSpec.IsEffective(mode, "Speed") && pd.LifeTime > 0f)
+                Stat(sb, "射程", (pd.Speed * pd.LifeTime).ToString("0.#"));
+            else if (pd != null && WeaponModeSpec.IsEffective(mode, "Range") && pd.BeamRange > 0f)
+                Stat(sb, "射程", pd.BeamRange.ToString("0.#"));
+            if (WeaponModeSpec.IsEffective(mode, "BulletScale")) Stat(sb, "大小", $"×{w.BulletScale:0.##}");
+            else if (WeaponModeSpec.IsEffective(mode, "BeamWidth")) Stat(sb, "光束粗細", w.BeamWidth.ToString("0.##"));
+            Stat(sb, "耗魔", w.ManaCost.ToString("0.#"));
+
+            // 配方起點的行為（讀表那一份，不是套過效果的）：枯枝的「穿透 Lv1」這類
+            var br = baseW.Recipe;
+            if (br != null)
+            {
+                StartLv(sb, "Pierce", br.PierceLv);
+                StartLv(sb, "Bounce", br.BounceLv);
+                StartLv(sb, "Split", br.SplitLv);
+                StartLv(sb, "Homing", br.HomingLv);
+                StartLv(sb, "Burst", br.BurstLv);
+                StartLv(sb, "Parallel", br.ParallelLv);
+            }
+        }
+
+        static void Stat(System.Text.StringBuilder sb, string label, string value)
+            => sb.Append('\n').Append("　").Append(label).Append("　").Append(value);
+
+        static void StartLv(System.Text.StringBuilder sb, string attribute, int lv)
+        {
+            if (lv <= 0) return;
+            var g = ItemManager.Gems.FindByAttribute(attribute);
+            sb.Append('\n').Append("　").Append(g != null ? g.Name : attribute).Append(" Lv").Append(lv);
         }
     }
 }

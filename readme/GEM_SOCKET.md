@@ -1,6 +1,8 @@
 # 能力珠鑲嵌系統（物品實例 ＋ 能力容器）
 
 > 這是**整個遊戲的戰力核心**。動到武器、裝備、背包、掉落、存檔之前，先讀完這一份。
+> ⚠ **2026-11-17 裝備體系改版**：疊加規則改成**全身等級相加**、效果表（GemTable）改成 24 種＋三種算法、配方行為欄改填等級、數值尺度 ×10。本檔 §2、§3、§4 已照新規則改寫；品質、內建特殊效果、生成規格等完整規則見 **[EQUIPMENT.md](EQUIPMENT.md)**（裝備體系的單一真相）。
+>
 > 相關：[FORGING.md](FORGING.md)（鍛造介面版面）、[RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)（配方/武器雙表）、[INVENTORY.md](INVENTORY.md)（背包）、[SAVE_SYSTEM.md](SAVE_SYSTEM.md)（存檔）。
 
 ---
@@ -59,28 +61,33 @@ ID 分段（延續既有慣例）：
 
 | 區段 | 用途 |
 |---|---|
-| 1~99 | 武器（ItemTable 的 ID 與 WeaponTable 的 ID 同號） |
+| 1~99 | 武器（ItemTable 的 ID 與 WeaponTable 的 ID 同號；舊體系） |
+| **10000~19999** | **新體系武器**（2026-11-17 起；配方 ID 同號，見 EQUIPMENT §10） |
 | 101~199 | 雜物 / 貨幣 / 材料 / 劇本 |
 | 201~299 | 藥水 |
 | 310／311 | 血統進階藥劑（全系列通用） |
 | 3000~3999 | 系列血統藥劑（＝3000＋血統 Id，2026-11-10 改號，見 BLOODLINE §3） |
-| **401~499** | **能力珠** |
+| **401~499** | **能力珠**（409／414／425 是 2026-11-17 合併後保留的舊道具，分別指向遠射／疾發／須彌，見 EQUIPMENT §4.2） |
 | **501~599** | **防具**（測試用的護身符 501 / 戒指 502；**503 應龍護身符**＝帶被動武器的正式道具，見 [PASSIVE_WEAPON.md](PASSIVE_WEAPON.md)） |
 
-### `Assets/Data/GemTable.csv`（新）
+### `Assets/Data/GemTable.csv`（效果定義表）
 
-一種珠子一列，三個等級共用同一列。
+一種效果一列。**能力珠與裝備的內建特殊效果共用這張表**（2026-11-17 改版）。
 
 ```
-GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
-1,反彈,MaxBounces,Recipe,1,2,5,...
+GemID,Name,Calc,Attribute,Target,Lv1,PerLv,MaxLv,Icon,BaseColor,Note
+2,穿透,Level,Pierce,Recipe,1,1,50,pierce,,...
+4,銳利,Percent,Damage,Weapon,5%,5%,50,damage,,...
 ```
 
 | 欄位 | 說明 |
 |---|---|
-| `Field` | 要改的欄位名，**原文照抄 RecipeTable / WeaponTable 的欄位名**。這樣同一個功能在兩邊叫同一個名字，不會出現「反彈」在配方表叫 A、在珠子表叫 B 的情形。 |
-| `Target` | 這個欄位在哪一層：`Recipe`（配方／子彈行為）／`Weapon`（武器數值）／`Player`（角色屬性，**效果尚未接**，先累加著） |
-| `Lv1~Lv3` | 該等級的數值。可填固定值（`1`）或百分比（`10%` / `-20%`）。 |
+| `Calc` | 算法：`Percent`（百分比，強化基礎屬性）／`Level`（純等級，行為）／`Add`（加值，模式參數的數量或角度） |
+| `Attribute` | 改哪個**屬性**（Damage／AttackRate／Pierce…），不是 CSV 欄名——同一屬性在不同模式對應不同欄位，對應表在 `EquipAttributes.cs`（單一真相） |
+| `Target` | 分類：`Recipe`／`Weapon`＝武器類效果；`Player`＝防具類效果（**效果尚未接**，先累加著） |
+| `Lv1`／`PerLv`／`MaxLv` | 數值曲線：數值＝`Lv1 ＋（總等級－1）× PerLv`，總等級超過 `MaxLv` 照 `MaxLv` 算。百分比填 `5%` |
+
+每種效果的初版數值與說明見 [EQUIPMENT.md](EQUIPMENT.md) §4.2。
 
 ⚠ 表是用最原始的 `Split(',')` 解析，**欄位值裡不能有逗號**（同 RecipeTable 的限制）。
 ⚠ `#` 開頭的列是註解，會被跳過。
@@ -89,25 +96,25 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
 
 ---
 
-## 3. 疊加規則：**數值相加，不是等級相加**
+## 3. 疊加規則：**全身等級相加**（2026-11-17 改版）
 
-等級只在「單一來源內部」有意義。每個來源各自查表得到數值，全部相加：
+> 原本是「數值相加，不是等級相加」（各來源各自查 Lv1~Lv3 再把數值加起來），**已作廢**。
+
+同一種效果，全身所有來源的**等級**加總後查一次 GemTable：
 
 ```
-武器內建反彈 Lv3  → 查表 → 5 次
-6 顆 Lv3 反彈珠   → 查表 → 5 × 6 = 30 次
-護身符 Lv3        → 查表 → 5 次
-戒指 Lv3          → 查表 → 5 次
-                            ──────
-                            45 次
+武器起點   穿透 lv1（配方 PierceLv）
+武器內建   穿透 lv2（品質系統骰到的特殊效果，第②階段）
+戒指上的   穿透珠 lv1
+6 顆      穿透珠 lv3
+                    ──────
+          全身穿透 lv 22 → 查表 → 穿 22 隻
 ```
 
-好處：`GemTable` 永遠只需要 Lv1/Lv2/Lv3 三欄，不會有「Lv18 查不到表」的問題。
-
-**能力沒有上限**——玩家可以把所有孔都塞反彈，換取極端 build（代價是不會穿透、不會追蹤、不會分裂）。
-這是刻意的設計（給玩家高自由度與取捨空間），不要偷加上限。
-
-百分比是先累加再乘：`最終值 = (基礎 + 所有固定值) × (1 + 所有百分比)`。
+- 曲線一路定義到 `MaxLv`（多數是 50），不會「查不到」；總等級超過 `MaxLv` 照 `MaxLv` 算。
+- **單一來源最高 Lv3**（一顆珠子、一條內建效果）；武器的起點等級不受此限。
+- 三種算法：**百分比**（同屬性加總後套一次；越小越好的攻擊間隔、耗魔、集氣時間用**除法** `÷（1＋總和）`，永遠不會歸零）、**純等級**（起點等級＋效果等級查表）、**加值**（起點數值＋查表的值）。見 EQUIPMENT §4.1。
+- 原本「能力沒有上限、不要偷加上限」改成：**各效果的 `MaxLv` 就是上限**（作者：「不希望玩家真的到 50，會拖垮效能」）。
 
 ---
 
@@ -115,8 +122,8 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
 
 ```
 裝備中的武器  → 基底（發射模式：一般子彈 / 雷射 / 近戰 / 拋物線…），深拷貝一份成為玩家專屬
-武器內建能力  ┐
-其他裝備能力  ├→ 各自查表得到數值 → 全部相加 → 套到那份拷貝上
+武器起點等級  ┐（讀表時已換算成數值；這裡要再加一次是因為純等級效果要「起點＋效果」一起查表）
+各部位內建效果├→ 同種效果的等級加總 → 依算法查表 → 套到那份拷貝上
 所有鑲嵌珠子  ┘
 ```
 
@@ -152,41 +159,46 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
 
 ### 欄位分屬兩個類別（很容易寫錯）
 
+程式內部欄位名稱**沒有**跟著 2026-11-17 的 CSV 改名：CSV 的 `PierceLv`／`BounceLv`／`SplitLv`／`HomingLv` 讀表時換算成數值，存進下表的 `PierceCount`／`MaxBounces`／`SplitCount`／`HomingTurnSpeed`；`BurstLv`／`ParallelLv` 換算後存進 `RecipeEntry.BurstCount`／`ParallelCount`。
+
 | 在 `ProjectileData`（彈道系統側） | 在 `RecipeEntry`（主遊戲側） |
 |---|---|
-| Speed / Radius / LifeTime / FireInterval / RotationSpeed / PierceCount / MaxBounces / HasBounce / HomingTurnSpeed / SpreadCount / SpreadAngle / OrbitalCount / OrbitalRadius / BeamRange（CSV 欄名 `Range`） / DotInterval / TrailStep / FlightTime / ArcHeight | Mode / BounceTarget / AreaRadius / ChainCount / ChainRadius / AimConeAngle / SnapRadius / MeleeAngle / DashDistance / DashWidth / SummonCount / SummonMaxAlive / SummonRadius / GroundEffectID |
+| Speed / Radius / LifeTime / FireInterval / RotationSpeed / PierceCount / MaxBounces / HasBounce / HomingTurnSpeed / SplitCount / SpreadAngle / OrbitalCount / OrbitalRadius / BeamRange（CSV 欄名 `Range`） / DotInterval / TrailStep / FlightTime / ArcHeight | Mode / BounceTarget / AreaRadius / ChainCount / ChainRadius / AimConeAngle / SnapRadius / MeleeAngle / DashDistance / DashWidth / SummonCount / SummonMaxAlive / SummonRadius / GroundEffectID |
 
 ### 連動規則（光加數值沒用的欄位）
 
 | 能力 | 除了加數值，還要做什麼 |
 |---|---|
 | **反彈** | 必須同時 `HasBounce = true`；而且 `BounceTarget` 是 `None` 時要設成 `Environment`（對牆反彈），否則等於白鑲 |
-| **穿透** | `-1` 代表**無限穿透**，不能直接 +1（會變成 0 ＝ 不穿透）。已經無限就維持無限 |
+| **穿透** | 迴旋天生無限穿透（-1），不受影響；其他武器 2026-11-17 起沒有無限穿透（最多 lv50） |
 | **追蹤** | 數值 > 0 時要 `HasHoming = true` |
 | **分裂** | 數量 > 1 時要 `HasSplit = true`（只有 Normal／Orbital；雷射／拋物線／連鎖／落雷直接讀 `SplitCount` 當道數） |
-| **迅捷 × 拋物線** | `Speed` 對拋物線無意義，珠子的 +% 換算成**縮短 `FlightTime`**（丟得更快）；固定值部分忽略 |
+| **迅捷 × 拋物線／頭頂投彈** | `Speed` 對它們無意義，百分比換算成**縮短 `FlightTime`**（`÷（1＋總和）`，丟得更快） |
+| **疾發 × 佛光** | 佛光的節拍寫在 GroundEffectTable，能力容器把倍率放在 `RecipeEntry.AuraIntervalScale`，生成佛光時帶給 `GroundEffectInstance.IntervalScale` |
+| **分裂扇形** | 分裂數或廣角變了，最後用 `RecipeEntry.ComputeSpreadAngle` 重算一次總角度 |
 
 ### 依模式過濾（2026-08-26）
 
-珠子改的欄位對「目前武器的 `Mode`」無效就**不套用**，判斷走 `WeaponModeSpec.IsEffective`（與載入檢查同一份真相）；例：佛光不會反彈、雷射沒有子彈大小、召喚不吃傷害、連鎖閃電的跳數已是獨立欄所以反彈珠對它無效。完整矩陣見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) §4。
+效果對「目前武器的 `Mode`」無效就**不套用**，判斷走 `EquipAttributes.IsEffective`（屬性 → 欄位）＋`WeaponModeSpec.IsEffective`（模式 × 欄位，與載入檢查同一份真相）；例：佛光不會反彈、雷射沒有子彈大小、召喚不吃傷害、連鎖閃電的跳數已是獨立欄所以反彈珠對它無效。完整矩陣見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) §4。
 
-**鍛造介面「提示不擋」**（`GemEffectiveness.cs`）：珠子可以鑲在護身符／戒指上跨裝備疊加到當前武器，所以「有沒有效」是**珠子 × 參考武器**——鐵砧上是武器就看那把、是防具就看目前裝備的武器，換武器答案就變，因此**不擋**。做法：拖進孔位時對參考武器無效 → toast（語言表 4013）；孔位上無效的珠子灰顯（`ForgeSlotWidget.Dimmed`）；珠子與鐵砧物品的 tooltip 加一行說明（4014／4015）；背包 tooltip 的鑲嵌清單標「（對目前武器無效）」（4016）。裝備中的武器一換，`InventorySystem.OnChanged` 會讓孔位重畫。
+**鍛造介面：武器與防具「擋」、珠寶「提示不擋」**（2026-11-17 品質系統起，見 [EQUIPMENT.md](EQUIPMENT.md) §2.3）：武器不收防具類珠子、也不收對自己模式無效的珠子；防具不收武器類珠子（判斷在 `ItemQuality.CheckSocket`，toast 4017／4018／4019）。以下「提示不擋」只剩**護身符／戒指**適用（`GemEffectiveness.cs`）：珠子可以鑲在護身符／戒指上跨裝備疊加到當前武器，所以「有沒有效」是**珠子 × 參考武器**——鐵砧上是武器就看那把、是防具就看目前裝備的武器，換武器答案就變，因此**不擋**。做法：拖進孔位時對參考武器無效 → toast（語言表 4013）；孔位上無效的珠子灰顯（`ForgeSlotWidget.Dimmed`）；珠子與鐵砧物品的 tooltip 加一行說明（4014／4015）；背包 tooltip 的鑲嵌清單標「（對目前武器無效）」（4016）。裝備中的武器一換，`InventorySystem.OnChanged` 會讓孔位重畫。
 
 ### 安全夾值（不是平衡，是「會把遊戲弄壞」的下限）
 
-能力刻意沒有上限，但下面幾個減到 0 會直接當掉，所以無論如何都要擋（寫在 `PlayerAbilities` 的常數區）：
+各效果有 `MaxLv` 封頂、越小越好的屬性用除法不會歸零（2026-11-17 起），下面這些是最後一道保險與效能保護（寫在 `PlayerAbilities` 的常數區）：
 
 | 欄位 | 減到 0 的後果 | 下限 |
 |---|---|---|
 | `FireInterval` | 每一幀都發射 → 瞬間數千顆子彈、卡死 | 0.02 秒 |
 | `Speed` | **拋物線武器的 Speed 語意是「飛行秒數」**，0 會除零 | 0.05 |
 | `DotInterval` | 持續傷害改成每幀結算 | 0.02 秒 |
-| `SpreadCount` | （上限）效能保護 | 64 |
+| `SplitCount`／`OrbitalCount` | （上限）效能保護 | 64 |
+| 連擊發數／平行道數 | （上限）效能保護；一次扣扳機總顆數另有 `MaxBulletsPerTrigger` | 各 16 |
 | `Range` | 雷射 -1＝無限，加了會變成有限 | ≥0 才套用；下限 0.1 |
 | `LifeTime` | -1＝不消失，同上 | ≥0 才套用；下限 0.05 |
 | `ChargeTimeReduction` | 100% 會除零 | 上限 99 |
 
-> ⏳ **平衡用的上限尚未討論**。使用者要求等系統完成後一起確認並記錄在這裡。
+> 平衡用的上限＝各效果的 `MaxLv`（GemTable）。子彈乘積（分裂 × 平行 × 連擊）的極限測試排在裝備體系完成後（EQUIPMENT §13）。
 
 ---
 
@@ -343,11 +355,11 @@ GemID,Name,Field,Target,Lv1,Lv2,Lv3,Note
 
 ## 10. 已知缺口 / 待辦
 
-- [ ] **數值上限**尚未討論（見 §4 的安全夾值——目前只擋「會弄壞遊戲」的下限）
+- [x] ~~數值上限~~ 2026-11-17 起各效果有 `MaxLv`（見 §3）
 - [ ] 「強化裝備」按鈕未接功能
 - [ ] 「拆除裝備」按鈕未接功能（語意待定義：分解成材料？產出珠子？）
 - [ ] 「鑲嵌珠強化石」道具未做
-- [ ] 武器/裝備的**內建能力等級**欄位未做（目前武器的基礎值直接來自配方表；`PlayerAbilities.Rebuild` 已留掛點）
+- [ ] 裝備的**內建特殊效果**（品質系統 `affixes`）＝裝備體系第②階段（EQUIPMENT §5）；武器起點等級 2026-11-17 已做（配方 `PierceLv` 等）
 - [ ] `GemTarget.Player`（角色屬性）只累加、還沒有人套用效果
 - [x] ~~珠子的 icon~~ 8 種符號 + 3 張珠身已於 2026-08-04 全數到齊
 - [ ] 501/502 測試防具的 icon 仍是借用既有武器圖（等正式素材）

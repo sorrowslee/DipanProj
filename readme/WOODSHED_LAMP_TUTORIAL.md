@@ -5,15 +5,15 @@
 紅嫁衣關第一間房 **柴房（RedBridalGown_Woodshed, map 1）** 的強制新手教學：
 一進柴房（沒撿過佛燈時）→ 播邪佛對話 → 對話關閉＝教學開始 → 走去撿地上的佛燈（靠近按 F）→ 撿起後佛燈地上物消失、往北的傳送點解鎖 → 提示按 B 開背包 → 手指指佛燈格、只放行它 → 點一下裝上佛燈 → 按 B 關背包 → **強制點亮**（鎖移動、只放行開火）：按住左鍵/空白鍵點亮佛燈 → 完成。做完寫永久旗標，之後（此生）不再強制、佛燈也不再出現。
 
-佛燈＝既有道具/武器 **8「佛光」**（`ItemTable` 8，`WeaponID=8`，`RecipeTable` 21 `Mode=Aura`）。此教學沒有新增任何武器，直接沿用它。
+佛燈＝道具/武器 **10002「一般佛燈」**（2026-11-17 裝備體系起；`ItemTable`／`WeaponTable`／`RecipeTable` 都是 10002，`Mode=Aura`，數值照抄舊的 8「佛光」）。拾取點寫死規格 `q=1;s=0`（一般、無孔）。原本用的是 8「佛光」，舊武器留著不動，見 [EQUIPMENT.md](EQUIPMENT.md) §10。
 
 ## 流程與所在程式
 
 強制流程寫死在 `Assets/Scripts/UI/TutorialManager.cs`（沿用既有傳送門教學那套 phase 狀態機 + 四個通用面板：`GuideFingerPanel`/`TutorialBlockerPanel`/`TutorialDimPanel`/`TutorialHintPanel`）。phase：`LampGuidePick → LampForceF → LampOpenBag → LampClickEquip → LampCloseBag → LampLight → Done`。提示字串走多語系 `Language.GetText(1001–1006)`（見 [LOCALIZATION.md](LOCALIZATION.md)）。
 
 - **啟動**：一進圖 `onEnter`「進場觸發-觸發邪佛對話」（gate `!tutorialBuddleLight`）接 `drama`「新手教學-邪佛對話」（dramaId 20）。**這顆 drama「關閉」時**廣播 `TriggerChain.OnTriggerFired("新手教學-邪佛對話")`，`TutorialManager` 收到就開始（`LampStartTrig` 就是這個名字；gate 於 `LampDoneFlag`，做過就不跑）。
-- **撿取**：pickup 觸發點名 **`柴房佛燈拾取`**（`itemId=8`）。走到可撿範圍 → `SetExternalHold` 定住玩家、`AllowInteract` 放行按 F。撿完 pickup 廣播 `柴房佛燈拾取` → 進裝備步驟；pickup 的 `setFlag=tutorialBuddleLight` 同時讓地上物消失、解鎖傳送點。
-- **裝備**：`AllowBag` 放行 B 鍵開背包（`HardLock` 仍鎖倉庫 K）→ `InventoryPanel.FindGridSlotRect(8)` 手指指佛燈格＋`TutorialBlockerPanel` 只放行它 → 點一下 → `InventorySystem.GetEquipped(Weapon)==8` 偵測到裝上 → 提示按 B 關背包。
+- **撿取**：pickup 觸發點名 **`柴房佛燈拾取`**（`itemId=10002`、`spec=q=1;s=0`）。走到可撿範圍 → `SetExternalHold` 定住玩家、`AllowInteract` 放行按 F。撿完 pickup 廣播 `柴房佛燈拾取` → 進裝備步驟；pickup 的 `setFlag=tutorialBuddleLight` 同時讓地上物消失、解鎖傳送點。
+- **裝備**：`AllowBag` 放行 B 鍵開背包（`HardLock` 仍鎖倉庫 K）→ `InventoryPanel.FindGridSlotRect(10002)` 手指指佛燈格＋`TutorialBlockerPanel` 只放行它 → 點一下 → `InventorySystem.GetEquipped(Weapon)==10002` 偵測到裝上 → 提示按 B 關背包。
   > 2026-08-07 背包改成雙頁籤＋分頁後，**佛燈（武器）在「裝備」頁籤**。`FindGridSlotRect` 已改成「找不到就自動切到那件東西所在的頁籤與頁數」，所以手指照樣指得到；而且背包的格子物件是**只建一頁 20 個重複使用**、切頁只重綁編號不重建，`TutorialBlockerPanel.LockTo` 鎖的 GameObject 不會失效。動這兩個地方時務必保持這個行為。
 - **強制點亮**（`LampLight`）：關背包後 `StartLampLight` **解除全鎖**（`SetExternalHold(false)`，否則連開火都被擋）**但改上 `FireOnly=true`＝鎖移動、只放行開火**——玩家走不掉、只能按住左鍵/空白鍵點燈。`TickLampLight` 讀 `PlayerController.IsAuraActive`（佛光光環開著）**持續 0.35 秒**（避免手滑一下就過）→ 解除 `FireOnly`、寫 `LampDoneFlag`、完成。之後玩家自由，可走去（已解鎖的）傳送點。
 
@@ -24,7 +24,7 @@
 | 啟動教學的觸發點名（drama「關閉」時開始） | `新手教學-邪佛對話` | `LampStartTrig` |
 | 佛燈 pickup 觸發點名 | `柴房佛燈拾取` | `LampPickupTrig` |
 | 點亮完成後開門的 togglePortal 名 | `新手教學後開啟傳送點` | `LampPortalTrig` |
-| 佛燈道具/武器 id | `8` | `LampItemId` |
+| 佛燈道具/武器 id | `10002`（2026-11-17 前是 `8`） | `LampItemId` |
 | 撿走佛燈旗標（pickup `setFlag` ＋ 地上物 `disappearFlag`） | `tutorialBuddleLight` | `LampTakenFlag` |
 | 整段教學做過的記號（＝同一顆旗標；撿到即視為做過，`onEnter` 也 gate `!tutorialBuddleLight`） | `tutorialBuddleLight` | `LampDoneFlag` |
 
@@ -33,7 +33,7 @@
 ## 地圖佈置（`RedBridalGown_Woodshed.dipanmap`，現況）
 
 - **佛燈地上物**（`weapon_sacredLamp`, cell(10,4)）：`disappearFlag: "tutorialBuddleLight"`（撿走後立即消失、下次進來旗標已成立＝不生）＋ `lightRadius: 3.0`（地上時就會發光、當暗場景光圈中心，見 [ATMOSPHERE.md](ATMOSPHERE.md)〈照明：光圈由光源驅動〉）。
-- **pickup 觸發點** `柴房佛燈拾取`：cells `[[10,4]]`，params `itemId=8`、`setFlag=tutorialBuddleLight`、`requireFlag=!tutorialBuddleLight`、`toRealBag=true`、**`next` 留空**（2026-11-06 拿掉：原本接開門節點，撿起當下傳送點就開了）。
+- **pickup 觸發點** `柴房佛燈拾取`：cells `[[10,4]]`，params `itemId=10002`、`spec=q=1;s=0`、`setFlag=tutorialBuddleLight`、`requireFlag=!tutorialBuddleLight`、`toRealBag=true`、**`next` 留空**（2026-11-06 拿掉：原本接開門節點，撿起當下傳送點就開了）。
 - **onEnter 觸發點** `進場觸發-觸發邪佛對話`：0 格，`requireFlag=!tutorialBuddleLight`、`next=新手教學-邪佛對話`。
 - **drama 觸發點** `新手教學-邪佛對話`：`dramaId=20`、`next` 留空。**對話關閉時由 `TutorialManager` 依這顆的名字（`LampStartTrig`）啟動教學**，不靠 `next`。（舊版的 `next=柴房教學起點` 指向不存在的節點，2026-11-06 清掉。）
 - **togglePortal 觸發點** `新手教學後開啟傳送點`（`requireFlag=tutorialBuddleLight`）：**點亮佛燈完成時由 `TutorialManager.TickLampLight` 以 `TriggerChain.Activate` 啟動**（同儲藏室藥水教學）。地圖上沒人接它，所以 `validate_map.py` 報「孤兒節點」是正常的。

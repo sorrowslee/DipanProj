@@ -31,6 +31,18 @@ public class RecipeEntry
     public ProjectileData Data;
 
     public BounceTarget BounceTarget = BounceTarget.None;
+
+    // ── 起點等級（2026-11-17 裝備體系，見 readme/EQUIPMENT.md §4、§9）──
+    // CSV 的行為欄填的是「等級」，讀表時換算成數值放進 Data／下面的 BurstCount 等欄（下游照舊讀數值）。
+    // 這裡留著起點等級，是因為能力容器要「起點等級＋全身效果等級」加總後再查一次表。
+    public int PierceLv, BounceLv, SplitLv, HomingLv, BurstLv, ParallelLv;
+    /// <summary>分裂相鄰兩顆的角度（度）。總角度＝間距×（顆數－1），超過 <see cref="SpreadMaxAngle"/> 就壓縮。</summary>
+    public float SpreadSpacing = DefaultSpreadSpacing;
+    /// <summary>分裂扇形的總角度上限（度）；廣角效果加在這裡之外。</summary>
+    public float SpreadMaxAngle = DefaultSpreadMaxAngle;
+    public const float DefaultSpreadSpacing = 15f;
+    public const float DefaultSpreadMaxAngle = 90f;
+
     public int SubRecipeID = -1;
     public RecipeEntry SubRecipe;   // SubRecipeID 解析後的子配方參考（落雷接連鎖時讀 sub 的 Mode/ChainCount/ChainRadius）
     public bool BlockedByEnvironment = true;
@@ -126,6 +138,12 @@ public class RecipeEntry
     /// <summary>持續型（按住生效）：Laser / Aura。沒有發射間隔、不吃集氣。</summary>
     public bool IsContinuous => WeaponModeSpec.Get(Mode).Continuous;
 
+    /// <summary>
+    /// 佛光的結算節拍倍率（不是 CSV 欄）：佛光每一下的間隔寫在地面特效表（GroundEffectTable.DamageInterval），
+    /// 攻速效果由能力容器算成 1 ÷（1＋攻速總和）放這裡，生成佛光時帶給 <see cref="GroundEffectInstance.IntervalScale"/>。1＝照表。
+    /// </summary>
+    public float AuraIntervalScale = 1f;
+
     // ═══════════════════════════ 建構 ═══════════════════════════
 
     /// <summary>
@@ -170,13 +188,20 @@ public class RecipeEntry
         d.Radius = Fl("Radius", 0.1f);
         d.LifeTime = Fl("LifeTime", 3f);
         d.RotationSpeed = Fl("RotationSpeed", 0f);
-        d.PierceCount = In("PierceCount", 0);
+        // 行為欄填的是等級（2026-11-17）：讀進來馬上換算成數值，下游照舊讀數值。換算曲線＝GemTable（見 EquipAttributes.LevelValue）。
+        e.PierceLv = Math.Max(0, In("PierceLv", 0));
+        d.PierceCount = LvToInt("Pierce", e.PierceLv);
         e.BlockedByEnvironment = Bo("BlockedByEnvironment", true);
 
         // ── 多發 ──
-        int spreadCount = In("SpreadCount", 1);
+        e.SplitLv = Math.Max(0, In("SplitLv", 0));
+        int spreadCount = 1 + LvToInt("Split", e.SplitLv);
         d.SplitCount = Math.Max(1, spreadCount);
-        d.SpreadAngle = Fl("SpreadAngle", 0f);
+        e.SpreadSpacing = Math.Max(0f, Fl("SpreadSpacing", DefaultSpreadSpacing));
+        e.SpreadMaxAngle = Math.Max(0f, Math.Min(360f, Fl("SpreadMaxAngle", DefaultSpreadMaxAngle)));
+        // 沒有扇形欄的模式（頭頂投彈：每個投彈者吐幾顆、不分扇形）維持 0，跟改版前一樣
+        d.SpreadAngle = WeaponModeSpec.IsEffective(mode, "SpreadMaxAngle")
+            ? ComputeSpreadAngle(d.SplitCount, e.SpreadSpacing, e.SpreadMaxAngle, 0f) : 0f;
         string timingStr = G("SplitTiming");
         // 分裂行為（SplitBehavior）只有會飛的子彈用；雷射只認 OnHit（命中分裂），道數是直接讀 SplitCount 展開的；
         // 其他模式（拋物線/連鎖/落雷）也是直接讀 SplitCount 當顆數/道數，不走 SplitBehavior。
@@ -195,15 +220,19 @@ public class RecipeEntry
 
         // ── 反彈 ──
         e.BounceTarget = ParseBounceTarget(G("BounceTarget"));
-        int maxBounces = In("MaxBounces", 0);
-        if (e.BounceTarget != BounceTarget.None && maxBounces > 0)
+        e.BounceLv = Math.Max(0, In("BounceLv", 0));
+        int maxBounces = LvToInt("Bounce", e.BounceLv);
+        if (maxBounces > 0)
         {
+            // 有反彈等級但反彈對象留空＝對牆（跟鑲反彈珠同一條規則）
+            if (e.BounceTarget == BounceTarget.None) e.BounceTarget = BounceTarget.Environment;
             d.HasBounce = true;
             d.MaxBounces = maxBounces;
         }
 
         // ── 追蹤 ──
-        float homing = Fl("HomingTurnSpeed", 0f);
+        e.HomingLv = Math.Max(0, In("HomingLv", 0));
+        float homing = EquipAttributes.LevelValue("Homing", e.HomingLv);
         if (homing > 0f) { d.HasHoming = true; d.HomingTurnSpeed = homing; }
         d.HomingRadius = Fl("HomingRadius", HomingBehavior.DefaultAcquireRadius);   // 2026-11-09：<50＝只追附近、在最近 3 隻裡隨機挑
         d.WanderAngle = Math.Max(0f, Fl("WanderAngle", 0f));                          // 2026-11-09：左右蛇行幅度（度）
@@ -270,15 +299,17 @@ public class RecipeEntry
         e.ChargeTimeReduction = Math.Max(-1000f, Math.Min(99f, CsvFieldParse.Percent(G("ChargeTimeReduction"), 0f)));
 
         // ── 連擊（Laser/Aura/Orbital 欄無效 → 保持 1）──
-        e.BurstCount = Math.Max(1, In("BurstCount", 1));
+        e.BurstLv = Math.Max(0, In("BurstLv", 0));
+        e.BurstCount = 1 + LvToInt("Burst", e.BurstLv);
         e.BurstInterval = Math.Max(0.02f, Fl("BurstInterval", 0.1f));
 
-        // ── 平行彈（只有 Normal/Parabolic 欄有效 → 其他模式保持 1）──
-        e.ParallelCount = Math.Max(1, In("ParallelCount", 1));
+        // ── 平行彈（只有 Normal/Parabolic/Familiar 欄有效 → 其他模式保持 1）──
+        e.ParallelLv = Math.Max(0, In("ParallelLv", 0));
+        e.ParallelCount = 1 + LvToInt("Parallel", e.ParallelLv);
         e.ParallelSpacing = Math.Max(0.05f, Fl("ParallelSpacing", 0.45f));
         e.ParallelMaxWidth = Math.Max(0.1f, Fl("ParallelMaxWidth", 3f));
 
-        // ── 迴旋：穿牆＋無限穿怪是這個模式的本質，不讀表（PierceCount／BlockedByEnvironment 對它是無效欄）──
+        // ── 迴旋：穿牆＋無限穿怪是這個模式的本質，不讀表（PierceLv／BlockedByEnvironment 對它是無效欄）──
         e.BoomerangCount = Math.Max(1, In("BoomerangCount", 1));
         if (mode == WeaponMode.Boomerang)
         {
@@ -361,6 +392,27 @@ public class RecipeEntry
             BeamRange = src.BeamRange,
             TrailStep = src.TrailStep,
         };
+    }
+
+    // ═══════════════════════════ 等級與分裂角度 ═══════════════════════════
+
+    /// <summary>純等級屬性的「等級 → 整數數值」（穿透數、反彈次數、多幾顆…）。</summary>
+    public static int LvToInt(string attribute, int level)
+        => (int)Math.Round(EquipAttributes.LevelValue(attribute, level));
+
+    /// <summary>
+    /// 分裂扇形的總角度（2026-11-17，見 readme/EQUIPMENT.md §4.3）：
+    /// 自然寬度＝間距×（顆數－1），超過上限就壓到上限，再加上廣角效果的角度。
+    /// 到 360° 時回傳 360×（N－1）÷N：下游一律用「總角度÷（N－1）、置中展開」排，這樣剛好平均分一整圈、首尾不重疊
+    /// （以前山崩地裂、夏綠蒂填 315° 就是在繞這個問題）。
+    /// </summary>
+    public static float ComputeSpreadAngle(int count, float spacing, float maxAngle, float extraAngle)
+    {
+        if (count <= 1) return 0f;
+        float natural = (count - 1) * Math.Max(0f, spacing);
+        float total = Math.Min(natural, Math.Max(0f, maxAngle)) + Math.Max(0f, extraAngle);
+        if (total >= 359.999f) return 360f * (count - 1) / count;
+        return total;
     }
 
     // ═══════════════════════════ 解析小工具 ═══════════════════════════

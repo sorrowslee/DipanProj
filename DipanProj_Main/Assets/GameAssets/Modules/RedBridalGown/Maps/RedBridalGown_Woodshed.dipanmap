@@ -280,7 +280,7 @@
           "scaleY": 0.7289999,
           "sortKey": -7.65371275,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -429,12 +429,13 @@
             ]
           ],
           "params": {
-            "itemId": "8",
+            "itemId": "10002",
             "repeat": "永久",
             "setFlag": "tutorialBuddleLight",
             "toRealBag": "true",
             "requireFlag": "!tutorialBuddleLight",
-            "next": ""
+            "next": "",
+            "spec": "q=1;s=0"
           }
         },
         {

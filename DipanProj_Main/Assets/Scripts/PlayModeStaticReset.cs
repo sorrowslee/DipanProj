@@ -53,6 +53,10 @@ public static class PlayModeStaticReset
         NpcDatabase.ResetForPlayMode();                // NPC 種類表（NpcTable.csv）
         ShadowAnchorTable.ResetForPlayMode();          // 影子錨點表（ShadowAnchorTable.csv）
         DropTable.ResetForPlayMode();                  // 掉落表（DropTable.csv）
+        EquipAttributes.ResetForPlayMode();            // 裝備體系：「讀不到 GemTable 改用備援曲線」只警告一次的旗標
+        Dipan.Inventory.ItemQuality.ResetForPlayMode();  // 品質系統：快取的 WeaponManager 參照（停 Play 後會變成已銷毀物件）與警告旗標
+        GroundSpikeBurst.ResetForPlayMode();       // 地刺：物件池（停 Play 後池裡是已銷毀物件）、執行期材質
+        GroundSpikeDatabase.ResetForPlayMode();    // 地刺設定表：進 Play 由 VfxManager.Awake 重新載入
         PlayerBind.ResetForPlayMode();
         Dipan.UI.UIManager.ResetMenuLocksForPlayMode();
         CombatStats.ResetForPlayMode();                  // 玩家不死保護（新手夢境教學）   // 玩家選單鎖（新手夢境教學鎖背包/倉庫/鍛造/設定）                 // 束縛玩家（骨牢）：清掉 PlayerController.Bound

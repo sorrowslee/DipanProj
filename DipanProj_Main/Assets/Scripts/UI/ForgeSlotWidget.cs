@@ -41,8 +41,11 @@ namespace Dipan.UI
         /// <summary>滑鼠移入／移出（給面板顯示 tooltip 用；傳目前格內的物品 ID，空格傳 0）。</summary>
         public Action<int> Entered, Exited;
 
-        /// <summary>拖了不該放的東西進來時呼叫（給面板跳提示；null = 靜靜忽略）。</summary>
-        public Action Rejected;
+        /// <summary>
+        /// 拖了不該放的東西進來時呼叫（給面板跳提示；null = 靜靜忽略）。帶被擋下的那個物品的資料，
+        /// 面板才能說出**為什麼**不收（例：武器不能鑲防具珠／這顆對這把武器的模式沒作用，見 readme/EQUIPMENT.md §2.3）。
+        /// </summary>
+        public Action<ItemData> Rejected;
 
         /// <summary>左鍵點這一格（給鐵砧做「取下」；null = 點了沒事）。</summary>
         public Action Clicked;
@@ -146,6 +149,7 @@ namespace Dipan.UI
         public void Refresh()
         {
             var st = Container != null ? Container.GetAt(Index) : ItemStack.Empty;
+            ItemIcons.ApplyQualityFrame(Rt, _locked ? ItemStack.Empty : st, _icon);   // 鐵砧上良品以上的裝備畫品質框
             if (_locked || st.IsEmpty)
             {
                 if (_icon != null) _icon.enabled = false;
@@ -215,7 +219,7 @@ namespace Dipan.UI
             int id = InventoryActions.ItemIdOf(src);
             if (!CanTake(id))
             {
-                if (id > 0) Rejected?.Invoke();
+                if (id > 0) Rejected?.Invoke(InventorySystem.Instance != null ? InventorySystem.Instance.GetData(id) : null);
                 return;
             }
             if (CustomDrop != null) CustomDrop(src);          // 鐵砧：只記來源，不搬物品

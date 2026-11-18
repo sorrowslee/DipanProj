@@ -164,7 +164,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   MonsterName: ZhaYu
-  MaxHealth: 50
+  MaxHealth: 500
   HitboxPadding: 0
   IsFacingRightByDefault: 1
 --- !u!114 &5734588528701023947

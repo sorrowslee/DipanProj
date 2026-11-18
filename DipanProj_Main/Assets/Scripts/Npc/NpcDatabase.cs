@@ -79,7 +79,7 @@ public class NpcDatabase
                 Scale = Num(v, "scale", 1f),
                 AnimFPS = Num(v, "animfps", 8f),
                 Speed = Num(v, "speed", 2f),
-                HP = Num(v, "hp", 50f),
+                HP = Num(v, "hp", 500f),   // ×10（2026-11-17）
                 EnvFusion = Num(v, "envfusion", 1f),
             };
             if (string.IsNullOrEmpty(d.Name))

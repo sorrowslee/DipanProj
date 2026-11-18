@@ -35,12 +35,13 @@ public class GroundLoot : MonoBehaviour
     const float LabelGap = 0.12f;            // 標籤在 icon 上緣之上的間距（世界單位）
     const int LabelSortingOrder = 20000;     // 高於角色/地上物 Y 排序帶（16-bit 安全，<32767），名稱永遠讀得到
     const float LabelShadowOffset = 0.03f;   // 描邊/陰影偏移（世界單位）
-    static readonly Color LabelColor = new Color(1f, 0.95f, 0.72f, 1f);        // 暖白
+    static readonly Color LabelColor = new Color(1f, 0.95f, 0.72f, 1f);        // 暖白（查不到物品資料時的退路；平常用品質色）
     static readonly Color LabelShadowColor = new Color(0f, 0f, 0f, 0.85f);     // 黑描邊
 
     SpriteRenderer _sr;
     GameObject _labelGo;
     TextMesh _labelTm, _labelShadowTm;
+    Color _labelColor = LabelColor;   // 品質色（Init 時決定；裝備依內建效果數、非裝備依模板，見 readme/EQUIPMENT.md §7）
     float _labelWorldY;   // 標籤世界 Y（icon 上緣 + 間距）；掉落物不移動，算一次即可
 
     /// <summary>
@@ -55,6 +56,9 @@ public class GroundLoot : MonoBehaviour
         Count = stack.Count;
         Inst = stack.Inst;
         DisplayName = displayName;
+        var inv = Dipan.Inventory.InventorySystem.Instance;
+        var data = inv != null ? inv.GetData(stack.ItemId) : null;
+        _labelColor = data != null ? Dipan.Inventory.ItemQuality.ColorOf(data, stack.Inst) : LabelColor;
 
         _sr = gameObject.GetComponent<SpriteRenderer>();
         if (_sr == null) _sr = gameObject.AddComponent<SpriteRenderer>();
@@ -116,7 +120,7 @@ public class GroundLoot : MonoBehaviour
         shadowGo.transform.localPosition = new Vector3(LabelShadowOffset, -LabelShadowOffset, 0f);
         _labelShadowTm = BuildTextMesh(shadowGo, LabelShadowColor, LabelSortingOrder - 1);
 
-        _labelTm = BuildTextMesh(_labelGo, LabelColor, LabelSortingOrder);
+        _labelTm = BuildTextMesh(_labelGo, _labelColor, LabelSortingOrder);
 
         RefreshLabelText();
         _labelGo.SetActive(LabelsVisible);

@@ -115,6 +115,7 @@ public class InteractionManager : MonoBehaviour
         // pickup
         public int itemId;
         public int count;
+        public ItemSpec spec;           // 拾取點的生成規格（"q=1;s=0" 這類；null＝全隨機），2026-11-17 品質系統
         public bool toRealBag;   // 舊欄位：2026-11-06 拿掉臨時包後已無作用（所有東西本來就直接進真背包），保留只為相容既有地圖資料
         public string name;
         // drama
@@ -198,6 +199,7 @@ public class InteractionManager : MonoBehaviour
                     string toReal = r.GetString("toRealBag");
                     pt.toRealBag = toReal == "true" || toReal == "1";   // 已無作用，見上方欄位註解
                     pt.name = data != null ? data.Name : $"#{itemId}";
+                    pt.spec = ItemSpec.Parse(r.GetString("spec"), $"拾取點「{r.name}」");
                     return true;
                 },
                 Tip = pt => $"按 {interactKey} 鍵拾取 {pt.name}",
@@ -390,11 +392,12 @@ public class InteractionManager : MonoBehaviour
     }
 
     /// <summary>在 pos 放一個掉落物（通用入口，怪物掉落也用這個）。同點重疊會稍微散開避免疊死。
-    /// 關卡 run 內會登記進 RunProgress（沒撿的換圖回來原地重放）。</summary>
-    public GroundLoot DropLoot(int itemId, int count, Vector2 pos)
+    /// 關卡 run 內會登記進 RunProgress（沒撿的換圖回來原地重放）。
+    /// <paramref name="spec"/>：生成規格（掉落表的 <c>[q=3]</c> 這類，見 readme/EQUIPMENT.md §6）；null ＝ 全隨機。</summary>
+    public GroundLoot DropLoot(int itemId, int count, Vector2 pos, ItemSpec spec = null)
     {
-        // 掉落＝憑空產生一件新東西 → 一律走工廠，孔數/珠子等級在**掉在地上的那一刻**就決定好。
-        var st = ItemManager.Create(itemId, count);
+        // 掉落＝憑空產生一件新東西 → 一律走工廠，孔數/珠子等級/品質在**掉在地上的那一刻**就決定好。
+        var st = ItemManager.Create(itemId, count, spec);
         return DropStack(st, pos);
     }
 
@@ -402,7 +405,12 @@ public class InteractionManager : MonoBehaviour
     public GroundLoot DropStack(ItemStack st, Vector2 pos)
     {
         if (st.IsEmpty) return null;
-        var loot = CreateLoot(st.ItemId, st.Count, Scatter(pos), st.Inst);
+        // 落點先挪到「可走、且玩家走得到」的地方，再散開；散開後掉回牆裡就用挪好的那點。
+        Vector2 safe = ReachableDropSpot(pos);
+        Vector2 p = Scatter(safe);
+        var nav = MapNavGrid.Instance;
+        if (nav != null && nav.Ready && !nav.IsWalkableWorld(p)) p = safe;
+        var loot = CreateLoot(st.ItemId, st.Count, p, st.Inst);
         if (loot != null && RunProgress.Exists && RunProgress.Instance.RunActive)
         {
             int mapId = MapManager.Instance != null ? MapManager.Instance.CurrentMapId : -1;
@@ -485,8 +493,9 @@ public class InteractionManager : MonoBehaviour
         var go = new GameObject($"GroundLoot_{data.Name}");
         go.transform.position = new Vector3(spawnPos.x, spawnPos.y, 0f);
         var loot = go.AddComponent<GroundLoot>();
+        // 名稱走品質系統：裝備顯示「品名 名稱」，標籤顏色由 GroundLoot 依品質上色
         loot.Init(new ItemStack { ItemId = itemId, Count = count, Inst = inst },
-                  data.Name, lootWorldSize, sortingLayerName, sortingOrder);
+                  ItemQuality.DisplayName(data, inst), lootWorldSize, sortingLayerName, sortingOrder);
         _loot.Add(loot);
         return loot;
     }
@@ -865,7 +874,7 @@ public class InteractionManager : MonoBehaviour
         {
             for (int i = 0; i < pt.count; i++)
             {
-                var one = ItemManager.Create(pt.itemId, 1);
+                var one = ItemManager.Create(pt.itemId, 1, pt.spec);
                 leftover += toReal ? (inv0 != null ? inv0.AddStack(one) : 1)
                                    : RunProgress.Instance.GiveStack(one);
             }
@@ -882,7 +891,7 @@ public class InteractionManager : MonoBehaviour
 
         if (leftover > 0)
         {
-            DropLoot(pt.itemId, leftover, _player != null ? (Vector2)_player.position : pt.center);
+            DropLoot(pt.itemId, leftover, _player != null ? (Vector2)_player.position : pt.center, pt.spec);
             AlertPanel.Toast(leftover > 1 ? $"背包已滿，{pt.name} ×{leftover} 掉落地上"
                                           : $"背包已滿，{pt.name} 掉落地上");
         }
@@ -952,6 +961,63 @@ public class InteractionManager : MonoBehaviour
     void HideTip()
     {
         if (_tip != null) _tip.HideTip();
+    }
+
+    // ── 掉落點保險（2026-11-18 作者實測：榕樹妖站在樹幹那排牆格上，枯枝掉在樹幹後面撿不到）──
+    // 原地可走＋玩家走得到 → 原地；否則由近到遠一圈圈找（每圈先試朝玩家的方向、再左右交替），
+    // 找到第一個可走點後再往外推 DropInset，讓東西落在乾淨地板上、不要貼著牆邊。
+    const float DropSearchStep = 0.25f, DropSearchMax = 6f, DropInset = 0.4f;
+    const int DropMaxPathChecks = 24;   // A* 檢查次數上限（可走但跟玩家不連通的區域才會用到）
+    readonly List<Vector2> _dropPathTmp = new List<Vector2>();
+
+    Vector2 ReachableDropSpot(Vector2 pos)
+    {
+        var nav = MapNavGrid.Instance;
+        if (nav == null || !nav.Ready) return pos;
+        if (_player == null) _player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        int pathChecks = 0;
+        Rect area = nav.WorldRect;
+        // ⚠ IsWalkableWorld 會把地圖外的座標夾到邊緣格，所以先限定在格子範圍內
+        bool Walk(Vector2 q) => area.Contains(q) && nav.IsWalkableWorld(q);
+
+        bool Reachable(Vector2 q)
+        {
+            if (!Walk(q)) return false;
+            if (_player == null) return true;
+            if (pathChecks >= DropMaxPathChecks) return false;
+            pathChecks++;
+            return nav.TryFindPath(_player.position, q, _dropPathTmp);   // 終點可走時，找得到路＝連通
+        }
+
+        if (Reachable(pos)) return pos;
+
+        Vector2 toPlayer = _player != null ? (Vector2)_player.position - pos : Vector2.down;
+        float baseAng = toPlayer.sqrMagnitude > 1e-4f ? Mathf.Atan2(toPlayer.y, toPlayer.x) : -Mathf.PI * 0.5f;
+        for (float r = DropSearchStep; r <= DropSearchMax; r += DropSearchStep)
+        {
+            int steps = Mathf.Max(8, Mathf.CeilToInt(2f * Mathf.PI * r / DropSearchStep));
+            float da = 2f * Mathf.PI / steps;
+            for (int k = 0; k < steps; k++)
+            {
+                int side = (k + 1) / 2;
+                float ang = baseAng + ((k % 2 == 0) ? side : -side) * da;   // 0, +1, -1, +2, -2 …
+                var dir = new Vector2(Mathf.Cos(ang), Mathf.Sin(ang));
+                Vector2 q = pos + dir * r;
+                if (!Walk(q)) continue;
+                Vector2 inner = pos + dir * (r + DropInset);
+                if (Walk(inner) && Reachable(inner)) return inner;
+                if (Reachable(q)) return q;
+            }
+        }
+        // 真的找不到（玩家被關在別的區域？）：至少挑最近的可走點，不要掉在牆裡。
+        for (float r = DropSearchStep; r <= DropSearchMax; r += DropSearchStep)
+            for (int k = 0; k < 16; k++)
+            {
+                float ang = baseAng + k * Mathf.PI / 8f;
+                Vector2 q = pos + new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * r;
+                if (Walk(q)) return q;
+            }
+        return pos;
     }
 
     Vector2 Scatter(Vector2 pos)

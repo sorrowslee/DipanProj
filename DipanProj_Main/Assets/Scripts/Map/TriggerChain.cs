@@ -474,8 +474,10 @@ public static class TriggerChain
 
         var data = inv.GetData(itemId);
         string display = data != null ? data.Name : $"#{itemId}";
+        // 生成規格（2026-11-17 品質系統）：spec＝"q=1;s=1" 這類，寫死品質／孔數／效果／珠子等級；留空＝全隨機。見 readme/EQUIPMENT.md §6
+        var spec = ItemSpec.Parse(r.GetString("spec"), $"giveItem「{r.name}」");
         // 一律進真背包（放不下的剩餘回傳，下面掉在玩家腳下）。見 RunProgress。
-        int leftover = RunProgress.Instance.GiveItem(itemId, count);
+        int leftover = RunProgress.Instance.GiveItem(itemId, count, false, spec);
         int added = count - leftover;
         if (added > 0)
         {
@@ -487,7 +489,7 @@ public static class TriggerChain
         {
             var player = GameObject.FindGameObjectWithTag("Player");
             Vector2 pos = player != null ? (Vector2)player.transform.position : Vector2.zero;
-            InteractionManager.Instance.DropLoot(itemId, leftover, pos);
+            InteractionManager.Instance.DropLoot(itemId, leftover, pos, spec);
             AlertPanel.Toast($"背包已滿，{display} ×{leftover} 掉落地上");
         }
         // 記本趟已給（非 run 期間由 RunProgress 內部忽略）。

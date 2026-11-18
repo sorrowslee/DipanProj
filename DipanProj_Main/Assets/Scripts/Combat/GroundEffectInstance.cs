@@ -25,6 +25,12 @@ public class GroundEffectInstance : MonoBehaviour
     private bool _initialized;
     private float _damageOverride = -1f;  // >= 0 時改用此值（例如佛光以武器表 Damage 結算），< 0 = 用 GroundEffectTable 的 Damage
 
+    /// <summary>
+    /// 結算節拍倍率（2026-11-17）：實際間隔＝表上的 DamageInterval × 這個值。1＝照表。
+    /// 佛光吃攻速效果用（生成後由 PlayerController 設定），其他地面特效不用動它。
+    /// </summary>
+    public float IntervalScale = 1f;
+
     // ── 燈火明滅（RenderMode=Glow，佛光用）──
     private SpriteRenderer _glowRenderer;   // 單圖護罩的 renderer（明滅 / 縮放對象）
     private Material _glowMat;              // 本實例專屬的 AuraGlow 材質（用完隨物件銷毀）
@@ -450,10 +456,12 @@ public class GroundEffectInstance : MonoBehaviour
     {
         if (_data.DamageInterval <= 0f) return;
 
+        // 節拍倍率：佛光吃攻速效果（見 RecipeEntry.AuraIntervalScale）；下限 0.02 秒，避免每幀結算
+        float interval = Mathf.Max(0.02f, _data.DamageInterval * IntervalScale);
         _damageTimer += Time.deltaTime;
-        if (_damageTimer >= _data.DamageInterval)
+        if (_damageTimer >= interval)
         {
-            _damageTimer -= _data.DamageInterval;
+            _damageTimer -= interval;
             ApplyAreaDamage();
         }
     }

@@ -56,6 +56,9 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4014,對目前武器「{0}」沒有效果,No effect on the current weapon {0},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4015,對目前武器沒有效果的珠子：{0},Gems with no effect on the current weapon: {0},,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 4016,（對目前武器無效）,(no effect on current weapon),,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4017,武器只能鑲武器類的珠子,Weapons only accept weapon gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4018,防具只能鑲防具類的珠子,Armor only accepts armor gems,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+4019,{0}對{1}沒有作用，不能鑲在這把武器上,{0} has no effect on {1} and cannot be socketed into it,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 # ── 血統系統（2001–2099）──,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 2001,這不是血統藥劑,This is not a bloodline elixir,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 2002,你的血脈已定為「{0}」，這一世不能再改變,"Your bloodline is set to ""{0}"" and cannot change this life",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
@@ -174,10 +177,10 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 10014,藍,Blue
 10015,黃,Yellow
 10016,紫,Purple
-10017,凡品,Common
+10017,一般,Common
 10018,良品,Fine
 10019,珍品,Rare
-10020,神品,Divine
+10020,極品,Epic
 10021,推薦排序,Recommended
 10022,價格：低→高,Price: Low to High
 10023,價格：高→低,Price: High to Low
@@ -210,6 +213,8 @@ id,cn,en,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 10052,價格,Price
 10053,右鍵：加入收藏,Right-click: add to favorites
 10054,右鍵：取消收藏,Right-click: remove from favorites
+10055,隨機品質,Random quality
+10056,效果、孔數與珠子等級在兌換時才決定,Effects / sockets / gem level are rolled when exchanged
 # ── 功德值與劇本證明（11001–11099，2026-11-16）：證明名稱、結算畫面、各劇本 B／A／S 的條件文字。見 readme/CORE_LOOP_DESIGN.md §8 ──
 11001,B級證明,B-Rank Proof
 11002,A級證明,A-Rank Proof

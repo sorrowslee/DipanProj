@@ -19,7 +19,7 @@
   * **牆與敵人分開偵測（關鍵）**：牆（阻擋/反彈層）用**細射線 `Physics2D.Raycast`**（精準、掠射角與薄牆都抓得到、命中點正好在牆面）；敵人（可穿透層）用**粗圓 `CircleCastAll`**（吃滿光束寬度）。早期「厚圓掃描在掠射角漏抓薄牆 → 光束穿牆飛出場外」就是只用一種 cast 造成，分開後根治。
   * 追蹤：每步朝最近敵人轉向（`HomingTurnSpeed` 以名目光速換算曲率，手感與追蹤彈一致），起始朝滑鼠、中段咬敵；已記錄過的目標不再吸引轉向，光束自然彎向下一個敵人。
   * 反彈：命中可反彈表面 `Vector2.Reflect`，光束變多段折線。
-  * 穿透：`PierceCount` 控制穿過幾個敵人；`-1` 無限、`0` 打到第一個就停。
+  * 穿透：配方 `PierceLv` 控制穿過幾個敵人（lv n＝n 隻，最多 50）；`0` 打到第一個就停。2026-11-17 起取消 -1 無限（2026-11-17 起 CSV 填等級，見 [EQUIPMENT.md](EQUIPMENT.md)）。
   * 直射用單次大段 cast（快路徑），追蹤才用細步行進（精度路徑）。
 * **貼身敵人補抓（重要陷阱）**：本專案 `Physics2D.queriesStartInColliders = false`，從砲口出發的 cast 會**忽略重疊在光束起點的碰撞體** → 怪物貼在玩家身上時雷射打不到（飛劍類因為是「從外面飛進來」不受影響）。`MarchBeam` 開頭多做一次 `OverlapCircle`（半徑＝光束半寬）把貼身怪補進命中清單（純記錄傷害、不擋光束、**不動全域物理設定**以免影響子彈系統）。
 * **所見即所得的命中寬度**：命中判定半徑 `Radius = BeamWidth / 2`（不再讀配方的 `Radius`），**視覺寬度與命中寬度共用同一欄**，避免兩個欄位互相打架。
@@ -35,7 +35,7 @@
 * `BallisticsEngine.SpawnBeam(...)`：純程式生成光束物件的工廠（`RequireComponent` 在 `AddComponent<LaserBeam>` 時自動補上 `MeshFilter` / `MeshRenderer`），傳入 mask + 外型參數(BeamStyle) + onTick callback。**全程純程式建構，不需要 prefab、不需要 Inspector 接線**。
 
 ### 主遊戲端（`PlayerController`）
-* **持續光束生命週期**：偵測到雷射武器時走 `UpdateLaser`——按住維持一組（依 `SpreadCount` 扇形）光束、每幀更新砲口位置與瞄準方向；放開 / 切武器時 `ClearActiveBeams` 銷毀整組（仿環繞彈的群組管理）。
+* **持續光束生命週期**：偵測到雷射武器時走 `UpdateLaser`——按住維持一組（依分裂數＝配方 `SplitLv` 的扇形）光束、每幀更新砲口位置與瞄準方向；放開 / 切武器時 `ClearActiveBeams` 銷毀整組（仿環繞彈的群組管理）。
 * **`HandleBeamTick`**：接收光束每 `DotInterval` 的命中回報，對怪物用 `WeaponData.Damage` 結算傷害（無敵時間由 `MonsterController.TakeDamage` 內部的 `HitReactionHandler` 自動處理），並觸發地面特效。
 * **OnHit 分裂**：`SplitTiming=OnHit` + `SubRecipeID` 時，在命中點生成子彈，**節流綁在 DotInterval tick**（避免每幀爆量）。
 * **外觀資料驅動**：行為在 `RecipeTable`、外觀在 `WeaponTable`——使用者只填 `BeamStyle`（種類編號）/ `BeamColor`（顏色編號）/ `BeamWidth`（粗細）三個簡單值，其餘外型細節由 `BeamStyle` 編號展開。換風格只改編號，程式與配方都不動。
@@ -51,9 +51,9 @@
   * `LaserBeam.DrawBeam` 設為 `false`：**不畫光束 mesh、不畫砲口/命中光暈**，但照常算路徑(`Points`)、命中、DOT、射程、撞牆停。
   * 主遊戲（`PlayerController.UpdateFlameColumn`）沿 `beam.Points` 每隔配方 `TrailStep` 鋪一根 **TrailEffectID 指向的火焰 Vfx**，每幀重新定位 → 火焰柱跟著光束掃。
 * **火焰 Vfx 必須是「持續循環」**：VfxTable 該特效設 `Loop=1` + **`Duration=-1`（無限循環，由 PlayerController 持有、放開/切武器時清除）**。不能用一次性（會自毀、無法被重新定位）。
-* **復用既有欄位**：`TrailEffectID`（火焰外觀，同地刺）/ `TrailStep`（火焰間距）/ `BeamWidth`（命中寬度）/ `DotInterval`（DOT 節拍）/ `Range`（火焰射程，建議短，例如 5）/ `PierceCount`（穿幾個敵人）。傷害走武器表 `Damage`，每 `DotInterval` 結算。
-* **掃射 / 反彈 / 追蹤全部免費**：因為它就是雷射——`BounceTarget` 讓火焰撞牆折射、`HomingTurnSpeed` 讓火焰彎曲咬敵。
-* 範例：武器「火焰噴射器」`Mode=Laser, TrailEffectID=4(火球), BeamWidth=1.2, Damage=2`；配方 `DotInterval=0.2, Range=5, TrailStep=0.5, PierceCount=-1`；Vfx 4「火球」`FireBall, Loop=1, Duration=-1, Scale=0.5`。
+* **復用既有欄位**：`TrailEffectID`（火焰外觀，同地刺）/ `TrailStep`（火焰間距）/ `BeamWidth`（命中寬度）/ `DotInterval`（DOT 節拍）/ `Range`（火焰射程，建議短，例如 5）/ `PierceLv`（穿幾個敵人）。傷害走武器表 `Damage`，每 `DotInterval` 結算。
+* **掃射 / 反彈 / 追蹤全部免費**：因為它就是雷射——`BounceTarget` 讓火焰撞牆折射、`HomingLv` 讓火焰彎曲咬敵。
+* 範例：武器「火焰噴射器」`Mode=Laser, TrailEffectID=4(火球), BeamWidth=1.2, Damage=2`；配方 `DotInterval=0.2, Range=5, TrailStep=0.5, PierceLv=50`；Vfx 4「火球」`FireBall, Loop=1, Duration=-1, Scale=0.5`。
 * 邊界：火焰 Vfx 的生成/管理全在主遊戲（VfxManager），彈道只多開放 `LaserBeam.Points`（唯讀路徑）+ `DrawBeam` 旗標，不碰 Vfx。
 
 ---
@@ -106,7 +106,7 @@
 
 ### 機制（全在主遊戲側 `PlayerController.ShootChain`）
 * **第一段**：朝**滑鼠方向** `CircleCast`（容差半徑＝`BeamWidth/2`）找沿線第一個目標；先用 `Raycast(EnvLayer)` 抓環境，**撞到純牆就停**（閃電不穿牆）。射程＝配方 `Range` 欄。
-* **逐跳**：從上一個目標用 `OverlapCircleAll(ChainRadius)` 找「還沒打過的最近**可造成傷害目標**」，連過去；重複到 `ChainCount`（=配方 `MaxBounces` 欄）次用完或附近沒目標。**總命中數 = 1 + ChainCount**。
+* **逐跳**：從上一個目標用 `OverlapCircleAll(ChainRadius)` 找「還沒打過的最近**可造成傷害目標**」，連過去；重複到 `ChainCount` 次用完或附近沒目標。**總命中數 = 1 + ChainCount**。
 * **目標 = 怪 + 可破壞地上物**：搜尋遮罩用 `EnemyLayer | EnvLayer`，再用 **`IDamageable` 過濾**——怪物與可破壞地上物（都實作 `IDamageable`）都算合法目標，**純牆（無 `IDamageable`）被排除**，不會被當成跳躍目標、也不浪費跳躍。所以連鎖閃電能打壞家具（符合「任何能造成傷害的武器都能破壞地上物」）。撞到擋路的可破壞家具時也會把它當首節點打。
 * **傷害**：每個連到的目標都吃**武器表 `Damage`**（每跳一樣；之後要做「每跳遞減」就在這裡乘衰減係數）。透過 `ApplyDamage` → `IDamageable`，自動吃怪物無敵時間。
 * **目標搜尋與傷害都不碰彈道系統**（守住邊界）；`LaserBeam` 在這裡只是個「畫給定折線」的渲染器。
@@ -123,15 +123,15 @@
 |---|---|
 | `ChainCount` | **跳躍次數**（總命中數 = 1 + ChainCount） |
 | `Range` | **第一段射程**（朝滑鼠找首目標的最遠距離） |
-| `SpreadCount` / `SpreadAngle` | **散射**：一發射出 N 道扇形分布的連鎖（每道獨立連鎖），與雷射的一發多道同理。例如 3 / 60 = 3 道，分布在滑鼠方向 ±30° |
+| `SplitLv` / `SpreadSpacing` / `SpreadMaxAngle` | **散射**：一發射出 1＋lv 道扇形分布的連鎖（每道獨立連鎖），與雷射的一發多道同理。例如 `SplitLv 2`＋間距 30 = 3 道，分布在滑鼠方向 ±30° |
 | `AimConeAngle` | **首目標自動鎖定**（aim-assist；2026-08-26 前借用 `HomingTurnSpeed`，追蹤珠對連鎖已改為無效）。閃電瞬發、不會飛行轉彎，所以：首段不必精準瞄到，改鎖定「以瞄準方向為軸、**半角 = AimConeAngle（上限 180）** 的扇形錐內、射程內、最近」的目標。`180` = 錐張滿一圈 = 鎖最近任意方向的目標；`0` / 留空 = 不鎖定（要精準瞄準線上才打得到首目標）。逐跳本來就會找最近，所以追蹤只作用在「首目標」 |
 | `BeamStyle`/`BeamColor`/`BeamWidth`（武器表） | 外觀（與雷射同欄；連鎖武器也會載入砲口/命中光暈素材） |
 | `Damage`（武器表） | 每個連到的目標的傷害（每跳一樣） |
 
 > ⚠️ **散射 + 追蹤的交互**：追蹤是「每道在自己的扇形方向附近鎖最近目標」。若 `AimConeAngle` 很大（如 180），每道的錐都張滿一圈 → N 道會鎖到同一隻最近的怪、扇形就收攏在一起。想保留散開的扇形，把 `AimConeAngle` 調小（例如 30~45，只在各自方向附近鎖定）。
 
-* **範例**（目前設定）：武器 11「連鎖閃電」`Damage=3, RecipeID=22, BeamStyle=7, BeamColor=6(藍), BeamWidth=0.25`；配方 22「連鎖閃電」`Mode=Chain, ChainCount=4（跳4次）, Range=15, ChainRadius=4, FireInterval=0.5, SpreadCount=3, SpreadAngle=60, AimConeAngle=180`。
-* **調整方向**：跳更多 → `ChainCount`；跳更遠 → `ChainRadius`；首段射更遠 → `Range`；幾道 → `SpreadCount`/`SpreadAngle`；首目標鎖定錐角 → `AimConeAngle`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`。
+* **範例**（目前設定）：武器 11「連鎖閃電」`Damage=3, RecipeID=22, BeamStyle=7, BeamColor=6(藍), BeamWidth=0.25`；配方 22「連鎖閃電」`Mode=Chain, ChainCount=4（跳4次）, Range=15, ChainRadius=4, FireInterval=0.5, SplitLv=2, SpreadSpacing=30, SpreadMaxAngle=60, AimConeAngle=180`。
+* **調整方向**：跳更多 → `ChainCount`；跳更遠 → `ChainRadius`；首段射更遠 → `Range`；幾道 → `SplitLv`/`SpreadSpacing`；首目標鎖定錐角 → `AimConeAngle`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`。
 
 > 未做（之後可加）：跳躍/鎖定的視線遮擋（目前純比距離，不檢查兩點之間有沒有牆）、每跳傷害遞減、命中音效。
 
@@ -142,7 +142,7 @@
 從**畫面上緣外往下劈**到滑鼠所在點，落地造成**圓形範圍傷害**。底層 `Mode=SkyStrike` 目前由九霄雷獄使用；AOE 沿用 `AreaRadius`，視覺以 `SegmentedColumn` 啟用分段全高雷柱。
 
 ### 機制（全在主遊戲側 `PlayerController.ShootSkyStrike` / `StrikeAt`）
-* **落點**：滑鼠所在世界座標。`SpreadCount > 1` 時以「玩家→滑鼠」為基準軸、在 `±SpreadAngle/2` 扇形上、與滑鼠等距分佈出 N 個落點（同拋物線的扇形落點）。
+* **落點**：滑鼠所在世界座標。分裂數 > 1（`SplitLv` > 0）時以「玩家→滑鼠」為基準軸、在扇形（總角度由 `SpreadSpacing`／`SpreadMaxAngle` 算出）上、與滑鼠等距分佈出 N 個落點（同拋物線的扇形落點）。
 * **視覺**：九霄雷獄由 `SegmentedLightningColumn` 生成——start 作鏡頭外雷首，依鏡頭頂端到落點距離動態鋪 N 節 tileable loop，保持等寬一路打到地面；不使用會收細的 end。地面另播 WeaponTable `HitEffectID` 的大型爆炸。
   * **2026-08-18 起這支是「通用雷柱」**：`Spawn(impact, cam, Style, scale, fps, duration)` 的 `Style` 可指定素材路徑／張數／排序層，`SegmentedLightningColumn.SkyStrike` 是九霄雷獄的預設外觀。**舊的無 `Style` 簽章保留、武器行為零改變。** 血統變身的天雷就是換一組 `Style` 重用同一套拼接邏輯（見 [BLOODLINE.md](BLOODLINE.md) §5）。
   * Sprite 快取改成**以路徑前綴為鍵的字典**，讓多種外觀各自快取、互不干擾；`ResetForPlayMode()` 已註冊 `PlayModeStaticReset`（陣列型 static 快取的坑，見 [PROBLEMS.md](PROBLEMS.md) I8——字典包陣列同樣適用）。
@@ -156,7 +156,7 @@
 | 欄位 | 對落雷模式的意義 |
 |---|---|
 | `AreaRadius` | 落地圓形 AOE 半徑（留空＝1.2） |
-| `SpreadCount` / `SpreadAngle` | **散射**：一次劈 N 道、落點分佈在滑鼠方向 ±SpreadAngle/2 的扇形上 |
+| `SplitLv` / `SpreadSpacing` / `SpreadMaxAngle` | **散射**：一次劈 1＋lv 道、落點分佈在滑鼠方向的扇形上 |
 | `SnapRadius` | **落點吸附**：>0 時把每個落點吸附到「該落點 `SnapRadius` 半徑（世界單位）內最近的可傷害目標」。留空/0＝精準劈在滑鼠點。（2026-08-26 前借用 `HomingTurnSpeed` 當搜尋半徑，追蹤珠鑲上去會變成整張圖吸附，已改獨立欄） |
 | `GroundEffectID` | 落點殘留地面特效（可選） |
 | `Damage`（武器表） | AOE 傷害 |
@@ -164,8 +164,8 @@
 | `HitEffectID`（武器表） | 分段模式下專門代表地面命中特效，不再兼任雷柱本體 |
 
 * **目前設定**：武器 24「九霄雷獄」`Damage=8, RecipeID=37, HitEffectID=26`；配方 37 `Mode=SkyStrike, SegmentedColumn=1, AreaRadius=1.6, FireInterval=0.9`。
-* **想試分裂**：把配方 37 的 `SpreadCount` 改 3、`SpreadAngle` 改 60。**想試落點吸附**：把 `SnapRadius` 設成搜尋半徑（例如 3）。
-* **調整方向**：AOE 大小 → `AreaRadius`；幾道 → `SpreadCount`/`SpreadAngle`；吸附範圍 → `SnapRadius`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`；落點殘留 → `GroundEffectID`。
+* **想試分裂**：把配方 37 的 `SplitLv` 改 2、`SpreadSpacing` 改 30。**想試落點吸附**：把 `SnapRadius` 設成搜尋半徑（例如 3）。
+* **調整方向**：AOE 大小 → `AreaRadius`；幾道 → `SplitLv`/`SpreadSpacing`；吸附範圍 → `SnapRadius`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`；落點殘留 → `GroundEffectID`。
 
 ### 接 SubRecipeID = 落點接連鎖閃電（已實作）
 落雷配方填 `SubRecipeID` 指向一個 `Mode=Chain` 配方時，可在落地後從落點接一條連鎖閃電；目前九霄雷獄不使用此能力。

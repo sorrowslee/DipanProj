@@ -43,6 +43,7 @@ namespace Dipan.UI
         const int TxtNoGems = 4010, TxtBagFull = 4011, TxtGemsRemoved = 4012;
         // 鑲嵌有效性提示（提示不擋）：珠子對參考武器無效時的 toast / tooltip
         const int TxtGemNoEffect = 4013, TxtGemNoEffectOnWeapon = 4014, TxtIneffectiveGems = 4015;
+        const int TxtWeaponOnlyWeaponGem = 4017, TxtArmorOnlyArmorGem = 4018, TxtGemModeBlocked = 4019;
 
         // ───────── 底圖原生座標（量自示意圖，1536×1024；左上為原點、y 向下）─────────
         const float BgW = 1536f, BgH = 1024f;
@@ -176,9 +177,10 @@ namespace Dipan.UI
                 var w = ForgeSlotWidget.Create(_frame, $"Socket{i}", CellW, CellW * IconRatio);
                 Place(w.Rt, SocketCenter(i), CellW, CellH);
                 w.SetFrameArt(socketFrames[i, 0], socketFrames[i, 1]);
-                w.Accepts = IsGem;
-                // 拖錯東西進孔位要有回饋（原本只有鐵砧有，孔位漏了 → 玩家會以為是卡住）。
-                w.Rejected = () => AlertPanel.Toast(Language.GetText(TxtOnlyGem));
+                // 收不收看「鐵砧上那一件」：武器擋防具珠與模式無效的珠、防具擋武器珠、珠寶全收（readme/EQUIPMENT.md §2.3）
+                w.Accepts = CanSocketHere;
+                // 拖錯東西進孔位要有回饋（原本只有鐵砧有，孔位漏了 → 玩家會以為是卡住），而且要說出是哪一種不行。
+                w.Rejected = OnSocketRejected;
                 w.Entered = ShowTooltip; w.Exited = _ => HideTooltip();
                 // 鑲嵌有效性（提示不擋）：對參考武器沒效果的珠子灰顯；剛鑲上去時跳一次 toast
                 w.Dimmed = st => !GemEffectiveness.IsEffective(st, ReferenceWeapon());
@@ -193,7 +195,7 @@ namespace Dipan.UI
             Place(_anvilSlot.Rt, new Vector2(AnvilCx, AnvilCy), AnvilW, AnvilH);
             _anvilSlot.SetFrameArt(anvilFrame, null);
             _anvilSlot.Accepts = d => d != null && d.IsEquippable;
-            _anvilSlot.Rejected = () => AlertPanel.Toast(Language.GetText(TxtOnlyEquip));
+            _anvilSlot.Rejected = _ => AlertPanel.Toast(Language.GetText(TxtOnlyEquip));
             _anvilSlot.Entered = ShowTooltip; _anvilSlot.Exited = _ => HideTooltip();
             // 借放而非搬移：收下時只記來源（CustomDrop），也不能反過來把東西從鐵砧拖出去（CanDragOut=false，
             // 否則共用搬運會把它當「搬出去」而在背包憑空多一件）。取下改成左鍵點鐵砧。
@@ -389,6 +391,35 @@ namespace Dipan.UI
 
         /// <summary>什麼算「能力珠」——ItemTable 的 GemID 欄有填（指向 GemTable 的一列）就是。</summary>
         static bool IsGem(ItemData d) => d != null && d.IsGem;
+
+        // ───────────────────────── 鑲嵌規則（擋）─────────────────────────
+
+        /// <summary>這顆珠子對鐵砧上那一件是不是「不能鑲」（部位類別、武器模式）。鐵砧空著時孔位全鎖，不會問到這裡。</summary>
+        ItemQuality.SocketBlock SocketBlockOf(ItemData gemItem)
+        {
+            if (_anvil.IsEmpty || !IsGem(gemItem)) return ItemQuality.SocketBlock.None;
+            return ItemQuality.CheckSocket(_anvil.Data, ItemManager.Gems.Get(gemItem.GemID));
+        }
+
+        /// <summary>孔位收不收：是珠子、而且這件裝備能鑲它。</summary>
+        bool CanSocketHere(ItemData d) => IsGem(d) && SocketBlockOf(d) == ItemQuality.SocketBlock.None;
+
+        /// <summary>被擋下時說原因。</summary>
+        void OnSocketRejected(ItemData d)
+        {
+            switch (IsGem(d) ? SocketBlockOf(d) : ItemQuality.SocketBlock.None)
+            {
+                case ItemQuality.SocketBlock.WrongClassWeapon:
+                    AlertPanel.Toast(Language.GetText(TxtWeaponOnlyWeaponGem)); break;
+                case ItemQuality.SocketBlock.WrongClassArmor:
+                    AlertPanel.Toast(Language.GetText(TxtArmorOnlyArmorGem)); break;
+                case ItemQuality.SocketBlock.ModeIneffective:
+                    var host = _anvil.Data;
+                    AlertPanel.Toast(string.Format(Language.GetText(TxtGemModeBlocked), d.Name, host != null ? host.Name : "")); break;
+                default:
+                    AlertPanel.Toast(Language.GetText(TxtOnlyGem)); break;
+            }
+        }
 
         // ───────────────────────── 鑲嵌有效性（提示不擋）─────────────────────────
 

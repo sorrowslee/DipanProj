@@ -15,7 +15,7 @@ using UnityEngine;
 public class DestructibleObject : MonoBehaviour, IDamageable
 {
     [Tooltip("血量;被武器 Damage 扣到 <= 0 即破壞")]
-    public float MaxHP = 20f;
+    public float MaxHP = 200f;
 
     [Tooltip("破壞時播的特效 = VfxTable 的 ID;0 = 不播。檔名/張數/FPS 都在 VfxTable 那一列設定。\n"
              + "⚠ 目前預設不播（見 Play Legacy Destroy Vfx），破壞演出改由程序化碎片負責。")]

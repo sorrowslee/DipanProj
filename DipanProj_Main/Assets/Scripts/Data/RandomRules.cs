@@ -42,6 +42,21 @@ namespace Dipan.Rules
         /// <summary>依周目覆寫珠子等級權重。規則同上，null = 一律用 <see cref="GemLevelWeights"/>。</summary>
         static readonly int[][] GemLevelWeightsByCycle = null;
 
+        /// <summary>
+        /// 裝備「品質」權重（動態骰時用；寫死品質的不經過這裡），索引 0 = 一般、1 = 良品、2 = 珍品、3 = 極品。
+        /// ⏳ **佔位**：先平均分配，數值平衡時再調（見 readme/EQUIPMENT.md §6.2）。
+        /// </summary>
+        static readonly int[] QualityWeights = { 1, 1, 1, 1 };
+
+        /// <summary>依周目覆寫品質權重。規則同孔數，null = 一律用 <see cref="QualityWeights"/>。</summary>
+        static readonly int[][] QualityWeightsByCycle = null;
+
+        /// <summary>裝備內建效果的「等級」權重，索引 0 = Lv1、1 = Lv2、2 = Lv3。⏳ 佔位，先平均分配。</summary>
+        static readonly int[] AffixLevelWeights = { 1, 1, 1 };
+
+        /// <summary>依周目覆寫內建效果等級權重。null = 一律用 <see cref="AffixLevelWeights"/>。</summary>
+        static readonly int[][] AffixLevelWeightsByCycle = null;
+
         // ═══════════════════════════ 對外的骰法 ═══════════════════════════
 
         /// <summary>骰一件裝備有幾個孔（0 ~ ItemInstance.SocketMax）。cycle = 周目（1 起算）。</summary>
@@ -82,6 +97,26 @@ namespace Dipan.Rules
             int[] w = PickByCycle(GemLevelWeightsByCycle, GemLevelWeights, cycle);
             return Mathf.Clamp(WeightedPick(w) + 1, 1, 3);
         }
+
+        /// <summary>骰一件裝備的品質（1 一般 ~ 4 極品）。cycle = 周目（1 起算）。</summary>
+        public static int RollQuality(int cycle = 1)
+        {
+            int[] w = PickByCycle(QualityWeightsByCycle, QualityWeights, cycle);
+            return Mathf.Clamp(WeightedPick(w) + 1, 1, 4);
+        }
+
+        /// <summary>骰一條內建效果的等級（1~3）。</summary>
+        public static int RollAffixLevel(int cycle = 1)
+        {
+            int[] w = PickByCycle(AffixLevelWeightsByCycle, AffixLevelWeights, cycle);
+            return Mathf.Clamp(WeightedPick(w) + 1, 1, 3);
+        }
+
+        /// <summary>
+        /// 從 n 個候選裡平均挑一個（回傳索引；n ≤ 0 回 -1）。內建效果「挑哪一種」用這個——
+        /// 目前每種效果出現機率相同；之後要讓某些效果比較稀有，改成權重表即可，呼叫端不用動。
+        /// </summary>
+        public static int PickUniform(int n) => n > 0 ? Random.Range(0, n) : -1;
 
         // ═══════════════════════════ 共用小工具 ═══════════════════════════
 

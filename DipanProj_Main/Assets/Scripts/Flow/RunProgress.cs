@@ -201,8 +201,11 @@ public class RunProgress : MonoBehaviour
     ///
     /// <paramref name="toRealBag"/>：**已無作用**（2026-11-06 拿掉臨時包後，所有來源本來就直接進真背包）。
     /// 參數保留只是為了不動到既有呼叫端與編輯器的拾取點 toRealBag 欄。
+    ///
+    /// <paramref name="spec"/>：生成規格（寫死品質／孔數／效果／珠子等級，見 <see cref="ItemSpec"/>、readme/EQUIPMENT.md §6）；
+    /// null ＝ 全隨機。只對需要實例的物品有意義；count 件會各自照同一份規格產生（寫死的相同、隨機的各骰各的）。
     /// </summary>
-    public int GiveItem(int itemId, int count, bool toRealBag = false)
+    public int GiveItem(int itemId, int count, bool toRealBag = false, ItemSpec spec = null)
     {
         if (count <= 0) return 0;
 
@@ -211,7 +214,7 @@ public class RunProgress : MonoBehaviour
         if (d != null && ItemManager.NeedsInstance(d))
         {
             int left = 0;
-            for (int i = 0; i < count; i++) left += GiveStack(ItemManager.Create(itemId, 1), toRealBag);
+            for (int i = 0; i < count; i++) left += GiveStack(ItemManager.Create(itemId, 1, spec), toRealBag);
             return left;
         }
 

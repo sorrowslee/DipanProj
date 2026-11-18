@@ -8,6 +8,7 @@
 > **2026-10-01**：加 **`Mode=Familiar` 浮游**（裝備就自動攻擊：本體繞身、各自朝最近的怪射子彈）。**RecipeTable 沒有加欄**（全部沿用 `OrbitalCount`／`OrbitalRadius`／`Range`／`FireInterval`…），本體外觀三欄加在 **WeaponTable**（`FamiliarVfxId`／`FamiliarSize`／`FamiliarSpin`），見 [§3 Familiar 浮游](#familiar-浮游)。
 > **2026-11-11**：加 **`Mode=Sweep` 掃射**（巨神兵式：光束劈到腳底再沿地面掃、沿線延遲爆炸）＋新欄 **`SweepSpeed`／`SweepOriginHeight`／`ExplodeSpacing`／`ExplodeDelay`**（CSV 現為 62 欄，加在表頭最後，既有列一律留空），見 [§3 Sweep 掃射](#sweep-掃射)。⏳ 未編譯未實測。
 > **2026-11-12**：加 **`Mode=Overhead` 頭頂投彈**（饕餮印：範圍內每個目標頭上冒出投彈者、吐炸彈追著目標落下爆炸，玩家怪物共用）＋RecipeTable 新欄 **`MaxTargets`／`DropStagger`**、WeaponTable 新欄 **`DropperStyle`／`DropperVfxId`／`DropperSize`**（都加在表頭最後，既有列一律留空），見 [§3 Overhead 頭頂投彈](#overhead-頭頂投彈)。⏳ 未編譯未實測。
+> **2026-11-17 裝備體系**：行為欄改填**等級**——`PierceLv`／`BounceLv`／`SplitLv`／`HomingLv`／`BurstLv`／`ParallelLv`（換算曲線看 `GemTable.csv`）；分裂角度改成 **`SpreadSpacing`（間距）＋`SpreadMaxAngle`（上限）**，取代 `SpreadAngle`；無限穿透取消（最多 lv50）。CSV 現為 65 欄。能力珠合併成 24 種、全身等級相加。規則、換算與遷移結果見 **[EQUIPMENT.md](EQUIPMENT.md)**。
 
 ---
 
@@ -19,7 +20,7 @@
 2. **每種模式只吃它那幾欄**：其餘欄位就算填了也**不會被讀**（不只是警告——`RecipeEntry.FromFields` 根本不讀無效欄），Console 會在載入時印 `[RecipeTable] 配方 N：「X」對某模式無效，會被忽略`。哪些欄對哪個模式有效的**唯一真相是程式 `Assets/Scripts/Weapon/WeaponModeSpec.cs`**——本文的表是從它抄出來的；兩者不一致時以程式為準並回來修文件。
 3. **空白＝預設值**：不再有必填的數值欄。每欄的預設寫在下面總覽表；只有「本體必填」（佛光／法陣的 `GroundEffectID`、召喚的 `SummonIds`）缺了會印 Error。
 4. **欄位依名字讀、不依位置**：解析器讀第一列表頭（括號前的名字），所以欄位可以任意重排、中間插新欄；表頭括號裡的說明隨你改。`#` 開頭整列是註解。
-5. **能力珠對模式無效就不套用**：鑲珠子時鍛造介面會提示「這顆對目前武器沒效果」（提示不擋，換把武器就有用），套用時 `PlayerAbilities` 也會跳過。矩陣見[第 4 節](#4-能力珠--模式)。
+5. **能力珠對模式無效就不套用**：鑲珠子時鍛造介面會提示「這顆對目前武器沒效果」（提示不擋，換把武器就有用），套用時 `PlayerAbilities` 也會跳過。矩陣見[第 4 節](#4-能力珠--模式)；效果屬性對應哪些欄位的單一真相是 `EquipAttributes.cs`。
 
 ---
 
@@ -35,15 +36,16 @@
 | | `Radius` | 小數 | 0.1 | 碰撞半徑；Laser 改用武器表 `BeamWidth` |
 | | `LifeTime` | 小數 | 3 | 存活秒數；-1＝不因時間消失；Orbital＝整組到期時間 |
 | | `RotationSpeed` | 小數 | 0 | 自轉（度/秒），純視覺 |
-| | `PierceCount` | 整數 | 0 | 穿透數；0＝碰到就停；-1＝無限穿透 |
-| | `BlockedByEnvironment` | 布林 | 1 | 0＝穿過牆（需 `PierceCount ≠ 0`） |
-| **多發** | `SpreadCount` | 整數 | 1 | 一發幾顆／幾道；1＝不分 |
-| | `SpreadAngle` | 小數 | 0 | 扇形總角度（度）。⚠ **要繞一整圈填 `360 − 360/N`**（8 顆＝315、6 顆＝300）：間隔＝角度÷(顆數−1)，填 360 時首尾兩顆重疊 |
-| | `SplitTiming` | 列舉 | OnSpawn | `OnSpawn` 發射時分／`OnHit` 打中才分／`OnDeath` 飛到底才分。**留空＝OnSpawn**（只填 `SpreadCount` 就會分裂）。Laser 只認 `OnHit` |
+| | `PierceLv` | 整數 | 0 | 穿透**等級**；0＝碰到就停；lv n＝穿 n 隻（2026-11-17 起沒有無限穿透，最多 lv50） |
+| | `BlockedByEnvironment` | 布林 | 1 | 0＝穿過牆（需 `PierceLv > 0`） |
+| **多發** | `SplitLv` | 整數 | 0 | 分裂**等級**；0＝不分；lv n＝一發 1＋n 顆／道 |
+| | `SpreadSpacing` | 小數 | 15 | 相鄰兩顆的角度（度）；總角度＝間距×（顆數－1） |
+| | `SpreadMaxAngle` | 小數 | 90 | 扇形總角度上限（度），超過就壓縮間距；廣角珠加在總角度上。**到 360° 時自動平均分一整圈、首尾不重疊**（不用再填 315 繞路） |
+| | `SplitTiming` | 列舉 | OnSpawn | `OnSpawn` 發射時分／`OnHit` 打中才分／`OnDeath` 飛到底才分。**留空＝OnSpawn**（只填 `SplitLv` 就會分裂）。Laser 只認 `OnHit` |
 | | `SubRecipeID` | 整數 | — | 分裂子彈用的配方；留空＝繼承自身（不再分裂）；SkyStrike＝落點接連鎖的 Chain 配方 |
 | **反彈** | `BounceTarget` | 列舉 | None | `None`／`Environment`（牆）／`Enemy`（怪） |
-| | `MaxBounces` | 整數 | 0 | 最大反彈次數（需 `BounceTarget ≠ None`） |
-| **追蹤** | `HomingTurnSpeed` | 小數 | 0 | 追蹤轉向（度/秒）；0＝不追蹤；90 慢／180 中／360 快；Laser＝光束彎曲速度 |
+| | `BounceLv` | 整數 | 0 | 反彈**等級**（lv n＝反彈 n 次）；有填但 `BounceTarget` 留空＝對牆 |
+| **追蹤** | `HomingLv` | 整數 | 0 | 追蹤**等級**；0＝不追蹤；lv1＝每秒轉 60°、每級 +30°（lv2＝90 慢、lv5＝180 中、lv11＝360 快）；Laser＝光束彎曲 |
 | | `HomingRadius` | 小數 | 50 | 追蹤索敵半徑（2026-11-09）：50＝全場鎖最近（舊行為，一群子彈會一起撲同一隻）；**小於 50 時只追這個半徑內的、在最近 3 隻裡隨機挑**——一群子彈分散咬不同的怪。只對 Normal |
 | | `WanderAngle` | 小數 | 0 | 飄移幅度（度，2026-11-09）：每顆子彈左右蛇行（各自隨機相位與頻率），長期平均方向不變、追蹤照樣拉得回來；0＝直飛。冤魂、螢火這類「飄」的子彈用。只對 Normal |
 | **射程／範圍** | `Range` | 小數 | 20（法陣 8、迴旋 5、掃射 12） | Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（≤0 也當 5）／Familiar 索敵半徑（空＝8，從玩家身上量） |
@@ -78,9 +80,9 @@
 | | `CageBurstMul` | 小數 | 5 | 崩裂傷害 ＝ 武器 `Damage` × 此值（走一般結算，吃減傷與加成） |
 | **集氣** | `ChargeMode` | 布林 | 0 | 1＝按住 3 秒放開才施放（傷害×3、視覺×2）；Laser／Aura 不可（原「集氣模式」） |
 | | `ChargeTimeReduction` | 百分比 | 0% | `30%` 縮短 30%、`-20%` 延長 20%（原「集氣時間縮減」）。詳見 [CHARGE_MODE.md](CHARGE_MODE.md) |
-| **連擊** | `BurstCount` | 整數 | 1 | 扣一次扳機連射幾發（**一份魔力只扣一次**、每發各自分裂）；1＝不連擊；Laser／Aura／Orbital 不可（2026-08-26 新增，見 [3.13](#313-連擊burstcount--burstinterval)） |
+| **連擊** | `BurstLv` | 整數 | 0 | 連擊**等級**：lv n＝扣一次扳機多連 n 發（**一份魔力只扣一次**、每發各自分裂）；0＝不連擊；Laser／Aura／Orbital 不可（見 [3.13](#313-連擊burstlv--burstinterval)） |
 | | `BurstInterval` | 小數 | 0.1 | 連擊每發之間隔幾秒；`FireInterval` 從最後一發算起 |
-| **平行** | `ParallelCount` | 整數 | 1 | 同方向並排幾道；1＝不平行；只有 Normal／Parabolic（2026-08-26 新增，見 [3.14](#314-平行彈parallelcount--parallelspacing--parallelmaxwidth)） |
+| **平行** | `ParallelLv` | 整數 | 0 | 平行**等級**：lv n＝多 n 道並排；0＝不平行；Normal／Parabolic／Familiar（見 [3.14](#314-平行彈parallellv--parallelspacing--parallelmaxwidth)） |
 | | `ParallelSpacing` | 小數 | 0.45 | 相鄰兩道的距離（世界單位） |
 | | `ParallelMaxWidth` | 小數 | 3 | 整排最寬幾單位；道數多到超過就壓縮間距 |
 | **迴旋** | `BoomerangCount` | 整數 | 1 | 趟數：飛出去再回到玩家身上＝1 趟；>1 會穿過玩家往身後再飛（鐘擺）；只有 `Mode=Boomerang`（2026-09-30 新增，見 [§3](#boomerang-迴旋)） |
@@ -104,13 +106,13 @@
 | Radius | ✓ | ✓ | | | | | | | | | |
 | LifeTime | ✓ | ✓(整組) | | | | | | | | | |
 | RotationSpeed | ✓ | ✓ | ✓ | | | | | | | | |
-| PierceCount | ✓ | ✓ | | ✓ | | | | | | | |
+| PierceLv | ✓ | ✓ | | ✓ | | | | | | | |
 | BlockedByEnvironment | ✓ | ✓ | | ✓ | | | | | | | |
-| SpreadCount／SpreadAngle | ✓ | ✓ | ✓(顆數) | ✓(道數) | | ✓(道數) | ✓(落點數) | | | | |
+| SplitLv／SpreadSpacing／SpreadMaxAngle | ✓ | ✓ | ✓(顆數) | ✓(道數) | | ✓(道數) | ✓(落點數) | | | | |
 | SplitTiming | ✓ | ✓ | | ✓(只認 OnHit) | | | | | | | |
 | SubRecipeID | ✓ | ✓ | | ✓ | | | ✓(接連鎖) | | | | |
-| BounceTarget／MaxBounces | ✓ | ✓ | | ✓ | | | | | | | |
-| HomingTurnSpeed | ✓ | ✓ | | ✓(彎曲) | | | | | | | |
+| BounceTarget／BounceLv | ✓ | ✓ | | ✓ | | | | | | | |
+| HomingLv | ✓ | ✓ | | ✓(彎曲) | | | | | | | |
 | HomingRadius／WanderAngle | ✓ | | | | | | | | | | |
 | Range | | | | ✓(長度) | | ✓(首段) | | | ✓(施放距離) | | |
 | AreaRadius | | | ✓(爆炸) | | | | ✓(AOE) | | | ✓(半徑) | |
@@ -128,10 +130,10 @@
 | DashDistance／DashWidth | | | | | | | | | | | ✓ | |
 | CageSeconds／CageMaxTargets／CageRadius／CageBurstMul | | | | | | | | | | | | ✓ |
 | ChargeMode／ChargeTimeReduction | ✓ | ✓ | ✓ | | | ✓ | ✓ | | ✓ | ✓ | ✓ |
-| BurstCount／BurstInterval | ✓ | | ✓ | | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| ParallelCount／Spacing／MaxWidth | ✓ | | ✓(落點並排) | | | | | | | | |
+| BurstLv／BurstInterval | ✓ | | ✓ | | | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| ParallelLv／Spacing／MaxWidth | ✓ | | ✓(落點並排) | | | | | | | | |
 
-**Boomerang（迴旋）** 沒放進上面那張寬表（2026-09-30 新增），它只吃：`FireInterval`／`Speed`（去回同速）／`Radius`／`RotationSpeed`／`Range`（每趟往外距離）／`BoomerangCount`，武器表吃 `Damage`／`HitEffectID`／`HitEffectEnemyOnly`／子彈外觀全組（含 `BulletScale`）。**`PierceCount`／`BlockedByEnvironment`／`LifeTime` 是無效欄**——穿牆、無限穿怪、壽命都由模式本身決定（見 §3）。
+**Boomerang（迴旋）** 沒放進上面那張寬表（2026-09-30 新增），它只吃：`FireInterval`／`Speed`（去回同速）／`Radius`／`RotationSpeed`／`Range`（每趟往外距離）／`BoomerangCount`，武器表吃 `Damage`／`HitEffectID`／`HitEffectEnemyOnly`／子彈外觀全組（含 `BulletScale`）。**`PierceLv`／`BlockedByEnvironment`／`LifeTime` 是無效欄**——穿牆、無限穿怪、壽命都由模式本身決定（見 §3）。
 
 **Familiar（浮游）** 也沒放進寬表（2026-10-01 新增）。子彈吃的跟 **Normal 一樣**（`Speed`／`Radius`／`LifeTime`／穿透／反彈／追蹤／分裂／命中附加／平行），另外吃 `Range`（索敵半徑）、`OrbitalRadius`／`OrbitalCount`（本體軌道與數量）；**集氣與連擊無效**（兩者都綁「扣扳機」，這個模式沒有扳機）。武器表多吃本體三欄 `FamiliarVfxId`（**必填**）／`FamiliarSize`／`FamiliarSpin`，其餘同 Normal。
 
@@ -145,15 +147,15 @@
 
 ### Normal 一般子彈（`Mode` 留空）
 會飛、會撞的子彈，全套彈道行為都吃：穿透／反彈／追蹤／分裂／軌跡／命中迸發／命中放地面特效。
-- 分裂：`SpreadCount=3, SpreadAngle=60` 就是一發三顆（`SplitTiming` 留空＝發射時分）。要「打中才炸開」填 `OnHit`、「飛到底才炸開」填 `OnDeath`。`SubRecipeID` 留空時分裂出來的子彈繼承母彈屬性但不再分裂；指向另一個配方可做「先散射再反彈」。
-- 反彈：`BounceTarget=Environment, MaxBounces=3`。
-- 追蹤：`HomingTurnSpeed=180`。
+- 分裂：`SplitLv=2, SpreadSpacing=30` 就是一發三顆、扇形 60°（`SplitTiming` 留空＝發射時分）。要「打中才炸開」填 `OnHit`、「飛到底才炸開」填 `OnDeath`。`SubRecipeID` 留空時分裂出來的子彈繼承母彈屬性但不再分裂；指向另一個配方可做「先散射再反彈」。
+- 反彈：`BounceLv=3`（`BounceTarget` 留空＝對牆；要彈怪填 `Enemy`）。
+- 追蹤：`HomingLv=5`（每秒轉 180°）。
 - 軌跡（地刺）：`TrailStep=1.5` ＋ 武器表 `TrailEffectID`，子彈本身可以是隱形的（武器表不填圖）。反彈／分裂／追蹤的軌跡都會跟著折。
 - 命中迸發：`SubWeaponOnHit=12`（武器表 ID）＋ `SubWeaponHitTarget=All`——打到東西時在命中點射出那把武器（蜂巢→蜜蜂）。與 `SubRecipeID` 的差別見 §3.12。
 
 ```
-ID=8  Name=3分裂追蹤彈  FireInterval=0.2 Speed=20 Radius=0.1 LifeTime=3 PierceCount=3 SpreadCount=3 SpreadAngle=60 HomingTurnSpeed=180 ChargeMode=1 ChargeTimeReduction=90%
-ID=19 Name=地刺        FireInterval=1 Speed=20 Radius=0.3 LifeTime=10 PierceCount=-1 SpreadCount=3 SpreadAngle=50 BounceTarget=Environment MaxBounces=3 TrailStep=1.5
+ID=8 Name=3分裂追蹤彈 FireInterval=0.2 Speed=20 Radius=0.1 LifeTime=3 PierceLv=3 SplitLv=2 SpreadSpacing=30 SpreadMaxAngle=60 HomingLv=5 ChargeMode=1 ChargeTimeReduction=90%
+ID=19 Name=地刺 FireInterval=1 Speed=20 Radius=0.3 LifeTime=10 PierceLv=50 SplitLv=2 SpreadSpacing=25 SpreadMaxAngle=50 BounceTarget=Environment BounceLv=3 TrailStep=1.5
 ID=24 Name=蜂巢彈      FireInterval=0.6 Speed=12 Radius=0.2 LifeTime=3 RotationSpeed=50 SubWeaponOnHit=12 SubWeaponHitTarget=All
 ```
 
@@ -161,35 +163,35 @@ ID=24 Name=蜂巢彈      FireInterval=0.6 Speed=12 Radius=0.2 LifeTime=3 Rotati
 一組子彈以玩家為圓心繞圈（護盾）。`Speed`＝切線速度（角速度＝Speed÷OrbitalRadius）、`LifeTime`＝整組到期秒數（-1＝直到下次發射）；每次發射先清掉上一輪。其餘行為同一般子彈（穿透就不消失；反彈 Enemy 會脫軌飛出；分裂 OnHit 碰到怪時炸開）。
 
 ```
-ID=9 Name=火焰環繞彈 Mode=Orbital FireInterval=0.3 Speed=4 Radius=0.1 LifeTime=5 PierceCount=-1 BlockedByEnvironment=0 OrbitalRadius=1.5 OrbitalCount=9
+ID=9 Name=火焰環繞彈 Mode=Orbital FireInterval=0.3 Speed=4 Radius=0.1 LifeTime=5 PierceLv=50 BlockedByEnvironment=0 OrbitalRadius=1.5 OrbitalCount=9
 ```
 
 ### Parabolic 拋物線
 丟炸彈：飛行中**不撞任何東西**（碰撞遮罩清 0），抵達目標才「落地」。
 - `FlightTime`＝飛幾秒落地（不論遠近，所以一發多顆會同時落地）。`ArcHeight` 弧頂假高度。`LaunchSource=Offscreen` 從畫面外隨機方向飛進來（多顆各自重抽）。
-- `SpreadCount`／`SpreadAngle`：以「玩家→滑鼠」為軸，N 顆在扇形上、與滑鼠等距（**不需要 `SplitTiming`**）。`LandingScatterRadius` 再給每顆一個隨機落點誤差。
+- `SplitLv`／`SpreadSpacing`／`SpreadMaxAngle`：以「玩家→滑鼠」為軸，N 顆在扇形上、與滑鼠等距（**不需要 `SplitTiming`**）。`LandingScatterRadius` 再給每顆一個隨機落點誤差。
 - 落地：`AreaRadius>0` 以武器 `Damage` 炸一圈（吃怪物無敵時間）；`GroundEffectID` ＋ `GroundEffectHitTarget=Ground` 留一灘火。兩者獨立、可並存。
 - `RotationSpeed` 仍有效（翻滾炸彈）。穿透／反彈／追蹤對它無意義。
 
 ```
 ID=12 Name=玩家丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 FlightTime=1 ArcHeight=2.5 LandingScatterRadius=3 AreaRadius=1.5 GroundEffectID=8 GroundEffectHitTarget=Ground
-ID=13 Name=螢幕外丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 SpreadCount=10 SpreadAngle=60 FlightTime=1 ArcHeight=2.5 LaunchSource=Offscreen LandingScatterRadius=3 AreaRadius=1.5
+ID=13 Name=螢幕外丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 SplitLv=9 SpreadSpacing=6.67 SpreadMaxAngle=60 FlightTime=1 ArcHeight=2.5 LaunchSource=Offscreen LandingScatterRadius=3 AreaRadius=1.5
 ```
 
 ### Laser 雷射（持續型）
 按住攻擊鍵維持光束，砲口跟玩家、瞄準跟滑鼠；每 `DotInterval` 秒對掃到的目標各結算一次武器 `Damage`。沒有 `FireInterval`、不吃集氣。
 - `Range` 光束長度（`-1`＝無限延伸，見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)）；粗細＝武器表 `BeamWidth`（視覺與命中共用，配方 `Radius` 不用）。
-- `PierceCount`：`-1` 穿到底；`0` 打到第一個就停。`BounceTarget`＋`MaxBounces`：折線反射。`HomingTurnSpeed`：光束中段彎曲咬住最近的敵人。
-- `SpreadCount`／`SpreadAngle`：一發 N 道（每道獨立追蹤／反彈／穿透）。
+- `PierceLv`：lv n 穿 n 隻（最多 50，等同穿到底）；`0` 打到第一個就停。`BounceTarget`＋`BounceLv`：折線反射。`HomingLv`：光束中段彎曲咬住最近的敵人。
+- `SplitLv`／`SpreadSpacing`／`SpreadMaxAngle`：一發 1＋lv 道（每道獨立追蹤／反彈／穿透）。
 - `SplitTiming=OnHit`＋`SubRecipeID`：光束掃到敵人時在命中點生成子彈（節流綁 `DotInterval`）。**只認 `OnHit`**，`OnSpawn`／`OnDeath` 對雷射無意義。
 - `TrailStep`＋武器表 `TrailEffectID`：火焰噴射器模式——不畫光束，沿路徑每隔 `TrailStep` 鋪一根循環火焰。
 - 外觀（種類／顏色／粗細／像素素材）全在武器表。
 
 ```
-ID=14 Name=單一雷射追蹤光束 Mode=Laser PierceCount=-1 HomingTurnSpeed=180 Range=18 DotInterval=0.3
-ID=17 Name=三分裂雷射反彈光束 Mode=Laser PierceCount=-1 SpreadCount=3 SpreadAngle=60 BounceTarget=Environment MaxBounces=3 Range=40 DotInterval=0.3
-ID=20 Name=火焰噴射 Mode=Laser PierceCount=-1 SpreadCount=3 SpreadAngle=60 HomingTurnSpeed=180 Range=5 TrailStep=1 DotInterval=0.2
-ID=42 Name=鏡界折光 Mode=Laser PierceCount=-1 BounceTarget=Environment MaxBounces=3 Range=-1 DotInterval=0.2
+ID=14 Name=單一雷射追蹤光束 Mode=Laser PierceLv=50 HomingLv=5 Range=18 DotInterval=0.3
+ID=17 Name=三分裂雷射反彈光束 Mode=Laser PierceLv=50 SplitLv=2 SpreadSpacing=30 SpreadMaxAngle=60 BounceTarget=Environment BounceLv=3 Range=40 DotInterval=0.3
+ID=20 Name=火焰噴射 Mode=Laser PierceLv=50 SplitLv=2 SpreadSpacing=30 SpreadMaxAngle=60 HomingLv=5 Range=5 TrailStep=1 DotInterval=0.2
+ID=42 Name=鏡界折光 Mode=Laser PierceLv=50 BounceTarget=Environment BounceLv=3 Range=-1 DotInterval=0.2
 ```
 
 ### Aura 佛光（持續型）
@@ -202,16 +204,16 @@ ID=21 Name=佛光 Mode=Aura GroundEffectID=2
 ### Chain 連鎖閃電
 點一下朝滑鼠射出，命中第一隻後在 `ChainRadius` 內逐跳到還沒打過的最近怪，跳 `ChainCount` 次（總命中＝1＋跳數）；撞牆就停。每跳一樣的武器 `Damage`（也能打可破壞地上物）。
 - `Range` 首段射程。`AimConeAngle>0`：首段不必正好瞄到，鎖定「以瞄準方向為軸、半角這麼大的錐內最近」的目標；`180`＝任意方向最近。
-- `SpreadCount`／`SpreadAngle`：一發多道，各自獨立連鎖。
+- `SplitLv`／`SpreadSpacing`／`SpreadMaxAngle`：一發多道，各自獨立連鎖。
 - 外觀＝武器表 `BeamStyle`（7 閃電）／`BeamColor`／`BeamWidth`。
 
 ```
-ID=22 Name=連鎖閃電 Mode=Chain FireInterval=0.5 SpreadCount=3 SpreadAngle=60 Range=15 ChainCount=4 ChainRadius=4 AimConeAngle=180
+ID=22 Name=連鎖閃電 Mode=Chain FireInterval=0.5 SplitLv=2 SpreadSpacing=30 SpreadMaxAngle=60 Range=15 ChainCount=4 ChainRadius=4 AimConeAngle=180
 ```
 
 ### SkyStrike 落雷
 點一下從畫面上緣劈到滑鼠點，落地以 `AreaRadius`（留空 1.2）做圓形 AOE、武器 `Damage` 結算一次（怪＋可破壞家具）。
-- `SpreadCount`／`SpreadAngle`：多個落點（扇形分佈，同拋物線）。`SnapRadius>0`：落點吸附到該半徑內最近的可傷害目標。
+- `SplitLv`／`SpreadSpacing`／`SpreadMaxAngle`：多個落點（扇形分佈，同拋物線）。`SnapRadius>0`：落點吸附到該半徑內最近的可傷害目標。
 - `GroundEffectID`：落點留一團地面特效（焦痕／殘電）。
 - `SubRecipeID` 指向一個 **Chain** 配方：落點再接一條連鎖閃電（外觀與傷害用「定義該連鎖配方的那把武器」）。
 - `SegmentedColumn=1`：全高分段雷柱（九霄雷獄）；否則畫閃電折線（需光束素材）。
@@ -278,7 +280,7 @@ ID=38 Name=幽影突 Mode=Dash FireInterval=0.7 DashDistance=5 DashWidth=1.2
 
 - 寬度寫死：出手／收回那段總寬＝`Range` 的一半（`BoomerangBehavior.WidthRatio`）；繞圈橢圓的寬由它推出來（射程 5 時約 5.4，掠過主角身旁約 2.7 處）。
 - **主角邊跑邊接**：出手段不受主角移動影響；繞圈的中心會平滑跟著主角走；收回段一定回到手上。主角往反方向跑時，繞圈與收回會加速，實際速度不低於 `Speed`。
-- **穿牆、無限穿怪**是這個模式的本質：`PierceCount` 固定 -1、`BlockedByEnvironment` 固定 0（表上填了也不讀）。
+- **穿牆、無限穿怪**是這個模式的本質：穿透固定無限（`PierceLv` 不讀）、`BlockedByEnvironment` 固定 0（表上填了也不讀）。
   穿過可破壞地上物時照樣造成傷害（牆被放進「可穿透層」，不是被忽略）。反彈欄不吃。
 - **每趟都能再打同一隻**：每經過一個終點、以及繞圈時掠過主角身旁，都清空這顆子彈的命中名單 ⇒ `BoomerangCount=N` 時同一隻怪最多被打 2N 次。
 - **保險**：每一段（出手／每個半圈／收回）各自計時，上限 ＝ (該段長度 ÷ `Speed`) × 2 ＋ 0.5 秒，超時就淡出 0.25 秒消失（淡出時不再傷人）。血滴子（速度 20、射程 5、4 趟）全程約 2.5 秒。
@@ -320,7 +322,7 @@ ID=86 Name=應龍水珠-浮游射擊 Mode=Familiar FireInterval=1.2 Speed=9 Radi
 **一發的流程**：施放者頭頂上方（腳底＋可見身高×`SweepOriginHeight`）有一個源點 → 光束 0.1 秒內**劈到自己腳底** → 落點**沿地面一路掃向瞄準點**（`SweepSpeed`）→ 掃過的線上每隔 `ExplodeSpacing` 排一顆爆炸，光束經過該點 `ExplodeDelay` 秒後炸開。
 
 - **光束本身不傷人**，傷害全在爆炸：每顆爆炸對半徑 `AreaRadius`（空＝1）×`BulletScale` 內的每個目標各結算一次武器 `Damage`；**同一隻怪被好幾顆炸到，每顆都吃**。可破壞地上物也會被炸（走 `IDamageable`）。
-- **分裂**：`SpreadCount`／`SpreadAngle` ＝ 幾道光束、扇形總角度；全部從同一個源點出發、同時掃，各道各自排爆炸。
+- **分裂**：`SplitLv`／`SpreadSpacing`／`SpreadMaxAngle` ＝ 幾道光束（1＋等級）、扇形；全部從同一個源點出發、同時掃，各道各自排爆炸。
 - **射程與牆**：朝瞄準方向**固定掃 `Range` 那麼遠**（空＝12，從腳底量；2026-11-11 作者改：只掃到滑鼠位置常常太短）；填 **-1** 才是舊行為「只掃到瞄準點」。每道從腳底朝終點打一條細射線，**撞牆就停在牆前**；配方 `BlockedByEnvironment=0` 則**不檢查牆、直接掃過牆與不可走區域**（路西法之怒是 0）。遠射珠加的就是 `Range`。
 - **冷卻**：＝`FireInterval`，**從施放那一刻算**，不等整發播完——上一發還在掃，下一發就能出去，好幾發會疊在一起（2026-11-11 作者改，讓疾發珠有感；原本的「整發播完才能再發」發射鎖已拿掉）。按一下或按住都行。
 - **源點跟著人走**（光束上端會隨施放者移動），但地面掃描路徑在施放當下就鎖定。施放者中途死亡／被移除 ⇒ 光束淡出、還沒炸的全部取消。
@@ -330,7 +332,7 @@ ID=86 Name=應龍水珠-浮游射擊 Mode=Familiar FireInterval=1.2 Speed=9 Radi
 - 刻意不吃：集氣、連擊（整發本來就長，疊上去發射鎖語意會亂；要開再談）。光束本身用 `LaserBeam` 靜態折線每幀重餵（同連鎖閃電的視覺），沒有改 BallisticsSystem。
 
 ```
-ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 SpreadCount=3 SpreadAngle=30 Range=18 AreaRadius=2 SweepSpeed=12 SweepOriginHeight=1.15 ExplodeSpacing=1.2 ExplodeDelay=0.3   （Range 18 ≈ 一個畫面寬：正交 size 5 ⇒ 高 10、16:9 寬 17.8）
+ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 SplitLv=2 SpreadSpacing=15 SpreadMaxAngle=30 Range=18 AreaRadius=2 SweepSpeed=12 SweepOriginHeight=1.15 ExplodeSpacing=1.2 ExplodeDelay=0.3   （Range 18 ≈ 一個畫面寬：正交 size 5 ⇒ 高 10、16:9 寬 17.8）
 武器 78 路西法之怒：Damage=8 ManaCost=0 BeamStyle=2 BeamColor=1（紅）BeamWidth=0.25 HitEffectID=60（路西法之怒爆炸＝Explosions/stylized_explosion_003 紅，2026-11-11 作者在特效預覽器挑的）
 道具 78 路西法之怒（長劍）：EquipSlot=Weapon WeaponID=78 IconPath=UI/Icons/Equipment/icon_luciferwrath
 ```
@@ -345,7 +347,7 @@ ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 Spre
 - **巨大的目標**（佛掌 Scale 6 這類）：距離與「在不在畫面內」都用身體那一條（腳底到頭頂）算，不用身體中心——中心常在畫面外，但身體明明有一段在畫面裡。玩家放的投彈者**一律收進畫面內**（頭頂在畫面外時壓到畫面上緣內側），落點也跟著收在投彈者下方的身體上。
 - **不看 `Controllable`**：那是「能不能被骨牢定身」，boss 填 0 是免疫控制、不是打不到（第一版照抄骨牢的篩選，新手夢境的佛掌就被漏掉了）。
 - **範圍內沒有目標**：不扣魔、不進冷卻（按著不放，有怪走進範圍就馬上放）；玩家剛按下時跳「範圍內沒有目標」。
-- **分裂**（`SpreadCount`）＝每個投彈者吐幾顆（間隔 0.08 秒），`LandingScatterRadius`＝多顆時的落點散開；**連擊**（`BurstCount`／`BurstInterval`）＝**同一批投彈者連吐幾輪**（由 `OverheadDrop` 自己排程，不走玩家的連擊流程、不會重新冒一批）。
+- **分裂**（`SplitLv`）＝每個投彈者多吐幾顆（間隔 0.08 秒），`LandingScatterRadius`＝多顆時的落點散開；**連擊**（`BurstLv`／`BurstInterval`）＝**同一批投彈者連吐幾輪**（由 `OverheadDrop` 自己排程，不走玩家的連擊流程、不會重新冒一批）。
 - **冷卻**＝`FireInterval`，從施放算起，不等整發播完（多發會疊在一起）。
 - **外觀（WeaponTable）**：
   - 投彈者：`DropperStyle`（shader 樣式，有填優先；目前只有 `TaotieInk`＝水墨饕餮幽靈，墨煙溶解＋尾巴擺動，跟饕餮身邊漂浮的那兩隻同一個 shader 與貼圖）或 `DropperVfxId`（任何 VfxTable 序列特效，Loop=1；沒有溶解，散去時直接收掉）；兩個都空＝炸彈憑空出現在頭頂。`DropperSize`＝投彈者高度（世界單位，空＝1.1；饕餮印 1.8）；投彈者底部離頭頂 0.6 × 大小（`OverheadDrop.GapAboveHead`；玩家放的太靠畫面上緣會被壓回畫面內）。新的 shader 樣式加在 `OverheadDrop.StyleTex` 一行。
@@ -356,7 +358,7 @@ ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 Spre
 - **一般版 vs 專武**：一般拿到的這種武器 `Range` 填小（空＝6，只炸身邊幾隻，遠射珠可以加）；饕餮印填 18（約一個畫面寬）＝全畫面。
 
 ```
-ID=94 Name=饕餮印 Mode=Overhead FireInterval=1 SpreadCount=3 Range=18 AreaRadius=1.2 FlightTime=0.35 LandingScatterRadius=0.7   （MaxTargets、DropStagger 留空＝不限、0.4；SpreadCount 3＝每隻幽靈吐 3 顆，2026-11-12 作者要震撼感）
+ID=94 Name=饕餮印 Mode=Overhead FireInterval=1 SplitLv=2 Range=18 AreaRadius=1.2 FlightTime=0.35 LandingScatterRadius=0.7   （MaxTargets、DropStagger 留空＝不限、0.4；SplitLv 2＝每隻幽靈吐 3 顆，2026-11-12 作者要震撼感）
 武器 79 饕餮印：Damage=6 ManaCost=0 WeaponSpritePath=Weapon/single/weapon_bomb（借火焰拋擲彈的炸彈）BulletScale=1.5 HitEffectID=61（饕餮印爆炸＝Explosions/stylized_explosion_006 blue＋冷藍套色，2026-11-12 作者在特效預覽器挑的；原本借的 1 號爆炸作者嫌太糟）DropperStyle=TaotieInk DropperSize=1.8（2026-11-12 作者實機：1.1 看不清楚）
 道具 79 饕餮印（法印）：EquipSlot=Weapon WeaponID=79 IconPath=UI/Icons/Equipment/icon_taotieseal
 ```
@@ -373,81 +375,84 @@ ID=94 Name=饕餮印 Mode=Overhead FireInterval=1 SpreadCount=3 Range=18 AreaRad
 - 迸發方向沿命中面法線往外（生成點會沿法線推出去，避免生在牆裡被自己的重疊檢查瞬殺，見 PROBLEMS **B5**）。
 - 子武器只支援 **Normal** 模式；指向其他模式會印 Warning 並不生成。別接成循環（A 迸 B、B 迸 A）。
 
-### 3.13 連擊（`BurstCount` ／ `BurstInterval`）
+### 3.13 連擊（`BurstLv` ／ `BurstInterval`）
 
-**扣一次扳機連射 N 發**——很多遊戲的「三連發」。跟集氣一樣是**附加在任何離散模式上的開關**，不是新的 `Mode`：填 `BurstCount 3`、`BurstInterval 0.08`，一般子彈就是三連發、近戰就是三連斬、法陣就是連放三個、召喚就是連叫三次、突進是連衝三段（每段重新朝滑鼠）。
+**扣一次扳機連射 N 發**——很多遊戲的「三連發」。跟集氣一樣是**附加在任何離散模式上的開關**，不是新的 `Mode`：填 `BurstLv 2`（多連 2 發＝三連發）、`BurstInterval 0.08`，一般子彈就是三連發、近戰就是三連斬、法陣就是連放三個、召喚就是連叫三次、突進是連衝三段（每段重新朝滑鼠）。
 
-怎麼算：第一發跟平常一樣（扣魔、發射特效、攻擊動作），之後每隔 `BurstInterval` 秒自動補一發，**期間不看按鍵也不看冷卻**（放開也會射完）；**魔只在扣扳機那一發扣一次**，後面補的發數不扣（連擊＝「一份魔力連射 N 發」，否則跟按著連射沒差別——作者實測 10 連發耗魔 10 一按就空，拍板改掉）；每發各自分裂／反彈／追蹤；召喚滿了那串就中止。`FireInterval` 冷卻**從最後一發算起**，所以一輪的實際週期＝`(BurstCount-1)×BurstInterval + FireInterval`。
+怎麼算：第一發跟平常一樣（扣魔、發射特效、攻擊動作），之後每隔 `BurstInterval` 秒自動補一發，**期間不看按鍵也不看冷卻**（放開也會射完）；**魔只在扣扳機那一發扣一次**，後面補的發數不扣（連擊＝「一份魔力連射 N 發」，否則跟按著連射沒差別——作者實測 10 連發耗魔 10 一按就空，拍板改掉）；每發各自分裂／反彈／追蹤；召喚滿了那串就中止。`FireInterval` 冷卻**從最後一發算起**，所以一輪的實際週期＝`BurstLv×BurstInterval + FireInterval`。
 
 - **瞄準鎖定**：整串連擊都朝扣扳機那一刻的方向／落點，中途滑鼠移走後面幾發不跟（作者實測 5 連發第 4 發轉向後拍板）。子彈／近戰／突進／連鎖鎖**方向**（突進會移動玩家，鎖點會歪），法陣／落雷／拋物線鎖**落點**。程式：`AimWorldPoint()`／`AimDirectionToMouse()` 在 `_burstAimLocked` 時回鎖住的值，所有離散發射路徑都走這兩個，**別直接讀 `Input.mousePosition`**。
-- 集氣＋連擊：集氣放開的那一發是 ×3 快照，**整串連擊都是 ×3**（拍板：簡單、也符合「蓄力放大招」的直覺；覺得太強就在配方降 `BurstCount`）。
+- 集氣＋連擊：集氣放開的那一發是 ×3 快照，**整串連擊都是 ×3**（拍板：簡單、也符合「蓄力放大招」的直覺；覺得太強就在配方降 `BurstLv`）。
 - 換武器／換圖／不能開火時，沒射完的連擊作廢。
 - Laser／Aura 沒有「發」的概念、Orbital 每次施放會清掉上一組環（連擊等於白射），所以這三種無效；表上填了載入會 Warning、不會讀。
-- 上限：`BurstCount` ≤ 16、`BurstInterval` ≥ 0.02（`PlayerAbilities` 安全夾值）。
-- 範例：配方 43「三連擊直線彈」＋武器 30「三連飛劍」（ItemTable 30）——`FireInterval 0.6`、`BurstCount 3`、`BurstInterval 0.08`，扣一次三劍連出、再等 0.6 秒。連擊珠（GemID 26）加發數。
+- 上限：連擊總發數 ≤ 16、`BurstInterval` ≥ 0.02（`PlayerAbilities` 安全夾值）。
+- 範例：配方 43「三連擊直線彈」＋武器 30「三連飛劍」（ItemTable 30）——`FireInterval 0.6`、`BurstLv 2`、`BurstInterval 0.08`，扣一次三劍連出、再等 0.6 秒。連擊珠（效果 26）加等級，全身相加。
 - 程式：`PlayerController` 的 `_burstRemaining／_burstTimer／_burstWeapon`、`AfterShot()`（冷卻與排程統一在這）、`HandleFiring` 開頭的「連擊進行中」分支。
 
-### 3.14 平行彈（`ParallelCount` ／ `ParallelSpacing` ／ `ParallelMaxWidth`）
+### 3.14 平行彈（`ParallelLv` ／ `ParallelSpacing` ／ `ParallelMaxWidth`）
 
 **同方向並排 N 道**（弓箭傳說的 Front Arrow）。跟散射不同：散射是扇形攤開、越遠越散；平行是一排等距的直線，遠近一樣寬。只有一般子彈與拋物線吃（拋物線＝落點並排）。
 
 **三個刻意的設計**（都是研究「15 道平行會怎樣」得出的）：
 1. **全部從玩家位置出生、飛出去 0.15 秒內散開拉直**（`LaneBehavior`）：不是真的並排出生。真的並排會生在牆裡被 `CheckSpawnOverlap` 瞬殺（走廊裡射 15 道可能 13 道一出生就沒了）。散開走的是速度向量，彈道系統的 CircleCast 碰撞照常生效，貼牆那幾道會正常撞牆／反彈。畫面上是一個小 V 字瞬間展開成一排。
 2. **總寬鎖定**：`ParallelSpacing × (N−1)` 超過 `ParallelMaxWidth`（預設 3；畫面高 10）就壓縮間距，道數多了就是一堵密實的劍牆，不會半排生在畫面外。
-3. **一次扣扳機總顆數 ≤ 128**（`PlayerController.MaxBulletsPerTrigger`）：平行 × 分裂 × 連擊是相乘的（15×5×5＝375），超過就砍平行道數、印一次 Warning。`ParallelCount` 本身 ≤ 16。
+3. **一次扣扳機總顆數 ≤ 128**（`PlayerController.MaxBulletsPerTrigger`）：平行 × 分裂 × 連擊是相乘的（15×5×5＝375），超過就砍平行道數、印一次 Warning。平行道數本身 ≤ 16。
 
 - 每一道各自吃分裂／反彈／追蹤／軌跡：`OnSpawn` 分裂的子彈由 `BallisticsEngine` 繼承母彈的 `LaneBehavior` 工廠（整排一起散開）；`OnHit`／`OnDeath` 分裂發生在遠處，不繼承。
 - 追蹤＋平行：散開的 0.15 秒內追蹤會跟側向速度打架，之後各道各自彎向目標——正常。
-- 範例：配方 45「三道平行直線彈」＋武器 32「三道飛劍」（ItemTable 32）。平行珠（GemID 27）加道數。
+- 範例：配方 45「三道平行直線彈」＋武器 32「三道飛劍」（ItemTable 32）。平行珠（效果 27）加等級，全身相加。
 - 程式：`BallisticsSystem/Runtime/Behaviors/LaneBehavior.cs`；`BallisticsEngine.Spawn` 多一個 `extraBehavior` 工廠參數、`BulletInstance.SpawnExtraBehavior`／`IsSpawning`；`PlayerController.ParallelOffsets()`、`ShootNormal`／`ShootParabolic` 多一層迴圈。
 
 ---
 
 ## 4. 能力珠 × 模式
 
-珠子改的欄位對「目前武器的模式」無效時：**鍛造介面提示不擋**（拖進孔位跳一次 toast、孔位上灰顯、tooltip 說明）、**`PlayerAbilities` 套用時跳過**。「目前武器」＝鐵砧上那把（是武器時）或裝備中的武器（珠子鑲在防具上時）。
+2026-11-17 起效果改成 **24 種**（綿延併入遠射、頻擊併入疾發、粗束併入須彌），而且**全身同種效果的等級相加後查一次表**（規則見 [EQUIPMENT.md](EQUIPMENT.md) §4）。
+下表的「有效」由程式自動推導：效果屬性對應哪些欄位寫在 `EquipAttributes.cs`，那些欄位對哪個模式有效寫在 `WeaponModeSpec.cs`——**兩者是單一真相**，本表是抄出來給人看的。
 
-| 珠子（改的欄位） | Normal | Orbital | Parabolic | Laser | Aura | Chain | SkyStrike | Summon | GroundCast | Melee | Dash |
+效果對「目前武器的模式」無效時：**`PlayerAbilities` 套用時跳過**；鍛造介面目前是提示不擋（灰顯＋toast＋tooltip，第②階段會改成武器上直接擋）。「目前武器」＝鐵砧上那把（是武器時）或裝備中的武器（珠子鑲在珠寶上時）。
+
+| 效果（屬性） | Normal | Orbital | Parabolic | Laser | Aura | Chain | SkyStrike | Summon | GroundCast | Melee | Dash |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 反彈 `MaxBounces` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 穿透 `PierceCount` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 迅捷 `Speed` | ✓ | ✓ | ✓（換算成縮短 `FlightTime`） | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 銳利 `Damage` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
-| 追蹤 `HomingTurnSpeed` | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 分裂 `SpreadCount` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
-| 須彌 `BulletScale`（施放大小） | ✓ | ✓ | ✓（含爆炸範圍） | ✗ | ✓ 光圈 | ✗ | ✓ 範圍＋雷柱 | ✗ | ✓ 半徑＋圖 | ✓ 半徑＋特效 | ✓ 寬度＋特效 |
-| 疾發 `FireInterval` | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 綿延 `LifeTime` | ✓ | ✓ 整組時間 | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 遠射 `Range` | ✗ | ✗ | ✗ | ✓ 光束長（-1 不動） | ✗ | ✓ 首段 | ✗ | ✗ | ✓ 施放距離 | ✗ | ✗ |
-| 廣角 `SpreadAngle` | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
-| 群環 `OrbitalCount` | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 環距 `OrbitalRadius` | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 頻擊 `DotInterval` | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 連鎖 `ChainCount` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 引雷 `ChainRadius` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 鎖敵 `AimConeAngle` | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| 吸落 `SnapRadius` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ |
-| 群召 `SummonCount` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
-| 眾生 `SummonMaxAlive` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
-| 廣刃 `MeleeAngle` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
-| 長驅 `DashDistance` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
-| 聚氣 `ChargeTimeReduction` | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
-| 省魔 `ManaCost` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 粗束 `BeamWidth` | ✗ | ✗ | ✗ | ✓ | ✗ | ✓ | ✓ 雷柱 | ✗ | ✗ | ✗ | ✗ |
-| 連擊 `BurstCount` | ✓ | ✗ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| 平行 `ParallelCount` | ✓ | ✗ | ✓ 落點並排 | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 反彈（Bounce） | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 穿透（Pierce） | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 迅捷（Speed） | ✓ | ✓ | ✓ 縮短 `FlightTime` | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 銳利（Damage） | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 追蹤（Homing） | ✓ | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 分裂（Split） | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| 須彌（Size：`BulletScale`＋`BeamWidth`） | ✓ | ✓ | ✓ 含爆炸範圍 | ✓ 光束粗細 | ✓ 光圈 | ✓ 光束粗細 | ✓ 範圍＋雷柱 | ✗ | ✓ 半徑＋圖 | ✓ 半徑＋特效 | ✓ 寬度＋特效 |
+| 疾發（AttackRate：發射間隔／節拍） | ✓ | ✓ | ✓ | ✓ 節拍 | ✓ 地面特效節拍 | ✓ | ✓ | ✓ 冷卻 | ✓ | ✓ | ✓ |
+| 遠射（Range：`LifeTime`／`Range`） | ✓ 存活時間 | ✓ 整組時間 | ✗ | ✓ 光束長（-1 不動） | ✗ | ✓ 首段 | ✗ | ✗ | ✓ 施放距離 | ✗ | ✗ |
+| 廣角（SpreadAngle） | ✓ | ✓ | ✓ | ✓ | ✗ | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| 群環（OrbitalCount） | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 環距（OrbitalRadius） | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 連鎖（ChainCount） | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 引雷（ChainRadius） | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 鎖敵（AimConeAngle） | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
+| 吸落（SnapRadius） | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ | ✗ |
+| 群召（SummonCount） | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
+| 眾生（SummonMaxAlive） | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
+| 廣刃（MeleeAngle） | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ | ✗ |
+| 長驅（DashDistance） | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✓ |
+| 聚氣（ChargeTime） | ✓ | ✓ | ✓ | ✗ | ✗ | ✓ | ✓ | ✗ | ✓ | ✓ | ✓ |
+| 省魔（ManaCost） | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 連擊（Burst） | ✓ | ✗ | ✓ | ✗ | ✗ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
+| 平行（Parallel） | ✓ | ✗ | ✓ 落點並排 | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ | ✗ |
 
-- 須彌珠（`BulletScale`，原名巨彈）＝**施放大小**：對非子彈模式是「範圍與視覺一起放大」（所見即所得，不會畫面變大傷害範圍沒變）；雷射／連鎖的粗細是 `BeamWidth`，不吃它。
-- 反彈珠對連鎖閃電**不再**增加跳數（跳數已是獨立欄 `ChainCount`）——這是拍板的設計，不是漏做。
-- 追蹤珠對連鎖／落雷無效（原本借用 `HomingTurnSpeed` 當錐角／搜尋半徑，會出現「Lv3 追蹤珠＝整張圖吸附」的錯位，已改成獨立欄 `AimConeAngle`／`SnapRadius`）。
-- 9~25 是 2026-08-26 從兩張表「能拆的欄位」一次拆出來的（作者要求連射程、存活時間都拆；icon 先借舊符號）。**刻意沒拆的欄位**：`Radius`（碰撞半徑）、`AreaRadius`、`DashWidth`、`FlightTime` 與須彌／迅捷重疊；`RotationSpeed`／`ArcHeight`／`SpriteAngleOffset` 純視覺；`LandingScatterRadius`／`TrailStep` 加了是變差；`SummonRadius` 只是出生位置；ID／枚舉／開關類（`GroundEffectID`、`SubWeaponOnHit`、`BounceTarget`、`SplitTiming`、`ChargeMode`…）不是「加數值」能疊的，那是另一種「附魔」，之後再談。
-- 聚氣珠改的 `ChargeTimeReduction` 表裡存百分點（30＝縮短 30%），所以珠子填**固定值** 10/20/40 就是加百分點；`ChargeMode=0` 的武器鑲了沒感覺（模式判有效，但集氣沒開）。
-- **迴旋（Boomerang，不在上表）**：迅捷（`Speed`）、遠射（`Range`＝每趟距離）、銳利、須彌、疾發、省魔有效；反彈、穿透、綿延、追蹤、分裂、廣角、聚氣、連擊、平行**無效**（穿透本來就無限、壽命自動算）。
-- **浮游（Familiar，不在上表）**：**群環**（`OrbitalCount`＝本體數量）、**環距**（`OrbitalRadius`）、**疾發**（每個本體的間隔）、**銳利**、**須彌**（＝子彈大小，本體不變）、**遠射**（`Range`＝索敵半徑），以及一般子彈那一套（反彈、穿透、迅捷、追蹤、分裂、廣角、綿延、平行）、省魔都有效；**聚氣、連擊無效**（沒有扳機）。
-- **掃射（Sweep，不在上表）**：銳利（每顆爆炸傷害）、須彌（爆炸半徑與特效）、分裂／廣角（光束道數與扇形）、遠射（`Range`＝最遠掃描距離）、疾發（＝冷卻，從施放算起）、省魔有效；`AreaRadius` 的珠子也會吃。四個掃射專屬欄目前沒有對應珠子；聚氣、連擊無效。
-- **頭頂投彈（Overhead，不在上表）**：遠射（`Range`＝索敵半徑，打到幾隻）、銳利、須彌（炸彈＋爆炸半徑與特效）、迅捷（換算成縮短 `FlightTime`＝掉得更快）、分裂（每個投彈者吐幾顆）、連擊（同一批連吐幾輪）、疾發、省魔有效；反彈、穿透、追蹤、綿延、廣角、平行、聚氣**無效**。
-- 每顆珠子的白話說明與範例（拿現有武器算數字）見 [GEM_CATALOG.md](GEM_CATALOG.md)。
-- 要加新珠子：`GemTable.Field` 填 RecipeTable／WeaponTable 的欄名，有效性自動從 `WeaponModeSpec` 推導，**不用另外維護**。填了不存在的欄名載入時會 Warning。
+- **須彌**＝大小（施放大小＋光束粗細；2026-11-17 合併原「粗束」）：對非子彈模式是「範圍與視覺一起放大」（所見即所得）；雷射／連鎖放大的是光束粗細。
+- **疾發**＝攻擊頻率（合併原「頻擊」）：單發型縮短發射間隔、雷射加密節拍、**佛光加密地面特效的節拍**（`GroundEffectInstance.IntervalScale`）。一律用除法 `÷（1＋總和）`，永遠不會歸零。
+- **遠射**＝射程（合併原「綿延」）：子彈延長存活時間、雷射與施放類加長 `Range`；浮游兩者一起（子彈飛更遠、索敵更廣）。
+- **聚氣**改成百分比除法（集氣時間 ÷（1＋總和）），`ChargeMode=0` 的武器鑲了沒感覺（模式判有效，但集氣沒開）。
+- **吸落**是加值（每級 +0.5 單位），因為落雷的吸附半徑起點常是 0，百分比乘 0 等於白鑲。
+- 反彈珠對連鎖閃電**不會**增加跳數（跳數是獨立欄 `ChainCount`，用連鎖珠加）——拍板的設計。
+- 追蹤珠對連鎖／落雷無效（連鎖的鎖定錐與落雷的吸附各有獨立欄 `AimConeAngle`／`SnapRadius`）。
+- **刻意沒做成效果的欄位**：`Radius`（碰撞半徑）、`AreaRadius`、`DashWidth`、`FlightTime` 與須彌／迅捷重疊；`RotationSpeed`／`ArcHeight`／`SpriteAngleOffset` 純視覺；`LandingScatterRadius`／`TrailStep` 加了是變差；`SummonRadius` 只是出生位置；ID／枚舉／開關類（`GroundEffectID`、`SubWeaponOnHit`、`BounceTarget`、`SplitTiming`、`ChargeMode`…）不是「加數值」能疊的，那是另一種「附魔」，之後再談。
+- **迴旋（Boomerang，不在上表）**：迅捷、遠射（`Range`＝每趟距離）、銳利、須彌、疾發、省魔有效；反彈、穿透、追蹤、分裂、廣角、聚氣、連擊、平行**無效**（穿透本來就無限、壽命自動算）。
+- **浮游（Familiar，不在上表）**：群環（本體數量）、環距、疾發（每個本體的間隔）、銳利、須彌（＝子彈大小，本體不變）、遠射（子彈存活＋索敵半徑），以及一般子彈那一套（反彈、穿透、迅捷、追蹤、分裂、廣角、平行）、省魔都有效；**聚氣、連擊無效**（沒有扳機）。
+- **掃射（Sweep，不在上表）**：銳利（每顆爆炸傷害）、須彌（爆炸半徑與特效＋光束粗細）、分裂／廣角（光束道數與扇形）、遠射（最遠掃描距離）、疾發（＝冷卻，從施放算起）、省魔有效；聚氣、連擊無效。
+- **頭頂投彈（Overhead，不在上表）**：遠射（索敵半徑，打到幾隻）、銳利、須彌（炸彈＋爆炸半徑與特效）、迅捷（縮短 `FlightTime`＝掉得更快）、分裂（每個投彈者吐幾顆）、連擊（同一批連吐幾輪）、疾發、省魔有效；反彈、穿透、追蹤、廣角、平行、聚氣**無效**。
+- 每種效果的白話說明見 [GEM_CATALOG.md](GEM_CATALOG.md)（⚠ 數值與範例是 2026-11-17 改版前的，待重寫；數值以 `GemTable.csv` 為準）。
+- **要加新效果**：GemTable 加一列，`Attribute` 填 `EquipAttributes.cs` 認得的屬性，有效性自動推導、不用另外維護。要加**新屬性**才需要改程式（`EquipAttributes.Build` 加一行＋`PlayerAbilities` 寫怎麼套）。
 
 ---
 
@@ -467,8 +472,8 @@ ID=94 Name=饕餮印 Mode=Overhead FireInterval=1 SpreadCount=3 Range=18 AreaRad
 
 ## 6. 常見問題
 
-**Q：填了 `SpreadCount=3` 卻只射出 1 顆？**
-2026-08-26 起不會了——`SplitTiming` 留空＝發射時分裂。若還是 1 顆，看 Console 有沒有 `[RecipeTable]` 的 Warning（可能 Mode 填錯，或 `SpreadCount` 對該模式無效）。
+**Q：填了 `SplitLv=2` 卻只射出 1 顆？**
+2026-08-26 起不會了——`SplitTiming` 留空＝發射時分裂。若還是 1 顆，看 Console 有沒有 `[RecipeTable]` 的 Warning（可能 Mode 填錯，或 `SplitLv` 對該模式無效）。
 
 **Q：Console 印「X 對某模式無效，會被忽略」是壞了嗎？**
 沒壞，是提醒你這格填了沒用的東西（值不會被讀）。清掉那格就不印。
@@ -477,7 +482,7 @@ ID=94 Name=饕餮印 Mode=Overhead FireInterval=1 SpreadCount=3 Range=18 AreaRad
 `WeaponModeSpec.BuildFields` 加欄位規格、`BuildModes` 把它加進會吃它的模式、`RecipeEntry.FromFields` 讀它、用到它的發射分支讀 `RecipeEntry`／`ProjectileData`。表頭放哪一群都可以（依名字讀）。
 
 **Q：想做「散彈＋反彈」？**
-散彈配方 `SpreadCount=3, SpreadAngle=60`，`SubRecipeID` 指向一個有反彈的配方。
+散彈配方 `SplitLv=2, SpreadSpacing=30`，`SubRecipeID` 指向一個有反彈的配方。
 
 **Q：環繞彈的 `Speed` 代表什麼？**
 切線速度。角速度＝Speed÷OrbitalRadius；Speed=5、半徑 2 → 約每 2.5 秒轉一圈。
@@ -488,6 +493,8 @@ ID=94 Name=饕餮印 Mode=Overhead FireInterval=1 SpreadCount=3 Range=18 AreaRad
 ---
 
 ## 從舊表遷移對照
+
+> 這節是 **2026-08-26** 那次的對照（歷史紀錄）。**2026-11-17** 行為欄改等級、分裂角度改間距＋上限的對照與遷移結果見 [EQUIPMENT.md](EQUIPMENT.md) §9。
 
 | 舊（2026-08-26 前） | 新 |
 |---|---|

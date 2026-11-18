@@ -101,6 +101,11 @@ namespace Dipan.Inventory
                 // 被動武器掛載（第 19 欄 / index 18，2026-10-01）：分號分隔的 WeaponTable ID；舊表沒這欄 → "" → 空陣列。
                 // 這裡只切字串不驗證——ID 存不存在、是不是被動型模式，由 PassiveWeaponSet 解析時檢查（那時 WeaponTable 才載好）。
                 d.PassiveWeaponIds = ParseIdList(Field(v, 18), $"item {d.ID} {d.Name} 的 PassiveWeaponIds");
+                // 品質（第 20 欄 / index 19，2026-11-17）：非裝備的模板稀有度，留空＝一般；裝備不看這欄（品質＝內建效果數）。
+                string rarStr = Field(v, 19);
+                d.Rarity = string.IsNullOrWhiteSpace(rarStr) ? Dipan.Exchange.ItemRarity.White : Dipan.Exchange.RarityInfo.Parse(rarStr);
+                if (d.EquipSlot != EquipSlot.None && !string.IsNullOrWhiteSpace(rarStr))
+                    Debug.LogWarning($"[ItemDatabase] item {d.ID} {d.Name} 是裝備，Rarity 欄會被忽略（裝備的品質＝身上幾條內建效果，見 readme/EQUIPMENT.md §1）。");
 
                 if (!string.IsNullOrEmpty(d.IconPath))
                 {

@@ -24,8 +24,8 @@ public class DamageNumberManager : MonoBehaviour
     const float ShadowOffset = 0.045f;   // 描邊/陰影偏移（世界單位）
 
     // ── 份量分級門檻（傷害越大、字越大、越搶眼）──
-    const float MidThreshold = 5f;       // ≥ 這個值 → 中字
-    const float BigThreshold = 12f;      // ≥ 這個值 → 大字
+    const float MidThreshold = 50f;      // ≥ 這個值 → 中字（×10：2026-11-17）
+    const float BigThreshold = 120f;     // ≥ 這個值 → 大字
 
     static readonly Color PlayerHurtColor = new Color(1f, 0.30f, 0.30f, 1f);  // 玩家受傷 = 紅
     static readonly Color EnemyHurtColor = new Color(1f, 0.92f, 0.50f, 1f);   // 打到怪 = 暖黃
@@ -198,8 +198,7 @@ public class DamageNumberManager : MonoBehaviour
     static float TierScale(float amount)
         => amount >= BigThreshold ? 1.7f : (amount >= MidThreshold ? 1.3f : 1.0f);
 
+    // 一律顯示整數（2026-11-17：數值 ×10 後百分比加成會帶小數，畫面上取整；有傷害就至少顯示 1）
     static string FormatAmount(float amount)
-        => Mathf.Approximately(amount, Mathf.Round(amount))
-            ? Mathf.RoundToInt(amount).ToString()
-            : amount.ToString("0.#");
+        => (amount > 0f ? Mathf.Max(1, Mathf.RoundToInt(amount)) : Mathf.RoundToInt(amount)).ToString();
 }

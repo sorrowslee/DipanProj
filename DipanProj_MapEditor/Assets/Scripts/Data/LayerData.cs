@@ -56,7 +56,7 @@ namespace DipanMapEditor.Data
         public float scaleY = 1f;
         public float sortKey;    // 通常 = y，越小越上層（top-down Y-sort）
         public int zOrder = 0;   // 手動層級：>0 整層往前、<0 往後；同層內仍依 sortKey Y-sort
-        public int hp = 1;       // 血量；-1 = 不可被摧毀，>=0 = 可摧毀血量（預設 1，交由遊戲端解讀）
+        public int hp = 10;      // 血量；-1 = 不可被摧毀，>=0 = 可摧毀血量（預設 10，交由遊戲端解讀；×10：2026-11-17 數值尺度放大）
         public float animFps = 8f; // 動畫地上物的每實例播放幀率（僅動畫物件有意義；靜態物件忽略）
         public bool pingPong = false; // 動畫播放模式：false=循環(0→N-1繞回)、true=乒乓(0→N-1→0來回，首尾接不順時用，接縫消失)
         public bool walkable = false; // 勾選＝不擋路/不設碰撞，畫在角色腳下（可走與否交給地圖可走層判定；例：木板/地毯）

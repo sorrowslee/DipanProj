@@ -17,7 +17,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     private Rigidbody2D _rb;
 
     public string MonsterName;
-    public float MaxHealth = 50f;
+    public float MaxHealth = 500f;
     public float HitboxPadding = 0.2f;
     [Tooltip("來源序列圖角色面朝右 = true（AutoSprite 輸出，與 PlayerController 同）；面朝左 = false。決定 flipX 對應。")]
     public bool SpriteSourceFacesRight = true;
@@ -59,7 +59,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     public float KnockbackPercent = 0f;
 
     [Header("Combat")]
-    public float ContactDamage = 10f;            // 碰到玩家造成的傷害（CSV: MonsterData.ContactDamage）
+    public float ContactDamage = 100f;           // 碰到玩家造成的傷害（CSV: MonsterData.ContactDamage）
     public float AttackInterval = 0.5f;          // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval）
     public float DamageReductionPercent = 0f;    // 受擊減傷 %（掛勾；目前 CSV 預設 0，之後接減傷/抗性）
 
@@ -1038,7 +1038,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         if (!InteractionManager.Exists) return;
         if (DropTableId <= 0) return;            // 不掉寶（夢境教學怪、以及任何刻意不給獎勵的怪）
 
-        var drops = DropTable.Roll(DropTableId);
+        var drops = DropTable.RollWithSpec(DropTableId);   // 帶規格：榕樹妖必掉的枯枝寫死珍品 [q=3]
         if (drops.Count == 0) return;
 
         var im = InteractionManager.Instance;
@@ -1046,6 +1046,6 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         // 飛行怪／騰空中死亡：transform 被抬高了 AirborneHeight，寶物要掉在地面點（影子那裡），不是半空中。
         pos.y -= Mathf.Max(0f, AirborneVisualHeight);
         for (int i = 0; i < drops.Count; i++)
-            im.DropLoot(drops[i].itemId, drops[i].count, pos);
+            im.DropLoot(drops[i].itemId, drops[i].count, pos, drops[i].spec);
     }
 }

@@ -33,7 +33,7 @@
           "scaleY": 1.0,
           "sortKey": -4.399561,
           "zOrder": 0,
-          "hp": 1
+          "hp": 10
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/furniture_round_stool",
@@ -46,7 +46,7 @@
           "scaleY": 0.5314409,
           "sortKey": -5.2359333,
           "zOrder": 0,
-          "hp": 1
+          "hp": 10
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/furniture_round_stool",
@@ -59,7 +59,7 @@
           "scaleY": 0.5314409,
           "sortKey": -5.2359333,
           "zOrder": 0,
-          "hp": 1
+          "hp": 10
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/kitchen_stove_1",
@@ -72,7 +72,7 @@
           "scaleY": 1.77156115,
           "sortKey": -2.986908,
           "zOrder": 0,
-          "hp": 1
+          "hp": 10
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/kitchen_water_bucket",
@@ -85,7 +85,7 @@
           "scaleY": 0.478296816,
           "sortKey": -8.212624,
           "zOrder": 0,
-          "hp": 1
+          "hp": 10
         },
         {
           "assetId": "Modules/RedBridalGown/Environment/container_bamboo_basket",
@@ -98,7 +98,7 @@
           "scaleY": 1.0,
           "sortKey": -3.15774035,
           "zOrder": 0,
-          "hp": 1
+          "hp": 10
         }
       ]
     },

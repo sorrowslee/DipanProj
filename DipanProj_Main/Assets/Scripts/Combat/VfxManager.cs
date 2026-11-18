@@ -9,6 +9,8 @@ using System.Collections.Generic;
 public class VfxManager : MonoBehaviour
 {
     public TextAsset VfxCSV;
+    [Tooltip("地刺設定表 Assets/Data/GroundSpikeTable.csv（武器表 TrailSpikeID 指向它，見 readme/GROUND_SPIKE.md）")]
+    public TextAsset GroundSpikeCSV;
 
     [Header("Sorting（所有 VFX 共用此排序設定）")]
     public string SortingLayerName = "Default";
@@ -22,7 +24,27 @@ public class VfxManager : MonoBehaviour
     void Awake()
     {
         LoadEffects();
+        LoadGroundSpikes();
     }
+
+    /// <summary>地刺設定表（2026-11-17）。場景沒拖時，編輯器下直接讀資產當退路，免得忘了拖就整排刺不見。</summary>
+    void LoadGroundSpikes()
+    {
+        var csv = GroundSpikeCSV;
+#if UNITY_EDITOR
+        if (csv == null) csv = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Data/GroundSpikeTable.csv");
+#endif
+        if (csv == null)
+        {
+            Debug.LogWarning("[VfxManager] Ground Spike CSV 沒有指定：請把 Assets/Data/GroundSpikeTable.csv 拖進 VfxManager 的 Ground Spike CSV 欄。");
+            return;
+        }
+        GroundSpikeDatabase.LoadFromText(csv.text);
+    }
+
+    /// <summary>在地上長一組地刺（GroundSpikeTable 第 spikeId 列）。排序層／預設排序跟一般特效相同。</summary>
+    public void SpawnGroundSpikes(int spikeId, Vector2 groundPos, Vector2 travelDir, float extraScale = 1f)
+        => GroundSpikeBurst.Spawn(spikeId, groundPos, travelDir, extraScale, SortingLayerName, SortingOrder);
 
     public VfxData GetEffect(int id)
     {

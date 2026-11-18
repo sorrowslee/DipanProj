@@ -92,7 +92,7 @@ public class MonsterSpawner : MonoBehaviour
             data.KnockbackThreshold = values.Length > 8 ? float.Parse(values[8]) : 0;
             data.KnockbackPercent = values.Length > 9 ? float.Parse(values[9]) : 0;
 
-            data.ContactDamage = (values.Length > 10 && !string.IsNullOrWhiteSpace(values[10])) ? float.Parse(values[10]) : 10f;
+            data.ContactDamage = (values.Length > 10 && !string.IsNullOrWhiteSpace(values[10])) ? float.Parse(values[10]) : 100f;   // 留空＝100（×10：2026-11-17 數值尺度放大，見 readme/EQUIPMENT.md §8）
             data.DamageReduction = (values.Length > 11 && !string.IsNullOrWhiteSpace(values[11])) ? float.Parse(values[11]) : 0f;
             data.Speed = (values.Length > 12 && !string.IsNullOrWhiteSpace(values[12])) ? float.Parse(values[12]) : 3f;
             data.AnimFPS = (values.Length > 13 && !string.IsNullOrWhiteSpace(values[13])) ? float.Parse(values[13]) : 8f;

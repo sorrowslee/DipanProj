@@ -6,7 +6,7 @@ public class WeaponData
     public int ID;
     public string Name;
     public float Damage;
-    public float ManaCost = 1f;   // 發射消耗的魔力（離散武器每發；雷射/佛光每秒）。留空 = 1。見 readme/COMBAT.md
+    public float ManaCost = 10f;  // 發射消耗的魔力（離散武器每發；雷射/佛光每秒）。留空 = 10（×10：2026-11-17）。見 readme/COMBAT.md
     public int RecipeID;
     public string WeaponSpritePath;
     public float SpriteAngleOffset;
@@ -31,7 +31,8 @@ public class WeaponData
     // ── 一次性特效（VFX）ID，引用 VfxTable；0 / 留空 = 不觸發 ──
     public int FireEffectID;   // 發射時在玩家身上播放（朝瞄準方向）
     public int HitEffectID;    // 子彈／光束命中怪物、障礙物、拋物線落地時，在命中點播放
-    public int TrailEffectID;  // 沿子彈飛行路徑每隔 TrailStep 距離種一個（地刺武器靠這個沿路長出尖刺）
+    public int TrailEffectID;  // 沿子彈飛行路徑每隔 TrailStep 距離種一個 VfxTable 特效（雷射的火焰柱也走這個）
+    public int TrailSpikeID;   // 沿子彈飛行路徑每隔 TrailStep 距離從地底刺出一組尖刺（GroundSpikeTable；2026-11-17 取代舊的地刺序列圖）
     public int SummonEffectID; // 召喚型武器：在每個生怪點播放一次，特效播完才生怪；0 / 留空 = 不播、立即生怪
 
     // ── 浮游本體（只有 Mode=Familiar 讀；見 WeaponFamiliar）──

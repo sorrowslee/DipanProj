@@ -598,6 +598,7 @@ namespace Dipan.UI
             // 珠子是「珠身（依等級）＋能力符號」兩層，一律走 ItemIcons（見 readme/GEM_SOCKET.md）
             w.icon.color = w.locked ? LockedTint : Color.white;
             ItemIcons.Apply(w.icon, st);
+            ItemIcons.ApplyQualityFrame(w.Rt, st, w.icon);   // 良品以上的裝備畫品質色細框
             if (w.count != null)
             {
                 w.count.text = (count > 1) ? count.ToString() : "";

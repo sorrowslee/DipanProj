@@ -35,9 +35,9 @@ namespace Dipan.UI
         const float ArtW = 2172f, ArtH = 724f;
         const float ArtBottomOpaque = 606f;                 // 不透明內容底邊（用來對齊螢幕底）
 
-        static readonly Vector2 HpCenter = new Vector2(210f, 350f);   // 紅球圓心
+        static readonly Vector2 HpCenter = new Vector2(196f, 355f);   // 紅球圓心（對齊框圖畫的紅球；原 210,350 偏右上，左緣會露出底圖紅色）
         static readonly Vector2 MpCenter = new Vector2(1980f, 350f);  // 藍球圓心
-        const float OrbRadius = 115f;                       // 球半徑（框圖像素）
+        const float OrbRadius = 110f;                       // 球半徑（框圖像素）；底圖紅球 r≈100、藍球 r≈101，110 剛好蓋住且不壓到外圈金框
         const float OrbCoverScale = 1.0f;                   // 液體圓盤相對實心球的大小（1=剛好蓋住，<1 露出畫邊）
 
         // ── 血瓶槽（鏡像顯示背包綁定的藥水；只呈現、不互動。左格＝鍵1、右格＝鍵2，與背包藥水格一一對應）──

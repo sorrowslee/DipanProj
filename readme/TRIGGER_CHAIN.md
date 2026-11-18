@@ -194,7 +194,7 @@ flag:hallGateOpen        旗標成立
 
 ## 3. 新增的動作型類型
 
-- **`giveItem` 給予物品(鏈動作)**：`itemId`、`count`（留空=1）、`iconToast`（**道具圖示提示**，2026-11-07：勾＝訊息上方顯示道具圖示、滑鼠停在圖示上看說明時不消失，重要獎勵用；見 [UI_SYSTEM.md](UI_SYSTEM.md)〈System 層〉）。直接進背包＋中央 toast「獲得 XX」，裝不下的掉玩家腳下。**不用按 F**。
+- **`giveItem` 給予物品(鏈動作)**：`itemId`、`count`（留空=1）、`spec`（**生成規格**，2026-11-17：`q=品質;s=孔數;fx=效果@等級;lv=珠子等級`，留空＝全隨機，語法見 [EQUIPMENT.md](EQUIPMENT.md) §6；拾取點 `pickup` 也有同一個欄位）、`iconToast`（**道具圖示提示**，2026-11-07：勾＝訊息上方顯示道具圖示、滑鼠停在圖示上看說明時不消失，重要獎勵用；見 [UI_SYSTEM.md](UI_SYSTEM.md)〈System 層〉）。直接進背包＋中央 toast「獲得 XX」，裝不下的掉玩家腳下。**不用按 F**。
 - **`teleportTo` 直接傳送(鏈動作)**：`targetMapId`、`targetEntrance`。直接換圖。**不用踩傳送點**。
   ⚠️ 換圖 = 鏈的終點（setFlag 會先寫掉，next 填了也不會執行）。cutscene 同理。
 - **`cameraFocus` 鏡頭聚焦(鏈動作)**：`holdSeconds`（停留秒數，留空=1.6）、`dim`（黑幕樣式：`中央留洞`(預設)／`整片全黑`／`無`）、**`focusX`/`focusY`（聚焦點世界座標，2026-09-07 新增）**。被鏈啟動時**飄鏡頭到聚焦點＋壓黑幕、停留、再拉回**，全程定住玩家；**表演完才接 next**。純靠鏈驅動，**玩家踩不觸發**。

@@ -94,17 +94,29 @@ namespace Dipan.Exchange
                 paid.Add(total[i]);
             }
 
-            Grant(e.ItemId, qty);
+            Grant(e.ItemId, qty, e.Spec);   // 兌換這一刻才照規格產生（效果與孔數每件各骰各的）
             Debug.Log($"[ExchangeService] 兌換 {e.Name} ×{qty}（{CostText(total)}）");
             return true;
         }
 
         // 發貨：比照 GachaService.Grant——走 RunProgress.GiveItem，背包滿的掉在玩家腳下。
-        static void Grant(int itemId, int qty)
+        // spec ＝ 兌換表的 Spec 欄（例：裝備一律寫死極品 q=4）；需要實例的物品一件一件照它產生。
+        static void Grant(int itemId, int qty, ItemSpec spec)
         {
             var inv = InventorySystem.Instance;
-            int leftover = RunProgress.Exists ? RunProgress.Instance.GiveItem(itemId, qty)
-                                              : (inv != null ? inv.AddItem(itemId, qty) : qty);
+            int leftover;
+            if (RunProgress.Exists) leftover = RunProgress.Instance.GiveItem(itemId, qty, false, spec);
+            else if (inv == null) leftover = qty;
+            else
+            {
+                var d = inv.GetData(itemId);
+                if (d != null && ItemManager.NeedsInstance(d))
+                {
+                    leftover = 0;
+                    for (int i = 0; i < qty; i++) leftover += inv.AddStack(ItemManager.Create(itemId, 1, spec));
+                }
+                else leftover = inv.AddItem(itemId, qty);
+            }
             int got = qty - leftover;
             if (got > 0) AlertPanel.ToastItem(itemId, got);
             if (leftover <= 0) return;
@@ -113,7 +125,7 @@ namespace Dipan.Exchange
             {
                 var player = GameObject.FindGameObjectWithTag("Player");
                 Vector2 pos = player != null ? (Vector2)player.transform.position : Vector2.zero;
-                InteractionManager.Instance.DropLoot(itemId, leftover, pos);
+                InteractionManager.Instance.DropLoot(itemId, leftover, pos, spec);
                 AlertPanel.Toast(string.Format(Dipan.Localization.Language.GetText(TxtBagFull), leftover));
             }
             else

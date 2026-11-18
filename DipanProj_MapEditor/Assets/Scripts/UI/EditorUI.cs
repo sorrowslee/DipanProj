@@ -1095,7 +1095,7 @@ namespace DipanMapEditor.UI
             // 不可被摧毀（勾選＝血量 -1）；未勾選才顯示可調的數值血量
             bool indes = sel.hp == -1;
             bool nextIndes = GUILayout.Toggle(indes, " 不可被摧毀（血量 -1）");
-            if (nextIndes != indes) { UndoManager.Push(); sel.hp = nextIndes ? -1 : 1; _objHpBuf = sel.hp.ToString(); }
+            if (nextIndes != indes) { UndoManager.Push(); sel.hp = nextIndes ? -1 : 10; _objHpBuf = sel.hp.ToString(); }
 
             if (sel.hp != -1)
             {

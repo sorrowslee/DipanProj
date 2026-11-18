@@ -180,7 +180,7 @@ namespace Dipan.UI
             _rarityBar.color = rc;
             SlotOutline.SetColor(_rarityOutline, rc);
             ItemIcons.Apply(_icon, e.ItemId);
-            _sub.text = $"<color=#{ColorUtility.ToHtmlStringRGB(rc)}>{RarityInfo.Label(e.Rarity)}</color>　{ExchangeCategoryInfo.Name(e.Category)}";
+            _sub.text = $"<color=#{ColorUtility.ToHtmlStringRGB(rc)}>{e.RarityLabel}</color>　{ExchangeCategoryInfo.Name(e.Category)}";
 
             string stats = e.Item.TipStats;
             if (string.IsNullOrEmpty(stats)) stats = e.Item.Description;

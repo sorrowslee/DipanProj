@@ -8,7 +8,7 @@ using UnityEngine;
 /// <para>一列 ＝ 一張掉落表；`MonsterData.csv` 的 `DropTableId` 欄引用它的 `ID`。
 /// 每列有 8 個**獨立**的掉落槽（`Drop1`~`Drop8`），彼此不互斥——各自擲一次骰。</para>
 ///
-/// <para>槽的格式：<c>itemId:機率%:數量</c><br/>
+/// <para>槽的格式：<c>itemId:機率%:數量</c>，尾巴可接生成規格 <c>[q=3]</c>（例 <c>10003:100:1[q=3]</c>，2026-11-17）<br/>
 /// ‧ <c>101:100:1-5</c> ＝ 功德值 100% 掉 1~5 點<br/>
 /// ‧ <c>201:17.5</c> ＝ 小回血瓶 17.5% 掉 1 個（數量留空＝1）<br/>
 /// ‧ <c>3010</c> ＝ 必掉 1 個（機率留空＝100）</para>
@@ -27,6 +27,7 @@ public static class DropTable
         public int itemId;
         public float chance;     // 0~100
         public int countMin, countMax;
+        public Dipan.Inventory.ItemSpec spec;   // 生成規格（槽位尾巴的 [q=3] 這類；null＝全隨機），2026-11-17 品質系統
     }
 
     static Dictionary<int, List<Entry>> _byId;
@@ -46,9 +47,12 @@ public static class DropTable
     /// 擲一次這張表，回傳實際掉出來的東西（itemId, count）。每個槽**各自獨立**擲骰。
     /// `dropTableId` ≤ 0 或查無此表 ⇒ 空清單（不掉寶）。
     /// </summary>
-    public static List<(int itemId, int count)> Roll(int dropTableId)
+    public static List<(int itemId, int count)> Roll(int dropTableId) => RollWithSpec(dropTableId).ConvertAll(x => (x.itemId, x.count));
+
+    /// <summary>同 <see cref="Roll"/>，多帶每個槽的生成規格（怪物死亡掉寶走這個，見 readme/EQUIPMENT.md §6.3）。</summary>
+    public static List<(int itemId, int count, Dipan.Inventory.ItemSpec spec)> RollWithSpec(int dropTableId)
     {
-        var result = new List<(int, int)>();
+        var result = new List<(int, int, Dipan.Inventory.ItemSpec)>();
         if (dropTableId <= 0) return result;
         EnsureLoaded();
         if (!_byId.TryGetValue(dropTableId, out var list)) return result;
@@ -59,7 +63,7 @@ public static class DropTable
             if (e.itemId <= 0) continue;
             if (e.chance < 100f && Random.value * 100f >= e.chance) continue;
             int n = (e.countMax > e.countMin) ? Random.Range(e.countMin, e.countMax + 1) : e.countMin;
-            if (n > 0) result.Add((e.itemId, n));
+            if (n > 0) result.Add((e.itemId, n, e.spec));
         }
         return result;
     }
@@ -102,7 +106,11 @@ public static class DropTable
         e = default;
         if (string.IsNullOrWhiteSpace(raw)) return false;
 
-        string[] p = raw.Trim().Split(':');
+        // 尾巴的生成規格：10003:100:1[q=3] → 先切掉 [q=3]（語法見 ItemSpec，2026-11-17）
+        string body = Dipan.Inventory.ItemSpec.SplitTail(raw.Trim(), out string specText);
+        var spec = specText != null ? Dipan.Inventory.ItemSpec.Parse(specText, $"掉落槽「{raw.Trim()}」") : null;
+
+        string[] p = body.Split(':');
         if (!int.TryParse(p[0].Trim(), out int itemId) || itemId <= 0)
         {
             Debug.LogWarning($"[DropTable] 掉落槽「{raw}」的 itemId 無效，略過。格式：itemId:機率%:數量");
@@ -127,7 +135,7 @@ public static class DropTable
         }
         if (max < min) max = min;
 
-        e = new Entry { itemId = itemId, chance = Mathf.Clamp(chance, 0f, 100f), countMin = min, countMax = max };
+        e = new Entry { itemId = itemId, chance = Mathf.Clamp(chance, 0f, 100f), countMin = min, countMax = max, spec = spec };
         return true;
     }
 }

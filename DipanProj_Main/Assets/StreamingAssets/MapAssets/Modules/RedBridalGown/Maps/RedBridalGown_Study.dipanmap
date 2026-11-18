@@ -192,7 +192,7 @@
           "scaleY": 1.43496442,
           "sortKey": -2.64317131,
           "zOrder": 0,
-          "hp": 1,
+          "hp": 10,
           "animFps": 8.0,
           "pingPong": false,
           "walkable": false,
@@ -445,7 +445,20 @@
           ],
           "params": {
             "dramaId": "22",
-            "repeat": "每次"
+            "repeat": "每次",
+            "next": "封靈符-穿透珠"
+          }
+        },
+        {
+          "id": "4fbabf16",
+          "name": "封靈符-穿透珠",
+          "typeId": "giveItem",
+          "cells": [],
+          "params": {
+            "itemId": "402",
+            "count": "1",
+            "spec": "lv=1",
+            "iconToast": true
           }
         }
       ]

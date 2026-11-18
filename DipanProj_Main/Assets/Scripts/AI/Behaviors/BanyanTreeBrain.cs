@@ -23,7 +23,7 @@ public class BanyanTreeBrain : IMonsterBrain
     // 第一階段不用填（滿血就是 P1）。填的值：P2_HpEnter 要比 P3_HpEnter 大。
     const float P2_HpEnter = 0.7f;   // 血量 ≤ 這個比例 → 進入階段二（例：0.5 = 50% 以下進 P2）
     const float P3_HpEnter = 0.3f;   // 血量 ≤ 這個比例 → 進入階段三（例：0.1 = 10% 以下進 P3）
-    const float SpikeDamage      = 10f;   // 一般地刺碰玩家傷害
+    const float SpikeDamage      = 100f;  // 一般地刺碰玩家傷害（×10：2026-11-17 數值尺度放大，見 readme/EQUIPMENT.md §8）
     const float SpikeScale       = 1f;    // 一般地刺大小
 
     // ── 地刺生成的「安全內縮」：可走區的最外圈（尤其貼著底部操控列 HUD／左右血魔球）不要冒地刺 ──
@@ -53,7 +53,7 @@ public class BanyanTreeBrain : IMonsterBrain
 
     // ── 大絕二：放大版地刺（固定在可走範圍正中央）──
     const float Giant_Scale   = 2.24f; // 2.8 縮到 80%
-    const float Giant_Damage  = 30f;
+    const float Giant_Damage  = 300f;   // ×10（2026-11-17）
     const float Giant_HitFillW = 0.75f; // 碰撞框寬＝可見地刺寬的比例
     const float Giant_HitFillH = 0.60f; // 碰撞框高＝可見地刺高的比例（只涵蓋下半，貼齊基座；圖上半是空的）
 

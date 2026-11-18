@@ -95,7 +95,7 @@ public static class NpcSpawner
             WalkScale = rw, AttackScale = ra, JumpScale = rj, HangScale = rh,
             ID = d.ID,
             Name = d.Name,                 // ＝序列圖資料夾名（Monsters/SequenceImage/<Name>/）
-            HP = d.HP > 0f ? d.HP : 50f,
+            HP = d.HP > 0f ? d.HP : 500f,
             BrainType = "Npc",             // Initialize 的 switch 沒這 case → 先掛 ChaseBrain，隨後 SetBrain 換成 NpcBrain
             Weapon = "",
             Scale = d.Scale > 0f ? d.Scale : 1f,

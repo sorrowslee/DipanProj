@@ -516,7 +516,7 @@ BrainType 填 `Pounce` 即可。
 以及**命中之後的效果鏈**。硬把玩家的命中鏈搬進服務，會把 `TryTriggerSubWeapon`／`TryTriggerGroundEffect` 整串
 玩家專屬狀態一起拖過來，服務就變成第二個 `PlayerController`。
 
-> **出手點（2026-10-26）**：單發／窄扇形從「朝目標的身體框外緣」出手；**環狀爆發**（`SplitTiming=OnSpawn` 且 `SpreadAngle ≥ 180`）改從**身體中心**出手，否則整圈會偏到怪的前方（夏綠蒂公爵體型 2 時偏約 2.8 單位，見 [PROBLEMS.md](PROBLEMS.md) **F39**）。
+> **出手點（2026-10-26）**：單發／窄扇形從「朝目標的身體框外緣」出手；**環狀爆發**（`SplitTiming=OnSpawn` 且扇形總角度 ≥ 180°，總角度由 `SpreadSpacing`／`SpreadMaxAngle` 算出）改從**身體中心**出手，否則整圈會偏到怪的前方（夏綠蒂公爵體型 2 時偏約 2.8 單位，見 [PROBLEMS.md](PROBLEMS.md) **F39**）。
 
 **目前只搬了 `Normal`（直飛彈）**，所以怪物能用的投射武器也只有 Normal——但分裂／反彈／追蹤／平行／穿透／軌跡
 > **2026-11-11／12 補**：另外兩種模式是一開始就寫成「玩家怪物共用」的獨立類別，`MonsterWeaponUser.TryUse` 直接分派：**`Sweep`**（`SweepStrike`，路西法之怒）、**`Overhead` 頭頂投彈**（`OverheadDrop`，饕餮印——怪物放時目標＝範圍內的玩家與玩家召喚物，投彈者冒在玩家頭上；範圍內沒目標不算施放、不進冷卻）。
@@ -1450,11 +1450,11 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 
 ### 14.2 8 方向血球是「配方」做的，不是程式
 
-- **配方 88**：`SpreadCount 8`／`SpreadAngle 315`／`SplitTiming OnSpawn`；傷害 6（武器 73）、速度 6、半徑 **0.55**（＝可見球半徑，見 PROBLEMS **F40**）、壽命 4、`FireInterval 1`（只是下限，節奏由 Brain 控）。
-- ⚠ **不能填 360**：`SplitBehavior` 的間隔是「角度 ÷ (顆數−1)」，360 時第一顆與最後一顆重疊 ⇒ 只看得到 7 個方向。**全周均分一律填 `360 − 360/N`**（8 顆＝315，泰坦「山崩地裂」配方 65 早就這樣填；見 RECIPE_DESCRIBE 的 `SpreadAngle`）。
+- **配方 88**：`SplitLv 7`（8 顆）／`SpreadSpacing 45`／`SpreadMaxAngle 315`／`SplitTiming OnSpawn`；傷害 6（武器 73）、速度 6、半徑 **0.55**（＝可見球半徑，見 PROBLEMS **F40**）、壽命 4、`FireInterval 1`（只是下限，節奏由 Brain 控）。
+- ⚠ **不能填 360**：`SplitBehavior` 的間隔是「角度 ÷ (顆數−1)」，360 時第一顆與最後一顆重疊 ⇒ 只看得到 7 個方向。**全周均分一律填 `360 − 360/N`**（8 顆＝315，泰坦「山崩地裂」配方 65 早就這樣填）。**2026-11-17 起不必再算**：`SpreadMaxAngle` 填 360 會自動平均分一整圈、首尾不重疊（`RecipeEntry.ComputeSpreadAngle`）；舊配方遷移時照原角度換算，行為不變。
 - 以「朝目標」為軸對稱展開 ⇒ **8 顆時沒有一顆正對玩家**（玩家站在兩顆中間）。要讓一顆正對得讓 `MonsterWeaponUser.TryUse` 吃角度偏移，作者還沒決定，沒做（TODO）。
 - **出手點＝身體中心**：`MonsterWeaponUser` 對「環狀爆發」改從中心出手（§8.4、PROBLEMS **F39**）。
-- **大絕用另一把：武器 74／配方 89**＝同一種血球，**撞牆反彈 2 次**（`BounceTarget=Environment`、`MaxBounces 2`、壽命 6；作者 2026-10-26 追加）。
+- **大絕用另一把：武器 74／配方 89**＝同一種血球，**撞牆反彈 2 次**（`BounceTarget=Environment`、`BounceLv 2`、壽命 6；作者 2026-10-26 追加）。
   CSV 的 `Weapon` 欄一隻怪只能填一把，所以這把由 Brain 自己再掛一個 `MonsterWeaponUser`（`DukeCharlotteBrain.UltWeaponId`；`MonsterController.WeaponUser` 用 `GetComponent` 取第一個，而它在 Initialize 就先掛好了，第二個不會被誤認成主武器）。
   分裂出的 8 顆繼承母彈的反彈設定（`SubRecipeID` 留空＝繼承自身但不再分裂）——**待實測確認**。
 - **外觀＝`bloodMagicOrb`**（作者 2026-10-26 從四個候選選 B）：編輯器 `Effects/Super Pixel Projectiles Pack 3/pj3_magic_orb/red` 的 32 幀，**最近鄰放大 ×4**（32→128px，同掌心雷 64×48→256×192 的做法）複製進 `Resources/Weapon/animation/bloodMagicOrb/`、檔名改兩位數 `_01`~`_32`（`WeaponManager` 組路徑用 `D2`），`.meta` 照 bloodFireOrb（Sprite／Point／PPU 100）。武器 73／74：`AnimFPS 20`、`BulletScale` **12**（2026-10-26 作者要求放大一倍；⚠ 子彈判定半徑是配方 `Radius`、不吃 `BulletScale`，所以配方 88／89 的 `Radius` 要照**可見大小**另外算——一度照比例 0.6→1.2，結果還沒碰到牆就反彈（PROBLEMS **F40**），改成 0.55）、`SpriteAngleOffset` 留空（圓球不轉向）、擊中仍是 Vfx 58「血火爆」。
@@ -1542,7 +1542,7 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 |---|---|
 | 血量、走路速度、接觸傷害、體型、動畫節奏 | `MonsterData.csv` 44 列（HP 400／Speed 1.6／ContactDamage 12／Scale 2／AnimFPS 14） |
 | 旋轉射擊的距離／放彈幀 | CSV `ShootRange`／`ReleaseFrame`；間隔在 `DukeCharlotteBrain` 的 `SpinCooldownMin/Max` |
-| 血球數量、角度、速度、傷害 | RecipeTable 88（`SpreadCount`／`SpreadAngle`＝360−360/N／`Speed`）、WeaponTable 73（`Damage`）；大絕那把是 89／74（多了 `MaxBounces`） |
+| 血球數量、角度、速度、傷害 | RecipeTable 88（`SplitLv`＝顆數−1／`SpreadSpacing`＋`SpreadMaxAngle`／`Speed`）、WeaponTable 73（`Damage`）；大絕那把是 89／74（多了 `BounceLv`） |
 | 被擊退的難易 | CSV `KnockbackThreshold`（累積傷害門檻，40）／`KnockbackPercent`（畫布寬 %，8） |
 | 跳躍落點記錄時的最遠距離 | `LeapTrackRangeMax`(9)；鎖定時機＝離地（`TakeoffFrame` 14） |
 | 跳躍頻率與距離 | `LeapCooldownMin/Max`、`LeapRangeMin/Max` |
@@ -1653,7 +1653,7 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 | 招 | 什麼時候 | 做什麼 |
 |---|---|---|
 | 近戰追擊 | 平常 | **委派 `MeleeChaseBrain`**（§10）：站定揮完、命中幀（CSV `AttackHitFrame 11`）結算 |
-| 跳劈衝擊波 | 每 **5 秒**（從上一次開始算；開戰後 5 秒第一次），**不限距離**（作者：很近也會放） | slash one-shot，第 **17** 幀（劍砍進地面）朝目標放**三向**金色衝擊波（武器 75／配方 90：`SpreadCount 3`／`SpreadAngle 50`＝±25°） |
+| 跳劈衝擊波 | 每 **5 秒**（從上一次開始算；開戰後 5 秒第一次），**不限距離**（作者：很近也會放） | slash one-shot，第 **17** 幀（劍砍進地面）朝目標放**三向**金色衝擊波（武器 75／配方 90：`SplitLv 2`／`SpreadSpacing 25`＋`SpreadMaxAngle 50`＝±25°） |
 | 閃避 | 冷卻 **3 秒**（從開始閃算起），只在手上沒動作時 | 見 §16.3 |
 | 大絕「血色劍域」 | 血量 ≤ 50／40／30／20／10% | 見 §16.2 |
 
@@ -1709,7 +1709,7 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 - 編輯器 `Effects/Super Pixel Projectiles Pack 2/pj2_ground_shockwave` 的 **yellow**（一般）與 **red**（大絕）各 5 幀（128×64），**最近鄰 ×4** 存成 `Resources/Weapon/animation/holyShockwave/`、`bloodShockwave/`（`_01`~`_05`）。
 - ⭐ **`.meta` 的 pivot 改成 (0.68, 0.5)**（`alignment: 9`）：這張圖的主體在前半、後面是拖著的尖刺。子彈的判定是以 pivot 為圓心的圓（配方 `Radius`），pivot 留在中心的話圓會落在尖刺上、前緣碰到玩家還不算中。往前移之後判定圓對齊衝擊波最厚的那一團。
 - 武器 75／76：`BulletScale 10`（＝ 5.1×2.6 世界單位）、`AnimFPS 10`、`SpriteAngleOffset 360`、**`FlipYWhenLeft 1`**（貼地的圖往左飛轉 180° 會頭下腳上）、擊中 Vfx 41（金）／58（紅）。
-- 配方 90／91：速度 **5**（慢、壓迫感）、**`Radius 0.6`**、壽命 4、**`PierceCount -1`＋被牆擋**（穿過玩家、撞牆才消失）。
+- 配方 90／91：速度 **5**（慢、壓迫感）、**`Radius 0.6`**、壽命 4、**`PierceLv 50`＋被牆擋**（2026-11-17 前是無限穿透 -1）（穿過玩家、撞牆才消失）。
 - ⚠ **判定半徑不要照圖的高度給**（PROBLEMS **F41**）：第一版 1.25 ⇒ 玩家的腳離行進線 1.75 以內就中（約一個身高），作者實測「以為躲開了還是被打到」。俯視角裡貼地衝擊波的圖高是「往上竄多高」，不是「在地上佔多寬」。子彈中心抬在腳底上方 1.0（`ShockLift`），剛好對齊玩家在胸口的碰撞圓。
 
 ### 16.6 動到的共用元件（全部是加法，既有怪零變化）
@@ -1733,7 +1733,7 @@ Return（飛回家；蝙蝠＝地圖上方新棲點）◀───────�
 | 血量、走路速度、近戰傷害、體型、動畫節奏、擊退 | `MonsterData.csv` 38／40／45（HP 300／180、Speed 3.2、ContactDamage 12、**Scale 1**（作者 2026-10-27：跟主角差不多大；最初沿用嘯月的 2.1 太大）、AnimFPS 14、擊退 40／8） |
 | 揮劍命中幀 | CSV `AttackHitFrame`（11） |
 | 跳劈間隔、放波幀、出手點 | `HolyPrinceElvinBrain`：`SlashInterval`(5)／`FirstSlashDelay`(5)／`SlashReleaseFrame`(17)／`ShockForward`(0.3)／`ShockLift`(1.0) |
-| 三向的角度、衝擊波速度／大小／判定 | RecipeTable 90（`SpreadAngle 50`＝±25°、`Speed 5`、`Radius 1.25`）、WeaponTable 75（`Damage 10`、`BulletScale 10`）；大絕那把是 91／76 |
+| 三向的角度、衝擊波速度／大小／判定 | RecipeTable 90（`SpreadSpacing 25`＋`SpreadMaxAngle 50`＝±25°、`Speed 5`、`Radius 1.25`）、WeaponTable 75（`Damage 10`、`BulletScale 10`）；大絕那把是 91／76 |
 | 大絕門檻、波數、加速、道數與間隔 | `UltThresholds`、`UltWaves`(5)、`UltSlashFpsMul`(1.5)、`UltCount`(6)、`UltSpacingDeg`(30) |
 | 閃避冷卻、虛體幀、預判 | `DodgeCooldown`(3)、`DodgeInvulnFrom/To`(1／17)、`PredictWindow`(0.3)、`PredictNearDistance`(1.2)、`PredictBodyShrink`(0.85) |
 | 出手時的大小／前後位置／收劍浮起 | CSV `AttackScale`(0.92)／`AttackOffsetX`(27，原圖 px)／`AttackFootLock`(1) |

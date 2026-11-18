@@ -31,6 +31,21 @@ namespace Dipan.Inventory
     }
 
     /// <summary>
+    /// 裝備身上**內建的一條特殊效果**（品質系統，2026-11-17，見 readme/EQUIPMENT.md §5）。
+    /// 效果種類跟鑲嵌珠是同一張 GemTable（所以算法、數值、說明文字全部共用），差別只在它長在裝備上、拿不下來。
+    /// 一件裝備身上有幾條＝它的品質（0 一般／1 良品／2 珍品／3 極品），**品質不另外存**。
+    /// </summary>
+    public class Affix
+    {
+        /// <summary>效果 ID ＝ GemTable 的 GemID（**不是**珠子的物品 ID）。</summary>
+        public int effectId;
+        /// <summary>這一條的等級（單一來源 1~3）。全身同種效果的等級會相加。</summary>
+        public int level = 1;
+
+        public Affix Clone() => new Affix { effectId = effectId, level = level };
+    }
+
+    /// <summary>
     /// 「玩家手上這一件」的額外資料。
     ///
     /// 【核心觀念】CSV 表（ItemTable / WeaponTable / RecipeTable）只是**模板**；玩家實際持有的那一件
@@ -55,7 +70,27 @@ namespace Dipan.Inventory
         /// <summary>鑲嵌孔；裝備才有（固定 <see cref="SocketMax"/> 格，沒開的 unlocked = false）。非裝備 = null。</summary>
         public List<SocketSlot> sockets;
 
+        /// <summary>
+        /// 內建特殊效果（品質系統）；裝備才有，最多 <see cref="AffixMax"/> 條、同一種效果不重複。
+        /// null 或空＝一般。舊存檔沒有這個欄位 → 讀進來是 null ＝ 一般，不用遷移。
+        /// </summary>
+        public List<Affix> affixes;
+
+        /// <summary>一件裝備最多幾條內建效果（＝最高品質「極品」）。</summary>
+        public const int AffixMax = 3;
+
         // ───────────── 查詢 ─────────────
+
+        /// <summary>內建效果條數（＝品質減一）。</summary>
+        public int AffixCount => affixes != null ? affixes.Count : 0;
+
+        /// <summary>這一件身上有沒有某種內建效果（GemTable 的 GemID）。</summary>
+        public bool HasAffix(int effectId)
+        {
+            if (affixes == null) return false;
+            for (int i = 0; i < affixes.Count; i++) if (affixes[i] != null && affixes[i].effectId == effectId) return true;
+            return false;
+        }
 
         public bool HasSockets => sockets != null && sockets.Count > 0;
 
@@ -133,6 +168,12 @@ namespace Dipan.Inventory
                 for (int i = 0; i < sockets.Count; i++)
                     c.sockets.Add(sockets[i] != null ? sockets[i].Clone() : new SocketSlot());
             }
+            if (affixes != null)
+            {
+                c.affixes = new List<Affix>(affixes.Count);
+                for (int i = 0; i < affixes.Count; i++)
+                    if (affixes[i] != null) c.affixes.Add(affixes[i].Clone());
+            }
             return c;
         }
 
@@ -140,6 +181,6 @@ namespace Dipan.Inventory
         /// 這份實例是不是「空的」（沒有任何值得保存的內容）。
         /// 用來避免給一般可疊道具掛上無意義的實例、讓它們失去疊堆能力。
         /// </summary>
-        public bool IsBlank => level <= 0 && !HasSockets;
+        public bool IsBlank => level <= 0 && !HasSockets && AffixCount == 0;
     }
 }

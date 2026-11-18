@@ -1,38 +1,38 @@
-GemID,Name,Field,Target,Lv1,Lv2,Lv3,Icon,BaseColor,Note
-# 能力珠定義表。一種珠子一列，三個等級共用同一列（珠子最多強化三次）。
-# Field  ＝ 要改的欄位名，**原文照抄 RecipeTable / WeaponTable 的欄位名**，這樣同一個功能兩邊叫同一個名字。
-# Target ＝ 這個欄位在哪一層：Recipe（配方/子彈行為）／Weapon（武器數值）／Player（角色屬性，效果尚未接）。
+GemID,Name,Calc,Attribute,Target,Lv1,PerLv,MaxLv,Icon,BaseColor,Note
+# 效果定義表（2026-11-17 裝備體系改版，見 readme/EQUIPMENT.md）。一種效果一列；能力珠與裝備的「內建特殊效果」共用這張表。
+# Calc      ＝ 算法：Percent（百分比，強化基礎屬性）／Level（純等級，行為；武器起點也填等級）／Add（加值，模式參數的數量或角度）。
+# Attribute ＝ 改哪個屬性（程式 EquipAttributes.cs 依武器模式對應到實際欄位）：
+#             Percent：Damage／AttackRate／Speed／Range／Size／ManaCost／OrbitalRadius／ChainRadius／DashDistance／ChargeTime
+#             Level  ：Pierce／Bounce／Split／Homing／Burst／Parallel
+#             Add    ：OrbitalCount／SummonCount／SummonMaxAlive／ChainCount／SpreadAngle／MeleeAngle／AimConeAngle／SnapRadius
+# Target    ＝ 分類：Recipe／Weapon＝武器類效果；Player＝防具類效果（減傷、增防…之後才規劃，效果尚未接）。
+# 疊加規則：**全身等級相加**（武器起點＋各部位內建效果＋所有鑲嵌珠，同一種效果的等級加總），再查一次表：
+#             數值＝Lv1 ＋（總等級－1）× PerLv；總等級超過 MaxLv 照 MaxLv 算。單一來源（一顆珠子／一條內建效果）最高 Lv3。
+# Percent 的值是「加多少百分比」：同一屬性全部加總後套一次；越小越好的屬性（攻擊間隔、耗魔、集氣時間）用除法：基礎 ÷（1＋總和）。
 # Icon      ＝ 珠子上疊的能力符號檔名後半段（gemIcon_<這裡>），放 UI/Icons/Items/gems/gemIcons/。
-# BaseColor ＝ 珠身顏色（gemBase_<這裡>_lv1~3），放 UI/Icons/Items/gems/gemBase/。
-#             **留空就自動推導**：Recipe/Weapon → red（技能珠）、Player → blue（屬性珠）。
-#             想把屬性珠再細分（藍=生命、黃=防禦）才需要填。
-# 數值可填固定值（1）或百分比（10% / -20%）。百分比會累加後乘上基礎值。
-# 疊加規則是「各來源各自查表得到數值後相加」，不是等級相加 → 表永遠只需要三欄。見 readme/GEM_SOCKET.md。
-1,反彈,MaxBounces,Recipe,1,2,5,bounce,,反彈次數。會自動打開反彈開關，原本不反彈的武器鑲上去也能反彈（預設對牆）
-2,穿透,PierceCount,Recipe,1,2,5,pierce,,穿透數。原本就是無限穿透（-1）的武器不受影響
-3,迅捷,Speed,Recipe,10%,20%,50%,speed,,子彈飛行速度。註：拋物線武器的 Speed 語意是飛行秒數，加了會變慢
-4,銳利,Damage,Weapon,1,2,5,damage,,武器傷害
-5,追蹤,HomingTurnSpeed,Recipe,60,120,300,homing,,追蹤轉向速度。會自動打開追蹤
-6,分裂,SpreadCount,Recipe,1,1,2,split,,分裂／散射數量。會自動打開分裂
-7,須彌,BulletScale,Weapon,10%,20%,50%,scale,,施放大小：子彈變大；近戰/突進/法陣/落雷/佛光/拋物線爆炸的範圍與視覺一起放大。雷射與連鎖不吃（粗細看武器表 BeamWidth）
-8,疾發,FireInterval,Recipe,-10%,-20%,-40%,rapid,,發射間隔（負值＝更快）。程式有下限保護，不會被減到 0
-# ── 2026-08-26 從武器表／配方表拆出來的第二批（9~25）。Icon 先借現有符號，外型之後重製 ──
-9,綿延,LifeTime,Recipe,20%,40%,80%,speed,,子彈存活秒數（飛得更遠）。原本不消失（-1）的不受影響；環繞＝整組存在時間
-10,遠射,Range,Recipe,20%,40%,60%,pierce,,射程：雷射光束長度／連鎖首段射程／法陣施放距離。雷射 -1（無限）不受影響
-11,廣角,SpreadAngle,Recipe,15,30,60,split,,分裂／散射的扇形總角度（度）。要有分裂數才看得出
-12,群環,OrbitalCount,Recipe,1,1,2,split,,環繞數量（環繞模式＝子彈顆數；浮游模式＝本體數量）
-13,環距,OrbitalRadius,Recipe,20%,40%,80%,scale,,環繞半徑（環繞／浮游模式）
-14,頻擊,DotInterval,Recipe,-10%,-20%,-40%,rapid,,雷射結算節拍（負值＝更密）。程式有下限保護
-15,連鎖,ChainCount,Recipe,1,2,3,bounce,,連鎖閃電跳躍次數（僅連鎖模式）
-16,引雷,ChainRadius,Recipe,20%,40%,80%,homing,,連鎖每跳搜尋半徑（僅連鎖模式）
-17,鎖敵,AimConeAngle,Recipe,30,60,180,homing,,連鎖首段鎖定錐半角（度），180＝任意方向鎖最近（僅連鎖模式）
-18,吸落,SnapRadius,Recipe,1,2,4,homing,,落雷落點吸附半徑（僅落雷模式）
-19,群召,SummonCount,Recipe,1,1,2,split,,每次召喚隻數（僅召喚模式）
-20,眾生,SummonMaxAlive,Recipe,1,2,4,split,,召喚物同時存在上限（僅召喚模式）
-21,廣刃,MeleeAngle,Recipe,20,40,80,scale,,近戰扇形總角度（度）（僅近戰模式）
-22,長驅,DashDistance,Recipe,20%,40%,80%,speed,,突進距離（僅突進模式）
-23,聚氣,ChargeTimeReduction,Recipe,10,20,40,rapid,,集氣時間縮減（固定值＝百分點，10＝縮短 10%）。只有 ChargeMode=1 的武器有感
-24,省魔,ManaCost,Weapon,-10%,-20%,-30%,damage,,耗魔（負值＝更省）。通用欄，所有模式都吃
-25,粗束,BeamWidth,Weapon,20%,40%,80%,scale,,雷射／連鎖光束粗細（視覺與命中共用）
-26,連擊,BurstCount,Recipe,1,1,2,rapid,,扣一次扳機連射的發數（一份魔力只扣一次；每發各自分裂）。雷射／佛光／環繞不吃
-27,平行,ParallelCount,Recipe,1,1,2,split,,同方向並排的道數（全從玩家出生、散開再拉直；每道各自分裂）。只有一般子彈與拋物線吃
+# BaseColor ＝ 珠身顏色（gemBase_<這裡>_lv1~3）；留空自動推導：Recipe/Weapon → red、Player → blue。
+# 2026-11-17 合併：綿延(9)→遠射(10)、頻擊(14)→疾發(8)、粗束(25)→須彌(7)，這三個 GemID 作廢、永不重用。
+1,反彈,Level,Bounce,Recipe,1,1,50,bounce,,反彈次數（lv n＝n 次）。原本不反彈的武器也會打開反彈（預設對牆）
+2,穿透,Level,Pierce,Recipe,1,1,50,pierce,,穿透數（lv n＝穿 n 隻）。迴旋天生無限穿透，不受影響
+3,迅捷,Percent,Speed,Recipe,5%,5%,30,speed,,飛行速度。拋物線／頭頂投彈換算成縮短落下秒數。太快會穿過小碰撞框，先封 30 級
+4,銳利,Percent,Damage,Weapon,5%,5%,50,damage,,傷害（作者定：每級 +5%，堆滿 +250%）
+5,追蹤,Level,Homing,Recipe,60,30,50,homing,,追蹤轉向速度（度/秒）：lv1＝60，每級 +30（lv5≈180）
+6,分裂,Level,Split,Recipe,1,1,50,split,,分裂／散射數：lv n＝多 n 顆（lv1＝分成兩顆）
+7,須彌,Percent,Size,Weapon,4%,4%,50,scale,,大小／範圍：子彈、近戰、法陣、落雷、佛光、爆炸＝範圍與視覺一起放大；雷射與連鎖＝光束粗細（合併原粗束）
+8,疾發,Percent,AttackRate,Recipe,4%,4%,50,rapid,,攻擊頻率：發射間隔／雷射節拍／佛光節拍 ÷（1＋總和）（合併原頻擊）
+10,遠射,Percent,Range,Recipe,5%,5%,50,pierce,,射程：子彈存活時間（環繞＝整組時間）／雷射長度／連鎖首段／施放距離／迴旋距離／索敵半徑；無限（-1）不受影響（合併原綿延）
+11,廣角,Add,SpreadAngle,Recipe,10,10,36,split,,分裂扇形角度每級 +10°，最多到 360°。要有分裂才看得出
+12,群環,Add,OrbitalCount,Recipe,1,1,50,split,,環繞數量 +1／級（環繞＝子彈顆數；浮游＝本體數量）
+13,環距,Percent,OrbitalRadius,Recipe,5%,5%,30,scale,,環繞半徑（環繞／浮游）
+15,連鎖,Add,ChainCount,Recipe,1,1,50,bounce,,連鎖閃電跳躍次數 +1／級
+16,引雷,Percent,ChainRadius,Recipe,5%,5%,30,homing,,連鎖每跳搜尋半徑
+17,鎖敵,Add,AimConeAngle,Recipe,10,10,18,homing,,連鎖首段鎖定錐半角每級 +10°，最多 180°（任意方向鎖最近）
+18,吸落,Add,SnapRadius,Recipe,0.5,0.5,50,homing,,落雷落點吸附半徑每級 +0.5（起點常是 0，所以用加值不用百分比）
+19,群召,Add,SummonCount,Recipe,1,1,50,split,,每次召喚隻數 +1／級
+20,眾生,Add,SummonMaxAlive,Recipe,1,1,50,split,,召喚物同時存在上限 +1／級
+21,廣刃,Add,MeleeAngle,Recipe,10,10,36,scale,,近戰扇形角度每級 +10°，最多 360°
+22,長驅,Percent,DashDistance,Recipe,5%,5%,30,speed,,突進距離
+23,聚氣,Percent,ChargeTime,Recipe,5%,5%,50,rapid,,集氣時間 ÷（1＋總和）。只有 ChargeMode=1 的武器有感
+24,省魔,Percent,ManaCost,Weapon,4%,4%,50,damage,,耗魔 ÷（1＋總和）。所有模式都吃
+26,連擊,Level,Burst,Recipe,1,1,50,rapid,,扣一次扳機多連 n 發（lv n）。雷射／佛光／環繞不吃
+27,平行,Level,Parallel,Recipe,1,1,50,split,,多 n 道並排（lv n）。只有一般子彈、拋物線、浮游吃

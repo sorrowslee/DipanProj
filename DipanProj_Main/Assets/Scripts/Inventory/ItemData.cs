@@ -36,6 +36,12 @@ namespace Dipan.Inventory
         public int GemID;             // 能力珠：對應 GemTable 的 GemID（決定它給的是哪個能力）；0 = 不是能力珠
         public int BloodlineUpgrade;  // 血統進階藥劑：目標階數（2 = 中階、3 = 高階）。全系列通用；0 = 不是進階藥劑
         /// <summary>
+        /// **非裝備**物品的品質（模板屬性；ItemTable 第 20 欄 `Rarity`，留空＝一般）。2026-11-17 品質系統。
+        /// ⚠ **裝備不看這欄**——裝備的品質是「這一件身上幾條內建效果」，由 <see cref="ItemQuality.RarityOf"/> 算。
+        /// 之後新增道具時要先問作者稀有度（readme/EQUIPMENT.md §1）。
+        /// </summary>
+        public Dipan.Exchange.ItemRarity Rarity = Dipan.Exchange.ItemRarity.White;
+        /// <summary>
         /// **被動武器掛載**（2026-10-01，第 19 欄）：裝備這件就自動帶著的被動武器（WeaponTable ID，被動型模式如 Familiar）。
         /// 分號分隔可填多把（<c>72;73</c>）。任何可裝備列都能填（護身符、戒指、胸甲…）；
         /// 不是被動型模式的 ID 載入時會印警告並略過。空 = 沒有。見 readme/PASSIVE_WEAPON.md。
