@@ -58,6 +58,7 @@ namespace DipanMapEditor.Preview
             Load("GroundSpikeTable", GroundSpikeDatabase.LoadFromText);
             Load(ExplosionDatabase.TableName, ExplosionDatabase.LoadFromText);
             Load(TeleportFxDatabase.TableName, TeleportFxDatabase.LoadFromText);
+            Load(BeamFxDatabase.TableName, BeamFxDatabase.LoadFromText);
         }
 
         static void Load(string table, System.Action<string> apply)

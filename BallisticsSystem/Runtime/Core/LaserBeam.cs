@@ -5,41 +5,17 @@ using UnityEngine;
 namespace Sorrows.Ballistics
 {
     /// <summary>
-    /// 雷射「外型」的一組參數 = 一種雷射種類(BeamStyle)。全部是數字，對應 Custom/AdditiveBeam shader 的參數。
-    /// 換種類 = 換一組數字（不需要貼圖）；新增第 N 種 = 多定義一組。實際 10 種定義在主遊戲的 BeamStyleLibrary。
-    /// </summary>
-    public struct BeamStyle
-    {
-        public float Intensity;        // 整體亮度
-        public float EdgeStart;        // 截面實心比例（越大越像實心粗光；越小核心越集中、邊緣越柔）
-        public float CoreWidth;        // 白熱核心寬度
-        public float CoreWhiteness;    // 核心趨白程度（0=純色不發白）
-        public float FlowSpeed;        // 波帶流動速度（0=靜止）
-        public float BandFreq;         // 波帶密度（每世界單位幾個波；0=均勻無波，像鏡光）
-        public float BandDepth;        // 波帶明暗深度（0=均勻，1=明暗到底）
-        public float BandSharp;        // 波帶銳利度（1=平滑波，高=能量包，更高≈虛線）
-        public float NoiseAmt;         // 雜訊量（電漿/閃電；0=乾淨）
-        public float NoiseSpeed;       // 雜訊翻騰速度
-        public float FlickerStrength;  // 整體脈動幅度
-        public float FlickerSpeed;     // 整體脈動速度
-    }
-
-    /// <summary>
     /// 持續掃射型雷射光束。與 BulletInstance（會移動的點）不同，光束是「當下就存在的一條線」，
     /// 由 line-march（逐段行進）每幀重算路徑，讓追蹤(彎曲)、反彈(折線)、穿透、射程從同一個迴圈長出來。
     ///
-    /// 渲染採「自繪 mesh」：每段一個四邊形，轉角依夾角延伸讓相鄰段重疊補滿凸角（刻意不用 LineRenderer，
-    /// 它的轉角接縫對厚光束+尖反彈無解）。外型 100% 由 BeamStyle 參數驅動的 Custom/AdditiveBeam shader 決定。
+    /// 2026-11-18 起<b>不畫任何東西</b>：外觀由主遊戲依武器 BeamFxID 掛 DipanVfx 的 <c>BeamVisual</c>，
+    /// 讀 <see cref="Points"/> 畫（見 readme/DIPAN_VFX.md §4d）；火焰噴射器則沿 Points 鋪火焰。
     ///
-    /// 邊界規範：本元件只負責幾何 + 渲染 + 回報命中，<b>絕不結算傷害</b>。
+    /// 邊界規範：本元件只負責幾何 + 回報命中，<b>絕不結算傷害</b>。
     /// 每隔 DotInterval 秒透過 OnBeamDamageTick 把「當下掃到的目標」回報給主遊戲，由主遊戲算傷害。
     /// </summary>
-    [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class LaserBeam : MonoBehaviour
     {
-        // 飛行戰鬥視覺畫在「地上物之上」以維持可讀性（與主遊戲擊中特效同層；16-bit 安全 <32767）。
-        const int BeamSortingOrder = 22000;
-
         public struct BeamHit
         {
             public GameObject Target;
@@ -49,7 +25,7 @@ namespace Sorrows.Ballistics
         // ── 由 BallisticsEngine.SpawnBeam 設定的設定值 ──
         public Vector2 Origin;            // 砲口位置（玩家每幀更新）
         public Vector2 AimDirection;      // 初始瞄準方向（玩家每幀更新為「玩家→滑鼠」）
-        public float Radius = 0.2f;       // 命中判定半徑（同時作為視覺半寬）
+        public float Radius = 0.2f;       // 命中判定半徑（＝武器 BeamWidth / 2）
         public float BeamRange = 20f;     // 最大射程
         public int PierceCount = 0;       // 0=打到第一個就停；-1=無限穿透；>0=穿透 N 個
         public bool HasBounce;
@@ -62,10 +38,7 @@ namespace Sorrows.Ballistics
         public LayerMask PierceableLayers;
         public LayerMask NonBounceLayers;
 
-        /// <summary>是否畫出光束 mesh + 砲口/命中光暈。false = 只算幾何/命中（路徑交給主遊戲沿路鋪火焰 Vfx 等），不畫光束本體。</summary>
-        public bool DrawBeam = true;
-
-        /// <summary>當前光束折線路徑（世界座標、唯讀）。主遊戲可沿此鋪設特效（如火焰噴射器沿路鋪 FireBall）。每幀重算。</summary>
+        /// <summary>當前光束折線路徑（世界座標、唯讀）。主遊戲的光束外觀（BeamVisual）與火焰噴射器都讀這份。每幀在 Update 重算，外觀在 LateUpdate 讀 ⇒ 不落後一幀。</summary>
         public IReadOnlyList<Vector2> Points => _points;
 
         /// <summary>每隔 DotInterval 秒回報一次當下命中清單（主遊戲據此結算傷害 / 地面特效 / OnHit 分裂）。</summary>
@@ -86,23 +59,6 @@ namespace Sorrows.Ballistics
         // CSV 以 BeamRange=-1 表示延伸到實用安全距離；反射次數仍完全服從 MaxBounces。
         private const float InfiniteBeamDistance = 200f;
 
-        private Shader _shader;
-        private Shader _glowShader;
-        private Material _beamMat;
-        private MeshFilter _mf;
-        private MeshRenderer _mr;
-        private Mesh _mesh;
-        private Color _beamColor = Color.white;
-        private Color _renderColor = Color.white;   // 實際畫進 mesh 的顏色；淡出時由 TickFade 漸暗（連鎖閃電用）
-        private Transform _muzzle, _impact;
-        private SpriteRenderer _muzzleSr, _impactSr; // 光暈 SpriteRenderer 參考（淡出時一併漸暗）
-        private readonly List<Material> _ownedMaterials = new List<Material>();
-
-        // ── 靜態折線模式（連鎖閃電）：餵入一條固定折線、跳過 march/damage，短命淡出後自毀 ──
-        private bool _staticPath;
-        private float _life = -1f;       // 剩餘壽命；< 0 = 不自毀
-        private float _lifeTotal = -1f;  // 總壽命（算淡出比例用）
-
         private readonly List<Vector2> _points = new List<Vector2>(64);
         private readonly List<BeamHit> _hits = new List<BeamHit>(16);
         private readonly HashSet<int> _hitSet = new HashSet<int>();
@@ -110,133 +66,16 @@ namespace Sorrows.Ballistics
         private readonly HashSet<int> _envHitSet = new HashSet<int>();
         private float _dotTimer;
 
-        // mesh 重建用緩衝（避免每幀配置）
-        private readonly List<Vector3> _verts = new List<Vector3>(256);
-        private readonly List<Vector2> _uvs = new List<Vector2>(256);
-        private readonly List<Color> _cols = new List<Color>(256);
-        private readonly List<int> _tris = new List<int>(512);
-        private readonly List<float> _ext = new List<float>(64);
-
-        /// <summary>建立視覺（自繪 mesh 材質 + 砲口/命中光暈）。在設定完所有欄位後呼叫一次。</summary>
-        public void Setup(BeamStyle style, Color beamColor, float beamWidth, Sprite muzzleSprite, Sprite impactSprite)
+        /// <summary>設定完所有欄位後呼叫一次（讓第一幀就結算一次傷害）。</summary>
+        public void Setup()
         {
-            // mesh 頂點直接用世界座標 → 把本物件 transform 歸零，避免被 transform 再次位移。
-            transform.position = Vector3.zero;
-            transform.rotation = Quaternion.identity;
-            transform.localScale = Vector3.one;
-
-            _beamColor = beamColor;
-            _renderColor = beamColor;
-
-            _shader = Shader.Find("Custom/AdditiveBeam");
-            if (_shader == null) _shader = Shader.Find("Sprites/Default"); // 後備，至少能顯示
-            _glowShader = Shader.Find("Custom/AdditiveGlow");
-            if (_glowShader == null) _glowShader = _shader;
-
-            _beamMat = new Material(_shader);
-            _ownedMaterials.Add(_beamMat);
-            ApplyStyle(_beamMat, style);
-
-            _mf = GetComponent<MeshFilter>();
-            _mr = GetComponent<MeshRenderer>();
-            _mesh = new Mesh { name = "LaserBeamMesh" };
-            _mesh.MarkDynamic();
-            _mf.sharedMesh = _mesh;
-            _mr.sharedMaterial = _beamMat;
-            // 飛行戰鬥視覺畫在「地上物之上」以維持可讀性（與主遊戲擊中特效同層 ~22000，16-bit 安全）。
-            _mr.sortingOrder = BeamSortingOrder;
-            _mr.enabled = DrawBeam;   // 火焰模式不畫光束本體（改由主遊戲沿 Points 鋪火焰）
-
-            // 砲口 / 命中圓形光暈（用 glow shader，與光束本體分開）。火焰模式不需要光暈。
-            if (DrawBeam)
-            {
-                if (muzzleSprite != null) { _muzzle = CreateGlow("MuzzleGlow", muzzleSprite, beamColor, beamWidth * 1.3f, BeamSortingOrder + 5); _muzzleSr = _muzzle.GetComponent<SpriteRenderer>(); }
-                if (impactSprite != null) { _impact = CreateGlow("ImpactGlow", impactSprite, beamColor, beamWidth * 1.8f, BeamSortingOrder + 10); _impactSr = _impact.GetComponent<SpriteRenderer>(); }
-            }
-
-            _dotTimer = DotInterval; // 讓第一幀即可結算一次傷害
-        }
-
-        // 把一種雷射種類的參數套到光束材質（對應 AdditiveBeam shader 的欄位）
-        private static void ApplyStyle(Material m, BeamStyle s)
-        {
-            m.SetColor("_TintColor", Color.white);   // 顏色走頂點色(BeamColor)，Tint 保持白
-            m.SetFloat("_Intensity", s.Intensity);
-            m.SetFloat("_EdgeStart", s.EdgeStart);
-            m.SetFloat("_CoreWidth", s.CoreWidth);
-            m.SetFloat("_CoreWhiteness", s.CoreWhiteness);
-            m.SetFloat("_FlowSpeed", s.FlowSpeed);
-            m.SetFloat("_BandFreq", s.BandFreq);
-            m.SetFloat("_BandDepth", s.BandDepth);
-            m.SetFloat("_BandSharp", s.BandSharp);
-            m.SetFloat("_NoiseAmt", s.NoiseAmt);
-            m.SetFloat("_NoiseSpeed", s.NoiseSpeed);
-            m.SetFloat("_FlickerStrength", s.FlickerStrength);
-            m.SetFloat("_FlickerSpeed", s.FlickerSpeed);
-        }
-
-        private Transform CreateGlow(string glowName, Sprite sprite, Color color, float desiredDiameter, int sortingOrder)
-        {
-            var go = new GameObject(glowName);
-            go.transform.SetParent(transform, false);
-            var sr = go.AddComponent<SpriteRenderer>();
-            sr.sprite = sprite;
-            sr.color = color;
-            var mat = new Material(_glowShader);
-            _ownedMaterials.Add(mat);
-            sr.material = mat;
-            sr.sortingOrder = sortingOrder;
-
-            float spriteSize = sprite.bounds.size.x;
-            if (spriteSize > 0.0001f)
-            {
-                float s = desiredDiameter / spriteSize;
-                go.transform.localScale = new Vector3(s, s, 1f);
-            }
-            return go.transform;
+            _dotTimer = DotInterval;
         }
 
         private void Update()
         {
-            // 靜態折線模式（連鎖閃電）：折線固定、不 march、不結算傷害（傷害已由主遊戲在施放時算完），只渲染 + 淡出。
-            if (_staticPath)
-            {
-                TickFade();
-                RenderBeam();
-                return;
-            }
-
-            MarchBeam();               // 永遠重算路徑與命中（火焰模式也要靠 Points 鋪火焰、靠命中算傷害）
-            if (DrawBeam) RenderBeam(); // 火焰模式不畫光束 mesh / 不更新光暈
+            MarchBeam();   // 重算路徑與命中
             TickDamage();
-        }
-
-        /// <summary>
-        /// 連鎖閃電用：餵入一條「已算好的世界座標折線」（玩家→怪A→怪B…，可含鋸齒抖動點），
-        /// 之後不再 march、不回報傷害，只渲染 + 在 life 秒內淡出後自毀。傷害由主遊戲在施放時自行結算。
-        /// </summary>
-        public void SetStaticPath(List<Vector2> pts, float life)
-        {
-            _points.Clear();
-            if (pts != null) _points.AddRange(pts);
-            if (_points.Count < 2) _points.Add((_points.Count > 0 ? _points[0] : Origin) + Vector2.right * 0.1f);
-            _staticPath = true;
-            _lifeTotal = life;
-            _life = life;
-            _renderColor = _beamColor;
-            RenderBeam();
-        }
-
-        // 短命淡出：剩餘壽命比例越低、加色顏色越暗（additive 往黑色收）；歸零自毀。
-        private void TickFade()
-        {
-            if (_lifeTotal <= 0f) return;
-            _life -= Time.deltaTime;
-            float k = Mathf.Clamp01(_life / _lifeTotal);
-            _renderColor = _beamColor * k;
-            if (_muzzleSr != null) _muzzleSr.color = _beamColor * k;
-            if (_impactSr != null) _impactSr.color = _beamColor * k;
-            if (_life <= 0f) Destroy(gameObject);
         }
 
         // ── 逐段行進：把追蹤/反彈/穿透/射程收斂進同一迴圈，產出折線頂點與命中清單 ──
@@ -386,77 +225,6 @@ namespace Sorrows.Ballistics
             return best;
         }
 
-        // ── 自繪 mesh：每段一個四邊形，轉角依夾角延伸讓相鄰段重疊補滿凸角 ──
-        private void RenderBeam()
-        {
-            if (_mesh == null) return;
-
-            float half = Radius;
-            int n = _points.Count;
-
-            // 1) 算每個頂點的「轉角延伸量」：直段/緩彎≈0、尖反彈≈半寬（上限半寬，避免過度重疊變亮）。
-            //    端點(砲口/命中)不延伸，交給光暈收尾。
-            _ext.Clear();
-            for (int i = 0; i < n; i++)
-            {
-                if (i == 0 || i == n - 1) { _ext.Add(0f); continue; }
-                Vector2 din = (_points[i] - _points[i - 1]);
-                Vector2 dout = (_points[i + 1] - _points[i]);
-                if (din.sqrMagnitude < 1e-8f || dout.sqrMagnitude < 1e-8f) { _ext.Add(0f); continue; }
-                din.Normalize(); dout.Normalize();
-                float cos = Mathf.Clamp(Vector2.Dot(din, dout), -1f, 1f);
-                // tan(轉角/2) = sqrt((1-cos)/(1+cos))：直走→0、原路折返→∞（夾住到 1）
-                float t = (1f + cos > 1e-4f) ? Mathf.Sqrt((1f - cos) / (1f + cos)) : 1f;
-                _ext.Add(half * Mathf.Min(t, 1f));
-            }
-
-            // 2) 逐段建四邊形。uv.x = 沿光束的世界長度（給 shader 算波帶密度/流動），uv.y = 橫向 0~1
-            _verts.Clear(); _uvs.Clear(); _cols.Clear(); _tris.Clear();
-            float cumLen = 0f;
-            int segCount = n - 1;
-            for (int s = 0; s < segCount; s++)
-            {
-                Vector2 p0 = _points[s];
-                Vector2 p1 = _points[s + 1];
-                Vector2 d = p1 - p0;
-                float segLen = d.magnitude;
-                if (segLen < 1e-5f) continue;
-                d /= segLen;
-                Vector2 perp = new Vector2(-d.y, d.x) * half;
-
-                float extStart = _ext[s];
-                float extEnd = _ext[s + 1];
-                Vector2 a = p0 - d * extStart;
-                Vector2 b = p1 + d * extEnd;
-
-                float uA = cumLen - extStart;
-                float uB = cumLen + segLen + extEnd;
-
-                int baseIdx = _verts.Count;
-                _verts.Add(a - perp); _uvs.Add(new Vector2(uA, 0f)); _cols.Add(_renderColor);
-                _verts.Add(a + perp); _uvs.Add(new Vector2(uA, 1f)); _cols.Add(_renderColor);
-                _verts.Add(b + perp); _uvs.Add(new Vector2(uB, 1f)); _cols.Add(_renderColor);
-                _verts.Add(b - perp); _uvs.Add(new Vector2(uB, 0f)); _cols.Add(_renderColor);
-
-                _tris.Add(baseIdx + 0); _tris.Add(baseIdx + 1); _tris.Add(baseIdx + 2);
-                _tris.Add(baseIdx + 0); _tris.Add(baseIdx + 2); _tris.Add(baseIdx + 3);
-
-                cumLen += segLen;
-            }
-
-            _mesh.Clear();
-            if (_verts.Count >= 3)
-            {
-                _mesh.SetVertices(_verts);
-                _mesh.SetUVs(0, _uvs);
-                _mesh.SetColors(_cols);
-                _mesh.SetTriangles(_tris, 0, true);
-            }
-
-            if (_muzzle != null) _muzzle.position = _points[0];
-            if (_impact != null) _impact.position = _points[n - 1];
-        }
-
         private void TickDamage()
         {
             if (OnBeamDamageTick == null && OnBeamEnvironmentTick == null) return;
@@ -480,14 +248,6 @@ namespace Sorrows.Ballistics
         {
             if (OnBeamDamageTick != null && _hits.Count > 0) OnBeamDamageTick(this, _hits);
             if (OnBeamEnvironmentTick != null && _envHits.Count > 0) OnBeamEnvironmentTick(this, _envHits);
-        }
-
-        private void OnDestroy()
-        {
-            foreach (var m in _ownedMaterials)
-                if (m != null) Destroy(m);
-            _ownedMaterials.Clear();
-            if (_mesh != null) Destroy(_mesh);
         }
     }
 }

@@ -219,13 +219,9 @@ public class WeaponManager : MonoBehaviour
         weapon.AnimFPS = CsvFieldParse.Float(S("AnimFPS"), 0f);
         weapon.BulletScale = CsvFieldParse.Float(S("BulletScale"), 1f);
 
-        // 雷射外觀欄位（只填編號；數字定義在 BeamStyleLibrary）
-        int styleId = CsvFieldParse.Int(S("BeamStyle"), 2);   // 預設 2=標準雷射
-        int colorId = CsvFieldParse.Int(S("BeamColor"), 9);   // 預設 9=白
-        weapon.BeamStyle = BeamStyleLibrary.Get(styleId);
-        weapon.BeamColor = BeamStyleLibrary.GetColor(colorId);
+        // 光束外觀：BeamFxTable 的 ID（留空＝預設光束）＋命中寬度（2026-11-18，DipanVfx）
+        weapon.BeamFxID = CsvFieldParse.Int(S("BeamFxID"), 0);
         weapon.BeamWidth = CsvFieldParse.Float(S("BeamWidth"), 0.5f);
-        weapon.PixelBeamSet = S("PixelBeamSet");
 
         // 一次性特效 ID（引用 VfxTable）；留空 / 0 = 不觸發
         weapon.FireEffectID = CsvFieldParse.Int(S("FireEffectID"), 0);
@@ -269,11 +265,6 @@ public class WeaponManager : MonoBehaviour
         var recipe = weapon.Recipe;
         WeaponMode mode = recipe != null ? recipe.Mode : WeaponMode.Normal;
 
-        // 雷射／連鎖及「非分段」落雷才需要光束素材；九霄雷獄的分段雷柱自帶 Sprite，不載無用光暈。
-        if (mode == WeaponMode.Laser || mode == WeaponMode.Chain
-            || (mode == WeaponMode.SkyStrike && recipe != null && !recipe.SegmentedColumn))
-            LoadBeamAssets(weapon);
-
         if (!string.IsNullOrEmpty(weapon.WeaponAniPath) && weapon.WeaponAniNumber > 0)
         {
             var sprites = new Sprite[weapon.WeaponAniNumber];
@@ -293,7 +284,7 @@ public class WeaponManager : MonoBehaviour
         }
         else if (mode == WeaponMode.Laser)
         {
-            // 雷射武器使用光束自身視覺（beam_core / 光暈），不需要 WeaponSprite
+            // 雷射武器的外觀是 BeamFxTable 的程序光束（或火焰噴射器的火焰），不需要 WeaponSprite
         }
         else if (!string.IsNullOrWhiteSpace(weapon.WeaponSpritePath))
         {
@@ -304,15 +295,5 @@ public class WeaponManager : MonoBehaviour
                 Debug.LogWarning($"[WeaponTable] 武器「{weapon.Name}」的子彈圖 Resources 路徑 '{weapon.WeaponSpritePath}' 找不到。");
         }
         // WeaponSpritePath 留空且非動畫 = 隱形子彈（例如地刺，只靠 TrailEffectID 沿路種刺），不需飛行圖
-    }
-
-    // 雷射光暈素材路徑（相對 Resources/，不含副檔名）。光束本體已全參數化，不再需要 beam 貼圖。
-    private const string BeamMuzzlePath = "Laser/laser_glow";
-    private const string BeamImpactPath = "Laser/laser_impact";
-
-    private void LoadBeamAssets(WeaponData weapon)
-    {
-        weapon.BeamMuzzleSprite = Resources.Load<Sprite>(BeamMuzzlePath);
-        weapon.BeamImpactSprite = Resources.Load<Sprite>(BeamImpactPath);
     }
 }

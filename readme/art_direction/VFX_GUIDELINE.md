@@ -4,7 +4,7 @@
 >
 > **適用範圍**：所有「世界端」的視覺表演——一次性特效（[VFX.md](../VFX.md) 的 VfxTable）、
 > 可放置場景特效與地圖級特效（[SCENE_EFFECT.md](../SCENE_EFFECT.md) 的 SceneFx／SceneEffect）、
-> 地面特效的視覺面（[GROUND_EFFECT.md](../GROUND_EFFECT.md)）、雷射外型（[LASER.md](../LASER.md) BeamStyle）、
+> 地面特效的視覺面（[GROUND_EFFECT.md](../GROUND_EFFECT.md)）、光束外觀（[DIPAN_VFX.md](../DIPAN_VFX.md) §4d BeamFxTable）、
 > 武器化特效（[EFFECT_WEAPONS.md](../EFFECT_WEAPONS.md)）。
 > 螢幕後處理（Atmosphere、全屏效果）另見 [SHADER_GUIDELINE.md](SHADER_GUIDELINE.md)。
 >

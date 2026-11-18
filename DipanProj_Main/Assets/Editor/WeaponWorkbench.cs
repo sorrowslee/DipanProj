@@ -33,6 +33,7 @@ public class WeaponWorkbench : EditorWindow
     const string WeaponPath = "Assets/Data/WeaponTable.csv";
     const string VfxPath = "Assets/Data/VfxTable.csv";
     const string GroundPath = "Assets/Data/GroundEffectTable.csv";
+    const string BeamFxPath = "Assets/Data/BeamFxTable.csv";
     const string ItemPath = "Assets/Data/ItemTable.csv";
     const string WeaponArtRoot = "Assets/Resources/Weapon";
     const string ResourcesPrefix = "Assets/Resources/";
@@ -53,6 +54,7 @@ public class WeaponWorkbench : EditorWindow
 
     // 下拉用的參考表（只讀名字）
     readonly List<int> _vfxIds = new List<int>();       readonly List<string> _vfxLabels = new List<string>();
+    readonly List<int> _beamFxIds = new List<int>();    readonly List<string> _beamFxLabels = new List<string>();
     readonly List<int> _groundIds = new List<int>();    readonly List<string> _groundLabels = new List<string>();
     readonly Dictionary<int, string> _groundDuration = new Dictionary<int, string>();
     readonly HashSet<int> _itemWeaponIds = new HashSet<int>();   // ItemTable 裡 WeaponID 有指到的武器（能裝備的）
@@ -128,6 +130,13 @@ public class WeaponWorkbench : EditorWindow
         {
             int id = r.GetInt("ID", 0); if (id <= 0) continue;
             _vfxIds.Add(id); _vfxLabels.Add($"{id} {Safe(r.Get("Name"))}");
+        }
+        _beamFxIds.Clear(); _beamFxLabels.Clear();
+        _beamFxIds.Add(0); _beamFxLabels.Add("（預設：2 雷射）");
+        foreach (var r in ParseFile(BeamFxPath, "BeamFxTable").Rows)
+        {
+            int id = r.GetInt("ID", 0); if (id <= 0) continue;
+            _beamFxIds.Add(id); _beamFxLabels.Add($"{id} {Safe(r.Get("Name"))}");
         }
         _groundIds.Clear(); _groundLabels.Clear(); _groundDuration.Clear();
         _groundIds.Add(0); _groundLabels.Add("（無）");
@@ -542,8 +551,7 @@ public class WeaponWorkbench : EditorWindow
                 DrawIdPopup(content, d, f.Name, _vfxIds, _vfxLabels); return;
             case "SubRecipeID": DrawRowPopup(content, d, f.Name, _recipes, RecipeLabel, "（無：分裂子彈繼承自身）"); return;
             case "SubWeaponOnHit": DrawRowPopup(content, d, f.Name, _weapons, WeaponLabel, "（無）"); return;
-            case "BeamStyle": DrawIndexedPopup(content, d, f.Name, BeamStyleNames, 2); return;
-            case "BeamColor": DrawIndexedPopup(content, d, f.Name, BeamColorNames, 9); return;
+            case "BeamFxID": DrawIdPopup(content, d, f.Name, _beamFxIds, _beamFxLabels); return;
         }
 
         switch (f.Kind)
@@ -648,19 +656,6 @@ public class WeaponWorkbench : EditorWindow
         int ni = EditorGUILayout.Popup(content, ci, opts.ToArray());
         if (ni != ci && ni <= rows.Count) Set(d, key, ni == 0 ? "" : IdOf(rows[ni - 1]).ToString());
     }
-
-    static void DrawIndexedPopup(GUIContent content, Dictionary<string, string> d, string key, string[] names, int defaultIdx)
-    {
-        int cur = CsvFieldParse.Int(Get(d, key), 0);
-        var opts = new List<string> { $"（預設：{defaultIdx} {names[defaultIdx - 1]}）" };
-        for (int i = 0; i < names.Length; i++) opts.Add($"{i + 1} {names[i]}");
-        int ci = (cur >= 1 && cur <= names.Length) ? cur : 0;
-        int ni = EditorGUILayout.Popup(content, ci, opts.ToArray());
-        if (ni != ci) Set(d, key, ni == 0 ? "" : ni.ToString());
-    }
-
-    static readonly string[] BeamStyleNames = { "鏡光", "標準", "脈衝", "離子", "電漿", "虛線", "閃電", "針狀", "洪流", "微光" };
-    static readonly string[] BeamColorNames = { "紅", "橙", "黃", "綠", "青", "藍", "紫", "洋紅", "白", "琥珀金" };
 
     void CheckAuraDuration(Dictionary<string, string> recipe, WeaponMode mode)
     {

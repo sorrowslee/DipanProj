@@ -20,6 +20,8 @@ public class VfxManager : MonoBehaviour
     public TextAsset ExplosionCSV;
     [Tooltip("傳送點外型設定表 Assets/Data/TeleportFxTable.csv（MapLoader 的 teleportFxStyleId 指向它，見 readme/DIPAN_VFX.md）")]
     public TextAsset TeleportFxCSV;
+    [Tooltip("光束外觀設定表 Assets/Data/BeamFxTable.csv（武器表 BeamFxID 指向它：雷射／連鎖／掃射，見 readme/DIPAN_VFX.md §4d）")]
+    public TextAsset BeamFxCSV;
 
     [Header("Sorting（所有 VFX 共用此排序設定）")]
     public string SortingLayerName = "Default";
@@ -45,6 +47,8 @@ public class VfxManager : MonoBehaviour
         if (boom != null) ExplosionDatabase.LoadFromText(boom);
         var tele = LoadTable(TeleportFxCSV, "TeleportFxTable", "Teleport Fx CSV");
         if (tele != null) TeleportFxDatabase.LoadFromText(tele);
+        var beamFx = LoadTable(BeamFxCSV, "BeamFxTable", "Beam Fx CSV");
+        if (beamFx != null) BeamFxDatabase.LoadFromText(beamFx);
     }
 
     /// <summary>DipanVfx 的設定表（2026-11-17 地刺、2026-11-18 火焰／地上燃燒）。

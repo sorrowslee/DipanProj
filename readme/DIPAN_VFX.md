@@ -46,9 +46,10 @@
 | `Runtime/GroundFire/GroundFireData.cs`、`GroundFireBurst.cs` | 地上燃燒（§4） |
 | `Runtime/Explosion/ExplosionData.cs`、`ExplosionBurst.cs` | 爆炸（§4b） |
 | `Runtime/Teleport/TeleportFx.cs` | 傳送點外型（`TeleportFxData`／`TeleportFxDatabase`／`TeleportMarkerFx`，§4c） |
+| `Runtime/Beam/BeamFxData.cs`、`BeamVisual.cs` | 光束外觀（雷射／連鎖閃電／掃射，§4d） |
 | `Runtime/VfxEmbers.cs` | 火星粒子（一個元件管全部，上限 400 顆） |
-| `Runtime/Resources/Shaders/` | `GroundSpike`、`DipanFlame`、`DipanScorch`、`DipanGlowDot`、`DipanFireball`、`DipanShockRing`、`DipanPortalPool`、`DipanLightBeam`（放 Resources 底下 ⇒ 打包一定帶進去、`Shader.Find` 找得到） |
-| 主遊戲 `Assets/Data/FlameTable.csv`、`GroundFireTable.csv`、`GroundSpikeTable.csv`、`ExplosionTable.csv`、`TeleportFxTable.csv` | 設定表（MainScene 的 VfxManager 五欄都已拖好） |
+| `Runtime/Resources/Shaders/` | `GroundSpike`、`DipanFlame`、`DipanScorch`、`DipanGlowDot`、`DipanFireball`、`DipanShockRing`、`DipanPortalPool`、`DipanLightBeam`、`DipanBeam`、`DipanArc`、`DipanBeamOrb`（放 Resources 底下 ⇒ 打包一定帶進去、`Shader.Find` 找得到） |
+| 主遊戲 `Assets/Data/FlameTable.csv`、`GroundFireTable.csv`、`GroundSpikeTable.csv`、`ExplosionTable.csv`、`TeleportFxTable.csv`、`BeamFxTable.csv` | 設定表（MainScene 的 VfxManager 六欄都已拖好） |
 | 主遊戲 `Resources/VfxEffects/Explosion/fireball_1~6.png` | 爆炸火球雲（白色＋alpha＝密度，置中、Full Rect、不壓縮），火球與黑煙共用 |
 | 主遊戲 `Resources/VfxEffects/Flame/flame_1~6.png` | 火焰形狀（白色＋alpha＝熱度，pivot＝根部 `(0.5, 0.075)`、Full Rect、不壓縮） |
 | 主遊戲 `Resources/VfxEffects/GroundFire/scorch.png`、`scorch_glow.png` | 焦土本體（RGB＋alpha）／裂紋餘燼遮罩（只用 alpha），同尺寸 512 |
@@ -202,6 +203,59 @@
 
 ---
 
+## 4d. 光束外觀（BeamFxTable，2026-11-18）
+
+作者覺得雷射從做出來就很粗糙：接口（反彈轉角）是一段段四邊形硬疊、光暈是兩張大圖、像素雷射拉起來很廉價；希望有**鏡光／雷射／電光**三種感覺，而且要有「**一直有動力往前推送**、像龜派氣功」的感覺，最好**有雷光繞著氣功柱**。
+
+這次把雷射、連鎖閃電、掃射的外觀**全部**搬進套件，**全程序、不用圖**。舊的 `BeamStyle`／`BeamColor`／`BeamStyleLibrary`、`Custom/AdditiveBeam`、像素雷射（`PixelBeamSet`、`PixelLaserBeamVisual`、`PixelLaserA_Blue` 素材）、`Resources/Laser/` 光暈圖、`LaserBeam` 的渲染與 `BallisticsEngine.SpawnChainVisual` 都拆掉了。`LaserBeam` 現在只算路徑與命中。
+
+### 組成（`BeamVisual`，一個元件畫一條光束）
+
+- **光柱**（`Custom/DipanBeam`）：沿路徑鋪**一條連續帶子**。
+  - 緩彎（追蹤彎曲）用斜接，整條沒有接縫。
+  - 轉角超過 120°（幾乎折返的反彈）才斷成兩段，各自圓頭收尾、疊在反彈點上——那裡本來就畫反彈光點。一般反彈（120° 以內）也是斜接、整條連續。（原本 70°，寬的鏡光一反彈就斷、兩個圓頭疊出一團白，同日改。）
+  - 頭尾是**圓頭**（uv1 的 cap 跟橫向合成半徑），不再平切。
+  - 截面：白熱核心＋光柱本體（`Solid` 調實心程度）＋外暈。
+  - **往前推的感覺**：流紋（拉長的噪聲）以 `FlowSpeed` 往前流；能量脈衝一團一團以 `PulseSpeed` 往前推，經過處光柱鼓起變亮（`PulseSpacing`／`PulseAmt`）；外鞘噪聲翻騰（`EdgeNoise`）。
+  - 鏡光專用：邊緣七彩色散（`Chroma`）、沿光束滑過的強光亮紋（`Shimmer`）。
+  - 要整條完全均勻：`StreakAmt`、`EdgeNoise`、`Shimmer`、`Flicker` 都填 0（外暈的噪聲明暗也跟著 `EdgeNoise` 走，≥0.25 時同原本）。
+  - `GrowSpeed`：剛發射時光束往前伸長（判定一開始就是全長，只有畫面晚零點幾秒追上）。
+- **電弧**（`Custom/DipanArc`），兩種走法：
+  - `Helix`（氣功砲的雷光環繞）：一小段一小段電弧（`ArcLength`）繞著光柱轉（`ArcTwist`）、往前竄（`ArcTravel`）、活 `ArcLife` 秒換一段；每段繞的半徑隨機 0.75～1.25 倍，才不會變成規律的彈簧。繞到前面畫在光柱上面、繞到後面畫在光柱底下並變暗（兩個 mesh，排序 ±1）。
+  - `Path`（電光／連鎖閃電）：`ArcCount` 條鋸齒從頭連到尾，每秒重抽 `ArcRate` 次；每個節點（連鎖的目標、反彈點）上釘死，中間亂竄；`ArcBranch` 機率長出短分岔。主線最亮，其他條較暗較寬。
+- **光球**（`Custom/DipanBeamOrb`）：白熱核心＋光暈＋旋轉放射光芒（`OrbRays`），呼吸（`OrbPulse`）。砲口（`MuzzleSize`）、命中端（`ImpactSize`）、轉角超過 25° 的反彈點（`JointSize`，鏡光再加十字星芒 `OrbStar`）。
+- **火花**：命中端往回濺（`VfxEmbers`，`SparkRate`）。
+
+寬度單位：**可見寬＝呼叫端給的寬度（武器 `BeamWidth`，也就是命中寬度）×`WidthMul`**；表裡寫「×半寬」的欄位都乘可見寬的一半。
+
+### 目前五列
+
+| ID | 名稱 | 武器 | 調法重點 |
+|---|---|---|---|
+| 1 | 鏡光 | 29 鏡界折光 | 「拿一面大鏡子反射出去」的寬光帶：WidthMul 3.2、平頂（Solid 0.9、CoreWidth 0.55、GlowWidth 1.25）、淡（BodyIntensity 0.3）、冷白、淡色散 0.25、**完全不波動**（StreakAmt／Shimmer／EdgeNoise／Flicker 全 0——作者：一塊一塊的波動在別的武器需要、在鏡光怪怪的）、反彈點小十字星芒（JointSize 1.15）、不畫放射光芒。初版金白粗光柱作者覺得不像鏡光，同日改；暖白版＝ColorMid #FFF5E6、ColorEdge #FFD9A8 |
+| 2 | 雷射 | 預設（武器沒填 BeamFxID） | 青藍、脈衝間距 1.4 |
+| 3 | 電光 | 9 連鎖閃電、66 雷雨天罰 | 光柱只剩淡光暈（BodyIntensity 0.35、Solid 0）、Path 電弧 3 條、分岔 0.18 |
+| 4 | 氣功砲 | 5 雷射追蹤光束 | 粗白核、脈衝鼓起 0.25、EdgeNoise 0.45、GrowSpeed 40、Helix 電弧 5 條、命中光球 3 倍寬 |
+| 5 | 紅色雷射 | 78 路西法之怒 | 紅、快脈衝、不畫砲口（掃射源點有自己的光球） |
+
+### 接線
+
+- 武器表 `BeamFxID`（留空＝2）＋`BeamWidth`。工坊有下拉。
+- **雷射**（`PlayerController.SpawnLaserBeams`）：每道 `LaserBeam` 配一條 `BeamVisual.Create(BeamFxID, 寬)`＋`Track(beam.Points)`。`BeamVisual` 在 LateUpdate 讀路徑 ⇒ 一定是這一幀算好的折線。放開時 `Stop()`，照 `FadeTime` 淡出後自毀。火焰噴射器模式（`TrailEffectID>0`）不建。
+- **連鎖閃電**（`RunChain`、打空時）：`BeamVisual.Flash(BeamFxID, 玩家→目標們, 寬, 0.16 秒)`。不再先把折線打成鋸齒（`BuildJaggedPath` 刪了），鋸齒交給電弧。雷雨天罰 66 的落點連鎖走同一條（外觀取 66 自己的 BeamFxID 3）。
+- **掃射**（`SweepStrike`）：每道 `BeamVisual.Create`、`ShowMuzzle=false`，每幀 `SetPath(源點→落點, BeamFadeSeconds)`；停餵就自己淡出。光球顏色取該列 `ColorMid`。
+- 物件**不放池**，用完自己 Destroy；呼叫端用 Unity 的 `== null` 判斷就好。排序沿用舊雷射：Default 層 22000（電弧後面 −1、前面 +1、光球 +2、火花 +3）。
+- `VfxManager.BeamFxCSV`（MainScene 已拖）、`PlayModeStaticReset` 加 `BeamFxDatabase.ResetForPlayMode()`。
+
+### 調參
+
+外觀先用 numpy 照三支 shader 與 `BeamVisual` 的網格／電弧邏輯模擬調過（腳本在 `TempImage/dipanvfx_work/beam_sim/`：`python3 sim_beams.py [mirror laser electric kame red]` → `beams.png`，參數在 `presets.json`，欄名同 BeamFxTable）：
+
+- 鏡光：初版整條白掉 ⇒ 0.85／0.45；作者看了仍覺得太粗太金、鏡光該微弱偏白 ⇒ 改冷白細光；再回饋太細、太快、太亮 ⇒ 寬 ×3、亮紋放慢、亮度 0.3；實機看仍細（截面只有細芯亮、外暈太淡）⇒ 改成平頂寬光帶（見上表），反彈斷開角 70°→120°。
+- 氣功砲電弧原本像規律彈簧或三角波 ⇒ 每段半徑隨機、鋸齒 0.28、段長 1.7。
+
+---
+
 ## 5. 做一個新的 shader 特效（以後的固定流程）
 
 1. **程式與 shader 放進 `DipanVfx/`**：純畫面、不引用主遊戲類別；取圖一律走 `VfxAssets.LoadSprite`，排序用 `VfxAssets.OrderForY`。
@@ -217,7 +271,7 @@
 
 工具列「特效預覽器」→ 上方分頁切到「自製特效（shader）」。
 
-- **左**：五張表的每一列（地刺／火焰／地上燃燒／爆炸／傳送點）。「重讀表格與圖」＝從磁碟重讀表和 png，會放棄未存的修改。
+- **左**：六張表的每一列（地刺／火焰／地上燃燒／爆炸／傳送點／光束）。「重讀表格與圖」＝從磁碟重讀表和 png，會放棄未存的修改。
 - **中**：舞台，用遊戲同一份程式與 shader 即時播。
   - 拍的是遠離地圖的角落 `(5000, 5000)`，有 1 單位格線。
   - 「參考人形」高約 1.95＝遊戲角色可見高度。
@@ -229,6 +283,11 @@
     - 地上燃燒：可調範圍半徑與秒數，白圈＝傷害範圍；燒完停一下再燒。
     - 爆炸：每 2 秒炸一次，可調範圍半徑（預設 5＝火焰拋擲彈），白圈＝傷害範圍。範圍大時把鏡頭切到「遊戲」才看得到整圈。
     - 傳送點：一直擺著；改欄位立刻重建。地圖上的「傳送點對位」也是同一個元件，存回表後切回地圖就看得到。
+    - 光束：四種，可調「粗細」（＝武器表 BeamWidth）。
+      - 掃動：從人形手上射出、左右慢慢掃，看流紋、脈衝、電弧。
+      - 反彈：固定四折的折線，看轉角接得順不順、反彈光點。
+      - 連鎖：每 0.5 秒閃一次（0.16 秒，同遊戲）。
+      - 重複發射：每 2.2 秒發一次、1.4 秒後放開，看伸長（GrowSpeed）與淡出（FadeTime）。
 - **右**：選到那一列的每一欄都能直接改，**改了立刻重播**。
   - 「存回 CSV」寫回 `DipanProj_Main/Assets/Data/<表>.csv`：只改被動過的列，表頭、註解、其他列一字不動，BOM 有無照原檔。
   - 「放棄修改」重讀檔案。

@@ -32,6 +32,7 @@ namespace DipanMapEditor.UI
             new TableDef { Title = "地上燃燒", Table = GroundFireDatabase.TableName, Kind = CustomVfxPreviewRig.Kind.GroundFire, Apply = GroundFireDatabase.LoadFromText },
             new TableDef { Title = "爆炸", Table = ExplosionDatabase.TableName, Kind = CustomVfxPreviewRig.Kind.Explosion, Apply = ExplosionDatabase.LoadFromText },
             new TableDef { Title = "傳送點", Table = TeleportFxDatabase.TableName, Kind = CustomVfxPreviewRig.Kind.Teleport, Apply = TeleportFxDatabase.LoadFromText },
+            new TableDef { Title = "光束", Table = BeamFxDatabase.TableName, Kind = CustomVfxPreviewRig.Kind.Beam, Apply = BeamFxDatabase.LoadFromText },
         };
 
         bool _loaded;
@@ -55,7 +56,7 @@ namespace DipanMapEditor.UI
             CustomVfxSource.Install();
             if (clearSprites) CustomVfxSource.ClearSpriteCache();
             // 火焰要先載：地上燃燒的火舌指向 FlameTable
-            foreach (var t in new[] { Tables[1], Tables[2], Tables[0], Tables[3], Tables[4] })
+            foreach (var t in new[] { Tables[1], Tables[2], Tables[0], Tables[3], Tables[4], Tables[5] })
             {
                 t.Csv = EditableCsv.Load(t.Table);
                 if (t.Csv.Error == null) t.Apply(t.Csv.BuildText());
@@ -174,6 +175,18 @@ namespace DipanMapEditor.UI
                 case CustomVfxPreviewRig.Kind.Explosion:
                     rig.BlastRadius = NumField("範圍半徑", "blR", rig.BlastRadius);
                     GUILayout.Label("（拋物線＝AreaRadius×BulletScale；火焰拋擲彈是 5；白圈＝傷害範圍）", _small);
+                    break;
+                case CustomVfxPreviewRig.Kind.Beam:
+                    foreach (var m in new[] { CustomVfxPreviewRig.BeamMotion.Sweep, CustomVfxPreviewRig.BeamMotion.Bounce, CustomVfxPreviewRig.BeamMotion.Chain, CustomVfxPreviewRig.BeamMotion.Refire })
+                    {
+                        string label = m == CustomVfxPreviewRig.BeamMotion.Sweep ? "掃動" : m == CustomVfxPreviewRig.BeamMotion.Bounce ? "反彈"
+                                     : m == CustomVfxPreviewRig.BeamMotion.Chain ? "連鎖" : "重複發射";
+                        GUI.color = rig.BeamMode == m ? Color.cyan : Color.white;
+                        if (GUILayout.Button(label, GUILayout.Width(m == CustomVfxPreviewRig.BeamMotion.Refire ? 70 : 50)) && rig.BeamMode != m) { rig.BeamMode = m; rig.Restart(); }
+                    }
+                    GUI.color = Color.white;
+                    rig.BeamWidth = NumField("粗細", "bmW", rig.BeamWidth);
+                    GUILayout.Label("（武器表 BeamWidth：5＝1、29＝0.38、9＝0.25、66＝0.3、78＝0.25）", _small);
                     break;
                 case CustomVfxPreviewRig.Kind.Spike:
                     rig.SpikeSpeed = NumField("子彈速度", "spS", rig.SpikeSpeed);

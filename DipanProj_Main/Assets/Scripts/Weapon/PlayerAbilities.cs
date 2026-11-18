@@ -307,15 +307,13 @@ public class PlayerAbilities
         SpriteAngleOffset = s.SpriteAngleOffset, FlipYWhenLeft = s.FlipYWhenLeft, HitEffectAlignBullet = s.HitEffectAlignBullet, HitEffectEnemyOnly = s.HitEffectEnemyOnly, SlashStyle = s.SlashStyle, WeaponAniPath = s.WeaponAniPath,
         WeaponAniNumber = s.WeaponAniNumber, AnimFPS = s.AnimFPS,
         BulletScale = s.BulletScale, CastVisualScale = s.CastVisualScale,
-        BeamStyle = s.BeamStyle, BeamColor = s.BeamColor, BeamWidth = s.BeamWidth,
-        PixelBeamSet = s.PixelBeamSet,
+        BeamFxID = s.BeamFxID, BeamWidth = s.BeamWidth,
         FireEffectID = s.FireEffectID, HitEffectID = s.HitEffectID, HitBurstID = s.HitBurstID,
         TrailEffectID = s.TrailEffectID, TrailSpikeID = s.TrailSpikeID, FlameStyleID = s.FlameStyleID, SummonEffectID = s.SummonEffectID,
         FamiliarVfxId = s.FamiliarVfxId, FamiliarSize = s.FamiliarSize, FamiliarSpin = s.FamiliarSpin,
         DropperStyle = s.DropperStyle, DropperVfxId = s.DropperVfxId, DropperSize = s.DropperSize,
         Recipe = s.Recipe, BulletPrefab = s.BulletPrefab,
         WeaponSprite = s.WeaponSprite, WeaponSprites = s.WeaponSprites,
-        BeamMuzzleSprite = s.BeamMuzzleSprite, BeamImpactSprite = s.BeamImpactSprite,
     };
 
     // ───────────────────────── 給 UI 看的說明 ─────────────────────────

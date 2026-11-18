@@ -33,7 +33,6 @@
 
 ## 武器表 (WeaponTable.csv)
 
-`PixelBeamSet` 控制貼圖式雷射外觀：留空沿用 shader 雷射，`A_Blue` 使用 Pack 4 A 組藍色 origin／center／impact 動畫。詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
 定義武器的遊戲屬性，存放於 `Assets/Data/WeaponTable.csv`。2026-08-26 起表頭依用途分群（通用／子彈外觀／光束外觀／特效 ID），欄名不變、依名字讀。
 
 | CSV 欄位 | 說明 |
@@ -48,9 +47,8 @@
 | `WeaponAniNumber` | 序列圖張數，系統自動載入 `{WeaponAniPath}_01` ~ `{WeaponAniPath}_NN` |
 | `AnimFPS` | 序列圖播放速度（幀/秒），例如 12 = 每秒 12 幀 |
 | `BulletScale` | 子彈縮放倍率，預設為 1（留空等同 1），例如 2 = 放大兩倍 |
-| `BeamStyle` | 雷射**種類編號** 1~10（外型一包預設，見 [LASER.md](LASER.md)）：1鏡光 2標準 3脈衝 4離子 5電漿 6虛線 7閃電 8針狀 9洪流 10微光；留空 = 2 |
-| `BeamColor` | 雷射**顏色編號** 1~10：1紅 2橙 3黃 4綠 5青 6藍 7紫 8洋紅 9白 10琥珀金；留空 = 9（白） |
-| `BeamWidth` | 雷射粗細（**視覺與命中判定共用此欄**，所見即所得）；留空 = 0.5 |
+| `BeamFxID` | 光束外觀 ID（引用 DipanVfx 的 `BeamFxTable`，雷射／連鎖／掃射／落雷接連鎖用）：1 鏡光 2 雷射 3 電光 4 氣功砲 5 紅色雷射；留空 = 2。見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d（2026-11-18 取代 `BeamStyle`／`BeamColor`／`PixelBeamSet`） |
+| `BeamWidth` | 光束命中寬度；外觀寬＝這個 × BeamFxTable 的 `WidthMul`；留空 = 0.5 |
 | `FireEffectID` | 發射特效 ID（引用 `VfxTable`）：發射時在玩家身上播一次、朝瞄準方向；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `HitEffectID` | 擊中特效 ID（引用 `VfxTable`）：子彈／光束命中怪物、障礙物、拋物線落地時在命中點播一次；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `TrailEffectID` | 軌跡特效 ID（引用 `VfxTable`）：沿子彈飛行路徑每隔配方的 `TrailStep` 距離種一個；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
@@ -153,7 +151,7 @@
 * 在 `Start()` 時用 `CsvTable` 載入所有武器（`BuildWeapon` 依欄名取值），透過 `RecipeManager` 解析 `RecipeID` 為 `RecipeEntry` 引用；武器表欄位也過 `WeaponModeSpec.Validate`（例：召喚武器填了子彈圖會 Warning）。
 * **`SimulationOverride`**：不為 null 時 `GetCurrentWeapon()` 一律回它（**也會過 `AbilityResolver`**，所以真鑲的珠子對模擬武器有效）——[武器工坊](WEAPON_WORKBENCH.md) 靠這個讓所有發射路徑打模擬武器；`All` 與 `CreateTransient` 同 RecipeManager。
 * 使用 `PrefabMapping` 序列化列表模式（與 `MonsterSpawner` 一致），在 Inspector 中拖入子彈 Prefab。
-* 雷射／連鎖／非分段落雷武器額外載入光束素材，`BeamStyle` / `BeamColor` 編號透過 `BeamStyleLibrary` 解析為外型參數與顏色（見 [LASER.md](LASER.md)）。
+* 光束外觀只讀 `BeamFxID`（整數），實際外觀由 `PlayerController`／`SweepStrike` 建 DipanVfx 的 `BeamVisual` 時查 `BeamFxDatabase`（見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d）；2026-11-18 起不再載入任何雷射素材。
 * **初始沒有武器**：`Start()` 只載表、**不指派任何初始武器**（`CurrentWeaponID = 0` ＝ 無武器，`GetCurrentWeapon()` 回 null）。實際武器由 `PlayerController` 依背包武器欄呼叫 `SwitchWeapon` 決定。（2026-07-27 改；此前這裡會強制設成最高 ID，導致玩家空手也能攻擊，且會蓋掉背包指定的武器。）
 * **沒有循環切換**：`SwitchToPreviousWeapon()`（E 鍵）已於 2026-07-27 移除——武器一律由背包武器欄決定，不再有繞過裝備的切換途徑。`WeaponData` 的欄位另含 `FireEffectID` / `HitEffectID` / `TrailEffectID`（引用 VfxTable，見 [VFX.md](VFX.md)）。
 

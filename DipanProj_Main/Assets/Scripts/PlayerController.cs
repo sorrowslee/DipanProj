@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using Sorrows.Ballistics;
+using Dipan.Vfx;
 
 public class PlayerController : MonoBehaviour, IDamageable
 {
@@ -119,6 +120,8 @@ public class PlayerController : MonoBehaviour, IDamageable
 
     // 持續型雷射光束（按住維持、放開銷毀）
     private readonly List<LaserBeam> _activeBeams = new List<LaserBeam>();
+    // 每道光束的外觀（DipanVfx BeamVisual，讀 beam.Points 畫）；火焰噴射器模式沒有（改沿路鋪火焰）。
+    private readonly List<BeamVisual> _beamVisuals = new List<BeamVisual>();
     private readonly List<float> _beamAngleOffsets = new List<float>();
     private WeaponData _activeBeamWeapon;
     // 火焰噴射器：雷射的 TrailEffectID > 0 時，沿光束路徑維護一排循環火焰 Vfx（不畫光束本體）
@@ -991,14 +994,13 @@ public class PlayerController : MonoBehaviour, IDamageable
             SpriteAngleOffset = source.SpriteAngleOffset, FlipYWhenLeft = source.FlipYWhenLeft, HitEffectAlignBullet = source.HitEffectAlignBullet, HitEffectEnemyOnly = source.HitEffectEnemyOnly, SlashStyle = source.SlashStyle, WeaponAniPath = source.WeaponAniPath,
             WeaponAniNumber = source.WeaponAniNumber, AnimFPS = source.AnimFPS,
             BulletScale = source.BulletScale * 2f, CastVisualScale = 2f,
-            BeamStyle = source.BeamStyle, BeamColor = source.BeamColor, BeamWidth = source.BeamWidth * 2f,
+            BeamFxID = source.BeamFxID, BeamWidth = source.BeamWidth * 2f,
             FireEffectID = source.FireEffectID, HitEffectID = source.HitEffectID, HitBurstID = source.HitBurstID,
             TrailEffectID = source.TrailEffectID, TrailSpikeID = source.TrailSpikeID, FlameStyleID = source.FlameStyleID, SummonEffectID = source.SummonEffectID,
             FamiliarVfxId = source.FamiliarVfxId, FamiliarSize = source.FamiliarSize, FamiliarSpin = source.FamiliarSpin,
             DropperStyle = source.DropperStyle, DropperVfxId = source.DropperVfxId, DropperSize = source.DropperSize,
             Recipe = source.Recipe, BulletPrefab = source.BulletPrefab, WeaponSprite = source.WeaponSprite,
-            WeaponSprites = source.WeaponSprites, BeamMuzzleSprite = source.BeamMuzzleSprite,
-            BeamImpactSprite = source.BeamImpactSprite, PixelBeamSet = source.PixelBeamSet
+            WeaponSprites = source.WeaponSprites
         };
     }
 
@@ -1800,24 +1802,21 @@ public class PlayerController : MonoBehaviour, IDamageable
             }
             _beamAngleOffsets.Add(offset);
 
-            // TrailEffectID > 0 = 火焰噴射器模式：不畫光束 mesh，改沿路徑鋪火焰 Vfx
-            bool usePixelBeam = !string.IsNullOrEmpty(weapon.PixelBeamSet);
-            bool drawBeam = weapon.TrailEffectID <= 0 && !usePixelBeam;
             LaserBeam beam = BallisticsEngine.SpawnBeam(
                 recipe, origin, Vector2.right,
                 collisionMask, pierceableLayers, nonBounceLayers,
-                weapon.BeamStyle, weapon.BeamColor, width,
-                weapon.BeamMuzzleSprite, weapon.BeamImpactSprite,
-                (b, hits) => HandleBeamTick(firedWeapon, b, hits),
-                drawBeam);
+                width, (b, hits) => HandleBeamTick(firedWeapon, b, hits));
             // 環境命中(牆/可破壞地上物)走獨立回呼：只用來扣可破壞物的血，不在牆上噴擊中特效/分裂
             if (beam != null)
             {
                 beam.OnBeamEnvironmentTick = (b, envHits) => HandleBeamEnvironment(firedWeapon, envHits);
-                if (usePixelBeam)
+                // 外觀：TrailEffectID > 0 = 火焰噴射器模式（沿路徑鋪火焰 Vfx，見 UpdateFlameColumn），不畫光束；
+                // 其餘依武器 BeamFxID 掛一條 BeamVisual，LateUpdate 讀 beam.Points（2026-11-18，readme/DIPAN_VFX.md §4d）。
+                if (weapon.TrailEffectID <= 0)
                 {
-                    var visual = beam.gameObject.AddComponent<PixelLaserBeamVisual>();
-                    visual.Initialize(beam, weapon.PixelBeamSet, width);
+                    var visual = BeamVisual.Create(weapon.BeamFxID, width);
+                    visual.Track(beam.Points);
+                    _beamVisuals.Add(visual);
                 }
             }
             _activeBeams.Add(beam);
@@ -1829,6 +1828,10 @@ public class PlayerController : MonoBehaviour, IDamageable
         for (int i = 0; i < _activeBeams.Count; i++)
             if (_activeBeams[i] != null) Destroy(_activeBeams[i].gameObject);
         _activeBeams.Clear();
+        // 外觀不立刻消失：照 BeamFxTable 的 FadeTime 淡出後自毀（它只讀自己複製的最後一份路徑，光束物件沒了也沒關係）
+        for (int i = 0; i < _beamVisuals.Count; i++)
+            if (_beamVisuals[i] != null) _beamVisuals[i].Stop();
+        _beamVisuals.Clear();
         _beamAngleOffsets.Clear();
         _activeBeamWeapon = null;
         ClearActiveFlames();   // 火焰噴射器：放開/切武器時一併清掉火焰柱
@@ -2149,7 +2152,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     }
 
     // ── 連鎖閃電：吃配方的散射（SpreadCount/SpreadAngle）→ 一發射出多道扇形分布的連鎖，每道各自獨立連鎖 ──
-    // 目標搜尋與傷害全在主遊戲側（守住「彈道系統不算傷害」邊界）；LaserBeam 只當折線視覺（SpawnChainVisual）。
+    // 目標搜尋與傷害全在主遊戲側（守住「彈道系統不算傷害」邊界）；外觀走 DipanVfx 的 BeamVisual.Flash。
     private void ShootChain(WeaponData weapon, ProjectileData recipe)
     {
         Vector2 origin = MuzzleWorldPos;   // 出手點
@@ -2224,9 +2227,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             _chainPathBuffer.Clear();
             _chainPathBuffer.Add(origin);
             _chainPathBuffer.Add(origin + dir * md);
-            List<Vector2> jagged = BuildJaggedPath(_chainPathBuffer);
-            BallisticsEngine.SpawnChainVisual(jagged, weapon.BeamStyle, weapon.BeamColor,
-                weapon.BeamWidth * PlayerScale, weapon.BeamMuzzleSprite, weapon.BeamImpactSprite, ChainFlashDuration);
+            BeamVisual.Flash(weapon.BeamFxID, _chainPathBuffer, weapon.BeamWidth * PlayerScale, ChainFlashDuration);
         }
     }
 
@@ -2264,9 +2265,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         _chainPathBuffer.Clear();
         _chainPathBuffer.Add(startPoint);
         for (int i = 0; i < targets.Count; i++) _chainPathBuffer.Add(targets[i].position);
-        List<Vector2> jagged = BuildJaggedPath(_chainPathBuffer);
-        BallisticsEngine.SpawnChainVisual(jagged, weapon.BeamStyle, weapon.BeamColor,
-            weapon.BeamWidth * PlayerScale, weapon.BeamMuzzleSprite, weapon.BeamImpactSprite, ChainFlashDuration);
+        // 外觀：BeamFxTable 的電弧自己會在節點之間亂竄、每秒重抽（2026-11-18 起不再先把折線打成鋸齒）
+        BeamVisual.Flash(weapon.BeamFxID, _chainPathBuffer, weapon.BeamWidth * PlayerScale, ChainFlashDuration);
     }
 
     // 從一點找「半徑內、不在排除清單、有 IDamageable、最近」的目標（連鎖閃電每一跳的搜尋）。
@@ -2306,35 +2306,6 @@ public class PlayerController : MonoBehaviour, IDamageable
             if (sqr < best) { best = sqr; bestT = cols[i].transform; }
         }
         return bestT;
-    }
-
-    // 在每段之間插入橫向抖動中點 → 閃電鋸齒外觀（純視覺，不影響命中）。
-    // 細分數依「段長」決定（每約 segPerJag 單位一個鋸齒點），所以短段不過密、長段（如落雷模式的長垂直閃電）也夠鋸齒。
-    private static List<Vector2> BuildJaggedPath(List<Vector2> pts)
-    {
-        var outp = new List<Vector2>(pts.Count * 6);
-        const float jitter = 0.22f;     // 橫向抖動幅度（世界單位）
-        const float segPerJag = 0.6f;   // 每約 0.6 單位一個鋸齒點
-        for (int s = 0; s < pts.Count - 1; s++)
-        {
-            Vector2 a = pts[s], b = pts[s + 1];
-            outp.Add(a);
-            Vector2 d = b - a;
-            float len = d.magnitude;
-            if (len > 1e-3f)
-            {
-                int subdiv = Mathf.Clamp(Mathf.RoundToInt(len / segPerJag), 2, 32);
-                Vector2 perp = new Vector2(-d.y, d.x) / len;
-                for (int k = 1; k < subdiv; k++)
-                {
-                    float t = (float)k / subdiv;
-                    float off = (Random.value * 2f - 1f) * jitter;
-                    outp.Add(a + d * t + perp * off);
-                }
-            }
-        }
-        outp.Add(pts[pts.Count - 1]);
-        return outp;
     }
 
     // ── 落雷模式：從畫面上緣外劈下到滑鼠所在點，落地以 AreaRadius 做圓形 AOE ──

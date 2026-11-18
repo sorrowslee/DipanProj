@@ -7,25 +7,21 @@ namespace Sorrows.Ballistics
     public static class BallisticsEngine
     {
         /// <summary>
-        /// 生成一道持續型雷射光束（純程式建構，不需要 prefab）。
+        /// 生成一道持續型雷射光束（純程式建構，不需要 prefab）。光束只算幾何與命中、不畫東西；
+        /// 外觀由主遊戲讀 <see cref="LaserBeam.Points"/> 自己畫（DipanVfx 的 BeamVisual；火焰噴射器沿路鋪火焰）。
         /// 主遊戲負責每幀更新 beam.Origin / beam.AimDirection，並在 onTick 結算傷害。
         /// </summary>
+        /// <param name="beamWidth">命中寬度（直徑）；命中判定半徑 = beamWidth / 2。</param>
         public static LaserBeam SpawnBeam(ProjectileData def, Vector2 origin, Vector2 aimDir,
             LayerMask collisionMask, LayerMask pierceableLayers, LayerMask nonBounceLayers,
-            BeamStyle style, Color beamColor, float beamWidth,
-            Sprite muzzleSprite, Sprite impactSprite,
-            Action<LaserBeam, List<LaserBeam.BeamHit>> onTick,
-            bool drawBeam = true)
+            float beamWidth, Action<LaserBeam, List<LaserBeam.BeamHit>> onTick)
         {
             var go = new GameObject("LaserBeam");
-            // 渲染改為自繪 mesh：RequireComponent 會在 AddComponent<LaserBeam> 時自動補上 MeshFilter/MeshRenderer。
-            // mesh 頂點用世界座標、transform 由 LaserBeam.Setup 歸零，故這裡不需要設位置。
             var beam = go.AddComponent<LaserBeam>();
 
             beam.Origin = origin;
             beam.AimDirection = aimDir;
-            // 所見即所得：命中判定半徑 = 視覺半寬 = beamWidth / 2（mesh 半寬與 CircleCast 半徑共用同一值）。
-            // 不再使用配方 Radius，避免「視覺寬度」「命中寬度」兩個欄位互相打架。
+            // 命中判定半徑 = beamWidth / 2（不使用配方 Radius；外觀寬度也從同一個 BeamWidth 推出，所見即所得）。
             beam.Radius = Mathf.Max(0.01f, beamWidth * 0.5f);
             beam.BeamRange = def.BeamRange;
             beam.PierceCount = def.PierceCount;
@@ -38,29 +34,8 @@ namespace Sorrows.Ballistics
             beam.PierceableLayers = pierceableLayers;
             beam.NonBounceLayers = nonBounceLayers;
             beam.OnBeamDamageTick = onTick;
-            beam.DrawBeam = drawBeam;   // false = 火焰模式：不畫光束 mesh，路徑交給主遊戲沿路鋪火焰
 
-            beam.Setup(style, beamColor, beamWidth, muzzleSprite, impactSprite);
-            return beam;
-        }
-
-        /// <summary>
-        /// 連鎖閃電視覺：生成一個「只渲染一條已算好折線、短命淡出後自毀」的 LaserBeam。
-        /// 目標搜尋與傷害由主遊戲負責（本工廠不回報命中、不結算傷害），這裡只把雷射的折線 mesh 渲染當電弧視覺複用。
-        /// </summary>
-        /// <param name="points">世界座標折線：玩家→怪A→怪B…（可含鋸齒抖動點）。</param>
-        /// <param name="life">閃一下的存活秒數（在這段時間內漸暗淡出）。</param>
-        public static LaserBeam SpawnChainVisual(List<Vector2> points,
-            BeamStyle style, Color beamColor, float beamWidth,
-            Sprite muzzleSprite, Sprite impactSprite, float life)
-        {
-            var go = new GameObject("ChainLightning");
-            var beam = go.AddComponent<LaserBeam>();
-            // 所見即所得的半寬；不 march、不回報傷害（OnBeamDamageTick 保持 null）。
-            beam.Radius = Mathf.Max(0.01f, beamWidth * 0.5f);
-            beam.DrawBeam = true;
-            beam.Setup(style, beamColor, beamWidth, muzzleSprite, impactSprite);
-            beam.SetStaticPath(points, life);
+            beam.Setup();
             return beam;
         }
 

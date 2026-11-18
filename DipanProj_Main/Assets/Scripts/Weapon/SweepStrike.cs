@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Sorrows.Ballistics;
+using Dipan.Vfx;
 
 /// <summary>
 /// **掃射（<see cref="WeaponMode.Sweep"/>）的執行元件**——巨神兵式光束：
@@ -18,9 +19,9 @@ using Sorrows.Ballistics;
 /// <para>每次施放生一個 GameObject（掛本元件）自己跑完自己 Destroy；不需要場景裡預先放任何東西。
 /// 擁有者中途死亡／被移除 ⇒ 光束立刻淡出、還沒炸的爆炸全部取消（傷害來源不能是一個已經不存在的物件）。</para>
 ///
-/// <para>視覺借用 <see cref="BallisticsEngine.SpawnChainVisual"/> 的靜態折線光束：每幀用新的兩點折線重餵
-/// （<c>SetStaticPath</c> 會順便把淡出壽命重置成滿），停止重餵後它自己在 <see cref="BeamFadeSeconds"/> 秒內淡出自毀。
-/// 所以不必改 BallisticsSystem。</para>
+/// <para>視覺用 DipanVfx 的 <c>BeamVisual</c>（外觀＝武器 BeamFxID 指向的 BeamFxTable 列）：每幀用新的兩點折線重餵
+/// <c>SetPath(pts, BeamFadeSeconds)</c>，停止重餵後它自己在 <see cref="BeamFadeSeconds"/> 秒內淡出自毀
+/// （光束物件不掛在本物件底下，擁有者死掉本物件被 Destroy 時光束一樣會自己淡掉）。</para>
 /// </summary>
 public class SweepStrike : MonoBehaviour
 {
@@ -60,7 +61,7 @@ public class SweepStrike : MonoBehaviour
     {
         public Vector2 Dir;
         public float Length;
-        public LaserBeam Beam;
+        public BeamVisual Beam;
     }
 
     struct Pending
@@ -85,7 +86,7 @@ public class SweepStrike : MonoBehaviour
     public const float OrbDiameterRatio = 0.16f;
     /// <summary>光球核心（偏白的亮芯）佔光球直徑的比例。</summary>
     const float OrbCoreRatio = 0.5f;
-    /// <summary>光球畫在光束之上（LaserBeam 光束本體 22000、砲口光暈 22005）。</summary>
+    /// <summary>光球畫在光束之上（BeamVisual 光柱 22000、電弧 22001、光球 22002、火花 22003）。</summary>
     const int OrbSortingOrder = 22006;
     /// <summary>光球每秒脈動幾次、幅度多少（純視覺）。</summary>
     const float OrbPulseHz = 6f, OrbPulseAmount = 0.08f;
@@ -166,11 +167,15 @@ public class SweepStrike : MonoBehaviour
         // 光束視覺：每一道一條靜態折線（源點 → 落點），之後每幀重餵。
         float width = weapon.BeamWidth * (ctx.OwnerScale > 0.0001f ? ctx.OwnerScale : 1f);
         Vector2 src = s.Source();
-        s.CreateOrb(src, weapon.BeamColor);
+        s.CreateOrb(src, BeamFxDatabase.Get(weapon.BeamFxID).ColorMid);   // 光球跟光束同色
         s._pts[0] = src; s._pts[1] = src;
         for (int i = 0; i < count; i++)
-            s._paths[i].Beam = BallisticsEngine.SpawnChainVisual(s._pts, weapon.BeamStyle, weapon.BeamColor,
-                width, weapon.BeamMuzzleSprite, weapon.BeamImpactSprite, BeamFadeSeconds);
+        {
+            var bv = BeamVisual.Create(weapon.BeamFxID, width);
+            bv.ShowMuzzle = false;               // 源點有自己的光球
+            bv.SetPath(s._pts, BeamFadeSeconds);
+            s._paths[i].Beam = bv;
+        }
 
         float beamEnd = DropSeconds + s._sweepSeconds + BeamFadeSeconds;
         float boomEnd = lastBoom > 0f ? lastBoom + ExplodeSeconds(weapon.HitEffectID) : 0f;
@@ -214,7 +219,7 @@ public class SweepStrike : MonoBehaviour
                 else
                     tip = _ctx.Feet + _paths[i].Dir * Mathf.Min(_paths[i].Length, (_t - DropSeconds) * speed);
                 _pts[0] = src; _pts[1] = tip;
-                _paths[i].Beam.SetStaticPath(_pts, BeamFadeSeconds);   // 重設壽命＝持續亮著
+                _paths[i].Beam.SetPath(_pts, BeamFadeSeconds);   // 每幀重餵＝持續亮著
             }
             UpdateOrb(src, 1f);
             if (_t >= DropSeconds + _sweepSeconds) { _beamsDone = true; _orbFadeT = 0f; }   // 不再重餵 ⇒ 光束自己淡出自毀
@@ -261,7 +266,7 @@ public class SweepStrike : MonoBehaviour
         go.transform.SetParent(parent.transform, false);
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = _orbSprite;
-        // 加色光暈材質（同 LaserBeam 的砲口光暈）；找不到 shader 就用預設 sprite 材質，至少看得到一顆球。
+        // 加色光暈材質；找不到 shader 就用預設 sprite 材質，至少看得到一顆球。
         Shader sh = Shader.Find("Custom/AdditiveGlow");
         if (sh != null)
         {

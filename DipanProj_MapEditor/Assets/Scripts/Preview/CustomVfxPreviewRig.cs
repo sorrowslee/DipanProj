@@ -10,7 +10,8 @@ namespace DipanMapEditor.Preview
     /// 特效本體一律用 DipanVfx 套件裡**跟遊戲同一份**的程式與 shader 生出來，所以這裡看到的＝遊戲裡的樣子
     /// （差別只在：遊戲的火舌會跟角色一起 Y 排序、這裡沒有角色）。
     ///
-    /// 依選到的種類自動重播：地刺＝模擬一顆子彈往右飛、沿路刺出；火焰＝靜止／環繞／墜落三種；地上燃燒＝燒完停一下再燒。
+    /// 依選到的種類自動重播：地刺＝模擬一顆子彈往右飛、沿路刺出；火焰＝靜止／環繞／墜落三種；地上燃燒＝燒完停一下再燒；
+    /// 光束＝持續掃動／反彈折線／連鎖閃電／重複發射四種。
     /// 面板沒在畫（切到別的工具或素材庫分頁）時自己停下、清掉特效。
     /// </summary>
     public sealed class CustomVfxPreviewRig : MonoBehaviour
@@ -18,8 +19,9 @@ namespace DipanMapEditor.Preview
         public static readonly Vector3 Origin = new Vector3(5000f, 5000f, 0f);
         const string Layer = "Default";
 
-        public enum Kind { None, Spike, Flame, GroundFire, Explosion, Teleport }
+        public enum Kind { None, Spike, Flame, GroundFire, Explosion, Teleport, Beam }
         public enum FlameMotion { Still, Orbit, Fall }
+        public enum BeamMotion { Sweep, Bounce, Chain, Refire }
 
         static CustomVfxPreviewRig _inst;
         public static CustomVfxPreviewRig Instance
@@ -48,6 +50,8 @@ namespace DipanMapEditor.Preview
         public float BlastRadius = 5f;        // 火焰拋擲彈：AreaRadius 2.5 × BulletScale 2
         public float SpikeSpeed = 8f;         // 地裂刺配方 19
         public float SpikeStep = 1.33f;
+        public BeamMotion BeamMode = BeamMotion.Sweep;
+        public float BeamWidth = 0.5f;        // 武器表 BeamWidth（命中寬度）：5＝1、29＝0.38、9＝0.25、66＝0.3、78＝0.25
         public float ViewSize = 3f;           // 相機 orthographicSize（遊戲一般房間約 5）
         public bool BrightFloor;
         public bool ShowFigure = true;
@@ -169,6 +173,7 @@ namespace DipanMapEditor.Preview
             _fire.Stop();
             _fire = default;
             if (_tele != null) { Destroy(_tele.gameObject); _tele = null; }
+            if (_beam != null) { _beam.Kill(); _beam = null; }
         }
 
         public void EnsureTexture(int w, int h)
@@ -210,6 +215,7 @@ namespace DipanMapEditor.Preview
                 case Kind.GroundFire: TickGroundFire(); break;
                 case Kind.Explosion: TickExplosion(); break;
                 case Kind.Teleport: TickTeleport(); break;
+                case Kind.Beam: TickBeam(); break;
             }
         }
 
@@ -331,6 +337,66 @@ namespace DipanMapEditor.Preview
             {
                 _nextCycle = _t + 2f;
                 ExplosionBurst.Spawn(CurrentId, Origin, r, Layer, 100, -120);
+            }
+        }
+
+        // ── 光束：持續掃動（雷射按住掃）／反彈折線（看接頭與反彈光點）／連鎖閃電（每 0.5 秒閃一次）／重複發射（看伸長與放開淡出）──
+        BeamVisual _beam;
+        readonly List<Vector2> _beamPts = new List<Vector2>(8);
+        void TickBeam()
+        {
+            _ring.enabled = false;
+            Vector2 o = Origin;
+            Vector2 hand = o + new Vector2(-2.3f, 0.6f);   // 參考人形的手
+            float w = Mathf.Max(0.02f, BeamWidth);
+            _beamPts.Clear();
+            switch (BeamMode)
+            {
+                case BeamMotion.Sweep:
+                {
+                    float ang = Mathf.Sin(_t * 0.9f) * 28f * Mathf.Deg2Rad;
+                    _beamPts.Add(hand);
+                    _beamPts.Add(hand + new Vector2(Mathf.Cos(ang), Mathf.Sin(ang)) * 6.5f);
+                    if (_beam == null) { _beam = BeamVisual.Create(CurrentId, w, Layer, BeamVisual.DefaultSortingOrder, transform); }
+                    _beam.Width = w;
+                    _beam.SetPath(_beamPts);
+                    break;
+                }
+                case BeamMotion.Bounce:
+                    _beamPts.Add(hand);
+                    _beamPts.Add(o + new Vector2(-0.6f, 2.3f));
+                    _beamPts.Add(o + new Vector2(1.2f, -1.2f));
+                    _beamPts.Add(o + new Vector2(3.0f, 1.9f));
+                    _beamPts.Add(o + new Vector2(4.2f, 0.2f));
+                    if (_beam == null) { _beam = BeamVisual.Create(CurrentId, w, Layer, BeamVisual.DefaultSortingOrder, transform); }
+                    _beam.Width = w;
+                    _beam.SetPath(_beamPts);
+                    break;
+                case BeamMotion.Chain:
+                    if (_t >= _nextCycle)
+                    {
+                        _nextCycle = _t + 0.5f;
+                        _beamPts.Add(hand);
+                        _beamPts.Add(o + new Vector2(-0.4f, 1.2f + Random.Range(-0.3f, 0.3f)));
+                        _beamPts.Add(o + new Vector2(1.3f, -0.6f + Random.Range(-0.3f, 0.3f)));
+                        _beamPts.Add(o + new Vector2(3.2f, 0.9f + Random.Range(-0.3f, 0.3f)));
+                        BeamVisual.Flash(CurrentId, _beamPts, w, 0.16f, Layer, BeamVisual.DefaultSortingOrder, transform);   // 同 PlayerController.ChainFlashDuration
+                    }
+                    break;
+                case BeamMotion.Refire:
+                    if (_t >= _nextCycle)
+                    {
+                        _nextCycle = _t + 2.2f;
+                        _beam = BeamVisual.Create(CurrentId, w, Layer, BeamVisual.DefaultSortingOrder, transform);
+                    }
+                    if (_beam != null)
+                    {
+                        _beamPts.Add(hand);
+                        _beamPts.Add(hand + new Vector2(6.5f, 0f));
+                        _beam.SetPath(_beamPts);
+                        if (_t > _nextCycle - 0.8f) { _beam.Stop(); _beam = null; }   // 放開：照 FadeTime 淡出
+                    }
+                    break;
             }
         }
 

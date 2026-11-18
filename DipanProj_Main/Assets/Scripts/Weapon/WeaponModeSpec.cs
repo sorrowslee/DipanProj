@@ -110,7 +110,7 @@ public static class WeaponModeSpec
     //   放在後面的話 BuildModes() 跑的時候它們還是 null（單元測試抓到過）。
     // 共用欄組，避免每個模式重抄一遍
     static readonly string[] BulletVisual = { "WeaponSpritePath", "SpriteAngleOffset", "FlipYWhenLeft", "HitEffectAlignBullet", "WeaponAniPath", "WeaponAniNumber", "AnimFPS", "BulletScale", "FlameStyleID" };
-    static readonly string[] BeamVisual = { "BeamStyle", "BeamColor", "BeamWidth" };
+    static readonly string[] BeamVisual = { "BeamFxID", "BeamWidth" };
     static readonly string[] Charge = { "ChargeMode", "ChargeTimeReduction" };
     static readonly string[] Multi = { "SplitLv", "SpreadSpacing", "SpreadMaxAngle" };
     static readonly string[] Burst = { "BurstLv", "BurstInterval" };
@@ -360,10 +360,8 @@ public static class WeaponModeSpec
             F(W, "BulletScale",       FieldKind.Float, "子彈外觀", "施放大小", "1", 0.05f, 20f, "子彈變大；近戰／突進／法陣／落雷／佛光／拋物線爆炸＝範圍與視覺一起放大（須彌珠改這欄）；雷射與連鎖不吃（粗細看 BeamWidth）"),
 
             // ── 光束外觀 ──
-            F(W, "BeamStyle",    FieldKind.Int,   "光束外觀", "雷射種類", "2", 1, 10, "1鏡光2標準3脈衝4離子5電漿6虛線7閃電8針狀9洪流10微光"),
-            F(W, "BeamColor",    FieldKind.Int,   "光束外觀", "雷射顏色", "9", 1, 10, "1紅2橙3黃4綠5青6藍7紫8洋紅9白10琥珀金"),
-            F(W, "BeamWidth",    FieldKind.Float, "光束外觀", "雷射粗細", "0.5", 0.05f, 10f, "視覺與命中共用"),
-            F(W, "PixelBeamSet", FieldKind.Text,  "光束外觀", "像素雷射素材組", "", help: "留空＝shader 雷射；A_Blue"),
+            F(W, "BeamFxID",     FieldKind.Int,   "光束外觀", "光束外觀 ID", "0", 0, 99999, "BeamFxTable；長什麼樣（鏡光／雷射／電光／氣功砲…，顏色、電弧、光球都在那張表）。留空＝2 一般雷射（2026-11-18，DipanVfx）"),
+            F(W, "BeamWidth",    FieldKind.Float, "光束外觀", "光束粗細", "0.5", 0.05f, 10f, "命中寬度；外觀寬＝這個 × BeamFxTable 的 WidthMul"),
 
             // ── 特效 ID ──
             F(W, "FireEffectID",   FieldKind.Int, "特效", "發射特效 ID", "0", 0, 99999, "VfxTable；發射時在玩家身上播", universal: true),
@@ -445,7 +443,7 @@ public static class WeaponModeSpec
             .Eff("PierceLv", "BlockedByEnvironment").Eff(Multi)
             .Eff("SplitTiming", "SubRecipeID", "BounceTarget", "BounceLv", "HomingLv")
             .Eff("Range", "DotInterval", "GroundEffectID", "GroundEffectHitTarget", "TrailStep")
-            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "TrailEffectID", "PixelBeamSet").Eff(BeamVisual)
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "TrailEffectID").Eff(BeamVisual)
             .Lbl("SplitLv", "光束道數").Lbl("Range", "光束長度（-1＝無限）").Lbl("HomingLv", "光束彎曲追蹤等級")
             .Lbl("SplitTiming", "分裂時機（只認 OnHit）").Lbl("TrailStep", "火焰柱間距（配 TrailEffectID）");
 

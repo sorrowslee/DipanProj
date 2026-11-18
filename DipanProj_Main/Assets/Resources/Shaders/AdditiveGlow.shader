@@ -1,6 +1,6 @@
-// 雷射砲口 / 命中「圓形光暈」用的簡單加色（Additive）Unlit Shader。
-// 單純把光暈貼圖（laser_glow / laser_impact）加色染色後 additive 疊上，
-// 與光束本體的全參數化 shader 分開，避免光束的波帶/截面/白核邏輯套到圓形光暈上。
+// 圓形光暈用的簡單加色（Additive）Unlit Shader：把貼圖的 rgb 乘頂點色後 additive 疊上（不看 alpha）。
+// 目前用在血統光環（BloodlineHalo）與掃射源點光球（SweepStrike）。
+// 原本是舊雷射砲口/命中光暈用的；2026-11-18 雷射改用 DipanVfx 的 BeamVisual（Custom/DipanBeamOrb）後，舊光暈素材已刪除。
 Shader "Custom/AdditiveGlow"
 {
     Properties

@@ -4,6 +4,16 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **雷射系外觀重做：鏡光／雷射／電光／氣功砲（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-18，作者：雷射從做出來就很粗糙、接口與圖都很廉價；要鏡光／雷射／電光三種感覺、像龜派氣功一直往前推、最好有雷光繞柱；範圍＝持續光束兩把＋連鎖閃電 9，舊系統換完就拆，78、66 也換新外觀再全拆；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d）：
+  ① DipanVfx 新增 `BeamVisual`（連續帶子＋圓頭、反彈點才斷開、LateUpdate 讀路徑不落後一幀）、`BeamFxData`／`BeamFxDatabase`、shader `Custom/DipanBeam`（白核＋流紋往前推＋能量脈衝鼓包＋外鞘翻騰；鏡光加色散與亮紋）、`Custom/DipanArc`（螺旋繞柱／沿路徑鋸齒＋分岔）、`Custom/DipanBeamOrb`（光球＋放射光芒＋十字星芒）；新表 `BeamFxTable` 五列（1 鏡光、2 雷射＝預設、3 電光、4 氣功砲、5 紅色雷射）。
+  ② 武器表：加 `BeamFxID`、刪 `BeamStyle`／`BeamColor`／`PixelBeamSet`（只填 5→4、29→1、9→3、66→3、78→5，其他列留空）；`WeaponData`／`WeaponManager`／`WeaponModeSpec`／兩個 WeaponData 複製點／武器工坊（BeamFxID 下拉）跟著改。
+  ③ 接線：雷射每道 `BeamVisual.Track(beam.Points)`、放開 `Stop()` 淡出（火焰噴射器不建）；連鎖閃電與 66 落點連鎖改 `BeamVisual.Flash`（`BuildJaggedPath` 刪了，鋸齒交給電弧）；掃射 78 改 `BeamVisual.SetPath(…, BeamFadeSeconds)`、光球取表的 `ColorMid`。`VfxManager.BeamFxCSV`（MainScene 已拖）、`PlayModeStaticReset`。
+  ④ **拆除**：`LaserBeam` 的渲染（mesh、光暈、`SetStaticPath`、`DrawBeam`、`BeamStyle` 結構）、`BallisticsEngine.SpawnChainVisual`、`SpawnBeam` 的外觀參數；刪 `BeamStyleLibrary.cs`、`PixelLaserBeamVisual.cs`、`AdditiveBeam.shader`、`Resources/Laser/`、`Resources/VfxEffects/PixelLaserA_Blue/`；`PIXEL_REFLECT_LASER.md` 封存。`AdditiveGlow` 保留（血統光環、掃射光球在用）。
+  ⑤ 地圖編輯器特效預覽器「自製特效」加「光束」：掃動／反彈／連鎖／重複發射，可調粗細。
+  ⑥ numpy 照 shader 模擬調參（`TempImage/dipanvfx_work/beam_sim/`）；全專案 Roslyn 編譯（DipanVfx、Ballistics、主遊戲有／無 UNITY_EDITOR、主遊戲 Editor、地圖編輯器＋Editor）0 錯誤。
+  ⑦ 加 4 把光束測試武器（WeaponTable／ItemTable 901～904，抄 900 GM 飛劍的格式、借現有 icon、不在抽選池）：901 雷射（光束 2，配方 17 三分裂反彈）、902 雷雨天罰（光束 3，複製 66，因 66 只是應龍血統的夢境武器、沒有道具）、903 電光反彈雷射（光束 3＋配方 42 無限反彈）、904 追蹤氣功砲（光束 4＋配方 14 單道追蹤）。
+  <br>**作者要做的**：Reimport WeaponTable、ItemTable、BeamFxTable；作弊面板（L）「給道具」給 5／9／29／78／901～904，或按「給全部武器」；也可在預覽器「光束」分頁調好存回。
+
 * [x] **狀態效果系統第⑥階段：三件測試裝備、壓測工具、效能修正（⏳ 已編譯、實測待作者；`feat/status-effect`、未 commit）**（2026-11-18）
   ① **測試裝備**：ItemTable 504 蓮華鱗甲（胸甲＝受擊護體）、505 青芽護手（手套＝受擊回春）、506 風翎行靴（鞋子＝發射疾行）；作弊面板「狀態」分頁一鍵給（良品、`fx=37@3;s=6` 這類規格寫死 Lv3、6 孔）。圖示：同一個 ChatGPT 對話附上 4 個既有裝備圖當風格參考，一張 3 格（1 次額度），`UI/Icons/Equipment/armor_lotusChest／gloves_jadeSprout／boots_windWing`（.meta 抄 icon_wolfclaw）。沒進任何掉落／兌換／抽選池。
   ② **壓測工具**：「壓測：生 50／100 隻」（2～12 號小怪三圈、血量 10 萬、下一幀上五種狀態含中毒 3 層）、「清掉壓測怪」、`StatusPerfProbe` 左上角效能顯示（平均／最差幀時間、怪物數、有狀態數、被控制數）；`MonsterController.DebugSetHealth`。

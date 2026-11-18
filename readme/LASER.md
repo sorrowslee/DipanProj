@@ -1,16 +1,14 @@
-# 雷射系統 (Laser Beam ＋ Appearance / BeamStyle)
+# 雷射系統 (Laser Beam ＋ 光束外觀 BeamFxTable)
 
 > ⚠ **2026-08-26 RecipeTable 大改**：`IsXxx` 旗標已收成一欄 `Mode`、`BeamRange→Range`、`BlastRadius→AreaRadius`、拋物線飛行秒數獨立成 `FlightTime`、連鎖跳數獨立成 `ChainCount`、錐角／吸附半徑獨立成 `AimConeAngle`／`SnapRadius`。本文提到的欄名已同步更新；完整欄位與各模式吃哪些欄以 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md) 為準。
 
 > 返回 [文件總覽](README.md)
 
-> **掃射（`Mode=Sweep`，2026-11-11）** 的光束也用本文的 `BeamStyle`／`BeamColor`／`BeamWidth` 與 `SpawnChainVisual` 靜態折線（每幀重餵兩點：源點→地面落點），但光束不傷人、傷害在沿線爆炸，見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Sweep 掃射〉。
+> **2026-11-18 外觀重做**：舊的 `BeamStyle`／`BeamColor`（`BeamStyleLibrary` + `Custom/AdditiveBeam`）、像素雷射 `PixelBeamSet`（`PixelLaserBeamVisual`）、`laser_glow`／`laser_impact` 光暈與 `SpawnChainVisual` **全部拆除**。雷射、連鎖閃電、掃射的外觀統一改由 DipanVfx 的 **`BeamVisual` ＋ `BeamFxTable`** 畫（武器表填 `BeamFxID`），規格見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d。本文只講行為；舊外型系統的說明已刪，鏡界折光的像素雷射文件封存在 [archive/PIXEL_REFLECT_LASER.md](archive/PIXEL_REFLECT_LASER.md)。
 
-> Pack 4 像素化、可無限延伸並在牆面多次反射的實作與武器「鏡界折光」，另見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
+> **掃射（`Mode=Sweep`，2026-11-11）** 的光束也用同一套外觀（`BeamFxID`／`BeamWidth`；每幀重餵兩點：源點→地面落點），但光束不傷人、傷害在沿線爆炸，見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Sweep 掃射〉。
 
-持續掃射型雷射武器。與「會飛的子彈」本質不同——它是「一條當下就存在的線」，不適用 `BulletInstance`（會移動的點）與 `IBulletBehavior`（為移動設計），因此**新增獨立的 `LaserBeam` 核心元件**，與 `BulletInstance` 平級。設計上仍嚴守解耦邊界：**彈道系統只管幾何 + 渲染 + 回報命中，絕不結算傷害**。
-
-本文分兩半：前半是**光束行為／渲染**（LaserBeam 元件、主遊戲串接），後半是**外型系統**（BeamStyle 種類化、如何加第 11 種）。
+持續掃射型雷射武器。與「會飛的子彈」本質不同——它是「一條當下就存在的線」，不適用 `BulletInstance`（會移動的點）與 `IBulletBehavior`（為移動設計），因此**新增獨立的 `LaserBeam` 核心元件**，與 `BulletInstance` 平級。設計上仍嚴守解耦邊界：**彈道系統只管幾何 + 回報命中，絕不結算傷害；也不畫任何東西**（外觀在主遊戲掛 DipanVfx 的 `BeamVisual`）。
 
 ---
 
@@ -22,23 +20,16 @@
   * 穿透：配方 `PierceLv` 控制穿過幾個敵人（lv n＝n 隻，最多 50）；`0` 打到第一個就停。2026-11-17 起取消 -1 無限（2026-11-17 起 CSV 填等級，見 [EQUIPMENT.md](EQUIPMENT.md)）。
   * 直射用單次大段 cast（快路徑），追蹤才用細步行進（精度路徑）。
 * **貼身敵人補抓（重要陷阱）**：本專案 `Physics2D.queriesStartInColliders = false`，從砲口出發的 cast 會**忽略重疊在光束起點的碰撞體** → 怪物貼在玩家身上時雷射打不到（飛劍類因為是「從外面飛進來」不受影響）。`MarchBeam` 開頭多做一次 `OverlapCircle`（半徑＝光束半寬）把貼身怪補進命中清單（純記錄傷害、不擋光束、**不動全域物理設定**以免影響子彈系統）。
-* **所見即所得的命中寬度**：命中判定半徑 `Radius = BeamWidth / 2`（不再讀配方的 `Radius`），**視覺寬度與命中寬度共用同一欄**，避免兩個欄位互相打架。
-* **渲染＝自繪 mesh（刻意不用 LineRenderer）**：每段做成**獨立四邊形**，頂點位置全由程式指定。
-  * **為何放棄 LineRenderer**：它的轉角接縫對「厚光束 + 尖反彈」無解——開圓角會把接縫往內縮（看起來離牆很遠就反彈），關圓角又會在尖角把某段寬度擠扁（變細）；兩個 artifact 只能二選一，怎麼調都是修 A 壞 B。
-  * **反彈貼牆 + 全程等寬**：轉角頂點放在精準的牆面命中點，相鄰段再**依轉角大小**沿各自方向延伸重疊（直段/追蹤緩彎幾乎不延伸、不會過度重疊變亮；尖反彈才補滿半寬、且延伸量落在畫面外）。每段都是等寬矩形 → 不會再有變細段；亮核確實補到牆面 → 緊貼牆反彈。
-  * **頭尾**：端點不延伸（平頭），由砲口 / 命中光暈（SpriteRenderer，`laser_glow` / `laser_impact`）收尾，避免亮核凸出端點節點。
-  * mesh 頂點用世界座標，故 `LaserBeam` 物件 transform 歸零（光暈為子物件，每幀用世界 `position` 更新）。
-* **雷射質感＝全參數化 shader（`Custom/AdditiveBeam`，不需貼圖）**：純黑底 `Blend One One` 自動去背發光。外型由一組數字（= 一種 `BeamStyle`）驅動，10 種定義見下方〈二、雷射外型系統〉。
-  * **縱向能量波**：shader 依 `uv.x`（沿光束世界長度）生成波帶、依 `_Time` 流動 → 一波一波往前（`BandFreq=0` 即均勻無波 = 鏡光）。電漿/閃電再疊 1D 程序雜訊。
-  * **白熱核心 + 微脈動**：依橫向 `uv.y` 讓中心趨白、邊緣由 `BeamColor` 染色（**顏色與亮度分離**，波動在亮核也看得到），再加整體微脈動。圓形光暈改用另一支簡單加色 shader `Custom/AdditiveGlow`（避免光束的波帶/截面/白核套到圓暈上）。
+* **所見即所得的命中寬度**：命中判定半徑 `Radius = BeamWidth / 2`（不再讀配方的 `Radius`）；外觀寬＝`BeamWidth × BeamFxTable.WidthMul`，兩者從同一欄推出。
+* **不畫東西**：2026-11-18 起 `LaserBeam` 只算 `Points`（唯讀折線）與命中。外觀由主遊戲依武器 `BeamFxID` 建一條 `BeamVisual`，`Track(beam.Points)`——它在 **LateUpdate** 讀路徑，所以一定拿到這一幀 `MarchBeam` 算好的折線，砲口不會落後一幀。（舊版自繪 mesh、每段獨立四邊形＋轉角延伸、`Custom/AdditiveBeam` 參數化 shader、`laser_glow` 光暈都已刪除。）
 * **傷害回報**：自帶 `DotInterval` 計時器，每隔 N 秒透過 `Action<LaserBeam, List<BeamHit>> OnBeamDamageTick` 把「當下掃到的目標」回報給主遊戲，傷害完全由主遊戲結算。
-* `BallisticsEngine.SpawnBeam(...)`：純程式生成光束物件的工廠（`RequireComponent` 在 `AddComponent<LaserBeam>` 時自動補上 `MeshFilter` / `MeshRenderer`），傳入 mask + 外型參數(BeamStyle) + onTick callback。**全程純程式建構，不需要 prefab、不需要 Inspector 接線**。
+* `BallisticsEngine.SpawnBeam(def, origin, aimDir, masks…, beamWidth, onTick)`：純程式生成光束物件的工廠（只有 `LaserBeam` 一個元件），**不需要 prefab、不需要 Inspector 接線**。
 
 ### 主遊戲端（`PlayerController`）
-* **持續光束生命週期**：偵測到雷射武器時走 `UpdateLaser`——按住維持一組（依分裂數＝配方 `SplitLv` 的扇形）光束、每幀更新砲口位置與瞄準方向；放開 / 切武器時 `ClearActiveBeams` 銷毀整組（仿環繞彈的群組管理）。
+* **持續光束生命週期**：偵測到雷射武器時走 `UpdateLaser`——按住維持一組（依分裂數＝配方 `SplitLv` 的扇形）光束、每幀更新砲口位置與瞄準方向；放開 / 切武器時 `ClearActiveBeams` 銷毀整組（仿環繞彈的群組管理），每道的 `BeamVisual` 改呼叫 `Stop()`（照表的 `FadeTime` 淡出後自毀）。
 * **`HandleBeamTick`**：接收光束每 `DotInterval` 的命中回報，對怪物用 `WeaponData.Damage` 結算傷害（無敵時間由 `MonsterController.TakeDamage` 內部的 `HitReactionHandler` 自動處理），並觸發地面特效。
 * **OnHit 分裂**：`SplitTiming=OnHit` + `SubRecipeID` 時，在命中點生成子彈，**節流綁在 DotInterval tick**（避免每幀爆量）。
-* **外觀資料驅動**：行為在 `RecipeTable`、外觀在 `WeaponTable`——使用者只填 `BeamStyle`（種類編號）/ `BeamColor`（顏色編號）/ `BeamWidth`（粗細）三個簡單值，其餘外型細節由 `BeamStyle` 編號展開。換風格只改編號，程式與配方都不動。
+* **外觀資料驅動**：行為在 `RecipeTable`、外觀在 `WeaponTable`——只填 `BeamFxID`（BeamFxTable 哪一列：1 鏡光、2 雷射、3 電光、4 氣功砲、5 紅色雷射；留空＝2）與 `BeamWidth`（命中寬度）。顏色、電弧、光球、脈衝等細節都在 BeamFxTable，在地圖編輯器「特效預覽器 → 自製特效 → 光束」即時調。
 
 ### 互斥與不生效欄位
 * `Mode` 一列只能一種，雷射與環繞／拋物線天生互斥。
@@ -48,73 +39,46 @@
 火焰噴射器 = **一把雷射，但外觀換成火焰 sprite**。因為「按住噴、跟滑鼠掃、持續傷害」本質就是雷射（`Origin`/`AimDirection` 每幀更新 → 完美掃射；`OnBeamDamageTick` → 持續 DOT），只差視覺。
 
 * **啟用**：雷射武器（`Mode=Laser`）的 `WeaponTable.TrailEffectID > 0` → 進入火焰模式。
-  * `LaserBeam.DrawBeam` 設為 `false`：**不畫光束 mesh、不畫砲口/命中光暈**，但照常算路徑(`Points`)、命中、DOT、射程、撞牆停。
+  * 主遊戲**不建 `BeamVisual`**（不畫光束），`LaserBeam` 照常算路徑(`Points`)、命中、DOT、射程、撞牆停。
   * 主遊戲（`PlayerController.UpdateFlameColumn`）沿 `beam.Points` 每隔配方 `TrailStep` 鋪一根 **TrailEffectID 指向的火焰 Vfx**，每幀重新定位 → 火焰柱跟著光束掃。
 * **火焰 Vfx 必須是「持續循環」**：VfxTable 該特效設 `Loop=1` + **`Duration=-1`（無限循環，由 PlayerController 持有、放開/切武器時清除）**。不能用一次性（會自毀、無法被重新定位）。
 * **復用既有欄位**：`TrailEffectID`（火焰外觀，同地刺）/ `TrailStep`（火焰間距）/ `BeamWidth`（命中寬度）/ `DotInterval`（DOT 節拍）/ `Range`（火焰射程，建議短，例如 5）/ `PierceLv`（穿幾個敵人）。傷害走武器表 `Damage`，每 `DotInterval` 結算。
 * **掃射 / 反彈 / 追蹤全部免費**：因為它就是雷射——`BounceTarget` 讓火焰撞牆折射、`HomingLv` 讓火焰彎曲咬敵。
 * 範例：武器「火焰噴射器」`Mode=Laser, TrailEffectID=4(火球), BeamWidth=1.2, Damage=2`；配方 `DotInterval=0.2, Range=5, TrailStep=0.5, PierceLv=50`；Vfx 4「火球」`FireBall, Loop=1, Duration=-1, Scale=0.5`。
-* 邊界：火焰 Vfx 的生成/管理全在主遊戲（VfxManager），彈道只多開放 `LaserBeam.Points`（唯讀路徑）+ `DrawBeam` 旗標，不碰 Vfx。
+* 邊界：火焰 Vfx 的生成/管理全在主遊戲（VfxManager），彈道只開放 `LaserBeam.Points`（唯讀路徑），不碰 Vfx。
 
 ---
 
-## 二、雷射外型系統 (Appearance / BeamStyle)
+## 二、外觀（BeamFxTable，2026-11-18）
 
-雷射外型**完全參數化**——一種「雷射種類」= 一組數字（送進 `Custom/AdditiveBeam` shader），**不需要任何貼圖**。所以加新種類 = 多一組數字，秒做、零產圖。使用者端只填三個簡單值：`BeamStyle`（種類編號）/ `BeamColor`（顏色編號）/ `BeamWidth`（粗細）。
+外觀全部搬到 DipanVfx：`BeamVisual` 元件＋`Custom/DipanBeam`（光柱）／`Custom/DipanArc`（電弧）／`Custom/DipanBeamOrb`（光球）三支 shader，一列 BeamFxTable＝一種光束。**規格、欄位、預覽器用法見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d**。目前五列：
 
-### 外型的四層拆解
-| 層 | 控制 | 來源 |
-|---|---|---|
-| 顏色 | `BeamColor` 編號 → 調色盤 | WeaponTable（使用者填） |
-| 粗細 | `BeamWidth`（視覺＝命中） | WeaponTable（使用者填） |
-| 縱向圖樣 + 流動 + 質感 | `BeamStyle` 編號 → 一組 shader 參數 | WeaponTable 填編號，數字定義在 `BeamStyleLibrary` |
-| 長度（行為） | `Range` | RecipeTable |
+| ID | 名稱 | 用在 | 特色 |
+|---|---|---|---|
+| 1 | 鏡光 | 鏡界折光 29 | 金白、邊緣七彩色散、沿光束滑過的亮紋、反彈點十字星芒 |
+| 2 | 雷射 | 預設（武器沒填 BeamFxID） | 青藍、流紋往前推＋能量脈衝 |
+| 3 | 電光 | 連鎖閃電 9、雷雨天罰 66 | 淡光暈＋3 條沿路徑鋸齒電弧（帶分岔），每秒重抽 24 次 |
+| 4 | 氣功砲 | 雷射追蹤光束 5 | 粗白核藍光柱、脈衝鼓包往前推、發射時往前伸長、5 段電弧繞柱往前竄、大光球頭 |
+| 5 | 紅色雷射 | 路西法之怒 78 | 紅、細、快脈衝；不畫砲口（掃射源點有自己的光球） |
 
-### BeamStyle 參數（`Sorrows.Ballistics.BeamStyle`，對應 shader 欄位）
-| 參數 | 視覺意義 |
-|---|---|
-| `Intensity` | 整體亮度 |
-| `EdgeStart` | 截面實心比例（大=實心粗光、小=核心集中邊緣柔） |
-| `CoreWidth` / `CoreWhiteness` | 白熱核心寬度 / 趨白程度（白核 0 → 純色不發白，像鏡光） |
-| `FlowSpeed` | 波帶流動速度（0=靜止） |
-| `BandFreq` | 波帶密度（每世界單位幾個波；**0=均勻無波=鏡光**） |
-| `BandDepth` | 波帶明暗深度（0=均勻、1=明暗到底） |
-| `BandSharp` | 波帶銳利度（1=平滑波、高=能量包、更高≈虛線） |
-| `NoiseAmt` / `NoiseSpeed` | 1D 程序雜訊量 / 翻騰速度（電漿、閃電才開） |
-| `FlickerStrength` / `FlickerSpeed` | 整體脈動（呼吸）幅度 / 速度 |
-
-### 內建 10 種種類（定義在 `Assets/Scripts/Weapon/BeamStyleLibrary.cs` 的 `Get()`）
-1 鏡光（古鏡，平滑均勻無波）｜2 標準｜3 脈衝｜4 離子/實心｜5 電漿｜6 虛線/節段｜7 閃電/不穩｜8 針狀/狙擊｜9 能量洪流｜10 微光/柔。
-
-### 內建 10 色（`BeamStyleLibrary.Palette`）
-1 紅｜2 橙｜3 黃｜4 綠｜5 青｜6 藍｜7 紫｜8 洋紅｜9 白｜10 琥珀金。`BeamStyle` 與 `BeamColor` **正交**（任何種類可配任何顏色 → 10×10 組合）。
-
-### 接手 AI 必讀：如何新增第 11、12… 種雷射
-1. 打開 `BeamStyleLibrary.cs`，在 `Get()` 的 switch 多一個 `case 11:`（複製最接近的那組、改數字；參數意義見上表）。
-2. 在 `WeaponTable.csv` 表頭說明列的 `BeamStyle(...)` 補上「11xxx」名稱（純文件、給人看）。
-3. 顏色同理：在 `BeamStyleLibrary.Palette` 末端加一筆 hex。
-4. **不需要**產圖、**不需要**動 shader（除非要全新視覺機制）、**不需要**動彈道系統。
-5. 只有當需要「很有機/不規則」的質感（程序雜訊也做不出來）時，才考慮替該種類掛一張選用貼圖——但目前架構刻意全程序化以免產圖。
-
-> 渲染管線：Built-in RP，shader 以 `_Time` 做流動/脈動。光束本體走 `Custom/AdditiveBeam`（全參數化），圓形光暈走 `Custom/AdditiveGlow`（單純加色染色）。
+加新外觀＝在 BeamFxTable 加一列、武器 `BeamFxID` 指過去，不用改程式。
 
 ---
 
 ## 三、連鎖閃電（Mode=Chain，複用光束渲染當電弧）
 
-連鎖閃電與雷射「外觀同源、機制不同」：雷射是「按住維持、往前 march＋撞牆反彈」的持續光束；連鎖閃電是「**點一下放一發**（吃 `FireInterval`）、命中首怪後在敵人之間逐跳」的離散攻擊。兩者都長成「一條折線」，所以**視覺完全複用 `LaserBeam` 的折線 mesh 渲染**（含 `BeamStyle`／`BeamColor`／光暈），只是折線的點來源不同。
+連鎖閃電與雷射「外觀同源、機制不同」：雷射是「按住維持、往前 march＋撞牆反彈」的持續光束；連鎖閃電是「**點一下放一發**（吃 `FireInterval`）、命中首怪後在敵人之間逐跳」的離散攻擊。兩者都長成「一條折線」，所以**外觀都走 `BeamVisual`**（同一張 BeamFxTable），只是折線的點來源不同。
 
 ### 機制（全在主遊戲側 `PlayerController.ShootChain`）
 * **第一段**：朝**滑鼠方向** `CircleCast`（容差半徑＝`BeamWidth/2`）找沿線第一個目標；先用 `Raycast(EnvLayer)` 抓環境，**撞到純牆就停**（閃電不穿牆）。射程＝配方 `Range` 欄。
 * **逐跳**：從上一個目標用 `OverlapCircleAll(ChainRadius)` 找「還沒打過的最近**可造成傷害目標**」，連過去；重複到 `ChainCount` 次用完或附近沒目標。**總命中數 = 1 + ChainCount**。
 * **目標 = 怪 + 可破壞地上物**：搜尋遮罩用 `EnemyLayer | EnvLayer`，再用 **`IDamageable` 過濾**——怪物與可破壞地上物（都實作 `IDamageable`）都算合法目標，**純牆（無 `IDamageable`）被排除**，不會被當成跳躍目標、也不浪費跳躍。所以連鎖閃電能打壞家具（符合「任何能造成傷害的武器都能破壞地上物」）。撞到擋路的可破壞家具時也會把它當首節點打。
 * **傷害**：每個連到的目標都吃**武器表 `Damage`**（每跳一樣；之後要做「每跳遞減」就在這裡乘衰減係數）。透過 `ApplyDamage` → `IDamageable`，自動吃怪物無敵時間。
-* **目標搜尋與傷害都不碰彈道系統**（守住邊界）；`LaserBeam` 在這裡只是個「畫給定折線」的渲染器。
+* **目標搜尋與傷害都不碰彈道系統**（守住邊界）。
 
-### 視覺（複用 `LaserBeam`）
-* `LaserBeam.SetStaticPath(pts, life)`（新增）：餵入主遊戲算好的世界座標折線（玩家→怪A→怪B…），之後**不 march、不回報傷害**，只渲染並在 `life` 秒內**漸暗淡出後自毀**（加色顏色往黑收）。
-* `BallisticsEngine.SpawnChainVisual(points, style, color, width, muzzle, impact, life)`（新增）：純程式生成上述靜態折線光束的工廠。
-* **鋸齒電弧**：主遊戲在每兩個目標之間插入橫向抖動中點（`BuildJaggedPath`），讓直線變成閃電鋸齒。閃電風格建議 `BeamStyle=7`（閃電/不穩，高雜訊強閃）。
+### 視覺
+* `BeamVisual.Flash(weapon.BeamFxID, 折線, BeamWidth×PlayerScale, 0.16 秒)`：折線＝玩家→怪A→怪B…（打空時＝玩家→牆／射程末端），閃 0.16 秒邊閃邊淡出後自毀。
+* **鋸齒交給外觀**：2026-11-18 起不再先把折線打成鋸齒（`BuildJaggedPath` 已刪）。電光那列的電弧自己在節點之間亂竄、每秒重抽，節點（目標）上釘死。
 
 ### 吃得下的配方欄位（行為複用）
 連鎖閃電除了自己的 `ChainRadius`，也複用既有欄位：
@@ -125,13 +89,13 @@
 | `Range` | **第一段射程**（朝滑鼠找首目標的最遠距離） |
 | `SplitLv` / `SpreadSpacing` / `SpreadMaxAngle` | **散射**：一發射出 1＋lv 道扇形分布的連鎖（每道獨立連鎖），與雷射的一發多道同理。例如 `SplitLv 2`＋間距 30 = 3 道，分布在滑鼠方向 ±30° |
 | `AimConeAngle` | **首目標自動鎖定**（aim-assist；2026-08-26 前借用 `HomingTurnSpeed`，追蹤珠對連鎖已改為無效）。閃電瞬發、不會飛行轉彎，所以：首段不必精準瞄到，改鎖定「以瞄準方向為軸、**半角 = AimConeAngle（上限 180）** 的扇形錐內、射程內、最近」的目標。`180` = 錐張滿一圈 = 鎖最近任意方向的目標；`0` / 留空 = 不鎖定（要精準瞄準線上才打得到首目標）。逐跳本來就會找最近，所以追蹤只作用在「首目標」 |
-| `BeamStyle`/`BeamColor`/`BeamWidth`（武器表） | 外觀（與雷射同欄；連鎖武器也會載入砲口/命中光暈素材） |
+| `BeamFxID`/`BeamWidth`（武器表） | 外觀（與雷射同欄）；`BeamWidth` 也是第一段瞄準的容差寬度 |
 | `Damage`（武器表） | 每個連到的目標的傷害（每跳一樣） |
 
 > ⚠️ **散射 + 追蹤的交互**：追蹤是「每道在自己的扇形方向附近鎖最近目標」。若 `AimConeAngle` 很大（如 180），每道的錐都張滿一圈 → N 道會鎖到同一隻最近的怪、扇形就收攏在一起。想保留散開的扇形，把 `AimConeAngle` 調小（例如 30~45，只在各自方向附近鎖定）。
 
-* **範例**（目前設定）：武器 11「連鎖閃電」`Damage=3, RecipeID=22, BeamStyle=7, BeamColor=6(藍), BeamWidth=0.25`；配方 22「連鎖閃電」`Mode=Chain, ChainCount=4（跳4次）, Range=15, ChainRadius=4, FireInterval=0.5, SplitLv=2, SpreadSpacing=30, SpreadMaxAngle=60, AimConeAngle=180`。
-* **調整方向**：跳更多 → `ChainCount`；跳更遠 → `ChainRadius`；首段射更遠 → `Range`；幾道 → `SplitLv`/`SpreadSpacing`；首目標鎖定錐角 → `AimConeAngle`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`。
+* **範例**（目前設定）：武器 11「連鎖閃電」`Damage=3, RecipeID=22, BeamWidth=0.25`（2026-11-18 起外觀＝`BeamFxID=3` 電光；此範例為舊編號，現行連鎖閃電是武器 9）；配方 22「連鎖閃電」`Mode=Chain, ChainCount=4（跳4次）, Range=15, ChainRadius=4, FireInterval=0.5, SplitLv=2, SpreadSpacing=30, SpreadMaxAngle=60, AimConeAngle=180`。
+* **調整方向**：跳更多 → `ChainCount`；跳更遠 → `ChainRadius`；首段射更遠 → `Range`；幾道 → `SplitLv`/`SpreadSpacing`；首目標鎖定錐角 → `AimConeAngle`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamFxID`（或改 BeamFxTable 那列）。
 
 > 未做（之後可加）：跳躍/鎖定的視線遮擋（目前純比距離，不檢查兩點之間有沒有牆）、每跳傷害遞減、命中音效。
 
@@ -165,7 +129,7 @@
 
 * **目前設定**：武器 24「九霄雷獄」`Damage=8, RecipeID=37, HitEffectID=26`；配方 37 `Mode=SkyStrike, SegmentedColumn=1, AreaRadius=1.6, FireInterval=0.9`。
 * **想試分裂**：把配方 37 的 `SplitLv` 改 2、`SpreadSpacing` 改 30。**想試落點吸附**：把 `SnapRadius` 設成搜尋半徑（例如 3）。
-* **調整方向**：AOE 大小 → `AreaRadius`；幾道 → `SplitLv`/`SpreadSpacing`；吸附範圍 → `SnapRadius`；傷害 → 武器 `Damage`；外觀 → 武器 `BeamColor`/`BeamStyle`；落點殘留 → `GroundEffectID`。
+* **調整方向**：AOE 大小 → `AreaRadius`；幾道 → `SplitLv`/`SpreadSpacing`；吸附範圍 → `SnapRadius`；傷害 → 武器 `Damage`；落點殘留 → `GroundEffectID`。
 
 ### 接 SubRecipeID = 落點接連鎖閃電（已實作）
 落雷配方填 `SubRecipeID` 指向一個 `Mode=Chain` 配方時，可在落地後從落點接一條連鎖閃電；目前九霄雷獄不使用此能力。

@@ -4,7 +4,7 @@
 
 > 返回 [文件總覽](README.md)｜特效庫操作見 [EFFECT_LIBRARY.md](EFFECT_LIBRARY.md)｜武器欄位見 [RECIPE_AND_WEAPON.md](RECIPE_AND_WEAPON.md)
 
-Super Pixel Projectiles Pack 4 的 A 組藍色雷射已製作為武器 29「鏡界折光」：origin／center／impact loop 沿反射折線動態平鋪，詳見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)。
+Super Pixel Projectiles Pack 4 的 A 組藍色雷射曾製作為武器 29「鏡界折光」的像素外觀（封存：[archive/PIXEL_REFLECT_LASER.md](archive/PIXEL_REFLECT_LASER.md)）；2026-11-18 起鏡界折光改用 BeamFxTable 1「鏡光」，像素素材已從主遊戲刪除。
 
 ## 資產審閱
 

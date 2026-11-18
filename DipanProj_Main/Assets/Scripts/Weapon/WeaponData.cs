@@ -22,11 +22,9 @@ public class WeaponData
     // 單次施放的視覺倍率快照；一般射擊為 1，完整集氣射擊為 2。
     public float CastVisualScale = 1f;
 
-    // ── 雷射外觀（在 WeaponTable 只填編號；數字定義在 BeamStyleLibrary）──
-    public BeamStyle BeamStyle;            // 由 BeamStyle 編號(1~10)解析的整組外型參數
-    public Color BeamColor = Color.white;  // 由 BeamColor 編號(1~10)解析的顏色
-    public float BeamWidth = 0.5f;         // 雷射粗細（視覺與命中共用）
-    public string PixelBeamSet;            // 空白 = shader 雷射；A_Blue = Pack 4 像素砲口／平鋪中心／撞擊端
+    // ── 光束外觀（雷射／連鎖／掃射；2026-11-18 起由 DipanVfx 的 BeamFxTable 決定，見 readme/DIPAN_VFX.md §4d）──
+    public int BeamFxID;                   // BeamFxTable ID；0 / 留空 = 預設光束（BeamFxDatabase.DefaultId）
+    public float BeamWidth = 0.5f;         // 光束命中寬度（外觀寬＝這個 × BeamFxTable 的 WidthMul）
 
     // ── 一次性特效（VFX）ID，引用 VfxTable；0 / 留空 = 不觸發 ──
     public int FireEffectID;   // 發射時在玩家身上播放（朝瞄準方向）
@@ -51,8 +49,4 @@ public class WeaponData
     public GameObject BulletPrefab;
     public Sprite WeaponSprite;
     public Sprite[] WeaponSprites;
-
-    // 雷射砲口/命中圓形光暈素材（由 WeaponManager 載入）
-    public Sprite BeamMuzzleSprite;
-    public Sprite BeamImpactSprite;
 }

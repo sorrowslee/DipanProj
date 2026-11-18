@@ -139,7 +139,7 @@
 
 **Familiar（浮游）** 也沒放進寬表（2026-10-01 新增）。子彈吃的跟 **Normal 一樣**（`Speed`／`Radius`／`LifeTime`／穿透／反彈／追蹤／分裂／命中附加／平行），另外吃 `Range`（索敵半徑）、`OrbitalRadius`／`OrbitalCount`（本體軌道與數量）；**集氣與連擊無效**（兩者都綁「扣扳機」，這個模式沒有扳機）。武器表多吃本體三欄 `FamiliarVfxId`（**必填**）／`FamiliarSize`／`FamiliarSpin`，其餘同 Normal。
 
-**武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`AnimFPS`）只有 Normal／Orbital／Parabolic，`BulletScale`（施放大小）另外也給 Aura／SkyStrike／GroundCast／Melee／Dash（範圍與視覺一起放大）；光束外觀（`BeamStyle`／`BeamColor`／`BeamWidth`）是 Laser／Chain／SkyStrike；`PixelBeamSet` 只有 Laser；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
+**武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`AnimFPS`）只有 Normal／Orbital／Parabolic，`BulletScale`（施放大小）另外也給 Aura／SkyStrike／GroundCast／Melee／Dash（範圍與視覺一起放大）；光束外觀（`BeamFxID`／`BeamWidth`）是 Laser／Chain／SkyStrike／Sweep；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
 
 ---
 
@@ -182,12 +182,12 @@ ID=13 Name=螢幕外丟出火焰拋物線彈 Mode=Parabolic FireInterval=0.5 Spl
 
 ### Laser 雷射（持續型）
 按住攻擊鍵維持光束，砲口跟玩家、瞄準跟滑鼠；每 `DotInterval` 秒對掃到的目標各結算一次武器 `Damage`。沒有 `FireInterval`、不吃集氣。
-- `Range` 光束長度（`-1`＝無限延伸，見 [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md)）；粗細＝武器表 `BeamWidth`（視覺與命中共用，配方 `Radius` 不用）。
+- `Range` 光束長度（`-1`＝無限延伸，見 [LASER.md](LASER.md)）；粗細＝武器表 `BeamWidth`（命中寬度，外觀寬＝它×BeamFxTable 的 `WidthMul`；配方 `Radius` 不用）。
 - `PierceLv`：lv n 穿 n 隻（最多 50，等同穿到底）；`0` 打到第一個就停。`BounceTarget`＋`BounceLv`：折線反射。`HomingLv`：光束中段彎曲咬住最近的敵人。
 - `SplitLv`／`SpreadSpacing`／`SpreadMaxAngle`：一發 1＋lv 道（每道獨立追蹤／反彈／穿透）。
 - `SplitTiming=OnHit`＋`SubRecipeID`：光束掃到敵人時在命中點生成子彈（節流綁 `DotInterval`）。**只認 `OnHit`**，`OnSpawn`／`OnDeath` 對雷射無意義。
 - `TrailStep`＋武器表 `TrailEffectID`：火焰噴射器模式——不畫光束，沿路徑每隔 `TrailStep` 鋪一根循環火焰。
-- 外觀（種類／顏色／粗細／像素素材）全在武器表。
+- 外觀＝武器表 `BeamFxID`（BeamFxTable 哪一列）＋`BeamWidth`，見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d。
 
 ```
 ID=14 Name=單一雷射追蹤光束 Mode=Laser PierceLv=50 HomingLv=5 Range=18 DotInterval=0.3
@@ -207,7 +207,7 @@ ID=21 Name=佛光 Mode=Aura GroundEffectID=2
 點一下朝滑鼠射出，命中第一隻後在 `ChainRadius` 內逐跳到還沒打過的最近怪，跳 `ChainCount` 次（總命中＝1＋跳數）；撞牆就停。每跳一樣的武器 `Damage`（也能打可破壞地上物）。
 - `Range` 首段射程。`AimConeAngle>0`：首段不必正好瞄到，鎖定「以瞄準方向為軸、半角這麼大的錐內最近」的目標；`180`＝任意方向最近。
 - `SplitLv`／`SpreadSpacing`／`SpreadMaxAngle`：一發多道，各自獨立連鎖。
-- 外觀＝武器表 `BeamStyle`（7 閃電）／`BeamColor`／`BeamWidth`。
+- 外觀＝武器表 `BeamFxID`（3 電光）／`BeamWidth`。
 
 ```
 ID=22 Name=連鎖閃電 Mode=Chain FireInterval=0.5 SplitLv=2 SpreadSpacing=30 SpreadMaxAngle=60 Range=15 ChainCount=4 ChainRadius=4 AimConeAngle=180
@@ -328,14 +328,14 @@ ID=86 Name=應龍水珠-浮游射擊 Mode=Familiar FireInterval=1.2 Speed=9 Radi
 - **射程與牆**：朝瞄準方向**固定掃 `Range` 那麼遠**（空＝12，從腳底量；2026-11-11 作者改：只掃到滑鼠位置常常太短）；填 **-1** 才是舊行為「只掃到瞄準點」。每道從腳底朝終點打一條細射線，**撞牆就停在牆前**；配方 `BlockedByEnvironment=0` 則**不檢查牆、直接掃過牆與不可走區域**（路西法之怒是 0）。遠射珠加的就是 `Range`。
 - **冷卻**：＝`FireInterval`，**從施放那一刻算**，不等整發播完——上一發還在掃，下一發就能出去，好幾發會疊在一起（2026-11-11 作者改，讓疾發珠有感；原本的「整發播完才能再發」發射鎖已拿掉）。按一下或按住都行。
 - **源點跟著人走**（光束上端會隨施放者移動），但地面掃描路徑在施放當下就鎖定。施放者中途死亡／被移除 ⇒ 光束淡出、還沒炸的全部取消。
-- **源點光球**：源點有一顆同 `BeamColor` 的能量球（直徑＝可見身高×0.16≈一顆頭，外圈柔光＋偏白亮芯、輕微脈動），光束從它射出；光束掃完時跟著淡出。程式生成、不吃素材，常數在 `SweepStrike` 檔頭（`OrbDiameterRatio` 等）。
-- **外觀（WeaponTable）**：光束吃 `BeamStyle`／`BeamColor`／`BeamWidth`（同雷射，見 [LASER.md](LASER.md)）；爆炸特效＝`HitEffectID`；`BulletScale`＝爆炸大小（半徑與特效一起放大，須彌珠）。
+- **源點光球**：源點有一顆跟光束同色（BeamFxTable 的 `ColorMid`）的能量球（直徑＝可見身高×0.16≈一顆頭，外圈柔光＋偏白亮芯、輕微脈動），光束從它射出；光束掃完時跟著淡出。程式生成、不吃素材，常數在 `SweepStrike` 檔頭（`OrbDiameterRatio` 等）。
+- **外觀（WeaponTable）**：光束吃 `BeamFxID`／`BeamWidth`（同雷射，見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d；路西法之怒＝5 紅色雷射）；爆炸特效＝`HitEffectID`；`BulletScale`＝爆炸大小（半徑與特效一起放大，須彌珠）。
 - **玩家與怪物共用**：`Scripts/Weapon/SweepStrike.cs`（`SweepStrike.Cast` 回傳整發秒數）。玩家走 `PlayerController.Shoot`（不需要 BulletPrefab），怪物走 `MonsterWeaponUser.TryUse`（擋光束的只有 Environment 層，水不擋）。首領／怪物填 `WeaponId` 指到 Sweep 武器即可。
-- 刻意不吃：集氣、連擊（整發本來就長，疊上去發射鎖語意會亂；要開再談）。光束本身用 `LaserBeam` 靜態折線每幀重餵（同連鎖閃電的視覺），沒有改 BallisticsSystem。
+- 刻意不吃：集氣、連擊（整發本來就長，疊上去發射鎖語意會亂；要開再談）。光束本身用 DipanVfx 的 `BeamVisual` 每幀重餵兩點（`SetPath(pts, BeamFadeSeconds)`，停餵自己淡出）。
 
 ```
 ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 SplitLv=2 SpreadSpacing=15 SpreadMaxAngle=30 Range=18 AreaRadius=2 SweepSpeed=12 SweepOriginHeight=1.15 ExplodeSpacing=1.2 ExplodeDelay=0.3   （Range 18 ≈ 一個畫面寬：正交 size 5 ⇒ 高 10、16:9 寬 17.8）
-武器 78 路西法之怒：Damage=8 ManaCost=0 BeamStyle=2 BeamColor=1（紅）BeamWidth=0.25 HitEffectID=60（路西法之怒爆炸＝Explosions/stylized_explosion_003 紅，2026-11-11 作者在特效預覽器挑的）
+武器 78 路西法之怒：Damage=8 ManaCost=0 BeamFxID=5（紅色雷射）BeamWidth=0.25 HitEffectID=60（路西法之怒爆炸＝Explosions/stylized_explosion_003 紅，2026-11-11 作者在特效預覽器挑的）
 道具 78 路西法之怒（長劍）：EquipSlot=Weapon WeaponID=78 IconPath=UI/Icons/Equipment/icon_luciferwrath
 ```
 

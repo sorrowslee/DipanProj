@@ -1180,6 +1180,9 @@
 - [ ] 確認沒問題後可刪舊序列圖 `Resources/Weapon/animation/fire/`、`Resources/GroundEffect/ScorchedGround/`（目前還被 GroundEffectTable 8／9 的 AniPath 指著，只是不畫；要刪先清那兩格）。
 - [ ] **傳送點新外型**實機看（亮度、池身深淺、光柱高度；暗場景 Atmosphere 壓暗後是否仍清楚）；確認後 VfxTable 6 與 `Resources/VfxEffects/Teleport/`（48 張）可刪——刪之前先把 `MapLoader.teleportVfxId` 與編輯器 `TeleportMarkerPreview` 的序列圖退路一起拿掉。
 - [ ] 特效巡視清單（2026-11-18，PROGRESS 同日條目）等作者挑要換哪些。
+- [ ] **新光束外觀實機看**（2026-11-18，DIPAN_VFX §4d）：雷射追蹤光束 5（氣功砲：粗細、電弧多寡、伸長速度）、鏡界折光 29（反彈光點大小、色散會不會太花）、連鎖閃電 9／雷雨天罰 66（電弧幅度、分岔）、路西法之怒 78（紅色雷射＋源點光球）。亮度與寬度倍率都是 numpy 模擬估的。
+- [ ] 光束測試武器 901～904（WeaponTable＋ItemTable）驗完要刪，或留著當 GM 測試武器。
+- [ ] 光束命中端火花借用 `VfxEmbers`（會往上飄，是火星的動態）；若看起來不像打擊火花，再給 VfxEmbers 加「不上飄」選項。
 
 ## 狀態效果系統（buff／debuff／DoT，2026-11-18，分支 `feat/status-effect`，見 [STATUS_EFFECT.md](STATUS_EFFECT.md)）
 

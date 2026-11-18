@@ -12,7 +12,7 @@
 | 生命週期 | Duration / 永久 | 播完一輪自毀（或 Loop 撐 Duration） |
 | 放哪張表 | 行為 → **RecipeTable**（`GroundEffectID`） | 外觀 → **WeaponTable**（`FireEffectID` / `HitEffectID`） |
 
-**為什麼放 WeaponTable 而不是 RecipeTable**：發射/擊中特效是「這把武器的視覺身分」、不帶任何遊戲數值，與 `WeaponSprite`、`BeamStyle` 同類；放武器表才能讓「共用同一配方行為的多把武器」各掛不同特效。對照 `GroundEffectID` 之所以在配方表，是因為它是會結算傷害的機制。
+**為什麼放 WeaponTable 而不是 RecipeTable**：發射/擊中特效是「這把武器的視覺身分」、不帶任何遊戲數值，與 `WeaponSprite`、`BeamFxID` 同類；放武器表才能讓「共用同一配方行為的多把武器」各掛不同特效。對照 `GroundEffectID` 之所以在配方表，是因為它是會結算傷害的機制。
 
 ## 三種用途共用同一原語
 
