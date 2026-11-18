@@ -1181,7 +1181,7 @@
 - [ ] **傳送點新外型**實機看（亮度、池身深淺、光柱高度；暗場景 Atmosphere 壓暗後是否仍清楚）；確認後 VfxTable 6 與 `Resources/VfxEffects/Teleport/`（48 張）可刪——刪之前先把 `MapLoader.teleportVfxId` 與編輯器 `TeleportMarkerPreview` 的序列圖退路一起拿掉。
 - [ ] 特效巡視清單（2026-11-18，PROGRESS 同日條目）等作者挑要換哪些。
 - [ ] **新光束外觀實機看**（2026-11-18，DIPAN_VFX §4d）：雷射追蹤光束 5（氣功砲：粗細、電弧多寡、伸長速度）、鏡界折光 29（反彈光點大小、色散會不會太花）、連鎖閃電 9／雷雨天罰 66（電弧幅度、分岔）、路西法之怒 78（紅色雷射＋源點光球）。亮度與寬度倍率都是 numpy 模擬估的。
-- [ ] 光束測試武器 901～904（WeaponTable＋ItemTable）驗完要刪，或留著當 GM 測試武器。
+- [x] ~~光束測試武器 901～904~~ → 作者驗完已刪（2026-11-18）；其中 903、904 作者喜歡，留到靈根劇本再加，見檔尾〈靈根血統劇本：預定加入的兩把光束武器〉。
 - [ ] 光束命中端火花借用 `VfxEmbers`（會往上飄，是火星的動態）；若看起來不像打擊火花，再給 VfxEmbers 加「不上飄」選項。
 
 ## 狀態效果系統（buff／debuff／DoT，2026-11-18，分支 `feat/status-effect`，見 [STATUS_EFFECT.md](STATUS_EFFECT.md)）
@@ -1197,3 +1197,16 @@
 - [ ] **第⑥階段待作者 Play 驗收**（2026-11-18 已做）：「狀態」分頁「給狀態測試裝備」穿上看三種 buff；「壓測：生 50／100 隻」看左上角幀時間（最好打 Development Build 或開 Profiler），把數字回報給 AI。
 - [ ] 傷害數字（`DamageNumberManager`）沒有物件池，大量怪物時可能是瓶頸——壓測若卡在這裡再改（原有系統，先沒動）。
 - [ ] 已知限制：`PounceBrain` 撲擊被減速時距離變短（截止時間沒乘減速）。
+
+## 靈根血統劇本：預定加入的兩把光束武器（2026-11-18 建立）
+
+作者測過 2026-11-18 雷射外觀重做的測試武器，**903、904 很喜歡，要在做靈根血統（築基期 → 元嬰期 → 化神期，見 [BLOODLINE.md](BLOODLINE.md)）相關劇本時加進遊戲**。測試列已從表裡刪除，以下是當時的完整內容，照抄就能重建。光束外觀規格見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d。
+
+- [ ] **電光反彈雷射**（測試時 ID 903，icon 借 `UI/Icons/Equipment/icon_palmthunder`）：電光套在持續光束上，無限延伸、牆面反彈 3 次。
+  - WeaponTable：`Damage=20, RecipeID=42, ManaCost=20, SpriteAngleOffset=0, BeamFxID=3（電光）, BeamWidth=0.4`
+  - 配方＝**RecipeTable 42「鏡界折光」**：`Mode=Laser, PierceLv=50, BounceTarget=Environment, BounceLv=3, Range=-1, DotInterval=0.2`
+- [ ] **追蹤氣功砲**（測試時 ID 904，icon 借 `UI/Icons/Equipment/icon_baguamirror`）：氣功砲單道追蹤，光束彎著咬敵、雷光繞柱。
+  - WeaponTable：`Damage=10, RecipeID=14, ManaCost=10, SpriteAngleOffset=0, BeamFxID=4（氣功砲）, BeamWidth=1`
+  - 配方＝**RecipeTable 14「單一雷射追蹤光束」**：`Mode=Laser, PierceLv=50, HomingLv=5, Range=18, DotInterval=0.3`
+- ⚠ 兩把都是**借現有配方**：42 是鏡界折光（29）正在用的，14 目前沒有武器用。正式加入時建議複製成新配方 ID，免得之後調鏡界折光的配方連帶改到它；ID、名稱、icon、數值、取得方式（劇本獎勵？）到時候再定。
+- ItemTable 當時的寫法（抄 900 GM 測試飛劍的格式）：`<ID>,<名稱>,Weapon,Weapon,<IconPath>,1,<Description>,<TipStats>,<TipLore>,<WeaponID>,,,,,,,,,`

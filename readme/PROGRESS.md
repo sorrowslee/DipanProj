@@ -11,8 +11,9 @@
   ④ **拆除**：`LaserBeam` 的渲染（mesh、光暈、`SetStaticPath`、`DrawBeam`、`BeamStyle` 結構）、`BallisticsEngine.SpawnChainVisual`、`SpawnBeam` 的外觀參數；刪 `BeamStyleLibrary.cs`、`PixelLaserBeamVisual.cs`、`AdditiveBeam.shader`、`Resources/Laser/`、`Resources/VfxEffects/PixelLaserA_Blue/`；`PIXEL_REFLECT_LASER.md` 封存。`AdditiveGlow` 保留（血統光環、掃射光球在用）。
   ⑤ 地圖編輯器特效預覽器「自製特效」加「光束」：掃動／反彈／連鎖／重複發射，可調粗細。
   ⑥ numpy 照 shader 模擬調參（`TempImage/dipanvfx_work/beam_sim/`）；全專案 Roslyn 編譯（DipanVfx、Ballistics、主遊戲有／無 UNITY_EDITOR、主遊戲 Editor、地圖編輯器＋Editor）0 錯誤。
-  ⑦ 加 4 把光束測試武器（WeaponTable／ItemTable 901～904，抄 900 GM 飛劍的格式、借現有 icon、不在抽選池）：901 雷射（光束 2，配方 17 三分裂反彈）、902 雷雨天罰（光束 3，複製 66，因 66 只是應龍血統的夢境武器、沒有道具）、903 電光反彈雷射（光束 3＋配方 42 無限反彈）、904 追蹤氣功砲（光束 4＋配方 14 單道追蹤）。
-  <br>**作者要做的**：Reimport WeaponTable、ItemTable、BeamFxTable；作弊面板（L）「給道具」給 5／9／29／78／901～904，或按「給全部武器」；也可在預覽器「光束」分頁調好存回。
+  ⑦ 加 4 把光束測試武器（WeaponTable／ItemTable 901～904，抄 900 GM 飛劍的格式、借現有 icon、不在抽選池）：901 雷射（光束 2，配方 17 三分裂反彈）、902 雷雨天罰（光束 3，複製 66，因 66 只是應龍血統的夢境武器、沒有道具）、903 電光反彈雷射（光束 3＋配方 42 無限反彈）、904 追蹤氣功砲（光束 4＋配方 14 單道追蹤）。作者驗完同日刪除；903、904 留到靈根血統劇本再正式加入，完整欄位記在 TODO 檔尾。
+  ⑧ 作者實機調鏡光（同日，見 DIPAN_VFX §4d 表）：金白粗光 → 冷白 → 加寬 → 亮度 0.3 → 平頂寬光帶 → 拿掉一塊一塊的波動；`DipanBeam` 外暈噪聲改跟 `EdgeNoise` 走（≥0.25 同原本）、`BeamVisual` 斷開角 70°→120°。
+  <br>**作者要做的**：Reimport WeaponTable、ItemTable、BeamFxTable；作弊面板（L）「給道具」給 5／9／29／78，或按「給全部武器」；也可在預覽器「光束」分頁調好存回。
 
 * [x] **狀態效果系統第⑥階段：三件測試裝備、壓測工具、效能修正（⏳ 已編譯、實測待作者；`feat/status-effect`、未 commit）**（2026-11-18）
   ① **測試裝備**：ItemTable 504 蓮華鱗甲（胸甲＝受擊護體）、505 青芽護手（手套＝受擊回春）、506 風翎行靴（鞋子＝發射疾行）；作弊面板「狀態」分頁一鍵給（良品、`fx=37@3;s=6` 這類規格寫死 Lv3、6 孔）。圖示：同一個 ChatGPT 對話附上 4 個既有裝備圖當風格參考，一張 3 格（1 次額度），`UI/Icons/Equipment/armor_lotusChest／gloves_jadeSprout／boots_windWing`（.meta 抄 icon_wolfclaw）。沒進任何掉落／兌換／抽選池。
