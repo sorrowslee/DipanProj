@@ -40,6 +40,7 @@ public class StatusController : MonoBehaviour
         public readonly List<Layer> Layers = new List<Layer>(1);
         public GameObject Source;
         public float ShownDuration;   // 給狀態列轉圈用的總長
+        public bool Pinned;           // 常駐（作弊面板的開關）：不會到期，要明確 Remove
 
         public int MaxLevel { get { int m = 0; for (int i = 0; i < Layers.Count; i++) if (Layers[i].Level > m) m = Layers[i].Level; return m; } }
         public float MaxRemaining { get { float m = 0f; for (int i = 0; i < Layers.Count; i++) if (Layers[i].Remaining > m) m = Layers[i].Remaining; return m; } }
@@ -57,6 +58,8 @@ public class StatusController : MonoBehaviour
         public float Duration;
         /// <summary>Stat：百分比加總（0.2＝20%）；Dot：每秒傷害；Hot：每秒回血量；Control：0。</summary>
         public float Magnitude;
+        /// <summary>常駐（作弊面板開關上的）：沒有剩餘時間，Remaining／Duration 不要拿來算。</summary>
+        public bool Pinned;
     }
 
     readonly List<Entry> _entries = new List<Entry>(4);
@@ -64,7 +67,6 @@ public class StatusController : MonoBehaviour
     float _tickClock;
     float _outMul = 1f, _inMul = 1f, _moveMul = 1f;
     bool _controlled, _frozen;
-    float _controlImmuneUntil = -99f;
     float _lastImmuneText = -99f;
 
     MonsterController _mc;
@@ -93,8 +95,6 @@ public class StatusController : MonoBehaviour
     public bool IsControlled => _controlled;
     /// <summary>控制中、而且是冰凍（動作定格；暈眩則是收招站著）。</summary>
     public bool IsFrozen => _frozen;
-    /// <summary>剛解除控制的免疫期還沒過（這段時間再來的控制一律不上身）。</summary>
-    public bool InControlImmunity => Time.time < _controlImmuneUntil;
     /// <summary>免疫行動控制（頭目：MonsterData 的 Controllable＝0）。</summary>
     public bool ImmuneToMovementImpair { get { Init(); return _mc != null && !_mc.Controllable; } }
 
@@ -127,7 +127,7 @@ public class StatusController : MonoBehaviour
     bool TargetDead => (_mc != null && _mc.IsDead) || (_pc != null && _pc.IsDead);
 
     /// <summary>施加一個狀態。⚠ 請走 StatusSystem.Apply（見類別說明）。<paramref name="dps"/> 只有 DoT 用。</summary>
-    public ApplyResult Apply(StatusEffectDef def, int level, GameObject source, float dps, bool forceChance = false)
+    public ApplyResult Apply(StatusEffectDef def, int level, GameObject source, float dps, bool forceChance = false, bool pinned = false)
     {
         if (def == null || level <= 0) return ApplyResult.Invalid;
         Init();
@@ -136,19 +136,19 @@ public class StatusController : MonoBehaviour
 
         if (def.Category == StatusCategory.Control)
         {
-            // 防連鎖鎖死（第⑤階段）：控制中不再疊／不續時間（暈眩中被冰凍也不換）；解除後 ControlImmuneSeconds 秒內免疫。
-            // 不這樣做的話，高射速武器每發都擲一次機率，雜兵會被永遠鎖住。
-            if (_controlled || InControlImmunity) return ApplyResult.Ignored;
+            // 2026-11-18 晚 作者：不要隱性規則（算難度會漏）⇒ 控制類**沒有任何特例**：
+            //   沒有解除後免疫、控制中照樣可以再上；暈眩與冰凍可同時存在、各自計時（照表上的 Stack 規則＝Refresh）。
+            //   玩家過強改由機率％上限控制（平衡時定）。
             // 等級＝觸發機率（作者 2026-11-18 定：有強度的效果等級加強度，沒有強度的加機率）。作弊面板可略過機率。
             if (!forceChance && UnityEngine.Random.value >= def.ValueAt(level)) return ApplyResult.Ignored;
         }
 
-        float dur = def.Duration;
+        float dur = pinned ? float.PositiveInfinity : def.Duration;   // 常駐＝無限時間（倒數扣不完）
         var e = Find(def.Id);
         ApplyResult result;
         if (e == null)
         {
-            e = new Entry { Def = def, Source = source };
+            e = new Entry { Def = def, Source = source, Pinned = pinned };
             e.Layers.Add(new Layer { Level = level, Remaining = dur, Dps = dps });
             _entries.Add(e);
             result = ApplyResult.Applied;
@@ -169,7 +169,7 @@ public class StatusController : MonoBehaviour
                     var cur = e.Layers[0];
                     float curStr = def.Category == StatusCategory.Dot ? cur.Dps : Mathf.Abs(def.ValueAt(cur.Level));
                     float newStr = def.Category == StatusCategory.Dot ? dps : Mathf.Abs(def.ValueAt(level));
-                    if (newStr + 1e-4f < curStr) return ApplyResult.Ignored;
+                    if (newStr + 1e-4f < curStr && !forceChance) return ApplyResult.Ignored;   // 比較弱就不換（作弊面板照換）
                     e.Layers[0] = new Layer { Level = level, Remaining = dur, Dps = dps };
                     break;
                 }
@@ -195,16 +195,22 @@ public class StatusController : MonoBehaviour
                 }
             }
             if (source != null) e.Source = source;
+            // 常駐的狀態被一般命中刷新（例：燃燒「只留最強」整個換掉）時，還是要保持常駐
+            if (pinned) e.Pinned = true;
+            if (e.Pinned && def.Stack != StatusStack.Stack && e.Layers.Count > 0)
+            {
+                var l0 = e.Layers[0]; l0.Remaining = float.PositiveInfinity; e.Layers[0] = l0;
+            }
             // 效能（第⑥階段）：高射速武器每發都會刷新同一個狀態。只是續時間（層數、等級都沒變）時乘數與圖示都不會變，
             // 不必重算／重畫／發事件——狀態列的轉圈是每幀自己讀剩餘時間，不靠事件。100 隻怪被機槍掃時省下大量 Refresh。
             if (Signature(e) == sigBefore)
             {
-                e.ShownDuration = Mathf.Max(dur, e.MaxRemaining);
+                e.ShownDuration = e.Pinned ? 0f : Mathf.Max(dur, e.MaxRemaining);
                 enabled = true;
                 return result;
             }
         }
-        e.ShownDuration = Mathf.Max(dur, e.MaxRemaining);
+        e.ShownDuration = e.Pinned ? 0f : Mathf.Max(dur, e.MaxRemaining);
         enabled = true;   // ⚠ 一定要在 MarkChanged 之前：邏輯先生效，畫面（圖示、染色）之後才處理
         MarkChanged();
         return result;
@@ -217,6 +223,9 @@ public class StatusController : MonoBehaviour
         _lastImmuneText = Time.time;
         return true;
     }
+
+    /// <summary>這種狀態目前在身上、而且是常駐的（作弊面板開關）。</summary>
+    public bool IsPinned(int statusId) { var e = Find(statusId); return e != null && e.Pinned; }
 
     /// <summary>拿掉某一種狀態（淨化道具之後用）。</summary>
     public bool Remove(int statusId)
@@ -261,6 +270,7 @@ public class StatusController : MonoBehaviour
                 Remaining = e.MaxRemaining,
                 Duration = e.ShownDuration,
                 Magnitude = mag,
+                Pinned = e.Pinned,
             });
         }
     }
@@ -404,7 +414,6 @@ public class StatusController : MonoBehaviour
         _outMul = Mathf.Max(0f, 1f + o);
         _inMul = Mathf.Max(MinIncomingMul, 1f + inc);
         _moveMul = Mathf.Clamp(1f + mv, MinMoveMul, MaxMoveMul);
-        if (_controlled && !ctl) _controlImmuneUntil = Time.time + StatusSystem.ControlImmuneSeconds;   // 控制剛解除 → 開始免疫期
         _controlled = ctl;
         _frozen = frz;
         if (_act != null) _act.SpeedMultiplier = _moveMul;

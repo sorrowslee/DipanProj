@@ -51,6 +51,6 @@ GemID,Name,Calc,Attribute,Target,Lv1,PerLv,MaxLv,Icon,BaseColor,Note,StatusID,Tr
 34,冰凍,Level,Status,Recipe,1,1,19,freeze,,命中時機率冰凍（等級加的是機率；頭目免疫）,7,OnHit,,
 35,命中增傷,Level,Status,Recipe,1,1,20,might_hit,,命中時 20% 機率自己增傷，冷卻 5 秒,8,OnHit,20%,5
 36,發射增傷,Level,Status,Recipe,1,1,20,might_fire,,發射時自己增傷（每發都刷新）。Nidhogg 血統內建 lv1,8,OnFire,100%,0
-37,受擊護體,Level,Status,Player,1,1,20,guard,,受擊時自己護體（受到傷害降低），冷卻 8 秒,9,OnHurt,100%,8
-38,受擊回春,Level,Status,Player,1,1,20,regen,,受擊時自己回春（持續回血），冷卻 8 秒,11,OnHurt,100%,8
-39,發射疾行,Level,Status,Support,1,1,20,haste,,發射時自己疾行（移動加速，每發都刷新）,10,OnFire,100%,0
+37,受擊護體,Level,Status,Player,1,1,20,guard,,受擊時 20% 機率自己護體（受到傷害降低），冷卻 8 秒,9,OnHurt,20%,8
+38,受擊回春,Level,Status,Player,1,1,20,regen,,受擊時 20% 機率自己回春（持續回血），冷卻 8 秒,11,OnHurt,20%,8
+39,受擊疾行,Level,Status,Support,1,1,20,haste,,受擊時 20% 機率自己疾行（移動加速，脫離包圍用），冷卻 8 秒（2026-11-18 作者：鞋子該是受擊觸發，原本是發射時）,10,OnHurt,20%,8

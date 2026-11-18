@@ -201,7 +201,8 @@ namespace Dipan.UI
                     default: mag = ""; break;
                 }
                 string desc = v.Def.DescId > 0 ? string.Format(Language.GetText(v.Def.DescId), mag, v.Stacks) : "";
-                string left = string.Format(Language.GetText(StatusSystem.TxtRemaining), v.Remaining.ToString("0.0"));
+                string left = v.Pinned ? Language.GetText(StatusSystem.TxtPinned)
+                            : string.Format(Language.GetText(StatusSystem.TxtRemaining), v.Remaining.ToString("0.0"));
                 return $"{v.Def.Name} Lv{v.Level}：{desc}（{left}）";
             }
             return c.Def.Name;

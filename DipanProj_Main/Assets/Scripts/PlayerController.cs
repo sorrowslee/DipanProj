@@ -1238,7 +1238,7 @@ public class PlayerController : MonoBehaviour, IDamageable
     bool Shoot(bool pressed, WeaponData overrideWeapon = null, bool burstShot = false)
     {
         bool fired = ShootCore(pressed, overrideWeapon, burstShot);
-        // 發射時觸發的狀態效果（發射增傷、發射疾行…）：真的射出去才算（魔力不足／召喚已滿不算）。連擊每一發都算。
+        // 發射時觸發的狀態效果（發射增傷…）：真的射出去才算（魔力不足／召喚已滿不算）。連擊每一發都算。
         if (fired && _statusAttacker != null) _statusAttacker.NotifyFire();
         return fired;
     }

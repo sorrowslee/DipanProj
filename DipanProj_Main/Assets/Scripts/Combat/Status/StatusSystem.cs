@@ -10,8 +10,6 @@ public static class StatusSystem
     /// <summary>DoT／HoT 結算間隔（秒）。全遊戲共用一個時鐘，同一跳多種 DoT 才能合成一個數字。</summary>
     public const float TickInterval = 0.5f;
 
-    /// <summary>控制（暈眩／冰凍）解除後的免疫秒數：這段時間內再來的控制不上身，防止高射速武器把雜兵永遠鎖死（第⑤階段）。</summary>
-    public const float ControlImmuneSeconds = 2f;
     // ── 跳數字預算（第⑥階段效能）──
     /// <summary>每一個 0.5 秒的跳傷時段內，全場最多跳幾個狀態 DoT／回春數字（玩家自己的不算額度、一定跳）。</summary>
     public const int TickNumberBudget = 24;
@@ -36,6 +34,8 @@ public static class StatusSystem
 
     /// <summary>「被控制時不能喝藥」提示（LanguageTable）。</summary>
     public const int TxtCantDrinkControlled = 12043;
+    /// <summary>狀態列 tip「常駐（測試用）」：作弊面板開關上的狀態沒有剩餘時間（LanguageTable）。</summary>
+    public const int TxtPinned = 12044;
 
     /// <summary>「免疫」字的語言表 id。</summary>
     public const int TxtImmune = 12041;
@@ -54,7 +54,7 @@ public static class StatusSystem
         => Apply(target, StatusEffectDatabase.Get(statusId), level, source, hitDamage, flatDot);
 
     public static StatusController.ApplyResult Apply(GameObject target, StatusEffectDef def, int level,
-        GameObject source = null, float hitDamage = 0f, bool flatDot = false, bool forceChance = false)
+        GameObject source = null, float hitDamage = 0f, bool flatDot = false, bool forceChance = false, bool pinned = false)
     {
         if (target == null || def == null || level <= 0) return StatusController.ApplyResult.Invalid;
         var sc = ControllerOf(target, true);
@@ -64,7 +64,7 @@ public static class StatusSystem
         if (def.Category == StatusCategory.Dot)
             dps = (!flatDot && hitDamage > 0f) ? hitDamage * def.ValueAt(level) : def.FlatAt(level);
 
-        var r = sc.Apply(def, level, source, dps, forceChance);
+        var r = sc.Apply(def, level, source, dps, forceChance, pinned);
         if (r == StatusController.ApplyResult.Immune && sc.ConsumeImmuneTextSlot())
             DamageNumberManager.ShowText(target, Language.GetText(TxtImmune), ImmuneColor);
         return r;

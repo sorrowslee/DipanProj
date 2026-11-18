@@ -1833,6 +1833,7 @@
   - 指令範本見 [DIPAN_VFX.md](DIPAN_VFX.md) §7。這次 DipanVfx、Ballistics、主遊戲、地圖編輯器（含兩邊 Editor）全部 0 錯誤。
 - **通則**：**能真編譯就真編譯**；四件套（I11）留給拿不到 Unity dll 的時候。
 - **2026-11-18 補（打包原始碼的坑）**：打包時用 `find … | grep -v Library` 排除 Unity 的 `Library/` 資料夾，會**連檔名含 Library 的原始碼一起排掉**（地圖編輯器 `EffectLibrary.cs`），編譯就報「找不到 EffectLibrary」。要寫 `grep -v "/Library/"`。
+  **`device_commit_files` 對同一個 stagedPath 第二次上傳會送舊內容**（2026-11-18 晚：改過 `/mnt/user-data/outputs/X.cs` 再 commit，裝置上還是第一版、回報卻是 written）。改檔後要嘛換一個新檔名再 commit，要嘛直接在 device_bash 裡改；commit 完用 `md5sum` 兩邊對一次。
   地圖編輯器沒有自己的 `Library/ScriptAssemblies`：借主專案的套件 dll＋Newtonsoft，再加 `-r:DipanVfx.Runtime.dll`（它 `file:` 引用 DipanVfx 套件）就能編過。
 
 ---

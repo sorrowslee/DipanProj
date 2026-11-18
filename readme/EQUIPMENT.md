@@ -53,7 +53,7 @@
 2026-11-18 起分**攻擊／防禦／輔助**三類（作者定；跟著 buff／debuff 系統一起來，見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §3）：
 
 - `Recipe`／`Weapon` → **攻擊類**（目前 24 種都是；之後的燃燒、中毒、減速、增傷…也是）。
-- `Player`（也可寫 `Defense`）→ **防禦類**（2026-11-18 第④階段起有「受擊護體」「受擊回春」兩種，見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §4.1；輔助類有「發射疾行」）。
+- `Player`（也可寫 `Defense`）→ **防禦類**（2026-11-18 第④階段起有「受擊護體」「受擊回春」兩種，見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §4.1；輔助類有「受擊疾行」）。
 - 狀態效果列（GemTable 28–39）：`Calc=Level`、`Attribute=Status`，多了 `StatusID`／`Trigger`／`Chance`／`Cooldown` 四欄；一樣進生成骰池、一樣全身等級相加。
 - `Support` → **輔助類**（疾行…，同上；目前鞋子生成時一律一般）。
 

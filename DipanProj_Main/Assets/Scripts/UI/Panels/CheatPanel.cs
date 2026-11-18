@@ -704,7 +704,7 @@ namespace Dipan.UI
         //
         // 第②階段驗收用（2026-11-18，readme/STATUS_EFFECT.md）：直接對玩家或附近怪物上狀態。
         // ‧ DoT 一律用「固定值型」（作弊沒有一下命中傷害可以當百分比基準）。
-        // ‧ 控制類（暈眩、冰凍）：作弊按鈕略過機率必中（第⑤階段）；控制中／剛解除的免疫期內按了會顯示 Ignored。
+        // ‧ 控制類（暈眩、冰凍）：作弊按鈕略過機率必中；兩種可同時存在、各自計時（2026-11-18 晚作者定）。
         // ‧ 狀態列 UI 第③階段才做；現在靠下方文字＋頭上的 DoT 數字、移速、傷害數字變化來看。
 
         int _statusLv = 1;
@@ -728,7 +728,7 @@ namespace Dipan.UI
             Place(head.rectTransform, 0f, 0f, 600f, 40f);
 
             var hint = UIBuilder.Text(root, "Hint",
-                "面板開著時遊戲暫停，關掉才看得到效果。DoT 用固定值型；暈眩、冰凍略過機率必中（解除後 2 秒內免疫）。",
+                "按鈕是開關：按下＝常駐（不會到期），再按一次＝移除。DoT 用固定值型；暈眩、冰凍必中（兩種可以同時開，冰凍時動作定格優先）。",
                 18, new Color(1f, 1f, 1f, 0.6f), TextAnchor.UpperLeft);
             Place(hint.rectTransform, 0f, 46f, GroupW, 30f);
 
@@ -750,8 +750,10 @@ namespace Dipan.UI
                 float dy = 40f + (i / PerRow) * (BtnH + GapY);
                 var bp = UIBuilder.Button(root, $"StP_{d.Key}", d.Name, () => OnClickStatusToPlayer(d), ColBtn);
                 Place((RectTransform)bp.transform, x, g1Y + dy, BtnW, BtnH);
+                _statusBtnP[d.Id] = bp;
                 var bm = UIBuilder.Button(root, $"StM_{d.Key}", d.Name, () => OnClickStatusToMonsters(d), ColBtn);
                 Place((RectTransform)bm.transform, x, g2Y + dy, BtnW, BtnH);
+                _statusBtnM[d.Id] = bm;
             }
 
             float rowY = g2Y + groupH + 14f;
@@ -765,7 +767,7 @@ namespace Dipan.UI
             var gemsBtn = UIBuilder.Button(root, "StGems", "狀態珠各給一顆（Lv3）", OnClickGiveStatusGems, ColBtn);
             Place((RectTransform)gemsBtn.transform, 702f, rowY, 320f, 52f);
             // 第⑥階段（2026-11-18）：三件狀態測試裝備（良品、內建效果寫死 Lv3、6 孔），只從這裡拿
-            var eqBtn = UIBuilder.Button(root, "StEquip", "給狀態測試裝備（蓮華鱗甲＝受擊護體・青芽護手＝受擊回春・風翎行靴＝發射疾行）", OnClickGiveStatusEquip, ColBtn);
+            var eqBtn = UIBuilder.Button(root, "StEquip", "給狀態測試裝備（蓮華鱗甲＝受擊護體・青芽護手＝受擊回春・風翎行靴＝受擊疾行）", OnClickGiveStatusEquip, ColBtn);
             Place((RectTransform)eqBtn.transform, 0f, rowY + 62f, 1022f, 52f);
 
             // 第⑥階段：效能壓測（玩家四周生一圈怪、每隻上滿狀態；左上角顯示幀時間）
@@ -778,8 +780,16 @@ namespace Dipan.UI
             var sProbe = UIBuilder.Button(root, "StProbe", "效能顯示 開／關", () => StatusPerfProbe.Toggle(), ColBtn);
             Place((RectTransform)sProbe.transform, 722f, rowY + 124f, 300f, 52f);
 
+            // 效能記錄（2026-11-18 作者：自己抄數字容易抄錯）：開始 → 關面板玩一段 → 開面板按結束，自動寫 TempImage/perf_logs/perf_log.csv
+            var recA = UIBuilder.Button(root, "StRecStart", "開始記錄", () => OnClickRecordStart(null), ColBtn);
+            Place((RectTransform)recA.transform, 0f, rowY + 186f, 250f, 52f);
+            var recB = UIBuilder.Button(root, "StRecFire", "開始記錄（掃射中）", () => OnClickRecordStart("＋掃射"), ColBtn);
+            Place((RectTransform)recB.transform, 264f, rowY + 186f, 300f, 52f);
+            var recEnd = UIBuilder.Button(root, "StRecEnd", "結束記錄（寫檔）", OnClickRecordEnd, ColBtn);
+            Place((RectTransform)recEnd.transform, 578f, rowY + 186f, 444f, 52f);
+
             _statusInfo = UIBuilder.Text(root, "StInfo", "", 20, ColOk, TextAnchor.UpperLeft);
-            Place(_statusInfo.rectTransform, 0f, rowY + 190f, GroupW, 160f);
+            Place(_statusInfo.rectTransform, 0f, rowY + 252f, GroupW, 120f);
             RefreshStatusInfo();
         }
 
@@ -795,26 +805,91 @@ namespace Dipan.UI
 
         static PlayerController FindPlayer() => UnityEngine.Object.FindObjectOfType<PlayerController>();
 
+        // ── 狀態開關（2026-11-18 作者：暈眩 1 秒關掉面板就結束了，連 tip 都來不及看 ⇒ 改成按下常駐、再按移除）──
+        readonly Dictionary<int, Button> _statusBtnP = new Dictionary<int, Button>();
+        readonly Dictionary<int, Button> _statusBtnM = new Dictionary<int, Button>();
+        readonly HashSet<int> _monsterPinned = new HashSet<int>();                       // 怪物那組哪些開著
+        readonly Dictionary<int, List<MonsterController>> _monsterPinnedOn = new Dictionary<int, List<MonsterController>>();   // 開的時候上到哪些怪
+
         void OnClickStatusToPlayer(StatusEffectDef d)
         {
             var pc = FindPlayer();
-            if (pc == null) { AlertPanel.Toast("找不到玩家"); return; }
-            var r = StatusSystem.Apply(pc.gameObject, d, _statusLv, null, 0f, true, forceChance: true);
-            AlertPanel.Toast($"玩家：{d.Name} Lv{_statusLv}（{r}）");
+            if (pc == null || pc.Status == null) { AlertPanel.Toast("找不到玩家"); return; }
+            if (pc.Status.IsPinned(d.Id))
+            {
+                pc.Status.Remove(d.Id);
+                AlertPanel.Toast($"玩家：移除 {d.Name}");
+            }
+            else
+            {
+                var r = StatusSystem.Apply(pc.gameObject, d, _statusLv, null, 0f, true, forceChance: true, pinned: true);
+                AlertPanel.Toast($"玩家：{d.Name} Lv{_statusLv} 常駐（{ResultText(r)}）");
+            }
             RefreshStatusInfo();
         }
 
         void OnClickStatusToMonsters(StatusEffectDef d)
         {
-            int n = 0, immune = 0;
-            var srcPc = FindPlayer();
-            GameObject srcGo = srcPc != null ? srcPc.gameObject : null;
-            ForEachNearbyFoe(m =>
+            if (_monsterPinned.Remove(d.Id))
             {
-                var r = StatusSystem.Apply(m.gameObject, d, _statusLv, srcGo, 0f, true, forceChance: true);
-                if (r == StatusController.ApplyResult.Immune) immune++; else n++;
-            });
-            AlertPanel.Toast($"{d.Name} Lv{_statusLv}：{n} 隻怪" + (immune > 0 ? $"（{immune} 隻免疫）" : ""));
+                // 關：先前上過的怪＋現在附近的怪都拿掉
+                int removed = 0;
+                if (_monsterPinnedOn.TryGetValue(d.Id, out var list))
+                    foreach (var m in list) if (m != null && !m.IsDead && m.Status != null && m.Status.Remove(d.Id)) removed++;
+                ForEachNearbyFoe(m => { if (m.Status != null && m.Status.Remove(d.Id)) removed++; });
+                _monsterPinnedOn.Remove(d.Id);
+                AlertPanel.Toast($"怪物：移除 {d.Name}（{removed} 隻）");
+            }
+            else
+            {
+                int n = 0, immune = 0;
+                var srcPc = FindPlayer();
+                GameObject srcGo = srcPc != null ? srcPc.gameObject : null;
+                var list = new List<MonsterController>();
+                ForEachNearbyFoe(m =>
+                {
+                    var r = StatusSystem.Apply(m.gameObject, d, _statusLv, srcGo, 0f, true, forceChance: true, pinned: true);
+                    if (r == StatusController.ApplyResult.Immune) immune++; else { n++; list.Add(m); }
+                });
+                _monsterPinned.Add(d.Id);
+                _monsterPinnedOn[d.Id] = list;
+                AlertPanel.Toast($"{d.Name} Lv{_statusLv} 常駐：{n} 隻怪" + (immune > 0 ? $"（{immune} 隻免疫）" : ""));
+            }
+            RefreshStatusToggles();
+        }
+
+        static string ResultText(StatusController.ApplyResult r)
+        {
+            switch (r)
+            {
+                case StatusController.ApplyResult.Applied: return "上身";
+                case StatusController.ApplyResult.Refreshed: return "原本就有，改成常駐";
+                case StatusController.ApplyResult.Immune: return "免疫";
+                case StatusController.ApplyResult.Ignored: return "沒上身";
+                default: return "沒上身（目標已死或無效）";
+            }
+        }
+
+        /// <summary>開關按鈕的外觀：玩家那組看玩家身上實際有沒有常駐的（死亡、清除、離開關卡都會自己對上）；怪物那組看自己記的。</summary>
+        void RefreshStatusToggles()
+        {
+            var pc = FindPlayer();
+            var sc = pc != null ? pc.Status : null;
+            foreach (var kv in _statusBtnP) SetToggleLook(kv.Value, sc != null && sc.IsPinned(kv.Key));
+            foreach (var kv in _statusBtnM) SetToggleLook(kv.Value, _monsterPinned.Contains(kv.Key));
+        }
+
+        void SetToggleLook(Button b, bool on)
+        {
+            if (b == null) return;
+            var img = b.GetComponent<Image>();
+            if (img != null) img.color = on ? ColToggleOn : ColBtn;
+            var lbl = b.GetComponentInChildren<Text>();
+            if (lbl != null)
+            {
+                string name = lbl.text.StartsWith("● ") ? lbl.text.Substring(2) : lbl.text;
+                lbl.text = on ? "● " + name : name;
+            }
         }
 
         /// <summary>狀態測試裝備：ItemTable 504～506，內建效果＝GemTable 37／38／39（Lv3，單一來源上限），6 孔全開。</summary>
@@ -822,7 +897,7 @@ namespace Dipan.UI
         {
             (504, "fx=37@3;s=6"),   // 蓮華鱗甲（胸甲）：受擊護體
             (505, "fx=38@3;s=6"),   // 青芽護手（手套）：受擊回春
-            (506, "fx=39@3;s=6"),   // 風翎行靴（鞋子）：發射疾行
+            (506, "fx=39@3;s=6"),   // 風翎行靴（鞋子）：受擊疾行
         };
 
         void OnClickGiveStatusEquip()
@@ -894,6 +969,23 @@ namespace Dipan.UI
             _stressPending.Clear();
         }
 
+        void OnClickRecordStart(string suffix)
+        {
+            if (StatusPerfProbe.Recording) { AlertPanel.Toast("已經在記錄了，先按「結束記錄」"); return; }
+            int alive = 0;
+            foreach (var m in MonsterController.Active) if (m != null && !m.IsDead) alive++;
+            string label = $"怪物 {alive}" + (suffix ?? "");
+            StatusPerfProbe.BeginRecord(label);
+            AlertPanel.Toast($"開始記錄「{label}」：關掉面板玩 10 秒以上，再打開面板按「結束記錄」（面板開著的時間不算）");
+        }
+
+        void OnClickRecordEnd()
+        {
+            string msg = StatusPerfProbe.EndRecord();
+            AlertPanel.Toast(msg ?? "現在沒有在記錄");
+            if (msg != null && _statusInfo != null) _statusInfo.text = msg + "\n檔案：" + StatusPerfProbe.LogPath();
+        }
+
         void OnClickStressClear()
         {
             int n = 0;
@@ -933,6 +1025,11 @@ namespace Dipan.UI
         {
             int n = 0;
             ForEachNearbyFoe(m => { if (m.Status != null) { m.Status.ClearAll(); n++; } });
+            foreach (var kv in _monsterPinnedOn)
+                foreach (var m in kv.Value) if (m != null && !m.IsDead && m.Status != null) m.Status.ClearAll();
+            _monsterPinned.Clear();
+            _monsterPinnedOn.Clear();
+            RefreshStatusToggles();
             AlertPanel.Toast($"清除 {n} 隻怪的狀態");
         }
 
@@ -955,6 +1052,7 @@ namespace Dipan.UI
 
         void RefreshStatusInfo()
         {
+            RefreshStatusToggles();
             if (_statusInfo == null) return;
             var pc = FindPlayer();
             var sc = pc != null ? pc.Status : null;
@@ -973,7 +1071,7 @@ namespace Dipan.UI
             {
                 sb.Append($"{v.Def.Name} Lv{v.Level}");
                 if (v.Stacks > 1) sb.Append($" ×{v.Stacks}層");
-                sb.Append($"　剩 {v.Remaining:0.0} 秒");
+                sb.Append(v.Pinned ? "　常駐" : $"　剩 {v.Remaining:0.0} 秒");
                 switch (v.Def.Category)
                 {
                     case StatusCategory.Dot: sb.Append($"　每秒 {v.Magnitude:0.#} 傷害"); break;

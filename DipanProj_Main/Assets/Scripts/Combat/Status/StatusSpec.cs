@@ -9,7 +9,7 @@ using Dipan.Inventory;
 /// CSV 裡不能有半形逗號，所以用分號分隔。</para>
 ///
 /// <para>兩種清單，查的表不同：
-///   ‧ <b>效果清單</b>（<see cref="ParseEffects"/>）：查 GemTable 的<b>狀態效果列</b>（帶觸發時機，例：「命中增傷」「發射疾行」）。
+///   ‧ <b>效果清單</b>（<see cref="ParseEffects"/>）：查 GemTable 的<b>狀態效果列</b>（帶觸發時機，例：「命中增傷」「受擊疾行」）。
 ///     用在配方 <c>StatusLv</c>、血統 <c>Effects</c>——它們是「全身等級相加」的一個來源。
 ///   ‧ <b>狀態清單</b>（<see cref="ParseStatuses"/>）：直接查 StatusEffectTable（例：「燃燒」「中毒」）。
 ///     用在怪物 <c>ContactStatus</c>、地面特效 <c>StatusFx</c>、道具 <c>UseStatus</c>、觸發鏈 <c>applyStatus</c>——這些是「直接上身」，沒有觸發時機。</para>
