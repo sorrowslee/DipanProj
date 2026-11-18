@@ -6,6 +6,12 @@
       "source": "local",
       "dependencies": {}
     },
+    "com.sorrows.dipanvfx": {
+      "version": "file:../../DipanVfx",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.unity.2d.animation": {
       "version": "9.2.0",
       "depth": 1,

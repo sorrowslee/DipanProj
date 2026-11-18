@@ -1,3 +1,4 @@
+using Dipan.Vfx;
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -11,6 +12,14 @@ public class VfxManager : MonoBehaviour
     public TextAsset VfxCSV;
     [Tooltip("地刺設定表 Assets/Data/GroundSpikeTable.csv（武器表 TrailSpikeID 指向它，見 readme/GROUND_SPIKE.md）")]
     public TextAsset GroundSpikeCSV;
+    [Tooltip("火焰設定表 Assets/Data/FlameTable.csv（武器表 FlameStyleID、GroundFireTable 的 FlameID 指向它，見 readme/DIPAN_VFX.md）")]
+    public TextAsset FlameCSV;
+    [Tooltip("地上燃燒設定表 Assets/Data/GroundFireTable.csv（GroundEffectTable 的 FireStyleID 指向它，見 readme/DIPAN_VFX.md）")]
+    public TextAsset GroundFireCSV;
+    [Tooltip("爆炸設定表 Assets/Data/ExplosionTable.csv（武器表 HitBurstID 指向它，見 readme/DIPAN_VFX.md）")]
+    public TextAsset ExplosionCSV;
+    [Tooltip("傳送點外型設定表 Assets/Data/TeleportFxTable.csv（MapLoader 的 teleportFxStyleId 指向它，見 readme/DIPAN_VFX.md）")]
+    public TextAsset TeleportFxCSV;
 
     [Header("Sorting（所有 VFX 共用此排序設定）")]
     public string SortingLayerName = "Default";
@@ -24,27 +33,53 @@ public class VfxManager : MonoBehaviour
     void Awake()
     {
         LoadEffects();
-        LoadGroundSpikes();
+        // DipanVfx 套件（地刺／火焰／地上燃燒，見 readme/DIPAN_VFX.md）：立著的東西（火舌）跟角色一起 Y 排序
+        VfxAssets.SortOrderForY = y => MapDepthSort.Order(y, 0);
+        var spike = LoadTable(GroundSpikeCSV, "GroundSpikeTable", "Ground Spike CSV");
+        if (spike != null) GroundSpikeDatabase.LoadFromText(spike);
+        var flame = LoadTable(FlameCSV, "FlameTable", "Flame CSV");
+        if (flame != null) FlameDatabase.LoadFromText(flame);
+        var fire = LoadTable(GroundFireCSV, "GroundFireTable", "Ground Fire CSV");
+        if (fire != null) GroundFireDatabase.LoadFromText(fire);
+        var boom = LoadTable(ExplosionCSV, "ExplosionTable", "Explosion CSV");
+        if (boom != null) ExplosionDatabase.LoadFromText(boom);
+        var tele = LoadTable(TeleportFxCSV, "TeleportFxTable", "Teleport Fx CSV");
+        if (tele != null) TeleportFxDatabase.LoadFromText(tele);
     }
 
-    /// <summary>地刺設定表（2026-11-17）。場景沒拖時，編輯器下直接讀資產當退路，免得忘了拖就整排刺不見。</summary>
-    void LoadGroundSpikes()
+    /// <summary>DipanVfx 的設定表（2026-11-17 地刺、2026-11-18 火焰／地上燃燒）。
+    /// 場景沒拖時，編輯器下直接讀資產當退路，免得忘了拖就整排特效不見。</summary>
+    static string LoadTable(TextAsset csv, string fileName, string fieldLabel)
     {
-        var csv = GroundSpikeCSV;
 #if UNITY_EDITOR
-        if (csv == null) csv = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>("Assets/Data/GroundSpikeTable.csv");
+        if (csv == null) csv = UnityEditor.AssetDatabase.LoadAssetAtPath<TextAsset>($"Assets/Data/{fileName}.csv");
 #endif
         if (csv == null)
         {
-            Debug.LogWarning("[VfxManager] Ground Spike CSV 沒有指定：請把 Assets/Data/GroundSpikeTable.csv 拖進 VfxManager 的 Ground Spike CSV 欄。");
-            return;
+            Debug.LogWarning($"[VfxManager] {fieldLabel} 沒有指定：請把 Assets/Data/{fileName}.csv 拖進 VfxManager 的 {fieldLabel} 欄。");
+            return null;
         }
-        GroundSpikeDatabase.LoadFromText(csv.text);
+        return csv.text;
     }
 
     /// <summary>在地上長一組地刺（GroundSpikeTable 第 spikeId 列）。排序層／預設排序跟一般特效相同。</summary>
     public void SpawnGroundSpikes(int spikeId, Vector2 groundPos, Vector2 travelDir, float extraScale = 1f)
         => GroundSpikeBurst.Spawn(spikeId, groundPos, travelDir, extraScale, SortingLayerName, SortingOrder);
+
+    /// <summary>
+    /// 炸一次 ExplosionTable 第 <paramref name="id"/> 列（DipanVfx，2026-11-18）。
+    /// <paramref name="radius"/> &gt; 0＝範圍半徑；&lt;= 0＝用表的 Radius 再乘 |radius|（傳 -集氣放大倍率；0 視為 1）。
+    /// 火球用全域特效排序；衝擊波圈貼地（地面特效層 8，見 MapDepthSort 檔頭）。
+    /// </summary>
+    public void SpawnExplosion(int id, Vector2 pos, float radius)
+    {
+        var d = ExplosionDatabase.Get(id);
+        if (d == null) return;
+        float r = radius > 0f ? radius : d.Radius * (radius < 0f ? -radius : 1f);
+        ExplosionBurst.Spawn(d, pos, r, SortingLayerName, SortingOrder, GroundEffectOrder);
+    }
+
+    const int GroundEffectOrder = 8;   // = GroundEffectInstance.GroundEffectSortingOrder（地面特效層）
 
     public VfxData GetEffect(int id)
     {

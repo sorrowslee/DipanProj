@@ -28,6 +28,7 @@
 | [PIXEL_REFLECT_LASER.md](PIXEL_REFLECT_LASER.md) | Pack 4 像素雷射素材拆解、平鋪折線渲染、無限延伸／反射與武器「鏡界折光」 | 改像素雷射、反射上限或擴充 Pack 4 顏色／造型 |
 | [VFX.md](VFX.md) | 一次性特效：發射特效（玩家身上）＋ 擊中特效（命中點），VfxTable 原語 | 加／改發射或擊中特效 |
 | [GROUND_SPIKE.md](GROUND_SPIKE.md) | **地刺**（2026-11-17）：子彈沿路從地底刺出一排尖刺（GroundSpikeTable＋shader `Custom/GroundSpike`＋物件池），石刺／樹根刺兩組圖，每點根數、高度、傾斜、刺出／停留／收回時間全部可調 | 改地刺外觀或手感、做新的「從地裡冒出來」的特效 |
+| [DIPAN_VFX.md](DIPAN_VFX.md) | **自製 shader 特效套件 DipanVfx**（2026-11-18；repo 根目錄 `DipanVfx/`，主遊戲＋地圖編輯器共用）：火焰（FlameTable，武器表 `FlameStyleID`：子彈變一團會燒、會拖尾的火）、地上燃燒（GroundFireTable，GroundEffectTable `FireStyleID`：焦土＋火舌＋火星）、爆炸（ExplosionTable，武器表 `HitBurstID`：白光＋火球＋黑煙＋衝擊波圈）、傳送點外型（TeleportFxTable：光池＋光柱＋光點，全程序）、地刺、火星粒子；**地圖編輯器特效預覽器「自製特效」分頁可即時調表、存回 CSV**；做新 shader 特效的固定流程與驗證方式 | 改火焰／地上燃燒／地刺的外觀、**做任何新的 shader 特效**、在編輯器裡調特效 |
 | [EFFECT_LIBRARY.md](EFFECT_LIBRARY.md) | 地圖編輯器端「特效素材庫＋預覽器」：原始包(`allEffects/`)→通用整理腳本(`organize_bundle.py`)→`Effects/`→特效預覽器（瀏覽/換色/匯出）；放 Assets 外、不被 sync、挑好再手動貼進遊戲 | 整理/瀏覽買來的特效包、挑特效貼進遊戲前 |
 | [EFFECT_WEAPONS.md](EFFECT_WEAPONS.md) | Effects 全庫審閱、特效武器化原則、已實作武器與下一批候選 | 從特效庫設計／擴充武器、查新武器素材來源 |
 | [CHARGE_MODE.md](CHARGE_MODE.md) | RecipeTable 集氣模式：按住／放開流程、3 秒倍率、藍紅集氣特效與持續武器互斥規則 | 啟用集氣武器、調整集氣倍率／特效或排查輸入互斥 |

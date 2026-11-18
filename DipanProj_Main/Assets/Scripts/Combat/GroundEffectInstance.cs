@@ -54,6 +54,10 @@ public class GroundEffectInstance : MonoBehaviour
     // ⚠️ 下面那組常數是走過三輪才收斂的，別當成隨手填的預設值——完整原委見 readme/GROUND_EFFECT.md
     //    的「背景旋轉符號層」一節與 readme/PROBLEMS.md E12/E13。一句話版本：
     //    **符號與本體同位置同色相時，兩個都靠「比較亮」被看見是零和的**，一定要一個發光、一個吃光。
+    // ── 地上燃燒（FireStyleID，2026-11-18，DipanVfx）：畫面交給 GroundFireBurst，這裡只管傷害 ──
+    private Dipan.Vfx.GroundFireBurst.Handle _fire;
+    private bool _fireStarted;
+
     private SpriteRenderer _sigilRenderer;  // 符號 renderer（自轉 / 呼吸對象）
     private Vector3 _sigilBaseScale;        // 符號基準縮放（依 Radius 算出，呼吸以此為中心）
     private float _sigilAngle;              // 當前旋轉角
@@ -178,6 +182,7 @@ public class GroundEffectInstance : MonoBehaviour
     private void BuildTiles()
     {
         if (_data == null) return;
+        if (_data.FireStyleID > 0) return;   // 地上燃燒：畫面由 GroundFireBurst 負責（見 TickGroundFire）
         if (_data.AnimationSprites == null || _data.AnimationSprites.Length == 0) return;
         if (Radius <= 0f) return;
 
@@ -378,11 +383,26 @@ public class GroundEffectInstance : MonoBehaviour
 
         if (_data.GlowFlicker) ApplyAuraYSort();   // 佛光跟著玩家移動 → 每幀重算排序（單張圖，成本極低）
 
+        TickGroundFire();
         TickAnimation();
         TickFlicker();
         TickSigil();
         TickDamage();
         TickLifetime();
+    }
+
+    /// <summary>
+    /// 地上燃燒（FireStyleID）：第一次 Update 才點火——GroundEffectManager.Spawn 在 Initialize 之後才套 visualScale（localScale），
+    /// 放在這裡才拿得到最終大小。範圍＝Radius × 縮放；燒的時間＝表格 Duration（GroundFireBurst 自己在最後一段熄滅）。
+    /// </summary>
+    private void TickGroundFire()
+    {
+        if (_fireStarted || _data.FireStyleID <= 0) return;
+        _fireStarted = true;
+        float scale = Mathf.Abs(transform.lossyScale.x);
+        string layer = _templateRenderer != null ? _templateRenderer.sortingLayerName : "Default";
+        _fire = Dipan.Vfx.GroundFireBurst.Spawn(_data.FireStyleID, transform.position, Radius * (scale > 0.0001f ? scale : 1f),
+                                                _hasInfiniteLife ? -1f : _lifeRemaining, layer, GroundEffectSortingOrder);
     }
 
     /// <summary>
@@ -499,6 +519,9 @@ public class GroundEffectInstance : MonoBehaviour
 
     private void OnDestroy()
     {
+        // 提早被銷毀（換圖、外部砍掉）時讓火跟著熄；正常到期時火早已在自己的收尾裡，這裡不會有作用。
+        _fire.Stop();
+
         // 釋放本實例執行期建立的 AuraGlow 材質（每個護罩各一份），避免材質洩漏。
         if (_glowMat != null)
         {

@@ -18,10 +18,10 @@
 | C | 地圖編輯器 / 素材同步 | C1~C16（⚠ C6/C7 排在 C1 前面） |
 | D | 存檔 / 常駐單例 (Save & Persistent Singletons) | D1~D25 |
 | E | 效能 / 顯示 (Performance & Display) | E1~E49（⚠ E21 誤植在 J 段開頭、E31 誤植在 F 段開頭，都維持原位不搬；E36/E37 接在 E31 前面；E38、E39 在 E 段本體結尾；E40~E44 接在 E39 之後、E36 之前；E45 接在 E44 之後；E46 接在 E45 之後；E47 接在 E46 之後；E48 接在 E47 之後；E49 接在 E48 之後） |
-| F | 戰鬥 / 傷害 (Combat) | F1~F46（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後） |
+| F | 戰鬥 / 傷害 (Combat) | F1~F47（⚠ G 章整段插在 F3 與 F4 之間；**F27 在 G 章之前、F26 之後**；F28 接在 F27 之後。**F28 其實是顯示問題偽裝成碰撞問題**；F29 接在 F28 之後、F30、F31 接在 F29 之後；F32 接在 F31 之後；F33~F37 接在 F32 之後；F38~F40 接在 F37 之後；F41 接在 F40 之後；F42 接在 F41 之後；F43 接在 F42 之後；F44 接在 F43 之後；F45 接在 F44 之後；F46 接在 F45 之後；F47 接在 F46 之後） |
 | G | 角色圖像 / 序列化 (Character Visuals & Serialization) | G1~G25（位置在 F3 之後）；**G13 在 F26 之後、H 段標題之前；G14~G18 誤接在 H 段標題之後、H1 之前**（維持原位不搬）；G19 接在 G18 之後；G20 接在 G19 之後；G21、G22 接在 G20 之後；G23 接在 G22 之後；G24 接在 G23 之後；G25 接在 G24 之後 |
 | H | 流程 / 存讀檔 (Game Flow & Save UI) | H1~H2 |
-| I | 開發環境 / 工具（Cowork 橋接器） | I1~I11 |
+| I | 開發環境 / 工具（Cowork 橋接器） | I1~I12 |
 | J | 螢幕特效 / 進場過場 (Screen FX) | J1~J6 |
 | K | 互動 / 拾取 (Interaction & Pickup) | K1~K5 |
 | L | 資料表 / CSV (Data Tables) | L1~L5 |
@@ -1223,6 +1223,13 @@
 - **症狀**:邪佛廣場的測試 NPC（NpcTable 1，Speed 0.8）初始面右、先往右走正常；折返往左走時臉仍朝右。走過一輪後再往左就正常。
 - **原因**:`MonsterController.HandleVisuals` 的 FaceMovement 轉向條件是「本幀實際位移 |dx| > 0.002」。Rigidbody2D 開 Interpolate，位移被攤到每個畫面幀；速度 0.8／秒在 400fps 以上時每幀只走 0.002 以下 ⇒ 整趟都不轉向。何時偶爾過門檻要看當下幀率（掉幀那幾幀才轉得過來），所以看起來像「第一趟錯、之後好」。快的怪（2～3／秒）幀率要上千才會中，所以一直沒發現。
 - **解法**(2026-11-07):改看「平滑後的 X 速度」（與走路判定同一套指數平滑，時間常數 0.08s），超過 `FaceMoveMinVelX`=0.05／秒才依方向轉向——與幀率無關。**通則**：任何「移動夠不夠多」的判斷都要換算成速度（÷dt），不要拿每幀位移比固定門檻。
+
+### F47. 跟著子彈的特效，子彈消失了特效卻留在原地（Unity 的 `== null` 陷阱）
+- **症狀**：火焰環繞彈時間到，子彈都被清掉了，一圈火卻一直留在原地燒（2026-11-18，DipanVfx 的 `FlameVisual`）。
+- **原因**：程式用「`_host != null`」判斷「我是不是跟著某個宿主」，再在裡面檢查宿主是否還在。但宿主被 `Destroy` 之後，Unity 覆寫的 `==` 讓它**等於 null**——外層條件直接變 false，「宿主沒了要熄滅」那段根本進不去。
+- **解法**：另外存一個 `bool _attached`（綁上宿主時設 true），用它判斷要不要檢查宿主；宿主 `== null` 或 `!activeInHierarchy` 才熄滅並清掉旗標。
+- **通則**：**「曾經有過」要用自己的旗標記，不能拿 Unity 物件參照 `!= null` 代替**——被 Destroy 的物件跟「從來沒指定」長得一模一樣。
+
 ### G1. 角色進遊戲變一團黑／剪影，但在 prefab 預覽裡看得到
 - **症狀**：主角（或任何角色）放進遊戲後變成全黑剪影、只剩輪廓；但在 Prefab 編輯／預覽視窗裡卻正常（只是偏暗）。換不同角色圖都一樣黑——「從第一個角色就這樣」。
 - **原因**：`Player.prefab` 的 **SpriteRenderer 的 `Color`（色調 Tint）被設成很暗的顏色**（實際值 RGB ≈ 0.12 / 0.07 / 0.07，約 10% 亮度的暗褐色）。SpriteRenderer 會把圖片**乘上**這個顏色，等於把整張圖壓暗；再進到本來就昏暗的氛圍地圖（提燈光圈，見 [ATMOSPHERE.md](ATMOSPHERE.md)）就直接變純黑剪影。因為 Tint 綁在 prefab 上、與圖片無關，所以**換哪張角色圖都一樣黑**。材質是 `Sprites-Default`（無光照）本身沒問題，純粹是 Tint。
@@ -1802,6 +1809,17 @@
 - **限制**：型別錯誤（呼叫不存在的成員、型別不符）tree-sitter 抓不到，**仍要作者開 Unity 看 Console**——交付時要明講。
 - **通則**：沒有編譯器時用「語法＋改動行識別字＋資料一致性＋行為等價比對」四件套；**不在作者電腦安裝 AI 帶入的套件**。
 
+### I12. 其實可以真的編譯：容器 apt 裝 .NET 8 SDK ＋ 作者複製 Unity 的 Managed 資料夾（2026-11-18）
+- **症狀**：I11 的四件套抓不到型別錯誤；想讀作者電腦的 `/Applications/Unity/Hub/Editor/<版本>/Unity.app/Contents/Managed`，`device_request_folder_access` 被自動核准擋下（`[Cowork Folder Access]`，沒有跳授權）。
+- **原因**：Unity 安裝資料夾不在連線範圍，AI 主動申請系統資料夾會被擋；但雲端容器的 **apt（archive.ubuntu.com）是通的**——NuGet 不通，`apt-get install dotnet-sdk-8.0 mono-devel` 卻可以。
+- **解法**：
+  1. 請作者在終端機跑一行 `cp -R /Applications/Unity/Hub/Editor/2022.3.62f3/Unity.app/Contents/Managed ~/Downloads/UnityManaged_2022.3.62f3`（`~/Downloads` 是已連線資料夾）。
+  2. VM 上把 Managed 的 dll（不要 pdb／xml）、兩個專案 `Library/ScriptAssemblies/*.dll`（套件已編好的 dll）、Newtonsoft（`Library/PackageCache/com.unity.nuget.newtonsoft-json@*/Runtime/`）、全部 `.cs` 打成一包 → stage 進容器。
+  3. 容器 `apt-get install -y dotnet-sdk-8.0 mono-devel`，用 `dotnet <sdk>/Roslyn/bincore/csc.dll -nostdlib -noconfig -langversion:9`，參考 mono 的 `4.7.1-api`（mscorlib／System／System.Core／Facades/netstandard）＋ `UnityEngine/UnityEngine.*Module.dll` ＋ `UnityEngine/UnityEditor.*Module.dll`（⚠ **不要同時參考根目錄的 `UnityEditor.dll`**，會跟 CoreModule 撞成 CS0433）。
+  4. 依 asmdef 依賴順序逐個編：套件 → Assembly-CSharp（帶 `UNITY_EDITOR` 一次、不帶一次模擬打包）→ Assembly-CSharp-Editor。
+  - 指令範本見 [DIPAN_VFX.md](DIPAN_VFX.md) §7。這次 DipanVfx、Ballistics、主遊戲、地圖編輯器（含兩邊 Editor）全部 0 錯誤。
+- **通則**：**能真編譯就真編譯**；四件套（I11）留給拿不到 Unity dll 的時候。
+
 ---
 
 ## J. 螢幕特效 / 進場過場 (Screen FX)
@@ -1916,7 +1934,7 @@
 ### L1. CSV 用「第幾欄」讀值：欄位不能重排、插欄靜默讀錯、每加一欄要人工數索引（2026-08-26 已全面改掉）
 - **症狀**：RecipeTable 長到 51 欄毫無分組、新欄只能接在最後面；文件跟表對不上時沒有任何錯誤；想把雷射欄位挪到一起分群做不到。
 - **原因**：五張表（Recipe／Weapon／Gem／GroundEffect／Vfx）的解析器都是 `v[28]`、`v[42]` 這種寫死索引，加上 `v.Length >= N` 的相容判斷寫了三十幾次。排錯一欄不會報錯，只會**靜默讀到隔壁欄**。
-- **解法**：`Dipan.Data.CsvTable`（`Assets/Scripts/Data/CsvTable.cs`）——讀第一列表頭建「欄名 → 位置」對照（欄名取括號前、不分大小寫），之後 `row.GetFloat("Range")` 依名字取；空白＝fallback；`#` 開頭整列註解；表頭缺必要欄／重複／有不認得的欄名都會印出來。純 C# 不依賴 UnityEngine，可在 Unity 外跑單元測試。**之後任何新表一律用它**，不要再 `Split(',')` 數索引。
+- **解法**：`Dipan.Data.CsvTable`（`Assets/Scripts/Data/CsvTable.cs`；2026-11-18 搬到 `DipanVfx/Runtime/Data/`）——讀第一列表頭建「欄名 → 位置」對照（欄名取括號前、不分大小寫），之後 `row.GetFloat("Range")` 依名字取；空白＝fallback；`#` 開頭整列註解；表頭缺必要欄／重複／有不認得的欄名都會印出來。純 C# 不依賴 UnityEngine，可在 Unity 外跑單元測試。**之後任何新表一律用它**，不要再 `Split(',')` 數索引。
 - **通則**：**「靠位置對應」的資料格式，錯了不會報錯只會錯位**；只要資料會被人手改，就要靠名字對應並在載入時把對不上的名字印出來。
 
 ### L2. 雷射的 `SpreadCount` 一欄兩用（光束道數＋命中分裂數），`SplitTiming` 對雷射只認 `OnHit`

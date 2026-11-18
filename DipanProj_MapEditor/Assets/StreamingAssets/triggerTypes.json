@@ -13,7 +13,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "targetMapId",
@@ -23,7 +24,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "targetEntrance",
@@ -33,7 +35,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "showMarker",
@@ -44,7 +47,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "linkedFx",
@@ -55,7 +59,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -72,7 +77,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "count",
@@ -82,7 +88,20 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
+        },
+        {
+          "key": "spec",
+          "type": "String",
+          "label": "生成規格(q;s;fx;lv，留空=隨機)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -106,7 +125,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "deathFlag",
@@ -117,7 +137,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "spawnInterval",
@@ -128,7 +149,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "maxAlive",
@@ -139,7 +161,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "maxWaves",
@@ -150,7 +173,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "waveGroup",
@@ -161,7 +185,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "nextWhen",
@@ -176,7 +201,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "spawnVfxId",
@@ -187,7 +213,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "waitClear",
@@ -198,7 +225,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "noLoot",
@@ -209,7 +237,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -226,7 +255,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "canSkip",
@@ -237,7 +267,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -254,7 +285,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "video",
@@ -264,7 +296,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "targetMapId",
@@ -274,7 +307,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "targetEntrance",
@@ -284,7 +318,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -301,7 +336,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "count",
@@ -311,7 +347,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "iconToast",
@@ -322,7 +359,20 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
+        },
+        {
+          "key": "spec",
+          "type": "String",
+          "label": "生成規格(q;s;fx;lv，留空=隨機)",
+          "boolDefault": false,
+          "isFlagRef": false,
+          "flagNegatable": false,
+          "isScreenEffectRef": false,
+          "isPortalList": false,
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -339,7 +389,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "targetEntrance",
@@ -349,7 +400,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -367,7 +419,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -384,7 +437,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "offsetX",
@@ -394,7 +448,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "offsetY",
@@ -404,7 +459,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -422,7 +478,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -440,7 +497,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "dim",
@@ -456,7 +514,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "focusX",
@@ -467,7 +526,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "focusY",
@@ -478,7 +538,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -496,7 +557,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "rightImage",
@@ -507,7 +569,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "flashLeft",
@@ -518,7 +581,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "flashRight",
@@ -529,7 +593,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "hideOn",
@@ -546,7 +611,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "pause",
@@ -557,7 +623,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "textId",
@@ -568,7 +635,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "nextWhen",
@@ -583,7 +651,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -601,7 +670,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -619,7 +689,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": true,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "duration",
@@ -630,7 +701,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -648,7 +720,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": true,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "show",
@@ -659,7 +732,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -677,7 +751,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "warnVfxId",
@@ -688,7 +763,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -706,7 +782,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "united",
@@ -717,7 +794,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -735,7 +813,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -753,7 +832,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -771,7 +851,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -789,7 +870,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "specialIds",
@@ -800,7 +882,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -821,7 +904,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "arg",
@@ -832,7 +916,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "tipName",
@@ -843,7 +928,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -861,7 +947,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "entry",
@@ -872,7 +959,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -886,16 +974,17 @@
           "type": "String",
           "label": "證明等級",
           "boolDefault": false,
+          "options": [
+            "B",
+            "A",
+            "S"
+          ],
           "isFlagRef": false,
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
           "isConditionList": false,
-          "options": [
-            "B",
-            "A",
-            "S"
-          ]
+          "isTriggerRef": false
         },
         {
           "key": "module",
@@ -906,7 +995,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -924,7 +1014,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "tipOff",
@@ -935,7 +1026,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "tipOn",
@@ -946,7 +1038,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -970,7 +1063,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "shake",
@@ -981,7 +1075,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -999,7 +1094,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "cageVfxId",
@@ -1010,7 +1106,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "cageScale",
@@ -1021,7 +1118,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -1039,7 +1137,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "distance",
@@ -1050,7 +1149,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "freeze",
@@ -1061,7 +1161,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -1079,7 +1180,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "seconds",
@@ -1090,7 +1192,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "voidColor",
@@ -1101,7 +1204,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "edgeColor",
@@ -1112,7 +1216,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "nextWhen",
@@ -1127,7 +1232,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -1145,7 +1251,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "subTextId",
@@ -1156,7 +1263,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "optionA",
@@ -1167,7 +1275,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "nextA",
@@ -1190,7 +1299,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "nextB",
@@ -1213,7 +1323,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "nextTimeout",
@@ -1243,7 +1354,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "show",
@@ -1254,7 +1366,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "x",
@@ -1265,7 +1378,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "y",
@@ -1276,7 +1390,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "vfxId",
@@ -1287,7 +1402,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "leave",
@@ -1302,7 +1418,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "leaveLineId",
@@ -1313,7 +1430,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     },
@@ -1331,7 +1449,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         },
         {
           "key": "targets",
@@ -1373,7 +1492,8 @@
           "flagNegatable": false,
           "isScreenEffectRef": false,
           "isPortalList": false,
-          "isConditionList": false
+          "isConditionList": false,
+          "isTriggerRef": false
         }
       ]
     }

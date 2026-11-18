@@ -71,6 +71,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 兌換所／**物品稀有度（白藍黃紫）**／新增貨幣 | [readme/EXCHANGE.md](readme/EXCHANGE.md)——稀有度的顏色與名稱只認 `RarityInfo`（`Scripts/Exchange/ExchangeData.cs`），別再各自定義一套 |
 | **功德值／劇本證明（B/A/S）**、發證明、劇本的新／迴響／畢業、輪迴帶物、成就 | [readme/CORE_LOOP_DESIGN.md](readme/CORE_LOOP_DESIGN.md) **§8**（規則）＋[readme/SAVE_SYSTEM.md](readme/SAVE_SYSTEM.md) **§15**（紀錄層：一律走 `Dipan.Progress.ScriptRecords`，**成就只讀紀錄、遊戲機制不讀成就**）——證明「領過沒」跟「手上幾張」是兩回事，別混 |
 | 新增**單鍵熱鍵**、或做有**輸入框**的 UI | PROBLEMS **K4**——熱鍵判斷要加 `!UIManager.TextInputFocused`，否則玩家在輸入框打字會順便觸發熱鍵 |
+| **做／改 shader 特效**（火焰、地上燃燒、地刺…）、或要讓特效能在地圖編輯器預覽 | [readme/DIPAN_VFX.md](readme/DIPAN_VFX.md)——特效程式與 shader 一律放共用套件 `DipanVfx/`（主遊戲＋地圖編輯器共用，**不得引用主遊戲類別**），表放主遊戲 `Assets/Data/`，並接進預覽器「自製特效」分頁（§5 固定流程）；**會發光的素材請 GPT 用純黑底** |
 | 產任何圖片素材 | [readme/AI_IMAGE_GEN_GUIDE.md](readme/AI_IMAGE_GEN_GUIDE.md) |
 | **處理美術圖**（去背、立繪／角色圖對齊、表情差分、模擬轉換面板與對話框、量序列圖大小、修 dead、算影子、UI 圖示換風格） | **先查 [tools/art/README.md](tools/art/README.md)「要做什麼→用哪支」，用現成工具，不要重寫**；工作夾開在 `TempImage/<任務>/`（不進 git）；美術原始檔（角色基礎圖等）放 `ArtSource/`（進 git、Unity 不讀） |
 | 素材風格／場景調色／畫面觀感（「組起來不漂亮」） | [readme/ART_DIRECTION.md](readme/ART_DIRECTION.md)（畫面經營六紀律＋繪圖 AI 檢核表；產圖操作仍看 AI_IMAGE_GEN_GUIDE） |

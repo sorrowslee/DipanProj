@@ -904,8 +904,8 @@ public class PlayerController : MonoBehaviour, IDamageable
             WeaponAniNumber = source.WeaponAniNumber, AnimFPS = source.AnimFPS,
             BulletScale = source.BulletScale * 2f, CastVisualScale = 2f,
             BeamStyle = source.BeamStyle, BeamColor = source.BeamColor, BeamWidth = source.BeamWidth * 2f,
-            FireEffectID = source.FireEffectID, HitEffectID = source.HitEffectID,
-            TrailEffectID = source.TrailEffectID, TrailSpikeID = source.TrailSpikeID, SummonEffectID = source.SummonEffectID,
+            FireEffectID = source.FireEffectID, HitEffectID = source.HitEffectID, HitBurstID = source.HitBurstID,
+            TrailEffectID = source.TrailEffectID, TrailSpikeID = source.TrailSpikeID, FlameStyleID = source.FlameStyleID, SummonEffectID = source.SummonEffectID,
             FamiliarVfxId = source.FamiliarVfxId, FamiliarSize = source.FamiliarSize, FamiliarSpin = source.FamiliarSpin,
             DropperStyle = source.DropperStyle, DropperVfxId = source.DropperVfxId, DropperSize = source.DropperSize,
             Recipe = source.Recipe, BulletPrefab = source.BulletPrefab, WeaponSprite = source.WeaponSprite,
@@ -1875,11 +1875,12 @@ public class PlayerController : MonoBehaviour, IDamageable
             float r = ang * Mathf.Deg2Rad;
             Vector2 dir = new Vector2(Mathf.Cos(r), Mathf.Sin(r));
 
-            BallisticsEngine.Spawn(sub, prefab, point, dir,
+            BulletInstance sb = BallisticsEngine.Spawn(sub, prefab, point, dir,
                 collisionMask, pierceableLayers, nonBounceLayers,
                 (b, t2, h) => HandleBulletHit(fw, b, t2, h),
                 fw.WeaponSprite, fw.SpriteAngleOffset, scale, fw.WeaponSprites, fw.AnimFPS,
                 flipYWhenMovingLeft: fw.FlipYWhenLeft, homingLayers: EnemyLayer);
+            WeaponCastService.AttachFlame(fw, sb, PlayerScale);
         }
     }
 
@@ -1956,6 +1957,7 @@ public class PlayerController : MonoBehaviour, IDamageable
                 (b, pos) => TrySpawnTrailEffect(firedWeapon, pos, b), flipYWhenMovingLeft: weapon.FlipYWhenLeft);
 
             if (bullet == null) continue;
+            WeaponCastService.AttachFlame(firedWeapon, bullet, PlayerScale);
 
             foreach (var b in bullet.GetBehaviors())
             {
@@ -2023,6 +2025,7 @@ public class PlayerController : MonoBehaviour, IDamageable
 
             if (bullet != null)
             {
+                WeaponCastService.AttachFlame(firedWeapon, bullet, PlayerScale);
                 // 個別子彈不依 LifeTime 自動銷毀，改由 PlayerController 群組到期統一銷毀
                 bullet.LifeTime = -1f;
                 _activeOrbitalBullets.Add(bullet);
@@ -2418,11 +2421,12 @@ public class PlayerController : MonoBehaviour, IDamageable
         Vector3 scale = subWeapon.BulletPrefab.transform.localScale * PlayerScale * subWeapon.BulletScale;
         WeaponData fired = subWeapon;
 
-        BallisticsEngine.Spawn(subRecipe, subWeapon.BulletPrefab, pos, baseDir,
+        BulletInstance subBullet = BallisticsEngine.Spawn(subRecipe, subWeapon.BulletPrefab, pos, baseDir,
             collisionMask, pierceableLayers, nonBounceLayers,
             (b, t, h) => HandleBulletHit(fired, b, t, h),
             subWeapon.WeaponSprite, subWeapon.SpriteAngleOffset, scale, subWeapon.WeaponSprites, subWeapon.AnimFPS,
             (b, p) => TrySpawnTrailEffect(fired, p, b), flipYWhenMovingLeft: subWeapon.FlipYWhenLeft, homingLayers: EnemyLayer);
+        WeaponCastService.AttachFlame(fired, subBullet, PlayerScale);
     }
 
     private void HandleParabolicLanded(WeaponData firedWeapon, BulletInstance bullet, Vector2 landPos)
@@ -2431,7 +2435,8 @@ public class PlayerController : MonoBehaviour, IDamageable
         // 拋物線最終落地：飛行中不撞怪，落地才以 AreaRadius 做一次性 AOE 殺傷（可選），再觸發地面特效與擊中特效
         TryApplyParabolicBlast(firedWeapon, landPos);
         TryTriggerGroundEffect(firedWeapon.Recipe, landPos, false, false, true);
-        TrySpawnHitEffect(firedWeapon, landPos);
+        float blastRadius = firedWeapon.Recipe != null ? firedWeapon.Recipe.AreaRadius * firedWeapon.BulletScale : -1f;   // 同 TryApplyParabolicBlast
+        TrySpawnHitEffect(firedWeapon, landPos, burstRadius: blastRadius);
     }
 
     // 拋物線落地殺傷：AreaRadius > 0 時，對落點半徑內怪物以武器 Damage 炸一次。
@@ -2519,14 +2524,22 @@ public class PlayerController : MonoBehaviour, IDamageable
     /// 那不是「攻擊到怪物」，讓位會讓回饋憑空消失。見 readme/BLOODLINE.md §5c。
     /// </summary>
     /// <param name="angleDeg">沒有子彈可抄角度時（近戰）由呼叫端給的方向；配合 <c>HitEffectAlignBullet</c> 才會用。NaN＝不給。</param>
-    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos, bool hitEnemy = false, BulletInstance bullet = null, float angleDeg = float.NaN)
+    private void TrySpawnHitEffect(WeaponData firedWeapon, Vector2 pos, bool hitEnemy = false, BulletInstance bullet = null,
+                                   float angleDeg = float.NaN, float burstRadius = -1f)
     {
-        if (_vfxManager == null || firedWeapon == null || firedWeapon.HitEffectID <= 0) return;
+        if (_vfxManager == null || firedWeapon == null || (firedWeapon.HitEffectID <= 0 && firedWeapon.HitBurstID <= 0)) return;
         // HitEffectEnemyOnly：血花這類圖只該出現在生物身上——打到牆／可破壞地上物不播（牆會流血很怪）。
         // WeaponManager 只在「命中特效播在命中物上」的模式讀這欄（子彈／環繞／迴旋／雷射／連鎖／近戰，呼叫端都有傳 hitEnemy），
         // 落點型（拋物線落地、法陣、落雷）呼叫時不傳 hitEnemy，那些模式這欄一律 false，不會被誤擋。
         if (firedWeapon.HitEffectEnemyOnly && !hitEnemy) return;
         if (hitEnemy && BloodlineHitFx.HasEffect) return;
+        // 擊中爆炸（HitBurstID，2026-11-18，DipanVfx）：拋物線落地由呼叫端給真正的傷害半徑；其他用表的 Radius × 集氣放大
+        if (firedWeapon.HitBurstID > 0)
+        {
+            float r = burstRadius > 0f ? burstRadius : -firedWeapon.CastVisualScale;   // 負值＝「表的 Radius × 這個倍率」
+            _vfxManager.SpawnExplosion(firedWeapon.HitBurstID, pos, r);
+        }
+        if (firedWeapon.HitEffectID <= 0) return;
         // HitEffectAlignBullet：命中圖有方向性（餓鬼牙符的咬合）時，照子彈當下的角度與上下翻轉生成，否則永遠朝右。
         // 近戰沒有子彈，改用呼叫端給的方向（angleDeg）。
         bool align = firedWeapon.HitEffectAlignBullet && (bullet != null || !float.IsNaN(angleDeg));

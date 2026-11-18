@@ -230,8 +230,10 @@ public class WeaponManager : MonoBehaviour
         // 一次性特效 ID（引用 VfxTable）；留空 / 0 = 不觸發
         weapon.FireEffectID = CsvFieldParse.Int(S("FireEffectID"), 0);
         weapon.HitEffectID = CsvFieldParse.Int(S("HitEffectID"), 0);
+        weapon.HitBurstID = CsvFieldParse.Int(S("HitBurstID"), 0);
         weapon.TrailEffectID = CsvFieldParse.Int(S("TrailEffectID"), 0);
         weapon.TrailSpikeID = CsvFieldParse.Int(S("TrailSpikeID"), 0);
+        weapon.FlameStyleID = CsvFieldParse.Int(S("FlameStyleID"), 0);
         weapon.SummonEffectID = CsvFieldParse.Int(S("SummonEffectID"), 0);
 
         // 浮游本體：只有 Familiar 讀（其他模式填了也不讀，載入時 Warning——同「無效欄不讀」原則）

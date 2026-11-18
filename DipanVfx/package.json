@@ -1,0 +1,7 @@
+{
+  "name": "com.sorrows.dipanvfx",
+  "version": "0.1.0",
+  "displayName": "Dipan VFX",
+  "description": "燃燈劫自製特效（shader＋演出程式），主遊戲與地圖編輯器共用。說明見 readme/DIPAN_VFX.md",
+  "unity": "2022.3"
+}

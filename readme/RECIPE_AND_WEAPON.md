@@ -10,7 +10,7 @@
 > **2026-08-26 大改**：45 欄（同日再加連擊 2 欄、平行 3 欄 → 50）、依模式分群；一列一種 `Mode`；所有數值欄空白＝預設；`#` 開頭整列＝註解。
 > **每個欄位的意義、預設、各模式吃哪些欄、範例，全部在 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)**，這裡只講程式怎麼讀。
 
-### 讀表方式（`Dipan.Data.CsvTable`，`Assets/Scripts/Data/CsvTable.cs`）
+### 讀表方式（`Dipan.Data.CsvTable`，`DipanVfx/Runtime/Data/CsvTable.cs`——2026-11-18 搬進共用套件，主遊戲照用）
 - **依表頭名稱取值**：先讀第一列表頭（取括號前的名字，不分大小寫），之後 `row.GetFloat("Range")` 這樣取——欄位可以任意重排、中間插新欄、括號裡的說明隨意改。以前 `v[28]` 這種寫死索引的讀法已全面淘汰（RecipeTable／WeaponTable／GemTable／GroundEffectTable／VfxTable 五張表都換了）。
 - 空白＝fallback、不丟例外；表頭缺必要欄或重複會進 `Errors` 由呼叫端 `LogError`；表頭有程式不認得的欄名會 `LogWarning` 列出（抓打錯字）。
 - 純 C#、不依賴 UnityEngine，可用一般 C# 編譯器跑單元測試（這次大改就是這樣驗的）。
@@ -55,6 +55,8 @@
 | `HitEffectID` | 擊中特效 ID（引用 `VfxTable`）：子彈／光束命中怪物、障礙物、拋物線落地時在命中點播一次；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `TrailEffectID` | 軌跡特效 ID（引用 `VfxTable`）：沿子彈飛行路徑每隔配方的 `TrailStep` 距離種一個；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `TrailSpikeID` | 軌跡地刺 ID（引用 `GroundSpikeTable`，2026-11-17）：沿子彈飛行路徑每隔 `TrailStep` 從地底刺出一組尖刺（**地刺類武器**用這個）；留空 / 0 = 不觸發。見 [GROUND_SPIKE.md](GROUND_SPIKE.md) |
+| `FlameStyleID` | 子彈火焰 ID（引用 `FlameTable`，2026-11-18，DipanVfx）：子彈身上燒一團 shader 火（不跟子彈旋轉、依速度往後拖，分裂的子彈也有）；通常搭配把子彈圖留空。見 [DIPAN_VFX.md](DIPAN_VFX.md) §3 |
+| `HitBurstID` | 擊中爆炸 ID（引用 `ExplosionTable`，2026-11-18，DipanVfx）：命中／落地時炸一次 shader 爆炸；拋物線落地的大小跟傷害半徑（`AreaRadius×BulletScale`）連動。見 [DIPAN_VFX.md](DIPAN_VFX.md) §4b |
 | `SummonEffectID` | 召喚特效 ID（引用 `VfxTable`）：**召喚型武器**（`Mode=Summon`）施放時在**每個生怪點**播一次，怪物**同一幀一起出現**（邊播特效邊出現）；留空 / 0 = 不播、無特效直接生怪。見 [VFX.md](VFX.md)、[BOSS_MODULE.md](BOSS_MODULE.md) |
 
 ## 序列圖動畫設定說明

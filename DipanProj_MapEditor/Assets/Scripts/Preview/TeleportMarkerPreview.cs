@@ -28,8 +28,10 @@ namespace DipanMapEditor.Preview
     {
         /// <summary>傳送點的 trigger 類型 id（同 triggerTypes.json 與主遊戲 MapLoader.teleportTypeId）。</summary>
         public const string TeleportTypeId = "teleport";
-        /// <summary>傳送點外型的 VfxTable id（同主遊戲 MapLoader.teleportVfxId）。</summary>
+        /// <summary>傳送點外型的 VfxTable id（同主遊戲 MapLoader.teleportVfxId）。DipanVfx 的 TeleportFxTable 沒有那列時才用。</summary>
         public const int TeleportVfxId = 6;
+        /// <summary>傳送點外型（DipanVfx TeleportFxTable ID，同主遊戲 MapLoader.teleportFxStyleId，2026-11-18）。</summary>
+        public const int TeleportFxStyleId = 1;
 
         // ⚠ 以下四個 key 與兩個預設值是主遊戲 TeleportAnchor 的鏡像，改一邊要兩邊一起改。
         public const string KeyX = "markerX";
@@ -238,12 +240,18 @@ namespace DipanMapEditor.Preview
             var map = MapSession.Instance?.Map;
             if (!Enabled || map == null) { if (_renderers.Count > 0) ClearRenderers(); return; }
 
-            EnsureLoaded();
-            if (_frames == null || _frames.Length == 0) return;
+            // 2026-11-18：遊戲改用 DipanVfx 的程序傳送點 ⇒ 這裡也直接用同一份程式畫（套件兩邊共用），表裡沒有才退回序列圖
+            CustomVfxSource.EnsureDatabases();
+            var style = Dipan.Vfx.TeleportFxDatabase.Get(TeleportFxStyleId);
+            if (style == null)
+            {
+                EnsureLoaded();
+                if (_frames == null || _frames.Length == 0) return;
+            }
 
             float fps = (_def != null && _def.fps > 0f) ? _def.fps : 24f;
             _animTimer += Time.deltaTime;
-            int frame = Mathf.Abs((int)(_animTimer * fps)) % _frames.Length;
+            int frame = style != null ? 0 : Mathf.Abs((int)(_animTimer * fps)) % _frames.Length;
             float scale = (_def != null && _def.scale > 0f) ? _def.scale : 1f;
 
             _live.Clear();
@@ -257,10 +265,22 @@ namespace DipanMapEditor.Preview
                     _live.Add(r);
 
                     var sr = GetRenderer(r);
+                    sr.transform.position = new Vector3(pos.x, pos.y, 0f);
+                    if (style != null)
+                    {
+                        // 新外型：renderer 本身不畫（只當位置錨點與標籤用），子物件由 TeleportMarkerFx 畫
+                        sr.sprite = null;
+                        sr.transform.localScale = Vector3.one;
+                        var fx = sr.GetComponent<Dipan.Vfx.TeleportMarkerFx>();
+                        if (fx == null) fx = sr.gameObject.AddComponent<Dipan.Vfx.TeleportMarkerFx>();
+                        if (fx.Data != style) fx.Play(style, "Default", SortOrder);
+                        // 勾掉「使用傳送點外型」的照樣畫，但壓成半透明 —— 讓你知道那顆在遊戲裡不會出現。
+                        fx.Alpha = ShowsMarker(r) ? 1f : 0.25f;
+                        continue;
+                    }
                     sr.sprite = _frames[frame];
                     // 勾掉「使用傳送點外型」的照樣畫，但壓成半透明 —— 讓你知道那顆在遊戲裡不會出現。
                     sr.color = ShowsMarker(r) ? Color.white : new Color(1f, 1f, 1f, 0.25f);
-                    sr.transform.position = new Vector3(pos.x, pos.y, 0f);
                     sr.transform.localScale = Vector3.one * scale;
                 }
             }

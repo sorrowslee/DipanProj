@@ -88,6 +88,19 @@ public static class WeaponCastService
     /// 回 false 卻照樣進冷卻、照樣播動畫，畫面上就是「動作演了、東西沒出去」的空砲
     /// （見 readme/PROBLEMS.md **F25**）。
     /// </returns>
+    /// <summary>
+    /// 武器表 <c>FlameStyleID</c>（2026-11-18，DipanVfx）：子彈身上燒一團 shader 火。
+    /// 所有「生出子彈」的地方都呼叫這支（一般／環繞／拋物線／命中迸發／重疊分裂…），規則一致：有填就燒。
+    /// 分裂出來的子彈會從母彈複製標記，自己也燒（見 <see cref="Dipan.Vfx.FlameHost"/>）。
+    /// <paramref name="ownerScale"/>＝施放者體型；集氣放大另外乘武器的 <c>CastVisualScale</c>。
+    /// </summary>
+    public static void AttachFlame(WeaponData weapon, BulletInstance bullet, float ownerScale)
+    {
+        if (weapon == null || bullet == null || weapon.FlameStyleID <= 0) return;
+        float visual = weapon.CastVisualScale > 0f ? weapon.CastVisualScale : 1f;
+        Dipan.Vfx.FlameHost.Add(bullet.gameObject, weapon.FlameStyleID, (ownerScale > 0f ? ownerScale : 1f) * visual);
+    }
+
     public static bool FireNormal(WeaponData weapon, ProjectileData recipe, in CastContext ctx)
     {
         if (weapon == null || recipe == null || weapon.BulletPrefab == null) return false;
@@ -137,7 +150,7 @@ public static class WeaponCastService
                 weapon.WeaponSprite, weapon.SpriteAngleOffset, bulletScale, weapon.WeaponSprites, weapon.AnimFPS,
                 ctx.OnTrailPoint, boomerang ?? lane, weapon.FlipYWhenLeft,
                 homingLayers: ctx.TargetLayers);   // 追蹤只找目標層，不追牆（穿牆配方的 PierceableLayers 含牆）
-            if (b != null) spawned++;
+            if (b != null) { spawned++; AttachFlame(weapon, b, ownerScale); }
         }
         return spawned > 0;
     }

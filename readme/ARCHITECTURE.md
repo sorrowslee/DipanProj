@@ -13,6 +13,9 @@
    * 純粹負責「子彈生成、物理飛行、碰撞偵測、特殊飛行行為」。
    * **絕對不涉及**任何遊戲內的「血量、傷害數值」計算。
    * 透過 `System.Action<BulletInstance, GameObject, RaycastHit2D>` 將碰撞事件回報給主遊戲。
+3. **自製特效套件 (DipanVfx Package，2026-11-18)**：`DipanVfx/`，**主遊戲與地圖編輯器共用**（兩邊 manifest 都 `file:../../DipanVfx`）。
+   * 只放純畫面的 shader 特效（地刺、火焰、地上燃燒、火星）＋共用的 CSV 解析器（`CsvTable`／`CsvUtil`）。
+   * **不得引用主遊戲類別**；取圖、Y 排序走 `VfxAssets` 的兩個接口，由各專案接上。詳見 [DIPAN_VFX.md](DIPAN_VFX.md)。
 
 ## 解耦原則與邊界規範
 

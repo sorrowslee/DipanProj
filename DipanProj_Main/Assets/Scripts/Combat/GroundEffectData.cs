@@ -54,5 +54,11 @@ public class GroundEffectData
     /// </summary>
     public float LightRadius;
 
+    /// <summary>
+    /// 地上燃燒外觀（GroundFireTable ID；2026-11-18，DipanVfx，見 readme/DIPAN_VFX.md §4）。&gt; 0 時**不畫序列圖**，
+    /// 改由 <see cref="Dipan.Vfx.GroundFireBurst"/> 畫焦土＋火舌＋火星；傷害照舊由這個 GroundEffect 結算。0／留空＝照舊畫序列圖。
+    /// </summary>
+    public int FireStyleID;
+
     public Sprite[] AnimationSprites;
 }

@@ -1,3 +1,4 @@
+using Dipan.Vfx;
 using UnityEngine;
 
 /// <summary>
@@ -57,6 +58,16 @@ public static class PlayModeStaticReset
         Dipan.Inventory.ItemQuality.ResetForPlayMode();  // 品質系統：快取的 WeaponManager 參照（停 Play 後會變成已銷毀物件）與警告旗標
         GroundSpikeBurst.ResetForPlayMode();       // 地刺：物件池（停 Play 後池裡是已銷毀物件）、執行期材質
         GroundSpikeDatabase.ResetForPlayMode();    // 地刺設定表：進 Play 由 VfxManager.Awake 重新載入
+        // DipanVfx 套件（2026-11-18，readme/DIPAN_VFX.md）：火焰／地上燃燒／火星的物件池與設定表、共用材質
+        FlameVisual.ResetForPlayMode();
+        FlameDatabase.ResetForPlayMode();
+        GroundFireBurst.ResetForPlayMode();
+        GroundFireDatabase.ResetForPlayMode();
+        VfxEmbers.ResetForPlayMode();
+        ExplosionBurst.ResetForPlayMode();
+        ExplosionDatabase.ResetForPlayMode();
+        TeleportFxDatabase.ResetForPlayMode();
+        VfxAssets.ResetForPlayMode();
         PlayerBind.ResetForPlayMode();
         Dipan.UI.UIManager.ResetMenuLocksForPlayMode();
         CombatStats.ResetForPlayMode();                  // 玩家不死保護（新手夢境教學）   // 玩家選單鎖（新手夢境教學鎖背包/倉庫/鍛造/設定）                 // 束縛玩家（骨牢）：清掉 PlayerController.Bound

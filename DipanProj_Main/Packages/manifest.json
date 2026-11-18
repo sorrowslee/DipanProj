@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.sorrows.dipanvfx": "file:../../DipanVfx",
     "com.sorrows.ballisticssystem": "file:../../BallisticsSystem",
     "com.unity.collab-proxy": "2.11.4",
     "com.unity.feature.2d": "2.0.1",

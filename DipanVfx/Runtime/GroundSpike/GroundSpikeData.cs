@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using Dipan.Data;
 
+namespace Dipan.Vfx
+{
+
 /// <summary>
 /// GroundSpikeTable 的一列：一種「從地底刺出來的尖刺」長什麼樣、怎麼動（2026-11-17，見 readme/GROUND_SPIKE.md）。
 /// 武器表 <c>TrailSpikeID</c> 指向這裡；子彈每飛 TrailStep 就在腳下長一組（<see cref="GroundSpikeBurst"/>）。
@@ -42,7 +45,7 @@ public sealed class GroundSpikeData
     public float TotalTime => StaggerTime + RiseTime + HoldTime + RetractTime + 0.05f;
 }
 
-/// <summary>GroundSpikeTable 載入與查詢。由 <see cref="VfxManager"/> 在 Awake 時載入。</summary>
+/// <summary>GroundSpikeTable 載入與查詢。主遊戲由 VfxManager 在 Awake 時載入；地圖編輯器的特效預覽器直接讀 DipanProj_Main 的 CSV 載入。</summary>
 public static class GroundSpikeDatabase
 {
     static readonly Dictionary<int, GroundSpikeData> _rows = new Dictionary<int, GroundSpikeData>();
@@ -57,7 +60,7 @@ public static class GroundSpikeDatabase
     {
         if (_rows.TryGetValue(id, out var d)) return d;
         if (_warnedMissing.Add(id))
-            Debug.LogWarning($"[GroundSpike] GroundSpikeTable 沒有 ID {id}（或還沒載入）。請確認 VfxManager 的 Ground Spike CSV 欄有拖 Assets/Data/GroundSpikeTable.csv。");
+            Debug.LogWarning($"[GroundSpike] GroundSpikeTable 沒有 ID {id}（或還沒載入）。請確認 VfxManager 的 Ground Spike CSV 欄有拖 Assets/Data/GroundSpikeTable.csv（地圖編輯器：按預覽器的「重讀表格」）。");
         return null;
     }
 
@@ -81,7 +84,7 @@ public static class GroundSpikeDatabase
             {
                 string p = raw.Trim();
                 if (p.Length == 0) continue;
-                var sp = Resources.Load<Sprite>(p);
+                var sp = VfxAssets.LoadSprite(p);
                 if (sp == null) { Debug.LogWarning($"[GroundSpike] {d.Name}：找不到尖刺圖 Resources/{p}"); continue; }
                 list.Add(sp);
             }
@@ -124,8 +127,9 @@ public static class GroundSpikeDatabase
     {
         path = (path ?? "").Trim();
         if (path.Length == 0) return null;
-        var sp = Resources.Load<Sprite>(path);
+        var sp = VfxAssets.LoadSprite(path);
         if (sp == null) Debug.LogWarning($"[GroundSpike] {owner}：找不到圖 Resources/{path}");
         return sp;
     }
+}
 }

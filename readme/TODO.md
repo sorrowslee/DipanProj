@@ -166,7 +166,7 @@
 
 ## CsvUtil：已備好但尚未啟用 — 2026-07-27
 
-`Assets/Scripts/Data/CsvUtil.cs` 已建立（`SplitLine()` 支援雙引號包逗號、`Field/FieldInt/FieldFloat/FieldBool` 防呆取值），但**目前零呼叫**——既有 13 處 CSV 解析刻意一行未改，避免大規模重構的風險。
+`Assets/Scripts/Data/CsvUtil.cs`（2026-11-18 搬到 `DipanVfx/Runtime/Data/CsvUtil.cs`）已建立（`SplitLine()` 支援雙引號包逗號、`Field/FieldInt/FieldFloat/FieldBool` 防呆取值），但**目前零呼叫**——既有 13 處 CSV 解析刻意一行未改，避免大規模重構的風險。
 
 - [ ] **什麼時候該遷移**：遇到「某張表的某一欄需要能打半形逗號」時，把那**一張表**換成 `CsvUtil.SplitLine()` 即可，不必全面換。目前已知受限的是 `MonsterData` 的「句子1~4」（怪物台詞，見 [MONSTER_SPEECH.md](MONSTER_SPEECH.md)）與 `DramaTalkTable` 的 `Text`。
 - [ ] **遷移時要注意**：換過去之後，該 CSV 若原本有**裸露的雙引號**會被當成引號語法解析，要一併檢查既有資料。
@@ -1174,3 +1174,9 @@
 - [ ] 防具類效果（減傷、增防、法抗、增速）＋`GemTarget.Player` 的套用——之後才規劃。
 - [ ] ⚠ [PROGRESS.md](PROGRESS.md) 已約 260KB，遠超封存門檻（~96KB，DOCS_GUIDE §5），需要把最舊條目搬到 archive（不屬於裝備體系，順手記一下）。
 
+## DipanVfx 火焰重製（2026-11-18）
+- [ ] **作者實機看**：火焰環繞彈（3）、焚天火雨（61）的子彈火，火焰拋擲彈等落地的焚地（GroundEffect 8／9）——大小、亮度、甩小火與火星數量都是估的，直接在地圖編輯器「特效預覽器 → 自製特效」調好存回（[DIPAN_VFX.md](DIPAN_VFX.md) §6）。
+- [ ] **火焰拋擲彈落地爆炸**（ExplosionTable 1）實機看：火球大小／時長、衝擊波圈、黑煙濃度；確認後 VfxTable 1「爆炸」與 `Resources/VfxEffects/Explosive/` 已無人用，可刪。
+- [ ] 確認沒問題後可刪舊序列圖 `Resources/Weapon/animation/fire/`、`Resources/GroundEffect/ScorchedGround/`（目前還被 GroundEffectTable 8／9 的 AniPath 指著，只是不畫；要刪先清那兩格）。
+- [ ] **傳送點新外型**實機看（亮度、池身深淺、光柱高度；暗場景 Atmosphere 壓暗後是否仍清楚）；確認後 VfxTable 6 與 `Resources/VfxEffects/Teleport/`（48 張）可刪——刪之前先把 `MapLoader.teleportVfxId` 與編輯器 `TeleportMarkerPreview` 的序列圖退路一起拿掉。
+- [ ] 特效巡視清單（2026-11-18，PROGRESS 同日條目）等作者挑要換哪些。

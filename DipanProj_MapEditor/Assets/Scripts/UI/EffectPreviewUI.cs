@@ -37,9 +37,31 @@ namespace DipanMapEditor.UI
 
         public EffectPreviewUI() { _lastRepaint = Time.realtimeSinceStartup; }
 
+        // 2026-11-18：分兩頁——「素材庫」（買來的序列圖特效）／「自製特效」（DipanVfx 套件的 shader 特效，可即時調表，見 readme/DIPAN_VFX.md §6）
+        bool _customTab;
+        CustomVfxPanel _custom;
+
         public void Draw(Rect area)
         {
             GUILayout.BeginArea(area, GUI.skin.box);
+            GUILayout.BeginHorizontal();
+            GUI.color = !_customTab ? Color.cyan : Color.white;
+            if (GUILayout.Button("素材庫（序列圖）", GUILayout.Width(130))) _customTab = false;
+            GUI.color = _customTab ? Color.cyan : Color.white;
+            if (GUILayout.Button("自製特效（shader）", GUILayout.Width(140))) _customTab = true;
+            GUI.color = Color.white;
+            GUILayout.FlexibleSpace();
+            GUILayout.EndHorizontal();
+
+            if (_customTab)
+            {
+                if (_custom == null) _custom = new CustomVfxPanel();
+                // 分頁列下方整塊（座標相對外層 BeginArea）
+                _custom.Draw(new Rect(4f, 32f, area.width - 8f, area.height - 36f));
+                GUILayout.EndArea();
+                return;
+            }
+
             GUILayout.BeginHorizontal();
 
             DrawList();
@@ -48,6 +70,7 @@ namespace DipanMapEditor.UI
             GUILayout.EndHorizontal();
             GUILayout.EndArea();
         }
+
 
         // ---- 左側：效果清單（依類別分組 + 搜尋）----
         void DrawList()

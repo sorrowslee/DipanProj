@@ -124,6 +124,9 @@ public class GroundEffectManager : MonoBehaviour
             // 發光半徑：留空 / <=0 = 不發光。> 0 時特效會掛 LightSource 真的照亮暗場景。
             data.LightRadius = row.GetFloat("LightRadius", 0f);
 
+            // 地上燃燒外觀（2026-11-18）：填了就改畫 DipanVfx 的焦土＋火舌，序列圖不畫
+            data.FireStyleID = row.GetInt("FireStyleID", 0);
+
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)
             {
                 var sprites = new Sprite[data.AniNumber];

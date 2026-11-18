@@ -24,9 +24,9 @@
 | 檔案 | 角色 |
 |---|---|
 | `Assets/Data/GroundSpikeTable.csv` | 設定表（一列一種刺）。拖在 MainScene 的 `VfxManager` → `Ground Spike CSV`（已拖好；編輯器下沒拖也會直接讀資產） |
-| `Scripts/Combat/GroundSpikeData.cs` | 一列的資料 ＋ `GroundSpikeDatabase`（載入、查詢） |
-| `Scripts/Combat/GroundSpikeBurst.cs` | 一組的演出 ＋ 物件池（用完 `SetActive(false)` 放回去，不 Destroy） |
-| `Resources/Shaders/GroundSpike.shader` | `Custom/GroundSpike`：**世界座標的地平線以下不畫**（`_GroundY`）、貼地那段壓暗（`_GroundShade`／`_ShadeHeight`）、淡出（`_Fade`）、整體壓暗（`_Dim`） |
+| `DipanVfx/Runtime/GroundSpike/GroundSpikeData.cs` | 一列的資料 ＋ `GroundSpikeDatabase`（載入、查詢）。**2026-11-18 搬進共用套件 DipanVfx**（namespace `Dipan.Vfx`），見 [DIPAN_VFX.md](DIPAN_VFX.md) |
+| `DipanVfx/Runtime/GroundSpike/GroundSpikeBurst.cs` | 一組的演出 ＋ 物件池（用完 `SetActive(false)` 放回去，不 Destroy） |
+| `DipanVfx/Runtime/Resources/Shaders/GroundSpike.shader` | `Custom/GroundSpike`：**世界座標的地平線以下不畫**（`_GroundY`）、貼地那段壓暗（`_GroundShade`／`_ShadeHeight`）、淡出（`_Fade`）、整體壓暗（`_Dim`） |
 | `Resources/VfxEffects/GroundSpike/` | 圖：`stone_*`（石刺）、`root_*`（樹根刺），各有 `spike1~4`、`crack`、`dust` |
 | `Scripts/Combat/VfxManager.cs` | 載入表、`SpawnGroundSpikes` |
 | `Scripts/Weapon/WeaponData.cs`／`WeaponManager.cs`／`WeaponModeSpec.cs` | 武器表新欄 `TrailSpikeID`（在 `TrailEffectID` 右邊）；Normal／環繞／拋物線／浮游有效 |
@@ -70,6 +70,8 @@
 
 ## 4. 調手感
 
+> **2026-11-18 起直接在地圖編輯器調**：特效預覽器 →「自製特效（shader）」→ 選石刺／樹根刺，右邊改欄位立刻重播，滿意按「存回 CSV」（見 [DIPAN_VFX.md](DIPAN_VFX.md) §6）。
+
 - 看起來太小／太大：`Height`、`CrackSize`、`DustSize`；整把武器一起放大用武器表 `CastVisualScale`。
 - 一排不夠密：配方的 `TrailStep`（地刺 1.5、山崩地裂 1、枯枝 1.5）調小，或 `Spread` 調大。
 - 力道不夠：`RiseTime` 調短、`Overshoot` 調大。
@@ -83,6 +85,6 @@
 
 ## 6. 已知限制
 
-- 沒有在 Unity 實機看過（2026-11-17 寫完時沒有編譯器）——大小、時間全部是估的，要作者 Play 後調表。
+- 沒有在 Unity 實機看過（2026-11-17 寫完時沒有編譯器）——大小、時間全部是估的，要作者 Play 後調表。（2026-11-18 已用 Roslyn 編譯通過，見 DIPAN_VFX §7）
 - 刺的水平置中用的是圖的外框中心，彎得很厲害的圖根部可能偏一點點。
 - 榕樹妖自己的地刺攻擊（VfxTable 11、`VfxEffects/EarthSpik2`）**不是**這個系統，沒動。

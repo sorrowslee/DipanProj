@@ -109,7 +109,7 @@ public static class WeaponModeSpec
     // ⚠ 這幾個共用欄組一定要宣告在 _fields/_modes 之前——C# 靜態欄位依宣告順序初始化，
     //   放在後面的話 BuildModes() 跑的時候它們還是 null（單元測試抓到過）。
     // 共用欄組，避免每個模式重抄一遍
-    static readonly string[] BulletVisual = { "WeaponSpritePath", "SpriteAngleOffset", "FlipYWhenLeft", "HitEffectAlignBullet", "WeaponAniPath", "WeaponAniNumber", "AnimFPS", "BulletScale" };
+    static readonly string[] BulletVisual = { "WeaponSpritePath", "SpriteAngleOffset", "FlipYWhenLeft", "HitEffectAlignBullet", "WeaponAniPath", "WeaponAniNumber", "AnimFPS", "BulletScale", "FlameStyleID" };
     static readonly string[] BeamVisual = { "BeamStyle", "BeamColor", "BeamWidth" };
     static readonly string[] Charge = { "ChargeMode", "ChargeTimeReduction" };
     static readonly string[] Multi = { "SplitLv", "SpreadSpacing", "SpreadMaxAngle" };
@@ -362,12 +362,14 @@ public static class WeaponModeSpec
             // ── 特效 ID ──
             F(W, "FireEffectID",   FieldKind.Int, "特效", "發射特效 ID", "0", 0, 99999, "VfxTable；發射時在玩家身上播", universal: true),
             F(W, "HitEffectID",    FieldKind.Int, "特效", "擊中特效 ID", "0", 0, 99999, "VfxTable；命中點播"),
+            F(W, "HitBurstID",     FieldKind.Int, "特效", "擊中爆炸 ID", "0", 0, 99999, "ExplosionTable；命中／落地時炸一次 shader 爆炸（白光＋火球＋黑煙＋衝擊波圈＋火星）。拋物線落地的大小跟傷害半徑（AreaRadius×BulletScale）連動；其他模式用表的 Radius×集氣放大。每次命中都炸，雷射這類每跳都命中的慎用（2026-11-18）", universal: true),
             F(W, "HitEffectAlignBullet", FieldKind.Bool, "特效", "擊中特效跟子彈方向", "0", help: "1＝擊中特效用子彈當下的角度與上下翻轉生成（往左飛就往左咬）；0＝一律 0 度（爆炸、血花這類不分方向的圖）"),
             F(W, "HitEffectEnemyOnly",   FieldKind.Bool, "特效", "擊中特效只在打到怪時播", "0", help: "1＝打到牆與可破壞地上物不播（血花這類只該出現在生物身上的圖）；0＝打到什麼都播。只對子彈／環繞／迴旋／雷射／連鎖／近戰有效"),
             F(W, "SlashStyle",           FieldKind.Int,  "特效", "近戰揮擊刀光樣式", "0", 0, 1,
               "只有近戰：0＝不畫（舊行為：揮擊時在前方播 HitEffectID）；1＝血月三爪（程序化刀光，範圍＝判定扇形，HitEffectID 改成打中時在目標身上播）"),
             F(W, "TrailEffectID",  FieldKind.Int, "特效", "軌跡特效 ID", "0", 0, 99999, "VfxTable；配合配方 TrailStep 沿路種"),
             F(W, "TrailSpikeID",   FieldKind.Int, "特效", "軌跡地刺 ID", "0", 0, 99999, "GroundSpikeTable；配合配方 TrailStep 沿路從地底刺出尖刺（2026-11-17 取代舊地刺序列圖）"),
+            F(W, "FlameStyleID",   FieldKind.Int, "特效", "子彈火焰 ID", "0", 0, 99999, "FlameTable；子彈身上燒一團 shader 火（不跟子彈旋轉、依速度往後拖，分裂出來的也有）。通常搭配把子彈圖留空（2026-11-18）"),
             F(W, "SummonEffectID", FieldKind.Int, "特效", "召喚特效 ID", "0", 0, 99999, "VfxTable；每個生怪點播一次"),
 
             // ── 浮游本體（只有 Mode=Familiar）──

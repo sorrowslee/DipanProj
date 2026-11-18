@@ -4,6 +4,31 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **特效巡視＋傳送點外型重製（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-18，作者：巡視有沒有粗製濫造的特效、傳送點不好看要重做（外型差不多、漂亮一點）；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4c）：
+  ① **巡視**：VfxTable 53 列＋地面特效抽幀總覽（`TempImage/dipanvfx_work/audit/`），清單已給作者挑、**沒動任何東西**——優先：7 怪物死亡、10 招喚怪物、5 地上物破壞、30 變身煙塵；卡通火 4/47/16/17/48/33；卡通爆炸 43（**血魔重炮、落星羅盤還在用舊爆炸圖**，填 `HitBurstID` 即可換）/26/42/50/55；其他 11/2/44/59、地面特效 3/6；32/34/35 圖資料夾是空的但沒人用。
+  ② **傳送點**：DipanVfx 新增 `TeleportMarkerFx`（全程序：深色光池＋流動亮邊＋漣漪＋漩渦絲＋中央光柱＋升起光點，出現時淡入）、shader `Custom/DipanPortalPool`／`Custom/DipanLightBeam`、新表 `TeleportFxTable`（1 列，留空＝預設）；`MapLoader.teleportFxStyleId`（預設 1，沒這列退回 VfxTable 6），`TeleportMarkerById`／togglePortal／冷光照舊；MainScene VfxManager 接表。
+  ③ 地圖編輯器「傳送點對位」改掛同一個 `TeleportMarkerFx`（`CustomVfxSource.EnsureDatabases` 不必先開預覽器）；特效預覽器「自製特效」加「傳送點」。④ numpy 模擬調過；全專案 Roslyn 編譯 0 錯誤。
+  <br>**作者要做的**：Reimport TeleportFxTable；進有傳送點的地圖看，或在預覽器調。
+
+* [x] **火焰拋擲彈落地爆炸重製（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-18，作者：落地爆炸也很糟；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4b）：舊的是 VfxTable 1（8 張卡通像素花朵爆炸，最後一幀跳回第 3 幀）。
+  ① DipanVfx 新增 `ExplosionBurst`（白光＋3～5 團火球＋黑煙＋貼地衝擊波圈＋火星）與 shader `Custom/DipanFireball`（依年齡白熱→橘→暗紅、外緣先冷成黑煙、噪聲溶解；黑煙模式共用）、`Custom/DipanShockRing`（程序圈）；新表 `ExplosionTable`（1 列）。
+  ② 武器表新欄 **`HitBurstID`**（`HitEffectID` 右邊、universal）：火焰拋擲彈 4 填 1、`HitEffectID` 1 清空；`TrySpawnHitEffect` 多一個 `burstRadius`，拋物線落地傳 `AreaRadius×BulletScale`。`VfxManager.SpawnExplosion`、MainScene 接 ExplosionTable。
+  ③ 圖：ChatGPT 同一對話 1 次額度，黑底 6 種火球雲（切圖用連通區塊，GPT 的寬火球跨到隔壁格）。④ 預覽器「自製特效」加「爆炸」（可調範圍半徑）。
+  ⑤ **發現**：這把武器的傷害半徑其實是 5（2.5×2），舊圖只畫到 2.5；數值未動，新衝擊波圈畫在 5、火球限制在 2.5 內。⑥ numpy 模擬後把溶解改成前慢後快、冷卻成煙提早。全專案 Roslyn 編譯 0 錯誤。
+  ⑦ 作者看過：爆炸被地上燃燒蓋住看不清楚 ⇒ **移除火焰拋擲彈的地面燃燒**：配方 12 `GroundEffectID` 8 → 空（`GroundEffectHitTarget` 的 Ground 留著，沒有 ID 時不作用）；配方 12 只有武器 4 在用。作者確認爆炸 OK 後**加回**（`GroundEffectID` 回到 8，RecipeTable 與改動前相同）。
+  <br>**作者要做的**：Reimport WeaponTable／ExplosionTable／RecipeTable。
+
+* [x] **火焰特效重製＋共用特效套件 DipanVfx＋地圖編輯器「自製特效」預覽分頁（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-18，作者覺得火焰環繞彈的火、火焰拋擲彈落地的火很難看，要求用 shader＋幾張圖重做，並把 AI 做的 shader 特效（含地刺）都整合進特效預覽器；見 [DIPAN_VFX.md](DIPAN_VFX.md)）：
+  ① **舊火為什麼醜**：環繞彈的 6 幀火各畫各的、12fps 一跳一跳，而且子彈圖跟著飛行方向轉 ⇒ 繞圈時火尖朝玩家；焚地是 160px 像素風、一圈正面小火苗貼在地上像貼紙、12 幀幾乎不動、時間到直接消失。
+  ② **共用套件** `DipanVfx/`（repo 根目錄，兩個專案 manifest 都 `file:../../DipanVfx`）：地刺的 shader＋程式、`CsvTable`／`CsvUtil`（純 C#）**連 .meta 搬進來、GUID 不變**；取圖與 Y 排序收成 `VfxAssets` 兩個接口（遊戲＝Resources.Load＋MapDepthSort、編輯器＝直接讀主遊戲 png＋.meta）。作者同意的理由：特效只有一份，預覽器看到的＝遊戲裡的。
+  ③ **火焰**：shader `Custom/DipanFlame`（靜態圖的 alpha 當熱度 → 兩層往上捲的噪聲扭曲＋侵蝕 → 三段色帶上色；傾斜／起燃／熄滅），`FlameVisual`（跟著子彈但不跟著轉、依速度往後倒＋拉長、甩小火、冒火星）、`FlameHost`（分裂子彈靠 Instantiate 複製標記，自己也燒）。武器表新欄 **`FlameStyleID`**：環繞彈 3→1、焚天火雨 61→2，兩把的舊序列圖三欄清空。主遊戲 5 個生子彈的地方都走 `WeaponCastService.AttachFlame`。
+  ④ **地上燃燒**：GroundEffectTable 新欄 **`FireStyleID`**（8、9 填 1）——不畫序列圖，改由 `GroundFireBurst` 畫焦土（`Custom/DipanScorch`：中心往外燒開、裂紋餘燼明滅、由外往內冷卻、焦痕多留 0.8 秒）＋立著且跟角色 Y 排序的火舌（一條條換位置重燃）＋火星（`VfxEmbers`）；傷害照舊。
+  ⑤ **圖**：ChatGPT 燃燈劫專案（對話「Generate火焰素材_sheet」，2 次額度）——6 種火焰（**純黑底**，亮度轉 alpha）、俯視焦土（洋紅底，去背後拆焦土本體＋餘燼遮罩）。新表 `FlameTable`（3 列）、`GroundFireTable`（1 列），MainScene VfxManager 已接。
+  ⑥ **地圖編輯器**：特效預覽器分「素材庫／自製特效」兩頁；自製特效＝左三張表、中舞台（遊戲同一份程式；格線、1.95 高參考人形、亮地板、地刺模擬子彈／火焰靜止·環繞·墜落／地上燃燒＋傷害圈）、右欄位即改即播、「存回 CSV」只改動過的列。
+  ⑦ **驗證**：作者把 Unity Managed 複製到 Downloads 後，容器用 .NET 8 Roslyn 把套件、Ballistics、主遊戲（有／無 UNITY_EDITOR）、兩個 Editor 組件、地圖編輯器全部編過，0 錯誤（PROBLEMS **I12**）；numpy 重現火焰 shader 看形狀，核心過曝 → 預設亮度 1.6→1.35。
+  ⑧ **作者實測修正（同日）**：火焰環繞彈結束後一圈火留在原地不消失——`FlameVisual` 用 `_host != null` 判斷「有沒有跟著宿主」，子彈被 Destroy 後 Unity 的 `== null` 成立，連熄滅分支都進不去；改用 `_attached` 旗標（PROBLEMS **F47**），重新編譯 0 錯誤。
+  <br>**作者要做的**：開兩個專案讓 Unity 解析新套件；主遊戲 Reimport WeaponTable／GroundEffectTable／FlameTable／GroundFireTable；在編輯器預覽器調到順眼存回。
+
 * [x] **紅嫁衣調整（作者實測回饋）**（2026-11-17）：① 客廳 2 家族合照劇情接 giveItem「家族合照-藥水」（201 小回血瓶 ×3，一趟一次；三份地圖同步）② 兒童彈弓配方 10001 `FireInterval` 留空 → 1.5 → **0.7** 秒（1.5 打起來太痛苦） ③ 芙蓉（MonsterData 13 紅嫁衣）HP 500 → **300**（彈弓打中 30 發）。艾爾文太硬的問題見同日對話：×10 是血量與傷害一起放大、比例沒變，是枯枝輸出（每秒 30）對這隻 boss 太低，待作者決定怎麼平衡。**要 Reimport RecipeTable、MonsterData**。
 * [x] **掉寶落在牆裡撿不到（⏳ 未編譯未實測）**（2026-11-18 作者實測：榕樹妖的枯枝掉在樹幹後面）：`InteractionManager.DropStack` 落地前挪到最近的「可走＋玩家走得到」的點。見 [PROBLEMS.md](PROBLEMS.md) K5。
 * [x] **結算畫面新證明演出（⏳ 未編譯未實測）**（2026-11-17 作者規格）：有新證明時返回鈕先藏 → 獎勵列表先只排非證明的東西 → 條件字破碎變金 → 證明 B→A→S 一張張接到列表最後（讓位 → 該格閃光 → 淡入）→ 返回鈕淡入；ESC／左鍵跳過。只改 `ResultPanel.cs`，細節見 [LEVEL_END_FLOW.md](LEVEL_END_FLOW.md)〈劇本證明三行〉。

@@ -27,7 +27,7 @@ Editor-only：`Assets/Editor/WeaponWorkbench.cs`，不進 build。
 |---|---|
 | `Assets/Editor/WeaponWorkbench.cs` | 視窗本體。讀 CSV 成「欄名 → 值」字典、依 spec 畫欄位、存檔、Play 模擬、珠子按鈕 |
 | `Scripts/Weapon/WeaponModeSpec.cs` | 欄位規格（型別／預設／範圍／分組／顯示名）與模式 × 欄位表；`HeaderCells`／`GroupCommentLines` 產 CSV 表頭 |
-| `Scripts/Data/CsvTable.cs` | `CsvWriter`：引號跳脫、組整份檔（round-trip 測過：讀 → 寫 → 讀，33 列字典完全相等） |
+| `DipanVfx/Runtime/Data/CsvTable.cs`（2026-11-18 搬進共用套件） | `CsvWriter`：引號跳脫、組整份檔（round-trip 測過：讀 → 寫 → 讀，33 列字典完全相等） |
 | `Scripts/Weapon/RecipeManager.cs`／`WeaponManager.cs` | `CreateTransient`（臨時建、不登記）、`All`、`SimulationOverride`（過 `AbilityResolver`，鑲嵌有效） |
 | `Scripts/Weapon/GemEffectiveness.cs` | 模擬中「參考武器」一律是模擬武器 |
 

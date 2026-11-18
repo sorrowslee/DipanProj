@@ -91,6 +91,8 @@ public class MapLoader : MonoBehaviour
 
     [Header("傳送點特效（VfxTable ID，須為 Loop=1/Duration=-1 的循環特效；0 = 不放）")]
     public int teleportVfxId = 6;
+    [Tooltip("傳送點外型（DipanVfx 的 TeleportFxTable ID，2026-11-18：程序 shader 光池＋光柱＋光點）。>0 且表裡有這列就用它，否則退回上面的 teleportVfxId 序列圖。")]
+    public int teleportFxStyleId = 1;
 
     // ── 傳送點冷光（2026-08-28，美術紀律：傳送點＝全場唯一冷色，暗場景要讀得出來）──
     // 每個傳送點標記掛一盞冷藍微光：暗場景（幽暗/噩夢/EnvBright<100）在傳送點周圍照出一圈冷光池，
@@ -865,10 +867,16 @@ public class MapLoader : MonoBehaviour
             if (!r.GetBool("showMarker", true)) continue;   // 傳送點勾掉「使用傳送點外型」→ 不生外型（預設顯示）
             // 外型位置＝錨點（＝踩踏區中心＝落點，三者同一個點）；沒設錨點的舊傳送點退回格子平均中心。
             if (!TeleportAnchor.TryCenter(r, _map, out Vector2 center)) continue;
-            var inst = _vfx.Spawn(teleportVfxId, center, 0f);
-            if (inst != null)
+            // 2026-11-18：優先用 DipanVfx 的程序傳送點（TeleportFxTable）；表裡沒有才退回 VfxTable 序列圖
+            GameObject markerGo = null;
+            if (teleportFxStyleId > 0 && Dipan.Vfx.TeleportFxDatabase.Get(teleportFxStyleId) != null)
+                markerGo = Dipan.Vfx.TeleportMarkerFx.Create(teleportFxStyleId, _root, center, _vfx.SortingLayerName)?.gameObject;
+            else
+                markerGo = _vfx.Spawn(teleportVfxId, center, 0f)?.gameObject;
+            if (markerGo != null)
             {
-                inst.transform.SetParent(_root, true);   // 掛進 MapRoot，換圖拆除時一併清掉
+                markerGo.transform.SetParent(_root, true);   // 掛進 MapRoot，換圖拆除時一併清掉
+                var inst = markerGo;
                 if (!string.IsNullOrEmpty(r.id)) TeleportMarkerById[r.id] = inst.gameObject;   // 供 togglePortal 隱藏/恢復外型
 
                 // 傳送點冷光：暗場景給傳送點一圈冷藍光池（見上方欄位註解）。極輕微搖晃、瀰漫柔邊。

@@ -169,3 +169,10 @@ WeaponTable → RecipeTable(Mode) → GroundEffectID → GroundEffectTable.Sigil
 >
 > ⚠ `RebuildVisuals()` **刻意不重建 `BuildLight()`**：那支是 `AddComponent<LightSource>()` 加在自己身上
 > （不是子物件），再叫一次會變成兩盞燈；而且發光半徑走 `LightRadius` 欄、不吃倍率，本來就不用重建。
+
+---
+
+## 地上燃燒外觀（FireStyleID，2026-11-18）
+
+GroundEffectTable 最後一欄 `FireStyleID`（GroundFireTable ID）：填了就**不畫序列圖**，改由 DipanVfx 的 `GroundFireBurst` 畫焦土＋火舌＋火星；傷害、範圍、時間仍照這張表。
+目前 8 焚地、9 焚地（大）都填 1。說明與調法見 [DIPAN_VFX.md](DIPAN_VFX.md) §4、§6。

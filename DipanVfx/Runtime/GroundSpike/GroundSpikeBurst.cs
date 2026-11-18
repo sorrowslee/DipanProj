@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+namespace Dipan.Vfx
+{
+
 /// <summary>
 /// **一組從地底刺出來的尖刺**（2026-11-17，取代舊的地刺序列圖；規格見 readme/GROUND_SPIKE.md）。
 ///
@@ -74,7 +77,7 @@ public class GroundSpikeBurst : MonoBehaviour
             if (!_shaderMissingWarned)
             {
                 _shaderMissingWarned = true;
-                Debug.LogWarning($"[GroundSpike] 找不到 shader {ShaderName}（Assets/Resources/Shaders/GroundSpike.shader）。尖刺改用預設材質，地平線以下不會被切掉。");
+                Debug.LogWarning($"[GroundSpike] 找不到 shader {ShaderName}（DipanVfx/Runtime/Resources/Shaders/GroundSpike.shader）。尖刺改用預設材質，地平線以下不會被切掉。");
             }
             return null;
         }
@@ -311,4 +314,5 @@ public class GroundSpikeBurst : MonoBehaviour
         gameObject.SetActive(false);
         _pool.Push(this);
     }
+}
 }
