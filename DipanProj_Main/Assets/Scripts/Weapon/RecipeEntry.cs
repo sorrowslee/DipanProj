@@ -118,6 +118,8 @@ public class RecipeEntry
     // ── 掃射（Mode=Sweep）──
     /// <summary>掃射的 Range 留空時的最遠掃描距離（從腳底量）。</summary>
     public const float SweepDefaultRange = 12f;
+    /// <summary>靈獸（Mode=Spirit）留空時的游速、存活秒數（2026-11-19）。</summary>
+    public const float SpiritDefaultSpeed = 4f, SpiritDefaultLifeTime = 10f;
     /// <summary>光束落點沿地面往前推的速度（每秒世界單位）。</summary>
     public float SweepSpeed = 12f;
     /// <summary>光束源點高度：從施放者腳底往上幾個「可見身高」。</summary>
@@ -190,9 +192,9 @@ public class RecipeEntry
 
         // ── 通用 / 子彈本體 ──
         d.FireInterval = Fl("FireInterval", 0.3f);
-        d.Speed = Fl("Speed", 15f);
+        d.Speed = Fl("Speed", mode == WeaponMode.Spirit ? SpiritDefaultSpeed : 15f);
         d.Radius = Fl("Radius", 0.1f);
-        d.LifeTime = Fl("LifeTime", 3f);
+        d.LifeTime = Fl("LifeTime", mode == WeaponMode.Spirit ? SpiritDefaultLifeTime : 3f);
         d.RotationSpeed = Fl("RotationSpeed", 0f);
         // 行為欄填的是等級（2026-11-17）：讀進來馬上換算成數值，下游照舊讀數值。換算曲線＝GemTable（見 EquipAttributes.LevelValue）。
         e.PierceLv = Math.Max(0, In("PierceLv", 0));

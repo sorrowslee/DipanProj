@@ -23,11 +23,12 @@
 套件裡只放「給位置、方向、大小就自己播完」的**純畫面**；什麼時候生、傷害怎麼算，留在主遊戲呼叫端。
 這跟彈道系統「不算傷害」是同一種分法（[ARCHITECTURE.md](ARCHITECTURE.md)）。
 
-兩個專案的差異收在 `VfxAssets` 的兩個接口：
+兩個專案的差異收在 `VfxAssets` 的幾個接口：
 
 | 接口 | 主遊戲 | 地圖編輯器 |
 |---|---|---|
 | `VfxAssets.SpriteLoader`（取圖） | 留空＝`Resources.Load<Sprite>` | `CustomVfxSource.LoadSprite`：直接讀 `DipanProj_Main/Assets/Resources/<路徑>.png`，pivot／PPU 讀同名 `.meta` |
+| `VfxAssets.TextureLoader`（取一般貼圖，2026-11-19 靈獸身體用） | 留空＝`Resources.Load<Texture2D>` | `CustomVfxSource.LoadTexture`：讀同一個 png，Repeat＋mipmap |
 | `VfxAssets.SortOrderForY`（立著的東西怎麼排） | `VfxManager.Awake` 填 `MapDepthSort.Order(y, 0)`＝跟角色一起 Y 排序 | 留空（舞台上沒有角色） |
 
 設定表一律住主遊戲 `Assets/Data/`。主遊戲由 `VfxManager` 的 TextAsset 欄載入；編輯器直接讀寫那份檔案。
@@ -47,12 +48,15 @@
 | `Runtime/Explosion/ExplosionData.cs`、`ExplosionBurst.cs` | 爆炸（§4b） |
 | `Runtime/Teleport/TeleportFx.cs` | 傳送點外型（`TeleportFxData`／`TeleportFxDatabase`／`TeleportMarkerFx`，§4c） |
 | `Runtime/Beam/BeamFxData.cs`、`BeamVisual.cs` | 光束外觀（雷射／連鎖閃電／掃射，§4d） |
+| `Runtime/Spirit/SpiritFxData.cs`、`SpiritBeastMotion.cs`、`SpiritBeast.cs` | 靈獸（電龍等：游法＋外觀，§4e） |
 | `Runtime/VfxEmbers.cs` | 火星粒子（一個元件管全部，上限 400 顆） |
-| `Runtime/Resources/Shaders/` | `GroundSpike`、`DipanFlame`、`DipanScorch`、`DipanGlowDot`、`DipanFireball`、`DipanShockRing`、`DipanPortalPool`、`DipanLightBeam`、`DipanBeam`、`DipanArc`、`DipanBeamOrb`（放 Resources 底下 ⇒ 打包一定帶進去、`Shader.Find` 找得到） |
-| 主遊戲 `Assets/Data/FlameTable.csv`、`GroundFireTable.csv`、`GroundSpikeTable.csv`、`ExplosionTable.csv`、`TeleportFxTable.csv`、`BeamFxTable.csv` | 設定表（MainScene 的 VfxManager 六欄都已拖好） |
+| `Runtime/Resources/Shaders/` | `GroundSpike`、`DipanFlame`、`DipanScorch`、`DipanGlowDot`、`DipanFireball`、`DipanShockRing`、`DipanPortalPool`、`DipanLightBeam`、`DipanBeam`、`DipanArc`、`DipanBeamOrb`、`DipanSpiritBody`、`DipanAddSprite`（放 Resources 底下 ⇒ 打包一定帶進去、`Shader.Find` 找得到） |
+| 主遊戲 `Assets/Data/FlameTable.csv`、`GroundFireTable.csv`、`GroundSpikeTable.csv`、`ExplosionTable.csv`、`TeleportFxTable.csv`、`BeamFxTable.csv`、`SpiritFxTable.csv` | 設定表（MainScene 的 VfxManager 七欄都已拖好） |
 | 主遊戲 `Resources/VfxEffects/Explosion/fireball_1~6.png` | 爆炸火球雲（白色＋alpha＝密度，置中、Full Rect、不壓縮），火球與黑煙共用 |
 | 主遊戲 `Resources/VfxEffects/Flame/flame_1~6.png` | 火焰形狀（白色＋alpha＝熱度，pivot＝根部 `(0.5, 0.075)`、Full Rect、不壓縮） |
 | 主遊戲 `Resources/VfxEffects/GroundFire/scorch.png`、`scorch_glow.png` | 焦土本體（RGB＋alpha）／裂紋餘燼遮罩（只用 alpha），同尺寸 512 |
+| 主遊戲 `Resources/VfxEffects/Spirit/ThunderDragon/head.png`、`claw.png`（Sprite、置中、Full Rect）、`body.png`（**Default 貼圖、Wrap U＝Repeat、有 mipmap**） | 電龍的頭、短爪、左右無縫的身體段；GPT 產、純黑底轉 alpha（rgb＝顏色、a＝亮度） |
+| 主遊戲 `Resources/VfxEffects/Spirit/BlackDragon/head.png`、`head_glow.png`、`claw.png`、`body.png`（同上） | 黑龍；GPT 白底產、從白底反推 alpha；`head_glow`＝紅眼＋外緣紫光（加色） |
 | 地圖編輯器 `Scripts/Preview/CustomVfxSource.cs`、`CustomVfxPreviewRig.cs`、`Scripts/UI/CustomVfxPanel.cs` | 預覽器「自製特效」分頁（§6） |
 
 ---
@@ -254,6 +258,53 @@
 - 鏡光：初版整條白掉 ⇒ 0.85／0.45；作者看了仍覺得太粗太金、鏡光該微弱偏白 ⇒ 改冷白細光；再回饋太細、太快、太亮 ⇒ 寬 ×3、亮紋放慢、亮度 0.3；實機看仍細（截面只有細芯亮、外暈太淡）⇒ 改成平頂寬光帶（見上表），反彈斷開角 70°→120°。
 - 氣功砲電弧原本像規律彈簧或三角波 ⇒ 每段半徑隨機、鋸齒 0.28、段長 1.7。
 
+## 4e. 靈獸（SpiritFxTable，2026-11-19）
+
+作者想要一種新攻擊：「按一下釋放出來，在畫面中游弋，怪物碰到會受傷；有追蹤就去追怪」，要漂亮。第一隻是**東方電龍**，之後火虎、冰鳳都用同一套（新模式 `Mode=Spirit`，配方與傷害見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Spirit 靈獸〉）。
+
+### 外觀怎麼來的（2026-11-19 概念迭代）
+
+- 第一版身體是光束光柱（`DipanBeam` 截面）＋程序背鰭 ⇒ 作者：「龍頭很漂亮，但像龍頭泥鰍」。
+- 第二版改用 **GPT 畫一段左右無縫的龍身**（鱗片＋上緣背鬃＋下緣腹甲）沿身體平鋪，加 **GPT 龍爪**、身體加粗 ⇒ 作者：好看多了，但爪太長。
+- 第三版只取爪圖的小腿＋爪（裁掉上臂、接身體那端淡入）、縮到頸寬 0.62 倍 ⇒ 定稿。
+- 三張 GPT 圖都在 ChatGPT「燃燈劫」專案同一個對話裡產（龍頭、龍身、龍爪各一次額度、零被擋），prompt 開頭「Same exact style as the dragon head you just made」保持畫風一致；純黑底，程式把亮度轉成 alpha。原圖與模擬腳本在 `TempImage/dipanvfx_work/dragon/`（`dragon_sim.py`）。
+
+### 組成（`SpiritBeast`，一個元件一隻）
+
+- **游法**（`SpiritBeastMotion`，純計算）：等速往前；前進方向用三個不同頻率的正弦疊出平滑亂轉（`Wander`）；越出畫面內框（`EdgeMargin`）就轉回中間——不碰牆、不出畫面。有目標時以追蹤轉速轉向目標、亂轉減到三成。身體＝頭走過的軌跡往回取 `BodyLength`（剛放出來從出生點長出來）＋往尾巴傳的左右擺動（`WaveAmp`／`WaveLength`／`WaveSpeed`）。遊戲端的傷害判定讀同一份 `BodyPoints`／`HalfWidths`。
+- **身體**（`Custom/DipanSpiritBody`）：沿中心線鋪帶子，uv.x＝身長 ÷ 一節貼圖長（頸寬 × 貼圖寬高比 × `TileScale`）⇒ 貼圖一節一節無縫接下去、跟著身體走；uv.y 的 +1 一律是背，**往左游時整條翻過來**（背鬃永遠在上方）。頸寬 `BodyWidth`，從 `TaperStart` 收細到 `TailWidth`，從 `TailFade` 淡出；底下一層柔光（`GlowAmount`）。
+- **頭**（`Custom/DipanAddSprite`）：側面頭圖，`HeadAnchor` 對準脖子；往左游上下翻（左右翻轉有遲滯，接近垂直時不會一直翻）；傾斜限制在 ±`HeadMaxTilt`（側面頭轉到垂直很難看，身體照實際方向彎）。
+- **爪**：`ClawAt` 每處一對——近側畫在身上、遠側畫在身體底下且暗（`ClawFarDim`），跟著划（`ClawSwing`）。
+- **電弧**（`Custom/DipanArc`）：一段段繞著身體竄（前半在身上、後半在身下且暗）＋尾端散開幾條；同色共用一個材質。
+- 排序：身體 `SortingOrder`（預設 21900，地上物與角色之上、光束之下），遠爪 −1、背面電弧 −2、近爪 +2、正面電弧 +3、頭 +4。
+- 物件不放池；時間到（或 `Stop()`）照 `FadeOut` 淡出自毀。
+
+### 接線
+
+- 武器表 `SpiritFxID`（工坊有下拉）；主遊戲 `SpiritStrike`（施放、挑目標、整條身體的傷害判定）掛在 `SpiritBeast` 同一個物件上。
+- `VfxManager.SpiritFxCSV`（MainScene 已拖）、`PlayModeStaticReset` 加 `SpiritFxDatabase.ResetForPlayMode()`。
+- 地圖編輯器：預覽器「靈獸」分頁（§6）；`VfxAssets.TextureLoader` 接到 `CustomVfxSource.LoadTexture`。
+- 測試武器：道具／武器／配方 901「測試・電龍」（亂游）、902「測試・追蹤電龍」（HomingLv 3）。
+
+### 黑龍：遮擋模式、發光層、黑氣（2026-11-19 同日）
+
+作者要「一隻黑龍，身上黑氣奔騰，眼珠子是紅色的」。黑色在加色下看不見，所以外觀表加了幾個功能（電龍那列都留空＝跟原本一樣）：
+
+- **`Blend=Alpha`（遮擋）**：身體、頭、爪會**蓋住地板**（`Custom/DipanSpiritBody`／`Custom/DipanAddSprite` 的 `_Opaque`＝1；預乘混合，輸出 alpha）。`BodyIntensity` 在遮擋模式是「鱗片調亮」（黑龍 1.8，不然只看得到一團黑）。柔光 `GlowColor`／`GlowAmount` 改成**貼著外緣的一圈輪廓光**（黑龍＝紫，暗地板上才看得出輪廓）。
+- **`HeadGlow`（頭部發光層）**：跟頭圖同尺寸同裁切的一張加色圖，疊在頭上、會脈動（`HeadGlowIntensity`／`HeadGlowPulse`／`HeadGlowPulseSpeed`）。黑龍的是**紅眼＋頭外緣紫光**：紅眼從 GPT 原圖抽「紅色明顯多於綠藍」的像素再暈開；紫光＝頭的實心輪廓模糊後扣掉本體。
+- **`SmokeAmount`（流動黑氣）**：身體 shader 在外緣用兩層噪聲畫往尾巴流的黑氣（`SmokeColor`、`SmokeSpeed`；範圍到 `GlowWidth`），畫在身體底下。
+- **`PuffRate`（身後黑煙團）**：沿身體 3～9.5 成處每秒冒幾團煙（程序煙團貼圖 `VfxAssets.SmokeSprite`，遮擋混合），**留在原地**慢慢長大、上飄、旋轉、淡掉（`PuffSize`／`PuffGrow`／`PuffLife`／`PuffAlpha`／`PuffRise`）；排在身體底下。
+- **圖怎麼產**：同一個 ChatGPT 對話，prompt 寫「same exact pose, framing and composition as the lightning dragon head you made first」（構圖一致 ⇒ `HeadAnchor` 幾乎不用動，黑龍 `0.58|0.53`）；**白底**、「NO pure white anywhere（牙、角、高光最多淺灰）」。去背＝**從白底反推**：alpha＝1−min(rgb)、顏色＝(原色−(1−alpha))/alpha。煙霧邊緣自然半透明、沒有白邊。三張各一次額度、零被擋。
+- 黑龍那列：`ClawWidth 0.75`、`ClawAnchor 0.16|0.2`（這張爪本來就短，不用裁）、`ArcCount 0`／`TailArcs 0`（沒有電弧，尾巴靠淡出＋煙團）、`SmokeAmount 0.65`、`PuffRate 60`、`PuffAlpha 0.7`（作者看概念圖後要黑氣再濃一點）。
+- 模擬腳本：`TempImage/dipanvfx_work/blackdragon/black_sim.py`（讀 `../dragon/dragon_sim.py` 的游動軌跡）。
+
+### 做下一隻（火虎、冰鳳…）
+
+1. ChatGPT 同一個流程產三張：**正側面朝右的頭**（脖子在左緣淡出）、**左右無縫的身體段**（橫貫整張、上緣背、下緣腹、左＝頭那側）、**一隻腿**（接身體那端在左上）。發光生物（電、火、冰）用純黑底＋`Blend` 留空；實體／暗色生物用白底＋`Blend=Alpha`（見上一節黑龍）。
+2. 去背：黑底＝亮度轉 alpha（rgb＝顏色、a＝max(rgb)，線性空間算）；白底＝從白底反推（見黑龍）；身體段做左右交叉淡化確保無縫（預乘空間）；腿太長就只留小腿＋爪。要發光的部位（眼睛等）另抽一張 `HeadGlow`。
+3. 放 `Resources/VfxEffects/Spirit/<名稱>/`，`.meta`：頭爪＝Sprite（置中、Full Rect），身體＝**Default、Wrap U＝Repeat、mipmap 開**。
+4. SpiritFxTable 加一列、在預覽器調 `HeadAnchor`／`HeadWidth`／`BodyWidth`／`ClawAt`，武器表 `SpiritFxID` 指過去。
+
 ---
 
 ## 5. 做一個新的 shader 特效（以後的固定流程）
@@ -271,7 +322,7 @@
 
 工具列「特效預覽器」→ 上方分頁切到「自製特效（shader）」。
 
-- **左**：六張表的每一列（地刺／火焰／地上燃燒／爆炸／傳送點／光束）。「重讀表格與圖」＝從磁碟重讀表和 png，會放棄未存的修改。
+- **左**：七張表的每一列（地刺／火焰／地上燃燒／爆炸／傳送點／光束／靈獸）。「重讀表格與圖」＝從磁碟重讀表和 png，會放棄未存的修改。
 - **中**：舞台，用遊戲同一份程式與 shader 即時播。
   - 拍的是遠離地圖的角落 `(5000, 5000)`，有 1 單位格線。
   - 「參考人形」高約 1.95＝遊戲角色可見高度。
@@ -288,6 +339,7 @@
       - 反彈：固定四折的折線，看轉角接得順不順、反彈光點。
       - 連鎖：每 0.5 秒閃一次（0.16 秒，同遊戲）。
       - 重複發射：每 2.2 秒發一次、1.4 秒後放開，看伸長（GrowSpeed）與淡出（FadeTime）。
+    - 靈獸：從參考人形身上放出去，在鏡頭範圍內一直游；「亂游」／「追人形」（看追蹤時的轉向），可調游速（＝配方 Speed）與大小（＝武器 BulletScale，改了會重放）。身長約 7.5＋頭，鏡頭切「遊戲」才看得到整條。
 - **右**：選到那一列的每一欄都能直接改，**改了立刻重播**。
   - 「存回 CSV」寫回 `DipanProj_Main/Assets/Data/<表>.csv`：只改被動過的列，表頭、註解、其他列一字不動，BOM 有無照原檔。
   - 「放棄修改」重讀檔案。

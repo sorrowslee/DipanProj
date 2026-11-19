@@ -309,7 +309,7 @@ public class PlayerAbilities
         BulletScale = s.BulletScale, CastVisualScale = s.CastVisualScale,
         BeamFxID = s.BeamFxID, BeamWidth = s.BeamWidth,
         FireEffectID = s.FireEffectID, HitEffectID = s.HitEffectID, HitBurstID = s.HitBurstID,
-        TrailEffectID = s.TrailEffectID, TrailSpikeID = s.TrailSpikeID, FlameStyleID = s.FlameStyleID, SummonEffectID = s.SummonEffectID,
+        TrailEffectID = s.TrailEffectID, TrailSpikeID = s.TrailSpikeID, FlameStyleID = s.FlameStyleID, SpiritFxID = s.SpiritFxID, SummonEffectID = s.SummonEffectID,
         FamiliarVfxId = s.FamiliarVfxId, FamiliarSize = s.FamiliarSize, FamiliarSpin = s.FamiliarSpin,
         DropperStyle = s.DropperStyle, DropperVfxId = s.DropperVfxId, DropperSize = s.DropperSize,
         Recipe = s.Recipe, BulletPrefab = s.BulletPrefab,

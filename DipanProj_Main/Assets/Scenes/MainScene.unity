@@ -4528,6 +4528,7 @@ MonoBehaviour:
   ExplosionCSV: {fileID: 4900000, guid: 08904d448c184d779dd5f38f62b528ca, type: 3}
   TeleportFxCSV: {fileID: 4900000, guid: dde6aee7415b4a60b24374f1d2acf42f, type: 3}
   BeamFxCSV: {fileID: 4900000, guid: 8e9f23c00bf345e1999d43af1209d323, type: 3}
+  SpiritFxCSV: {fileID: 4900000, guid: f7de7931a9b342e59433d984314b5198, type: 3}
   SortingLayerName: Default
   SortingOrder: 22000
   VfxMaterial: {fileID: 0}

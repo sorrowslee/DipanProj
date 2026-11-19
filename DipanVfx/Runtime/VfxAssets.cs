@@ -21,6 +21,10 @@ namespace Dipan.Vfx
         /// <summary>取圖（路徑同 Resources.Load：相對 Resources、不含副檔名）。null＝用 Resources.Load。</summary>
         public static Func<string, Sprite> SpriteLoader;
 
+        /// <summary>取一般貼圖（路徑同 Resources.Load：相對 Resources、不含副檔名）。null＝用 Resources.Load&lt;Texture2D&gt;。
+        /// 靈獸的身體平鋪貼圖用（2026-11-19）；地圖編輯器換成直接讀主遊戲的 png。</summary>
+        public static Func<string, Texture2D> TextureLoader;
+
         /// <summary>世界 Y → sortingOrder（立著的東西用）。null＝不做 Y 排序。</summary>
         public static Func<float, int> SortOrderForY;
 
@@ -29,6 +33,13 @@ namespace Dipan.Vfx
             path = (path ?? "").Trim();
             if (path.Length == 0) return null;
             return SpriteLoader != null ? SpriteLoader(path) : Resources.Load<Sprite>(path);
+        }
+
+        public static Texture2D LoadTexture(string path)
+        {
+            path = (path ?? "").Trim();
+            if (path.Length == 0) return null;
+            return TextureLoader != null ? TextureLoader(path) : Resources.Load<Texture2D>(path);
         }
 
         /// <summary>立著的東西在世界 Y 時該用的排序；沒有 Y 排序規則就回傳 fallback。</summary>
@@ -123,6 +134,62 @@ namespace Dipan.Vfx
                 _dot.hideFlags = HideFlags.DontSave;
                 return _dot;
             }
+        }
+
+        static Sprite _smoke;
+
+        /// <summary>
+        /// 煙團（64×64、白色＋alpha，1 世界單位寬；2026-11-19 靈獸身後的黑煙用）：圓形淡出＋兩層值噪聲侵蝕出不規則的邊，
+        /// 呼叫端用頂點色上色（煙色）、用旋轉避免每團長一樣。
+        /// </summary>
+        public static Sprite SmokeSprite
+        {
+            get
+            {
+                if (_smoke != null) return _smoke;
+                const int N = 64;
+                var tex = new Texture2D(N, N, TextureFormat.RGBA32, false)
+                {
+                    name = "DipanVfx Smoke", wrapMode = TextureWrapMode.Clamp, filterMode = FilterMode.Bilinear,
+                    hideFlags = HideFlags.DontSave,
+                };
+                var px = new Color32[N * N];
+                for (int y = 0; y < N; y++)
+                for (int x = 0; x < N; x++)
+                {
+                    float u = (x + 0.5f) / N, v = (y + 0.5f) / N;
+                    float r = Mathf.Sqrt((u - 0.5f) * (u - 0.5f) + (v - 0.5f) * (v - 0.5f)) * 2f;
+                    float n = ValueNoise(u * 5f, v * 5f, 11) * 0.6f + ValueNoise(u * 11f, v * 11f, 29) * 0.4f;
+                    float fall = Mathf.Pow(Mathf.Clamp01(1f - r), 1.5f);
+                    float a = fall * Mathf.SmoothStep(0f, 1f, Mathf.InverseLerp(0.25f, 0.75f, n + (1f - r) * 0.35f));
+                    px[y * N + x] = new Color32(255, 255, 255, (byte)(Mathf.Clamp01(a) * 255f));
+                }
+                tex.SetPixels32(px);
+                tex.Apply(false, false);
+                _smoke = Sprite.Create(tex, new Rect(0, 0, N, N), new Vector2(0.5f, 0.5f), N);
+                _smoke.name = "DipanVfx Smoke";
+                _smoke.hideFlags = HideFlags.DontSave;
+                return _smoke;
+            }
+        }
+
+        static float Hash01(int x, int y, int seed)
+        {
+            unchecked
+            {
+                uint h = (uint)x * 0x8da6b343u ^ (uint)y * 0xd8163841u ^ (uint)seed * 0xcb1ab31fu;
+                h ^= h >> 13; h *= 0x5bd1e995u; h ^= h >> 15;
+                return (h & 0xFFFFFF) / 16777216f;
+            }
+        }
+
+        static float ValueNoise(float x, float y, int seed)
+        {
+            int xi = Mathf.FloorToInt(x), yi = Mathf.FloorToInt(y);
+            float fx = x - xi, fy = y - yi;
+            fx = fx * fx * (3f - 2f * fx); fy = fy * fy * (3f - 2f * fy);
+            float a = Hash01(xi, yi, seed), b = Hash01(xi + 1, yi, seed), c = Hash01(xi, yi + 1, seed), d = Hash01(xi + 1, yi + 1, seed);
+            return Mathf.Lerp(Mathf.Lerp(a, b, fx), Mathf.Lerp(c, d, fx), fy);
         }
 
         static Sprite _square;

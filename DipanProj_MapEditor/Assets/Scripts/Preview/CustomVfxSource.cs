@@ -31,6 +31,7 @@ namespace DipanMapEditor.Preview
         public static string DataPath(string table) => Path.Combine(MainAssets, "Data", table + ".csv");
 
         static readonly Dictionary<string, Sprite> _sprites = new Dictionary<string, Sprite>();
+        static readonly Dictionary<string, Texture2D> _textures = new Dictionary<string, Texture2D>();
         static bool _installed;
 
         /// <summary>把套件的取圖接口接到「讀主遊戲檔案」。開預覽器時呼叫（重複呼叫無害）。</summary>
@@ -38,6 +39,7 @@ namespace DipanMapEditor.Preview
         {
             if (_installed && VfxAssets.SpriteLoader == (System.Func<string, Sprite>)LoadSprite) return;
             VfxAssets.SpriteLoader = LoadSprite;
+            VfxAssets.TextureLoader = LoadTexture;
             VfxAssets.SortOrderForY = null;   // 編輯器沒有地圖 Y 排序帶：火舌用呼叫端給的排序
             _installed = true;
         }
@@ -59,6 +61,7 @@ namespace DipanMapEditor.Preview
             Load(ExplosionDatabase.TableName, ExplosionDatabase.LoadFromText);
             Load(TeleportFxDatabase.TableName, TeleportFxDatabase.LoadFromText);
             Load(BeamFxDatabase.TableName, BeamFxDatabase.LoadFromText);
+            Load(SpiritFxDatabase.TableName, SpiritFxDatabase.LoadFromText);
         }
 
         static void Load(string table, System.Action<string> apply)
@@ -73,6 +76,28 @@ namespace DipanMapEditor.Preview
             foreach (var kv in _sprites)
                 if (kv.Value != null) { Object.Destroy(kv.Value.texture); Object.Destroy(kv.Value); }
             _sprites.Clear();
+            foreach (var kv in _textures) if (kv.Value != null) Object.Destroy(kv.Value);
+            _textures.Clear();
+        }
+
+        /// <summary>Resources 相對路徑 → 一般貼圖（靈獸身體的平鋪貼圖；有 mipmap、Repeat）。對應遊戲的 Resources.Load&lt;Texture2D&gt;。</summary>
+        public static Texture2D LoadTexture(string resPath)
+        {
+            resPath = (resPath ?? "").Trim();
+            if (resPath.Length == 0) return null;
+            if (_textures.TryGetValue(resPath, out var cached) && cached != null) return cached;
+            string file = Path.Combine(MainAssets, "Resources", resPath.Replace('/', Path.DirectorySeparatorChar) + ".png");
+            if (!File.Exists(file)) return null;
+            var tex = new Texture2D(2, 2, TextureFormat.RGBA32, true)
+            {
+                name = Path.GetFileNameWithoutExtension(file),
+                wrapMode = TextureWrapMode.Repeat,
+                filterMode = FilterMode.Trilinear,
+            };
+            if (!tex.LoadImage(File.ReadAllBytes(file))) { Object.Destroy(tex); return null; }
+            tex.wrapModeV = TextureWrapMode.Clamp;
+            _textures[resPath] = tex;
+            return tex;
         }
 
         /// <summary>Resources 相對路徑（不含副檔名）→ Sprite；跟遊戲的 Resources.Load&lt;Sprite&gt; 對應。</summary>

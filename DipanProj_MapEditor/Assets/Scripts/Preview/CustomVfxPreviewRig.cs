@@ -11,7 +11,7 @@ namespace DipanMapEditor.Preview
     /// （差別只在：遊戲的火舌會跟角色一起 Y 排序、這裡沒有角色）。
     ///
     /// 依選到的種類自動重播：地刺＝模擬一顆子彈往右飛、沿路刺出；火焰＝靜止／環繞／墜落三種；地上燃燒＝燒完停一下再燒；
-    /// 光束＝持續掃動／反彈折線／連鎖閃電／重複發射四種。
+    /// 光束＝持續掃動／反彈折線／連鎖閃電／重複發射四種；靈獸＝在鏡頭範圍內亂游／追著參考人形。
     /// 面板沒在畫（切到別的工具或素材庫分頁）時自己停下、清掉特效。
     /// </summary>
     public sealed class CustomVfxPreviewRig : MonoBehaviour
@@ -19,9 +19,10 @@ namespace DipanMapEditor.Preview
         public static readonly Vector3 Origin = new Vector3(5000f, 5000f, 0f);
         const string Layer = "Default";
 
-        public enum Kind { None, Spike, Flame, GroundFire, Explosion, Teleport, Beam }
+        public enum Kind { None, Spike, Flame, GroundFire, Explosion, Teleport, Beam, Spirit }
         public enum FlameMotion { Still, Orbit, Fall }
         public enum BeamMotion { Sweep, Bounce, Chain, Refire }
+        public enum SpiritMotion { Wander, Chase }
 
         static CustomVfxPreviewRig _inst;
         public static CustomVfxPreviewRig Instance
@@ -51,7 +52,10 @@ namespace DipanMapEditor.Preview
         public float SpikeSpeed = 8f;         // 地裂刺配方 19
         public float SpikeStep = 1.33f;
         public BeamMotion BeamMode = BeamMotion.Sweep;
-        public float BeamWidth = 0.5f;        // 武器表 BeamWidth（命中寬度）：5＝1、29＝0.38、9＝0.25、66＝0.3、78＝0.25
+        public float BeamWidth = 0.5f;
+        public SpiritMotion SpiritMode = SpiritMotion.Wander;
+        public float SpiritSpeed = 4f;        // 配方 Speed（空＝4）
+        public float SpiritScale = 1f;        // 武器 BulletScale        // 武器表 BeamWidth（命中寬度）：5＝1、29＝0.38、9＝0.25、66＝0.3、78＝0.25
         public float ViewSize = 3f;           // 相機 orthographicSize（遊戲一般房間約 5）
         public bool BrightFloor;
         public bool ShowFigure = true;
@@ -174,6 +178,7 @@ namespace DipanMapEditor.Preview
             _fire = default;
             if (_tele != null) { Destroy(_tele.gameObject); _tele = null; }
             if (_beam != null) { _beam.Kill(); _beam = null; }
+            if (_spirit != null) { _spirit.Kill(); _spirit = null; }
         }
 
         public void EnsureTexture(int w, int h)
@@ -216,6 +221,7 @@ namespace DipanMapEditor.Preview
                 case Kind.Explosion: TickExplosion(); break;
                 case Kind.Teleport: TickTeleport(); break;
                 case Kind.Beam: TickBeam(); break;
+                case Kind.Spirit: TickSpirit(); break;
             }
         }
 
@@ -398,6 +404,31 @@ namespace DipanMapEditor.Preview
                     }
                     break;
             }
+        }
+
+        // ── 靈獸：在鏡頭範圍內一直游（亂游，或追著參考人形）；游速、大小可調；表格改了 Restart 重放 ──
+        SpiritBeast _spirit;
+        Rect StageRect()
+        {
+            float h = _cam.orthographicSize * 2f, w = h * _cam.aspect;
+            Vector3 c = _cam.transform.position;
+            return new Rect(c.x - w * 0.5f, c.y - h * 0.5f, w, h);
+        }
+        void TickSpirit()
+        {
+            _ring.enabled = false;
+            if (_spirit == null)
+            {
+                if (SpiritFxDatabase.Get(CurrentId) == null) return;
+                Vector2 start = (Vector2)Origin + new Vector2(-2.3f, 0.6f);   // 從參考人形身上放出去
+                _spirit = SpiritBeast.Spawn(CurrentId, start, 0f, Mathf.Max(0.05f, SpiritScale), Mathf.Max(0.1f, SpiritSpeed),
+                                            1e6f, 120f, Layer, transform);
+                if (_spirit == null) return;
+                _spirit.Bounds = StageRect;
+            }
+            _spirit.Motion.Speed = Mathf.Max(0.1f, SpiritSpeed);
+            Vector2 fig = _figBody.transform.position;
+            _spirit.Target = SpiritMode == SpiritMotion.Chase ? (System.Func<Vector2, Vector2?>)(_ => fig) : null;
         }
 
         void OnDestroy()

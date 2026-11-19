@@ -34,6 +34,7 @@ public class WeaponWorkbench : EditorWindow
     const string VfxPath = "Assets/Data/VfxTable.csv";
     const string GroundPath = "Assets/Data/GroundEffectTable.csv";
     const string BeamFxPath = "Assets/Data/BeamFxTable.csv";
+    const string SpiritFxPath = "Assets/Data/SpiritFxTable.csv";
     const string ItemPath = "Assets/Data/ItemTable.csv";
     const string WeaponArtRoot = "Assets/Resources/Weapon";
     const string ResourcesPrefix = "Assets/Resources/";
@@ -55,6 +56,7 @@ public class WeaponWorkbench : EditorWindow
     // 下拉用的參考表（只讀名字）
     readonly List<int> _vfxIds = new List<int>();       readonly List<string> _vfxLabels = new List<string>();
     readonly List<int> _beamFxIds = new List<int>();    readonly List<string> _beamFxLabels = new List<string>();
+    readonly List<int> _spiritFxIds = new List<int>();  readonly List<string> _spiritFxLabels = new List<string>();
     readonly List<int> _groundIds = new List<int>();    readonly List<string> _groundLabels = new List<string>();
     readonly Dictionary<int, string> _groundDuration = new Dictionary<int, string>();
     readonly HashSet<int> _itemWeaponIds = new HashSet<int>();   // ItemTable 裡 WeaponID 有指到的武器（能裝備的）
@@ -137,6 +139,13 @@ public class WeaponWorkbench : EditorWindow
         {
             int id = r.GetInt("ID", 0); if (id <= 0) continue;
             _beamFxIds.Add(id); _beamFxLabels.Add($"{id} {Safe(r.Get("Name"))}");
+        }
+        _spiritFxIds.Clear(); _spiritFxLabels.Clear();
+        _spiritFxIds.Add(0); _spiritFxLabels.Add("（無）");
+        foreach (var r in ParseFile(SpiritFxPath, "SpiritFxTable").Rows)
+        {
+            int id = r.GetInt("ID", 0); if (id <= 0) continue;
+            _spiritFxIds.Add(id); _spiritFxLabels.Add($"{id} {Safe(r.Get("Name"))}");
         }
         _groundIds.Clear(); _groundLabels.Clear(); _groundDuration.Clear();
         _groundIds.Add(0); _groundLabels.Add("（無）");
@@ -552,6 +561,7 @@ public class WeaponWorkbench : EditorWindow
             case "SubRecipeID": DrawRowPopup(content, d, f.Name, _recipes, RecipeLabel, "（無：分裂子彈繼承自身）"); return;
             case "SubWeaponOnHit": DrawRowPopup(content, d, f.Name, _weapons, WeaponLabel, "（無）"); return;
             case "BeamFxID": DrawIdPopup(content, d, f.Name, _beamFxIds, _beamFxLabels); return;
+            case "SpiritFxID": DrawIdPopup(content, d, f.Name, _spiritFxIds, _spiritFxLabels); return;
         }
 
         switch (f.Kind)

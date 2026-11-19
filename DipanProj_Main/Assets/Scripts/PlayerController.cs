@@ -996,7 +996,7 @@ public class PlayerController : MonoBehaviour, IDamageable
             BulletScale = source.BulletScale * 2f, CastVisualScale = 2f,
             BeamFxID = source.BeamFxID, BeamWidth = source.BeamWidth * 2f,
             FireEffectID = source.FireEffectID, HitEffectID = source.HitEffectID, HitBurstID = source.HitBurstID,
-            TrailEffectID = source.TrailEffectID, TrailSpikeID = source.TrailSpikeID, FlameStyleID = source.FlameStyleID, SummonEffectID = source.SummonEffectID,
+            TrailEffectID = source.TrailEffectID, TrailSpikeID = source.TrailSpikeID, FlameStyleID = source.FlameStyleID, SpiritFxID = source.SpiritFxID, SummonEffectID = source.SummonEffectID,
             FamiliarVfxId = source.FamiliarVfxId, FamiliarSize = source.FamiliarSize, FamiliarSpin = source.FamiliarSpin,
             DropperStyle = source.DropperStyle, DropperVfxId = source.DropperVfxId, DropperSize = source.DropperSize,
             Recipe = source.Recipe, BulletPrefab = source.BulletPrefab, WeaponSprite = source.WeaponSprite,
@@ -1318,6 +1318,25 @@ public class PlayerController : MonoBehaviour, IDamageable
             };
             SweepStrike.Cast(weapon, in sweep);
             AfterShot(weapon, burstShot);   // 冷卻＝FireInterval，從施放算起（不等整發播完；疾發珠才有感）
+            return true;
+        }
+
+        // 靈獸（電龍等，2026-11-19）：不發射子彈、不需要 BulletPrefab。放出去在畫面亂游 LifeTime 秒，整條身體碰到的怪都受傷（SpiritStrike）。
+        // 冷卻＝FireInterval，從施放算起（上一隻還在游也能再放）。外觀沒填／表裡沒這列 ⇒ 不扣魔、不進冷卻。
+        if (weapon.Recipe.Mode == WeaponMode.Spirit)
+        {
+            if (weapon.SpiritFxID <= 0 || SpiritFxDatabase.Get(weapon.SpiritFxID) == null) return false;
+            if (!burstShot && _stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
+            TrySpawnFireEffect(weapon, AimDirectionToMouse());
+            var spirit = new SpiritStrike.Context
+            {
+                Owner        = gameObject,
+                Origin       = BodyCenterWorldPos,
+                AimDir       = AimDirectionToMouse(),
+                TargetLayers = EnemyLayer,
+            };
+            SpiritStrike.Cast(weapon, in spirit);
+            AfterShot(weapon, burstShot);
             return true;
         }
 

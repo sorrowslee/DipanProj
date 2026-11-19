@@ -53,6 +53,7 @@
 | `HitEffectID` | 擊中特效 ID（引用 `VfxTable`）：子彈／光束命中怪物、障礙物、拋物線落地時在命中點播一次；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `TrailEffectID` | 軌跡特效 ID（引用 `VfxTable`）：沿子彈飛行路徑每隔配方的 `TrailStep` 距離種一個；留空 / 0 = 不觸發。見 [VFX.md](VFX.md) |
 | `TrailSpikeID` | 軌跡地刺 ID（引用 `GroundSpikeTable`，2026-11-17）：沿子彈飛行路徑每隔 `TrailStep` 從地底刺出一組尖刺（**地刺類武器**用這個）；留空 / 0 = 不觸發。見 [GROUND_SPIKE.md](GROUND_SPIKE.md) |
+| `SpiritFxID` | 靈獸外觀 ID（引用 `SpiritFxTable`，2026-11-19，DipanVfx）：`Mode=Spirit` 必填（1＝電龍）。頭、身體、爪、電弧與游法手感都在那張表。見 [DIPAN_VFX.md](DIPAN_VFX.md) §4e、[RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Spirit 靈獸〉 |
 | `FlameStyleID` | 子彈火焰 ID（引用 `FlameTable`，2026-11-18，DipanVfx）：子彈身上燒一團 shader 火（不跟子彈旋轉、依速度往後拖，分裂的子彈也有）；通常搭配把子彈圖留空。見 [DIPAN_VFX.md](DIPAN_VFX.md) §3 |
 | `HitBurstID` | 擊中爆炸 ID（引用 `ExplosionTable`，2026-11-18，DipanVfx）：命中／落地時炸一次 shader 爆炸；拋物線落地的大小跟傷害半徑（`AreaRadius×BulletScale`）連動。見 [DIPAN_VFX.md](DIPAN_VFX.md) §4b |
 | `SummonEffectID` | 召喚特效 ID（引用 `VfxTable`）：**召喚型武器**（`Mode=Summon`）施放時在**每個生怪點**播一次，怪物**同一幀一起出現**（邊播特效邊出現）；留空 / 0 = 不播、無特效直接生怪。見 [VFX.md](VFX.md)、[BOSS_MODULE.md](BOSS_MODULE.md) |

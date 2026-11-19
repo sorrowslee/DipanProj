@@ -8,6 +8,7 @@
 > **2026-10-01**：加 **`Mode=Familiar` 浮游**（裝備就自動攻擊：本體繞身、各自朝最近的怪射子彈）。**RecipeTable 沒有加欄**（全部沿用 `OrbitalCount`／`OrbitalRadius`／`Range`／`FireInterval`…），本體外觀三欄加在 **WeaponTable**（`FamiliarVfxId`／`FamiliarSize`／`FamiliarSpin`），見 [§3 Familiar 浮游](#familiar-浮游)。
 > **2026-11-11**：加 **`Mode=Sweep` 掃射**（巨神兵式：光束劈到腳底再沿地面掃、沿線延遲爆炸）＋新欄 **`SweepSpeed`／`SweepOriginHeight`／`ExplodeSpacing`／`ExplodeDelay`**（CSV 現為 62 欄，加在表頭最後，既有列一律留空），見 [§3 Sweep 掃射](#sweep-掃射)。⏳ 未編譯未實測。
 > **2026-11-12**：加 **`Mode=Overhead` 頭頂投彈**（饕餮印：範圍內每個目標頭上冒出投彈者、吐炸彈追著目標落下爆炸，玩家怪物共用）＋RecipeTable 新欄 **`MaxTargets`／`DropStagger`**、WeaponTable 新欄 **`DropperStyle`／`DropperVfxId`／`DropperSize`**（都加在表頭最後，既有列一律留空），見 [§3 Overhead 頭頂投彈](#overhead-頭頂投彈)。⏳ 未編譯未實測。
+> **2026-11-19**：加 **`Mode=Spirit` 靈獸**（放出一隻在畫面裡亂游的長條靈獸，第一隻是電龍；整條身體碰到的怪都受傷，有追蹤就去追怪）＋WeaponTable 新欄 **`SpiritFxID`**（指向 DipanVfx 的 SpiritFxTable，加在 `FlameStyleID` 右邊，既有列留空），配方沒有新欄，見 [§3 Spirit 靈獸](#spirit-靈獸)。⏳ 已編譯、未實測。
 > **2026-11-17 裝備體系**：行為欄改填**等級**——`PierceLv`／`BounceLv`／`SplitLv`／`HomingLv`／`BurstLv`／`ParallelLv`（換算曲線看 `GemTable.csv`）；分裂角度改成 **`SpreadSpacing`（間距）＋`SpreadMaxAngle`（上限）**，取代 `SpreadAngle`；無限穿透取消（最多 lv50）。CSV 現為 65 欄。能力珠合併成 24 種、全身等級相加。規則、換算與遷移結果見 **[EQUIPMENT.md](EQUIPMENT.md)**。
 
 ---
@@ -30,7 +31,7 @@
 |---|---|---|---|---|
 | **通用** | `ID` | 整數 | — | 配方唯一識別碼，武器表用 `RecipeID` 引用 |
 | | `Name` | 字串 | — | 只給人看，程式不讀 |
-| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`／`Boomerang`／`Familiar`／`Sweep`／`Overhead`（不分大小寫，也接受中文名） |
+| | `Mode` | 列舉 | Normal | `Normal`／`Orbital`／`Parabolic`／`Laser`／`Aura`／`Chain`／`SkyStrike`／`Summon`／`GroundCast`／`Melee`／`Dash`／`Cage`／`Boomerang`／`Familiar`／`Sweep`／`Overhead`／`Spirit`（不分大小寫，也接受中文名） |
 | | `FireInterval` | 小數 | 0.3 | 發射間隔（秒）；Laser／Aura 無效（按住就在）；Summon＝召喚冷卻 |
 | **子彈本體** | `Speed` | 小數 | 15 | 飛行速度（世界單位/秒）；Orbital＝繞圈的切線速度 |
 | | `Radius` | 小數 | 0.1 | 碰撞半徑；Laser 改用武器表 `BeamWidth` |
@@ -139,7 +140,9 @@
 
 **Familiar（浮游）** 也沒放進寬表（2026-10-01 新增）。子彈吃的跟 **Normal 一樣**（`Speed`／`Radius`／`LifeTime`／穿透／反彈／追蹤／分裂／命中附加／平行），另外吃 `Range`（索敵半徑）、`OrbitalRadius`／`OrbitalCount`（本體軌道與數量）；**集氣與連擊無效**（兩者都綁「扣扳機」，這個模式沒有扳機）。武器表多吃本體三欄 `FamiliarVfxId`（**必填**）／`FamiliarSize`／`FamiliarSpin`，其餘同 Normal。
 
-**武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`AnimFPS`）只有 Normal／Orbital／Parabolic，`BulletScale`（施放大小）另外也給 Aura／SkyStrike／GroundCast／Melee／Dash（範圍與視覺一起放大）；光束外觀（`BeamFxID`／`BeamWidth`）是 Laser／Chain／SkyStrike／Sweep；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
+**Spirit（靈獸）** 也沒放進寬表（2026-11-19 新增）。配方只吃 `FireInterval`／`Speed`（游速）／`LifeTime`（游幾秒）／`HomingLv`（追畫面裡最近的怪）／`DotInterval`（同一隻怪多久被咬一次）／`SplitLv`／`SpreadSpacing`／`SpreadMaxAngle`（一次幾隻、扇形出發）；武器表吃 `Damage`／`HitEffectID`／`HitEffectEnemyOnly`／`BulletScale`（大小）／`FireEffectID`，**`SpiritFxID` 必填**。見 [§3 Spirit 靈獸](#spirit-靈獸)。
+
+**武器表（WeaponTable）欄位** 也依模式分：`Damage` 除 Summon 外都吃；子彈外觀（`WeaponSpritePath`…`AnimFPS`）只有 Normal／Orbital／Parabolic，`BulletScale`（施放大小）另外也給 Aura／SkyStrike／GroundCast／Melee／Dash（範圍與視覺一起放大）；光束外觀（`BeamFxID`／`BeamWidth`）是 Laser／Chain／SkyStrike／Sweep；靈獸外觀 `SpiritFxID` 只有 Spirit（必填）；`TrailEffectID` 是 Normal／Orbital／Parabolic／Laser；`SummonEffectID` 只有 Summon；`ID`／`Name`／`RecipeID`／`ManaCost`／`FireEffectID` 通用。
 
 ---
 
@@ -363,6 +366,29 @@ ID=93 Name=路西法之怒 Mode=Sweep FireInterval=1 BlockedByEnvironment=0 Spli
 ID=94 Name=饕餮印 Mode=Overhead FireInterval=1 SplitLv=2 Range=18 AreaRadius=1.2 FlightTime=0.35 LandingScatterRadius=0.7   （MaxTargets、DropStagger 留空＝不限、0.4；SplitLv 2＝每隻幽靈吐 3 顆，2026-11-12 作者要震撼感）
 武器 79 饕餮印：Damage=6 ManaCost=0 WeaponSpritePath=Weapon/single/weapon_bomb（借火焰拋擲彈的炸彈）BulletScale=1.5 HitEffectID=61（饕餮印爆炸＝Explosions/stylized_explosion_006 blue＋冷藍套色，2026-11-12 作者在特效預覽器挑的；原本借的 1 號爆炸作者嫌太糟）DropperStyle=TaotieInk DropperSize=1.8（2026-11-12 作者實機：1.1 看不清楚）
 道具 79 饕餮印（法印）：EquipSlot=Weapon WeaponID=79 IconPath=UI/Icons/Equipment/icon_taotieseal
+```
+
+### Spirit 靈獸
+（2026-11-19 新增，作者規格：「按一下釋放出來、在畫面中游弋，怪物碰到會受傷，有追蹤就去追怪」；電龍是第一隻，之後火虎、冰鳳同一套。⏳ 已編譯、未實測）
+
+**一發的流程**：從施放者身體中心放出 1＋`SplitLv` 隻（多隻時以瞄準方向為中心、照 `SpreadSpacing`／`SpreadMaxAngle` 扇形散開出發）→ 每隻以 `Speed`（空＝4）在畫面裡亂游 `LifeTime` 秒（空＝10）→ 淡出消失。
+
+- **游法**：前進方向用幾個不同頻率的正弦平滑亂轉；靠近畫面邊緣（主相機可見範圍）就往中間轉——**不碰牆、不出畫面**。身體跟著頭走過的軌跡（像貪食蛇），剛放出來時從出生點「長出來」；加一道往尾巴傳的左右擺動。
+- **追蹤**：`HomingLv`>0 ⇒ 每 0.25 秒挑一次**畫面裡最近的活怪**，以追蹤等級換算的轉向速度（lv1＝60°/秒，每級 +30°）游過去；沒有怪就照常亂游。
+- **傷害**：**整條身體都算**。每 0.1 秒沿身體每隔約 0.5（×`BulletScale`）取一點、用該處身體半寬做圓形判定（頭部大三成）；**同一隻怪每 `DotInterval` 秒（空＝0.5）最多被咬一次**，每次吃武器 `Damage`，有填 `HitEffectID` 就在怪身上播。只打 TargetLayers（玩家放＝怪物層），不打牆與地上物。
+- **冷卻**＝`FireInterval`，從施放算起；上一隻還在游也能再放，好幾隻會同時在場。
+- **大小**：武器 `BulletScale`（須彌珠）＝身長、粗細、頭爪、判定一起放大。能力珠：速度珠→游速、射程珠→`LifeTime`、攻速珠→`FireInterval` 與 `DotInterval`、追蹤珠→`HomingLv`、分裂珠→隻數。
+- **外觀（WeaponTable）**：`SpiritFxID` **必填**，指向 DipanVfx 的 SpiritFxTable（頭圖、無縫身體貼圖、爪、纏身與尾巴電弧、擺動與亂游手感；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4e）。沒填或表裡沒有 ⇒ 按了沒反應（不扣魔、不進冷卻）。
+- **目前只有玩家放**：`Scripts/Weapon/SpiritStrike.cs`（遊戲端：施放、追蹤目標、身體判定）＋ DipanVfx `SpiritBeast`（游法與外觀）。怪物拿到這種武器會跳「模式還沒搬進 WeaponCastService」警告。
+- 刻意不吃：集氣、連擊（一隻游 10 秒，疊連擊沒意義）、穿透／反彈（不碰牆、本來就整條穿過去）、`Range`、`Radius`（判定粗細看外觀表 `BodyWidth`）。
+
+```
+ID=901 Name=測試-電龍（亂游） Mode=Spirit FireInterval=1.5            （Speed、LifeTime、DotInterval 留空＝4、10、0.5）
+ID=902 Name=測試-追蹤電龍     Mode=Spirit FireInterval=1.5 HomingLv=3
+武器 901／902 測試-電龍：Damage=5 ManaCost=15 SpiritFxID=1（電龍）
+ID=903 Name=測試-九條追蹤黑龍 Mode=Spirit FireInterval=1.5 SplitLv=8 SpreadSpacing=45 SpreadMaxAngle=360 HomingLv=3   （一次 9 條、平均分一整圈出發）
+武器 903 測試-九條追蹤黑龍：Damage=5 ManaCost=15 RecipeID=903 SpiritFxID=2（黑龍）
+道具 901 測試・電龍（icon_palmthunder）、902 測試・追蹤電龍（icon_thunderbomb）：GM 測試武器，不在抽選池；903 測試・黑龍（icon_voidmaw）
 ```
 
 ### 3.12 `SubRecipeID` vs `SubWeaponOnHit`（兩個都叫 Sub，別搞混）

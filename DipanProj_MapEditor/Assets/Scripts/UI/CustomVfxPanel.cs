@@ -33,6 +33,7 @@ namespace DipanMapEditor.UI
             new TableDef { Title = "爆炸", Table = ExplosionDatabase.TableName, Kind = CustomVfxPreviewRig.Kind.Explosion, Apply = ExplosionDatabase.LoadFromText },
             new TableDef { Title = "傳送點", Table = TeleportFxDatabase.TableName, Kind = CustomVfxPreviewRig.Kind.Teleport, Apply = TeleportFxDatabase.LoadFromText },
             new TableDef { Title = "光束", Table = BeamFxDatabase.TableName, Kind = CustomVfxPreviewRig.Kind.Beam, Apply = BeamFxDatabase.LoadFromText },
+            new TableDef { Title = "靈獸", Table = SpiritFxDatabase.TableName, Kind = CustomVfxPreviewRig.Kind.Spirit, Apply = SpiritFxDatabase.LoadFromText },
         };
 
         bool _loaded;
@@ -56,7 +57,7 @@ namespace DipanMapEditor.UI
             CustomVfxSource.Install();
             if (clearSprites) CustomVfxSource.ClearSpriteCache();
             // 火焰要先載：地上燃燒的火舌指向 FlameTable
-            foreach (var t in new[] { Tables[1], Tables[2], Tables[0], Tables[3], Tables[4], Tables[5] })
+            foreach (var t in new[] { Tables[1], Tables[2], Tables[0], Tables[3], Tables[4], Tables[5], Tables[6] })
             {
                 t.Csv = EditableCsv.Load(t.Table);
                 if (t.Csv.Error == null) t.Apply(t.Csv.BuildText());
@@ -187,6 +188,20 @@ namespace DipanMapEditor.UI
                     GUI.color = Color.white;
                     rig.BeamWidth = NumField("粗細", "bmW", rig.BeamWidth);
                     GUILayout.Label("（武器表 BeamWidth：5＝1、29＝0.38、9＝0.25、66＝0.3、78＝0.25）", _small);
+                    break;
+                case CustomVfxPreviewRig.Kind.Spirit:
+                    foreach (var m in new[] { CustomVfxPreviewRig.SpiritMotion.Wander, CustomVfxPreviewRig.SpiritMotion.Chase })
+                    {
+                        string label = m == CustomVfxPreviewRig.SpiritMotion.Wander ? "亂游" : "追人形";
+                        GUI.color = rig.SpiritMode == m ? Color.cyan : Color.white;
+                        if (GUILayout.Button(label, GUILayout.Width(60))) rig.SpiritMode = m;
+                    }
+                    GUI.color = Color.white;
+                    float sp = NumField("游速", "sbS", rig.SpiritSpeed);
+                    float sc = NumField("大小", "sbC", rig.SpiritScale);
+                    if (!Mathf.Approximately(sc, rig.SpiritScale)) { rig.SpiritScale = sc; rig.Restart(); }
+                    rig.SpiritSpeed = sp;
+                    GUILayout.Label("（配方 Speed／武器 BulletScale；身長約 7.5＋頭，鏡頭切「遊戲」才看得到整條）", _small);
                     break;
                 case CustomVfxPreviewRig.Kind.Spike:
                     rig.SpikeSpeed = NumField("子彈速度", "spS", rig.SpikeSpeed);

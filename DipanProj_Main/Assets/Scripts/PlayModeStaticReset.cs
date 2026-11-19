@@ -67,7 +67,8 @@ public static class PlayModeStaticReset
         ExplosionBurst.ResetForPlayMode();
         ExplosionDatabase.ResetForPlayMode();
         TeleportFxDatabase.ResetForPlayMode();
-        BeamFxDatabase.ResetForPlayMode();        // 光束外觀表（BeamVisual 本身不放池，沒有靜態狀態要清）
+        BeamFxDatabase.ResetForPlayMode();
+        SpiritFxDatabase.ResetForPlayMode();      // 靈獸外觀表（SpiritBeast 不放池，沒有靜態狀態要清；VfxAssets.TextureLoader 只有地圖編輯器設）        // 光束外觀表（BeamVisual 本身不放池，沒有靜態狀態要清）
         VfxAssets.ResetForPlayMode();
         PlayerBind.ResetForPlayMode();
         Dipan.UI.UIManager.ResetMenuLocksForPlayMode();

@@ -230,6 +230,7 @@ public class WeaponManager : MonoBehaviour
         weapon.TrailEffectID = CsvFieldParse.Int(S("TrailEffectID"), 0);
         weapon.TrailSpikeID = CsvFieldParse.Int(S("TrailSpikeID"), 0);
         weapon.FlameStyleID = CsvFieldParse.Int(S("FlameStyleID"), 0);
+        weapon.SpiritFxID = CsvFieldParse.Int(S("SpiritFxID"), 0);
         weapon.SummonEffectID = CsvFieldParse.Int(S("SummonEffectID"), 0);
 
         // 浮游本體：只有 Familiar 讀（其他模式填了也不讀，載入時 Warning——同「無效欄不讀」原則）

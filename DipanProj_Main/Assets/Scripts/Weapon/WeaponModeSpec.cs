@@ -40,6 +40,8 @@ public enum WeaponMode
     Sweep,
     /// <summary>頭頂投彈（饕餮印，2026-11-12）：範圍內每個目標頭上冒出一個投彈者，吐出炸彈追著目標掉下去爆炸。</summary>
     Overhead,
+    /// <summary>靈獸（2026-11-19）：放出一隻在畫面裡亂游的長條靈獸（電龍、火虎、冰鳳…），不碰牆；整條身體碰到的怪都受傷，有追蹤就去追怪。</summary>
+    Spirit,
 }
 
 /// <summary>欄位值的型別（給載入檢查與未來「武器效果模擬」面板產輸入框用）。</summary>
@@ -373,6 +375,7 @@ public static class WeaponModeSpec
               "只有近戰：0＝不畫（舊行為：揮擊時在前方播 HitEffectID）；1＝血月三爪（程序化刀光，範圍＝判定扇形，HitEffectID 改成打中時在目標身上播）"),
             F(W, "TrailEffectID",  FieldKind.Int, "特效", "軌跡特效 ID", "0", 0, 99999, "VfxTable；配合配方 TrailStep 沿路種"),
             F(W, "TrailSpikeID",   FieldKind.Int, "特效", "軌跡地刺 ID", "0", 0, 99999, "GroundSpikeTable；配合配方 TrailStep 沿路從地底刺出尖刺（2026-11-17 取代舊地刺序列圖）"),
+            F(W, "SpiritFxID",     FieldKind.Int, "特效", "靈獸外觀 ID", "0", 0, 99999, "SpiritFxTable；Mode=Spirit 必填（1＝電龍）：頭、身體、爪、電弧、游法手感都在那張表（2026-11-19）"),
             F(W, "FlameStyleID",   FieldKind.Int, "特效", "子彈火焰 ID", "0", 0, 99999, "FlameTable；子彈身上燒一團 shader 火（不跟子彈旋轉、依速度往後拖，分裂出來的也有）。通常搭配把子彈圖留空（2026-11-18）"),
             F(W, "SummonEffectID", FieldKind.Int, "特效", "召喚特效 ID", "0", 0, 99999, "VfxTable；每個生怪點播一次"),
 
@@ -533,6 +536,18 @@ public static class WeaponModeSpec
             .Lbl("FireInterval", "冷卻（秒，從施放算起，不等整發播完）").Lbl("BlockedByEnvironment", "光束被牆擋（0＝掃過牆與不可走區域）").Lbl("Range", "掃描長度（朝滑鼠方向固定掃這麼遠，從腳底量；空＝12；-1＝只掃到滑鼠位置；撞牆提前停）")
             .Lbl("AreaRadius", "每顆爆炸半徑").Lbl("SplitLv", "光束道數").Lbl("SpreadMaxAngle", "多道光束的扇形上限（度）")
             .Lbl("Damage", "每顆爆炸的傷害").Lbl("HitEffectID", "爆炸特效 ID").Lbl("BulletScale", "爆炸大小（半徑與特效）");
+
+        // 靈獸（2026-11-19）：釋放後在畫面亂游 LifeTime 秒、不碰牆不出畫面；整條身體碰到的怪每 DotInterval 秒各吃一次 Damage；
+        // HomingLv>0 ⇒ 轉向追畫面裡最近的怪（轉向速度＝追蹤等級換算的度/秒）；分裂＝一次放好幾隻（扇形散開出發）。
+        // 外觀全在 SpiritFxTable（武器 SpiritFxID）。目前只有玩家能放（SpiritStrike）。
+        // ⚠ 刻意不吃：集氣、連擊（一隻游 10 秒，疊連擊沒意義；要開再談）、穿透／反彈（不碰牆、本來就整條穿過去）。
+        M(d, WeaponMode.Spirit, "靈獸", "放出一隻在畫面裡亂游的長條靈獸（電龍、火虎、冰鳳…），不碰牆、不出畫面；整條身體碰到的怪每 DotInterval 秒各吃一次 Damage；有追蹤等級就會去追怪；分裂＝一次放好幾隻")
+            .Eff("FireInterval", "Speed", "LifeTime", "HomingLv", "DotInterval").Eff(Multi)
+            .Eff("Damage", "HitEffectID", "HitEffectEnemyOnly", "BulletScale", "FireEffectID").Req("SpiritFxID")
+            .Lbl("FireInterval", "冷卻（秒，從施放算起；上一隻還在游也能再放）").Lbl("Speed", "游速（世界單位/秒；空＝4）")
+            .Lbl("LifeTime", "游幾秒後消失（空＝10）").Lbl("HomingLv", "追蹤等級（0＝亂游；有等級就追畫面裡最近的怪）")
+            .Lbl("DotInterval", "同一隻怪多久被咬一次（秒；空＝0.5）").Lbl("SplitLv", "一次放幾隻（1＋lv）")
+            .Lbl("Damage", "每咬一次的傷害").Lbl("BulletScale", "靈獸大小（身長、粗細、判定一起放大）").Lbl("HitEffectID", "咬到時在怪身上播的特效 ID");
 
         // 頭頂投彈（饕餮印，2026-11-12）：範圍內每個目標頭上冒出投彈者、吐出炸彈追著目標落下爆炸。玩家怪物共用 OverheadDrop。
         // 分裂＝每個投彈者吐幾顆、連擊＝同一批投彈者連吐幾輪（由 OverheadDrop 自己排程，不走 PlayerController 的連擊）。

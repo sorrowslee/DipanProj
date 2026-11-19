@@ -4,6 +4,22 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **第二隻靈獸：黑龍（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-19，作者：再做一隻黑龍，身上黑氣奔騰、紅眼；看概念圖後要黑氣再濃一點；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4e〈黑龍〉）：
+  ① GPT 同對話產黑龍頭／無縫身體／爪（白底、禁止純白，各一次額度）；從白底反推 alpha；紅眼抽成加色發光層＋頭外緣紫光；numpy 概念圖給作者確認。
+  ② DipanVfx：SpiritFxTable 新欄 `Blend`（Additive／Alpha）、`HeadGlow*`、`SmokeAmount／SmokeColor／SmokeSpeed`、`PuffRate／PuffSize／PuffGrow／PuffLife／PuffAlpha／PuffRise`（電龍列全留空＝原樣）；`DipanSpiritBody` 加遮擋模式（外緣輪廓光）與流動黑氣、`DipanAddSprite` 加 `_Opaque`；`SpiritBeast` 加頭部發光層與身後煙團；`VfxAssets.SmokeSprite`（程序煙團）。
+  ③ 外觀表第 2 列黑龍；圖 `Resources/VfxEffects/Spirit/BlackDragon/{head,head_glow,body,claw}.png`；測試武器／道具 903（作者同日要求改成一次 9 條＋追蹤：新配方 903＝SplitLv 8、SpreadSpacing 45、SpreadMaxAngle 360、HomingLv 3）。
+  ④ 全專案 Roslyn 編譯 0 錯誤。
+  <br>**作者要做的**：Reimport SpiritFxTable、WeaponTable、ItemTable 與 `Resources/VfxEffects/Spirit/BlackDragon/`；作弊面板給 903 實測（暗、亮地板都看），或在預覽器「靈獸」分頁選第 2 列調。
+
+* [x] **新攻擊模式「靈獸」＋第一隻電龍（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-19，作者：用 903 那種電光做一隻東方電龍，按一下釋放、在畫面中游弋，怪碰到受傷，有追蹤就追怪；重點要漂亮；之後火虎、冰鳳同一類；整條身體都算傷害、不碰牆、一次一條（有散射就多條）、先游 10 秒；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4e、[RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Spirit 靈獸〉）：
+  ① **概念先行**：GPT 產電龍頭 → numpy 模擬游動 → 作者：頭漂亮、身體像泥鰍 ⇒ GPT 再產無縫龍身段＋龍爪、身體改貼圖平鋪、加粗 ⇒ 爪太長 ⇒ 只取小腿＋爪、縮小 ⇒ 定稿（GPT 共 3 次額度）。
+  ② DipanVfx：`SpiritFxData`／`SpiritFxDatabase`（新表 SpiritFxTable，1 列電龍）、`SpiritBeastMotion`（亂游、畫面內、追蹤、軌跡取身體、擺動）、`SpiritBeast`（身體網格＋頭＋爪＋纏身與尾巴電弧＋淡入淡出）、shader `Custom/DipanSpiritBody`（沿身體平鋪貼圖）／`Custom/DipanAddSprite`；`VfxAssets.TextureLoader`／`LoadTexture`。圖：`Resources/VfxEffects/Spirit/ThunderDragon/{head,body,claw}.png`（body＝Default、Repeat、mipmap）。
+  ③ 主遊戲：`WeaponMode.Spirit`＋ModeSpec（不吃集氣、連擊）、RecipeEntry 留空預設（Speed 4、LifeTime 10）、武器表新欄 `SpiritFxID`（加在 FlameStyleID 右邊，既有列留空；WeaponData／Manager／兩個複製點／工坊下拉）、`SpiritStrike`（施放、0.25 秒挑一次畫面內最近活怪、每 0.1 秒沿身體圓形判定、同一隻每 DotInterval 一次）、`PlayerController.Shoot` 分派、VfxManager `SpiritFxCSV`（MainScene 已拖）、PlayModeStaticReset。目前只有玩家能放。
+  ④ 測試武器 901「測試・電龍」（亂游）、902「測試・追蹤電龍」（HomingLv 3）：配方＋武器＋道具，抄 900 GM 飛劍格式、借現有 icon、不在抽選池。
+  ⑤ 地圖編輯器預覽器「自製特效」加「靈獸」：亂游／追人形，可調游速與大小。
+  ⑥ 全專案 Roslyn 編譯（DipanVfx、Ballistics、主遊戲有／無 UNITY_EDITOR、主遊戲 Editor、地圖編輯器＋Editor）0 錯誤。
+  <br>**作者要做的**：Reimport WeaponTable、RecipeTable、ItemTable、SpiritFxTable 與 `Resources/VfxEffects/Spirit/`；作弊面板給 901／902 實測，或在預覽器「靈獸」分頁調好存回。
+
 * [x] **雷射系外觀重做：鏡光／雷射／電光／氣功砲（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-18，作者：雷射從做出來就很粗糙、接口與圖都很廉價；要鏡光／雷射／電光三種感覺、像龜派氣功一直往前推、最好有雷光繞柱；範圍＝持續光束兩把＋連鎖閃電 9，舊系統換完就拆，78、66 也換新外觀再全拆；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4d）：
   ① DipanVfx 新增 `BeamVisual`（連續帶子＋圓頭、反彈點才斷開、LateUpdate 讀路徑不落後一幀）、`BeamFxData`／`BeamFxDatabase`、shader `Custom/DipanBeam`（白核＋流紋往前推＋能量脈衝鼓包＋外鞘翻騰；鏡光加色散與亮紋）、`Custom/DipanArc`（螺旋繞柱／沿路徑鋸齒＋分岔）、`Custom/DipanBeamOrb`（光球＋放射光芒＋十字星芒）；新表 `BeamFxTable` 五列（1 鏡光、2 雷射＝預設、3 電光、4 氣功砲、5 紅色雷射）。
   ② 武器表：加 `BeamFxID`、刪 `BeamStyle`／`BeamColor`／`PixelBeamSet`（只填 5→4、29→1、9→3、66→3、78→5，其他列留空）；`WeaponData`／`WeaponManager`／`WeaponModeSpec`／兩個 WeaponData 複製點／武器工坊（BeamFxID 下拉）跟著改。

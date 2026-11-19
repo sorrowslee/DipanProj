@@ -32,6 +32,7 @@ public class WeaponData
     public int HitBurstID;     // 命中／落地時炸一次 shader 爆炸（ExplosionTable；2026-11-18，DipanVfx）。拋物線落地＝畫在真正的傷害半徑上；0 = 不炸
     public int TrailEffectID;  // 沿子彈飛行路徑每隔 TrailStep 距離種一個 VfxTable 特效（雷射的火焰柱也走這個）
     public int TrailSpikeID;   // 沿子彈飛行路徑每隔 TrailStep 距離從地底刺出一組尖刺（GroundSpikeTable；2026-11-17 取代舊的地刺序列圖）
+    public int SpiritFxID;     // 靈獸外觀（SpiritFxTable；2026-11-19，DipanVfx）。Mode=Spirit 必填
     public int FlameStyleID;   // 子彈身上燒一團 shader 火（FlameTable；2026-11-18，DipanVfx）。火不跟子彈旋轉、依速度往後拖；0 = 不燒
     public int SummonEffectID; // 召喚型武器：在每個生怪點播放一次，特效播完才生怪；0 / 留空 = 不播、立即生怪
 
