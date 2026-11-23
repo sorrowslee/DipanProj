@@ -133,6 +133,8 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 901,測試・電龍,Weapon,Weapon,UI/Icons/Equipment/icon_palmthunder,1,靈獸測試武器,放出一條電龍在畫面裡亂游 10 秒，整條身體碰到的怪都受傷,（測試武器，不會出現在抽選）,901,,,,,,,,,
 902,測試・追蹤電龍,Weapon,Weapon,UI/Icons/Equipment/icon_thunderbomb,1,靈獸測試武器,放出一條會追怪的電龍（追蹤 Lv3），游 10 秒,（測試武器，不會出現在抽選）,902,,,,,,,,,
 903,測試・黑龍,Weapon,Weapon,UI/Icons/Equipment/icon_voidmaw,1,靈獸測試武器,一次放出 9 條黑氣奔騰、紅眼的黑龍，四面八方散開後追怪（追蹤 Lv3），游 10 秒,（測試武器，不會出現在抽選）,903,,,,,,,,,
+904,測試・九條電龍,Weapon,Weapon,UI/Icons/Equipment/icon_skylightning,1,靈獸測試武器,一次放出 9 條電龍，四面八方散開後追怪（追蹤 Lv3），游 10 秒,（測試武器，不會出現在抽選）,904,,,,,,,,,
+905,測試・追蹤黑龍,Weapon,Weapon,UI/Icons/Equipment/icon_soulbanner,1,靈獸測試武器,放出一條黑氣奔騰、紅眼的黑龍追怪（追蹤 Lv3），游 10 秒,（測試武器，不會出現在抽選）,905,,,,,,,,,
 3110,1階天使藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,白袍加身，耳畔常聞神諭,瓶中的乳白液體帶著淡淡金光，靜置時隱約聽得見遠處的鐘聲。,,,,,,,110,,
 3111,2階天使藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,面覆銀甲，背生白翼,瓶身摸起來是溫的，像有人剛剛為它祝禱過。,,,,,,,111,,
 3112,3階天使藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,六翼分作黑白，再不向任何神祇屈膝,瓶底沉著一黑一白兩根羽毛，怎麼搖也不會混在一起。,,,,,,,112,,

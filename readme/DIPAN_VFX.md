@@ -305,6 +305,8 @@
 3. 放 `Resources/VfxEffects/Spirit/<名稱>/`，`.meta`：頭爪＝Sprite（置中、Full Rect），身體＝**Default、Wrap U＝Repeat、mipmap 開**。
 4. SpiritFxTable 加一列、在預覽器調 `HeadAnchor`／`HeadWidth`／`BodyWidth`／`ClawAt`，武器表 `SpiritFxID` 指過去。
 
+> **鳥類別再試這套（2026-11-19 火鳥，已移除）**：試過俯視版（M 字拍翅＋翎眼尾翎）與側面版（兇鷹頭身＋伸直雙翼＋火焰爪、飛出畫面再換位置飛入），GPT 圖本身好看，但「一張靜態圖貼在程式彎的網格上」對龍身合適、對鳥不行——鳥要靠翅膀姿態變化與逐格動畫才生動，網格變形只能做到「會動」；俯視跟龍的側面也不搭，尾翎跟著軌跡走會在轉彎時跟身體分家。作者實測後判定不能用，程式與資料全數移除（回到電龍／黑龍 commit 的狀態）。真要做鳥，要美術畫逐格或 Spine 拍翅動畫。概念圖、GPT 原圖與模擬留在 `TempImage/dipanvfx_work/phoenix/`、`TempImage/phoenix/`（不進 git）。
+
 ---
 
 ## 5. 做一個新的 shader 特效（以後的固定流程）

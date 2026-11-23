@@ -4,6 +4,13 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **電龍、黑龍各補一把測試武器（未實測；`develop`、未 commit）**（2026-11-23，作者：電龍、黑龍各要「單隻追蹤」與「九隻分裂追蹤」兩把）
+  原本已有 902 追蹤電龍、903 九條追蹤黑龍；新增 904「測試・九條電龍」（配方 904＝抄 903：SplitLv 8、SpreadSpacing 45、SpreadMaxAngle 360、HomingLv 3；SpiritFxID 1、icon_skylightning）與 905「測試・追蹤黑龍」（配方 905＝抄 902：HomingLv 3；SpiritFxID 2、icon_soulbanner）。RecipeTable／WeaponTable／ItemTable 各加兩列，既有列沒動；不上兌換所。
+  <br>**作者要做的**：Reimport RecipeTable、WeaponTable、ItemTable；作弊面板給 902～905 實測。
+
+* [x] **火鳥（鳥形靈獸）試做後移除（`develop`、未 commit 的改動已全數還原）**（2026-11-19～11-23，作者：同一種攻擊模組做金黃火鳥）
+  試了俯視版（M 字拍翅、翎眼尾翎，進遊戲：頭怪、轉彎時尾翎與身體分家、跟龍的側面不搭）與側面版（GPT 兇鷹頭身＋攤平單翼＋火焰鷹爪、翅膀伸直不拍、飛出畫面換位置飛入）；作者 11-23 實測判定不能用 ⇒ 移除。原因與教訓記在 [DIPAN_VFX.md](DIPAN_VFX.md) §4e〈做下一隻〉的註：圖貼在彎曲網格的做法適合龍身、不適合鳥。被改過的 16 個檔還原成 commit `e2679cd0`，新增的 `SpiritBird`／`SpiritBirdMotion`／`SpiritCreature`／`DipanSpiritFlame` 與 `Resources/VfxEffects/Spirit/FirePhoenix/` 刪除（作者允許刪檔）；Roslyn 全專案編譯 0 錯誤。概念圖與模擬留在 TempImage。
+
 * [x] **第二隻靈獸：黑龍（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-19，作者：再做一隻黑龍，身上黑氣奔騰、紅眼；看概念圖後要黑氣再濃一點；見 [DIPAN_VFX.md](DIPAN_VFX.md) §4e〈黑龍〉）：
   ① GPT 同對話產黑龍頭／無縫身體／爪（白底、禁止純白，各一次額度）；從白底反推 alpha；紅眼抽成加色發光層＋頭外緣紫光；numpy 概念圖給作者確認。
   ② DipanVfx：SpiritFxTable 新欄 `Blend`（Additive／Alpha）、`HeadGlow*`、`SmokeAmount／SmokeColor／SmokeSpeed`、`PuffRate／PuffSize／PuffGrow／PuffLife／PuffAlpha／PuffRise`（電龍列全留空＝原樣）；`DipanSpiritBody` 加遮擋模式（外緣輪廓光）與流動黑氣、`DipanAddSprite` 加 `_Opaque`；`SpiritBeast` 加頭部發光層與身後煙團；`VfxAssets.SmokeSprite`（程序煙團）。

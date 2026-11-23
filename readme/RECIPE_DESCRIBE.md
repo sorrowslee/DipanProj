@@ -389,6 +389,10 @@ ID=902 Name=測試-追蹤電龍     Mode=Spirit FireInterval=1.5 HomingLv=3
 ID=903 Name=測試-九條追蹤黑龍 Mode=Spirit FireInterval=1.5 SplitLv=8 SpreadSpacing=45 SpreadMaxAngle=360 HomingLv=3   （一次 9 條、平均分一整圈出發）
 武器 903 測試-九條追蹤黑龍：Damage=5 ManaCost=15 RecipeID=903 SpiritFxID=2（黑龍）
 道具 901 測試・電龍（icon_palmthunder）、902 測試・追蹤電龍（icon_thunderbomb）：GM 測試武器，不在抽選池；903 測試・黑龍（icon_voidmaw）
+ID=904 Name=測試-九條追蹤電龍 Mode=Spirit FireInterval=1.5 SplitLv=8 SpreadSpacing=45 SpreadMaxAngle=360 HomingLv=3   （同 903，換電龍）
+ID=905 Name=測試-追蹤黑龍     Mode=Spirit FireInterval=1.5 HomingLv=3   （同 902，換黑龍）
+武器 904 測試-九條追蹤電龍：RecipeID=904 SpiritFxID=1；905 測試-追蹤黑龍：RecipeID=905 SpiritFxID=2（Damage 5、ManaCost 15 同上）
+道具 904 測試・九條電龍（icon_skylightning）、905 測試・追蹤黑龍（icon_soulbanner）
 ```
 
 ### 3.12 `SubRecipeID` vs `SubWeaponOnHit`（兩個都叫 Sub，別搞混）
