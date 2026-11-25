@@ -1,4 +1,4 @@
-ID, Name    , Radius, Duration, DamageInterval, Damage, AniPath                    , AniNumber, AnimFPS, TileSize, RenderMode(Tile或Single或Glow/空為Tile/Single為單張靜態圓暈/Glow為加色發光且燈火忽強忽弱明滅), SigilPath(背景旋轉符號圖/相對Resources不含副檔名/留空為無/與RenderMode無關三種模式都能掛/圖需為Sprite類型), LightRadius(發光半徑世界單位/留空或0=不發光/>0時特效存在期間會真的照亮暗場景地圖), FireStyleID(地上燃燒外觀/GroundFireTable ID；填了就不畫序列圖、改畫 DipanVfx 的焦土＋火舌＋火星（傷害照舊）/留空或0=照舊畫序列圖), StatusFx(每次傷害順便給的狀態/狀態清單「名稱:等級;…」查 StatusEffectTable/DoT 一律固定值/留空=無)
+ID, Name    , Radius, Duration, DamageInterval, Damage, AniPath                    , AniNumber, AnimFPS, TileSize, RenderMode(Tile或Single或Glow/空為Tile/Single為單張靜態圓暈/Glow為加色發光且燈火忽強忽弱明滅), SigilPath(背景旋轉符號圖/相對Resources不含副檔名/留空為無/與RenderMode無關三種模式都能掛/圖需為Sprite類型), LightRadius(發光半徑世界單位/留空或0=不發光/>0時特效存在期間會真的照亮暗場景地圖), FireStyleID(地上燃燒外觀/GroundFireTable ID；填了就不畫序列圖、改畫 DipanVfx 的焦土＋火舌＋火星（傷害照舊）/留空或0=照舊畫序列圖), StatusFx(每次傷害順便給的狀態/狀態清單「名稱:等級;…」查 StatusEffectTable/DoT 一律固定值/留空=無),SpawnStatus(出現瞬間給圈內單位的狀態/狀態清單「名稱:等級;…」；持續時間＝這個特效的存在時間；頭目照規則免疫控制/留空=無),DamageDelay(延時單擊/>0＝生成後第 N 秒對圈內結算一次傷害、之後不再傷害（DamageInterval 不看）/留空或0=照舊),SuckInKill(致死捲入/1＝被這個特效打死的怪旋轉縮小捲進中心、掉寶落在中心；頭目照正常死亡/留空=0),PullSpeed(拖向中心/世界單位每秒；出現時被 SpawnStatus 束縛到的怪，特效存在期間腳底被拖向中心、越近越快、面向不變；頭目不會被拖/留空=不拖)
 2, 佛光, 1.2, -1, 0.3, 10, GroundEffect/buddhaLight/buddhaLight, 1, 0, 1, Glow
 3, 虛空吞口, 2.4, 4, 0.5, 10, GroundEffect/VoidMaw/VoidMaw, 24, 15, 1, Single
 6, 冰封法陣, 2.5, 2.5, 0.5, 10, GroundEffect/IcePrison/IcePrison, 50, 20, 1, Single
@@ -6,3 +6,4 @@ ID, Name    , Radius, Duration, DamageInterval, Damage, AniPath                 
 8, 焚地(火焰燃燒),  1.6, 3, 0.5, 10, GroundEffect/ScorchedGround/ScorchedGround, 12, 12, 1, Single,,,1
 9, 焚地(大・旱魃焚天火雨), 2.13, 3, 0.5, 10, GroundEffect/ScorchedGround/ScorchedGround, 12, 12, 1, Single,,,1
 10,屍毒雲(屍毒葫蘆・只管傷害；畫面改由 VfxTable 59 播),3.0,2.1,0.35,10,,,,1,Single,,
+11,古神黑洞(克蘇魯；出現定身2秒並拖向中心／第1秒單擊／致死捲入；傷害由武器表覆寫),2.4,2,0,0,GroundEffect/VoidMaw/VoidMaw,24,15,1,Single,,,,,Bind:1,1,1,2

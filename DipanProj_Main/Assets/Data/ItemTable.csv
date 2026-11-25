@@ -148,3 +148,7 @@ ID,Name,Category,EquipSlot,IconPath,MaxStack,Description,TipStats,TipLore,Weapon
 10001,兒童彈弓,Weapon,Weapon,UI/Icons/Equipment/weapon_childSlingshot,1,彈弓,,家書裡夾著的舊彈弓，皮筋早已鬆了。,10001,,,,,,,,,,
 10002,一般佛燈,Weapon,Weapon,UI/Icons/Equipment/weapon_sacredLamp,1,古燈,,燈火不滅，照處邪祟自焚。,10002,,,,,3.5,,,,,
 10003,樹妖的枯枝,Weapon,Weapon,UI/Icons/Equipment/weapon_banyanBranch,1,枯枝,,從榕樹妖身上折下的枯枝，插進土裡仍會竄出根刺。,10003,,,,,,,,,,
+3140,1階古神血統藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,斗篷裹身，血肉間萌生異形觸鬚,灰青色液體偶爾自行蠕動，凝成細小觸鬚，凝視太久便彷彿聽見若有似無的低語。,,,,,,,140,,
+3141,2階古神血統藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,殼首四目，巨軀背生百觸,深墨綠色液體中有數條觸鬚緩緩盤旋，無論如何轉動瓶身，觸鬚末端始終朝向持瓶者。,,,,,,,141,,
+3142,3階古神血統藥劑,Bloodline,None,UI/Icons/Items/positions/bloodline/bloodline_BaseBottle,1,一次性的血統藥劑,活甲覆體，萬觸歸藏其身,漆黑的液體中浮現無數大小不一的眼睛，每當移開視線，眼睛便會悄然改變位置。,,,,,,,142,,
+907,測試・古神黑洞,Weapon,Weapon,UI/Icons/Equipment/icon_voidmaw,1,黑洞測試武器,在滑鼠位置放出黑洞：圈內小怪原地束縛 2 秒（原地走路、不能攻擊），第 1 秒受到一次傷害 150，被打死的怪捲入黑洞消失；頭目不受束縛,（測試武器，不會出現在抽選）,907,,,,,,,,,

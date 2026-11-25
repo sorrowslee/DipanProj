@@ -53,8 +53,10 @@ public static class StatusSystem
         GameObject source = null, float hitDamage = 0f, bool flatDot = false)
         => Apply(target, StatusEffectDatabase.Get(statusId), level, source, hitDamage, flatDot);
 
+    /// <param name="durationOverride">&gt; 0＝這一次的持續秒數改用這個（黑洞的束縛＝黑洞還剩多久）；≤ 0＝照表上的 Duration。</param>
     public static StatusController.ApplyResult Apply(GameObject target, StatusEffectDef def, int level,
-        GameObject source = null, float hitDamage = 0f, bool flatDot = false, bool forceChance = false, bool pinned = false)
+        GameObject source = null, float hitDamage = 0f, bool flatDot = false, bool forceChance = false, bool pinned = false,
+        float durationOverride = -1f)
     {
         if (target == null || def == null || level <= 0) return StatusController.ApplyResult.Invalid;
         var sc = ControllerOf(target, true);
@@ -64,7 +66,7 @@ public static class StatusSystem
         if (def.Category == StatusCategory.Dot)
             dps = (!flatDot && hitDamage > 0f) ? hitDamage * def.ValueAt(level) : def.FlatAt(level);
 
-        var r = sc.Apply(def, level, source, dps, forceChance, pinned);
+        var r = sc.Apply(def, level, source, dps, forceChance, pinned, durationOverride);
         if (r == StatusController.ApplyResult.Immune && sc.ConsumeImmuneTextSlot())
             DamageNumberManager.ShowText(target, Language.GetText(TxtImmune), ImmuneColor);
         return r;

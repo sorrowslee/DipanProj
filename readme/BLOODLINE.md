@@ -16,7 +16,7 @@
 
 | 規則 | 內容 |
 |---|---|
-| 系列 | 一個系列 = 三個階段。目前有十二個系列：殭屍系列 **殭屍 → 毛殭 → 旱魃**、血族系列 **覓血者 → 血伯爵 → 該隱**、狂族系列 **狼人 → 望月者 → 芬里爾**、土裔系列 **石像鬼 → 山嶽巨人 → 泰坦**、靈根系列 **築基期 → 元嬰期 → 化神期**、雲龍系列 **蛟人 → 螭吻 → 應龍**、熾龍系列 **龍奴 → 法夫納 → 尼德霍格**、蟲族系列 **寄生體 → 獵殺者 → 蟲皇**、萬魂系列 **鬼差 → 鍾馗 → 酆都大帝**、青丘系列 **靈狐 → 玄狐 → 九尾天狐**、天使系列 **神諭者 → 天使 → 路西法**、暴食系列 **餓鬼 → 年 → 饕餮**（英文：血族系列 **Bloodborn**、第一階 **Bloodseeker**（也是外型資料夾名）；狂族系列 **Feralborn**、三階 `Werewolf`／`Moonwatcher`／`Fenrir`（2026-08-27 加）。2026-08-27 前叫「夜裔系列／夜裔／Nightborn」，PROBLEMS／PROGRESS 歷史條目裡的 Nightborn 就是它；土裔系列 **Gaiaborn**、三階 `Gargoyle`／`MountainGiant`／`Titan`（2026-09-09 加）；靈根系列 **SpiritRoot**、三階 `Foundation`／`Nascent Soul`／`Divine Form`（2026-09-10 加，後兩個資料夾名含空白）；雲龍系列 **Cloudborn**、三階 `Jiao`／`Chiwen`／`Yinglong`，熾龍系列 **Blazeborn**、三階 `Thrall`／`Fafnir`／`Nidhogg`（兩個系列 2026-09-13 加）；蟲族系列 **Swarmborn**、三階 `Parasite`／`Ravager`／`Swarm Emperor`（2026-09-14 加，第三階資料夾名含空白）；萬魂系列 **Soulborn**、三階 `Warden`／`ZhongKui`／`Fengdu`（2026-11-09 加；設計討論時暫稱「鬼王血統／Netherborn」，TempImage 工作資料夾仍叫 `bloodline_Netherborn`）；青丘系列 **Qingqiuborn**、三階 `SpiritFox`／`MysticFox`／`NineTailedCelestialFox`（2026-11-10 加；**第一個女性血統**：第三階轉為女性，主角台詞因此不分性別，見 [DRAMA.md](DRAMA.md)〈主角台詞不分性別〉）；天使系列 **Angelborn**、三階 `Oracle`／`Angel`／`Lucifer`（2026-11-11 加；第二、三階立繪都是寬體型 1536×1024）；暴食系列 **Gluttonborn**、三階 `Preta`／`Nian`／`Taotie`（2026-11-12 加；第二階「年」立繪是寬體型）。⚠ **靈根系列在 2026-09-10 當天曾短暫叫「靈脈／SpiritVein」**，同日全面改名為靈根／SpiritRoot；資料夾、icon、兩張表與文件都已一併更新，專案裡不該再有 SpiritVein 這個字） |
+| 系列 | 一個系列 = 三個階段。目前有十四個系列：殭屍系列 **殭屍 → 毛殭 → 旱魃**、血族系列 **覓血者 → 血伯爵 → 該隱**、狂族系列 **狼人 → 望月者 → 芬里爾**、土裔系列 **石像鬼 → 山嶽巨人 → 泰坦**、靈根系列 **築基期 → 元嬰期 → 化神期**、雲龍系列 **蛟人 → 螭吻 → 應龍**、熾龍系列 **龍奴 → 法夫納 → 尼德霍格**、蟲族系列 **寄生體 → 獵殺者 → 蟲皇**、萬魂系列 **鬼差 → 鍾馗 → 酆都大帝**、青丘系列 **靈狐 → 玄狐 → 九尾天狐**、天使系列 **神諭者 → 天使 → 路西法**、暴食系列 **餓鬼 → 年 → 饕餮**、機甲系列 **機甲化身 → 機偶暴君 → 墨子**、古神系列 **狂眷 → 深淵狂徒 → 克蘇魯**（英文：血族系列 **Bloodborn**、第一階 **Bloodseeker**（也是外型資料夾名）；狂族系列 **Feralborn**、三階 `Werewolf`／`Moonwatcher`／`Fenrir`（2026-08-27 加）。2026-08-27 前叫「夜裔系列／夜裔／Nightborn」，PROBLEMS／PROGRESS 歷史條目裡的 Nightborn 就是它；土裔系列 **Gaiaborn**、三階 `Gargoyle`／`MountainGiant`／`Titan`（2026-09-09 加）；靈根系列 **SpiritRoot**、三階 `Foundation`／`Nascent Soul`／`Divine Form`（2026-09-10 加，後兩個資料夾名含空白）；雲龍系列 **Cloudborn**、三階 `Jiao`／`Chiwen`／`Yinglong`，熾龍系列 **Blazeborn**、三階 `Thrall`／`Fafnir`／`Nidhogg`（兩個系列 2026-09-13 加）；蟲族系列 **Swarmborn**、三階 `Parasite`／`Ravager`／`Swarm Emperor`（2026-09-14 加，第三階資料夾名含空白）；萬魂系列 **Soulborn**、三階 `Warden`／`ZhongKui`／`Fengdu`（2026-11-09 加；設計討論時暫稱「鬼王血統／Netherborn」，TempImage 工作資料夾仍叫 `bloodline_Netherborn`）；青丘系列 **Qingqiuborn**、三階 `SpiritFox`／`MysticFox`／`NineTailedCelestialFox`（2026-11-10 加；**第一個女性血統**：第三階轉為女性，主角台詞因此不分性別，見 [DRAMA.md](DRAMA.md)〈主角台詞不分性別〉）；天使系列 **Angelborn**、三階 `Oracle`／`Angel`／`Lucifer`（2026-11-11 加；第二、三階立繪都是寬體型 1536×1024）；暴食系列 **Gluttonborn**、三階 `Preta`／`Nian`／`Taotie`（2026-11-12 加；第二階「年」立繪是寬體型）；機甲系列 **Machinaborn**、三階 `MachinaIncarnate`／`AutomatonTyrant`／`Mozi`（2026-11-24 加）；古神系列 **Eldritchborn**、三階 `Fanatic`／`AbyssalRavager`／`EldritchScion`（2026-11-25 加；第二階「深淵狂徒」立繪寬體型；設計討論時第二、三階曾叫「奪心魔／低語者」「不可名物」，已作廢）。⚠ **靈根系列在 2026-09-10 當天曾短暫叫「靈脈／SpiritVein」**，同日全面改名為靈根／SpiritRoot；資料夾、icon、兩張表與文件都已一併更新，專案裡不該再有 SpiritVein 這個字） |
 | 起點 | 所有角色從「人類」（血統 Id 1、外型 Base）開始 |
 | 選系列 | 喝**系列起始藥劑**（例：血統藥劑・殭屍）→ 變成那瓶藥劑指定的血統。**本世只能選一次，不可逆，不能改吃別的系列** |
 | 直達 | 起始藥劑指定的**不一定是第一階**（2026-09-10 起）：`BloodlineID` 指到第 2／3 階的藥劑＝**跳過前面階段直接變成那一階**（例「血統藥劑・旱魃」一口變旱魃）。仍然算「選系列」，所以一樣一世一次、喝完就定型 |
@@ -217,6 +217,9 @@ Unity 怎麼算 bounds 影響。
 
 ### 主角立繪驗證（2026-11-25 起每個新血統必做）
 
+> **規格本體＝[CHARACTER_ART_SPEC.md](art_direction/CHARACTER_ART_SPEC.md) §2.0（2026-11-25 窄版／寬版統一重寫）**：對齊線、畫面上看得到哪裡、作者螢幕的可見頂、框外規則都在那裡；本節只講「怎麼驗」。
+> ⚠ **框外露出是正常的**（翅膀、尾巴、腳都可以），**不是**問題——以前這裡寫的「腰線以下手腳不能露出對話框」是 AI 誤會、作者從沒定過（PROBLEMS **G27**）。
+
 **為什麼要這一節**：主角立繪會出現在**兩個排法完全不同的地方**，只驗一個就會漏另一個——
 - **對話框**（`TalkPanel` 腰部以上排法）：頭頂線 → 畫面 975／1080、腰線 → 對話框上緣、身體中心線 → 畫面中心 ±500，右側立繪水平鏡像。
 - **血統轉換面板**（`BloodlineIntroPanel` 規格路徑）：頭頂線 → 框頂下 165、腹部線 → 立繪底線，**只露出框內黑底中心線附近一條窄窗**（直式約 ±160、寬版約 ±105 畫布 px）。
@@ -229,19 +232,19 @@ Unity 怎麼算 bounds 影響。
 python3 tools/art/art_remake/tools/check_bloodline_portraits.py <系列Key>/<階1> <系列Key>/<階2> <系列Key>/<階3>
 ```
 
-1. **看終端機**：`FAIL` 一定要修（畫布不是 1024×1536／1536×1024、缺表情、內容底端沒蓋過腰線＝人浮在對話框上、轉換面板可見窗幾乎是空的）。`WARN` 是「要人判斷」，**每一條都要對著圖確認**，不能略過：
-   - 「內容高出頭頂線 975」：作者寬螢幕在頭頂線附近以上會被切。高出去的只能是**頭髮尖、角、耳、蒸汽**；**身體**（煙囪、帽子、舉高的拳頭）高出去＝不合格。
-   - 「腰線以下露在對話框邊外」：露出的是**尾巴、衣襬**可接受（九尾天狐的尾巴是設計）；**手、腳、身體**露出去不行。
+1. **看終端機**：`FAIL` 一定要修（畫布不是 1024×1536／1536×1024、缺表情、內容底端沒蓋過腰線＝人浮在對話框上、**腳懸空**＝框外看得到下半身但最低點沒貼畫布底、轉換面板可見窗幾乎是空的）。`WARN` 是「要人判斷」，**每一條都要對著圖確認**，不能略過：
+   - 「內容頂端高過作者螢幕可見頂 1041」（sheet 上的橘線）：高出去的只能是**頭髮尖、角、耳、蒸汽**；**身體**（頭、煙囪、帽子、舉高的拳頭）＝不合格。
+   - 「長版內容碰到畫布左／右邊」：長版畫布左右邊落在畫面 ±831，看得到那條切邊——四周留白 ≥ 64，太寬就改寬版（要作者同意）。
    - 「轉換面板頭部右緣超出可見窗」：看臉有沒有被裁。
    - 「六張表情內容框不一致」：人形角色要修（CHARACTER_ART_SPEC §2.5）；非人形大動作表情看臉有沒有跳。
 2. **打開 `TempImage/portrait_check/<系列>_<角色>.jpg` 用眼睛看**（工具抓不到「臉在哪」，這步不能省）。左邊 6 格＝六種表情的對話框（每格左右各放一次，右邊是鏡像），右邊＝轉換面板（normal）。逐項打勾：
    - [ ] **轉換面板看得到臉**（不是只有一塊身體／衣服／背景）、臉沒被左右裁掉、人到腰部。
    - [ ] **對話框切在腰**（規格：腰線 800／寬版 533＝對話框上緣），**不是膝蓋、不是腳踝**——看得到大腿以下＝人太小，整組放大。
-   - [ ] **對話框頂端沒有身體超過紅線**（紅線＝頭頂線 975）。
-   - [ ] **對話框腰線以下沒有手腳露出框外**，人站在框後面、不是浮在框上。
+   - [ ] **對話框頂端沒有身體超過橘線**（作者螢幕可見頂 1041；紅線＝頭頂線 975 只是參考）。
+   - [ ] **框外看得到的部分是完整的**：腳站在畫面底（沒懸空）、沒有被切成直線或淡掉一塊。
    - [ ] **六張的頭／臉位置一致**，換表情時不會跳。
    - [ ] 跟同系列另外兩階**大小差不多**（不會一階特別大、一階特別小）。
-3. **改圖**：不合格就修圖、不改程式（作者定的規則）。常見修法：臉偏 → 整組表情水平平移；人太大（巨軀、寬版畫滿畫布）→ 整組同一倍率縮放到「整個角色最高點＝頭頂線、腰＝腰線」重排；垂在身側的手若在腰線以下又在中心線外側（寬版 x < 約 450），會從對話框邊露出，那一塊直接淡掉（轉換面板只顯示到腹部、看不到，兩邊都不受影響）。範例 `TempImage/bloodline_Machinaborn/tools/tyrant_refit2.py`（`K`、`SIDE_CUT_X`、`WAIST_Y`）。改完**重跑步驟 1～2**。想先驗再覆蓋：候選圖放 `TempImage/<任務>/talk/<系列>/<角色>/`，跑工具時加 `TALK=TempImage/<任務>/talk`。
+3. **改圖**：不合格就修圖、不改程式（作者定的規則）。一律用 **`tools/art/art_remake/tools/fit_talk_portrait.py`** 重排（`--wide`／`--tall`；六張共用 normal 的倍率：最高點＝頭頂線、最低點＝畫布底；每張腳貼底；臉偏就 `--cx` 整組水平平移）。**不要**為了「腰對腰線」把人縮小（腳會懸空），**不要**切掉或淡掉框外的部分。改完**重跑步驟 1～2**。想先驗再覆蓋：候選圖放 `TempImage/<任務>/talk/<系列>/<角色>/`，跑工具時加 `TALK=TempImage/<任務>/talk`。
 4. **實機**：Sync Map Assets 後，① 換成該血統，到「測試說話npc」（見下一節）把六句對話看完；② 喝藥從前一階轉換到這一階（第一階從 Base 轉），看血統轉換面板。工具的數字是照程式抄的，**實機才是最後一關**。
 
 參數同步：工具裡的排版常數抄自 `TalkPanel`（`WaistUp*`、`BgW/BgH/DisplayWidth/BottomMargin`）與 `BloodlineIntroPanel`（`SpecHeadFromFrameTop`、`PortraitClip*`…）。**改了這兩個面板的版面參數，要同步改工具**（檔頭有列）。
@@ -262,7 +265,7 @@ python3 tools/art/art_remake/tools/check_bloodline_portraits.py <系列Key>/<階
 | `BloodlineID` | **系列起始藥劑**：指到 BloodlineTable 的 Id。**指哪一階都可以**——第一階＝一般的選系列藥劑；第 2／3 階＝**直達藥劑**，跳過前面階段一口變成那一階（2026-09-10 起） |
 | `BloodlineUpgrade` | **進階藥劑**：目標階數（2 = 中階、3 = 高階）。不指定血統，實際變成什麼由表A 決定 |
 
-目前三十五瓶（33 瓶系列藥劑＋2 瓶進階藥劑）。
+目前四十四瓶（42 瓶系列藥劑＋2 瓶進階藥劑）。
 
 **ID 編號規則（2026-11-10 改版，作者要求；血統系列預計 20～50 個）：系列藥劑 ID ＝ `3000 + 血統 Id`**
 （血統 Id＝`SeriesId×10 + 階−1`，見表A）。所以藥劑 ID 去掉最前面的 3 就是它給的血統 Id。
@@ -286,6 +289,9 @@ python3 tools/art/art_remake/tools/check_bloodline_portraits.py <系列Key>/<階
 | 萬魂 | 3090 1階萬魂血統藥劑 `=90` | 3091 2階萬魂血統藥劑 `=91` | 3092 3階萬魂血統藥劑 `=92` |
 | 青丘 | 3100 1階青丘血統藥劑 `=100` | 3101 2階青丘血統藥劑 `=101` | 3102 3階青丘血統藥劑 `=102` |
 | 天使 | 3110 1階天使血統藥劑 `=110` | 3111 2階天使血統藥劑 `=111` | 3112 3階天使血統藥劑 `=112` |
+| 暴食 | 3120 1階暴食血統藥劑 `=120` | 3121 2階暴食血統藥劑 `=121` | 3122 3階暴食血統藥劑 `=122` |
+| 機甲 | 3130 1階機甲血統藥劑 `=130` | 3131 2階機甲血統藥劑 `=131` | 3132 3階機甲血統藥劑 `=132` |
+| 古神 | 3140 1階古神血統藥劑 `=140` | 3141 2階古神血統藥劑 `=141` | 3142 3階古神血統藥劑 `=142` |
 
 > **命名與文案的規矩**（2026-09-10 作者拍板）：
 > - **名稱寫「幾階＋系列」，不寫會變成什麼**：`<階>階<系列>藥劑`（例「2階殭屍血統藥劑」）。
@@ -699,6 +705,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | `MistStyle` | **身後黑霧**（2026-11-09 加，第 28 欄＝索引 27）：`SoulSkull`＝黑霧＋霧中週期凝結骷髏頭；其他非空值＝只有黑霧。見下方〈`MistStyle`：身後黑霧〉 | 沒有這一層 |
 | `Effects` | **血統內建效果**（2026-11-18 加，第 33 欄＝索引 32）：效果清單 `名稱:等級;…`，查 GemTable 的效果（目前用在狀態效果列），跟裝備、珠子全身等級相加。目前只有 **Nidhogg（72）＝`發射增傷:1`**（攻擊時每發都給自己增傷；熔岩爆 `AttackVfxId=39` 不動）。見 [STATUS_EFFECT.md](STATUS_EFFECT.md) §4 | 沒有 |
 | `GhostStyle` | **身邊幽靈**（2026-11-12 加，第 32 欄＝索引 31）：一左一右兩隻若隱若現的幽靈，隨機只出左／只出右／兩隻一起。目前只有 `TaotieInk`（水墨饕餮），任何非空值都用同一張貼圖。見下方〈`GhostStyle`：身邊幽靈〉 | 沒有這一層 |
+| `TentacleStyle` | **虛空觸手**（2026-11-25 加，第 35 欄＝索引 34）：每 20～30 秒背後浮現六條半透明章魚觸手大力亂甩 3 秒。目前只有 `EldritchVoid`（克蘇魯 142），任何非空值都用同一張皮。見下方〈`TentacleStyle`：虛空觸手〉 | 沒有這一層 |
 | `FamiliarStyle` | **隨從**（2026-11-24 加，第 34 欄＝索引 33）：停在肩上的小動物，不定時繞一圈再回來，宿主倒下時飛走。填 `FamiliarTable.csv` 的 Key，目前只有 **`MoziEagle`**（墨子 132）。見下方〈`FamiliarStyle`：隨從〉 | 沒有這一層 |
 
 ⚠ **刻意不在程式裡判斷「是不是第三階」。** 誰有特效由表決定——之後想給二階也加一點光、
@@ -724,6 +731,7 @@ ConfirmPopup.Show(plan.ConfirmText, () => {
 | 酆都大帝（92） | （留空） | （留空） | — | （留空） | — ／ **`MistStyle`=SoulSkull**（身後黑霧＋霧中凝結骷髏，2026-11-09；⏳ 先用該隱的暫代序列圖對位，正式圖到了要重看位置） |
 | 饕餮（122） | （留空） | （留空） | — | （留空） | — ／ **`GhostStyle`=TaotieInk**（身邊兩隻水墨饕餮幽靈，2026-11-12；⏳ 未編譯未實測） |
 | 墨子（132） | （留空） | （留空） | — | （留空） | — ／ **`FamiliarStyle`=MoziEagle**（肩上的木頭機關鷹，2026-11-24；⏳ 已編譯、未實測） |
+| 克蘇魯（142） | （留空） | （留空） | — | （留空） | — ／ **`TentacleStyle`=EldritchVoid**（每 20～30 秒背後六條虛空觸手亂甩 3 秒，2026-11-25；⏳ 已編譯、未實測；序列圖仍是暫代天使，換正式圖後要重看根部位置） |
 
 ### ⭐ 一個血統只掛一層（2026-09-10 作者拍板）
 
@@ -1087,6 +1095,30 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 
 **加一隻新的隨從**：序列圖放 `SequenceImage/Companions/<名字>/` → FamiliarTable 加一列 → 宿主的每個動作在 FamiliarAnchorTable 加停棲點 → 表B 填 `FamiliarStyle`。程式不用改。
 
+### `TentacleStyle`：虛空觸手（`BloodlineTentacle`，2026-11-25，克蘇魯）
+
+作者要的是「三階角色背後有虛化的章魚觸手往周邊甩動」。經過 10 版模擬定稿（2026-11-25 同日）：
+- v1～v4 做成「蓄力→拍到左右地面→波紋」⇒ 作者：**不要打地面**，「想像活章魚被人類拿著想掙脫的那種感覺」；也不要固定節奏（「像在打鼓」）。
+- v5 改成空中亂舞 ⇒ 「只是在擾動，沒有大力甩脫的力道感」⇒ v6～v7 改成**甩鞭**（根部猛甩、尖端最後甩過去、甩過頭彈回），角度再大再快 ⇒ v8 作者要「速度放慢一半」＝定稿速度。
+- 作者定規格：**左右各三條**、**每 20～30 秒隨機出現一次、只看時間**、每次凝結 0.3 秒 → 亂甩 3 秒（每次都重新亂數）→ 從尖端溶解 0.5 秒。**只是特效、不打怪。**
+
+| 部件 | 檔案 | 說明 |
+|---|---|---|
+| 元件 | `Scripts/Gacha/BloodlineTentacle.cs` | 獨立物件 `BloodlineTentacle`（parent＝玩家的父節點），一個 MeshRenderer，**每幀重建一個網格**（六條帶子＋甩得快時的殘影），`SortOffset=-1` 畫在角色之下、排序圖層跟宿主；`BodyFxVisible` 為 false 時收掉並重新倒數 |
+| shader | `Resources/Shaders/BloodlineTentacle.shader`（`Custom/BloodlineTentacle`） | 帶子貼皮＝電龍身體那套（DIPAN_VFX §4e）；虛化＝BloodlineGhost／Mist 的煙霧密度圖（斑駁半透明、凝結門檻、散去尖端先散、外緣往尖端流的暗紫煙絲、青色輪廓光）。premultiplied |
+| 觸手皮 | `Resources/VfxEffects/BloodlineTentacle/tentacle_skin.png` | 512×360，左右無縫（4 個吸盤週期）、上緣＝背（青綠肉＋暗紫血管）、下緣＝粉色吸盤；`.meta`＝Default、**Wrap U＝Repeat**、Wrap V＝Clamp、mipmap 開。ChatGPT「燃燈劫」專案產（白底；附克蘇魯圖當配色參考），去背＝**逐欄找上下輪廓、內部全不透明、只有輪廓 2px 用白底反推**（背上有淺灰高光，整張用白底反推會把高光變透明）；原圖 `TempImage/bloodline_Eldritchborn/fx/tentacle_skin_gpt.png`，處理腳本 `tools/art/bloodline_Eldritchborn/fx/make_skin.py` |
+
+**動作**（全在元件 Inspector，數字是定稿值；角度 0＝水平往外、90＝往上，左右各自「往外」，面向改變整組鏡射）：
+- **三層**（`Layers`，× 角色高）：肩 根高 0.70／長 1.55／根寬 0.095／角度 −15～118；背中 0.58／1.45／0.088／−50～100；腰 0.46／1.30／0.080／−70～62。根部水平位置在身體輪廓內（背側 −0.06～−0.12、面前側 +0.03～+0.07），被角色蓋住，看起來像從背上長出來。尖端寬＝根寬 × 0.16。
+- **甩鞭**：根部方向在那一層的範圍內甩到新方向（跟現在差 ≥ `MinSwing` 100 度）、`SwingTime` 0.16～0.28 秒、ease-out-back `Overshoot` 1.9 甩過頭彈回 → 停 `Hold` 0.04～0.44 秒 → 下一甩；**每一節的角度＝根部「s × lag 秒前」的角度**（`Lag` 0.18～0.26，每條出生時抽）⇒ 鞭子從根傳到尖；甩得越快尾段往反方向拖（`Drag` 0.09／度每秒）。再疊上 Perlin 捲曲（±240°×s^1.6）、沿身體傳的扭動、0.86～1.0 伸縮。
+- **透明度**：平常 0.42，甩得越快越實（最多 +0.33）；甩動角速度 > 175 度/秒時多畫一層 0.07 秒前的殘影（最多 0.18）。
+- **節奏**：`IntervalMin/Max` 20～30 秒、變身後第一次 `FirstDelay` 2～4 秒；`FormTime` 0.3、`ShowTime` 3、`FadeTime` 0.5；六條凝結先後差 0～0.08 秒。
+
+**顏色**在 shader Properties：`_SkinBright` 2.2（皮本身偏暗，暗地板上要調亮，同黑龍「鱗片調亮」）、輪廓光 sRGB(70,225,210)×0.45、煙絲 (40,22,52)×0.45、`_GlowWidth` 1.6（要跟元件常數一致）。
+
+對照模擬：`tools/art/bloodline_Eldritchborn/fx/sim3.py`（動作，`SKIN=…/tentacle_skin.png SKIN_BRIGHT=2.2 python3 sim3.py out.gif`；需要同資料夾放 `Cthulhu.png`、`BossIntroPanel_Smoke1/2.png`）＋`sim.py`（帶子渲染 `render_tentacle`＝shader 的 numpy 版）。**改 shader 或元件算式要兩邊一起改**，否則預覽會騙人。
+⚠ 克蘇魯的序列圖目前還是暫代天使；正式圖到了要實機看一次根部位置（`Layers` 的 `BackX／FrontX／RootY`）。
+
 ---
 
 ## 5c. 第六層：`BloodlineHitFx`（打到怪物時，在**那隻怪**身上播）
@@ -1204,6 +1236,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 | 酆都大帝 92 | **萬魂鬼手** 77／92（2026-11-09，取代暫借的萬蟲巢 67） | Normal「萬鬼追魂」（2026-11-09 第二版）：扣一次 **2 波 × 5 顆**（`BurstLv 1`／間隔 0.25）、**往前 100° 扇形**、**慢速 4.5**、穿透 3、穿牆、飛 4.5 秒、間隔 0.9；**每顆左右飄（`WanderAngle 35`）**、**只追 5 格內的怪且在最近 3 隻裡隨機挑（`HomingRadius 5`，追蹤 200）** ⇒ 鬼魂各自飄著散開、分頭咬不同的怪；咬穿後 0.5 秒清命中名單，繞回來可再咬同一隻（第三版，同時修掉「追蹤會追牆」的舊 bug，見 BALLISTICS.md）。⚠ 第一版（放射 288°＋全場鎖最近）作者退件：往左射卻有鬼頭從右邊出來、5 顆一起慢慢轉向同一隻，像操控不靈的飛彈——這就是加 `WanderAngle`／`HomingRadius` 兩欄（彈道套件 `WanderBehavior`＋`HomingBehavior` 分散模式）的原因。子彈是素材庫 `pj3_death_wave/black`（灰黑鬼頭，刻意不用引魂幡那個紫色版）10 幀，**匯入時放大 4 倍（最近鄰）**存成 `Weapon/animation/soulGhostSkull/`，`BulletScale 5.5`（引魂幡 8.4，第一版照抄太大，第二版縮小）／`SpriteAngleOffset 360`／`FlipYWhenLeft 1` 照引魂幡 37；判定 `Radius 0.5`；**沒有命中特效**（第一版填了 56 骷髏煙，跟怪物死亡特效重複，作者 2026-11-09 要求拿掉）。傷害 4、耗魔 0。**是正式道具**（ItemTable 77，icon `UI/Icons/Equipment/icon_soulhand`，ChatGPT 依酆都鬼手產），沒進抽選池 |
 | 饕餮 122 | **饕餮印** 79／94（2026-11-12，取代暫借的魔狼爪 71） | **Overhead 頭頂投彈**（新模式，玩家怪物共用 `OverheadDrop`）：畫面內 `Range` 18 的每隻敵怪頭上冒出水墨饕餮幽靈（`DropperStyle`=TaotieInk），吐出炸彈追著怪落下、爆炸半徑 1.2、傷害 6、冷卻 1、無耗魔；炸彈借火焰拋擲彈的圖；爆炸＝VfxTable 61（stylized_explosion_006 blue＋冷藍套色，作者挑）。icon `icon_taotieseal`（GPT 青銅饕餮紋方印）。⏳ 未編譯未實測。見 RECIPE_DESCRIBE〈Overhead 頭頂投彈〉 |
 | 墨子 132 | **墨家機關塔** 80／95（2026-11-24，取代暫借的山崩地裂 65） | **Summon** 召喚友軍怪 46 `MoziTurret`（`BrainType=Turret`）：冷卻 1 秒、同時最多 **4** 座（2026-11-25 作者：2→4）、**滑鼠點哪就從哪升起**（配方 95 `SummonAtCursor=1`；離玩家超過 `Range`（空=8）就拉回射程邊緣、點在牆上就找最近站得住的點，2026-11-24 作者要求）。機關塔**從土裡升起**（`GroundEmerge`：遮罩擋住地面以下、整隻由下往上推 0.6 秒＋抖動＋出場煙 VfxTable 62＝特效庫 fanfx1_magic_puff_B 白色（作者在特效預覽器挑的），煙從地面冒出往上蓋過整座塔，畫布高＝塔高×1.7 自動縮放；先前試過 VfxTable 8 沙土爆炸（太大、一半在地下）與棕色貼地塵浪，都被作者退），不移動，射程 7 內有敵怪就開火：武器 81「機關塔-八方砲」配方 96＝8 方向放射（`SplitLv 7`＋`SpreadSpacing 45`）、每發傷害 **80**、間隔 **0.65** 秒（2026-11-25 作者：太弱、比不上其他三階 → 原 6／1.5；塔 `AnimFPS` 14→28，attack 23 張一輪 0.82 秒，配「冷卻 0.65＋放彈前 0.21」≈ 0.86 秒一輪，動畫不會被下一發切斷）、速度 9、飛 0.85 秒；砲彈 `Weapon/single/weapon_mohistShell`（GPT 產；`BulletScale` 0.55（11-24 先對齊砲管口徑 0.45，11-25 作者要再大一點），原本 1.6 比砲管大三倍）、命中 **VfxTable 63**（Scale 1.3，11-25 放大）（特效庫 expfx1_symmetrical_explosion_C 橘，作者嫌原本 43 炮彈爆炸太醜；43 另有血魔重炮／落星羅盤在用，所以沒改 43、另開新列）；塔本體 `Scale` 1.05（作者：放大 0.5 倍，原 0.7）；**無敵、不會被鎖定**（2026-11-25 作者改回：怪多時塔還沒開火就被拆掉；`TurretBrain` 出生即 `SetUntargetable`＝搬到 Mist 層＋擋 TakeDamage，`FindNearestEnemy` 也跳過虛體。11-24 試過「可被打、血量＝玩家最大血量 × 0.1」，`OwnerHpRatio` 欄與程式保留、46 號該格已清空）；放彈幀＝attack 第 7 張（砲管縮回）。存在 10 秒（MonsterData `LifeSeconds`）後沉回土裡。**不是正式道具**（作者 2026-11-24：非常規武器）：ItemTable 不放 80，測試用另做 **906「測試・墨家機關塔」**（WeaponTable 906 直接用配方 95，icon 暫用 `icon_mohistTurret`＝基礎圖縮製），同電龍 901～905 的格式、不進抽選。⏳ 已編譯、未實測 |
+| 克蘇魯 142 | **古神黑洞** 82／97（2026-11-25，取代暫借的虛空吞口 22） | GroundCast 定點法陣＋地面特效 11：**以角色腳底為圓心放一圈 6 個黑洞**（2026-11-25 作者改；配方 `CastRingRadius` 4.8／`CastCount` 6，黑洞半徑 2.4 ⇒ 六個剛好相鄰、涵蓋離角色約 2.4～7.2；每個各自 150，重疊處吃多次；原本是滑鼠位置放 1 個）（每個半徑 2.4、存在 2 秒），**出現瞬間圈內一般怪束縛**（原地走路、不能打，**被拖向黑洞中心**、面向不變；`PullSpeed` 2，2026-11-25 作者加）、**第 1 秒單擊一次 150**、**打死的旋轉縮小捲入中心**（掉寶落在中心）；頭目不束縛、只吃傷害、正常死亡。冷卻 2.5、耗魔 0。外觀暫借 VoidMaw。測試武器 907「測試・古神黑洞」。見 [GROUND_EFFECT.md](GROUND_EFFECT.md)〈黑洞〉。⏳ 已編譯、未實測 |
 
 ⚠ **放射狀要用 `360 − 360/N`，不要填 360**：分裂角度是「頭尾兩顆各在 ±角度/2」，填 360 會讓第一顆和最後一顆重疊在同一個方向。
 
@@ -1271,7 +1304,8 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 - **玩家沒地方「事後」查自己的血統與階段**——喝下去當下有立繪揭示面板，但之後就沒地方看了。等角色資訊面板
 - `SkillId` 仍是死欄（技能系統不存在）
 - 目前十三個系列（殭屍、血族、狂族、土裔、靈根、雲龍、熾龍、蟲族、萬魂、青丘、天使、暴食、機甲），資料都齊（萬魂、天使的序列圖暫代，見下）；再加系列照 §7 走。**雲龍／熾龍的 `BodyScale` 以鬼差為 1：鍾馗 1.7、酆都 1.3（2026-11-09 作者看過正式序列圖後指定）、`WalkSpeed` 留空、五屬性是佔位值，六個血統都還沒實機看過**；尼德霍格的神格特效已填（§5b）、應龍的神格三層已清空改由被動武器應龍水珠撐（§5e），都還沒實機看過。狂族的立繪除了 `normal` 之外目前是暫代圖（與旱魃同一張），美術到了直接覆蓋檔案即可
-- **機甲系列（2026-11-24 加）目前的狀態**：表A 第 13 列（`DreamDramaId`=91）、表B 130～132（機甲化身／機偶暴君／墨子；`BodyScale` 1／**1.5**／**1.43**（2026-11-24 作者定 1／1.5／1.3，11-25 墨子再 ×1.1；墨子肩上的老鷹大小跟 `ScaledCharacterHeight` 走，自動跟著放大）、`WalkSpeed` 留空、五屬性佔位＝力量／體力為主、墨子加魔力，待實機）、三瓶藥劑 3130／3131／3132（TipStats／TipLore 照 GPT 概述；⚠ 第三階那句「墨銀凝成人貌」是改設計前寫的，墨子定稿是瓷白機械身軀，作者決定要不要改）、血統池 3130（權重 10）、夢境台詞 drama 91／TalkGroup 88／DramaTalk 260（`lang:1017`「在夢中，我是以血肉為始、以機關成道的生命」）。**立繪與成品瓶已裝**（2026-11-24 作者確認）：`Talk/Machinaborn/{MachinaIncarnate,AutomatonTyrant,Mozi}/` 各 6 情緒（機甲化身、墨子 1024×1536；**機偶暴君是寬體型 1536×1024**，無臉、表情靠肢體；2026-11-24 整組縮 0.6、以面罩對齊重排——原圖巨軀畫滿畫布，血統轉換面板只看得到胸口一塊木頭，見 CHATGPT_IMAGE_WORKFLOW §7.7），成品瓶 `Resources/UI/Icons/Items/positions/bloodline/bloodline_Machinaborn.png`（琥珀銅液、齒輪包魯班鎖的徽章、青銅齒輪瓶塞、青玉頸飾）。原檔在 `TempImage/bloodline_Machinaborn/portrait/`、`icon/`。主角血統立繪 2026-11-13 起走半身排法，**PortraitTable 不用加列**。**序列圖已換成作者 AutoSprite 正式圖**（2026-11-24 同日）；`ShadowAnchorTable` 的 `characters/machinaborn/*` 12 列由 AI 用 `shadow_anchor.py`（ShadowAnchorMath 的 Python 移植）離線重算（墨子長袍沒把兩隻靴子黏在一起，自動算就夠）。墨子 `DreamWeaponId`＝**80 墨家機關塔**（2026-11-24 專武，見 §5d；「墨侍」隨從不做——老鷹已經是隨從）；神格特效＝`FamiliarStyle` MoziEagle 肩上的木頭機關鷹（2026-11-24，見 §5b〈`FamiliarStyle`：隨從〉，⏳ 未實測）。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.7。
+- **古神系列（2026-11-25 加）目前的狀態**：⚠ **第三階 2026-11-25 改名：古神之嗣 Eldritch Scion → 克蘇魯 Cthulhu**（表B 142 `Key`／`DisplayName`／`SpriteFolder`、序列圖／立繪／StreamingAssets 資料夾 `Eldritchborn/Cthulhu`、ShadowAnchorTable 鍵、`ArtSource/.../Cthulhu.png` 一起改；序列圖檔名仍是 `EldritchScion-iso_…`，程式只看資料夾）。表A 第 14 列（`DreamDramaId`=92）、表B 140～142（狂眷／深淵狂徒／克蘇魯；`BodyScale` 1／**1.4**／**1.32**（2026-11-25 作者看正式序列圖後指定；克蘇魯先 1.2、同日再 ×1.1）；深淵狂徒 `AttackFrameRange`=**1-25**（作者：攻擊要播完；#1-14 蓄力、#15-18 撲擊、#19-25 收招，自動判斷停在撲擊峰值）、`WalkSpeed` 留空、五屬性佔位＝一、三階偏魔力、二階力量體力型）、三瓶藥劑 3140～3142（一階文案照 GPT 概述；二、三階的形貌短句是 AI 依改版後的設計重寫——「殼首四目，巨軀背生百觸」「活甲覆體，萬觸歸藏其身」，作者可再改）、血統池 3140（權重 10）、夢境台詞 drama 92／TalkGroup 89／DramaTalk 261（`lang:1018`「我是清醒的噩夢，無數人低語的傳頌者」（2026-11-25 作者改句））。**立繪與成品瓶已裝**：`Talk/Eldritchborn/{Fanatic,AbyssalRavager,EldritchScion}/` 各 6 情緒（深淵狂徒寬體型 1536×1024，巨軀；2026-11-25 作者回報「右下角缺一塊」後重排：最高點＝頭頂線、**最低點＝畫布底**、不切不淡，`fit_talk_portrait.py --wide --cx 630`，見 PROBLEMS G27）、成品瓶 `bloodline_Eldritchborn.png`（深墨綠液、縱瞳眼＋四觸手徽章、觸手纏繞瓶塞）。**正式序列圖已放（2026-11-25）**；`ShadowAnchorTable` 原本照抄暫代 12 列，換圖後幀數相同（25）的 5 列沒被重算——克蘇魯 walk／attack 沿用天使（有翅膀）的錨點 X −21.5／−31 ⇒ 作者回報「影子往後跑」——已刪掉 fanatic attack／dead、abyssalravager attack、cthulhu walk／attack，**要跑一次「計算影子錨點」補回**；AutoSprite 用的定稿角色圖在 `ArtSource/Bloodlines/Eldritchborn/`（深淵狂徒是作者選定的**正面**站姿，不是 3/4）。克蘇魯 `DreamWeaponId`＝**82 古神黑洞**（2026-11-25 專武，見 §5d）；神格特效＝`TentacleStyle`=EldritchVoid（虛空觸手，§5b，⏳ 未實測）。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.8。
+- **機甲系列（2026-11-24 加）目前的狀態**：表A 第 13 列（`DreamDramaId`=91）、表B 130～132（機甲化身／機偶暴君／墨子；`BodyScale` 1／**1.5**／**1.43**（2026-11-24 作者定 1／1.5／1.3，11-25 墨子再 ×1.1；墨子肩上的老鷹大小跟 `ScaledCharacterHeight` 走，自動跟著放大）、`WalkSpeed` 留空、五屬性佔位＝力量／體力為主、墨子加魔力，待實機）、三瓶藥劑 3130／3131／3132（TipStats／TipLore 照 GPT 概述；⚠ 第三階那句「墨銀凝成人貌」是改設計前寫的，墨子定稿是瓷白機械身軀，作者決定要不要改）、血統池 3130（權重 10）、夢境台詞 drama 91／TalkGroup 88／DramaTalk 260（`lang:1017`「在夢中，我是所有機關生命的始祖，金屬與齒輪組成了我的血肉（2026-11-25 作者改句）」）。**立繪與成品瓶已裝**（2026-11-24 作者確認）：`Talk/Machinaborn/{MachinaIncarnate,AutomatonTyrant,Mozi}/` 各 6 情緒（機甲化身、墨子 1024×1536；**機偶暴君是寬體型 1536×1024**，無臉、表情靠肢體；2026-11-24 整組縮 0.6、以面罩對齊重排——原圖巨軀畫滿畫布，血統轉換面板只看得到胸口一塊木頭，見 CHATGPT_IMAGE_WORKFLOW §7.7），成品瓶 `Resources/UI/Icons/Items/positions/bloodline/bloodline_Machinaborn.png`（琥珀銅液、齒輪包魯班鎖的徽章、青銅齒輪瓶塞、青玉頸飾）。原檔在 `TempImage/bloodline_Machinaborn/portrait/`、`icon/`。主角血統立繪 2026-11-13 起走半身排法，**PortraitTable 不用加列**。**序列圖已換成作者 AutoSprite 正式圖**（2026-11-24 同日）；`ShadowAnchorTable` 的 `characters/machinaborn/*` 12 列由 AI 用 `shadow_anchor.py`（ShadowAnchorMath 的 Python 移植）離線重算（墨子長袍沒把兩隻靴子黏在一起，自動算就夠）。墨子 `DreamWeaponId`＝**80 墨家機關塔**（2026-11-24 專武，見 §5d；「墨侍」隨從不做——老鷹已經是隨從）；神格特效＝`FamiliarStyle` MoziEagle 肩上的木頭機關鷹（2026-11-24，見 §5b〈`FamiliarStyle`：隨從〉，⏳ 未實測）。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.7。
 - **暴食系列（2026-11-12 加）目前的狀態**：（第二階「年」同日下午重做成石獅型半人獸首＋獠牙骨冠；傍晚正式序列圖已到、`BodyScale` 年 1.4／饕餮 1.5、饕餮 dead 縮 0.79 倍、負面表情立繪改用其他 AI 版——見 PROGRESS，以下為初版紀錄）表A 第 12 列（`DreamDramaId`=90）、表B 120～122（`BodyScale` 三階先填 1、`WalkSpeed` 留空、五屬性佔位＝力量／體力為主，待實機）、三瓶藥劑 3120／3121／3122、血統池 3120（權重 10）、成品瓶 `bloodline_Gluttonborn`（暗紅褐液、古銅饕餮獸面紋章、帶角獸首瓶塞）、三組立繪（**年是寬體型 1536×1024**，PortraitTable 比照天使 1.2／−180／OuterToScreen 1；餓鬼、饕餮 1.15／−139）、夢境台詞 drama 90（`lang:1016`）。⚠ **立繪只有 normal／happy 是真的，angry／cry／fear／hurt 四張暫時複製 normal**——ChatGPT 對「滿身長嘴的角色＋負面情緒」一律以暴力規範拒絕（見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.6）。⚠ **序列圖是暫代**：`SequenceImage/Gluttonborn/{Preta,Nian,Taotie}` 複製自寄生體／望月者／尼德霍格（只複製 png）；作者用 AutoSprite 以 `TempImage/bloodline_Gluttonborn/out/{Preta,Nian,Taotie}_base_1024.png` 產正式圖後整個覆蓋，**先刪 `ShadowAnchorTable` 的 `characters/gluttonborn/*` 12 列再跑「計算影子錨點」**。饕餮 `DreamWeaponId`＝**79 饕餮印**（2026-11-12 專武，原暫借魔狼爪 71）；神格特效＝身邊兩隻若隱若現的水墨饕餮幽靈（`GhostStyle`=TaotieInk，2026-11-12 作者定，見 §5b〈`GhostStyle`：身邊幽靈〉；原本登記的「吞噬領域」作者沒印象，已撤掉），⏳ 未編譯未實測。
 - **天使系列（2026-11-11 加）目前的狀態**：表A 第 11 列（`DreamDramaId`=88）、表B 110～112（`BodyScale` 2026-11-11 作者實機定：神諭者 1.2／天使 1.6／路西法 1.5（同日由 1.3／1.5／1.4 再調）；`WalkSpeed` 留空、五屬性佔位，待實機）、三瓶藥劑 3110／3111／3112、血統池 3110（權重 10）、成品瓶 `bloodline_Angelborn`（乳白微金液、雙翼光環紋章、銀白尖頂瓶塞＋金光環）、三組立繪（6 情緒；**天使、路西法都是寬體型 1536×1024**，作者 2026-11-11 指定，PortraitTable 比照九尾天狐 1.2／−180／OuterToScreen 1 起手；神諭者 1.15／−139）、夢境台詞 drama 88（`lang:1015`）。（2026-11-11 正式序列圖已到；神諭者 `dead` 原圖人物比 idle 大 19%——dead 不做體積正規化，所以 25 張以腳底為中心縮到 113/134≈0.84 倍，與 idle 等高；天使 `dead` 反而小三成，25 張放大 1.348 倍、畫布加大成 308×308，見 PROBLEMS **G23**。）⚠ 以下為暫代期的原紀錄：**序列圖是暫代**：`SequenceImage/Angelborn/{Oracle,Angel,Lucifer}` 複製自靈根築基期／血伯爵／該隱（只複製 png）；作者用 AutoSprite 以 `TempImage/bloodline_Angelborn/out/{Oracle,Angel,Lucifer}_base_1024.png` 產正式圖後整個覆蓋，**先刪 `ShadowAnchorTable` 的 `characters/angelborn/*` 12 列再跑「計算影子錨點」**。路西法 `DreamWeaponId`＝**78 路西法之怒**（2026-11-11，新模式 `Mode=Sweep` 巨神兵式掃射：紅色光束從頭頂劈到腳底再掃向滑鼠、沿線延遲爆炸，配方 93，見 [RECIPE_DESCRIBE.md](RECIPE_DESCRIBE.md)〈Sweep 掃射〉；⏳ 未編譯未實測；原本暫借雷雨天罰 66）。神格特效（六翼緩慢開合、黑白能量流）待設計。路西法的角色圖因六翼太寬，人物比規格小約 9%，`BodyScale` 實機時可補。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.5。
 - **青丘系列（2026-11-10 加）目前的狀態**：表A 第 10 列（`DreamDramaId`=84）、表B 100～102（五屬性佔位、`BodyScale` 靈狐 1.1／玄狐 1.4／九尾天狐 1.5（作者 2026-11-10 實機後定）、玄狐 `AttackAnimSpeed` 0.7、`WalkSpeed` 留空）、三瓶藥劑 3100／3101／3102、血統池 3100（權重 10）、成品瓶 `bloodline_Qingqiuborn`、三組立繪（6 情緒；**九尾天狐是寬體型 1536×1024**，PortraitTable 比照夏綠蒂 1.2／−180／OuterToScreen 1 起手，另兩階 1.15／−139）、夢境台詞 drama 84（`lang:1014`）。⚠ **序列圖是暫代**：`SequenceImage/Qingqiuborn/*` 複製自靈根三階（築基期／元嬰期／化神期，只複製 png）；作者用 AutoSprite 以 `TempImage/bloodline_Qingqiuborn/out/*_base_1024.png` 產正式圖後整個覆蓋，**先刪 `ShadowAnchorTable` 的 `characters/qingqiuborn/*` 12 列再跑「計算影子錨點」**。⚠ 九尾天狐 `DreamWeaponId` **暫借焚獄炎杖 69**（§5d 規定三階一定要填，否則夢裡空手卡在發射教學），專屬夢境武器（幻術／分身／狐火）待設計；神格特效未指派。產圖過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7。

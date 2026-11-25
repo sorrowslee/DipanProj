@@ -749,7 +749,18 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 _monAnim.Paused = frozen;
                 if (!frozen && _monAnim.OneShotPlaying) _monAnim.CancelOneShot();
             }
-            if (!frozen) HandleVisuals(null);   // 不看任何目標：不舉刀、不轉身
+            if (_status.IsBoundWalk)
+            {
+                // 束縛中被黑洞往中心拖（PullToward；黑洞每幀叫一次，沒人叫就停）。不轉向：面向維持被束縛那一刻的方向，
+                // 所以往左走的怪不管黑洞在前面還是後面，都維持往左走的動作被拖過去（2026-11-25 作者）。
+                if (_rb != null && Time.time - _pullStamp < PullKeepAlive) ApplyPull();
+                // 束縛（古神黑洞，2026-11-25 作者）：被釘在原地、不能攻擊，但**原地播走路**（遠程怪打得到玩家也一樣）。
+                // 不走 HandleVisuals：它看「實際位移」決定走／停，速度歸零後會播 idle。走路 fps 用正常移動速度餵，節奏才自然。
+                if (_monAnim != null)
+                    _monAnim.SetState(MonsterAnimator.State.Walk,
+                        (_actuator != null && _actuator.MoveSpeed > 0.01f) ? _actuator.MoveSpeed : 3f);
+            }
+            else if (!frozen) HandleVisuals(null);   // 暈眩：不看任何目標：不舉刀、不轉身
             _wasControlled = true;
             return;
         }
@@ -1016,6 +1027,51 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
 
     bool _dying;   // 已致死、待本幀 LateUpdate 才真正銷毀
 
+    // ── 捲入死亡（2026-11-25，古神黑洞）──
+    // 被「致死捲入」的地面特效打死時，不播一般死亡特效，改成一個旋轉縮小、捲進黑洞中心的殘影（SuckInDeathFx）；
+    // 掉寶／功德值／死亡旗標／『已清』照常，只是改掉在黑洞中心（被吸進去了）。頭目（Controllable=0）不適用，照正常死亡。
+    bool _suckIn;
+    Vector2 _suckInCenter;
+
+    // ── 被黑洞往中心拖（地面特效 PullSpeed，2026-11-25 古神黑洞）──
+    // 只在「束縛」中生效（頭目不會被束縛，所以拖不動）。黑洞存在期間每幀呼叫 PullToward 續命；超過 PullKeepAlive 沒人叫就不再拖。
+    const float PullKeepAlive = 0.15f;
+    Vector2 _pullCenter;
+    float _pullSpeed, _pullRadius;
+    float _pullStamp = -99f;
+
+    /// <summary>
+    /// 這一幀把牠往 <paramref name="center"/>（地上的點）拖：**腳底**往中心走，越靠近越快（離中心 R 時 0.5 倍、到中心 1.5 倍 <paramref name="speed"/>），到了就停。
+    /// 只有束縛中才會真的動（在 Update 的控制分支套用），面向不變。
+    /// </summary>
+    public void PullToward(Vector2 center, float speed, float radius)
+    {
+        _pullCenter = center; _pullSpeed = speed; _pullRadius = radius; _pullStamp = Time.time;
+    }
+
+    void ApplyPull()
+    {
+        Vector2 feet = FeetWorldPos;
+        Vector2 to = _pullCenter - feet;
+        float d = to.magnitude;
+        if (d < 0.03f) { _rb.velocity = Vector2.zero; return; }
+        float near = _pullRadius > 0.01f ? 1f - Mathf.Clamp01(d / _pullRadius) : 0f;
+        float v = _pullSpeed * (0.5f + near);
+        v = Mathf.Min(v, d / Mathf.Max(Time.deltaTime, 0.001f));   // 不衝過頭
+        _rb.velocity = to / d * v;
+    }
+
+    /// <summary>
+    /// 這一下已經把牠打死（<see cref="IsDead"/>）時，把死法改成「捲進 <paramref name="center"/>」。
+    /// 只在致死那一幀、本幀 LateUpdate 之前呼叫才有效（傷害結算之後立刻叫）。頭目一律忽略。
+    /// </summary>
+    public void MarkSuckInDeath(Vector2 center)
+    {
+        if (!_isDead || !_dying || !Controllable) return;
+        _suckIn = true;
+        _suckInCenter = center;
+    }
+
     // 致死：只標記，不立刻銷毀。真正的銷毀延到本幀 LateUpdate（所有 Update 跑完之後），
     // 這樣「殺死這隻怪的那一幀」，這隻怪自己的 EnemyContactDamage 仍會執行一次 → **死掉也能還手**。
     // ⇒ 兩隻怪一接觸，不管誰的 Update 先跑、不管攻速差多少，第一下一定雙方互換傷害（玻璃大炮撞上去也會一起受傷）。
@@ -1045,6 +1101,14 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     {
         if (!_dying) return;
         _dying = false;
+
+        // 捲入死亡：先把殘影生出來（用牠此刻的樣子），再把自己搬到黑洞中心——下面的掉寶／清場血球都讀 transform.position，
+        // 這樣寶物就落在黑洞中心。飛行怪的 transform 被抬高了 AirborneVisualHeight，搬的時候加回去，地面點才會在中心。
+        if (_suckIn)
+        {
+            SuckInDeathFx.Spawn(_spriteRenderer, _suckInCenter);
+            transform.position = new Vector3(_suckInCenter.x, _suckInCenter.y + Mathf.Max(0f, AirborneVisualHeight), transform.position.z);
+        }
 
         // 死亡寫旗標（資料驅動）：例「殺了家人→killedFamily→新娘生氣分支」。旗標為空＝不寫。
         if (!string.IsNullOrEmpty(DeathFlag)) TriggerChain.SetFlag(DeathFlag);
@@ -1077,8 +1141,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             }
         }
 
-        // 死亡特效（VfxTable 的 DeathVfxId）：獨立 GameObject，不受怪物銷毀影響。
-        if (DeathVfxId > 0)
+        // 死亡特效（VfxTable 的 DeathVfxId）：獨立 GameObject，不受怪物銷毀影響。捲入死亡不播（換成 SuckInDeathFx）。
+        if (DeathVfxId > 0 && !_suckIn)
         {
             if (_vfx == null) _vfx = FindObjectOfType<VfxManager>();
             if (_vfx != null)

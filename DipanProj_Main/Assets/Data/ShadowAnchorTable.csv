@@ -251,3 +251,17 @@ characters/companions/mozieagle/glide,-0.2,79.9,140,auto,4,256,256,
 characters/companions/mozieagle/idle,-20,61.5,115,auto,16,256,256,
 characters/companions/mozieagle/land,-11.5,65.6,100,auto,19,256,256,
 characters/companions/mozieagle/takeoff,-7.5,76.5,109,auto,25,256,256,
+characters/eldritchborn/fanatic/idle,0,61.5,76,auto,14,256,256,幀數 18→14 已重算
+characters/eldritchborn/fanatic/walk,-0.5,64,76,auto,25,256,256,幀數 21→25 已重算
+characters/eldritchborn/abyssalravager/idle,-3.1,61.5,148,auto,18,256,256,幀數 16→18 已重算
+characters/eldritchborn/abyssalravager/walk,-6,68.5,113,auto,25,256,256,幀數 13→25 已重算
+characters/eldritchborn/abyssalravager/dead,14.5,78.6,137,auto,9,256,256,幀數 9→25 已重算
+characters/eldritchborn/cthulhu/idle,-0.5,61,75,auto,13,256,256,幀數 24→13 已重算
+characters/eldritchborn/cthulhu/dead,15.5,72.6,91,auto,9,256,256,幀數 9→25 已重算
+monsters/moziturret/attack,0,47.5,160,auto,23,256,256,
+monsters/moziturret/idle,0,47.5,162,auto,1,256,256,
+characters/eldritchborn/abyssalravager/attack,0,61,147,auto,25,256,256,
+characters/eldritchborn/cthulhu/attack,-2.5,71,92,auto,25,256,256,
+characters/eldritchborn/cthulhu/walk,0,63.5,79,auto,25,256,256,
+characters/eldritchborn/fanatic/attack,0.8,62.5,77,auto,25,256,256,
+characters/eldritchborn/fanatic/dead,-1,72.7,98,auto,9,256,256,

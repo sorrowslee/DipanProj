@@ -177,6 +177,27 @@ WeaponTable → RecipeTable(Mode) → GroundEffectID → GroundEffectTable.Sigil
 GroundEffectTable 最後一欄 `FireStyleID`（GroundFireTable ID）：填了就**不畫序列圖**，改由 DipanVfx 的 `GroundFireBurst` 畫焦土＋火舌＋火星；傷害、範圍、時間仍照這張表。
 目前 8 焚地、9 焚地（大）都填 1。說明與調法見 [DIPAN_VFX.md](DIPAN_VFX.md) §4、§6。
 
+## 黑洞：出現定身、延時單擊、致死捲入（2026-11-25，⏳ 已編譯未實測）
+
+克蘇魯的專屬武器「古神黑洞」（WeaponTable 82／配方 97／地面特效 11；測試武器 907）。2026-11-25 起配方 97 改成**以角色為圓心一次放 6 個**（RECIPE_DESCRIBE `CastRingRadius`／`CastCount`），下面講的是每一個黑洞的行為。作者定的規格：
+黑洞一出現，圈內一般怪**原地定住、不能攻擊、原地播走路**；黑洞**動畫播到一半**對圈內結算**一次**傷害；
+這一下**打死的怪不播一般死亡特效，改成旋轉縮小捲進黑洞中心消失**，打不死的扣血後等黑洞消失就放開。
+**頭目不會被定住、只吃那一下傷害、被打死就是正常死亡**（「玩家自己要注意施放位置」）。
+
+做成 GroundEffectTable 的三個通用欄（舊列一律留空＝舊行為），任何定點法陣／命中放的地面特效都能用：
+
+| 欄 | 意義 | 黑洞 |
+|---|---|---|
+| `SpawnStatus` | 出現瞬間給**圈內單位**的狀態（狀態清單），**持續時間＝這個特效的存在時間**；只看出現那一刻在圈內的 | `Bind:1`（束縛，STATUS_EFFECT §1） |
+| `DamageDelay` | &gt; 0＝生成後第 N 秒對圈內結算**一次**、之後不再傷害（`DamageInterval` 不看）。結算時圈內的都會被打（包含後來走進來的、走過來的頭目） | 1（Duration 2 的一半） |
+| `PullSpeed` | **拖向中心**（2026-11-25 作者加：「讓怪物往黑洞中心拖，感覺要被吸進去」；世界單位／秒）：出現時被 `SpawnStatus` 束縛到的怪，特效存在期間**腳底被拖向中心**，離中心 R 時 0.5 倍、到中心 1.5 倍速，到了就停。**面向不變**（束縛中不轉向）＋照樣原地播走路 ⇒ 往左走的怪不管黑洞在前還是在後，都維持往左走的動作被拖過去。只拖出現那一刻上了束縛的；頭目免疫束縛 ⇒ 不會被拖。程式：`GroundEffectInstance.TickPull` 每幀叫 `MonsterController.PullToward`（0.15 秒沒人叫就停），套用在 `MonsterController.Update` 的束縛分支 | 2（從圈邊約 1.1 秒拖到中心） |
+| `SuckInKill` | 1＝被這個特效打死的怪改播捲入演出（`SuckInDeathFx`：用牠死前那一格的圖繞中心轉 1.25 圈、縮小、最後 35% 淡出，0.6 秒）；**掉寶／功德值／清場血球落在中心**、死亡旗標與『已清』照常；頭目（`Controllable=0`）不適用 | 1 |
+
+- 外觀暫時沿用虛空吞口的 VoidMaw（24 幀 @15fps＝1.6 秒一輪，Duration 2 會多循環一小段）；要換 shader 再說。
+- 程式：`GroundEffectData`／`GroundEffectManager`（讀三欄）、`GroundEffectInstance`（`ApplySpawnStatus`、`TickDamage` 的延時單擊、`ApplyAreaDamage` 打之前記活、打死了叫 `MonsterController.MarkSuckInDeath`）、
+  `MonsterController`（`MarkSuckInDeath`；`LateUpdate` 先生殘影再把自己搬到中心、跳過 `DeathVfxId`）、新檔 `Combat/SuckInDeathFx.cs`。
+- 數值（半徑 2.4、存在 2 秒、傷害 150、冷卻 2.5、施放距離 9）都是起手值，到武器工坊調。
+
 ## 順便給狀態（StatusFx，2026-11-18）
 
 GroundEffectTable 最後一欄 `StatusFx`：狀態清單 `名稱:等級;…`（StatusEffectTable 的中文名／Key／ID），每次傷害打到單位時順便給（DoT 一律固定值）。留空＝無，目前全部留空。

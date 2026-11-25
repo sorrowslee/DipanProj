@@ -1241,4 +1241,17 @@
 - [ ] **GameManagers 掛 `FamiliarTableProvider`、把 `FamiliarTable.csv`、`FamiliarAnchorTable.csv` 拖進去**——沒掛時編輯器會直接讀 Assets/Data（印警告），但 **build 裡老鷹不會出現**。
 - [ ] 「計算影子錨點」會把 `Companions/MoziEagle` 的五個動作也算進 ShadowAnchorTable（工具掃全部 SequenceImage）——無害、用不到，要不要排除由作者決定。
 - [ ] 這輪新增的兩支工具 `do_diff4.sh`、`fit_feet.py` 目前只在工作夾，要不要收進 `tools/art/art_remake/tools/`（進 git）由作者決定。
-- [ ] ⚠ **測完墨子夢境後把 `DreamTutorialFlow.DebugForceBloodlineId` 從 132 改回 0**（2026-11-25 暫時寫死墨子給作者測新手教學）。
+- [x] ~~`DreamTutorialFlow.DebugForceBloodlineId` 暫時寫死 132（墨子）／142（克蘇魯）~~：2026-11-25 作者測完，已改回 0（隨機）。
+
+## 古神血統（Eldritchborn，系列 14）— 2026-11-25 建立（見 [BLOODLINE.md](BLOODLINE.md) §8）
+
+- [ ] **AutoSprite 正式序列圖**：三階目前暫代（機甲化身／年／天使）；到了直接覆蓋 `SequenceImage/Eldritchborn/<角色>/`，刪掉 ShadowAnchorTable 的 12 列暫代後跑「計算影子錨點」。深淵狂徒的定稿角色圖是**正面**站姿（作者選定），走路動畫要實機看。
+- [ ] **BodyScale／WalkSpeed／五屬性**：都是佔位，實機看過再定（深淵狂徒是巨軀，BodyScale 應該要大）。
+- [ ] **克蘇魯虛空觸手（`TentacleStyle`=EldritchVoid）實機驗收**：變身後 2～4 秒第一次出現、之後每 20～30 秒；六條從背後長出（換正式序列圖後重看根部位置）、甩的力道與速度、半透明程度、左右翻面時整組鏡射、倒地時消失。調參全在 `BloodlineTentacle` Inspector／shader Properties（BLOODLINE §5b）。
+- [ ] **古神：跑「計算影子錨點」**（2026-11-25 刪了 5 列暫代殘留：狂眷 attack／dead、深淵狂徒 attack、克蘇魯 walk／attack），補回後實機看克蘇魯 walk／attack 影子是否在正下方。
+- [ ] **機偶暴君對話立繪要不要重排**（作者決定）：現行版腳懸空（離畫面底 169～263px）＋腰線以下外側淡掉（PROBLEMS G27）；候選 `TempImage/bloodline_Machinaborn/talk_v4/Machinaborn/AutomatonTyrant/`（`fit_talk_portrait.py --wide --cx 600`，腳貼底、不切）。對照圖 `TempImage/portrait_spec/tyrant_compare.jpg`。
+- [ ] **古神黑洞（武器 82／測試 907）實機驗收**：**繞身一圈 6 個是否相鄰、範圍合適**（`CastRingRadius` 4.8）、束縛時原地走路、**被拖向中心（面向不變）**、遠程怪不放彈、第 1 秒扣血、打死的捲入中心、頭目只扣血正常死亡；半徑／傷害／冷卻到武器工坊調；外觀暫借 VoidMaw（要不要換 shader 再說）。
+- [ ] **神格特效**：身後揮舞的觸手虛像（程式做，不畫進角色圖）——設計已定、未動工。
+- [ ] **二、三階藥劑形貌短句**是 AI 依新設計重寫的，作者可再改。
+- [ ] 工作夾新工具 `refit_ravager.py`（巨軀寬版立繪整組重排）要不要收進 `tools/art/art_remake/tools/`，由作者決定。
+

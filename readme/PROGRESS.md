@@ -4,11 +4,51 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **新手夢境：第 3 波清光後等 1.2 秒才開 drama 42**（2026-11-25，作者：怪物明明還沒死卻觸發對話）：其實是被古神黑洞打死的怪——死亡當下就記擊殺、觸發鏈立刻開對話，而對話面板暫停遊戲（timeScale 0），捲入殘影（`SuckInDeathFx`）和黑洞都停在第一格，看起來像怪還站著。`DreamTutorial_Square` 觸發鏈「怪物出生點3 → **等捲入演出**（`wait` 1.2 秒，targets＝打完小怪後對話）→ 打完小怪後對話」；1.2＝黑洞打完還在 1 秒＋捲入 0.6 秒都跑完。三份地圖（GameAssets／MapEditor／StreamingAssets）同步。
+
+* [x] **邪佛手掌 Buddha_Hand（MonsterData 34）`Controllable` → 0**（2026-11-25，作者：新手夢境最後的佛掌會被古神黑洞吸住，好笑）：比照頭目免疫行動控制（骨牢、暈眩、冰凍、減速、束縛／黑洞拖曳），黑洞只扣血。⚠ 這隻怪所有出場處（不只夢境）都一起免疫。Reimport MonsterData。
+
+* [x] **克蘇魯：體型 ×1.1、新手夢境固定克蘇魯、古神黑洞改成繞身一圈 6 個（⏳ Roslyn 編譯 0 錯誤、未實測）**（2026-11-25，作者）
+  ① 表B 142 `BodyScale` 1.2 → **1.32**。② `DreamTutorialFlow.DebugForceBloodlineId` 132（墨子）→ **142**（測完要改回 0，見下方 ⚠ 條）。
+  ③ 配方新欄 **`CastRingRadius`／`CastCount`**（GroundCast 專用；RecipeTable 插在 SummonAtCursor 之後＝`WeaponModeSpec` 的欄序，其他列留空）：&gt; 0 時不看滑鼠、以施放者腳底為圓心、半徑 × BulletScale 排一圈，第一個在正上方。配方 97 填 **4.8／6**（作者：原尺寸、六個剛好相鄰；每個各自 150）。`PlayerController.ShootGroundCast`、`RecipeEntry`、`WeaponModeSpec`（武器工坊看得到）。測試武器 907 同配方。文件：RECIPE_DESCRIBE、BLOODLINE §5d、GROUND_EFFECT〈黑洞〉。
+  <br>**作者要做的**：Unity 編譯；Reimport RecipeTable、BloodlineTable。
+
+* [x] **古神第三階改名：古神之嗣 Eldritch Scion → 克蘇魯 Cthulhu**（2026-11-25，作者）：表B 142 `Key`=Cthulhu／`DisplayName`=克蘇魯／`SpriteFolder`=Eldritchborn/Cthulhu；序列圖、對話立繪、StreamingAssets 三處資料夾（含 .meta）改名、catalog.json 108 筆路徑、ShadowAnchorTable 鍵 `characters/eldritchborn/cthulhu/*`、`ArtSource/Bloodlines/Eldritchborn/Cthulhu.png`；表A 系列說明、BaseBloodRoll 備註、DramaTable 92 名稱、地面特效 11 名稱、程式註解、BLOODLINE／GROUND_EFFECT／TODO 同步。序列圖檔名（`EldritchScion-iso_…`）沒改（程式只看資料夾）；之前的 PROGRESS 條目保留舊名。**作者要做的**：Reimport 改過的表、跑 Sync Map Assets。
+
+* [x] **古神四項修正＋對話立繪規格重寫（窄版／寬版）（⏳ Roslyn 編譯 0 錯誤、未實測；`develop`、未 commit）**（2026-11-25，作者回報）
+  ① **深淵狂徒** `BodyScale` 1→**1.4**、`AttackFrameRange`=**1-25**（攻擊沒播完：25 幀＝蓄力 #1-14／撲擊 #15-18／收招 #19-25，自動判斷停在撲擊峰值）。
+  ② **深淵狂徒對話立繪右下缺一塊**：AI 修機偶暴君時自訂「腰線以下手腳不能露出對話框」並標成作者規則（作者：從沒定過；寬版本來就常露框外——天使／路西法／年／九尾天狐露約 490px），照它把框外的腳淡掉，又為了「腰對腰線」把人縮小（腳懸空）。重排成「最高點＝頭頂線、**最低點＝畫布底**、不切不淡」（`--cx 630`）。PROBLEMS **G27**；G26 加更正。
+  **規格重寫**：CHARACTER_ART_SPEC **§2.0**（窄版／寬版同一套：對齊線、畫面上看得到哪裡〔含作者螢幕 1780×931 的 UI 可見頂 ≈1041〕、框外規則、轉換面板窄窗、寬版要作者指定、表情差分）；BLOODLINE〈主角立繪驗證〉、CHATGPT_IMAGE_WORKFLOW 更正。新工具 `tools/art/art_remake/tools/fit_talk_portrait.py`（照規格重排）、`audit_talk_portraits.py`（全體盤點）；`check_bloodline_portraits.py` 拿掉「露出框外」WARN、加「腳懸空」FAIL／「長版貼畫布邊」WARN、頂端改用作者螢幕可見頂（sheet 畫橘線）。全體盤點只剩機偶暴君懸空（候選圖在 TempImage，待作者決定）。
+  ③ **古神之嗣** `BodyScale` 1→**1.2**；**walk／attack 影子往後跑**＝ShadowAnchorTable 換正式圖後幀數相同（25）沒重算、沿用天使（有翅膀）的錨點 ⇒ 刪掉 5 列暫代殘留（狂眷 attack／dead、深淵狂徒 attack、古神之嗣 walk／attack），**作者跑「計算影子錨點」補回**。
+  ④ **古神黑洞拖向中心**：地面特效新欄 `PullSpeed`（只填 11＝2）；出現時上了束縛的怪，存在期間腳底被拖向中心（越近越快、到了停），**面向不變、照樣原地播走路**；頭目不會被拖。`GroundEffectInstance.TickPull` → `MonsterController.PullToward`（束縛分支套用）。文件：GROUND_EFFECT〈黑洞〉、STATUS_EFFECT、BLOODLINE §5d／§8。
+  <br>**作者要做的**：Unity 編譯；Reimport BloodlineTable、ShadowAnchorTable、GroundEffectTable；跑「計算影子錨點」；Sync Map Assets（立繪換了）。
+
+* [x] **古神之嗣神格特效「虛空觸手」（⏳ Roslyn 編譯 0 錯誤、未實測；`develop`、未 commit）**（2026-11-25，作者委託：「三階角色背後有虛化的章魚觸手往周邊拍打」）
+  ① **動作迭代 10 版模擬**（numpy 合成 GIF/MP4，`tools/art/bloodline_Eldritchborn/fx/sim3.py`）：拍地版（v1～v4）→ 作者改成「不用打地面，像活章魚被拿著想掙脫」→ 空中亂舞（v5）→ 「沒有大力甩脫的力道」→ **甩鞭**（v6～v7，角度更大更快）→ 速度放慢一半（v8 定稿）。規格：左右各三條、每 20～30 秒隨機出現、凝結 0.3 秒＋亂甩 3 秒（每次重新亂數）＋從尖端溶解 0.5 秒、只看時間、只是特效。
+  ② **觸手皮**：ChatGPT 產左右無縫觸手段（青綠肉＋粉色吸盤），逐欄輪廓去背＋4 週期交叉淡化 ⇒ `Resources/VfxEffects/BloodlineTentacle/tentacle_skin.png`（Wrap U Repeat）。
+  ③ **程式**：新元件 `Scripts/Gacha/BloodlineTentacle.cs`（每幀建六條帶子網格＋殘影；甩鞭＝根部角度序列、每節延遲取樣）、新 shader `Resources/Shaders/BloodlineTentacle.shader`（電龍帶子貼皮＋幽靈煙霧密度圖虛化）；表B 新欄 **`TentacleStyle`（索引 34）**，只有 142 填 `EldritchVoid`（其他列不補）；`BloodlineSystem` 掛第 ⑩ 層。文件：BLOODLINE §5b〈`TentacleStyle`：虛空觸手〉、§8。
+  <br>**作者要做的**：Unity 編譯、Reimport BloodlineTable；變古神之嗣等 2～4 秒看第一次。
+
+* [x] **古神黑洞：出現束縛、延時單擊、致死捲入（⏳ Roslyn 編譯 0 錯誤、未實測；`develop`、未 commit）**（2026-11-25，作者定規格：一出現拉住附近的怪、原地表演走路不能攻擊；動畫播到一半扣一次血；會死的旋轉變小被吸進去，不會死的扣血後恢復行走；頭目不定住、只扣血、正常死亡）
+  ① **新狀態「束縛」**（StatusEffectTable 12，`Attribute=Bind`）：控制類、鎖移動攻擊、怪物原地播 walk（`StatusController.IsBoundWalk`→`MonsterController` 控制分支直接 `SetState(Walk)`）；施加可覆寫時間（`StatusSystem.Apply(..., durationOverride)`）。語言 12012／12032。
+  ② **地面特效三個通用欄**（GroundEffectTable 表頭新增，舊列留空）：`SpawnStatus`（出現瞬間給圈內、時間＝特效存在時間）、`DamageDelay`（延時單擊一次）、`SuckInKill`（致死捲入）。新檔 `Combat/SuckInDeathFx.cs`（殘影旋轉縮小 0.6 秒）；`MonsterController.MarkSuckInDeath`＋`LateUpdate` 改掉在中心、跳過死亡特效；頭目排除。
+  ③ **資料**：地面特效 11、配方 97、WeaponTable 82（古神之嗣夢境武器，表B 142 `DreamWeaponId` 22→82）＋907（測試）、ItemTable 907「測試・古神黑洞」（不進抽選）。
+  ④ 編譯：主遊戲（有／無 UNITY_EDITOR）＋Editor 0 錯誤（包：`TempImage/cbuild_20261125.tgz`）。文件：GROUND_EFFECT〈黑洞〉、STATUS_EFFECT §1／§2.8、BLOODLINE §5d／§8、RECIPE_DESCRIBE。
+  <br>**作者要做的**：Unity 編譯、Reimport StatusEffectTable／GroundEffectTable／RecipeTable／WeaponTable／ItemTable／LanguageTable／BloodlineTable；作弊面板給 907 實測（或夢境抽到古神之嗣）。
+
+* [x] **新血統：古神 Eldritchborn（系列 14）——角色圖、18 張立繪、成品瓶、資料表已加，序列圖暫代（⏳ 未在 Unity 實測；`develop`、未 commit）**（2026-11-25，作者：GPT 照 AI 給的表格填概述，美術照專案規範；正式定名 狂眷 Fanatic → 深淵狂徒 Abyssal Ravager → 古神之嗣 Eldritch Scion）
+  ① **角色圖**（AI 操作 ChatGPT，約 10 次額度）：狂眷（兜帽版）、深淵狂徒（力量型正面）、古神之嗣（照作者給的設計圖轉規範）。審稿過程與新坑見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.8。定稿放 `ArtSource/Bloodlines/Eldritchborn/`（給作者做 AutoSprite）。
+  ② **18 張立繪**（深淵狂徒寬體型）＋成品瓶 `bloodline_Eldritchborn`（.meta 以 Machinaborn 為範本換 GUID）。`check_bloodline_portraits.py`：FAIL 0，WARN 都對過模擬圖（見 BLOODLINE §8）。
+  ③ **資料（只新增列、零程式改動）**：表A 14（`DreamDramaId` 92）；表B 140～142（古神之嗣 `DreamWeaponId` 暫借 22 虛空吞口）；ItemTable 3140～3142；BaseBloodRoll 3140；DramaTable 92／DramaTalk 261（TalkGroup 89）／LanguageTable 1018；ShadowAnchorTable 12 列暫代。`git diff --stat`：8 檔 23 行，全是新增。
+  ④ **暫代序列圖**：`SequenceImage/Eldritchborn/{Fanatic,AbyssalRavager,EldritchScion}` 複製自機甲化身／年／天使（只 png）。
+  ⑤ 順手修 BLOODLINE.md 落後的地方：§1 系列清單補機甲、§3 藥劑表補暴食／機甲列、瓶數 35→44。
+  <br>**作者要做的**：Unity 跑 `Project Tools → Sync Map Assets`、Reimport 改到的 CSV；AutoSprite 用 `ArtSource/Bloodlines/Eldritchborn/*.png`，正式序列圖到了照 BLOODLINE §8 換並重算影子錨點。
+
 * [x] **血統藥劑名稱補上「血統」**（2026-11-25，作者：「機甲藥劑」看不出是什麼）：ItemTable 39 瓶系列藥劑 `N階X藥劑` → **`N階X血統藥劑`**（13 系列 × 3 階；進階藥劑 310／311 本來就叫「血統進階藥劑」不動）。只換正規式 `[123]階<系列名>藥劑`，逐檔核對 diff 只動到藥劑那幾列；只給人看的備註也一起改（BaseBloodRoll、ExchangeTable `Note`、DropTable `Name`）、BLOODLINE §3 表與 §7 第 5 步加命名規則。物品名目前沒有英文欄（ItemTable 只有中文、不經 LanguageTable），英文版之後做多語系時再一起處理。Reimport ItemTable。
 
 * [x] **墨家機關塔同時上限 2 → 4**（2026-11-25，作者）：RecipeTable 95 `SummonMaxAlive` 4（武器 80 與測試 906 共用這個配方，一起變）。Reimport RecipeTable。
 
-* [ ] **⚠ 新手夢境暫時寫死墨子**（2026-11-25，作者要測）：`DreamTutorialFlow.DebugForceBloodlineId` 0 → **132**；**測完要改回 0**（否則正式版新手教學永遠是墨子）。
+* [x] **新手夢境恢復正常隨機**（2026-11-25）：測墨子（132）、克蘇魯（142）期間寫死的 `DreamTutorialFlow.DebugForceBloodlineId` 已改回 **0**。
 
 * [x] **墨子體型再放大**（2026-11-25，作者：放大 1.1）：BloodlineTable 132 `BodyScale` 1.3 → **1.43**（×1.1）。老鷹跟著角色高度自動放大、停棲點走 lossyScale，不用改。Reimport BloodlineTable。
 

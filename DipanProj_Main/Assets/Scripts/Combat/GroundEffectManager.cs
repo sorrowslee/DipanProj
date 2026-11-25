@@ -130,6 +130,12 @@ public class GroundEffectManager : MonoBehaviour
             // 每次傷害順便給的狀態（2026-11-18）：狀態清單，見 GroundEffectData.StatusFx
             data.StatusFx = row.Get("StatusFx");
 
+            // 黑洞類（2026-11-25）：出現定身、延時單擊、致死捲入。三欄都留空＝舊行為
+            data.SpawnStatus = row.Get("SpawnStatus");
+            data.DamageDelay = row.GetFloat("DamageDelay", 0f);
+            data.SuckInKill = row.GetInt("SuckInKill", 0) == 1;
+            data.PullSpeed = row.GetFloat("PullSpeed", 0f);
+
             if (!string.IsNullOrEmpty(data.AniPath) && data.AniNumber > 0)
             {
                 var sprites = new Sprite[data.AniNumber];

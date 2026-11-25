@@ -175,6 +175,12 @@ namespace Dipan.Gacha
         /// 留空 = 無。見 readme/BLOODLINE.md §5b〈`FamiliarStyle`：隨從〉。
         /// </summary>
         public string FamiliarStyle;
+
+        /// <summary>
+        /// **虛空觸手**（第 35 欄 `TentacleStyle`，2026-11-25，<see cref="BloodlineTentacle"/>）：每 20～30 秒背後浮現六條半透明章魚觸手大力亂甩 3 秒。
+        /// 目前只有 <c>EldritchVoid</c>（克蘇魯），任何非空值都用同一張皮。留空 = 無。見 readme/BLOODLINE.md §5b〈`TentacleStyle`：虛空觸手〉。
+        /// </summary>
+        public string TentacleStyle;
     }
 
     /// <summary>
@@ -343,6 +349,7 @@ namespace Dipan.Gacha
                 d.GhostStyle = CsvUtil.Field(v, 31);   // 身邊幽靈（31 欄，2026-11-12）。留空 = 無。
                 d.Effects = CsvUtil.Field(v, 32) ?? "";  // 血統內建效果（32 欄，2026-11-18）。留空 = 無。
                 d.FamiliarStyle = CsvUtil.Field(v, 33);   // 隨從（33 欄，2026-11-24）。留空 = 無。
+                d.TentacleStyle = CsvUtil.Field(v, 34);   // 虛空觸手（34 欄，2026-11-25）。留空 = 無。
 
                 _byId[id] = d;
             }

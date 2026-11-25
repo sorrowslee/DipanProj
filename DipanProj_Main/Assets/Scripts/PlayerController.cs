@@ -1497,6 +1497,24 @@ public class PlayerController : MonoBehaviour, IDamageable
             return;
         }
 
+        // 繞身一圈（CastRingRadius > 0，2026-11-25 克蘇魯的古神黑洞：以角色為圓心放 6 個）：不看滑鼠，
+        // 圓心＝腳底（地面特效畫在地上，PROBLEMS E14），半徑跟著 BulletScale 放大（須彌珠放大法陣時，相鄰的還是相鄰）。
+        // 第一個在正上方、其餘平均分開 ⇒ 左右對稱。每個各自結算武器 Damage（重疊處會吃到多個）。
+        if (weapon.Recipe.CastRingRadius > 0f)
+        {
+            int n = Mathf.Max(1, weapon.Recipe.CastCount);
+            Vector2 c = FeetWorldPos;
+            float r = weapon.Recipe.CastRingRadius * weapon.BulletScale;
+            for (int i = 0; i < n; i++)
+            {
+                float a = (90f + 360f * i / n) * Mathf.Deg2Rad;
+                Vector2 p = c + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
+                _groundEffectManager.Spawn(weapon.Recipe.GroundEffectID, p, weapon.Damage, 1f, weapon.BulletScale);
+                TrySpawnHitEffect(weapon, p);
+            }
+            return;
+        }
+
         Vector2 origin = transform.position;
         Vector2 delta = AimWorldPoint() - origin;   // 連擊中鎖落點
         float range = recipe.BeamRange > 0f ? recipe.BeamRange : 8f;

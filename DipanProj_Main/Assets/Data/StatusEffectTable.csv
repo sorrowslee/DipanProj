@@ -11,3 +11,4 @@ ID(狀態 ID/GemTable 的狀態效果與各施加來源用這個號),Key(英文�
 9,Guard,12009,12029,Buff,Stat,Incoming,Refresh,1,4,-10%,-5%,17,,,,#D9B26A,status_guard,lv17＝-90% 封頂（程式另夾最低 ×0.1）
 10,Haste,12010,12030,Buff,Stat,MoveSpeed,Refresh,1,3,15%,5%,50,,,,#6FCF97,status_haste,程式夾最高 ×3
 11,Regen,12011,12031,Buff,Hot,,Refresh,1,5,1%,0.5%,50,,,,#7BD88F,status_regen,每秒回最大血量的百分比
+12,Bind,12012,12032,Debuff,Control,Bind,Refresh,1,2,100%,0%,1,,,,#6B3FA0,status_stun,束縛（2026-11-25，古神黑洞）：鎖移動與攻擊、原地播走路；Lv1＝100% 必定上身；持續時間通常由施加來源決定（黑洞＝存在時間），表上 2 秒是預設；頭目免疫

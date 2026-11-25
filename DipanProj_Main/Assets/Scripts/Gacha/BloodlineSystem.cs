@@ -753,6 +753,15 @@ namespace Dipan.Gacha
                 familiar.SetStyle(def.FamiliarStyle, def.SpriteFolder);
             }
             else if (familiar != null) familiar.SetStyle(null, null);
+
+            // ⑩ 虛空觸手（每 20～30 秒背後浮現六條半透明觸手亂甩 3 秒；畫在角色之下；克蘇魯）
+            var tentacle = go.GetComponent<BloodlineTentacle>();
+            if (!string.IsNullOrEmpty(def.TentacleStyle))
+            {
+                if (tentacle == null) tentacle = go.AddComponent<BloodlineTentacle>();
+                tentacle.SetStyle(def.TentacleStyle);
+            }
+            else if (tentacle != null) tentacle.SetStyle(null);
         }
     }
 }

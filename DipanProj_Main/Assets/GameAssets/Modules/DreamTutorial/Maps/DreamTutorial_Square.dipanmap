@@ -780,7 +780,17 @@
             "maxWaves": "3",
             "waveGroup": "3",
             "startDisabled": true,
-            "next": "打完小怪後對話"
+            "next": "等捲入演出"
+          }
+        },
+        {
+          "id": "07e8fe41",
+          "name": "等捲入演出",
+          "typeId": "wait",
+          "cells": [],
+          "params": {
+            "seconds": "1.2",
+            "targets": "打完小怪後對話"
           }
         },
         {

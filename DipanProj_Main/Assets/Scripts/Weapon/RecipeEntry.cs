@@ -79,6 +79,13 @@ public class RecipeEntry
     /// 點在牆上／水裡就找最近站得住的點）；false = 在施放者身邊一圈（舊行為）。墨家機關塔用（2026-11-24）。</summary>
     public bool SummonAtCursor = false;
 
+    // ── 定點法陣一圈（Mode=GroundCast，2026-11-25 克蘇魯的古神黑洞）──
+    /// <summary>&gt; 0＝不看滑鼠，以**施放者腳底**為圓心、這個半徑（× BulletScale）排一圈放 <see cref="CastCount"/> 個地面特效；
+    /// 第一個在正上方、其餘平均分開（左右對稱）。留空／0＝舊行為（滑鼠處放 1 個，CastCount 不看）。</summary>
+    public float CastRingRadius = 0f;
+    /// <summary>一圈放幾個（只在 <see cref="CastRingRadius"/> &gt; 0 時有效）；留空＝1。</summary>
+    public int CastCount = 1;
+
     // ── 骨牢（Mode=Cage）──
     /// <summary>困住幾秒；時間到牢籠崩裂並結算一次傷害。</summary>
     public float CageSeconds = 5f;
@@ -295,6 +302,10 @@ public class RecipeEntry
         e.SummonRadius = Fl("SummonRadius", 2f);
         e.SummonEachOnce = Bo("SummonEachOnce", false);
         e.SummonAtCursor = Bo("SummonAtCursor", false);
+
+        // ── 定點法陣一圈 ──
+        e.CastRingRadius = Fl("CastRingRadius", 0f);
+        e.CastCount = In("CastCount", 1);
 
         // ── 骨牢 ──
         e.CageSeconds = Fl("CageSeconds", 5f);

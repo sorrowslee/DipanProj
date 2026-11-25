@@ -53,6 +53,8 @@ public enum StatusAttribute
     Stun = 10,
     /// <summary>控制：冰凍。</summary>
     Freeze = 11,
+    /// <summary>控制：束縛（2026-11-25，古神黑洞）：鎖移動＋鎖攻擊，但**原地播走路**（看起來像在掙扎）。跟暈眩／冰凍同時在身上時，以冰凍＞暈眩＞束縛的表現為準。</summary>
+    Bind = 12,
 }
 
 /// <summary>一種狀態效果的定義（StatusEffectTable.csv 一列）。純資料。</summary>

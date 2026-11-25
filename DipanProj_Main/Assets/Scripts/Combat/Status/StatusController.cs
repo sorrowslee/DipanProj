@@ -66,7 +66,7 @@ public class StatusController : MonoBehaviour
     readonly List<(StatusEffectDef def, GameObject src, float amount)> _tickBuf = new List<(StatusEffectDef, GameObject, float)>(4);
     float _tickClock;
     float _outMul = 1f, _inMul = 1f, _moveMul = 1f;
-    bool _controlled, _frozen;
+    bool _controlled, _frozen, _bindOnly;
     float _lastImmuneText = -99f;
 
     MonsterController _mc;
@@ -95,6 +95,8 @@ public class StatusController : MonoBehaviour
     public bool IsControlled => _controlled;
     /// <summary>控制中、而且是冰凍（動作定格；暈眩則是收招站著）。</summary>
     public bool IsFrozen => _frozen;
+    /// <summary>控制中、而且只有束縛（沒有暈眩／冰凍）：鎖移動與攻擊、原地播走路（2026-11-25，古神黑洞）。</summary>
+    public bool IsBoundWalk => _bindOnly;
     /// <summary>免疫行動控制（頭目：MonsterData 的 Controllable＝0）。</summary>
     public bool ImmuneToMovementImpair { get { Init(); return _mc != null && !_mc.Controllable; } }
 
@@ -127,7 +129,9 @@ public class StatusController : MonoBehaviour
     bool TargetDead => (_mc != null && _mc.IsDead) || (_pc != null && _pc.IsDead);
 
     /// <summary>施加一個狀態。⚠ 請走 StatusSystem.Apply（見類別說明）。<paramref name="dps"/> 只有 DoT 用。</summary>
-    public ApplyResult Apply(StatusEffectDef def, int level, GameObject source, float dps, bool forceChance = false, bool pinned = false)
+    /// <param name="durationOverride">&gt; 0＝這一次改用這個秒數，不用表上的 Duration（黑洞的束縛＝黑洞還剩多久）；≤ 0＝照表。</param>
+    public ApplyResult Apply(StatusEffectDef def, int level, GameObject source, float dps, bool forceChance = false, bool pinned = false,
+                             float durationOverride = -1f)
     {
         if (def == null || level <= 0) return ApplyResult.Invalid;
         Init();
@@ -143,7 +147,7 @@ public class StatusController : MonoBehaviour
             if (!forceChance && UnityEngine.Random.value >= def.ValueAt(level)) return ApplyResult.Ignored;
         }
 
-        float dur = pinned ? float.PositiveInfinity : def.Duration;   // 常駐＝無限時間（倒數扣不完）
+        float dur = pinned ? float.PositiveInfinity : (durationOverride > 0f ? durationOverride : def.Duration);   // 常駐＝無限時間（倒數扣不完）
         var e = Find(def.Id);
         ApplyResult result;
         if (e == null)
@@ -392,7 +396,7 @@ public class StatusController : MonoBehaviour
     void MarkChanged()
     {
         float o = 0f, inc = 0f, mv = 0f;
-        bool ctl = false, frz = false;
+        bool ctl = false, frz = false, stn = false, bnd = false;
         for (int i = 0; i < _entries.Count; i++)
         {
             var e = _entries[i];
@@ -400,6 +404,8 @@ public class StatusController : MonoBehaviour
             {
                 ctl = true;
                 if (e.Def.Attribute == StatusAttribute.Freeze) frz = true;
+                else if (e.Def.Attribute == StatusAttribute.Bind) bnd = true;
+                else stn = true;   // Stun（以及沒填 Attribute 的控制）＝收招站著
                 continue;
             }
             if (e.Def.Category != StatusCategory.Stat) continue;
@@ -416,6 +422,7 @@ public class StatusController : MonoBehaviour
         _moveMul = Mathf.Clamp(1f + mv, MinMoveMul, MaxMoveMul);
         _controlled = ctl;
         _frozen = frz;
+        _bindOnly = bnd && !frz && !stn;
         if (_act != null) _act.SpeedMultiplier = _moveMul;
 
         if (_entries.Count > 0 && _visuals == null)

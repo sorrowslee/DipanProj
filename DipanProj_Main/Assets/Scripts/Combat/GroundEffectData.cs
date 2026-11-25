@@ -63,5 +63,31 @@ public class GroundEffectData
     /// <summary>每次傷害順便給的狀態（2026-11-18，CSV <c>StatusFx</c>）：狀態清單「名稱:等級;…」，DoT 一律固定值。留空＝無。見 readme/STATUS_EFFECT.md §4。</summary>
     public string StatusFx = "";
 
+    // ── 黑洞類（2026-11-25，克蘇魯（古神系列第三階）的黑洞；見 readme/GROUND_EFFECT.md〈黑洞：出現定身、延時單擊、致死捲入〉）──
+
+    /// <summary>
+    /// 出現瞬間給範圍內單位的狀態（CSV <c>SpawnStatus</c>，狀態清單「名稱:等級;…」）：**持續時間＝這個地面特效的存在時間**（不用狀態表的 Duration）。
+    /// 黑洞填 <c>Bind:1</c>（束縛：原地播走路、不能動不能打）。只看出現那一刻在圈內的；頭目照狀態規則免疫控制。留空＝無。
+    /// </summary>
+    public string SpawnStatus = "";
+
+    /// <summary>
+    /// 延時單擊（CSV <c>DamageDelay</c>）：&gt; 0＝生成後第 N 秒對圈內結算**一次**傷害，之後不再傷害（DamageInterval 不看）。
+    /// 黑洞填 Duration 的一半（「動畫播到一半扣血」）。0／留空＝照舊（DamageInterval 決定瞬間單擊或週期 DOT）。
+    /// </summary>
+    public float DamageDelay;
+
+    /// <summary>
+    /// 致死捲入（CSV <c>SuckInKill</c>）：1＝被這個特效打死的怪不播一般死亡特效，改成旋轉縮小捲進特效中心（<see cref="SuckInDeathFx"/>），
+    /// 掉寶也落在中心。頭目（Controllable=0）不適用、照正常死亡。0／留空＝一般死亡。
+    /// </summary>
+    public bool SuckInKill;
+
+    /// <summary>
+    /// 拖向中心（CSV <c>PullSpeed</c>，世界單位／秒）：&gt; 0＝出現時被 <see cref="SpawnStatus"/> 束縛到的怪，特效存在期間**腳底被拖向中心**
+    /// （離中心越近越快，到了就停；面向不變、照樣原地播走路）。只拖出現那一刻上了束縛的；頭目免疫束縛 ⇒ 不會被拖。0／留空＝不拖。
+    /// </summary>
+    public float PullSpeed;
+
     public Sprite[] AnimationSprites;
 }

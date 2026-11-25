@@ -129,12 +129,67 @@ public class GroundEffectInstance : MonoBehaviour
         _hasInfiniteLife = _data.Duration < 0f;
         _lifeRemaining = _data.Duration;
         _damageTimer = 0f;
+        _delayedHitDone = false;
         _initialized = true;
 
-        // DamageInterval == 0：生成瞬間單次爆裂；之後不再傷害。
-        if (_data.DamageInterval <= 0f)
+        // 出現瞬間給圈內單位狀態（黑洞的束縛），持續到這個特效消失
+        ApplySpawnStatus();
+
+        // DamageDelay > 0：延時單擊（TickDamage 到點打一次）；否則 DamageInterval == 0：生成瞬間單次爆裂、之後不再傷害。
+        if (_data.DamageDelay <= 0f && _data.DamageInterval <= 0f)
         {
             ApplyAreaDamage();
+        }
+    }
+
+    // 延時單擊打過了沒（DamageDelay）
+    private bool _delayedHitDone;
+
+    /// <summary>
+    /// 出現瞬間：對圈內每個單位施加 <see cref="GroundEffectData.SpawnStatus"/>，時間＝這個特效的存在時間（永久特效則照狀態表）。
+    /// 只打 _damageMask 裡的（怪物＋可破壞物；StatusSystem 自己略過不是單位的）；頭目照狀態規則免疫控制、會跳「免疫」。
+    /// </summary>
+    private void ApplySpawnStatus()
+    {
+        if (string.IsNullOrWhiteSpace(_data.SpawnStatus) || Radius <= 0f) return;
+        var list = StatusSpec.ParseStatuses(_data.SpawnStatus, $"地面特效 {_data.ID}「{_data.Name}」的 SpawnStatus");
+        if (list == null || list.Count == 0) return;
+        float dur = _hasInfiniteLife ? -1f : _lifeRemaining;
+        _pulled.Clear();
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, Radius, _damageMask);
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (hits[i] == null) continue;
+            GameObject go = hits[i].gameObject;
+            bool landed = false;
+            for (int k = 0; k < list.Count; k++)
+            {
+                var r = StatusSystem.Apply(go, StatusEffectDatabase.Get(list[k].Id), list[k].Level, null, 0f, flatDot: true,
+                                           durationOverride: dur);
+                if (r == StatusController.ApplyResult.Applied || r == StatusController.ApplyResult.Refreshed) landed = true;
+            }
+            // PullSpeed：記下這一刻真的上了狀態的怪（頭目免疫 ⇒ 不在名單），之後每幀拖向中心
+            if (landed && _data.PullSpeed > 0f)
+            {
+                var mc = go.GetComponent<MonsterController>();
+                if (mc != null && mc.Controllable && !_pulled.Contains(mc)) _pulled.Add(mc);
+            }
+        }
+    }
+
+    // 被拖向中心的怪（PullSpeed；出現時上了束縛的）
+    private readonly List<MonsterController> _pulled = new List<MonsterController>();
+
+    /// <summary>PullSpeed：特效存在期間每幀叫一次 MonsterController.PullToward（牠只在束縛中才會真的動）。</summary>
+    private void TickPull()
+    {
+        if (_pulled.Count == 0) return;
+        Vector2 c = transform.position;
+        for (int i = _pulled.Count - 1; i >= 0; i--)
+        {
+            var mc = _pulled[i];
+            if (mc == null || mc.IsDead) { _pulled.RemoveAt(i); continue; }
+            mc.PullToward(c, _data.PullSpeed, Radius);
         }
     }
 
@@ -389,6 +444,7 @@ public class GroundEffectInstance : MonoBehaviour
         TickAnimation();
         TickFlicker();
         TickSigil();
+        TickPull();
         TickDamage();
         TickLifetime();
     }
@@ -476,6 +532,19 @@ public class GroundEffectInstance : MonoBehaviour
 
     private void TickDamage()
     {
+        // 延時單擊（黑洞：動畫播到一半扣血，只打一次）
+        if (_data.DamageDelay > 0f)
+        {
+            if (_delayedHitDone) return;
+            _damageTimer += Time.deltaTime;
+            if (_damageTimer >= _data.DamageDelay)
+            {
+                _delayedHitDone = true;
+                ApplyAreaDamage();
+            }
+            return;
+        }
+
         if (_data.DamageInterval <= 0f) return;
 
         // 節拍倍率：佛光吃攻速效果（見 RecipeEntry.AuraIntervalScale）；下限 0.02 秒，避免每幀結算
@@ -515,7 +584,11 @@ public class GroundEffectInstance : MonoBehaviour
             // 走中央 CombatSystem（isDot=true）：套用目標減傷/抗性後結算；牆等無 IDamageable 者由 CombatSystem 自動略過。
             // 來源未知（地面特效是脫離武器的獨立物件）→ source = null（攻擊加成已在生成時透過 damageOverride 帶入）。見 readme/COMBAT.md
             Vector2 hitDir = ((Vector2)col.transform.position - center).normalized;
+            // 致死捲入：記下打之前是不是活的，這一下打死了就改成捲進中心（頭目由 MarkSuckInDeath 自己排除）
+            MonsterController mc = _data.SuckInKill ? col.GetComponent<MonsterController>() : null;
+            bool wasAlive = mc != null && !mc.IsDead;
             float dealt = CombatSystem.Apply(null, col.gameObject, damage, hitDir, DamageType.Physical, isDot: true);
+            if (wasAlive && mc.IsDead) mc.MarkSuckInDeath(center);
             // 順便給狀態（StatusFx）：只給單位（怪物／玩家；StatusSystem 會自己略過其他東西），DoT 用固定值
             if (_statusFx != null && dealt > 0f)
                 for (int k = 0; k < _statusFx.Count; k++)

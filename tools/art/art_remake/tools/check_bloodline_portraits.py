@@ -16,6 +16,9 @@
 兩種排法的參數照抄程式（改程式記得改這裡）:
   對話框  TalkPanel.SetAvatarWaistUp：頭頂線 235/1536 → 畫面 975、腰線 800/1536 → 對話框上緣（≈577）、
           身體中心線 470/1024（寬版 700/1536）→ 畫面中心 ±500；右側立繪水平鏡像；內容頂緣超過 1072 整張往下推。
+          畫布底邊 → 畫面 y≈59（人站在畫面底）。對話框 x ±750、y 24～577；框外（翅膀、尾巴、腳…）照常看得到＝設計，不是問題。
+          作者螢幕（1780×931、CanvasScaler match 0.5）UI 只看得到 y ≤ 約 1041、x ±995（標準 16:9 是 1080、±960）。
+規格本體：readme/art_direction/CHARACTER_ART_SPEC.md §2.0（2026-11-25 窄版／寬版統一）。
   轉換面板 BloodlineIntroPanel 規格路徑：頭頂線 → 框頂下 165、腹部線 800 → 立繪底線、中心線 → 破碎框中心，
           只顯示框內黑底（左右 0.225～0.80、上 0.12、下 0.13）。
 """
@@ -35,6 +38,8 @@ SW, SH = 1920, 1080
 BOX_TOP = 24 + 828 * (1500 / 2246)        # 對話框上緣（畫面 y，從底往上）
 BOX_L, BOX_R = SW / 2 - 750, SW / 2 + 750  # 對話框左右緣（DisplayWidth 1500；外框花飾不算，保守）
 HF, WF, HEADY, TOPLIM, BX = 235 / 1536, 800 / 1536, 975, 1072, 500
+AUTHOR_TOP = 1041                          # 作者螢幕 1780×931 的 UI 可見頂（match 0.5 ⇒ 931/√(0.927×0.862)）
+FLOAT_FAIL = 0.02                          # 內容最低點離畫布底超過畫布高 2%，而腰線以下又有東西露在框外 ⇒ 腳懸空
 # ── 轉換面板（BloodlineIntroPanel）──
 FH = 880
 BOTTOM_INSET, CLIP_TOP, CLIP_L, CLIP_R = 0.13, 0.12, 0.225, 0.80
@@ -90,12 +95,14 @@ def talk_sheet(im, label):
     d.rectangle([BOX_L, SH - BOX_TOP, BOX_R, SH - 24], fill=(30, 25, 20, 255), outline=(180, 140, 80, 255), width=6)
     yh = SH - HEADY
     d.line([(0, yh), (SW, yh)], fill=(255, 60, 60, 255), width=3)
-    d.text((20, yh + 6), 'head line 975 (author widescreen cuts around here)', fill=(255, 90, 90, 255))
+    d.text((20, yh + 6), 'head line 975', fill=(255, 90, 90, 255))
+    ya = SH - AUTHOR_TOP
+    d.line([(0, ya), (SW, ya)], fill=(255, 160, 0, 255), width=2)
+    d.text((20, ya + 4), 'author screen top ~1041 (above = cut on author 1780x931)', fill=(255, 170, 40, 255))
     d.text((20, 20), label, fill=(255, 255, 0, 255))
     return scr.convert('RGB').resize((640, 360), Image.LANCZOS)
 
 
-SPILL_WARN = 8   # 腰線以下露出對話框邊外超過幾 px 就提醒（只提醒、不判 FAIL：露出的是尾巴還是腳，要人看）
 
 
 def talk_metrics(im):
@@ -114,22 +121,38 @@ def talk_metrics(im):
 
 
 def check_talk(ims, who):
-    m = {e: talk_metrics(im) for e, im in ims.items() if im.size in ((1024, 1536), (1536, 1024))}
+    m = {e: (talk_metrics(im), im) for e, im in ims.items() if im.size in ((1024, 1536), (1536, 1024))}
     if not m:
         return
-    worst = max(m.values(), key=lambda v: v['spill'])['spill']
-    bad = [f"{e} {v['spill']:.0f}px" for e, v in m.items() if v['spill'] > SPILL_WARN]
-    if worst > SPILL_WARN:
-        report('WARN', who, f'對話框：腰線以下的內容露在對話框左右邊外（{", ".join(bad)}）——看 sheet：露出的是尾巴、衣襬可接受'
-               f'（九尾天狐的尾巴露約 470px 是設計）；**手、腳、身體露出去不行**（機偶暴君第一版：跨步的腳、垂下的手露 30～40px 就很明顯）')
-    tops = {e: v['top'] for e, v in m.items()}
+    # ① 腳懸空：框外看得到下半身，內容卻沒踩到畫布底（2026-11-25 機偶暴君／深淵狂徒：為了「腰對腰線」把人縮小，腳停在畫布 84%）
+    floats = []
+    for e, (v, im) in m.items():
+        H = im.size[1]
+        ys = np.nonzero(alpha_of(im).any(1))[0]
+        gap = (H - 1 - ys.max()) / H
+        if gap > FLOAT_FAIL and v['spill'] > 8:
+            floats.append(f'{e} 離底 {H - 1 - ys.max()}px、框外露 {v["spill"]:.0f}px')
+    if floats:
+        report('FAIL', who, f'對話框：腳懸空（{"；".join(floats)}）——規格 §2.0：**最低點一定要貼畫布底**；露在框外的下半身會停在半空。'
+               '用 fit_talk_portrait.py 重排（最高點＝頭頂線、最低點＝畫布底），不要為了「腰對腰線」把人縮小')
+    # ② 長版碰到畫布左右邊：長版畫布左右邊落在畫面 ±約 831（看得到），貼邊＝一條硬切直線（羽化 7% 只能柔化）
+    for e, (v, im) in m.items():
+        W, H = im.size
+        if W < H:
+            xs = np.nonzero(alpha_of(im).any(0))[0]
+            if xs.min() <= 2 or xs.max() >= W - 3:
+                report('WARN', f'{who}/{e}', '長版內容碰到畫布左／右邊——對話框外看得到那條切邊（畫布左右邊落在畫面 ±約 831）；'
+                       '規格 §2.0：四周留白 ≥ 64px，太寬的角色改用寬版')
+                break
+    # ③ 頂端：身體在作者螢幕的可見頂 1041 以下；高出去的只能是頭髮尖、角、耳、蒸汽
+    tops = {e: v['top'] for e, (v, _) in m.items()}
     hi = max(tops.values())
     if hi > SH - 2:
         report('FAIL', who, f'對話框：內容頂端超出畫面（{hi:.0f}／1080）')
-    elif hi > HEADY + 8:
-        lst = ', '.join(f'{e} +{t - HEADY:.0f}' for e, t in tops.items() if t > HEADY + 8)
-        report('WARN', who, f'對話框：內容高出頭頂線 975（{lst}）——作者寬螢幕在頭頂線附近以上會被切。'
-               '**高出去的只能是頭髮尖、角、耳、蒸汽**這類切掉也無妨的；身體（煙囪、帽子、舉高的手）高出去＝不合格，要整組往下移／縮小')
+    elif hi > AUTHOR_TOP:
+        lst = ', '.join(f'{e} {t:.0f}' for e, t in tops.items() if t > AUTHOR_TOP)
+        report('WARN', who, f'對話框：內容頂端高過作者螢幕可見頂 1041（{lst}）——看 sheet 橘線：被切的只能是頭髮尖、角、耳、蒸汽；'
+               '身體（頭、煙囪、帽子、舉高的手）被切＝不合格，要整組往下移／縮小')
 
 
 # ───────────── 轉換面板模擬 ─────────────
@@ -238,7 +261,7 @@ def run(char):
     os.makedirs(OUT_DIR, exist_ok=True)
     out = os.path.join(OUT_DIR, char.replace('/', '_') + '.jpg')
     S.save(out, quality=88)
-    print(f'  → {out}（打開看：臉在不在、頂端有沒有被紅線切、腰線以下有沒有露出框外、六張位置有沒有跳）')
+    print(f'  → {out}（打開看：臉在不在、身體有沒有高過橘線、框外的部分是不是完整（沒被切、沒懸空）、六張位置有沒有跳）')
 
 
 if __name__ == '__main__':

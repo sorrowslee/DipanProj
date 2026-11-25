@@ -73,6 +73,8 @@
 | | `SummonMaxAlive` | 整數 | 4 | 同時存在上限 |
 | | `SummonRadius` | 小數 | 2 | 生成半徑 |
 | | `SummonAtCursor` | 0/1 | 0 | 1＝在**滑鼠點的位置**召喚：落點離施放者超過 `Range`（Summon 空=8）就拉回射程邊緣（同 GroundCast）；第一隻生在那一點，站不住（牆／水）就由近往遠找最近站得住的點，第二隻起才照 `SummonRadius` 環繞；附近全站不住才退回施放者身邊。0＝舊行為（施放者身邊一圈）。墨家機關塔 95 用（2026-11-24） |
+| **定點法陣一圈** | `CastRingRadius` | 小數 | 0 | 只有 GroundCast（2026-11-25）：&gt; 0＝**不看滑鼠**，以施放者**腳底**為圓心、這個半徑（× `BulletScale`）排一圈放 `CastCount` 個地面特效；第一個在正上方、其餘平均分開（左右對稱），每個各自結算武器 `Damage`（重疊處吃多次）。0／空＝舊行為（滑鼠處放 1 個） |
+| | `CastCount` | 整數 | 1 | 一圈幾個（只在 `CastRingRadius` &gt; 0 時有效） |
 | **近戰** | `MeleeAngle` | 小數 | 100 | 扇形總角度 |
 | **突進** | `DashDistance` | 小數 | 4 | 突進距離 |
 | | `DashWidth` | 小數 | 1 | 掃擊寬度 |
@@ -236,7 +238,7 @@ ID=27 Name=御靈水晶-召喚雜魚 Mode=Summon FireInterval=1.5 SummonIds=1 Su
 ```
 
 ### GroundCast 定點法陣
-點一下在滑鼠位置（距離受 `Range`，留空 8）放一個 `GroundEffectID`（必填）的地面特效；半徑／持續／DOT 節拍／動畫走 `GroundEffectTable`，**單次傷害由武器表 `Damage` 覆寫**（不是 GroundEffectTable 的 Damage）。黑洞、冰陣、死字咒都是這個。
+點一下在滑鼠位置（距離受 `Range`，留空 8）放一個 `GroundEffectID`（必填）的地面特效（`CastRingRadius` &gt; 0 時改成**以自己腳底為圓心排一圈放 `CastCount` 個**，不看滑鼠——克蘇魯的古神黑洞 97＝半徑 4.8、6 個，黑洞半徑 2.4 剛好相鄰）；半徑／持續／DOT 節拍／動畫走 `GroundEffectTable`，**單次傷害由武器表 `Damage` 覆寫**（不是 GroundEffectTable 的 Damage）。黑洞、冰陣、死字咒都是這個。「出現定身／延時單擊／致死捲入」的黑洞類行為在地面特效表（`SpawnStatus`／`DamageDelay`／`SuckInKill`，見 [GROUND_EFFECT.md](GROUND_EFFECT.md)〈黑洞〉；古神黑洞＝配方 97）。
 
 ```
 ID=35 Name=虛空吞口 Mode=GroundCast FireInterval=1.2 Range=9 GroundEffectID=3

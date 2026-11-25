@@ -289,6 +289,11 @@ public static class WeaponModeSpec
             F(R, "SummonAtCursor", FieldKind.Bool,    "召喚", "在滑鼠處召喚", "0",
               help: "1＝在滑鼠點的位置生（超過「射程」就拉回射程邊緣；點在牆上就找最近站得住的點）；0＝在施放者身邊一圈（墨家機關塔用）"),
 
+            // ── 定點法陣一圈（2026-11-25）──
+            F(R, "CastRingRadius", FieldKind.Float, "定點法陣", "繞身一圈的半徑", "0", 0f, 50f,
+              ">0＝不看滑鼠，以自己腳底為圓心、這個半徑（× 法陣大小）排一圈放「一圈幾個」；0／空＝在滑鼠處放 1 個（舊行為）"),
+            F(R, "CastCount",      FieldKind.Int,   "定點法陣", "一圈幾個", "1", 1, 32, "只在「繞身一圈的半徑」>0 時有效；第一個在正上方、其餘平均分開"),
+
             // ── 近戰 ──
             F(R, "MeleeAngle", FieldKind.Float, "近戰", "扇形總角度（度）", "100", 1f, 360f),
 
@@ -478,7 +483,7 @@ public static class WeaponModeSpec
 
         // 定點法陣
         M(d, WeaponMode.GroundCast, "定點法陣", "在滑鼠位置放一個地面特效（半徑／節拍走 GroundEffectTable，傷害用武器 Damage）")
-            .Eff("FireInterval").Req("GroundEffectID").Eff("Range").Eff(Charge).Eff(Burst)
+            .Eff("FireInterval").Req("GroundEffectID").Eff("Range").Eff("CastRingRadius", "CastCount").Eff(Charge).Eff(Burst)
             .Eff("Damage", "HitEffectID", "BulletScale")
             .Lbl("GroundEffectID", "法陣（GroundEffectTable ID）").Lbl("Range", "施放距離").Lbl("BulletScale", "法陣大小（半徑與圖）");
 
