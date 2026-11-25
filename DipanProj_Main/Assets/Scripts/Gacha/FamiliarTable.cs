@@ -6,7 +6,7 @@ using Dipan.Data;
 public class FamiliarDef
 {
     public string Key;
-    public string Folder;          // SequenceImage 底下的相對路徑，例 Companions/MoziEagle
+    public string Folder;          // SequenceImage 底下的相對路徑，例 Machinaborn/Companions/MoziEagle（隨從放在所屬系列的 Companions/ 底下）
     public float Size = 0.18f;     // 停棲時可見高 ÷ 宿主角色高
     public float Fps = 12f;
     public float ScaleTakeoff = 1f, ScaleFly = 1f, ScaleGlide = 1f, ScaleLand = 1f;

@@ -1082,7 +1082,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 | 表 | `Assets/Data/FamiliarTable.csv`（`FamiliarTable.cs`） | 一列一種隨從：序列圖資料夾、大小、各動作大小補正、爪子位置、起飛／降落的關鍵幀、停多久、繞圈參數。欄位說明在 CSV 檔頭註解 |
 | 停棲點 | `Assets/Data/FamiliarAnchorTable.csv` | Key＝`characters/<SpriteFolder>/<動作>`，每幀一組 `X:Y`（座標慣例同影子錨點：X 相對畫布中心、Y 從畫布底）。墨子 idle／walk 是第 1 幀手標＋`TempImage/bloodline_Machinaborn/tools/track_point.py` 追蹤；**attack 是手標**（墨子攻擊時轉身，追蹤會跟丟） |
 | 提供者 | `Scripts/Gacha/FamiliarTableProvider.cs` | ⚠ 要掛在 GameManagers、把兩張 CSV 拖進去；沒掛時編輯器直接讀 Assets/Data（會印警告），**build 裡隨從不會出現** |
-| 序列圖 | `GameAssets/Main/Characters/SequenceImage/Companions/MoziEagle/{idle,takeoff,fly,glide,land}/` | 作者 AutoSprite 做（基準圖 `ArtSource/Bloodlines/Machinaborn/MoziEagle_*.png`）。glide 只留第 22～25 張（前面都在拍翅）、land 刪掉第 10～15 張（落地後趴下亂拍），刪掉的在專案根 `_to_delete/MoziEagle_2026-11-24/` |
+| 序列圖 | `GameAssets/Main/Characters/SequenceImage/Machinaborn/Companions/MoziEagle/{idle,takeoff,fly,glide,land}/`（2026-11-25 從 `SequenceImage/Companions/` 搬進所屬系列，作者慣例：`SequenceImage/` 底下每個資料夾＝一個系列） | 作者 AutoSprite 做（基準圖 `ArtSource/Bloodlines/Machinaborn/MoziEagle_*.png`）。glide 只留第 22～25 張（前面都在拍翅）、land 刪掉第 10～15 張（落地後趴下亂拍），刪掉的在專案根 `_to_delete/MoziEagle_2026-11-24/` |
 
 **對位**：停棲點換成世界座標照抄 `BlobShadow`——用宿主**當下那張 sprite** 的 rect／pivot／PPU、lossyScale、flipX 換算，所以 `BodyScale`、walk／attack 的體積正規化、翻面都自動跟上。宿主的動作與幀號從 `PlayerAnimator.CurrentAnimState／CurrentFrameIndex` 取（2026-11-24 為了這個加的兩個唯讀屬性）。隨從自己是「爪子」踩在點上，不是圖中心。
 
@@ -1093,7 +1093,7 @@ Scale 填 1 就好。素材接近正方形時，罩出來就是一顆比角色�
 
 **要調什麼改哪裡**：大小 `Size`；停棲點整體偏移 `PerchOffsetX／Y`（× 角色高，X 往面向那邊為正）；某一幀踩歪就改 FamiliarAnchorTable 那一組數字；多久飛一次 `WaitMin／WaitMax`；繞圈大小與高度 `LapRadiusX／Y`、`LapHeight`。改 CSV 後重進 Play 生效。
 
-**加一隻新的隨從**：序列圖放 `SequenceImage/Companions/<名字>/` → FamiliarTable 加一列 → 宿主的每個動作在 FamiliarAnchorTable 加停棲點 → 表B 填 `FamiliarStyle`。程式不用改。
+**加一隻新的隨從**：序列圖放 **`SequenceImage/<系列>/Companions/<名字>/`**（隨從跟著所屬系列走，不要在 `SequenceImage/` 根層另開資料夾），FamiliarTable 的 `Folder` 填 `<系列>/Companions/<名字>` → FamiliarTable 加一列 → 宿主的每個動作在 FamiliarAnchorTable 加停棲點 → 表B 填 `FamiliarStyle`。程式不用改。
 
 ### `TentacleStyle`：虛空觸手（`BloodlineTentacle`，2026-11-25，克蘇魯）
 

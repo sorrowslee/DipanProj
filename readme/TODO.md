@@ -1239,7 +1239,7 @@
 - [x] ~~墨子神格特效~~ → **肩上的木頭機關鷹**（2026-11-24，`FamiliarStyle`=MoziEagle，見 BLOODLINE §5b〈`FamiliarStyle`：隨從〉）。
 - [ ] **機關鷹實機看**：大小（`Size` 0.18）、停在肩上的位置（`PerchOffsetX／Y` 或改 FamiliarAnchorTable 那一幀）、多久飛一次（6～10 秒）、繞圈大小與高度、起飛／降落銜接有沒有跳、攻擊時停在伸出去那隻手臂根部看起來對不對、死亡時飛走、復活後停回肩上。
 - [ ] **GameManagers 掛 `FamiliarTableProvider`、把 `FamiliarTable.csv`、`FamiliarAnchorTable.csv` 拖進去**——沒掛時編輯器會直接讀 Assets/Data（印警告），但 **build 裡老鷹不會出現**。
-- [ ] 「計算影子錨點」會把 `Companions/MoziEagle` 的五個動作也算進 ShadowAnchorTable（工具掃全部 SequenceImage）——無害、用不到，要不要排除由作者決定。
+- [ ] 「計算影子錨點」會把 `Machinaborn/Companions/MoziEagle` 的五個動作也算進 ShadowAnchorTable（工具掃全部 SequenceImage）——無害、用不到，要不要排除由作者決定。
 - [ ] 這輪新增的兩支工具 `do_diff4.sh`、`fit_feet.py` 目前只在工作夾，要不要收進 `tools/art/art_remake/tools/`（進 git）由作者決定。
 - [x] ~~`DreamTutorialFlow.DebugForceBloodlineId` 暫時寫死 132（墨子）／142（克蘇魯）~~：2026-11-25 作者測完，已改回 0（隨機）。
 

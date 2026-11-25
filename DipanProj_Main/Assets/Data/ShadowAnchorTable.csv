@@ -246,11 +246,11 @@ characters/machinaborn/mozi/attack,-2.8,62,73,auto,25,256,256,2026-11-24 正式�
 characters/machinaborn/mozi/dead,1,88.4,116,auto,25,348,348,2026-11-25 dead 重新縮放後重算（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
 characters/machinaborn/mozi/idle,0,38.2,75,auto,17,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
 characters/machinaborn/mozi/walk,-7,45.7,88,auto,25,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
-characters/companions/mozieagle/fly,-2.5,88.6,139,auto,25,256,256,
-characters/companions/mozieagle/glide,-0.2,79.9,140,auto,4,256,256,
-characters/companions/mozieagle/idle,-20,61.5,115,auto,16,256,256,
-characters/companions/mozieagle/land,-11.5,65.6,100,auto,19,256,256,
-characters/companions/mozieagle/takeoff,-7.5,76.5,109,auto,25,256,256,
+characters/machinaborn/companions/mozieagle/fly,-2.5,88.6,139,auto,25,256,256,
+characters/machinaborn/companions/mozieagle/glide,-0.2,79.9,140,auto,4,256,256,
+characters/machinaborn/companions/mozieagle/idle,-20,61.5,115,auto,16,256,256,
+characters/machinaborn/companions/mozieagle/land,-11.5,65.6,100,auto,19,256,256,
+characters/machinaborn/companions/mozieagle/takeoff,-7.5,76.5,109,auto,25,256,256,
 characters/eldritchborn/fanatic/idle,0,61.5,76,auto,14,256,256,幀數 18→14 已重算
 characters/eldritchborn/fanatic/walk,-0.5,64,76,auto,25,256,256,幀數 21→25 已重算
 characters/eldritchborn/abyssalravager/idle,-3.1,61.5,148,auto,18,256,256,幀數 16→18 已重算

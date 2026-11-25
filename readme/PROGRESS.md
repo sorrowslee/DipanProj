@@ -48,6 +48,8 @@
 
 * [x] **墨家機關塔同時上限 2 → 4**（2026-11-25，作者）：RecipeTable 95 `SummonMaxAlive` 4（武器 80 與測試 906 共用這個配方，一起變）。Reimport RecipeTable。
 
+* [x] **墨子機關鷹序列圖搬進所屬系列**（2026-11-25，作者慣例：`SequenceImage/` 底下每個資料夾＝一個系列）：`SequenceImage/Companions/` → **`SequenceImage/Machinaborn/Companions/`**（GameAssets 與 StreamingAssets 兩處、含 .meta）；FamiliarTable `Folder`＝`Machinaborn/Companions/MoziEagle`、ShadowAnchorTable 5 列鍵、catalog.json 99 筆路徑、`FamiliarTable.cs` 註解、BLOODLINE §5b〈隨從〉（新規則：隨從放 `<系列>/Companions/<名字>/`）。作者要做的：Reimport FamiliarTable、ShadowAnchorTable，跑 Sync Map Assets。
+
 * [x] **新手夢境恢復正常隨機**（2026-11-25）：測墨子（132）、克蘇魯（142）期間寫死的 `DreamTutorialFlow.DebugForceBloodlineId` 已改回 **0**。
 
 * [x] **墨子體型再放大**（2026-11-25，作者：放大 1.1）：BloodlineTable 132 `BodyScale` 1.3 → **1.43**（×1.1）。老鷹跟著角色高度自動放大、停棲點走 lossyScale，不用改。Reimport BloodlineTable。
