@@ -72,6 +72,7 @@
 | | `SummonCount` | 整數 | 1 | 每次召喚幾隻 |
 | | `SummonMaxAlive` | 整數 | 4 | 同時存在上限 |
 | | `SummonRadius` | 小數 | 2 | 生成半徑 |
+| | `SummonAtCursor` | 0/1 | 0 | 1＝在**滑鼠點的位置**召喚：落點離施放者超過 `Range`（Summon 空=8）就拉回射程邊緣（同 GroundCast）；第一隻生在那一點，站不住（牆／水）就由近往遠找最近站得住的點，第二隻起才照 `SummonRadius` 環繞；附近全站不住才退回施放者身邊。0＝舊行為（施放者身邊一圈）。墨家機關塔 95 用（2026-11-24） |
 | **近戰** | `MeleeAngle` | 小數 | 100 | 扇形總角度 |
 | **突進** | `DashDistance` | 小數 | 4 | 突進距離 |
 | | `DashWidth` | 小數 | 1 | 掃擊寬度 |
@@ -228,7 +229,7 @@ ID=37 Name=九霄雷獄 Mode=SkyStrike FireInterval=0.9 AreaRadius=1.6 Segmented
 ```
 
 ### Summon 召喚
-施放時在身邊生怪，不發射子彈。`SummonIds`（必填，`|` 分隔）每次隨機抽一個；`SummonCount` 每次幾隻、`SummonMaxAlive` 同時上限（滿了不施放也不扣魔）、`SummonRadius` 生成環半徑；冷卻用 `FireInterval`。武器 `Damage` 不用；武器表 `SummonEffectID` 在每個生怪點播特效。目前 boss（紅嫁衣）與玩家（御靈水晶）共用，見 [BOSS_MODULE.md](BOSS_MODULE.md)。
+施放時在身邊生怪，不發射子彈。`SummonIds`（必填，`|` 分隔）每次隨機抽一個；`SummonCount` 每次幾隻、`SummonMaxAlive` 同時上限（滿了不施放也不扣魔）、`SummonRadius` 生成環半徑；冷卻用 `FireInterval`。武器 `Damage` 不用；武器表 `SummonEffectID` 在每個生怪點播特效。目前 boss（紅嫁衣）與玩家（御靈水晶、**墨家機關塔 80**）共用，見 [BOSS_MODULE.md](BOSS_MODULE.md)。⭐ 玩家召喚的怪一律換成跟班大腦（AllyBrain），**`BrainType=Turret` 例外**：不會動的砲台，自己的武器照 MonsterData `Weapon` 開火（2026-11-24，見 [MONSTER_SETUP.md](MONSTER_SETUP.md)）。
 
 ```
 ID=27 Name=御靈水晶-召喚雜魚 Mode=Summon FireInterval=1.5 SummonIds=1 SummonCount=1 SummonMaxAlive=1 SummonRadius=1.5

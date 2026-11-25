@@ -168,6 +168,10 @@ public class MonsterSpawner : MonoBehaviour
             data.IntroDesc  = (values.Length > 46 && !string.IsNullOrWhiteSpace(values[46])) ? values[46].Trim() : "";
             // 攻擊命中時給目標的狀態（索引 47，表尾欄，2026-11-18）：狀態清單，見 MonsterData.ContactStatus。
             data.ContactStatus = (values.Length > 47 && !string.IsNullOrWhiteSpace(values[47])) ? values[47].Trim() : "";
+            // 召喚物存活秒數（索引 48，表尾欄，2026-11-24）：只有 BrainType=Turret 用。留空＝0＝TurretBrain 預設。
+            data.LifeSeconds = (values.Length > 48 && !string.IsNullOrWhiteSpace(values[48])) ? float.Parse(values[48]) : 0f;
+            // 召喚者血量比例（索引 49，表尾欄，2026-11-24）：>0 ⇒ 被召喚時 HP＝召喚者最大血量 × 此值（見 SummonSystem）。
+            data.OwnerHpRatio = (values.Length > 49 && !string.IsNullOrWhiteSpace(values[49])) ? float.Parse(values[49]) : 0f;
 
             // 遊戲中說話：句子1~句子4（索引 18~21）。每格可空；有內容才加入。格式見 ParseSpeechLine。
             // ⚠️ CSV 用半形逗號分欄 → 句子內不能有半形逗號，要用全形「，」（見 readme/PROBLEMS）。
@@ -299,7 +303,8 @@ public class MonsterSpawner : MonoBehaviour
         
         controller.Initialize(data);
         controller.Faction = faction;       // 陣營：決定追誰/打誰/在哪層（在 Start 之前設好，contact/目標選擇才讀得到）
-        if (faction == MonsterFaction.PlayerAlly) controller.SetBrain(new AllyBrain());   // 玩家召喚物＝聰明跟班（跟玩家+打敵怪）
+        // ⚠ 例外：BrainType=Turret（墨子的機關塔，2026-11-24）是不會動的砲台，保留 TurretBrain。
+        if (faction == MonsterFaction.PlayerAlly && data.BrainType != "Turret") controller.SetBrain(new AllyBrain());   // 玩家召喚物＝聰明跟班（跟玩家+打敵怪）
         controller.DeathFlag = deathFlag;   // 出生點 trigger 的「死亡觸發旗標」；此擺放專屬，空＝不寫旗標
         controller.SpawnKey = spawnKey;     // 關卡進度用：本張地圖唯一的出生點 key（有值＝一次性地圖出生怪，死了記進度）。見 RunProgress
         // 掉寶與「記不記進度」拆開：一次性出生點兩者都有；重複產生的出生點只掉寶不記進度；召喚物兩者都沒有（防無限刷）。

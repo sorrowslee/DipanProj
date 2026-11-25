@@ -1226,3 +1226,19 @@
 - [ ] 怪物還不能放靈獸（`MonsterWeaponUser` 會警告）；要的話把 `SpiritStrike` 的目標層與畫面範圍改成參數。
 - [ ] 火虎、冰鳳等下一隻：照 §4e〈做下一隻〉產圖＋加表列；不發光的生物身體 shader 要另做（目前純加色）。（鳥類別用目前「圖貼在彎曲網格」的做法：2026-11-19 火鳥試過、作者判定不能用，見 [DIPAN_VFX.md](DIPAN_VFX.md) §4e〈做下一隻〉的註）
 
+## 機甲血統（Machinaborn，系列 13）— 2026-11-24 建立（見 [BLOODLINE.md](BLOODLINE.md) §8）
+
+- [x] ~~作者確認 18 張立繪與成品瓶~~ → **2026-11-24 已裝**（Talk/Machinaborn/*、bloodline_Machinaborn.png）。⚠ 要跑 Sync Map Assets。原文：作者確認 18 張立繪與成品瓶（`TempImage/bloodline_Machinaborn/work/all18.jpg`、`icon/bottle_cmp.jpg`）→ 確認後才裝：`bash tools/install.sh <key> Machinaborn/<角色>`（Talk 資料夾要先建）、成品瓶放 `Resources/UI/Icons/Items/positions/bloodline/bloodline_Machinaborn.png`。
+- [x] ~~機偶暴君立繪寬版／直版~~ → 寬版（作者 2026-11-24 同意裝）。原文：機偶暴君立繪寬版／直版：AI 依面板模擬建議寬版（直版在血統轉換框裡上半部空一大塊），等作者拍板。
+- [ ] **第三階藥劑文案**：3132 的 TipStats／TipLore 寫的是「墨銀凝成人貌」（GPT 概述，改設計前），墨子定稿是瓷白機械身軀＋墨黑長袍，要不要改由作者決定。
+- [x] ~~作者用 AutoSprite 產正式序列圖~~ → **2026-11-24 已到**，影子錨點 12 列 AI 已離線重算（墨子長袍沒黏腳，不用手填）。⚠ 要跑 `Sync Map Assets`。
+- [ ] **`BodyScale`／五屬性／`AttackFrameRange` 實機調**（三階目前都是 1、佔位值）。機偶暴君設定上是巨型機關人，應該要比 1 大。
+- [x] ~~墨子專屬夢境武器~~ → **80 墨家機關塔**（2026-11-24，見 BLOODLINE §5d）。
+- [ ] **機關塔實機看**：從土裡升起的速度與抖動（`GroundEmerge`）、沙土特效大小、塔的大小（MonsterData 46 `Scale` 1.05）、砲彈大小（武器 81 `BulletScale` 0.45）與命中爆炸（VfxTable 63）、滑鼠點哪生哪（配方 95 `SummonAtCursor`）、放彈時機（`ReleaseFrame` 7＝砲管縮回）、八方砲的射程／傷害／間隔（配方 96、武器 81）、10 秒後沉回土裡；新手夢境抽到墨子時能不能順利打完波次。作弊面板「取得所有武器」可拿 **906 測試・墨家機關塔**在一般關卡測（80 號本身不是道具）。
+- [ ] 機關塔強度實機看（2026-11-25 改無敵、傷害 80、間隔 0.65、AnimFPS 28、砲彈 0.55、爆炸 1.3）：跟其他三階專武比還弱／太強就調武器 81 `Damage`、配方 96 `FireInterval`（⚠ 低於 0.6 左右會比 attack 動畫一輪短，要連 MonsterData 46 `AnimFPS` 一起調）。
+- [x] ~~墨子神格特效~~ → **肩上的木頭機關鷹**（2026-11-24，`FamiliarStyle`=MoziEagle，見 BLOODLINE §5b〈`FamiliarStyle`：隨從〉）。
+- [ ] **機關鷹實機看**：大小（`Size` 0.18）、停在肩上的位置（`PerchOffsetX／Y` 或改 FamiliarAnchorTable 那一幀）、多久飛一次（6～10 秒）、繞圈大小與高度、起飛／降落銜接有沒有跳、攻擊時停在伸出去那隻手臂根部看起來對不對、死亡時飛走、復活後停回肩上。
+- [ ] **GameManagers 掛 `FamiliarTableProvider`、把 `FamiliarTable.csv`、`FamiliarAnchorTable.csv` 拖進去**——沒掛時編輯器會直接讀 Assets/Data（印警告），但 **build 裡老鷹不會出現**。
+- [ ] 「計算影子錨點」會把 `Companions/MoziEagle` 的五個動作也算進 ShadowAnchorTable（工具掃全部 SequenceImage）——無害、用不到，要不要排除由作者決定。
+- [ ] 這輪新增的兩支工具 `do_diff4.sh`、`fit_feet.py` 目前只在工作夾，要不要收進 `tools/art/art_remake/tools/`（進 git）由作者決定。
+- [ ] ⚠ **測完墨子夢境後把 `DreamTutorialFlow.DebugForceBloodlineId` 從 132 改回 0**（2026-11-25 暫時寫死墨子給作者測新手教學）。

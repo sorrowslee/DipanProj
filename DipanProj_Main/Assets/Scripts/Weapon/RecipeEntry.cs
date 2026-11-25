@@ -75,6 +75,9 @@ public class RecipeEntry
     /// <summary>true = 池裡**每個 ID 各召一隻**（忽略 <see cref="SummonCount"/>、不重複抽、生成角度平均分開）。
     /// 給「一口氣把一整組怪叫齊」的大絕用（紅嫁衣的家人齊聚）；false = 照 SummonCount 隨機抽。</summary>
     public bool SummonEachOnce = false;
+    /// <summary>true = 在**滑鼠點的位置**召喚（離施放者超過 <c>Data.BeamRange</c>＝CSV 的 Range 就拉回射程邊緣，空=8；
+    /// 點在牆上／水裡就找最近站得住的點）；false = 在施放者身邊一圈（舊行為）。墨家機關塔用（2026-11-24）。</summary>
+    public bool SummonAtCursor = false;
 
     // ── 骨牢（Mode=Cage）──
     /// <summary>困住幾秒；時間到牢籠崩裂並結算一次傷害。</summary>
@@ -249,7 +252,8 @@ public class RecipeEntry
         d.BeamRange = Fl("Range", mode == WeaponMode.GroundCast ? 8f : mode == WeaponMode.Boomerang ? BoomerangDefaultRange
                                  : mode == WeaponMode.Familiar ? FamiliarDefaultRange
                                  : mode == WeaponMode.Sweep ? SweepDefaultRange
-                                 : mode == WeaponMode.Overhead ? OverheadDefaultRange : 20f);
+                                 : mode == WeaponMode.Overhead ? OverheadDefaultRange
+                                 : mode == WeaponMode.Summon ? 8f : 20f);   // Summon：SummonAtCursor 的最遠施放距離（同 GroundCast）
         e.AreaRadius = Fl("AreaRadius", 0f);
 
         // ── 命中附加 ──
@@ -290,6 +294,7 @@ public class RecipeEntry
         e.SummonMaxAlive = In("SummonMaxAlive", 4);
         e.SummonRadius = Fl("SummonRadius", 2f);
         e.SummonEachOnce = Bo("SummonEachOnce", false);
+        e.SummonAtCursor = Bo("SummonAtCursor", false);
 
         // ── 骨牢 ──
         e.CageSeconds = Fl("CageSeconds", 5f);

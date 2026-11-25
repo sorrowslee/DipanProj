@@ -744,6 +744,15 @@ namespace Dipan.Gacha
                 ghost.SetStyle(def.GhostStyle);
             }
             else if (ghost != null) ghost.SetStyle(null);
+
+            // ⑨ 隨從（停在肩上的小動物，不定時繞一圈；墨子的機關鷹）。停棲點要照宿主的序列圖逐幀查，所以把 SpriteFolder 一起給它。
+            var familiar = go.GetComponent<BloodlineFamiliar>();
+            if (!string.IsNullOrEmpty(def.FamiliarStyle))
+            {
+                if (familiar == null) familiar = go.AddComponent<BloodlineFamiliar>();
+                familiar.SetStyle(def.FamiliarStyle, def.SpriteFolder);
+            }
+            else if (familiar != null) familiar.SetStyle(null, null);
         }
     }
 }

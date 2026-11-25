@@ -234,3 +234,20 @@ characters/gluttonborn/taotie/attack,0,65,98,auto,25,256,256,
 characters/gluttonborn/taotie/dead,2,68.8,92,auto,9,256,256,幀數 9→25 已重算
 characters/gluttonborn/taotie/idle,1,60.2,68,auto,16,256,256,
 characters/gluttonborn/taotie/walk,-3.2,62.5,79,auto,21,256,256,
+characters/machinaborn/machinaincarnate/attack,2.5,64.8,75,auto,25,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/machinaincarnate/dead,5.5,85,87,auto,25,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/machinaincarnate/idle,0.2,61.5,53,auto,18,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/machinaincarnate/walk,1.2,66,55,auto,21,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/automatontyrant/attack,1,36.9,184,auto,25,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/automatontyrant/dead,13,63.3,122,auto,25,256,256,2026-11-25 dead 重新縮放後重算（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/automatontyrant/idle,-0.2,61.5,132,auto,16,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/automatontyrant/walk,-4,53.5,134,auto,25,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/mozi/attack,-2.8,62,73,auto,25,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/mozi/dead,1,88.4,116,auto,25,348,348,2026-11-25 dead 重新縮放後重算（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/mozi/idle,0,38.2,75,auto,17,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/machinaborn/mozi/walk,-7,45.7,88,auto,25,256,256,2026-11-24 正式序列圖（AI 用 shadow_anchor.py 離線算，同 ShadowAnchorMath）
+characters/companions/mozieagle/fly,-2.5,88.6,139,auto,25,256,256,
+characters/companions/mozieagle/glide,-0.2,79.9,140,auto,4,256,256,
+characters/companions/mozieagle/idle,-20,61.5,115,auto,16,256,256,
+characters/companions/mozieagle/land,-11.5,65.6,100,auto,19,256,256,
+characters/companions/mozieagle/takeoff,-7.5,76.5,109,auto,25,256,256,

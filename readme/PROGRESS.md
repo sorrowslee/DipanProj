@@ -4,6 +4,72 @@
 > **本檔一律倒序（最新在最上）**，新條目直接加在這段註記下方。記錄格式與大小封存規則見 [DOCS_GUIDE.md](DOCS_GUIDE.md)。
 > 較舊條目（專案初期 ~ 2026-09-22，共 305 條；2026-08-21、2026-08-27、2026-10-01 三次搬入）已**原文照錄**封存至 [archive/PROGRESS-archive.md](archive/PROGRESS-archive.md)，檔頭附逐條索引；查歷史脈絡去那裡，別當作已遺失。
 
+* [x] **血統藥劑名稱補上「血統」**（2026-11-25，作者：「機甲藥劑」看不出是什麼）：ItemTable 39 瓶系列藥劑 `N階X藥劑` → **`N階X血統藥劑`**（13 系列 × 3 階；進階藥劑 310／311 本來就叫「血統進階藥劑」不動）。只換正規式 `[123]階<系列名>藥劑`，逐檔核對 diff 只動到藥劑那幾列；只給人看的備註也一起改（BaseBloodRoll、ExchangeTable `Note`、DropTable `Name`）、BLOODLINE §3 表與 §7 第 5 步加命名規則。物品名目前沒有英文欄（ItemTable 只有中文、不經 LanguageTable），英文版之後做多語系時再一起處理。Reimport ItemTable。
+
+* [x] **墨家機關塔同時上限 2 → 4**（2026-11-25，作者）：RecipeTable 95 `SummonMaxAlive` 4（武器 80 與測試 906 共用這個配方，一起變）。Reimport RecipeTable。
+
+* [ ] **⚠ 新手夢境暫時寫死墨子**（2026-11-25，作者要測）：`DreamTutorialFlow.DebugForceBloodlineId` 0 → **132**；**測完要改回 0**（否則正式版新手教學永遠是墨子）。
+
+* [x] **墨子體型再放大**（2026-11-25，作者：放大 1.1）：BloodlineTable 132 `BodyScale` 1.3 → **1.43**（×1.1）。老鷹跟著角色高度自動放大、停棲點走 lossyScale，不用改。Reimport BloodlineTable。
+
+* [x] **機偶暴君立繪第三版（⏳ 未實測；未 commit）**（2026-11-25，作者截圖：對話框裡還看得到膝蓋以下，「應該再放大，只到腰際？還是規格寫到腳踝？」——規格是到腰，第二版 0.65 縮太小）
+  `tyrant_refit2.py` 倍率 0.65 → **0.80**（原圖腰 y≈600 → 腰線 533；最高點仍＝頭頂線 160），新增 `SIDE_CUT_X 450`：腰線以下、中心線外側淡掉（放大後垂在身側的拳頭會從對話框邊露出；轉換面板只到腹部、看不到）。`check_bloodline_portraits.py` 驗過：FAIL 0；露出框外 ≤12px；轉換面板看得到面罩與胸口。覆蓋 `GameAssets/.../AutomatonTyrant/*.png`（原圖仍在 `ref/tyrant_portrait_before/`）。BLOODLINE〈主角立繪驗證〉清單加「對話框切在腰，不是膝蓋、腳踝」。
+  <br>**作者要做的**：`Sync Map Assets` 後再看一次測試說話npc。
+
+* [x] **主角立繪驗證流程＋工具（每個新血統必做）**（2026-11-25，作者：知道問題就把驗證方式與重點寫進文件，每做一次新血統都要驗對話立繪與血統轉換立繪）
+  新工具 `tools/art/art_remake/tools/check_bloodline_portraits.py`（repo 根目錄跑，參數照抄 `TalkPanel`／`BloodlineIntroPanel`）：一次產出「六表情×對話框左右＋轉換面板」總表到 `TempImage/portrait_check/`，自動檢查畫布規格、缺表情、人浮在對話框上、轉換面板可見窗空白（FAIL），以及頂端高出頭頂線、腰線以下露出對話框、臉超出轉換面板窗、六張不一致（WARN，要人對圖判斷）；`TALK=` 可先驗候選圖。拿已上線的九尾天狐、靈狐、芬里爾、機甲三階試跑校準門檻（露出框外只提醒不判死：九尾的尾巴是設計）。
+  文件：BLOODLINE.md 新小節〈主角立繪驗證〉＋§7 新血統步驟 **4b（必做）**；CHARACTER_ART_SPEC §6 驗收加一條；tools/art/README §2.6 與整套流程；AGENTS.md 美術路由列補一句；PROBLEMS **G26**（機偶暴君兩次錯在哪）。
+
+* [x] **機甲序列圖與機偶暴君立繪第二次修正（⏳ 未實測；`develop`、未 commit）**（2026-11-25，作者：暴君 dead 太大、墨子 dead 太小、墨子 attack 圖太多、暴君 attack 沒播完、暴君立繪在對話框非常有問題）
+  ① **dead 大小**（PROBLEMS G23 同一套）：機偶暴君 dead 25 張以腳底縮 0.90（站姿第一幀高 143→idle 129）；墨子 dead 畫布 256→348 後以腳底放大 1.362（站姿高 149→idle 203、腳底距中心與 idle 同為 101px）。ShadowAnchorTable 兩列 dead 用 `shadow_anchor.py` 重算（墨子 CanvasW/H 改 348）。原檔備份 `TempImage/bloodline_Machinaborn/ref/dead_before/`。
+  ② **attack 播放範圍**（表B `AttackFrameRange`，作者定的規則）：131 機偶暴君 `3-25`（播到收回完）、132 墨子 `1-9`（伸臂後的定格只留 4 張）。
+  ③ **機偶暴君立繪第二版**：第一版只模擬了血統轉換面板、沒模擬對話框，且煙囪伸到頭頂線上方被作者寬螢幕切掉。新工具 `tyrant_refit2.py`：最高點（煙囪頂）＝頭頂線、倍率 0.65、angry／hurt 右移免得腰線以下從對話框邊外露出；用 `sim_talk2.py`（左右兩側、六種表情）＋`sim_intro.py` 驗過才覆蓋 `GameAssets/.../AutomatonTyrant/*.png`。規格補一條「非人形角色：頭頂線＝整隻最高點」（CHARACTER_ART_SPEC §2.0）。
+  <br>**作者要做的**：`Sync Map Assets`；Reimport BloodlineTable、ShadowAnchorTable。
+
+* [x] **墨家機關塔第二輪調整（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-25，作者：砲彈與爆炸放大一點；改回不能被攻擊；加快射速與威力，現在比其他三階弱太多）
+  ① **大小**：武器 81 `BulletScale` 0.45 → 0.55；VfxTable 63 `Scale` 1 → 1.3。
+  ② **無敵**：`TurretBrain` 第一次 Think 就 `SetUntargetable(true)`（Mist 層＋TakeDamage 擋掉，同血霧型）；`MonsterController.FindNearestEnemy` 加一條跳過 `IsUntargetable`——敵怪不再把塔（與血霧型怪）當目標。MonsterData 46 `OwnerHpRatio` 0.1 清空（欄位保留）。
+  ③ **強度**：武器 81 `Damage` 6 → **80**（其他三階專武 40～100）；配方 96 `FireInterval` 1.5 → **0.65**；MonsterData 46 `AnimFPS` 14 → **28**（attack 一輪 0.82 秒、放彈前 0.21 秒 ⇒ 約 0.86 秒一發、動畫不被切斷；原本約 1.93 秒一發）。單塔對單體約 93 DPS，兩座＋八方向打群怪更多。
+  <br>**作者要做的**：Reimport WeaponTable／RecipeTable／MonsterData／VfxTable。
+
+* [x] **機甲血統體型＋機偶暴君立繪重排（⏳ 未實測；`develop`、未 commit）**（2026-11-24，作者：二階體型 ×1.5、三階 ×1.3、老鷹跟三階走；血統轉換的二階立繪有問題）
+  ① **體型**：BloodlineTable 131 機偶暴君 `BodyScale` 1 → **1.5**、132 墨子 1 → **1.3**（逐列改，備註同步）。老鷹 `BloodlineFamiliar` 的大小本來就是 `ScaledCharacterHeight × Size`、停棲點走 lossyScale，**不用改程式**就跟著墨子 1.3 倍。
+  ② **立繪**：機偶暴君寬版 6 張照「腳貼底、畫滿高」交件，`BloodlineIntroPanel` 規格路徑（頭頂線 157→腹部線 533、中心線 700）放大後窗內只剩胸口木頭、面罩偏到窗右緣外；且 6 張表情的面罩高度從 y304 到 y499 亂跳。用新工具 `TempImage/bloodline_Machinaborn/tools/tyrant_refit.py` 整組縮 0.6、以面罩為錨點對到 (716,223)（angry／hurt 依姿勢略低），頂端蒸汽柔淡 → 覆蓋 `GameAssets/Main/Characters/Talk/Machinaborn/AutomatonTyrant/*.png`；原檔備份在 `TempImage/bloodline_Machinaborn/ref/tyrant_portrait_before/`。一階、三階模擬過沒問題，不動。
+  <br>**作者要做的**：`Sync Map Assets`（立繪走 StreamingAssets catalog）；Reimport BloodlineTable。
+
+* [x] **墨家機關塔五項修正（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-24，作者回報：本體太小、砲彈比砲管大、命中爆炸太醜、血量要控制、出現位置不吃滑鼠）
+  ① **本體**：MonsterData 46 `Scale` 0.7 → **1.05**（放大 0.5 倍）。
+  ② **砲彈**：武器 81 `BulletScale` 1.6 → **0.45**——量 idle 圖：正面砲管外徑約 19px／256 畫布，塔 Scale 1.05、PPU 100 ⇒ 砲管約 0.2 世界單位；砲彈圖內容 421px、PPU 100、Bullet prefab 0.1 ⇒ 0.45 時直徑約 0.19，剛好塞得進砲管。
+  ③ **命中爆炸**：新 VfxTable **63**「機關塔炮彈命中」＝特效庫 `Super Pixel Explosion FX Pack 1/expfx1_symmetrical_explosion_C` 橘色 11 張（96×96）→ `Resources/VfxEffects/TurretShellBurst/TurretShellBurst_01..11`，20fps、Scale 1；武器 81 `HitEffectID` 43 → 63（43 還有血魔重炮 34、落星羅盤 44 在用，沒動 43）。
+  ④ **血量**：MonsterData 新表尾欄 **`OwnerHpRatio`**（索引 49）＝召喚者血量比例；`SummonSystem.Cast` 生怪後呼叫新的 `MonsterController.ApplyOwnerHp(召喚者最大血量)`（玩家看 `CombatStats`、boss 看 `MonsterController`）。46 填 0.1＝玩家的 1/10；`HP` 9999 被覆寫。仍可被敵怪鎖定。
+  ⑤ **滑鼠落點**：RecipeTable 新欄 **`SummonAtCursor`**（召喚組，SummonEachOnce 之後；`WeaponModeSpec`／`RecipeEntry` 同步，Summon 模式的 `Range` 預設 8＝最遠施放距離）。`PlayerController` 召喚分支在勾選時把落點算成「滑鼠點，超過 Range 拉回邊緣」（同 GroundCast、連擊中鎖點）；`SummonSystem.Cast` 新參數 `atPoint`：第一隻就生在那一點（新 `FindSpawnPosAt`：站不住由近往遠找最近站得住的點，附近全不行才退回玩家身邊）。配方 95 填 1；其他召喚配方該欄留空（行為不變）。
+  <br>**作者要做的**：Reimport MonsterData／WeaponTable／RecipeTable／VfxTable；新特效圖在 `Resources/VfxEffects` 會自動套匯入設定；作弊面板拿 906 實測。
+
+* [x] **墨子專屬夢境武器：墨家機關塔（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-24，作者：三階新手教學專屬武器，可以 8 方向發射砲彈的機關塔；作者短時間不在，交代 AI 一路做完）
+  ① **美術**：GPT 基礎圖（八角胡桃木塔身、頂部 8 根青銅砲管、青銅齒輪冠）→ `ArtSource/Bloodlines/Machinaborn/MoziTurret.png`；作者 AutoSprite 做 attack 與 deploy。attack 拿掉第 7 張（黃色砲火）與第 8 張（殘留火痕），第 12 張右上角雜點清掉（原檔留在 `_to_delete/MoziTurret_2026-11-24/`）；idle＝attack 第 1 張。**deploy 不用**（AutoSprite 畫面裡沒有地面，只能原地展開、做不出從土裡出來），整組搬到 `_to_delete/`，改由程式做。砲彈 `Resources/Weapon/single/weapon_mohistShell.png`（GPT 產：青銅砲彈＋青綠鉚釘帶）；測試武器 icon `Resources/UI/Icons/Equipment/icon_mohistTurret.png`（基礎圖縮製）。
+  ② **程式**：新大腦 `TurretBrain`（BrainType=Turret：不移動、射程內有敵怪→起播 attack→到放彈幀 `MonsterWeaponUser.TryUse`、時間到沉回土裡銷毀）、新元件 `GroundEmerge`（SpriteMask 擋住地面以下＋整隻由下往上推＋抖動＋沙土；沉下反過來）。同日作者實測「沙土特效跟塔的大小位置有落差」⇒ 沙土從 VfxTable 8（以中心為錨的大爆炸，一半在地下、比塔大兩倍）先換成特效庫 fx1_impact_dust 棕色貼地塵浪，作者也覺得不適合，改用作者在特效預覽器挑的 **fanfx1_magic_puff_B 白色**＝**VfxTable 62「機關塔出場煙」**（`Resources/VfxEffects/TurretEmergePuff/`，21 幀；塵浪那版的圖搬到 `_to_delete/TurretEmergeDust_2026-11-24/`）：畫布高＝塔高×1.7、畫布下緣貼地面線，煙從土裡冒出往上蓋過整座塔，塔在煙裡升起；沉回土裡時也放一次；`MonsterSpawner` 讓 PlayerAlly 的 Turret 不被換成 AllyBrain；MonsterData 加表尾第 49 欄 `LifeSeconds`。Roslyn 編譯主遊戲（有／無 UNITY_EDITOR）＋Editor 0 錯誤。
+  ③ **資料**：MonsterData 46 `MoziTurret`（Turret、HP 9999、不擊退、Scale 0.7、AnimFPS 14、ReleaseFrame 7、LifeSeconds 10、武器 81）；WeaponTable 80 墨家機關塔（Summon，配方 95：冷卻 1、最多 2 座）、81 機關塔-八方砲（配方 96：8 方向、傷害 6、間隔 1.5、速度 9、飛 0.85 秒、命中 VfxTable 43）；測試武器 906「測試・墨家機關塔」（WeaponTable＋ItemTable，配方共用 95；作者同日要求：非常規武器，所以原本加的 ItemTable 80 拿掉、改成跟電龍一樣的測試武器）；表B 墨子 `DreamWeaponId` 65 → 80。
+  <br>**作者要做的**：`Sync Map Assets`；Reimport MonsterData／WeaponTable／RecipeTable／ItemTable／BloodlineTable；作弊面板拿 906「測試・墨家機關塔」實測，或 `DreamTutorialFlow.DebugForceBloodlineId`＝132 測夢境。
+
+* [x] **機甲血統的 18 張立繪與成品瓶裝進專案（`develop`、未 commit）**（2026-11-24，作者：立繪跟藥瓶 icon 都放進去）
+  `GameAssets/Main/Characters/Talk/Machinaborn/{MachinaIncarnate,AutomatonTyrant,Mozi}/{normal,happy,cry,hurt,angry,fear}.png`（機偶暴君寬版 1536×1024）＋ `Resources/UI/Icons/Items/positions/bloodline/bloodline_Machinaborn.png`（500×500，內容框對齊既有瓶）。主角血統立繪走半身排法，PortraitTable 不加列。
+  <br>**作者要做的**：`Project Tools → Sync Map Assets`（立繪要進 catalog 才讀得到）；喝 3130 看血統轉換面板與背包圖示。
+
+* [x] **墨子的神格特效：肩上的木頭機關鷹＋機甲三階正式序列圖接上（⏳ 已編譯、未實測；`develop`、未 commit）**（2026-11-24，作者：木頭機關老鷹停在墨子裸露的那邊肩膀，時不時飛出去轉一圈再回來，死亡跪下時飛走消失；作者做 idle／takeoff／fly／land／glide 序列圖、AI 對位）
+  ① **老鷹設計**（ChatGPT）：停棲圖 v1 → 作者要「更機關一點」→ v2（木環疊成的脖子、嵌在肩關節的齒輪、鉚釘鉸接的木羽片、互咬的胸板）定稿，再出同一隻的展翅圖。基準圖放 `ArtSource/Bloodlines/Machinaborn/MoziEagle_{perch,perch_pad,fly}.png`（pad＝縮 60% 留空給起飛降落展翅）。
+  ② **序列圖驗收**：idle 爪子幾乎不動（±2px）通過；takeoff 只播到第 12 幀（後面是原地懸停）；glide 只有第 22～25 張是真的滑翔、其餘搬到 `_to_delete/MoziEagle_2026-11-24/`；land 第 10～15 張（落地後趴下亂拍）同樣搬走。
+  ③ **程式**：新元件 `BloodlineFamiliar`（停棲→起飛→繞頭頂一圈→降落；宿主倒下飛走淡出、站起來直接停回肩上；藏起來就隱藏）、`FamiliarTable`／`FamiliarTableProvider`、表B 第 34 欄 `FamiliarStyle`（墨子 132＝`MoziEagle`）、`BloodlineSystem.ApplyGodhoodFx` ⑨、`PlayerAnimator` 加 `CurrentAnimState／CurrentFrameIndex` 兩個唯讀屬性、`PlayModeStaticReset` 補一行。停棲點換算照抄 BlobShadow（吃宿主當下 sprite 的 pivot／PPU／flipX）。Roslyn 編譯主遊戲（有／無 UNITY_EDITOR）＋Editor 0 錯誤。
+  ④ **資料**：`FamiliarTable.csv`（大小 0.18、各動作大小補正、爪子位置、起降關鍵幀、繞圈參數）、`FamiliarAnchorTable.csv`（墨子 idle／walk 追蹤、attack 手標的逐幀肩膀點；檢查圖與合成預覽 `TempImage/bloodline_Machinaborn/eagle/anchor/`）。
+  ⑤ **機甲三階序列圖**：作者已換上 AutoSprite 正式圖（暫代全清）；`ShadowAnchorTable` 12 列用 `shadow_anchor.py` 離線重算；表B 三列備註改成「正式圖」。⚠ 途中曾用全文取代改備註，誤改到青丘 100／102、天使 110 三列（它們的備註有一樣的字串），**已從 HEAD 還原**、diff 確認只剩機甲三列。
+  <br>**作者要做的**：GameManagers 掛 `FamiliarTableProvider` 並拖兩張 CSV；`Project Tools → Sync Map Assets`；Reimport BloodlineTable／ShadowAnchorTable；用墨子實機看老鷹（大小、肩膀位置、繞圈、起降銜接、死亡飛走）。
+
+* [x] **新血統：機甲 Machinaborn（系列 13）——資料表與暫代序列圖已加，立繪／成品瓶待作者確認後安裝（`develop`、未 commit）**（2026-11-24，作者：照 GPT 概述新增血統，美術照專案規範）
+  ① **角色圖**（AI 操作 ChatGPT）：機甲化身（四肢榫卯木甲、主角臉）一次過；機偶暴君（木銅巨型機關人、紅色眼縫、青銅發光齒輪）、墨子（瓷白機械身軀、黑長直髮、金額環、單肩墨黑長袍、親切微笑）各改了多輪，審稿過程見 [CHATGPT_IMAGE_WORKFLOW.md](CHATGPT_IMAGE_WORKFLOW.md) §7.7。定稿放 `ArtSource/Bloodlines/Machinaborn/`（給作者做 AutoSprite）。
+  ② **18 張立繪**：機甲化身、墨子 1024×1536；機偶暴君寬體型 1536×1024（無臉，表情靠肢體）。這次 §8.2 那句短提示詞兩個角色都回了「五張全開心」，寬版還回了總表，補救方法寫進 §7.7；新工具 `do_diff4.sh`、`fit_feet.py`（工作夾）。**成品瓶** `bloodline_Machinaborn`（琥珀銅液、齒輪＋魯班鎖徽章、青銅齒輪瓶塞）。都在 `TempImage/bloodline_Machinaborn/`，**還沒裝進專案**。
+  ③ **資料**：表A 13（`DreamDramaId` 91）；表B 130～132（`BodyScale` 1、`WalkSpeed` 留空、五屬性佔位；墨子 `DreamWeaponId` 暫借 65 山崩地裂）；ItemTable 3130～3132（文案照 GPT 概述）；BaseBloodRoll 3130（權重 10）；DramaTable 91／DramaTalk 260（TalkGroup 88）／LanguageTable 1017 夢境台詞。PortraitTable 不用加（主角血統立繪走半身排法）。
+  ④ **暫代序列圖**：`SequenceImage/Machinaborn/{MachinaIncarnate,AutomatonTyrant,Mozi}` 複製自靈根築基期／土裔山嶽巨人／靈根化神期（只 png），`ShadowAnchorTable` 照抄 12 列（Note 標「暫代」）。
+  <br>**作者要做的**：看 `all18.jpg`、`bottle_cmp.jpg` 拍板（含機偶暴君寬／直版、第三階藥劑文案）→ AI 安裝立繪與瓶子；之後跑 `Project Tools → Sync Map Assets`、Reimport 改到的 CSV；AutoSprite 正式圖到了照 BLOODLINE §8 換。
+
 * [x] **電龍、黑龍各補一把測試武器（未實測；`develop`、未 commit）**（2026-11-23，作者：電龍、黑龍各要「單隻追蹤」與「九隻分裂追蹤」兩把）
   原本已有 902 追蹤電龍、903 九條追蹤黑龍；新增 904「測試・九條電龍」（配方 904＝抄 903：SplitLv 8、SpreadSpacing 45、SpreadMaxAngle 360、HomingLv 3；SpiritFxID 1、icon_skylightning）與 905「測試・追蹤黑龍」（配方 905＝抄 902：HomingLv 3；SpiritFxID 2、icon_soulbanner）。RecipeTable／WeaponTable／ItemTable 各加兩列，既有列沒動；不上兌換所。
   <br>**作者要做的**：Reimport RecipeTable、WeaponTable、ItemTable；作弊面板給 902～905 實測。

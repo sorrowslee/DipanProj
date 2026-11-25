@@ -168,6 +168,13 @@ namespace Dipan.Gacha
         /// 查 GemTable 的效果（目前只用在狀態效果列，例 Nidhogg＝<c>發射增傷:1</c>）。跟裝備、珠子全身等級相加。留空 = 無。
         /// </summary>
         public string Effects = "";
+
+        /// <summary>
+        /// **隨從**（第 34 欄 `FamiliarStyle`，2026-11-24，<see cref="BloodlineFamiliar"/>）：停在宿主肩上的小動物，
+        /// 不定時起飛繞一圈再飛回來，宿主倒下時飛走。填 FamiliarTable.csv 的 Key（目前只有墨子的 <c>MoziEagle</c>）。
+        /// 留空 = 無。見 readme/BLOODLINE.md §5b〈`FamiliarStyle`：隨從〉。
+        /// </summary>
+        public string FamiliarStyle;
     }
 
     /// <summary>
@@ -335,6 +342,7 @@ namespace Dipan.Gacha
                 d.StepFrames = ParseStepFrames(CsvUtil.Field(v, 30), id);   // 腳步特效踏地幀（30 欄，2026-11-10）
                 d.GhostStyle = CsvUtil.Field(v, 31);   // 身邊幽靈（31 欄，2026-11-12）。留空 = 無。
                 d.Effects = CsvUtil.Field(v, 32) ?? "";  // 血統內建效果（32 欄，2026-11-18）。留空 = 無。
+                d.FamiliarStyle = CsvUtil.Field(v, 33);   // 隨從（33 欄，2026-11-24）。留空 = 無。
 
                 _byId[id] = d;
             }

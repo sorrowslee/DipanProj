@@ -16,6 +16,13 @@ using UnityEngine;
 /// <para><b>召喚特效</b>：<paramref name="summonVfxId"/> &gt; 0 時，在每個生怪點播一次 VfxTable 特效並**同一幀生怪**
 /// （邊播邊出現）；特效會依怪的可見高度縮放（見 VfxManager.SpawnSizedToHeight）。找不到 VfxManager 就只生怪。</para>
 ///
+/// <para><b>定點召喚（<paramref name="atPoint"/>＝true，配方 <c>SummonAtCursor=1</c>，2026-11-24）</b>：
+/// 呼叫端把 <paramref name="originPos"/> 傳成「滑鼠點的位置（已被 Range 夾住）」，第一隻**就生在那一點**
+/// （站不住才往外找最近站得住的點），第二隻起才照 <c>SummonRadius</c> 環繞那一點。墨家機關塔用。</para>
+///
+/// <para><b>血量跟召喚者走</b>：怪物表 <c>OwnerHpRatio</c> &gt; 0 的怪，生成後 HP＝召喚者當下最大血量 × 比例
+/// （見 <see cref="MonsterController.ApplyOwnerHp"/>；召喚者是玩家看 CombatStats、是怪看 MonsterController）。</para>
+///
 /// 冷卻由呼叫端各自管（玩家 _fireTimer、boss MonsterWeaponUser）。陣營：玩家=PlayerAlly、怪物/boss=Enemy。
 /// </summary>
 public static class SummonSystem
@@ -29,7 +36,7 @@ public static class SummonSystem
         return aliveTracker.Count < recipe.SummonMaxAlive;
     }
 
-    public static bool Cast(GameObject owner, Vector3 originPos, RecipeEntry recipe, List<GameObject> aliveTracker, MonsterFaction faction, int summonVfxId = 0)
+    public static bool Cast(GameObject owner, Vector3 originPos, RecipeEntry recipe, List<GameObject> aliveTracker, MonsterFaction faction, int summonVfxId = 0, bool atPoint = false)
     {
         if (recipe == null || recipe.Mode != WeaponMode.Summon || aliveTracker == null) return false;
 
@@ -61,7 +68,9 @@ public static class SummonSystem
         for (int k = 0; k < n; k++)
         {
             int id = eachOnce ? recipe.SummonIds[k] : recipe.SummonIds[Random.Range(0, recipe.SummonIds.Length)];
-            Vector2 pos = eachOnce
+            Vector2 pos = (atPoint && k == 0)
+                ? FindSpawnPosAt((Vector2)originPos, recipe.SummonRadius, owner != null ? (Vector2)owner.transform.position : (Vector2)originPos)                             // 定點：第一隻就在那一點
+                : eachOnce
                 ? FindSpawnPosNear((Vector2)originPos, recipe.SummonRadius, baseAngle + angleStep * k)  // 分好的角度，被擋才微調
                 : FindSpawnPos((Vector2)originPos, recipe.SummonRadius);                                // 避開牆/水的落點
 
@@ -70,10 +79,52 @@ public static class SummonSystem
             if (go == null) continue;
             aliveTracker.Add(go); spawned++;
 
+            // 血量跟召喚者走（怪物表 OwnerHpRatio > 0 才有作用；機關塔＝玩家的 1/10）
+            float ownerMax = OwnerMaxHealth(owner);
+            if (ownerMax > 0f)
+            {
+                var mc = go.GetComponent<MonsterController>();
+                if (mc != null) mc.ApplyOwnerHp(ownerMax);
+            }
+
             // 召喚特效：同一幀在生怪點播，並依這隻怪的可見大小縮放（大怪大特效、小怪小特效）。
             if (vfx != null) PlaySpawnVfx(vfx, summonVfxId, go, pos);
         }
         return spawned > 0;
+    }
+
+    /// <summary>召喚者當下的最大血量：玩家看 <see cref="CombatStats"/>，怪（boss 召喚）看 <see cref="MonsterController"/>；都沒有回 0。</summary>
+    private static float OwnerMaxHealth(GameObject owner)
+    {
+        if (owner == null) return 0f;
+        var cs = owner.GetComponent<CombatStats>();
+        if (cs != null) return cs.MaxHealth;
+        var mc = owner.GetComponent<MonsterController>();
+        return mc != null ? mc.MaxHealth : 0f;
+    }
+
+    /// <summary>
+    /// 定點生怪（<c>SummonAtCursor</c>）：那一點站得住就直接用；站不住（點在牆上／水裡）就**由近往遠**一圈圈找，
+    /// 挑離指定點最近、站得住的位置——跟 <see cref="FindSpawnPos"/>（由外往內縮向施放者）方向相反，
+    /// 因為這裡要的是「盡量貼近玩家點的地方」。附近都站不住（點進一大片牆／水）就退回「在施放者身邊」（<see cref="FindSpawnPos"/>），
+    /// 不用 <see cref="FallbackSpot"/> 的全圖隨機點——砲台跑到地圖另一頭比生在身邊更莫名其妙。
+    /// </summary>
+    private static Vector2 FindSpawnPosAt(Vector2 point, float radius, Vector2 casterPos)
+    {
+        var nav = MapNavGrid.Instance;
+        if (IsSpawnSpotOk(nav, point)) return point;
+        float maxR = Mathf.Max(1.5f, radius * 2f);
+        for (float r = 0.3f; r <= maxR + 0.001f; r += 0.3f)
+        {
+            float a0 = Random.value * Mathf.PI * 2f;
+            for (int i = 0; i < 12; i++)
+            {
+                float a = a0 + i * (Mathf.PI * 2f / 12f);
+                Vector2 p = point + new Vector2(Mathf.Cos(a), Mathf.Sin(a)) * r;
+                if (IsSpawnSpotOk(nav, p)) return p;
+            }
+        }
+        return FindSpawnPos(casterPos, radius);
     }
 
     // 在施放者周圍找一個「怪站得住」的生怪點（見 IsSpawnSpotOk）：試多個角度、由外往內縮，挑第一個可用的。

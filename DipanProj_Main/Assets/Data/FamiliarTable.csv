@@ -1,0 +1,7 @@
+Key,Folder,Size,Fps,ScaleTakeoff,ScaleFly,ScaleGlide,ScaleLand,FootIdle,FootTakeoff,TakeoffLift,TakeoffEnd,FootLand,LandTouch,WaitMin,WaitMax,LapTime,LapRadiusX,LapRadiusY,LapHeight,GlideFrom,GlideTo,FlyAwayTime,PerchOffsetX,PerchOffsetY,Note
+# 隨從外觀表（2026-11-24，BloodlineFamiliar 用；表B 的 FamiliarStyle 填這裡的 Key）。序列圖在 GameAssets/Main/Characters/SequenceImage/<Folder>/{idle,takeoff,fly,glide,land}/。
+# Size＝停棲時（idle）的可見高 ÷ 宿主角色高。Scale*＝各動作相對 idle 的大小補正（AutoSprite 各動作的鳥大小不一：takeoff／land 用 60% 的停棲圖做、fly／glide 用 80% 的展翅圖做）。
+# Foot*＝爪子在來源圖的位置「X:Y」（X 相對畫布中心、Y 從畫布底），FootTakeoff／FootLand 每幀一組。TakeoffLift＝第幾幀離開肩膀、TakeoffEnd＝播到第幾幀換 fly；LandTouch＝第幾幀爪子碰到肩膀（都是 1 起算）。
+# WaitMin／WaitMax＝停多久起飛一次（秒，隨機）；LapTime＝繞一圈幾秒；LapRadiusX／Y、LapHeight＝橢圓半徑與中心高（× 宿主角色高，中心從腳底量）；GlideFrom／GlideTo＝這一圈的哪一段改播 glide（0～1）。
+# FlyAwayTime＝宿主死亡倒下時飛走淡出的秒數。PerchOffsetX／Y＝停棲點微調（× 宿主角色高；X 往角色面向那邊為正）。
+MoziEagle,Companions/MoziEagle,0.18,12,1.65,1.43,1.43,1.65,-14:62,-9:64;-10:64;2:64;2:64;2:64;2:64;2:64;5.5:65;0.5:73;-0.5:83;35.5:81;5.5:80,9,12,-5.5:80;-3.5:83;26:102;-33:109;-1.5:104;2:93;-0.5:66;4:64;3.5:63;3.5:63;3.5:63;-8.5:63;-8.5:63;-7.5:63;-7.5:63;-7.5:62;-7.5:62;-7.5:62;-7.5:62,7,6,10,2.8,0.75,0.22,0.95,0.3,0.65,1.2,0,0,墨子（132）的木頭機關鷹：停在裸露的那邊肩膀上，不定時起飛繞一圈再回來；墨子倒下時飛走

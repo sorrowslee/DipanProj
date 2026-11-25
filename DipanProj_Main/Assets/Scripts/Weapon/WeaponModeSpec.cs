@@ -247,7 +247,7 @@ public static class WeaponModeSpec
             F(R, "WanderAngle",     FieldKind.Float, "追蹤", "飄移幅度（度）", "0", 0f, 90f, "每顆子彈左右蛇行擺盪的角度（各自隨機相位）；0＝直飛。冤魂、螢火這類「飄」的子彈用"),
 
             // ── 射程／範圍（語意一致的共用欄）──
-            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）／Familiar 索敵半徑（空=8）／Sweep 掃描長度（空=12、-1＝只到滑鼠）／Overhead 索敵半徑（空=6）"),
+            F(R, "Range",      FieldKind.Float, "射程範圍", "射程", "", -1f, 200f, "Laser 光束長度（-1＝無限）／Chain 首段射程／GroundCast 施放距離／Boomerang 每趟往外飛多遠（空=5）／Familiar 索敵半徑（空=8）／Sweep 掃描長度（空=12、-1＝只到滑鼠）／Overhead 索敵半徑（空=6）／Summon 滑鼠召喚最遠距離（空=8）"),
             F(R, "AreaRadius", FieldKind.Float, "射程範圍", "範圍半徑", "", 0f, 50f, "Parabolic 落地爆炸／SkyStrike 落雷 AOE／Melee 扇形半徑"),
 
             // ── 命中附加 ──
@@ -286,6 +286,8 @@ public static class WeaponModeSpec
             F(R, "SummonRadius",   FieldKind.Float,   "召喚", "生成半徑", "2", 0.1f, 50f),
             F(R, "SummonEachOnce", FieldKind.Bool,    "召喚", "每個 ID 各一隻", "0",
               help: "1＝忽略「每次召喚幾隻」，池內每個 ID 各生一隻、不重複，且生成角度平均分開（大絕「一次叫齊一整組」用）"),
+            F(R, "SummonAtCursor", FieldKind.Bool,    "召喚", "在滑鼠處召喚", "0",
+              help: "1＝在滑鼠點的位置生（超過「射程」就拉回射程邊緣；點在牆上就找最近站得住的點）；0＝在施放者身邊一圈（墨家機關塔用）"),
 
             // ── 近戰 ──
             F(R, "MeleeAngle", FieldKind.Float, "近戰", "扇形總角度（度）", "100", 1f, 360f),
@@ -470,9 +472,9 @@ public static class WeaponModeSpec
 
         // 召喚
         M(d, WeaponMode.Summon, "召喚", "施放時在身邊生怪；冷卻用 FireInterval")
-            .Eff("FireInterval").Req("SummonIds").Eff("SummonCount", "SummonMaxAlive", "SummonRadius", "SummonEachOnce").Eff(Burst)
+            .Eff("FireInterval").Req("SummonIds").Eff("SummonCount", "SummonMaxAlive", "SummonRadius", "SummonEachOnce", "SummonAtCursor", "Range").Eff(Burst)
             .Eff("SummonEffectID")
-            .Lbl("FireInterval", "召喚冷卻（秒）");
+            .Lbl("FireInterval", "召喚冷卻（秒）").Lbl("Range", "滑鼠召喚最遠距離（只在「在滑鼠處召喚」=1 時有效；空=8）");
 
         // 定點法陣
         M(d, WeaponMode.GroundCast, "定點法陣", "在滑鼠位置放一個地面特效（半徑／節拍走 GroundEffectTable，傷害用武器 Damage）")

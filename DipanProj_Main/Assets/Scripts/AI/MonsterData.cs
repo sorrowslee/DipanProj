@@ -30,6 +30,13 @@ public class MonsterData
     /// <summary>攻擊命中時給目標的狀態（CSV 索引 47 <c>ContactStatus</c>，2026-11-18）：狀態清單「名稱:等級;…」，DoT 一律固定值。留空＝無。見 readme/STATUS_EFFECT.md §4。</summary>
     public string ContactStatus = "";
 
+    /// <summary>召喚物存活秒數（CSV 索引 48 <c>LifeSeconds</c>，2026-11-24）：只有 BrainType=Turret 用（時間到沉回土裡消失），留空＝0＝TurretBrain 預設 10 秒。</summary>
+    public float LifeSeconds = 0f;
+    /// <summary>召喚者血量比例（CSV 索引 49 <c>OwnerHpRatio</c>，2026-11-24）：&gt;0 時，被 <see cref="SummonSystem"/> 召喚出來的這隻怪
+    /// 血量上限改成「召喚者當下最大血量 × 此值」（墨家機關塔＝0.1，玩家的 1/10）；HP 欄被覆寫。留空＝0＝照 HP 欄。
+    /// 只在經由 SummonSystem 生成時套用（地圖擺放／波次生的怪沒有召喚者）。</summary>
+    public float OwnerHpRatio = 0f;
+
     public float ContactDamage = 100f;  // 碰到玩家造成的傷害（留空 = 100（×10：2026-11-17 數值尺度放大，見 readme/EQUIPMENT.md §8））
     public float AttackInterval = 0.5f; // 接觸攻擊間隔秒＝攻速（CSV: AttackInterval，越小攻越快，留空 = 0.5）
     public float DamageReduction = 0f;   // 受擊減傷 %（留空 = 0；掛勾，之後接減傷/抗性）

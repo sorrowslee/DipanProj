@@ -212,6 +212,14 @@ public class PlayerAnimator : MonoBehaviour, IShadowAnchorSource
     public State CurrentGeomState => GeomState;
 
     /// <summary>
+    /// 目前播的動作（**不換算趴姿**，跟 <see cref="CurrentGeomState"/> 不同）與它的第幾幀（0 起算）。
+    /// 給「要逐幀對位」的東西用（2026-11-24：<see cref="BloodlineFamiliar"/> 隨從要踩在宿主肩膀上，肩膀每幀位置不同，
+    /// 錨點表是照「動作＋幀」查的）。倒下／趴地／爬起期間播的是 dead 幀，這時 <see cref="IsWakeUpBusy"/> 為 true。
+    /// </summary>
+    public State CurrentAnimState => _state;
+    public int CurrentFrameIndex => _idx;
+
+    /// <summary>
     /// 掛在身上的持續型特效（血統神格特效那三層）現在該不該顯示。
     ///
     /// **白名單**：只有 idle / walk / attack 這三種「站著的動作」才顯示。

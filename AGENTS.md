@@ -74,7 +74,7 @@ Built-in Render Pipeline、Unity 2022.3）。核心迴圈與底層架構已完�
 | 新增**單鍵熱鍵**、或做有**輸入框**的 UI | PROBLEMS **K4**——熱鍵判斷要加 `!UIManager.TextInputFocused`，否則玩家在輸入框打字會順便觸發熱鍵 |
 | **做／改 shader 特效**（火焰、地上燃燒、地刺、雷射／連鎖的光束外觀、靈獸電龍…）、或要讓特效能在地圖編輯器預覽 | [readme/DIPAN_VFX.md](readme/DIPAN_VFX.md)——特效程式與 shader 一律放共用套件 `DipanVfx/`（主遊戲＋地圖編輯器共用，**不得引用主遊戲類別**），表放主遊戲 `Assets/Data/`，並接進預覽器「自製特效」分頁（§5 固定流程）；**會發光的素材請 GPT 用純黑底** |
 | 產任何圖片素材 | [readme/AI_IMAGE_GEN_GUIDE.md](readme/AI_IMAGE_GEN_GUIDE.md) |
-| **處理美術圖**（去背、立繪／角色圖對齊、表情差分、模擬轉換面板與對話框、量序列圖大小、修 dead、算影子、UI 圖示換風格） | **先查 [tools/art/README.md](tools/art/README.md)「要做什麼→用哪支」，用現成工具，不要重寫**；工作夾開在 `TempImage/<任務>/`（不進 git）；美術原始檔（角色基礎圖等）放 `ArtSource/`（進 git、Unity 不讀） |
+| **處理美術圖**（去背、立繪／角色圖對齊、表情差分、模擬轉換面板與對話框、量序列圖大小、修 dead、算影子、UI 圖示換風格） | **先查 [tools/art/README.md](tools/art/README.md)「要做什麼→用哪支」，用現成工具，不要重寫**；**主角血統立繪（新血統或換圖）完成前必跑 `check_bloodline_portraits.py` 並打開總表看**（對話框＋轉換面板兩種排法，見 readme/BLOODLINE.md〈主角立繪驗證〉）；工作夾開在 `TempImage/<任務>/`（不進 git）；美術原始檔（角色基礎圖等）放 `ArtSource/`（進 git、Unity 不讀） |
 | 素材風格／場景調色／畫面觀感（「組起來不漂亮」） | [readme/ART_DIRECTION.md](readme/ART_DIRECTION.md)（畫面經營六紀律＋繪圖 AI 檢核表；產圖操作仍看 AI_IMAGE_GEN_GUIDE） |
 | 加／改「直接進關卡」測試選單、想換某關卡從哪張圖開始 | [readme/TITLE_AND_SAVE_UI.md](readme/TITLE_AND_SAVE_UI.md)〈測試快捷〉——**關卡入口一律用 module 型 `Set("<module>")`，進哪張由 MapsTable `IsLevelStart` 決定（改 CSV 即可、不用動程式）**；`map:<id>` 只給非模組首圖。踩過見 PROBLEMS **B15** |
 | 第一次接觸專案／遇到怪問題 | [readme/PROBLEMS.md](readme/PROBLEMS.md)（檔頭有分類索引；踩過的坑幾乎都在裡面） |

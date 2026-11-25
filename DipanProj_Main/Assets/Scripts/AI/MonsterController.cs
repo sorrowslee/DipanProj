@@ -100,8 +100,13 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     [Tooltip("射手型每次站定評估停幾秒（CSV: ObserveTime）。-1（留空）＝ 0.4~0.8 隨機；0 ＝ 不觀察，一進射程就舉槍、且沒有生成後的起手緩衝；正數 ＝ 固定秒數。只有 BrainType=Archer 會用到")]
     public float ObserveTime = -1f;
 
-    [Tooltip("射手型的行為射程（CSV: ShootRange）。0（留空）＝ ArcherBrain 預設 5.25。只有 BrainType=Archer 會用到")]
+    [Tooltip("射手型的行為射程（CSV: ShootRange）。0（留空）＝ ArcherBrain 預設 5.25。只有 BrainType=Archer 會用到（Turret 也讀：留空＝7）")]
     public float ShootRange = 0f;
+
+    [Tooltip("召喚物存活秒數（CSV: LifeSeconds）。只有 BrainType=Turret 用；留空/0 ＝ TurretBrain 預設 10 秒")]
+    public float LifeSeconds = 0f;
+    [Tooltip("召喚者血量比例（CSV: OwnerHpRatio）。>0 時經 SummonSystem 召喚出來，HP 上限＝召喚者最大血量 × 此值；0＝照 HP 欄")]
+    public float OwnerHpRatio = 0f;
 
     [Tooltip("劇本同伴的攻擊方式（CSV: CompanionStyle）。留空＝近戰；Spin＝原地旋轉打周圍。只有 companion 叫出來的同伴會用")]
     public string CompanionStyle = "";
@@ -578,6 +583,8 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
         Controllable = data.Controllable; // 可否被骨牢那類定身抓住（留空＝可以）
         ObserveTime = data.ObserveTime;   // 射手型觀察秒數（留空＝-1＝原本的隨機；0＝不觀察）
         ShootRange = data.ShootRange;     // 射手型行為射程（留空＝0＝ArcherBrain 預設 5.25）
+        OwnerHpRatio = data.OwnerHpRatio; // 召喚者血量比例（>0 ⇒ SummonSystem 生成後呼叫 ApplyOwnerHp）
+        LifeSeconds = data.LifeSeconds;   // 召喚物存活秒數（只有 BrainType=Turret 用；留空＝TurretBrain 預設 10）
         AttackOffsetX = data.AttackOffsetX;
         AttackFootLock = data.AttackFootLock;
         CompanionStyle = data.CompanionStyle ?? "";   // 劇本同伴的攻擊方式（留空＝近戰，見 CompanionBrain）
@@ -615,6 +622,9 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
                 break;
             case "Archer":          // 射手型（弓/弩/火槍…）：評估「原地射得到嗎」→ 射不到才移動（見 ArcherBrain）
                 _brain = new ArcherBrain();
+                break;
+            case "Turret":          // 固定砲台（墨子的機關塔，2026-11-24）：從土裡升起、不移動、射程內有敵怪就開火、時間到沉回土裡（見 TurretBrain）
+                _brain = new TurretBrain();
                 break;
             case "SuicideBomb":     // 自爆型：追到貼身 → 引信閃爍預告 → 一次性爆炸傷害圈＋自毀（見 SuicideBombBrain）
                 _brain = new SuicideBombBrain();
@@ -829,6 +839,7 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
             MonsterController mc = list[i];
             if (mc == null || mc == this || mc.IsDead || !FactionRelations.Hostile(Faction, mc.Faction)) continue;   // 「打得到的才是敵人」統一查 FactionRelations
             if (mc.IsCompanion) continue;   // 劇本同伴不會被任何怪當成目標（否則玩家能拿它當無敵盾牌）
+            if (mc.IsUntargetable) continue;   // 虛體（血霧、墨家機關塔）打不到 → 不當目標，免得一群怪圍著它空揮（2026-11-25）
             float sq = ((Vector2)mc.transform.position - (Vector2)transform.position).sqrMagnitude;
             if (sq <= rangeSq && sq < bestSq) { bestSq = sq; best = mc.transform; }
         }
@@ -967,6 +978,17 @@ public class MonsterController : MonoBehaviour, IDamageable, ICombatModifiers, I
     /// 不該讓「自爆會不會成功」取決於另一個欄位（同 PROBLEMS **F19**「無敵時間是一份隱形的行為預算」）。</para>
     /// </summary>
     public void Kill() => Die();
+
+    /// <summary>
+    /// 召喚物血量跟召喚者走（<see cref="OwnerHpRatio"/> &gt; 0 才有作用）：上限與目前血量都設成「召喚者最大血量 × 比例」。
+    /// 由 <see cref="SummonSystem.Cast"/> 在生成後立刻呼叫（墨家機關塔＝玩家的 1/10，2026-11-24）。
+    /// </summary>
+    public void ApplyOwnerHp(float ownerMaxHealth)
+    {
+        if (_isDead || OwnerHpRatio <= 0f || ownerMaxHealth <= 0f) return;
+        MaxHealth = Mathf.Max(1f, ownerMaxHealth * OwnerHpRatio);
+        _currentHealth = MaxHealth;
+    }
 
     /// <summary>作弊面板壓測用（第⑥階段）：把血量上限與目前血量直接設成指定值。正式流程不要呼叫。</summary>
     public void DebugSetHealth(float hp)

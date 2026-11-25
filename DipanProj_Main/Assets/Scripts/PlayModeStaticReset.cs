@@ -53,6 +53,7 @@ public static class PlayModeStaticReset
         CharacterEnvFusion.ResetForPlayMode();         // 角色環境融合（模式、場景量測結果）
         NpcDatabase.ResetForPlayMode();                // NPC 種類表（NpcTable.csv）
         ShadowAnchorTable.ResetForPlayMode();          // 影子錨點表（ShadowAnchorTable.csv）
+        FamiliarTable.ResetForPlayMode();              // 隨從表（FamiliarTable.csv／FamiliarAnchorTable.csv）
         DropTable.ResetForPlayMode();                  // 掉落表（DropTable.csv）
         EquipAttributes.ResetForPlayMode();            // 裝備體系：「讀不到 GemTable 改用備援曲線」只警告一次的旗標
         Dipan.Inventory.ItemQuality.ResetForPlayMode();  // 品質系統：快取的 WeaponManager 參照（停 Play 後會變成已銷毀物件）與警告旗標

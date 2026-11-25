@@ -84,6 +84,7 @@ cd $T
 ### 2.6 驗收／模擬（改圖或改面板參數後一定跑）
 | 要看什麼 | 工具 |
 |---|---|
+| ⭐ **主角血統立繪上線前驗證（每個新血統必跑）**：對話框（六表情×左右）＋轉換面板一張總表，外加自動檢查 | `check_bloodline_portraits.py <系列>/<角色>...`（repo 根目錄跑；輸出 `TempImage/portrait_check/*.jpg`；有 FAIL 結束碼 1；**WARN 每條都要對圖確認、總表一定要打開看**；流程見 readme/BLOODLINE.md〈主角立繪驗證〉） |
 | **血統轉換面板**（BloodlineIntroPanel，參數與程式同步） | `sim_intro.py <out.jpg> <立繪>...`（repo 根目錄跑） |
 | **對話框**：主角腰部以上＋NPC 內容框對齊／PortraitTable，同框比較 | `sim_talk2.py <out.jpg> <左圖> <右圖>`（GameAssets 相對路徑；`PT=` 換表測試） |
 | 對話框（只有腰部以上版） | `sim_talk.py` |
@@ -115,6 +116,6 @@ cd $T
 
 ## 3. 常見整套流程（照做）
 
-- **重畫一個血統的對話立繪**：CHATGPT_IMAGE_WORKFLOW.md §8（母版 prompt、差分 prompt、坑）→ `do_master.sh` → `fit_portrait_std.py`（或 `place_by_lines.py`）→ `do_diff5.sh` → `sheet6.py` 看 → `sim_intro.py`＋`sim_talk2.py` 驗 → `install.sh`＋複製到 StreamingAssets。
+- **重畫一個血統的對話立繪**：CHATGPT_IMAGE_WORKFLOW.md §8（母版 prompt、差分 prompt、坑）→ `do_master.sh` → `fit_portrait_std.py`（或 `place_by_lines.py`）→ `do_diff5.sh` → `sheet6.py` 看 → **`check_bloodline_portraits.py`（`TALK=` 指向候選圖）驗，總表打開看** → `install.sh`＋複製到 StreamingAssets → 再對正式路徑跑一次 `check_bloodline_portraits.py` → 實機（測試說話npc＋喝藥看轉換面板）。
 - **新序列圖放進遊戲後**：`seq_measure.py` 看 dead／walk／attack 跟 idle 差多少 → dead 不對用 `fix_dead_scale.py` → `shadow_anchor.py` 重算影子 → `shadow_preview.py` 看。
 - **NPC 立繪換圖**：去背（紫光用 `cutout_magenta_border.py`）→ `sim_talk2.py` 用 `PT=` 試 PortraitTable 數值 → 定案寫進表。

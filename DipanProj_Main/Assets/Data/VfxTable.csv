@@ -52,3 +52,5 @@ ID, Name(僅供辨識), AniPath(序列圖路徑前綴/相對Resources不含編�
 59,屍毒雲爆(屍毒葫蘆落地；原本是地面特效10的圖，2026-11-09 改成一般特效畫在角色之上),GroundEffect/CorpsePoison/CorpsePoison,17,8,4.69,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 60,路西法之怒爆炸(Explosions/stylized_explosion_003 紅),VfxEffects/LuciferWrathExplosion/LuciferWrathExplosion,14,15,4,0,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
 61,饕餮印爆炸(Explosions/stylized_explosion_006 blue＋冷藍；作者 2026-11-12 在特效預覽器挑的),VfxEffects/TaotieSealExplosion/TaotieSealExplosion,12,15,2.8,0,,,,,,,,,,,,,,,,,,,
+62,機關塔出場煙(Super Pixel Fantasy FX Pack 1 fanfx1_magic_puff_B white；作者 2026-11-24 在特效預覽器挑的；GroundEmerge 依塔高自動縮放),VfxEffects/TurretEmergePuff/TurretEmergePuff,21,15,1,0,,,,,,,,,,,,,,,,,,,
+63,機關塔炮彈命中(Super Pixel Explosion FX Pack 1 expfx1_symmetrical_explosion_C orange；取代共用的 43 炮彈爆炸給八方砲用),VfxEffects/TurretShellBurst/TurretShellBurst,11,20,1.3,0,,,,,,,,,,,,,,,,,,,

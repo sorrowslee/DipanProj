@@ -1263,7 +1263,17 @@ public class PlayerController : MonoBehaviour, IDamageable
             // 連擊補的那幾發不扣魔：「一份魔力連射 N 發」才跟按著連射有差別
             if (!burstShot && _stats != null && !_stats.TrySpendMana(weapon.ManaCost)) return false;
             TrySpawnFireEffect(weapon, AimDirectionToMouse());
-            SummonSystem.Cast(gameObject, transform.position, weapon.Recipe, _summonAlive, MonsterFaction.PlayerAlly, weapon.SummonEffectID);
+            // 在滑鼠處召喚（SummonAtCursor，墨家機關塔）：落點＝滑鼠點，超過 Range 就拉回射程邊緣（同 GroundCast 的算法）；
+            // 第一隻就生在那一點，站不住才由 SummonSystem 往外找最近站得住的點。
+            Vector3 summonAt = transform.position;
+            bool atCursor = weapon.Recipe.SummonAtCursor;
+            if (atCursor)
+            {
+                Vector2 o = transform.position;
+                float range = (weapon.Recipe.Data != null && weapon.Recipe.Data.BeamRange > 0f) ? weapon.Recipe.Data.BeamRange : 8f;
+                summonAt = o + Vector2.ClampMagnitude(AimWorldPoint() - o, range);   // 連擊中鎖落點
+            }
+            SummonSystem.Cast(gameObject, summonAt, weapon.Recipe, _summonAlive, MonsterFaction.PlayerAlly, weapon.SummonEffectID, atCursor);
             AfterShot(weapon, burstShot);
             return true;
         }
